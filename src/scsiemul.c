@@ -92,12 +92,6 @@ static void io_log (const TCHAR *msg, uaecptr request)
 	    get_long (request + 32), get_byte (request + 31));
 }
 
-STATIC_INLINE void memcpyha (uae_u32 dst, const uae_u8 *src, int size)
-{
-    while (size--)
-		put_byte (dst++, *src++);
-}
-
 static struct devstruct *getdevstruct (int unit)
 {
     int i;

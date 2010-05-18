@@ -112,7 +112,7 @@ typedef struct {
     uae_u16 len;
     uae_u32 offs;
     unsigned int bitlen, track;
-    unsigned int sync;
+	uae_u16 sync;
     image_tracktype type;
 	int revolutions;
 } trackid;
@@ -143,10 +143,10 @@ typedef struct {
     trackid writetrackdata[MAX_TRACKS];
     int buffered_cyl, buffered_side;
     unsigned int cyl;
-    int motoroff;
+    bool motoroff;
     int motordelay; /* dskrdy needs some clock cycles before it changes after switching off motor */
-    int state;
-    int wrprot;
+    bool state;
+    bool wrprot;
     uae_u16 bigmfmbuf[0x4000 * DDHDMULT];
     uae_u16 tracktiming[0x4000 * DDHDMULT];
     int multi_revolution;
@@ -160,9 +160,9 @@ typedef struct {
     int dmalen;
     unsigned int num_tracks, write_num_tracks, num_secs;
     unsigned int hard_num_cyls;
-    int dskchange;
+    bool dskchange;
     int dskchange_time;
-    int dskready;
+    bool dskready;
     int dskready_time;
     int dskready_down_time;
 	int writtento;
@@ -636,7 +636,7 @@ static void reset_drive(int i)
 static void update_drive_gui (int num)
 {
     drive *drv = floppy + num;
-    int writ = dskdmaen == 3 && drv->state && !(selected & (1 << num));
+    bool writ = dskdmaen == 3 && drv->state && !(selected & (1 << num));
 
     if (drv->state == gui_data.drive_motor[num]
 	&& drv->cyl == gui_data.drive_track[num]
@@ -651,7 +651,7 @@ static void update_drive_gui (int num)
     gui_data.drive_track[num] = drv->cyl;
     gui_data.drive_side = side;
     gui_data.drive_writing[num] = writ;
-	gui_led (num + LED_DF0, gui_data.drive_motor[num]);
+	gui_led (num + LED_DF0, (gui_data.drive_motor[num] ? 1 : 0) | (gui_data.drive_writing[num] ? 2 : 0));
 }
 
 static void drive_fill_bigbuf (drive * drv,int);
@@ -783,7 +783,7 @@ static struct zfile *getwritefile (const char *name, int *wrprot)
 static int iswritefileempty (const char *name)
 {
     struct zfile *zf;
-    int wrprot;
+    bool wrprot;
 	uae_char buffer[8];
     trackid td[MAX_TRACKS];
     unsigned int tracks, i, ret;
@@ -806,7 +806,7 @@ static int iswritefileempty (const char *name)
 
 static int openwritefile (drive *drv, int create)
 {
-    int wrprot = 0;
+    bool wrprot = 0;
 
     drv->writediskfile = getwritefile (currprefs.df[drv - &floppy[0]], &wrprot);
     if (drv->writediskfile) {
@@ -825,10 +825,10 @@ static int openwritefile (drive *drv, int create)
     return drv->writediskfile ? 1 : 0;
 }
 
-static int diskfile_iswriteprotect (const char *fname, int *needwritefile, drive_type *drvtype)
+static bool diskfile_iswriteprotect (const char *fname, int *needwritefile, drive_type *drvtype)
 {
     struct zfile *zf1, *zf2;
-    int wrprot1 = 0, wrprot2 = 1;
+    bool wrprot1 = 0, wrprot2 = 1;
     unsigned char buffer[25];
 
     *needwritefile = 0;
@@ -2065,11 +2065,11 @@ void disk_creatediskfile (char *name, int type, drive_type adftype, const char *
 	}
     track_len = FLOPPY_WRITE_LEN * 2;
 	if (adftype == 1 || adftype == 3) {
-	file_size *= 2;
-	track_len *= 2;
+		file_size *= 2;
+		track_len *= 2;
 	} else if (adftype == 4) {
-	file_size /= 2;
-	tracks /= 2;
+		file_size /= 2;
+		tracks /= 2;
     }
 
 	f = zfile_fopen (name, "wb", 0);
@@ -2454,7 +2454,7 @@ void DISK_select (uae_u8 data)
     }
     prevdata = data;
     if (disk_debug_logging > 1)
-	write_log ("\n");
+		write_log ("\n");
 }
 
 uae_u8 DISK_status (void)

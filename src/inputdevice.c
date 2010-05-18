@@ -62,16 +62,6 @@ int inputdevice_logging = 0;
 #define IE_INVERT 0x80
 #define IE_CDTV 0x100
 
-struct inputevent {
-	const TCHAR *confname;
-	const TCHAR *name;
-    int allow_mask;
-    int type;
-    int unit;
-    int data;
-};
-
-
 #define JOYBUTTON_1 0 /* fire/left mousebutton */
 #define JOYBUTTON_2 1 /* 2nd/right mousebutton */
 #define JOYBUTTON_3 2 /* 3rd/middle mousebutton */
@@ -102,25 +92,19 @@ struct inputevent {
 
 #define JOYMOUSE_CDTV 8
 
-/* event flags */
-#define ID_FLAG_AUTOFIRE 1
-#define ID_FLAG_TOGGLE 2
-#define ID_FLAG_SAVE_MASK 0xff
-#define ID_FLAG_TOGGLED 0x100
-
 #define DEFEVENT(A, B, C, D, E, F) {#A, B, C, D, E, F },
 const struct inputevent events[] = {
-{0, 0, AM_K, 0, 0, 0},
+	{0, 0, AM_K,0,0,0},
 #include "inputevents.def"
-{0, 0, 0, 0, 0, 0}
+	{0, 0, 0, 0, 0, 0}
 };
 #undef DEFEVENT
 
 static int sublevdir[2][MAX_INPUT_SUB_EVENT];
 
 struct uae_input_device2 {
-    uae_u32 buttonmask;
-    int states[MAX_INPUT_DEVICE_EVENTS / 2];
+	uae_u32 buttonmask;
+	int states[MAX_INPUT_DEVICE_EVENTS / 2];
 };
 
 static struct uae_input_device2 joysticks2[MAX_INPUT_DEVICES];
@@ -128,7 +112,19 @@ static struct uae_input_device2 mice2[MAX_INPUT_DEVICES];
 static uae_u8 scancodeused[MAX_INPUT_DEVICES][256];
 
 static int input_acquired;
-static int testmode;
+static int testmode, testmode_read, testmode_toggle;
+struct teststore
+{
+	int testmode_type;
+	int testmode_num;
+	int testmode_wtype;
+	int testmode_wnum;
+	int testmode_state;
+};
+#define TESTMODE_MAX 2
+static int testmode_count;
+static struct teststore testmode_data[TESTMODE_MAX];
+static struct teststore testmode_wait[TESTMODE_MAX];
 
 static uae_u8 *inprec_buffer, *inprec_p;
 static struct zfile *inprec_zf;
@@ -154,21 +150,31 @@ static int isdevice (const struct uae_input_device *id)
 
 int inputdevice_uaelib (TCHAR *s, TCHAR *parm)
 {
-    int i;
+	int i;
 
-    for (i = 1; events[i].name; i++) {
+	for (i = 1; events[i].name; i++) {
 		if (!_tcscmp (s, events[i].confname)) {
 			handle_input_event (i, _tstol (parm), 1, 0);
-		    return 1;
+			return 1;
 		}
-    }
-    return 0;
+	}
+	return 0;
 }
 
 static struct uae_input_device *joysticks;
 static struct uae_input_device *mice;
 static struct uae_input_device *keyboards;
 static struct uae_input_device_kbr_default *keyboard_default;
+#define KBR_DEFAULT_MAP_NP 0
+#define KBR_DEFAULT_MAP_CK 1
+#define KBR_DEFAULT_MAP_SE 2
+#define KBR_DEFAULT_MAP_CD32_NP 3
+#define KBR_DEFAULT_MAP_CD32_CK 4
+#define KBR_DEFAULT_MAP_CD32_SE 5
+#define KBR_DEFAULT_MAP_XA1 6
+#define KBR_DEFAULT_MAP_XA2 7
+#define KBR_DEFAULT_MAP_ARCADIA 8
+#define KBR_DEFAULT_MAP_ARCADIA_XA 9
 static int **keyboard_default_kbmaps;
 
 static int mouse_axis[MAX_INPUT_DEVICES][MAX_INPUT_DEVICE_EVENTS];
@@ -204,7 +210,7 @@ static int use_keyboards[MAX_INPUT_DEVICES];
 
 #define INPUT_QUEUE_SIZE 16
 struct input_queue_struct {
-    int event, storedstate, state, max, framecnt, nextframecnt;
+	int event, storedstate, state, max, linecnt, nextlinecnt;
 };
 static struct input_queue_struct input_queue[INPUT_QUEUE_SIZE];
 
@@ -228,15 +234,61 @@ static void out_config (FILE *f, int id, int num, const char *s1, const char *s2
     cfgfile_write (f, "input.%d.%s%d=%s\n", id, s1, num, s2);
 }
 
+static bool write_config_head (struct zfile *f, int idnum, int devnum, TCHAR *name, struct uae_input_device *id,  struct inputdevice_functions *idf)
+{
+	TCHAR tmp2[MAX_DPATH];
+
+	if (idnum == GAMEPORT_INPUT_SETTINGS) {
+		if (!isdevice (id))
+			return false;
+		if (!id->enabled)
+			return false;
+	}
+
+	TCHAR *s = NULL;
+	if (id->name)
+		s = id->name;
+	else if (devnum < idf->get_num ())
+		s = idf->get_friendlyname (devnum);
+	if (s) {
+		cfgfile_write (f, "input.%d.%s.%d.friendlyname=%s", idnum + 1, name, devnum, s);	
+	}
+
+	s = NULL;
+	if (id->configname)
+		s = id->configname;
+	else if (devnum < idf->get_num ())
+		s = idf->get_uniquename (devnum);
+	if (s) {
+		cfgfile_write (f, "input.%d.%s.%d.name=%s", idnum + 1, name, devnum, s);
+	}
+
+	if (!isdevice (id)) {
+		cfgfile_write (f, "input.%d.%s.%d.empty=1", idnum + 1, name, devnum);
+		if (id->enabled) {
+			cfgfile_write (f, "input.%d.%s.%d.disabled=%d", idnum + 1, name, devnum, id->enabled ? 0 : 1);
+		}
+		return false;
+	}
+
+	if (idnum == GAMEPORT_INPUT_SETTINGS) {
+		cfgfile_write (f, "input.%d.%s.%d.custom=1", idnum + 1, name, devnum);
+	} else {
+		cfgfile_write (f, "input.%d.%s.%d.empty=0", idnum + 1, name, devnum);
+		cfgfile_write (f, "input.%d.%s.%d.disabled=%d", idnum + 1, name, devnum, id->enabled ? 0 : 1);
+	}
+	return true;
+}
+
 static void write_config2 (FILE *f, int idnum, int i, int offset, TCHAR *tmp1, struct uae_input_device *id)
 {
 	TCHAR tmp2[200], tmp3[200], *p;
 	int evt, got, j, k;
 	TCHAR *custom;
 
-    p = tmp2;
-    got = 0;
-    for (j = 0; j < MAX_INPUT_SUB_EVENT; j++) {
+	p = tmp2;
+	got = 0;
+	for (j = 0; j < MAX_INPUT_SUB_EVENT; j++) {
 		evt = id->eventid[i + offset][j];
 		custom = id->custom[i + offset][j];
 		if (custom == NULL && evt <= 0) {
@@ -258,8 +310,8 @@ static void write_config2 (FILE *f, int idnum, int i, int offset, TCHAR *tmp1, s
 		else
 			_stprintf (p, "%s.%d", events[evt].confname, id->flags[i + offset][j]);
 		p += _tcslen (p);
-    }
-    if (p > tmp2) {
+	}
+	if (p > tmp2) {
 	    cfgfile_write (f, "input.%d.%s%d=%s\n", idnum, tmp1, i, tmp2);
 	}
 }
@@ -269,7 +321,7 @@ static struct inputdevice_functions *getidf (int devnum);
 static void write_config (FILE *f, int idnum, int devnum, const char *name, const struct uae_input_device *id, const struct uae_input_device2 *id2, struct inputdevice_functions *idf)
 {
 	TCHAR tmp1[MAX_DPATH], tmp2[MAX_DPATH], *s;
-    int i;
+	int i;
 
     if (!isdevice (id)) {
 	    cfgfile_write (f, "input.%d.%s.%d.empty=%d\n", idnum, name, devnum, 1);
@@ -327,6 +379,10 @@ static void write_kbr_config (FILE *f, int idnum, int devnum, struct uae_input_d
 
     if (!keyboard_default)
 		return;
+
+	if (!write_config_head (f, idnum, devnum, "keyboard", kbr, idf))
+		return;
+
     i = 0;
     while (i < MAX_INPUT_DEVICE_EVENTS && kbr->extra[i][0] >= 0) {
 		skip = 0;
@@ -335,16 +391,16 @@ static void write_kbr_config (FILE *f, int idnum, int devnum, struct uae_input_d
 		    if (keyboard_default[k].scancode == kbr->extra[i][0]) {
 				skip = 1;
 				for (j = 1; j < MAX_INPUT_SUB_EVENT; j++) {
-				    if (kbr->flags[i][j] || kbr->eventid[i][j] > 0)
+					if ((kbr->flags[i][j] & ID_FLAG_SAVE_MASK) != 0 || kbr->eventid[i][j] > 0)
 						skip = 0;
 				}
-				if (keyboard_default[k].event != kbr->eventid[i][0] || kbr->flags[i][0] != 0)
+				if (keyboard_default[k].evt != kbr->eventid[i][0] || keyboard_default[k].flags != (kbr->flags[i][0] & ID_FLAG_SAVE_MASK))
 				    skip = 0;
 				break;
 		    }
 		    k++;
 		}
-		if (kbr->eventid[i][0] == 0 && kbr->flags[i][0] == 0 && keyboard_default[k].scancode < 0)
+		if (kbr->eventid[i][0] == 0 && (kbr->flags[i][0] & ID_FLAG_SAVE_MASK) == 0 && keyboard_default[k].scancode < 0)
 		    skip = 1;
 		if (skip) {
 		    i++;
@@ -368,9 +424,9 @@ static void write_kbr_config (FILE *f, int idnum, int devnum, struct uae_input_d
 				*p = 0;
 		    }
 			if (custom && _tcslen (custom) > 0)
-				_stprintf (p, "'%s'.%d", custom, kbr->flags[i][j] & 0xff);
+				_stprintf (p, "'%s'.%d", custom, kbr->flags[i][j] & ID_FLAG_SAVE_MASK);
 		    else if (evt > 0)
-				_stprintf (p, "%s.%d", events[evt].confname, kbr->flags[i][j]);
+				_stprintf (p, "%s.%d", events[evt].confname, kbr->flags[i][j] & ID_FLAG_SAVE_MASK);
 		    else
 				_tcscat (p, "NULL");
 			p += _tcslen(p);
@@ -378,7 +434,7 @@ static void write_kbr_config (FILE *f, int idnum, int devnum, struct uae_input_d
 		_stprintf (tmp3, "%d", kbr->extra[i][0]);
 		kbrlabel (tmp3);
 		_stprintf (tmp1, "keyboard.%d.button.%s", devnum, tmp3);
-		_stprintf (tmp4, "input.%d.%s", idnum, tmp1);
+		_stprintf (tmp4, "input.%d.%s", idnum + 1, tmp1);
 		cfgfile_write_str (f, tmp4, tmp2[0] ? tmp2 : "NULL");
 		i++;
     }
@@ -388,23 +444,23 @@ void write_inputdevice_config (struct uae_prefs *p, FILE *f)
 {
     int i, id;
 
-    cfgfile_write (f, "input.config=%d\n", p->input_selected_setting);
-    cfgfile_write (f, "input.joymouse_speed_analog=%d\n", p->input_joymouse_multiplier);
-    cfgfile_write (f, "input.joymouse_speed_digital=%d\n", p->input_joymouse_speed);
-    cfgfile_write (f, "input.joymouse_deadzone=%d\n", p->input_joymouse_deadzone);
-    cfgfile_write (f, "input.joystick_deadzone=%d\n", p->input_joystick_deadzone);
+	cfgfile_write (f, "input.config=%d\n", p->input_selected_setting);
+	cfgfile_write (f, "input.joymouse_speed_analog=%d\n", p->input_joymouse_multiplier);
+	cfgfile_write (f, "input.joymouse_speed_digital=%d\n", p->input_joymouse_speed);
+	cfgfile_write (f, "input.joymouse_deadzone=%d\n", p->input_joymouse_deadzone);
+	cfgfile_write (f, "input.joystick_deadzone=%d\n", p->input_joystick_deadzone);
 	cfgfile_write (f, "input.analog_joystick_multiplier=%d\n", p->input_analog_joystick_mult);
 	cfgfile_write (f, "input.analog_joystick_offset=%d\n", p->input_analog_joystick_offset);
-    cfgfile_write (f, "input.mouse_speed=%d\n", p->input_mouse_speed);
-    cfgfile_write (f, "input.autofire=%d\n", p->input_autofire_framecnt);
-    for (id = 1; id <= MAX_INPUT_SETTINGS; id++) {
+	cfgfile_write (f, "input.mouse_speed=%d", p->input_mouse_speed);
+	cfgfile_write (f, "input.autofire_speed=%d\n", p->input_autofire_linecnt);
+	for (id = 0; id < MAX_INPUT_SETTINGS; id++) {
 		for (i = 0; i < MAX_INPUT_DEVICES; i++)
 			write_config (f, id, i, "joystick", &p->joystick_settings[id][i], &joysticks2[i], &idev[IDTYPE_JOYSTICK]);
 		for (i = 0; i < MAX_INPUT_DEVICES; i++)
 			write_config (f, id, i, "mouse", &p->mouse_settings[id][i], &mice2[i], &idev[IDTYPE_MOUSE]);
 		for (i = 0; i < MAX_INPUT_DEVICES; i++)
 			write_kbr_config (f, id, i, &p->keyboard_settings[id][i], &idev[IDTYPE_KEYBOARD]);
-    }
+	}
 }
 
 static int getnum (const TCHAR **pp)
@@ -416,30 +472,105 @@ static int getnum (const TCHAR **pp)
 		p++;
 	if (*p == '.' || *p == ',')
 		p++;
-    *pp = p;
-    return v;
+	*pp = p;
+	return v;
 }
 static TCHAR *getstring (const TCHAR **pp)
 {
-    int i;
+	int i;
 	static TCHAR str[1000];
 	const TCHAR *p = *pp;
 
-    if (*p == 0)
-	return 0;
-    i = 0;
-    while (*p != 0 && *p !='.' && *p != ',')
-	str[i++] = *p++;
-    if (*p == '.' || *p == ',')
-	p++;
-    str[i] = 0;
-    *pp = p;
-    return str;
+	if (*p == 0)
+		return 0;
+	i = 0;
+	while (*p != 0 && *p !='.' && *p != ',')
+		str[i++] = *p++;
+	if (*p == '.' || *p == ',')
+		p++;
+	str[i] = 0;
+	*pp = p;
+	return str;
 }
 
-void reset_inputdevice_config (struct uae_prefs *pr)
+static void reset_inputdevice_settings (struct uae_input_device *uid)
 {
+	unsigned int l, i;
+	for (l = 0; l < MAX_INPUT_DEVICE_EVENTS; l++) {
+		for (i = 0; i < MAX_INPUT_SUB_EVENT; i++) {
+			uid->eventid[l][i] = 0;
+			uid->flags[l][i] = 0;
+			xfree (uid->custom[l][i]);
+			uid->custom[l][i] = NULL;
+		}
+	}
 }
+static void reset_inputdevice_slot (struct uae_prefs *prefs, int slot)
+{
+	unsigned int m;
+	for (m = 0; m < MAX_INPUT_DEVICES; m++) {
+		reset_inputdevice_settings (&prefs->joystick_settings[slot][m]);
+		reset_inputdevice_settings (&prefs->mouse_settings[slot][m]);
+		reset_inputdevice_settings (&prefs->keyboard_settings[slot][m]);
+	}
+}
+void reset_inputdevice_config (struct uae_prefs *prefs)
+{
+	unsigned int i;
+	for (i = 0; i< MAX_INPUT_SETTINGS; i++)
+		reset_inputdevice_slot (prefs, i);
+}
+
+
+static void set_kbr_default_event (struct uae_input_device *kbr, struct uae_input_device_kbr_default *trans, int num)
+{
+	unsigned int i;
+	for (i = 0;  trans[i].scancode >= 0; i++) {
+		if (kbr->extra[num][0] == trans[i].scancode) {
+			int k;
+			for (k = 0; k < MAX_INPUT_SUB_EVENT; k++) {
+				if (kbr->eventid[num][k] == 0)
+					break;
+			}
+			if (k == MAX_INPUT_SUB_EVENT) {
+				write_log ("corrupt default keyboard mappings\n");
+				return;
+			}
+			kbr->eventid[num][k] = trans[i].evt;
+			kbr->flags[num][k] = trans[i].flags;
+			break;
+		}
+	}
+}
+
+static void set_kbr_default (struct uae_prefs *p, int index)
+{
+	int i, j;
+	struct uae_input_device_kbr_default *trans = keyboard_default;
+	struct uae_input_device *kbr;
+	struct inputdevice_functions *id = &idev[IDTYPE_KEYBOARD];
+	uae_u32 scancode;
+
+	if (!trans)
+		return;
+	for (j = 0; j < MAX_INPUT_DEVICES; j++) {
+		kbr = &p->keyboard_settings[index][j];
+		for (i = 0; i < MAX_INPUT_DEVICE_EVENTS; i++) {
+			memset (kbr, 0, sizeof (struct uae_input_device));
+			kbr->extra[i][0] = -1;
+		}
+		if (j < id->get_num ()) {
+			if (input_get_default_keyboard (j))
+				kbr->enabled = 1;
+			for (i = 0; i < id->get_widget_num (j); i++) {
+				id->get_widget_type (j, i, 0, &scancode);
+				kbr->extra[i][0] = scancode;
+				set_kbr_default_event (kbr, trans, i);
+			}
+		}
+	}
+}
+
 
 static void clear_id (struct uae_input_device *id)
 {
@@ -457,16 +588,21 @@ static void clear_id (struct uae_input_device *id)
 
 void read_inputdevice_config (struct uae_prefs *pr, char *option, char *value)
 {
-    struct uae_input_device *id = 0;
+	struct uae_input_device *id = 0;
 	struct inputevent *ie;
 	int devnum, num, button, joystick, flags, i, subnum, idnum, keynum;
-    int mask;
-	char *p, *p2, *custom;
+	int mask;
+	TCHAR *p, *p2, *custom;
 
-    option += 6; /* "input." */
-    p = getstring (&option);
-	if (!strcasecmp (p, "config"))
-		pr->input_selected_setting = _tstol (value);
+	option += 6; /* "input." */
+	p = getstring (&option);
+	if (!strcasecmp (p, "config")) {
+		pr->input_selected_setting = _tstol (value) - 1;
+		if (pr->input_selected_setting == -1)
+			pr->input_selected_setting = GAMEPORT_INPUT_SETTINGS;
+		if (pr->input_selected_setting < 0 || pr->input_selected_setting > MAX_INPUT_SETTINGS)
+			pr->input_selected_setting = 0;
+	}
 	if (!strcasecmp (p, "joymouse_speed_analog"))
 		pr->input_joymouse_multiplier = _tstol (value);
 	if (!strcasecmp (p, "joymouse_speed_digital"))
@@ -477,16 +613,17 @@ void read_inputdevice_config (struct uae_prefs *pr, char *option, char *value)
 		pr->input_joymouse_deadzone = _tstol (value);
 	if (!strcasecmp (p, "mouse_speed"))
 		pr->input_mouse_speed = _tstol (value);
-	if (!strcasecmp (p, "autofire"))
-		pr->input_autofire_framecnt = _tstol (value);
+	if (!strcasecmp (p, "autofire_speed"))
+		pr->input_autofire_linecnt = _tstol (value);
 	if (!strcasecmp (p, "analog_joystick_multiplier"))
 		pr->input_analog_joystick_mult = _tstol (value);
 	if (!strcasecmp (p, "analog_joystick_offset"))
 		pr->input_analog_joystick_offset = _tstol (value);
 
 	idnum = _tstol (p);
-    if (idnum <= 0 || idnum > MAX_INPUT_SETTINGS)
+	if (idnum <= 0 || idnum > MAX_INPUT_SETTINGS)
 		return;
+	idnum--;
 
 	if (_tcsncmp (option, "mouse.", 6) == 0) {
 		p = option + 6;
@@ -499,10 +636,10 @@ void read_inputdevice_config (struct uae_prefs *pr, char *option, char *value)
 
 	devnum = getnum (&p);
 	if (devnum < 0 || devnum >= MAX_INPUT_DEVICES)
-	    return;
+		return;
 
-    p2 = getstring (&p);
-    if (!p2)
+	p2 = getstring (&p);
+	if (!p2)
 		return;
 
 	if (_tcsncmp (option, "mouse.", 6) == 0) {
@@ -529,9 +666,24 @@ void read_inputdevice_config (struct uae_prefs *pr, char *option, char *value)
 		return;
 	}
 
+	if (!_tcscmp (p2, "custom")) {
+		int disabled;
+		p = value;
+		disabled = getnum (&p);
+		if (idnum == GAMEPORT_INPUT_SETTINGS) {
+			clear_id (id);
+			if (joystick < 0)
+				set_kbr_default (pr, idnum);
+			id->enabled = disabled == 0 ? 1 : 0;
+		}
+		return;
+	}
+
 	if (!_tcscmp (p2, "empty")) {
 		clear_id (id);
 		id->enabled = 1;
+		if (idnum == GAMEPORT_INPUT_SETTINGS)
+			id->enabled = 0;
 		return;
 	}
 
@@ -540,20 +692,24 @@ void read_inputdevice_config (struct uae_prefs *pr, char *option, char *value)
 		p = value;
 		disabled = getnum (&p);
 		id->enabled = disabled == 0 ? 1 : 0;
+		if (idnum == GAMEPORT_INPUT_SETTINGS)
+			id->enabled = 0;
 		return;
-    }
+	}
 
-    if (joystick < 0) {
+	if (idnum == GAMEPORT_INPUT_SETTINGS && id->enabled == 0)
+		return;
+
+	if (joystick < 0) {
 		num = getnum (&p);
-		keynum = 0;
-		while (id->extra[keynum][0] >= 0) {
-		    if (id->extra[keynum][0] == num)
+
+		for (keynum = 0; keynum < MAX_INPUT_DEVICE_EVENTS; keynum++) {
+			if (id->extra[keynum][0] == num)
 				break;
-		    keynum++;
 		}
-		if (id->extra[keynum][0] < 0)
-		    return;
-    } else {
+		if (keynum >= MAX_INPUT_DEVICE_EVENTS)
+			return;
+	} else {
 		button = -1;
 		if (!_tcscmp (p2, "axis"))
 		    button = 0;
@@ -562,11 +718,11 @@ void read_inputdevice_config (struct uae_prefs *pr, char *option, char *value)
 		if (button < 0)
 		    return;
 		num = getnum (&p);
-    }
-    p = value;
+	}
+	p = value;
 
-    custom = NULL;
-    for (subnum = 0; subnum < MAX_INPUT_SUB_EVENT; subnum++) {
+	custom = NULL;
+	for (subnum = 0; subnum < MAX_INPUT_SUB_EVENT; subnum++) {
 		xfree (custom);
 		custom = NULL;
 		p2 = getstring (&p);
@@ -601,41 +757,41 @@ void read_inputdevice_config (struct uae_prefs *pr, char *option, char *value)
 					id->eventid[num + ID_AXIS_OFFSET][subnum] = 0;
 					id->flags[num + ID_AXIS_OFFSET][subnum] = 0;
 				}
-		    }
-		    continue;
+			}
+			continue;
 		}
 		if (joystick < 0) {
-		    if (!(ie->allow_mask & AM_K))
+			if (!(ie->allow_mask & AM_K))
 				continue;
-		    id->eventid[keynum][subnum] = ie - events;
-		    id->flags[keynum][subnum] = flags;
+			id->eventid[keynum][subnum] = ie - events;
+			id->flags[keynum][subnum] = flags;
 			xfree (id->custom[keynum][subnum]);
-		    id->custom[keynum][subnum] = custom;
+			id->custom[keynum][subnum] = custom;
 		} else  if (button) {
-		    if (joystick)
+			if (joystick)
 				mask = AM_JOY_BUT;
-		    else
+			else
 				mask = AM_MOUSE_BUT;
-		    if (!(ie->allow_mask & mask))
+			if (!(ie->allow_mask & mask))
 				continue;
-		    id->eventid[num + ID_BUTTON_OFFSET][subnum] = ie - events;
-		    id->flags[num + ID_BUTTON_OFFSET][subnum] = flags;
+			id->eventid[num + ID_BUTTON_OFFSET][subnum] = ie - events;
+			id->flags[num + ID_BUTTON_OFFSET][subnum] = flags;
 			xfree (id->custom[num + ID_BUTTON_OFFSET][subnum]);
-		    id->custom[num + ID_BUTTON_OFFSET][subnum] = custom;
+			id->custom[num + ID_BUTTON_OFFSET][subnum] = custom;
 		} else {
-		    if (joystick)
+			if (joystick)
 				mask = AM_JOY_AXIS;
-		    else
+			else
 				mask = AM_MOUSE_AXIS;
-		    if (!(ie->allow_mask & mask))
+			if (!(ie->allow_mask & mask))
 				continue;
-		    id->eventid[num + ID_AXIS_OFFSET][subnum] = ie - events;
-		    id->flags[num + ID_AXIS_OFFSET][subnum] = flags;
+			id->eventid[num + ID_AXIS_OFFSET][subnum] = ie - events;
+			id->flags[num + ID_AXIS_OFFSET][subnum] = flags;
 			xfree (id->custom[num + ID_AXIS_OFFSET][subnum]);
-		    id->custom[num + ID_AXIS_OFFSET][subnum] = custom;
+			id->custom[num + ID_AXIS_OFFSET][subnum] = custom;
 		}
 		custom = NULL;
-    }
+	}
 	xfree (custom);
 }
 
@@ -838,12 +994,12 @@ void get_custom_mouse_limits (int *w, int *h, int *dx, int *dy, int dbl);
 
 void inputdevice_tablet_strobe (void)
 {
-    uae_u8 *p;
+	uae_u8 *p;
 	uae_u32 off;
 
 	mousehack_enable ();
 	if (!uae_boot_rom)
-	return;
+		return;
 	if (!tablet_data)
 		return;
 	off = getmhoffset ();
@@ -1261,11 +1417,11 @@ int magicmouse_alive (void)
 
 STATIC_INLINE int adjust (int val)
 {
-    if (val > 127)
+	if (val > 127)
 		return 127;
-    else if (val < -127)
+	else if (val < -127)
 		return -127;
-    return val;
+	return val;
 }
 
 int getbuttonstate (int joy, int button)
@@ -1299,7 +1455,7 @@ static int getvelocity (int num, int subnum, int pct)
 
 static void mouseupdate (int pct, int vsync)
 {
-    int v, i;
+	int v, i;
 	int max = 120;
 	static int mxd, myd;
 
@@ -1343,7 +1499,7 @@ static void mouseupdate (int pct, int vsync)
 		myd = 0;
 	}
 
-    for (i = 0; i < 2; i++) {
+	for (i = 0; i < 2; i++) {
 
 		v = getvelocity (i, 0, pct);
 		mxd += v;
@@ -1355,11 +1511,11 @@ static void mouseupdate (int pct, int vsync)
 
 		v = getvelocity (i, 2, pct);
 		if (v > 0)
-		    record_key (0x7a << 1);
+			record_key (0x7a << 1);
 		else if (v < 0)
-		    record_key (0x7b << 1);
+			record_key (0x7b << 1);
 		if (!mouse_deltanoreset[i][2])
-		    mouse_delta[i][2] = 0;
+			mouse_delta[i][2] = 0;
 
 		if (mouse_frame_x[i] - mouse_x[i] > max)
 			mouse_x[i] = mouse_frame_x[i] - max;
@@ -1372,11 +1528,11 @@ static void mouseupdate (int pct, int vsync)
 			mouse_y[i] = mouse_frame_y[i] + max;
 
 		if (!vsync) {
-		    mouse_frame_x[i] = mouse_x[i];
-		    mouse_frame_y[i] = mouse_y[i];
+			mouse_frame_x[i] = mouse_x[i];
+			mouse_frame_y[i] = mouse_y[i];
 		}
 
-    }
+	}
 }
 
 static int input_vpos, input_frame;
@@ -1393,8 +1549,8 @@ static void readinput (void)
 			mouseupdate (0, 0);
 		} else {
 			mouseupdate (diff * 1000 / maxvpos, 0);
-    }
-    }
+		}
+	}
 	input_vpos = totalvpos;
 
 }
@@ -1406,16 +1562,16 @@ int getjoystate (int joy)
 
 	if (inputdevice_logging & 2)
 		write_log ("JOY%dDAT %08x\n", joy, M68K_GETPC);
-    readinput ();
-    if (joydir[joy] & DIR_LEFT)
+	readinput ();
+	if (joydir[joy] & DIR_LEFT)
 		left = 0;
-    if (joydir[joy] & DIR_RIGHT)
+	if (joydir[joy] & DIR_RIGHT)
 		right = 0;
-    if (joydir[joy] & DIR_UP)
+	if (joydir[joy] & DIR_UP)
 		top = 0;
-    if (joydir[joy] & DIR_DOWN)
+	if (joydir[joy] & DIR_DOWN)
 		bot = 0;
-    v = (uae_u8)mouse_x[joy] | (mouse_y[joy] << 8);
+	v = (uae_u8)mouse_x[joy] | (mouse_y[joy] << 8);
 	if (!left || !right || !top || !bot || !mouse_port[joy]) {
 		int b9, b8, b1, b0;
 		mouse_x[joy] &= ~3;
@@ -1424,14 +1580,14 @@ int getjoystate (int joy)
 		b1 = right ^ 1;
 		b8 = top ^ left;
 		b9 = left ^ 1;
-	v &= ~0x0303;
+		v &= ~0x0303;
 		v |= (b0 << 0) | (b1 << 1) | (b8 << 8) | (b9 << 9);
-    }
+	}
 #ifdef DONGLE_DEBUG
     if (notinrom ())
 		write_log ("JOY%dDAT %04X %s\n", joy, v, debuginfo (0));
 #endif
-    return v;
+	return v;
 }
 
 uae_u16 JOY0DAT (void)
@@ -1452,18 +1608,18 @@ uae_u16 JOY1DAT (void)
 
 void JOYTEST (uae_u16 v)
 {
-    mouse_x[0] &= 3;
-    mouse_y[0] &= 3;
-    mouse_x[1] &= 3;
-    mouse_y[1] &= 3;
-    mouse_x[0] |= v & 0xFC;
-    mouse_x[1] |= v & 0xFC;
-    mouse_y[0] |= (v >> 8) & 0xFC;
-    mouse_y[1] |= (v >> 8) & 0xFC;
-    mouse_frame_x[0] = mouse_x[0];
-    mouse_frame_y[0] = mouse_y[0];
-    mouse_frame_x[1] = mouse_x[1];
-    mouse_frame_y[1] = mouse_y[1];
+	mouse_x[0] &= 3;
+	mouse_y[0] &= 3;
+	mouse_x[1] &= 3;
+	mouse_y[1] &= 3;
+	mouse_x[0] |= v & 0xFC;
+	mouse_x[1] |= v & 0xFC;
+	mouse_y[0] |= (v >> 8) & 0xFC;
+	mouse_y[1] |= (v >> 8) & 0xFC;
+	mouse_frame_x[0] = mouse_x[0];
+	mouse_frame_y[0] = mouse_y[0];
+	mouse_frame_x[1] = mouse_x[1];
+	mouse_frame_y[1] = mouse_y[1];
 	dongle_joytest (v);
 	if (inputdevice_logging & 2)
 		write_log ("JOYTEST: %04X PC=%x\n", v , M68K_GETPC);
@@ -1471,41 +1627,41 @@ void JOYTEST (uae_u16 v)
 
 static uae_u8 parconvert (uae_u8 v, int jd, int shift)
 {
-    if (jd & DIR_UP)
+	if (jd & DIR_UP)
 		v &= ~(1 << shift);
-    if (jd & DIR_DOWN)
+	if (jd & DIR_DOWN)
 		v &= ~(2 << shift);
-    if (jd & DIR_LEFT)
+	if (jd & DIR_LEFT)
 		v &= ~(4 << shift);
-    if (jd & DIR_RIGHT)
+	if (jd & DIR_RIGHT)
 		v &= ~(8 << shift);
-    return v;
+	return v;
 }
 
 /* io-pins floating: dir=1 -> return data, dir=0 -> always return 1 */
 uae_u8 handle_parport_joystick (int port, uae_u8 pra, uae_u8 dra)
 {
-    uae_u8 v;
-    switch (port)
-    {
+	uae_u8 v;
+	switch (port)
+	{
 	case 0:
 		v = (pra & dra) | (dra ^ 0xff);
 		if (parport_joystick_enabled) {
-		    v = parconvert (v, joydir[2], 0);
-		    v = parconvert (v, joydir[3], 4);
+			v = parconvert (v, joydir[2], 0);
+			v = parconvert (v, joydir[3], 4);
 		}
 		return v;
 	case 1:
 		v = ((pra & dra) | (dra ^ 0xff)) & 0x7;
 		if (parport_joystick_enabled) {
-		    if (getbuttonstate (2, 0)) v &= ~4;
-		    if (getbuttonstate (3, 0)) v &= ~1;
+			if (getbuttonstate (2, 0)) v &= ~4;
+			if (getbuttonstate (3, 0)) v &= ~1;
 		}
 		return v;
 	default:
 		abort ();
 		return 0;
-    }
+	}
 }
 
 static void charge_cap (int joy, int idx, int charge)
@@ -1602,66 +1758,66 @@ static void cap_check (void)
 
 uae_u8 handle_joystick_buttons (uae_u8 dra)
 {
-    uae_u8 but = 0;
-    int i;
+	uae_u8 but = 0;
+	int i;
 
 	cap_check ();
-    for (i = 0; i < 2; i++) {
-	if (cd32_pad_enabled[i]) {
-	    uae_u16 p5dir = 0x0200 << (i * 4);
-	    uae_u16 p5dat = 0x0100 << (i * 4);
-	    but |= 0x40 << i;
-	    /* Red button is connected to fire when p5 is 1 or floating */
-	    if (!(potgo_value & p5dir) || ((potgo_value & p5dat) && (potgo_value & p5dir))) {
-		if (getbuttonstate (i, JOYBUTTON_CD32_RED))
-		    but &= ~(0x40 << i);
-	    }
-	} else if (!getbuttonstate (i, JOYBUTTON_1)) {
-	    but |= 0x40 << i;
+	for (i = 0; i < 2; i++) {
+		if (cd32_pad_enabled[i]) {
+			uae_u16 p5dir = 0x0200 << (i * 4);
+			uae_u16 p5dat = 0x0100 << (i * 4);
+			but |= 0x40 << i;
+			/* Red button is connected to fire when p5 is 1 or floating */
+			if (!(potgo_value & p5dir) || ((potgo_value & p5dat) && (potgo_value & p5dir))) {
+				if (getbuttonstate (i, JOYBUTTON_CD32_RED))
+					but &= ~(0x40 << i);
+			}
+		} else if (!getbuttonstate (i, JOYBUTTON_1)) {
+			but |= 0x40 << i;
+		}
 	}
-    }
 	if (inputdevice_logging & 4)
 		write_log ("BFE001: %02X:%02X %x\n", dra, but, M68K_GETPC);
-    return but;
+	return but;
 }
 
 /* joystick 1 button 1 is used as a output for incrementing shift register */
 void handle_cd32_joystick_cia (uae_u8 pra, uae_u8 dra)
 {
-    static int oldstate[2];
-    int i;
+	static int oldstate[2];
+	int i;
 
 	cap_check ();
-    for (i = 0; i < 2; i++) {
-	uae_u8 but = 0x40 << i;
-	uae_u16 p5dir = 0x0200 << (i * 4); /* output enable P5 */
-	uae_u16 p5dat = 0x0100 << (i * 4); /* data P5 */
-	if (!(potgo_value & p5dir) || !(potgo_value & p5dat)) {
-	    if ((dra & but) && (pra & but) != oldstate[i]) {
-		if (!(pra & but)) {
-		    cd32_shifter[i]--;
-		    if (cd32_shifter[i] < 0)
-			cd32_shifter[i] = 0;
+	for (i = 0; i < 2; i++) {
+		uae_u8 but = 0x40 << i;
+		uae_u16 p5dir = 0x0200 << (i * 4); /* output enable P5 */
+		uae_u16 p5dat = 0x0100 << (i * 4); /* data P5 */
+		if (!(potgo_value & p5dir) || !(potgo_value & p5dat)) {
+			if ((dra & but) && (pra & but) != oldstate[i]) {
+				if (!(pra & but)) {
+					cd32_shifter[i]--;
+					if (cd32_shifter[i] < 0)
+						cd32_shifter[i] = 0;
+				}
+			}
 		}
-	    }
+		oldstate[i] = pra & but;
 	}
-	oldstate[i] = pra & but;
-    }
 }
 
 /* joystick port 1 button 2 is input for button state */
 static uae_u16 handle_joystick_potgor (uae_u16 potgor)
 {
-    int i;
+	int i;
 
 	cap_check ();
-    for (i = 0; i < 2; i++) {
-	uae_u16 p9dir = 0x0800 << (i * 4); /* output enable P9 */
-	uae_u16 p9dat = 0x0400 << (i * 4); /* data P9 */
-	uae_u16 p5dir = 0x0200 << (i * 4); /* output enable P5 */
-	uae_u16 p5dat = 0x0100 << (i * 4); /* data P5 */
+	for (i = 0; i < 2; i++) {
+		uae_u16 p9dir = 0x0800 << (i * 4); /* output enable P9 */
+		uae_u16 p9dat = 0x0400 << (i * 4); /* data P9 */
+		uae_u16 p5dir = 0x0200 << (i * 4); /* output enable P5 */
+		uae_u16 p5dat = 0x0100 << (i * 4); /* data P5 */
 
-	if (cd32_pad_enabled[i]) {
+		if (cd32_pad_enabled[i]) {
 
 			/* p5 is floating in input-mode */
 			potgor &= ~p5dat;
@@ -1677,23 +1833,33 @@ static uae_u16 handle_joystick_potgor (uae_u16 potgor)
 			if (cd32_shifter[i] >= 2 && (joybutton[i] & ((1 << JOYBUTTON_CD32_PLAY) << (cd32_shifter[i] - 2))))
 				potgor &= ~p9dat;
 
-	} else {
+		} else {
 
-		potgor &= ~p5dat;
+			potgor &= ~p5dat;
 			if (pot_cap[i][0] > 100)
 				potgor |= p5dat;
 
-		potgor &= ~p9dat;
+			potgor &= ~p9dat;
 			if (pot_cap[i][1] > 100)
 				potgor |= p9dat;
 
+		}
 	}
-    }
-    return potgor;
+	return potgor;
 }
 
 
 static int inputdelay;
+
+void inputdevice_read (void)
+{
+	//do {
+	//	handle_msgpump ();
+		idev[IDTYPE_MOUSE].read ();
+		idev[IDTYPE_JOYSTICK].read ();
+		idev[IDTYPE_KEYBOARD].read ();
+	//} while (handle_msgpump ());
+}
 
 void inputdevice_hsync (void)
 {
@@ -1701,19 +1867,30 @@ void inputdevice_hsync (void)
 	cap_check ();
 
 #ifdef CATWEASEL
-    catweasel_hsync ();
+	catweasel_hsync ();
 #endif
+	unsigned int i;
+	for (i = 0; i < INPUT_QUEUE_SIZE; i++) {
+		struct input_queue_struct *iq = &input_queue[i];
+		if (iq->linecnt > 0) {
+			iq->linecnt--;
+			if (iq->linecnt == 0) {
+				if (iq->state)
+					iq->state = 0;
+				else
+					iq->state = iq->storedstate;
+				handle_input_event (iq->event, iq->state, iq->max, 0);
+				iq->linecnt = iq->nextlinecnt;
+			}
+		}
+	}
+
 	if ((++cnt & 63) == 63) {
-		idev[IDTYPE_MOUSE].read ();
-		idev[IDTYPE_JOYSTICK].read ();
-		idev[IDTYPE_KEYBOARD].read ();
-	}
-    if (inputdelay > 0) {
-	inputdelay--;
-	if (inputdelay == 0) {
-	    idev[IDTYPE_JOYSTICK].read ();
-	    idev[IDTYPE_KEYBOARD].read ();
-	}
+		inputdevice_read ();
+	} else if (inputdelay > 0) {
+		inputdelay--;
+		if (inputdelay == 0)
+			inputdevice_read ();
     }
 }
 
@@ -1748,20 +1925,20 @@ void POTGO (uae_u16 v)
 	if (inputdevice_logging & 16)
 		write_log ("POTGO_W: %04X %08X\n", v, M68K_GETPC);
 #ifdef DONGLE_DEBUG
-    if (notinrom ())
+	if (notinrom ())
 		write_log ("POTGO %04X %s\n", v, debuginfo(0));
 #endif
 	dongle_potgo (v);
-    potgo_value = potgo_value & 0x5500; /* keep state of data bits */
-    potgo_value |= v & 0xaa00; /* get new direction bits */
-    for (i = 0; i < 8; i += 2) {
-	uae_u16 dir = 0x0200 << i;
-	if (v & dir) {
-	    uae_u16 data = 0x0100 << i;
-	    potgo_value &= ~data;
-	    potgo_value |= v & data;
+	potgo_value = potgo_value & 0x5500; /* keep state of data bits */
+	potgo_value |= v & 0xaa00; /* get new direction bits */
+	for (i = 0; i < 8; i += 2) {
+		uae_u16 dir = 0x0200 << i;
+		if (v & dir) {
+			uae_u16 data = 0x0100 << i;
+			potgo_value &= ~data;
+			potgo_value |= v & data;
+		}
 	}
-    }
 	for (i = 0; i < 2; i++) {
 		if (cd32_pad_enabled[i]) {
 			uae_u16 p5dir = 0x0200 << (i * 4); /* output enable P5 */
@@ -1770,14 +1947,14 @@ void POTGO (uae_u16 v)
 				cd32_shifter[i] = 8;
 		}
 	}
-    if (v & 1) {
+	if (v & 1) {
 		for (i = 0; i < 2; i++) {
 			for (j = 0; j < 2; j++) {
 				pot_dat_act[i][j] = 1;
 				pot_dat[i][j] = 0;
 			}
 		}
-    }
+	}
 }
 
 uae_u16 POTGOR (void)
@@ -1787,56 +1964,56 @@ uae_u16 POTGOR (void)
 	v = handle_joystick_potgor (potgo_value) & 0x5500;
 	v = dongle_potgor (v);
 #ifdef DONGLE_DEBUG
-    if (notinrom ())
+	if (notinrom ())
 	write_log ("POTGOR %04.4X %s\n", v, debuginfo(0));
 #endif
 	if (inputdevice_logging & 16)
 		write_log ("POTGO_R: %04X %08X %d\n", v, M68K_GETPC, cd32_shifter[1]);
-    return v;
+	return v;
 }
 
 static int check_input_queue (int event)
 {
 	struct input_queue_struct *iq;
-    int i;
-    for (i = 0; i < INPUT_QUEUE_SIZE; i++) {
-	iq = &input_queue[i];
-	if (iq->event == event)
-	    return i;
-    }
-    return -1;
+	int i;
+	for (i = 0; i < INPUT_QUEUE_SIZE; i++) {
+		iq = &input_queue[i];
+		if (iq->event == event)
+			return i;
+	}
+	return -1;
 }
 
-static void queue_input_event (int event, int state, int max, int framecnt, int autofire)
+static void queue_input_event (int event, int state, int max, int linecnt, int autofire)
 {
-    struct input_queue_struct *iq;
-    int i = check_input_queue (event);
+	struct input_queue_struct *iq;
+	int i = check_input_queue (event);
 
-    if (event <= 0)
+	if (event <= 0)
 		return;
-    if (state < 0 && i >= 0) {
+	if (state < 0 && i >= 0) {
 		iq = &input_queue[i];
-		iq->nextframecnt = -1;
-		iq->framecnt = -1;
+		iq->nextlinecnt = -1;
+		iq->linecnt = -1;
 		iq->event = 0;
 		if (iq->state == 0)
-		    handle_input_event (event, 0, 1, 0);
-    } else if (i < 0) {
+			handle_input_event (event, 0, 1, 0);
+	} else if (i < 0) {
 		for (i = 0; i < INPUT_QUEUE_SIZE; i++) {
-		    iq = &input_queue[i];
-			if (iq->framecnt < 0)
+			iq = &input_queue[i];
+			if (iq->linecnt < 0)
 				break;
 		}
 		if (i == INPUT_QUEUE_SIZE) {
 			write_log ("input queue overflow\n");
-	    	return;
+			return;
 		}
 		iq->event = event;
 		iq->state = iq->storedstate = state;
 		iq->max = max;
-		iq->framecnt = framecnt;
-		iq->nextframecnt = autofire > 0 ? framecnt : -1;
-    }
+		iq->linecnt = linecnt;
+		iq->nextlinecnt = autofire > 0 ? linecnt : -1;
+	}
 }
 
 static uae_u8 keybuf[256];
@@ -1844,90 +2021,90 @@ static int inputcode_pending, inputcode_pending_state;
 
 void inputdevice_release_all_keys (void)
 {
-   int i;
+	int i;
 
-   for (i = 0; i < 0x80; i++) {
-	if (keybuf[i] != 0) {
-	    keybuf[i] = 0;
-	    record_key (i << 1|1);
+	for (i = 0; i < 0x80; i++) {
+		if (keybuf[i] != 0) {
+			keybuf[i] = 0;
+			record_key (i << 1|1);
+		}
 	}
-   }
 }
 
 
 void inputdevice_add_inputcode (int code, int state)
 {
-    inputcode_pending = code;
-    inputcode_pending_state = state;
+	inputcode_pending = code;
+	inputcode_pending_state = state;
 }
 
 void inputdevice_do_keyboard (int code, int state)
 {
-    if (code < 0x80) {
+	if (code < 0x80) {
 		uae_u8 key = code | (state ? 0x00 : 0x80);
 		keybuf[key & 0x7f] = (key & 0x80) ? 0 : 1;
 		if (key == AK_RESETWARNING) {
 			resetwarning_do (0);
 			return;
 		} else if ((keybuf[AK_CTRL] || keybuf[AK_RCTRL]) && keybuf[AK_LAMI] && keybuf[AK_RAMI]) {
-		    int r = keybuf[AK_LALT] | keybuf[AK_RALT];
+			int r = keybuf[AK_LALT] | keybuf[AK_RALT];
 			if (!r && currprefs.cs_resetwarning && resetwarning_do (1))
 				return;
-		    memset (keybuf, 0, sizeof (keybuf));
-		    uae_reset (r);
+			memset (keybuf, 0, sizeof (keybuf));
+			uae_reset (r);
 		}
 		if (record_key ((uae_u8)((key << 1) | (key >> 7)))) {
 			if (inputdevice_logging & 1)
 				write_log ("Amiga key %02X %d\n", key & 0x7f, key >> 7);
 		}
 		return;
-    }
-    inputdevice_add_inputcode (code, state);
+	}
+	inputdevice_add_inputcode (code, state);
 }
 
 void inputdevice_handle_inputcode (void)
 {
 	static int swapperslot;
-    int code = inputcode_pending;
-    int state = inputcode_pending_state;
+	int code = inputcode_pending;
+	int state = inputcode_pending_state;
 
-    inputcode_pending = 0;
-    if (code == 0)
+	inputcode_pending = 0;
+	if (code == 0)
 		return;
-    if (vpos != 0)
+	if (vpos != 0)
 		write_log ("inputcode=%d but vpos = %d", code, vpos);
 
 #ifdef ARCADIA
-    switch (code)
-    {
-    case AKS_ARCADIADIAGNOSTICS:
+	switch (code)
+	{
+	case AKS_ARCADIADIAGNOSTICS:
 		arcadia_flag &= ~1;
 		arcadia_flag |= state ? 1 : 0;
 		break;
-    case AKS_ARCADIAPLY1:
+	case AKS_ARCADIAPLY1:
 		arcadia_flag &= ~4;
 		arcadia_flag |= state ? 4 : 0;
 		break;
-    case AKS_ARCADIAPLY2:
+	case AKS_ARCADIAPLY2:
 		arcadia_flag &= ~2;
 		arcadia_flag |= state ? 2 : 0;
 		break;
-    case AKS_ARCADIACOIN1:
+	case AKS_ARCADIACOIN1:
 		if (state)
-	    arcadia_coin[0]++;
+			arcadia_coin[0]++;
 		break;
-    case AKS_ARCADIACOIN2:
+	case AKS_ARCADIACOIN2:
 		if (state)
-	    arcadia_coin[1]++;
+			arcadia_coin[1]++;
 		break;
-    }
+	}
 #endif
 
-    if (!state)
+	if (!state)
 		return;
-    switch (code)
-    {
-    case AKS_ENTERGUI:
+	switch (code)
+	{
+	case AKS_ENTERGUI:
 		gui_display (-1);
 		break;
 	case AKS_SCREENSHOT_FILE:
@@ -1937,110 +2114,116 @@ void inputdevice_handle_inputcode (void)
 		screenshot (0, 1);
 		break;
 #ifdef ACTION_REPLAY
-    case AKS_FREEZEBUTTON:
+	case AKS_FREEZEBUTTON:
 		action_replay_freeze ();
 		break;
 #endif
-    case AKS_FLOPPY0:
+	case AKS_FLOPPY0:
 		gui_display (0);
 		break;
-    case AKS_FLOPPY1:
+	case AKS_FLOPPY1:
 		gui_display (1);
 		break;
-    case AKS_FLOPPY2:
+	case AKS_FLOPPY2:
 		gui_display (2);
 		break;
-    case AKS_FLOPPY3:
+	case AKS_FLOPPY3:
 		gui_display (3);
 		break;
-    case AKS_EFLOPPY0:
+	case AKS_EFLOPPY0:
 		disk_eject (0);
 		break;
-    case AKS_EFLOPPY1:
+	case AKS_EFLOPPY1:
 		disk_eject (1);
 		break;
-    case AKS_EFLOPPY2:
+	case AKS_EFLOPPY2:
 		disk_eject (2);
 		break;
-    case AKS_EFLOPPY3:
+	case AKS_EFLOPPY3:
 		disk_eject (3);
 		break;
-    case AKS_IRQ7:
+	case AKS_IRQ7:
 		NMI_delayed ();
 		break;
-    case AKS_PAUSE:
+	case AKS_PAUSE:
 		pausemode (-1);
 		break;
-    case AKS_WARP:
+	case AKS_WARP:
 		warpmode (-1);
 		break;
-    case AKS_INHIBITSCREEN:
+	case AKS_INHIBITSCREEN:
 		toggle_inhibit_frame (IHF_SCROLLLOCK);
 		break;
 #ifdef SAVESTATE
-    case AKS_STATEREWIND:
+	case AKS_STATEREWIND:
 		savestate_dorewind(1);
 #endif
 		break;
-    case AKS_VOLDOWN:
-		audio_volume (-1);
+	case AKS_VOLDOWN:
+		sound_volume (-1);
 		break;
-    case AKS_VOLUP:
-		audio_volume (1);
+	case AKS_VOLUP:
+		sound_volume (1);
 		break;
-    case AKS_VOLMUTE:
-		audio_volume (0);
+	case AKS_VOLMUTE:
+		//sound_mute (-1);
 		break;
-//	case AKS_MVOLDOWN:
-//	case AKS_MVOLUP:
-//	case AKS_MVOLMUTE:
-    case AKS_QUIT:
+	case AKS_MVOLDOWN:
+		//master_sound_volume (-1);
+		break;
+	case AKS_MVOLUP:
+		//master_sound_volume (1);
+		break;
+	case AKS_MVOLMUTE:
+		//master_sound_volume (0);
+		break;
+	case AKS_QUIT:
 		uae_quit ();
 		break;
-    case AKS_SOFTRESET:
+	case AKS_SOFTRESET:
 		uae_reset (0);
 		break;
-    case AKS_HARDRESET:
+	case AKS_HARDRESET:
 		uae_reset (1);
 		break;
 #ifdef SAVESTATE
-    case AKS_STATESAVEQUICK:
-    case AKS_STATESAVEQUICK1:
-    case AKS_STATESAVEQUICK2:
-    case AKS_STATESAVEQUICK3:
-    case AKS_STATESAVEQUICK4:
-    case AKS_STATESAVEQUICK5:
-    case AKS_STATESAVEQUICK6:
-    case AKS_STATESAVEQUICK7:
-    case AKS_STATESAVEQUICK8:
-    case AKS_STATESAVEQUICK9:
+	case AKS_STATESAVEQUICK:
+	case AKS_STATESAVEQUICK1:
+	case AKS_STATESAVEQUICK2:
+	case AKS_STATESAVEQUICK3:
+	case AKS_STATESAVEQUICK4:
+	case AKS_STATESAVEQUICK5:
+	case AKS_STATESAVEQUICK6:
+	case AKS_STATESAVEQUICK7:
+	case AKS_STATESAVEQUICK8:
+	case AKS_STATESAVEQUICK9:
 		savestate_quick ((code - AKS_STATESAVEQUICK) / 2, 1);
 		break;
-    case AKS_STATERESTOREQUICK:
-    case AKS_STATERESTOREQUICK1:
-    case AKS_STATERESTOREQUICK2:
-    case AKS_STATERESTOREQUICK3:
-    case AKS_STATERESTOREQUICK4:
-    case AKS_STATERESTOREQUICK5:
-    case AKS_STATERESTOREQUICK6:
-    case AKS_STATERESTOREQUICK7:
-    case AKS_STATERESTOREQUICK8:
-    case AKS_STATERESTOREQUICK9:
+	case AKS_STATERESTOREQUICK:
+	case AKS_STATERESTOREQUICK1:
+	case AKS_STATERESTOREQUICK2:
+	case AKS_STATERESTOREQUICK3:
+	case AKS_STATERESTOREQUICK4:
+	case AKS_STATERESTOREQUICK5:
+	case AKS_STATERESTOREQUICK6:
+	case AKS_STATERESTOREQUICK7:
+	case AKS_STATERESTOREQUICK8:
+	case AKS_STATERESTOREQUICK9:
 		savestate_quick ((code - AKS_STATERESTOREQUICK) / 2, 0);
 		break;
 #endif
-    case AKS_TOGGLEFULLSCREEN:
+	case AKS_TOGGLEFULLSCREEN:
 		toggle_fullscreen ();
 		break;
-    case AKS_TOGGLEMOUSEGRAB:
+	case AKS_TOGGLEMOUSEGRAB:
 		toggle_mousegrab ();
 		break;
 #ifdef DEBUGGER
-    case AKS_ENTERDEBUGGER:
+	case AKS_ENTERDEBUGGER:
 		activate_debugger ();
 		break;
 #endif
-    case AKS_STATESAVEDIALOG:
+	case AKS_STATESAVEDIALOG:
 		gui_display (5);
 		break;
 	case AKS_STATERESTOREDIALOG:
@@ -2112,7 +2295,7 @@ void inputdevice_handle_inputcode (void)
 	case AKS_INPUT_CONFIG_2:
 	case AKS_INPUT_CONFIG_3:
 	case AKS_INPUT_CONFIG_4:
-		changed_prefs.input_selected_setting = currprefs.input_selected_setting = code - AKS_INPUT_CONFIG_1 + 1;
+		changed_prefs.input_selected_setting = currprefs.input_selected_setting = code - AKS_INPUT_CONFIG_1;
 		inputdevice_updateconfig (&currprefs);
 		break;
 	case AKS_DISK_PREV0:
@@ -2161,21 +2344,21 @@ int handle_custom_event (TCHAR *custom)
 int handle_input_event (int nr, int state, int max, int autofire)
 {
 	struct inputevent *ie;
-    int joy;
+	int joy;
 
-    if (nr <= 0)
-	return 0;
-    ie = &events[nr];
+	if (nr <= 0)
+		return 0;
+	ie = &events[nr];
 	if (inputdevice_logging & 1)
-		write_log ("'%s' %d %d\n", ie->name, state, max);
-    if (autofire) {
-	if (state)
-	    queue_input_event (nr, state, max, currprefs.input_autofire_framecnt, 1);
-	else
-	    queue_input_event (nr, -1, 0, 0, 1);
-    }
-    switch (ie->unit)
-    {
+		write_log ("'%s' STATE=%d MAX=%d AF=%d\n", ie->name, state, max, autofire);
+	if (autofire) {
+		if (state)
+			queue_input_event (nr, state, max, currprefs.input_autofire_linecnt, 1);
+		else
+		    queue_input_event (nr, -1, 0, 0, 1);
+	}
+	switch (ie->unit)
+	{
 	case 5: /* lightpen/gun */
 		{
 			if (lightpen_x < 0 && lightpen_y < 0) {
@@ -2206,7 +2389,7 @@ int handle_input_event (int nr, int state, int max, int autofire)
 					lightpen_y += delta;
 			}
 		}
-	break;
+		break;
 	case 1: /* ->JOY1 */
 	case 2: /* ->JOY2 */
 	case 3: /* ->Parallel port joystick adapter port #1 */
@@ -2343,13 +2526,13 @@ int handle_input_event (int nr, int state, int max, int autofire)
 			if (bot)
 				joydir[joy] |= DIR_DOWN;
 
-	    }
+		}
 		break;
 	case 0: /* ->KEY */
-	    inputdevice_do_keyboard (ie->data, state);
+		inputdevice_do_keyboard (ie->data, state);
 		break;
-    }
-    return 1;
+	}
+	return 1;
 }
 
 static void inputdevice_checkconfig (void)
@@ -2363,7 +2546,7 @@ static void inputdevice_checkconfig (void)
 		currprefs.input_joymouse_deadzone != changed_prefs.input_joymouse_deadzone ||
 		currprefs.input_joystick_deadzone != changed_prefs.input_joystick_deadzone ||
 		currprefs.input_joymouse_speed != changed_prefs.input_joymouse_speed ||
-		currprefs.input_autofire_framecnt != changed_prefs.input_autofire_framecnt ||
+		currprefs.input_autofire_linecnt != changed_prefs.input_autofire_linecnt ||
 		currprefs.input_mouse_speed != changed_prefs.input_mouse_speed) {
 
 			currprefs.input_selected_setting = changed_prefs.input_selected_setting;
@@ -2371,7 +2554,7 @@ static void inputdevice_checkconfig (void)
 			currprefs.input_joymouse_deadzone = changed_prefs.input_joymouse_deadzone;
 			currprefs.input_joystick_deadzone = changed_prefs.input_joystick_deadzone;
 			currprefs.input_joymouse_speed = changed_prefs.input_joymouse_speed;
-			currprefs.input_autofire_framecnt = changed_prefs.input_autofire_framecnt;
+			currprefs.input_autofire_linecnt = changed_prefs.input_autofire_linecnt;
 			currprefs.input_mouse_speed = changed_prefs.input_mouse_speed;
 
 			inputdevice_updateconfig (&currprefs);
@@ -2384,34 +2567,15 @@ static void inputdevice_checkconfig (void)
 
 void inputdevice_vsync (void)
 {
-    struct input_queue_struct *iq;
-    int i;
-
 	if (inputdevice_logging & 32)
 		write_log ("*\n");
 
-    for (i = 0; i < INPUT_QUEUE_SIZE; i++) {
-		iq = &input_queue[i];
-		if (iq->framecnt > 0) {
-		    iq->framecnt--;
-		    if (iq->framecnt == 0) {
-				if (iq->state)
-					iq->state = 0;
-				else
-					iq->state = iq->storedstate;
-				handle_input_event (iq->event, iq->state, iq->max, 0);
-				iq->framecnt = iq->nextframecnt;
-		    }
-		}
-    }
-
 	input_frame++;
 	mouseupdate (0, 1);
-    idev[IDTYPE_MOUSE].read ();
-	idev[IDTYPE_JOYSTICK].read ();
+	inputdevice_read ();
 
 	inputdelay = rand () % (maxvpos <= 1 ? 1 : maxvpos - 1);
-    inputdevice_handle_inputcode ();
+	inputdevice_handle_inputcode ();
 	if (mouseedge_alive > 0)
 		mouseedge_alive--;
 #ifdef ARCADIA
@@ -2498,7 +2662,7 @@ static int switchdevice (struct uae_input_device *id, int num, int button)
 		return 0;
 	if (num == 0 && otherbuttonpressed)
 		newport = newport ? 0 : 1;
-	if (!currprefs.input_selected_setting) {
+	if (currprefs.input_selected_setting == GAMEPORT_INPUT_SETTINGS) {
 		if (num == 0 || num == 1) {
 			int om = jsem_ismouse (num, &currprefs);
 			int om1 = jsem_ismouse (0, &currprefs);
@@ -2517,7 +2681,7 @@ static int switchdevice (struct uae_input_device *id, int num, int button)
 		return 0;
 	} else {
 		int oldport = getoldport (id);
-		int i, j, k, evt;
+		int k, evt;
 		struct inputevent *ie, *ie2;
 
 		if (flags)
@@ -2527,12 +2691,12 @@ static int switchdevice (struct uae_input_device *id, int num, int button)
 		newport++;
 		/* do not switch if switching mouse and any "supermouse" mouse enabled */
 		if (ismouse) {
-			for (i = 0; i < MAX_INPUT_SETTINGS + 1; i++) {
+			for (i = 0; i < MAX_INPUT_SETTINGS; i++) {
 				if (mice[i].enabled && idev[IDTYPE_MOUSE].get_flags (i))
 					return 0;
 			}
 		}
-		for (i = 0; i < MAX_INPUT_SETTINGS + 1; i++) {
+		for (i = 0; i < MAX_INPUT_SETTINGS; i++) {
 			if (getoldport (&joysticks[i]) == newport)
 				joysticks[i].enabled = 0;
 			if (getoldport (&mice[i]) == newport)
@@ -2605,24 +2769,24 @@ static void process_custom_event (struct uae_input_device *id, int offset, int s
 static void setbuttonstateall (struct uae_input_device *id, struct uae_input_device2 *id2, int button, int state)
 {
 	int i;
-    uae_u32 mask = 1 << button;
-    uae_u32 omask = id2->buttonmask & mask;
-    uae_u32 nmask = (state ? 1 : 0) << button;
+	uae_u32 mask = 1 << button;
+	uae_u32 omask = id2->buttonmask & mask;
+	uae_u32 nmask = (state ? 1 : 0) << button;
 
 	if (!id->enabled) {
 		if (state)
 			switchdevice (id, button, 1);
 		return;
 	}
-    if (button >= ID_BUTTON_TOTAL)
-	return;
+	if (button >= ID_BUTTON_TOTAL)
+		return;
 
-    for (i = 0; i < MAX_INPUT_SUB_EVENT; i++) {
+	for (i = 0; i < MAX_INPUT_SUB_EVENT; i++) {
 		int evt = evt = id->eventid[ID_BUTTON_OFFSET + button][sublevdir[state <= 0 ? 1 : 0][i]];
 		int autofire = (id->flags[ID_BUTTON_OFFSET + button][sublevdir[state <= 0 ? 1 : 0][i]] & ID_FLAG_AUTOFIRE) ? 1 : 0;
 		int toggle = (id->flags[ID_BUTTON_OFFSET + button][sublevdir[state <= 0 ? 1 : 0][i]] & ID_FLAG_TOGGLE) ? 1 : 0;
 
-	if (state < 0) {
+		if (state < 0) {
 			handle_input_event (evt, 1, 1, 0);
 			queue_input_event (evt, 0, 1, 1, 0); /* send release event next frame */
 			if (i == 0)
@@ -2644,15 +2808,15 @@ static void setbuttonstateall (struct uae_input_device *id, struct uae_input_dev
 				if (i == 0)
 					process_custom_event (id, ID_BUTTON_OFFSET + button, state);
 			}
-    	}
+		}
 	}
 
-    if ((omask ^ nmask) & mask) {
+	if ((omask ^ nmask) & mask) {
 		if (state)
-		    id2->buttonmask |= mask;
+			id2->buttonmask |= mask;
 		else
-		    id2->buttonmask &= ~mask;
-    }
+			id2->buttonmask &= ~mask;
+	}
 }
 
 
@@ -2663,37 +2827,37 @@ static void setbuttonstateall (struct uae_input_device *id, struct uae_input_dev
 
 static int iscd32 (int ei)
 {
-    if (ei >= INPUTEVENT_JOY1_CD32_FIRST && ei <= INPUTEVENT_JOY1_CD32_LAST) {
+	if (ei >= INPUTEVENT_JOY1_CD32_FIRST && ei <= INPUTEVENT_JOY1_CD32_LAST) {
 		cd32_pad_enabled[0] = 1;
 		return 1;
-    }
-    if (ei >= INPUTEVENT_JOY2_CD32_FIRST && ei <= INPUTEVENT_JOY2_CD32_LAST) {
+	}
+	if (ei >= INPUTEVENT_JOY2_CD32_FIRST && ei <= INPUTEVENT_JOY2_CD32_LAST) {
 		cd32_pad_enabled[1] = 1;
 		return 2;
-    }
-    return 0;
+	}
+	return 0;
 }
 
 static int isparport (int ei)
 {
-    if (ei > INPUTEVENT_PAR_JOY1_START && ei < INPUTEVENT_PAR_JOY_END) {
+	if (ei > INPUTEVENT_PAR_JOY1_START && ei < INPUTEVENT_PAR_JOY_END) {
 		parport_joystick_enabled = 1;
 		return 1;
-    }
-    return 0;
+	}
+	return 0;
 }
 
 static int ismouse (int ei)
 {
-    if (ei >= INPUTEVENT_MOUSE1_FIRST && ei <= INPUTEVENT_MOUSE1_LAST) {
+	if (ei >= INPUTEVENT_MOUSE1_FIRST && ei <= INPUTEVENT_MOUSE1_LAST) {
 		mouse_port[0] = 1;
 		return 1;
-    }
-    if (ei >= INPUTEVENT_MOUSE2_FIRST && ei <= INPUTEVENT_MOUSE2_LAST) {
+	}
+	if (ei >= INPUTEVENT_MOUSE2_FIRST && ei <= INPUTEVENT_MOUSE2_LAST) {
 		mouse_port[1] = 1;
 		return 2;
-    }
-    return 0;
+	}
+	return 0;
 }
 
 static int isanalog (int ei)
@@ -2819,7 +2983,7 @@ static void scanevents (struct uae_prefs *p)
 		use_keyboards[i] = 0;
 		if (keyboards[i].enabled && i < idev[IDTYPE_KEYBOARD].get_num()) {
 			j = 0;
-			while (keyboards[i].extra[j][0] >= 0) {
+			while (j < MAX_INPUT_DEVICE_EVENTS && keyboards[i].extra[j][0] >= 0) {
 				use_keyboards[i] = 1;
 				for (k = 0; k < MAX_INPUT_SUB_EVENT; k++) {
 					ei = keyboards[i].eventid[j][k];
@@ -2836,60 +3000,164 @@ static void scanevents (struct uae_prefs *p)
 	}
 }
 
-#ifdef CD32
-static void setcd32 (int joy, int n)
+static int axistable[] = {
+	INPUTEVENT_MOUSE1_HORIZ, INPUTEVENT_MOUSE1_LEFT, INPUTEVENT_MOUSE1_RIGHT,
+	INPUTEVENT_MOUSE1_VERT, INPUTEVENT_MOUSE1_UP, INPUTEVENT_MOUSE1_DOWN,
+	INPUTEVENT_MOUSE2_HORIZ, INPUTEVENT_MOUSE2_LEFT, INPUTEVENT_MOUSE2_RIGHT,
+	INPUTEVENT_MOUSE2_VERT, INPUTEVENT_MOUSE2_UP, INPUTEVENT_MOUSE2_DOWN,
+	INPUTEVENT_JOY1_HORIZ, INPUTEVENT_JOY1_LEFT, INPUTEVENT_JOY1_RIGHT,
+	INPUTEVENT_JOY1_VERT, INPUTEVENT_JOY1_UP, INPUTEVENT_JOY1_DOWN,
+	INPUTEVENT_JOY2_HORIZ, INPUTEVENT_JOY2_LEFT, INPUTEVENT_JOY2_RIGHT,
+	INPUTEVENT_JOY2_VERT, INPUTEVENT_JOY2_UP, INPUTEVENT_JOY2_DOWN,
+	INPUTEVENT_LIGHTPEN_HORIZ, INPUTEVENT_LIGHTPEN_LEFT, INPUTEVENT_LIGHTPEN_RIGHT,
+	INPUTEVENT_LIGHTPEN_VERT, INPUTEVENT_LIGHTPEN_UP, INPUTEVENT_LIGHTPEN_DOWN,
+	INPUTEVENT_PAR_JOY1_HORIZ, INPUTEVENT_PAR_JOY1_LEFT, INPUTEVENT_PAR_JOY1_RIGHT,
+	INPUTEVENT_PAR_JOY1_VERT, INPUTEVENT_PAR_JOY1_UP, INPUTEVENT_PAR_JOY1_DOWN,
+	INPUTEVENT_PAR_JOY2_HORIZ, INPUTEVENT_PAR_JOY2_LEFT, INPUTEVENT_PAR_JOY2_RIGHT,
+	INPUTEVENT_PAR_JOY2_VERT, INPUTEVENT_PAR_JOY2_UP, INPUTEVENT_PAR_JOY2_DOWN,
+	INPUTEVENT_MOUSE_CDTV_HORIZ, INPUTEVENT_MOUSE_CDTV_LEFT, INPUTEVENT_MOUSE_CDTV_RIGHT,
+	INPUTEVENT_MOUSE_CDTV_VERT, INPUTEVENT_MOUSE_CDTV_UP, INPUTEVENT_MOUSE_CDTV_DOWN,
+	-1
+};
+
+int intputdevice_compa_get_eventtype (int evt, int **axistablep)
 {
-    joysticks[joy].eventid[ID_BUTTON_OFFSET + 0][0] = n ? INPUTEVENT_JOY2_CD32_RED : INPUTEVENT_JOY1_CD32_RED;
-    joysticks[joy].eventid[ID_BUTTON_OFFSET + 1][0] = n ? INPUTEVENT_JOY2_CD32_BLUE : INPUTEVENT_JOY1_CD32_BLUE;
-	joysticks[joy].eventid[ID_BUTTON_OFFSET + 2][0] = n ? INPUTEVENT_JOY2_CD32_GREEN : INPUTEVENT_JOY1_CD32_GREEN;
-	joysticks[joy].eventid[ID_BUTTON_OFFSET + 3][0] = n ? INPUTEVENT_JOY2_CD32_YELLOW : INPUTEVENT_JOY1_CD32_YELLOW;
-	joysticks[joy].eventid[ID_BUTTON_OFFSET + 4][0] = n ? INPUTEVENT_JOY2_CD32_RWD : INPUTEVENT_JOY1_CD32_RWD;
-	joysticks[joy].eventid[ID_BUTTON_OFFSET + 5][0] = n ? INPUTEVENT_JOY2_CD32_FFW : INPUTEVENT_JOY1_CD32_FFW;
-    joysticks[joy].eventid[ID_BUTTON_OFFSET + 6][0] = n ? INPUTEVENT_JOY2_CD32_PLAY :  INPUTEVENT_JOY1_CD32_PLAY;
+	unsigned int i;
+	for (i = 0; axistable[i] >= 0; i += 3) {
+		*axistablep = &axistable[i];
+		if (axistable[i] == evt)
+			return IDEV_WIDGET_AXIS;
+		if (axistable[i + 1] == evt)
+			return IDEV_WIDGET_BUTTONAXIS;
+		if (axistable[i + 2] == evt)
+			return IDEV_WIDGET_BUTTONAXIS;
+	}
+	*axistablep = NULL;
+	return IDEV_WIDGET_BUTTON;
 }
-#endif
 
-int compatibility_device[MAX_JPORTS];
-
-
-static int ip_joy1[] = {
-	INPUTEVENT_JOY1_UP, INPUTEVENT_JOY1_LEFT, INPUTEVENT_JOY1_RIGHT, INPUTEVENT_JOY1_DOWN,
+static int rem_port1[] = {
+	INPUTEVENT_MOUSE1_HORIZ, INPUTEVENT_MOUSE1_VERT,
+	INPUTEVENT_JOY1_HORIZ, INPUTEVENT_JOY1_VERT,
+	INPUTEVENT_JOY1_HORIZ_POT, INPUTEVENT_JOY1_VERT_POT,
 	INPUTEVENT_JOY1_FIRE_BUTTON, INPUTEVENT_JOY1_2ND_BUTTON, INPUTEVENT_JOY1_3RD_BUTTON,
+	INPUTEVENT_JOY1_CD32_RED, INPUTEVENT_JOY1_CD32_BLUE, INPUTEVENT_JOY1_CD32_GREEN, INPUTEVENT_JOY1_CD32_YELLOW,
+	INPUTEVENT_JOY1_CD32_RWD, INPUTEVENT_JOY1_CD32_FFW, INPUTEVENT_JOY1_CD32_PLAY,
+	INPUTEVENT_MOUSE_CDTV_HORIZ, INPUTEVENT_MOUSE_CDTV_VERT,
+	INPUTEVENT_LIGHTPEN_HORIZ, INPUTEVENT_LIGHTPEN_VERT,
+	-1
+};
+static int rem_port2[] = {
+	INPUTEVENT_MOUSE2_HORIZ, INPUTEVENT_MOUSE2_VERT,
+	INPUTEVENT_JOY2_HORIZ, INPUTEVENT_JOY2_VERT,
+	INPUTEVENT_JOY2_HORIZ_POT, INPUTEVENT_JOY2_VERT_POT,
+	INPUTEVENT_JOY2_FIRE_BUTTON, INPUTEVENT_JOY2_2ND_BUTTON, INPUTEVENT_JOY2_3RD_BUTTON,
+	INPUTEVENT_JOY2_CD32_RED, INPUTEVENT_JOY2_CD32_BLUE, INPUTEVENT_JOY2_CD32_GREEN, INPUTEVENT_JOY2_CD32_YELLOW,
+	INPUTEVENT_JOY2_CD32_RWD, INPUTEVENT_JOY2_CD32_FFW, INPUTEVENT_JOY2_CD32_PLAY,
+	-1, -1,
+	-1, -1,
+	-1
+};
+static int rem_port3[] = {
+	INPUTEVENT_PAR_JOY1_LEFT, INPUTEVENT_PAR_JOY1_RIGHT, INPUTEVENT_PAR_JOY1_UP, INPUTEVENT_PAR_JOY1_DOWN,
+	INPUTEVENT_PAR_JOY1_FIRE_BUTTON,
+	-1
+};
+static int rem_port4[] = {
+	INPUTEVENT_PAR_JOY2_LEFT, INPUTEVENT_PAR_JOY2_RIGHT, INPUTEVENT_PAR_JOY2_UP, INPUTEVENT_PAR_JOY2_DOWN,
+	INPUTEVENT_PAR_JOY2_FIRE_BUTTON,
+	-1
+};
+
+static int *rem_ports[] = { rem_port1, rem_port2, rem_port3, rem_port4 };
+static int af_port1[] = {
+	INPUTEVENT_JOY1_FIRE_BUTTON, INPUTEVENT_JOY1_CD32_RED,
+	-1
+};
+static int af_port2[] = {
+	INPUTEVENT_JOY2_FIRE_BUTTON, INPUTEVENT_JOY2_CD32_RED,
+	-1
+};
+static int af_port3[] = {
+	INPUTEVENT_PAR_JOY1_FIRE_BUTTON,
+	-1
+};
+static int af_port4[] = {
+	INPUTEVENT_PAR_JOY2_FIRE_BUTTON,
+	-1
+};
+static int *af_ports[] = { af_port1, af_port2, af_port3, af_port4 };
+static int ip_joy1[] = {
+	INPUTEVENT_JOY1_LEFT, INPUTEVENT_JOY1_RIGHT, INPUTEVENT_JOY1_UP, INPUTEVENT_JOY1_DOWN,
+	INPUTEVENT_JOY1_FIRE_BUTTON, INPUTEVENT_JOY1_2ND_BUTTON,
 	-1
 };
 static int ip_joy2[] = {
-	INPUTEVENT_JOY2_UP, INPUTEVENT_JOY2_LEFT, INPUTEVENT_JOY2_RIGHT, INPUTEVENT_JOY2_DOWN,
-	INPUTEVENT_JOY2_FIRE_BUTTON, INPUTEVENT_JOY2_2ND_BUTTON, INPUTEVENT_JOY2_3RD_BUTTON,
+	INPUTEVENT_JOY2_LEFT, INPUTEVENT_JOY2_RIGHT, INPUTEVENT_JOY2_UP, INPUTEVENT_JOY2_DOWN,
+	INPUTEVENT_JOY2_FIRE_BUTTON, INPUTEVENT_JOY2_2ND_BUTTON,
 	-1
 };
 static int ip_joycd321[] = {
+	INPUTEVENT_JOY1_LEFT, INPUTEVENT_JOY1_RIGHT, INPUTEVENT_JOY1_UP, INPUTEVENT_JOY1_DOWN,
 	INPUTEVENT_JOY1_CD32_RED, INPUTEVENT_JOY1_CD32_BLUE, INPUTEVENT_JOY1_CD32_GREEN, INPUTEVENT_JOY1_CD32_YELLOW,
 	INPUTEVENT_JOY1_CD32_RWD, INPUTEVENT_JOY1_CD32_FFW, INPUTEVENT_JOY1_CD32_PLAY,
 	-1
 };
 static int ip_joycd322[] = {
+	INPUTEVENT_JOY2_LEFT, INPUTEVENT_JOY2_RIGHT, INPUTEVENT_JOY2_UP, INPUTEVENT_JOY2_DOWN,
 	INPUTEVENT_JOY2_CD32_RED, INPUTEVENT_JOY2_CD32_BLUE, INPUTEVENT_JOY2_CD32_GREEN, INPUTEVENT_JOY2_CD32_YELLOW,
 	INPUTEVENT_JOY2_CD32_RWD, INPUTEVENT_JOY2_CD32_FFW, INPUTEVENT_JOY2_CD32_PLAY,
 	-1
 };
 static int ip_parjoy1[] = {
-	INPUTEVENT_PAR_JOY1_UP, INPUTEVENT_PAR_JOY1_LEFT, INPUTEVENT_PAR_JOY1_RIGHT, INPUTEVENT_PAR_JOY1_DOWN,
+	INPUTEVENT_PAR_JOY1_LEFT, INPUTEVENT_PAR_JOY1_RIGHT, INPUTEVENT_PAR_JOY1_UP, INPUTEVENT_PAR_JOY1_DOWN,
 	INPUTEVENT_PAR_JOY1_FIRE_BUTTON,
 	-1
 };
 static int ip_parjoy2[] = {
-	INPUTEVENT_PAR_JOY2_UP, INPUTEVENT_PAR_JOY2_LEFT, INPUTEVENT_PAR_JOY2_RIGHT, INPUTEVENT_PAR_JOY2_DOWN,
+	INPUTEVENT_PAR_JOY2_LEFT, INPUTEVENT_PAR_JOY2_RIGHT, INPUTEVENT_PAR_JOY2_UP, INPUTEVENT_PAR_JOY2_DOWN,
 	INPUTEVENT_PAR_JOY2_FIRE_BUTTON,
 	-1
 };
 static int ip_mouse1[] = {
-	INPUTEVENT_MOUSE1_UP, INPUTEVENT_MOUSE1_LEFT, INPUTEVENT_MOUSE1_RIGHT, INPUTEVENT_MOUSE1_DOWN,
-	INPUTEVENT_JOY1_FIRE_BUTTON, INPUTEVENT_JOY1_2ND_BUTTON, INPUTEVENT_JOY1_3RD_BUTTON,
+	INPUTEVENT_MOUSE1_LEFT, INPUTEVENT_MOUSE1_RIGHT, INPUTEVENT_MOUSE1_UP, INPUTEVENT_MOUSE1_DOWN,
+	INPUTEVENT_JOY1_FIRE_BUTTON, INPUTEVENT_JOY1_2ND_BUTTON,
 	-1
 };
 static int ip_mouse2[] = {
-	INPUTEVENT_MOUSE2_UP, INPUTEVENT_MOUSE2_LEFT, INPUTEVENT_MOUSE2_RIGHT, INPUTEVENT_MOUSE2_DOWN,
-	INPUTEVENT_JOY2_FIRE_BUTTON, INPUTEVENT_JOY2_2ND_BUTTON, INPUTEVENT_JOY2_3RD_BUTTON,
+	INPUTEVENT_MOUSE2_LEFT, INPUTEVENT_MOUSE2_RIGHT, INPUTEVENT_MOUSE2_UP, INPUTEVENT_MOUSE2_DOWN,
+	INPUTEVENT_JOY2_FIRE_BUTTON, INPUTEVENT_JOY2_2ND_BUTTON,
+	-1
+};
+static int ip_mousecdtv[] =
+{
+	INPUTEVENT_MOUSE_CDTV_LEFT, INPUTEVENT_MOUSE_CDTV_RIGHT, INPUTEVENT_MOUSE_CDTV_UP, INPUTEVENT_MOUSE_CDTV_DOWN,
+	INPUTEVENT_JOY1_FIRE_BUTTON, INPUTEVENT_JOY1_2ND_BUTTON,
+	-1
+};
+static int ip_arcadia[] = {
+	INPUTEVENT_SPC_ARCADIA_DIAGNOSTICS, INPUTEVENT_SPC_ARCADIA_PLAYER1, INPUTEVENT_SPC_ARCADIA_PLAYER2,
+	INPUTEVENT_SPC_ARCADIA_COIN1, INPUTEVENT_SPC_ARCADIA_COIN2,
+	-1
+};
+static int ip_lightpen1[] = {
+	INPUTEVENT_LIGHTPEN_HORIZ, INPUTEVENT_LIGHTPEN_VERT, INPUTEVENT_JOY1_3RD_BUTTON,
+	-1
+};
+static int ip_lightpen2[] = {
+	INPUTEVENT_LIGHTPEN_HORIZ, INPUTEVENT_LIGHTPEN_VERT, INPUTEVENT_JOY2_3RD_BUTTON,
+	-1
+};
+static int ip_analog1[] = {
+	INPUTEVENT_JOY1_HORIZ_POT, INPUTEVENT_JOY1_VERT_POT, INPUTEVENT_JOY1_LEFT, INPUTEVENT_JOY1_RIGHT,
+	-1
+};
+static int ip_analog2[] = {
+	INPUTEVENT_JOY2_HORIZ_POT, INPUTEVENT_JOY2_VERT_POT, INPUTEVENT_JOY2_LEFT, INPUTEVENT_JOY2_RIGHT,
+	-1
+};
+
+static int ip_arcadiaxa[] = {
 	-1
 };
 
@@ -2927,7 +3195,7 @@ static void checkcompakb (int *kb, int *srcmap)
 			k = 0;
 			while (keyboard_default[k].scancode >= 0) {
 				if (keyboard_default[k].scancode == kb[j]) {
-					evt = keyboard_default[k].event;
+					evt = keyboard_default[k].evt;
 					break;
 				}
 				k++;
@@ -2946,19 +3214,21 @@ static void checkcompakb (int *kb, int *srcmap)
 
 static void setcompakb (int *kb, int *srcmap)
 {
-	int j, k, l;
+	int j, k, l, m;
 	k = j = 0;
 	while (kb[j] >= 0 && srcmap[k] >= 0) {
-		struct uae_input_device *uid = &keyboards[0];
 		while (kb[j] >= 0) {
 			int id = kb[j];
-			for (l = 0; l < MAX_INPUT_DEVICE_EVENTS; l++) {
-				if (uid->extra[l][0] == id) {
-					uid->eventid[l][0] = srcmap[k];
-					uid->flags[l][0] = 0;
-					xfree (uid->custom[l][0]);
-					uid->custom[l][0] = NULL;
-					break;
+			for (m = 0; m < MAX_INPUT_DEVICES; m++) {
+				struct uae_input_device *uid = &keyboards[m];
+				for (l = 0; l < MAX_INPUT_DEVICE_EVENTS; l++) {
+					if (uid->extra[l][0] == id) {
+						uid->eventid[l][0] = srcmap[k];
+						uid->flags[l][0] &= ID_FLAG_SAVE_MASK;
+						xfree (uid->custom[l][0]);
+						uid->custom[l][0] = NULL;
+						break;
+					}
 				}
 			}
 			j++;
@@ -2968,253 +3238,512 @@ static void setcompakb (int *kb, int *srcmap)
 	}
 }
 
-// merge gameport settings with current input configuration
-static void compatibility_copy (struct uae_prefs *prefs)
+static int joymodes[MAX_JPORTS];
+static int *joyinputs[MAX_JPORTS];
+
+int inputdevice_get_compatibility_input (struct uae_prefs *prefs, int index, int *typelist, int **inputlist, int **at)
 {
-	int used[MAX_INPUT_DEVICES] = { 0 };
-	int i, joy;
+	if (index >= MAX_JPORTS || joymodes[index] < 0)
+		return 0;
+	*typelist = joymodes[index];
+	*inputlist = joyinputs[index];
+	*at = axistable;
+	int cnt = 0;
+	unsigned int i;
+	for (i = 0; joyinputs[index] && joyinputs[index][i] >= 0; i++, cnt++);
+	return cnt;
+}
 
-	for (i = 0; i < 2; i++) {
-		int mode = prefs->jports[i].mode;
-		if ((joy = jsem_ismouse (i, prefs)) >= 0) {
-			switch (mode)
-			{
-			case JSEM_MODE_DEFAULT:
-			case JSEM_MODE_MOUSE:
-			default:
-				input_get_default_mouse (mice, joy, i);
-				break;
-			case JSEM_MODE_LIGHTPEN:
-				//input_get_default_lightpen (mice, joy, i);
-				break;
+static void clearevent (struct uae_input_device *uid, int evt)
+{
+	unsigned int i, j;
+	for (i = 0; i < MAX_INPUT_DEVICE_EVENTS; i++) {
+		for (j = 0; j < MAX_INPUT_SUB_EVENT; j++) {
+			if (uid->eventid[i][j] == evt) {
+				uid->eventid[i][j] = 0;
+				uid->flags[i][j] = 0;
+				xfree (uid->custom[i][j]);
+				uid->custom[i][j] = NULL;
 			}
 		}
 	}
-	for (i = 1; i >= 0; i--) {
-		int mode = prefs->jports[i].mode;
-		joy = jsem_isjoy (i, prefs);
-		if (joy >= 0) {
-			switch (mode)
-			{
-			case JSEM_MODE_DEFAULT:
-			case JSEM_MODE_JOYSTICK:
-			case JSEM_MODE_JOYSTICK_CD32:
-			default:
-				input_get_default_joystick (joysticks, joy, i, (mode == JSEM_MODE_JOYSTICK_CD32 || (mode == JSEM_MODE_DEFAULT && prefs->cs_cd32cd)));
-				break;
-			case JSEM_MODE_JOYSTICK_ANALOG:
-				//input_get_default_joystick_analog (joysticks, joy, i);
-				break;
-			case JSEM_MODE_MOUSE:
-				input_get_default_mouse (joysticks, joy, i);
-				break;
-			case JSEM_MODE_LIGHTPEN:
-				//input_get_default_lightpen (joysticks, joy, i);
-				break;
+}
+static void clearkbrevent (struct uae_input_device *uid, int evt)
+{
+	unsigned int i, j;
+	for (i = 0; i < MAX_INPUT_DEVICE_EVENTS; i++) {
+		bool found = false;
+		for (j = 0; j < MAX_INPUT_SUB_EVENT; j++) {
+			if (uid->eventid[i][j] == evt) {
+				uid->eventid[i][j] = 0;
+				uid->flags[i][j] = 0;
+				xfree (uid->custom[i][j]);
+				uid->custom[i][j] = NULL;
+				if (j == 0)
+					set_kbr_default_event (uid, keyboard_default, i);
 			}
-			used[joy] = 1;
-		}
-	}
-
-	// replace possible old mappings with default keyboard mapping
-	checkcompakb (keyboard_default_kbmaps[0], ip_joy2);
-	checkcompakb (keyboard_default_kbmaps[0], ip_joy1);
-	checkcompakb (keyboard_default_kbmaps[0], ip_parjoy2);
-	checkcompakb (keyboard_default_kbmaps[0], ip_parjoy1);
-	checkcompakb (keyboard_default_kbmaps[0], ip_mouse2);
-	checkcompakb (keyboard_default_kbmaps[0], ip_mouse1);
-	checkcompakb (keyboard_default_kbmaps[1], ip_joy2);
-	checkcompakb (keyboard_default_kbmaps[1], ip_joy1);
-	checkcompakb (keyboard_default_kbmaps[1], ip_parjoy2);
-	checkcompakb (keyboard_default_kbmaps[1], ip_parjoy1);
-	checkcompakb (keyboard_default_kbmaps[1], ip_mouse2);
-	checkcompakb (keyboard_default_kbmaps[1], ip_mouse1);
-	checkcompakb (keyboard_default_kbmaps[2], ip_joy2);
-	checkcompakb (keyboard_default_kbmaps[2], ip_joy1);
-	checkcompakb (keyboard_default_kbmaps[2], ip_parjoy2);
-	checkcompakb (keyboard_default_kbmaps[2], ip_parjoy1);
-	checkcompakb (keyboard_default_kbmaps[2], ip_mouse2);
-	checkcompakb (keyboard_default_kbmaps[2], ip_mouse1);
-	checkcompakb (keyboard_default_kbmaps[5], ip_joycd321);
-	checkcompakb (keyboard_default_kbmaps[5], ip_joycd322);
-
-	for (i = 0; i < 2; i++) {
-		int *kb;
-		int mode = prefs->jports[i].mode;
-		for (joy = 0; used[joy]; joy++);
-		if (JSEM_ISANYKBD (i, prefs)) {
-			if (JSEM_ISNUMPAD (i, prefs))
-				kb = keyboard_default_kbmaps[0];
-			else if (JSEM_ISCURSOR (i, prefs))
-				kb = keyboard_default_kbmaps[1];
-			else
-				kb = keyboard_default_kbmaps[2];
-			switch (mode)
-			{
-			case JSEM_MODE_JOYSTICK:
-			case JSEM_MODE_JOYSTICK_CD32:
-			case JSEM_MODE_DEFAULT:
-				setcompakb (kb, i ? ip_joy2 : ip_joy1);
-				if (mode == JSEM_MODE_JOYSTICK_CD32 || (mode == JSEM_MODE_DEFAULT && prefs->cs_cd32cd))
-					setcompakb (keyboard_default_kbmaps[5], i ? ip_joycd322 : ip_joycd321);
-				break;
-			case JSEM_MODE_MOUSE:
-				setcompakb (kb, i ? ip_mouse2 : ip_mouse1);
-				break;
-			}
-			used[joy] = 1;
-		}
-	}
-	// parport
-	for (i = 2; i < 4; i++) {
-		int *kb;
-		for (joy = 0; used[joy]; joy++);
-		if (JSEM_ISANYKBD (i, prefs)) {
-			if (JSEM_ISNUMPAD (i, prefs))
-				kb = keyboard_default_kbmaps[0];
-			else if (JSEM_ISCURSOR (i, prefs))
-				kb = keyboard_default_kbmaps[1];
-			else
-				kb = keyboard_default_kbmaps[2];
-			setcompakb (kb, i ? ip_parjoy2 : ip_parjoy1);
-			used[joy] = 1;
 		}
 	}
 }
 
-static void compatibility_mode (struct uae_prefs *prefs)
+static void resetjport (struct uae_prefs *prefs, int index)
 {
-    int joy, i;
+	unsigned int l, i, j;
+	int *p = rem_ports[index];
+	while (*p >= 0) {
+		int evtnum = *p++;
+		for (l = 0; l < MAX_INPUT_DEVICES; l++) {
+			clearevent (&prefs->joystick_settings[GAMEPORT_INPUT_SETTINGS][l], evtnum);
+			clearevent (&prefs->mouse_settings[GAMEPORT_INPUT_SETTINGS][l], evtnum);
+			clearkbrevent (&prefs->keyboard_settings[GAMEPORT_INPUT_SETTINGS][l], evtnum);
+		}
+		for (i = 0; axistable[i] >= 0; i += 3) {
+			if (evtnum == axistable[i] || evtnum == axistable[i + 1] || evtnum == axistable[i + 2]) {
+				for (j = 0; j < 3; j++) {
+					int evtnum2 = axistable[i + j];
+					for (l = 0; l < MAX_INPUT_DEVICES; l++) {
+						clearevent (&prefs->joystick_settings[GAMEPORT_INPUT_SETTINGS][l], evtnum2);
+						clearevent (&prefs->mouse_settings[GAMEPORT_INPUT_SETTINGS][l], evtnum2);
+						clearkbrevent (&prefs->keyboard_settings[GAMEPORT_INPUT_SETTINGS][l], evtnum2);
+					}
+				}
+				break;
+			}
+		}
+	}
+}
+
+static void remove_compa_config (struct uae_prefs *prefs, int index)
+{
+	int typelist, *inputlist, *atp;
+
+	if (!inputdevice_get_compatibility_input (prefs, index, &typelist, &inputlist, &atp))
+		return;
+
+	unsigned int i, l;
+	for (i = 0; inputlist[i] >= 0; i++) {
+		int evtnum = inputlist[i];
+
+		int atpidx = 0;
+		while (*atp >= 0) {
+			if (*atp == evtnum) {
+				atp++;
+				atpidx = 2;
+				break;
+			}
+			if (atp[1] == evtnum || atp[2] == evtnum) {
+				atpidx = 1;
+				break;
+			}
+			atp += 3;
+		}
+		while (atpidx >= 0) {
+			for (l = 0; l < MAX_INPUT_DEVICES; l++) {
+				clearevent (&prefs->joystick_settings[GAMEPORT_INPUT_SETTINGS][l], evtnum);
+				clearevent (&prefs->mouse_settings[GAMEPORT_INPUT_SETTINGS][l], evtnum);
+				clearkbrevent (&prefs->keyboard_settings[GAMEPORT_INPUT_SETTINGS][l], evtnum);
+			}
+			evtnum = *atp++;
+			atpidx--;
+		}
+	}
+}
+
+// prepare port for custom mapping, remove all current Amiga side device mappings
+void inputdevice_compa_prepare_custom (struct uae_prefs *prefs, int index)
+{
+	int mode = prefs->jports[index].mode;
+	freejport (prefs, index);
+	resetjport (prefs, index);
+	if (mode == 0)
+		mode = index == 0 ? JSEM_MODE_MOUSE : JSEM_MODE_JOYSTICK;
+	prefs->jports[index].mode = mode;
+	prefs->jports[index].id = -2;
+
+	remove_compa_config (prefs, index);
+}
+
+static void cleardev (struct uae_input_device *uid, int num)
+{
+	unsigned int i, j;
+	for (i = 0; i < MAX_INPUT_DEVICE_EVENTS; i++) {
+		for (j = 0; j < MAX_INPUT_SUB_EVENT; j++) {
+			uid[num].eventid[i][j] = 0;
+		}
+	}
+}
+
+static void setjoyinputs (struct uae_prefs *prefs, int port)
+{
+	joyinputs[port] = NULL;
+	switch (joymodes[port])
+	{
+		case JSEM_MODE_JOYSTICK:
+			if (port >= 2)
+				joyinputs[port] = port == 3 ? ip_parjoy2 : ip_parjoy1;
+			else
+				joyinputs[port] = port == 1 ? ip_joy2 : ip_joy1;
+		break;
+		case JSEM_MODE_JOYSTICK_CD32:
+			joyinputs[port] = port ? ip_joycd322 : ip_joycd321;
+		break;
+		case JSEM_MODE_JOYSTICK_ANALOG:
+			joyinputs[port] = port ? ip_analog2 : ip_analog1;
+		break;
+		case JSEM_MODE_MOUSE:
+			joyinputs[port] = port ? ip_mouse2 : ip_mouse1;
+		break;
+		case JSEM_MODE_LIGHTPEN:
+			joyinputs[port] = port ? ip_lightpen2 : ip_lightpen1;
+		break;
+		case JSEM_MODE_MOUSE_CDTV:
+			joyinputs[port] = ip_mousecdtv;
+		break;
+	}
+}
+
+static void enablejoydevice (struct uae_input_device *uid, int evtnum)
+{
+	unsigned int i, j;
+	for (i = 0; i < MAX_INPUT_DEVICE_EVENTS; i++) {
+		for (j = 0; j < MAX_INPUT_SUB_EVENT; j++) {
+			if (uid->eventid[i][j] == evtnum) {
+				uid->enabled = 1;
+			}
+		}
+	}
+}
+
+static void setjoydevices (struct uae_prefs *prefs, int port)
+{
+	unsigned int ii, i, l, j;
+	for (ii = 0; joyinputs[port] && joyinputs[port][ii] >= 0; ii++) {
+		int evtnum = joyinputs[port][ii];
+		for (l = 0; l < MAX_INPUT_DEVICES; l++) {
+			enablejoydevice (&prefs->joystick_settings[GAMEPORT_INPUT_SETTINGS][l], evtnum);
+			enablejoydevice (&prefs->mouse_settings[GAMEPORT_INPUT_SETTINGS][l], evtnum);
+			enablejoydevice (&prefs->keyboard_settings[GAMEPORT_INPUT_SETTINGS][l], evtnum);
+		}
+		for (i = 0; axistable[i] >= 0; i += 3) {
+			if (evtnum == axistable[i] || evtnum == axistable[i + 1] || evtnum == axistable[i + 2]) {
+				for (j = 0; j < 3; j++) {
+					int evtnum2 = axistable[i + j];
+					for (l = 0; l < MAX_INPUT_DEVICES; l++) {
+						enablejoydevice (&prefs->joystick_settings[GAMEPORT_INPUT_SETTINGS][l], evtnum2);
+						enablejoydevice (&prefs->mouse_settings[GAMEPORT_INPUT_SETTINGS][l], evtnum2);
+						enablejoydevice (&prefs->keyboard_settings[GAMEPORT_INPUT_SETTINGS][l], evtnum2);
+					}
+				}
+				break;
+			}
+		}
+
+	}
+}
+
+static void setautofire (struct uae_input_device *uid, int port, int af)
+{
+	unsigned int k, i ,j;
+	int *afp = af_ports[port];
+	for (k = 0; afp[k] >= 0; k++) {
+		for (i = 0; i < MAX_INPUT_DEVICE_EVENTS; i++) {
+			for (j = 0; j < MAX_INPUT_SUB_EVENT; j++) {
+				if (uid->eventid[i][j] == afp[k]) {
+					uid->flags[i][j] |= ID_FLAG_AUTOFIRE;
+				}
+			}
+		}
+	}
+}
+static void setautofires (struct uae_prefs *prefs, int port, int af)
+{
+	unsigned int l;
+	for (l = 0; l < MAX_INPUT_DEVICES; l++) {
+		setautofire (&prefs->joystick_settings[GAMEPORT_INPUT_SETTINGS][l], port, af);
+		setautofire (&prefs->mouse_settings[GAMEPORT_INPUT_SETTINGS][l], port, af);
+		setautofire (&prefs->keyboard_settings[GAMEPORT_INPUT_SETTINGS][l], port, af);
+	}
+}
+
+// merge gameport settings with current input configuration
+static void compatibility_copy (struct uae_prefs *prefs)
+{
 	int used[MAX_INPUT_DEVICES] = { 0 };
+	int i, joy, j;
+	bool firstmouse = true;
 
-	prefs->jports[0].name[0] = prefs->jports[1].name[0] = 0;
-	prefs->jports[0].configname[0] = prefs->jports[1].configname[0] = 0;
-	prefs->jports[2].name[0] = prefs->jports[3].name[0] = 0;
-	prefs->jports[2].configname[0] = prefs->jports[3].configname[0] = 0;
-    compatibility_device[0] = -1;
-    compatibility_device[1] = -1;
-	compatibility_device[2] = -1;
-	compatibility_device[3] = -1;
-    for (i = 0; i < MAX_INPUT_DEVICES; i++) {
-		clear_id (&mice[i]);
-		clear_id (&joysticks[i]);
-    }
+	for (i = 0; i < MAX_JPORTS; i++) {
+		joymodes[i] = prefs->jports[i].mode;
+		joyinputs[i]= NULL;
+		// remove all mappings from this port, except if custom
+		if (prefs->jports[i].id != JPORT_CUSTOM)
+			remove_compa_config (prefs, i);
+		setjoyinputs (prefs, i);
+	}
 
 	for (i = 0; i < 2; i++) {
-		int mode = prefs->jports[i].mode;
-		if ((joy = jsem_ismouse (i, prefs)) >= 0) {
-			switch (mode)
-			{
-			case JSEM_MODE_DEFAULT:
-			case JSEM_MODE_MOUSE:
-			default:
-				input_get_default_mouse (mice, joy, i);
-				break;
-			case JSEM_MODE_LIGHTPEN:
-				//input_get_default_lightpen (mice, joy, i);
-				break;
+		if (prefs->jports[i].id >= 0 && joymodes[i] <= 0) {
+			int mode = prefs->jports[i].mode;
+			if (jsem_ismouse (i, prefs) >= 0) {
+				switch (mode)
+				{
+					case JSEM_MODE_DEFAULT:
+					case JSEM_MODE_MOUSE:
+					default:
+					joymodes[i] = JSEM_MODE_MOUSE;
+					joyinputs[i] = i ? ip_mouse2 : ip_mouse1;
+					break;
+					case JSEM_MODE_LIGHTPEN:
+					joymodes[i] = JSEM_MODE_LIGHTPEN;
+					joyinputs[i] = i ? ip_lightpen2 : ip_lightpen1;
+					break;
+					case JSEM_MODE_MOUSE_CDTV:
+					joymodes[i] = JSEM_MODE_MOUSE_CDTV;
+					joyinputs[i] = ip_mousecdtv;
+					break;
+				}
+			} else if (jsem_isjoy (i, prefs) >= 0) {
+				switch (mode)
+				{
+					case JSEM_MODE_DEFAULT:
+					case JSEM_MODE_JOYSTICK:
+					case JSEM_MODE_JOYSTICK_CD32:
+					default:
+					{
+						int iscd32 = mode == JSEM_MODE_JOYSTICK_CD32 || (mode == JSEM_MODE_DEFAULT && prefs->cs_cd32cd);
+						joymodes[i] = mode == JSEM_MODE_JOYSTICK_CD32 ? JSEM_MODE_JOYSTICK_CD32 : JSEM_MODE_JOYSTICK;
+						if (!iscd32)
+							joyinputs[i] = i ? ip_joy2 : ip_joy1;
+						else
+							joyinputs[i] = i ? ip_joycd322 : ip_joycd321;
+						break;
+					}
+					case JSEM_MODE_JOYSTICK_ANALOG:
+						joymodes[i] = JSEM_MODE_JOYSTICK_ANALOG;
+						joyinputs[i] = i ? ip_analog2 : ip_analog1;
+						break;
+					case JSEM_MODE_MOUSE:
+						joymodes[i] = JSEM_MODE_MOUSE;
+						joyinputs[i] = i ? ip_mouse2 : ip_mouse1;
+						break;
+					case JSEM_MODE_LIGHTPEN:
+						joymodes[i] = JSEM_MODE_LIGHTPEN;
+						joyinputs[i] = i ? ip_lightpen2 : ip_lightpen1;
+						break;
+					case JSEM_MODE_MOUSE_CDTV:
+						joymodes[i] = JSEM_MODE_MOUSE_CDTV;
+						joyinputs[i] = ip_mousecdtv;
+						break;
+				}
+			} else if (prefs->jports[i].id >= 0) {
+				prefs->jports[i].mode = joymodes[i] = i ? JSEM_MODE_JOYSTICK : JSEM_MODE_MOUSE;
+				joyinputs[i] = i ? ip_joy2 : ip_mouse1;
 			}
-			_tcsncpy (prefs->jports[i].name, idev[IDTYPE_MOUSE].get_friendlyname (joy), MAX_JPORTNAME - 1);
-			_tcsncpy (prefs->jports[i].configname, idev[IDTYPE_MOUSE].get_uniquename (joy), MAX_JPORTNAME - 1);
-	mice[joy].enabled = 1;
-    }
-    }
+		}
+	}
+
+	for (i = 2; i < MAX_JPORTS; i++) {
+		if (prefs->jports[i].id >= 0 && joymodes[i] <= 0) {
+			int mode = prefs->jports[i].mode;
+			if (jsem_isjoy (i, prefs) >= 0) {
+				joymodes[i] = JSEM_MODE_JOYSTICK;
+				joyinputs[i] = i == 3 ? ip_parjoy2 : ip_parjoy1;
+			} else if (prefs->jports[i].id >= 0) {
+				prefs->jports[i].mode = joymodes[i] = JSEM_MODE_JOYSTICK;
+				joyinputs[i] = i == 3 ? ip_parjoy2 : ip_parjoy1;
+			}
+		}
+	}
+
+	for (i = 0; i < 2; i++) {
+		if (prefs->jports[i].id >= 0) {
+			int mode = prefs->jports[i].mode;
+			if ((joy = jsem_ismouse (i, prefs)) >= 0) {
+				cleardev (mice, joy);
+				switch (mode)
+				{
+				case JSEM_MODE_DEFAULT:
+				case JSEM_MODE_MOUSE:
+				default:
+					if (firstmouse) { // map first mouse to each available host mouse device
+						for (j = 0; j < MAX_INPUT_DEVICES; j++)
+							input_get_default_mouse (mice, j, i);
+						firstmouse = false;
+					}
+					input_get_default_mouse (mice, joy, i);
+					joymodes[i] = JSEM_MODE_MOUSE;
+					break;
+				case JSEM_MODE_LIGHTPEN:
+					input_get_default_lightpen (mice, joy, i);
+					joymodes[i] = JSEM_MODE_LIGHTPEN;
+					break;
+				}
+				_tcsncpy (prefs->jports[i].name, idev[IDTYPE_MOUSE].get_friendlyname (joy), MAX_JPORTNAME - 1);
+				_tcsncpy (prefs->jports[i].configname, idev[IDTYPE_MOUSE].get_uniquename (joy), MAX_JPORTNAME - 1);
+			}
+		}
+	}
+
 	for (i = 1; i >= 0; i--) {
-		int mode = prefs->jports[i].mode;
-		joy = jsem_isjoy (i, prefs);
-    if (joy >= 0) {
-			switch (mode)
-			{
-			case JSEM_MODE_DEFAULT:
-			case JSEM_MODE_JOYSTICK:
-			case JSEM_MODE_JOYSTICK_CD32:
-			default:
-				input_get_default_joystick (joysticks, joy, i, (mode == JSEM_MODE_JOYSTICK_CD32 || (mode == JSEM_MODE_DEFAULT && prefs->cs_cd32cd)));
-				break;
-			case JSEM_MODE_JOYSTICK_ANALOG:
-				//input_get_default_joystick_analog (joysticks, joy, i);
-				break;
-			case JSEM_MODE_MOUSE:
-				input_get_default_mouse (joysticks, joy, i);
-				break;
-			case JSEM_MODE_LIGHTPEN:
-				//input_get_default_lightpen (joysticks, joy, i);
-				break;
+		if (prefs->jports[i].id >= 0) {
+			int mode = prefs->jports[i].mode;
+			joy = jsem_isjoy (i, prefs);
+			if (joy >= 0) {
+				cleardev (joysticks, joy);
+				switch (mode)
+				{
+				case JSEM_MODE_DEFAULT:
+				case JSEM_MODE_JOYSTICK:
+				case JSEM_MODE_JOYSTICK_CD32:
+				default:
+				{
+					int iscd32 = mode == JSEM_MODE_JOYSTICK_CD32 || (mode == JSEM_MODE_DEFAULT && prefs->cs_cd32cd);
+					input_get_default_joystick (joysticks, joy, i, iscd32 ? JSEM_MODE_JOYSTICK_CD32 : 0);
+					joymodes[i] = mode == JSEM_MODE_JOYSTICK_CD32 ? JSEM_MODE_JOYSTICK_CD32 : JSEM_MODE_JOYSTICK;
+					break;
+				}
+				case JSEM_MODE_JOYSTICK_ANALOG:
+					input_get_default_joystick_analog (joysticks, joy, i);
+					joymodes[i] = JSEM_MODE_JOYSTICK_ANALOG;
+					break;
+				case JSEM_MODE_MOUSE:
+					input_get_default_mouse (joysticks, joy, i);
+					joymodes[i] = JSEM_MODE_MOUSE;
+					break;
+				case JSEM_MODE_LIGHTPEN:
+					input_get_default_lightpen (joysticks, joy, i);
+					joymodes[i] = JSEM_MODE_LIGHTPEN;
+					break;
+				case JSEM_MODE_MOUSE_CDTV:
+					joymodes[i] = JSEM_MODE_MOUSE_CDTV;
+					input_get_default_joystick (joysticks, joy, i, mode);
+					break;
+
+				}
+				_tcsncpy (prefs->jports[i].name, idev[IDTYPE_JOYSTICK].get_friendlyname (joy), MAX_JPORTNAME - 1);
+				_tcsncpy (prefs->jports[i].configname, idev[IDTYPE_JOYSTICK].get_uniquename (joy), MAX_JPORTNAME - 1);
+				used[joy] = 1;
 			}
-			_tcsncpy (prefs->jports[i].name, idev[IDTYPE_JOYSTICK].get_friendlyname (joy), MAX_JPORTNAME - 1);
-			_tcsncpy (prefs->jports[i].configname, idev[IDTYPE_JOYSTICK].get_uniquename (joy), MAX_JPORTNAME - 1);
-	joysticks[joy].enabled = 1;
-			used[joy] = 1;
-    }
-	}
-	for (i = 2; i < 4; i++) {
-		joy = jsem_isjoy (i, prefs);
-		if (joy >= 0) {
-			input_get_default_joystick (joysticks, joy, i, 0);
-			_tcsncpy (prefs->jports[i].name, idev[IDTYPE_JOYSTICK].get_friendlyname (joy), MAX_JPORTNAME - 1);
-			_tcsncpy (prefs->jports[i].configname, idev[IDTYPE_JOYSTICK].get_uniquename (joy), MAX_JPORTNAME - 1);
-			joysticks[joy].enabled = 1;
-	used[joy] = 1;
 		}
 	}
+
+	// replace possible old mappings with default keyboard mapping
+	for (i = KBR_DEFAULT_MAP_NP; i <= KBR_DEFAULT_MAP_SE; i++) {
+		checkcompakb (keyboard_default_kbmaps[i], ip_joy2);
+		checkcompakb (keyboard_default_kbmaps[i], ip_joy1);
+		checkcompakb (keyboard_default_kbmaps[i], ip_parjoy2);
+		checkcompakb (keyboard_default_kbmaps[i], ip_parjoy1);
+		checkcompakb (keyboard_default_kbmaps[i], ip_mouse2);
+		checkcompakb (keyboard_default_kbmaps[i], ip_mouse1);
+	}
+	checkcompakb (keyboard_default_kbmaps[5], ip_joycd321);
+	checkcompakb (keyboard_default_kbmaps[5], ip_joycd322);
 
 	for (i = 0; i < 2; i++) {
-		int mode = prefs->jports[i].mode;
-		for (joy = 0; used[joy]; joy++);
-		if (JSEM_ISANYKBD (i, prefs)) {
-			switch (mode)
-			{
-			case JSEM_MODE_JOYSTICK:
-			case JSEM_MODE_JOYSTICK_CD32:
-			case JSEM_MODE_DEFAULT:
-			default:
-				joysticks[joy].eventid[ID_AXIS_OFFSET +  0][0] = i ? INPUTEVENT_JOY2_HORIZ : INPUTEVENT_JOY1_HORIZ;
-				joysticks[joy].eventid[ID_AXIS_OFFSET +  1][0] = i ? INPUTEVENT_JOY2_VERT : INPUTEVENT_JOY1_VERT;
-				joysticks[joy].eventid[ID_BUTTON_OFFSET + 0][0] = i ? INPUTEVENT_JOY2_FIRE_BUTTON : INPUTEVENT_JOY1_FIRE_BUTTON;
-				joysticks[joy].eventid[ID_BUTTON_OFFSET + 1][0] = i ? INPUTEVENT_JOY2_2ND_BUTTON : INPUTEVENT_JOY1_2ND_BUTTON;
-				joysticks[joy].eventid[ID_BUTTON_OFFSET + 2][0] = i ? INPUTEVENT_JOY2_3RD_BUTTON : INPUTEVENT_JOY1_3RD_BUTTON;
-#ifdef CD32
-				if (mode == JSEM_MODE_JOYSTICK_CD32 || (mode == JSEM_MODE_DEFAULT && prefs->cs_cd32cd))
-					setcd32 (joy, i);
-#endif
-				break;
-			case JSEM_MODE_MOUSE_CDTV:
-				joysticks[joy].eventid[ID_AXIS_OFFSET + 0][0] = INPUTEVENT_MOUSE_CDTV_HORIZ;
-				joysticks[joy].eventid[ID_AXIS_OFFSET + 1][0] = INPUTEVENT_MOUSE_CDTV_VERT;
-	joysticks[joy].eventid[ID_BUTTON_OFFSET + 0][0] = INPUTEVENT_JOY1_FIRE_BUTTON;
-	joysticks[joy].eventid[ID_BUTTON_OFFSET + 1][0] = INPUTEVENT_JOY1_2ND_BUTTON;
-	joysticks[joy].eventid[ID_BUTTON_OFFSET + 2][0] = INPUTEVENT_JOY1_3RD_BUTTON;
-				break;
-			case JSEM_MODE_MOUSE:
-				joysticks[joy].eventid[ID_AXIS_OFFSET + 0][0] = i ? INPUTEVENT_MOUSE2_HORIZ : INPUTEVENT_MOUSE1_HORIZ;
-				joysticks[joy].eventid[ID_AXIS_OFFSET + 1][0] = i ? INPUTEVENT_MOUSE2_VERT : INPUTEVENT_MOUSE1_VERT;
-				joysticks[joy].eventid[ID_BUTTON_OFFSET + 0][0] = i ? INPUTEVENT_JOY2_FIRE_BUTTON : INPUTEVENT_JOY1_FIRE_BUTTON;
-				joysticks[joy].eventid[ID_BUTTON_OFFSET + 1][0] = i ? INPUTEVENT_JOY2_2ND_BUTTON : INPUTEVENT_JOY1_2ND_BUTTON;
-				joysticks[joy].eventid[ID_BUTTON_OFFSET + 2][0] = i ? INPUTEVENT_JOY2_3RD_BUTTON : INPUTEVENT_JOY1_3RD_BUTTON;
-				break;
-			case JSEM_MODE_LIGHTPEN:
-				joysticks[joy].eventid[ID_AXIS_OFFSET + 0][0] = INPUTEVENT_LIGHTPEN_HORIZ;
-				joysticks[joy].eventid[ID_AXIS_OFFSET + 1][0] = INPUTEVENT_LIGHTPEN_VERT;
-				joysticks[joy].eventid[ID_BUTTON_OFFSET + 0][0] = i ? INPUTEVENT_JOY2_3RD_BUTTON : INPUTEVENT_JOY1_3RD_BUTTON;
-				break;
-
-    }
-			joysticks[joy].enabled = -1;
-			used[joy] = 1;
-			compatibility_device[i] = joy;
+		if (prefs->jports[i].id >= 0) {
+			int *kb = NULL;
+			int mode = prefs->jports[i].mode;
+			for (joy = 0; used[joy]; joy++);
+			if (JSEM_ISANYKBD (i, prefs)) {
+				int cd32 = mode == JSEM_MODE_JOYSTICK_CD32 || (mode == JSEM_MODE_DEFAULT && prefs->cs_cd32cd);
+				if (JSEM_ISNUMPAD (i, prefs)) {
+					if (cd32)
+						kb = keyboard_default_kbmaps[KBR_DEFAULT_MAP_CD32_NP];
+					else
+						kb = keyboard_default_kbmaps[KBR_DEFAULT_MAP_NP];
+				} else if (JSEM_ISCURSOR (i, prefs)) {
+					if (cd32)
+						kb = keyboard_default_kbmaps[KBR_DEFAULT_MAP_CD32_CK];
+					else
+						kb = keyboard_default_kbmaps[KBR_DEFAULT_MAP_CK];
+				} else if (JSEM_ISSOMEWHEREELSE (i, prefs)) {
+					if (cd32)
+						kb = keyboard_default_kbmaps[KBR_DEFAULT_MAP_CD32_SE];
+					else
+						kb = keyboard_default_kbmaps[KBR_DEFAULT_MAP_SE];
+				} else if (JSEM_ISXARCADE1 (i, prefs)) {
+					kb = keyboard_default_kbmaps[KBR_DEFAULT_MAP_XA1];
+				} else if (JSEM_ISXARCADE2 (i, prefs)) {
+					kb = keyboard_default_kbmaps[KBR_DEFAULT_MAP_XA2];
+				}
+				if (kb) {
+					switch (mode)
+					{
+					case JSEM_MODE_JOYSTICK:
+					case JSEM_MODE_JOYSTICK_CD32:
+					case JSEM_MODE_DEFAULT:
+						if (cd32) {
+							setcompakb (kb, i ? ip_joycd322 : ip_joycd321);
+							joymodes[i] = JSEM_MODE_JOYSTICK_CD32;
+						} else {
+							setcompakb (kb, i ? ip_joy2 : ip_joy1);
+							joymodes[i] = JSEM_MODE_JOYSTICK;
+						}
+						break;
+					case JSEM_MODE_MOUSE:
+						setcompakb (kb, i ? ip_mouse2 : ip_mouse1);
+						joymodes[i] = JSEM_MODE_MOUSE;
+						break;
+					}
+					used[joy] = 1;
+				}
+			}
 		}
 	}
-	for (i = 2; i < 4; i++) {
-    for (joy = 0; used[joy]; joy++);
-		if (JSEM_ISANYKBD (i, prefs)) {
-			joysticks[joy].eventid[ID_AXIS_OFFSET +  0][0] = i == 3 ? INPUTEVENT_PAR_JOY2_HORIZ : INPUTEVENT_PAR_JOY1_HORIZ;
-			joysticks[joy].eventid[ID_AXIS_OFFSET +  1][0] = i == 3 ? INPUTEVENT_PAR_JOY2_VERT : INPUTEVENT_PAR_JOY1_VERT;
-			joysticks[joy].eventid[ID_BUTTON_OFFSET + 0][0] = i == 3 ? INPUTEVENT_PAR_JOY2_FIRE_BUTTON : INPUTEVENT_PAR_JOY1_FIRE_BUTTON;
-			joysticks[joy].enabled = -1;
-	used[joy] = 1;
-			compatibility_device[i] = joy;
+#ifdef ARCADIA
+	if (arcadia_bios) {
+		setcompakb (keyboard_default_kbmaps[KBR_DEFAULT_MAP_ARCADIA], ip_arcadia);
+		if (JSEM_ISXARCADE1 (i, prefs) || JSEM_ISXARCADE2 (i, prefs))
+			setcompakb (keyboard_default_kbmaps[KBR_DEFAULT_MAP_ARCADIA_XA], ip_arcadiaxa);
+	}
+#endif
+	// parport
+	for (i = 2; i < MAX_JPORTS; i++) {
+		if (prefs->jports[i].id >= 0) {
+			int *kb = NULL;
+			joy = jsem_isjoy (i, prefs);
+			if (joy >= 0) {
+				cleardev (joysticks, joy);
+				input_get_default_joystick (joysticks, joy, i, 0);
+				_tcsncpy (prefs->jports[i].name, idev[IDTYPE_MOUSE].get_friendlyname (joy), MAX_JPORTNAME - 1);
+				_tcsncpy (prefs->jports[i].configname, idev[IDTYPE_MOUSE].get_uniquename (joy), MAX_JPORTNAME - 1);
+				used[joy] = 1;
+				joymodes[i] = JSEM_MODE_JOYSTICK;
+			}
 		}
-    }
+	}
+	for (i = 2; i < MAX_JPORTS; i++) {
+		if (prefs->jports[i].id >= 0) {
+			int *kb = NULL;
+			for (joy = 0; used[joy]; joy++);
+			if (JSEM_ISANYKBD (i, prefs)) {
+				if (JSEM_ISNUMPAD (i, prefs))
+					kb = keyboard_default_kbmaps[KBR_DEFAULT_MAP_NP];
+				else if (JSEM_ISCURSOR (i, prefs))
+					kb = keyboard_default_kbmaps[KBR_DEFAULT_MAP_CK];
+				else if (JSEM_ISSOMEWHEREELSE (i, prefs))
+					kb = keyboard_default_kbmaps[KBR_DEFAULT_MAP_SE];
+				else if (JSEM_ISXARCADE1 (i, prefs))
+					kb = keyboard_default_kbmaps[KBR_DEFAULT_MAP_XA1];
+				else if (JSEM_ISXARCADE2 (i, prefs))
+					kb = keyboard_default_kbmaps[KBR_DEFAULT_MAP_XA2];
+				if (kb) {
+					setcompakb (kb, i == 3 ? ip_parjoy2 : ip_parjoy1);
+					used[joy] = 1;
+					joymodes[i] = JSEM_MODE_JOYSTICK;
+				}
+			}
+		}
+	}
+	for (i = 0; i < MAX_JPORTS; i++) {
+		if (prefs->jports[i].autofire)
+			setautofires (prefs, i, prefs->jports[i].autofire);
+	}
+
+	for (i = 0; i < MAX_JPORTS; i++) {
+		setjoyinputs (prefs, i);
+		setjoydevices (prefs, i);
+	}
 }
 
 static void matchdevices (struct inputdevice_functions *inf, struct uae_input_device *uid)
@@ -3285,21 +3814,22 @@ static void matchdevices (struct inputdevice_functions *inf, struct uae_input_de
 static void matchdevices_all (struct uae_prefs *prefs)
 {
 	int i;
-	for (i = 0; i < MAX_INPUT_SETTINGS + 1; i++) {
+	for (i = 0; i < MAX_INPUT_SETTINGS; i++) {
 		matchdevices (&idev[IDTYPE_MOUSE], prefs->mouse_settings[i]);
 		matchdevices (&idev[IDTYPE_JOYSTICK], prefs->joystick_settings[i]);
 		matchdevices (&idev[IDTYPE_KEYBOARD], prefs->keyboard_settings[i]);
 	}
 }
 
-static void inputdevice_updateconfig2 (struct uae_prefs *prefs, int domerge)
+static void inputdevice_updateconfig2 (struct uae_prefs *prefs)
 {
-    int i;
+	int i;
 
 	copyjport (&changed_prefs, &currprefs, 0);
 	copyjport (&changed_prefs, &currprefs, 1);
 	copyjport (&changed_prefs, &currprefs, 2);
 	copyjport (&changed_prefs, &currprefs, 3);
+
 #ifdef RETROPLATFORM
 	rp_input_change (0);
 	rp_input_change (1);
@@ -3307,11 +3837,11 @@ static void inputdevice_updateconfig2 (struct uae_prefs *prefs, int domerge)
 	rp_input_change (3);
 #endif
 
-    joybutton[0] = joybutton[1] = 0;
-    joydir[0] = joydir[1] = 0;
-    oldmx[0] = oldmx[1] = -1;
-    oldmy[0] = oldmy[1] = -1;
-    cd32_shifter[0] = cd32_shifter[1] = 8;
+	joybutton[0] = joybutton[1] = 0;
+	joydir[0] = joydir[1] = 0;
+	oldmx[0] = oldmx[1] = -1;
+	oldmy[0] = oldmy[1] = -1;
+	cd32_shifter[0] = cd32_shifter[1] = 8;
 	for (i = 0; i < 4; i++) {
 		oleft[i] = 0;
 		oright[i] = 0;
@@ -3325,51 +3855,50 @@ static void inputdevice_updateconfig2 (struct uae_prefs *prefs, int domerge)
 		mouse_delta[i][1] = 0;
 		mouse_deltanoreset[i][2] = 0;
 		mouse_delta[i][2] = 0;
-    }
+	}
     memset (keybuf, 0, sizeof (keybuf));
 
-    for (i = 0; i < INPUT_QUEUE_SIZE; i++)
-		input_queue[i].framecnt = input_queue[i].nextframecnt = -1;
+	for (i = 0; i < INPUT_QUEUE_SIZE; i++)
+		input_queue[i].linecnt = input_queue[i].nextlinecnt = -1;
 
-    for (i = 0; i < MAX_INPUT_SUB_EVENT; i++) {
+	for (i = 0; i < MAX_INPUT_SUB_EVENT; i++) {
 		sublevdir[0][i] = i;
 		sublevdir[1][i] = MAX_INPUT_SUB_EVENT - i - 1;
-    }
+	}
 
-    joysticks = prefs->joystick_settings[prefs->input_selected_setting];
-    mice = prefs->mouse_settings[prefs->input_selected_setting];
-    keyboards = prefs->keyboard_settings[prefs->input_selected_setting];
+	joysticks = prefs->joystick_settings[prefs->input_selected_setting];
+	mice = prefs->mouse_settings[prefs->input_selected_setting];
+	keyboards = prefs->keyboard_settings[prefs->input_selected_setting];
 
 	matchdevices_all (prefs);
 
-    memset (joysticks2, 0, sizeof (joysticks2));
-    memset (mice2, 0, sizeof (mice2));
-    if (prefs->input_selected_setting == 0)
-		compatibility_mode (prefs);
-	else if (domerge)
-		compatibility_copy (prefs);
+	memset (joysticks2, 0, sizeof joysticks2);
+	memset (mice2, 0, sizeof mice2);
 
-    joystick_setting_changed ();
+	joysticks = prefs->joystick_settings[GAMEPORT_INPUT_SETTINGS];
+	mice = prefs->mouse_settings[GAMEPORT_INPUT_SETTINGS];
+	keyboards = prefs->keyboard_settings[GAMEPORT_INPUT_SETTINGS];
+	for (i = 0; i < MAX_INPUT_SETTINGS; i++) {
+		joysticks[i].enabled = 0;
+		mice[i].enabled = 0;
+	}
+	compatibility_copy (prefs);
+	joysticks = prefs->joystick_settings[prefs->input_selected_setting];
+	mice = prefs->mouse_settings[prefs->input_selected_setting];
+	keyboards = prefs->keyboard_settings[prefs->input_selected_setting];
 
-    scanevents (prefs);
+	scanevents (prefs);
 
 	config_changed = 1;
-
-#if 0
-#ifdef CD32
-	if (currprefs.input_selected_setting == 0 && currprefs.cs_cd32cd)
-	cd32_pad_enabled[1] = 1;
-#endif
-#endif
 }
 
 void inputdevice_mergeconfig (struct uae_prefs *prefs)
 {
-	inputdevice_updateconfig2 (prefs, 1);
+	inputdevice_updateconfig2 (prefs);
 }
 void inputdevice_updateconfig (struct uae_prefs *prefs)
 {
-	inputdevice_updateconfig2 (prefs, 0);
+	inputdevice_updateconfig2 (prefs);
 }
 
 
@@ -3387,7 +3916,7 @@ void inputdevice_devicechange (struct uae_prefs *prefs)
 	for (i = 0; i < MAX_JPORTS; i++) {
 		jports[i] = NULL;
 		jportskb[i] = -1;
-		idx = inputdevice_getjoyportdevice (prefs->jports[i].id);
+		idx = inputdevice_getjoyportdevice (i, prefs->jports[i].id);
 		if (idx >= JSEM_LASTKBD) {
 			struct inputdevice_functions *idf;
 			int devidx;
@@ -3427,85 +3956,51 @@ void inputdevice_devicechange (struct uae_prefs *prefs)
 	if (prefs == &changed_prefs)
 		inputdevice_copyconfig (&changed_prefs, &currprefs);
 	if (acc)
-		inputdevice_acquire (1);
+		inputdevice_acquire (true);
 	config_changed = 1;
 }
 
-static void set_kbr_default (struct uae_prefs *p, int index)
-{
-	int i, j, k, l;
-    struct uae_input_device_kbr_default *trans = keyboard_default;
-    struct uae_input_device *kbr;
-    struct inputdevice_functions *id = &idev[IDTYPE_KEYBOARD];
-    uae_u32 scancode;
-
-    if (!trans)
-	return;
-    for (j = 0; j < MAX_INPUT_DEVICES; j++) {
-	kbr = &p->keyboard_settings[index][j];
-	for (i = 0; i < MAX_INPUT_DEVICE_EVENTS; i++) {
-	    memset (kbr, 0, sizeof (struct uae_input_device));
-	    kbr->extra[i][0] = -1;
-	}
-		if (j < id->get_num ()) {
-			if (input_get_default_keyboard (j))
-				kbr->enabled = 1;
-			for (i = 0; i < id->get_widget_num (j); i++) {
-				id->get_widget_type (j, i, 0, &scancode);
-				kbr->extra[i][0] = scancode;
-				l = 0;
-				while (trans[l].scancode >= 0) {
-				    if (kbr->extra[i][0] == trans[l].scancode) {
-						for (k = 0; k < MAX_INPUT_SUB_EVENT; k++) {
-							if (kbr->eventid[i][k] == 0)
-								break;
-						}
-						if (k == MAX_INPUT_SUB_EVENT) {
-							write_log ("corrupt default keyboard mappings\n");
-			    			return;
-						}
-						kbr->eventid[i][k] = trans[l].event;
-						if (trans[l].event == INPUTEVENT_KEY_CAPS_LOCK)
-							kbr->flags[i][k] |= ID_FLAG_TOGGLE;
-						break;
-				    }
-				    l++;
-				}
-		    }
-		}
-    }
-}
-
+// set default prefs to all input configuration settings
 void inputdevice_default_prefs (struct uae_prefs *p)
 {
 	int i, j;
 
-    inputdevice_init ();
-    p->input_joymouse_multiplier = 20;
-    p->input_joymouse_deadzone = 33;
-    p->input_joystick_deadzone = 33;
-    p->input_joymouse_speed = 10;
+	inputdevice_init ();
+	p->input_selected_setting = GAMEPORT_INPUT_SETTINGS;
+	p->input_joymouse_multiplier = 20;
+	p->input_joymouse_deadzone = 33;
+	p->input_joystick_deadzone = 33;
+	p->input_joymouse_speed = 10;
 	p->input_analog_joystick_mult = 15;
 	p->input_analog_joystick_offset = -1;
-    p->input_mouse_speed = 100;
-    p->input_autofire_framecnt = 10;
-    for (i = 0; i <= MAX_INPUT_SETTINGS; i++) {
-		set_kbr_default (p, i);
-		for (j = 0; j < MAX_INPUT_DEVICES; j++) {
-			if (input_get_default_mouse (p->mouse_settings[i], j, j & 1))
-				p->mouse_settings[i]->enabled = 1;
-			if (input_get_default_joystick (p->joystick_settings[i], j, j & 1, 0))
-				p->joystick_settings[i]->enabled = 1;
+	p->input_mouse_speed = 100;
+	p->input_autofire_linecnt = 600;
+	for (i = 0; i < MAX_INPUT_SETTINGS; i++) {
+		if (i != GAMEPORT_INPUT_SETTINGS) {
+			set_kbr_default (p, i);
+			for (j = 0; j < MAX_INPUT_DEVICES; j++) {
+				if (input_get_default_mouse (p->mouse_settings[i], j, j & 1))
+					p->mouse_settings[i]->enabled = 1;
+				if (input_get_default_joystick (p->joystick_settings[i], j, j & 1, 0))
+					p->joystick_settings[i]->enabled = 1;
+			}
+		} else {
+			if (p->jports[0].id != -2 || p->jports[0].id != -2) {
+				reset_inputdevice_slot (p, i);
+			}
+			set_kbr_default (p, i);
 		}
-    }
+	}
 }
 
-void inputdevice_setkeytranslation (struct uae_input_device_kbr_default *trans)
+// set default keyboard and keyboard>joystick layouts
+void inputdevice_setkeytranslation (struct uae_input_device_kbr_default *trans, int **kbmaps)
 {
-    keyboard_default = trans;
-//	keyboard_default_kbmaps = kbmaps;
+	keyboard_default = trans;
+	keyboard_default_kbmaps = kbmaps;
 }
 
+// return true if keyboard/scancode pair is mapped
 int inputdevice_iskeymapped (int keyboard, int scancode)
 {
 	struct uae_input_device *na = &keyboards[keyboard];
@@ -3540,14 +4035,14 @@ int inputdevice_synccapslock (int oldcaps, int *capstable)
 
 static int inputdevice_translatekeycode_2 (int keyboard, int scancode, int state)
 {
-    struct uae_input_device *na = &keyboards[keyboard];
-    int j, k;
+	struct uae_input_device *na = &keyboards[keyboard];
+	int j, k;
 	int handled = 0;
 
-    if (!keyboards || scancode < 0)
+	if (!keyboards || scancode < 0)
 		return handled;
-    j = 0;
-    while (na->extra[j][0] >= 0) {
+	j = 0;
+	while (j < MAX_INPUT_DEVICE_EVENTS && na->extra[j][0] >= 0) {
 	if (na->extra[j][0] == scancode) {
 	    for (k = 0; k < MAX_INPUT_SUB_EVENT; k++) {/* send key release events in reverse order */
 		int autofire = (na->flags[j][sublevdir[state == 0 ? 1 : 0][k]] & ID_FLAG_AUTOFIRE) ? 1 : 0;
@@ -3578,13 +4073,13 @@ static int inputdevice_translatekeycode_2 (int keyboard, int scancode, int state
 					handled |= handle_input_event (evt, toggled, 1, autofire);
 				} else {
 					handled |= handle_input_event (evt, state, 1, autofire);
-	    }
+				}
 			}
 			process_custom_event (na, j, state);
 			return handled;
+		}
+		j++;
 	}
-	j++;
-    }
 	return handled;
 }
 
@@ -3615,102 +4110,104 @@ static void sendmmcodes(int code, int newstate)
 	record_key(((b << 1) | (b >> 7)) & 0xff);
 }
 
+// main keyboard press/release entry point
 int inputdevice_translatekeycode (int keyboard, int scancode, int state)
 {
 	if (inputdevice_translatekeycode_2 (keyboard, scancode, state))
 		return 1;
 	if (currprefs.mmkeyboard && scancode > 0)
 		sendmmcodes (scancode, state);
-    return 0;
+	return 0;
 }
 
 struct inputdevice_functions idev[3];
 
 void inputdevice_init (void)
 {
-    idev[IDTYPE_JOYSTICK] = inputdevicefunc_joystick;
-    idev[IDTYPE_JOYSTICK].init ();
-    idev[IDTYPE_MOUSE] = inputdevicefunc_mouse;
-    idev[IDTYPE_MOUSE].init ();
-    idev[IDTYPE_KEYBOARD] = inputdevicefunc_keyboard;
-    idev[IDTYPE_KEYBOARD].init ();
+	idev[IDTYPE_JOYSTICK] = inputdevicefunc_joystick;
+	idev[IDTYPE_JOYSTICK].init ();
+	idev[IDTYPE_MOUSE] = inputdevicefunc_mouse;
+	idev[IDTYPE_MOUSE].init ();
+	idev[IDTYPE_KEYBOARD] = inputdevicefunc_keyboard;
+	idev[IDTYPE_KEYBOARD].init ();
 }
 
 void inputdevice_close (void)
 {
-    idev[IDTYPE_JOYSTICK].close ();
-    idev[IDTYPE_MOUSE].close ();
-    idev[IDTYPE_KEYBOARD].close ();
+	idev[IDTYPE_JOYSTICK].close ();
+	idev[IDTYPE_MOUSE].close ();
+	idev[IDTYPE_KEYBOARD].close ();
+//	inprec_close ();
 }
 
 static struct uae_input_device *get_uid (const struct inputdevice_functions *id, int devnum)
 {
-    struct uae_input_device *uid = 0;
-    if (id == &idev[IDTYPE_JOYSTICK]) {
-	uid = &joysticks[devnum];
-    } else if (id == &idev[IDTYPE_MOUSE]) {
-	uid = &mice[devnum];
-    } else if (id == &idev[IDTYPE_KEYBOARD]) {
-	uid = &keyboards[devnum];
-    }
-    return uid;
+	struct uae_input_device *uid = 0;
+	if (id == &idev[IDTYPE_JOYSTICK]) {
+		uid = &joysticks[devnum];
+	} else if (id == &idev[IDTYPE_MOUSE]) {
+		uid = &mice[devnum];
+	} else if (id == &idev[IDTYPE_KEYBOARD]) {
+		uid = &keyboards[devnum];
+	}
+	return uid;
 }
 
 static int get_event_data (const struct inputdevice_functions *id, int devnum, int num, int *eventid, TCHAR **custom, int *flags, int sub)
 {
-    const struct uae_input_device *uid = get_uid (id, devnum);
-    int type = id->get_widget_type (devnum, num, 0, 0);
-    int i;
-    if (type == IDEV_WIDGET_BUTTON) {
-	i = num - id->get_widget_first (devnum, type) + ID_BUTTON_OFFSET;
-	*eventid = uid->eventid[i][sub];
-	*flags = uid->flags[i][sub];
-	*custom = uid->custom[i][sub];
-	return i;
-    } else if (type == IDEV_WIDGET_AXIS) {
-	i = num - id->get_widget_first (devnum, type) + ID_AXIS_OFFSET;
-	*eventid = uid->eventid[i][sub];
-	*flags = uid->flags[i][sub];
-	*custom = uid->custom[i][sub];
-	return i;
-    } else if (type == IDEV_WIDGET_KEY) {
-	i = num - id->get_widget_first (devnum, type);
-	*eventid = uid->eventid[i][sub];
-	*flags = uid->flags[i][sub];
-	*custom = uid->custom[i][sub];
-	return i;
-    }
-    return -1;
+	const struct uae_input_device *uid = get_uid (id, devnum);
+	int type = id->get_widget_type (devnum, num, 0, 0);
+	int i;
+	if (type == IDEV_WIDGET_BUTTON || type == IDEV_WIDGET_BUTTONAXIS) {
+		i = num - id->get_widget_first (devnum, IDEV_WIDGET_BUTTON) + ID_BUTTON_OFFSET;
+		*eventid = uid->eventid[i][sub];
+		*flags = uid->flags[i][sub];
+		*custom = uid->custom[i][sub];
+		return i;
+	} else if (type == IDEV_WIDGET_AXIS) {
+		i = num - id->get_widget_first (devnum, type) + ID_AXIS_OFFSET;
+		*eventid = uid->eventid[i][sub];
+		*flags = uid->flags[i][sub];
+		*custom = uid->custom[i][sub];
+		return i;
+	} else if (type == IDEV_WIDGET_KEY) {
+		i = num - id->get_widget_first (devnum, type);
+		*eventid = uid->eventid[i][sub];
+		*flags = uid->flags[i][sub];
+		*custom = uid->custom[i][sub];
+		return i;
+	}
+	return -1;
 }
 
 static int put_event_data (const struct inputdevice_functions *id, int devnum, int num, int eventid, TCHAR *custom, int flags, int sub)
 {
-    struct uae_input_device *uid = get_uid (id, devnum);
-    int type = id->get_widget_type (devnum, num, 0, 0);
-    int i;
-    if (type == IDEV_WIDGET_BUTTON) {
-	i = num - id->get_widget_first (devnum, type) + ID_BUTTON_OFFSET;
-	uid->eventid[i][sub] = eventid;
-	uid->flags[i][sub] = flags;
+	struct uae_input_device *uid = get_uid (id, devnum);
+	int type = id->get_widget_type (devnum, num, 0, 0);
+	int i;
+	if (type == IDEV_WIDGET_BUTTON || type == IDEV_WIDGET_BUTTONAXIS) {
+		i = num - id->get_widget_first (devnum, IDEV_WIDGET_BUTTON) + ID_BUTTON_OFFSET;
+		uid->eventid[i][sub] = eventid;
+		uid->flags[i][sub] = flags;
 		xfree (uid->custom[i][sub]);
 		uid->custom[i][sub] = custom && _tcslen (custom) > 0 ? my_strdup (custom) : NULL;
-	return i;
-    } else if (type == IDEV_WIDGET_AXIS) {
-	i = num - id->get_widget_first (devnum, type) + ID_AXIS_OFFSET;
-	uid->eventid[i][sub] = eventid;
-	uid->flags[i][sub] = flags;
+		return i;
+	} else if (type == IDEV_WIDGET_AXIS) {
+		i = num - id->get_widget_first (devnum, type) + ID_AXIS_OFFSET;
+		uid->eventid[i][sub] = eventid;
+		uid->flags[i][sub] = flags;
 		xfree (uid->custom[i][sub]);
 		uid->custom[i][sub] = custom && _tcslen (custom) > 0 ? my_strdup (custom) : NULL;
-	return i;
-    } else if (type == IDEV_WIDGET_KEY) {
-	i = num - id->get_widget_first (devnum, type);
-	uid->eventid[i][sub] = eventid;
-	uid->flags[i][sub] = flags;
+		return i;
+	} else if (type == IDEV_WIDGET_KEY) {
+		i = num - id->get_widget_first (devnum, type);
+		uid->eventid[i][sub] = eventid;
+		uid->flags[i][sub] = flags;
 		xfree (uid->custom[i][sub]);
 		uid->custom[i][sub] = custom && _tcslen (custom) > 0 ? my_strdup (custom) : NULL;
-	return i;
-    }
-    return -1;
+		return i;
+	}
+	return -1;
 }
 
 static int is_event_used (const struct inputdevice_functions *id, int devnum, int isnum, int isevent)
@@ -3719,17 +4216,18 @@ static int is_event_used (const struct inputdevice_functions *id, int devnum, in
 	int num, evt, flag, sub;
 	TCHAR *custom;
 
-    for (num = 0; num < id->get_widget_num (devnum); num++) {
-	for (sub = 0; sub < MAX_INPUT_SUB_EVENT; sub++) {
+	for (num = 0; num < id->get_widget_num (devnum); num++) {
+		for (sub = 0; sub < MAX_INPUT_SUB_EVENT; sub++) {
 			if (get_event_data (id, devnum, num, &evt, &custom, &flag, sub) >= 0) {
 				if (evt == isevent && isnum != num)
-		    return 1;
-	    }
+					return 1;
+			}
+		}
 	}
-    }
-    return 0;
+	return 0;
 }
 
+// device based index from global device index
 int inputdevice_get_device_index (int devnum)
 {
 	if (devnum < idev[IDTYPE_JOYSTICK].get_num())
@@ -3740,6 +4238,17 @@ int inputdevice_get_device_index (int devnum)
 		return devnum - idev[IDTYPE_JOYSTICK].get_num() - idev[IDTYPE_MOUSE].get_num();
 	else
 		return -1;
+}
+
+static int getdevnum (int type, int devnum)
+{
+	if (type == IDTYPE_JOYSTICK)
+		return devnum;
+	if (type == IDTYPE_MOUSE)
+		return idev[IDTYPE_JOYSTICK].get_num() + devnum;
+	if (type == IDTYPE_KEYBOARD)
+		return idev[IDTYPE_JOYSTICK].get_num() + idev[IDTYPE_MOUSE].get_num() + devnum;
+	return -1;
 }
 
 static int gettype (int devnum)
@@ -3762,16 +4271,26 @@ static struct inputdevice_functions *getidf (int devnum)
 	return &idev[type];
 }
 
+struct inputevent *inputdevice_get_eventinfo (int evt)
+{
+	return &events[evt];
+}
+
 
 /* returns number of devices of type "type" */
 int inputdevice_get_device_total (int type)
 {
-    return idev[type].get_num ();
+	return idev[type].get_num ();
 }
 /* returns the name of device */
 TCHAR *inputdevice_get_device_name (int type, int devnum)
 {
 	return idev[type].get_friendlyname (devnum);
+}
+/* returns the name of device */
+TCHAR *inputdevice_get_device_name2 (int devnum)
+{
+	return getidf (devnum)->get_friendlyname (inputdevice_get_device_index (devnum));
 }
 /* returns machine readable name of device */
 TCHAR *inputdevice_get_device_unique_name (int type, int devnum)
@@ -3781,43 +4300,56 @@ TCHAR *inputdevice_get_device_unique_name (int type, int devnum)
 /* returns state (enabled/disabled) */
 int inputdevice_get_device_status (int devnum)
 {
-    const struct inputdevice_functions *idf = getidf (devnum);
-    struct uae_input_device *uid = get_uid (idf, inputdevice_get_device_index (devnum));
-    return uid->enabled;
+	const struct inputdevice_functions *idf = getidf (devnum);
+	if (idf == NULL)
+		return -1;
+	struct uae_input_device *uid = get_uid (idf, inputdevice_get_device_index (devnum));
+	return uid->enabled;
 }
 
 /* set state (enabled/disabled) */
 void inputdevice_set_device_status (int devnum, int enabled)
 {
-    const struct inputdevice_functions *idf = getidf (devnum);
-    struct uae_input_device *uid = get_uid (idf, inputdevice_get_device_index (devnum));
-    uid->enabled = enabled;
+	const struct inputdevice_functions *idf = getidf (devnum);
+	int num = inputdevice_get_device_index (devnum);
+	struct uae_input_device *uid = get_uid (idf, num);
+	unsigned int i;
+	if (enabled) { // disable incompatible devices ("super device" vs "raw device")
+		for (i = 0; i < idf->get_num (); i++) {
+			if (idf->get_flags (i) != idf->get_flags (num)) {
+				struct uae_input_device *uid2 = get_uid (idf, i);
+				uid2->enabled = 0;
+			}
+		}
+	}
+	uid->enabled = enabled;
 }
 
 /* returns number of axis/buttons and keys from selected device */
 int inputdevice_get_widget_num (int devnum)
 {
-    const struct inputdevice_functions *idf = getidf (devnum);
-    return idf->get_widget_num (inputdevice_get_device_index (devnum));
+	const struct inputdevice_functions *idf = getidf (devnum);
+	return idf->get_widget_num (inputdevice_get_device_index (devnum));
 }
 
-static void get_ename (const struct inputevent *ie, TCHAR *out)
+// return name of event, do not use ie->name directly
+void inputdevice_get_eventname (const struct inputevent *ie, TCHAR *out)
 {
-    if (!out)
+	if (!out)
 		return;
-    if (ie->allow_mask == AM_K)
+	if (ie->allow_mask == AM_K)
 		_stprintf (out, "%s (0x%02X)", ie->name, ie->data);
-    else
+	else
 		_tcscpy (out, ie->name);
 }
 
 int inputdevice_iterate (int devnum, int num, TCHAR *name, int *af)
 {
-    const struct inputdevice_functions *idf = getidf (devnum);
-    static int id_iterator;
+	const struct inputdevice_functions *idf = getidf (devnum);
+	static int id_iterator;
 	struct inputevent *ie;
-    int mask, data, flags, type;
-    int devindex = inputdevice_get_device_index (devnum);
+	int mask, data, flags, type;
+	int devindex = inputdevice_get_device_index (devnum);
 	TCHAR *custom;
 
 	*af = 0;
@@ -3829,8 +4361,8 @@ int inputdevice_iterate (int devnum, int num, TCHAR *name, int *af)
 			return 0;
 		}
 		mask = 0;
-		type = idf->get_widget_type (devindex, num, 0, 0);
-		if (type == IDEV_WIDGET_BUTTON) {
+		type = idf->get_widget_type (devindex, num, NULL, NULL);
+		if (type == IDEV_WIDGET_BUTTON || type == IDEV_WIDGET_BUTTONAXIS) {
 			if (idf == &idev[IDTYPE_JOYSTICK]) {
 				mask |= AM_JOY_BUT;
 			} else {
@@ -3862,281 +4394,364 @@ int inputdevice_iterate (int devnum, int num, TCHAR *name, int *af)
 		if (!(ie->allow_mask & mask))
 			continue;
 		get_event_data (idf, devindex, num, &data, &custom, &flags, 0);
-		get_ename (ie, name);
+		inputdevice_get_eventname (ie, name);
 		*af = (flags & ID_FLAG_AUTOFIRE) ? 1 : 0;
 		return 1;
 	}
 }
 
+// return mapped event from devnum/num/sub
 int inputdevice_get_mapped_name (int devnum, int num, int *pflags, TCHAR *name, TCHAR *custom, int sub)
 {
-    const struct inputdevice_functions *idf = getidf (devnum);
-    const struct uae_input_device *uid = get_uid (idf, inputdevice_get_device_index (devnum));
-    int flags = 0, flag, data;
-    int devindex = inputdevice_get_device_index (devnum);
+	const struct inputdevice_functions *idf = getidf (devnum);
+	const struct uae_input_device *uid = get_uid (idf, inputdevice_get_device_index (devnum));
+	int flags = 0, flag, data;
+	int devindex = inputdevice_get_device_index (devnum);
 	TCHAR *customp = NULL;
 
-    if (name)
+	if (name)
 		_tcscpy (name, "<none>");
-    if (custom)
-	custom[0] = 0;
-    if (pflags)
-	*pflags = 0;
-    if (uid == 0 || num < 0)
-	return 0;
-    if (get_event_data (idf, devindex, num, &data, &customp, &flag, sub) < 0)
-	return 0;
-    if (customp && custom)
+	if (custom)
+		custom[0] = 0;
+	if (pflags)
+		*pflags = 0;
+	if (uid == 0 || num < 0)
+		return 0;
+	if (get_event_data (idf, devindex, num, &data, &customp, &flag, sub) < 0)
+		return 0;
+	if (customp && custom)
 		_tcscpy (custom, customp);
-    if (flag & ID_FLAG_AUTOFIRE)
-	flags |= IDEV_MAPPED_AUTOFIRE_SET;
+	if (flag & ID_FLAG_AUTOFIRE)
+		flags |= IDEV_MAPPED_AUTOFIRE_SET;
 	if (flag & ID_FLAG_TOGGLE)
 		flags |= IDEV_MAPPED_TOGGLE;
-    if (!data)
-	return 0;
-    if (events[data].allow_mask & AM_AF)
-	flags |= IDEV_MAPPED_AUTOFIRE_POSSIBLE;
-    if (pflags)
-	*pflags = flags;
-    get_ename (&events[data], name);
-    return data;
+	if (!data)
+		return 0;
+	if (events[data].allow_mask & AM_AF)
+		flags |= IDEV_MAPPED_AUTOFIRE_POSSIBLE;
+	if (pflags)
+		*pflags = flags;
+	inputdevice_get_eventname (&events[data], name);
+	return data;
 }
 
+// set event name/custom/flags to devnum/num/sub
 int inputdevice_set_mapping (int devnum, int num, TCHAR *name, TCHAR *custom, int flags, int sub)
 {
-    const struct inputdevice_functions *idf = getidf (devnum);
-    const struct uae_input_device *uid = get_uid (idf, inputdevice_get_device_index (devnum));
-    int eid, data, flag, amask;
+	const struct inputdevice_functions *idf = getidf (devnum);
+	const struct uae_input_device *uid = get_uid (idf, inputdevice_get_device_index (devnum));
+	int eid, data, flag, amask;
 	TCHAR ename[256];
-    int devindex = inputdevice_get_device_index (devnum);
+	int devindex = inputdevice_get_device_index (devnum);
 	TCHAR *customp = NULL;
 
-    if (uid == 0 || num < 0)
-	return 0;
-    if (name) {
-	eid = 1;
-	while (events[eid].name) {
-	    get_ename (&events[eid], ename);
+	if (uid == 0 || num < 0)
+		return 0;
+	if (name) {
+		eid = 1;
+		while (events[eid].name) {
+			inputdevice_get_eventname (&events[eid], ename);
 			if (!_tcscmp(ename, name)) break;
-	    eid++;
+			eid++;
+		}
+		if (!events[eid].name)
+			return 0;
+		if (events[eid].allow_mask & AM_INFO)
+			return 0;
+	} else {
+		eid = 0;
 	}
-	if (!events[eid].name)
-	    return 0;
-	if (events[eid].allow_mask & AM_INFO)
-	    return 0;
-    } else {
-	eid = 0;
-    }
 	if (get_event_data (idf, devindex, num, &data, &customp, &flag, sub) < 0)
-	return 0;
-    if (data >= 0) {
-	amask = events[eid].allow_mask;
+		return 0;
+	if (data >= 0) {
+		amask = events[eid].allow_mask;
 		flag &= ~(ID_FLAG_AUTOFIRE | ID_FLAG_TOGGLE);
 		if (amask & AM_AF) {
 			flag |= (flags & IDEV_MAPPED_AUTOFIRE_SET) ? ID_FLAG_AUTOFIRE : 0;
 			flag |= (flags & IDEV_MAPPED_TOGGLE) ? ID_FLAG_TOGGLE : 0;
 		}
-	put_event_data (idf, devindex, num, eid, custom, flag, sub);
-	return 1;
-    }
-    return 0;
+		put_event_data (idf, devindex, num, eid, custom, flag, sub);
+		return 1;
+	}
+	return 0;
 }
 
 int inputdevice_get_widget_type (int devnum, int num, TCHAR *name)
 {
-    const struct inputdevice_functions *idf = getidf (devnum);
-    return idf->get_widget_type (inputdevice_get_device_index (devnum), num, name, 0);
+	const struct inputdevice_functions *idf = getidf (devnum);
+	return idf->get_widget_type (inputdevice_get_device_index (devnum), num, name, 0);
 }
 
 static int config_change;
 
 void inputdevice_config_change (void)
 {
-    config_change = 1;
+	config_change = 1;
 }
 
 int inputdevice_config_change_test (void)
 {
-    int v = config_change;
-    config_change = 0;
-    return v;
+	int v = config_change;
+	config_change = 0;
+	return v;
 }
 
+// copy configuration #src to configuration #dst
 void inputdevice_copyconfig (const struct uae_prefs *src, struct uae_prefs *dst)
 {
-    int i, j;
+	int i, j;
 
-    dst->input_selected_setting = src->input_selected_setting;
-    dst->input_joymouse_multiplier = src->input_joymouse_multiplier;
-    dst->input_joymouse_deadzone = src->input_joymouse_deadzone;
-    dst->input_joystick_deadzone = src->input_joystick_deadzone;
-    dst->input_joymouse_speed = src->input_joymouse_speed;
-    dst->input_mouse_speed = src->input_mouse_speed;
-    dst->input_autofire_framecnt = src->input_autofire_framecnt;
+	dst->input_selected_setting = src->input_selected_setting;
+	dst->input_joymouse_multiplier = src->input_joymouse_multiplier;
+	dst->input_joymouse_deadzone = src->input_joymouse_deadzone;
+	dst->input_joystick_deadzone = src->input_joystick_deadzone;
+	dst->input_joymouse_speed = src->input_joymouse_speed;
+	dst->input_mouse_speed = src->input_mouse_speed;
+	dst->input_autofire_linecnt = src->input_autofire_linecnt;
 	copyjport (src, dst, 0);
 	copyjport (src, dst, 1);
+	copyjport (src, dst, 2);
+	copyjport (src, dst, 3);
 
-    for (i = 0; i < MAX_INPUT_SETTINGS + 1; i++) {
-	for (j = 0; j < MAX_INPUT_DEVICES; j++) {
-	    memcpy (&dst->joystick_settings[i][j], &src->joystick_settings[i][j], sizeof (struct uae_input_device));
-	    memcpy (&dst->mouse_settings[i][j], &src->mouse_settings[i][j], sizeof (struct uae_input_device));
-	    memcpy (&dst->keyboard_settings[i][j], &src->keyboard_settings[i][j], sizeof (struct uae_input_device));
+	for (i = 0; i < MAX_INPUT_SETTINGS; i++) {
+		for (j = 0; j < MAX_INPUT_DEVICES; j++) {
+		    memcpy (&dst->joystick_settings[i][j], &src->joystick_settings[i][j], sizeof (struct uae_input_device));
+		    memcpy (&dst->mouse_settings[i][j], &src->mouse_settings[i][j], sizeof (struct uae_input_device));
+		    memcpy (&dst->keyboard_settings[i][j], &src->keyboard_settings[i][j], sizeof (struct uae_input_device));
+		}
 	}
-    }
 
-    inputdevice_updateconfig (dst);
+	inputdevice_updateconfig (dst);
 }
 
+static void swapjoydevice (struct uae_input_device *uid, int **swaps)
+{
+	unsigned int i, j, k, kk, jj, ii, m;
+	for (i = 0; i < MAX_INPUT_DEVICE_EVENTS; i++) {
+		for (j = 0; j < MAX_INPUT_SUB_EVENT; j++) {
+			bool found = false;
+			for (k = 0; k < 2 && !found; k++) {
+				int evtnum;
+				for (kk = 0; (evtnum = swaps[k][kk]) >= 0 && !found; kk++) {
+					if (uid->eventid[i][j] == evtnum) {
+						uid->eventid[i][j] = swaps[1 - k][kk];
+						found = true;
+					} else {
+#if 1
+						for (jj = 0; axistable[jj] >= 0; jj += 3) {
+							if (evtnum == axistable[jj] || evtnum == axistable[jj + 1] || evtnum == axistable[jj + 2]) {
+								for (ii = 0; ii < 3; ii++) {
+									if (uid->eventid[i][j] == axistable[jj + ii]) {
+										int evtnum2 = swaps[1 - k][kk];
+										for (m = 0; axistable[m] >= 0; m += 3) {
+											if (evtnum2 == axistable[m] || evtnum2 == axistable[m + 1] || evtnum2 == axistable[m + 2]) {
+												uid->eventid[i][j] = axistable[m + ii];
+												found = true;
+											}
+										}
+									}
+								}
+							}
+						}
+#endif
+					}
+				}
+			}
+		}
+	}
+}
+
+// swap gameports ports, remember to handle customized ports too
+void inputdevice_swap_compa_ports (struct uae_prefs *prefs, int portswap)
+{
+	unsigned int l;
+	struct jport tmp;
+	if ((prefs->jports[portswap].id == JPORT_CUSTOM || prefs->jports[portswap + 1].id == JPORT_CUSTOM)) {
+		int *swaps[2];
+		swaps[0] = rem_ports[portswap];
+		swaps[1] = rem_ports[portswap + 1];
+		for (l = 0; l < MAX_INPUT_DEVICES; l++) {
+			swapjoydevice (&prefs->joystick_settings[GAMEPORT_INPUT_SETTINGS][l], swaps);
+			swapjoydevice (&prefs->mouse_settings[GAMEPORT_INPUT_SETTINGS][l], swaps);
+			swapjoydevice (&prefs->keyboard_settings[GAMEPORT_INPUT_SETTINGS][l], swaps);
+		}
+	}
+	memcpy (&tmp, &prefs->jports[portswap], sizeof (struct jport));
+	memcpy (&prefs->jports[portswap], &prefs->jports[portswap + 1], sizeof (struct jport));
+	memcpy (&prefs->jports[portswap + 1], &tmp, sizeof (struct jport));
+	inputdevice_updateconfig (prefs);
+}
+
+// swap device "devnum" ports 0<>1 and 2<>3
 void inputdevice_swap_ports (struct uae_prefs *p, int devnum)
 {
-    const struct inputdevice_functions *idf = getidf (devnum);
-    struct uae_input_device *uid = get_uid (idf, inputdevice_get_device_index (devnum));
-    int i, j, k, event, unit;
-    const struct inputevent *ie, *ie2;
+	const struct inputdevice_functions *idf = getidf (devnum);
+	struct uae_input_device *uid = get_uid (idf, inputdevice_get_device_index (devnum));
+	int i, j, k, event, unit;
+	const struct inputevent *ie, *ie2;
 
-    for (i = 0; i < MAX_INPUT_DEVICE_EVENTS; i++) {
-	for (j = 0; j < MAX_INPUT_SUB_EVENT; j++) {
-	    event = uid->eventid[i][j];
-	    if (event <= 0)
-		continue;
-	    ie = &events[event];
-	    if (ie->unit <= 0)
-		continue;
-	    unit = ie->unit;
-	    k = 1;
-	    while (events[k].confname) {
-		ie2 = &events[k];
-		if (ie2->type == ie->type && ie2->data == ie->data && ie2->unit - 1 == ((ie->unit - 1) ^ 1) && ie2->allow_mask == ie->allow_mask) {
-		    uid->eventid[i][j] = k;
-		    break;
+	for (i = 0; i < MAX_INPUT_DEVICE_EVENTS; i++) {
+		for (j = 0; j < MAX_INPUT_SUB_EVENT; j++) {
+			event = uid->eventid[i][j];
+			if (event <= 0)
+				continue;
+			ie = &events[event];
+			if (ie->unit <= 0)
+				continue;
+			unit = ie->unit;
+			k = 1;
+			while (events[k].confname) {
+				ie2 = &events[k];
+				if (ie2->type == ie->type && ie2->data == ie->data && ie2->unit - 1 == ((ie->unit - 1) ^ 1) && ie2->allow_mask == ie->allow_mask) {
+					uid->eventid[i][j] = k;
+					break;
+				}
+				k++;
+			}
 		}
-		k++;
-	    }
 	}
-    }
 }
 
+// copy whole configuration #x-slot to another
 void inputdevice_copy_single_config (struct uae_prefs *p, int src, int dst, int devnum)
 {
-    if (src == dst)
-	return;
-    if (devnum < 0 || gettype (devnum) == IDTYPE_JOYSTICK)
-	memcpy (p->joystick_settings[dst], p->joystick_settings[src], sizeof (struct uae_input_device) * MAX_INPUT_DEVICES);
-    if (devnum < 0 || gettype (devnum) == IDTYPE_MOUSE)
-	memcpy (p->mouse_settings[dst], p->mouse_settings[src], sizeof (struct uae_input_device) * MAX_INPUT_DEVICES);
-    if (devnum < 0 || gettype (devnum) == IDTYPE_KEYBOARD)
-	memcpy (p->keyboard_settings[dst], p->keyboard_settings[src], sizeof (struct uae_input_device) * MAX_INPUT_DEVICES);
+	if (src == dst)
+		return;
+	if (devnum < 0 || gettype (devnum) == IDTYPE_JOYSTICK)
+		memcpy (p->joystick_settings[dst], p->joystick_settings[src], sizeof (struct uae_input_device) * MAX_INPUT_DEVICES);
+	if (devnum < 0 || gettype (devnum) == IDTYPE_MOUSE)
+		memcpy (p->mouse_settings[dst], p->mouse_settings[src], sizeof (struct uae_input_device) * MAX_INPUT_DEVICES);
+	if (devnum < 0 || gettype (devnum) == IDTYPE_KEYBOARD)
+		memcpy (p->keyboard_settings[dst], p->keyboard_settings[src], sizeof (struct uae_input_device) * MAX_INPUT_DEVICES);
 }
 
 void inputdevice_acquire (int allmode)
 {
-    int i;
+	int i;
 
-    inputdevice_unacquire ();
-    for (i = 0; i < MAX_INPUT_DEVICES; i++) {
-		if (use_joysticks[i] || (allmode && !idev[IDTYPE_JOYSTICK].get_flags (i)))
-	    idev[IDTYPE_JOYSTICK].acquire (i, 0);
-    }
-    for (i = 0; i < MAX_INPUT_DEVICES; i++) {
-		if (use_mice[i] || (allmode && !idev[IDTYPE_MOUSE].get_flags (i)))
-	    idev[IDTYPE_MOUSE].acquire (i, 0);
-    }
-    for (i = 0; i < MAX_INPUT_DEVICES; i++) {
-	if (use_keyboards[i])
-	    idev[IDTYPE_KEYBOARD].acquire (i, 0);
-    }
+	inputdevice_unacquire ();
+	for (i = 0; i < MAX_INPUT_DEVICES; i++) {
+		if ((use_joysticks[i] && allmode >= 0) || (allmode && !idev[IDTYPE_JOYSTICK].get_flags (i)))
+			idev[IDTYPE_JOYSTICK].acquire (i, 0);
+	}
+	for (i = 0; i < MAX_INPUT_DEVICES; i++) {
+		if ((use_mice[i] && allmode >= 0) || (allmode && !idev[IDTYPE_MOUSE].get_flags (i)))
+			idev[IDTYPE_MOUSE].acquire (i, allmode < 0);
+	}
+	for (i = 0; i < MAX_INPUT_DEVICES; i++) {
+		if ((use_keyboards[i] && allmode >= 0) || (allmode <  0 && !idev[IDTYPE_KEYBOARD].get_flags (i)))
+			idev[IDTYPE_KEYBOARD].acquire (i, allmode < 0);
+	}
 	//    if (!input_acquired)
-	//	write_log ("input devices acquired (%s)\n", allmode ? "all" : "selected only");
+	//	write_log (L"input devices acquired (%s)\n", allmode ? "all" : "selected only");
 	input_acquired = 1;
 }
 
 void inputdevice_unacquire (void)
 {
-    int i;
+	int i;
 
 	//    if (input_acquired)
 	//	write_log ("input devices unacquired\n");
 	input_acquired = 0;
-    for (i = 0; i < MAX_INPUT_DEVICES; i++)
+	for (i = 0; i < MAX_INPUT_DEVICES; i++)
 		idev[IDTYPE_JOYSTICK].unacquire (i);
-    for (i = 0; i < MAX_INPUT_DEVICES; i++)
+	for (i = 0; i < MAX_INPUT_DEVICES; i++)
 		idev[IDTYPE_MOUSE].unacquire (i);
-    for (i = 0; i < MAX_INPUT_DEVICES; i++)
+	for (i = 0; i < MAX_INPUT_DEVICES; i++)
 		idev[IDTYPE_KEYBOARD].unacquire (i);
 }
 
 void inputdevice_testrecord (int type, int num, int wtype, int wnum, int state)
 {
-	TCHAR tmp[2000];
-
 	if (wnum < 0) {
 		testmode = -1;
 		return;
 	}
-	tmp[0] = 0;
-	wnum += idev[type].get_widget_first (num, wtype);
-	idev[type].get_widget_type (num, wnum, tmp, NULL);
-	write_log ("%s: %s %d\n", idev[type].get_friendlyname (num), tmp, state);
+	if (testmode_count >= TESTMODE_MAX)
+		return;
+	if (type == IDTYPE_KEYBOARD) {
+		if (wnum == 0x100) {
+			wnum = -1;
+		} else {
+			struct uae_input_device *na = &keyboards[num];
+			int j = 0;
+			while (j < MAX_INPUT_DEVICE_EVENTS && na->extra[j][0] >= 0) {
+				if (na->extra[j][0] == wnum) {
+					wnum = j;
+					break;
+				}
+				j++;
+			}
+			if (j >= MAX_INPUT_DEVICE_EVENTS || na->extra[j][0] < 0)
+				type = -1;
+		}
+	}
+	unsigned int i;
+	// wait until previous event is released before accepting new ones
+	for (i = 0; i < TESTMODE_MAX; i++) {
+		struct teststore *ts2 = &testmode_wait[i];
+		if (ts2->testmode_num < 0)
+			continue;
+		if (ts2->testmode_num != num || ts2->testmode_type != type || ts2->testmode_wtype != wtype || ts2->testmode_wnum != wnum)
+			continue;
+		if (state)
+			continue;
+		ts2->testmode_num = -1;
+	}
+	if (!state)
+		return;
+
+	//write_log (L"%d %d %d %d %d\n", type, num, wtype, wnum, state);
+	struct teststore *ts = &testmode_data[testmode_count];
+	ts->testmode_type = type;
+	ts->testmode_num = num;
+	ts->testmode_wtype = wtype;
+	ts->testmode_wnum = wnum;
+	ts->testmode_state = state;
+	testmode_count++;
 }
 
 int inputdevice_istest (void)
 {
 	return testmode;
 }
-
-int inputdevice_testread (TCHAR *name)
+void inputdevice_settest (int set)
 {
-	testmode = 1;
-	idev[IDTYPE_KEYBOARD].read ();
-	idev[IDTYPE_JOYSTICK].read ();
-	idev[IDTYPE_MOUSE].read ();
+	testmode = set;
+	testmode_count = 0;
+	testmode_wait[0].testmode_num = -1;
+	testmode_wait[1].testmode_num = -1;
+}
+
+int inputdevice_testread_count (void)
+{
+	inputdevice_read ();
 	if (testmode != 1) {
 		testmode = 0;
+		return -1;
+	}
+	return testmode_count;
+}
+
+int inputdevice_testread (int *devnum, int *wtype, int *state)
+{
+	inputdevice_read ();
+	if (testmode != 1) {
+	testmode = 0;
+		return -1;
+	}
+	if (testmode_count > 0) {
+		testmode_count--;
+		struct teststore *ts = &testmode_data[testmode_count];
+		*devnum = getdevnum (ts->testmode_type, ts->testmode_num);
+		*wtype = idev[ts->testmode_type].get_widget_first (ts->testmode_num, ts->testmode_wtype) + ts->testmode_wnum;
+		*state = ts->testmode_state;
+		if (ts->testmode_state)
+			memcpy (&testmode_wait[testmode_count], ts, sizeof (struct teststore));
 		return 1;
 	}
-	testmode = 0;
 	return 0;
-}
-
-static int ignoreoldinput (int joy)
-{
-	if (!use_joysticks[joy])
-		return 0;
-	if (currprefs.input_selected_setting == 0) {
-		if (jsem_isjoy (0, &currprefs) != joy && jsem_isjoy (1, &currprefs) != joy &&
-			jsem_isjoy (2, &currprefs) != joy && jsem_isjoy (3, &currprefs) != joy)
-			return 1;
-	}
-	return 0;
-}
-
-void do_fake_joystick (int nr, int *fake)
-{
-	struct uae_input_device *id1;
-	struct uae_input_device2 *id2;
-	int state, i, axis;
-
-	nr = compatibility_device[nr];
-	id1 = &joysticks[nr];
-	id2 = &joysticks2[nr];
-
-	axis = 0;
-	state = fake[1] ? -1 : (fake[2] ? 1 : 0);
-	for (i = 0; i < MAX_INPUT_SUB_EVENT; i++)
-		handle_input_event (id1->eventid[ID_AXIS_OFFSET + axis][i], state, 1,
-		id1->flags[ID_AXIS_OFFSET + axis][i]);
-	id2->states[axis] = state;
-
-	axis = 1;
-	state = fake[0] ? -1 : (fake[3] ? 1 : 0);
-	for (i = 0; i < MAX_INPUT_SUB_EVENT; i++)
-		handle_input_event (id1->eventid[ID_AXIS_OFFSET + axis][i], state, 1,
-		id1->flags[ID_AXIS_OFFSET + axis][i]);
-	id2->states[axis] = state;
-
-	setbuttonstateall (id1, id2, 0, fake[4] ? 1 : 0);
-	setbuttonstateall (id1, id2, 1, fake[5] ? 1 : 0);
-	setbuttonstateall (id1, id2, 2, fake[6] ? 1 : 0);
 }
 
 /* Call this function when host machine's joystick/joypad/etc button state changes
@@ -4151,41 +4766,49 @@ void do_fake_joystick (int nr, int *fake)
 
 void setjoybuttonstate (int joy, int button, int state)
 {
+	if (testmode) {
+		inputdevice_testrecord (IDTYPE_JOYSTICK, joy, IDEV_WIDGET_BUTTON, button, state);
+		return;
+	}
+#if 0
 	if (ignoreoldinput (joy)) {
 		if (state)
 			switchdevice (&joysticks[joy], button, 1);
 	return;
 	}
-    setbuttonstateall (&joysticks[joy], &joysticks2[joy], button, state ? 1 : 0);
+#endif
+	setbuttonstateall (&joysticks[joy], &joysticks2[joy], button, state ? 1 : 0);
 }
 
 /* buttonmask = 1 = normal toggle button, 0 = mouse wheel turn or similar
  */
 void setjoybuttonstateall (int joy, uae_u32 buttonbits, uae_u32 buttonmask)
 {
-    int i;
+	int i;
 
+#if 0
 	if (ignoreoldinput (joy))
-	return;
-    for (i = 0; i < ID_BUTTON_TOTAL; i++) {
-	if (buttonmask & (1 << i))
-	    setbuttonstateall (&joysticks[joy], &joysticks2[joy], i, (buttonbits & (1 << i)) ? 1 : 0);
-	else if (buttonbits & (1 << i))
-	    setbuttonstateall (&joysticks[joy], &joysticks2[joy], i, -1);
-    }
+		return;
+#endif
+	for (i = 0; i < ID_BUTTON_TOTAL; i++) {
+		if (buttonmask & (1 << i))
+			setbuttonstateall (&joysticks[joy], &joysticks2[joy], i, (buttonbits & (1 << i)) ? 1 : 0);
+		else if (buttonbits & (1 << i))
+			setbuttonstateall (&joysticks[joy], &joysticks2[joy], i, -1);
+	}
 }
 /* mouse buttons (just like joystick buttons)
  */
 void setmousebuttonstateall (int mouse, uae_u32 buttonbits, uae_u32 buttonmask)
 {
-    int i;
+	int i;
 
-    for (i = 0; i < ID_BUTTON_TOTAL; i++) {
-	if (buttonmask & (1 << i))
-	    setbuttonstateall (&mice[mouse], &mice2[mouse], i, (buttonbits & (1 << i)) ? 1 : 0);
-	else if (buttonbits & (1 << i))
-	    setbuttonstateall (&mice[mouse], &mice2[mouse], i, -1);
-    }
+	for (i = 0; i < ID_BUTTON_TOTAL; i++) {
+		if (buttonmask & (1 << i))
+			setbuttonstateall (&mice[mouse], &mice2[mouse], i, (buttonbits & (1 << i)) ? 1 : 0);
+		else if (buttonbits & (1 << i))
+			setbuttonstateall (&mice[mouse], &mice2[mouse], i, -1);
+	}
 }
 
 void setmousebuttonstate (int mouse, int button, int state)
@@ -4194,7 +4817,7 @@ void setmousebuttonstate (int mouse, int button, int state)
 		inputdevice_testrecord (IDTYPE_MOUSE, mouse, IDEV_WIDGET_BUTTON, button, state);
 		return;
 	}
-    setbuttonstateall (&mice[mouse], &mice2[mouse], button, state);
+	setbuttonstateall (&mice[mouse], &mice2[mouse], button, state);
 }
 
 /* same for joystick axis (analog or digital)
@@ -4219,14 +4842,13 @@ void setjoystickstate (int joy, int axis, int state, int max)
 		v2 = 0;
 	if (v1 == v2)
 		return;
-	if (!joysticks[joy].enabled || ignoreoldinput(joy)) {
+	if (!joysticks[joy].enabled) {
 		if (v1)
 			switchdevice (&joysticks[joy], axis * 2 + (v1 < 0 ? 0 : 1), 0);
 		return;
 	}
 	for (i = 0; i < MAX_INPUT_SUB_EVENT; i++)
-		handle_input_event (id->eventid[ID_AXIS_OFFSET + axis][i], state, max,
-		id->flags[ID_AXIS_OFFSET + axis][i]);
+		handle_input_event (id->eventid[ID_AXIS_OFFSET + axis][i], state, max, id->flags[ID_AXIS_OFFSET + axis][i]);
 	id2->states[axis] = state;
 }
 int getjoystickstate(int joy)
@@ -4241,11 +4863,13 @@ void setmousestate (int mouse, int axis, int data, int isabs)
 	int i, v, diff;
 	int *mouse_p, *oldm_p;
 	double d;
-    struct uae_input_device *id = &mice[mouse];
+	struct uae_input_device *id = &mice[mouse];
 	static double fract[MAX_INPUT_DEVICES][MAX_INPUT_DEVICE_EVENTS];
 
 	if (testmode) {
 		inputdevice_testrecord (IDTYPE_MOUSE, mouse, IDEV_WIDGET_AXIS, axis, data);
+		// fake "release" event
+		inputdevice_testrecord (IDTYPE_MOUSE, mouse, IDEV_WIDGET_AXIS, axis, 0);
 		return;
 	}
 	if (!mice[mouse].enabled) {
@@ -4259,35 +4883,35 @@ void setmousestate (int mouse, int axis, int data, int isabs)
 		}
 		return;
 	}
-    d = 0;
-    mouse_p = &mouse_axis[mouse][axis];
-    oldm_p = &oldm_axis[mouse][axis];
-    if (!isabs) {
+	d = 0;
+	mouse_p = &mouse_axis[mouse][axis];
+	oldm_p = &oldm_axis[mouse][axis];
+	if (!isabs) {
 		// eat relative movements while in mousehack mode
 /*		if (currprefs.input_tablet == TABLET_MOUSEHACK && mousehack_alive ())
 			return;*/
 		*oldm_p = *mouse_p;
 		*mouse_p += data;
 		d = (*mouse_p - *oldm_p) * currprefs.input_mouse_speed / 100.0;
-    } else {
+	} else {
 		d = data - *oldm_p;
 		*oldm_p = data;
 		*mouse_p += d;
 		if (axis == 0)
-		    lastmx = data;
+			lastmx = data;
 		else
-		    lastmy = data;
+			lastmy = data;
 		if (axis)
 			mousehack_helper ();
 		if (currprefs.input_tablet == TABLET_MOUSEHACK && mousehack_alive ())
 			return;
-    }
+	}
 	v = (int)d;
 	fract[mouse][axis] += d - v;
 	diff = (int)fract[mouse][axis];
 	v += diff;
 	fract[mouse][axis] -= diff;
-    for (i = 0; i < MAX_INPUT_SUB_EVENT; i++)
+	for (i = 0; i < MAX_INPUT_SUB_EVENT; i++)
 		handle_input_event (id->eventid[ID_AXIS_OFFSET + axis][i], v, 0, 0);
 }
 
@@ -4300,37 +4924,37 @@ int getmousestate (int joy)
 
 void warpmode (int mode)
 {
-    int fr, fr2;
-    
-    fr = currprefs.gfx_framerate;
-    if (fr == 0)
-	fr = -1;
-    fr2 = currprefs.turbo_emulation;
-    if (fr2 == -1)
-	fr2 = 0;
+	int fr, fr2;
 
-    if (mode < 0) {
-	if (currprefs.turbo_emulation) {
-	    changed_prefs.gfx_framerate = currprefs.gfx_framerate = fr2;
-	    currprefs.turbo_emulation = 0;
-	} else {
-	    currprefs.turbo_emulation = fr;
+	fr = currprefs.gfx_framerate;
+	if (fr == 0)
+		fr = -1;
+	fr2 = currprefs.turbo_emulation;
+	if (fr2 == -1)
+		fr2 = 0;
+
+	if (mode < 0) {
+		if (currprefs.turbo_emulation) {
+			changed_prefs.gfx_framerate = currprefs.gfx_framerate = fr2;
+			currprefs.turbo_emulation = 0;
+		} else {
+			currprefs.turbo_emulation = fr;
+		}
+	} else if (mode == 0 && currprefs.turbo_emulation) {
+		if (currprefs.turbo_emulation > 0)
+			changed_prefs.gfx_framerate = currprefs.gfx_framerate = fr2;
+		currprefs.turbo_emulation = 0;
+	} else if (mode > 0 && !currprefs.turbo_emulation) {
+		currprefs.turbo_emulation = fr;
 	}
-    } else if (mode == 0 && currprefs.turbo_emulation) {
-	if (currprefs.turbo_emulation > 0)
-	    changed_prefs.gfx_framerate = currprefs.gfx_framerate = fr2;
-	currprefs.turbo_emulation = 0;
-    } else if (mode > 0 && !currprefs.turbo_emulation) {
-	currprefs.turbo_emulation = fr;
-    }
-    if (currprefs.turbo_emulation) {
-	if (!currprefs.cpu_cycle_exact && !currprefs.blitter_cycle_exact)
-	    changed_prefs.gfx_framerate = currprefs.gfx_framerate = 10;
-	audio_pause ();
-    } else {
-	audio_resume ();
-    }
-    compute_vsynctime ();
+	if (currprefs.turbo_emulation) {
+		if (!currprefs.cpu_cycle_exact && !currprefs.blitter_cycle_exact)
+			changed_prefs.gfx_framerate = currprefs.gfx_framerate = 10;
+		audio_pause ();
+	} else {
+		audio_resume ();
+	}
+	compute_vsynctime ();
 #ifdef RETROPLATFORM
 	rp_turbo (currprefs.turbo_emulation);
 #endif
@@ -4349,40 +4973,39 @@ void pausemode (int mode)
 
 int jsem_isjoy (int port, const struct uae_prefs *p)
 {
-    int v = JSEM_DECODEVAL (port, p);
-    if (v < JSEM_JOYS)
-	return -1;
-    v -= JSEM_JOYS;
-    if (v >= inputdevice_get_device_total (IDTYPE_JOYSTICK))
-	return -1;
-    return v;
+	int v = JSEM_DECODEVAL (port, p);
+	if (v < JSEM_JOYS)
+		return -1;
+	v -= JSEM_JOYS;
+	if (v >= inputdevice_get_device_total (IDTYPE_JOYSTICK))
+		return -1;
+	return v;
 }
 
 int jsem_ismouse (int port, const struct uae_prefs *p)
 {
-    int v = JSEM_DECODEVAL (port, p);
-    if (v < JSEM_MICE)
+	int v = JSEM_DECODEVAL (port, p);
+	if (v < JSEM_MICE)
 		return -1;
-    v -= JSEM_MICE;
-    if (v >= inputdevice_get_device_total (IDTYPE_MOUSE))
+	v -= JSEM_MICE;
+	if (v >= inputdevice_get_device_total (IDTYPE_MOUSE))
 		return -1;
-    return v;
+	return v;
 }
 
 int jsem_iskbdjoy (int port, const struct uae_prefs *p)
 {
-    int v = JSEM_DECODEVAL (port, p);
-    if (v < JSEM_KBDLAYOUT)
+	int v = JSEM_DECODEVAL (port, p);
+	if (v < JSEM_KBDLAYOUT)
 		return -1;
-    v -= JSEM_KBDLAYOUT;
-    if (v >= JSEM_LASTKBD)
+	v -= JSEM_KBDLAYOUT;
+	if (v >= JSEM_LASTKBD)
 		return -1;
-    return v;
+	return v;
 }
 
 int inputdevice_joyport_config (struct uae_prefs *p, TCHAR *value, int portnum, int mode, int type)
 {
-	config_changed = 1;
 	switch (type)
 	{
 	case 1:
@@ -4414,7 +5037,7 @@ int inputdevice_joyport_config (struct uae_prefs *p, TCHAR *value, int portnum, 
 		break;
 	case 0:
 		{
-			int start = -1, got = 0;
+			int start = JPORT_NONE, got = 0;
 			TCHAR *pp = 0;
 			if (_tcsncmp (value, "kbd", 3) == 0) {
 				start = JSEM_KBDLAYOUT;
@@ -4430,6 +5053,9 @@ int inputdevice_joyport_config (struct uae_prefs *p, TCHAR *value, int portnum, 
 				got = 1;
 			} else if (_tcscmp (value, "none") == 0) {
 				got = 2;
+			} else if (_tcscmp (value, "custom") == 0) {
+				got = 2;
+				start = JPORT_CUSTOM;
 			}
 			if (got) {
 				if (pp) {
@@ -4457,25 +5083,29 @@ int inputdevice_joyport_config (struct uae_prefs *p, TCHAR *value, int portnum, 
 	return 0;
 }
 
-int inputdevice_getjoyportdevice (int jport)
+int inputdevice_getjoyportdevice (int port, int val)
 {
 	int idx;
-	if (jport < 0) {
+	if (val == JPORT_CUSTOM) {
+		idx = inputdevice_get_device_total (IDTYPE_JOYSTICK) + JSEM_LASTKBD;
+		if (port < 2)
+			idx += inputdevice_get_device_total (IDTYPE_MOUSE);
+	} else if (val < 0) {
 		idx = -1;
-	} else if (jport >= JSEM_MICE) {
-		idx = jport - JSEM_MICE;
+	} else if (val >= JSEM_MICE) {
+		idx = val - JSEM_MICE;
 		if (idx >= inputdevice_get_device_total (IDTYPE_MOUSE))
 			idx = 0;
 		else
 			idx += inputdevice_get_device_total (IDTYPE_JOYSTICK);
 		idx += JSEM_LASTKBD;
-	} else if (jport >= JSEM_JOYS) {
-		idx = jport - JSEM_JOYS;
+	} else if (val >= JSEM_JOYS) {
+		idx = val - JSEM_JOYS;
 		if (idx >= inputdevice_get_device_total (IDTYPE_JOYSTICK))
 			idx = 0;
 		idx += JSEM_LASTKBD;
 	} else {
-		idx = jport - JSEM_KBDLAYOUT;
+		idx = val - JSEM_KBDLAYOUT;
 	}
 	return idx;
 }

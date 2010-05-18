@@ -37,7 +37,7 @@ extern uae_u8 *natmem_offset, *natmem_offset_end;
 #include <sys/mman.h>
 #endif
 
-int canbang;
+bool canbang;
 int candirect = -1;
 #ifdef JIT
 /* Set by each memory handler that does not simply access real memory.  */
@@ -49,7 +49,7 @@ int special_mem;
 #define IPC_CREAT   0x04
 #define IPC_STAT    0x08
 
-static int isdirectjit (void)
+static bool isdirectjit (void)
 {
 #ifdef JIT
     return currprefs.cachesize && !currprefs.comptrustbyte;
@@ -58,7 +58,7 @@ static int isdirectjit (void)
 #endif
 }
 
-static int canjit (void)
+static bool canjit (void)
 {
 #ifdef JIT
     if (currprefs.cpu_model < 68020 && currprefs.address_space_24)
@@ -74,7 +74,7 @@ static void nocanbang (void)
     canbang = 0;
 }
 
-int ersatzkickfile;
+bool ersatzkickfile;
 
 uae_u32 allocated_chipmem;
 uae_u32 allocated_fastmem;
@@ -85,6 +85,7 @@ uae_u32 allocated_a3000lmem;
 uae_u32 allocated_a3000hmem;
 uae_u32 allocated_cardmem;
 uae_u8 ce_banktype[65536];
+uae_u8 ce_cachable[65536];
 
 #if defined(CPU_64_BIT)
 uae_u32 max_z3fastmem = 2048UL * 1024 * 1024;
@@ -97,10 +98,10 @@ static size_t bootrom_filepos, chip_filepos, bogo_filepos, rom_filepos, a3000lme
 /* Set if we notice during initialization that settings changed,
 and we must clear all memory to prevent bogus contents from confusing
 the Kickstart.  */
-static int need_hardreset;
+static bool need_hardreset;
 
 /* The address space setting used during the last reset.  */
-static int last_address_space_24;
+static bool last_address_space_24;
 
 addrbank *mem_banks[MEMORY_BANKS];
 
@@ -1024,7 +1025,6 @@ static int extendedkickmem_type;
 #define EXTENDED_ROM_KS 3
 #define EXTENDED_ROM_ARCADIA 4
 
-//#if defined CDTV || defined CD32
 static uae_u32 REGPARAM3 extendedkickmem_lget (uaecptr) REGPARAM;
 static uae_u32 REGPARAM3 extendedkickmem_wget (uaecptr) REGPARAM;
 static uae_u32 REGPARAM3 extendedkickmem_bget (uaecptr) REGPARAM;
@@ -1158,7 +1158,7 @@ static uae_u8 *REGPARAM2 extendedkickmem2_xlate (uaecptr addr)
 	addr &= extendedkickmem2_mask;
 	return extendedkickmemory2 + addr;
 }
-//#endif //defined CDTV || defined CD32
+
 
 /* Default memory access functions */
 
@@ -1291,7 +1291,6 @@ addrbank kickram_bank = {
     kickmem_lget, kickmem_wget, ABFLAG_UNK | ABFLAG_SAFE
 };
 
-//#if defined CDTV || defined CD32
 addrbank extendedkickmem_bank = {
     extendedkickmem_lget, extendedkickmem_wget, extendedkickmem_bget,
     extendedkickmem_lput, extendedkickmem_wput, extendedkickmem_bput,
@@ -1304,7 +1303,7 @@ addrbank extendedkickmem2_bank = {
 	extendedkickmem2_xlate, extendedkickmem2_check, NULL, "Extended 2nd Kickstart ROM",
 	extendedkickmem2_lget, extendedkickmem2_wget, ABFLAG_ROM
 };
-//#endif //defined CDTV || defined CD32
+
 
 static uae_u32 allocated_custmem1, allocated_custmem2;
 static uae_u32 custmem1_mask, custmem2_mask;
@@ -1470,14 +1469,12 @@ void a3000_fakekick (int map)
 			if (fkickmemory[5] == 0xfc) {
 				memcpy (kickmemory, fkickmemory, fkickmem_size / 2);
 				memcpy (kickmemory + fkickmem_size / 2, fkickmemory, fkickmem_size / 2);
-//#if defined CDTV || defined CD32
 				extendedkickmem_size = 65536;
 				extendedkickmem_mask = extendedkickmem_size - 1;
 				extendedkickmemory = mapped_malloc (extendedkickmem_size, "rom_f0");
 				extendedkickmem_bank.baseaddr = extendedkickmemory;
 				memcpy (extendedkickmemory, fkickmemory + fkickmem_size / 2, 65536);
 				map_banks (&extendedkickmem_bank, 0xf0, 1, 1);
-//#endif //defined CDTV || defined CD32
 				a3000_f0 = 1;
 			} else {
 				memcpy (kickmemory, fkickmemory, fkickmem_size);
@@ -1486,11 +1483,9 @@ void a3000_fakekick (int map)
 	} else {
 		if (a3000_f0) {
 			map_banks (&dummy_bank, 0xf0, 1, 1);
-//#if defined CDTV || defined CD32
 			if (extendedkickmemory)
 				mapped_free (extendedkickmemory);
 			extendedkickmemory = NULL;
-//#endif //defined CDTV || defined CD32
 			a3000_f0 = 0;
 		}
 		if (kickstore)
@@ -1588,7 +1583,6 @@ static int read_kickstart (struct zfile *f, uae_u8 *mem, int size, int dochecksu
 	return i;
 }
 
-//#if defined CDTV || defined CD32 || defined ARCADIA
 static int load_extendedkickstart (void)
 {
 	struct zfile *f;
@@ -1638,7 +1632,6 @@ static int load_extendedkickstart (void)
 	zfile_fclose (f);
 	return 1;
 }
-//#endif //defined CDTV || defined CD32 || defined ARCADIA
 
 static int patch_shapeshifter (uae_u8 *kickmemory)
 {
@@ -1703,13 +1696,11 @@ static void patch_kick (void)
 	if (kickmem_size >= 524288 && currprefs.kickshifter)
 		patched += patch_shapeshifter (kickmemory);
 	patched += patch_residents (kickmemory, kickmem_size);
-//#if defined CDTV || defined CD32
 	if (extendedkickmemory) {
 		patched += patch_residents (extendedkickmemory, extendedkickmem_size);
 		if (patched)
 			kickstart_fix_checksum (extendedkickmemory, extendedkickmem_size);
 	}
-//#endif //defined CDTV || defined CD32
 	if (patched)
 		kickstart_fix_checksum (kickmemory, kickmem_size);
 }
@@ -1795,7 +1786,6 @@ static int load_kickstart (void)
 			goto err;
 		kickmem_mask = size - 1;
 		kickmem_size = size;
-//#if defined CDTV || defined CD32 || defined ARCADIA
 		if (filesize >= 524288 * 2 && !extendedkickmem_type) {
 			extendedkickmem_size = 0x80000;
 			if (currprefs.cs_cdtvcd || currprefs.cs_cdtvram) {
@@ -1821,7 +1811,6 @@ static int load_kickstart (void)
 			read_kickstart (f, extendedkickmemory2 + 524288, 524288, 0, 1);
 			extendedkickmem2_mask = extendedkickmem2_size - 1;
 		}
-//#endif //defined CDTV || defined CD32 || defined ARCADIA
 	}
 
 #if defined(AMIGA)
@@ -2177,7 +2166,6 @@ static void allocate_memory (void)
 		}
 		need_hardreset = 1;
 	}
-//#if defined CDTV || defined CD32
 	if (allocated_cardmem != currprefs.cs_cdtvcard * 1024) {
 		if (cardmemory)
 			mapped_free (cardmemory);
@@ -2196,7 +2184,6 @@ static void allocate_memory (void)
 		cdtv_loadcardmem(cardmemory, allocated_cardmem);
 #endif
 	}
-//#endif //defined CDTV || defined CD32
 	if (allocated_custmem1 != currprefs.custom_memory_sizes[0]) {
 		if (custmem1)
 			mapped_free (custmem1);
@@ -2256,6 +2243,11 @@ static void fill_ce_banks (void)
 	int i;
 
 	memset (ce_banktype, CE_MEMBANK_FAST, sizeof ce_banktype);
+	// data cachable regions
+	memset (ce_cachable, 0, sizeof ce_cachable);
+	memset (ce_cachable + (0x00200000 >> 16), 1, currprefs.fastmem_size >> 16);
+	memset (ce_cachable + (0x10000000 >> 16), 1, currprefs.z3fastmem_size >> 16);
+
 	if (&get_mem_bank (0) == &chipmem_bank) {
 		for (i = 0; i < (0x200000 >> 16); i++)
 			ce_banktype[i] = CE_MEMBANK_CHIP;
@@ -2270,8 +2262,10 @@ static void fill_ce_banks (void)
 		addrbank *b;
 		ce_banktype[i] = CE_MEMBANK_CIA;
 		b = &get_mem_bank (i << 16);
-		if (b != &cia_bank)
+		if (b != &cia_bank) {
 			ce_banktype[i] = CE_MEMBANK_FAST;
+			ce_cachable[i] = 1;
+		}
 	}
 	// CD32 ROM is 16-bit
 	if (currprefs.cs_cd32cd) {
@@ -2382,7 +2376,6 @@ void memory_reset (void)
 		memcpy (currprefs.romfile, changed_prefs.romfile, sizeof currprefs.romfile);
 		memcpy (currprefs.romextfile, changed_prefs.romextfile, sizeof currprefs.romextfile);
 		need_hardreset = 1;
-//#if defined CDTV || defined CD32
 		if (extendedkickmemory)
 			mapped_free (extendedkickmemory);
 		extendedkickmemory = 0;
@@ -2391,7 +2384,6 @@ void memory_reset (void)
 		extendedkickmem2_size = 0;
 		extendedkickmem_type = 0;
 		load_extendedkickstart ();
-//#endif //defined CDTV || defined CD32
 		kickmem_mask = 524288 - 1;
 		if (!load_kickstart ()) {
 			if (_tcslen (currprefs.romfile) > 0) {
@@ -2531,15 +2523,12 @@ void memory_reset (void)
 	map_banks (&expamem_bank, 0xE8, 1, 0); /* Map Autoconfig space at 0xE80000 - 0xE8FFFF. */
 #endif
 
-//#if defined CDTV || defined CD32
 	if (a3000_f0)
 		map_banks (&extendedkickmem_bank, 0xf0, 1, 0);
-//#endif //defined CDTV || defined CD32
 
 	/* Map the chipmem into all of the lower 8MB */
     map_overlay (1);
 
-//#if defined CDTV || defined CD32
 	switch (extendedkickmem_type) {
 	case EXTENDED_ROM_KS:
 		map_banks (&extendedkickmem_bank, 0xE0, 8, 0);
@@ -2555,7 +2544,6 @@ void memory_reset (void)
 		break;
 #endif //CD32
 	}
-//#endif //defined CDTV || defined CD32
 
 #ifdef AUTOCONFIG
 	if (need_uae_boot_rom ())
@@ -2564,7 +2552,6 @@ void memory_reset (void)
 
 	if ((cloanto_rom || currprefs.cs_ksmirror_e0) && (currprefs.maprom != 0xe00000) && !extendedkickmem_type)
 	    map_banks (&kickmem_bank, 0xE0, 8, 0);
-//#if defined CDTV || defined CD32
 	if (currprefs.cs_ksmirror_a8) {
 		if (extendedkickmem2_size) {
 			map_banks (&extendedkickmem2_bank, 0xa8, 16, 0);
@@ -2579,7 +2566,7 @@ void memory_reset (void)
     }
 		}
 	}
-//#endif //defined CDTV || defined CD32
+
 	if (currprefs.custom_memory_sizes[0]) {
 		map_banks (&custmem1_bank,
 			currprefs.custom_memory_addrs[0] >> 16,

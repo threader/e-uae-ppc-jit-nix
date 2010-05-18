@@ -17,7 +17,7 @@
  */
 
 #define UAEMAJOR   2
-#define UAEMINOR   1
+#define UAEMINOR   2
 #define UAESUBREV  0
 
 #define UAEVERSION (256*65536L*UAEMAJOR + 65536L*UAEMINOR + UAESUBREV)

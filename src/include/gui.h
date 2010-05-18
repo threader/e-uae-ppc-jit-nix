@@ -25,7 +25,7 @@ extern unsigned int gui_ledstate;
 extern void gui_display (int shortcut);
 extern void gui_notify_state (int state);
 
-extern int no_gui, quit_to_gui;
+extern bool no_gui, quit_to_gui;
 
 #define LED_CD_ACTIVE 1
 #define LED_CD_ACTIVE2 2

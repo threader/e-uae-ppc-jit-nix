@@ -1,6 +1,8 @@
 /*
  * A collection of ugly and random junk brought in from Win32
  * which desparately needs to be tidied up
+ *
+ *
  */
 
 #include "sysconfig.h"
@@ -787,3 +789,50 @@ end:
         recursive--;
         return ret;
 }
+
+// -- dinput.c
+int input_get_default_lightpen (struct uae_input_device *uid, int i, int port)
+{
+/*        struct didata *did;
+
+        if (i >= num_mouse)
+                return 0;
+        did = &di_mouse[i];
+        uid[i].eventid[ID_AXIS_OFFSET + 0][0] = INPUTEVENT_LIGHTPEN_HORIZ;
+        uid[i].eventid[ID_AXIS_OFFSET + 1][0] = INPUTEVENT_LIGHTPEN_VERT;
+        uid[i].eventid[ID_BUTTON_OFFSET + 0][0] = port ? INPUTEVENT_JOY2_3RD_BUTTON : INPUTEVENT_JOY1_3RD_BUTTON;
+        if (i == 0)
+                return 1;*/
+        return 0;
+}
+
+int input_get_default_joystick_analog (struct uae_input_device *uid, int i, int port)
+{
+/*        int j;
+        struct didata *did;
+
+        if (i >= num_joystick)
+                return 0;
+        did = &di_joystick[i];
+        uid[i].eventid[ID_AXIS_OFFSET + 0][0] = port ? INPUTEVENT_JOY2_HORIZ_POT : INPUTEVENT_JOY1_HORIZ_POT;
+        uid[i].eventid[ID_AXIS_OFFSET + 1][0] = port ? INPUTEVENT_JOY2_VERT_POT : INPUTEVENT_JOY1_VERT_POT;
+        uid[i].eventid[ID_BUTTON_OFFSET + 0][0] = port ? INPUTEVENT_JOY2_LEFT : INPUTEVENT_JOY1_LEFT;
+        if (isrealbutton (did, 1))
+                uid[i].eventid[ID_BUTTON_OFFSET + 1][0] = port ? INPUTEVENT_JOY2_RIGHT : INPUTEVENT_JOY1_RIGHT;
+        if (isrealbutton (did, 2))
+                uid[i].eventid[ID_BUTTON_OFFSET + 2][0] = port ? INPUTEVENT_JOY2_UP : INPUTEVENT_JOY1_UP;
+        if (isrealbutton (did, 3))
+                uid[i].eventid[ID_BUTTON_OFFSET + 3][0] = port ? INPUTEVENT_JOY2_DOWN : INPUTEVENT_JOY1_DOWN;
+        for (j = 2; j < MAX_MAPPINGS - 1; j++) {
+                int am = did->axismappings[j];
+                if (am == DIJOFS_POV(0) || am == DIJOFS_POV(1) || am == DIJOFS_POV(2) || am == DIJOFS_POV(3)) {
+                        uid[i].eventid[ID_AXIS_OFFSET + j + 0][0] = port ? INPUTEVENT_JOY2_HORIZ_POT : INPUTEVENT_JOY1_HORIZ_POT;
+                        uid[i].eventid[ID_AXIS_OFFSET + j + 1][0] = port ? INPUTEVENT_JOY2_VERT_POT : INPUTEVENT_JOY1_VERT_POT;
+                        j++;
+                }
+        }
+        if (i == 0)
+                return 1;*/
+        return 0;
+}
+

@@ -131,7 +131,8 @@ uaecptr ROM_filesys_resname, ROM_filesys_resid;
 uaecptr ROM_filesys_diagentry;
 uaecptr ROM_hardfile_resname, ROM_hardfile_resid;
 uaecptr ROM_hardfile_init;
-int uae_boot_rom, uae_boot_rom_size; /* size = code size only */
+bool uae_boot_rom;
+int uae_boot_rom_size; /* size = code size only */
 
 /* ********************************************************** */
 
@@ -395,14 +396,14 @@ static void expamem_init_cd32fmv (void)
 
 static uae_u32 fastmem_mask;
 
-static uae_u32 fastmem_lget (uaecptr) REGPARAM;
-static uae_u32 fastmem_wget (uaecptr) REGPARAM;
-static uae_u32 fastmem_bget (uaecptr) REGPARAM;
-static void fastmem_lput (uaecptr, uae_u32) REGPARAM;
-static void fastmem_wput (uaecptr, uae_u32) REGPARAM;
-static void fastmem_bput (uaecptr, uae_u32) REGPARAM;
-static int fastmem_check (uaecptr addr, uae_u32 size) REGPARAM;
-static uae_u8 *fastmem_xlate (uaecptr addr) REGPARAM;
+static uae_u32 REGPARAM3 fastmem_lget (uaecptr) REGPARAM;
+static uae_u32 REGPARAM3 fastmem_wget (uaecptr) REGPARAM;
+static uae_u32 REGPARAM3 fastmem_bget (uaecptr) REGPARAM;
+static void REGPARAM3 fastmem_lput (uaecptr, uae_u32) REGPARAM;
+static void REGPARAM3 fastmem_wput (uaecptr, uae_u32) REGPARAM;
+static void REGPARAM3 fastmem_bput (uaecptr, uae_u32) REGPARAM;
+static int REGPARAM3 fastmem_check (uaecptr addr, uae_u32 size) REGPARAM;
+static uae_u8 *REGPARAM3 fastmem_xlate (uaecptr addr) REGPARAM;
 
 uaecptr fastmem_start; /* Determined by the OS */
 static uae_u8 *fastmemory;
@@ -485,14 +486,14 @@ addrbank fastmem_bank = {
  * Catweasel ZorroII
  */
 
-static uae_u32 catweasel_lget (uaecptr) REGPARAM;
-static uae_u32 catweasel_wget (uaecptr) REGPARAM;
-static uae_u32 catweasel_bget (uaecptr) REGPARAM;
-static void catweasel_lput (uaecptr, uae_u32) REGPARAM;
-static void catweasel_wput (uaecptr, uae_u32) REGPARAM;
-static void catweasel_bput (uaecptr, uae_u32) REGPARAM;
-static int catweasel_check (uaecptr addr, uae_u32 size) REGPARAM;
-static uae_u8 *catweasel_xlate (uaecptr addr) REGPARAM;
+static uae_u32 REGPARAM3 catweasel_lget (uaecptr) REGPARAM;
+static uae_u32 REGPARAM3 catweasel_wget (uaecptr) REGPARAM;
+static uae_u32 REGPARAM3 catweasel_bget (uaecptr) REGPARAM;
+static void REGPARAM3 catweasel_lput (uaecptr, uae_u32) REGPARAM;
+static void REGPARAM3 catweasel_wput (uaecptr, uae_u32) REGPARAM;
+static void REGPARAM3 catweasel_bput (uaecptr, uae_u32) REGPARAM;
+static int REGPARAM3 catweasel_check (uaecptr addr, uae_u32 size) REGPARAM;
+static uae_u8 *REGPARAM3 catweasel_xlate (uaecptr addr) REGPARAM;
 
 static uae_u32 catweasel_mask;
 static uae_u32 catweasel_start;
@@ -614,12 +615,12 @@ static void expamem_init_catweasel (void)
  * This is very simple, the Amiga shouldn't be doing things with it.
  */
 
-static uae_u32 filesys_lget (uaecptr) REGPARAM;
-static uae_u32 filesys_wget (uaecptr) REGPARAM;
-static uae_u32 filesys_bget (uaecptr) REGPARAM;
-static void filesys_lput (uaecptr, uae_u32) REGPARAM;
-static void filesys_wput (uaecptr, uae_u32) REGPARAM;
-static void filesys_bput (uaecptr, uae_u32) REGPARAM;
+static uae_u32 REGPARAM3 filesys_lget (uaecptr) REGPARAM;
+static uae_u32 REGPARAM3 filesys_wget (uaecptr) REGPARAM;
+static uae_u32 REGPARAM3 filesys_bget (uaecptr) REGPARAM;
+static void REGPARAM3 filesys_lput (uaecptr, uae_u32) REGPARAM;
+static void REGPARAM3 filesys_wput (uaecptr, uae_u32) REGPARAM;
+static void REGPARAM3 filesys_bput (uaecptr, uae_u32) REGPARAM;
 
 static uae_u32 filesys_start; /* Determined by the OS */
 uae_u8 *filesysory;

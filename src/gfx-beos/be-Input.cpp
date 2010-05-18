@@ -69,7 +69,7 @@ static int init_kb (void)
     get_key_info (&lastKeyInfo);
 
     default_keyboard = uaekey_make_default_kbr (beos_keymap);
-    inputdevice_setkeytranslation (default_keyboard);
+    inputdevice_setkeytranslation (default_keyboard, kbmaps);
     set_default_hotkeys (beos_hotkeys);
 
     return 1;

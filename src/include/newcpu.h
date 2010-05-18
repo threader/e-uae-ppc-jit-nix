@@ -47,8 +47,8 @@ extern int fpp_movem_index2[256];
 extern int fpp_movem_next[256];
 #endif
 
-typedef unsigned long cpuop_func (uae_u32) REGPARAM;
-typedef void cpuop_func_ce (uae_u32) REGPARAM;
+typedef unsigned long REGPARAM3 cpuop_func (uae_u32) REGPARAM;
+typedef void REGPARAM3 cpuop_func_ce (uae_u32) REGPARAM;
 
 struct cputbl {
     cpuop_func *handler;
@@ -65,7 +65,7 @@ struct comptbl {
 };
 #endif
 
-extern unsigned long op_illg (uae_u32) REGPARAM;
+extern unsigned long REGPARAM3 op_illg (uae_u32) REGPARAM;
 
 typedef uae_u8 flagtype;
 
@@ -94,13 +94,22 @@ struct cache020
 {
 	uae_u32 data;
 	uae_u32 tag;
-	uae_u32 valid:1;
+	bool valid;
 };
+
+#define CACHELINES030 16
+struct cache030
+{
+	uae_u32 data[4];
+	bool valid[4];
+	uae_u32 tag;
+};
+
 #define CACHESETS040 64
 struct cache040set
 {
 	uae_u32 data[4];
-	int valid[4];
+	bool valid[4];
 	uae_u32 tag;
 };
 #define CACHELINES040 4
@@ -206,7 +215,10 @@ STATIC_INLINE uaecptr m68k_getpc_p (uae_u8 *p)
 	return (uaecptr)(regs.pc + ((uae_u8*)p - (uae_u8*)regs.pc_oldp));
 }
 
-#define m68k_incpc(o) ((regs).pc_p += (o))
+STATIC_INLINE void m68k_incpc (int o)
+{
+	regs.pc_p += o;
+}
 
 #ifdef MMU
 STATIC_INLINE void m68k_setpc_mmu (uaecptr newpc)
@@ -252,9 +264,18 @@ STATIC_INLINE void m68k_do_bsri (uaecptr oldpc, uae_s32 offset)
     m68k_incpci(offset);
 }
 
-#define get_ibyte(o) do_get_mem_byte((uae_u8 *)((regs).pc_p + (o) + 1))
-#define get_iword(o) do_get_mem_word((uae_u16 *)((regs).pc_p + (o)))
-#define get_ilong(o) do_get_mem_long((uae_u32 *)((regs).pc_p + (o)))
+STATIC_INLINE uae_u32 get_ibyte (int o)
+{
+	return do_get_mem_byte((uae_u8 *)((regs).pc_p + (o) + 1));
+}
+STATIC_INLINE uae_u32 get_iword (int o)
+{
+	return do_get_mem_word((uae_u16 *)((regs).pc_p + (o)));
+}
+STATIC_INLINE uae_u32 get_ilong (int o)
+{
+	return do_get_mem_long((uae_u32 *)((regs).pc_p + (o)));
+}
 
 #define get_iwordi(o) get_wordi(o)
 #define get_ilongi(o) get_longi(o)
@@ -292,19 +313,26 @@ STATIC_INLINE uae_u32 next_ilongi (void)
     return r;
 }
 
+extern uae_u32 (*x_get_byte)(uaecptr addr);
+extern uae_u32 (*x_get_word)(uaecptr addr);
+extern uae_u32 (*x_get_long)(uaecptr addr);
+extern void (*x_put_byte)(uaecptr addr, uae_u32 v);
+extern void (*x_put_word)(uaecptr addr, uae_u32 v);
+extern void (*x_put_long)(uaecptr addr, uae_u32 v);
+extern uae_u32 (*x_next_iword)(void);
+extern uae_u32 (*x_next_ilong)(void);
+
+extern uae_u32 REGPARAM3 x_get_disp_ea_020 (uae_u32 base, uae_u32 dp) REGPARAM;
+extern uae_u32 REGPARAM3 x_get_bitfield (uae_u32 src, uae_u32 bdata[2], uae_s32 offset, int width) REGPARAM;
+extern void REGPARAM3 x_put_bitfield (uae_u32 dst, uae_u32 bdata[2], uae_u32 val, uae_s32 offset, int width) REGPARAM;
+
 extern void m68k_setstopped (void);
 extern void m68k_resumestopped (void);
 
 extern uae_u32 REGPARAM3 get_disp_ea_020 (uae_u32 base, uae_u32 dp) REGPARAM;
-extern uae_u32 REGPARAM3 get_disp_ea_020ce (uae_u32 base, uae_u32 dp) REGPARAM;
-extern uae_u32 REGPARAM3 get_disp_ea_040mmu (uae_u32 base, uae_u32 dp) REGPARAM;
-extern uae_u32 REGPARAM3 get_disp_ea_000 (uae_u32 base, uae_u32 dp) REGPARAM;
-extern uae_u32 get_bitfield (uae_u32 src, uae_u32 bdata[2], uae_s32 offset, int width);
-extern void put_bitfield (uae_u32 dst, uae_u32 bdata[2], uae_u32 val, uae_s32 offset, int width);
-extern uae_u32 get_bitfield_020ce (uae_u32 src, uae_u32 bdata[2], uae_s32 offset, int width);
-extern void put_bitfield_020ce (uae_u32 dst, uae_u32 bdata[2], uae_u32 val, uae_s32 offset, int width);
-extern uae_u32 get_bitfield_040mmu (uae_u32 src, uae_u32 bdata[2], uae_s32 offset, int width);
-extern void put_bitfield_040mmu (uae_u32 dst, uae_u32 bdata[2], uae_u32 val, uae_s32 offset, int width);
+extern uae_u32 REGPARAM3 get_disp_ea_000 (uae_u32 base, uae_u32 dp);
+extern uae_u32 REGPARAM3 get_bitfield (uae_u32 src, uae_u32 bdata[2], uae_s32 offset, int width) REGPARAM;
+extern void REGPARAM3 put_bitfield (uae_u32 dst, uae_u32 bdata[2], uae_u32 val, uae_s32 offset, int width) REGPARAM;
 
 extern int get_cpu_model(void);
 
@@ -313,9 +341,9 @@ extern int get_cpu_model(void);
 # undef Exception
 #endif
 
-extern void MakeSR (void) REGPARAM;
-extern void MakeFromSR (void) REGPARAM;
-extern void Exception (int, uaecptr) REGPARAM;
+extern void REGPARAM3 MakeSR (void) REGPARAM;
+extern void REGPARAM3 MakeFromSR (void) REGPARAM;
+extern void REGPARAM3 Exception (int, uaecptr) REGPARAM;
 extern void NMI (void);
 extern void NMI_delayed (void);
 extern void prepare_interrupt (uae_u32);
@@ -385,9 +413,9 @@ extern const struct cputbl op_smalltbl_12_ff[];
 extern cpuop_func *cpufunctbl[65536] ASM_SYM_FOR_FUNC ("cpufunctbl");
 
 #ifdef JIT
-extern void flush_icache (uaecptr, int n);
+extern void flush_icache (uaecptr, int);
 extern void compemu_reset (void);
-extern int check_prefs_changed_comp (void);
+//extern bool check_prefs_changed_comp (void);
 #else
 #define flush_icache(uaecptr, int) do {} while (0)
 #endif

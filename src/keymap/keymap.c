@@ -172,7 +172,7 @@ struct uae_input_device_kbr_default *uaekey_make_default_kbr (const struct uaeke
     if (trans) {
 		for (i = 0; i < count; i++) {
 		    trans[i].scancode = hostkeys[i].hostkey;
-		    trans[i].event    = default_keymap[hostkeys[i].uaekey];
+		    trans[i].evt    = default_keymap[hostkeys[i].uaekey];
 		}
 		trans[i].scancode = -1;
     }

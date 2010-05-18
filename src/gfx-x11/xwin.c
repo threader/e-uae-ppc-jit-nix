@@ -1685,7 +1685,7 @@ static int init_kb (void)
 {
     if (currprefs.map_raw_keys) {
 	if (rawkeys_available) {
-	    inputdevice_setkeytranslation (raw_keyboard);
+	    inputdevice_setkeytranslation (raw_keyboard, kbmaps);
 	    set_default_hotkeys (x11pc_hotkeys);
 	    write_log ("X11GFX: Enabling raw key-mapping.\n");
 	} else {

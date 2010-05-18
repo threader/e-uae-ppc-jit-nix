@@ -28,7 +28,7 @@ extern void target_run (void);
 extern void target_quit (void);
 
 extern int quit_program;
-extern int console_emulation;
+extern bool console_emulation;
 
 extern char warning_buffer[256];
 extern char start_path_data[];

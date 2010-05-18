@@ -409,4 +409,7 @@ extern void xfree (const void*);
 #define _tcstol strtol
 #define _wunlink unlink
 #define _tcsftime strftime
+#define bool _Bool
+#define true 1
+#define false 0
 #endif

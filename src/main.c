@@ -66,10 +66,10 @@ int config_changed;
 int pissoff_value = 25000;
 int pause_emulation;
 char start_path_data[MAX_DPATH];
-int no_gui = 0, quit_to_gui = 0;
-int cloanto_rom = 0;
-int kickstart_rom = 1;
-int console_emulation = 0;
+bool no_gui = 0, quit_to_gui = 0;
+bool cloanto_rom = 0;
+bool kickstart_rom = 1;
+bool console_emulation = 0;
 
 struct gui_info gui_data;
 
@@ -825,6 +825,7 @@ static int real_main2 (int argc, char **argv)
 			currprefs.produce_sound = 0;
 	    }
 	    inputdevice_init ();
+		inputdevice_setkeytranslation (keytrans, kbmaps);
 
 		changed_prefs = currprefs;
 		no_gui = ! currprefs.start_gui;
@@ -888,6 +889,7 @@ static int real_main2 (int argc, char **argv)
 #ifdef FILESYS
     	filesys_install ();
 #endif
+		target_startup_sequence (&currprefs);
 		memory_init ();
 		memory_reset ();
 
@@ -910,7 +912,6 @@ static int real_main2 (int argc, char **argv)
 		init_m68k(); /* must come after reset_frame_rate_hack (); */
 
 		gui_update ();
-		target_startup_sequence(&currprefs);
 
 		if (graphics_init ()) {
 #ifdef DEBUGGER
@@ -945,6 +946,7 @@ static int real_main2 (int argc, char **argv)
 
 void real_main (int argc, char **argv)
 {
+	show_version_full ();
 	restart_program = 1;
 
 	fetch_configurationpath (restart_config, sizeof (restart_config) / sizeof (char));
@@ -966,7 +968,6 @@ void real_main (int argc, char **argv)
 #ifndef NO_MAIN_IN_MAIN_C
 int main (int argc, char **argv)
 {
-	show_version_full ();
     real_main (argc, argv);
     return 0;
 }

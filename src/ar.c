@@ -215,7 +215,7 @@
 #ifdef DEBUG
 #define write_log_debug write_log
 #else
-#define write_log_debug(...) do {;} while(0)
+#define write_log_debug
 #endif
 
 static TCHAR *cart_memnames[] = { NULL, "hrtmon", "arhrtmon", "superiv" };
@@ -266,7 +266,7 @@ static void cartridge_exit (void)
 {
 #ifdef PICASSO96
 	if (stored_picasso_on >= 0)
-		picasso_requested_on = stored_picasso_on;
+		picasso_requested_on = stored_picasso_on != 0;
 	stored_picasso_on = -1;
 #endif
 }

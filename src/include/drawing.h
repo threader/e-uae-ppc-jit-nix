@@ -40,7 +40,7 @@
 #define max_diwlastword (PIXEL_XPOS(0x1d4 >> 1))
 
 extern int lores_factor, lores_shift, sprite_width, interlace_seen;
-extern int aga_mode, direct_rgb;
+extern bool aga_mode, direct_rgb;
 
 STATIC_INLINE int coord_hw_to_window_x (int x)
 {
@@ -181,7 +181,7 @@ struct sprite_entry
     unsigned short pos;
     unsigned short max;
     unsigned int first_pixel;
-    unsigned int has_attached;
+	bool has_attached;
 };
 
 union sps_union {
@@ -227,9 +227,9 @@ struct decision {
 #endif
     uae_u8 nr_planes;
     uae_u8 bplres;
-    unsigned int ehb_seen;
-    unsigned int ham_seen;
-    unsigned int ham_at_start;
+	bool ehb_seen;
+	bool ham_seen;
+	bool ham_at_start;
 };
 
 /* Anything related to changes in hw registers during the DDF for one

@@ -463,10 +463,10 @@ int main (int argc, char *argv[])
     do_bigendian = 0;
 
     for (i = 1; i < argc; i++) {
-	if (argv[i][0] != '-')
-	    continue;
-	if (argv[i][1] == 'b' && argv[i][2] == '\0')
-	    do_bigendian = 1;
+		if (argv[i][0] != '-')
+		    continue;
+		if (argv[i][1] == 'b' && argv[i][2] == '\0')
+		    do_bigendian = 1;
     }
 
    set_outfile (stdout);
@@ -478,15 +478,15 @@ int main (int argc, char *argv[])
    outln (" */");
    outln ("");
 
-   for (bpp = DEPTH_8BPP; bpp <= DEPTH_MAX; bpp++) {
-	for (aga = 0; aga <= 1 ; aga++) {
-	    if (aga && bpp == DEPTH_8BPP)
-		continue;
-	    for (spr = 0; spr <= 1; spr++) {
-		for (hmode = HMODE_NORMAL; hmode <= HMODE_MAX; hmode++)
-		    out_linetoscr (bpp, hmode, aga, spr);
-	    }
-	}
+	for (bpp = DEPTH_16BPP; bpp <= DEPTH_MAX; bpp++) {
+		for (aga = 0; aga <= 1 ; aga++) {
+		    if (aga && bpp == DEPTH_8BPP)
+				continue;
+		    for (spr = 0; spr <= 1; spr++) {
+				for (hmode = HMODE_NORMAL; hmode <= HMODE_MAX; hmode++)
+				    out_linetoscr (bpp, hmode, aga, spr);
+		    }
+		}
     }
     return 0;
 }

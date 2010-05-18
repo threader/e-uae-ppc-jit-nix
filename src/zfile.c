@@ -4,7 +4,7 @@
   * routines to handle compressed file automatically
   *
   * (c) 1996 Samuel Devulder, Tim Gunn
-*     2002-2007 Toni Wilen
+  *     2002-2007 Toni Wilen
   */
 
 #define ZLIB_WINAPI

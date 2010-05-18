@@ -2049,7 +2049,7 @@ static int init_kb (void)
 
     /* See if we support raw keys on this platform */
     if ((keymap = get_default_raw_keymap (get_sdlgfx_type ())) != 0) {
-	inputdevice_setkeytranslation (keymap);
+	inputdevice_setkeytranslation (keymap, kbmaps);
 	have_rawkeys = 1;
     }
     switch_keymaps ();

@@ -750,7 +750,7 @@ void cfgfile_save_options (FILE *f, const struct uae_prefs *p, int type)
     /* Don't write gfxlib/gfx_test_speed options.  */
 }
 
-int cfgfile_yesno (const char *option, const char *value, const char *name, int *location)
+int cfgfile_yesno2 (const char *option, const char *value, const char *name, int *location)
 {
 	if (_tcscmp (option, name) != 0)
 		return 0;
@@ -760,11 +760,24 @@ int cfgfile_yesno (const char *option, const char *value, const char *name, int 
     else if (strcasecmp (value, "no") == 0 || strcasecmp (value, "n") == 0
 		|| strcasecmp (value, "false") == 0 || strcasecmp (value, "f") == 0)
 		*location = 0;
-    else {
+	else {
 		write_log ("Option `%s' requires a value of either `yes' or `no'.\n", option);
 		return -1;
-    }
-    return 1;
+	}
+	return 1;
+}
+
+int cfgfile_yesno (const TCHAR *option, const TCHAR *value, const TCHAR *name, bool *location)
+{
+	int val;
+	int ret = cfgfile_yesno2 (option, value, name, &val);
+	if (ret == 0)
+		return 0;
+	if (ret < 0)
+		*location = false;
+	else
+		*location = val != 0;
+	return 1;
 }
 
 int cfgfile_intval (const char *option, const char *value, const char *name, int *location, int scale)
@@ -1070,9 +1083,8 @@ static int cfgfile_parse_host (struct uae_prefs *p, char *option, char *value)
 		|| cfgfile_intval (option, value, "floppy1sound", &p->dfxclick[1], 1)
 		|| cfgfile_intval (option, value, "floppy2sound", &p->dfxclick[2], 1)
 		|| cfgfile_intval (option, value, "floppy3sound", &p->dfxclick[3], 1)
-		|| cfgfile_intval (option, value, "floppy_volume", &p->dfxclickvolume, 1)
 #endif
-		|| cfgfile_intval (option, value, "override_dga_address", &p->override_dga_address, 1))
+		|| cfgfile_intval (option, value, "floppy_volume", &p->dfxclickvolume, 1))		
 		return 1;
 
 	if (
@@ -1094,8 +1106,6 @@ static int cfgfile_parse_host (struct uae_prefs *p, char *option, char *value)
 		|| cfgfile_yesno (option, value, "sound_stereo_swap_ahi", &p->sound_stereo_swap_ahi)
 		|| cfgfile_yesno (option, value, "state_replay", &p->statecapture)
 		|| cfgfile_yesno (option, value, "avoid_cmov", &p->avoid_cmov)
-		|| cfgfile_yesno (option, value, "avoid_dga", &p->avoid_dga)
-		|| cfgfile_yesno (option, value, "avoid_vid", &p->avoid_vid)
 		|| cfgfile_yesno (option, value, "log_illegal_mem", &p->illegal_mem)
 		|| cfgfile_yesno (option, value, "filesys_no_fsdb", &p->filesys_no_uaefsdb)
 		|| cfgfile_yesno (option, value, "gfx_vsync_picasso", &p->gfx_pvsync)
@@ -2646,7 +2656,6 @@ int parse_cmdline_option (struct uae_prefs *p, char c, char *arg)
     case 'i': p->illegal_mem = 1; break;
     case 'J': parse_joy_spec (p, arg); break;
 
-    case 't': p->test_drawing_speed = 1; break;
 #if defined USE_X11_GFX
     case 'L': p->x11_use_low_bandwidth = 1; break;
     case 'T': p->x11_use_mitshm = 1; break;
@@ -3105,49 +3114,49 @@ static void default_prefs_mini (struct uae_prefs *p, int type)
 {
     strcpy (p->description, "UAE default A500 configuration");
 
-    p->nr_floppies = 1;
-    p->dfxtype[0] = DRV_35_DD;
-    p->dfxtype[1] = DRV_NONE;
-    p->cpu_model = 68000;
-    p->address_space_24 = 1;
-    p->chipmem_size = 0x00080000;
-    p->bogomem_size = 0x00080000;
+	p->nr_floppies = 1;
+	p->dfxtype[0] = DRV_35_DD;
+	p->dfxtype[1] = DRV_NONE;
+	p->cpu_model = 68000;
+	p->address_space_24 = 1;
+	p->chipmem_size = 0x00080000;
+	p->bogomem_size = 0x00080000;
 }
 
 void default_prefs (struct uae_prefs *p, int type)
 {
-    int i;
-    int roms[] = { 6, 7, 8, 9, 10, 14, 5, 4, 3, 2, 1, -1 };
+	int i;
+	int roms[] = { 6, 7, 8, 9, 10, 14, 5, 4, 3, 2, 1, -1 };
     uae_u8 zero = 0;
-    struct zfile *f;
+	struct zfile *f;
 
-    memset (p, 0, sizeof (*p));
+	memset (p, 0, sizeof (*p));
     strcpy (p->description, "UAE default configuration");
 	p->config_hardware_path[0] = 0;
 	p->config_host_path[0] = 0;
 
-    p->gfx_scandoubler = 0;
-    p->start_gui = 1;
+	p->gfx_scandoubler = 0;
+	p->start_gui = 1;
 #ifdef DEBUGGER
-    p->start_debugger = 0;
+	p->start_debugger = 0;
 #endif
 
-    p->all_lines = 0;
+	p->all_lines = 0;
     /* Note to porters: please don't change any of these options! UAE is supposed
      * to behave identically on all platforms if possible.
      * (TW says: maybe it is time to update default config..) */
-    p->illegal_mem = 0;
+	p->illegal_mem = 0;
     p->no_xhair = 0;
-    p->use_serial = 0;
-    p->serial_demand = 0;
-    p->serial_hwctsrts = 1;
-    p->parallel_demand = 0;
-    p->parallel_matrix_emulation = 0;
-    p->parallel_postscript_emulation = 0;
-    p->parallel_postscript_detection = 0;
-    p->parallel_autoflush_time = 5;
-    p->ghostscript_parameters[0] = 0;
-    p->uae_hide = 0;
+	p->use_serial = 0;
+	p->serial_demand = 0;
+	p->serial_hwctsrts = 1;
+	p->parallel_demand = 0;
+	p->parallel_matrix_emulation = 0;
+	p->parallel_postscript_emulation = 0;
+	p->parallel_postscript_detection = 0;
+	p->parallel_autoflush_time = 5;
+	p->ghostscript_parameters[0] = 0;
+	p->uae_hide = 0;
 
 	memset (&p->jports[0], 0, sizeof (struct jport));
 	memset (&p->jports[1], 0, sizeof (struct jport));
@@ -3157,19 +3166,19 @@ void default_prefs (struct uae_prefs *p, int type)
 	p->jports[1].id = JSEM_KBDLAYOUT;
 	p->jports[2].id = -1;
 	p->jports[3].id = -1;
-    p->keyboard_lang = KBD_LANG_US;
+	p->keyboard_lang = KBD_LANG_US;
 
-    p->produce_sound = 3;
-    p->sound_stereo = SND_STEREO;
-    p->sound_stereo_separation = 7;
-    p->sound_mixed_stereo_delay = 0;
-    p->sound_freq = DEFAULT_SOUND_FREQ;
-    p->sound_maxbsiz = DEFAULT_SOUND_MAXB;
-    p->sound_latency = 100;
-    p->sound_interpol = 1;
-    p->sound_filter = FILTER_SOUND_EMUL;
-    p->sound_filter_type = 0;
-    p->sound_auto = 1;
+	p->produce_sound = 3;
+	p->sound_stereo = SND_STEREO;
+	p->sound_stereo_separation = 7;
+	p->sound_mixed_stereo_delay = 0;
+	p->sound_freq = DEFAULT_SOUND_FREQ;
+	p->sound_maxbsiz = DEFAULT_SOUND_MAXB;
+	p->sound_latency = 100;
+	p->sound_interpol = 1;
+	p->sound_filter = FILTER_SOUND_EMUL;
+	p->sound_filter_type = 0;
+	p->sound_auto = 1;
 
 #ifdef JIT
 # ifdef NATMEM_OFFSET
@@ -3183,57 +3192,54 @@ void default_prefs (struct uae_prefs *p, int type)
     p->comptrustlong = 1;
     p->comptrustnaddr= 1;
 # endif
-    p->compnf = 1;
-    p->comp_hardflush = 0;
-    p->comp_constjump = 1;
-    p->comp_oldsegv = 0;
-    p->compfpu = 1;
-    p->fpu_strict = 0;
-    p->cachesize = 0;
-    p->avoid_cmov = 0;
-    p->avoid_dga = 0;
-    p->avoid_vid = 0;
-    p->comp_midopt = 0;
-    p->comp_lowopt = 0;
-    p->override_dga_address = 0;
+	p->compnf = 1;
+	p->comp_hardflush = 0;
+	p->comp_constjump = 1;
+	p->comp_oldsegv = 0;
+	p->compfpu = 1;
+	p->fpu_strict = 0;
+	p->cachesize = 0;
+	p->avoid_cmov = 0;
+	p->comp_midopt = 0;
+	p->comp_lowopt = 0;
 
-    for (i = 0;i < 10; i++)
+	for (i = 0;i < 10; i++)
 		p->optcount[i] = -1;
-    p->optcount[0] = 4;	/* How often a block has to be executed before it is translated */
-    p->optcount[1] = 0;	/* How often to use the naive translation */
-    p->optcount[2] = 0;
-    p->optcount[3] = 0;
-    p->optcount[4] = 0;
-    p->optcount[5] = 0;
+	p->optcount[0] = 4;	/* How often a block has to be executed before it is translated */
+	p->optcount[1] = 0;	/* How often to use the naive translation */
+	p->optcount[2] = 0;
+	p->optcount[3] = 0;
+	p->optcount[4] = 0;
+	p->optcount[5] = 0;
 #endif
-    p->gfx_framerate = 1;
-    p->gfx_autoframerate = 50;
-    p->gfx_size_fs.width = 800;
-    p->gfx_size_fs.height = 600;
-    p->gfx_size_win.width = 720;
-    p->gfx_size_win.height = 568;
+	p->gfx_framerate = 1;
+	p->gfx_autoframerate = 50;
+	p->gfx_size_fs.width = 800;
+	p->gfx_size_fs.height = 600;
+	p->gfx_size_win.width = 720;
+	p->gfx_size_win.height = 568;
     p->gfx_width_fs = 800;
     p->gfx_height_fs = 600;
     p->gfx_width_win = 720;
     p->gfx_height_win = 568;
-    for (i = 0; i < 4; i++) {
+	for (i = 0; i < 4; i++) {
 		p->gfx_size_fs_xtra[i].width = 0;
 		p->gfx_size_fs_xtra[i].height = 0;
 		p->gfx_size_win_xtra[i].width = 0;
 		p->gfx_size_win_xtra[i].height = 0;
-    }
-    p->gfx_resolution = 1;
-    p->gfx_linedbl = 1;
-    p->gfx_afullscreen = 0;
-    p->gfx_pfullscreen = 0;
-    p->gfx_xcenter = 0; p->gfx_ycenter = 0;
-    p->gfx_xcenter_pos = -1; p->gfx_ycenter_pos = -1;
-    p->gfx_xcenter_size = -1; p->gfx_ycenter_size = -1;
-    p->gfx_max_horizontal = RES_HIRES;
-    p->gfx_max_vertical = 1;
-    p->color_mode = 2;
-    p->gfx_blackerthanblack = 0;
-    p->gfx_backbuffers = 2;
+	}
+	p->gfx_resolution = 1;
+	p->gfx_linedbl = 1;
+	p->gfx_afullscreen = 0;
+	p->gfx_pfullscreen = 0;
+	p->gfx_xcenter = 0; p->gfx_ycenter = 0;
+	p->gfx_xcenter_pos = -1; p->gfx_ycenter_pos = -1;
+	p->gfx_xcenter_size = -1; p->gfx_ycenter_size = -1;
+	p->gfx_max_horizontal = RES_HIRES;
+	p->gfx_max_vertical = 1;
+	p->color_mode = 2;
+	p->gfx_blackerthanblack = 0;
+	p->gfx_backbuffers = 2;
 
 #ifdef USE_X11_GFX
 	p->x11_use_low_bandwidth = 0;
@@ -3251,58 +3257,59 @@ void default_prefs (struct uae_prefs *p, int type)
     gfx_default_options (p);
     audio_default_options (p);
 
-    p->immediate_blits = 0;
-    p->collision_level = 2;
-    p->leds_on_screen = 0;
-    p->keyboard_leds_in_use = 0;
-    p->keyboard_leds[0] = p->keyboard_leds[1] = p->keyboard_leds[2] = 0;
-    p->scsi = 0;
-    p->uaeserial = 0;
-    p->cpu_idle = 0;
-    p->turbo_emulation = 0;
-    p->headless = 0;
-    p->catweasel = 0;
-    p->tod_hack = 0;
-    p->maprom = 0;
-    p->filesys_no_uaefsdb = 0;
-    p->filesys_custom_uaefsdb = 1;
-    p->picasso96_nocustom = 1;
-    p->cart_internal = 1;
-    p->sana2 = 0;
+	p->immediate_blits = 0;
+	p->collision_level = 2;
+	p->leds_on_screen = 0;
+	p->keyboard_leds_in_use = 0;
+	p->keyboard_leds[0] = p->keyboard_leds[1] = p->keyboard_leds[2] = 0;
+	p->scsi = 0;
+	p->uaeserial = 0;
+	p->cpu_idle = 0;
+	p->turbo_emulation = 0;
+	p->headless = 0;
+	p->catweasel = 0;
+	p->tod_hack = 0;
+	p->maprom = 0;
+	p->filesys_no_uaefsdb = 0;
+	p->filesys_custom_uaefsdb = 1;
+	p->picasso96_nocustom = 1;
+	p->cart_internal = 1;
+	p->sana2 = 0;
 
-    p->cs_compatible = 1;
-    p->cs_rtc = 2;
-    p->cs_df0idhw = 1;
-    p->cs_a1000ram = 0;
-    p->cs_fatgaryrev = -1;
-    p->cs_ramseyrev = -1;
-    p->cs_agnusrev = -1;
-    p->cs_deniserev = -1;
-    p->cs_mbdmac = 0;
-    p->cs_a2091 = 0;
-    p->cs_a4091 = 0;
-    p->cs_cd32c2p = p->cs_cd32cd = p->cs_cd32nvram = 0;
-    p->cs_cdtvcd = p->cs_cdtvram = p->cs_cdtvcard = 0;
-    p->cs_pcmcia = 0;
-    p->cs_ksmirror_e0 = 1;
-    p->cs_ksmirror_a8 = 0;
-    p->cs_ciaoverlay = 1;
-    p->cs_ciaatod = 0;
-    p->cs_df0idhw = 1;
-    p->cs_slowmemisfast = 0;
-    p->cs_resetwarning = 1;
+	p->cs_compatible = 1;
+	p->cs_rtc = 2;
+	p->cs_df0idhw = 1;
+	p->cs_a1000ram = 0;
+	p->cs_fatgaryrev = -1;
+	p->cs_ramseyrev = -1;
+	p->cs_agnusrev = -1;
+	p->cs_deniserev = -1;
+	p->cs_mbdmac = 0;
+	p->cs_a2091 = 0;
+	p->cs_a4091 = 0;
+	p->cs_cd32c2p = p->cs_cd32cd = p->cs_cd32nvram = false;
+	p->cs_cdtvcd = p->cs_cdtvram = false;
+	p->cs_cdtvcard = 0;
+	p->cs_pcmcia = 0;
+	p->cs_ksmirror_e0 = 1;
+	p->cs_ksmirror_a8 = 0;
+	p->cs_ciaoverlay = 1;
+	p->cs_ciaatod = 0;
+	p->cs_df0idhw = 1;
+	p->cs_slowmemisfast = 0;
+	p->cs_resetwarning = 1;
 
 #ifdef GFXFILTER
-    p->gfx_filter = 0;
-    p->gfx_filtershader[0] = 0;
+	p->gfx_filter = 0;
+	p->gfx_filtershader[0] = 0;
 	p->gfx_filtermask[0] = 0;
-    p->gfx_filter_horiz_zoom_mult = 0;
-    p->gfx_filter_vert_zoom_mult = 0;
+	p->gfx_filter_horiz_zoom_mult = 0;
+	p->gfx_filter_vert_zoom_mult = 0;
 	p->gfx_filter_bilinear = 0;
-    p->gfx_filter_filtermode = 0;
-    p->gfx_filter_scanlineratio = (1 << 4) | 1;
-    p->gfx_filter_keep_aspect = 0;
-    p->gfx_filter_autoscale = 0;
+	p->gfx_filter_filtermode = 0;
+	p->gfx_filter_scanlineratio = (1 << 4) | 1;
+	p->gfx_filter_keep_aspect = 0;
+	p->gfx_filter_autoscale = 0;
 #endif
 
     p->df[0][0] = '\0';
@@ -3328,62 +3335,62 @@ void default_prefs (struct uae_prefs *p, int type)
 	p->prtname[0] = 0;
 	p->sername[0] = 0;
 
-    p->fpu_model = 0;
-    p->cpu_model = 68000;
+	p->fpu_model = 0;
+	p->cpu_model = 68000;
 	p->cpu_clock_multiplier = 0;
 	p->cpu_frequency = 0;
-    p->mmu_model = 0;
-    p->cpu060_revision = 6;
-    p->fpu_revision = -1;
-    p->m68k_speed = 0;
-    p->cpu_compatible = 1;
-    p->address_space_24 = 1;
-    p->cpu_cycle_exact = 0;
-    p->blitter_cycle_exact = 0;
-    p->chipset_mask = CSMASK_ECS_AGNUS;
-    p->genlock = 0;
-    p->ntscmode = 0;
+	p->mmu_model = 0;
+	p->cpu060_revision = 6;
+	p->fpu_revision = -1;
+	p->m68k_speed = 0;
+	p->cpu_compatible = 1;
+	p->address_space_24 = 1;
+	p->cpu_cycle_exact = 0;
+	p->blitter_cycle_exact = 0;
+	p->chipset_mask = CSMASK_ECS_AGNUS;
+	p->genlock = 0;
+	p->ntscmode = 0;
 
-    p->fastmem_size = 0x00000000;
+	p->fastmem_size = 0x00000000;
 	p->mbresmem_low_size = 0x00000000;
 	p->mbresmem_high_size = 0x00000000;
-    p->z3fastmem_size = 0x00000000;
-    p->z3fastmem2_size = 0x00000000;
-    p->z3fastmem_start = 0x10000000;
-    p->chipmem_size = 0x00080000;
-    p->bogomem_size = 0x00080000;
-    p->gfxmem_size = 0x00000000;
-    p->custom_memory_addrs[0] = 0;
-    p->custom_memory_sizes[0] = 0;
-    p->custom_memory_addrs[1] = 0;
-    p->custom_memory_sizes[1] = 0;
+	p->z3fastmem_size = 0x00000000;
+	p->z3fastmem2_size = 0x00000000;
+	p->z3fastmem_start = 0x10000000;
+	p->chipmem_size = 0x00080000;
+	p->bogomem_size = 0x00080000;
+	p->gfxmem_size = 0x00000000;
+	p->custom_memory_addrs[0] = 0;
+	p->custom_memory_sizes[0] = 0;
+	p->custom_memory_addrs[1] = 0;
+	p->custom_memory_sizes[1] = 0;
 
-    p->nr_floppies = 2;
-    p->dfxtype[0] = DRV_35_DD;
-    p->dfxtype[1] = DRV_35_DD;
-    p->dfxtype[2] = DRV_NONE;
-    p->dfxtype[3] = DRV_NONE;
-    p->floppy_speed = 100;
-    p->floppy_write_length = 0;
+	p->nr_floppies = 2;
+	p->dfxtype[0] = DRV_35_DD;
+	p->dfxtype[1] = DRV_35_DD;
+	p->dfxtype[2] = DRV_NONE;
+	p->dfxtype[3] = DRV_NONE;
+	p->floppy_speed = 100;
+	p->floppy_write_length = 0;
 #ifdef DRIVESOUND
-    p->dfxclickvolume = 33;
+	p->dfxclickvolume = 33;
 #endif
 
 #ifdef SAVESTATE
-    p->statecapturebuffersize = 20 * 1024 * 1024;
-    p->statecapturerate = 5 * 50;
-    p->statecapture = 0;
+	p->statecapturebuffersize = 20 * 1024 * 1024;
+	p->statecapturerate = 5 * 50;
+	p->statecapture = 0;
 #endif
 
 #ifdef UAE_MINI
-    default_prefs_mini (p, 0);
+	default_prefs_mini (p, 0);
 #endif
 
 	p->input_tablet = TABLET_OFF;
 	p->input_magic_mouse = 0;
 	p->input_magic_mouse_cursor = 0;
 
-    inputdevice_default_prefs (p);
+	inputdevice_default_prefs (p);
 }
 
 static void buildin_default_prefs_68020 (struct uae_prefs *p)
@@ -3456,16 +3463,16 @@ static void buildin_default_prefs (struct uae_prefs *p)
 	p->gfxmem_size = 0x00000000;
 
 	p->cs_rtc = 0;
-	p->cs_a1000ram = 0;
+	p->cs_a1000ram = false;
 	p->cs_fatgaryrev = -1;
 	p->cs_ramseyrev = -1;
 	p->cs_agnusrev = -1;
 	p->cs_deniserev = -1;
 	p->cs_mbdmac = 0;
-	p->cs_a2091 = 0;
-	p->cs_a4091 = 0;
-	p->cs_cd32c2p = p->cs_cd32cd = p->cs_cd32nvram = 0;
-	p->cs_cdtvcd = p->cs_cdtvram = p->cs_cdtvcard = 0;
+	p->cs_a2091 = false;
+	p->cs_a4091 = false;
+	p->cs_cd32c2p = p->cs_cd32cd = p->cs_cd32nvram = false;
+	p->cs_cdtvcd = p->cs_cdtvram = p->cs_cdtvcard = false;
 	p->cs_ide = 0;
 	p->cs_pcmcia = 0;
 	p->cs_ksmirror_e0 = 1;

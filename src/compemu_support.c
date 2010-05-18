@@ -20,7 +20,7 @@
 #define NATMEM_OFFSETX (uae_u32)NATMEM_OFFSET
 
 // %%% BRIAN KING WAS HERE %%%
-extern int canbang;
+extern bool canbang;
 #include <sys/mman.h>
 extern void jit_abort(const TCHAR*,...);
 compop_func *compfunctbl[65536];
@@ -175,9 +175,9 @@ STATIC_INLINE blockinfo* get_blockinfo_addr(void* addr)
     blockinfo*  bi=get_blockinfo(cacheline(addr));
 
     while (bi) {
-	if (bi->pc_p==addr)
-	    return bi;
-	bi=bi->next_same_cl;
+		if (bi->pc_p==addr)
+		    return bi;
+		bi=bi->next_same_cl;
     }
     return NULL;
 }
@@ -192,21 +192,21 @@ STATIC_INLINE void remove_from_cl_list(blockinfo* bi)
     uae_u32 cl=cacheline(bi->pc_p);
 
     if (bi->prev_same_cl_p)
-	*(bi->prev_same_cl_p)=bi->next_same_cl;
+		*(bi->prev_same_cl_p)=bi->next_same_cl;
     if (bi->next_same_cl)
-	bi->next_same_cl->prev_same_cl_p=bi->prev_same_cl_p;
+		bi->next_same_cl->prev_same_cl_p=bi->prev_same_cl_p;
     if (cache_tags[cl+1].bi)
-	cache_tags[cl].handler=cache_tags[cl+1].bi->handler_to_use;
+		cache_tags[cl].handler=cache_tags[cl+1].bi->handler_to_use;
     else
-	cache_tags[cl].handler=(cpuop_func*)popall_execute_normal;
+		cache_tags[cl].handler=(cpuop_func*)popall_execute_normal;
 }
 
 STATIC_INLINE void remove_from_list(blockinfo* bi)
 {
     if (bi->prev_p)
-	*(bi->prev_p)=bi->next;
+		*(bi->prev_p)=bi->next;
     if (bi->next)
-	bi->next->prev_p=bi->prev_p;
+		bi->next->prev_p=bi->prev_p;
 }
 
 STATIC_INLINE void remove_from_lists(blockinfo* bi)
@@ -220,7 +220,7 @@ STATIC_INLINE void add_to_cl_list(blockinfo* bi)
     uae_u32 cl=cacheline(bi->pc_p);
 
     if (cache_tags[cl+1].bi)
-	cache_tags[cl+1].bi->prev_same_cl_p=&(bi->next_same_cl);
+		cache_tags[cl+1].bi->prev_same_cl_p=&(bi->next_same_cl);
     bi->next_same_cl=cache_tags[cl+1].bi;
 
     cache_tags[cl+1].bi=bi;
@@ -238,7 +238,7 @@ STATIC_INLINE void raise_in_cl_list(blockinfo* bi)
 STATIC_INLINE void add_to_active(blockinfo* bi)
 {
     if (active)
-	active->prev_p=&(bi->next);
+		active->prev_p=&(bi->next);
     bi->next=active;
 
     active=bi;
@@ -248,7 +248,7 @@ STATIC_INLINE void add_to_active(blockinfo* bi)
 STATIC_INLINE void add_to_dormant(blockinfo* bi)
 {
     if (dormant)
-	dormant->prev_p=&(bi->next);
+		dormant->prev_p=&(bi->next);
     bi->next=dormant;
 
     dormant=bi;
@@ -258,9 +258,9 @@ STATIC_INLINE void add_to_dormant(blockinfo* bi)
 STATIC_INLINE void remove_dep(dependency* d)
 {
     if (d->prev_p)
-	*(d->prev_p)=d->next;
+		*(d->prev_p)=d->next;
     if (d->next)
-	d->next->prev_p=d->prev_p;
+		d->next->prev_p=d->prev_p;
     d->prev_p=NULL;
     d->next=NULL;
 }
@@ -343,16 +343,16 @@ STATIC_INLINE void big_to_small_state(bigstate* b, smallstate* s)
     int count=0;
 
     for (i=0;i<N_REGS;i++) {
-	s->nat[i].validsize=0;
-	s->nat[i].dirtysize=0;
-	if (b->nat[i].nholds) {
-	    int index=b->nat[i].nholds-1;
-	    int r=b->nat[i].holds[index];
-	    s->nat[i].holds=r;
-	    s->nat[i].validsize=b->state[r].validsize;
-	    s->nat[i].dirtysize=b->state[r].dirtysize;
-	    count++;
-	}
+		s->nat[i].validsize=0;
+		s->nat[i].dirtysize=0;
+		if (b->nat[i].nholds) {
+		    int index=b->nat[i].nholds-1;
+		    int r=b->nat[i].holds[index];
+		    s->nat[i].holds=r;
+		    s->nat[i].validsize=b->state[r].validsize;
+		    s->nat[i].dirtysize=b->state[r].dirtysize;
+		    count++;
+		}
     }
 	write_log ("JIT: count=%d\n",count);
     for (i=0;i<N_REGS;i++) {  // FIXME --- don't do dirty yet
@@ -427,12 +427,13 @@ STATIC_INLINE void alloc_blockinfos(void)
 /********************************************************************
  * Preferences handling. This is just a convenient place to put it  *
  ********************************************************************/
-extern int have_done_picasso;
+extern bool have_done_picasso;
 
-int check_prefs_changed_comp (void)
+bool check_prefs_changed_comp (void)
 {
-    int changed = 0;
-    static int cachesize_prev, comptrust_prev, canbang_prev;
+	bool changed = 0;
+	static int cachesize_prev, comptrust_prev;
+	static bool canbang_prev;
 
     if (currprefs.comptrustbyte != changed_prefs.comptrustbyte ||
         currprefs.comptrustword != changed_prefs.comptrustword ||
@@ -2976,12 +2977,12 @@ MENDFUNC(3,mov_l_Rr,(R4 d, R4 s, IMM offset))
 MIDFUNC(3,mov_w_Rr,(R4 d, R2 s, IMM offset))
 {
     if (isconst(d)) {
-	COMPCALL(mov_w_mr)(live.state[d].val+offset,s);
-	return;
+		COMPCALL(mov_w_mr)(live.state[d].val+offset,s);
+		return;
     }
     if (isconst(s)) {
-	COMPCALL(mov_w_Ri)(d,(uae_u16)live.state[s].val,offset);
-	return;
+		COMPCALL(mov_w_Ri)(d,(uae_u16)live.state[s].val,offset);
+		return;
     }
 
     CLOBBER_MOV;
@@ -2996,12 +2997,12 @@ MENDFUNC(3,mov_w_Rr,(R4 d, R2 s, IMM offset))
 MIDFUNC(3,mov_b_Rr,(R4 d, R1 s, IMM offset))
 {
     if (isconst(d)) {
-	COMPCALL(mov_b_mr)(live.state[d].val+offset,s);
-	return;
+		COMPCALL(mov_b_mr)(live.state[d].val+offset,s);
+		return;
     }
     if (isconst(s)) {
-	COMPCALL(mov_b_Ri)(d,(uae_u8)live.state[s].val,offset);
-	return;
+		COMPCALL(mov_b_Ri)(d,(uae_u8)live.state[s].val,offset);
+		return;
     }
 
     CLOBBER_MOV;
@@ -3016,13 +3017,13 @@ MENDFUNC(3,mov_b_Rr,(R4 d, R1 s, IMM offset))
 MIDFUNC(3,lea_l_brr,(W4 d, R4 s, IMM offset))
 {
     if (isconst(s)) {
-	COMPCALL(mov_l_ri)(d,live.state[s].val+offset);
-	return;
+		COMPCALL(mov_l_ri)(d,live.state[s].val+offset);
+		return;
     }
 #if USE_OFFSET
     if (d==s) {
-	add_offset(d,offset);
-	return;
+		add_offset(d,offset);
+		return;
     }
 #endif
     CLOBBER_LEA;
@@ -3053,8 +3054,8 @@ MIDFUNC(3,mov_l_bRr,(R4 d, R4 s, IMM offset))
 {
     int dreg=d;
     if (isconst(d)) {
-	COMPCALL(mov_l_mr)(live.state[d].val+offset,s);
-	return;
+		COMPCALL(mov_l_mr)(live.state[d].val+offset,s);
+		return;
     }
 
     CLOBBER_MOV;
@@ -3074,8 +3075,8 @@ MIDFUNC(3,mov_w_bRr,(R4 d, R2 s, IMM offset))
     int dreg=d;
 
     if (isconst(d)) {
-	COMPCALL(mov_w_mr)(live.state[d].val+offset,s);
-	return;
+		COMPCALL(mov_w_mr)(live.state[d].val+offset,s);
+		return;
     }
 
     CLOBBER_MOV;
@@ -3092,8 +3093,8 @@ MIDFUNC(3,mov_b_bRr,(R4 d, R1 s, IMM offset))
 {
     int dreg=d;
     if (isconst(d)) {
-	COMPCALL(mov_b_mr)(live.state[d].val+offset,s);
-	return;
+		COMPCALL(mov_b_mr)(live.state[d].val+offset,s);
+		return;
     }
 
     CLOBBER_MOV;
@@ -3111,9 +3112,9 @@ MIDFUNC(1,gen_bswap_32,(RW4 r))
     int reg=r;
 
     if (isconst(r)) {
-	uae_u32 oldv=live.state[r].val;
-	live.state[r].val=reverse32(oldv);
-	return;
+		uae_u32 oldv=live.state[r].val;
+		live.state[r].val=reverse32(oldv);
+		return;
     }
 
     CLOBBER_SW32;
@@ -3126,10 +3127,10 @@ MENDFUNC(1,gen_bswap_32,(RW4 r))
 MIDFUNC(1,gen_bswap_16,(RW2 r))
 {
     if (isconst(r)) {
-	uae_u32 oldv=live.state[r].val;
-	live.state[r].val=((oldv>>8)&0xff) | ((oldv<<8)&0xff00) |
-	    (oldv&0xffff0000);
-	return;
+		uae_u32 oldv=live.state[r].val;
+		live.state[r].val=((oldv>>8)&0xff) | ((oldv<<8)&0xff00) |
+		    (oldv&0xffff0000);
+		return;
     }
 
     CLOBBER_SW16;
@@ -3147,11 +3148,11 @@ MIDFUNC(2,mov_l_rr,(W4 d, R4 s))
     int olds;
 
     if (d==s) { /* How pointless! */
-	return;
+		return;
     }
     if (isconst(s)) {
-	COMPCALL(mov_l_ri)(d,live.state[s].val);
-	return;
+		COMPCALL(mov_l_ri)(d,live.state[s].val);
+		return;
     }
 #if USE_ALIAS
     olds=s;
@@ -3186,8 +3187,8 @@ MENDFUNC(2,mov_l_rr,(W4 d, R4 s))
 MIDFUNC(2,mov_l_mr,(IMM d, R4 s))
 {
     if (isconst(s)) {
-	COMPCALL(mov_l_mi)(d,live.state[s].val);
-	return;
+		COMPCALL(mov_l_mi)(d,live.state[s].val);
+		return;
     }
     CLOBBER_MOV;
     s=readreg(s,4);
@@ -3201,8 +3202,8 @@ MENDFUNC(2,mov_l_mr,(IMM d, R4 s))
 MIDFUNC(2,mov_w_mr,(IMM d, R2 s))
 {
     if (isconst(s)) {
-	COMPCALL(mov_w_mi)(d,(uae_u16)live.state[s].val);
-	return;
+		COMPCALL(mov_w_mi)(d,(uae_u16)live.state[s].val);
+		return;
     }
     CLOBBER_MOV;
     s=readreg(s,2);
@@ -3225,8 +3226,8 @@ MENDFUNC(2,mov_w_rm,(W2 d, IMM s))
 MIDFUNC(2,mov_b_mr,(IMM d, R1 s))
 {
     if (isconst(s)) {
-	COMPCALL(mov_b_mi)(d,(uae_u8)live.state[s].val);
-	return;
+		COMPCALL(mov_b_mi)(d,(uae_u8)live.state[s].val);
+		return;
     }
 
     CLOBBER_MOV;
