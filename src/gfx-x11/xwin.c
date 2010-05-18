@@ -1652,7 +1652,7 @@ static const char *get_kb_friendlyname (unsigned int kb)
 
 static const char *get_kb_uniquename (unsigned int kb)
 {
-    return " ";
+    return "DEFKEYB1";
 }
 
 static unsigned int get_kb_widget_num (unsigned int kb)

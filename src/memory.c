@@ -2657,7 +2657,7 @@ void memory_cleanup (void)
 		mapped_free (a3000lmemory);
 	if (a3000hmemory)
 		mapped_free (a3000hmemory);
-	if (bogomemory)
+	if (bogomemory_allocated)
 		mapped_free (bogomemory);
     if (kickmemory)
 		mapped_free (kickmemory);
