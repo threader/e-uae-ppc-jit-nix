@@ -227,8 +227,6 @@ static void *trap_thread (void *arg)
 {
 	TrapContext *context = (TrapContext *) arg;
 
-    uae_set_thread_priority (2);
-
     /* Wait until main thread is ready to switch to the
      * this trap context. */
     uae_sem_wait (&context->switch_to_trap_sem);

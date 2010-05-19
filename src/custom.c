@@ -3036,7 +3036,7 @@ STATIC_INLINE uae_u16 VPOSR (void)
 		vp |= lol ? 0x80 : 0;
 #if 0
 	if (M68K_GETPC < 0x00f00000 || M68K_GETPC >= 0x10000000)
-		write_log (L"VPOSR %04x at %08x\n", vp, M68K_GETPC);
+		write_log ("VPOSR %04x at %08x\n", vp, M68K_GETPC);
 #endif
 	if (currprefs.cpu_model >= 68020)
 		hsyncdelay ();
@@ -5782,7 +5782,7 @@ void customreset (int hardreset)
 		CLXCON (clxcon);
 		CLXCON2 (clxcon2);
 		calcdiw ();
-		write_log (L"CPU=%d Chipset=%s %s\n",
+		write_log ("CPU=%d Chipset=%s %s\n",
 			currprefs.cpu_model,
 			(currprefs.chipset_mask & CSMASK_AGA) ? "AGA" :
 			(currprefs.chipset_mask & CSMASK_ECS_AGNUS | CSMASK_ECS_DENISE) == (CSMASK_ECS_AGNUS | CSMASK_ECS_DENISE) ? "Full ECS" :

@@ -4254,9 +4254,9 @@ void write_dcache030 (uaecptr addr, uae_u32 val, int size)
 #if 0
 	uaecptr a = 0x1db0c;
 	if (addr - (1 << size) + 1 <= a && addr + (1 << size) >= a) {
-		write_log (L"%08x %d %d %08x %08x %d\n", addr, aligned, size, val, tag1, lws1);
+		write_log ("%08x %d %d %08x %08x %d\n", addr, aligned, size, val, tag1, lws1);
 		if (aligned == 2)
-			write_log (L"*\n");
+			write_log ("*\n");
 	}
 #endif
 
@@ -4330,7 +4330,7 @@ uae_u32 read_dcache030 (uaecptr addr, int size)
 	} else {
 		v1 = c1->data[lws1];
 		if (get_long (addr) != v1) {
-			write_log (L"data cache mismatch %d %d %08x %08x != %08x %08x %d PC=%08x\n",
+			write_log ("data cache mismatch %d %d %08x %08x != %08x %08x %d PC=%08x\n",
 				size, aligned, addr, get_long (addr), v1, tag1, lws1, M68K_GETPC);
 			v1 = get_long (addr);
 		}
@@ -4354,7 +4354,7 @@ uae_u32 read_dcache030 (uaecptr addr, int size)
 	} else {
 		v2 = c2->data[lws2];
 		if (get_long (addr) != v2) {
-			write_log (L"data cache mismatch %d %d %08x %08x != %08x %08x %d PC=%08x\n",
+			write_log ("data cache mismatch %d %d %08x %08x != %08x %08x %d PC=%08x\n",
 				size, aligned, addr, get_long (addr), v2, tag2, lws2, M68K_GETPC);
 			v2 = get_long (addr);
 		}
@@ -4368,7 +4368,7 @@ uae_u32 read_dcache030 (uaecptr addr, int size)
 	else if (size == 2 && aligned == 3)
 		return (v1 << 24) | (v2 >> 8);
 
-	write_log (L"dcache030 weirdness!?\n");
+	write_log ("dcache030 weirdness!?\n");
 	return 0;
 }
 

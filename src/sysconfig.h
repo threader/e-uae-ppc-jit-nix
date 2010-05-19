@@ -293,7 +293,7 @@
 #define PACKAGE_NAME "PUAE"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "PUAE 2.1.0"
+#define PACKAGE_STRING "PUAE 2.2.0"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "puae"
@@ -302,7 +302,7 @@
 #define PACKAGE_URL ""
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "2.1.0"
+#define PACKAGE_VERSION "2.2.0"
 
 /* Define to the necessary symbol if this constant uses a non-standard name on
    your system. */
@@ -395,7 +395,7 @@
 
 
 /* Version number of package */
-#define VERSION "2.1.0"
+#define VERSION "2.2.0"
 
 /* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
    significant byte first (like Motorola and SPARC, unlike Intel). */

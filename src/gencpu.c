@@ -3809,7 +3809,6 @@ int main (int argc, char **argv)
      * I don't dare to touch the 68k version.  */
 
     headerfile = fopen ("cputbl.h", "wb");
-
 	stblfile = fopen ("cpustbl.c", "wb");
     generate_includes (stblfile);
 

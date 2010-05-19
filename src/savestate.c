@@ -358,7 +358,7 @@ static void restore_header (uae_u8 *src)
     emuversion = restore_string ();
     description = restore_string ();
 	write_log ("Saved with: '%s %s', description: '%s'\n",
-	emuname, emuversion, description);
+		emuname, emuversion, description);
 	xfree (description);
 	xfree (emuversion);
 	xfree (emuname);

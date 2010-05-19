@@ -19,7 +19,7 @@
 static struct uae_xcmd *first = NULL;
 static struct uae_xcmd *last  = NULL;
 static TCHAR running = 0;
-static uae_u32 uaeexe_server (TrapContext *context) REGPARAM;
+static uae_u32 REGPARAM3 uaeexe_server (TrapContext *context) REGPARAM;
 
 /*
  * Install the server

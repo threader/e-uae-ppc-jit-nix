@@ -57,7 +57,7 @@ static uae_u32 emulib_Reset (void)
 static uae_u32 emulib_EnableSound (uae_u32 val)
 {
     if (!sound_available || currprefs.produce_sound == 2)
-	return 0;
+		return 0;
 
     currprefs.produce_sound = val;
     return 1;
@@ -79,12 +79,12 @@ static uae_u32 emulib_EnableJoystick (uae_u32 val)
 static uae_u32 emulib_SetFrameRate (uae_u32 val)
 {
     if (val == 0)
-	return 0;
+		return 0;
     else if (val > 20)
-	return 0;
+		return 0;
     else {
-	currprefs.gfx_framerate = val;
-	return 1;
+		currprefs.gfx_framerate = val;
+		return 1;
     }
 }
 
@@ -191,7 +191,7 @@ static uae_u32 emulib_InsertDisk (uaecptr name, uae_u32 drive)
 		return 0;
 
     while ((real_name[i] = get_byte (name + i)) != 0 && i++ != 254)
-	;
+		;
 
     if (i == 255)
 		return 0; /* ENAMETOOLONG */
@@ -371,32 +371,32 @@ static uae_u32 REGPARAM2 uaelib_demux2 (TrapContext *context)
 
     switch (ARG0)
 	{
-     case 0: return emulib_GetVersion ();
-     case 1: return emulib_GetUaeConfig (ARG1);
-     case 2: return emulib_SetUaeConfig (ARG1);
-     case 3: return emulib_HardReset ();
-     case 4: return emulib_Reset ();
-     case 5: return emulib_InsertDisk (ARG1, ARG2);
-     case 6: return emulib_EnableSound (ARG1);
-     case 7: return emulib_EnableJoystick (ARG1);
-     case 8: return emulib_SetFrameRate (ARG1);
+	case 0: return emulib_GetVersion ();
+	case 1: return emulib_GetUaeConfig (ARG1);
+	case 2: return emulib_SetUaeConfig (ARG1);
+	case 3: return emulib_HardReset ();
+	case 4: return emulib_Reset ();
+	case 5: return emulib_InsertDisk (ARG1, ARG2);
+	case 6: return emulib_EnableSound (ARG1);
+	case 7: return emulib_EnableJoystick (ARG1);
+	case 8: return emulib_SetFrameRate (ARG1);
 	case 9: return emulib_ChgCMemSize (ARG1);
 	case 10: return emulib_ChgSMemSize (ARG1);
 	case 11: return emulib_ChgFMemSize (ARG1);
-     case 12: return emulib_ChangeLanguage (ARG1);
-	/* The next call brings bad luck */
-     case 13: return emulib_ExitEmu ();
-     case 14: return emulib_GetDisk (ARG1, ARG2);
-     case 15: return emulib_Debug ();
+	case 12: return emulib_ChangeLanguage (ARG1);
+		/* The next call brings bad luck */
+	case 13: return emulib_ExitEmu ();
+	case 14: return emulib_GetDisk (ARG1, ARG2);
+	case 15: return emulib_Debug ();
 
-     case 68: return emulib_Minimize ();
+	case 68: return emulib_Minimize ();
 	case 69: return emulib_ExecuteNativeCode ();
 
 	case 70: return 0; /* RESERVED. Something uses this.. */
 
-     case 80: return currprefs.maprom ? currprefs.maprom : 0xffffffff;
-     case 81: return cfgfile_uaelib (ARG1, ARG2, ARG3, ARG4);
-     case 82: return cfgfile_uaelib_modify (ARG1, ARG2, ARG3, ARG4, ARG5);
+	case 80: return currprefs.maprom ? currprefs.maprom : 0xffffffff;
+	case 81: return cfgfile_uaelib (ARG1, ARG2, ARG3, ARG4);
+	case 82: return cfgfile_uaelib_modify (ARG1, ARG2, ARG3, ARG4, ARG5);
 	case 83: currprefs.mmkeyboard = ARG1 ? 1 : 0; return currprefs.mmkeyboard;
 #ifdef DEBUGGER
 	case 84: return mmu_init (ARG1, ARG2, ARG3);

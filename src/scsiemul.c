@@ -207,33 +207,33 @@ static uae_u32 REGPARAM2 dev_open_2 (TrapContext *context, int type)
     if (!dev)
 		return openfail (ioreq, 32); /* badunitnum */
     if (!dev->opencnt) {
-	for (i = 0; i < MAX_OPEN_DEVICES; i++) {
-	    pdev = &pdevst[i];
-	    if (pdev->inuse == 0) break;
-	}
+		for (i = 0; i < MAX_OPEN_DEVICES; i++) {
+		    pdev = &pdevst[i];
+		    if (pdev->inuse == 0) break;
+		}
 		if (type == UAEDEV_SCSI_ID && sys_command_open (dev->allow_scsi ? DF_SCSI : DF_IOCTL, dev->unitnum)) {
 			setpdev (pdev, dev);
-	}
-	if (type == UAEDEV_DISK_ID && sys_command_open (DF_IOCTL, dev->unitnum)) {
-	    pdev->ioctl = 1;
-	    pdev->mode = DF_IOCTL;
-	}
-	if (!pdev->scsi && !pdev->ioctl)
-			return openfail (ioreq, IOERR_OPENFAIL);
-	pdev->type = type;
-	pdev->unit = unit;
-	pdev->flags = flags;
-	pdev->inuse = 1;
-	put_long (ioreq + 24, pdev - pdevst);
-	start_thread (dev);
+		}
+		if (type == UAEDEV_DISK_ID && sys_command_open (DF_IOCTL, dev->unitnum)) {
+		    pdev->ioctl = 1;
+		    pdev->mode = DF_IOCTL;
+		}
+		if (!pdev->scsi && !pdev->ioctl)
+				return openfail (ioreq, IOERR_OPENFAIL);
+		pdev->type = type;
+		pdev->unit = unit;
+		pdev->flags = flags;
+		pdev->inuse = 1;
+		put_long (ioreq + 24, pdev - pdevst);
+		start_thread (dev);
     } else {
-	for (i = 0; i < MAX_OPEN_DEVICES; i++) {
-	    pdev = &pdevst[i];
+		for (i = 0; i < MAX_OPEN_DEVICES; i++) {
+		    pdev = &pdevst[i];
 			if (pdev->inuse && pdev->unit == unit) break;
-	}
-	if (i == MAX_OPEN_DEVICES)
+		}
+		if (i == MAX_OPEN_DEVICES)
 			return openfail (ioreq, IOERR_OPENFAIL);
-	put_long (ioreq + 24, pdev - pdevst);
+		put_long (ioreq + 24, pdev - pdevst);
     }
     dev->opencnt++;
 
@@ -265,8 +265,8 @@ static int is_async_request (struct devstruct *dev, uaecptr request)
 {
     int i = 0;
     while (i < MAX_ASYNC_REQUESTS) {
-	if (dev->d_request[i] == request) return 1;
-	i++;
+		if (dev->d_request[i] == request) return 1;
+		i++;
     }
     return 0;
 }
@@ -559,7 +559,7 @@ static int dev_do_io (struct devstruct *dev, uaecptr request)
 		if (!dev->di.media_inserted)
 			goto no_media;
 		if (dev->di.write_protected || dev->drivetype == INQ_ROMD) {
-	io_error = 28; /* writeprotect */
+			io_error = 28; /* writeprotect */
 		} else if ((io_offset & bmask) || bmask == 0 || io_data == 0) {
 			goto bad_command;
 		} else if ((io_length & bmask) || io_length == 0) {

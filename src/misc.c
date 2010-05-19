@@ -836,3 +836,4 @@ int input_get_default_joystick_analog (struct uae_input_device *uid, int i, int 
         return 0;
 }
 
+//

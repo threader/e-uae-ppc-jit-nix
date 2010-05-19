@@ -123,12 +123,12 @@ static int mousegrab;
 static int mousehack;
 
 static int is_hwsurface;
-
 static int have_rawkeys;
-
 static int refresh_necessary;
-
 static int last_state = -1;
+
+int alt_pressed;
+unsigned int mouse_capture;
 
 /*
  * Set window title with some useful status info.
@@ -673,7 +673,7 @@ STATIC_INLINE void render_gl_buffer (const struct gl_buffer_t *buffer, int first
 
     if (currprefs.leds_on_screen) bottomledspace=14; //reserve some space for drawing leds
 
-    if (currprefs.gfx_lores_mode) {						
+    if (currprefs.gfx_lores_mode) {
 		amiga_real_w = 362;
 		gfx_gl_x_offset = (float) currprefs.gfx_gl_x_offset;
     } else {
@@ -682,21 +682,21 @@ STATIC_INLINE void render_gl_buffer (const struct gl_buffer_t *buffer, int first
     }
     if (currprefs.gfx_linedbl) {
 		amiga_real_h = 568;
-		gfx_gl_y_offset = (float) currprefs.gfx_gl_y_offset * 2; 
-    } else {  
+		gfx_gl_y_offset = (float) currprefs.gfx_gl_y_offset * 2;
+    } else {
 		amiga_real_h = 284;
-		gfx_gl_y_offset = (float) currprefs.gfx_gl_y_offset; 
+		gfx_gl_y_offset = (float) currprefs.gfx_gl_y_offset;
     }
-    
+
     if ((current_width >= amiga_real_w ) &&  (current_height >= amiga_real_h )  && (!screen_is_picasso)  ) {
         gfx_gl_x_panscan = currprefs.gfx_gl_panscan * 1.33f;
 		gfx_gl_y_panscan = currprefs.gfx_gl_panscan;
-	
+
 		right_crop	= (current_width - amiga_real_w) + gfx_gl_x_panscan ;
 		left_crop	= gfx_gl_x_panscan;
 		bottom_crop	= (current_height - amiga_real_h) + gfx_gl_y_panscan;
 		top_crop	= gfx_gl_y_panscan;
-	
+
 		bottom_crop			= bottom_crop - bottomledspace ;
 		bottom_crop_global	= (int) (bottom_crop - gfx_gl_y_panscan);
 		right_crop_global	= (int) (right_crop - gfx_gl_x_panscan);
@@ -708,7 +708,7 @@ STATIC_INLINE void render_gl_buffer (const struct gl_buffer_t *buffer, int first
 		gfx_gl_x_offset = 0;
 		gfx_gl_y_offset = 0;
     }
-    
+
     if (have_texture_rectangles) {
 		tx0 = 			      left_crop  - gfx_gl_x_offset;
 		tx1 = (float) buffer->width - right_crop - gfx_gl_x_offset;
@@ -1330,6 +1330,23 @@ void handle_events (void)
 			int keycode;
 			int ievent;
 
+			// Hack -- Alt + Tab
+/*
+			if (rEvent.key.keysym.sym == SDLK_LALT) alt_pressed = rEvent.key.type;
+			if (rEvent.key.keysym.sym == SDLK_RALT) alt_pressed = rEvent.key.type;
+			if ((rEvent.key.keysym.sym == SDLK_TAB) && (alt_pressed == SDL_KEYDOWN)) {
+				alt_pressed = SDL_KEYUP;
+
+				if (mouse_capture) {
+			                SDL_WM_GrabInput(SDL_GRAB_ON);
+			                SDL_ShowCursor(SDL_DISABLE);
+			        } else {
+			                SDL_WM_GrabInput(SDL_GRAB_OFF);
+			                SDL_ShowCursor(SDL_ENABLE);
+			        }
+				break;
+			}
+*/
 			if (currprefs.map_raw_keys) {
 			    keycode = rEvent.key.keysym.scancode;
 			    // Hack - OS4 keyup events have bit 7 set.
