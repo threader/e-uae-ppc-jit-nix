@@ -2684,7 +2684,6 @@ int parse_cmdline_option (struct uae_prefs *p, char c, char *arg)
     case 'W': parse_hardfile_spec (arg); break;
 	case 'S': parse_sound_spec (p, arg); break;
     case 'R': p->gfx_framerate = atoi (arg); break;
-    case 'x': p->no_xhair = 1; break;
 	case 'i': p->illegal_mem = 1; break;
 	case 'J': parse_joy_spec (p, arg); break;
 
@@ -3182,7 +3181,6 @@ void default_prefs (struct uae_prefs *p, int type)
      * to behave identically on all platforms if possible.
      * (TW says: maybe it is time to update default config..) */
 	p->illegal_mem = 0;
-    p->no_xhair = 0;
 	p->use_serial = 0;
 	p->serial_demand = 0;
 	p->serial_hwctsrts = 1;

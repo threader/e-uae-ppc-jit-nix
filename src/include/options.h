@@ -27,6 +27,7 @@ struct strlist {
 #define MAX_INPUT_SUB_EVENT 4
 #define MAX_INPUT_SIMULTANEOUS_KEYS 4
 
+// this better be here than in sound.h
 #define FILTER_SOUND_OFF 0
 #define FILTER_SOUND_EMUL 1
 #define FILTER_SOUND_ON 2
@@ -55,6 +56,8 @@ struct jport {
 };
 #define JPORT_NONE -1
 #define JPORT_CUSTOM -2
+#define JPORT_AF_NORMAL 1
+#define JPORT_AF_TOGGLE 2
 
 #define MAX_SPARE_DRIVES 20
 #define MAX_CUSTOM_MEMORY_ADDRS 2
@@ -108,7 +111,6 @@ struct uae_prefs {
 	TCHAR config_host_path[MAX_DPATH];
 
 	bool illegal_mem;
-	int no_xhair;
 	bool use_serial;
 	bool serial_demand;
 	bool serial_hwctsrts;
@@ -290,7 +292,7 @@ struct uae_prefs {
 	TCHAR a2065name[MAX_DPATH];
 	TCHAR cdimagefile[MAX_DPATH];
 #ifndef WIN32
-    char scsi_device[256];
+	char scsi_device[256];
 #endif
 
 	TCHAR path_floppy[256];
