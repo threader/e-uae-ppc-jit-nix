@@ -1,7 +1,7 @@
 Keyboard emulation
 ==================
 
-E-UAE emulates an Amiga keyboard layout by a straightforward mapping - where
+PUAE emulates an Amiga keyboard layout by a straightforward mapping - where
 possible - of host keys to Amiga keys. In general, the alphanumeric keys,
 function keys, numbers, punctuation, cursor keys, numeric keypad, etc.
 should work as expected (that is, the symbol on the key cap should be
@@ -23,14 +23,14 @@ keyboard, Amiga keys on an Amiga keyboard, etc. Note that most Mac keyboards
 don't differentiate between left and right Option keys, and both will
 produce a Left Amiga.
 
-Currently, E-UAE's keyboard mapping is not user-configurable. This will be
+Currently, PUAE's keyboard mapping is not user-configurable. This will be
 addressed in a future release.
 
 
 International keyboards
 =======================
 
-If you are using E-UAE built with the X11 or SDL graphics drivers then you
+If you are using PUAE built with the X11 or SDL graphics drivers then you
 may set the kbd_lang= option to specify your keyboard layout (you also need
 to pick an appropriate keyboard driver in AmigaOS).
 
@@ -51,7 +51,7 @@ Support for some layouts is currently poor - for example, numeric and
 punctuation keys are interchanged on the French layout - and SDL poorly
 supports international keys.
 
-A partial solution is to use E-UAE's raw key mapping (see below).
+A partial solution is to use PUAE's raw key mapping (see below).
 
 
 Command key sequences
@@ -126,10 +126,10 @@ your keymap settings to produce (if your keymap is correct) a value which
 actually does correspond to the symbol painted on the physical key on your
 keyboard.
 
-If E-UAE tries to work with this translated key symbol, it then has to
+If PUAE tries to work with this translated key symbol, it then has to
 somehow convert that back into a raw keycode appropriate to if that key
 were pressed on an Amiga keyboard (and then AmigaOS will use its keymap
-settings to translate it into a key symbol again). This requires that E-UAE
+settings to translate it into a key symbol again). This requires that PUAE
 know about international keyboard layouts, and requires the graphics system
 to report unique events for all host keys (SDL does not completely support
 some international layouts, for example).
@@ -148,14 +148,14 @@ logically or even physically identical keys.
 The upshot of all this is that raw key-mapping is currently (optionally)
 supported when:
 
-a) E-UAE is built with the X11 graphics driver, your X server supports the
+a) PUAE is built with the X11 graphics driver, your X server supports the
    XKB extension and you are using a keyboard which produces xfree86
    keycodes (e.g., PC and Mac keyboards with XFree86 on Linux do);
-b) E-UAE is built with the SDL graphics driver and you are running it on
+b) PUAE is built with the SDL graphics driver and you are running it on
    Linux on XFree86 with a PC or Mac keyboard, on MacOS X, on BeOS or on
    AmigaOS (or an AmigaOS clone);
-c) E-UAE is built with the BeOS graphics driver; or
-d) E-UAE is built with the AmigaOS graphics driver.
+c) PUAE is built with the BeOS graphics driver; or
+d) PUAE is built with the AmigaOS graphics driver.
 
 As I said above, raw key-mapping better supports international keyboards, so
 is recommended for most users, although its not terribly well tested and
@@ -175,7 +175,7 @@ x11.map_raw_keys=true
 Both the SDL and X11 graphics driver will try to enable raw key-mapping by
 default if they can support it on your host platform.
 
-Note that the AmigaOS version of E-UAE when built with native AmigaOS
+Note that the AmigaOS version of PUAE when built with native AmigaOS
 graphic support and the BeOS version when built with native BeOS graphics
 support both always do raw key mapping, so no comparable config options is
 supported or required in these situations. Note also, however, that the

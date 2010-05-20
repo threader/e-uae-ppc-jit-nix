@@ -486,7 +486,7 @@ void setmouseactive (int active)
 
 char *au_fs_copy (char *dst, int maxlen, const char *src)
 {
-        int i;
+        unsigned int i;
 
         for (i = 0; src[i] && i < maxlen - 1; i++)
                 dst[i] = src[i];
@@ -496,13 +496,13 @@ char *au_fs_copy (char *dst, int maxlen, const char *src)
 
 int my_existsfile (const char *name)
 {
-		struct stat sonuc;
-		if (lstat (name, &sonuc) == -1) {
-			return 0;
-		} else {
-			if (!S_ISDIR(sonuc.st_mode))
-				return 1;
-		}
+	struct stat sonuc;
+	if (lstat (name, &sonuc) == -1) {
+		return 0;
+	} else {
+		if (!S_ISDIR(sonuc.st_mode))
+			return 1;
+	}
         return 0;
 }
 

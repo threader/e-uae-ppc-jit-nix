@@ -47,8 +47,8 @@ extern uaecptr need_uae_boot_rom (void);
 struct mountedinfo
 {
     uae_u64 size;
-    int ismounted;
-    int ismedia;
+    bool ismounted;
+    bool ismedia;
     int nrcyls;
 };
 
@@ -59,7 +59,7 @@ struct mountedinfo
 extern char *validatedevicename (char *s);
 extern char *validatevolumename (char *s);
 
-int filesys_insert(int nr, char *volume, const char *rootdir, int readonly, int flags);
+int filesys_insert (int nr, TCHAR *volume, const TCHAR *rootdir, bool readonly, int flags);
 int filesys_eject(int nr);
 int filesys_media_change (const char *rootdir, int inserted, struct uaedev_config_info *uci);
 

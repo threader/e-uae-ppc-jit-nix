@@ -12,7 +12,7 @@ be sufficient to allow you to use most popular AmigaOS network
 clients, such as web browsers and mail readers.
 
 To enable the bsdsocket.library emulation (assuming you are using a
-version of E-UAE with this feature compiled in), add the option
+version of PUAE with this feature compiled in), add the option
 
 bsdsocket_emu=true
 
@@ -28,6 +28,6 @@ emulated Amiga environment. For example, Amiga software will not be
 able to bind to ports already in use by host software, and your host
 operating system may impose access controls on certain ranges of ports.
 
-Older versions of E-UAE required that a bsdsocket.library wrapper file
+Older versions of PUAE required that a bsdsocket.library wrapper file
 be installed somewhere in the LIBS: path in your Amiga environment.
 This is no longer the case, and this file should now be removed.

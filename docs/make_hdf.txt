@@ -2,7 +2,7 @@ make_hdf
 ========
 
 make_hdf is a command-line tool for creating unformatted hard disk
-images (hard files) for E-UAE (and other versions of UAE). It will
+images (hard files) for PUAE (and other versions of UAE). It will
 also print a config option that can be added to a UAE config file to
 mount the created disk image.
 

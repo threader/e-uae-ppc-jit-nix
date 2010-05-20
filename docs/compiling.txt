@@ -1,7 +1,7 @@
-Compiling E-UAE
+Compiling PUAE
 ===============
 
-E-UAE should be able to compile on any platform with a POSIX-like shell
+PUAE should be able to compile on any platform with a POSIX-like shell
 environment, a C compiler and make. Version 2.95 or newer of the GNU C
 Compiler is recommended as is GNU make, but alternative compilers and
 versions of make may work. Some features may be GCC-specific, however.
@@ -9,15 +9,26 @@ Currently, for example, the JIT - the compiler which dynamically
 translate 68k opcodes to x86 opcodes - does require GCC (and GAS, the
 GNU assembler).
 
-Currently zlib is also required to build E-UAE for all supported
+Currently zlib is also required to build PUAE for all supported
 platforms. This isn't much of hardship since zlib is available
 everywhere, but shout loudly enough and I'll fix this.
+
+
+Required Stuff
+==============
+(for debian based Linux)
+apt-get install build-essential
+apt-get install automake
+apt-get install zlib1g
+apt-get install libsdl1.2-dev
+apt-get install libgtk2.0-dev
+apt-get install xorg-core
 
 
 Configuring
 ===========
 
-The first step to compiling E-UAE is to generate a makefile suitable
+The first step to compiling PUAE is to generate a makefile suitable
 for your intended target system. This is done by running the configure
 script.
 
@@ -85,6 +96,10 @@ selecting what features are built into UAE. Here's a selection:
   bsdsocket.library). This works only on Unix platforms at the moment
   (including Linux, Solaris and OS X).
 
+--enable-gccopt
+  Enable CPU specific optimization parameters. Script will check for your CPU's
+  features and set additional compile flags.
+
 --with-caps
   Build with support for IPF (CAPS) images. This requires the IPF
   development files from http://www.caps-project.org/
@@ -130,22 +145,22 @@ box.
 Building the SCSI emulation
 ---------------------------
 
-E-UAE's SCSI emulation may use libscg, the SCSI transport layer from
+PUAE's SCSI emulation may use libscg, the SCSI transport layer from
 the cdrtools project (see http://cdrecord.berlios.de). Note, however,
 due to a license change in the cdrtools project, only versions of
 cdrtools up to 2.01.01a08 inclusive may be used.
 
 If libscg is not available on your build system, download a recent
 version of cdrecord and compile it. Then run the ./src/install_libscg
-script in the E-UAE source archive to move the relevant files from
-cdrecord to the E-UAE source directory.
+script in the PUAE source archive to move the relevant files from
+cdrecord to the PUAE source directory.
 
 If your system has the libscg headers and library installed in a
 non-standard location, you can pass the --with-libscg-prefix option or
 the --with-libscg-includedir and --with-libscg-libdir options to the
 configure script to specify where these are installed.
 
-On Linux systems, if libscg is not available, E-UAE tries to use a
+On Linux systems, if libscg is not available, PUAE tries to use a
 Linux-specific SCSI emulation that is based on some ioctl() commands.
 
 

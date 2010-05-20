@@ -1,13 +1,13 @@
 Floppy drive emulation
 ======================
 
-E-UAE emulates up to four floppy drives. Standard PC floppy drives cannot
+PUAE emulates up to four floppy drives. Standard PC floppy drives cannot
 read Amiga floppies, so floppy disks are currently supported as image files
 (support for Catweasel hardware, a floppy controller which can read Amiga
 floppies - and other unusual disk formats - will be added in a future
 version).
 
-E-UAE supports a number of floppy image formats, optionally compressed by
+PUAE supports a number of floppy image formats, optionally compressed by
 gzip or packed inside a Zip archive.
 
 ADF
@@ -20,7 +20,7 @@ formatted contents.
 DMS
 ---
 
-DMS was a popular disk image cruncher. E-UAE can transparently read DMS
+DMS was a popular disk image cruncher. PUAE can transparently read DMS
 images.
 
 

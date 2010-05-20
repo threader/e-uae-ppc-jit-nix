@@ -13,14 +13,14 @@
 #define UAE_STRING_H
 
 #ifdef HAVE_STRINGS_H
-# include <strings.h>
+#include <strings.h>
 #endif
 #ifdef HAVE_STRING_H
-# include <string.h>
+#include <string.h>
 #endif
 
 #ifdef HAVE_STRDUP
-# define my_strdup strdup
+#define my_strdup strdup
 #else
 extern char *my_strdup (const char *s);
 #endif

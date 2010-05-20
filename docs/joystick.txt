@@ -3,13 +3,13 @@ Joystick port emulation
 
 An Amiga has two joystick ports. Port 0 typically has a mouse attached to it
 and port 1 may have a digital joystick, joypad or some other device
-connected. E-UAE can emulate Amiga mice and joysticks using either input
+connected. PUAE can emulate Amiga mice and joysticks using either input
 from a physical mouse or joystick or by using specific key presses on the
 keyboard to synthesize mouse and joystick movements or button clicks.
 
 The device connected to port 0 can be configured with the joyport0=<mode>
 configuration file option and the device at port 1 with joyport1=<mode>.
-Additionally, some versions of E-UAE may supply a GUI controls to configure
+Additionally, some versions of PUAE may supply a GUI controls to configure
 the joystick.
 
 Here <mode> can be one of:
@@ -19,7 +19,7 @@ none    - no device is connected to this port.
 mouse   - a mouse will be emulated on this port using the host's default
           mouse (usually the device you use to move the mouse pointer on your
           desktop). Up to three mouse buttons are supported and a scroll
-          wheel is currently supported when using E-UAE's X11 or SDL
+          wheel is currently supported when using PUAE's X11 or SDL
           graphics drivers.
 
 joy0    - a digital joystick will be emulated on this port using input from
@@ -78,7 +78,7 @@ joystick input - they will not produce normal key presses.
 Emulating a CD32 controller
 ===========================
 
-When emulating a CD32 (to do this, E-UAE must be booted with CD32 ROMs) the
+When emulating a CD32 (to do this, PUAE must be booted with CD32 ROMs) the
 joystick configured to port 1 may emulate a CD32 controller. The buttons on
 the joystick will be mapped to CD32 controller buttons as follows:
 

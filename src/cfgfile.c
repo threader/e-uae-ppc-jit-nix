@@ -2049,7 +2049,7 @@ empty_fs:
 #ifdef FILESYS
 		add_filesys_config (p, -1, dname, aname, str, ro, secs, heads, reserved, bs, bp, fs, hdcv, 0);
 #endif
-	    free (str);
+		free (str);
 		return 1;
 
 invalid_fs:

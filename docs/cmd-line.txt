@@ -1,7 +1,7 @@
-Command line options for E-UAE
+Command line options for PUAE
 ==============================
 
-E-UAE supports the following command-line options. Note that, where
+PUAE supports the following command-line options. Note that, where
 applicable, these will over-ride any similar options specified in the
 default configuration file.
 
@@ -28,7 +28,7 @@ This document (like the rest of the documentation) is a work-in-progress.
  
  -s ntsc=true
  
- to start E-UAE in NTSC mode.
+ to start PUAE in NTSC mode.
  
  See configuration.txt for supported options.
  
@@ -60,6 +60,7 @@ This document (like the rest of the documentation) is a work-in-progress.
  2: 68020
  3: 68020/68881
  4: 68040
+ 6: 68060
 
 
 -w<n>
@@ -90,7 +91,7 @@ This document (like the rest of the documentation) is a work-in-progress.
 
  -c4
 
- will cause E-UAE to emulate 2 MB of Chip memory.
+ will cause PUAE to emulate 2 MB of Chip memory.
 
 
 -b<n>
@@ -164,12 +165,12 @@ Options specific to the X11 graphics driver
 
 -L
  Use "low-bandwidth" mode, which may reduce the amount of data transferred
- between E-UAE and the X server. That's particularly an advantage when these
+ between PUAE and the X server. That's particularly an advantage when these
  are running on two different machines in a network.
 
 -T
  Use the MIT-SHM extension. This may not be available on all machines, and
- it will not work if E-UAE and the X server are not running on the same
+ it will not work if PUAE and the X server are not running on the same
  machine. In all other configurations, turning on this option will give you
  a huge speed improvement.
 
