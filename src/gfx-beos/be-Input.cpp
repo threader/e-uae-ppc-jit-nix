@@ -42,9 +42,14 @@ static unsigned int get_kb_num (void)
     return 1;
 }
 
-static const char *get_kb_name (unsigned int kb)
+static const char *get_kb_friendlyname (unsigned int kb)
 {
     return "Default keyboard";
+}
+
+static const char *get_kb_uniquename (unsigned int kb)
+{
+    return "DEFKEYB1";
 }
 
 static unsigned int get_kb_widget_num (unsigned int kb)
@@ -135,7 +140,8 @@ struct inputdevice_functions inputdevicefunc_keyboard =
     unacquire_kb,
     read_kb,
     get_kb_num,
-    get_kb_name,
+    get_kb_friendlyname,
+    get_kb_uniquename,
     get_kb_widget_num,
     get_kb_widget_type,
     get_kb_widget_first

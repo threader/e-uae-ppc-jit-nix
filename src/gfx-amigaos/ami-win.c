@@ -2404,7 +2404,8 @@ struct inputdevice_functions inputdevicefunc_mouse = {
     unacquire_mouse,
     read_mouse,
     get_mouse_num,
-    get_mouse_name,
+    get_kb_friendlyname,
+    get_kb_uniquename,
     get_mouse_widget_num,
     get_mouse_widget_type,
     get_mouse_widget_first
@@ -2435,9 +2436,14 @@ static unsigned int get_kb_num (void)
     return 1;
 }
 
-static const char *get_kb_name (unsigned int kb)
+static const char *get_kb_friendlyname (unsigned int kb)
 {
     return "Default keyboard";
+}
+
+static const char *get_kb_uniquename (unsigned int kb)
+{
+    return "DEFKEYB1";
 }
 
 static unsigned int get_kb_widget_num (unsigned int kb)

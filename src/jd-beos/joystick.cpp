@@ -228,12 +228,17 @@ static void read_joysticks (void)
     }
 }
 
-static unsigned int get_joystick_count (void)
+static unsigned int get_joystick_num (void)
 {
     return nr_joysticks;
 }
 
-static const char *get_joystick_name (unsigned int nr)
+static const char *get_joystick_friendlyname (unsigned int nr)
+{
+    return joysticks[nr]->getName ();
+}
+
+static const char *get_joystick_uniquename (unsigned int nr)
 {
     return joysticks[nr]->getName ();
 }
@@ -279,8 +284,9 @@ struct inputdevice_functions inputdevicefunc_joystick = {
     acquire_joy,
     unacquire_joy,
     read_joysticks,
-    get_joystick_count,
-    get_joystick_name,
+    get_joystick_num,
+    get_joystick_friendlyname,
+    get_joystick_uniquename,
     get_joystick_widget_num,
     get_joystick_widget_type,
     get_joystick_widget_first

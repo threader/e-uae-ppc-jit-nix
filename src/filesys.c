@@ -60,7 +60,7 @@
 #define my_open fopen
 #define my_close fclose
 #define my_lseek fseek
-#define my_strdup strdup
+//#define my_strdup strdup
 #define _stat64 stat
 
 #define TRUE 1
