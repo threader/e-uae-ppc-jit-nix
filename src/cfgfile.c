@@ -505,10 +505,13 @@ void cfgfile_save_options (FILE *f, const struct uae_prefs *p, int type)
 	    cfgfile_write (f, "diskimage%d=%s\n", i, p->dfxlist[i]);
     }
 
-    cfgfile_write (f, "nr_floppies=%d\n", p->nr_floppies);
-    cfgfile_write (f, "floppy_speed=%d\n", p->floppy_speed);
+	if (p->cdimagefile[0])
+		cfgfile_write_str (f, "cdimage0", p->cdimagefile);
+
+	cfgfile_write (f, "nr_floppies=%d\n", p->nr_floppies);
+	cfgfile_write (f, "floppy_speed=%d\n", p->floppy_speed);
 #ifdef DRIVESOUND
-    cfgfile_write (f, "floppy_volume=%d\n", p->dfxclickvolume);
+	cfgfile_write (f, "floppy_volume=%d\n", p->dfxclickvolume);
 #endif
 	cfgfile_write_bool (f, "parallel_on_demand", p->parallel_demand);
 	cfgfile_write_bool (f, "serial_on_demand", p->serial_demand);
@@ -520,15 +523,15 @@ void cfgfile_save_options (FILE *f, const struct uae_prefs *p, int type)
 
 	cfgfile_write_str (f, "sound_output", soundmode1[p->produce_sound]);
 	cfgfile_write_str (f, "sound_channels", stereomode[p->sound_stereo]);
-    cfgfile_write (f, "sound_stereo_separation=%d\n", p->sound_stereo_separation);
-    cfgfile_write (f, "sound_stereo_mixing_delay=%d\n", p->sound_mixed_stereo_delay >= 0 ? p->sound_mixed_stereo_delay : 0);
+	cfgfile_write (f, "sound_stereo_separation=%d\n", p->sound_stereo_separation);
+	cfgfile_write (f, "sound_stereo_mixing_delay=%d\n", p->sound_mixed_stereo_delay >= 0 ? p->sound_mixed_stereo_delay : 0);
 	cfgfile_write (f, "sound_max_buff=%d\n", p->sound_maxbsiz);
-    cfgfile_write (f, "sound_frequency=%d\n", p->sound_freq);
+	cfgfile_write (f, "sound_frequency=%d\n", p->sound_freq);
 	cfgfile_write (f, "sound_latency=%d", p->sound_latency);
 	cfgfile_write_str (f, "sound_interpol", interpolmode[p->sound_interpol]);
 	cfgfile_write_str (f, "sound_filter", soundfiltermode1[p->sound_filter]);
 	cfgfile_write_str (f, "sound_filter_type", soundfiltermode2[p->sound_filter_type]);
-    cfgfile_write (f, "sound_volume=%d\n", p->sound_volume);
+	cfgfile_write (f, "sound_volume=%d\n", p->sound_volume);
 	cfgfile_write_bool (f, "sound_auto", p->sound_auto);
 	cfgfile_write_bool (f, "sound_stereo_swap_paula", p->sound_stereo_swap_paula);
 	cfgfile_write_bool (f, "sound_stereo_swap_ahi", p->sound_stereo_swap_ahi);
@@ -1675,71 +1678,68 @@ static int cfgfile_parse_hardware (struct uae_prefs *p, char *option, char *valu
 		return 1;
 
 	if (cfgfile_intval (option, value, "cpu060_revision", &p->cpu060_revision, 1)
-		|| cfgfile_intval (option, value, "fpu_revision", &p->fpu_revision, 1)
-		|| cfgfile_intval (option, value, "cdtvramcard", &p->cs_cdtvcard, 1)
-		|| cfgfile_intval (option, value, "fatgary", &p->cs_fatgaryrev, 1)
-		|| cfgfile_intval (option, value, "ramsey", &p->cs_ramseyrev, 1)
-		|| cfgfile_intval (option, value, "chipset_refreshrate", &p->chipset_refreshrate, 1)
-		|| cfgfile_intval (option, value, "fastmem_size", &p->fastmem_size, 0x100000)
-		|| cfgfile_intval (option, value, "a3000mem_size", &p->mbresmem_low_size, 0x100000)
-		|| cfgfile_intval (option, value, "mbresmem_size", &p->mbresmem_high_size, 0x100000)
-		|| cfgfile_intval (option, value, "z3mem_size", &p->z3fastmem_size, 0x100000)
-		|| cfgfile_intval (option, value, "z3mem2_size", &p->z3fastmem2_size, 0x100000)
-		|| cfgfile_intval (option, value, "z3mem_start", &p->z3fastmem_start, 1)
-		|| cfgfile_intval (option, value, "bogomem_size", &p->bogomem_size, 0x40000)
-		|| cfgfile_intval (option, value, "gfxcard_size", &p->gfxmem_size, 0x100000)
-		|| cfgfile_intval (option, value, "rtg_modes", &p->picasso96_modeflags, 1)
-		|| cfgfile_intval (option, value, "floppy_speed", &p->floppy_speed, 1)
-		|| cfgfile_intval (option, value, "floppy_write_length", &p->floppy_write_length, 1)
-		|| cfgfile_intval (option, value, "nr_floppies", &p->nr_floppies, 1)
-		|| cfgfile_intval (option, value, "floppy0type", &p->dfxtype[0], 1)
-		|| cfgfile_intval (option, value, "floppy1type", &p->dfxtype[1], 1)
-		|| cfgfile_intval (option, value, "floppy2type", &p->dfxtype[2], 1)
-		|| cfgfile_intval (option, value, "floppy3type", &p->dfxtype[3], 1)
-		|| cfgfile_intval (option, value, "maprom", &p->maprom, 1)
-		|| cfgfile_intval (option, value, "parallel_autoflush", &p->parallel_autoflush_time, 1)
-		|| cfgfile_intval (option, value, "uae_hide", &p->uae_hide, 1)
-		|| cfgfile_intval (option, value, "cpu_frequency", &p->cpu_frequency, 1)
-		|| cfgfile_intval (option, value, "catweasel", &p->catweasel, 1))
+	 || cfgfile_intval (option, value, "fpu_revision", &p->fpu_revision, 1)
+	 || cfgfile_intval (option, value, "cdtvramcard", &p->cs_cdtvcard, 1)
+	 || cfgfile_intval (option, value, "fatgary", &p->cs_fatgaryrev, 1)
+	 || cfgfile_intval (option, value, "ramsey", &p->cs_ramseyrev, 1)
+	 || cfgfile_intval (option, value, "chipset_refreshrate", &p->chipset_refreshrate, 1)
+	 || cfgfile_intval (option, value, "fastmem_size", &p->fastmem_size, 0x100000)
+	 || cfgfile_intval (option, value, "a3000mem_size", &p->mbresmem_low_size, 0x100000)
+	 || cfgfile_intval (option, value, "mbresmem_size", &p->mbresmem_high_size, 0x100000)
+	 || cfgfile_intval (option, value, "z3mem_size", &p->z3fastmem_size, 0x100000)
+	 || cfgfile_intval (option, value, "z3mem2_size", &p->z3fastmem2_size, 0x100000)
+	 || cfgfile_intval (option, value, "z3mem_start", &p->z3fastmem_start, 1)
+	 || cfgfile_intval (option, value, "bogomem_size", &p->bogomem_size, 0x40000)
+	 || cfgfile_intval (option, value, "gfxcard_size", &p->gfxmem_size, 0x100000)
+	 || cfgfile_intval (option, value, "rtg_modes", &p->picasso96_modeflags, 1)
+	 || cfgfile_intval (option, value, "floppy_speed", &p->floppy_speed, 1)
+	 || cfgfile_intval (option, value, "floppy_write_length", &p->floppy_write_length, 1)
+	 || cfgfile_intval (option, value, "nr_floppies", &p->nr_floppies, 1)
+	 || cfgfile_intval (option, value, "floppy0type", &p->dfxtype[0], 1)
+	 || cfgfile_intval (option, value, "floppy1type", &p->dfxtype[1], 1)
+	 || cfgfile_intval (option, value, "floppy2type", &p->dfxtype[2], 1)
+	 || cfgfile_intval (option, value, "floppy3type", &p->dfxtype[3], 1)
+	 || cfgfile_intval (option, value, "maprom", &p->maprom, 1)
+	 || cfgfile_intval (option, value, "parallel_autoflush", &p->parallel_autoflush_time, 1)
+	 || cfgfile_intval (option, value, "uae_hide", &p->uae_hide, 1)
+	 || cfgfile_intval (option, value, "cpu_frequency", &p->cpu_frequency, 1)
+	 || cfgfile_intval (option, value, "catweasel", &p->catweasel, 1))
 	return 1;
 
 #ifdef JIT
-    if (cfgfile_intval (option, value, "cachesize", &p->cachesize, 1)
-# ifdef NATMEM_OFFSET
-	|| cfgfile_strval (option, value, "comp_trustbyte",  &p->comptrustbyte,  compmode, 0)
-	|| cfgfile_strval (option, value, "comp_trustword",  &p->comptrustword,  compmode, 0)
-	|| cfgfile_strval (option, value, "comp_trustlong",  &p->comptrustlong,  compmode, 0)
-	|| cfgfile_strval (option, value, "comp_trustnaddr", &p->comptrustnaddr, compmode, 0)
-# else
-	|| cfgfile_strval (option, value, "comp_trustbyte",  &p->comptrustbyte,  compmode, 1)
-	|| cfgfile_strval (option, value, "comp_trustword",  &p->comptrustword,  compmode, 1)
-	|| cfgfile_strval (option, value, "comp_trustlong",  &p->comptrustlong,  compmode, 1)
-	|| cfgfile_strval (option, value, "comp_trustnaddr", &p->comptrustnaddr, compmode, 1)
-# endif
-	|| cfgfile_strval (option, value, "comp_flushmode", &p->comp_hardflush, flushmode, 0))
+	if (cfgfile_intval (option, value, "cachesize", &p->cachesize, 1)
+#ifdef NATMEM_OFFSET
+	 || cfgfile_strval (option, value, "comp_trustbyte",  &p->comptrustbyte,  compmode, 0)
+	 || cfgfile_strval (option, value, "comp_trustword",  &p->comptrustword,  compmode, 0)
+	 || cfgfile_strval (option, value, "comp_trustlong",  &p->comptrustlong,  compmode, 0)
+	 || cfgfile_strval (option, value, "comp_trustnaddr", &p->comptrustnaddr, compmode, 0)
+#else
+	 || cfgfile_strval (option, value, "comp_trustbyte",  &p->comptrustbyte,  compmode, 1)
+	 || cfgfile_strval (option, value, "comp_trustword",  &p->comptrustword,  compmode, 1)
+	 || cfgfile_strval (option, value, "comp_trustlong",  &p->comptrustlong,  compmode, 1)
+	 || cfgfile_strval (option, value, "comp_trustnaddr", &p->comptrustnaddr, compmode, 1)
+#endif
+	 || cfgfile_strval (option, value, "comp_flushmode", &p->comp_hardflush, flushmode, 0))
 	return 1;
 #endif
 
 	if (cfgfile_strval (option, value, "chipset_compatible", &p->cs_compatible, cscompa, 0)
-		|| cfgfile_strval (option, value, "rtc", &p->cs_rtc, rtctype, 0)
-		|| cfgfile_strval (option, value, "ciaatod", &p->cs_ciaatod, ciaatodmode, 0)
-		|| cfgfile_strval (option, value, "ide", &p->cs_ide, idemode, 0)
-		|| cfgfile_strval (option, value, "scsi", &p->scsi, scsimode, 0)
-		|| cfgfile_strval (option, value, "comp_trustword", &p->comptrustword, compmode, 0)
-		|| cfgfile_strval (option, value, "comp_trustlong", &p->comptrustlong, compmode, 0)
-		|| cfgfile_strval (option, value, "comp_trustnaddr", &p->comptrustnaddr, compmode, 0)
-		|| cfgfile_strval (option, value, "collision_level", &p->collision_level, collmode, 0)
-		|| cfgfile_strval (option, value, "parallel_matrix_emulation", &p->parallel_matrix_emulation, epsonprinter, 0))
-		return 1;
+	 || cfgfile_strval (option, value, "rtc", &p->cs_rtc, rtctype, 0)
+	 || cfgfile_strval (option, value, "ciaatod", &p->cs_ciaatod, ciaatodmode, 0)
+	 || cfgfile_strval (option, value, "ide", &p->cs_ide, idemode, 0)
+	 || cfgfile_strval (option, value, "scsi", &p->scsi, scsimode, 0)
+	 || cfgfile_strval (option, value, "collision_level", &p->collision_level, collmode, 0)
+	 || cfgfile_strval (option, value, "parallel_matrix_emulation", &p->parallel_matrix_emulation, epsonprinter, 0))
+	return 1;
 
 	if (cfgfile_string (option, value, "kickstart_rom_file", p->romfile, sizeof p->romfile / sizeof (char))
-		|| cfgfile_string (option, value, "kickstart_ext_rom_file", p->romextfile, sizeof p->romextfile / sizeof (char))
-		|| cfgfile_string (option, value, "amax_rom_file", p->amaxromfile, sizeof p->amaxromfile / sizeof (char))
-		|| cfgfile_string (option, value, "flash_file", p->flashfile, sizeof p->flashfile / sizeof (char))
-		|| cfgfile_string (option, value, "cart_file", p->cartfile, sizeof p->cartfile / sizeof (char))
-		|| cfgfile_string (option, value, "pci_devices", p->pci_devices, sizeof p->pci_devices / sizeof (char))
-		|| cfgfile_string (option, value, "ghostscript_parameters", p->ghostscript_parameters, sizeof p->ghostscript_parameters / sizeof (char)))
-		return 1;
+	 || cfgfile_string (option, value, "kickstart_ext_rom_file", p->romextfile, sizeof p->romextfile / sizeof (char))
+	 || cfgfile_string (option, value, "amax_rom_file", p->amaxromfile, sizeof p->amaxromfile / sizeof (char))
+	 || cfgfile_string (option, value, "flash_file", p->flashfile, sizeof p->flashfile / sizeof (char))
+	 || cfgfile_string (option, value, "cart_file", p->cartfile, sizeof p->cartfile / sizeof (char))
+	 || cfgfile_string (option, value, "pci_devices", p->pci_devices, sizeof p->pci_devices / sizeof (char))
+	 || cfgfile_string (option, value, "ghostscript_parameters", p->ghostscript_parameters, sizeof p->ghostscript_parameters / sizeof (char)))
+	return 1;
 
 	if (cfgfile_strval (option, value, "cart_internal", &p->cart_internal, cartsmode, 0)) {
 		if (p->cart_internal) {
