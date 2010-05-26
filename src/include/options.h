@@ -100,6 +100,10 @@ enum { CP_GENERIC = 1, CP_CDTV, CP_CD32, CP_A500, CP_A500P, CP_A600, CP_A1000,
 #define IDE_A600A1200 1
 #define IDE_A4000 2
 
+#define GFX_WINDOW 0
+#define GFX_FULLSCREEN 1
+#define GFX_FULLWINDOW 2
+
 struct uae_prefs {
 
 	struct strlist *all_lines;
@@ -291,6 +295,7 @@ struct uae_prefs {
 	TCHAR amaxromfile[MAX_DPATH];
 	TCHAR a2065name[MAX_DPATH];
 	TCHAR cdimagefile[MAX_DPATH];
+	TCHAR quitstatefile[MAX_DPATH];
 #ifndef WIN32
 	char scsi_device[256];
 #endif
@@ -422,7 +427,6 @@ struct uae_prefs {
 
 	/* input */
 
-	TCHAR inputname[256];
 	struct jport jports[MAX_JPORTS];
 	int input_selected_setting;
 	int input_joymouse_multiplier;

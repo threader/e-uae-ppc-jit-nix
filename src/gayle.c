@@ -1921,7 +1921,7 @@ static void initide (void)
 
 void gayle_reset (int hardreset)
 {
-	static char bankname[100];
+	static TCHAR bankname[100];
 
 	initide ();
 	if (hardreset) {
@@ -2018,7 +2018,7 @@ uae_u8 *restore_ide (uae_u8 *src)
 {
 	int num, readonly, blocksize;
 	uae_u64 size;
-	char *path;
+	TCHAR *path;
 	struct ide_hdf *ide;
 
 	alloc_ide_mem (idedrive, 4);

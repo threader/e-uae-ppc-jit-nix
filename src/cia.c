@@ -554,13 +554,16 @@ static void led_vsync (void)
 		v = 255;
 	else if (led_cycles_off && !led_cycles_on)
 		v = 0;
-	else
+	else if (led_cycles_off)
 		v = led_cycles_on * 255 / led_cycles_off;
-		if (v < 0)
-			v = 0;
-		if (v > 255)
-			v = 255;
-		gui_data.powerled_brightness = v;
+	else
+		v = 255;
+
+	if (v < 0)
+		v = 0;
+	if (v > 255)
+		v = 255;
+	gui_data.powerled_brightness = v;
 	led_cycles_on = 0;
 	led_cycles_off = 0;
 	if (led_old_brightness != gui_data.powerled_brightness) {
@@ -606,12 +609,13 @@ static void bfe001_change (void)
 			//activate_debugger ();
 			map_overlay (0);
 		}
+	}
 #ifdef CD32
-	} else if (currprefs.cs_cd32cd && (v & 1) != oldcd32mute) {
+	if (currprefs.cs_cd32cd && (v & 1) != oldcd32mute) {
 		oldcd32mute = v & 1;
 		akiko_mute (oldcd32mute ? 0 : 1);
-#endif
 	}
+#endif
 }
 
 static uae_u8 ReadCIAA (unsigned int addr)
@@ -1207,6 +1211,10 @@ void CIA_reset (void)
 #endif
 	if (savestate_state) {
 		bfe001_change ();
+		if (!currprefs.cs_ciaoverlay) {
+			map_overlay (1);
+			oldovl = false;
+		}
 		/* select drives */
 		DISK_select (ciabprb);
 	}

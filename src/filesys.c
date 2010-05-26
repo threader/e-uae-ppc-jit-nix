@@ -308,14 +308,14 @@ int get_filesys_unitconfig (struct uae_prefs *p, int index, struct mountedinfo *
 	return FILESYS_HARDFILE;
 }
 
-static void stripsemicolon (char *s)
+static void stripsemicolon (TCHAR *s)
 {
 	if (!s)
 		return;
 	while (_tcslen(s) > 0 && s[_tcslen(s) - 1] == ':')
 		s[_tcslen(s) - 1] = 0;
 }
-static void stripspace (char *s)
+static void stripspace (TCHAR *s)
 {
 	int i;
 	if (!s)
@@ -325,7 +325,7 @@ static void stripspace (char *s)
 			s[i] = '_';
 	}
 }
-static void striplength (char *s, int len)
+static void striplength (TCHAR *s, int len)
 {
 	if (!s)
 		return;
@@ -333,7 +333,7 @@ static void striplength (char *s, int len)
 		return;
 	s[len] = 0;
 }
-static void fixcharset (char *s)
+static void fixcharset (TCHAR *s)
 {
 	char tmp[MAX_DPATH];
 	if (!s)
@@ -343,7 +343,7 @@ static void fixcharset (char *s)
 	au_fs_copy (s, strlen (tmp) + 1, tmp);
 }
 
-char *validatevolumename (char *s)
+TCHAR *validatevolumename (TCHAR *s)
 {
 	stripsemicolon (s);
 	stripspace (s);
@@ -351,7 +351,7 @@ char *validatevolumename (char *s)
 	striplength (s, 30);
 	return s;
 }
-char *validatedevicename (char *s)
+TCHAR *validatedevicename (TCHAR *s)
 {
 	stripsemicolon (s);
 	stripspace (s);
@@ -360,7 +360,7 @@ char *validatedevicename (char *s)
 	return s;
 }
 
-char *filesys_createvolname (const char *volname, const char *rootdir, const char *def)
+TCHAR *filesys_createvolname (const TCHAR *volname, const TCHAR *rootdir, const TCHAR *def)
 {
 	TCHAR *nvol = NULL;
 	int i, archivehd;
@@ -412,7 +412,7 @@ char *filesys_createvolname (const char *volname, const char *rootdir, const cha
 	return nvol;
 }
 
-static int set_filesys_volume (const char *rootdir, int *flags, int *readonly, int *emptydrive, struct zvolume **zvp)
+static int set_filesys_volume (const TCHAR *rootdir, int *flags, bool *readonly, bool *emptydrive, struct zvolume **zvp)
 {
 	*emptydrive = 0;
 //FIXME: we dont support.. yet.. -mustafa
@@ -564,7 +564,7 @@ int set_filesys_unit (int nr,
 	return ret;
 }
 
-int add_filesys_unit (char *devname, char *volname, const char *rootdir, bool readonly,
+int add_filesys_unit (TCHAR *devname, TCHAR *volname, const TCHAR *rootdir, bool readonly,
 	int secspertrack, int surfaces, int reserved,
 	int blocksize, int bootpri, bool donotmount, bool autoboot,
 	TCHAR *filesysdir, int hdc, int flags)
@@ -670,7 +670,7 @@ static void initialize_mountinfo (void)
 	//filesys_addexternals ();
 }
 
-int sprintf_filesys_unit (char *buffer, int num)
+int sprintf_filesys_unit (TCHAR *buffer, int num)
 {
 	UnitInfo *uip = mountinfo.ui;
 
@@ -923,7 +923,7 @@ typedef uaecptr dpacket;
 
 static int flush_cache (Unit *unit, int num);
 
-static char *char1 (uaecptr addr)
+static TCHAR *char1 (uaecptr addr)
 {
 	static uae_char buf[1024];
 	static TCHAR bufx[1024];
@@ -949,7 +949,7 @@ static TCHAR *bstr1 (uaecptr addr)
 	return au_fs_copy (bufx, sizeof (bufx) / sizeof (TCHAR), buf);
 }
 
-static char *bstr (Unit *unit, uaecptr addr)
+static TCHAR *bstr (Unit *unit, uaecptr addr)
 {
 	int i;
 	int n = get_byte (addr);
@@ -963,7 +963,7 @@ static char *bstr (Unit *unit, uaecptr addr)
 	return unit->tmpbuf3;
 }
 
-static char *bstr_cut (Unit *unit, uaecptr addr)
+static TCHAR *bstr_cut (Unit *unit, uaecptr addr)
 {
 	TCHAR *p = unit->tmpbuf3;
 	int i, colon_seen = 0, off;
@@ -1158,7 +1158,7 @@ void filesys_vsync (void)
 		}
 	}
 }
-static void filesys_delayed_change (Unit *u, int frames, const TCHAR *rootdir, const TCHAR *volume, int readonly, int flags)
+static void filesys_delayed_change (Unit *u, int frames, const TCHAR *rootdir, const TCHAR *volume, bool readonly, int flags)
 {
 	u->reinsertdelay = 50;
 	u->newflags = flags;
@@ -1665,7 +1665,10 @@ static TCHAR *get_nname (Unit *unit, a_inode *base, TCHAR *rel,
 	TCHAR *p = 0;
 
 	*modified_rel = 0;
+
 	if (unit->volflags & MYVOLUMEINFO_ARCHIVE) {
+		//if (zfile_exists_archive(base->nname, rel))
+		//	return build_nname(base->nname, rel);
 		return 0;
 	}
 
@@ -1732,7 +1735,7 @@ oh_dear:
 
 static int fill_file_attrs (Unit *u, a_inode *base, a_inode *c)
 {
-	if (0 /*u->volflags & MYVOLUMEINFO_ARCHIVE*/) {
+/*	if (u->volflags & MYVOLUMEINFO_ARCHIVE) {
 		int isdir, flags;
 		TCHAR *comment;
 		zfile_fill_file_attrs_archive (c->nname, &isdir, &flags, &comment);
@@ -1742,9 +1745,9 @@ static int fill_file_attrs (Unit *u, a_inode *base, a_inode *c)
 			c->amigaos_mode = flags;
 		c->comment = comment;
 		return 1;
-	} else {
+	} else {*/
 		return fsdb_fill_file_attrs (base, c);
-	}
+	//}
 	return 0;
 }
 
@@ -2483,12 +2486,12 @@ static void
     write_log ("Notify:\n");
     write_log ("nr_Name '%s'\n", char1 (get_long (nr + 0)));
     write_log ("nr_FullName '%s'\n", name);
-    write_log ("nr_UserData %08.8X\n", get_long (nr + 8));
-    write_log ("nr_Flags %08.8X\n", flags);
+    write_log ("nr_UserData %08X\n", get_long (nr + 8));
+    write_log ("nr_Flags %08X\n", flags);
 	if (flags & NRF_SEND_MESSAGE) {
-		write_log ("Message NotifyRequest, port = %08.8X\n", get_long (nr + 16));
+		write_log ("Message NotifyRequest, port = %08X\n", get_long (nr + 16));
 	} else if (flags & NRF_SEND_SIGNAL) {
-		write_log ("Signal NotifyRequest, Task = %08.8X signal = %d\n", get_long (nr + 16), get_long (nr + 20));
+		write_log ("Signal NotifyRequest, Task = %08X signal = %d\n", get_long (nr + 16), get_long (nr + 20));
 	} else {
 		write_log ("corrupt NotifyRequest\n");
 	}
@@ -3320,7 +3323,7 @@ static uae_u32 REGPARAM2 exall_helper (TrapContext *context)
 	for (u = units; u; u = u->next) {
 		for (i = 0; i < EXALLKEYS; i++) {
 			if (u->exalls[i].id == id && u->exalls[i].control == control) {
-				action_examine_all (u, get_real_address (packet));
+				action_examine_all (u, packet);
 			}
 		}
 	}
@@ -3745,9 +3748,8 @@ static void
 	/* HACK HACK HACK HACK
 	* Try to detect a LoadSeg() */
 	if (k->file_pos == 0 && size >= 4) {
-		unsigned char buf[4];
+		unsigned TCHAR buf[4];
 		off_t currpos = fs_lseek (unit, k->fd, 0, SEEK_CUR);
-		//my_read (k->fd, buf, 4);
 		fread (buf, 1, 4, k->fd);
 		fs_lseek (unit, k->fd, currpos, SEEK_SET);
 		if (buf[0] == 0 && buf[1] == 0 && buf[2] == 3 && buf[3] == 0xF3)
@@ -5330,10 +5332,10 @@ static uae_u32 REGPARAM2 filesys_init_storeinfo (TrapContext *context)
 	int ret = -1;
 	switch (m68k_dreg (regs, 1))
 	{
-/*	case 1:
+	case 1:
 		mountertask = m68k_areg (regs, 1);
-		picasso96_alloc (context);
-		break;*/
+		//picasso96_alloc (context);
+		break;
 	case 2:
 		ret = automountunit;
 		automountunit = -1;
@@ -5507,7 +5509,7 @@ static int rdb_mount (UnitInfo *uip, int unit_no, unsigned int partnum, uaecptr 
 			bufrdb[0xde] = 0;
 			bufrdb[0xdf] = 0;
 			if (rdb_checksum ("RDSK", bufrdb, rdblock)) {
-				write_log ("Windows trashed RDB detected, fixing..\n");
+				write_log ("Windows 95/98/ME trashed RDB detected, fixing..\n");
 				hdf_write (hfd, bufrdb, rdblock * hfd->blocksize, hfd->blocksize);
 				break;
 			}
