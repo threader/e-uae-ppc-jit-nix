@@ -319,8 +319,7 @@ DIST_SUBDIRS = \
 	gui-none gui-beos gui-cocoa gui-gtk gui-muirexx \
 	od-generic od-amiga od-beos od-linux od-macosx od-win32 \
 	td-none td-amigaos td-beos td-posix td-sdl td-win32 \
-	keymap \
-	caps dms
+	keymap caps dms
 
 BUILT_SOURCES = \
 	blit.h blitfunc.h blitfunc.c blittable.c \

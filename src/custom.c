@@ -2678,7 +2678,7 @@ static int islinetoggle (void)
 
 static int isvsync (void)
 {
-	if (!currprefs.gfx_afullscreen || picasso_on || !currprefs.gfx_avsync)
+	if (currprefs.gfx_afullscreen != GFX_FULLSCREEN || picasso_on || !currprefs.gfx_avsync)
 		return 0;
 	return currprefs.gfx_avsync;
 }
@@ -4743,6 +4743,7 @@ STATIC_INLINE void do_sprites_1 (int num, int cycle, int hpos)
 #endif
 		s->dmastate = 0;
 #if 0
+		// roots 2.0 flower zoomer bottom part missing if this enabled
 		if (vpos == s->vstop) {
 			spr_arm (num, 0);
 			//return;

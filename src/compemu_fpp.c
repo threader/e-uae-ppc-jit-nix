@@ -367,7 +367,6 @@ STATIC_INLINE int comp_fp_put (uae_u32 opcode, uae_u16 extra)
 	    	return -1;
 		}
     }
-
     switch (size) {
 	case 0: /* Long */
 		fmovi_mrb((uae_u32)temp_fp,sreg, clamp_bounds.l);
@@ -483,7 +482,6 @@ void comp_fscc_opp (uae_u32 opcode, uae_u16 extra)
 
     mov_l_ri(S1,255);
     mov_l_ri(S4,0);
-
     switch (extra & 0x0f) { /* according to fpp.c, the 0x10 bit is ignored */
 	case 0: break;  /* set never */
 	case 1:
@@ -609,32 +607,51 @@ void comp_fbcc_opp (uae_u32 opcode)
 		cmov_l_rr(PC_P,S1,4);
 		cmov_l_rr(PC_P,S2,10);
 		break;
-     case 2: register_branch(v1,v2,7); break;
-     case 3: register_branch(v1,v2,3); break;
-     case 4:
-	mov_l_rr(S2,PC_P);
-	cmov_l_rr(PC_P,S1,2);
-	cmov_l_rr(PC_P,S2,10); break;
-     case 5:
-	mov_l_rr(S2,PC_P);
-	cmov_l_rr(PC_P,S1,6);
-	cmov_l_rr(PC_P,S2,10); break;
-     case 6: register_branch(v1,v2,5); break;
-     case 7: register_branch(v1,v2,11); break;
-     case 8: register_branch(v1,v2,10); break;
-     case 9: register_branch(v1,v2,4); break;
-     case 10:
-	cmov_l_rr(PC_P,S1,10);
-	cmov_l_rr(PC_P,S1,7); break;
-     case 11:
-	cmov_l_rr(PC_P,S1,4);
-	cmov_l_rr(PC_P,S1,3); break;
-     case 12: register_branch(v1,v2,2); break;
-     case 13: register_branch(v1,v2,6); break;
-     case 14:
-	cmov_l_rr(PC_P,S1,5);
-	cmov_l_rr(PC_P,S1,10); break;
-     case 15: mov_l_rr(PC_P,S1); break;
+	case 2: register_branch(v1,v2,7); break;
+	case 3: register_branch(v1,v2,3); break;
+	case 4:
+		mov_l_rr(S2,PC_P);
+		cmov_l_rr(PC_P,S1,2);
+		cmov_l_rr(PC_P,S2,10);
+		break;
+	case 5:
+		mov_l_rr(S2,PC_P);
+		cmov_l_rr(PC_P,S1,6);
+		cmov_l_rr(PC_P,S2,10);
+		break;
+	case 6:
+		register_branch(v1,v2,5);
+		break;
+	case 7:
+		register_branch(v1,v2,11);
+		break;
+	case 8:
+		register_branch(v1,v2,10);
+		break;
+	case 9:
+		register_branch(v1,v2,4);
+		break;
+	case 10:
+		cmov_l_rr(PC_P,S1,10);
+		cmov_l_rr(PC_P,S1,7);
+		break;
+	case 11:
+		cmov_l_rr(PC_P,S1,4);
+		cmov_l_rr(PC_P,S1,3);
+		break;
+	case 12:
+		register_branch(v1,v2,2);
+		break;
+	case 13:
+		register_branch(v1,v2,6);
+		break;
+	case 14:
+		cmov_l_rr(PC_P,S1,5);
+		cmov_l_rr(PC_P,S1,10);
+		break;
+	case 15:
+		mov_l_rr(PC_P,S1);
+		break;
     }
 }
 
@@ -909,7 +926,8 @@ void comp_fpp_opp (uae_u32 opcode, uae_u16 extra)
 			abort();
 		}
 
-		if (incr < 0) {			// not reached
+		if (incr < 0) {
+			// not reached
 			for (reg = 7; reg >= 0; reg--) {
 				if (list & 0x80) {
 					sub_l_ri(ad,4);

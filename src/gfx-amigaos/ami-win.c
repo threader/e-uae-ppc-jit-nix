@@ -2313,7 +2313,7 @@ int is_vsync (void)
     return 0;
 }
 
-void toggle_fullscreen (void)
+void toggle_fullscreen (int mode)
 {
 }
 

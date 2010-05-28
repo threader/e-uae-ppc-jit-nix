@@ -467,7 +467,14 @@ void write_inputdevice_config (struct uae_prefs *p, FILE *f)
 static int getnum (const TCHAR **pp)
 {
 	const TCHAR *p = *pp;
-	int v = _tstol (p);
+	int v;
+
+/*	if (!_tcsnicmp (p, L"false", 5))
+		v = 0;
+	if (!_tcsnicmp (p, "true", 4))
+		v = 1;
+	else*/
+		v = _tstol (p);
 
 	while (*p != 0 && *p !='.' && *p != ',')
 		p++;
@@ -544,7 +551,7 @@ static void set_kbr_default_event (struct uae_input_device *kbr, struct uae_inpu
 	}
 }
 
-static void set_kbr_default (struct uae_prefs *p, int index)
+static void set_kbr_default (struct uae_prefs *p, int index, int devnum)
 {
 	int i, j;
 	struct uae_input_device_kbr_default *trans = keyboard_default;
@@ -555,6 +562,8 @@ static void set_kbr_default (struct uae_prefs *p, int index)
 	if (!trans)
 		return;
 	for (j = 0; j < MAX_INPUT_DEVICES; j++) {
+		if (devnum >= 0 && devnum != j)
+			continue;
 		kbr = &p->keyboard_settings[index][j];
 		for (i = 0; i < MAX_INPUT_DEVICE_EVENTS; i++) {
 			memset (kbr, 0, sizeof (struct uae_input_device));
@@ -668,20 +677,27 @@ void read_inputdevice_config (struct uae_prefs *pr, char *option, char *value)
 	}
 
 	if (!_tcscmp (p2, "custom")) {
-		int disabled;
+		int iscustom;
 		p = value;
-		disabled = getnum (&p);
+		iscustom = getnum (&p);
 		if (idnum == GAMEPORT_INPUT_SETTINGS) {
 			clear_id (id);
 			if (joystick < 0)
-				set_kbr_default (pr, idnum);
-			id->enabled = disabled == 0 ? 1 : 0;
+				set_kbr_default (pr, idnum, devnum);
+			id->enabled = iscustom;
 		}
 		return;
 	}
 
 	if (!_tcscmp (p2, "empty")) {
+		int empty;
+		p = value;
+		empty = getnum (&p);
 		clear_id (id);
+		if (!empty) {
+			if (joystick < 0)
+				set_kbr_default (pr, idnum, devnum);
+		}
 		id->enabled = 1;
 		if (idnum == GAMEPORT_INPUT_SETTINGS)
 			id->enabled = 0;
@@ -2234,8 +2250,17 @@ void inputdevice_handle_inputcode (void)
 		savestate_quick ((code - AKS_STATERESTOREQUICK) / 2, 0);
 		break;
 #endif
-	case AKS_TOGGLEFULLSCREEN:
-		toggle_fullscreen ();
+	case AKS_TOGGLEDEFAULTSCREEN:
+		toggle_fullscreen (-1);
+		break;
+	case AKS_TOGGLEWINDOWEDFULLSCREEN:
+		toggle_fullscreen (0);
+		break;
+	case AKS_TOGGLEFULLWINDOWFULLSCREEN:
+		toggle_fullscreen (1);
+		break;
+	case AKS_TOGGLEWINDOWFULLWINDOW:
+		toggle_fullscreen (2);
 		break;
 	case AKS_TOGGLEMOUSEGRAB:
 		toggle_mousegrab ();
@@ -3603,11 +3628,6 @@ static void compatibility_copy (struct uae_prefs *prefs)
 				case JSEM_MODE_DEFAULT:
 				case JSEM_MODE_MOUSE:
 				default:
-					if (firstmouse) { // map first mouse to each available host mouse device
-						for (j = 0; j < MAX_INPUT_DEVICES; j++)
-							input_get_default_mouse (mice, j, i);
-						firstmouse = false;
-					}
 					input_get_default_mouse (mice, joy, i);
 					joymodes[i] = JSEM_MODE_MOUSE;
 					break;
@@ -4003,7 +4023,7 @@ void inputdevice_default_prefs (struct uae_prefs *p)
 	p->input_autofire_linecnt = 600;
 	for (i = 0; i < MAX_INPUT_SETTINGS; i++) {
 		if (i != GAMEPORT_INPUT_SETTINGS) {
-			set_kbr_default (p, i);
+			set_kbr_default (p, i, -1);
 			for (j = 0; j < MAX_INPUT_DEVICES; j++) {
 				if (input_get_default_mouse (p->mouse_settings[i], j, j & 1))
 					p->mouse_settings[i]->enabled = 1;
@@ -4014,7 +4034,7 @@ void inputdevice_default_prefs (struct uae_prefs *p)
 			if (p->jports[0].id != -2 || p->jports[0].id != -2) {
 				reset_inputdevice_slot (p, i);
 			}
-			set_kbr_default (p, i);
+			set_kbr_default (p, i, -1);
 		}
 	}
 }

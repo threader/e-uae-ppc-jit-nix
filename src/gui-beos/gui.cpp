@@ -189,7 +189,7 @@ void gui_display (int shortcut)
 	int was_fullscreen;
 
 	if (was_fullscreen = is_fullscreen ()) {
-	    toggle_fullscreen ();
+	    toggle_fullscreen (0);
 	    if (is_fullscreen ()) {
 		resume_sound ();
 		return;
@@ -199,7 +199,7 @@ void gui_display (int shortcut)
 	(new floppyFilePanel (shortcut))->run ();
 
 	if (was_fullscreen)
-	    toggle_fullscreen ();
+	    toggle_fullscreen (0);
     }
     resume_sound ();
 }

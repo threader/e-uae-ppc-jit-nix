@@ -1534,7 +1534,7 @@ int is_vsync (void)
     return 0;
 }
 
-void toggle_fullscreen (void)
+void toggle_fullscreen (int mode)
 {
 #ifdef USE_DGA_EXTENSION
     changed_prefs.gfx_afullscreen = changed_prefs.gfx_pfullscreen = !dgamode;

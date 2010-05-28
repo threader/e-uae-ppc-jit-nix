@@ -123,7 +123,7 @@ extern void graphics_notify_state (int state);
 extern void handle_events         (void);
 extern int  is_fullscreen         (void);
 extern int  is_vsync              (void);
-extern void toggle_fullscreen     (void);
+extern void toggle_fullscreen     (int mode);
 extern void toggle_mousegrab      (void);
 
 

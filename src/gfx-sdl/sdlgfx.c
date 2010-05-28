@@ -1888,7 +1888,7 @@ int is_vsync (void)
     return vsync;
 }
 
-void toggle_fullscreen (void)
+void toggle_fullscreen (int mode)
 {
     /* FIXME: Add support for separate full-screen/windowed sizes */
     fullscreen = 1 - fullscreen;

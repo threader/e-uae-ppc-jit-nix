@@ -106,17 +106,12 @@ struct cache030
 };
 
 #define CACHESETS040 64
-struct cache040set
-{
-	uae_u32 data[4];
-	bool valid[4];
-	uae_u32 tag;
-};
 #define CACHELINES040 4
 struct cache040
 {
-	struct cache040set cs[4];
-	int count;
+	uae_u32 data[CACHELINES040][4];
+	bool valid[CACHELINES040];
+	uae_u32 tag[CACHELINES040];
 };
 
 struct regstruct
@@ -419,6 +414,7 @@ extern void compemu_reset (void);
 #else
 #define flush_icache(uaecptr, int) do {} while (0)
 #endif
+extern void flush_dcache (uaecptr, int);
 extern void flush_mmu (uaecptr, int);
 
 extern int movec_illg (int regno);
@@ -426,6 +422,6 @@ extern uae_u32 val_move2c (int regno);
 extern void val_move2c2 (int regno, uae_u32 val);
 struct cpum2c {
 	int regno;
-	char *regname;
+	TCHAR *regname;
 };
 extern struct cpum2c m2cregs[];

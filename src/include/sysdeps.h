@@ -327,8 +327,10 @@ extern void mallocemu_free (void *ptr);
 #endif
 
 #include "target.h"
+#if !defined(RECUR)
 #include "machdep/machdep.h"
 #include "gfxdep/gfx.h"
+#endif
 
 extern void console_out (const char *, ...);
 extern void console_flush (void);
@@ -405,6 +407,7 @@ extern void xfree (const void*);
 #define _tcschr strchr
 #define _tstof atof
 #define _istdigit isdigit
+#define _istspace isspace
 #define _tstoi atoi
 #define _tcstol strtol
 #define _wunlink unlink

@@ -35,7 +35,7 @@
 #define COCOA_GUI_MAX_PATH 255
 
 /* These prototypes aren't declared in the sdlgfx header for some reason */
-extern void toggle_fullscreen (void);
+extern void toggle_fullscreen (int mode);
 extern int is_fullscreen (void);
 
 /* Defined in SDLmain.m */
@@ -504,7 +504,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 
 - (void)goFullscreen:(id)sender
 {
-	toggle_fullscreen();
+	toggle_fullscreen(0);
 }
 
 - (void)toggleInhibitDisplay:(id)sender
@@ -523,7 +523,7 @@ int ensureNotFullscreen (void)
     int result = 0;
 
     if (is_fullscreen ()) {
-		toggle_fullscreen ();
+		toggle_fullscreen (0);
 
 		if (is_fullscreen ())
 			write_log ("Cannot activate GUI in full-screen mode\n");
@@ -548,7 +548,7 @@ void restoreFullscreen (void)
 #endif
 
     if ((!is_fullscreen ()) && (wasFullscreen == YES))
-        toggle_fullscreen();
+        toggle_fullscreen(0);
 
     wasFullscreen = NO;
 }

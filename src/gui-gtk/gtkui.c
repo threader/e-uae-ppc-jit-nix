@@ -2468,7 +2468,7 @@ void gui_display (int shortcut)
 	/* If running fullscreen, then we must try to switched to windowed
 	 * mode before activating the GUI */
 	if (is_fullscreen ()) {
-	    toggle_fullscreen ();
+	    toggle_fullscreen (0);
 	    if (is_fullscreen ()) {
 		write_log ("Cannot activate GUI in full-screen mode\n");
 		return;

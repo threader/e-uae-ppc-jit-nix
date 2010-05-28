@@ -563,7 +563,7 @@ int check_prefs_changed_gfx (void)
     return 0;
 }
 
-void toggle_fullscreen (void)
+void toggle_fullscreen (int mode)
 {
     gWin->SetFullScreenMode(0);
 }
