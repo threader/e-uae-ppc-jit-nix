@@ -111,6 +111,9 @@ static struct uae_input_device2 joysticks2[MAX_INPUT_DEVICES];
 static struct uae_input_device2 mice2[MAX_INPUT_DEVICES];
 static uae_u8 scancodeused[MAX_INPUT_DEVICES][256];
 
+static int mouse_pullup = 1;
+static int joystick_pullup = 1;
+
 static int input_acquired;
 static int testmode, testmode_read, testmode_toggle;
 struct teststore
@@ -214,6 +217,35 @@ struct input_queue_struct {
 };
 static struct input_queue_struct input_queue[INPUT_QUEUE_SIZE];
 
+uae_u8 *restore_input (uae_u8 *src)
+{
+	unsigned int i,j;
+	restore_u32 ();
+	for (i = 0; i < 2; i++) {
+		for (j = 0; j < 2; j++) {
+			pot_cap[i][j] = restore_u16 ();
+		}
+	}
+	return src;
+}
+uae_u8 *save_input (int *len, uae_u8 *dstptr)
+{
+	uae_u8 *dstbak, *dst;
+	unsigned int i,j;
+
+	if (dstptr)
+		dstbak = dst = dstptr;
+	else
+		dstbak = dst = xmalloc (uae_u8, 1000);
+	save_u32 (0);
+	for (i = 0; i < 2; i++) {
+		for (j = 0; j < 2; j++) {
+			save_u16 (pot_cap[i][j]);
+		}
+	}
+	*len = dst - dstbak;
+	return dstbak;
+}
 
 static void freejport (struct uae_prefs *dst, int num)
 {
@@ -232,7 +264,7 @@ static void copyjport (const struct uae_prefs *src, struct uae_prefs *dst, int n
 
 static void out_config (FILE *f, int id, int num, const char *s1, const char *s2)
 {
-    cfgfile_write (f, "input.%d.%s%d=%s\n", id, s1, num, s2);
+	cfgfile_write (f, "input.%d.%s%d=%s\n", id, s1, num, s2);
 }
 
 static bool write_config_head (struct zfile *f, int idnum, int devnum, TCHAR *name, struct uae_input_device *id,  struct inputdevice_functions *idf)
@@ -313,7 +345,7 @@ static void write_config2 (FILE *f, int idnum, int i, int offset, TCHAR *tmp1, s
 		p += _tcslen (p);
 	}
 	if (p > tmp2) {
-	    cfgfile_write (f, "input.%d.%s%d=%s\n", idnum, tmp1, i, tmp2);
+		cfgfile_write (f, "input.%d.%s%d=%s\n", idnum, tmp1, i, tmp2);
 	}
 }
 
@@ -356,79 +388,79 @@ static void write_config (FILE *f, int idnum, int devnum, const char *name, cons
 	}
 
 	_stprintf (tmp1, "%s.%d.axis.", name, devnum);
-    for (i = 0; i < ID_AXIS_TOTAL; i++)
+	for (i = 0; i < ID_AXIS_TOTAL; i++)
 		write_config2 (f, idnum, i, ID_AXIS_OFFSET, tmp1, id);
 	_stprintf (tmp1, "%s.%d.button." ,name, devnum);
-    for (i = 0; i < ID_BUTTON_TOTAL; i++)
+	for (i = 0; i < ID_BUTTON_TOTAL; i++)
 		write_config2 (f, idnum, i, ID_BUTTON_OFFSET, tmp1, id);
 }
 
 static void kbrlabel (TCHAR *s)
 {
-    while (*s) {
+	while (*s) {
 		*s = _toupper (*s);
 		if (*s == ' ')
 			*s = '_';
-	s++;
-    }
+		s++;
+	}
 }
 
 static void write_kbr_config (FILE *f, int idnum, int devnum, struct uae_input_device *kbr, struct inputdevice_functions *idf)
 {
 	TCHAR tmp1[200], tmp2[200], tmp3[200], tmp4[200], *p;
-    int i, j, k, evt, skip;
+	int i, j, k, evt, skip;
 
-    if (!keyboard_default)
+	if (!keyboard_default)
 		return;
 
 	if (!write_config_head (f, idnum, devnum, "keyboard", kbr, idf))
 		return;
 
-    i = 0;
-    while (i < MAX_INPUT_DEVICE_EVENTS && kbr->extra[i][0] >= 0) {
+	i = 0;
+	while (i < MAX_INPUT_DEVICE_EVENTS && kbr->extra[i][0] >= 0) {
 		skip = 0;
 		k = 0;
 		while (keyboard_default[k].scancode >= 0) {
-		    if (keyboard_default[k].scancode == kbr->extra[i][0]) {
+			if (keyboard_default[k].scancode == kbr->extra[i][0]) {
 				skip = 1;
 				for (j = 1; j < MAX_INPUT_SUB_EVENT; j++) {
 					if ((kbr->flags[i][j] & ID_FLAG_SAVE_MASK) != 0 || kbr->eventid[i][j] > 0)
 						skip = 0;
 				}
 				if (keyboard_default[k].evt != kbr->eventid[i][0] || keyboard_default[k].flags != (kbr->flags[i][0] & ID_FLAG_SAVE_MASK))
-				    skip = 0;
+					skip = 0;
 				break;
-		    }
-		    k++;
+			}
+			k++;
 		}
 		if (kbr->eventid[i][0] == 0 && (kbr->flags[i][0] & ID_FLAG_SAVE_MASK) == 0 && keyboard_default[k].scancode < 0)
-		    skip = 1;
+			skip = 1;
 		if (skip) {
-		    i++;
-		    continue;
+			i++;
+			continue;
 		}
 		p = tmp2;
 		p[0] = 0;
 		for (j = 0; j < MAX_INPUT_SUB_EVENT; j++) {
 			TCHAR *custom = kbr->custom[i][j];
-		    evt = kbr->eventid[i][j];
-		    if (custom == NULL && evt <= 0) {
+			evt = kbr->eventid[i][j];
+			if (custom == NULL && evt <= 0) {
 				for (k = j + 1; k < MAX_INPUT_SUB_EVENT; k++) {
 					if (kbr->eventid[i][k] > 0 || kbr->custom[i][k] != NULL)
 						break;
 				}
 				if (k == MAX_INPUT_SUB_EVENT)
-				    break;
-		    }
-		    if (p > tmp2) {
+					break;
+			}
+			if (p > tmp2) {
 				*p++ = ',';
 				*p = 0;
-		    }
+			}
 			if (custom && _tcslen (custom) > 0)
 				_stprintf (p, "'%s'.%d", custom, kbr->flags[i][j] & ID_FLAG_SAVE_MASK);
-		    else if (evt > 0)
+			else if (evt > 0)
 				_stprintf (p, "%s.%d", events[evt].confname, kbr->flags[i][j] & ID_FLAG_SAVE_MASK);
-		    else
+			else
 				_tcscat (p, "NULL");
 			p += _tcslen(p);
 		}
@@ -438,12 +470,12 @@ static void write_kbr_config (FILE *f, int idnum, int devnum, struct uae_input_d
 		_stprintf (tmp4, "input.%d.%s", idnum + 1, tmp1);
 		cfgfile_write_str (f, tmp4, tmp2[0] ? tmp2 : "NULL");
 		i++;
-    }
+	}
 }
 
 void write_inputdevice_config (struct uae_prefs *p, FILE *f)
 {
-    int i, id;
+	int i, id;
 
 	cfgfile_write (f, "input.config=%d\n", p->input_selected_setting);
 	cfgfile_write (f, "input.joymouse_speed_analog=%d\n", p->input_joymouse_multiplier);
@@ -469,7 +501,7 @@ static int getnum (const TCHAR **pp)
 	const TCHAR *p = *pp;
 	int v;
 
-/*	if (!_tcsnicmp (p, L"false", 5))
+/*	if (!_tcsnicmp (p, "false", 5))
 		v = 0;
 	if (!_tcsnicmp (p, "true", 4))
 		v = 1;
@@ -585,18 +617,20 @@ static void set_kbr_default (struct uae_prefs *p, int index, int devnum)
 static void clear_id (struct uae_input_device *id)
 {
 #ifndef _DEBUG
-    int i, j;
-    for (i = 0; i < MAX_INPUT_DEVICE_EVENTS; i++) {
+	int i, j;
+	for (i = 0; i < MAX_INPUT_DEVICE_EVENTS; i++) {
 		for (j = 0; j < MAX_INPUT_SUB_EVENT; j++)
 			xfree (id->custom[i][j]);
-    }
+	}
 #endif
-	xfree (id->configname);
-	xfree (id->name);
-    memset (id, 0, sizeof (struct uae_input_device));
+	TCHAR *cn = id->configname;
+	TCHAR *n = id->name;
+	memset (id, 0, sizeof (struct uae_input_device));
+	id->configname = cn;
+	id->name = n;
 }
 
-void read_inputdevice_config (struct uae_prefs *pr, char *option, char *value)
+void read_inputdevice_config (struct uae_prefs *pr, TCHAR *option, TCHAR *value)
 {
 	struct uae_input_device *id = 0;
 	struct inputevent *ie;
@@ -685,6 +719,8 @@ void read_inputdevice_config (struct uae_prefs *pr, char *option, char *value)
 			if (joystick < 0)
 				set_kbr_default (pr, idnum, devnum);
 			id->enabled = iscustom;
+		} else {
+			id->enabled = false;
 		}
 		return;
 	}
@@ -1734,7 +1770,7 @@ static void cap_check (void)
 				joypot = joydirpot[joy][i];
 				if (analog_port[joy][i] && pot_cap[joy][i] < joypot)
 					charge = 1; // slow charge via pot variable resistor
-				if ((digital_port[joy][i] || mouse_port[joy]))
+				if (((joystick_pullup && digital_port[joy][i]) || (mouse_pullup && mouse_port[joy])))
 					charge = 1; // slow charge via pull-up resistor
 			}
 			if (!(potgo_value & pdir)) { // input?
@@ -1778,13 +1814,13 @@ static void cap_check (void)
 			}
 			/* official Commodore mouse has pull-up resistors in button lines
 			* NOTE: 3rd party mice may not have pullups! */
-			if (dong < 0 && mouse_port[joy] && charge == 0)
+			if (dong < 0 && (mouse_pullup && mouse_port[joy]) && charge == 0)
 				charge = 2;
 			/* emulate pullup resistor if button mapped because there too many broken
 			* programs that read second button in input-mode (and most 2+ button pads have
 			* pullups)
 			*/
-			if (dong < 0 && digital_port[joy][i] && charge == 0)
+			if (dong < 0 && (joystick_pullup && digital_port[joy][i]) && charge == 0)
 				charge = 2;
 
 			charge_cap (joy, i, charge);
@@ -3533,7 +3569,6 @@ static void compatibility_copy (struct uae_prefs *prefs)
 {
 	int used[MAX_INPUT_DEVICES] = { 0 };
 	int i, joy, j;
-	bool firstmouse = true;
 
 	for (i = 0; i < MAX_JPORTS; i++) {
 		joymodes[i] = prefs->jports[i].mode;
@@ -4687,7 +4722,7 @@ void inputdevice_acquire (int allmode)
 			idev[IDTYPE_KEYBOARD].acquire (i, allmode < 0);
 	}
 	//    if (!input_acquired)
-	//	write_log (L"input devices acquired (%s)\n", allmode ? "all" : "selected only");
+	//	write_log ("input devices acquired (%s)\n", allmode ? "all" : "selected only");
 	input_acquired = 1;
 }
 
@@ -4746,7 +4781,7 @@ void inputdevice_testrecord (int type, int num, int wtype, int wnum, int state)
 	if (!state)
 		return;
 
-	//write_log (L"%d %d %d %d %d\n", type, num, wtype, wnum, state);
+	//write_log ("%d %d %d %d %d\n", type, num, wtype, wnum, state);
 	struct teststore *ts = &testmode_data[testmode_count];
 	ts->testmode_type = type;
 	ts->testmode_num = num;

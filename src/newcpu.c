@@ -2267,11 +2267,13 @@ unsigned long REGPARAM2 op_illg (uae_u32 opcode)
 			warned++;
 		}
 		Exception (0xA, 0);
+		//activate_debugger();
 		return 4;
 	}
 	if (warned < 20) {
 		write_log ("Illegal instruction: %04x at %08X -> %08X\n", opcode, pc, get_long (regs.vbr + 0x10));
 		warned++;
+		//activate_debugger();
 	}
 
 	Exception (4, 0);
@@ -3218,9 +3220,12 @@ void m68k_go (int may_quit)
 			regs.spcflags |= of & (SPCFLAG_BRK | SPCFLAG_MODE_CHANGE);
 		}
 #endif
+	set_x_funcs ();
+#if defined(MMU) && defined(JIT)
 		if (mmu_enabled && !currprefs.cachesize) {
 			run_func = m68k_run_mmu;
 		} else {
+#endif
 			run_func = currprefs.cpu_cycle_exact && currprefs.cpu_model == 68000 ? m68k_run_1_ce :
 				currprefs.cpu_compatible && currprefs.cpu_model == 68000 ? m68k_run_1 :
 #ifdef JIT
@@ -3229,7 +3234,9 @@ void m68k_go (int may_quit)
 				(currprefs.cpu_model == 68040 || currprefs.cpu_model == 68060) && currprefs.mmu_model ? m68k_run_mmu040 :
 				currprefs.cpu_model >= 68020 && currprefs.cpu_cycle_exact ? m68k_run_2ce :
 				currprefs.cpu_compatible ? m68k_run_2p : m68k_run_2;
+#if defined(MMU) && defined(JIT)
 		}
+#endif
 		run_func ();
 	}
 	in_m68k_go--;
@@ -3382,8 +3389,11 @@ void m68k_disasm_2 (char *buf, int bufsize, uaecptr addr, uaecptr *nextpc, int c
 
 		m68kpc_offset += 2;
 
+		if (lookup->friendlyname)
+			_tcscpy (instrname, lookup->friendlyname);
+		else
 			_tcscpy (instrname, lookup->name);
-		ccpt = _tcsstr (instrname, L"cc");
+		ccpt = _tcsstr (instrname, "cc");
 		if (ccpt != 0) {
 			_tcsncpy (ccpt, ccnames[dp->cc], 2);
 		}
@@ -3677,7 +3687,9 @@ void m68k_dumpstate (void *f, uaecptr *nextpc)
 #define CPUTYPE_EC 1
 #define CPUMODE_HALT 1
 
-const uae_u8 *restore_cpu (const uae_u8 *src)
+
+
+uae_u8 *restore_cpu (uae_u8 *src)
 {
 	unsigned int i, flags, model;
 	uae_u32 l;
@@ -3776,7 +3788,9 @@ uae_u8 *restore_cpu_extra (uae_u8 *src)
 	currprefs.cpu_compatible = changed_prefs.cpu_compatible = (flags & 2) ? true : false;
 	currprefs.cpu_frequency = changed_prefs.cpu_frequency = restore_u32 ();
 	currprefs.cpu_clock_multiplier = changed_prefs.cpu_clock_multiplier = restore_u32 ();
+#ifdef JIT
 	currprefs.cachesize = changed_prefs.cachesize = (flags & 8) ? 8192 : 0;
+#endif
 
 	currprefs.m68k_speed = changed_prefs.m68k_speed = 0;
 	if (flags & 4)
@@ -3802,7 +3816,9 @@ uae_u8 *save_cpu_extra (int *len, uae_u8 *dstptr)
 	flags |= currprefs.cpu_cycle_exact ? 1 : 0;
 	flags |= currprefs.cpu_compatible ? 2 : 0;
 	flags |= currprefs.m68k_speed < 0 ? 4 : 0;
+#ifdef JIT
 	flags |= currprefs.cachesize > 0 ? 8 : 0;
+#endif
 	save_u32 (flags);
 	save_u32 (currprefs.cpu_frequency);
 	save_u32 (currprefs.cpu_clock_multiplier);
@@ -3812,7 +3828,7 @@ uae_u8 *save_cpu_extra (int *len, uae_u8 *dstptr)
 	return dstbak;
 }
 
-uae_u8 *save_cpu (uae_u32 *len, uae_u8 *dstptr)
+uae_u8 *save_cpu (int *len, uae_u8 *dstptr)
 {
 	uae_u8 *dstbak, *dst;
 	unsigned int model, i, khz;

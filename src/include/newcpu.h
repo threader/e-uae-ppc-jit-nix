@@ -51,17 +51,17 @@ typedef unsigned long REGPARAM3 cpuop_func (uae_u32) REGPARAM;
 typedef void REGPARAM3 cpuop_func_ce (uae_u32) REGPARAM;
 
 struct cputbl {
-    cpuop_func *handler;
-    uae_u16 opcode;
+	cpuop_func *handler;
+	uae_u16 opcode;
 };
 
 #ifdef JIT
 typedef unsigned long REGPARAM3 compop_func (uae_u32) REGPARAM;
 
 struct comptbl {
-    compop_func *handler;
-    uae_u32 opcode;
-    int specific;
+	compop_func *handler;
+	uae_u32 opcode;
+	int specific;
 };
 #endif
 
@@ -116,53 +116,53 @@ struct cache040
 
 struct regstruct
 {
-    uae_u32 regs[16];
+	uae_u32 regs[16];
 
-    uae_u32 pc;
-    uae_u8 *pc_p;
-    uae_u8 *pc_oldp;
+	uae_u32 pc;
+	uae_u8 *pc_p;
+	uae_u8 *pc_oldp;
 
-    uae_u16 irc, ir;
-    uae_u32 spcflags;
+	uae_u16 irc, ir;
+	uae_u32 spcflags;
 
-    uaecptr usp, isp, msp;
-    uae_u16 sr;
-    flagtype t1;
-    flagtype t0;
-    flagtype s;
-    flagtype m;
-    flagtype x;
-    flagtype stopped;
-    int intmask;
+	uaecptr usp, isp, msp;
+	uae_u16 sr;
+	flagtype t1;
+	flagtype t0;
+	flagtype s;
+	flagtype m;
+	flagtype x;
+	flagtype stopped;
+	int intmask;
 	int ipl, ipl_pin;
 
-    uae_u32 vbr, sfc, dfc;
+	uae_u32 vbr, sfc, dfc;
 
 #ifdef FPUEMU
-    fptype fp[8];
-    fptype fp_result;
+	fptype fp[8];
+	fptype fp_result;
 
-    uae_u32 fpcr, fpsr, fpiar;
-    uae_u32 fpsr_highbyte;
+	uae_u32 fpcr, fpsr, fpiar;
+	uae_u32 fpsr_highbyte;
 #endif
 #ifndef CPUEMU_68000_ONLY
-    uae_u32 cacr, caar;
-    uae_u32 itt0, itt1, dtt0, dtt1;
-    uae_u32 tcr, mmusr, urp, srp, buscr;
-    uae_u32 mmu_fslw, mmu_fault_addr;
-    uae_u16 mmu_ssw;
-    uae_u32 wb3_data;
-    uae_u16 wb3_status;
-    int mmu_enabled;
-    int mmu_pagesize_8k;
-    uae_u32 fault_pc;
+	uae_u32 cacr, caar;
+	uae_u32 itt0, itt1, dtt0, dtt1;
+	uae_u32 tcr, mmusr, urp, srp, buscr;
+	uae_u32 mmu_fslw, mmu_fault_addr;
+	uae_u16 mmu_ssw;
+	uae_u32 wb3_data;
+	uae_u16 wb3_status;
+	int mmu_enabled;
+	int mmu_pagesize_8k;
+	uae_u32 fault_pc;
 #endif
 
-    uae_u32 pcr;
-    uae_u32 address_space_mask;
+	uae_u32 pcr;
+	uae_u32 address_space_mask;
 
-    uae_u8 panic;
-    uae_u32 panic_pc, panic_addr;
+	uae_u8 panic;
+	uae_u32 panic_pc, panic_addr;
 
 	uae_u32 prefetch020data;
 	uae_u32 prefetch020addr;
@@ -173,7 +173,7 @@ extern struct regstruct regs;
 
 STATIC_INLINE uae_u32 munge24 (uae_u32 x)
 {
-    return x & regs.address_space_mask;
+	return x & regs.address_space_mask;
 }
 
 extern int mmu_enabled, mmu_triggered;
@@ -182,7 +182,7 @@ extern int cpucycleunit;
 STATIC_INLINE void set_special (uae_u32 x)
 {
 	regs.spcflags |= x;
-    cycles_do_special ();
+	cycles_do_special ();
 }
 
 STATIC_INLINE void unset_special (uae_u32 x)
@@ -230,33 +230,33 @@ STATIC_INLINE uaecptr m68k_getpci (void)
 {
 	return regs.pc;
 }
-STATIC_INLINE void m68k_incpci(int o)
+STATIC_INLINE void m68k_incpci (int o)
 {
 	regs.pc += o;
 }
 
 STATIC_INLINE void m68k_do_rts (void)
 {
-    m68k_setpc (get_long(m68k_areg (regs, 7)));
-    m68k_areg (regs, 7) += 4;
+	m68k_setpc (get_long (m68k_areg (regs, 7)));
+	m68k_areg (regs, 7) += 4;
 }
 STATIC_INLINE void m68k_do_rtsi (void)
 {
 	m68k_setpci (get_long (m68k_areg (regs, 7)));
-    m68k_areg (regs, 7) += 4;
+	m68k_areg (regs, 7) += 4;
 }
 
 STATIC_INLINE void m68k_do_bsr (uaecptr oldpc, uae_s32 offset)
 {
-    m68k_areg (regs, 7) -= 4;
-    put_long(m68k_areg (regs, 7), oldpc);
-    m68k_incpc (offset);
+	m68k_areg (regs, 7) -= 4;
+	put_long (m68k_areg (regs, 7), oldpc);
+	m68k_incpc (offset);
 }
 STATIC_INLINE void m68k_do_bsri (uaecptr oldpc, uae_s32 offset)
 {
-    m68k_areg (regs, 7) -= 4;
-    put_long(m68k_areg (regs, 7), oldpc);
-    m68k_incpci(offset);
+	m68k_areg (regs, 7) -= 4;
+	put_long (m68k_areg (regs, 7), oldpc);
+	m68k_incpci (offset);
 }
 
 STATIC_INLINE uae_u32 get_ibyte (int o)
@@ -279,33 +279,33 @@ STATIC_INLINE uae_u32 get_ilong (int o)
  * need to handle prefetch.  */
 STATIC_INLINE uae_u32 next_ibyte (void)
 {
-    uae_u32 r = get_ibyte (0);
-    m68k_incpc (2);
-    return r;
+	uae_u32 r = get_ibyte (0);
+	m68k_incpc (2);
+	return r;
 }
 STATIC_INLINE uae_u32 next_iword (void)
 {
-    uae_u32 r = get_iword (0);
-    m68k_incpc (2);
-    return r;
+	uae_u32 r = get_iword (0);
+	m68k_incpc (2);
+	return r;
 }
 STATIC_INLINE uae_u32 next_iwordi (void)
 {
 	uae_u32 r = get_iwordi (m68k_getpci ());
-    m68k_incpc (2);
-    return r;
+	m68k_incpc (2);
+	return r;
 }
 STATIC_INLINE uae_u32 next_ilong (void)
 {
-    uae_u32 r = get_ilong (0);
-    m68k_incpc (4);
-    return r;
+	uae_u32 r = get_ilong (0);
+	m68k_incpc (4);
+	return r;
 }
 STATIC_INLINE uae_u32 next_ilongi (void)
 {
 	uae_u32 r = get_ilongi (m68k_getpci ());
-    m68k_incpc (4);
-    return r;
+	m68k_incpc (4);
+	return r;
 }
 
 extern uae_u32 (*x_get_byte)(uaecptr addr);

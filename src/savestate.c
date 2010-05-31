@@ -91,40 +91,75 @@ TCHAR savestate_fname[MAX_DPATH];
 static struct staterecord staterecords[MAX_STATERECORDS];
 
 #endif
+static void state_incompatible_warn (void)
+{
+	static int warned;
+	int dowarn = 0;
+	int i;
+
+#ifdef BSDSOCKET
+	if (currprefs.socket_emu)
+		dowarn = 1;
+#endif
+#ifdef UAESERIAL
+	if (currprefs.uaeserial)
+		dowarn = 1;
+#endif
+#ifdef SCSIEMU
+	if (currprefs.scsi)
+		dowarn = 1;
+#endif
+#ifdef CATWEASEL
+	if (currprefs.catweasel)
+		dowarn = 1;
+#endif
+#ifdef FILESYS
+	for(i = 0; i < currprefs.mountitems; i++) {
+		struct mountedinfo mi;
+		int type = get_filesys_unitconfig (&currprefs, i, &mi);
+		if (mi.ismounted && type != FILESYS_VIRTUAL && type != FILESYS_HARDFILE && type != FILESYS_HARDFILE_RDB)
+			dowarn = 1;
+	}
+#endif
+	if (!warned && dowarn) {
+		warned = 1;
+		gui_message ("WARNING: Current configuration is not fully compatible with state saves.\nThis message will not appear again.");
+	}
+}
 
 /* functions for reading/writing bytes, shorts and longs in big-endian
  * format independent of host machine's endianess */
 
 void save_u32_func (uae_u8 **dstp, uae_u32 v)
 {
-    uae_u8 *dst = *dstp;
-    *dst++ = (uae_u8)(v >> 24);
-    *dst++ = (uae_u8)(v >> 16);
-    *dst++ = (uae_u8)(v >> 8);
-    *dst++ = (uae_u8)(v >> 0);
-    *dstp = dst;
+	uae_u8 *dst = *dstp;
+	*dst++ = (uae_u8)(v >> 24);
+	*dst++ = (uae_u8)(v >> 16);
+	*dst++ = (uae_u8)(v >> 8);
+	*dst++ = (uae_u8)(v >> 0);
+	*dstp = dst;
 }
 void save_u64_func (uae_u8 **dstp, uae_u64 v)
 {
-    save_u32_func (dstp, (uae_u32)(v >> 32));
-    save_u32_func (dstp, (uae_u32)v);
+	save_u32_func (dstp, (uae_u32)(v >> 32));
+	save_u32_func (dstp, (uae_u32)v);
 }
 void save_u16_func (uae_u8 **dstp, uae_u16 v)
 {
-    uae_u8 *dst = *dstp;
-    *dst++ = (uae_u8)(v >> 8);
-    *dst++ = (uae_u8)(v >> 0);
-    *dstp = dst;
+	uae_u8 *dst = *dstp;
+	*dst++ = (uae_u8)(v >> 8);
+	*dst++ = (uae_u8)(v >> 0);
+	*dstp = dst;
 }
 void save_u8_func (uae_u8 **dstp, uae_u8 v)
 {
-    uae_u8 *dst = *dstp;
-    *dst++ = v;
-    *dstp = dst;
+	uae_u8 *dst = *dstp;
+	*dst++ = v;
+	*dstp = dst;
 }
 void save_string_func (uae_u8 **dstp, const TCHAR *from)
 {
-    uae_u8 *dst = *dstp;
+	uae_u8 *dst = *dstp;
 	while (from && *from)
 		*dst++ = *from++;
     *dst++ = 0;
@@ -133,51 +168,51 @@ void save_string_func (uae_u8 **dstp, const TCHAR *from)
 
 uae_u32 restore_u32_func (uae_u8 **dstp)
 {
-    uae_u32 v;
+	uae_u32 v;
 	uae_u8 *dst = *dstp;
-    v = (dst[0] << 24) | (dst[1] << 16) | (dst[2] << 8) | (dst[3]);
-    *dstp = dst + 4;
-    return v;
+	v = (dst[0] << 24) | (dst[1] << 16) | (dst[2] << 8) | (dst[3]);
+	*dstp = dst + 4;
+	return v;
 }
 uae_u64 restore_u64_func (uae_u8 **dstp)
 {
-    uae_u64 v;
+	uae_u64 v;
 
-    v = restore_u32_func (dstp);
-    v <<= 32;
-    v |= restore_u32_func (dstp);
-    return v;
+	v = restore_u32_func (dstp);
+	v <<= 32;
+	v |= restore_u32_func (dstp);
+	return v;
 }
 uae_u16 restore_u16_func (uae_u8 **dstp)
 {
-    uae_u16 v;
+	uae_u16 v;
 	uae_u8 *dst = *dstp;
-    v=(dst[0] << 8) | (dst[1]);
-    *dstp = dst + 2;
-    return v;
+	v=(dst[0] << 8) | (dst[1]);
+	*dstp = dst + 2;
+	return v;
 }
 uae_u8 restore_u8_func (uae_u8 **dstp)
 {
-    uae_u8 v;
+	uae_u8 v;
 	uae_u8 *dst = *dstp;
-    v = dst[0];
-    *dstp = dst + 1;
-    return v;
+	v = dst[0];
+	*dstp = dst + 1;
+	return v;
 }
 TCHAR *restore_string_func (const uae_u8 **dstp)
 {
-    int len;
-    uae_u8 v;
+	int len;
+	uae_u8 v;
 	const uae_u8 *dst = *dstp;
-    char *top, *to;
+	char *top, *to;
 
 	len = strlen ((const char *)dst) + 1;
-	top = to = malloc (len);
-    do {
+	top = to = xmalloc (char, len);
+	do {
 		v = *dst++;
 		*top++ = v;
-    } while(v);
-    *dstp = dst;
+	} while (v);
+	*dstp = dst;
 	return to;
 }
 
@@ -186,33 +221,33 @@ TCHAR *restore_string_func (const uae_u8 **dstp)
 
 static void save_chunk (struct zfile *f, uae_u8 *chunk, size_t len, const TCHAR *name, int compress)
 {
-    uae_u8 tmp[8], *dst;
-    uae_u8 zero[4]= { 0, 0, 0, 0 };
-    uae_u32 flags;
-    size_t pos;
-    size_t chunklen, len2;
+	uae_u8 tmp[8], *dst;
+	uae_u8 zero[4]= { 0, 0, 0, 0 };
+	uae_u32 flags;
+	size_t pos;
+	size_t chunklen, len2;
 
-    if (!chunk)
-	return;
+	if (!chunk)
+		return;
 
-    if (compress < 0) {
-	zfile_fwrite (chunk, 1, len, f);
-	return;
-    }
+	if (compress < 0) {
+		zfile_fwrite (chunk, 1, len, f);
+		return;
+	}
 
-    /* chunk name */
+	/* chunk name */
 	zfile_fwrite (name, 1, 4, f);
-    pos = zfile_ftell (f);
-    /* chunk size */
-    dst = &tmp[0];
-    chunklen = len + 4 + 4 + 4;
-    save_u32 (chunklen);
-    zfile_fwrite (&tmp[0], 1, 4, f);
-    /* chunk flags */
-    flags = 0;
-    dst = &tmp[0];
-    save_u32 (flags | compress);
-    zfile_fwrite (&tmp[0], 1, 4, f);
+	pos = zfile_ftell (f);
+	/* chunk size */
+	dst = &tmp[0];
+	chunklen = len + 4 + 4 + 4;
+	save_u32 (chunklen);
+	zfile_fwrite (&tmp[0], 1, 4, f);
+	/* chunk flags */
+	flags = 0;
+	dst = &tmp[0];
+	save_u32 (flags | compress);
+	zfile_fwrite (&tmp[0], 1, 4, f);
 	/* chunk data */
 	if (compress) {
 		int tmplen = len;
@@ -239,9 +274,9 @@ static void save_chunk (struct zfile *f, uae_u8 *chunk, size_t len, const TCHAR 
 	}
 	if (!compress)
 		zfile_fwrite (chunk, 1, len, f);
-    /* alignment */
-    len2 = 4 - (len & 3);
-    if (len2)
+	/* alignment */
+	len2 = 4 - (len & 3);
+	if (len2)
 		zfile_fwrite (zero, 1, len2, f);
 
 	write_log ("Chunk '%s' chunk size %ld (%ld)\n", name, chunklen, len);
@@ -251,41 +286,41 @@ static uae_u8 *restore_chunk (struct zfile *f, TCHAR *name, size_t *len, size_t 
 {
 	uae_u8 tmp[6], dummy[4], *mem;
 	const uae_u8 *src;
-    uae_u32 flags;
+	uae_u32 flags;
 	size_t len2;
 
-    *totallen = 0;
-    /* chunk name */
-    zfile_fread (name, 1, 4, f);
-    name[4] = 0;
-    /* chunk size */
-    zfile_fread (tmp, 1, 4, f);
-    src = tmp;
+	*totallen = 0;
+	/* chunk name */
+	zfile_fread (name, 1, 4, f);
+	name[4] = 0;
+	/* chunk size */
+	zfile_fread (tmp, 1, 4, f);
+	src = tmp;
 	len2 = restore_u32 () - 4 - 4 - 4;
 	if (len2 < 0)
 		len2 = 0;
-    *len = len2;
+	*len = len2;
 	if (len2 == 0) {
 		*filepos = zfile_ftell (f);
 		return 0;
 	}
 
-    /* chunk flags */
-    zfile_fread (tmp, 1, 4, f);
-    src = tmp;
-    flags = restore_u32 ();
-    *totallen = *len;
-    if (flags & 1) {
+	/* chunk flags */
 	zfile_fread (tmp, 1, 4, f);
 	src = tmp;
-	*totallen = restore_u32();
-	*filepos = zfile_ftell (f) - 4 - 4 - 4;
-	len2 -= 4;
-    } else {
-	*filepos = zfile_ftell (f) - 4 - 4;
-    }
-    /* chunk data.  RAM contents will be loaded during the reset phase,
-       no need to malloc multiple megabytes here.  */
+	flags = restore_u32 ();
+	*totallen = *len;
+	if (flags & 1) {
+		zfile_fread (tmp, 1, 4, f);
+		src = tmp;
+		*totallen = restore_u32 ();
+		*filepos = zfile_ftell (f) - 4 - 4 - 4;
+		len2 -= 4;
+	} else {
+		*filepos = zfile_ftell (f) - 4 - 4;
+	}
+	/* chunk data.  RAM contents will be loaded during the reset phase,
+	   no need to malloc multiple megabytes here.  */
 	if (_tcscmp (name, "CRAM") != 0
 		&& _tcscmp (name, "BRAM") != 0
 		&& _tcscmp (name, "FRAM") != 0
@@ -293,49 +328,49 @@ static uae_u8 *restore_chunk (struct zfile *f, TCHAR *name, size_t *len, size_t 
 		&& _tcscmp (name, "PRAM") != 0
 		&& _tcscmp (name, "A3K1") != 0
 		&& _tcscmp (name, "A3K2") != 0)
-    {
-	/* without zeros at the end old state files may not work */
+	{
+		/* without zeros at the end old state files may not work */
 		mem = xcalloc (uae_u8, *totallen + 32);
 		if (flags & 1) {
 			zfile_zuncompress (mem, *totallen, f, len2);
 		} else {
 			zfile_fread (mem, 1, len2, f);
 		}
-    } else {
+	} else {
 		mem = 0;
 		zfile_fseek (f, len2, SEEK_CUR);
-    }
+	}
 
-    /* alignment */
-    len2 = 4 - (len2 & 3);
-    if (len2)
-	zfile_fread (dummy, 1, len2, f);
-    return mem;
+	/* alignment */
+	len2 = 4 - (len2 & 3);
+	if (len2)
+		zfile_fread (dummy, 1, len2, f);
+	return mem;
 }
 
 void restore_ram (size_t filepos, uae_u8 *memory)
 {
-    uae_u8 tmp[8];
+	uae_u8 tmp[8];
 	const uae_u8 *src = tmp;
 	unsigned int size, fullsize;
-    uae_u32 flags;
+	uae_u32 flags;
 
 	if (filepos == 0 || memory == NULL)
 		return;
-    zfile_fseek (savestate_file, filepos, SEEK_SET);
+	zfile_fseek (savestate_file, filepos, SEEK_SET);
 	zfile_fread (tmp, 1, sizeof tmp, savestate_file);
-    size = restore_u32 ();
-    flags = restore_u32 ();
-    size -= 4 + 4 + 4;
-    if (flags & 1) {
+	size = restore_u32 ();
+	flags = restore_u32 ();
+	size -= 4 + 4 + 4;
+	if (flags & 1) {
 		zfile_fread (tmp, 1, 4, savestate_file);
 		src = tmp;
 		fullsize = restore_u32 ();
 		size -= 4;
 		zfile_zuncompress (memory, fullsize, savestate_file, size);
-    } else {
+	} else {
 		zfile_fread (memory, 1, size, savestate_file);
-    }
+	}
 }
 
 uae_u8 *restore_log (uae_u8 *src)
@@ -353,10 +388,10 @@ static void restore_header (uae_u8 *src)
 {
 	TCHAR *emuname, *emuversion, *description;
 
-    restore_u32();
-    emuname = restore_string ();
-    emuversion = restore_string ();
-    description = restore_string ();
+	restore_u32 ();
+	emuname = restore_string ();
+	emuversion = restore_string ();
+	description = restore_string ();
 	write_log ("Saved with: '%s %s', description: '%s'\n",
 		emuname, emuversion, description);
 	xfree (description);
@@ -368,42 +403,42 @@ static void restore_header (uae_u8 *src)
 
 void restore_state (const TCHAR *filename)
 {
-    struct zfile *f;
-    uae_u8 *chunk;
+	struct zfile *f;
+	uae_u8 *chunk;
 	const uae_u8 *end;
-    TCHAR name[5];
-    size_t len, totallen;
+	TCHAR name[5];
+	size_t len, totallen;
 	size_t filepos, filesize;
 	int z3num;
 
-    chunk = 0;
+	chunk = 0;
 	f = zfile_fopen (filename, "rb", ZFD_NORMAL);
-    if (!f)
+	if (!f)
 		goto error;
 	zfile_fseek (f, 0, SEEK_END);
 	filesize = zfile_ftell (f);
 	zfile_fseek (f, 0, SEEK_SET);
-    savestate_init ();
+	savestate_init ();
 
-    chunk = restore_chunk (f, name, &len, &totallen, &filepos);
+	chunk = restore_chunk (f, name, &len, &totallen, &filepos);
 	if (!chunk || _tcsncmp (name, "ASF ", 4)) {
 		gui_message ("Cannot restore state from '%s'.\nIt is not an AmigaStateFile.\n", filename);
 		goto error;
-    }
+	}
 	config_changed = 1;
-    savestate_file = f;
-    restore_header (chunk);
+	savestate_file = f;
+	restore_header (chunk);
 	xfree (chunk);
-    changed_prefs.bogomem_size = 0;
-    changed_prefs.chipmem_size = 0;
-    changed_prefs.fastmem_size = 0;
+	changed_prefs.bogomem_size = 0;
+	changed_prefs.chipmem_size = 0;
+	changed_prefs.fastmem_size = 0;
 	changed_prefs.z3fastmem_size = 0;
 	changed_prefs.z3fastmem2_size = 0;
 	changed_prefs.mbresmem_low_size = 0;
 	changed_prefs.mbresmem_high_size = 0;
 	z3num = 0;
-    savestate_state = STATE_RESTORE;
-    for (;;) {
+	savestate_state = STATE_RESTORE;
+	for (;;) {
 		name[0] = 0;
 		chunk = end = restore_chunk (f, name, &len, &totallen, &filepos);
 		write_log ("Chunk '%s' size %d (%d)\n", name, len, totallen);
@@ -433,84 +468,93 @@ void restore_state (const TCHAR *filename)
 		} else if (!_tcscmp (name, "ZRAM")) {
 			restore_zram (totallen, filepos, z3num++);
 		    continue;
+		} else if (!_tcscmp (name, "ZCRM")) {
+			restore_zram (totallen, filepos, -1);
+			continue;
 		} else if (!_tcscmp (name, "BORO")) {
 			restore_bootrom (totallen, filepos);
 			continue;
 #endif
 #ifdef PICASSO96
 		} else if (!_tcscmp (name, "PRAM")) {
-	    restore_pram (totallen, filepos);
-	    continue;
+			restore_pram (totallen, filepos);
+			continue;
 #endif
-		} else if (!_tcscmp (name, "CPU "))
-	    end = restore_cpu (chunk);
+		} else if (!_tcscmp (name, "CPU ")) {
+			end = restore_cpu (chunk);
+		} else if (!_tcscmp (name, "CPUX"))
+			end = restore_cpu_extra (chunk);
 #ifdef FPUEMU
 		else if (!_tcscmp (name, "FPU "))
-	    end = restore_fpu (chunk);
+			end = restore_fpu (chunk);
 #endif
-#ifdef MMUEMU
+#ifdef MMU
 		else if (!_tcscmp (name, "MMU "))
 			end = restore_mmu (chunk);
 #endif
 		else if (!_tcscmp (name, "AGAC"))
-	    end = restore_custom_agacolors (chunk);
+			end = restore_custom_agacolors (chunk);
 		else if (!_tcscmp (name, "SPR0"))
-	    end = restore_custom_sprite (0, chunk);
+			end = restore_custom_sprite (0, chunk);
 		else if (!_tcscmp (name, "SPR1"))
-	    end = restore_custom_sprite (1, chunk);
+			end = restore_custom_sprite (1, chunk);
 		else if (!_tcscmp (name, "SPR2"))
-	    end = restore_custom_sprite (2, chunk);
+			end = restore_custom_sprite (2, chunk);
 		else if (!_tcscmp (name, "SPR3"))
-	    end = restore_custom_sprite (3, chunk);
+			end = restore_custom_sprite (3, chunk);
 		else if (!_tcscmp (name, "SPR4"))
-	    end = restore_custom_sprite (4, chunk);
+			end = restore_custom_sprite (4, chunk);
 		else if (!_tcscmp (name, "SPR5"))
-	    end = restore_custom_sprite (5, chunk);
+			end = restore_custom_sprite (5, chunk);
 		else if (!_tcscmp (name, "SPR6"))
-	    end = restore_custom_sprite (6, chunk);
+			end = restore_custom_sprite (6, chunk);
 		else if (!_tcscmp (name, "SPR7"))
-	    end = restore_custom_sprite (7, chunk);
+			end = restore_custom_sprite (7, chunk);
 		else if (!_tcscmp (name, "CIAA"))
-	    end = restore_cia (0, chunk);
+			end = restore_cia (0, chunk);
 		else if (!_tcscmp (name, "CIAB"))
-	    end = restore_cia (1, chunk);
+			end = restore_cia (1, chunk);
 		else if (!_tcscmp (name, "CHIP"))
-	    end = restore_custom (chunk);
+			end = restore_custom (chunk);
+		else if (!_tcscmp (name, "CINP"))
+			end = restore_input (chunk);
+		else if (!_tcscmp (name, "CHPX"))
+			end = restore_custom_extra (chunk);
 		else if (!_tcscmp (name, "AUD0"))
-	    end = restore_audio (0, chunk);
+			end = restore_audio (0, chunk);
 		else if (!_tcscmp (name, "AUD1"))
-	    end = restore_audio (1, chunk);
+			end = restore_audio (1, chunk);
 		else if (!_tcscmp (name, "AUD2"))
-	    end = restore_audio (2, chunk);
+			end = restore_audio (2, chunk);
 		else if (!_tcscmp (name, "AUD3"))
-	    end = restore_audio (3, chunk);
+			end = restore_audio (3, chunk);
 		else if (!_tcscmp (name, "BLIT"))
-	    end = restore_blitter (chunk);
+			end = restore_blitter (chunk);
 		else if (!_tcscmp (name, "DISK"))
-	    end = restore_floppy (chunk);
+			end = restore_floppy (chunk);
 		else if (!_tcscmp (name, "DSK0"))
-	    end = restore_disk (0, chunk);
+			end = restore_disk (0, chunk);
 		else if (!_tcscmp (name, "DSK1"))
-	    end = restore_disk (1, chunk);
+			end = restore_disk (1, chunk);
 		else if (!_tcscmp (name, "DSK2"))
-	    end = restore_disk (2, chunk);
+			end = restore_disk (2, chunk);
 		else if (!_tcscmp (name, "DSK3"))
-	    end = restore_disk (3, chunk);
+			end = restore_disk (3, chunk);
 		else if (!_tcscmp (name, "KEYB"))
-	    end = restore_keyboard (chunk);
+			end = restore_keyboard (chunk);
 #ifdef AUTOCONFIG
 		else if (!_tcscmp (name, "EXPA"))
-	    end = restore_expansion (chunk);
+			end = restore_expansion (chunk);
 #endif
 		else if (!_tcscmp (name, "ROM "))
-	    end = restore_rom (chunk);
+			end = restore_rom (chunk);
 #ifdef PICASSO96
 		else if (!_tcscmp (name, "P96 "))
-	    end = restore_p96 (chunk);
+			end = restore_p96 (chunk);
 #endif
 #ifdef ACTION_REPLAY
 		else if (!_tcscmp (name, "ACTR"))
-		    end = restore_action_replay (chunk);
+			end = restore_action_replay (chunk);
 		else if (!_tcscmp (name, "HRTM"))
 			end = restore_hrtmon (chunk);
 #endif
@@ -541,7 +585,7 @@ void restore_state (const TCHAR *filename)
 		else {
 			end = chunk + len;
 			write_log ("unknown chunk '%s' size %d bytes\n", name, len);
-    }
+		}
 		if (end == NULL)
 			write_log ("Chunk '%s', size %d bytes was not accepted!\n",
 			name, len);
@@ -551,7 +595,7 @@ void restore_state (const TCHAR *filename)
 		xfree (chunk);
 	}
 	restore_disk_finish ();
-    restore_blitter_finish ();
+	restore_blitter_finish ();
 #ifdef CD32
 	restore_akiko_finish ();
 #endif
@@ -559,25 +603,25 @@ void restore_state (const TCHAR *filename)
 	restore_p96_finish ();
 #endif
 //	target_addtorecent (filename, 0);
-    return;
+	return;
 
-    error:
-    savestate_state = 0;
-    savestate_file = 0;
-    if (chunk)
+error:
+	savestate_state = 0;
+	savestate_file = 0;
+	if (chunk)
 		xfree (chunk);
-    if (f)
-	zfile_fclose (f);
+	if (f)
+		zfile_fclose (f);
 }
 
 void savestate_restore_finish (void)
 {
-    if (savestate_state != STATE_RESTORE && savestate_state != STATE_REWIND)
+	if (savestate_state != STATE_RESTORE && savestate_state != STATE_REWIND)
 		return;
-    zfile_fclose (savestate_file);
-    savestate_file = 0;
-    savestate_state = 0;
-    restore_cpu_finish ();
+	zfile_fclose (savestate_file);
+	savestate_file = 0;
+	savestate_state = 0;
+	restore_cpu_finish ();
 	init_hz ();
 }
 
@@ -592,19 +636,19 @@ void savestate_initsave (const TCHAR *filename, int mode, int nodialogs)
 		return;
 	}
 	_tcscpy (savestate_fname, filename);
-    savestate_docompress = (mode == 1) ? 1 : 0;
-    savestate_specialdump = (mode == 3) ? 1 : (mode == 4) ? 2 : 0;
+	savestate_docompress = (mode == 1) ? 1 : 0;
+	savestate_specialdump = (mode == 3) ? 1 : (mode == 4) ? 2 : 0;
 	savestate_nodialogs = nodialogs;
 }
 
 static void save_rams (struct zfile *f, int comp)
 {
-    uae_u8 *dst;
+	uae_u8 *dst;
 	int len;
 
-    dst = save_cram (&len);
-    save_chunk (f, dst, len, "CRAM", comp);
-    dst = save_bram (&len);
+	dst = save_cram (&len);
+	save_chunk (f, dst, len, "CRAM", comp);
+	dst = save_bram (&len);
 	save_chunk (f, dst, len, "BRAM", comp);
 	dst = save_a3000lram (&len);
 	save_chunk (f, dst, len, "A3K1", comp);
@@ -617,11 +661,13 @@ static void save_rams (struct zfile *f, int comp)
 	save_chunk (f, dst, len, "ZRAM", comp);
 	dst = save_zram (&len, 1);
 	save_chunk (f, dst, len, "ZRAM", comp);
+	dst = save_zram (&len, -1);
+	save_chunk (f, dst, len, "ZCRM", comp);
 	dst = save_bootrom (&len);
 	save_chunk (f, dst, len, "BORO", comp);
 #endif
 #ifdef PICASSO96
-    dst = save_pram (&len);
+	dst = save_pram (&len);
 	save_chunk (f, dst, len, "PRAM", comp);
 #endif
 }
@@ -631,126 +677,138 @@ static void save_rams (struct zfile *f, int comp)
 int save_state (const TCHAR *filename, const TCHAR *description)
 {
 	uae_u8 endhunk[] = { 'E', 'N', 'D', ' ', 0, 0, 0, 8 };
-    uae_u8 header[1000];
+	uae_u8 header[1000];
 	TCHAR tmp[100];
-    uae_u8 *dst;
-    struct zfile *f;
-    uae_u32 len;
-    unsigned int i;
-    TCHAR name[5];
-    int comp = savestate_docompress;
+	uae_u8 *dst;
+	struct zfile *f;
+	uae_u32 len;
+	unsigned int i;
+	TCHAR name[5];
+	int comp = savestate_docompress;
 
 	if (!savestate_specialdump && !savestate_nodialogs) {
-/*		state_incompatible_warn ();
+		state_incompatible_warn ();
 		if (!save_filesys_cando ()) {
 			gui_message ("Filesystem active. Try again later");
 			return -1;
-    }*/
+		}
 	}
 	savestate_nodialogs = 0;
-    custom_prepare_savestate ();
+	custom_prepare_savestate ();
 	f = zfile_fopen (filename, "w+b", 0);
-    if (!f)
+	if (!f)
 		return 0;
-    if (savestate_specialdump) {
-	size_t pos;
-/*	if (savestate_specialdump == 2)
-	    write_wavheader (f, 0, 22050);*/
-	pos = zfile_ftell(f);
-	save_rams (f, -1);
-	if (savestate_specialdump == 2) {
-	    int len, len2, i;
-	    uae_u8 *tmp;
-	    len = zfile_ftell(f) - pos;
+	if (savestate_specialdump) {
+		size_t pos;
+		if (savestate_specialdump == 2)
+			write_wavheader (f, 0, 22050);
+		pos = zfile_ftell (f);
+		save_rams (f, -1);
+		if (savestate_specialdump == 2) {
+			int len, len2, i;
+			uae_u8 *tmp;
+			len = zfile_ftell (f) - pos;
 			tmp = xmalloc (uae_u8, len);
-	    zfile_fseek(f, pos, SEEK_SET);
-	    len2 = zfile_fread(tmp, 1, len, f);
-	    for (i = 0; i < len2; i++)
-		tmp[i] += 0x80;
-/*	    write_wavheader (f, len, 22050);*/
-	    zfile_fwrite (tmp, len2, 1, f);
+			zfile_fseek(f, pos, SEEK_SET);
+			len2 = zfile_fread (tmp, 1, len, f);
+			for (i = 0; i < len2; i++)
+				tmp[i] += 0x80;
+			write_wavheader (f, len, 22050);
+			zfile_fwrite (tmp, len2, 1, f);
 			xfree (tmp);
-	}
-	zfile_fclose (f);
+		}
+		zfile_fclose (f);
 		return 1;
 	}
 
-    dst = header;
-    save_u32 (0);
+	dst = header;
+	save_u32 (0);
 	save_string ("UAE");
 	sprintf (tmp, "%d.%d.%d", UAEMAJOR, UAEMINOR, UAESUBREV);
-    save_string (tmp);
-    save_string (description);
+	save_string (tmp);
+	save_string (description);
 	save_chunk (f, header, dst-header, "ASF ", 0);
 
-    dst = save_cpu (&len, 0);
+	dst = save_cpu (&len, 0);
 	save_chunk (f, dst, len, "CPU ", 0);
-    xfree (dst);
+	xfree (dst);
+
+	dst = save_cpu_extra (&len, 0);
+	save_chunk (f, dst, len, "CPUX", 0);
+	xfree (dst);
 
 #ifdef FPUEMU
-    dst = save_fpu (&len,0 );
+	dst = save_fpu (&len,0 );
 	save_chunk (f, dst, len, "FPU ", 0);
-    xfree (dst);
+	xfree (dst);
 #endif
 
-#ifdef MMUEMU
+#ifdef MMU
 	dst = save_mmu (&len, 0);
 	save_chunk (f, dst, len, "MMU ", 0);
 	xfree (dst);
 #endif
 
 	_tcscpy(name, "DSKx");
-    for (i = 0; i < 4; i++) {
-	dst = save_disk (i, &len, 0);
-	if (dst) {
-	    name[3] = i + '0';
-	    save_chunk (f, dst, len, name, 0);
-	    xfree (dst);
+	for (i = 0; i < 4; i++) {
+		dst = save_disk (i, &len, 0);
+		if (dst) {
+			name[3] = i + '0';
+			save_chunk (f, dst, len, name, 0);
+			xfree (dst);
+		}
 	}
-    }
-    dst = save_floppy (&len, 0);
+	dst = save_floppy (&len, 0);
 	save_chunk (f, dst, len, "DISK", 0);
-    xfree (dst);
+	xfree (dst);
 
-    dst = save_blitter (&len, 0);
+	dst = save_blitter (&len, 0);
 	save_chunk (f, dst, len, "BLIT", 0);
-    xfree (dst);
+	xfree (dst);
 
-    dst = save_custom (&len, 0, 0);
+	dst = save_custom (&len, 0, 0);
 	save_chunk (f, dst, len, "CHIP", 0);
-    xfree (dst);
+	xfree (dst);
 
-    dst = save_custom_agacolors (&len, 0);
+	dst = save_custom_extra (&len, 0);
+	save_chunk (f, dst, len, "CHPX", 0);
+	xfree (dst);
+
+	dst = save_input (&len, 0);
+	save_chunk (f, dst, len, "CINP", 0);
+	xfree (dst);
+
+	dst = save_custom_agacolors (&len, 0);
 	save_chunk (f, dst, len, "AGAC", 0);
-    xfree (dst);
+	xfree (dst);
 
 	_tcscpy (name, "SPRx");
-    for (i = 0; i < 8; i++) {
+	for (i = 0; i < 8; i++) {
 		dst = save_custom_sprite (i, &len, 0);
 		name[3] = i + '0';
 		save_chunk (f, dst, len, name, 0);
 		xfree (dst);
-    }
+	}
 
 	_tcscpy (name, "AUDx");
-    for (i = 0; i < 4; i++) {
+	for (i = 0; i < 4; i++) {
 		dst = save_audio (i, &len, 0);
 		name[3] = i + '0';
 		save_chunk (f, dst, len, name, 0);
 		xfree (dst);
-    }
+	}
 
-    dst = save_cia (0, &len, 0);
+	dst = save_cia (0, &len, 0);
 	save_chunk (f, dst, len, "CIAA", 0);
-    xfree (dst);
+	xfree (dst);
 
-    dst = save_cia (1, &len, 0);
+	dst = save_cia (1, &len, 0);
 	save_chunk (f, dst, len, "CIAB", 0);
-    xfree (dst);
+	xfree (dst);
 
-    dst = save_keyboard (&len);
+	dst = save_keyboard (&len);
 	save_chunk (f, dst, len, "KEYB", 0);
-    xfree (dst);
+	xfree (dst);
 
 #ifdef AUTOCONFIG
     dst = save_expansion (&len, 0);
@@ -760,15 +818,15 @@ int save_state (const TCHAR *filename, const TCHAR *description)
 	dst = save_p96 (&len, 0);
 	save_chunk (f, dst, len, "P96 ", 0);
 #endif
-    save_rams (f, comp);
+	save_rams (f, comp);
 
-    dst = save_rom (1, &len, 0);
-    do {
+	dst = save_rom (1, &len, 0);
+	do {
 		if (!dst)
-		    break;
+			break;
 		save_chunk (f, dst, len, "ROM ", 0);
 		xfree (dst);
-    } while ((dst = save_rom (0, &len, 0)));
+	} while ((dst = save_rom (0, &len, 0)));
 
 #ifdef CD32
 	dst = save_akiko (&len);
@@ -776,7 +834,7 @@ int save_state (const TCHAR *filename, const TCHAR *description)
 	xfree (dst);
 #endif
 #ifdef ACTION_REPLAY
-    dst = save_action_replay (&len, 0);
+	dst = save_action_replay (&len, 0);
 	save_chunk (f, dst, len, "ACTR", comp);
 	dst = save_hrtmon (&len, 0);
 	save_chunk (f, dst, len, "HRTM", comp);
@@ -792,7 +850,7 @@ int save_state (const TCHAR *filename, const TCHAR *description)
 				xfree (dst);
 			}
 		}
-    }
+	}
 #endif
 #ifdef GAYLE
 	dst = save_gayle (&len);
@@ -836,87 +894,87 @@ int save_state (const TCHAR *filename, const TCHAR *description)
 	zfile_fwrite (endhunk, 1, 8, f);
 
 	write_log ("Save of '%s' complete\n", filename);
-    zfile_fclose (f);
-    savestate_state = 0;
+	zfile_fclose (f);
+	savestate_state = 0;
 	return 1;
 }
 
 void savestate_quick (int slot, int save)
 {
 	int i, len = _tcslen (savestate_fname);
-    i = len - 1;
-    while (i >= 0 && savestate_fname[i] != '_')
+	i = len - 1;
+	while (i >= 0 && savestate_fname[i] != '_')
 		i--;
-    if (i < len - 6 || i <= 0) { /* "_?.uss" */
+	if (i < len - 6 || i <= 0) { /* "_?.uss" */
 		i = len - 1;
 		while (i >= 0 && savestate_fname[i] != '.')
-		    i--;
+			i--;
 		if (i <= 0) {
 			write_log ("savestate name skipped '%s'\n", savestate_fname);
-		    return;
+			return;
 		}
-    }
+	}
 	_tcscpy (savestate_fname + i, ".uss");
-    if (slot > 0)
+	if (slot > 0)
 		_stprintf (savestate_fname + i, "_%d.uss", slot);
-    if (save) {
+	if (save) {
 		write_log ("saving '%s'\n", savestate_fname);
 		savestate_docompress = 1;
 		save_state (savestate_fname, "");
-    } else {
+	} else {
 		if (!zfile_exists (savestate_fname)) {
 			write_log ("staterestore, file '%s' not found\n", savestate_fname);
 		    return;
 		}
 		savestate_state = STATE_DORESTORE;
 		write_log ("staterestore starting '%s'\n", savestate_fname);
-    }
+	}
 }
 
 static struct staterecord *canrewind (int pos)
 {
-    int i;
-    struct staterecord *st;
+	int i;
+	struct staterecord *st;
 
-    if (!replaybuffer)
+	if (!replaybuffer)
 		return 0;
-    i = replaycounter;
-    st = &staterecords[i];
-    if (st->start)
+	i = replaycounter;
+	st = &staterecords[i];
+	if (st->start)
 		return st;
-    return 0;
+	return 0;
 }
 
 int savestate_dorewind (int pos)
 {
-    if (canrewind (pos)) {
+	if (canrewind (pos)) {
 		savestate_state = STATE_DOREWIND;
 		return 1;
-    }
-    return 0;
+	}
+	return 0;
 }
 
 void savestate_listrewind (void)
 {
-    int i = replaycounter;
-    int cnt;
+	int i = replaycounter;
+	int cnt;
 	const uae_u8 *p;
-    uae_u32 pc;
+	uae_u32 pc;
 
-    cnt = 1;
-    for (;;) {
+	cnt = 1;
+	for (;;) {
 		struct staterecord *st;
 		st = &staterecords[i];
 		if (!st->start)
-		    break;
+			break;
 		p = st->cpu + 17 * 4;
 		pc = restore_u32_func (&p);
 		console_out ("%d: PC=%08X %c\n", cnt, pc, regs.pc == pc ? '*' : ' ');
 		cnt++;
 		i--;
 		if (i < 0)
-		    i += MAX_STATERECORDS;
-    }
+			i += MAX_STATERECORDS;
+	}
 }
 
 void savestate_rewind (void)
@@ -924,65 +982,67 @@ void savestate_rewind (void)
 	unsigned int len;
 	unsigned int i, dummy;
 	const uae_u8 *p, *p2;
-    struct staterecord *st;
+	struct staterecord *st;
 
-    st = canrewind (1);
-    if (!st)
+	st = canrewind (1);
+	if (!st)
 		return;
-    frameextra = timeframes % currprefs.statecapturerate;
-    p =  st->start;
-    p2 = st->end;
+	frameextra = timeframes % currprefs.statecapturerate;
+	p =  st->start;
+	p2 = st->end;
 	write_log ("rewinding from %d\n", replaycounter);
-    p = restore_cpu (p);
+	p = restore_cpu (p);
+	p = restore_cpu_extra (p);
 #ifdef FPUEMU
-    if (restore_u32_func (&p))
+	if (restore_u32_func (&p))
 		p = restore_fpu (p);
 #endif
-    for (i = 0; i < 4; i++) {
+	for (i = 0; i < 4; i++) {
 		p = restore_disk (i, p);
-    }
-    p = restore_floppy (p);
-    p = restore_custom (p);
-    p = restore_blitter (p);
-    p = restore_custom_agacolors (p);
-    for (i = 0; i < 8; i++) {
+	}
+	p = restore_floppy (p);
+	p = restore_custom (p);
+	p = restore_custom_extra (p);
+	p = restore_blitter (p);
+	p = restore_custom_agacolors (p);
+	for (i = 0; i < 8; i++) {
 		p = restore_custom_sprite (i, p);
-    }
-    for (i = 0; i < 4; i++) {
+	}
+	for (i = 0; i < 4; i++) {
 		p = restore_audio (i, p);
-    }
-    p = restore_cia (0, p);
-    p = restore_cia (1, p);
+	}
+	p = restore_cia (0, p);
+	p = restore_cia (1, p);
 #ifdef AUTOCONFIG
-    p = restore_expansion (p);
+	p = restore_expansion (p);
 #endif
-    len = restore_u32_func (&p);
-    memcpy (chipmemory, p, currprefs.chipmem_size > len ? len : currprefs.chipmem_size);
-    p += len;
-    len = restore_u32_func (&p);
-    memcpy (save_bram (&dummy), p, currprefs.bogomem_size > len ? len : currprefs.bogomem_size);
-    p += len;
+	len = restore_u32_func (&p);
+	memcpy (chipmemory, p, currprefs.chipmem_size > len ? len : currprefs.chipmem_size);
+	p += len;
+	len = restore_u32_func (&p);
+	memcpy (save_bram (&dummy), p, currprefs.bogomem_size > len ? len : currprefs.bogomem_size);
+	p += len;
 #ifdef AUTOCONFIG
-    len = restore_u32_func (&p);
-    memcpy (save_fram (&dummy), p, currprefs.fastmem_size > len ? len : currprefs.fastmem_size);
-    p += len;
-    len = restore_u32_func (&p);
-    memcpy (save_zram (&dummy, 0), p, currprefs.z3fastmem_size > len ? len : currprefs.z3fastmem_size);
-    p += len;
+	len = restore_u32_func (&p);
+	memcpy (save_fram (&dummy), p, currprefs.fastmem_size > len ? len : currprefs.fastmem_size);
+	p += len;
+	len = restore_u32_func (&p);
+	memcpy (save_zram (&dummy, 0), p, currprefs.z3fastmem_size > len ? len : currprefs.z3fastmem_size);
+	p += len;
 #endif
 #ifdef ACTION_REPLAY
-    if (restore_u32_func (&p))
-	p = restore_action_replay (p);
+	if (restore_u32_func (&p))
+		p = restore_action_replay (p);
 #endif
-    p += 4;
-    if (p != p2) {
+	p += 4;
+	if (p != p2) {
 		gui_message ("reload failure, address mismatch %p != %p", p, p2);
 		uae_reset (0);
 		return;
-    }
-    st->start = st->next = 0;
-    replaycounter--;
-    if (replaycounter < 0)
+	}
+	st->start = st->next = 0;
+	replaycounter--;
+	if (replaycounter < 0)
 		replaycounter += MAX_STATERECORDS;
 }
 
@@ -990,207 +1050,217 @@ void savestate_rewind (void)
 
 static int bufcheck (uae_u8 **pp, int len)
 {
-    uae_u8 *p = *pp;
-    if (p + len + BS >= replaybuffer + replaybuffersize) {
+	uae_u8 *p = *pp;
+	if (p + len + BS >= replaybuffer + replaybuffersize) {
 		//write_log ("capture buffer wrap-around\n");
 		return 1;
-    }
-    return 0;
+	}
+	return 0;
 }
 
 void savestate_capture (int force)
 {
-    uae_u8 *p, *p2, *p3, *dst;
+	uae_u8 *p, *p2, *p3, *dst;
 	int i, len, tlen, retrycnt;
-    struct staterecord *st, *stn;
+	struct staterecord *st, *stn;
 
 #ifdef FILESYS
 	if (nr_units ())
-	return;
-#endif
-    if (!replaybuffer)
 		return;
-    if (!force && (!currprefs.statecapture || !currprefs.statecapturerate || ((timeframes + frameextra) % currprefs.statecapturerate)))
+#endif
+	if (!replaybuffer)
+		return;
+	if (!force && (!currprefs.statecapture || !currprefs.statecapturerate || ((timeframes + frameextra) % currprefs.statecapturerate)))
 		return;
 
-    retrycnt = 0;
+	retrycnt = 0;
 retry2:
-    st = &staterecords[replaycounter];
-    if (st->next == 0) {
+	st = &staterecords[replaycounter];
+	if (st->next == 0) {
 		replaycounter = 0;
 		st = &staterecords[replaycounter];
 		st->next = replaybuffer;
-    }
-    stn = &staterecords[(replaycounter + 1) & (MAX_STATERECORDS - 1)];
-    p = p2 = st->next;
-    tlen = 0;
-    if (bufcheck (&p, 0))
+	}
+	stn = &staterecords[(replaycounter + 1) & (MAX_STATERECORDS - 1)];
+	p = p2 = st->next;
+	tlen = 0;
+	if (bufcheck (&p, 0))
 		goto retry;
-    stn->cpu = p;
-    save_cpu (&len, p);
-    tlen += len;
-    p += len;
+	stn->cpu = p;
+	save_cpu (&len, p);
+	tlen += len;
+	p += len;
+	if (bufcheck (&p, 0))
+		goto retry;
+	save_cpu_extra (&len, p);
+	tlen += len;
+	p += len;
 #ifdef FPUEMU
-    if (bufcheck (&p, 0))
+	if (bufcheck (&p, 0))
 		goto retry;
-    p3 = p;
-    save_u32_func (&p, 0);
-    tlen += 4;
-    if (save_fpu (&len, p)) {
+	p3 = p;
+	save_u32_func (&p, 0);
+	tlen += 4;
+	if (save_fpu (&len, p)) {
 		save_u32_func (&p3, 1);
 		tlen += len;
 		p += len;
-    }
+	}
 #endif
-    for (i = 0; i < 4; i++) {
+	for (i = 0; i < 4; i++) {
 		if (bufcheck (&p, 0))
-		    goto retry;
+			goto retry;
 		save_disk (i, &len, p);
 		tlen += len;
 		p += len;
-    }
-    if (bufcheck (&p, 0))
+	}
+	if (bufcheck (&p, 0))
 		goto retry;
-    save_floppy (&len, p);
-    tlen += len;
-    p += len;
-    if (bufcheck (&p, 0))
+	save_floppy (&len, p);
+	tlen += len;
+	p += len;
+	if (bufcheck (&p, 0))
 		goto retry;
-    save_custom (&len, p, 0);
-    tlen += len;
-    p += len;
-    if (bufcheck (&p, 0))
+	save_custom (&len, p, 0);
+	tlen += len;
+	p += len;
+	if (bufcheck (&p, 0))
 		goto retry;
-    save_blitter (&len, p);
-    tlen += len;
-    p += len;
-    if (bufcheck (&p, 0))
+	save_custom_extra (&len, p);
+	tlen += len;
+	p += len;
+	if (bufcheck (&p, 0))
 		goto retry;
-    save_custom_agacolors (&len, p);
-    tlen += len;
-    p += len;
-    for (i = 0; i < 8; i++) {
+	save_blitter (&len, p);
+	tlen += len;
+	p += len;
+	if (bufcheck (&p, 0))
+		goto retry;
+	save_custom_agacolors (&len, p);
+	tlen += len;
+	p += len;
+	for (i = 0; i < 8; i++) {
 		if (bufcheck (&p, 0))
-		    goto retry;
+			goto retry;
 		save_custom_sprite (i, &len, p);
 		tlen += len;
 		p += len;
-    }
-    for (i = 0; i < 4; i++) {
+	}
+	for (i = 0; i < 4; i++) {
 		if (bufcheck (&p, 0))
-		    goto retry;
+			goto retry;
 		save_audio (i, &len, p);
 		tlen += len;
 		p += len;
-    }
-    if (bufcheck (&p, 0))
+	}
+	if (bufcheck (&p, 0))
 		goto retry;
-    save_cia (0, &len, p);
-    tlen += len;
-    p += len;
-    if (bufcheck (&p, 0))
+	save_cia (0, &len, p);
+	tlen += len;
+	p += len;
+	if (bufcheck (&p, 0))
 		goto retry;
-    save_cia (1, &len, p);
-    tlen += len;
-    p += len;
+	save_cia (1, &len, p);
+	tlen += len;
+	p += len;
 #ifdef AUTOCONFIG
-    if (bufcheck (&p, 0))
+	if (bufcheck (&p, 0))
 		goto retry;
-    save_expansion (&len, p);
-    tlen += len;
-    p += len;
+	save_expansion (&len, p);
+	tlen += len;
+	p += len;
 #endif
-    dst = save_cram (&len);
-    if (bufcheck (&p, len))
+	dst = save_cram (&len);
+	if (bufcheck (&p, len))
 		goto retry;
-    save_u32_func (&p, len);
-    memcpy (p, dst, len);
-    tlen += len + 4;
-    p += len;
-    dst = save_bram (&len);
-    if (bufcheck (&p, len))
+	save_u32_func (&p, len);
+	memcpy (p, dst, len);
+	tlen += len + 4;
+	p += len;
+	dst = save_bram (&len);
+	if (bufcheck (&p, len))
 		goto retry;
-    save_u32_func (&p, len);
-    memcpy (p, dst, len);
-    tlen += len + 4;
-    p += len;
+	save_u32_func (&p, len);
+	memcpy (p, dst, len);
+	tlen += len + 4;
+	p += len;
 #ifdef AUTOCONFIG
-    dst = save_fram (&len);
-    if (bufcheck (&p, len))
+	dst = save_fram (&len);
+	if (bufcheck (&p, len))
 		goto retry;
-    save_u32_func (&p, len);
-    memcpy (p, dst, len);
-    tlen += len + 4;
-    p += len;
+	save_u32_func (&p, len);
+	memcpy (p, dst, len);
+	tlen += len + 4;
+	p += len;
 	dst = save_zram (&len, 0);
-    if (bufcheck (&p, len))
+	if (bufcheck (&p, len))
 		goto retry;
-    save_u32_func (&p, len);
-    memcpy (p, dst, len);
-    tlen += len + 4;
-    p += len;
+	save_u32_func (&p, len);
+	memcpy (p, dst, len);
+	tlen += len + 4;
+	p += len;
 #endif
 #ifdef ACTION_REPLAY
-    if (bufcheck (&p, 0))
+	if (bufcheck (&p, 0))
 		goto retry;
-    p3 = p;
-    save_u32_func (&p, 0);
-    tlen += 4;
-    if (save_action_replay (&len, p)) {
+	p3 = p;
+	save_u32_func (&p, 0);
+	tlen += 4;
+	if (save_action_replay (&len, p)) {
 		save_u32_func (&p3, 1);
 		tlen += len;
 		p += len;
-    }
+	}
 #endif
-    save_u32_func (&p, tlen);
-    stn->next = p;
-    stn->start = p2;
-    stn->end = p;
-    replaylastreloaded = -1;
-    replaycounter++;
-    replaycounter &= (MAX_STATERECORDS - 1);
-    i = (replaycounter + 1) & (MAX_STATERECORDS - 1);
-    staterecords[i].next = staterecords[i].start = 0;
-    i = replaycounter - 1;
-    while (i != replaycounter) {
+	save_u32_func (&p, tlen);
+	stn->next = p;
+	stn->start = p2;
+	stn->end = p;
+	replaylastreloaded = -1;
+	replaycounter++;
+	replaycounter &= (MAX_STATERECORDS - 1);
+	i = (replaycounter + 1) & (MAX_STATERECORDS - 1);
+	staterecords[i].next = staterecords[i].start = 0;
+	i = replaycounter - 1;
+	while (i != replaycounter) {
 		if (i < 0)
-		    i += MAX_STATERECORDS;
+			i += MAX_STATERECORDS;
 		st = &staterecords[i];
 		if (p2 <= st->start && p >= st->end) {
-		    st->start = st->next = 0;
-		    break;
+			st->start = st->next = 0;
+			break;
 		}
 		i--;
-    }
+	}
 	//write_log ("state capture %d (%d bytes)\n", replaycounter, p - p2);
-    return;
+	return;
 retry:
-    staterecords[replaycounter].next = replaybuffer;
-    retrycnt++;
-    if (retrycnt > 1) {
+	staterecords[replaycounter].next = replaybuffer;
+	retrycnt++;
+	if (retrycnt > 1) {
 		write_log ("can't save, too small capture buffer\n");
 		return;
-    }
-    goto retry2;
+	}
+	goto retry2;
 }
 
 void savestate_free (void)
 {
 	xfree (replaybuffer);
-    replaybuffer = 0;
+	replaybuffer = 0;
 }
 
 void savestate_init (void)
 {
-    savestate_free ();
-    memset (staterecords, 0, sizeof (staterecords));
-    replaycounter = 0;
-    replaylastreloaded = -1;
-    frameextra = 0;
-    if (currprefs.statecapture && currprefs.statecapturebuffersize && currprefs.statecapturerate) {
+	savestate_free ();
+	memset (staterecords, 0, sizeof (staterecords));
+	replaycounter = 0;
+	replaylastreloaded = -1;
+	frameextra = 0;
+	if (currprefs.statecapture && currprefs.statecapturebuffersize && currprefs.statecapturerate) {
 		replaybuffersize = currprefs.statecapturebuffersize;
 		replaybuffer = xmalloc (uae_u8, replaybuffersize);
-    }
+	}
 }
 
 /*

@@ -39,9 +39,11 @@ extern char *restore_string_func (const uae_u8 **);
 #ifdef SAVESTATE
 /* save, restore and initialize routines for Amiga's subsystems */
 
-extern const uae_u8 *restore_cpu (const uae_u8 *src);
-extern       void    restore_cpu_finish (void);
-extern       uae_u8 *save_cpu    (uae_u32 *len, uae_u8 *dstpr);
+extern uae_u8 *restore_cpu (uae_u8 *);
+extern void restore_cpu_finish (void);
+extern uae_u8 *save_cpu (int *, uae_u8 *);
+extern uae_u8 *restore_cpu_extra (uae_u8 *);
+extern uae_u8 *save_cpu_extra (int *, uae_u8 *);
 
 extern uae_u8 *restore_mmu (uae_u8 *);
 extern uae_u8 *save_mmu (int *, uae_u8 *);
@@ -49,16 +51,18 @@ extern uae_u8 *save_mmu (int *, uae_u8 *);
 extern uae_u8 *restore_fpu (uae_u8 *);
 extern uae_u8 *save_fpu (int *, uae_u8 *);
 
-extern const uae_u8 *restore_disk (unsigned int num, const uae_u8 *src);
-extern       uae_u8 *save_disk    (unsigned int num, uae_u32 *len, uae_u8 *dsptr);
-extern const uae_u8 *restore_floppy (const uae_u8 *src);
-extern       uae_u8 *save_floppy    (uae_u32 *len, uae_u8 *dstptr);
+extern uae_u8 *restore_disk (int, uae_u8 *);
+extern uae_u8 *save_disk (int, int *, uae_u8 *);
+extern uae_u8 *restore_floppy (uae_u8 *src);
+extern uae_u8 *save_floppy (int *len, uae_u8 *);
 extern void DISK_save_custom     (uae_u32 *pdskpt, uae_u16 *pdsklen, uae_u16 *pdsksync, uae_u16 *pdskbytr);
 extern void DISK_restore_custom  (uae_u32 pdskpt, uae_u16 pdsklength, uae_u16 pdskbytr);
 extern void restore_disk_finish (void);
 
 extern uae_u8 *restore_custom (uae_u8 *);
 extern uae_u8 *save_custom (int *, uae_u8 *, int);
+extern uae_u8 *restore_custom_extra (uae_u8 *);
+extern uae_u8 *save_custom_extra (int *, uae_u8 *);
 
 extern uae_u8 *restore_custom_sprite (int num, uae_u8 *src);
 extern uae_u8 *save_custom_sprite (int num, int *len, uae_u8 *);
@@ -108,6 +112,9 @@ extern uae_u8 *save_configuration (int *len);
 extern uae_u8 *restore_configuration (uae_u8 *src);
 extern uae_u8 *save_log (int, int *len);
 extern uae_u8 *restore_log (uae_u8 *src);
+
+extern uae_u8 *restore_input (uae_u8 *src);
+extern uae_u8 *save_input (int *len, uae_u8 *dstptr);
 
 extern void restore_cram (int, size_t);
 extern void restore_bram (int, size_t);

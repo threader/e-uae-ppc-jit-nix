@@ -478,13 +478,13 @@ static void update_mirrors (void)
 
 STATIC_INLINE uae_u8 *pfield_xlateptr (uaecptr plpt, int bytecount)
 {
-	if (!chipmem_bank.check (plpt, bytecount)) {
+	if (!chipmem_check_indirect (plpt, bytecount)) {
 		static int count = 0;
 		if (!count)
 			count++, write_log ("Warning: Bad playfield pointer\n");
 		return NULL;
 	}
-	return chipmem_bank.xlateaddr (plpt);
+	return chipmem_xlate_indirect (plpt);
 }
 
 STATIC_INLINE void docols (struct color_entry *colentry)
@@ -1081,21 +1081,21 @@ STATIC_INLINE void fetch (int nr, int fm, int hpos)
 			bpl1dat_written = 1;
 #ifdef DEBUGGER
 		if (debug_dma)
-			record_dma (0x110 + nr * 2, chipmem_agnus_wget (p), p, hpos, vpos, DMARECORD_BITPLANE);
+			record_dma (0x110 + nr * 2, chipmem_wget_indirect (p), p, hpos, vpos, DMARECORD_BITPLANE);
 #endif
 		switch (fm)
 		{
 		case 0:
-			fetched[nr] = bplxdat[nr] = last_custom_value1 = chipmem_agnus_wget (p);
+			fetched[nr] = bplxdat[nr] = last_custom_value1 = chipmem_wget_indirect (p);
 			break;
 #ifdef AGA
 		case 1:
-			fetched_aga0[nr] = chipmem_lget (p);
+			fetched_aga0[nr] = chipmem_lget_indirect (p);
 			last_custom_value1 = (uae_u16)fetched_aga0[nr];
 			break;
 		case 2:
-			fetched_aga1[nr] = chipmem_lget (p);
-			fetched_aga0[nr] = chipmem_lget (p + 4);
+			fetched_aga1[nr] = chipmem_lget_indirect (p);
+			fetched_aga0[nr] = chipmem_lget_indirect (p + 4);
 			last_custom_value1 = (uae_u16)fetched_aga0[nr];
 			break;
 #endif
@@ -3132,8 +3132,8 @@ static void immediate_copper (int num)
 			break;
 		pos++;
 		oldpos = pos;
-		cop_state.i1 = chipmem_agnus_wget (cop_state.ip);
-		cop_state.i2 = chipmem_agnus_wget (cop_state.ip + 2);
+		cop_state.i1 = chipmem_wget_indirect (cop_state.ip);
+		cop_state.i2 = chipmem_wget_indirect (cop_state.ip + 2);
 		cop_state.ip += 4;
 		if (!(cop_state.i1 & 1)) { // move
 			cop_state.i1 &= 0x1fe;
@@ -3410,7 +3410,7 @@ void send_interrupt (int num, int delay)
 {
 	if (use_eventmode (0x8000) && delay > 0) {
 		if (!(intreq & (1 << num)))
-			event2_newevent_xx (-1, delay * CYCLE_UNIT, num, send_interrupt_do);
+			event2_newevent_xx (-1, delay, num, send_interrupt_do);
 	} else {
 		send_interrupt_do (num);
 	}
@@ -3906,9 +3906,9 @@ static void BLTSIZH (int hpos, uae_u16 v)
 	maybe_blit (hpos, 0);
 	blt_info.hblitsize = v & 0x7FF;
 	if (!blt_info.vblitsize)
-		blt_info.vblitsize = 32768;
+		blt_info.vblitsize = 0x8000;
 	if (!blt_info.hblitsize)
-		blt_info.hblitsize = 0x800;
+		blt_info.hblitsize = 0x0800;
 	do_blitter (hpos, copper_access);
 }
 
@@ -4347,7 +4347,7 @@ static void update_copper (int until_hpos)
 			alloc_cycle (old_hpos, CYCLE_COPPER);
 #ifdef DEBUGGER
 			if (debug_dma)
-				record_dma (0x8c, chipmem_agnus_wget (cop_state.ip), cop_state.ip, old_hpos, vpos, DMARECORD_COPPER);
+				record_dma (0x8c, chipmem_wget_indirect (cop_state.ip), cop_state.ip, old_hpos, vpos, DMARECORD_COPPER);
 #endif
 			cop_state.ip += 2;
 			break;
@@ -4361,7 +4361,7 @@ static void update_copper (int until_hpos)
 			alloc_cycle (old_hpos, CYCLE_COPPER);
 #ifdef DEBUGGER
 			if (debug_dma)
-				record_dma (0x1fe, chipmem_agnus_wget (cop_state.ip), cop_state.ip, old_hpos, vpos, DMARECORD_COPPER);
+				record_dma (0x1fe, chipmem_wget_indirect (cop_state.ip), cop_state.ip, old_hpos, vpos, DMARECORD_COPPER);
 #endif
 			// next cycle finally reads from new pointer
 			if (cop_state.strobe == 1)
@@ -4385,7 +4385,7 @@ static void update_copper (int until_hpos)
 		case COP_read1:
 			if (copper_cant_read (old_hpos, 1))
 				continue;
-			cop_state.i1 = last_custom_value1 = chipmem_agnus_wget (cop_state.ip);
+			cop_state.i1 = last_custom_value1 = chipmem_wget_indirect (cop_state.ip);
 			alloc_cycle (old_hpos, CYCLE_COPPER);
 #ifdef DEBUGGER
 			if (debug_dma)
@@ -4398,7 +4398,7 @@ static void update_copper (int until_hpos)
 		case COP_read2:
 			if (copper_cant_read (old_hpos, 1))
 				continue;
-			cop_state.i2 = last_custom_value1 = chipmem_agnus_wget (cop_state.ip);
+			cop_state.i2 = last_custom_value1 = chipmem_wget_indirect (cop_state.ip);
 			alloc_cycle (old_hpos, CYCLE_COPPER);
 			cop_state.ip += 2;
 			cop_state.saved_i1 = cop_state.i1;
@@ -4690,7 +4690,7 @@ STATIC_INLINE uae_u16 sprite_fetch (struct sprite *s, int dma, int hpos, int cyc
 	if (dma) {
 		if (cycle && currprefs.cpu_cycle_exact)
 			s->ptxhpos = hpos;
-		data = last_custom_value1 = chipmem_agnus_wget (s->pt);
+		data = last_custom_value1 = chipmem_wget_indirect (s->pt);
 		alloc_cycle (hpos, CYCLE_SPRITE);
 #ifdef DEBUGGER
 		if (debug_dma)
@@ -4702,7 +4702,7 @@ STATIC_INLINE uae_u16 sprite_fetch (struct sprite *s, int dma, int hpos, int cyc
 }
 STATIC_INLINE uae_u16 sprite_fetch2 (struct sprite *s, int hpos, int cycle, int mode)
 {
-	uae_u16 data = last_custom_value1 = chipmem_agnus_wget (s->pt);
+	uae_u16 data = last_custom_value1 = chipmem_wget_indirect (s->pt);
 	s->pt += 2;
 	return data;
 }
@@ -4783,7 +4783,7 @@ STATIC_INLINE void do_sprites_1 (int num, int cycle, int hpos)
 		}
 #if SPRITE_DEBUG > 1
 		if (vpos >= SPRITE_DEBUG_MINY && vpos <= SPRITE_DEBUG_MAXY) {
-			write_log (L"%d:%d:dma:P=%06X ", vpos, hpos, s->pt);
+			write_log ("%d:%d:dma:P=%06X ", vpos, hpos, s->pt);
 		}
 #endif
 	}
@@ -5076,7 +5076,7 @@ static void vsync_handler (void)
 	if (bogusframe > 0)
 		bogusframe--;
 
-    gui_handle_events ();
+	gui_handle_events ();
 	handle_events ();
 
 #if CUSTOM_DEBUG > 1
@@ -5411,10 +5411,10 @@ void hsync_handler (void)
 	// DIP Agnus (8361): vblank interrupt is triggered on line 1!
 	if (currprefs.cs_dipagnus) {
 		if (vpos == 1)
-			send_interrupt (5, 1);
+			send_interrupt (5, 1 * CYCLE_UNIT);
 	} else {
 		if (vpos == 0)
-			send_interrupt (5, 1);
+			send_interrupt (5, 1 * CYCLE_UNIT);
 	}
 
 #ifdef CPUEMU_12

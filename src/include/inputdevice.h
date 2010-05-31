@@ -247,7 +247,7 @@ extern void inputdevice_settest (int);
 extern int inputdevice_testread_count (void);
 
 //FIXME:
-    typedef enum {
+typedef enum {
         DIK_0,
         DIK_1,
         DIK_2,
@@ -392,7 +392,7 @@ extern int inputdevice_testread_count (void);
         DIK_Y,
         DIK_YEN,
         DIK_Z
-    };
+};
 
 static struct uae_input_device_kbr_default keytrans[] = {
 

@@ -45,7 +45,8 @@ extern uae_u32 allocated_chipmem;
 extern uae_u32 allocated_fastmem;
 extern uae_u32 allocated_bogomem;
 extern uae_u32 allocated_gfxmem;
-extern uae_u32 allocated_z3fastmem, allocated_z3fastmem2, max_z3fastmem;
+extern uae_u32 allocated_z3fastmem, allocated_z3fastmem2, allocated_z3chipmem;
+extern uae_u32 max_z3fastmem;
 extern uae_u32 allocated_a3000mem;
 extern uae_u32 allocated_cardmem;
 
@@ -78,28 +79,28 @@ extern uae_u8* baseaddr[];
 
 enum { ABFLAG_UNK = 0, ABFLAG_RAM = 1, ABFLAG_ROM = 2, ABFLAG_ROMIN = 4, ABFLAG_IO = 8, ABFLAG_NONE = 16, ABFLAG_SAFE = 32 };
 typedef struct {
-    /* These ones should be self-explanatory... */
-    mem_get_func lget, wget, bget;
-    mem_put_func lput, wput, bput;
-    /* Use xlateaddr to translate an Amiga address to a uae_u8 * that can
-     * be used to address memory without calling the wget/wput functions.
-     * This doesn't work for all memory banks, so this function may call
-     * abort(). */
-    xlate_func xlateaddr;
-    /* To prevent calls to abort(), use check before calling xlateaddr.
-     * It checks not only that the memory bank can do xlateaddr, but also
-     * that the pointer points to an area of at least the specified size.
-     * This is used for example to translate bitplane pointers in custom.c */
-    check_func check;
-    /* For those banks that refer to real memory, we can save the whole trouble
-       of going through function calls, and instead simply grab the memory
-       ourselves. This holds the memory address where the start of memory is
-       for this particular bank. */
-    uae_u8 *baseaddr;
+	/* These ones should be self-explanatory... */
+	mem_get_func lget, wget, bget;
+	mem_put_func lput, wput, bput;
+	/* Use xlateaddr to translate an Amiga address to a uae_u8 * that can
+	 * be used to address memory without calling the wget/wput functions.
+	 * This doesn't work for all memory banks, so this function may call
+	 * abort(). */
+	xlate_func xlateaddr;
+	/* To prevent calls to abort(), use check before calling xlateaddr.
+	 * It checks not only that the memory bank can do xlateaddr, but also
+	 * that the pointer points to an area of at least the specified size.
+	 * This is used for example to translate bitplane pointers in custom.c */
+	check_func check;
+	/* For those banks that refer to real memory, we can save the whole trouble
+	 * of going through function calls, and instead simply grab the memory
+	 * ourselves. This holds the memory address where the start of memory is
+	 * for this particular bank. */
+	uae_u8 *baseaddr;
 	TCHAR *name;
-    /* for instruction opcode/operand fetches */
-    mem_get_func lgeti, wgeti;
-    int flags;
+	/* for instruction opcode/operand fetches */
+	mem_get_func lgeti, wgeti;
+	int flags;
 } addrbank;
 
 #define CE_MEMBANK_FAST 0
@@ -189,23 +190,23 @@ extern void free_fastmemory (void);
 
 STATIC_INLINE uae_u32 get_long (uaecptr addr)
 {
-    return longget(addr);
+	return longget (addr);
 }
 STATIC_INLINE uae_u32 get_word (uaecptr addr)
 {
-    return wordget(addr);
+	return wordget (addr);
 }
 STATIC_INLINE uae_u32 get_byte (uaecptr addr)
 {
-    return byteget(addr);
+	return byteget (addr);
 }
 STATIC_INLINE uae_u32 get_longi(uaecptr addr)
 {
-    return longgeti(addr);
+	return longgeti (addr);
 }
 STATIC_INLINE uae_u32 get_wordi(uaecptr addr)
 {
-    return wordgeti(addr);
+	return wordgeti (addr);
 }
 
 /*
@@ -217,21 +218,21 @@ STATIC_INLINE uae_u32 get_wordi(uaecptr addr)
 # if SIZEOF_VOID_P == 8
 STATIC_INLINE void *get_pointer (uaecptr addr)
 {
-    const unsigned int n = SIZEOF_VOID_P / 4;
-    union {
-	void    *ptr;
-	uae_u32  longs[SIZEOF_VOID_P / 4];
-    } p;
-    unsigned int i;
+	const unsigned int n = SIZEOF_VOID_P / 4;
+	union {
+		void    *ptr;
+		uae_u32  longs[SIZEOF_VOID_P / 4];
+	} p;
+	unsigned int i;
 
-    for (i = 0; i < n; i++) {
+	for (i = 0; i < n; i++) {
 #ifdef WORDS_BIGENDIAN
-	p.longs[i]     = get_long (addr + i * 4);
+		p.longs[i]     = get_long (addr + i * 4);
 #else
-	p.longs[n - 1 - i] = get_long (addr + i * 4);
+		p.longs[n - 1 - i] = get_long (addr + i * 4);
 #endif
-    }
-    return p.ptr;
+	}
+	return p.ptr;
 }
 # else
 #  error "Unknown or unsupported pointer size."
@@ -240,15 +241,15 @@ STATIC_INLINE void *get_pointer (uaecptr addr)
 
 STATIC_INLINE void put_long (uaecptr addr, uae_u32 l)
 {
-    longput(addr, l);
+	longput(addr, l);
 }
 STATIC_INLINE void put_word (uaecptr addr, uae_u32 w)
 {
-    wordput(addr, w);
+	wordput(addr, w);
 }
 STATIC_INLINE void put_byte (uaecptr addr, uae_u32 b)
 {
-    byteput(addr, b);
+	byteput(addr, b);
 }
 
 extern void put_long_slow (uaecptr addr, uae_u32 v);
@@ -268,34 +269,34 @@ extern uae_u32 get_byte_slow (uaecptr addr);
 # if SIZEOF_VOID_P == 8
 STATIC_INLINE void put_pointer (uaecptr addr, void *v)
 {
-    const unsigned int n = SIZEOF_VOID_P / 4;
-    union {
+	const unsigned int n = SIZEOF_VOID_P / 4;
+	union {
 		void    *ptr;
 		uae_u32  longs[SIZEOF_VOID_P / 4];
-    } p;
-    unsigned int i;
+	} p;
+	unsigned int i;
 
-    p.ptr = v;
+	p.ptr = v;
 
-    for (i = 0; i < n; i++) {
+	for (i = 0; i < n; i++) {
 #ifdef WORDS_BIGENDIAN
 		put_long (addr + i * 4, p.longs[i]);
 #else
 		put_long (addr + i * 4, p.longs[n - 1 - i]);
 #endif
-    }
+	}
 }
 # endif
 #endif
 
 STATIC_INLINE uae_u8 *get_real_address (uaecptr addr)
 {
-    return get_mem_bank(addr).xlateaddr(addr);
+	return get_mem_bank (addr).xlateaddr(addr);
 }
 
-STATIC_INLINE int valid_address(uaecptr addr, uae_u32 size)
+STATIC_INLINE int valid_address (uaecptr addr, uae_u32 size)
 {
-    return get_mem_bank(addr).check(addr, size);
+	return get_mem_bank (addr).check(addr, size);
 }
 
 extern int addr_valid (TCHAR*, uaecptr,uae_u32);
@@ -328,14 +329,23 @@ extern void REGPARAM3 chipmem_lput_ce2 (uaecptr, uae_u32) REGPARAM;
 extern void REGPARAM3 chipmem_wput_ce2 (uaecptr, uae_u32) REGPARAM;
 extern void REGPARAM3 chipmem_bput_ce2 (uaecptr, uae_u32) REGPARAM;
 
+extern uae_u32 (REGPARAM3 *chipmem_lget_indirect)(uaecptr) REGPARAM;
+extern uae_u32 (REGPARAM3 *chipmem_wget_indirect)(uaecptr) REGPARAM;
+extern uae_u32 (REGPARAM3 *chipmem_bget_indirect)(uaecptr) REGPARAM;
+extern void (REGPARAM3 *chipmem_lput_indirect)(uaecptr, uae_u32) REGPARAM;
+extern void (REGPARAM3 *chipmem_wput_indirect)(uaecptr, uae_u32) REGPARAM;
+extern void (REGPARAM3 *chipmem_bput_indirect)(uaecptr, uae_u32) REGPARAM;
+extern int (REGPARAM2 *chipmem_check_indirect)(uaecptr, uae_u32);
+extern uae_u8 *(REGPARAM2 *chipmem_xlate_indirect)(uaecptr);
+
 #ifdef NATMEM_OFFSET
 
 typedef struct shmpiece_reg {
-    uae_u8 *native_address;
-    int id;
-    uae_u32 size;
-    struct shmpiece_reg *next;
-    struct shmpiece_reg *prev;
+	uae_u8 *native_address;
+	int id;
+	uae_u32 size;
+	struct shmpiece_reg *next;
+	struct shmpiece_reg *prev;
 } shmpiece;
 
 extern shmpiece *shm_start;

@@ -145,7 +145,8 @@ STATIC_INLINE void color_reg_cpy (struct color_entry *dst, struct color_entry *s
     else
 #endif
 		/* copy first 32 acolors and color_regs_ecs */
-		memcpy (dst->color_regs_ecs, src->color_regs_ecs, sizeof(struct color_entry));
+		memcpy (dst->color_regs_ecs, src->color_regs_ecs,
+		sizeof(struct color_entry));
 }
 
 /*

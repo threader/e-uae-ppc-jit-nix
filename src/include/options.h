@@ -173,9 +173,9 @@ struct uae_prefs {
 	int gfx_display;
 	TCHAR gfx_display_name[256];
 	int gfx_framerate, gfx_autoframerate;
-    int gfx_width_win, gfx_height_win;
-    int gfx_width_fs, gfx_height_fs;
-    int gfx_width, gfx_height;
+	int gfx_width_win, gfx_height_win;
+	int gfx_width_fs, gfx_height_fs;
+	int gfx_width, gfx_height;
 	struct wh gfx_size_win;
 	struct wh gfx_size_fs;
 	struct wh gfx_size;
@@ -198,10 +198,10 @@ struct uae_prefs {
 	int gfx_backbuffers;
 	int gfx_api;
 	int color_mode;
-    int gfx_gl_x_offset; //koko
-    int gfx_gl_y_offset; //koko
-    int gfx_gl_smoothing; //koko
-    int gfx_gl_panscan; //koko
+	int gfx_gl_x_offset; //koko
+	int gfx_gl_y_offset; //koko
+	int gfx_gl_smoothing; //koko
+	int gfx_gl_panscan; //koko
 
 	int gfx_filter;
 	TCHAR gfx_filtershader[MAX_DPATH];
@@ -232,7 +232,7 @@ struct uae_prefs {
 	bool sana2;
 	bool uaeserial;
 	int catweasel;
-    int catweasel_io;
+	int catweasel_io;
 	int cpu_idle;
 	bool cpu_cycle_exact;
 	int cpu_clock_multiplier;
@@ -282,7 +282,7 @@ struct uae_prefs {
 	TCHAR romident[256];
 	TCHAR romextfile[MAX_DPATH];
 	TCHAR romextident[256];
-    char keyfile[256];
+	TCHAR keyfile[256];
 	TCHAR flashfile[MAX_DPATH];
 #ifdef ACTION_REPLAY
 	TCHAR cartfile[MAX_DPATH];
@@ -321,6 +321,8 @@ struct uae_prefs {
 
 	uae_u32 z3fastmem_size, z3fastmem2_size;
 	uae_u32 z3fastmem_start;
+	uae_u32 z3chipmem_size;
+	uae_u32 z3chipmem_start;
 	uae_u32 fastmem_size;
 	uae_u32 chipmem_size;
 	uae_u32 bogomem_size;
@@ -336,7 +338,7 @@ struct uae_prefs {
 	bool mmkeyboard;
 	int uae_hide;
 
-    struct uaedev_mount_info *mountinfo;
+	struct uaedev_mount_info *mountinfo;
 	int mountitems;
 	struct uaedev_config_info mountconfig[MOUNT_CONFIG_SIZE];
 
@@ -348,18 +350,18 @@ struct uae_prefs {
 	int dfxclickvolume;
 #endif
 
-    int hide_cursor;				/* Whether to hide host WM cursor or not */
+	int hide_cursor;				/* Whether to hide host WM cursor or not */
 
-    /* Target specific options */
+	/* Target specific options */
 #ifdef USE_X11_GFX
-    int x11_use_low_bandwidth;
-    int x11_use_mitshm;
-    int x11_use_dgamode;
-    int x11_hide_cursor;
+	int x11_use_low_bandwidth;
+	int x11_use_mitshm;
+	int x11_use_dgamode;
+	int x11_hide_cursor;
 #endif
 
 #ifdef USE_SVGALIB_GFX
-    int svga_no_linear;
+	int svga_no_linear;
 #endif
 
 #ifdef _WIN32
@@ -405,19 +407,19 @@ struct uae_prefs {
 #endif
 
 #ifdef USE_CURSES_GFX
-    int curses_reverse_video;
+	int curses_reverse_video;
 #endif
 
 #if defined USE_SDL_GFX || defined USE_X11_GFX
-    int map_raw_keys;
+	int map_raw_keys;
 #endif
-    int use_gl;
+	int use_gl;
 
 #ifdef USE_AMIGA_GFX
-    int  amiga_screen_type;
-    char amiga_publicscreen[256];
-    int  amiga_use_grey;
-    int  amiga_use_dither;
+	int  amiga_screen_type;
+	char amiga_publicscreen[256];
+	int  amiga_use_grey;
+	int  amiga_use_dither;
 #endif
 
 #ifdef SAVESTATE
