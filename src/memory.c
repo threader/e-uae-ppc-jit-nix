@@ -80,7 +80,7 @@ uae_u32 allocated_chipmem;
 uae_u32 allocated_fastmem;
 uae_u32 allocated_bogomem;
 uae_u32 allocated_gfxmem;
-uae_u32 allocated_z3fastmem, allocated_z3fastmem2;
+uae_u32 allocated_z3fastmem, allocated_z3fastmem2, allocated_z3chipmem;
 uae_u32 allocated_a3000lmem;
 uae_u32 allocated_a3000hmem;
 uae_u32 allocated_cardmem;

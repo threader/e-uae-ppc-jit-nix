@@ -63,7 +63,7 @@ extern void wait_cpu_cycle_write_ce020 (uaecptr addr, int mode, uae_u32 v);
 #define bogomem_start 0x00C00000
 #define cardmem_start 0x00E00000
 #define kickmem_start 0x00F80000
-extern uaecptr z3fastmem_start, z3fastmem2_start;
+extern uaecptr z3fastmem_start, z3fastmem2_start, z3chipmem_start;
 extern uaecptr p96ram_start;
 extern uaecptr fastmem_start;
 extern uaecptr a3000lmem_start, a3000hmem_start;

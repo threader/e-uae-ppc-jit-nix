@@ -253,6 +253,7 @@ STATIC_INLINE uae_u32 sign_extend8 (uae_u32 v)
 
 static void fdi_decode (const uae_u8 *stream, unsigned int size, uae_u8 *out)
 {
+	unsigned int i;
 	uae_u8 sign_extend, sixteen_bit, sub_stream_shift;
 	NODE root;
 	NODE *current_node;
@@ -260,7 +261,6 @@ static void fdi_decode (const uae_u8 *stream, unsigned int size, uae_u8 *out)
 	memset (out, 0,	size * 4);
 	sub_stream_shift = 1;
 	while (sub_stream_shift) {
-		unsigned int i;
 
 		//sub-stream header decode
 		sign_extend = *stream++;
@@ -967,7 +967,7 @@ static void ibm_data (FDI *fdi,	const uae_u8 *data, uae_u8 *crc, unsigned int le
 {
 	unsigned int i;
 	uae_u8 crcbuf[2];
-	uae_u16	crcv = 0;
+	uae_u16	crcv;
 
 	word_add (fdi, 0x4489);
 	word_add (fdi, 0x4489);
@@ -1179,14 +1179,14 @@ static void track_amiga	(struct	fdi *fdi, unsigned int first_sector, unsigned in
 }
 static void track_atari_st (struct fdi *fdi, unsigned int max_sector)
 {
-	unsigned int i, gap3 = 0;
+	unsigned int i, gap3;
 	uae_u8 *p = fdi->track_src;
 
 	switch (max_sector) {
-		case 9:
+	case 9:
 		gap3 = 40;
 		break;
-		case 10:
+	case 10:
 		gap3 = 24;
 		break;
 	}
@@ -1207,13 +1207,13 @@ static void track_pc (struct fdi *fdi, unsigned int max_sector)
 	uae_u8 *p = fdi->track_src;
 
 	switch (max_sector) {
-		case 8:
+	case 8:
 		gap3 = 116;
 		break;
-		case 9:
+	case 9:
 		gap3 = 54;
 		break;
-		default:
+	default:
 		gap3 = 100; /* fixme */
 		break;
 	}
@@ -1823,7 +1823,7 @@ static int decode_lowlevel_track (FDI *fdi, unsigned int track, struct fdi_cache
 	uae_u32	maxidx,	totalavg, weakbits;
 	unsigned int i, j, len, pulses, indexoffset;
 	unsigned int avg_free, min_free = 0, max_free = 0, idx_free;
-	unsigned int idx_off1 = 0, idx_off2 = 0, idx_off3 = 0;
+	unsigned int idx_off1, idx_off2, idx_off3;
 
 	d = fdi->track_dst;
 	p1 = fdi->track_src;
