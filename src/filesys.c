@@ -2897,7 +2897,7 @@ static void
 	put_long (info + 120, entrytype);
 
 	TRACE(("name=\"%s\"\n", xs));
-	x2 = x = ua_fs (xs, -1);
+	x = ua_fs (xs, -1);
 	n = strlen (x);
 	if (n > 106)
 		n = 106;
@@ -2907,7 +2907,6 @@ static void
 		put_byte (info + i, *x), i++, x++;
 	while (i < 108)
 		put_byte (info + i, 0), i++;
-	xfree (x2);
 
 #if defined TARGET_AMIGAOS && defined WORDS_BIGENDIAN
 	 BPTR lock;
@@ -2943,7 +2942,7 @@ static void
 		xs = aino->comment;
 		if (!xs)
 			xs= "";
-		x2 = x = ua_fs (xs, -1);
+		x = ua_fs (xs, -1);
 		n = strlen (x);
 		if (n > 78)
 			n = 78;
@@ -2952,7 +2951,6 @@ static void
 			put_byte (info + i, *x), i++, x++;
 		while (i < 224)
 			put_byte (info + i, 0), i++;
-		xfree (x2);
 	}
 	PUT_PCK_RES1 (packet, DOS_TRUE);
 }

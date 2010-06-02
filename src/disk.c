@@ -3086,6 +3086,7 @@ void DSKLEN (uae_u16 v, unsigned int hpos)
 	int motormask;
 
 	DISK_update (hpos);
+
 	if ((v & 0x8000) && (dsklen & 0x8000)) {
 		dskdmaen = 2;
 		DISK_start ();
