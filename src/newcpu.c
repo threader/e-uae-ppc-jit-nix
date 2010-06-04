@@ -32,6 +32,8 @@
 #include "cia.h"
 #include "sleep.h"
 
+#define f_out fprintf
+#define console_out printf
 #ifdef JIT
 extern uae_u8* compiled_code;
 #include "compemu.h"
@@ -42,9 +44,6 @@ bool check_prefs_changed_comp (void) { return false; }
 #endif
 /* For faster JIT cycles handling */
 signed long pissoff = 0;
-
-#define f_out fprintf
-#define console_out printf
 
 /* Opcode of faulting instruction */
 static uae_u16 last_op_for_exception_3;
@@ -543,14 +542,14 @@ void init_m68k (void)
 		FILE *f = fopen (icountfilename (), "r");
 		memset (instrcount, 0, sizeof instrcount);
 		if (f) {
-		    uae_u32 opcode, count, total;
+			uae_u32 opcode, count, total;
 			TCHAR name[20];
 			write_log ("Reading instruction count file...\n");
-		    fscanf (f, "Total: %lu\n", &total);
-		    while (fscanf (f, "%lx: %lu %s\n", &opcode, &count, name) == 3) {
+			fscanf (f, "Total: %lu\n", &total);
+			while (fscanf (f, "%lx: %lu %s\n", &opcode, &count, name) == 3) {
 				instrcount[opcode] = count;
-		    }
-		    fclose (f);
+			}
+			fclose (f);
 		}
 	}
 #endif
@@ -1824,7 +1823,7 @@ int m68k_move2c (int regno, uae_u32 *regp)
 int m68k_movec2 (int regno, uae_u32 *regp)
 {
 #if MOVEC_DEBUG > 0
-    write_log ("movec2 %04X PC=%x\n", regno, M68K_GETPC);
+	write_log ("movec2 %04X PC=%x\n", regno, M68K_GETPC);
 #endif
 	if (movec_illg (regno)) {
 		op_illg (0x4E7A);
@@ -3325,7 +3324,7 @@ static void movemout (TCHAR *out, uae_u16 mask, int mode)
 }
 
 #if defined(DEBUGGER) || defined (ENFORCER)
-static void disasm_size (char *instrname, struct instr *dp)
+static void disasm_size (TCHAR *instrname, struct instr *dp)
 {
 #if 0
 	int i, size;
@@ -3359,7 +3358,7 @@ static void disasm_size (char *instrname, struct instr *dp)
 	}
 }
 
-void m68k_disasm_2 (char *buf, int bufsize, uaecptr addr, uaecptr *nextpc, int cnt, uae_u32 *seaddr, uae_u32 *deaddr, int safemode)
+void m68k_disasm_2 (TCHAR *buf, int bufsize, uaecptr addr, uaecptr *nextpc, int cnt, uae_u32 *seaddr, uae_u32 *deaddr, int safemode)
 {
 	uaecptr newpc = 0;
 	m68kpc_offset = addr - m68k_getpc ();
@@ -3385,7 +3384,7 @@ void m68k_disasm_2 (char *buf, int bufsize, uaecptr addr, uaecptr *nextpc, int c
 		for (lookup = lookuptab;lookup->mnemo != dp->mnemo; lookup++)
 		    ;
 
-		f_out (buf, "%08x ", m68k_getpc () + m68kpc_offset);
+		buf = buf_out (buf, &bufsize, L"%08lX ", m68k_getpc () + m68kpc_offset);
 
 		m68kpc_offset += 2;
 
@@ -3397,13 +3396,44 @@ void m68k_disasm_2 (char *buf, int bufsize, uaecptr addr, uaecptr *nextpc, int c
 		if (ccpt != 0) {
 			_tcsncpy (ccpt, ccnames[dp->cc], 2);
 		}
-	switch (dp->size){
-	 case sz_byte: strcat (instrname, ".B "); break;
-	 case sz_word: strcat (instrname, ".W "); break;
-	 case sz_long: strcat (instrname, ".L "); break;
-	 default: strcat (instrname, "   "); break;
-	}
+		disasm_size (instrname, dp);
 
+		if (lookup->mnemo == i_MOVEC2 || lookup->mnemo == i_MOVE2C) {
+			uae_u16 imm = get_iword_1 (m68kpc_offset);
+			uae_u16 creg = imm & 0x0fff;
+			uae_u16 r = imm >> 12;
+			TCHAR regs[16], *cname = "?";
+			int i;
+			for (i = 0; m2cregs[i].regname; i++) {
+				if (m2cregs[i].regno == creg)
+					break;
+			}
+			_stprintf (regs, "%c%d", r >= 8 ? 'A' : 'D', r >= 8 ? r - 8 : r);
+			if (m2cregs[i].regname)
+				cname = m2cregs[i].regname;
+			if (lookup->mnemo == i_MOVE2C) {
+				_tcscat (instrname, regs);
+				_tcscat (instrname, ",");
+				_tcscat (instrname, cname);
+			} else {
+				_tcscat (instrname, cname);
+				_tcscat (instrname, ",");
+				_tcscat (instrname, regs);
+			}
+			m68kpc_offset += 2;
+		} else if (lookup->mnemo == i_MVMEL) {
+			newpc = m68k_getpc () + m68kpc_offset;
+			m68kpc_offset += 2;
+			newpc += ShowEA (0, opcode, dp->dreg, dp->dmode, dp->size, instrname, deaddr, safemode);
+			_tcscat (instrname, ",");
+			movemout (instrname, get_iword_1 (oldpc + 2), dp->dmode);
+		} else if (lookup->mnemo == i_MVMLE) {
+			m68kpc_offset += 2;
+			movemout (instrname, get_iword_1 (oldpc + 2), dp->dmode);
+			_tcscat (instrname, ",");
+			newpc = m68k_getpc () + m68kpc_offset;
+			newpc += ShowEA (0, opcode, dp->dreg, dp->dmode, dp->size, instrname, deaddr, safemode);
+		} else {
 			if (dp->suse) {
 				newpc = m68k_getpc () + m68kpc_offset;
 				newpc += ShowEA (0, opcode, dp->sreg, dp->smode, dp->size, instrname, seaddr, safemode);
@@ -3414,28 +3444,29 @@ void m68k_disasm_2 (char *buf, int bufsize, uaecptr addr, uaecptr *nextpc, int c
 				newpc = m68k_getpc () + m68kpc_offset;
 				newpc += ShowEA (0, opcode, dp->dreg, dp->dmode, dp->size, instrname, deaddr, safemode);
 			}
+		}
 
 		for (i = 0; i < (m68kpc_offset - oldpc) / 2; i++) {
-	    f_out (buf, "%04x ", get_iword_1 (oldpc + i * 2));
+			buf = buf_out (buf, &bufsize, "%04x ", get_iword_1 (oldpc + i * 2));
 		}
 		while (i++ < 5)
-			f_out (buf, "     ");
+			buf = buf_out (buf, &bufsize, "     ");
 
-	f_out (buf, instrname);
+		buf = buf_out (buf, &bufsize, instrname);
 
 		if (ccpt != 0) {
 			if (deaddr)
 				*deaddr = newpc;
 			if (cctrue (dp->cc))
-				f_out (buf, " == %08x (TRUE)", newpc);
+				buf = buf_out (buf, &bufsize, " == $%08lX (T)", newpc);
 			else
-				f_out (buf, " == %08x (FALSE)", newpc);
+				buf = buf_out (buf, &bufsize, " == $%08lX (F)", newpc);
 		} else if ((opcode & 0xff00) == 0x6100) { /* BSR */
 			if (deaddr)
 				*deaddr = newpc;
-		    f_out (buf, " == %08x", newpc);
+			buf = buf_out (buf, &bufsize, " == $%08lX", newpc);
 		}
-		f_out (buf, "\n");
+		buf = buf_out (buf, &bufsize, "\n");
 	}
 	if (nextpc)
 		*nextpc = m68k_getpc () + m68kpc_offset;
@@ -3468,7 +3499,7 @@ void m68k_disasm (void *f, uaecptr addr, uaecptr *nextpc, int cnt)
  Disasm the m68kcode at the given address into instrname
  and instrcode
 *************************************************************/
-void sm68k_disasm (char *instrname, char *instrcode, uaecptr addr, uaecptr *nextpc)
+void sm68k_disasm (TCHAR *instrname, TCHAR *instrcode, uaecptr addr, uaecptr *nextpc)
 {
 	TCHAR *ccpt;
 	uae_u32 opcode;
@@ -3663,12 +3694,12 @@ void m68k_dumpstate (void *f, uaecptr *nextpc)
 		for (lookup1 = lookuptab; lookup1->mnemo != dp->mnemo; lookup1++);
 		dp = table68k + regs.ir;
 		for (lookup2 = lookuptab; lookup2->mnemo != dp->mnemo; lookup2++);
-	f_out (f, "prefetch %04x (%s) %04x (%s)\n", regs.irc, lookup1->name, regs.ir, lookup2->name);
+	f_out (f, "Prefetch %04x (%s) %04x (%s)\n", regs.irc, lookup1->name, regs.ir, lookup2->name);
 	}
 
 	m68k_disasm (f, m68k_getpc (), nextpc, 1);
 	if (nextpc)
-		f_out (f, "next PC: %08x\n", *nextpc);
+		f_out (f, "Next PC: %08x\n", *nextpc);
 }
 
 #else

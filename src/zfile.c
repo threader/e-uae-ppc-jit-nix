@@ -29,6 +29,7 @@
 #include "dms/cdata.h"
 #include "dms/pfile.h"
 #include <zlib.h>
+#include <stdarg.h>
 
 static struct zfile *zlist = 0;
 
@@ -1872,7 +1873,7 @@ void zfile_seterror (const TCHAR *format, ...)
 		TCHAR buffer[WRITE_LOG_BUF_SIZE];
 		va_list parms;
 		va_start (parms, format);
-		count = _vsntprintf (buffer, WRITE_LOG_BUF_SIZE - 1, format, parms);
+		count = vsnprintf (buffer, WRITE_LOG_BUF_SIZE - 1, format, parms);
 		zerror = my_strdup (buffer);
 		va_end (parms);
 	}

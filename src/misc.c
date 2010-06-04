@@ -19,6 +19,7 @@
 #include "enforcer.h"
 #include "picasso96.h"
 #include "driveclick.h"
+#include <stdarg.h>
 
 #define TRUE 1
 #define FALSE 0
@@ -836,4 +837,18 @@ int input_get_default_joystick_analog (struct uae_input_device *uid, int i, int 
         return 0;
 }
 
-//
+// writelog
+TCHAR* buf_out (TCHAR *buffer, int *bufsize, const TCHAR *format, ...)
+{
+	int count;
+	va_list parms;
+	va_start (parms, format);
+
+	if (buffer == NULL)
+		return 0;
+	count = vsnprintf (buffer, (*bufsize) - 1, format, parms);
+	va_end (parms);
+	*bufsize -= _tcslen (buffer);
+	return buffer + _tcslen (buffer);
+}
+
