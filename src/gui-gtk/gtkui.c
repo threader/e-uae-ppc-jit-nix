@@ -379,9 +379,9 @@ static int map_jsem_to_widget (int jsem)
 {
     int widget = 0;
 
-    if (jsem >= JSEM_END)
+    if (jsem == JSEM_END)
 		widget = 0;
-    else if (jsem >= JSEM_MICE)
+    else if (jsem == JSEM_MICE)
 		widget = 3;
     else if (jsem == JSEM_JOYS || jsem == JSEM_JOYS + 1 )
 		widget = jsem - JSEM_JOYS + 1;
@@ -397,7 +397,7 @@ static int map_widget_to_jsem (int widget)
 
    switch (widget) {
 	default:
-//	case 0: jsem = JSEM_NONE;          break;
+	case 0: jsem = JSEM_END;           break;
 	case 1: jsem = JSEM_JOYS;          break;
 	case 2: jsem = JSEM_JOYS + 1;      break;
 	case 3: jsem = JSEM_MICE;          break;
@@ -413,19 +413,19 @@ static int map_widget_to_jsem (int widget)
 
 static void set_joy_state (void)
 {
-    int j0t = map_jsem_to_widget (changed_prefs.jports[0].id);
-    int j1t = map_jsem_to_widget (changed_prefs.jports[1].id);
+	int j0t = map_jsem_to_widget (changed_prefs.jports[0].id);
+	int j1t = map_jsem_to_widget (changed_prefs.jports[1].id);
 
-    int joy_count = inputdevice_get_device_total (IDTYPE_JOYSTICK);
-    int i;
+	int joy_count = inputdevice_get_device_total (IDTYPE_JOYSTICK);
+	int i;
 
-    if (j0t != 0 && j0t == j1t) {
+	if (j0t != 0 && j0t == j1t) {
 		/* Can't happen */
 		j0t++;
 		j0t %= 7;
-    }
+	}
 
-    for (i = 0; i < JOY_WIDGET_COUNT; i++) {
+	for (i = 0; i < JOY_WIDGET_COUNT; i++) {
 		if (i == 1 && joy_count == 0) continue;
 		if (i == 2 && joy_count <= 1) continue;
 
@@ -433,36 +433,36 @@ static void set_joy_state (void)
 		gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (joy_widget[1][i]), j1t == i);
 		gtk_widget_set_sensitive (joy_widget[0][i], i == 0 || j1t != i);
 		gtk_widget_set_sensitive (joy_widget[1][i], i == 0 || j0t != i);
-    }
+	}
 }
 
 #ifdef FILESYS
 static void set_hd_state (void)
 {
-    char  texts[HDLIST_MAX_COLS][256];
-    char *tptrs[HDLIST_MAX_COLS];
-    int nr = nr_units ();
-    int i;
+	char  texts[HDLIST_MAX_COLS][256];
+	char *tptrs[HDLIST_MAX_COLS];
+	int nr = nr_units ();
+	int i;
 //	UnitInfo *ui;
 
-    DEBUG_LOG ("set_hd_state\n");
-    for (i=0; i<HDLIST_MAX_COLS; i++)
+	DEBUG_LOG ("set_hd_state\n");
+	for (i=0; i<HDLIST_MAX_COLS; i++)
 		tptrs[i] = texts[i];
 
-	    gtk_clist_freeze (GTK_CLIST (hdlist_widget));
-	    gtk_clist_clear (GTK_CLIST (hdlist_widget));
+		gtk_clist_freeze (GTK_CLIST (hdlist_widget));
+		gtk_clist_clear (GTK_CLIST (hdlist_widget));
 
-	    for (i = 0; i < nr; i++) {
+		for (i = 0; i < nr; i++) {
 			int     secspertrack, surfaces, reserved, blocksize, bootpri;
 			uae_u64 size;
 			int     cylinders, readonly, flags;
 			char   	*devname, *volname, *rootdir, *filesysdir;
 			int		*ret;
 
-		/* We always use currprefs.mountinfo for the GUI.  The filesystem
-		   code makes a private copy which is updated every reset.  */
+			/* We always use currprefs.mountinfo for the GUI.  The filesystem
+			   code makes a private copy which is updated every reset.  */
 			struct mountedinfo mi;
-		ret = get_filesys_unitconfig (&currprefs, i, &mi);
+			ret = get_filesys_unitconfig (&currprefs, i, &mi);
 /*		failure = get_filesys_unit (i,
 				    &devname, &volname, &rootdir, &readonly,
 				    &secspertrack, &surfaces, &reserved,
@@ -509,7 +509,7 @@ static void set_floppy_state( void )
 {
     unsigned int i;
     switch (currprefs.floppy_speed) {
-		case 0:   i = 0;
+	case 0:   i = 0;
         case 100: i = 1; 
         case 200: i = 2; 
         case 400: i = 3; 
@@ -673,15 +673,15 @@ static int find_current_toggle (GtkWidget **widgets, int count)
 
 static void joy_changed (void)
 {
-    if (! gui_active)
+	if (! gui_active)
 		return;
-    changed_prefs.jports[0].id = map_widget_to_jsem (find_current_toggle (joy_widget[0], JOY_WIDGET_COUNT));
-    changed_prefs.jports[1].id = map_widget_to_jsem (find_current_toggle (joy_widget[1], JOY_WIDGET_COUNT));
+	changed_prefs.jports[0].id = map_widget_to_jsem (find_current_toggle (joy_widget[0], JOY_WIDGET_COUNT));
+	changed_prefs.jports[1].id = map_widget_to_jsem (find_current_toggle (joy_widget[1], JOY_WIDGET_COUNT));
 
-    if( changed_prefs.jports[0].id != currprefs.jports[0].id || changed_prefs.jports[1].id != currprefs.jports[1].id )
-	inputdevice_config_change();
+	if (changed_prefs.jports[0].id != currprefs.jports[0].id || changed_prefs.jports[1].id != currprefs.jports[1].id)
+		inputdevice_config_change();
 
-    set_joy_state ();
+	set_joy_state ();
 }
 
 static void chipsize_changed (void)

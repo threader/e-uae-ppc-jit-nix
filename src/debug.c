@@ -24,6 +24,7 @@
 #include "cia.h"
 #include "xwin.h"
 #include "identify.h"
+#include "audio.h"
 #include "disk.h"
 #include "savestate.h"
 #include "autoconf.h"
@@ -46,6 +47,7 @@ static int memwatch_enabled, memwatch_triggered;
 static uae_u16 sr_bpmask, sr_bpvalue;
 int debugging;
 int exception_debugging;
+int no_trace_exceptions;
 int debug_copper = 0;
 int debug_dma = 0;
 int debug_sprite_mask = 0xff;
@@ -175,6 +177,7 @@ static void ignore_ws (const char **c)
 }
 
 static uae_u32 readint (const char **c);
+static uae_u32 readbin (const char **c);
 static uae_u32 readhex (const char **c)
 {
     uae_u32 val = 0;
@@ -262,6 +265,14 @@ static int next_string (const char **c, char *out, unsigned int max, int forceup
 	    break;
     }
     return strlen (out);
+}
+
+int notinrom (void)
+{
+	uaecptr pc = munge24 (m68k_getpc ());
+	if (pc < 0x00e00000 || pc > 0x00ffffff)
+		return 1;
+	return 0;
 }
 
 static uae_u32 lastaddr (void)

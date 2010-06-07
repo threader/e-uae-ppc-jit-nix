@@ -234,6 +234,11 @@ static int get_joystick_widget_first (unsigned int joy, int type)
     return -1;
 }
 
+static int get_joystick_flags (int num)
+{
+	return 0;
+}
+
 struct inputdevice_functions inputdevicefunc_joystick = {
     init_joysticks,
     close_joysticks,
@@ -245,7 +250,8 @@ struct inputdevice_functions inputdevicefunc_joystick = {
     get_joystick_uniquename,
     get_joystick_widget_num,
     get_joystick_widget_type,
-    get_joystick_widget_first
+    get_joystick_widget_first,
+	get_joystick_flags
 };
 
 /*

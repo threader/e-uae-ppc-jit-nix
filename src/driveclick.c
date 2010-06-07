@@ -208,6 +208,7 @@ void driveclick_init (void)
 		driveclick_reset ();
 		click_initialized = 1;
     }
+	if (v != 5) { click_initialized= 0; wave_initialized = 0;}
 }
 
 void driveclick_reset (void)

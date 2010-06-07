@@ -1624,6 +1624,15 @@ static void read_mouse (void)
     /* We handle mouse input in handle_events() */
 }
 
+static int get_mouse_flags (int num)
+{
+/*        if (di_mouse[num].rawinput || !rawinput_enabled_mouse)
+                return 0;
+        if (di_mouse[num].catweasel)
+                return 0;*/
+        return 1;
+}
+
 struct inputdevice_functions inputdevicefunc_mouse = {
     init_mouse,
     close_mouse,
@@ -1634,7 +1643,8 @@ struct inputdevice_functions inputdevicefunc_mouse = {
     get_mouse_name,
     get_mouse_widget_num,
     get_mouse_widget_type,
-    get_mouse_widget_first
+    get_mouse_widget_first,
+    get_mouse_flags
 };
 
 /*
@@ -1717,7 +1727,7 @@ static void unacquire_kb (unsigned int num)
 /*
  * Default inputdevice config for X11 mouse
  */
-int input_get_default_mouse (struct uae_input_device *uid, int num, int port)
+int input_get_default_mouse (struct uae_input_device *uid, int num, int port, int af)
 {
     /* Supports only one mouse */
     uid[0].eventid[ID_AXIS_OFFSET + 0][0]   = INPUTEVENT_MOUSE1_HORIZ;
@@ -1727,6 +1737,11 @@ int input_get_default_mouse (struct uae_input_device *uid, int num, int port)
     uid[0].eventid[ID_BUTTON_OFFSET + 1][0] = INPUTEVENT_JOY1_2ND_BUTTON;
     uid[0].eventid[ID_BUTTON_OFFSET + 2][0] = INPUTEVENT_JOY1_3RD_BUTTON;
     uid[0].enabled = 1;
+	return 0;
+}
+
+static int get_kb_flags (int num)
+{
 	return 0;
 }
 
@@ -1742,7 +1757,8 @@ struct inputdevice_functions inputdevicefunc_keyboard =
     get_kb_uniquename,
     get_kb_widget_num,
     get_kb_widget_type,
-    get_kb_widget_first
+    get_kb_widget_first,
+	get_kb_flags
 };
 
 int getcapslockstate (void)

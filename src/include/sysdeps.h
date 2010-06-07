@@ -401,6 +401,7 @@ extern void xfree (const void*);
 #define _stprintf sprintf
 #define _tcscat strcat
 #define _tcsicmp strcasecmp
+#define _tcsnicmp strncasecmp
 #define _tcsstr strstr
 #define _tcsrchr strrchr
 #define _tcsncpy strncpy

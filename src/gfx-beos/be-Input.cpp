@@ -132,6 +132,11 @@ static void unacquire_kb (unsigned int num)
 {
 }
 
+static int get_kb_flags (int num)
+{
+	return 0;
+}
+
 struct inputdevice_functions inputdevicefunc_keyboard =
 {
     init_kb,
@@ -144,7 +149,8 @@ struct inputdevice_functions inputdevicefunc_keyboard =
     get_kb_uniquename,
     get_kb_widget_num,
     get_kb_widget_type,
-    get_kb_widget_first
+    get_kb_widget_first,
+	get_kb_flags
 };
 
 int getcapslockstate (void)

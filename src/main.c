@@ -96,7 +96,7 @@ static void show_version_full (void)
     write_log ("Copyright 1995-2002 Bernd Schmidt\n");
     write_log ("          1999-2010 Toni Wilen\n");
     write_log ("          2003-2007 Richard Drummond\n");
-    write_log ("          2006-2010 Mustafa Tufan\n\n");
+    write_log ("          2006-2010 Mustafa 'GnoStiC' Tufan\n\n");
     write_log ("See the source for a full list of contributors.\n");
     write_log ("This is free software; see the file COPYING for copying conditions.  There is NO\n");
     write_log ("warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n");
@@ -247,6 +247,16 @@ void fixup_prefs (struct uae_prefs *p)
 	p->z3fastmem_start &= ~0xffff;
 	if (p->z3fastmem_start < 0x1000000)
 		p->z3fastmem_start = 0x1000000;
+	if ((p->z3chipmem_size & (p->z3chipmem_size - 1)) != 0
+		|| (p->z3chipmem_size != 0 && (p->z3chipmem_size < 0x100000 || p->z3chipmem_size > max_z3fastmem)))
+	{
+		write_log ("Unsupported Zorro III fake chipmem size %x (%x)!\n", p->z3chipmem_size, max_z3fastmem);
+		if (p->z3chipmem_size > max_z3fastmem)
+			p->z3chipmem_size = max_z3fastmem;
+		else
+			p->z3chipmem_size = 0;
+		err = 1;
+	}
 
 	if (p->address_space_24 && (p->gfxmem_size != 0 || p->z3fastmem_size != 0)) {
 		p->z3fastmem_size = p->gfxmem_size = 0;
@@ -390,7 +400,7 @@ void fixup_prefs (struct uae_prefs *p)
 	}
     fixup_prefs_dimensions (p);
 
-#ifdef JIT
+#if !defined (JIT)
 	p->cachesize = 0;
 #endif
 #ifdef CPU_68000_ONLY
@@ -444,7 +454,7 @@ void fixup_prefs (struct uae_prefs *p)
 		p->maprom = 0x0f000000;
 	if (p->tod_hack && p->cs_ciaatod == 0)
 		p->cs_ciaatod = p->ntscmode ? 2 : 1;
-	//target_fixup_options (p);
+	target_fixup_options (p);
 }
 
 int quit_program = 0;
@@ -454,6 +464,8 @@ static int default_config;
 
 void uae_reset (int hardreset)
 {
+	currprefs.quitstatefile[0] = changed_prefs.quitstatefile[0] = 0;
+
 	if (quit_program == 0) {
 		quit_program = -2;
 		if (hardreset)
@@ -467,7 +479,7 @@ void uae_quit (void)
 	deactivate_debugger ();
 	if (quit_program != -1)
 		quit_program = -1;
-	//target_quit ();
+	target_quit ();
 }
 
 /* 0 = normal, 1 = nogui, -1 = disable nogui */
@@ -572,8 +584,10 @@ static void parse_cmdline (int argc, char **argv)
 		    if (i + 1 == argc) {
 				write_log ("Missing argument for '-f' option.\n");
 		    } else {
+				char *txt = parsetext (argv[++i]);
 				currprefs.mountitems = 0;
-				target_cfgfile_load (&currprefs, argv[++i], -1, 0);
+				target_cfgfile_load (&currprefs, txt, -1, 0);
+				xfree (txt);
 		    }
 		} else if (_tcscmp (argv[i], "-s") == 0) {
 		    if (i + 1 == argc)
@@ -638,7 +652,7 @@ static void parse_cmdline_and_init_file (int argc, char **argv)
     fixup_prefs (&currprefs);
 
     parse_cmdline (argc, argv);
-    fixup_prefs (&currprefs);
+    fixup_prefs (&currprefs); //fixup after cmdline
 }
 
 void reset_all_systems (void)
@@ -681,7 +695,9 @@ void reset_all_systems (void)
 #endif
 	native2amiga_reset ();
 	dongle_reset ();
-	//sampler_init ();
+#ifdef SAMPLER
+	sampler_init ();
+#endif
 }
 
 /* Okay, this stuff looks strange, but it is here to encourage people who
@@ -713,7 +729,9 @@ void do_start_program (void)
 
 void do_leave_program (void)
 {
-	//sampler_free ();
+#ifdef SAMPLER
+	sampler_free ();
+#endif
 	graphics_leave ();
 	inputdevice_close ();
 	DISK_free ();
@@ -787,148 +805,146 @@ static int real_main2 (int argc, char **argv)
     if (result)
 		atexit (SDL_Quit);
 #endif
-		config_changed = 1;
-		if (restart_config[0]) {
-			default_prefs (&currprefs, 0);
-			fixup_prefs (&currprefs);
-	    }
+	config_changed = 1;
+	if (restart_config[0]) {
+		default_prefs (&currprefs, 0);
+		fixup_prefs (&currprefs);
+	}
 
-		if (!graphics_setup ()) {
-			write_log ("Graphics Setup Failed\n");
-			exit (1);
-		}
+	if (!graphics_setup ()) {
+		write_log ("Graphics Setup Failed\n");
+		exit (1);
+	}
 
 #ifdef NATMEM_OFFSET
-		preinit_shm ();
+	preinit_shm ();
 #endif
 
-	    if (restart_config[0])
-			parse_cmdline_and_init_file (argc, argv);
-    	else
-			currprefs = changed_prefs;
+	if (restart_config[0])
+		parse_cmdline_and_init_file (argc, argv);
+    else
+		currprefs = changed_prefs;
 
-	    uae_inithrtimer ();
+	uae_inithrtimer ();
 
-		if (!machdep_init ()) {
-			write_log ("Machine Init Failed.\n");
-			restart_program = 0;
-			return -1;
-		}
-
-		if (console_emulation) {
-			consolehook_config (&currprefs);
-			fixup_prefs (&currprefs);
-		}
-
-		if (! audio_setup ()) {
-			write_log ("Sound driver unavailable: Sound output disabled\n");
-			currprefs.produce_sound = 0;
-	    }
-	    inputdevice_init ();
-		inputdevice_setkeytranslation (keytrans, kbmaps);
-
-		changed_prefs = currprefs;
-		no_gui = ! currprefs.start_gui;
-		if (restart_program == 2)
-			no_gui = 1;
-		else if (restart_program == 3)
-			no_gui = 0;
+	if (!machdep_init ()) {
+		write_log ("Machine Init Failed.\n");
 		restart_program = 0;
-		if (! no_gui) {
-			int err = gui_init ();
-			currprefs = changed_prefs;
-			config_changed = 1;
-			if (err == -1) {
-				write_log ("Failed to initialize the GUI\n");
-				return -1;
-			} else if (err == -2) {
-			    return 1;
-			}
+		return -1;
+	}
+
+	if (console_emulation) {
+		consolehook_config (&currprefs);
+		fixup_prefs (&currprefs);
+	}
+
+	if (! audio_setup ()) {
+		write_log ("Sound driver unavailable: Sound output disabled\n");
+		currprefs.produce_sound = 0;
+    }
+    inputdevice_init ();
+
+	changed_prefs = currprefs;
+	no_gui = ! currprefs.start_gui;
+	if (restart_program == 2)
+		no_gui = 1;
+	else if (restart_program == 3)
+		no_gui = 0;
+	restart_program = 0;
+	if (! no_gui) {
+		int err = gui_init ();
+		currprefs = changed_prefs;
+		config_changed = 1;
+		if (err == -1) {
+			write_log ("Failed to initialize the GUI\n");
+			return -1;
+		} else if (err == -2) {
+		    return 1;
 		}
+	}
 
 #ifdef NATMEM_OFFSET
-		init_shm ();
+	init_shm ();
 #endif
 
 #ifdef JIT
-		if (!(currprefs.cpu_model >= 68020 && currprefs.address_space_24 == 0 && currprefs.cachesize))
-			canbang = 0;
+	if (!(currprefs.cpu_model >= 68020 && currprefs.address_space_24 == 0 && currprefs.cachesize))
+		canbang = 0;
 #endif
 
-		fixup_prefs (&currprefs);
-		changed_prefs = currprefs;
-		target_run ();
-		/* force sound settings change */
-		currprefs.produce_sound = 0;
+	fixup_prefs (&currprefs);
+	changed_prefs = currprefs;
+	target_run ();
+	/* force sound settings change */
+	currprefs.produce_sound = 0;
 
 #ifdef AUTOCONFIG
-    	/* Install resident module to get 8MB chipmem, if requested */
-	    rtarea_setup ();
+   	/* Install resident module to get 8MB chipmem, if requested */
+    rtarea_setup ();
 #endif
 #ifdef FILESYS
-		rtarea_init ();
-		uaeres_install ();
-		hardfile_install ();
+	rtarea_init ();
+	uaeres_install ();
+	hardfile_install ();
 #endif
-		savestate_init ();
+	savestate_init ();
 #ifdef SCSIEMU
-		scsi_reset ();
-		scsidev_install ();
+	scsi_reset ();
+	scsidev_install ();
 #endif
 #ifdef SANA2
-		netdev_install ();
+	netdev_install ();
 #endif
 #ifdef UAESERIAL
-		uaeserialdev_install ();
+	uaeserialdev_install ();
 #endif
-    	keybuf_init (); /* Must come after init_joystick */
+   	keybuf_init (); /* Must come after init_joystick */
 
 #ifdef AUTOCONFIG
-    	expansion_init ();
+   	expansion_init ();
 #endif
 #ifdef FILESYS
-    	filesys_install ();
+   	filesys_install ();
 #endif
-		target_startup_sequence (&currprefs);
-		memory_init ();
-		memory_reset ();
+	target_startup_sequence (&currprefs);
+	memory_init ();
+	memory_reset ();
 
 #ifdef AUTOCONFIG
 #if defined (BSDSOCKET)
-    	bsdlib_install ();
+   	bsdlib_install ();
 #endif
-    	emulib_install ();
-    	uaeexe_install ();
-    	native2amiga_install ();
+   	emulib_install ();
+   	uaeexe_install ();
+   	native2amiga_install ();
 #endif
 
-		custom_init (); /* Must come after memory_init */
+	custom_init (); /* Must come after memory_init */
 #ifdef SERIAL_PORT
-		serial_init ();
+	serial_init ();
 #endif
-		DISK_init ();
+	DISK_init ();
 
-		reset_frame_rate_hack ();
-		init_m68k(); /* must come after reset_frame_rate_hack (); */
+	reset_frame_rate_hack ();
+	init_m68k(); /* must come after reset_frame_rate_hack (); */
 
-		gui_update ();
+	gui_update ();
 
-		if (graphics_init ()) {
+	if (graphics_init ()) {
 #ifdef DEBUGGER
-		    setup_brkhandler ();
-		    if (currprefs.start_debugger && debuggable ())
-				activate_debugger ();
+	    setup_brkhandler ();
+	    if (currprefs.start_debugger && debuggable ())
+			activate_debugger ();
 #endif
 
-		    if (! init_audio ()) {
-				if (sound_available && currprefs.produce_sound > 1) { 
-					write_log ("Sound driver unavailable: Sound output disabled\n");
-				}
-				currprefs.produce_sound = 0;
-		    }
-
-			start_program ();
-		}
+	    if (! init_audio ()) {
+			if (sound_available && currprefs.produce_sound > 1) { 
+				write_log ("Sound driver unavailable: Sound output disabled\n");
+			}
+			currprefs.produce_sound = 0;
+	    }
+		start_program ();
+	}
 
     }
 #if (defined (_WIN32) || defined (_WIN64)) && !defined (NO_WIN32_EXCEPTION_HANDLER)

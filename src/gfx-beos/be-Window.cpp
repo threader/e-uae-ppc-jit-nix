@@ -487,6 +487,15 @@ static int get_mouse_widget_type (unsigned int mouse, unsigned int num, char *na
     return IDEV_WIDGET_NONE;
 }
 
+static int get_mouse_flags (int num)
+{
+/*        if (di_mouse[num].rawinput || !rawinput_enabled_mouse)
+                return 0;
+        if (di_mouse[num].catweasel)
+                return 0;*/
+        return 1;
+}
+
 static void read_mouse (void)
 {
     gWin->UpdateMouse ();
@@ -502,13 +511,14 @@ struct inputdevice_functions inputdevicefunc_mouse = {
     get_mouse_name,
     get_mouse_widget_num,
     get_mouse_widget_type,
-    get_mouse_widget_first
+    get_mouse_widget_first,
+    get_mouse_flags
 };
 
 /*
  * Default inputdevice config for BeOS mouse
  */
-void input_get_default_mouse (struct uae_input_device *uid)
+int input_get_default_mouse (struct uae_input_device *uid, int num, int port, int af)
 {
     /* Supports only one mouse */
     uid[0].eventid[ID_AXIS_OFFSET + 0][0]   = INPUTEVENT_MOUSE1_HORIZ;
@@ -518,6 +528,7 @@ void input_get_default_mouse (struct uae_input_device *uid)
     uid[0].eventid[ID_BUTTON_OFFSET + 1][0] = INPUTEVENT_JOY1_2ND_BUTTON;
     uid[0].eventid[ID_BUTTON_OFFSET + 2][0] = INPUTEVENT_JOY1_3RD_BUTTON;
     uid[0].enabled = 1;
+	return 0;
 }
 
 /*

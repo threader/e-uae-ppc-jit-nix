@@ -15,6 +15,8 @@
 #include "inputdevice.h"
 #include <SDL.h>
 
+#define MAX_MAPPINGS 256
+
 static unsigned int nr_joysticks;
 static int initialized;
 
@@ -95,7 +97,7 @@ static const char *get_joystick_uniquename (unsigned int joy)
     return SDL_JoystickName (joy);
 }
 
-static void read_joysticks (void)
+static void read_joystick (void)
 {
     if (get_joystick_num ()) {
 		unsigned int i;
@@ -105,7 +107,7 @@ static void read_joysticks (void)
     }
 }
 
-static int init_joysticks (void)
+static int init_joystick (void)
 {
     int success = 0;
 
@@ -129,76 +131,115 @@ static int init_joysticks (void)
 	    write_log ("Failed to initialize joysticks\n");
     }
 
-    return success;
+	return success;
 }
 
-static void close_joysticks (void)
+static void close_joystick (void)
 {
-    unsigned int i;
-    for (i = 0; i < nr_joysticks; i++) {
+	unsigned int i;
+	for (i = 0; i < nr_joysticks; i++) {
 		SDL_JoystickClose (joys[i].joy);
 		joys[i].joy = 0;
-    }
-    nr_joysticks = 0;
+	}
+	nr_joysticks = 0;
 
-    if (initialized) {
+	if (initialized) {
 		SDL_QuitSubSystem (SDL_INIT_JOYSTICK);
 		initialized = 0;
-    }
+	}
 }
 
-static int acquire_joy (unsigned int num, int flags)
+static int acquire_joystick (unsigned int num, int flags)
 {
-    return num < get_joystick_num ();
+	return num < get_joystick_num ();
 }
 
-static void unacquire_joy (unsigned int num)
+static void unacquire_joystick (unsigned int num)
 {
+}
+
+static int get_joystick_flags (int num)
+{
+	return 0;
 }
 
 struct inputdevice_functions inputdevicefunc_joystick = {
-    init_joysticks,
-    close_joysticks,
-    acquire_joy,
-    unacquire_joy,
-    read_joysticks,
-    get_joystick_num,
-    get_joystick_friendlyname,
-    get_joystick_uniquename,
-    get_joystick_widget_num,
-    get_joystick_widget_type,
-    get_joystick_widget_first
+	init_joystick,
+	close_joystick,
+	acquire_joystick,
+	unacquire_joystick,
+	read_joystick,
+	get_joystick_num,
+	get_joystick_friendlyname,
+	get_joystick_uniquename,
+	get_joystick_widget_num,
+	get_joystick_widget_type,
+	get_joystick_widget_first,
+	get_joystick_flags
 };
 
 /*
  * Set default inputdevice config for SDL joysticks
  */
-int input_get_default_joystick (struct uae_input_device *uid, int num, int port, int cd32)
+int input_get_default_joystick (struct uae_input_device *uid, int i, int port, int af, int mode)
 {
-    unsigned int i, j;
 	int h,v;
- 
+	SDL_Joystick *joy;
+	joy = joys[i].joy;
+
+
 	if (i >= get_joystick_num ())
 		return 0;
 
-	if (port >= 2) {
+	if (mode == JSEM_MODE_MOUSE_CDTV) {
+		h = INPUTEVENT_MOUSE_CDTV_HORIZ;
+		v = INPUTEVENT_MOUSE_CDTV_VERT;
+	} else if (port >= 2) {
 		h = port == 3 ? INPUTEVENT_PAR_JOY2_HORIZ : INPUTEVENT_PAR_JOY1_HORIZ;
 		v = port == 3 ? INPUTEVENT_PAR_JOY2_VERT : INPUTEVENT_PAR_JOY1_VERT;
 	} else {
 		h = port ? INPUTEVENT_JOY2_HORIZ : INPUTEVENT_JOY1_HORIZ;;
 		v = port ? INPUTEVENT_JOY2_VERT : INPUTEVENT_JOY1_VERT;
 	}
-	uid[i].eventid[ID_AXIS_OFFSET + 0][0] = h;
-	uid[i].eventid[ID_AXIS_OFFSET + 1][0] = v;
+        setid (uid, i, ID_AXIS_OFFSET + 0, 0, port, h);
+        setid (uid, i, ID_AXIS_OFFSET + 1, 0, port, v);
 
 	if (port >= 2) {
-		uid[i].eventid[ID_BUTTON_OFFSET + 0][0] = port == 3 ? INPUTEVENT_PAR_JOY2_FIRE_BUTTON : INPUTEVENT_PAR_JOY1_FIRE_BUTTON;
+		setid_af (uid, i, ID_BUTTON_OFFSET + 0, 0, port, port == 3 ? INPUTEVENT_PAR_JOY2_FIRE_BUTTON : INPUTEVENT_PAR_JOY1_FIRE_BUTTON, af);
 	} else {
-		uid[i].eventid[ID_BUTTON_OFFSET + 0][0] = port ? INPUTEVENT_JOY2_FIRE_BUTTON : INPUTEVENT_JOY1_FIRE_BUTTON;
-		uid[i].eventid[ID_BUTTON_OFFSET + 1][0] = port ? INPUTEVENT_JOY2_2ND_BUTTON : INPUTEVENT_JOY1_2ND_BUTTON;
-		uid[i].eventid[ID_BUTTON_OFFSET + 2][0] = port ? INPUTEVENT_JOY2_3RD_BUTTON : INPUTEVENT_JOY1_3RD_BUTTON;
+		setid_af (uid, i, ID_BUTTON_OFFSET + 0, 0, port, port ? INPUTEVENT_JOY2_FIRE_BUTTON : INPUTEVENT_JOY1_FIRE_BUTTON, af);
+		if (SDL_JoystickNumButtons(joy) > 0)
+			setid (uid, i, ID_BUTTON_OFFSET + 1, 0, port, port ? INPUTEVENT_JOY2_2ND_BUTTON : INPUTEVENT_JOY1_2ND_BUTTON);
+		if (SDL_JoystickNumButtons(joy) > 1)
+			setid (uid, i, ID_BUTTON_OFFSET + 2, 0, port, port ? INPUTEVENT_JOY2_3RD_BUTTON : INPUTEVENT_JOY1_3RD_BUTTON);
 	}
 
+/*	for (j = 2; j < MAX_MAPPINGS - 1; j++) {
+		int am = did->axismappings[j];
+		if (am == DIJOFS_POV(0) || am == DIJOFS_POV(1) || am == DIJOFS_POV(2) || am == DIJOFS_POV(3)) {
+			setid (uid, i, ID_AXIS_OFFSET + j + 0, 0, port, h);
+			setid (uid, i, ID_AXIS_OFFSET + j + 1, 0, port, v);
+			j++;
+		}
+	}*/
+	if (mode == JSEM_MODE_JOYSTICK_CD32) {
+		setid_af (uid, i, ID_BUTTON_OFFSET + 0, 0, port, port ? INPUTEVENT_JOY2_CD32_RED : INPUTEVENT_JOY1_CD32_RED, af);
+		setid_af (uid, i, ID_BUTTON_OFFSET + 0, 1, port, port ? INPUTEVENT_JOY2_FIRE_BUTTON : INPUTEVENT_JOY1_FIRE_BUTTON, af);
+		if (SDL_JoystickNumButtons(joy) > 0) {
+			setid (uid, i, ID_BUTTON_OFFSET + 1, 0, port, port ? INPUTEVENT_JOY2_CD32_BLUE : INPUTEVENT_JOY1_CD32_BLUE);
+			setid (uid, i, ID_BUTTON_OFFSET + 1, 1, port,  port ? INPUTEVENT_JOY2_2ND_BUTTON : INPUTEVENT_JOY1_2ND_BUTTON);
+		}
+		if (SDL_JoystickNumButtons(joy) > 1)
+			setid (uid, i, ID_BUTTON_OFFSET + 2, 0, port, port ? INPUTEVENT_JOY2_CD32_GREEN : INPUTEVENT_JOY1_CD32_GREEN);
+		if (SDL_JoystickNumButtons(joy) > 2)
+			setid (uid, i, ID_BUTTON_OFFSET + 3, 0, port, port ? INPUTEVENT_JOY2_CD32_YELLOW : INPUTEVENT_JOY1_CD32_YELLOW);
+		if (SDL_JoystickNumButtons(joy) > 3)
+			setid (uid, i, ID_BUTTON_OFFSET + 4, 0, port, port ? INPUTEVENT_JOY2_CD32_RWD : INPUTEVENT_JOY1_CD32_RWD);
+		if (SDL_JoystickNumButtons(joy) > 4)
+			setid (uid, i, ID_BUTTON_OFFSET + 5, 0, port, port ? INPUTEVENT_JOY2_CD32_FFW : INPUTEVENT_JOY1_CD32_FFW);
+		if (SDL_JoystickNumButtons(joy) > 5)
+			setid (uid, i, ID_BUTTON_OFFSET + 6, 0, port, port ? INPUTEVENT_JOY2_CD32_PLAY :  INPUTEVENT_JOY1_CD32_PLAY);
+	}
 	if (i == 0)
 		return 1;
 	return 0;

@@ -754,6 +754,15 @@ static void read_mouse (void)
     /* We handle mouse input in handle_events() */
 }
 
+static int get_mouse_flags (int num)
+{
+/*        if (di_mouse[num].rawinput || !rawinput_enabled_mouse)
+                return 0;
+        if (di_mouse[num].catweasel)
+                return 0;*/
+        return 1;
+}
+
 struct inputdevice_functions inputdevicefunc_mouse = {
     init_mouse,
     close_mouse,
@@ -764,7 +773,8 @@ struct inputdevice_functions inputdevicefunc_mouse = {
     get_mouse_name,
     get_mouse_widget_num,
     get_mouse_widget_type,
-    get_mouse_widget_first
+    get_mouse_widget_first,
+    get_mouse_flags
 };
 
 /*
@@ -830,6 +840,11 @@ static void unacquire_kb (unsigned int num)
 {
 }
 
+static int get_kb_flags (int num)
+{
+	return 0;
+}
+
 struct inputdevice_functions inputdevicefunc_keyboard =
 {
     init_kb,
@@ -842,7 +857,8 @@ struct inputdevice_functions inputdevicefunc_keyboard =
     get_kb_uniquename,
     get_kb_widget_num,
     get_kb_widget_type,
-    get_kb_widget_first
+    get_kb_widget_first,
+	get_kb_flags
 };
 
 int getcapslockstate (void)
@@ -857,15 +873,16 @@ void setcapslockstate (int state)
 /*
  * Default inputdevice config for mouse
  */
-void input_get_default_mouse (struct uae_input_device *uid)
+int input_get_default_mouse (struct uae_input_device *uid, int num, int port, int af)
 {
-    uid[0].eventid[ID_AXIS_OFFSET + 0][0]   = INPUTEVENT_MOUSE1_HORIZ;
-    uid[0].eventid[ID_AXIS_OFFSET + 1][0]   = INPUTEVENT_MOUSE1_VERT;
-    uid[0].eventid[ID_AXIS_OFFSET + 2][0]   = INPUTEVENT_MOUSE1_WHEEL;
-    uid[0].eventid[ID_BUTTON_OFFSET + 0][0] = INPUTEVENT_JOY1_FIRE_BUTTON;
-    uid[0].eventid[ID_BUTTON_OFFSET + 1][0] = INPUTEVENT_JOY1_2ND_BUTTON;
-    uid[0].eventid[ID_BUTTON_OFFSET + 2][0] = INPUTEVENT_JOY1_3RD_BUTTON;
-    uid[0].enabled = 1;
+	uid[0].eventid[ID_AXIS_OFFSET + 0][0]   = INPUTEVENT_MOUSE1_HORIZ;
+	uid[0].eventid[ID_AXIS_OFFSET + 1][0]   = INPUTEVENT_MOUSE1_VERT;
+	uid[0].eventid[ID_AXIS_OFFSET + 2][0]   = INPUTEVENT_MOUSE1_WHEEL;
+	uid[0].eventid[ID_BUTTON_OFFSET + 0][0] = INPUTEVENT_JOY1_FIRE_BUTTON;
+	uid[0].eventid[ID_BUTTON_OFFSET + 1][0] = INPUTEVENT_JOY1_2ND_BUTTON;
+	uid[0].eventid[ID_BUTTON_OFFSET + 2][0] = INPUTEVENT_JOY1_3RD_BUTTON;
+	uid[0].enabled = 1;
+	return 0;
 }
 
 /*

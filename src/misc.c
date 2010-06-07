@@ -19,6 +19,7 @@
 #include "enforcer.h"
 #include "picasso96.h"
 #include "driveclick.h"
+#include "inputdevice.h"
 #include <stdarg.h>
 
 #define TRUE 1
@@ -306,6 +307,7 @@ int driveclick_loadresource (struct drvsample *sp, int drivetype)
         }
         return ok;
 */
+	return 0;
 }
 
 void driveclick_fdrawcmd_close(int drive)
@@ -792,7 +794,7 @@ end:
 }
 
 // -- dinput.c
-int input_get_default_lightpen (struct uae_input_device *uid, int i, int port)
+int input_get_default_lightpen (struct uae_input_device *uid, int i, int port, int af)
 {
 /*        struct didata *did;
 
@@ -807,7 +809,7 @@ int input_get_default_lightpen (struct uae_input_device *uid, int i, int port)
         return 0;
 }
 
-int input_get_default_joystick_analog (struct uae_input_device *uid, int i, int port)
+int input_get_default_joystick_analog (struct uae_input_device *uid, int i, int port, int af)
 {
 /*        int j;
         struct didata *did;
@@ -852,3 +854,30 @@ TCHAR* buf_out (TCHAR *buffer, int *bufsize, const TCHAR *format, ...)
 	return buffer + _tcslen (buffer);
 }
 
+// dinput
+void setid (struct uae_input_device *uid, int i, int slot, int sub, int port, int evt)
+{
+        uid[i].eventid[slot][sub] = evt;
+        uid[i].port[slot][sub] = port + 1;
+}
+
+void setid_af (struct uae_input_device *uid, int i, int slot, int sub, int port, int evt, int af)
+{
+        setid (uid, i, slot, sub, port, evt);
+        uid[i].flags[slot][sub] &= ~(ID_FLAG_AUTOFIRE | ID_FLAG_TOGGLE);
+        if (af >= JPORT_AF_NORMAL)
+                uid[i].flags[slot][sub] |= ID_FLAG_AUTOFIRE;
+        if (af == JPORT_AF_TOGGLE)
+                uid[i].flags[slot][sub] |= ID_FLAG_TOGGLE;
+}
+
+// win32.c
+void target_quit (void)
+{
+        //shellexecute (currprefs.win32_commandpathend);
+}
+
+void target_fixup_options (struct uae_prefs *p)
+{
+	//
+}

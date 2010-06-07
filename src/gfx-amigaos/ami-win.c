@@ -2392,9 +2392,27 @@ static int get_mouse_widget_type (unsigned int mouse, unsigned int num, char *na
     return IDEV_WIDGET_NONE;
 }
 
+static int get_mouse_flags (int num)
+{
+/*        if (di_mouse[num].rawinput || !rawinput_enabled_mouse)
+                return 0;
+        if (di_mouse[num].catweasel)
+                return 0;*/
+        return 1;
+}
+
 static void read_mouse (void)
 {
     /* We handle mouse input in handle_events() */
+}
+
+static int get_mouse_flags (int num)
+{
+/*        if (di_mouse[num].rawinput || !rawinput_enabled_mouse)
+                return 0;
+        if (di_mouse[num].catweasel)
+                return 0;*/
+        return 1;
 }
 
 struct inputdevice_functions inputdevicefunc_mouse = {
@@ -2408,13 +2426,14 @@ struct inputdevice_functions inputdevicefunc_mouse = {
     get_kb_uniquename,
     get_mouse_widget_num,
     get_mouse_widget_type,
-    get_mouse_widget_first
+    get_mouse_widget_first,
+    get_mouse_flags
 };
 
 /*
  * Default inputdevice config for mouse
  */
-int input_get_default_mouse (struct uae_input_device *uid, int num, int port)
+int input_get_default_mouse (struct uae_input_device *uid, int num, int port, int af)
 {
     /* Supports only one mouse for now */
     uid[0].eventid[ID_AXIS_OFFSET + 0][0]   = INPUTEVENT_MOUSE1_HORIZ;
@@ -2490,6 +2509,11 @@ static void unacquire_kb (unsigned int num)
 {
 }
 
+static int get_kb_flags (int num)
+{
+	return 0;
+}
+
 struct inputdevice_functions inputdevicefunc_keyboard =
 {
     init_kb,
@@ -2501,7 +2525,8 @@ struct inputdevice_functions inputdevicefunc_keyboard =
     get_kb_name,
     get_kb_widget_num,
     get_kb_widget_type,
-    get_kb_widget_first
+    get_kb_widget_first,
+	get_kb_flags
 };
 
 int getcapslockstate (void)

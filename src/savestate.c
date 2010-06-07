@@ -325,12 +325,15 @@ static uae_u8 *restore_chunk (struct zfile *f, TCHAR *name, size_t *len, size_t 
 		&& _tcscmp (name, "BRAM") != 0
 		&& _tcscmp (name, "FRAM") != 0
 		&& _tcscmp (name, "ZRAM") != 0
+		&& _tcscmp (name, "ZCRM") != 0
 		&& _tcscmp (name, "PRAM") != 0
 		&& _tcscmp (name, "A3K1") != 0
 		&& _tcscmp (name, "A3K2") != 0)
 	{
 		/* without zeros at the end old state files may not work */
 		mem = xcalloc (uae_u8, *totallen + 32);
+		if (!mem)
+			return NULL;
 		if (flags & 1) {
 			zfile_zuncompress (mem, *totallen, f, len2);
 		} else {
