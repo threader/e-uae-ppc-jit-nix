@@ -2073,13 +2073,11 @@ static int get_kb_widget_type (unsigned int kb, unsigned int num, char *name, ua
 static int init_kb (void)
 {
     struct uae_input_device_kbr_default *keymap = 0;
-write_log("********** 1\n");
 	inputdevice_setkeytranslation (keymap, kbmaps);
     /* See if we support raw keys on this platform */
     if ((keymap = get_default_raw_keymap (get_sdlgfx_type ())) != 0) {
 	inputdevice_setkeytranslation (keymap, kbmaps);
 	have_rawkeys = 1;
-write_log("********** 2\n");
     }
     switch_keymaps ();
 
