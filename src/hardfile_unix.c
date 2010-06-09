@@ -358,12 +358,12 @@ static int hdf_seek (struct hardfiledata *hfd, uae_u64 offset)
 		abort();
 	}
 	if (offset >= hfd->physsize - hfd->virtual_size) {
-		gui_message ("hd: tried to seek out of bounds! (%I64X >= %I64X)\n", offset, hfd->physsize);
+		gui_message ("hd: tried to seek out of bounds! (0x%llx >= 0x%llx)\n", offset, hfd->physsize);
 		abort ();
     }
     offset += hfd->offset;
     if (offset & (hfd->blocksize - 1)) {
-		gui_message ("hd: poscheck failed, offset=%I64X not aligned to blocksize=%d! (%I64X & %04X = %04X)\n",
+		gui_message ("hd: poscheck failed, offset=0x%llx not aligned to blocksize=%d! (0x%llx & 0x%04.4x = 0x%04.4x)\n",
 			offset, hfd->blocksize, offset, hfd->blocksize, offset & (hfd->blocksize - 1));
 		abort ();
     }
@@ -397,15 +397,15 @@ static void poscheck (struct hardfiledata *hfd, int len)
 		abort ();
     }
 	if (pos < hfd->offset) {
-		gui_message ("hd: poscheck failed, offset out of bounds! (%I64d < %I64d)", pos, hfd->offset);
+		gui_message ("hd: poscheck failed, offset out of bounds! (0x%llx < 0x%llx)", pos, hfd->offset);
 		abort ();
     }
 	if (pos >= hfd->offset + hfd->physsize - hfd->virtual_size || pos >= hfd->offset + hfd->physsize + len - hfd->virtual_size) {
-		gui_message ("hd: poscheck failed, offset out of bounds! (%I64d >= %I64d, LEN=%d)", pos, hfd->offset + hfd->physsize, len);
+		gui_message ("hd: poscheck failed, offset out of bounds! (0x%llx >= 0x%llx, LEN=%d)", pos, hfd->offset + hfd->physsize, len);
 		abort ();
     }
     if (pos & (hfd->blocksize - 1)) {
-		gui_message ("hd: poscheck failed, offset not aligned to blocksize! (%I64X & %04X = %04X\n", pos, hfd->blocksize, pos & hfd->blocksize);
+		gui_message ("hd: poscheck failed, offset not aligned to blocksize! (0x%llx & 0x%04.4x = 0x%04.4x\n", pos, hfd->blocksize, pos & hfd->blocksize);
 		abort ();
     }
 }
@@ -465,7 +465,7 @@ static int hdf_read_2 (struct hardfiledata *hfd, void *buffer, uae_u64 offset, i
 		memcpy (buffer, hfd->cache + coffset, len);
 		return len;
 	}
-	write_log ("hdf_read: cache bug! offset=%I64d len=%d\n", offset, len);
+	write_log ("hdf_read: cache bug! offset=0x%llx len=%d\n", offset, len);
 	hfd->cache_valid = 0;
 	return 0;
 }
