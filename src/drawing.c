@@ -1969,7 +1969,7 @@ static void pfield_draw_line (int lineno, int gfx_ypos, int follow_ypos)
 	{
 	case LINE_REMEMBERED_AS_PREVIOUS:
 //		if (!warned) // happens when program messes up with VPOSW
-//			write_log (L"Shouldn't get here... this is a bug.\n"), warned++;
+//			write_log ("Shouldn't get here... this is a bug.\n"), warned++;
 		return;
 
 	case LINE_BLACK:

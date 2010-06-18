@@ -4405,7 +4405,7 @@ void config_check_vsync (void)
 	cnt--;
 	if (config_changed) {
 //		if (config_changed == 1)
-//			write_log (L"* configuration check trigger\n");
+//			write_log ("* configuration check trigger\n");
 		config_changed++;
 		if (config_changed > 10)
 			config_changed = 0;

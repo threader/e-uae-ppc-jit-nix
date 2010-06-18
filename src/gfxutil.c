@@ -477,7 +477,7 @@ void alloc_colors256 (allocfunc_type allocfunc)
     free (map);
 
     for (i = 0; i < 4096; i++)
-	xcolors[i] = xcolors[i] * 0x01010101;
+		xcolors[i] = xcolors[i] * 0x01010101;
 }
 
 /*
@@ -502,22 +502,22 @@ void setup_greydither_maxcol (int maxcol, allocfunc_type allocfunc)
     xcolnr *map;
 
     for (i = 0; i < 4096; i++)
-	xcolors[i] = i << 16 | i;
+		xcolors[i] = i << 16 | i;
 
     map = (xcolnr *)malloc (sizeof(xcolnr) * maxcol);
     if (!map) {
-	write_log ("Not enough mem for colormap!\n");
-	abort();
+		write_log ("Not enough mem for colormap!\n");
+		abort();
     }
 
     /*
      * set the colormap
      */
     for (i = 0; i < maxcol; ++i) {
-	int c, result;
-	c = (15 * i + (maxcol-1)/2) / (maxcol - 1);
-	result = allocfunc(c, c, c, map + i);
-	/* @@@ check for errors */
+		int c, result;
+		c = (15 * i + (maxcol-1)/2) / (maxcol - 1);
+		result = allocfunc(c, c, c, map + i);
+		/* @@@ check for errors */
     }
 
     /*
@@ -529,24 +529,21 @@ void setup_greydither_maxcol (int maxcol, allocfunc_type allocfunc)
 	    for (r = 0; r<16; ++r) {
 		int g;
 		for (g = 0; g < 16; ++g) {
-		    int  b;
-		    for (b = 0; b < 16; ++b) {
+	    int  b;
+	    for (b = 0; b < 16; ++b) {
 			int rgb = (r << 8) | (g << 4) | b;
 			int c,p,q;
-
-			c = (77  * r +
-			     151 * g +
-			     28  * b) / 15; /* c in 0..256 */
-
+	
+			c = (77 * r + 151 * g + 28 * b) / 15; /* c in 0..256 */
+	
 			k = maxcol-1;
 			p = (c * k) / 256;
 			q = (c * k) % 256;
 			if (q /*/ k*/> d /*/ k*/ && p < k) ++p;
 /* sam:                      ^^^^^^^ */
 /*  It seems that produces better output */
-			cidx[i][rgb + (j+4)*4096] =
-			    cidx[i][rgb + j*4096] = (uae_u8)map[p];
-		    }
+				cidx[i][rgb + (j+4)*4096] = cidx[i][rgb + j*4096] = (uae_u8)map[p];
+	    }
 		}
 	    }
 	}
@@ -570,12 +567,12 @@ void setup_dither (int bits, allocfunc_type allocfunc)
 
     map = (xcolnr *)malloc (sizeof(xcolnr) * maxcol);
     if (!map) {
-	write_log ("Not enough mem for colormap!\n");
-	abort();
+		write_log ("Not enough mem for colormap!\n");
+		abort();
     }
 
     for (i = 0; i < 4096; i++)
-	xcolors[i] = i << 16 | i;
+		xcolors[i] = i << 16 | i;
 
     /*
      * compute #cols per components
@@ -589,10 +586,10 @@ void setup_dither (int bits, allocfunc_type allocfunc)
     nb_cols[BLU] = i;
 
     if (nb_cols[RED]*(++i)*nb_cols[BLU] <= maxcol) {
-	nb_cols[GRN] = i;
-	if ((i)*nb_cols[GRN]*nb_cols[BLU] <= maxcol)
-	    nb_cols[RED] = i;
-    }
+		nb_cols[GRN] = i;
+		if ((i)*nb_cols[GRN]*nb_cols[BLU] <= maxcol)
+		    nb_cols[RED] = i;
+	    }
 
     redvals = (int *)malloc (sizeof(int) * maxcol);
     grnvals = redvals + nb_cols[RED];
@@ -633,39 +630,7 @@ void setup_dither (int bits, allocfunc_type allocfunc)
 		    for (i = 0; i < 4; ++i) for (j = 0; j < 4; ++j) {
 			int d = dither[i][j];
 			int cr, cg, cb, k, q;
-#if 0 /* Slightly different algorithm. Needs some tuning. */
-			int rederr = 0, grnerr = 0, bluerr = 0;
 
-			k  = nb_cols[RED]-1;
-			cr = r * k / 15;
-			q  = r * k - 15*cr;
-			if (cr < 0)
-			    cr = 0;
-			else if (q / k > d / k && rederr <= 0)
-			    ++cr;
-			if (cr > k) cr = k;
-			rederr += redvals[cr]-r;
-
-			k  = nb_cols[GRN]-1;
-			cg = g * k / 15;
-			q  = g * k - 15*cg;
-			if (cg < 0)
-			    cg = 0;
-			else if (q / k > d / k && grnerr <= 0)
-			    ++cg;
-			if (cg > k) cg = k;
-			grnerr += grnvals[cg]-g;
-
-			k  = nb_cols[BLU]-1;
-			cb = b * k / 15;
-			q  = b * k - 15*cb;
-			if (cb < 0)
-			    cb = 0;
-			else if (q / k > d / k && bluerr <= 0)
-			    ++cb;
-			if (cb > k) cb = k;
-			bluerr += bluvals[cb]-b;
-#else
 			k  = nb_cols[RED]-1;
 			cr = r * k / 15;
 			q  = r * k - 15*cr;
@@ -692,7 +657,7 @@ void setup_dither (int bits, allocfunc_type allocfunc)
 			else if (q /*/ k*/ > d /*/ k*/)
 			    ++cb;
 			if (cb > k) cb = k;
-#endif
+
 			cidx[i][rgb + (j+4)*4096] = cidx[i][rgb + j*4096] = (uae_u8)map[(cr*nb_cols[GRN]+cg)*nb_cols[BLU]+cb];
 		    }
 		}
