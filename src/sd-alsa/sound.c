@@ -57,10 +57,10 @@ int setup_sound (void)
 	printf("ALSA lib version: %s\n", SND_LIB_VERSION_STR);
 	if ((err = open_sound()) < 0) {
 		/* TODO: if the pcm was busy, we should the same as sd-uss does.
-       	tell the caller that sound is available. in any other
-       	condition we should just return 0. */
-    	write_log ("ALSA: Can't open audio device: %s\n", snd_strerror (err));
-    	return 0;
+		tell the caller that sound is available. in any other
+		condition we should just return 0. */
+	    	write_log ("ALSA: Can't open audio device: %s\n", snd_strerror (err));
+    		return 0;
 	}
 	snd_pcm_close (alsa_playback_handle);
 	alsa_playback_handle = 0;
@@ -171,8 +171,8 @@ int init_sound (void)
     channels = currprefs.sound_stereo ? 2 : 1;
     rate     = currprefs.sound_freq;
 
-    have_sound = 0;
-    alsa_playback_handle = 0;
+	have_sound = 0;
+	alsa_playback_handle = 0;
 	printf("ALSA lib version: %s\n", SND_LIB_VERSION_STR);
     if ((err = open_sound()) < 0) {
 		write_log ("ALSA: Can't open audio device: %s\n", snd_strerror (err));

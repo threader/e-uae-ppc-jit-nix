@@ -39,7 +39,6 @@
 //if COMPILER(GCC) (MSVC)
 #endif
 #endif
-
 #define bool int
 #define DUNUSED(x)
 #define D

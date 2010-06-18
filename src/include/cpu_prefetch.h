@@ -410,8 +410,8 @@ STATIC_INLINE uae_u32 mem_access_delay_byte_read (uaecptr addr)
 		do_cycles_ce000 (4);
 		break;
 
-    }
-    return get_byte (addr);
+	}
+	return get_byte (addr);
 }
 STATIC_INLINE void mem_access_delay_byte_write (uaecptr addr, uae_u32 v)
 {
@@ -424,8 +424,8 @@ STATIC_INLINE void mem_access_delay_byte_write (uaecptr addr, uae_u32 v)
 	case CE_MEMBANK_FAST16BIT:
 		do_cycles_ce000 (4);
 		break;
-    }
-    put_byte (addr, v);
+	}
+	put_byte (addr, v);
 }
 STATIC_INLINE void mem_access_delay_word_write (uaecptr addr, uae_u32 v)
 {
@@ -439,8 +439,8 @@ STATIC_INLINE void mem_access_delay_word_write (uaecptr addr, uae_u32 v)
 	case CE_MEMBANK_FAST16BIT:
 		do_cycles_ce000 (4);
 		break;
-    }
-    put_word (addr, v);
+	}
+	put_word (addr, v);
 }
 
 STATIC_INLINE uae_u32 get_long_ce (uaecptr addr)
@@ -451,7 +451,7 @@ STATIC_INLINE uae_u32 get_long_ce (uaecptr addr)
 }
 STATIC_INLINE uae_u32 get_word_ce (uaecptr addr)
 {
-    return mem_access_delay_word_read (addr);
+	return mem_access_delay_word_read (addr);
 }
 STATIC_INLINE uae_u32 get_wordi_ce (uaecptr addr)
 {
@@ -459,13 +459,13 @@ STATIC_INLINE uae_u32 get_wordi_ce (uaecptr addr)
 }
 STATIC_INLINE uae_u32 get_byte_ce (uaecptr addr)
 {
-    return mem_access_delay_byte_read (addr);
+	return mem_access_delay_byte_read (addr);
 }
 STATIC_INLINE uae_u32 get_word_ce_prefetch (int o)
 {
 	uae_u32 v = regs.irc;
 	regs.irc = get_wordi_ce (m68k_getpc () + o);
-    return v;
+	return v;
 }
 
 STATIC_INLINE void put_long_ce (uaecptr addr, uae_u32 v)
@@ -475,31 +475,31 @@ STATIC_INLINE void put_long_ce (uaecptr addr, uae_u32 v)
 }
 STATIC_INLINE void put_word_ce (uaecptr addr, uae_u32 v)
 {
-    mem_access_delay_word_write (addr, v);
+	mem_access_delay_word_write (addr, v);
 }
 STATIC_INLINE void put_byte_ce (uaecptr addr, uae_u32 v)
 {
-    mem_access_delay_byte_write (addr, v);
+	mem_access_delay_byte_write (addr, v);
 }
 
 STATIC_INLINE void m68k_do_rts_ce (void)
 {
-    uaecptr pc;
-    pc  = get_word_ce (m68k_areg (regs, 7)) << 16;
-    pc |= get_word_ce (m68k_areg (regs, 7) + 2);
-    m68k_areg (regs, 7) += 4;
-    if (pc & 1)
-	exception3 (0x4e75, m68k_getpc (), pc);
-    else
-	m68k_setpc (pc);
+	uaecptr pc;
+	pc = get_word_ce (m68k_areg (regs, 7)) << 16;
+	pc |= get_word_ce (m68k_areg (regs, 7) + 2);
+	m68k_areg (regs, 7) += 4;
+	if (pc & 1)
+		exception3 (0x4e75, m68k_getpc (), pc);
+	else
+		m68k_setpc (pc);
 }
 
 STATIC_INLINE void m68k_do_bsr_ce (uaecptr oldpc, uae_s32 offset)
 {
-    m68k_areg (regs, 7) -= 4;
-    put_word_ce (m68k_areg (regs, 7), oldpc >> 16);
-    put_word_ce (m68k_areg (regs, 7) + 2, oldpc);
-    m68k_incpc (offset);
+	m68k_areg (regs, 7) -= 4;
+	put_word_ce (m68k_areg (regs, 7), oldpc >> 16);
+	put_word_ce (m68k_areg (regs, 7) + 2, oldpc);
+	m68k_incpc (offset);
 }
 
 STATIC_INLINE void m68k_do_jsr_ce (uaecptr oldpc, uaecptr dest)

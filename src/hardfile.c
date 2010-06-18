@@ -1,11 +1,11 @@
- /*
-  * UAE - The Un*x Amiga Emulator
-  *
-  * Hardfile emulation
-  *
-  * Copyright 1995 Bernd Schmidt
-  *           2002 Toni Wilen (scsi emulation, 64-bit support)
-  */
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * Hardfile emulation
+ *
+ * Copyright 1995 Bernd Schmidt
+ *           2002 Toni Wilen (scsi emulation, 64-bit support)
+ */
 
 #include "sysconfig.h"
 #include "sysdeps.h"
@@ -69,14 +69,14 @@
 #define ASYNC_REQUEST_CHANGEINT 10
 
 struct hardfileprivdata {
-    volatile uaecptr d_request[MAX_ASYNC_REQUESTS];
-    volatile int d_request_type[MAX_ASYNC_REQUESTS];
-    volatile uae_u32 d_request_data[MAX_ASYNC_REQUESTS];
-    smp_comm_pipe requests;
-    int thread_running;
-    uae_sem_t sync_sem;
-    uaecptr base;
-    int changenum;
+	volatile uaecptr d_request[MAX_ASYNC_REQUESTS];
+	volatile int d_request_type[MAX_ASYNC_REQUESTS];
+	volatile uae_u32 d_request_data[MAX_ASYNC_REQUESTS];
+	smp_comm_pipe requests;
+	int thread_running;
+	uae_sem_t sync_sem;
+	uaecptr base;
+	int changenum;
 	uaecptr changeint;
 	uae_thread_id tid;
 };
@@ -86,7 +86,7 @@ struct hardfileprivdata {
 
 STATIC_INLINE uae_u32 gl (uae_u8 *p)
 {
-    return (p[0] << 24) | (p[1] << 16) | (p[2] << 8) | (p[3] << 0);
+	return (p[0] << 24) | (p[1] << 16) | (p[2] << 8) | (p[3] << 0);
 }
 
 static uae_sem_t change_sem;
@@ -97,64 +97,64 @@ static uae_u32 nscmd_cmd;
 
 static void wl (uae_u8 *p, int v)
 {
-    p[0] = v >> 24;
-    p[1] = v >> 16;
-    p[2] = v >> 8;
-    p[3] = v;
+	p[0] = v >> 24;
+	p[1] = v >> 16;
+	p[2] = v >> 8;
+	p[3] = v;
 }
 static void ww (uae_u8 *p, int v)
 {
-    p[0] = v >> 8;
-    p[1] = v;
+	p[0] = v >> 8;
+	p[1] = v;
 }
 static int rl (uae_u8 *p)
 {
-    return (p[0] << 24) | (p[1] << 16) | (p[2] << 8) | (p[3]);
+	return (p[0] << 24) | (p[1] << 16) | (p[2] << 8) | (p[3]);
 }
 
 
 static void getchs2 (struct hardfiledata *hfd, int *cyl, int *cylsec, int *head, int *tracksec)
 {
 	unsigned int total = (unsigned int)(hfd->virtsize / 1024);
-    int heads;
-    int sectors = 63;
+	int heads;
+	int sectors = 63;
 
-    /* do we have RDB values? */
-    if (hfd->cylinders) {
+	/* do we have RDB values? */
+	if (hfd->cylinders) {
 		*cyl = hfd->cylinders;
 		*tracksec = hfd->sectors;
 		*head = hfd->heads;
 		*cylsec = hfd->sectors * hfd->heads;
 		return;
-    }
-    /* what about HDF settings? */
-    if (hfd->surfaces && hfd->secspertrack) {
+	}
+	/* what about HDF settings? */
+	if (hfd->surfaces && hfd->secspertrack) {
 		*head = hfd->surfaces;
 		*tracksec = hfd->secspertrack;
 		*cylsec = (*head) * (*tracksec);
 		*cyl = (unsigned int)(hfd->virtsize / hfd->blocksize) / ((*tracksec) * (*head));
 		return;
-    }
-    /* no, lets guess something.. */
-    if (total <= 504 * 1024)
+	}
+	/* no, lets guess something.. */
+	if (total <= 504 * 1024)
 		heads = 16;
-    else if (total <= 1008 * 1024)
+	else if (total <= 1008 * 1024)
 		heads = 32;
-    else if (total <= 2016 * 1024)
+	else if (total <= 2016 * 1024)
 		heads = 64;
-    else if (total <= 4032 * 1024)
+	else if (total <= 4032 * 1024)
 		heads = 128;
-    else
+	else
 		heads = 255;
 	*cyl = (unsigned int)(hfd->virtsize / hfd->blocksize) / (sectors * heads);
-    *cylsec = sectors * heads;
-    *tracksec = sectors;
-    *head = heads;
+	*cylsec = sectors * heads;
+	*tracksec = sectors;
+	*head = heads;
 }
 
 static void getchs (struct hardfiledata *hfd, int *cyl, int *cylsec, int *head, int *tracksec)
 {
-    getchs2 (hfd, cyl, cylsec, head, tracksec);
+	getchs2 (hfd, cyl, cylsec, head, tracksec);
 	hf_log ("CHS: %08X-%08X %d %d %d %d %d\n",
 		(uae_u32)(hfd->virtsize >> 32),(uae_u32)hfd->virtsize,
 		*cyl, *cylsec, *head, *tracksec);
@@ -1556,37 +1556,37 @@ static uae_u32 REGPARAM2 hardfile_expunge (TrapContext *context)
 static void outofbounds (int cmd, uae_u64 offset, uae_u64 len, uae_u64 max)
 {
 	write_log ("UAEHF: cmd %d: out of bounds, %08X-%08X + %08X-%08X > %08X-%08X\n", cmd,
-	(uae_u32)(offset >> 32),(uae_u32)offset,(uae_u32)(len >> 32),(uae_u32)len,
-	(uae_u32)(max >> 32),(uae_u32)max);
+		(uae_u32)(offset >> 32),(uae_u32)offset,(uae_u32)(len >> 32),(uae_u32)len,
+		(uae_u32)(max >> 32),(uae_u32)max);
 }
 static void unaligned (int cmd, uae_u64 offset, uae_u64 len, int blocksize)
 {
 	write_log ("UAEHF: cmd %d: unaligned access, %08X-%08X, %08X-%08X, %08X\n", cmd,
-	(uae_u32)(offset >> 32),(uae_u32)offset,(uae_u32)(len >> 32),(uae_u32)len,
-	blocksize);
+		(uae_u32)(offset >> 32),(uae_u32)offset,(uae_u32)(len >> 32),(uae_u32)len,
+		blocksize);
 }
 
 static uae_u32 hardfile_do_io (struct hardfiledata *hfd, struct hardfileprivdata *hfpd, uaecptr request)
 {
-    uae_u32 dataptr, offset, actual = 0, cmd;
-    uae_u64 offset64;
-    int unit = get_long (request + 24);
-    uae_u32 error = 0, len;
-    int async = 0;
-    int bmask = hfd->blocksize - 1;
+	uae_u32 dataptr, offset, actual = 0, cmd;
+	uae_u64 offset64;
+	int unit = get_long (request + 24);
+	uae_u32 error = 0, len;
+	int async = 0;
+	int bmask = hfd->blocksize - 1;
 
-    cmd = get_word (request + 28); /* io_Command */
-    dataptr = get_long (request + 40);
-    switch (cmd)
-    {
+	cmd = get_word (request + 28); /* io_Command */
+	dataptr = get_long (request + 40);
+	switch (cmd)
+	{
 	case CMD_READ:
 		if (nodisk (hfd))
 			goto no_disk;
 		offset = get_long (request + 44);
 		len = get_long (request + 36); /* io_Length */
 		if ((offset & bmask) || dataptr == 0) {
-		    unaligned (cmd, offset, len, hfd->blocksize);
-		    goto bad_command;
+			unaligned (cmd, offset, len, hfd->blocksize);
+			goto bad_command;
 		}
 		if (len & bmask) {
 			unaligned (cmd, offset, len, hfd->blocksize);
@@ -1606,8 +1606,8 @@ static uae_u32 hardfile_do_io (struct hardfiledata *hfd, struct hardfileprivdata
 		offset64 = get_long (request + 44) | ((uae_u64)get_long (request + 32) << 32);
 		len = get_long (request + 36); /* io_Length */
 		if ((offset64 & bmask) || dataptr == 0) {
-		    unaligned (cmd, offset64, len, hfd->blocksize);
-		    goto bad_command;
+			unaligned (cmd, offset64, len, hfd->blocksize);
+			goto bad_command;
 		}
 		if (len & bmask) {
 			unaligned (cmd, offset64, len, hfd->blocksize);
@@ -1625,14 +1625,14 @@ static uae_u32 hardfile_do_io (struct hardfiledata *hfd, struct hardfileprivdata
 		if (nodisk (hfd))
 			goto no_disk;
 		if (hfd->readonly || hfd->dangerous) {
-	    	error = 28; /* write protect */
+			error = 28; /* write protect */
 		} else {
-		    offset = get_long (request + 44);
-		    len = get_long (request + 36); /* io_Length */
+			offset = get_long (request + 44);
+			len = get_long (request + 36); /* io_Length */
 			if ((offset & bmask) || dataptr == 0) {
 				unaligned (cmd, offset, len, hfd->blocksize);
 				goto bad_command;
-	    	}
+			}
 			if (len & bmask) {
 				unaligned (cmd, offset, len, hfd->blocksize);
 				goto bad_len;
@@ -1640,8 +1640,8 @@ static uae_u32 hardfile_do_io (struct hardfiledata *hfd, struct hardfileprivdata
 			if (len + offset > hfd->virtsize) {
 				outofbounds (cmd, offset, len, hfd->virtsize);
 				goto bad_len;
-		    }
-		    actual = (uae_u32)cmd_write (hfd, dataptr, offset, len);
+			}
+			actual = (uae_u32)cmd_write (hfd, dataptr, offset, len);
 		}
 		break;
 
@@ -1652,14 +1652,14 @@ static uae_u32 hardfile_do_io (struct hardfiledata *hfd, struct hardfileprivdata
 		if (nodisk (hfd))
 			goto no_disk;
 		if (hfd->readonly || hfd->dangerous) {
-		    error = 28; /* write protect */
+			error = 28; /* write protect */
 		} else {
-		    offset64 = get_long (request + 44) | ((uae_u64)get_long (request + 32) << 32);
-		    len = get_long (request + 36); /* io_Length */
+			offset64 = get_long (request + 44) | ((uae_u64)get_long (request + 32) << 32);
+			len = get_long (request + 36); /* io_Length */
 			if ((offset64 & bmask) || dataptr == 0) {
 				unaligned (cmd, offset64, len, hfd->blocksize);
 				goto bad_command;
-		    }
+			}
 			if (len & bmask) {
 				unaligned (cmd, offset64, len, hfd->blocksize);
 				goto bad_len;
@@ -1667,8 +1667,8 @@ static uae_u32 hardfile_do_io (struct hardfiledata *hfd, struct hardfileprivdata
 			if (len + offset64 > hfd->virtsize) {
 				outofbounds (cmd, offset64, len, hfd->virtsize);
 				goto bad_len;
-		    }
-		    put_long (request + 32, (uae_u32)cmd_write (hfd, dataptr, offset64, len));
+			}
+			put_long (request + 32, (uae_u32)cmd_write (hfd, dataptr, offset64, len));
 		}
 		break;
 
@@ -1679,53 +1679,53 @@ bad_len:
 		error = IOERR_BADLENGTH;
 no_disk:
 		error = 29; /* no disk */
-	break;
+		break;
 
 	case NSCMD_DEVICEQUERY:
 		put_long (dataptr + 0, 0);
-	    put_long (dataptr + 4, 16); /* size */
+		put_long (dataptr + 4, 16); /* size */
 		put_word (dataptr + 8, NSDEVTYPE_TRACKDISK);
-	    put_word (dataptr + 10, 0);
-	    put_long (dataptr + 12, nscmd_cmd);
-	    actual = 16;
-	break;
+		put_word (dataptr + 10, 0);
+		put_long (dataptr + 12, nscmd_cmd);
+		actual = 16;
+		break;
 
 	case CMD_GETDRIVETYPE:
-	    actual = DRIVE_NEWSTYLE;
-	    break;
+		actual = DRIVE_NEWSTYLE;
+		break;
 
 	case CMD_GETNUMTRACKS:
 		{
 			int cyl, cylsec, head, tracksec;
-	    	getchs (hfd, &cyl, &cylsec, &head, &tracksec);
-	    	actual = cyl * head;
-	    	break;
+			getchs (hfd, &cyl, &cylsec, &head, &tracksec);
+			actual = cyl * head;
+			break;
 		}
 
 	case CMD_GETGEOMETRY:
 		{
-		    int cyl, cylsec, head, tracksec;
+			int cyl, cylsec, head, tracksec;
 			uae_u64 size;
-		    getchs (hfd, &cyl, &cylsec, &head, &tracksec);
-		    put_long (dataptr + 0, hfd->blocksize);
+			getchs (hfd, &cyl, &cylsec, &head, &tracksec);
+			put_long (dataptr + 0, hfd->blocksize);
 			size = hfd->virtsize / hfd->blocksize;
 			if (size > 0x00ffffffff)
 				size = 0xffffffff;
 			put_long (dataptr + 4, (uae_u32)size);
-		    put_long (dataptr + 8, cyl);
-		    put_long (dataptr + 12, cylsec);
-		    put_long (dataptr + 16, head);
-		    put_long (dataptr + 20, tracksec);
-		    put_long (dataptr + 24, 0); /* bufmemtype */
-		    put_byte (dataptr + 28, 0); /* type = DG_DIRECT_ACCESS */
-		    put_byte (dataptr + 29, 0); /* flags */
+			put_long (dataptr + 8, cyl);
+			put_long (dataptr + 12, cylsec);
+			put_long (dataptr + 16, head);
+			put_long (dataptr + 20, tracksec);
+			put_long (dataptr + 24, 0); /* bufmemtype */
+			put_byte (dataptr + 28, 0); /* type = DG_DIRECT_ACCESS */
+			put_byte (dataptr + 29, 0); /* flags */
 		}
 		break;
 
 	case CMD_PROTSTATUS:
 		if (hfd->readonly || hfd->dangerous)
 			actual = -1;
-	    else
+		else
 			actual = 0;
 		break;
 
@@ -1733,7 +1733,7 @@ no_disk:
 		actual = hfd->drive_empty ? 1 :0;
 		break;
 
-	/* Some commands that just do nothing and return zero */
+		/* Some commands that just do nothing and return zero */
 	case CMD_UPDATE:
 	case CMD_CLEAR:
 	case CMD_MOTOR:
@@ -1753,41 +1753,41 @@ no_disk:
 	case CMD_ADDCHANGEINT:
 		error = add_async_request (hfpd, request, ASYNC_REQUEST_CHANGEINT, get_long (request + 40));
 		if (!error)
-		    async = 1;
+			async = 1;
 		break;
 	case CMD_REMCHANGEINT:
 		release_async_request (hfpd, request);
 		break;
 
 	case HD_SCSICMD: /* SCSI */
-	    if (hfd->nrcyls == 0) {
+		if (hfd->nrcyls == 0) {
 			error = handle_scsi (request, hfd);
-	    } else { /* we don't want users trashing their "partition" hardfiles with hdtoolbox */
+		} else { /* we don't want users trashing their "partition" hardfiles with hdtoolbox */
 			error = IOERR_NOCMD;
 			write_log ("UAEHF: HD_SCSICMD tried on regular HDF, unit %d\n", unit);
-	    }
+		}
 		break;
 
 	default:
-	    /* Command not understood. */
+		/* Command not understood. */
 		error = IOERR_NOCMD;
 		break;
-    }
-    put_long (request + 32, actual);
-    put_byte (request + 31, error);
+	}
+	put_long (request + 32, actual);
+	put_byte (request + 31, error);
 
 	hf_log2 ("hf: unit=%d, request=%p, cmd=%d offset=%u len=%d, actual=%d error%=%d\n", unit, request,
-	get_word (request + 28), get_long (request + 44), get_long (request + 36), actual, error);
+		get_word (request + 28), get_long (request + 44), get_long (request + 36), actual, error);
 
-    return async;
+	return async;
 }
 
 static uae_u32 REGPARAM2 hardfile_abortio (TrapContext *context)
 {
 	uae_u32 request = m68k_areg (regs, 1);
-    int unit = mangleunit (get_long (request + 24));
-    struct hardfiledata *hfd = get_hardfile_data (unit);
-    struct hardfileprivdata *hfpd = &hardfpd[unit];
+	int unit = mangleunit (get_long (request + 24));
+	struct hardfiledata *hfd = get_hardfile_data (unit);
+	struct hardfileprivdata *hfpd = &hardfpd[unit];
 
 	hf_log2 ("uaehf.device abortio ");
 	start_thread (context, unit);
@@ -1795,17 +1795,17 @@ static uae_u32 REGPARAM2 hardfile_abortio (TrapContext *context)
 		put_byte (request + 31, 32);
 		hf_log2 ("error\n");
 		return get_byte (request + 31);
-    }
-    put_byte (request + 31, -2);
+	}
+	put_byte (request + 31, -2);
 	hf_log2 ("unit=%d, request=%08X\n",  unit, request);
-    abort_async (hfpd, request, -2, 0);
-    return 0;
+	abort_async (hfpd, request, -2, 0);
+	return 0;
 }
 
 static int hardfile_can_quick (uae_u32 command)
 {
-    switch (command)
-    {
+	switch (command)
+	{
 	case CMD_RESET:
 	case CMD_STOP:
 	case CMD_START:
@@ -1817,44 +1817,44 @@ static int hardfile_can_quick (uae_u32 command)
 	case CMD_GETGEOMETRY:
 	case NSCMD_DEVICEQUERY:
 		return 1;
-    }
-    return 0;
+	}
+	return 0;
 }
 
 static int hardfile_canquick (struct hardfiledata *hfd, uaecptr request)
 {
-    uae_u32 command = get_word (request + 28);
-    return hardfile_can_quick (command);
+	uae_u32 command = get_word (request + 28);
+	return hardfile_can_quick (command);
 }
 
 static uae_u32 REGPARAM2 hardfile_beginio (TrapContext *context)
 {
 	uae_u32 request = m68k_areg (regs, 1);
-    uae_u8 flags = get_byte (request + 30);
-    int cmd = get_word (request + 28);
-    int unit = mangleunit (get_long (request + 24));
-    struct hardfiledata *hfd = get_hardfile_data (unit);
-    struct hardfileprivdata *hfpd = &hardfpd[unit];
+	uae_u8 flags = get_byte (request + 30);
+	int cmd = get_word (request + 28);
+	int unit = mangleunit (get_long (request + 24));
+	struct hardfiledata *hfd = get_hardfile_data (unit);
+	struct hardfileprivdata *hfpd = &hardfpd[unit];
 
-    put_byte (request + 8, NT_MESSAGE);
+	put_byte (request + 8, NT_MESSAGE);
 	start_thread (context, unit);
 	if (!hfd || !hfpd || !hfpd->thread_running) {
 		put_byte (request + 31, 32);
 		return get_byte (request + 31);
-    }
-    put_byte (request + 31, 0);
-    if ((flags & 1) && hardfile_canquick (hfd, request)) {
+	}
+	put_byte (request + 31, 0);
+	if ((flags & 1) && hardfile_canquick (hfd, request)) {
 		hf_log ("hf quickio unit=%d request=%p cmd=%d\n", unit, request, cmd);
 		if (hardfile_do_io (hfd, hfpd, request))
 			hf_log2 ("uaehf.device cmd %d bug with IO_QUICK\n", cmd);
 		return get_byte (request + 31);
-    } else {
+	} else {
 		hf_log2 ("hf asyncio unit=%d request=%p cmd=%d\n", unit, request, cmd);
 		add_async_request (hfpd, request, ASYNC_REQUEST_TEMP, 0);
 		put_byte (request + 30, get_byte (request + 30) & ~1);
 		write_comm_pipe_u32 (&hfpd->requests, request, 1);
 		return 0;
-    }
+	}
 }
 
 static void *hardfile_thread (void *devs)
@@ -1862,147 +1862,147 @@ static void *hardfile_thread (void *devs)
 	struct hardfileprivdata *hfpd = (struct hardfileprivdata*)devs;
 
 	uae_set_thread_priority (2);
-    hfpd->thread_running = 1;
-    uae_sem_post (&hfpd->sync_sem);
-    for (;;) {
+	hfpd->thread_running = 1;
+	uae_sem_post (&hfpd->sync_sem);
+	for (;;) {
 		uaecptr request = (uaecptr)read_comm_pipe_u32_blocking (&hfpd->requests);
 		uae_sem_wait (&change_sem);
 		if (!request) {
-		    hfpd->thread_running = 0;
-		    uae_sem_post (&hfpd->sync_sem);
-		    uae_sem_post (&change_sem);
-		    return 0;
+			hfpd->thread_running = 0;
+			uae_sem_post (&hfpd->sync_sem);
+			uae_sem_post (&change_sem);
+			return 0;
 		} else if (hardfile_do_io (get_hardfile_data (hfpd - &hardfpd[0]), hfpd, request) == 0) {
-		    put_byte (request + 30, get_byte (request + 30) & ~1);
-		    release_async_request (hfpd, request);
-		    uae_ReplyMsg (request);
+			put_byte (request + 30, get_byte (request + 30) & ~1);
+			release_async_request (hfpd, request);
+			uae_ReplyMsg (request);
 		} else {
 			hf_log2 ("async request %08X\n", request);
 		}
 		uae_sem_post (&change_sem);
-    }
+	}
 }
 
 void hardfile_reset (void)
 {
-    int i, j;
-    struct hardfileprivdata *hfpd;
+	int i, j;
+	struct hardfileprivdata *hfpd;
 
-    for (i = 0; i < MAX_FILESYSTEM_UNITS; i++) {
+	for (i = 0; i < MAX_FILESYSTEM_UNITS; i++) {
 		hfpd = &hardfpd[i];
 		if (hfpd->base && valid_address (hfpd->base, 36) && get_word (hfpd->base + 32) > 0) {
-	    	for (j = 0; j < MAX_ASYNC_REQUESTS; j++) {
+			for (j = 0; j < MAX_ASYNC_REQUESTS; j++) {
 				uaecptr request;
 				if ((request = hfpd->d_request[i]))
-				    abort_async (hfpd, request, 0, 0);
-	    	}
+					abort_async (hfpd, request, 0, 0);
+			}
 		}
 		memset (hfpd, 0, sizeof (struct hardfileprivdata));
-    }
+	}
 }
 
 void hardfile_install (void)
 {
-    uae_u32 functable, datatable;
-    uae_u32 initcode, openfunc, closefunc, expungefunc;
-    uae_u32 beginiofunc, abortiofunc;
+	uae_u32 functable, datatable;
+	uae_u32 initcode, openfunc, closefunc, expungefunc;
+	uae_u32 beginiofunc, abortiofunc;
 
-    uae_sem_init (&change_sem, 0, 1);
+	uae_sem_init (&change_sem, 0, 1);
 
 	ROM_hardfile_resname = ds ("uaehf.device");
 	ROM_hardfile_resid = ds ("UAE hardfile.device 0.2");
 
-    nscmd_cmd = here ();
-    dw (NSCMD_DEVICEQUERY);
-    dw (CMD_RESET);
-    dw (CMD_READ);
-    dw (CMD_WRITE);
-    dw (CMD_UPDATE);
-    dw (CMD_CLEAR);
-    dw (CMD_START);
-    dw (CMD_STOP);
-    dw (CMD_FLUSH);
-    dw (CMD_MOTOR);
-    dw (CMD_SEEK);
-    dw (CMD_FORMAT);
-    dw (CMD_REMOVE);
-    dw (CMD_CHANGENUM);
-    dw (CMD_CHANGESTATE);
-    dw (CMD_PROTSTATUS);
-    dw (CMD_GETDRIVETYPE);
-    dw (CMD_GETGEOMETRY);
-    dw (CMD_ADDCHANGEINT);
-    dw (CMD_REMCHANGEINT);
-    dw (HD_SCSICMD);
-    dw (NSCMD_TD_READ64);
-    dw (NSCMD_TD_WRITE64);
-    dw (NSCMD_TD_SEEK64);
-    dw (NSCMD_TD_FORMAT64);
-    dw (0);
+	nscmd_cmd = here ();
+	dw (NSCMD_DEVICEQUERY);
+	dw (CMD_RESET);
+	dw (CMD_READ);
+	dw (CMD_WRITE);
+	dw (CMD_UPDATE);
+	dw (CMD_CLEAR);
+	dw (CMD_START);
+	dw (CMD_STOP);
+	dw (CMD_FLUSH);
+	dw (CMD_MOTOR);
+	dw (CMD_SEEK);
+	dw (CMD_FORMAT);
+	dw (CMD_REMOVE);
+	dw (CMD_CHANGENUM);
+	dw (CMD_CHANGESTATE);
+	dw (CMD_PROTSTATUS);
+	dw (CMD_GETDRIVETYPE);
+	dw (CMD_GETGEOMETRY);
+	dw (CMD_ADDCHANGEINT);
+	dw (CMD_REMCHANGEINT);
+	dw (HD_SCSICMD);
+	dw (NSCMD_TD_READ64);
+	dw (NSCMD_TD_WRITE64);
+	dw (NSCMD_TD_SEEK64);
+	dw (NSCMD_TD_FORMAT64);
+	dw (0);
 
-    /* initcode */
+	/* initcode */
 #if 0
-    initcode = here ();
-    calltrap (deftrap (hardfile_init)); dw (RTS);
+	initcode = here ();
+	calltrap (deftrap (hardfile_init)); dw (RTS);
 #else
-    initcode = filesys_initcode;
+	initcode = filesys_initcode;
 #endif
-    /* Open */
-    openfunc = here ();
-    calltrap (deftrap (hardfile_open)); dw (RTS);
+	/* Open */
+	openfunc = here ();
+	calltrap (deftrap (hardfile_open)); dw (RTS);
 
-    /* Close */
-    closefunc = here ();
-    calltrap (deftrap (hardfile_close)); dw (RTS);
+	/* Close */
+	closefunc = here ();
+	calltrap (deftrap (hardfile_close)); dw (RTS);
 
-    /* Expunge */
-    expungefunc = here ();
-    calltrap (deftrap (hardfile_expunge)); dw (RTS);
+	/* Expunge */
+	expungefunc = here ();
+	calltrap (deftrap (hardfile_expunge)); dw (RTS);
 
-    /* BeginIO */
-    beginiofunc = here ();
-    calltrap (deftrap (hardfile_beginio));
-    dw (RTS);
+	/* BeginIO */
+	beginiofunc = here ();
+	calltrap (deftrap (hardfile_beginio));
+	dw (RTS);
 
-    /* AbortIO */
-    abortiofunc = here ();
-    calltrap (deftrap (hardfile_abortio)); dw (RTS);
+	/* AbortIO */
+	abortiofunc = here ();
+	calltrap (deftrap (hardfile_abortio)); dw (RTS);
 
-    /* FuncTable */
-    functable = here ();
-    dl (openfunc); /* Open */
-    dl (closefunc); /* Close */
-    dl (expungefunc); /* Expunge */
-    dl (EXPANSION_nullfunc); /* Null */
-    dl (beginiofunc); /* BeginIO */
-    dl (abortiofunc); /* AbortIO */
-    dl (0xFFFFFFFFul); /* end of table */
+	/* FuncTable */
+	functable = here ();
+	dl (openfunc); /* Open */
+	dl (closefunc); /* Close */
+	dl (expungefunc); /* Expunge */
+	dl (EXPANSION_nullfunc); /* Null */
+	dl (beginiofunc); /* BeginIO */
+	dl (abortiofunc); /* AbortIO */
+	dl (0xFFFFFFFFul); /* end of table */
 
-    /* DataTable */
-    datatable = here ();
-    dw (0xE000); /* INITBYTE */
-    dw (0x0008); /* LN_TYPE */
-    dw (0x0300); /* NT_DEVICE */
-    dw (0xC000); /* INITLONG */
-    dw (0x000A); /* LN_NAME */
-    dl (ROM_hardfile_resname);
-    dw (0xE000); /* INITBYTE */
-    dw (0x000E); /* LIB_FLAGS */
-    dw (0x0600); /* LIBF_SUMUSED | LIBF_CHANGED */
-    dw (0xD000); /* INITWORD */
-    dw (0x0014); /* LIB_VERSION */
-    dw (0x0004); /* 0.4 */
-    dw (0xD000);
-    dw (0x0016); /* LIB_REVISION */
-    dw (0x0000);
-    dw (0xC000);
-    dw (0x0018); /* LIB_IDSTRING */
-    dl (ROM_hardfile_resid);
-    dw (0x0000); /* end of table */
+	/* DataTable */
+	datatable = here ();
+	dw (0xE000); /* INITBYTE */
+	dw (0x0008); /* LN_TYPE */
+	dw (0x0300); /* NT_DEVICE */
+	dw (0xC000); /* INITLONG */
+	dw (0x000A); /* LN_NAME */
+	dl (ROM_hardfile_resname);
+	dw (0xE000); /* INITBYTE */
+	dw (0x000E); /* LIB_FLAGS */
+	dw (0x0600); /* LIBF_SUMUSED | LIBF_CHANGED */
+	dw (0xD000); /* INITWORD */
+	dw (0x0014); /* LIB_VERSION */
+	dw (0x0004); /* 0.4 */
+	dw (0xD000);
+	dw (0x0016); /* LIB_REVISION */
+	dw (0x0000);
+	dw (0xC000);
+	dw (0x0018); /* LIB_IDSTRING */
+	dl (ROM_hardfile_resid);
+	dw (0x0000); /* end of table */
 
-    ROM_hardfile_init = here ();
-    dl (0x00000100); /* ??? */
-    dl (functable);
-    dl (datatable);
-    dl (initcode);
+	ROM_hardfile_init = here ();
+	dl (0x00000100); /* ??? */
+	dl (functable);
+	dl (datatable);
+	dl (initcode);
 }
