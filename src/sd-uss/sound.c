@@ -1,11 +1,11 @@
- /*
-  * UAE - The Un*x Amiga Emulator
-  *
-  * Support for Linux/USS sound
-  *
-  * Copyright 1997 Bernd Schmidt
-  * Copyright 2003-2007 Richard Drummond
-  */
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * Support for Linux/USS sound
+ *
+ * Copyright 1997 Bernd Schmidt
+ * Copyright 2003-2007 Richard Drummond
+ */
 
 #include "sysconfig.h"
 #include "sysdeps.h"
@@ -46,6 +46,24 @@ void close_sound (void)
 		close (sound_fd);
 }
 
+void finish_sound_buffer (void)
+{
+	if (currprefs.turbo_emulation)
+		return;
+#ifdef DRIVESOUND
+	driveclick_mix ((uae_s16*)paula_sndbuffer, paula_sndbufsize / 2, currprefs.dfxclickchannelmask);
+#endif
+	if (!have_sound)
+		return;
+	if (statuscnt > 0) {
+		statuscnt--;
+		if (statuscnt == 0)
+			gui_data.sndbuf_status = 0;
+	}
+	if (gui_data.sndbuf_status == 3)
+		gui_data.sndbuf_status = 0;
+}
+
 /* Try to determine whether sound is available.  This is only for GUI purposes.  */
 int setup_sound (void)
 {
@@ -54,23 +72,27 @@ int setup_sound (void)
     sound_available = 0;
 
     if (sound_fd < 0) {
-	perror ("Can't open /dev/dsp");
-	if (errno == EBUSY) {
-	    /* We can hope, can't we ;) */
-	    sound_available = 1;
-	    return 1;
-	}
-	return 0;
+		perror ("Can't open /dev/dsp");
+		if (errno == EBUSY) {
+		    /* We can hope, can't we ;) */
+		    sound_available = 1;
+		    return 1;
+		}
+		return 0;
     }
 
     if (ioctl (sound_fd, SNDCTL_DSP_GETFMTS, &formats) == -1) {
-	perror ("ioctl failed - can't use sound");
-	close (sound_fd);
-	return 0;
+		perror ("ioctl failed - can't use sound");
+		close (sound_fd);
+		return 0;
     }
 
     sound_available = 1;
     close (sound_fd);
+
+#ifdef DRIVESOUND
+	driveclick_init();
+#endif
     return 1;
 }
 
@@ -135,7 +157,7 @@ int init_sound (void)
     paula_sndbufpt = paula_sndbuffer;
 
 #ifdef DRIVESOUND
-	driveclick_init();
+	driveclick_reset ();
 #endif
 
     return 1;
@@ -158,9 +180,9 @@ void sound_volume (int dir)
 /*
     currprefs.sound_volume -= dir * 10;
     if (currprefs.sound_volume < 0)
-	currprefs.sound_volume = 0;
+		currprefs.sound_volume = 0;
     if (currprefs.sound_volume > 100)
-	currprefs.sound_volume = 100;
+		currprefs.sound_volume = 100;
     changed_prefs.sound_volume = currprefs.sound_volume;
     set_volume (currprefs.sound_volume, sdp->mute);
 */
@@ -169,7 +191,6 @@ void sound_volume (int dir)
 void restart_sound_buffer (void)
 {
 }
-
 
 /*
  * Handle audio specific cfgfile options

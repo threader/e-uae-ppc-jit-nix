@@ -172,7 +172,7 @@ static void zfile_free (struct zfile *f)
     if (f->f)
 		fclose (f->f);
     if (f->deleteafterclose) {
-		unlink (f->name);
+		_wunlink (f->name);
 		write_log ("deleted temporary file '%s'\n", f->name);
     }
 	xfree (f->name);
@@ -393,6 +393,8 @@ static uae_s64 vhd_fread (void *data, uae_u64 l1, uae_u64 l2, struct zfile *zf)
 	uae_u64 out = 0;
 	int len = 0;
 
+	if (!l1 || !l2)
+		return 0;
 	if ((zf->seek & 511) || (size & 511)) {
 		uae_u8 tmp[512];
 
@@ -1034,12 +1036,12 @@ static struct zfile *wrp (struct zfile *z)
 
 static struct zfile *bunzip (const char *decompress, struct zfile *z)
 {
-    return z;
+	return z;
 }
 
 static struct zfile *lha (struct zfile *z)
 {
-    return z;
+	return z;
 }
 
 static struct zfile *dms (struct zfile *z, int index, int *retcode)
@@ -1151,7 +1153,7 @@ int zfile_is_diskimage (const TCHAR *name)
 
 
 static const TCHAR *archive_extensions[] = {
-	 "7z", "rar", "zip", "lha", "lzh", "lzx",
+	"7z", "rar", "zip", "lha", "lzh", "lzx",
 	"adf", "adz", "dsq", "dms", "ipf", "fdi", "wrp", "ima",
 	"hdf", "tar",
 	NULL
@@ -1336,11 +1338,11 @@ static struct zfile *unzip (struct zfile *z)
 static struct zfile *zuncompress (struct zfile *z)
 {
 	int retcode, index;
-    char *name = z->name;
-    char *ext = strrchr (name, '.');
-    uae_u8 header[4];
+	char *name = z->name;
+	char *ext = strrchr (name, '.');
+	uae_u8 header[4];
 
-    if (ext != NULL) {
+	if (ext != NULL) {
 		ext++;
 	if (strcasecmp (ext, "zip") == 0)
 		return unzip (z);
@@ -1366,7 +1368,7 @@ static struct zfile *zuncompress (struct zfile *z)
 	if (header[0] == 'D' && header[1] == 'M' && header[2] == 'S' && header[3] == '!')
 	    return dms (z, index, retcode);
     }
-    return z;
+	return z;
 }
 
 static FILE *openzip (char *name, char *zippath)
@@ -1450,26 +1452,26 @@ struct zfile *zfile_fopen (const char *name, const char *mode, int mask)
 	l->mode = strdup (mode);
 #ifdef SINGLEFILE
     if (zfile_opensinglefile (l))
-	return l;
+		return l;
 #endif
-    f = openzip (l->name, zipname);
-    if (f) {
-	if (strcasecmp (mode, "rb")) {
-	    zfile_fclose (l);
-	    fclose (f);
+	f = openzip (l->name, zipname);
+	if (f) {
+		if (_tcsicmp (mode, "rb")) {
+		    zfile_fclose (l);
+		fclose (f);
 	    return 0;
 	}
 	l->zipname = strdup (zipname);
-    }
-    if (!f) {
+	}
+	if (!f) {
 	f = fopen (name, mode);
 	if (!f) {
 	    zfile_fclose (l);
 	    return 0;
 	}
-    }
+	}
     l->f = f;
-    l = zuncompress (l);
+	l = zuncompress (l);
     return l;
 }
 
@@ -1503,6 +1505,7 @@ struct zfile *zfile_fopen_empty (struct zfile *prev, const TCHAR *name, uae_u64 
 			return NULL;
 		}
 		l->size = size;
+		l->datasize = size;
 	} else {
 		l->data = xcalloc (uae_u8, 1);
 		l->size = 0;
@@ -1522,6 +1525,7 @@ struct zfile *zfile_fopen_parent (struct zfile *z, const TCHAR *name, uae_u64 of
 	else if (z->name)
 		l->name = my_strdup (z->name);
 	l->size = size;
+	l->datasize = size;
 	l->offset = offset;
 	for (;;) {
 		l->parent = z;
@@ -1543,6 +1547,7 @@ struct zfile *zfile_fopen_data (const TCHAR *name, uae_u64 size, uae_u8 *data)
 	l->name = name ? my_strdup (name) : "";
 	l->data = xmalloc (uae_u8, size);
 	l->size = size;
+	l->datasize = size;
 	memcpy (l->data, data, size);
 	return l;
 }
@@ -1598,6 +1603,11 @@ size_t zfile_fread  (void *b, size_t l1, size_t l2, struct zfile *z)
 	if (z->zfileread)
 		return z->zfileread (b, l1, l2, z);
     if (z->data) {
+		if (z->datasize < z->size && z->seek + l1 * l2 > z->datasize) {
+			write_log ("zfile_fread(%s) attempted to read past PEEK_BYTES\n", z->name);
+
+			return 0;
+		}
 		if (z->seek + l1 * l2 > z->size) {
 			if (l1)
 				l2 = (z->size - z->seek) / l1;
@@ -1642,7 +1652,7 @@ size_t zfile_fwrite (const void *b, size_t l1, size_t l2, struct zfile *z)
 		int off = z->seek + l1 * l2;
 		if (off > z->size) {
 			z->data = xrealloc (uae_u8, z->data, off);
-			z->size = off;
+			z->datasize = z->size = off;
 		}
 		memcpy (z->data + z->seek, b, l1 * l2);
 		z->seek += l1 * l2;

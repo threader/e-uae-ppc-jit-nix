@@ -1,10 +1,10 @@
- /*
-  * UAE - The Un*x Amiga Emulator
-  *
-  * MC68000 emulation
-  *
-  * (c) 1995 Bernd Schmidt
-  */
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * MC68000 emulation
+ *
+ * (c) 1995 Bernd Schmidt
+ */
 
 #define MOVEC_DEBUG 0
 #define MMUOP_DEBUG 2
@@ -94,43 +94,43 @@ static uae_u16 opcodenums[65536];
 
 static int compfn (const void *el1, const void *el2)
 {
-    return instrcount[*(const uae_u16 *)el1] < instrcount[*(const uae_u16 *)el2];
+	return instrcount[*(const uae_u16 *)el1] < instrcount[*(const uae_u16 *)el2];
 }
 
 static TCHAR *icountfilename (void)
 {
 	TCHAR *name = getenv ("INSNCOUNT");
-    if (name)
+	if (name)
 		return name;
-    return COUNT_INSTRS == 2 ? "frequent.68k" : "insncount";
+	return COUNT_INSTRS == 2 ? "frequent.68k" : "insncount";
 }
 
 void dump_counts (void)
 {
-    FILE *f = fopen (icountfilename (), "w");
-    unsigned long int total;
-    int i;
+	FILE *f = fopen (icountfilename (), "w");
+	unsigned long int total;
+	int i;
 
 	write_log ("Writing instruction count file...\n");
-    for (i = 0; i < 65536; i++) {
+	for (i = 0; i < 65536; i++) {
 		opcodenums[i] = i;
 		total += instrcount[i];
-    }
-    qsort (opcodenums, 65536, sizeof (uae_u16), compfn);
+	}
+	qsort (opcodenums, 65536, sizeof (uae_u16), compfn);
 
-    fprintf (f, "Total: %lu\n", total);
-    for (i=0; i < 65536; i++) {
+	fprintf (f, "Total: %lu\n", total);
+	for (i=0; i < 65536; i++) {
 		unsigned long int cnt = instrcount[opcodenums[i]];
 		struct instr *dp;
 		struct mnemolookup *lookup;
 		if (!cnt)
-		    break;
+			break;
 		dp = table68k + opcodenums[i];
 		for (lookup = lookuptab;lookup->mnemo != dp->mnemo; lookup++)
-		    ;
+			;
 		fprintf (f, "%04x: %lu %s\n", opcodenums[i], cnt, lookup->name);
-    }
-    fclose (f);
+	}
+	fclose (f);
 }
 #else
 void dump_counts (void)
@@ -217,12 +217,12 @@ static void set_cpu_caches (void)
 #ifdef JIT
 	if (currprefs.cachesize) {
 		if (currprefs.cpu_model < 68040) {
-	set_cache_state (regs.cacr & 1);
-	if (regs.cacr & 0x08) {
-			flush_icache (0, 3);
-	}
-    } else {
-	set_cache_state ((regs.cacr & 0x8000) ? 1 : 0);
+			set_cache_state (regs.cacr & 1);
+			if (regs.cacr & 0x08) {
+				flush_icache (0, 3);
+			}
+		} else {
+			set_cache_state ((regs.cacr & 0x8000) ? 1 : 0);
 		}
 	}
 #endif
@@ -293,10 +293,10 @@ static unsigned long REGPARAM2 op_illg_1 (uae_u32 opcode)
 
 static void build_cpufunctbl (void)
 {
-    int i, opcnt;
-    unsigned long opcode;
-    const struct cputbl *tbl = 0;
-    int lvl;
+	int i, opcnt;
+	unsigned long opcode;
+	const struct cputbl *tbl = 0;
+	int lvl;
 
 	switch (currprefs.cpu_model)
 	{
@@ -343,11 +343,11 @@ static void build_cpufunctbl (void)
 		tbl = op_smalltbl_5_ff;
 #ifdef CPUEMU_11
 		if (currprefs.cpu_compatible)
-		    tbl = op_smalltbl_11_ff; /* prefetch */
+			tbl = op_smalltbl_11_ff; /* prefetch */
 #endif
 #ifdef CPUEMU_12
 		if (currprefs.cpu_cycle_exact)
-		    tbl = op_smalltbl_12_ff; /* prefetch and cycle-exact */
+			tbl = op_smalltbl_12_ff; /* prefetch and cycle-exact */
 #endif
 		break;
 	}
@@ -377,7 +377,7 @@ static void build_cpufunctbl (void)
 		cpuop_func *f;
 
 		if (table68k[opcode].mnemo == i_ILLG)
-		    continue;
+			continue;
 		if (currprefs.fpu_model && currprefs.cpu_model < 68020) {
 			/* more hack fpu to 68000/68010 mode */
 			if (table68k[opcode].clev > lvl && (opcode & 0xfe00) != 0xf200)
@@ -389,17 +389,17 @@ static void build_cpufunctbl (void)
 		if (table68k[opcode].handler != -1) {
 			int idx = table68k[opcode].handler;
 			f = cpufunctbl[idx];
-		    if (f == op_illg_1)
+			if (f == op_illg_1)
 				abort ();
-		    cpufunctbl[opcode] = f;
-		    opcnt++;
+			cpufunctbl[opcode] = f;
+			opcnt++;
 		}
-    }
+	}
 	write_log ("Building CPU, %d opcodes (%d %d %d)\n",
 		opcnt, lvl,
 		currprefs.cpu_cycle_exact ? -1 : currprefs.cpu_compatible ? 1 : 0, currprefs.address_space_24);
 	write_log ("CPU=%d, FPU=%d, MMU=%d, JIT%s=%d.\n",
-	currprefs.cpu_model, currprefs.fpu_model,
+		currprefs.cpu_model, currprefs.fpu_model,
 		currprefs.mmu_model,
 #ifdef JIT
 		currprefs.cachesize ? (currprefs.compfpu ? "=CPU/FPU" : "=CPU") : "",
@@ -408,9 +408,9 @@ static void build_cpufunctbl (void)
 	"=CPU", 0);
 #endif
 #ifdef JIT
-    build_comp ();
+	build_comp ();
 #endif
-    set_cpu_caches ();
+	set_cpu_caches ();
 #ifdef MMU
 	if (currprefs.mmu_model) {
 		mmu_reset ();
@@ -506,10 +506,10 @@ void check_prefs_changed_cpu (void)
 			changed = 1;
 	}
 
-    if (currprefs.cpu_idle != changed_prefs.cpu_idle) {
+	if (currprefs.cpu_idle != changed_prefs.cpu_idle) {
 		currprefs.cpu_idle = changed_prefs.cpu_idle;
-    }
-    if (changed)
+	}
+	if (changed)
 		set_special (SPCFLAG_BRK);
 
 }
@@ -775,10 +775,10 @@ static uae_s32 ShowEA (void *f, uae_u16 opcode, int reg, amodes mode, wordsizes 
 	if (buf == 0)
 		f_out (f, "%s", buffer);
 	else
-		strcat (buf, buffer);
+		_tcscat (buf, buffer);
 	if (eaddr)
 		*eaddr = addr;
-    return offset;
+	return offset;
 }
 
 int get_cpu_model (void)
@@ -1088,7 +1088,7 @@ void REGPARAM2 MakeFromSR (void)
 		regs.s  == ((regs.sr >> 13) & 1) &&
 		regs.m  == ((regs.sr >> 12) & 1) &&
 		regs.intmask == ((regs.sr >> 8) & 7))
-	    return;
+		return;
 	regs.t1 = (regs.sr >> 15) & 1;
 	regs.t0 = (regs.sr >> 14) & 1;
 	regs.s  = (regs.sr >> 13) & 1;
@@ -1595,7 +1595,7 @@ static void Exception_normal (int nr, uaecptr oldpc)
 				x_put_word (m68k_areg (regs, 7), ssw);
 				m68k_areg (regs, 7) -= 2;
 				x_put_word (m68k_areg (regs, 7), 0xb000 + nr * 4);
-		    }
+			}
 			write_log ("Exception %d (%x) at %x -> %x!\n", nr, oldpc, currpc, x_get_long (regs.vbr + 4*nr));
 		} else if (nr ==5 || nr == 6 || nr == 7 || nr == 9) {
 			m68k_areg (regs, 7) -= 4;
@@ -1740,7 +1740,7 @@ int movec_illg (int regno)
 int m68k_move2c (int regno, uae_u32 *regp)
 {
 #if MOVEC_DEBUG > 0
-    write_log ("move2c %04X <- %08X PC=%x\n", regno, *regp, M68K_GETPC);
+	write_log ("move2c %04X <- %08X PC=%x\n", regno, *regp, M68K_GETPC);
 #endif
 	if (movec_illg (regno)) {
 		op_illg (0x4E7B);
@@ -2221,16 +2221,16 @@ unsigned long REGPARAM2 op_illg (uae_u32 opcode)
 #ifdef AUTOCONFIG
 	if (opcode == 0xFF0D) {
 		if (inrom) {
-		    /* This is from the dummy Kickstart replacement */
-		    uae_u16 arg = get_iword (2);
-		    m68k_incpc (4);
-		    ersatz_perform (arg);
-		    fill_prefetch_slow ();
-		    return 4;
+			/* This is from the dummy Kickstart replacement */
+			uae_u16 arg = get_iword (2);
+			m68k_incpc (4);
+			ersatz_perform (arg);
+			fill_prefetch_slow ();
+			return 4;
 		} else if (inrt) {
-		    /* User-mode STOP replacement */
-		    m68k_setstopped ();
-		    return 4;
+			/* User-mode STOP replacement */
+			m68k_setstopped ();
+			return 4;
 		}
 	}
 
@@ -2246,7 +2246,7 @@ unsigned long REGPARAM2 op_illg (uae_u32 opcode)
 	if ((opcode & 0xF000) == 0xF000) {
 		if (warned < 20) {
 			write_log ("B-Trap %x at %x (%p)\n", opcode, pc, regs.pc_p);
-		    warned++;
+			warned++;
 		}
 		Exception (0xB, 0);
 		//activate_debugger ();
@@ -2427,7 +2427,7 @@ void mmu_op (uae_u32 opcode, uae_u32 extra)
 		/* PFLUSH */
 		regs.mmusr = 0;
 #if MMUOP_DEBUG > 0
-	write_log ("PFLUSH\n");
+		write_log ("PFLUSH\n");
 #endif
 		return;
 	} else if ((opcode & 0x0FD8) == 0x548) {
@@ -2799,7 +2799,7 @@ static void m68k_run_1_ce (void)
 
 #else
 
-/* cycle-exact m68k_run() */
+/* cycle-exact m68k_run () */
 
 static void m68k_run_1_ce (void)
 {
@@ -2844,13 +2844,11 @@ void exec_nostats (void)
 		do_cycles (cpu_cycles);
 
 		if (end_block (opcode) || r->spcflags || uae_int_requested)
-		    return; /* We will deal with the spcflags in the caller */
+			return; /* We will deal with the spcflags in the caller */
 	}
 }
 
 static int triggered;
-
-extern volatile int bsd_int_requested;
 
 void execute_normal (void)
 {
@@ -3367,11 +3365,11 @@ void m68k_disasm_2 (TCHAR *buf, int bufsize, uaecptr addr, uaecptr *nextpc, int 
 		oldpc = m68kpc_offset;
 		opcode = get_iword_1 (m68kpc_offset);
 		if (cpufunctbl[opcode] == op_illg_1) {
-		    opcode = 0x4AFC;
+			opcode = 0x4AFC;
 		}
 		dp = table68k + opcode;
 		for (lookup = lookuptab;lookup->mnemo != dp->mnemo; lookup++)
-		    ;
+			;
 
 		buf = buf_out (buf, &bufsize, "%08lX ", m68k_getpc () + m68kpc_offset);
 
@@ -3547,7 +3545,7 @@ void sm68k_disasm (TCHAR *instrname, TCHAR *instrcode, uaecptr addr, uaecptr *ne
 		*nextpc = m68k_getpc () + m68kpc_offset;
 }
 
- struct cpum2c m2cregs[] = {
+struct cpum2c m2cregs[] = {
 	0, "SFC",
 	1, "DFC",
 	2, "CACR",
@@ -3656,7 +3654,7 @@ void m68k_dumpstate (void *f, uaecptr *nextpc)
 	if (j > 0)
 		f_out (f, "\n");
 	f_out (f, "T=%d%d S=%d M=%d X=%d N=%d Z=%d V=%d C=%d IMASK=%d STP=%d\n",
-	    regs.t1, regs.t0, regs.s, regs.m,
+		regs.t1, regs.t0, regs.s, regs.m,
 		GET_XFLG (), GET_NFLG (), GET_ZFLG (),
 		GET_VFLG (), GET_CFLG (),
 		regs.intmask, regs.stopped);
@@ -3665,7 +3663,7 @@ void m68k_dumpstate (void *f, uaecptr *nextpc)
 		uae_u32 fpsr;
 		for (i = 0; i < 8; i++){
 			f_out (f, "FP%d: %g ", i, regs.fp[i]);
-		    if ((i & 3) == 3)
+			if ((i & 3) == 3)
 				f_out (f, "\n");
 		}
 		fpsr = get_fpsr ();
@@ -3674,7 +3672,7 @@ void m68k_dumpstate (void *f, uaecptr *nextpc)
 			(fpsr & 0x4000000) != 0,
 			(fpsr & 0x2000000) != 0,
 			(fpsr & 0x1000000) != 0);
-    }
+	}
 #endif
 	if (currprefs.cpu_compatible && currprefs.cpu_model == 68000) {
 		struct instr *dp;
@@ -3683,7 +3681,7 @@ void m68k_dumpstate (void *f, uaecptr *nextpc)
 		for (lookup1 = lookuptab; lookup1->mnemo != dp->mnemo; lookup1++);
 		dp = table68k + regs.ir;
 		for (lookup2 = lookuptab; lookup2->mnemo != dp->mnemo; lookup2++);
-	f_out (f, "Prefetch %04x (%s) %04x (%s)\n", regs.irc, lookup1->name, regs.ir, lookup2->name);
+		f_out (f, "Prefetch %04x (%s) %04x (%s)\n", regs.irc, lookup1->name, regs.ir, lookup2->name);
 	}
 
 	m68k_disasm (f, m68k_getpc (), nextpc, 1);
@@ -4111,11 +4109,11 @@ int getDivu68kCycles (uae_u32 dividend, uae_u16 divisor)
 	uae_u32 hdivisor;
 	int i;
 
-	if(divisor == 0)
+	if (divisor == 0)
 		return 0;
 
 	// Overflow
-	if((dividend >> 16) >= divisor)
+	if ((dividend >> 16) >= divisor)
 		return (mcycles = 5) * 2;
 
 	mcycles = 38;
@@ -4128,7 +4126,7 @@ int getDivu68kCycles (uae_u32 dividend, uae_u16 divisor)
 		dividend <<= 1;
 
 		// If carry from shift
-		if((uae_s32)temp < 0)
+		if ((uae_s32)temp < 0)
 			dividend -= hdivisor;
 		else {
 			mcycles += 2;
@@ -4149,25 +4147,25 @@ int getDivs68kCycles (uae_s32 dividend, uae_s16 divisor)
 	uae_u32 aquot;
 	int i;
 
-	if(divisor == 0)
+	if (divisor == 0)
 		return 0;
 
 	mcycles = 6;
 
-	if( dividend < 0)
+	if (dividend < 0)
 		mcycles++;
 
 	// Check for absolute overflow
-	if(((uae_u32)abs(dividend) >> 16) >= (uae_u16)abs(divisor))
+	if (((uae_u32)abs (dividend) >> 16) >= (uae_u16)abs (divisor))
 		return (mcycles + 2) * 2;
 
 	// Absolute quotient
-	aquot = (uae_u32) abs(dividend) / (uae_u16)abs(divisor);
+	aquot = (uae_u32) abs (dividend) / (uae_u16)abs (divisor);
 
 	mcycles += 55;
 
 	if (divisor >= 0) {
-		if(dividend >= 0)
+		if (dividend >= 0)
 			mcycles--;
 		else
 			mcycles++;
@@ -4176,7 +4174,7 @@ int getDivs68kCycles (uae_s32 dividend, uae_s16 divisor)
 	// Count 15 msbits in absolute of quotient
 
 	for (i = 0; i < 15; i++) {
-		if((uae_s16)aquot >= 0)
+		if ((uae_s16)aquot >= 0)
 			mcycles++;
 		aquot <<= 1;
 	}
@@ -4199,8 +4197,8 @@ STATIC_INLINE void fill_cache040 (uae_u32 addr)
 	c = &caches040[index];
 	for (i = 0; i < CACHELINES040; i++) {
 		if (c->valid[i] && c->tag[i] == tag) {
-				// cache hit
-				regs.prefetch020addr = addr;
+			// cache hit
+			regs.prefetch020addr = addr;
 			regs.prefetch020data = c->data[i][lws];
 			return;
 		}

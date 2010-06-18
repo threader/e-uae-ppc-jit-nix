@@ -5,22 +5,22 @@ extern int pissoff_value;
 
 STATIC_INLINE void events_schedule (void)
 {
-    int i;
+	int i;
 
-    unsigned long int mintime = ~0L;
-    for (i = 0; i < ev_max; i++) {
+	unsigned long int mintime = ~0L;
+	for (i = 0; i < ev_max; i++) {
 		if (eventtab[i].active) {
-		    unsigned long int eventtime = eventtab[i].evtime - currcycle;
+			unsigned long int eventtime = eventtab[i].evtime - currcycle;
 #ifdef EVENT_DEBUG
-		    if (eventtime == 0) {
+			if (eventtime == 0) {
 				write_log ("event %d bug\n",i);
-		    }
+			}
 #endif
-		    if (eventtime < mintime)
+			if (eventtime < mintime)
 				mintime = eventtime;
 		}
-    }
-    nextevent = currcycle + mintime;
+	}
+	nextevent = currcycle + mintime;
 }
 
 extern signed long pissoff;
@@ -30,7 +30,7 @@ STATIC_INLINE void cycles_do_special (void)
 #ifdef JIT
 	if (currprefs.cachesize) {
 		if (pissoff >= 0)
-	pissoff = -1;
+			pissoff = -1;
 	} else
 #endif
 	{
@@ -40,17 +40,17 @@ STATIC_INLINE void cycles_do_special (void)
 
 STATIC_INLINE void do_extra_cycles (unsigned long cycles_to_add)
 {
-    pissoff -= cycles_to_add;
+	pissoff -= cycles_to_add;
 }
 
 STATIC_INLINE unsigned long int get_cycles (void)
 {
-    return currcycle;
+	return currcycle;
 }
 
 STATIC_INLINE void set_cycles (unsigned long int x)
 {
-    currcycle = x;
+	currcycle = x;
 #ifdef EVT_DEBUG
 	if (currcycle & (CYCLE_UNIT - 1))
 		write_log ("%x\n", currcycle);
@@ -59,35 +59,35 @@ STATIC_INLINE void set_cycles (unsigned long int x)
 
 STATIC_INLINE void do_cycles_slow (unsigned long cycles_to_add)
 {
-    if ((pissoff -= cycles_to_add) >= 0)
+	if ((pissoff -= cycles_to_add) >= 0)
 		return;
 
-    cycles_to_add = -pissoff;
-    pissoff = 0;
+	cycles_to_add = -pissoff;
+	pissoff = 0;
 
-    if (is_lastline && eventtab[ev_hsync].evtime - currcycle <= cycles_to_add) {
+	if (is_lastline && eventtab[ev_hsync].evtime - currcycle <= cycles_to_add) {
 		int rpt = uae_gethrtime ();
 		int v = rpt - vsyncmintime;
 		if (v > (int)syncbase || v < -((int)syncbase))
-		    vsyncmintime = rpt;
+			vsyncmintime = rpt;
 		if (v < 0) {
-		    pissoff = pissoff_value * CYCLE_UNIT;
-		    return;
+			pissoff = pissoff_value * CYCLE_UNIT;
+			return;
 		}
-    }
-    while ((nextevent - currcycle) <= cycles_to_add) {
+	}
+	while ((nextevent - currcycle) <= cycles_to_add) {
 		int i;
 		cycles_to_add -= (nextevent - currcycle);
 		currcycle = nextevent;
 
 		for (i = 0; i < ev_max; i++) {
-		    if (eventtab[i].active && eventtab[i].evtime == currcycle) {
+			if (eventtab[i].active && eventtab[i].evtime == currcycle) {
 				(*eventtab[i].handler)();
-		    }
+			}
 		}
 		events_schedule ();
-    }
-    currcycle += cycles_to_add;
+	}
+	currcycle += cycles_to_add;
 #ifdef EVT_DEBUG
 	if (currcycle & (CYCLE_UNIT - 1))
 		write_log ("%x\n", currcycle);
@@ -104,10 +104,10 @@ STATIC_INLINE void do_cycles_slow (unsigned long cycles_to_add)
 
 STATIC_INLINE void handle_active_events (void)
 {
-    int i;
-    for (i = 0; i < ev_max; i++) {
+	int i;
+	for (i = 0; i < ev_max; i++) {
 		if (eventtab[i].active && eventtab[i].evtime == currcycle) {
-		    (*eventtab[i].handler)();
+			(*eventtab[i].handler)();
 		}
-    }
+	}
 }

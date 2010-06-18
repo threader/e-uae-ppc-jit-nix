@@ -87,7 +87,7 @@ static void add_uniq (uniq_list *a, struct uniq_head *item, uaecptr amem)
     item->uniq = a->uniq++;
     put_long (amem, item->uniq);
     if (a->uniq == 0)
-	a->uniq++;
+		a->uniq++;
     item->next = a->head;
     a->head = item;
 }
@@ -131,7 +131,7 @@ static int GFX_PointInRectangle(uaecptr rect, int x, int y)
     uae_s16 maxy = get_word (rect+6);
 
     if (x < minx || x > maxx || y < miny || y > maxy)
-	return 0;
+		return 0;
     return 1;
 }
 
@@ -164,7 +164,7 @@ static int GFX_Bitmap_WritePixel(uaecptr bitmap, int x, int y, uaecptr rp)
     uae_u8 pen = drmd & 4 ? bgpen : fgpen;
 
     if (x < 0 || y < 0 || x >= 8*bpr || y >= rows)
-	return -1;
+		return -1;
 
     offs = y*bpr + (x & ~15)/8;
 

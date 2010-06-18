@@ -2874,12 +2874,13 @@ gen_opcode (unsigned long int opcode)
 }
 
 static void
-generate_includes (FILE * f)
+generate_includes (FILE * f, int bigger)
 {
     fprintf (f, "#include \"sysconfig.h\"\n");
     fprintf (f, "#if defined(JIT)\n");
     fprintf (f, "#include \"sysdeps.h\"\n");
-    fprintf (f, "#include \"options.h\"\n");
+	if (bigger)
+		fprintf (f, "#include \"options.h\"\n");
     fprintf (f, "#include \"memory.h\"\n");
     fprintf (f, "#include \"custom.h\"\n");
     fprintf (f, "#include \"events.h\"\n");
@@ -3125,8 +3126,8 @@ main (int argc, char **argv)
 	stblfile = fopen ("compstbl.c", "wb");
     freopen ("compemu.c", "wb", stdout);
 
-    generate_includes (stdout);
-    generate_includes (stblfile);
+    generate_includes (stdout, 1);
+    generate_includes (stblfile, 1);
 
     printf("#include \"compemu.h\"\n");
 

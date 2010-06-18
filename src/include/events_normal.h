@@ -8,57 +8,57 @@ STATIC_INLINE void set_cycles (int c)
 
 STATIC_INLINE void events_schedule (void)
 {
-    int i;
+	int i;
 
-    unsigned long int mintime = ~0L;
-    for (i = 0; i < ev_max; i++) {
+	unsigned long int mintime = ~0L;
+	for (i = 0; i < ev_max; i++) {
 		if (eventtab[i].active) {
-		    unsigned long int eventtime = eventtab[i].evtime - currcycle;
-		    if (eventtime < mintime)
+			unsigned long int eventtime = eventtab[i].evtime - currcycle;
+			if (eventtime < mintime)
 				mintime = eventtime;
 		}
-    }
-    nextevent = currcycle + mintime;
+	}
+	nextevent = currcycle + mintime;
 }
 
 STATIC_INLINE void do_cycles_slow (unsigned long cycles_to_add)
 {
-    if (is_lastline && eventtab[ev_hsync].evtime - currcycle <= cycles_to_add
+	if (is_lastline && eventtab[ev_hsync].evtime - currcycle <= cycles_to_add
 		&& (long int)(uae_gethrtime () - vsyncmintime) < 0)
 		return;
 
-    while ((nextevent - currcycle) <= cycles_to_add) {
+	while ((nextevent - currcycle) <= cycles_to_add) {
 		int i;
 		cycles_to_add -= (nextevent - currcycle);
 		currcycle = nextevent;
 
 		for (i = 0; i < ev_max; i++) {
-		    if (eventtab[i].active && eventtab[i].evtime == currcycle) {
+			if (eventtab[i].active && eventtab[i].evtime == currcycle) {
 				(*eventtab[i].handler)();
-		    }
+			}
 		}
 		events_schedule();
-    }
-    currcycle += cycles_to_add;
+	}
+	currcycle += cycles_to_add;
 }
 
 STATIC_INLINE void do_cycles_fast (void)
 {
-    if (is_lastline && eventtab[ev_hsync].evtime - currcycle <= 1
+	if (is_lastline && eventtab[ev_hsync].evtime - currcycle <= 1
 		&& (long int)(uae_gethrtime () - vsyncmintime) < 0)
 		return;
 
-    currcycle++;
-    if (nextevent == currcycle) {
+	currcycle++;
+	if (nextevent == currcycle) {
 		int i;
 
 		for (i = 0; i < ev_max; i++) {
-		    if (eventtab[i].active && eventtab[i].evtime == currcycle) {
+			if (eventtab[i].active && eventtab[i].evtime == currcycle) {
 				(*eventtab[i].handler) ();
-		    }
+			}
 		}
 		events_schedule();
-    }
+	}
 
 }
 
@@ -68,17 +68,17 @@ STATIC_INLINE void do_cycles_fast (void)
    restoring it, we may have other events pending.  */
 STATIC_INLINE void handle_active_events (void)
 {
-    int i;
-    for (i = 0; i < ev_max; i++) {
+	int i;
+	for (i = 0; i < ev_max; i++) {
 		if (eventtab[i].active && eventtab[i].evtime == currcycle) {
-		    (*eventtab[i].handler)();
+			(*eventtab[i].handler)();
 		}
-    }
+	}
 }
 
 STATIC_INLINE unsigned long get_cycles (void)
 {
-    return currcycle;
+	return currcycle;
 }
 
 extern void init_eventtab (void);

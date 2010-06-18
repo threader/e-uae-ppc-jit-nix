@@ -1899,6 +1899,7 @@ int EvalException ( LPEXCEPTION_POINTERS blah, int n_except )
 				emit_byte(0xe9);
 				emit_long((uae_u32)veccode-(uae_u32)target-4);
 #ifdef JIT_DEBUG
+
 				write_log ("JIT: Create jump to %p\n",veccode);
 				write_log ("JIT: Handled one access!\n");
 #endif

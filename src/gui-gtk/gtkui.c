@@ -1610,12 +1610,12 @@ static void make_joy_widgets (GtkWidget *dvbox)
 	"Joystick 0",
 	"Joystick 1",
 	"Mouse",
-	"Numeric pad",
-	"Cursor keys/Right Ctrl or Alt",
-	"T/F/H/B/Left Alt",
+	"Keyboard Layout A (NumPad, 0 & 5 = Fire)",
+	"Keyboard Layout B (Cursor, RCtrl & Alt = Fire)",
+	"Keyboard Layout C (WASD, LAlt = Fire)",
 #ifdef XARCADE
-	"X-Arcade Left",
-	"X-Arcade Right",
+	"X-Arcade (Left)",
+	"X-Arcade (Right)",
 #endif
 	NULL
     };

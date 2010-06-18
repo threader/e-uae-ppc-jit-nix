@@ -14,9 +14,9 @@
 
 static struct ide_hdf *idedrive[2];
 
-int adide_add_ide_unit (int ch, char *path, int blocksize, int readonly,
-		       char *devname, int sectors, int surfaces, int reserved,
-		       int bootpri, char *filesys)
+int adide_add_ide_unit (int ch, TCHAR *path, int blocksize, int readonly,
+		       TCHAR *devname, int sectors, int surfaces, int reserved,
+		       int bootpri, TCHAR *filesys)
 {
     struct ide_hdf *ide;
 

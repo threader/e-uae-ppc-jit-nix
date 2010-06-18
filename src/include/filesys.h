@@ -25,12 +25,12 @@ struct hardfiledata {
     uae_u8 *cache;
     int cache_valid;
     uae_u64 cache_offset;
-    char vendor_id[8 + 1];
-    char product_id[16 + 1];
-    char product_rev[4 + 1];
-    char device_name[256];
+    TCHAR vendor_id[8 + 1];
+    TCHAR product_id[16 + 1];
+    TCHAR product_rev[4 + 1];
+    TCHAR device_name[256];
     /* geometry from possible RDSK block */
-    unsigned int cylinders;
+	unsigned int cylinders;
     unsigned int sectors;
     unsigned int heads;
     uae_u8 *virtual_rdb;
@@ -50,7 +50,7 @@ struct hardfiledata {
     uae_u64 vhd_footerblock;
 
     int drive_empty;
-    char *emptyname;
+    TCHAR *emptyname;
 };
 
 #define HFD_FLAGS_REALDRIVE 1
@@ -59,13 +59,13 @@ struct hd_hardfiledata {
     struct hardfiledata hfd;
     int bootpri;
     uae_u64 size;
-    unsigned int cyls;
-    unsigned int heads;
-    unsigned int secspertrack;
-    unsigned int cyls_def;
-    unsigned int secspertrack_def;
+	unsigned int cyls;
+	unsigned int heads;
+	unsigned int secspertrack;
+	unsigned int cyls_def;
+	unsigned int secspertrack_def;
     unsigned int heads_def;
-    char *path;
+    TCHAR *path;
     int ansi_version;
 };
 

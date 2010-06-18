@@ -1,48 +1,48 @@
- /*
-  * UAE - The Un*x Amiga Emulator
-  *
-  * Save/restore emulator state
-  *
-  * (c) 1999-2001 Toni Wilen
-  *
-  * see below for ASF-structure
-  */
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * Save/restore emulator state
+ *
+ * (c) 1999-2001 Toni Wilen
+ *
+ * see below for ASF-structure
+ */
 
- /* Features:
-  *
-* - full CPU state (68000/68010/68020/68030/68040/68060)
-* - FPU (68881/68882/68040/68060)
-  * - full CIA-A and CIA-B state (with all internal registers)
-  * - saves all custom registers and audio internal state.
-  * - Chip, Bogo, Fast, Z3 and Picasso96 RAM supported
-  * - disk drive type, imagefile, track and motor state
-  * - Kickstart ROM version, address and size is saved. This data is not used during restore yet.
-  * - Action Replay state is saved
-  */
+/* Features:
+ *
+ * - full CPU state (68000/68010/68020/68030/68040/68060)
+ * - FPU (68881/68882/68040/68060)
+ * - full CIA-A and CIA-B state (with all internal registers)
+ * - saves all custom registers and audio internal state.
+ * - Chip, Bogo, Fast, Z3 and Picasso96 RAM supported
+ * - disk drive type, imagefile, track and motor state
+ * - Kickstart ROM version, address and size is saved. This data is not used during restore yet.
+ * - Action Replay state is saved
+ */
 
- /* Notes:
-  *
-  * - blitter state is not saved, blitter is forced to finish immediately if it
-  *   was active
-  * - disk DMA state is completely saved
-  * - does not ask for statefile name and description. Currently uses DF0's disk
-  *   image name (".adf" is replaced with ".asf")
-  * - only Amiga state is restored, harddisk support, autoconfig, expansion boards etc..
-  *   are not saved/restored (and probably never will).
-  * - use this for saving games that can't be saved to disk
-  */
+/* Notes:
+ *
+ * - blitter state is not saved, blitter is forced to finish immediately if it
+ *   was active
+ * - disk DMA state is completely saved
+ * - does not ask for statefile name and description. Currently uses DF0's disk
+ *   image name (".adf" is replaced with ".asf")
+ * - only Amiga state is restored, harddisk support, autoconfig, expansion boards etc..
+ *   are not saved/restored (and probably never will).
+ * - use this for saving games that can't be saved to disk
+ */
 
- /* Usage :
-  *
-  * save:
-  *
-  * set savestate_state = STATE_DOSAVE, savestate_filename = "..."
-  *
-  * restore:
-  *
-  * set savestate_state = STATE_DORESTORE, savestate_filename = "..."
-  *
-  */
+/* Usage :
+ *
+ * save:
+ *
+ * set savestate_state = STATE_DOSAVE, savestate_filename = "..."
+ *
+ * restore:
+ *
+ * set savestate_state = STATE_DORESTORE, savestate_filename = "..."
+ *
+ */
 
 #define OPEN_LOG 0
 
@@ -73,10 +73,10 @@ int savestate_state = 0;
 
 #define MAX_STATERECORDS 1024 /* must be power of 2 */
 struct staterecord {
-    uae_u8 *start;
-    uae_u8 *end;
-    uae_u8 *next;
-    uae_u8 *cpu;
+	uae_u8 *start;
+	uae_u8 *end;
+	uae_u8 *next;
+	uae_u8 *cpu;
 };
 static int replaycounter;
 static int replaylastreloaded = -1;
@@ -162,8 +162,8 @@ void save_string_func (uae_u8 **dstp, const TCHAR *from)
 	uae_u8 *dst = *dstp;
 	while (from && *from)
 		*dst++ = *from++;
-    *dst++ = 0;
-    *dstp = dst;
+	*dst++ = 0;
+	*dstp = dst;
 }
 
 uae_u32 restore_u32_func (uae_u8 **dstp)
@@ -206,7 +206,7 @@ TCHAR *restore_string_func (const uae_u8 **dstp)
 	const uae_u8 *dst = *dstp;
 	char *top, *to;
 
-	len = strlen ((const char *)dst) + 1;
+	len = strlen ((const char*)dst) + 1;
 	top = to = xmalloc (char, len);
 	do {
 		v = *dst++;
@@ -450,14 +450,14 @@ void restore_state (const TCHAR *filename)
 			if (filesize > filepos + 8)
 				continue;
 #endif
-		    break;
+			break;
 		}
 		if (!_tcscmp (name, "CRAM")) {
-		    restore_cram (totallen, filepos);
-		    continue;
+			restore_cram (totallen, filepos);
+			continue;
 		} else if (!_tcscmp (name, "BRAM")) {
-		    restore_bram (totallen, filepos);
-		    continue;
+			restore_bram (totallen, filepos);
+			continue;
 		} else if (!_tcscmp (name, "A3K1")) {
 			restore_a3000lram (totallen, filepos);
 			continue;
@@ -466,11 +466,11 @@ void restore_state (const TCHAR *filename)
 			continue;
 #ifdef AUTOCONFIG
 		} else if (!_tcscmp (name, "FRAM")) {
-		    restore_fram (totallen, filepos);
-		    continue;
+			restore_fram (totallen, filepos);
+			continue;
 		} else if (!_tcscmp (name, "ZRAM")) {
 			restore_zram (totallen, filepos, z3num++);
-		    continue;
+			continue;
 		} else if (!_tcscmp (name, "ZCRM")) {
 			restore_zram (totallen, filepos, -1);
 			continue;
@@ -658,7 +658,7 @@ static void save_rams (struct zfile *f, int comp)
 	dst = save_a3000hram (&len);
 	save_chunk (f, dst, len, "A3K2", comp);
 #ifdef AUTOCONFIG
-    dst = save_fram (&len);
+	dst = save_fram (&len);
 	save_chunk (f, dst, len, "FRAM", comp);
 	dst = save_zram (&len, 0);
 	save_chunk (f, dst, len, "ZRAM", comp);
@@ -814,7 +814,7 @@ int save_state (const TCHAR *filename, const TCHAR *description)
 	xfree (dst);
 
 #ifdef AUTOCONFIG
-    dst = save_expansion (&len, 0);
+	dst = save_expansion (&len, 0);
 	save_chunk (f, dst, len, "EXPA", 0);
 #endif
 #ifdef PICASSO96
@@ -927,7 +927,7 @@ void savestate_quick (int slot, int save)
 	} else {
 		if (!zfile_exists (savestate_fname)) {
 			write_log ("staterestore, file '%s' not found\n", savestate_fname);
-		    return;
+			return;
 		}
 		savestate_state = STATE_DORESTORE;
 		write_log ("staterestore starting '%s'\n", savestate_fname);
@@ -1380,16 +1380,16 @@ MMU (when and if MMU is supported in future..)
 	"MMU "
 
 	MMU model               4 (68040)
-	flags			4 (none defined yet)
+	flags					4 (none defined yet)
 
 CUSTOM CHIPS
 
 	"CHIP"
 
-	chipset flags   4      OCS=0,ECSAGNUS=1,ECSDENISE=2,AGA=4
-			       ECSAGNUS and ECSDENISE can be combined
+	chipset flags   		4      OCS=0,ECSAGNUS=1,ECSDENISE=2,AGA=4
+	ECSAGNUS and ECSDENISE can be combined
 
-	DFF000-DFF1FF   352    (0x120 - 0x17f and 0x0a0 - 0xdf excluded)
+	DFF000-DFF1FF   		352    (0x120 - 0x17f and 0x0a0 - 0xdf excluded)
 
 	sprite registers (0x120 - 0x17f) saved with SPRx chunks
 	audio registers (0x0a0 - 0xdf) saved with AUDx chunks
@@ -1462,8 +1462,8 @@ CIA
 	latched tod     3 BYTES (LO/MED/HI)
 	alarm           3 BYTES (LO/MED/HI)
 	flags           1 BYTE
-			bit 0=tod latched (read)
-			bit 1=tod stopped (write)
+		bit 0=tod latched (read)
+		bit 1=tod stopped (write)
 	div10 counter	1 BYTE
 
 FLOPPY DRIVES

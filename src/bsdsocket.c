@@ -22,6 +22,7 @@
 #include "traps.h"
 #include "threaddep/thread.h"
 #include "bsdsocket.h"
+#include "native2amiga.h"
 
 #ifdef BSDSOCKET
 
@@ -29,81 +30,62 @@
 # include <winsock2.h>
 #endif
 
+struct socketbase *socketbases;
 static uae_u32 SockLibBase;
 
 #define SOCKPOOLSIZE 128
 #define UNIQUE_ID	(-1)
 
 /* ObtainSocket()/ReleaseSocket() public socket pool */
+struct sockd {
 long sockpoolids[SOCKPOOLSIZE];
-int sockpoolsocks[SOCKPOOLSIZE];
+	SOCKET_TYPE sockpoolsocks[SOCKPOOLSIZE];
 uae_u32 sockpoolflags[SOCKPOOLSIZE];
+};
 
-long curruniqid = 65536;
+static long curruniqid = 65536;
+static struct sockd *sockdata;
 
-/* Memory-related helper functions */
-STATIC_INLINE void memcpyha (uae_u32 dst, const char *src, int size)
-{
-    while (size--)
-	put_byte (dst++, *src++);
-}
-
-#if 0
-char *strncpyah (char *dst, uae_u32 src, int size)
-{
-    char *res = dst;
-    while (size-- && (*dst++ = get_byte (src++)));
-    return res;
-}
-
-char *strcpyah (char *dst, uae_u32 src)
-{
-    char *res = dst;
-    while ((*dst++ = get_byte (src++)) != 0);
-    return res;
-}
-#endif
-
-uae_u32 strcpyha (uae_u32 dst, const char *src)
+uae_u32 strncpyha (uae_u32 dst, const uae_char *src, int size)
 {
     uae_u32 res = dst;
-
-    do {
-	put_byte (dst++, *src);
-    } while (*src++);
-
-    return res;
-}
-
-uae_u32 strncpyha (uae_u32 dst, const char *src, int size)
-{
-    uae_u32 res = dst;
-    while (size--) {
-	put_byte (dst++, *src);
-	if (!*src++)
+	if (!addr_valid ("strncpyha", dst, size))
 	    return res;
+    while (size--) {
+		put_byte (dst++, *src);
+		if (!*src++)
+		    return res;
     }
     return res;
 }
 
-uae_u32 addstr (uae_u32 * dst, const char *src)
+uae_u32 addstr (uae_u32 * dst, const TCHAR *src)
 {
     uae_u32 res = *dst;
     int len;
-    len = strlen (src) + 1;
-    strcpyha (*dst, src);
+	len = strlen (src) + 1;
+	strcpyha_safe (*dst, src);
     (*dst) += len;
     return res;
 }
+uae_u32 addstr_ansi (uae_u32 * dst, const uae_char *src)
+{
+	uae_u32 res = *dst;
+	int len;
+	len = strlen (src) + 1;
+	strcpyha_safe (*dst, src);
+	(*dst) += len;
+	return res;
+}
 
-uae_u32 addmem (uae_u32 * dst, const char *src, int len)
+uae_u32 addmem (uae_u32 * dst, const uae_char *src, int len)
 {
     uae_u32 res = *dst;
 
     if (!src)
 	return 0;
 
-    memcpyha (*dst, src, len);
+	memcpyha_safe (*dst, (uae_u8*)src, len);
     (*dst) += len;
 
     return res;
@@ -119,7 +101,7 @@ static uae_u32 gettask (TrapContext *context)
 
     m68k_areg (regs, 1) = a1;
 
-    TRACE (("[%s] ", get_real_address (get_long (currtask + 10))));
+	BSDTRACE (("[%s] ", get_real_address (get_long (currtask + 10))));
     return currtask;
 }
 
@@ -127,21 +109,19 @@ static uae_u32 gettask (TrapContext *context)
 void bsdsocklib_seterrno (SB, int sb_errno)
 {
     sb->sb_errno = sb_errno;
-
     if (sb->sb_errno >= 1001 && sb->sb_errno <= 1005)
-	bsdsocklib_setherrno (sb, sb->sb_errno - 1000);
-
+		bsdsocklib_setherrno (sb, sb->sb_errno - 1000);
     if (sb->errnoptr) {
-	switch (sb->errnosize) {
-	 case 1:
-	    put_byte (sb->errnoptr, sb_errno);
-	    break;
-	 case 2:
-	    put_word (sb->errnoptr, sb_errno);
-	    break;
-	 case 4:
-	    put_long (sb->errnoptr, sb_errno);
-	}
+		switch (sb->errnosize) {
+		 case 1:
+		    put_byte (sb->errnoptr, sb_errno);
+		    break;
+		 case 2:
+		    put_word (sb->errnoptr, sb_errno);
+		    break;
+		 case 4:
+		    put_long (sb->errnoptr, sb_errno);
+		}
     }
 }
 
@@ -150,53 +130,53 @@ void bsdsocklib_setherrno (SB, int sb_herrno)
     sb->sb_herrno = sb_herrno;
 
     if (sb->herrnoptr) {
-	switch (sb->herrnosize) {
-	 case 1:
-	    put_byte (sb->herrnoptr, sb_herrno);
-	    break;
-	 case 2:
-	    put_word (sb->herrnoptr, sb_herrno);
-	    break;
-	 case 4:
-	    put_long (sb->herrnoptr, sb_herrno);
-	}
+		switch (sb->herrnosize) {
+		 case 1:
+		    put_byte (sb->herrnoptr, sb_herrno);
+		    break;
+		 case 2:
+		    put_word (sb->herrnoptr, sb_herrno);
+		    break;
+		 case 4:
+		    put_long (sb->herrnoptr, sb_herrno);
+		}
     }
 }
 
 BOOL checksd (SB, int sd)
 {
-     int iCounter;
-     SOCKET s;
+	int iCounter;
+	SOCKET s;
 
-     s = getsock (sb, sd);
-     if (s != INVALID_SOCKET) {
-	for (iCounter  = 1; iCounter <= sb->dtablesize; iCounter++) {
-	    if (iCounter != sd) {
-		if (getsock (sb, iCounter) == s) {
-		    releasesock (sb, sd);
-		    return 1;
+	s = getsock (sb, sd);
+	if (s != INVALID_SOCKET) {
+		for (iCounter  = 1; iCounter <= sb->dtablesize; iCounter++) {
+		    if (iCounter != sd) {
+				if (getsock (sb, iCounter) == s) {
+				    releasesock (sb, sd);
+					return 1;
+				}
+	    	 }
 		}
-	     }
+		for (iCounter  = 0; iCounter < SOCKPOOLSIZE; iCounter++) {
+			if (s == sockdata->sockpoolsocks[iCounter])
+				return 1;
+		}
 	}
-	for (iCounter  = 0; iCounter < SOCKPOOLSIZE; iCounter++) {
-	    if (s == sockpoolsocks[iCounter])
-		return 1;
-	}
-    }
-    TRACE (("checksd FALSE s 0x%x sd %d\n", s, sd));
-    return 0;
+	BSDTRACE(("checksd FALSE s 0x%x sd %d\n",s,sd));
+	return 0;
 }
 
-void setsd (SB, int sd, int s)
+void setsd(SB, int sd, SOCKET_TYPE s)
 {
     sb->dtable[sd - 1] = s;
 }
 
 /* Socket descriptor/opaque socket handle management */
-int getsd (SB, int s)
+int getsd (SB, SOCKET_TYPE s)
 {
     int i;
-    int *dt = sb->dtable;
+	SOCKET_TYPE *dt = sb->dtable;
 
     /* return socket descriptor if already exists */
     for (i = sb->dtablesize; i--;)
@@ -216,13 +196,36 @@ int getsd (SB, int s)
     return -1;
 }
 
-int getsock (SB, int sd)
+SOCKET_TYPE getsock (SB, int sd)
 {
     if ((unsigned int) (sd - 1) >= (unsigned int) sb->dtablesize) {
-	TRACE (("Invalid Socket Descriptor (%d, %d)\n", sd - 1, sb->dtablesize));
-	bsdsocklib_seterrno (sb, 38);	/* ENOTSOCK */
-
-	return -1;
+		BSDTRACE (("Invalid Socket Descriptor (%d, %d)\n", sd - 1, sb->dtablesize));
+		bsdsocklib_seterrno (sb, 38);	/* ENOTSOCK */
+		return -1;
+	}
+	if (sb->dtable[sd - 1] == INVALID_SOCKET) {
+		struct socketbase *sb1, *nsb;
+		uaecptr ot;
+		if (!addr_valid ("getsock1", sb->ownertask + 10, 4))
+			return -1;
+		ot = get_long (sb->ownertask + 10);
+		if (!addr_valid ("getsock2", ot, 1))
+			return -1;
+		// Fix for Newsrog (All Tasks of Newsrog using the same dtable)
+		for (sb1 = socketbases; sb1; sb1 = nsb) {
+			uaecptr ot1;
+			if (!addr_valid ("getsock3", sb1->ownertask + 10, 4))
+				break;
+			ot1 = get_long (sb1->ownertask + 10);
+			if (!addr_valid ("getsock4", ot1, 1))
+				break;
+			if (strcmp((char*)get_real_address (ot1), (char*)get_real_address (ot)) == 0) {
+				// Task with same name already exists -> use same dtable
+				if (sb1->dtable[sd - 1] != INVALID_SOCKET)
+					return sb1->dtable[sd - 1];
+			}
+			nsb = sb1->next;
+		}
     }
     return sb->dtable[sd - 1];
 }
@@ -236,6 +239,7 @@ void releasesock (SB, int sd)
 /* Signal queue */
 /* @@@ TODO: ensure proper interlocking */
 struct socketbase *sbsigqueue;
+volatile int bsd_int_requested;
 
 void addtosigqueue (SB, int events)
 {
@@ -252,42 +256,39 @@ void addtosigqueue (SB, int events)
     }
     sb->dosignal = 1;
 
-    unlocksigqueue ();
+	bsd_int_requested = 1;
 
-    INTREQ (0xA000);
+    unlocksigqueue ();
 }
 
-static uae_u32 REGPARAM2 bsdsock_int_handler (TrapContext *context)
+void bsdsock_fake_int_handler(void)
 {
-    SB;
-
     locksigqueue ();
+
+	bsd_int_requested = 0;
+
     if (sbsigqueue != NULL) {
+		SB;
+
 	for (sb = sbsigqueue; sb; sb = sb->nextsig) {
 	    if (sb->dosignal == 1) {
-//		struct regstruct sbved_regs = context->regs;
-		m68k_areg (regs, 1) = sb->ownertask;
-		m68k_dreg (regs, 0) = sb->sigstosend;
-		CallLib (context, get_long (4), -0x144);		/* Signal() */
-//		context->regs = sbved_regs;
-		sb->sigstosend = 0;
-	    }
-	    sb->dosignal = 0;
+				uae_Signal (sb->ownertask, sb->sigstosend);
+				sb->sigstosend = 0;
+			}
+			sb->dosignal = 0;
+		}
+
+		sbsigqueue = NULL;
 	}
 
-	sbsigqueue = NULL;
-    }
-    unlocksigqueue ();
-
-    return 0;
+	unlocksigqueue ();
 }
 
 void waitsig (TrapContext *context, SB)
 {
     long sigs;
     m68k_dreg (regs, 0) = (((uae_u32) 1) << sb->signal) | sb->eintrsigs;
-
-    if ((sigs = CallLib (context, get_long (4), -0x13e)) & sb->eintrsigs) {
+	if ((sigs = CallLib (context, get_long (4), -0x13e)) & sb->eintrsigs) { /* Wait */
 	sockabort (sb);
 	bsdsocklib_seterrno (sb, 4);	/* EINTR */
 
@@ -317,53 +318,53 @@ void cancelsig (TrapContext *context, SB)
 /* Allocate and initialize per-task state structure */
 static struct socketbase *alloc_socketbase (TrapContext *context)
 {
-    struct socketbase *sb;
+	SB;
     int i;
 
-    if ((sb = calloc (sizeof (struct socketbase), 1)) != NULL) {
-	sb->ownertask = gettask (context);
+	if ((sb = xcalloc (struct socketbase, 1)) != NULL) {
+		sb->ownertask = gettask (context);
 
-	m68k_dreg (regs, 0) = -1;
-	sb->signal = CallLib (context, get_long (4), -0x14A);
+		m68k_dreg (regs, 0) = -1;
+		sb->signal = CallLib (context, get_long (4), -0x14A); /* AllocSignal */
 
-	if (sb->signal == -1) {
-	    write_log ("bsdsocket: ERROR: Couldn't allocate signal for task 0x%lx.\n", sb->ownertask);
-	    free (sb);
-	    return NULL;
-	}
-	m68k_dreg (regs, 0) = SCRATCHBUFSIZE;
-	m68k_dreg (regs, 1) = 0;
+		if (sb->signal == -1) {
+			write_log ("bsdsocket: ERROR: Couldn't allocate signal for task 0x%lx.\n", sb->ownertask);
+		    free (sb);
+		    return NULL;
+		}
+		m68k_dreg (regs, 0) = SCRATCHBUFSIZE;
+		m68k_dreg (regs, 1) = 0;
 
-	sb->dtablesize = DEFAULT_DTABLE_SIZE;
-	/* @@@ check malloc() result */
-	sb->dtable = malloc (sb->dtablesize * sizeof (*sb->dtable));
-	sb->ftable = malloc (sb->dtablesize * sizeof (*sb->ftable));
+		sb->dtablesize = DEFAULT_DTABLE_SIZE;
+		/* @@@ check malloc() result */
+		sb->dtable = (SOCKET*)malloc (sb->dtablesize * sizeof (*sb->dtable));
+		sb->ftable = (int*)malloc (sb->dtablesize * sizeof (*sb->ftable));
 
-	for (i = sb->dtablesize; i--;)
-	    sb->dtable[i] = -1;
+		for (i = sb->dtablesize; i--;)
+		    sb->dtable[i] = -1;
 
-	sb->eintrsigs = 0x1000;	/* SIGBREAKF_CTRL_C */
+		sb->eintrsigs = 0x1000;	/* SIGBREAKF_CTRL_C */
 
-	if (!host_sbinit (context, sb)) {
-	    /* @@@ free everything   */
-	}
+		if (!host_sbinit (context, sb)) {
+		    /* @@@ free everything   */
+		}
 
-	locksigqueue ();
+		locksigqueue ();
 
-	if (socketbases)
-	    sb->next = socketbases;
-	socketbases = sb;
+		if (socketbases)
+		    sb->next = socketbases;
+		socketbases = sb;
 
-	unlocksigqueue ();
+		unlocksigqueue ();
 
-	return sb;
+		return sb;
     }
     return NULL;
 }
 
 STATIC_INLINE struct socketbase *get_socketbase (TrapContext *context)
 {
-    return get_pointer (m68k_areg (regs, 6) + offsetof (struct UAEBSDBase, sb));
+	return (struct socketbase*)get_pointer (m68k_areg (regs, 6) + offsetof (struct UAEBSDBase, sb));
 }
 
 static void free_socketbase (TrapContext *context)
@@ -371,55 +372,55 @@ static void free_socketbase (TrapContext *context)
     struct socketbase *sb, *nsb;
 
     if ((sb = get_socketbase (context)) != NULL) {
-	m68k_dreg (regs, 0) = sb->signal;
-	CallLib (context, get_long (4), -0x150);		/* FreeSignal */
+		m68k_dreg (regs, 0) = sb->signal;
+		CallLib (context, get_long (4), -0x150);		/* FreeSignal */
 
-	if (sb->hostent) {
-	    m68k_areg (regs, 1) = sb->hostent;
-	    m68k_dreg (regs, 0) = sb->hostentsize;
-	    CallLib (context, get_long (4), -0xD2);	/* FreeMem */
+		if (sb->hostent) {
+		    m68k_areg (regs, 1) = sb->hostent;
+		    m68k_dreg (regs, 0) = sb->hostentsize;
+		    CallLib (context, get_long (4), -0xD2);	/* FreeMem */
 
-	}
-	if (sb->protoent) {
-	    m68k_areg (regs, 1) = sb->protoent;
-	    m68k_dreg (regs, 0) = sb->protoentsize;
-	    CallLib (context, get_long (4), -0xD2);	/* FreeMem */
-
-	}
-	if (sb->servent) {
-	    m68k_areg (regs, 1) = sb->servent;
-	    m68k_dreg (regs, 0) = sb->serventsize;
-	    CallLib (context, get_long (4), -0xD2);	/* FreeMem */
-
-	}
-	host_sbcleanup (sb);
-
-	free (sb->dtable);
-	free (sb->ftable);
-
-	locksigqueue ();
-
-	if (sb == socketbases)
-	    socketbases = sb->next;
-	else {
-	    for (nsb = socketbases; nsb; nsb = nsb->next) {
-		if (sb == nsb->next) {
-		    nsb->next = sb->next;
-		    break;
 		}
-	    }
-	}
+		if (sb->protoent) {
+		    m68k_areg (regs, 1) = sb->protoent;
+		    m68k_dreg (regs, 0) = sb->protoentsize;
+		    CallLib (context, get_long (4), -0xD2);	/* FreeMem */
 
-	if (sb == sbsigqueue)
-	    sbsigqueue = sb->next;
-	else {
-	    for (nsb = sbsigqueue; nsb; nsb = nsb->next) {
-		if (sb == nsb->next) {
-		    nsb->next = sb->next;
-		    break;
 		}
-	    }
-	}
+		if (sb->servent) {
+		    m68k_areg (regs, 1) = sb->servent;
+		    m68k_dreg (regs, 0) = sb->serventsize;
+		    CallLib (context, get_long (4), -0xD2);	/* FreeMem */
+
+		}
+		host_sbcleanup (sb);
+
+		free (sb->dtable);
+		free (sb->ftable);
+
+		locksigqueue ();
+
+		if (sb == socketbases)
+		    socketbases = sb->next;
+		else {
+		    for (nsb = socketbases; nsb; nsb = nsb->next) {
+				if (sb == nsb->next) {
+				    nsb->next = sb->next;
+				    break;
+				}
+		    }
+		}
+
+		if (sb == sbsigqueue)
+		    sbsigqueue = sb->next;
+		else {
+		    for (nsb = sbsigqueue; nsb; nsb = nsb->next) {
+				if (sb == nsb->next) {
+				    nsb->next = sb->next;
+				    break;
+				}
+		    }
+		}
 
 	unlocksigqueue ();
 
@@ -429,39 +430,35 @@ static void free_socketbase (TrapContext *context)
 
 static uae_u32 REGPARAM2 bsdsocklib_Expunge (TrapContext *context)
 {
-    TRACE (("Expunge() -> [ignored]\n"));
+	BSDTRACE (("Expunge() -> [ignored]\n"));
     return 0;
 }
 
 static uae_u32 functable, datatable, inittable;
 
-
 static uae_u32 REGPARAM2 bsdsocklib_Open (TrapContext *context)
 {
     uae_u32 result = 0;
     int opencount;
-    unsigned int i;
-    struct socketbase *sb;
-    uae_u32 p[sizeof (void*) / 4];
+	SB;
 
-    TRACE (("OpenLibrary() -> "));
+	BSDTRACE (("OpenLibrary() -> "));
 
     if ((sb = alloc_socketbase (context)) != NULL) {
-	put_word (SockLibBase + 32, opencount = get_word (SockLibBase + 32) + 1);
+		put_word (SockLibBase + 32, opencount = get_word (SockLibBase + 32) + 1);
 
-	m68k_areg (regs, 0) = functable;
-	m68k_areg (regs, 1) = datatable;
-	m68k_areg (regs, 2) = 0;
-	m68k_dreg (regs, 0) = sizeof (struct UAEBSDBase);
-	m68k_dreg (regs, 1) = 0;
-	result = CallLib (context, get_long (4), -0x54);
+		m68k_areg (regs, 0) = functable;
+		m68k_areg (regs, 1) = datatable;
+		m68k_areg (regs, 2) = 0;
+		m68k_dreg (regs, 0) = sizeof (struct UAEBSDBase);
+		m68k_dreg (regs, 1) = 0;
+		result = CallLib (context, get_long (4), -0x54); /* MakeLibrary */
 
-	put_pointer (result + offsetof (struct UAEBSDBase, sb), sb);
+		put_pointer (result + offsetof (struct UAEBSDBase, sb), sb);
 
-	TRACE (("%0lx [%d]\n", result, opencount));
-    } else {
-	TRACE (("failed (out of memory)\n"));
-    }
+		BSDTRACE (("%0lx [%d]\n", result, opencount));
+	} else
+		BSDTRACE (("failed (out of memory)\n"));
 
     return result;
 }
@@ -481,7 +478,7 @@ static uae_u32 REGPARAM2 bsdsocklib_Close (TrapContext *context)
     m68k_dreg (regs, 0) = negsize + get_word (base + 18);
     CallLib (context, get_long (4), -0xD2);	/* FreeMem */
 
-    TRACE (("CloseLibrary() -> [%d]\n", opencount));
+	BSDTRACE (("CloseLibrary() -> [%d]\n", opencount));
 
     return 0;
 }
@@ -604,7 +601,7 @@ static uae_u32 REGPARAM2 bsdsocklib_getpeername (TrapContext *context)
 static uae_u32 REGPARAM2 bsdsocklib_IoctlSocket (TrapContext *context)
 {
     struct socketbase *sb = get_socketbase (context);
-    return host_IoctlSocket (sb, m68k_dreg (regs, 0), m68k_dreg (regs, 1), m68k_areg (regs, 0));
+	return host_IoctlSocket (context, sb, m68k_dreg (regs, 0), m68k_dreg (regs, 1), m68k_areg (regs, 0));
 }
 
 /* *------ AmiTCP/IP specific stuff */
@@ -612,7 +609,7 @@ static uae_u32 REGPARAM2 bsdsocklib_IoctlSocket (TrapContext *context)
 static uae_u32 REGPARAM2 bsdsocklib_CloseSocket (TrapContext *context)
 {
     struct socketbase *sb = get_socketbase (context);
-    return host_CloseSocket (sb, m68k_dreg (regs, 0));
+	return host_CloseSocket (context, sb, m68k_dreg (regs, 0));
 }
 
 /* WaitSelect(nfds, readfds, writefds, execptfds, timeout, maskp)(d0/a0/a1/a2/a3/d1) */
@@ -629,7 +626,7 @@ static uae_u32 REGPARAM2 bsdsocklib_SetSocketSignals (TrapContext *context)
 {
     struct socketbase *sb = get_socketbase (context);
 
-    TRACE (("SetSocketSignals(0x%08lx,0x%08lx,0x%08lx) -> ", m68k_dreg (regs, 0), m68k_dreg (regs, 1), m68k_dreg (regs, 2)));
+	BSDTRACE (("SetSocketSignals(0x%08lx,0x%08lx,0x%08lx) -> ", m68k_dreg (regs, 0), m68k_dreg (regs, 1), m68k_dreg (regs, 2)));
     sb->eintrsigs = m68k_dreg (regs, 0);
     sb->eventsigs = m68k_dreg (regs, 1);
 
@@ -644,28 +641,30 @@ static uae_u32 bsdsocklib_SetDTableSize (SB, int newSize)
     int i;
 
     if (newSize < sb->dtablesize) {
-	/* I don't support lowering the size */
-	return 0;
+		/* I don't support lowering the size */
+		return 0;
     }
 
-    newdtable = (int *)malloc(newSize * sizeof(*sb->dtable));
-    newftable = (int *)malloc(newSize * sizeof(*sb->ftable));
+	newdtable = xcalloc (int, newSize);
+	newftable = xcalloc (int, newSize);
 
-    if (newdtable == NULL || newftable == NULL) {
-	sb->resultval = -1;
-	bsdsocklib_seterrno(sb, ENOMEM);
-	return -1;
+	if (newdtable == NULL || newftable == NULL /*win32|| newmtable == NULL*/) {
+		sb->resultval = -1;
+		bsdsocklib_seterrno(sb, ENOMEM);
+		free (newdtable);
+		free (newftable);
+		return -1;
     }
 
     memcpy(newdtable, sb->dtable, sb->dtablesize * sizeof(*sb->dtable));
     memcpy(newftable, sb->ftable, sb->dtablesize * sizeof(*sb->ftable));
     for (i = sb->dtablesize + 1; i < newSize; i++)
-	newdtable[i] = -1;
+		newdtable[i] = -1;
 
     sb->dtablesize = newSize;
     free(sb->dtable);
     free(sb->ftable);
-    sb->dtable = newdtable;
+	sb->dtable = (SOCKET*)newdtable;
     sb->ftable = newftable;
     sb->resultval = 0;
     return 0;
@@ -676,8 +675,8 @@ static int sockpoolindex (long id)
     int i;
 
     for (i = 0; i < SOCKPOOLSIZE; i++)
-	if (sockpoolids[i] == id)
-	    return i;
+		if (sockdata->sockpoolids[i] == id)
+		    return i;
 
     return -1;
 }
@@ -688,28 +687,28 @@ static uae_u32 REGPARAM2 bsdsocklib_ObtainSocket (TrapContext *context)
     struct socketbase *sb = get_socketbase (context);
     int sd;
     long id;
-    int s;
+	SOCKET_TYPE s;
     int i;
 
     id = m68k_dreg (regs, 0);
 
-    TRACE (("ObtainSocket(%d,%d,%d,%d) -> ", id, m68k_dreg (regs, 1), m68k_dreg (regs, 2), m68k_dreg (regs, 3)));
+	BSDTRACE (("ObtainSocket(%d,%d,%d,%d) -> ", id, m68k_dreg (regs, 1), m68k_dreg (regs, 2), m68k_dreg (regs, 3)));
 
     i = sockpoolindex (id);
 
     if (i == -1) {
-	TRACE (("[invalid key]\n"));
-	return -1;
+		BSDTRACE (("[invalid key]\n"));
+		return -1;
     }
-    s = sockpoolsocks[i];
+	s = sockdata->sockpoolsocks[i];
 
     sd = getsd (sb, s);
 
-    TRACE (("%d, %d\n", s, sd));
+	BSDTRACE (("%d, %d\n", s, sd));
 
     if (sd != -1) {
-	sb->ftable[sd - 1] = sockpoolflags[i];
-	sockpoolids[i] = UNIQUE_ID;
+		sb->ftable[sd - 1] = sockdata->sockpoolflags[i];
+		sockdata->sockpoolids[i] = UNIQUE_ID;
 	return sd-1;
     }
 
@@ -722,7 +721,7 @@ static uae_u32 REGPARAM2 bsdsocklib_ReleaseSocket (TrapContext *context)
     struct socketbase *sb = get_socketbase (context);
     int sd;
     long id;
-    int s;
+	SOCKET_TYPE s;
     int i;
     uae_u32 flags;
 
@@ -730,18 +729,18 @@ static uae_u32 REGPARAM2 bsdsocklib_ReleaseSocket (TrapContext *context)
     id = m68k_dreg (regs, 1);
 
 	sd++;
-    TRACE (("ReleaseSocket(%d,%d) -> ", sd, id));
+	BSDTRACE (("ReleaseSocket(%d,%d) -> ", sd, id));
 
     s = getsock (sb, sd);
 
     if (s != -1) {
-	flags = sb->ftable[sd - 1];
+		flags = sb->ftable[sd - 1];
 
-	if (flags & REP_ALL) {
-	    write_log ("bsdsocket: ERROR: ReleaseSocket() is not supported for sockets with async event notification enabled!\n");
-	    return -1;
-	}
-	releasesock (sb, sd);
+		if (flags & REP_ALL) {
+			write_log ("bsdsocket: ERROR: ReleaseSocket() is not supported for sockets with async event notification enabled!\n");
+	    	return -1;
+		}
+		releasesock (sb, sd);
 
 	if (id == UNIQUE_ID) {
 	    for (;;) {
@@ -755,24 +754,24 @@ static uae_u32 REGPARAM2 bsdsocklib_ReleaseSocket (TrapContext *context)
 	    id = curruniqid;
 	} else if (id < 0 && id > 65535) {
 	    if (sockpoolindex (id) != -1) {
-		TRACE (("[unique ID already exists]\n"));
+				BSDTRACE (("[unique ID already exists]\n"));
 		return -1;
 	    }
 	}
 	i = sockpoolindex (-1);
 
 	if (i == -1) {
-	    TRACE (("-1\n"));
-	    write_log (("bsdsocket: ERROR: Global socket pool overflow\n"));
+			BSDTRACE (("-1\n"));
+			write_log ("bsdsocket: ERROR: Global socket pool overflow\n");
 	    return -1;
 	}
-	sockpoolids[i] = id;
-	sockpoolsocks[i] = s;
-	sockpoolflags[i] = flags;
+		sockdata->sockpoolids[i] = id;
+		sockdata->sockpoolsocks[i] = s;
+		sockdata->sockpoolflags[i] = flags;
 
-	TRACE (("id %d s %d\n", id,s));
+		BSDTRACE (("id %d s 0x%x\n", id,s));
     } else {
-	TRACE (("[invalid socket descriptor]\n"));
+		BSDTRACE (("[invalid socket descriptor]\n"));
 	return -1;
     }
 
@@ -782,15 +781,70 @@ static uae_u32 REGPARAM2 bsdsocklib_ReleaseSocket (TrapContext *context)
 /* ReleaseCopyOfSocket(fd, id)(d0/d1) */
 static uae_u32 REGPARAM2 bsdsocklib_ReleaseCopyOfSocket (TrapContext *context)
 {
-    write_log ("bsdsocket: UNSUPPORTED: ReleaseCopyOfSocket()\n");
-    return 0;
+	struct socketbase *sb = get_socketbase (context);
+	int sd;
+	long id;
+	SOCKET_TYPE s;
+	int i;
+	uae_u32 flags;
+
+	sd = m68k_dreg (regs, 0);
+	id = m68k_dreg (regs, 1);
+
+	sd++;
+	BSDTRACE (("ReleaseSocket(%d,%d) -> ", sd, id));
+
+	s = getsock (sb, sd);
+
+	if (s != -1) {
+		flags = sb->ftable[sd - 1];
+
+		if (flags & REP_ALL) {
+			write_log ("bsdsocket: ERROR: ReleaseCopyOfSocket() is not supported for sockets with async event notification enabled!\n");
+			return -1;
+		}
+		if (id == UNIQUE_ID) {
+			for (;;) {
+				if (sockpoolindex (curruniqid) == -1)
+					break;
+				curruniqid += 129;
+				if ((unsigned long) (curruniqid + 1) < 65536)
+					curruniqid += 65537;
+			}
+			id = curruniqid;
+		} else if (id < 0 && id > 65535) {
+			if (sockpoolindex (id) != -1) {
+				BSDTRACE (("[unique ID already exists]\n"));
+				return -1;
+			}
+		}
+		i = sockpoolindex (-1);
+
+		if (i == -1) {
+			BSDTRACE (("-1\n"));
+			write_log ("bsdsocket: ERROR: Global socket pool overflow\n");
+			return -1;
+		}
+		sockdata->sockpoolids[i] = id;
+		sockdata->sockpoolsocks[i] = s;
+		sockdata->sockpoolflags[i] = flags;
+
+		BSDTRACE (("id %d s 0x%x\n", id,s));
+
+	} else {
+
+		BSDTRACE (("[invalid socket descriptor]\n"));
+		return -1;
+	}
+
+	return id;
 }
 
 /* Errno()() */
 static uae_u32 REGPARAM2 bsdsocklib_Errno (TrapContext *context)
 {
     struct socketbase *sb = get_socketbase (context);
-    TRACE (("Errno() -> %d\n", sb->sb_errno));
+	BSDTRACE (("Errno() -> %d\n", sb->sb_errno));
     return sb->sb_errno;
 }
 
@@ -800,12 +854,12 @@ static uae_u32 REGPARAM2 bsdsocklib_SetErrnoPtr (TrapContext *context)
     struct socketbase *sb = get_socketbase (context);
     uae_u32 errnoptr = m68k_areg (regs, 0), size = m68k_dreg (regs, 0);
 
-    TRACE (("SetErrnoPtr(0x%lx,%d) -> ", errnoptr, size));
+	BSDTRACE (("SetErrnoPtr(0x%lx,%d) -> ", errnoptr, size));
 
     if (size == 1 || size == 2 || size == 4) {
 	sb->errnoptr = errnoptr;
 	sb->errnosize = size;
-	TRACE (("OK\n"));
+		BSDTRACE (("OK\n"));
 	return 0;
     }
     bsdsocklib_seterrno (sb, 22);		/* EINVAL */
@@ -830,21 +884,21 @@ static uae_u32 REGPARAM2 bsdsocklib_inet_addr (TrapContext *context)
 /* Inet_LnaOf(in)(d0) */
 static uae_u32 REGPARAM2 bsdsocklib_Inet_LnaOf (TrapContext *context)
 {
-    write_log ("bsdsocket: UNSUPPORTED: Inet_LnaOf()\n");
+	write_log ("bsdsocket: UNSUPPORTED: Inet_LnaOf()\n");
     return 0;
 }
 
 /* Inet_NetOf(in)(d0) */
 static uae_u32 REGPARAM2 bsdsocklib_Inet_NetOf (TrapContext *context)
 {
-    write_log ("bsdsocket: UNSUPPORTED: Inet_NetOf()\n");
+	write_log ("bsdsocket: UNSUPPORTED: Inet_NetOf()\n");
     return 0;
 }
 
 /* Inet_MakeAddr(net, host)(d0/d1) */
 static uae_u32 REGPARAM2 bsdsocklib_Inet_MakeAddr (TrapContext *context)
 {
-    write_log ("bsdsocket: UNSUPPORTED: Inet_MakeAddr()\n");
+	write_log ("bsdsocket: UNSUPPORTED: Inet_MakeAddr()\n");
     return 0;
 }
 
@@ -874,14 +928,14 @@ static uae_u32 REGPARAM2 bsdsocklib_gethostbyaddr (TrapContext *context)
 /* getnetbyname(name)(a0) */
 static uae_u32 REGPARAM2 bsdsocklib_getnetbyname (TrapContext *context)
 {
-    write_log ("bsdsocket: UNSUPPORTED: getnetbyname()\n");
+	write_log ("bsdsocket: UNSUPPORTED: getnetbyname()\n");
     return 0;
 }
 
 /* getnetbyaddr(net, type)(d0/d1) */
 static uae_u32 REGPARAM2 bsdsocklib_getnetbyaddr (TrapContext *context)
 {
-    write_log ("bsdsocket: UNSUPPORTED: getnetbyaddr()\n");
+	write_log ("bsdsocket: UNSUPPORTED: getnetbyaddr()\n");
     return 0;
 }
 
@@ -921,7 +975,7 @@ static uae_u32 REGPARAM2 bsdsocklib_getprotobynumber (TrapContext *context)
 /* Syslog(level, format, ap)(d0/a0/a1) */
 static uae_u32 REGPARAM2 bsdsocklib_vsyslog (TrapContext *context)
 {
-    write_log ("bsdsocket: UNSUPPORTED: vsyslog()\n");
+	write_log ("bsdsocket: UNSUPPORTED: vsyslog()\n");
     return 0;
 }
 
@@ -935,13 +989,13 @@ static uae_u32 REGPARAM2 bsdsocklib_Dup2Socket (TrapContext *context)
 
 static uae_u32 REGPARAM2 bsdsocklib_sendmsg (TrapContext *context)
 {
-    write_log ("bsdsocket: UNSUPPORTED: sendmsg()\n");
+	write_log ("bsdsocket: UNSUPPORTED: sendmsg()\n");
     return 0;
 }
 
 static uae_u32 REGPARAM2 bsdsocklib_recvmsg (TrapContext *context)
 {
-    write_log ("bsdsocket: UNSUPPORTED: recvmsg()\n");
+	write_log ("bsdsocket: UNSUPPORTED: recvmsg()\n");
     return 0;
 }
 
@@ -952,7 +1006,8 @@ static uae_u32 REGPARAM2 bsdsocklib_gethostname (TrapContext *context)
 
 static uae_u32 REGPARAM2 bsdsocklib_gethostid (TrapContext *context)
 {
-    write_log ("bsdsocket: WARNING: Process '%s' calls deprecated function gethostid() - returning 127.0.0.1\n", get_real_address (get_long (gettask (context) + 10)));
+	write_log ("bsdsocket: WARNING: Process '%s' calls deprecated function gethostid() - returning 127.0.0.1\n",
+		get_real_address (get_long (gettask (context) + 10)));
     return 0x7f000001;
 }
 
@@ -1069,135 +1124,143 @@ static uae_u32 REGPARAM2 bsdsocklib_SocketBaseTagList (TrapContext *context)
     uae_u32 currtag;
     uae_u32 currval;
 
-    TRACE (("SocketBaseTagList("));
+	BSDTRACE (("SocketBaseTagList("));
 
     for (;;) {
-	currtag = get_long (tagptr);
-	currval = get_long (tagptr + 4);
-	tagsprocessed++;
+		currtag = get_long (tagptr);
+		currval = get_long (tagptr + 4);
+		tagsprocessed++;
 
-	switch (currtag) {
-	 case TAG_DONE:
-	    TRACE (("TAG_DONE"));
-	    tagsprocessed = 0;
-	    goto done;
-	 case TAG_IGNORE:
-	    TRACE (("TAG_IGNORE"));
-	    break;
-	 case TAG_MORE:
-	    TRACE (("TAG_MORE(0x%lx)", currval));
-	    tagptr = currval;
-	    break;
-	 case TAG_SKIP:
-	    TRACE (("TAG_SKIP(%d)", currval));
-	    tagptr += currval * 8;
-	    break;
+		switch (currtag) {
+		case TAG_DONE:
+			BSDTRACE (("TAG_DONE"));
+	    	tagsprocessed = 0;
+	    	goto done;
+		case TAG_IGNORE:
+			BSDTRACE (("TAG_IGNORE"));
+	    	break;
+		case TAG_MORE:
+			BSDTRACE (("TAG_MORE(0x%lx)", currval));
+	    	tagptr = currval;
+	    	break;
+		case TAG_SKIP:
+			BSDTRACE (("TAG_SKIP(%d)", currval));
+	    	tagptr += currval * 8;
+	    	break;
 
-	 default:
-	    if (currtag & TAG_USER) {
-		TRACE (("SBTM_"));
-		TRACE ((currtag & 0x0001 ? "SET" : "GET"));
-		TRACE ((currtag & 0x8000 ? "REF(" : "VAL("));
+		default:
+		    if (currtag & TAG_USER) {
+				BSDTRACE (("SBTM_"));
+				BSDTRACE ((currtag & 0x0001 ? "SET" : "GET"));
+				BSDTRACE ((currtag & 0x8000 ? "REF(" : "VAL("));
 
-		switch ((currtag >> 1) & SBTS_CODE) {
-		 case SBTC_BREAKMASK:
-		    TRACE (("SBTC_BREAKMASK),0x%lx", currval));
-		    tagcopy (currtag, currval, tagptr, &sb->eintrsigs);
-		    break;
-		 case SBTC_SIGEVENTMASK:
-		    TRACE (("SBTC_SIGEVENTMASK),0x%lx", currval));
-		    tagcopy (currtag, currval, tagptr, &sb->eventsigs);
-		    break;
-		 case SBTC_SIGIOMASK:
-		    TRACE (("SBTC_SIGEVENTMASK),0x%lx", currval));
-		    tagcopy (currtag, currval, tagptr, &sb->eventsigs);
-		    break;
-		 case SBTC_ERRNO:
-		    TRACE (("SBTC_ERRNO),%d", currval));
-		    tagcopy (currtag, currval, tagptr, (uae_u32 *)&sb->sb_errno);
-		    break;
-		 case SBTC_HERRNO:
-		    TRACE (("SBTC_HERRNO),%d", currval));
-		    tagcopy (currtag, currval, tagptr, (uae_u32 *)&sb->sb_herrno);
-		    break;
-		 case SBTC_DTABLESIZE:
-		    TRACE (("SBTC_DTABLESIZE),0x%lx", currval));
-		    if (currtag & 1) {
-			bsdsocklib_SetDTableSize(sb, currval);
+				switch ((currtag >> 1) & SBTS_CODE) {
+				case SBTC_BREAKMASK:
+					BSDTRACE (("SBTC_BREAKMASK),0x%lx", currval));
+				    tagcopy (currtag, currval, tagptr, &sb->eintrsigs);
+				    break;
+		 		case SBTC_SIGEVENTMASK:
+					BSDTRACE (("SBTC_SIGEVENTMASK),0x%lx", currval));
+		    		tagcopy (currtag, currval, tagptr, &sb->eventsigs);
+		    		break;
+				 case SBTC_SIGIOMASK:
+					BSDTRACE (("SBTC_SIGEVENTMASK),0x%lx", currval));
+				    tagcopy (currtag, currval, tagptr, &sb->eventsigs);
+				    break;
+				case SBTC_ERRNO:
+					BSDTRACE (("SBTC_ERRNO),%d", currval));
+				    tagcopy (currtag, currval, tagptr, (uae_u32 *)&sb->sb_errno);
+				    break;
+				case SBTC_HERRNO:
+					BSDTRACE (("SBTC_HERRNO),%d", currval));
+				    tagcopy (currtag, currval, tagptr, (uae_u32 *)&sb->sb_herrno);
+				    break;
+				case SBTC_DTABLESIZE:
+					BSDTRACE (("SBTC_DTABLESIZE),0x%lx", currval));
+					if (currtag & 1) {
+						bsdsocklib_SetDTableSize(sb, currval);
+					} else {
+						put_long (tagptr + 4, sb->dtablesize);
+					}
+					break;
+				case SBTC_ERRNOSTRPTR:
+					if (currtag & 1) {
+						BSDTRACE (("ERRNOSTRPTR),invalid"));
+				    } else {
+						unsigned long ulTmp;
+						if (currtag & 0x8000) { /* SBTM_GETREF */
+						    ulTmp = get_long (currval);
+						} else { /* SBTM_GETVAL */
+						    ulTmp = currval;
+						}
+						BSDTRACE (("ERRNOSTRPTR),%d", ulTmp));
+						if (ulTmp < number_sys_error) {
+						    tagcopy (currtag, currval, tagptr, &errnotextptrs[ulTmp]);
+						} else {
+						    tagcopy (currtag, currval, tagptr, &strErrptr);
+						}
+				    }
+				    break;
+			case SBTC_HERRNOSTRPTR:
+				    if (currtag & 1) {
+						BSDTRACE (("HERRNOSTRPTR),invalid"));
+				    } else {
+						unsigned long ulTmp;
+						if (currtag & 0x8000) { /* SBTM_GETREF */
+						    ulTmp = get_long (currval);
+						} else { /* SBTM_GETVAL */
+						    ulTmp = currval;
+						}
+						BSDTRACE (("HERRNOSTRPTR),%d", ulTmp));
+						if (ulTmp < number_host_error) {
+						    tagcopy (currtag, currval, tagptr, &herrnotextptrs[ulTmp]);
+						} else {
+			 			   tagcopy (currtag, currval, tagptr, &strErrptr);
+		    			}
+					}
+				    break;
+				case SBTC_ERRNOBYTEPTR:
+					BSDTRACE (("SBTC_ERRNOBYTEPTR),0x%lx", currval));
+				    tagcopy (currtag, currval, tagptr, &sb->errnoptr);
+				    sb->errnosize = 1;
+				    break;
+				case SBTC_ERRNOWORDPTR:
+					BSDTRACE (("SBTC_ERRNOWORDPTR),0x%lx", currval));
+			    	tagcopy (currtag, currval, tagptr, &sb->errnoptr);
+			    	sb->errnosize = 2;
+			    	break;
+				case SBTC_ERRNOLONGPTR:
+					BSDTRACE (("SBTC_ERRNOLONGPTR),0x%lx", currval));
+			    	tagcopy (currtag, currval, tagptr, &sb->errnoptr);
+			    	sb->errnosize = 4;
+			    	break;
+				case SBTC_HERRNOLONGPTR:
+					BSDTRACE (("SBTC_HERRNOLONGPTR),0x%lx", currval));
+			    	tagcopy (currtag, currval, tagptr, &sb->herrnoptr);
+			    	sb->herrnosize = 4;
+			    	break;
+				default:
+					write_log ("bsdsocket: WARNING: Unsupported tag type (%08x) in SocketBaseTagList(%x)\n",
+						currtag, m68k_areg (regs, 0));
+					break;
+				}
 		    } else {
-			put_long (tagptr + 4, sb->dtablesize);
+				BSDTRACE (("TAG_UNKNOWN(0x%x)", currtag));
+				/* Aminetradio uses 0x00004e55 as an ending tag */
+				if ((currtag & 0xffff8000) == 0) {
+					write_log ("bsdsocket: WARNING: Corrupted SocketBaseTagList(%x) tag detected (%08x)\n",
+						m68k_areg (regs, 0), currtag);
+					goto done;
+				}
 		    }
-		    break;
-		 case SBTC_ERRNOSTRPTR:
-		    if (currtag & 1) {
-			TRACE (("ERRNOSTRPTR),invalid"));
-		    } else {
-			unsigned long ulTmp;
-			if (currtag & 0x8000)	/* SBTM_GETREF */
-			    ulTmp = get_long (currval);
-			else			/* SBTM_GETVAL */
-			    ulTmp = currval;
-
-			TRACE (("ERRNOSTRPTR),%d", ulTmp));
-
-			if (ulTmp < number_sys_error)
-			    tagcopy (currtag, currval, tagptr, &errnotextptrs[ulTmp]);
-			else
-			    tagcopy (currtag, currval, tagptr, &strErrptr);
-		    }
-		    break;
-		 case SBTC_HERRNOSTRPTR:
-		    if (currtag & 1) {
-			TRACE (("HERRNOSTRPTR),invalid"));
-		    } else {
-			unsigned long ulTmp;
-			if (currtag & 0x8000)	/* SBTM_GETREF */
-			    ulTmp = get_long (currval);
-			else			/* SBTM_GETVAL */
-			    ulTmp = currval;
-
-			TRACE (("HERRNOSTRPTR),%d", ulTmp));
-
-			if (ulTmp < number_host_error)
-			    tagcopy (currtag, currval, tagptr, &herrnotextptrs[ulTmp]);
-			else
-			    tagcopy (currtag, currval, tagptr, &strErrptr);
-		    }
-		    break;
-		 case SBTC_ERRNOBYTEPTR:
-		    TRACE (("SBTC_ERRNOBYTEPTR),0x%lx", currval));
-		    tagcopy (currtag, currval, tagptr, &sb->errnoptr);
-		    sb->errnosize = 1;
-		    break;
-		 case SBTC_ERRNOWORDPTR:
-		    TRACE (("SBTC_ERRNOWORDPTR),0x%lx", currval));
-		    tagcopy (currtag, currval, tagptr, &sb->errnoptr);
-		    sb->errnosize = 2;
-		    break;
-		 case SBTC_ERRNOLONGPTR:
-		    TRACE (("SBTC_ERRNOLONGPTR),0x%lx", currval));
-		    tagcopy (currtag, currval, tagptr, &sb->errnoptr);
-		    sb->errnosize = 4;
-		    break;
-		 case SBTC_HERRNOLONGPTR:
-		    TRACE (("SBTC_HERRNOLONGPTR),0x%lx", currval));
-		    tagcopy (currtag, currval, tagptr, &sb->herrnoptr);
-		    sb->herrnosize = 4;
-		    break;
-		 default:
-		    write_log ("bsdsocket: WARNING: Unsupported tag type (%x) in SocketBaseTagList()\n", currtag);
 		}
-	    } else {
-		TRACE (("TAG_UNKNOWN(0x%x)", currtag));
-	    }
-	}
 
-	TRACE ((","));
-	tagptr += 8;
+		BSDTRACE ((","));
+		tagptr += 8;
     }
 
-  done:
-    TRACE ((") -> %d\n", tagsprocessed));
+done:
+	BSDTRACE ((") -> %d\n", tagsprocessed));
 
     return tagsprocessed;
 }
@@ -1210,24 +1273,24 @@ static uae_u32 REGPARAM2 bsdsocklib_GetSocketEvents (TrapContext *context)
     int flags;
     uae_u32 ptr = m68k_areg (regs, 0);
 
-    TRACE (("GetSocketEvents(0x%x) -> ", ptr));
+	BSDTRACE (("GetSocketEvents(0x%x) -> ", ptr));
 
     for (i = sb->dtablesize; i--; sb->eventindex++) {
-	if (sb->eventindex >= sb->dtablesize)
-	    sb->eventindex = 0;
+		if (sb->eventindex >= sb->dtablesize)
+		    sb->eventindex = 0;
 
-	if (sb->mtable[sb->eventindex]) {
-	    flags = sb->ftable[sb->eventindex] & SET_ALL;
-	    if (flags) {
-		sb->ftable[sb->eventindex] &= ~SET_ALL;
-		put_long (m68k_areg (regs, 0), flags >> 8);
-		TRACE (("%d (0x%x)\n", sb->eventindex + 1, flags >> 8));
-		return sb->eventindex; // xxx
-	    }
-	}
+		if (sb->mtable[sb->eventindex]) {
+		    flags = sb->ftable[sb->eventindex] & SET_ALL;
+		    if (flags) {
+				sb->ftable[sb->eventindex] &= ~SET_ALL;
+				put_long (m68k_areg (regs, 0), flags >> 8);
+				BSDTRACE (("%d (0x%x)\n", sb->eventindex + 1, flags >> 8));
+				return sb->eventindex; // xxx
+		    }
+		}
     }
 #endif
-    TRACE (("-1\n"));
+	BSDTRACE (("-1\n"));
     return -1;
 }
 
@@ -1245,64 +1308,58 @@ static uae_u32 REGPARAM2 bsdsocklib_init (TrapContext *context)
 {
     uae_u32 tmp1;
     int i;
-    write_log ("Creating UAE bsdsocket.library 4.1\n");
+
+	write_log ("Creating UAE bsdsocket.library 4.1\n");
     if (SockLibBase)
-	bsdlib_reset ();
+		bsdlib_reset ();
 
     m68k_areg (regs, 0) = functable;
     m68k_areg (regs, 1) = datatable;
     m68k_areg (regs, 2) = 0;
     m68k_dreg (regs, 0) = LIBRARY_SIZEOF;
     m68k_dreg (regs, 1) = 0;
-    tmp1 = CallLib (context, m68k_areg (regs, 6), -0x54);
+	tmp1 = CallLib (context, m68k_areg (regs, 6), -0x54); /* MakeLibrary */
 
     if (!tmp1) {
-	write_log ("bsdoscket: FATAL: Cannot create bsdsocket.library!\n");
-	return 0;
+		write_log ("bsdoscket: FATAL: Cannot create bsdsocket.library!\n");
+		return 0;
     }
     m68k_areg (regs, 1) = tmp1;
-    CallLib (context, m68k_areg (regs, 6), -0x18c);
+	CallLib (context, m68k_areg (regs, 6), -0x18c); /* AddLibrary */
     SockLibBase = tmp1;
-#if 0
-    m68k_areg (regs, 1) = ds ("dos.library");
-    m68k_dreg (regs, 0) = 0;
-    dosbase = CallLib (context, m68k_areg (regs, 6), -552);
-    printf ("%08lx\n", dosbase);
-#endif
 
     /* Install error strings in Amiga memory */
     tmp1 = 0;
-
     for (i = number_sys_error; i--;)
-	tmp1 += strlen (errortexts[i]) + 1;
+		tmp1 += _tcslen (errortexts[i]) + 1;
 
     for (i = number_host_error; i--;)
-	tmp1 += strlen (herrortexts[i]) + 1;
+		tmp1 += _tcslen (herrortexts[i]) + 1;
 
-    tmp1 += strlen(strErr) + 1;
+	tmp1 += _tcslen (strErr) + 1;
 
     m68k_dreg (regs, 0) = tmp1;
     m68k_dreg (regs, 1) = 0;
-    tmp1 = CallLib (context, get_long (4), -0xC6);
+	tmp1 = CallLib (context, get_long (4), -0xC6); /* AllocMem */
 
     if (!tmp1) {
-	write_log ("bsdsocket: FATAL: Ran out of memory while creating bsdsocket.library!\n");
-	return 0;
+		write_log ("bsdsocket: FATAL: Ran out of memory while creating bsdsocket.library!\n");
+		return 0;
     }
     for (i = 0; i < (int) (number_sys_error); i++)
-	errnotextptrs[i] = addstr (&tmp1, errortexts[i]);
-
+		errnotextptrs[i] = addstr (&tmp1, errortexts[i]);
     for (i = 0; i < (int) (number_host_error); i++)
-	herrnotextptrs[i] = addstr (&tmp1, herrortexts[i]);
-
+		herrnotextptrs[i] = addstr (&tmp1, herrortexts[i]);
     strErrptr = addstr (&tmp1, strErr);
 
-    /* @@@ someone please implement a proper interrupt handler setup here :) */
-    tmp1 = here ();
-    calltrap (deftrap2 (bsdsock_int_handler, TRAPFLAG_EXTRA_STACK | TRAPFLAG_NO_RETVAL, "bsdsock_int_handler"));
-    dw (0x4ef9);
-    dl (get_long (regs.vbr + 0x78));
-    put_long (regs.vbr + 0x78, tmp1);
+#if 0
+	/* @@@ someone please implement a proper interrupt handler setup here :) */
+	tmp1 = here ();
+	calltrap (deftrap2 (bsdsock_int_handler, TRAPFLAG_EXTRA_STACK | TRAPFLAG_NO_RETVAL, "bsdsock_int_handler"));
+	dw (0x4ef9);
+	dl (get_long (context->regs.vbr + 0x78));
+	put_long (context->regs.vbr + 0x78, tmp1);
+#endif
 
     m68k_dreg (regs, 0) = 1;
     return 0;
@@ -1313,33 +1370,37 @@ void bsdlib_reset (void)
     SB, *nsb;
     int i;
 
-    if (currprefs.socket_emu == 0)
-	return;
+	if (!SockLibBase)
+		return;
 
     SockLibBase = 0;
 
+	write_log ("BSDSOCK: cleanup start..\n");
     for (sb = socketbases; sb; sb = nsb) {
-	nsb = sb->next;
+		nsb = sb->next;
 
-	host_sbcleanup (sb);
+		write_log ("BSDSOCK: cleanup start socket %x\n", sb);
+		host_sbcleanup (sb);
 
-	free (sb->dtable);
-	free (sb->ftable);
+		free (sb->dtable);
+		free (sb->ftable);
 
-	free (sb);
+		free (sb);
     }
+	write_log ("BSDSOCK: cleanup end\n");
 
     socketbases = NULL;
     sbsigqueue = NULL;
 
     for (i = 0; i < SOCKPOOLSIZE; i++) {
-	if (sockpoolids[i] != UNIQUE_ID) {
-	    sockpoolids[i] = UNIQUE_ID;
-	    host_closesocketquick (sockpoolsocks[i]);
-	}
+		if (sockdata->sockpoolids[i] != UNIQUE_ID) {
+			sockdata->sockpoolids[i] = UNIQUE_ID;
+			host_closesocketquick (sockdata->sockpoolsocks[i]);
+		}
     }
 
     host_sbreset ();
+	write_log ("BSDSOCK: cleanup finished\n");
 }
 
 static const TrapHandler sockfuncs[] = {
@@ -1396,38 +1457,19 @@ uaecptr bsdlib_startup (uaecptr resaddr)
 
 void bsdlib_install (void)
 {
-    uae_u32 resname, resid;
-    uae_u32 begin, end;
-    uae_u32 func_place, data_place, init_place;
     int i;
 
-    if (currprefs.socket_emu == 0)
-	return;
+	if (!sockdata) {
+		sockdata = xcalloc (struct sockd, 1);
+		for (i = 0; i < SOCKPOOLSIZE; i++)
+			sockdata->sockpoolids[i] = UNIQUE_ID;
+	}
 
     if (!init_socket_layer ())
-	return;
+		return;
 
-    memset (sockpoolids, UNIQUE_ID, sizeof (sockpoolids));
-
-    resname = ds ("bsdsocket.library");
-    resid = ds ("UAE bsdsocket.library 4.1");
-
-    begin = here ();
-    dw (0x4AFC);		/* RT_MATCHWORD */
-    dl (begin);			/* RT_MATCHTAG */
-    dl (0);			/* RT_ENDSKIP */
-    dw (0x8004);		/* RTF_AUTOINIT, RT_VERSION */
-    dw (0x0970);		/* NT_LIBRARY, RT_PRI */
-    dl (resname);		/* RT_NAME */
-    dl (resid);			/* RT_IDSTRING */
-    dl (here () + 4);		/* RT_INIT */
-    dl (512);
-    func_place = here ();
-    dl (0);
-    data_place = here ();
-    dl (0);
-    init_place = here ();
-    dl (0);
+	res_name = ds ("bsdsocket.library");
+	res_id = ds ("UAE bsdsocket.library 4.1");
 
     for (i = 0; i < (int) (sizeof (sockfuncs) / sizeof (sockfuncs[0])); i++) {
 	sockfuncvecs[i] = here ();
@@ -1449,9 +1491,12 @@ void bsdlib_install (void)
     dw (0xE000);		/* INITBYTE */
     dw (0x0008);		/* LN_TYPE */
     dw (0x0900);		/* NT_LIBRARY */
+	dw (0xE000);		/* INITBYTE */
+	dw (0x0009);		/* LN_PRI */
+	dw (0xCE00);		/* -50 */
     dw (0xC000);		/* INITLONG */
     dw (0x000A);		/* LN_NAME */
-    dl (resname);
+	dl (res_name);
     dw (0xE000);		/* INITBYTE */
     dw (0x000E);		/* LIB_FLAGS */
     dw (0x0600);		/* LIBF_SUMUSED | LIBF_CHANGED */
@@ -1463,24 +1508,16 @@ void bsdlib_install (void)
     dw (0x0001);
     dw (0xC000);
     dw (0x0018);		/* LIB_IDSTRING */
-    dl (resid);
+	dl (res_id);
     dl (0x00000000);		/* end of table */
 
-    end = here ();
-
-    org (begin + 6);		/* Load END value */
-    dl (end);
-
-    org (data_place);
-    dl (datatable);
-
-    org (func_place);
+	res_init = here ();
+	dl (512);
     dl (functable);
-
-    org (init_place);
+	dl (datatable);
     dl (*sockfuncvecs);
 
-    org (end);
+	write_log ("bsdsocked.library installed\n");
 }
 
 #else /* ! BSDSOCKET */

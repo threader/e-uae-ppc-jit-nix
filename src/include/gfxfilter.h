@@ -22,20 +22,20 @@ typedef unsigned long uint32;
 typedef int bool;
 #endif
 
-extern void S2X_configure (int rb, int gb, int bb, int rs, int gs, int bs);
-extern int Init_2xSaI(int rb, int gb, int bb, int rs, int gs, int bs);
+	extern void S2X_configure (int rb, int gb, int bb, int rs, int gs, int bs);
+	extern int Init_2xSaI (int rb, int gb, int bb, int rs, int gs, int bs);
 	extern void Super2xSaI_16 (const uint8 *srcPtr, uint32 srcPitch, uint8 *dstPtr, uint32 dstPitch, int width, int height);
 	extern void Super2xSaI_32 (const uint8 *srcPtr, uint32 srcPitch, uint8 *dstPtr, uint32 dstPitch, int width, int height);
 	extern void SuperEagle_16 (const uint8 *srcPtr, uint32 srcPitch, uint8 *dstPtr, uint32 dstPitch, int width, int height);
 	extern void SuperEagle_32 (const uint8 *srcPtr, uint32 srcPitch, uint8 *dstPtr, uint32 dstPitch, int width, int height);
 	extern void _2xSaI_16 (const uint8 *srcPtr, uint32 srcPitch, uint8 *dstPtr, uint32 dstPitch, int width, int height);
 	extern void _2xSaI_32 (const uint8 *srcPtr, uint32 srcPitch, uint8 *dstPtr, uint32 dstPitch, int width, int height);
-extern void AdMame2x(u8 *srcPtr, u32 srcPitch, /* u8 deltaPtr, */
-	      u8 *dstPtr, u32 dstPitch, int width, int height);
-extern void AdMame2x32(u8 *srcPtr, u32 srcPitch, /* u8 deltaPtr, */
-	      u8 *dstPtr, u32 dstPitch, int width, int height);
+	extern void AdMame2x (u8 *srcPtr, u32 srcPitch, /* u8 deltaPtr, */
+		      u8 *dstPtr, u32 dstPitch, int width, int height);
+	extern void AdMame2x32 (u8 *srcPtr, u32 srcPitch, /* u8 deltaPtr, */
+		      u8 *dstPtr, u32 dstPitch, int width, int height);
 
-extern void hq_init(int rb, int gb, int bb, int rs, int gs, int bs);
+	extern void hq_init (int rb, int gb, int bb, int rs, int gs, int bs);
 
 	extern void _cdecl hq2x_16 (unsigned char*, unsigned char*, DWORD, DWORD, DWORD);
 	extern void _cdecl hq2x_32 (unsigned char*, unsigned char*, DWORD, DWORD, DWORD);

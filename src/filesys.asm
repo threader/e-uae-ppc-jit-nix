@@ -22,6 +22,7 @@
 ; 2008.12.25 mousehack cursor sync
 ; 2009.01.20 clipboard sharing
 ; 2009.12.27 console hook
+; 2010.05.27 Z3Chip
 
 AllocMem = -198
 FreeMem = -210
@@ -224,20 +225,39 @@ FSIN_none:
 ;	jsr -$007e(a6) ; Enable
 
 
-filesys_dev_storeinfo	; add >2MB chip RAM to memory list
+filesys_dev_storeinfo
+	moveq #3,d4 ; MEMF_CHIP | MEMF_PUBLIC
+	cmp.w #36,20(a6)
+	bcs.s FSIN_ksold
+	or.w #256,d4 ; MEMF_LOCAL
+FSIN_ksold
+
+	; add >2MB-6MB chip RAM to memory list
 	move.w #$FF80,d0
 	bsr.w getrtbase
 	jsr (a0)
-	moveq.l #3,d1
-	moveq.l #-10,d2
+	move.l d4,d1
+	moveq #-10,d2
 	move.l #$200000,a0
 	sub.l a0,d0
 	bcs.b FSIN_chip_done
 	beq.b FSIN_chip_done
-	moveq.l #0,d4
-	move.l d4,a1
+	sub.l a1,a1
 	jsr -618(a6) ; AddMemList
 FSIN_chip_done
+
+	; add MegaChipRAM
+	move.w #$FF80,d0
+	bsr.w getrtbase
+	jsr (a0) ; d1 = size, a1 = start address
+	beq.s FSIN_fchip_done
+	move.l a1,a0
+	move.l d1,d0
+	move.l d4,d1
+	moveq #-5,d2
+	lea fchipname(pc),a1
+	jsr -618(a6) ; AddMemList
+FSIN_fchip_done
 
 	lea fstaskname(pc),a0
 	lea fsmounttask(pc),a1
@@ -2453,4 +2473,5 @@ intlibname: dc.b 'intuition.library',0
 gfxlibname: dc.b 'graphics.library',0
 explibname: dc.b 'expansion.library',0
 fsresname: dc.b 'FileSystem.resource',0
+fchipname: dc.b 'megachip memory',0
 	END

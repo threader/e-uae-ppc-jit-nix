@@ -1,9 +1,9 @@
- /*
-  * UAE - The Un*x Amiga Emulator
-  *
-  * Routines for labelling amiga internals.
-  *
-  */
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * Routines for labelling amiga internals.
+ *
+ */
 
 #include "sysconfig.h"
 #include "sysdeps.h"

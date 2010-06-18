@@ -143,7 +143,7 @@ int target_parse_option (struct uae_prefs *p, const char *option, const char *va
     return 0;
 }
 
-void target_default_options (struct uae_prefs *p)
+void target_default_options (struct uae_prefs *p, int type)
 {
 }
 

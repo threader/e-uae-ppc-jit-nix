@@ -39,7 +39,7 @@ static uae_u8 acmemory[100];
 static uae_u8 ncrregs[NCR_REGS];
 
 struct ncrscsi {
-	char *name;
+	TCHAR *name;
 	int be, le;
 };
 
@@ -112,7 +112,7 @@ static struct ncrscsi regsinfo[] =
 	NULL
 };
 
-static char *regname (uaecptr addr)
+static TCHAR *regname (uaecptr addr)
 {
 	int i;
 
@@ -313,7 +313,7 @@ uae_u32 ncr_bget2 (uaecptr addr)
 	return v;
 }
 
-static addrbank ncr_bank;
+extern addrbank ncr_bank;
 
 static uae_u32 REGPARAM2 ncr_lget (uaecptr addr)
 {

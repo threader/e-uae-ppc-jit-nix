@@ -76,6 +76,7 @@ extern TCHAR *zfile_geterror (void);
 #define ZFD_HD 4 //rdb/hdf
 #define ZFD_UNPACK 8 //gzip,dms
 #define ZFD_RAWDISK 16  //fdi->adf,ipf->adf etc..
+#define ZFD_CD 32 //cue/iso, cue has priority over iso
 #define ZFD_DISKHISTORY 0x100 //allow diskhistory (if disk image)
 #define ZFD_CHECKONLY 0x200 //file exists checkc
 #define ZFD_NORMAL (ZFD_ARCHIVE|ZFD_UNPACK)
@@ -95,9 +96,9 @@ extern TCHAR *zfile_geterror (void);
 #define ZFILE_HDFRDB 8
 #define ZFILE_CDIMAGE 9
 
-extern const char *uae_archive_extensions[];
-extern const char *uae_ignoreextensions[];
-extern const char *uae_diskimageextensions[];
+extern const TCHAR *uae_archive_extensions[];
+extern const TCHAR *uae_ignoreextensions[];
+extern const TCHAR *uae_diskimageextensions[];
 
 extern struct zvolume *zfile_fopen_archive (const TCHAR *filename);
 extern struct zvolume *zfile_fopen_archive_root (const TCHAR *filename);

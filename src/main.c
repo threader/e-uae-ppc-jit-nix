@@ -1,13 +1,13 @@
- /*
-  * UAE - The Un*x Amiga Emulator
-  *
-  * Main program
-  *
-  * Copyright 1995 Ed Hanway
-  * Copyright 1995, 1996, 1997 Bernd Schmidt
-  * Copyright 2006-2007 Richard Drummond
-  * Copyright 2010 Mustafa Tufan
-  */
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * Main program
+ *
+ * Copyright 1995 Ed Hanway
+ * Copyright 1995, 1996, 1997 Bernd Schmidt
+ * Copyright 2006-2007 Richard Drummond
+ * Copyright 2010 Mustafa Tufan
+ */
 
 #include "sysconfig.h"
 #include "sysdeps.h"
@@ -73,9 +73,9 @@ bool console_emulation = 0;
 
 struct gui_info gui_data;
 
-char warning_buffer[256];
+TCHAR warning_buffer[256];
 
-char optionsfile[256];
+TCHAR optionsfile[256];
 
 static void hr (void)
 {
@@ -195,7 +195,7 @@ void fixup_cpu (struct uae_prefs *p)
 
 void fixup_prefs (struct uae_prefs *p)
 {
-    int err = 0;
+	int err = 0;
 
 	built_in_chipset_prefs (p);
 	fixup_cpu (p);
@@ -203,37 +203,37 @@ void fixup_prefs (struct uae_prefs *p)
 	if (((p->chipmem_size & (p->chipmem_size - 1)) != 0 && p->chipmem_size != 0x180000)
 		|| p->chipmem_size < 0x20000
 		|| p->chipmem_size > 0x800000)
-    {
+	{
 		write_log ("Unsupported chipmem size %x!\n", p->chipmem_size);
 		p->chipmem_size = 0x200000;
 		err = 1;
-    }
+	}
 	if ((p->fastmem_size & (p->fastmem_size - 1)) != 0
 		|| (p->fastmem_size != 0 && (p->fastmem_size < 0x100000 || p->fastmem_size > 0x800000)))
-    {
+	{
 		write_log ("Unsupported fastmem size %x!\n", p->fastmem_size);
 		err = 1;
-    }
+	}
 	if ((p->gfxmem_size & (p->gfxmem_size - 1)) != 0
 		|| (p->gfxmem_size != 0 && (p->gfxmem_size < 0x100000 || p->gfxmem_size > max_z3fastmem / 2)))
-    {
+	{
 		write_log ("Unsupported graphics card memory size %x (%x)!\n", p->gfxmem_size, max_z3fastmem / 2);
 		if (p->gfxmem_size > max_z3fastmem / 2)
 			p->gfxmem_size = max_z3fastmem / 2;
 		else
 			p->gfxmem_size = 0;
 		err = 1;
-    }
+	}
 	if ((p->z3fastmem_size & (p->z3fastmem_size - 1)) != 0
 		|| (p->z3fastmem_size != 0 && (p->z3fastmem_size < 0x100000 || p->z3fastmem_size > max_z3fastmem)))
-    {
+	{
 		write_log ("Unsupported Zorro III fastmem size %x (%x)!\n", p->z3fastmem_size, max_z3fastmem);
 		if (p->z3fastmem_size > max_z3fastmem)
 			p->z3fastmem_size = max_z3fastmem;
 		else
 			p->z3fastmem_size = 0;
-	err = 1;
-    }
+		err = 1;
+	}
 	if ((p->z3fastmem2_size & (p->z3fastmem2_size - 1)) != 0
 		|| (p->z3fastmem2_size != 0 && (p->z3fastmem2_size < 0x100000 || p->z3fastmem2_size > max_z3fastmem)))
 	{
@@ -291,14 +291,14 @@ void fixup_prefs (struct uae_prefs *p)
 		write_log ("Bad value for -w parameter: must be -1, 0, or within 1..20.\n");
 		p->m68k_speed = 4;
 		err = 1;
-    }
+	}
 #endif
 
 	if (p->produce_sound < 0 || p->produce_sound > 3) {
 		write_log ("Bad value for -S parameter: enable value must be within 0..3\n");
 		p->produce_sound = 0;
 		err = 1;
-    }
+	}
 #ifdef JIT
 	if (p->comptrustbyte < 0 || p->comptrustbyte > 3) {
 		write_log ("Bad value for comptrustbyte parameter: value must be within 0..2\n");
@@ -351,19 +351,19 @@ void fixup_prefs (struct uae_prefs *p)
 			"requires a 68020 emulation. Turning off Z3 fast memory.\n");
 		p->z3fastmem_size = 0;
 		err = 1;
-    }
+	}
 	if (p->gfxmem_size > 0 && (p->cpu_model < 68020 || p->address_space_24)) {
 		write_log ("Picasso96 can't be used with a 68000/68010 or 68EC020 emulation. It\n"
 			"requires a 68020 emulation. Turning off Picasso96.\n");
 		p->gfxmem_size = 0;
 		err = 1;
-    }
+	}
 #if !defined (BSDSOCKET)
 	if (p->socket_emu) {
 		write_log ("Compile-time option of BSDSOCKET_SUPPORTED was not enabled.  You can't use bsd-socket emulation.\n");
 		p->socket_emu = 0;
 		err = 1;
-    }
+	}
 #endif
 
 	if (p->nr_floppies < 0 || p->nr_floppies > 4) {
@@ -380,12 +380,12 @@ void fixup_prefs (struct uae_prefs *p)
 	}
 	if (p->input_mouse_speed < 1 || p->input_mouse_speed > 1000) {
 		p->input_mouse_speed = 100;
-    }
+	}
 	if (p->collision_level < 0 || p->collision_level > 3) {
 		write_log ("Invalid collision support level.  Using 1.\n");
 		p->collision_level = 1;
 		err = 1;
-    }
+	}
 	if (p->parallel_postscript_emulation)
 		p->parallel_postscript_detection = 1;
 	if (p->cs_compatible == 1) {
@@ -398,7 +398,7 @@ void fixup_prefs (struct uae_prefs *p)
 			p->cs_mbdmac = 0;
 		}
 	}
-    fixup_prefs_dimensions (p);
+	fixup_prefs_dimensions (p);
 
 #if !defined (JIT)
 	p->cachesize = 0;
@@ -459,7 +459,7 @@ void fixup_prefs (struct uae_prefs *p)
 
 int quit_program = 0;
 static int restart_program;
-static char restart_config[MAX_DPATH];
+static TCHAR restart_config[MAX_DPATH];
 static int default_config;
 
 void uae_reset (int hardreset)
@@ -483,14 +483,14 @@ void uae_quit (void)
 }
 
 /* 0 = normal, 1 = nogui, -1 = disable nogui */
-void uae_restart (int opengui, char *cfgfile)
+void uae_restart (int opengui, TCHAR *cfgfile)
 {
 	uae_quit ();
 	restart_program = opengui > 0 ? 1 : (opengui == 0 ? 2 : 3);
 	restart_config[0] = 0;
 	default_config = 0;
 	if (cfgfile)
-		strcpy (restart_config, cfgfile);
+		_tcscpy (restart_config, cfgfile);
 }
 
 #ifndef DONT_PARSE_CMDLINE
@@ -498,7 +498,7 @@ void uae_restart (int opengui, char *cfgfile)
 void usage (void)
 {
 }
-static void parse_cmdline_2 (int argc, char **argv)
+static void parse_cmdline_2 (int argc, TCHAR **argv)
 {
 	int i;
 
@@ -515,16 +515,16 @@ static void parse_cmdline_2 (int argc, char **argv)
 	}
 }
 
-static void parse_diskswapper (char *s)
+static void parse_diskswapper (TCHAR *s)
 {
-	char *tmp = my_strdup (s);
-	char *delim = ",";
-	char *p1, *p2;
+	TCHAR *tmp = my_strdup (s);
+	TCHAR *delim = ",";
+	TCHAR *p1, *p2;
 	int num = 0;
 
 	p1 = tmp;
 	for (;;) {
-		p2 = strtok (p1, delim);
+		p2 = _tcstok (p1, delim);
 		if (!p2)
 			break;
 		p1 = NULL;
@@ -536,11 +536,11 @@ static void parse_diskswapper (char *s)
 	free (tmp);
 }
 
-static char *parsetext (const char *s)
+static TCHAR *parsetext (const TCHAR *s)
 {
 	if (*s == '"' || *s == '\'') {
-		char *d;
-		char c = *s++;
+		TCHAR *d;
+		TCHAR c = *s++;
 		int i;
 		d = my_strdup (s);
 		for (i = 0; i < _tcslen (d); i++) {
@@ -555,79 +555,79 @@ static char *parsetext (const char *s)
 	}
 }
 
-static void parse_cmdline (int argc, char **argv)
+static void parse_cmdline (int argc, TCHAR **argv)
 {
-    int i;
+	int i;
 
-    for (i = 1; i < argc; i++) {
+	for (i = 1; i < argc; i++) {
 		if (!_tcsncmp (argv[i], "-diskswapper=", 13)) {
-			char *txt = parsetext (argv[i] + 13);
+			TCHAR *txt = parsetext (argv[i] + 13);
 			parse_diskswapper (txt);
 			xfree (txt);
 		} else if (_tcsncmp (argv[i], "-cfgparam=", 10) == 0) {
 			;
 		} else if (_tcscmp (argv[i], "-cfgparam") == 0) {
-		    if (i + 1 < argc)
+			if (i + 1 < argc)
 				i++;
 		} else if (_tcsncmp (argv[i], "-config=", 8) == 0) {
-			char *txt = parsetext (argv[i] + 8);
+			TCHAR *txt = parsetext (argv[i] + 8);
 			currprefs.mountitems = 0;
 			target_cfgfile_load (&currprefs, txt, -1, 0);
 			xfree (txt);
 		} else if (_tcsncmp (argv[i], "-statefile=", 11) == 0) {
-			char *txt = parsetext (argv[i] + 11);
+			TCHAR *txt = parsetext (argv[i] + 11);
 			savestate_state = STATE_DORESTORE;
 			_tcscpy (savestate_fname, txt);
 			xfree (txt);
 		} else if (_tcscmp (argv[i], "-f") == 0) {
 			/* Check for new-style "-f xxx" argument, where xxx is config-file */
-		    if (i + 1 == argc) {
+			if (i + 1 == argc) {
 				write_log ("Missing argument for '-f' option.\n");
-		    } else {
-				char *txt = parsetext (argv[++i]);
+			} else {
+				TCHAR *txt = parsetext (argv[++i]);
 				currprefs.mountitems = 0;
 				target_cfgfile_load (&currprefs, txt, -1, 0);
 				xfree (txt);
-		    }
+			}
 		} else if (_tcscmp (argv[i], "-s") == 0) {
-		    if (i + 1 == argc)
+			if (i + 1 == argc)
 				write_log ("Missing argument for '-s' option.\n");
-		    else
+			else
 				cfgfile_parse_line (&currprefs, argv[++i], 0);
 		} else if (_tcscmp (argv[i], "-h") == 0 || _tcscmp (argv[i], "-help") == 0) {
-		    usage ();
-		    exit (0);
+			usage ();
+			exit (0);
 		} else if (_tcsncmp (argv[i], "-cdimage=", 9) == 0) {
-			char *txt = parsetext (argv[i] + 9);
+			TCHAR *txt = parsetext (argv[i] + 9);
 			cfgfile_parse_option (&currprefs, "cdimage0", txt, 0);
 			xfree (txt);
 		} else {
-		    if (argv[i][0] == '-' && argv[i][1] != '\0') {
-				const char *arg = argv[i] + 2;
+			if (argv[i][0] == '-' && argv[i][1] != '\0') {
+				const TCHAR *arg = argv[i] + 2;
 				int extra_arg = *arg == '\0';
 				if (extra_arg)
-				    arg = i + 1 < argc ? argv[i + 1] : 0;
+					arg = i + 1 < argc ? argv[i + 1] : 0;
 				if (parse_cmdline_option (&currprefs, argv[i][1], arg) && extra_arg)
-				    i++;
-		    }
+					i++;
+			}
 		}
-    }
+	}
 }
 #endif
 
-static void parse_cmdline_and_init_file (int argc, char **argv)
+static void parse_cmdline_and_init_file (int argc, TCHAR **argv)
 {
 
-	strcpy (optionsfile, "");
+	_tcscpy (optionsfile, "");
 
 #ifdef OPTIONS_IN_HOME
 	{
-	    char *home = getenv ("HOME");
-    	if (home != NULL && strlen (home) < 240)
-    	{
+		TCHAR *home = getenv ("HOME");
+		if (home != NULL && strlen (home) < 240)
+		{
 			_tcscpy (optionsfile, home);
 			_tcscat (optionsfile, "/");
-    	}
+		}
 	}
 #endif
 
@@ -641,18 +641,18 @@ static void parse_cmdline_and_init_file (int argc, char **argv)
 	/* sam: if not found in $HOME then look in current directory */
 	char *saved_path = strdup (optionsfile);
 	strcpy (optionsfile, OPTIONSFILENAME);
-	if (! target_cfgfile_load (&currprefs, optionsfile, 0) ) {
-	    /* If not in current dir either, change path back to home
-	     * directory - so that a GUI can save a new config file there */
-	    strcpy (optionsfile, saved_path);
+	if (! target_cfgfile_load (&currprefs, optionsfile, 0, 0) ) {
+		/* If not in current dir either, change path back to home
+		 * directory - so that a GUI can save a new config file there */
+		strcpy (optionsfile, saved_path);
 	}
 	free (saved_path);
 #endif
-    }
-    fixup_prefs (&currprefs);
+	}
+	fixup_prefs (&currprefs);
 
-    parse_cmdline (argc, argv);
-    fixup_prefs (&currprefs); //fixup after cmdline
+	parse_cmdline (argc, argv);
+	fixup_prefs (&currprefs); //fixup after cmdline
 }
 
 void reset_all_systems (void)
@@ -708,7 +708,7 @@ void reset_all_systems (void)
 * whatever entry point you have. You may want to write your own versions
 * of start_program () and leave_program () if you need to do anything special.
 * Add #ifdefs around these as appropriate.
- */
+*/
 extern unsigned int pause_uae;
 void do_start_program (void)
 {
@@ -792,7 +792,7 @@ extern int DummyException (LPEXCEPTION_POINTERS blah, int n_except)
 #endif
 #endif
 
-static int real_main2 (int argc, char **argv)
+static int real_main2 (int argc, TCHAR **argv)
 {
 #if (defined (_WIN32) || defined (_WIN64)) && !defined (NO_WIN32_EXCEPTION_HANDLER)
 	extern int EvalException (LPEXCEPTION_POINTERS blah, int n_except);
@@ -801,8 +801,8 @@ static int real_main2 (int argc, char **argv)
 	{
 
 #ifdef USE_SDL
-    int result = (SDL_Init (SDL_INIT_TIMER | /*SDL_INIT_AUDIO |*/ SDL_INIT_JOYSTICK | SDL_INIT_NOPARACHUTE) == 0);
-    if (result)
+	int result = (SDL_Init (SDL_INIT_TIMER | /*SDL_INIT_AUDIO |*/ SDL_INIT_JOYSTICK | SDL_INIT_NOPARACHUTE) == 0);
+	if (result)
 		atexit (SDL_Quit);
 #endif
 	config_changed = 1;
@@ -822,7 +822,7 @@ static int real_main2 (int argc, char **argv)
 
 	if (restart_config[0])
 		parse_cmdline_and_init_file (argc, argv);
-    else
+	else
 		currprefs = changed_prefs;
 
 	uae_inithrtimer ();
@@ -841,8 +841,8 @@ static int real_main2 (int argc, char **argv)
 	if (! audio_setup ()) {
 		write_log ("Sound driver unavailable: Sound output disabled\n");
 		currprefs.produce_sound = 0;
-    }
-    inputdevice_init ();
+	}
+	inputdevice_init ();
 
 	changed_prefs = currprefs;
 	no_gui = ! currprefs.start_gui;
@@ -859,7 +859,7 @@ static int real_main2 (int argc, char **argv)
 			write_log ("Failed to initialize the GUI\n");
 			return -1;
 		} else if (err == -2) {
-		    return 1;
+			return 1;
 		}
 	}
 
@@ -879,8 +879,8 @@ static int real_main2 (int argc, char **argv)
 	currprefs.produce_sound = 0;
 
 #ifdef AUTOCONFIG
-   	/* Install resident module to get 8MB chipmem, if requested */
-    rtarea_setup ();
+	/* Install resident module to get 8MB chipmem, if requested */
+	rtarea_setup ();
 #endif
 #ifdef FILESYS
 	rtarea_init ();
@@ -898,13 +898,13 @@ static int real_main2 (int argc, char **argv)
 #ifdef UAESERIAL
 	uaeserialdev_install ();
 #endif
-   	keybuf_init (); /* Must come after init_joystick */
+	keybuf_init (); /* Must come after init_joystick */
 
 #ifdef AUTOCONFIG
-   	expansion_init ();
+	expansion_init ();
 #endif
 #ifdef FILESYS
-   	filesys_install ();
+	filesys_install ();
 #endif
 	target_startup_sequence (&currprefs);
 	memory_init ();
@@ -912,11 +912,11 @@ static int real_main2 (int argc, char **argv)
 
 #ifdef AUTOCONFIG
 #if defined (BSDSOCKET)
-   	bsdlib_install ();
+	bsdlib_install ();
 #endif
-   	emulib_install ();
-   	uaeexe_install ();
-   	native2amiga_install ();
+	emulib_install ();
+	uaeexe_install ();
+	native2amiga_install ();
 #endif
 
 	custom_init (); /* Must come after memory_init */
@@ -932,17 +932,17 @@ static int real_main2 (int argc, char **argv)
 
 	if (graphics_init ()) {
 #ifdef DEBUGGER
-	    setup_brkhandler ();
-	    if (currprefs.start_debugger && debuggable ())
+		setup_brkhandler ();
+		if (currprefs.start_debugger && debuggable ())
 			activate_debugger ();
 #endif
 
-	    if (! init_audio ()) {
+		if (!init_audio ()) {
 			if (sound_available && currprefs.produce_sound > 1) { 
 				write_log ("Sound driver unavailable: Sound output disabled\n");
 			}
 			currprefs.produce_sound = 0;
-	    }
+		}
 		start_program ();
 	}
 
@@ -960,12 +960,12 @@ static int real_main2 (int argc, char **argv)
 	return 0;
 }
 
-void real_main (int argc, char **argv)
+void real_main (int argc, TCHAR **argv)
 {
 	show_version_full ();
 	restart_program = 1;
 
-	fetch_configurationpath (restart_config, sizeof (restart_config) / sizeof (char));
+	fetch_configurationpath (restart_config, sizeof (restart_config) / sizeof (TCHAR));
 	_tcscat (restart_config, OPTIONSFILENAME);
 	default_config = 1;
 
@@ -982,10 +982,10 @@ void real_main (int argc, char **argv)
 }
 
 #ifndef NO_MAIN_IN_MAIN_C
-int main (int argc, char **argv)
+int main (int argc, TCHAR **argv)
 {
-    real_main (argc, argv);
-    return 0;
+	real_main (argc, argv);
+	return 0;
 }
 #endif
 

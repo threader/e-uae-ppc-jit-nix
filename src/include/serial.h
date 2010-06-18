@@ -17,7 +17,7 @@ extern int   SERDATS (void);
 extern void  SERPER (uae_u16 w);
 extern void  SERDAT (uae_u16 w);
 
-extern uae_u8 serial_writestatus(uae_u8, uae_u8);
+extern uae_u8 serial_writestatus (uae_u8, uae_u8);
 extern uae_u8 serial_readstatus (uae_u8);
 extern void serial_uartbreak (int);
 extern uae_u16 serdat;

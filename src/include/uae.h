@@ -11,7 +11,7 @@ extern void do_start_program (void);
 extern void do_leave_program (void);
 extern void start_program (void);
 extern void leave_program (void);
-extern void real_main (int, char **);
+extern void real_main (int, TCHAR **);
 extern void usage (void);
 
 extern void sleep_millis (int ms);
@@ -20,19 +20,20 @@ extern int sleep_resolution;
 
 extern void uae_reset (int);
 extern void uae_quit (void);
-extern void uae_restart (int, char*);
+extern void uae_restart (int, TCHAR*);
 extern void reset_all_systems (void);
 extern void target_reset (void);
-extern void target_addtorecent (const char*, int);
+extern void target_addtorecent (const TCHAR*, int);
 extern void target_run (void);
 extern void target_quit (void);
 
 extern int quit_program;
 extern bool console_emulation;
 
-extern char warning_buffer[256];
-extern char start_path_data[];
-extern char start_path_data_exe[];
+extern TCHAR warning_buffer[256];
+extern TCHAR start_path_data[];
+extern TCHAR start_path_data_exe[];
+extern TCHAR start_path_plugins[];
 
 extern void setup_brkhandler (void);
 

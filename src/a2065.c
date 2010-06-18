@@ -128,10 +128,10 @@ void a2065_reset (void)
 	td = NULL;
 }
 
-static void dumppacket (char *n, uae_u8 *packet, int len)
+static void dumppacket (TCHAR *n, uae_u8 *packet, int len)
 {
 	int i;
-	char buf[10000];
+	TCHAR buf[10000];
 
 	for (i = 0; i < len; i++) {
 		_stprintf (buf + i * 3, ".%02X", packet[i]);

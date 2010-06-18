@@ -87,13 +87,13 @@ static int boot_read;
 
 static int nvwrite;
 
-static int load_rom8 (char *xpath, uae_u8 *mem,	int extra)
+static int load_rom8 (TCHAR *xpath, uae_u8 *mem,	int extra)
 {
 	struct zfile *zf;
-	char path[MAX_DPATH];
+	TCHAR path[MAX_DPATH];
 	int i;
 	uae_u8 *tmp = xmalloc (uae_u8, 131072);
-	char *bin = extra == 1 ? ".bin" : "";
+	TCHAR *bin = extra == 1 ? ".bin" : "";
 
 	memset (tmp, 0, 131072);
 	_stprintf (path, "%s%s%s", xpath, extra == 3 ? "-hi" : (extra == 2 ? "hi" : "h"), bin);
@@ -121,9 +121,9 @@ end:
 	return 0;
 }
 
-static struct arcadiarom *is_arcadia (const char *xpath, int cnt)
+static struct arcadiarom *is_arcadia (const TCHAR *xpath, int cnt)
 {
-	char path[MAX_DPATH], *p;
+	TCHAR path[MAX_DPATH], *p;
 	struct arcadiarom *rom = NULL;
 	int i;
 
@@ -153,9 +153,9 @@ static struct arcadiarom *is_arcadia (const char *xpath, int cnt)
 
 static int load_roms (struct arcadiarom *rom)
 {
-	char path[MAX_DPATH], path2[MAX_DPATH], path3[MAX_DPATH], *p;
+	TCHAR path[MAX_DPATH], path2[MAX_DPATH], path3[MAX_DPATH], *p;
 	int i, offset;
-	char *xpath;
+	TCHAR *xpath;
 
 	if (rom->type == ARCADIA_BIOS)
 		xpath = currprefs.romextfile;
@@ -347,7 +347,7 @@ static void multigame(int v)
 		allocated_arbmemory >> 16, 0);
 }
 
-int is_arcadia_rom (const char *path)
+int is_arcadia_rom (const TCHAR *path)
 {
 	struct arcadiarom *rom;
 
@@ -450,7 +450,7 @@ uae_u8 arcadia_parport (int port, uae_u8 pra, uae_u8 dra)
 	return v;
 }
 
-struct romdata *scan_arcadia_rom (char *path, int cnt)
+struct romdata *scan_arcadia_rom (TCHAR *path, int cnt)
 {
 	struct romdata *rd = 0;
 	struct romlist **arc_rl;

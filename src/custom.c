@@ -331,9 +331,9 @@ static int current_change_set;
 struct sprite_entry sprite_entries[2][MAX_SPR_PIXELS / 16];
 struct color_change color_changes[2][MAX_REG_CHANGE];
 
-struct decision line_decisions[2 * (MAXVPOS + 1) + 1];
-struct draw_info line_drawinfo[2][2 * (MAXVPOS + 1) + 1];
-#define COLOR_TABLE_SIZE (MAXVPOS + 1) * 2
+struct decision line_decisions[2 * (MAXVPOS + 2) + 1];
+struct draw_info line_drawinfo[2][2 * (MAXVPOS + 2) + 1];
+#define COLOR_TABLE_SIZE (MAXVPOS + 2) * 2
 struct color_entry color_tables[2][COLOR_TABLE_SIZE];
 
 int next_sprite_entry = 0;
@@ -1803,7 +1803,7 @@ static void start_bpl_dma (int hpos, int hstart)
 			prevbpl[lof_current][vpos][i] = bplptx[i];
 			if (!lof_current && (bplcon0 & 4))
 				bplpt[i] = prevbpl[1 - lof_current][vpos][i];
-			if (!(bplcon0 & 4) || interlace_seen  < 0)
+			if (!(bplcon0 & 4) || interlace_seen < 0)
 				prevbpl[1 - lof_current][vpos][i] = prevbpl[lof_current][vpos][i] = 0;
 		}
 	}
@@ -2797,6 +2797,8 @@ void init_hz (void)
 		dumpsync ();
 		hzc = 1;
 	}
+	if (maxvpos_nom >= MAXVPOS)
+		maxvpos_nom = MAXVPOS;
 	if (currprefs.gfx_scandoubler && doublescan == 0)
 		doublescan = -1;
 	if (doublescan != odbl || maxvpos != omaxvpos)
@@ -2834,9 +2836,16 @@ void init_hz (void)
 #ifdef PICASSO96
 	init_hz_p96 ();
 #endif
-//	if (vblank_hz != ovblank)
-//		updatedisplayarea ();
-    //inputdevice_tablet_strobe ();
+	if (vblank_hz != ovblank) {
+#ifdef OPENGL
+		OGL_refresh ();
+#endif
+#ifdef D3D
+		D3D_refresh ();
+#endif
+	}
+
+	//inputdevice_tablet_strobe ();
 	write_log ("%s mode%s%s V=%dHz H=%dHz (%dx%d)\n",
 		isntsc ? "NTSC" : "PAL",
 		(bplcon0 & 4) ? " interlaced" : "",
@@ -3084,9 +3093,9 @@ STATIC_INLINE uae_u16 VHPOSR (void)
 			vp = 0;
 	}
 	if (HPOS_OFFSET) {
-	hp += 1;
-	if (hp >= maxhpos)
-		hp -= maxhpos;
+		hp += 1;
+		if (hp >= maxhpos)
+			hp -= maxhpos;
 	}
 
 	vp <<= 8;
@@ -5495,6 +5504,13 @@ void hsync_handler (void)
 
 	if (uae_int_requested) {
 		INTREQ (0x8000 | 0x0008);
+	}
+
+	{
+		extern void bsdsock_fake_int_handler (void);
+		extern int volatile bsd_int_requested;
+		if (bsd_int_requested)
+			bsdsock_fake_int_handler ();
 	}
 
 	/* See if there's a chance of a copper wait ending this line.  */

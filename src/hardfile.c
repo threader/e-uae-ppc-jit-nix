@@ -78,7 +78,7 @@ struct hardfileprivdata {
     uaecptr base;
     int changenum;
 	uaecptr changeint;
-   uae_thread_id tid;
+	uae_thread_id tid;
 };
 
 #define VHD_DYNAMIC 3
@@ -1748,7 +1748,7 @@ no_disk:
 
 	case CMD_CHANGENUM:
 		actual = hfpd->changenum;
-	break;
+		break;
 
 	case CMD_ADDCHANGEINT:
 		error = add_async_request (hfpd, request, ASYNC_REQUEST_CHANGEINT, get_long (request + 40));
@@ -1861,7 +1861,7 @@ static void *hardfile_thread (void *devs)
 {
 	struct hardfileprivdata *hfpd = (struct hardfileprivdata*)devs;
 
-    uae_set_thread_priority (2);
+	uae_set_thread_priority (2);
     hfpd->thread_running = 1;
     uae_sem_post (&hfpd->sync_sem);
     for (;;) {

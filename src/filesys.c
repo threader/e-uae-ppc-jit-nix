@@ -1000,11 +1000,19 @@ static struct fs_dirhandle *fs_opendir (Unit *u, const TCHAR *nname)
 {
 	struct fs_dirhandle *fsd = xmalloc (struct fs_dirhandle, 1);
 /*	fsd->isarch = !!(u->volflags & MYVOLUMEINFO_ARCHIVE);
-	if (fsd->isarch)
+	if (fsd->isarch) {
 		fsd->zd = zfile_opendir_archive (nname);
-	else*/
+		if (!fsd->zd)
+			goto end;
+	} else */ {
 		fsd->od = my_opendir (nname);
+		if (!fsd->od)
+			goto end;
+	}
 	return fsd;
+end:
+	xfree (fsd);
+	return NULL;
 }
 static void fs_closedir (struct fs_dirhandle *fsd)
 {
@@ -1020,12 +1028,19 @@ static struct fs_filehandle *fs_open (Unit *unit, const TCHAR *name, char *flags
 {
 	struct fs_filehandle *fsf = xmalloc (struct fs_filehandle, 1);
 /*	fsf->isarch = !!(unit->volflags & MYVOLUMEINFO_ARCHIVE);
-	if (fsf->isarch)
+	if (fsf->isarch) {
 		fsf->zf = zfile_open_archive (name, flags);
-	else*/
-write_log(">>>>>>>>>>>>>>>>>>>>>>>\n\nopen: %s %s\n", name, flags);
+		if (!fsf->zf)
+			goto end;
+	} else */ {
 		fsf->of = my_open (name, flags);
+		if (!fsf->of)
+			goto end;
+	}
 	return fsf;
+end:
+	xfree (fsf);
+	return NULL;
 }
 static void fs_close (struct fs_filehandle *fd)
 {
@@ -1550,7 +1565,7 @@ static void delete_aino (Unit *unit, a_inode *aino)
 {
 	a_inode **aip;
 
-    TRACE(("deleting aino %x\n", aino->uniq));
+	TRACE(("deleting aino %x\n", aino->uniq));
 
 	aino_test (aino);
 	aino->dirty = 1;
@@ -1745,9 +1760,9 @@ static int fill_file_attrs (Unit *u, a_inode *base, a_inode *c)
 			c->amigaos_mode = flags;
 		c->comment = comment;
 		return 1;
-	} else {*/
+	} else */ {
 		return fsdb_fill_file_attrs (base, c);
-	//}
+	}
 	return 0;
 }
 
@@ -1812,7 +1827,7 @@ static a_inode *new_child_aino (Unit *unit, a_inode *base, TCHAR *rel)
 	a_inode *aino = NULL;
 	int isarch = unit->volflags & MYVOLUMEINFO_ARCHIVE;
 
-    TRACE(("new_child_aino %s, %s\n", base->aname, rel));
+	TRACE(("new_child_aino %s, %s\n", base->aname, rel));
 
 	if (!isarch)
 		aino = fsdb_lookup_aino_aname (base, rel);
@@ -1840,7 +1855,7 @@ static a_inode *new_child_aino (Unit *unit, a_inode *base, TCHAR *rel)
 	init_child_aino (unit, base, aino);
 
 	recycle_aino (unit, aino);
-    TRACE(("created aino %x, lookup, amigaos_mode %d\n", aino->uniq, aino->amigaos_mode));
+	TRACE(("created aino %x, lookup, amigaos_mode %d\n", aino->uniq, aino->amigaos_mode));
 	return aino;
 }
 
@@ -1866,7 +1881,7 @@ static a_inode *create_child_aino (Unit *unit, a_inode *base, TCHAR *rel, int is
 	aino->dirty = 1;
 
 	recycle_aino (unit, aino);
-    TRACE(("created aino %x, create\n", aino->uniq));
+	TRACE(("created aino %x, create\n", aino->uniq));
 	return aino;
 }
 
@@ -1943,7 +1958,7 @@ static a_inode *lookup_child_aino_for_exnext (Unit *unit, a_inode *base, TCHAR *
 	init_child_aino (unit, base, c);
 
 	recycle_aino (unit, c);
-    TRACE(("created aino %x, exnext\n", c->uniq));
+	TRACE(("created aino %x, exnext\n", c->uniq));
 
 	return c;
 }
@@ -1958,7 +1973,7 @@ static a_inode *get_aino (Unit *unit, a_inode *base, const TCHAR *rel, int *err)
 	aino_test (base);
 
 	*err = 0;
-    TRACE(("get_path(%s,%s)\n", base->aname, rel));
+	TRACE(("get_path(%s,%s)\n", base->aname, rel));
 
 	/* root-relative path? */
 	for (i = 0; rel[i] && rel[i] != '/' && rel[i] != ':'; i++)
@@ -3334,7 +3349,7 @@ static void action_examine_object (Unit *unit, dpacket packet)
     uaecptr info = GET_PCK_ARG2 (packet) << 2;
     a_inode *aino = 0;
 
-    TRACE(("ACTION_EXAMINE_OBJECT(0x%lx,0x%lx)\n", lock, info));
+	TRACE(("ACTION_EXAMINE_OBJECT(0x%lx,0x%lx)\n", lock, info));
     DUMPLOCK(unit, lock);
 
     if (lock != 0)
@@ -3368,11 +3383,11 @@ static void populate_directory (Unit *unit, a_inode *base)
 	base->locked_children++;
 	unit->total_locked_ainos++;
     }
-    TRACE(("Populating directory, child %p, locked_children %d\n",
+	TRACE(("Populating directory, child %p, locked_children %d\n",
 	   base->child, base->locked_children));
     for (;;) {
 		TCHAR fn[MAX_DPATH];
-	    struct dirent *ok;
+		struct dirent *ok;
 		uae_u32 err;
 
 		/* Find next file that belongs to the Amiga fs (skipping things
@@ -4020,7 +4035,7 @@ static void
 	uaecptr lock1 = GET_PCK_ARG1 (packet) << 2;
 	uaecptr lock2 = GET_PCK_ARG2 (packet) << 2;
 
-    TRACE(("ACTION_SAME_LOCK(0x%lx,0x%lx)\n",lock1,lock2));
+	TRACE(("ACTION_SAME_LOCK(0x%lx,0x%lx)\n",lock1,lock2));
 	DUMPLOCK(unit, lock1); DUMPLOCK(unit, lock2);
 
 	if (!lock1 || !lock2) {
@@ -4135,7 +4150,7 @@ static void
 {
 	uaecptr lock = GET_PCK_ARG1 (packet) << 2;
 
-    TRACE(("ACTION_PARENT(0x%lx)\n",lock));
+	TRACE(("ACTION_PARENT(0x%lx)\n",lock));
 
 	if (!lock) {
 		PUT_PCK_RES1 (packet, 0);
@@ -4143,7 +4158,7 @@ static void
 	} else {
 		action_parent_common (unit, packet, get_long (lock + 4));
 	}
-    TRACE(("=%x %d\n", GET_PCK_RES1 (packet), GET_PCK_RES2 (packet)));
+	TRACE(("=%x %d\n", GET_PCK_RES1 (packet), GET_PCK_RES2 (packet)));
 }
 
 static void
@@ -4154,7 +4169,7 @@ static void
 	a_inode *aino;
 	int err;
 
-    TRACE(("ACTION_CREATE_DIR(0x%lx,\"%s\")\n", lock, bstr (unit, name)));
+	TRACE(("ACTION_CREATE_DIR(0x%lx,\"%s\")\n", lock, bstr (unit, name)));
 
 	if (unit->ui.readonly || unit->ui.locked) {
 		PUT_PCK_RES1 (packet, DOS_FALSE);
@@ -4236,7 +4251,7 @@ static void
 	if (mode < 0)
 		whence = SEEK_SET;
 
-    TRACE(("ACTION_SET_FILE_SIZE(0x%lx, %d, 0x%x)\n", GET_PCK_ARG1 (packet), offset, mode));
+	TRACE(("ACTION_SET_FILE_SIZE(0x%lx, %d, 0x%x)\n", GET_PCK_ARG1 (packet), offset, mode));
 
 	k = lookup_key (unit, GET_PCK_ARG1 (packet));
 	if (k == 0) {
@@ -4301,7 +4316,6 @@ static void relock_re (Unit *unit, a_inode *a1, a_inode *a2, int failed)
 		knext = k1->next;
 		if (k1->aino == a1 && k1->fd) {
 		    char *mode = (k1->dosmode & A_FIBF_READ) == 0 ? "wb" : (k1->dosmode & A_FIBF_WRITE) == 0 ? "rb" : "r+b";
-		    //mode |= O_BINARY;
 			if (failed) {
 				/* rename still failed, restore fd */
 				k1->fd = fs_open (unit, a1->nname, mode);
@@ -4812,7 +4826,7 @@ static uae_u32 REGPARAM2 exter_int_helper (TrapContext *context)
 				lockend = locks;
 				while (get_long (lockend) != 0) {
 					if (get_long (lockend) == lockend) {
-			write_log ("filesystem lock queue corrupted!\n");
+						write_log ("filesystem lock queue corrupted!\n");
 						break;
 					}
 					lockend = get_long (lockend);
@@ -4905,7 +4919,7 @@ static uae_u32 REGPARAM2 exter_int_helper (TrapContext *context)
 		break;
 
 	default:
-	write_log ("Shouldn't happen in exter_int_helper.\n");
+		write_log ("Shouldn't happen in exter_int_helper.\n");
 		break;
 	}
 	return 0;
@@ -4989,7 +5003,7 @@ static int handle_packet (Unit *unit, dpacket pck)
 	case ACTION_FORMAT:
 		return 0;
 	default:
-	write_log ("FILESYS: UNKNOWN PACKET %x\n", type);
+		write_log ("FILESYS: UNKNOWN PACKET %x\n", type);
 		return 0;
 	}
 	return 1;
@@ -5084,7 +5098,7 @@ error:
 		PUT_PCK_RES1 (packet_addr, DOS_FALSE);
 		PUT_PCK_RES2 (packet_addr, ERROR_ACTION_NOT_KNOWN);
 	}
-    TRACE(("reply: %8lx, %ld\n", GET_PCK_RES1 (pck), GET_PCK_RES2 (pck)));
+	TRACE(("reply: %8lx, %ld\n", GET_PCK_RES1 (packet_addr), GET_PCK_RES2 (packet_addr)));
 
 error2:
 
@@ -5572,7 +5586,7 @@ static int rdb_mount (UnitInfo *uip, int unit_no, unsigned int partnum, uaecptr 
 		m68k_dreg (regs, 7) = m68k_dreg (regs, 7) & ~1;
 
 	buf[37 + buf[36]] = 0; /* zero terminate BSTR */
-    uip->rdb_devname_amiga[partnum] = ds (device_dupfix (get_long (parmpacket + PP_EXPLIB), (char *)(buf + 37)));
+	uip->rdb_devname_amiga[partnum] = ds (device_dupfix (get_long (parmpacket + PP_EXPLIB), (char *)(buf + 37)));
 	put_long (parmpacket, uip->rdb_devname_amiga[partnum]); /* name */
 	put_long (parmpacket + 4, ROM_hardfile_resname);
 	put_long (parmpacket + 8, uip->devno);

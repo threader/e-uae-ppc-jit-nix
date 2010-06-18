@@ -91,13 +91,13 @@ uaecptr consolehook_beginio (uaecptr request)
 	uae_u16 cmd = get_word (request + 28);
 
 	if (cmd == CMD_WRITE) {
-		char *buf;
+		TCHAR *buf;
 		const char *src = (char*)get_real_address (io_data);
 		int len = io_length;
 		if (io_length == -1)
 			len = strlen (src);
-		buf = xmalloc (char, len + 1);
-		strncpy (buf, src, len);
+		buf = xmalloc (TCHAR, len + 1);
+		au_copy (buf, len, src);
 		buf[len] = 0;
 		//f_out ("%s", buf);
 		xfree (buf);

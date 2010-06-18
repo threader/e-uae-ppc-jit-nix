@@ -1,21 +1,22 @@
 /* fsusage.c -- return space usage of mounted filesystems
-   Copyright (C) 1991, 1992, 1996 Free Software Foundation, Inc.
+Copyright (C) 1991, 1992, 1996 Free Software Foundation, Inc.
 
-   This program is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2, or (at your option)
-   any later version.
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2, or (at your option)
+any later version.
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
 
-   You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software Foundation,
-   Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.  */
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software Foundation,
+Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.  */
 
 #include "sysconfig.h"
+#include "sysdeps.h"
 #include "target.h"
 
 #if defined TARGET_AMIGAOS
@@ -198,10 +199,10 @@ int get_fs_usage (const char *path, const char *disk, struct fs_usage *fsp)
    Return the actual number of bytes read, zero for EOF, or negative
    for an error.  */
 
-static int
+int
 	safe_read (desc, ptr, len)
 	int desc;
-	char *ptr;
+	TCHAR *ptr;
 	int len;
 {
 	int n_chars;
@@ -231,9 +232,9 @@ static int
    on a system that requires a non-NULL value.  */
 int
 	get_fs_usage (path, disk, fsp)
-	const char *path;
-	const char *disk;
-     struct fs_usage *fsp;
+	const TCHAR *path;
+	const TCHAR *disk;
+	struct fs_usage *fsp;
 {
 #ifdef STAT_STATFS3_OSF1
 # define CONVERT_BLOCKS(B) adjust_blocks ((B), fsd.f_fsize, 512)
@@ -265,7 +266,7 @@ int
 #  define SUPERBOFF (SUPERB * 512)
 # endif
 # define CONVERT_BLOCKS(B) \
-    adjust_blocks ((B), (fsd.s_type == Fs2b ? 1024 : 512), 512)
+	adjust_blocks ((B), (fsd.s_type == Fs2b ? 1024 : 512), 512)
 
 	struct filsys fsd;
 	int fd;
@@ -280,7 +281,7 @@ int
 	if (fd < 0)
 		return -1;
 	lseek (fd, (long) SUPERBOFF, 0);
-	if (safe_read (fd, (char *) &fsd, sizeof fsd) != sizeof fsd)
+	if (safe_read (fd, (TCHAR *) &fsd, sizeof fsd) != sizeof fsd)
 	{
 		close (fd);
 		return -1;
@@ -304,11 +305,11 @@ int
 
 # ifdef STATFS_TRUNCATES_BLOCK_COUNTS
 
-  /* In SunOS 4.1.2, 4.1.3, and 4.1.3_U1, the block counts in the
-     struct statfs are truncated to 2GB.  These conditions detect that
-     truncation, presumably without botching the 4.1.1 case, in which
-     the values are not truncated.  The correct counts are stored in
-     undocumented spare fields.  */
+	/* In SunOS 4.1.2, 4.1.3, and 4.1.3_U1, the block counts in the
+	   struct statfs are truncated to 2GB.  These conditions detect that
+	   truncation, presumably without botching the 4.1.1 case, in which
+	   the values are not truncated.  The correct counts are stored in
+	   undocumented spare fields.  */
 	if (fsd.f_blocks == 0x1fffff && fsd.f_spare[0] > 0)
 	{
 		fsd.f_blocks = fsd.f_spare[0];
@@ -348,26 +349,26 @@ int
 
 	if (statfs (path, &fsd, sizeof fsd, 0) < 0)
 		return -1;
-  /* Empirically, the block counts on most SVR3 and SVR3-derived
-     systems seem to always be in terms of 512-byte blocks,
-     no matter what value f_bsize has.  */
+	/* Empirically, the block counts on most SVR3 and SVR3-derived
+	   systems seem to always be in terms of 512-byte blocks,
+	   no matter what value f_bsize has.  */
 
 #endif /* STAT_STATFS4 */
 
 #ifdef STAT_STATVFS		/* SVR4 */
 # define CONVERT_BLOCKS(B) \
-    adjust_blocks ((B), fsd.f_frsize ? fsd.f_frsize : fsd.f_bsize, 512)
+	adjust_blocks ((B), fsd.f_frsize ? fsd.f_frsize : fsd.f_bsize, 512)
 
 	struct statvfs fsd;
 
 	if (statvfs (path, &fsd) < 0)
 		return -1;
-  /* f_frsize isn't guaranteed to be supported.  */
+	/* f_frsize isn't guaranteed to be supported.  */
 
 #endif /* STAT_STATVFS */
 
 #if !defined(STAT_STATFS2_FS_DATA) && !defined(STAT_READ_FILSYS)
-				/* !Ultrix && !SVR2 */
+	/* !Ultrix && !SVR2 */
 
 	fsp->fsu_blocks = CONVERT_BLOCKS (fsd.f_blocks);
 	fsp->fsu_bfree = CONVERT_BLOCKS (fsd.f_bfree);
@@ -377,7 +378,7 @@ int
 
 #endif /* not STAT_STATFS2_FS_DATA && not STAT_READ_FILSYS */
 
-  return 0;
+	return 0;
 }
 
 #if defined(_AIX) && defined(_I386)
@@ -385,7 +386,7 @@ int
 
 int
 	statfs (path, fsb)
-	char *path;
+	TCHAR *path;
 	struct statfs *fsb;
 {
 	struct stat stats;

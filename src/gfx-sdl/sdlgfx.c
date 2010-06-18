@@ -1358,14 +1358,18 @@ void handle_events (void)
 			    keycode = rEvent.key.keysym.sym;
 
 			DEBUG_LOG ("Event: key %d %s\n", keycode, state ? "down" : "up");
+			write_log ("Event: key %d %s -- ", keycode, state ? "down" : "up");
 
 			if ((ievent = match_hotkey_sequence (keycode, state))) {
+				write_log ("HOT %d\n", ievent);
 			     DEBUG_LOG ("Hotkey event: %d\n", ievent);
 			     handle_hotkey_event (ievent, state);
 			} else {
-			     if (currprefs.map_raw_keys) {
+				if (currprefs.map_raw_keys) {
+					write_log ("RAW\n");
 					inputdevice_translatekeycode (0, keycode, state);
-			     } else {
+				} else {
+					write_log ("SYM\n");
 					inputdevice_do_keyboard (keysym2amiga (keycode), state);
 				}
 			}

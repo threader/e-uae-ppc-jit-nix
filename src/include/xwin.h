@@ -130,3 +130,4 @@ extern void toggle_mousegrab      (void);
 /* For ports using tui.c, this should be built by graphics_setup(). */
 extern struct bstring *video_mode_menu;
 extern void vidmode_menu_selected(int);
+

@@ -614,31 +614,6 @@ void target_run (void)
         //shellexecute (currprefs.win32_commandpathstart);
 }
 
-void fetch_path (char *name, char *out, int size)
-{
-        int size2 = size;
-
-        _tcscpy (out, start_path_data);
-        if (!name)
-                return;
-}
-void fetch_configurationpath (char *out, int size)
-{
-        fetch_path ("ConfigurationPath", out, size);
-}
-void fetch_screenshotpath (char *out, int size)
-{
-        fetch_path ("ScreenshotPath", out, size);
-}
-void fetch_ripperpath (char *out, int size)
-{
-        fetch_path ("RipperPath", out, size);
-}
-void fetch_datapath (char *out, int size)
-{
-        fetch_path (NULL, out, size);
-}
-
 // --- dinput.cpp ---
 int input_get_default_keyboard (int i)
 {
@@ -880,4 +855,73 @@ void target_quit (void)
 void target_fixup_options (struct uae_prefs *p)
 {
 	//
+}
+
+TCHAR start_path_data[MAX_DPATH];
+
+void fetch_path (TCHAR *name, TCHAR *out, int size)
+{
+        int size2 = size;
+
+	_tcscpy (start_path_data, "./");
+        _tcscpy (out, start_path_data);
+        if (!name)
+                return;
+/*        if (!_tcscmp (name, "FloppyPath"))
+                _tcscat (out, "../shared/adf/");
+        if (!_tcscmp (name, "CDPath"))
+                _tcscat (out, "../shared/cd/");
+        if (!_tcscmp (name, "hdfPath"))
+                _tcscat (out, "../shared/hdf/");
+        if (!_tcscmp (name, "KickstartPath"))
+                _tcscat (out, "../shared/rom/");
+        if (!_tcscmp (name, "ConfigurationPath"))
+                _tcscat (out, "Configurations/");
+*/
+        if (!_tcscmp (name, "FloppyPath"))
+                _tcscat (out, "./");
+        if (!_tcscmp (name, "CDPath"))
+                _tcscat (out, "./");
+        if (!_tcscmp (name, "hdfPath"))
+                _tcscat (out, "./");
+        if (!_tcscmp (name, "KickstartPath"))
+                _tcscat (out, "./");
+        if (!_tcscmp (name, "ConfigurationPath"))
+                _tcscat (out, "./");
+
+}
+
+void fetch_saveimagepath (TCHAR *out, int size, int dir)
+{
+/*        assert (size > MAX_DPATH);
+        fetch_path ("SaveimagePath", out, size);
+        if (dir) {
+                out[_tcslen (out) - 1] = 0;
+                createdir (out);*/
+                fetch_path ("SaveimagePath", out, size);
+//        }
+}
+void fetch_configurationpath (TCHAR *out, int size)
+{
+        fetch_path ("ConfigurationPath", out, size);
+}
+void fetch_screenshotpath (TCHAR *out, int size)
+{
+        fetch_path ("ScreenshotPath", out, size);
+}
+void fetch_ripperpath (TCHAR *out, int size)
+{
+        fetch_path ("RipperPath", out, size);
+}
+void fetch_datapath (TCHAR *out, int size)
+{
+        fetch_path (NULL, out, size);
+}
+
+//
+TCHAR *au_copy (TCHAR *dst, int maxlen, const char *src)
+{
+        dst[0] = 0;
+	memcpy (dst, src, maxlen);
+        return dst;
 }

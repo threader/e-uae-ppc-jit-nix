@@ -73,7 +73,7 @@ void romlist_add (TCHAR *path, struct romdata *rd)
 }
 
 
-struct romdata *getromdatabypath(TCHAR *path)
+struct romdata *getromdatabypath (TCHAR *path)
 {
 	int i;
 	for (i = 0; i < romlist_cnt; i++) {
@@ -357,13 +357,13 @@ static void romlist_cleanup (void)
 		}
 		if (ok == 0) {
 			while (i < j) {
-				struct romlist *rl = romlist_getrl (&roms[i]);
-				if (rl) {
-					int cnt = romlist_cnt - i - 1;
-					write_log ("%s '%s' removed from romlist\n", roms[k].name, rl->path);
-					xfree (rl->path);
+				struct romlist *rl2 = romlist_getrl (&roms[i]);
+				if (rl2) {
+					int cnt = romlist_cnt - (rl2 - rl) - 1;
+					write_log ("%s '%s' removed from romlist\n", roms[k].name, rl2->path);
+					xfree (rl2->path);
 					if (cnt > 0)
-						memmove (rl, rl + 1, cnt * sizeof (struct romlist));
+						memmove (rl2, rl2 + 1, cnt * sizeof (struct romlist));
 					romlist_cnt--;
 				}
 				i++;
@@ -377,7 +377,7 @@ static void romlist_cleanup (void)
 	}
 }
 
-struct romlist **getromlistbyident(int ver, int rev, int subver, int subrev, TCHAR *model, int all)
+struct romlist **getromlistbyident (int ver, int rev, int subver, int subrev, TCHAR *model, int all)
 {
 	int i, j, ok, out, max;
 	struct romdata *rd;
@@ -474,7 +474,7 @@ struct romdata *getarcadiarombyname (TCHAR *name)
 	return NULL;
 }
 
-struct romlist **getarcadiaroms(void)
+struct romlist **getarcadiaroms (void)
 {
 	int i, out, max;
 	void *buf;
@@ -836,7 +836,7 @@ int decode_rom (uae_u8 *mem, int size, int mode, int real_size)
 	if (mode == 1) {
 		if (!decode_cloanto_rom_do (mem, size, real_size)) {
 #ifndef SINGLEFILE
-    	    gui_message("No ROM Key.\n");
+			gui_message("No ROM Key.\n");
 #endif
 			return 0;
 		}
@@ -900,9 +900,11 @@ struct romdata *getromdatabyzfile (struct zfile *f)
 	pos = zfile_ftell (f);
 	zfile_fseek (f, 0, SEEK_END);
 	size = zfile_ftell (f);
+	if (size > 2048 * 1024)
+		return NULL;
 	p = xmalloc (uae_u8, size);
 	if (!p)
-		return 0;
+		return NULL;
 	memset (p, 0, size);
 	zfile_fseek (f, 0, SEEK_SET);
 	zfile_fread (p, 1, size, f);
@@ -1146,7 +1148,18 @@ struct zfile *read_rom (struct romdata **prd)
 			}
 			if (get_crc32 (buf, size) == crc32) {
 				ok = 1;
-			} else {
+			}
+			if (!ok && (rd->type & ROMTYPE_AR)) {
+				uae_u8 tmp[2];
+				tmp[0] = buf[0];
+				tmp[1] = buf[1];
+				buf[0] = buf[1] = 0;
+				if (get_crc32 (buf, size) == crc32)
+					ok = 1;
+				buf[0] = tmp[0];
+				buf[1] = tmp[1];
+			}
+			if (!ok) {
 				/* perhaps it is byteswapped without byteswap entry? */
 				byteswap (buf, size);
 				if (get_crc32 (buf, size) == crc32)
@@ -1280,7 +1293,7 @@ int kickstart_checksum (uae_u8 *mem, int size)
 {
 	if (!kickstart_checksum_do (mem, size)) {
 #ifndef	SINGLEFILE
-        gui_message("Kickstart checksum incorrect. You probably have a corrupted ROM image.\n");
+		gui_message("Kickstart checksum incorrect. You probably have a corrupted ROM image.\n");
 #endif
 		return 0;
 	}

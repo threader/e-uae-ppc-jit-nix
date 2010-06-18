@@ -195,7 +195,7 @@ STATIC_INLINE void pw (int offset, uae_u16 w)
 	ide->secbuf[offset * 2 + 0] = (uae_u8)w;
 	ide->secbuf[offset * 2 + 1] = w >> 8;
 }
-static void ps (int offset, char *src, int max)
+static void ps (int offset, TCHAR *src, int max)
 {
 	int i, len;
 
@@ -410,7 +410,7 @@ static void ide_identify_drive (void)
 	uae_u64 totalsecs;
 	int v;
 	uae_u8 *buf = ide->secbuf;
-	char tmp[100];
+	TCHAR tmp[100];
 
 	if (ide->hdhfd.size == 0) {
 		ide_fail ();
@@ -1484,9 +1484,9 @@ static void initsramattr (int size, int readonly)
 	*p++= 4; /* PCMCIA 2.1 */
 	*p++= 1;
 	if (real) {
-		strncpy ((char*)p, hfd->product_id, -1);
+		ua_copy ((char*)p, -1, hfd->product_id);
 		p += strlen ((char*)p) + 1;
-		strncpy ((char*)p, hfd->product_rev, -1);
+		ua_copy ((char*)p, -1, hfd->product_rev);
 	} else {
 		strcpy ((char*)p, "UAE");
 		p += strlen ((char*)p) + 1;
@@ -1575,7 +1575,7 @@ static int freepcmcia (int reset)
 	return 1;
 }
 
-static int initpcmcia (const char *path, int readonly, int reset)
+static int initpcmcia (const TCHAR *path, int readonly, int reset)
 {
 	if (currprefs.cs_pcmcia == 0)
 		return 0;
@@ -1860,9 +1860,9 @@ static void dumphdf (struct hardfiledata *hfd)
 }
 #endif
 
-int gayle_add_ide_unit (int ch, char *path, int blocksize, int readonly,
-	char *devname, int sectors, int surfaces, int reserved,
-	int bootpri, char *filesys)
+int gayle_add_ide_unit (int ch, TCHAR *path, int blocksize, int readonly,
+	TCHAR *devname, int sectors, int surfaces, int reserved,
+	int bootpri, TCHAR *filesys)
 {
 	struct ide_hdf *ide;
 
@@ -1884,12 +1884,12 @@ int gayle_add_ide_unit (int ch, char *path, int blocksize, int readonly,
 	return 1;
 }
 
-int gayle_add_pcmcia_sram_unit (const char *path, int readonly)
+int gayle_add_pcmcia_sram_unit (const TCHAR *path, int readonly)
 {
 	return initpcmcia (path, readonly, 1);
 }
 
-int gayle_modify_pcmcia_sram_unit (const char *path, int readonly, int insert)
+int gayle_modify_pcmcia_sram_unit (const TCHAR *path, int readonly, int insert)
 {
 	if (insert)
 		return initpcmcia (path, readonly, pcmcia_sram ? 0 : 1);

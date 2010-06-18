@@ -1,10 +1,10 @@
- /*
-  * UAE - The Un*x Amiga Emulator
-  *
-  * MC68000 emulation
-  *
-  * Copyright 1995 Bernd Schmidt
-  */
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * MC68000 emulation
+ *
+ * Copyright 1995 Bernd Schmidt
+ */
 
 #include "readcpu.h"
 #include "machdep/m68k.h"
@@ -332,13 +332,12 @@ extern void REGPARAM3 put_bitfield (uae_u32 dst, uae_u32 bdata[2], uae_u32 val, 
 extern void m68k_disasm_ea (void *f, uaecptr addr, uaecptr *nextpc, int cnt, uae_u32 *seaddr, uae_u32 *deaddr);
 extern void m68k_disasm (void *f, uaecptr addr, uaecptr *nextpc, int cnt);
 extern void m68k_disasm_2 (TCHAR *buf, int bufsize, uaecptr addr, uaecptr *nextpc, int cnt, uae_u32 *seaddr, uae_u32 *deaddr, int safemode);
-extern int get_cpu_model(void);
+extern int get_cpu_model (void);
 
 /* Hack to stop conflict with AROS Exception function */
 #ifdef __AROS__
 # undef Exception
 #endif
-
 extern void REGPARAM3 MakeSR (void) REGPARAM;
 extern void REGPARAM3 MakeFromSR (void) REGPARAM;
 extern void REGPARAM3 Exception (int, uaecptr) REGPARAM;
@@ -356,10 +355,10 @@ extern void init_m68k_full (void);
 extern void m68k_go (int);
 extern void m68k_dumpstate (void *, uaecptr *);
 extern void m68k_disasm (void *, uaecptr, uaecptr *, int);
-extern void sm68k_disasm (char*, char*, uaecptr addr, uaecptr *nextpc);
+extern void sm68k_disasm (TCHAR*, TCHAR*, uaecptr addr, uaecptr *nextpc);
 extern void m68k_reset (int);
-extern int getDivu68kCycles(uae_u32 dividend, uae_u16 divisor);
-extern int getDivs68kCycles(uae_s32 dividend, uae_s16 divisor);
+extern int getDivu68kCycles (uae_u32 dividend, uae_u16 divisor);
+extern int getDivs68kCycles (uae_s32 dividend, uae_s16 divisor);
 extern void m68k_do_rte (void);
 
 extern void mmu_op (uae_u32, uae_u32);

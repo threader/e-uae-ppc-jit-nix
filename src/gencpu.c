@@ -175,7 +175,7 @@ static void addcycles000_3 (char *s)
 	count_ncycles++;
 }
 
-static int isreg(amodes mode)
+static int isreg (amodes mode)
 {
 	if (mode == Dreg || mode == Areg)
 		return 1;
@@ -296,7 +296,7 @@ static const char *gen_nextiword (int flags)
 		if (flags & GF_NOREFILL) {
 			strcpy (buffer, "regs.irc");
 		} else {
-		    sprintf (buffer, "get_word_ce_prefetch (%d)", r + 2);
+			sprintf (buffer, "get_word_ce_prefetch (%d)", r + 2);
 			count_read++;
 		}
 	} else {
@@ -319,7 +319,7 @@ static const char *gen_nextiword (int flags)
 			insn_n_cycles += 4;
 		}
 	}
-    return buffer;
+	return buffer;
 }
 
 static const char *gen_nextibyte (int flags)
@@ -1392,9 +1392,9 @@ static void genflags (flagtypes type, wordsizes size, char *value, char *src, ch
 
 		case flag_add:
 			switch (size) {
-	 		case sz_byte: printf ("\toptflag_addb (%s, (uae_s8)(%s), (uae_s8)(%s));\n", value, src, dst); break;
-	 		case sz_word: printf ("\toptflag_addw (%s, (uae_s16)(%s), (uae_s16)(%s));\n", value, src, dst); break;
-	 		case sz_long: printf ("\toptflag_addl (%s, (uae_s32)(%s), (uae_s32)(%s));\n", value, src, dst); break;
+			case sz_byte: printf ("\toptflag_addb (%s, (uae_s8)(%s), (uae_s8)(%s));\n", value, src, dst); break;
+			case sz_word: printf ("\toptflag_addw (%s, (uae_s16)(%s), (uae_s16)(%s));\n", value, src, dst); break;
+			case sz_long: printf ("\toptflag_addl (%s, (uae_s32)(%s), (uae_s32)(%s));\n", value, src, dst); break;
 			}
 			return;
 
@@ -3797,9 +3797,9 @@ int main (int argc, char **argv)
 	do_merges ();
 
 	opcode_map = (int *) xmalloc (sizeof (int) * nr_cpuop_funcs);
-    opcode_last_postfix = (int *) xmalloc (sizeof (int) * nr_cpuop_funcs);
-    opcode_next_clev = (int *) xmalloc (sizeof (int) * nr_cpuop_funcs);
-    counts = (unsigned long *) xmalloc (sizeof (unsigned long) * 65536);
+	opcode_last_postfix = (int *) xmalloc (sizeof (int) * nr_cpuop_funcs);
+	opcode_next_clev = (int *) xmalloc (sizeof (int) * nr_cpuop_funcs);
+	counts = (unsigned long *) xmalloc (sizeof (unsigned long) * 65536);
 	read_counts ();
 
 	/* It would be a lot nicer to put all in one file (we'd also get rid of
@@ -3837,17 +3837,17 @@ int main (int argc, char **argv)
 		using_mmu = 0;
 		cpu_level = 5 - i;
 		if (i == 11 || i == 12) {
-		    cpu_level = 0;
-		    using_prefetch = 1;
-		    using_exception_3 = 1;
+			cpu_level = 0;
+			using_prefetch = 1;
+			using_exception_3 = 1;
 			if (i == 12)
 				using_ce = 1;
-		    for (rp = 0; rp < nr_cpuop_funcs; rp++)
+			for (rp = 0; rp < nr_cpuop_funcs; rp++)
 				opcode_next_clev[rp] = 0;
 		} else if (i == 20) {
 			cpu_level = 2;
 			using_ce020 = 1;
-				read_counts ();
+			read_counts ();
 			for (rp = 0; rp < nr_cpuop_funcs; rp++)
 				opcode_next_clev[rp] = cpu_level;
 		} else if (i == 21 || i == 22 || i == 23) {

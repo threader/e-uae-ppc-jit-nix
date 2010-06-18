@@ -395,6 +395,7 @@ extern void xfree (const void*);
 #define _tcslen strlen
 #define _tcscpy strcpy
 #define _tcscmp strcmp
+#define _tcsncat strncat
 #define _tcsncmp strncmp
 #define _tstol atol
 #define _totupper toupper
@@ -413,6 +414,13 @@ extern void xfree (const void*);
 #define _tcstol strtol
 #define _wunlink unlink
 #define _tcsftime strftime
+#define vsntprintf vsnprint
+#define _tcsspn strspn
+#define _istupper isupper
+#define _totlower tolower
+#define _tcstok strtok
+#define _wunlink unlink
+#define _tfopen fopen
 #define bool _Bool
 #define true 1
 #define false 0

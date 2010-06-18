@@ -59,7 +59,7 @@ struct gui_info
     int fps, idle;
     int sndbuf, sndbuf_status;
     char df[4][256];			/* inserted image */
-    uae_u32 crc32[4];		    /* crc32 of image */
+    uae_u32 crc32[4];			/* crc32 of image */
 };
 #define NUM_LEDS (LED_MAX)
 #define VISIBLE_LEDS (LED_MAX - 1)

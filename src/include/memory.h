@@ -1,10 +1,10 @@
- /*
-  * UAE - The Un*x Amiga Emulator
-  *
-  * memory management
-  *
-  * Copyright 1995 Bernd Schmidt
-  */
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * memory management
+ *
+ * Copyright 1995 Bernd Schmidt
+ */
 
 extern void memory_reset (void);
 extern void a1000_reset (void);
@@ -26,11 +26,11 @@ extern int candirect;
 #endif
 
 #ifdef ADDRESS_SPACE_24BIT
-# define MEMORY_BANKS		256
-# define MEMORY_RANGE_MASK	((1<<24)-1)
+#define MEMORY_BANKS 256
+#define MEMORY_RANGE_MASK ((1<<24)-1)
 #else
-# define MEMORY_BANKS		65536
-# define MEMORY_RANGE_MASK	(~0)
+#define MEMORY_BANKS 65536
+#define MEMORY_RANGE_MASK (~0)
 #endif
 
 typedef uae_u32 (REGPARAM3 *mem_get_func)(uaecptr) REGPARAM;
@@ -161,15 +161,15 @@ extern uae_u8 *baseaddr[MEMORY_BANKS];
 
 #ifdef JIT
 #define put_mem_bank(addr, b, realstart) do { \
-    (mem_banks[bankindex(addr)] = (b)); \
-    if ((b)->baseaddr) \
+	(mem_banks[bankindex(addr)] = (b)); \
+	if ((b)->baseaddr) \
 	baseaddr[bankindex(addr)] = (b)->baseaddr - (realstart); \
-    else \
+	else \
 	baseaddr[bankindex(addr)] = (uae_u8*)(((uae_u8*)b)+1); \
 } while (0)
 #else
 #define put_mem_bank(addr, b, realstart) \
-    (mem_banks[bankindex(addr)] = (b));
+	(mem_banks[bankindex(addr)] = (b));
 #endif
 
 extern void memory_init (void);

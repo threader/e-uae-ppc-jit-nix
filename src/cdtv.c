@@ -433,7 +433,7 @@ static int cdrom_modeset (uae_u8 *cmd)
 static void cdrom_command_accepted (int size, uae_u8 *cdrom_command_input, int *cdrom_command_cnt_in)
 {
 #ifdef CDTV_DEBUG_CMD
-	char tmp[200];
+	TCHAR tmp[200];
 	int i;
 #endif
 	cdrom_command_size_out = size;
@@ -590,7 +590,7 @@ static uae_u8 *read_raw (int sector, int size)
 	static struct zfile *f;
 	static int track;
 	int trackcnt;
-	char fname[MAX_DPATH];
+	TCHAR fname[MAX_DPATH];
 	static uae_u8 buf[4096];
 	uae_u32 prevlsn = 0;
 	uae_u8 *s = cdrom_toc + 4;
@@ -1536,9 +1536,9 @@ uae_u8 cdtv_battram_read (int addr)
 	return v;
 }
 
-int cdtv_add_scsi_unit(int ch, char *path, int blocksize, int readonly,
-	char *devname, int sectors, int surfaces, int reserved,
-	int bootpri, char *filesys)
+int cdtv_add_scsi_unit(int ch, TCHAR *path, int blocksize, int readonly,
+	TCHAR *devname, int sectors, int surfaces, int reserved,
+	int bootpri, TCHAR *filesys)
 {
 	return addscsi (ch, path, blocksize, readonly, devname, sectors, surfaces, reserved, bootpri, filesys, 1);
 }

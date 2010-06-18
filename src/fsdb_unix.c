@@ -143,22 +143,22 @@ int fsdb_mode_supported (const a_inode *aino)
  * native FS.  Return zero if that is not possible.  */
 int fsdb_mode_representable_p (const a_inode *aino, int amigaos_mode)
 {
-        int mask = amigaos_mode ^ 15;
+	int mask = amigaos_mode ^ 15;
 
-        if (0 && aino->dir)
-                return amigaos_mode == 0;
+	if (0 && aino->dir)
+		return amigaos_mode == 0;
 
-        if (mask & A_FIBF_SCRIPT) /* script */
-                return 0;
-        if ((mask & 15) == 15) /* xxxxRWED == OK */
-                return 1;
-        if (!(mask & A_FIBF_EXECUTE)) /* not executable */
-                return 0;
-        if (!(mask & A_FIBF_READ)) /* not readable */
-                return 0;
-        if ((mask & 15) == (A_FIBF_READ | A_FIBF_EXECUTE)) /* ----RxEx == ReadOnly */
-                return 1;
-        return 0;
+	if (mask & A_FIBF_SCRIPT) /* script */
+		return 0;
+	if ((mask & 15) == 15) /* xxxxRWED == OK */
+		return 1;
+	if (!(mask & A_FIBF_EXECUTE)) /* not executable */
+		return 0;
+	if (!(mask & A_FIBF_READ)) /* not readable */
+		return 0;
+	if ((mask & 15) == (A_FIBF_READ | A_FIBF_EXECUTE)) /* ----RxEx == ReadOnly */
+		return 1;
+	return 0;
 }
 
 char *fsdb_create_unique_nname (a_inode *base, const char *suggestion)
@@ -166,18 +166,18 @@ char *fsdb_create_unique_nname (a_inode *base, const char *suggestion)
     char tmp[256] = "__uae___";
     strncat (tmp, suggestion, 240);
     for (;;) {
-		int i;
-		char *p = build_nname (base->nname, tmp);
-		if (access (p, R_OK) < 0 && errno == ENOENT) {
-		    printf ("unique name: %s\n", p);
-		    return p;
-		}
-		free (p);
+	int i;
+	char *p = build_nname (base->nname, tmp);
+	if (access (p, R_OK) < 0 && errno == ENOENT) {
+	    printf ("unique name: %s\n", p);
+	    return p;
+	}
+	free (p);
 
-		/* tmpnam isn't reentrant and I don't really want to hack configure
-		 * right now to see whether tmpnam_r is available...  */
-		for (i = 0; i < 8; i++) {
-			tmp[i] = "_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[rand () % 63];
-		}
+	/* tmpnam isn't reentrant and I don't really want to hack configure
+	 * right now to see whether tmpnam_r is available...  */
+	for (i = 0; i < 8; i++) {
+	    tmp[i] = "_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[rand () % 63];
+	}
     }
 }

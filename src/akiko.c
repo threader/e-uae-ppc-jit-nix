@@ -1789,9 +1789,9 @@ uae_u8 *restore_akiko (uae_u8 *src)
     uae_u32 v;
 	int i;
 
-	if (!currprefs.cs_cd32cd) {
-		changed_prefs.cs_cd32c2p = changed_prefs.cs_cd32cd = changed_prefs.cs_cd32nvram = 1;
-		currprefs.cs_cd32c2p = currprefs.cs_cd32cd = currprefs.cs_cd32nvram = 1;
+	if (!currprefs.cs_cd32cd || !cdromok) {
+		changed_prefs.cs_cd32c2p = changed_prefs.cs_cd32cd = changed_prefs.cs_cd32nvram = true;
+		currprefs.cs_cd32c2p = currprefs.cs_cd32cd = currprefs.cs_cd32nvram = true;
 		akiko_init ();
 	}
 

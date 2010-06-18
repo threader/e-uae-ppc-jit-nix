@@ -40,8 +40,8 @@ struct device_info {
     int bytespersector;
     int bus, target, lun;
     int id;
-    char label[MAX_DPATH];
-	char mediapath[MAX_DPATH];
+    TCHAR label[MAX_DPATH];
+	TCHAR mediapath[MAX_DPATH];
 };
 
 struct device_scsi_info {
@@ -96,15 +96,15 @@ struct device_functions {
     execscsicmd_in_func     exec_in;
     execscsicmd_direct_func exec_direct;
 
-    pause_func pause;
-    stop_func  stop;
-    play_func  play;
-	volume_func volume;
-    qcode_func qcode;
-    toc_func   toc;
-    read_func  read;
+    pause_func	pause;
+    stop_func	stop;
+    play_func	play;
+	volume_func	volume;
+    qcode_func	qcode;
+    toc_func	toc;
+    read_func	read;
     rawread_func rawread;
-    write_func write;
+    write_func	write;
 
     isatapi_func isatapi;
 
@@ -116,27 +116,27 @@ struct device_functions {
 
 extern struct device_functions *device_func[2];
 
-extern int                  device_func_init         (int flags);
+extern int device_func_init(int flags);
 extern void device_func_reset(void);
-extern int                  sys_command_open         (int mode, int unitnum);
-extern void                 sys_command_close        (int mode, int unitnum);
-extern struct device_info * sys_command_info         (int mode, int unitnum, struct device_info *di);
+extern int sys_command_open (int mode, int unitnum);
+extern void sys_command_close (int mode, int unitnum);
+extern struct device_info *sys_command_info (int mode, int unitnum, struct device_info *di);
 extern struct device_scsi_info *sys_command_scsi_info (int mode, int unitnum, struct device_scsi_info *di);
-extern void                 sys_command_cd_pause        (int mode, int unitnum, int paused);
-extern void                 sys_command_cd_stop         (int mode, int unitnum);
-extern int                  sys_command_cd_play         (int mode, int unitnum, uae_u32 startmsf, uae_u32 endmsf, int);
-extern void					sys_command_cd_volume (int mode, int unitnum, uae_u16 volume);
-extern uae_u8 *       sys_command_cd_qcode        (int mode, int unitnum);
-extern uae_u8 *		sys_command_cd_toc          (int mode, int unitnum);
-extern uae_u8 *		sys_command_cd_read         (int mode, int unitnum, int offset);
-extern uae_u8 *				sys_command_cd_rawread (int mode, int unitnum, int offset, int size);
-extern uae_u8 *				sys_command_read (int mode, int unitnum, int offset);
-extern int                  sys_command_write        (int mode, int unitnum, int offset);
+extern void sys_command_cd_pause (int mode, int unitnum, int paused);
+extern void sys_command_cd_stop (int mode, int unitnum);
+extern int sys_command_cd_play (int mode, int unitnum, uae_u32 startmsf, uae_u32 endmsf, int);
+extern void sys_command_cd_volume (int mode, int unitnum, uae_u16 volume);
+extern uae_u8 *sys_command_cd_qcode (int mode, int unitnum);
+extern uae_u8 *sys_command_cd_toc (int mode, int unitnum);
+extern uae_u8 *sys_command_cd_read (int mode, int unitnum, int offset);
+extern uae_u8 *sys_command_cd_rawread (int mode, int unitnum, int offset, int size);
+extern uae_u8 *sys_command_read (int mode, int unitnum, int offset);
+extern int sys_command_write (int mode, int unitnum, int offset);
 extern int sys_command_scsi_direct_native(int unitnum, struct amigascsi *as);
-extern int                  sys_command_scsi_direct  (int unitnum, uaecptr request);
+extern int sys_command_scsi_direct (int unitnum, uaecptr request);
 extern int sys_command_ismedia (int mode, int unitnum, int quick);
 
-void scsi_atapi_fixup_pre  (uae_u8 *scsi_cmd, int *len, uae_u8 **data, unsigned int *datalen, int *parm);
+void scsi_atapi_fixup_pre (uae_u8 *scsi_cmd, int *len, uae_u8 **data, unsigned int *datalen, int *parm);
 void scsi_atapi_fixup_post (uae_u8 *scsi_cmd, int len, uae_u8 *olddata, uae_u8 *data, unsigned int *datalen, int parm);
 
 void scsi_log_before (uae_u8 *cdb, int cdblen, uae_u8 *data, int datalen);

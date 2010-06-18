@@ -1648,20 +1648,20 @@ uae_u8 *restore_fpu (uae_u8 *src)
     changed_prefs.fpu_model = currprefs.fpu_model = restore_u32();
     flags = restore_u32 ();
     for (i = 0; i < 8; i++) {
-	uae_u32 w1 = restore_u32 ();
-	uae_u32 w2 = restore_u32 ();
-	uae_u32 w3 = restore_u16 ();
-	regs.fp[i] = to_exten (w1, w2, w3);
+		uae_u32 w1 = restore_u32 ();
+		uae_u32 w2 = restore_u32 ();
+		uae_u32 w3 = restore_u16 ();
+		regs.fp[i] = to_exten (w1, w2, w3);
     }
     regs.fpcr = restore_u32 ();
     native_set_fpucw (regs.fpcr);
     regs.fpsr = restore_u32 ();
     regs.fpiar = restore_u32 ();
     if (flags & 0x80000000) {
-	restore_u32();
-	restore_u32();
+		restore_u32();
+		restore_u32();
     }
-    write_log ("FPU=%d\n", currprefs.fpu_model);
+	write_log ("FPU=%d\n", currprefs.fpu_model);
     return src;
 }
 
@@ -1672,19 +1672,19 @@ uae_u8 *save_fpu (int *len, uae_u8 *dstptr)
 
     *len = 0;
     if (currprefs.fpu_model == 0)
-	return 0;
+		return 0;
     if (dstptr)
-	dstbak = dst = dstptr;
+		dstbak = dst = dstptr;
     else
 		dstbak = dst = xmalloc (uae_u8, 4+4+8*10+4+4+4+4+4);
     save_u32 (currprefs.fpu_model);
     save_u32 (0x80000000);
     for (i = 0; i < 8; i++) {
-	uae_u32 w1, w2, w3;
-	from_exten (regs.fp[i], &w1, &w2, &w3);
-	save_u32 (w1);
-	save_u32 (w2);
-	save_u16 (w3);
+		uae_u32 w1, w2, w3;
+		from_exten (regs.fp[i], &w1, &w2, &w3);
+		save_u32 (w1);
+		save_u32 (w2);
+		save_u16 (w3);
     }
     save_u32 (regs.fpcr);
     save_u32 (regs.fpsr);
@@ -1694,10 +1694,6 @@ uae_u8 *save_fpu (int *len, uae_u8 *dstptr)
     *len = dst - dstbak;
     return dstbak;
 }
-void fpux_save (int *v)
-{
-}
-void fpux_restore (int *v)
-{
-}
+void fpux_save (int *v) {}
+void fpux_restore (int *v) {}
 #endif /* SAVESTATE */

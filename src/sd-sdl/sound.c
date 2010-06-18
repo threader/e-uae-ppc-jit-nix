@@ -70,7 +70,7 @@ void finish_sound_buffer (void)
 	if (currprefs.turbo_emulation)
 		return;
 #ifdef DRIVESOUND
-    driveclick_mix ((uae_s16*)paula_sndbuffer, paula_sndbufsize / 2);
+	driveclick_mix ((uae_s16*)paula_sndbuffer, paula_sndbufsize / 2, currprefs.dfxclickchannelmask);
 #endif
 	if (!have_sound)
 		return;
@@ -223,7 +223,7 @@ int init_sound (void)
     write_comm_pipe_int (&to_sound_pipe, 0, 1);
     uae_sem_wait (&sound_init_sem);
     SDL_PauseAudio (0);
-#ifdef DRIVECLICK
+#ifdef DRIVESOUND
 	driveclick_reset ();
 #endif
     return have_sound;
