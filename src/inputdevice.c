@@ -4706,10 +4706,7 @@ void inputdevice_get_eventname (const struct inputevent *ie, TCHAR *out)
 {
 	if (!out)
 		return;
-	if (ie->allow_mask == AM_K)
-		_stprintf (out, "%s (0x%02X)", ie->name, ie->data);
-	else
-		_tcscpy (out, ie->name);
+	_tcscpy (out, ie->name);
 }
 
 int inputdevice_iterate (int devnum, int num, TCHAR *name, int *af)

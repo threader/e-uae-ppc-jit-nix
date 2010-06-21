@@ -288,7 +288,7 @@ void alloc_colors64k (int rw, int gw, int bw, int rs, int gs, int bs, int aw, in
 		redc[2 * 256 + i] = xredcolors[255];
 		grec[2 * 256 + i] = xgreencolors[255];
 		bluc[2 * 256 + i] = xbluecolors[255];
-		}
+	}
 #ifdef GFXFILTER
 	if (usedfilter && usedfilter->yuv) {
 		/* create internal 5:6:5 color tables */

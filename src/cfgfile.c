@@ -214,7 +214,7 @@ static const TCHAR *obsolete[] = {
 	"kickstart_key_file", "fast_copper", "sound_adjust",
 	"serial_hardware_dtrdsr", "gfx_filter_upscale",
 	"gfx_correct_aspect", "gfx_autoscale", "parallel_sampler", "parallel_ascii_emulation",
-	"avoid_vid", "avoid_dga",
+	"avoid_vid", "avoid_dga", "z3chipmem_size",
 	NULL
 };
 
@@ -292,9 +292,9 @@ const char *prefs_get_attr (const char *key)
     prefs_attr_t *attr = lookup_attr (key);
 
     if (attr)
-	return attr->value;
+		return attr->value;
     else
-	return 0;
+		return 0;
 }
 
 static void trimwsa (char *s)
@@ -423,13 +423,13 @@ void cfgfile_target_dwrite_str (struct zfile *f, const TCHAR *option, const TCHA
 
 void cfgfile_write (struct zfile *f, const TCHAR *option, const TCHAR *format,...)
 {
-    va_list parms;
+	va_list parms;
 	TCHAR tmp[CONFIG_BLEN];
 
-    va_start (parms, format);
+	va_start (parms, format);
 	vsnprintf (tmp, CONFIG_BLEN, format, parms);
 	cfg_dowrite (f, option, tmp, 0, 0);
-    va_end (parms);
+	va_end (parms);
 }
 void cfgfile_dwrite (struct zfile *f, const TCHAR *option, const TCHAR *format,...)
 {
@@ -642,6 +642,7 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 	cfgfile_write (f, "floppy_speed", "%d", p->floppy_speed);
 #ifdef DRIVESOUND
 	cfgfile_write (f, "floppy_volume", "%d", p->dfxclickvolume);
+	cfgfile_dwrite (f, "floppy_channel_mask", "0x%x", p->dfxclickchannelmask);
 #endif
 	cfgfile_write_bool (f, "parallel_on_demand", p->parallel_demand);
 	cfgfile_write_bool (f, "serial_on_demand", p->serial_demand);
@@ -882,11 +883,11 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 	cfgfile_write (f, "mbresmem_size", "%d", p->mbresmem_high_size / 0x100000);
 	cfgfile_write (f, "z3mem_size", "%d", p->z3fastmem_size / 0x100000);
 	cfgfile_write (f, "z3mem2_size", "%d", p->z3fastmem2_size / 0x100000);
-	cfgfile_write (f, "z3chipmem_size", "%d", p->z3chipmem_size / 0x100000);
 	cfgfile_write (f, "z3mem_start", "0x%x", p->z3fastmem_start);
 	cfgfile_write (f, "bogomem_size", "%d", p->bogomem_size / 0x40000);
 	cfgfile_write (f, "gfxcard_size", "%d", p->gfxmem_size / 0x100000);
 	cfgfile_write (f, "chipmem_size", "%d", p->chipmem_size == 0x20000 ? -1 : (p->chipmem_size == 0x40000 ? 0 : p->chipmem_size / 0x80000));
+	cfgfile_dwrite (f, "megachipmem_size", "%d", p->z3chipmem_size / 0x100000);
 
 	if (p->m68k_speed > 0)
 		cfgfile_write (f, "finegrain_cpu_speed", "%d", p->m68k_speed);
@@ -942,7 +943,7 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 	cfgfile_dwrite_bool (f, "warp", p->turbo_emulation);
 
 #ifdef FILESYS
-    //write_filesys_config (currprefs.mountinfo, UNEXPANDED, prefs_get_attr ("hardfile_path"), f);
+	//write_filesys_config (currprefs.mountinfo, UNEXPANDED, prefs_get_attr ("hardfile_path"), f);
 	if (p->filesys_no_uaefsdb)
 		cfgfile_write_bool (f, "filesys_no_fsdb", p->filesys_no_uaefsdb);
 #endif
@@ -957,10 +958,11 @@ int cfgfile_yesno2 (const TCHAR *option, const TCHAR *value, const TCHAR *name, 
 		|| strcasecmp (value, "true") == 0 || strcasecmp (value, "t") == 0)
 		*location = 1;
 	else if (strcasecmp (value, "no") == 0 || strcasecmp (value, "n") == 0
-		|| strcasecmp (value, "false") == 0 || strcasecmp (value, "f") == 0)
+		|| strcasecmp (value, "false") == 0 || strcasecmp (value, "f") == 0
+		|| strcasecmp (value, "0") == 0)
 		*location = 0;
 	else {
-		write_log ("Option `%s' requires a value of either `yes' or `no'.\n", option);
+		write_log ("Option `%s' requires a value of either `yes' or `no' (was '%s').\n", option, value);
 		return -1;
 	}
 	return 1;
@@ -1251,8 +1253,10 @@ static int cfgfile_parse_host (struct uae_prefs *p, TCHAR *option, TCHAR *value)
 		}
 	}
 
-	if (cfgfile_path (option, value, "cdimage0", p->cdimagefile, sizeof p->cdimagefile / sizeof (TCHAR)))
+	if (cfgfile_path (option, value, "cdimage0", p->cdimagefile, sizeof p->cdimagefile / sizeof (TCHAR))) {
+		p->cdimagefileuse = true;
 		return 1;
+	}
 
 	if (cfgfile_intval (option, value, "sound_frequency", &p->sound_freq, 1)) {
 		/* backwards compatibility */
@@ -1314,7 +1318,8 @@ static int cfgfile_parse_host (struct uae_prefs *p, TCHAR *option, TCHAR *value)
 		|| cfgfile_intval (option, value, "floppy2sound", &p->dfxclick[2], 1)
 		|| cfgfile_intval (option, value, "floppy3sound", &p->dfxclick[3], 1)
 #endif
-		|| cfgfile_intval (option, value, "floppy_volume", &p->dfxclickvolume, 1))		
+		|| cfgfile_intval (option, value, "floppy_channel_mask", &p->dfxclickchannelmask, 1)
+		|| cfgfile_intval (option, value, "floppy_volume", &p->dfxclickvolume, 1))
 		return 1;
 
 	if (
@@ -1921,32 +1926,33 @@ static int cfgfile_parse_hardware (struct uae_prefs *p, TCHAR *option, TCHAR *va
 		return 1;
 
 	if (cfgfile_intval (option, value, "cpu060_revision", &p->cpu060_revision, 1)
-	 || cfgfile_intval (option, value, "fpu_revision", &p->fpu_revision, 1)
-	 || cfgfile_intval (option, value, "cdtvramcard", &p->cs_cdtvcard, 1)
-	 || cfgfile_intval (option, value, "fatgary", &p->cs_fatgaryrev, 1)
-	 || cfgfile_intval (option, value, "ramsey", &p->cs_ramseyrev, 1)
-	 || cfgfile_intval (option, value, "chipset_refreshrate", &p->chipset_refreshrate, 1)
-	 || cfgfile_intval (option, value, "fastmem_size", &p->fastmem_size, 0x100000)
-	 || cfgfile_intval (option, value, "a3000mem_size", &p->mbresmem_low_size, 0x100000)
-	 || cfgfile_intval (option, value, "mbresmem_size", &p->mbresmem_high_size, 0x100000)
-	 || cfgfile_intval (option, value, "z3mem_size", &p->z3fastmem_size, 0x100000)
-	 || cfgfile_intval (option, value, "z3mem2_size", &p->z3fastmem2_size, 0x100000)
-	 || cfgfile_intval (option, value, "z3mem_start", &p->z3fastmem_start, 1)
-	 || cfgfile_intval (option, value, "bogomem_size", &p->bogomem_size, 0x40000)
-	 || cfgfile_intval (option, value, "gfxcard_size", &p->gfxmem_size, 0x100000)
-	 || cfgfile_intval (option, value, "rtg_modes", &p->picasso96_modeflags, 1)
-	 || cfgfile_intval (option, value, "floppy_speed", &p->floppy_speed, 1)
-	 || cfgfile_intval (option, value, "floppy_write_length", &p->floppy_write_length, 1)
-	 || cfgfile_intval (option, value, "nr_floppies", &p->nr_floppies, 1)
-	 || cfgfile_intval (option, value, "floppy0type", &p->dfxtype[0], 1)
-	 || cfgfile_intval (option, value, "floppy1type", &p->dfxtype[1], 1)
-	 || cfgfile_intval (option, value, "floppy2type", &p->dfxtype[2], 1)
-	 || cfgfile_intval (option, value, "floppy3type", &p->dfxtype[3], 1)
-	 || cfgfile_intval (option, value, "maprom", &p->maprom, 1)
-	 || cfgfile_intval (option, value, "parallel_autoflush", &p->parallel_autoflush_time, 1)
-	 || cfgfile_intval (option, value, "uae_hide", &p->uae_hide, 1)
-	 || cfgfile_intval (option, value, "cpu_frequency", &p->cpu_frequency, 1)
-	 || cfgfile_intval (option, value, "catweasel", &p->catweasel, 1))
+		|| cfgfile_intval (option, value, "fpu_revision", &p->fpu_revision, 1)
+		|| cfgfile_intval (option, value, "cdtvramcard", &p->cs_cdtvcard, 1)
+		|| cfgfile_intval (option, value, "fatgary", &p->cs_fatgaryrev, 1)
+		|| cfgfile_intval (option, value, "ramsey", &p->cs_ramseyrev, 1)
+		|| cfgfile_intval (option, value, "chipset_refreshrate", &p->chipset_refreshrate, 1)
+		|| cfgfile_intval (option, value, "fastmem_size", &p->fastmem_size, 0x100000)
+		|| cfgfile_intval (option, value, "a3000mem_size", &p->mbresmem_low_size, 0x100000)
+		|| cfgfile_intval (option, value, "mbresmem_size", &p->mbresmem_high_size, 0x100000)
+		|| cfgfile_intval (option, value, "z3mem_size", &p->z3fastmem_size, 0x100000)
+		|| cfgfile_intval (option, value, "z3mem2_size", &p->z3fastmem2_size, 0x100000)
+		|| cfgfile_intval (option, value, "megachipmem_size", &p->z3chipmem_size, 0x100000)
+		|| cfgfile_intval (option, value, "z3mem_start", &p->z3fastmem_start, 1)
+		|| cfgfile_intval (option, value, "bogomem_size", &p->bogomem_size, 0x40000)
+		|| cfgfile_intval (option, value, "gfxcard_size", &p->gfxmem_size, 0x100000)
+		|| cfgfile_intval (option, value, "rtg_modes", &p->picasso96_modeflags, 1)
+		|| cfgfile_intval (option, value, "floppy_speed", &p->floppy_speed, 1)
+		|| cfgfile_intval (option, value, "floppy_write_length", &p->floppy_write_length, 1)
+		|| cfgfile_intval (option, value, "nr_floppies", &p->nr_floppies, 1)
+		|| cfgfile_intval (option, value, "floppy0type", &p->dfxtype[0], 1)
+		|| cfgfile_intval (option, value, "floppy1type", &p->dfxtype[1], 1)
+		|| cfgfile_intval (option, value, "floppy2type", &p->dfxtype[2], 1)
+		|| cfgfile_intval (option, value, "floppy3type", &p->dfxtype[3], 1)
+		|| cfgfile_intval (option, value, "maprom", &p->maprom, 1)
+		|| cfgfile_intval (option, value, "parallel_autoflush", &p->parallel_autoflush_time, 1)
+		|| cfgfile_intval (option, value, "uae_hide", &p->uae_hide, 1)
+		|| cfgfile_intval (option, value, "cpu_frequency", &p->cpu_frequency, 1)
+		|| cfgfile_intval (option, value, "catweasel", &p->catweasel, 1))
 	return 1;
 
 #ifdef JIT
@@ -2522,7 +2528,7 @@ static int cfgfile_load_2 (struct uae_prefs *p, const TCHAR *filename, bool real
 
 	write_log ("Opening cfgfile '%s': ", filename);
 	fh = zfile_fopen (filename, "r", ZFD_NORMAL);
-#ifndef SINGLEFILE
+#ifndef	SINGLEFILE
 	if (! fh) {
 		write_log ("failed\n");
 		return 0;
@@ -2576,7 +2582,7 @@ static int cfgfile_load_2 (struct uae_prefs *p, const TCHAR *filename, bool real
 	subst (prefs_get_attr("rom_path"), p->romextfile, sizeof p->romextfile);
 	subst (prefs_get_attr("rom_path"), p->keyfile, sizeof p->keyfile);
 
-    return 1;
+	return 1;
 }
 
 int cfgfile_load (struct uae_prefs *p, const TCHAR *filename, int *type, int ignorelink, int userconfig)
@@ -3603,6 +3609,13 @@ void default_prefs (struct uae_prefs *p, int type)
     strcpy (p->flashfile, "");
 #ifdef ACTION_REPLAY
     strcpy (p->cartfile, "");
+#endif
+
+    prefs_set_attr ("rom_path",       strdup_path_expand (TARGET_ROM_PATH));
+    prefs_set_attr ("floppy_path",    strdup_path_expand (TARGET_FLOPPY_PATH));
+    prefs_set_attr ("hardfile_path",  strdup_path_expand (TARGET_HARDFILE_PATH));
+#ifdef SAVESTATE
+    prefs_set_attr ("savestate_path", strdup_path_expand (TARGET_SAVESTATE_PATH));
 #endif
 
 	_tcscpy (p->path_rom, "./");

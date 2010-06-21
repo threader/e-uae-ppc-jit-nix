@@ -1291,7 +1291,7 @@ static void drive_motor (drive * drv, bool off)
 #endif
 }
 
-static void read_floppy_data (struct zfile *diskfile, trackid *tid, int offset, void *dst, int len)
+static void read_floppy_data (struct zfile *diskfile, trackid *tid, int offset, uae_u8 *dst, int len)
 {
 	if (len == 0)
 		return;
@@ -1300,7 +1300,7 @@ static void read_floppy_data (struct zfile *diskfile, trackid *tid, int offset, 
 }
 
 /* Megalomania does not like zero MFM words... */
-static void mfmcode (uae_u16 *mfm, unsigned int words)
+static void mfmcode (uae_u16 * mfm, unsigned int words)
 {
 	uae_u32 lastword = 0;
 	while (words--) {

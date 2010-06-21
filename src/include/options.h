@@ -302,6 +302,7 @@ struct uae_prefs {
 	TCHAR amaxromfile[MAX_DPATH];
 	TCHAR a2065name[MAX_DPATH];
 	TCHAR cdimagefile[MAX_DPATH];
+	bool cdimagefileuse;
 	TCHAR quitstatefile[MAX_DPATH];
 #ifndef WIN32
 	char scsi_device[256];
@@ -510,7 +511,7 @@ extern int cfgfile_parse_option (struct uae_prefs *p, TCHAR *option, TCHAR *valu
 extern int cfgfile_get_description (const TCHAR *filename, TCHAR *description, TCHAR *hostlink, TCHAR *hardwarelink, int *type);
 extern void cfgfile_show_usage (void);
 */
-extern uae_u32 cfgfile_uaelib(int mode, uae_u32 name, uae_u32 dst, uae_u32 maxlen);
+extern uae_u32 cfgfile_uaelib (int mode, uae_u32 name, uae_u32 dst, uae_u32 maxlen);
 extern uae_u32 cfgfile_uaelib_modify (uae_u32 mode, uae_u32 parms, uae_u32 size, uae_u32 out, uae_u32 outsize);
 extern uae_u32 cfgfile_modify (uae_u32 index, TCHAR *parms, uae_u32 size, TCHAR *out, uae_u32 outsize);
 extern void cfgfile_addcfgparam (TCHAR *);

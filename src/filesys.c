@@ -1,26 +1,26 @@
- /*
-  * UAE - The Un*x Amiga Emulator
-  *
-  * Unix file system handler for AmigaDOS
-  *
-  * Copyright 1996 Ed Hanway
-  * Copyright 1996, 1997 Bernd Schmidt
-  *
-  * Version 0.4: 970308
-  *
-  * Based on example code (c) 1988 The Software Distillery
-  * and published in Transactor for the Amiga, Volume 2, Issues 2-5.
-  * (May - August 1989)
-  *
-  * Known limitations:
-  * Does not support several (useless) 2.0+ packet types.
-  * May not return the correct error code in some cases.
-  * Does not check for sane values passed by AmigaDOS.  May crash the emulation
-  * if passed garbage values.
-  * Could do tighter checks on malloc return values.
-  * Will probably fail spectacularly in some cases if the filesystem is
-  * modified at the same time by another process while UAE is running.
-  */
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * Unix file system handler for AmigaDOS
+ *
+ * Copyright 1996 Ed Hanway
+ * Copyright 1996, 1997 Bernd Schmidt
+ *
+ * Version 0.4: 970308
+ *
+ * Based on example code (c) 1988 The Software Distillery
+ * and published in Transactor for the Amiga, Volume 2, Issues 2-5.
+ * (May - August 1989)
+ *
+ * Known limitations:
+ * Does not support several (useless) 2.0+ packet types.
+ * May not return the correct error code in some cases.
+ * Does not check for sane values passed by AmigaDOS.  May crash the emulation
+ * if passed garbage values.
+ * Could do tighter checks on malloc return values.
+ * Will probably fail spectacularly in some cases if the filesystem is
+ * modified at the same time by another process while UAE is running.
+ */
 
 #include "sysconfig.h"
 #include "sysdeps.h"
@@ -69,8 +69,8 @@
 
 #define TRACING_ENABLED 0
 #if TRACING_ENABLED
-#define TRACE(x)	do { write_log x; } while(0)
-#define DUMPLOCK(u,x)	dumplock(u,x)
+#define TRACE(x) do { write_log x; } while(0)
+#define DUMPLOCK(u,x) dumplock(u,x)
 #else
 #define TRACE(x)
 #define DUMPLOCK(u,x)
@@ -87,10 +87,10 @@ static uae_u32 dlg (uae_u32 a)
 static void aino_test (a_inode *aino)
 {
 #ifdef AINO_DEBUG
-    a_inode *aino2 = aino, *aino3;
-    for (;;) {
+	a_inode *aino2 = aino, *aino3;
+	for (;;) {
 		if (!aino || !aino->next)
-		    return;
+			return;
 		if ((aino->checksum1 ^ aino->checksum2) != 0xaaaa5555) {
 			write_log ("PANIC: corrupted or freed but used aino detected!", aino);
 		}
@@ -98,10 +98,10 @@ static void aino_test (a_inode *aino)
 		aino = aino->next;
 		if (aino->prev != aino3) {
 			write_log ("PANIC: corrupted aino linking!\n");
-		    break;
+			break;
 		}
 		if (aino == aino2) break;
-    }
+	}
 #endif
 }
 
@@ -204,10 +204,10 @@ int is_hardfile (int unit_no)
 		return FILESYS_VIRTUAL;
 	if (mountinfo.ui[unit_no].hf.secspertrack == 0) {
 		if (mountinfo.ui[unit_no].hf.flags & 1)
-		    return FILESYS_HARDDRIVE;
+			return FILESYS_HARDDRIVE;
 		return FILESYS_HARDFILE_RDB;
-    }
-    return FILESYS_HARDFILE;
+	}
+	return FILESYS_HARDFILE;
 }
 
 static void close_filesys_unit (UnitInfo *uip)
@@ -237,7 +237,7 @@ static void close_filesys_unit (UnitInfo *uip)
 	uip->open = 0;
 }
 
-static UnitInfo *getuip(struct uae_prefs *p, int index)
+static UnitInfo *getuip (struct uae_prefs *p, int index)
 {
 	if (index < 0)
 		return NULL;
@@ -648,7 +648,7 @@ static void initialize_mountinfo (void)
 					uci->devname, uci->sectors, uci->surfaces, uci->reserved,
 					uci->bootpri, uci->filesys);
 #endif
-			}  else if (currprefs.cs_a2091) {
+			} else if (currprefs.cs_a2091) {
 #ifdef A2091
 				a2091_add_scsi_unit (uci->controller - HD_CONTROLLER_SCSI0, uci->rootdir, uci->blocksize, uci->readonly,
 					uci->devname, uci->sectors, uci->surfaces, uci->reserved,
@@ -705,7 +705,7 @@ struct hardfiledata *get_hardfile_data (int nr)
 
 /* field offsets in DosPacket */
 #define dp_Type 8
-#define dp_Res1	12
+#define dp_Res1 12
 #define dp_Res2 16
 #define dp_Arg1 20
 #define dp_Arg2 24
@@ -732,10 +732,10 @@ struct hardfiledata *get_hardfile_data (int nr)
 #define MAXFILESIZE32 (0x7fffffff)
 
 /* Passed as type to Lock() */
-#define SHARED_LOCK         -2     /* File is readable by others */
-#define ACCESS_READ         -2     /* Synonym */
-#define EXCLUSIVE_LOCK      -1     /* No other access allowed    */
-#define ACCESS_WRITE        -1     /* Synonym */
+#define SHARED_LOCK		-2	/* File is readable by others */
+#define ACCESS_READ		-2	/* Synonym */
+#define EXCLUSIVE_LOCK	-1	/* No other access allowed  */
+#define ACCESS_WRITE	-1	/* Synonym */
 
 /* packet types */
 #define ACTION_CURRENT_VOLUME	7
@@ -1668,7 +1668,7 @@ TCHAR *build_aname (const TCHAR *d, const TCHAR *n)
 	_tcscpy (p, d);
 	_tcscat (p, "/");
 	_tcscat (p, n);
-    return p;
+	return p;
 }
 
 /* This gets called to translate an Amiga name that some program used to
@@ -1740,7 +1740,7 @@ oh_dear:
 #if 0
 	/* Delete this code once we know everything works.  */
 	if (access (p, R_OK) >= 0 || errno != ENOENT) {
-	write_log ("Filesystem in trouble... please report.\n");
+		write_log ("Filesystem in trouble... please report.\n");
 		xfree (p);
 		goto oh_dear;
 	}
@@ -1779,7 +1779,7 @@ static int fill_file_attrs (Unit *u, a_inode *base, a_inode *c)
  */
 static TCHAR *get_aname (Unit *unit, a_inode *base, TCHAR *rel)
 {
-    return my_strdup (rel);
+	return my_strdup (rel);
 }
 
 static void init_child_aino_tree (Unit *unit, a_inode *base, a_inode *aino)
@@ -2428,11 +2428,11 @@ static uaecptr make_lock (Unit *unit, uae_u32 uniq, long mode)
 #define NOTIFY_CODE	0x1234
 
 #ifndef TARGET_AMIGAOS
-# define NRF_SEND_MESSAGE 1
-# define NRF_SEND_SIGNAL 2
-# define NRF_WAIT_REPLY 8
-# define NRF_NOTIFY_INITIAL 16
-# define NRF_MAGIC (1 << 31)
+#define NRF_SEND_MESSAGE 1
+#define NRF_SEND_SIGNAL 2
+#define NRF_WAIT_REPLY 8
+#define NRF_NOTIFY_INITIAL 16
+#define NRF_MAGIC (1 << 31)
 #endif
 
 static void notify_send (Unit *unit, Notify *n)
@@ -2457,7 +2457,7 @@ static void notify_check (Unit *unit, a_inode *a)
 	int hash = notifyhash (a->aname);
 	for (n = unit->notifyhash[hash]; n; n = n->next) {
 		uaecptr nr = n->notifyrequest;
-		if (same_aname(n->partname, a->aname)) {
+		if (same_aname (n->partname, a->aname)) {
 			int err;
 			a_inode *a2 = find_aino (unit, 0, n->fullname, &err);
 			if (err == 0 && a == a2)
@@ -2468,7 +2468,7 @@ static void notify_check (Unit *unit, a_inode *a)
 		hash = notifyhash (a->parent->aname);
 		for (n = unit->notifyhash[hash]; n; n = n->next) {
 			uaecptr nr = n->notifyrequest;
-			if (same_aname(n->partname, a->parent->aname)) {
+			if (same_aname (n->partname, a->parent->aname)) {
 				int err;
 				a_inode *a2 = find_aino (unit, 0, n->fullname, &err);
 				if (err == 0 && a->parent == a2)
@@ -2787,7 +2787,7 @@ static time_t
     }
 #  endif
 # endif
-    return t;
+	return t;
 }
 #endif
 
@@ -3345,22 +3345,22 @@ static uae_u32 REGPARAM2 exall_helper (TrapContext *context)
 
 static void action_examine_object (Unit *unit, dpacket packet)
 {
-    uaecptr lock = GET_PCK_ARG1 (packet) << 2;
-    uaecptr info = GET_PCK_ARG2 (packet) << 2;
-    a_inode *aino = 0;
+	uaecptr lock = GET_PCK_ARG1 (packet) << 2;
+	uaecptr info = GET_PCK_ARG2 (packet) << 2;
+	a_inode *aino = 0;
 
 	TRACE(("ACTION_EXAMINE_OBJECT(0x%lx,0x%lx)\n", lock, info));
-    DUMPLOCK(unit, lock);
+	DUMPLOCK(unit, lock);
 
-    if (lock != 0)
+	if (lock != 0)
 		aino = lookup_aino (unit, get_long (lock + 4));
-    if (aino == 0)
+	if (aino == 0)
 		aino = &unit->rootnode;
 
-    get_fileinfo (unit, packet, info, aino);
-    if (aino->dir) {
+	get_fileinfo (unit, packet, info, aino);
+	if (aino->dir) {
 		put_long (info, 0xFFFFFFFF);
-    } else
+	} else
 		put_long (info, 0);
 }
 
@@ -3374,24 +3374,24 @@ static void action_examine_object (Unit *unit, dpacket packet)
 static void populate_directory (Unit *unit, a_inode *base)
 {
 	struct fs_dirhandle *d;
-    a_inode *aino;
+	a_inode *aino;
 
 	d = fs_opendir (unit, base->nname);
-    if (!d)
+	if (!d)
 		return;
-    for (aino = base->child; aino; aino = aino->sibling) {
-	base->locked_children++;
-	unit->total_locked_ainos++;
-    }
+	for (aino = base->child; aino; aino = aino->sibling) {
+		base->locked_children++;
+		unit->total_locked_ainos++;
+	}
 	TRACE(("Populating directory, child %p, locked_children %d\n",
-	   base->child, base->locked_children));
-    for (;;) {
+		base->child, base->locked_children));
+	for (;;) {
 		TCHAR fn[MAX_DPATH];
 		struct dirent *ok;
 		uae_u32 err;
 
 		/* Find next file that belongs to the Amiga fs (skipping things
-	   	like "..", "." etc.  */
+		like "..", "." etc.  */
 		do {
 /*			if (d->isarch)
 				ok = zfile_readdir_archive(d->zd, fn);
@@ -3399,11 +3399,11 @@ static void populate_directory (Unit *unit, a_inode *base)
 				ok = readdir (d->od);
 		} while (ok && !d->isarch && fsdb_name_invalid (ok->d_name));
 		if (!ok)
-	    	break;
+			break;
 		/* This calls init_child_aino, which will notice that the parent is
-	   	being ExNext()ed, and it will increment the locked counts.  */
+		being ExNext()ed, and it will increment the locked counts.  */
 		aino = lookup_child_aino_for_exnext (unit, base, ok->d_name, &err);
-    }
+	}
 	fs_closedir (d);
 }
 
@@ -3411,11 +3411,11 @@ static void do_examine (Unit *unit, dpacket packet, ExamineKey *ek, uaecptr info
 {
 	for (;;) {
 		TCHAR *name;
-    	if (ek->curr_file == 0)
+		if (ek->curr_file == 0)
 			break;
 		name = ek->curr_file->nname;
-    	get_fileinfo (unit, packet, info, ek->curr_file);
-    	ek->curr_file = ek->curr_file->sibling;
+		get_fileinfo (unit, packet, info, ek->curr_file);
+		ek->curr_file = ek->curr_file->sibling;
 		if (!(unit->volflags & MYVOLUMEINFO_ARCHIVE) && !fsdb_exists(name)) {
 			TRACE (("%s orphaned", name));
 			continue;
@@ -3425,53 +3425,53 @@ static void do_examine (Unit *unit, dpacket packet, ExamineKey *ek, uaecptr info
 		return;
 	}
 	TRACE(("no more entries\n"));
-    free_exkey (unit, ek);
-    PUT_PCK_RES1 (packet, DOS_FALSE);
-    PUT_PCK_RES2 (packet, ERROR_NO_MORE_ENTRIES);
+	free_exkey (unit, ek);
+	PUT_PCK_RES1 (packet, DOS_FALSE);
+	PUT_PCK_RES2 (packet, ERROR_NO_MORE_ENTRIES);
 }
 
 static void action_examine_next (Unit *unit, dpacket packet)
 {
-    uaecptr lock = GET_PCK_ARG1 (packet) << 2;
-    uaecptr info = GET_PCK_ARG2 (packet) << 2;
-    a_inode *aino = 0;
-    ExamineKey *ek;
-    uae_u32 uniq;
+	uaecptr lock = GET_PCK_ARG1 (packet) << 2;
+	uaecptr info = GET_PCK_ARG2 (packet) << 2;
+	a_inode *aino = 0;
+	ExamineKey *ek;
+	uae_u32 uniq;
 
 	TRACE(("ACTION_EXAMINE_NEXT(0x%lx,0x%lx)\n", lock, info));
 	gui_flicker_led (LED_HD, unit->unit, 1);
-    DUMPLOCK(unit, lock);
+	DUMPLOCK(unit, lock);
 
-    if (lock != 0)
-	aino = lookup_aino (unit, get_long (lock + 4));
-    if (aino == 0)
-	aino = &unit->rootnode;
+	if (lock != 0)
+		aino = lookup_aino (unit, get_long (lock + 4));
+	if (aino == 0)
+		aino = &unit->rootnode;
 	for(;;) {
-    	uniq = get_long (info);
-    	if (uniq == 0) {
+		uniq = get_long (info);
+		if (uniq == 0) {
 			write_log ("ExNext called for a file! (Houston?)\n");
 			goto no_more_entries;
-    	} else if (uniq == 0xFFFFFFFE)
+		} else if (uniq == 0xFFFFFFFE)
 			goto no_more_entries;
-    	else if (uniq == 0xFFFFFFFF) {
+		else if (uniq == 0xFFFFFFFF) {
 			TRACE(("Creating new ExKey\n"));
 			ek = new_exkey (unit, aino);
 			if (ek) {
-			    if (aino->exnext_count++ == 0)
+				if (aino->exnext_count++ == 0)
 					populate_directory (unit, aino);
 				ek->curr_file = aino->child;
 				TRACE(("Initial curr_file: %p %s\n", ek->curr_file,
 					ek->curr_file ? ek->curr_file->aname : "NULL"));
 			}
-	    } else {
+		} else {
 			TRACE(("Looking up ExKey\n"));
 			ek = lookup_exkey (unit, get_long (info));
-	    }
-	    if (ek == 0) {
+		}
+		if (ek == 0) {
 			write_log ("Couldn't find a matching ExKey. Prepare for trouble.\n");
 			goto no_more_entries;
-	    }
-	    put_long (info, ek->uniq);
+		}
+		put_long (info, ek->uniq);
 		if (!ek->curr_file || ek->curr_file->mountcount == unit->mountcount)
 			break;
 		ek->curr_file = ek->curr_file->sibling;
@@ -3641,8 +3641,8 @@ static void
 
 	TRACE (("  mode is %d\n", mode));
 	openmode = (((mode & A_FIBF_READ) ? "wb"
-		 : (mode & A_FIBF_WRITE) ? "rb"
-		 : "r+b"));
+		: (mode & A_FIBF_WRITE) ? "rb"
+		: "r+b"));
 
 	/* the files on CD really can have the write-bit set.  */
 	if (unit->ui.readonly || unit->ui.locked)
@@ -3661,7 +3661,7 @@ static void
 
 	put_long (fh + 36, k->uniq);
 	/* I don't think I need to play with shlock count here, because I'm
-	   opening from an existing lock ??? */
+	opening from an existing lock ??? */
 
 	de_recycle_aino (unit, aino);
 	free_lock (unit, lock); /* lock must be unlocked */
@@ -3701,7 +3701,7 @@ static void
 static void updatedirtime (a_inode *a1, int now)
 {
 #if !defined TARGET_AMIGAOS || !defined WORDS_BIGENDIAN
-    struct stat statbuf;
+	struct stat statbuf;
 	struct utimbuf ut;
 	long days, mins, ticks;
 
@@ -4219,7 +4219,7 @@ static void
 	uaecptr info = GET_PCK_ARG2 (packet) << 2;
 
 	TRACE(("ACTION_EXAMINE_FH(0x%lx,0x%lx)\n",
-	   GET_PCK_ARG1 (packet), GET_PCK_ARG2 (packet) ));
+		GET_PCK_ARG1 (packet), GET_PCK_ARG2 (packet) ));
 
 	k = lookup_key (unit, GET_PCK_ARG1 (packet));
 	if (k != 0)
@@ -4315,7 +4315,7 @@ static void relock_re (Unit *unit, a_inode *a1, a_inode *a2, int failed)
 	for (k1 = unit->keys; k1; k1 = knext) {
 		knext = k1->next;
 		if (k1->aino == a1 && k1->fd) {
-		    char *mode = (k1->dosmode & A_FIBF_READ) == 0 ? "wb" : (k1->dosmode & A_FIBF_WRITE) == 0 ? "rb" : "r+b";
+			char *mode = (k1->dosmode & A_FIBF_READ) == 0 ? "wb" : (k1->dosmode & A_FIBF_WRITE) == 0 ? "rb" : "r+b";
 			if (failed) {
 				/* rename still failed, restore fd */
 				k1->fd = fs_open (unit, a1->nname, mode);
@@ -4419,10 +4419,10 @@ static void
 	}
 
 #if defined TARGET_AMIGAOS && defined WORDS_BIGENDIAN
-    if (err == 0 && SetFileDate (a->nname, (struct DateStamp *) date) == DOSFALSE)
-	err = IoErr ();
+	if (err == 0 && SetFileDate (a->nname, (struct DateStamp *) date) == DOSFALSE)
+		err = IoErr ();
 #else
-	ut.actime = ut.modtime = put_time(get_long (date), get_long (date + 4), get_long (date + 8));
+	ut.actime = ut.modtime = put_time (get_long (date), get_long (date + 4),get_long (date + 8));
 	a = find_aino (unit, lock, bstr (unit, name), &err);
 	if (err == 0 && utime (a->nname, &ut) == -1)
 		err = dos_errno ();
@@ -4557,7 +4557,7 @@ static void
 {
 	uaecptr name = GET_PCK_ARG1 (packet) << 2;
 
-    TRACE(("ACTION_RENAME_DISK(\"%s\")\n", bstr (unit, name)));
+	TRACE(("ACTION_RENAME_DISK(\"%s\")\n", bstr (unit, name)));
 
 	if (unit->ui.readonly || unit->ui.locked) {
 		PUT_PCK_RES1 (packet, DOS_FALSE);
@@ -5160,9 +5160,9 @@ static void filesys_reset2 (void)
 {
 	Unit *u, *u1;
 
-    /* We get called once from customreset at the beginning of the program
-     * before filesys_start_threads has been called. Survive that.  */
-    if (savestate_state == STATE_RESTORE)
+	/* We get called once from customreset at the beginning of the program
+	 * before filesys_start_threads has been called. Survive that.  */
+	if (savestate_state == STATE_RESTORE)
 		return;
 
 	filesys_free_handles ();
@@ -5480,12 +5480,12 @@ static void dump_partinfo (const char *name, int num, uaecptr pp, int partblock)
 
 static int rdb_mount (UnitInfo *uip, int unit_no, unsigned int partnum, uaecptr parmpacket)
 {
-    unsigned int lastblock = 63, blocksize, readblocksize;
+	unsigned int lastblock = 63, blocksize, readblocksize;
 	int badblock, driveinitblock;
 	uae_u8 bufrdb[FILESYS_MAX_BLOCKSIZE], *buf = 0;
 	uae_u8 *fsmem = 0;
-    unsigned int rdblock, partblock, fileblock, i;
-    int lsegblock;
+	unsigned int rdblock, partblock, fileblock, i;
+	int lsegblock;
 	uae_u32 flags;
 	struct hardfiledata *hfd = &uip->hf;
 	uae_u32 dostype;

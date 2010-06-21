@@ -41,14 +41,14 @@ static uae_u32 emulib_GetVersion (void)
  */
 static uae_u32 emulib_HardReset (void)
 {
-    uae_reset(0);
-    return 0;
+	uae_reset(0);
+	return 0;
 }
 
 static uae_u32 emulib_Reset (void)
 {
-    uae_reset(0);
-    return 0;
+	uae_reset(0);
+	return 0;
 }
 
 /*
@@ -56,11 +56,11 @@ static uae_u32 emulib_Reset (void)
  */
 static uae_u32 emulib_EnableSound (uae_u32 val)
 {
-    if (!sound_available || currprefs.produce_sound == 2)
+	if (!sound_available || currprefs.produce_sound == 2)
 		return 0;
 
-    currprefs.produce_sound = val;
-    return 1;
+	currprefs.produce_sound = val;
+	return 1;
 }
 
 /*
@@ -70,7 +70,7 @@ static uae_u32 emulib_EnableJoystick (uae_u32 val)
 {
 	currprefs.jports[0].id = val & 255;
 	currprefs.jports[1].id = (val >> 8) & 255;
-    return 1;
+	return 1;
 }
 
 /*
@@ -78,14 +78,14 @@ static uae_u32 emulib_EnableJoystick (uae_u32 val)
  */
 static uae_u32 emulib_SetFrameRate (uae_u32 val)
 {
-    if (val == 0)
+	if (val == 0)
 		return 0;
-    else if (val > 20)
+	else if (val > 20)
 		return 0;
-    else {
+	else {
 		currprefs.gfx_framerate = val;
 		return 1;
-    }
+	}
 }
 
 /*
@@ -132,16 +132,16 @@ static uae_u32 emulib_ChangeLanguage (uae_u32 which)
  */
 static uae_u32 REGPARAM2 emulib_ChgCMemSize (uae_u32 memsize)
 {
-    if (memsize != 0x80000 && memsize != 0x100000 &&
+	if (memsize != 0x80000 && memsize != 0x100000 &&
 		memsize != 0x200000) {
 			memsize = 0x200000;
 			write_log ("Unsupported chipmem size!\n");
-    }
-    m68k_dreg (regs, 0) = 0;
+	}
+	m68k_dreg (regs, 0) = 0;
 
 	changed_prefs.chipmem_size = memsize;
-    uae_reset(0);
-    return 1;
+	uae_reset(0);
+	return 1;
 }
 
 /*
@@ -150,16 +150,16 @@ static uae_u32 REGPARAM2 emulib_ChgCMemSize (uae_u32 memsize)
  */
 static uae_u32 REGPARAM2 emulib_ChgSMemSize (uae_u32 memsize)
 {
-    if (memsize != 0x80000 && memsize != 0x100000 &&
+	if (memsize != 0x80000 && memsize != 0x100000 &&
 		memsize != 0x180000 && memsize != 0x1C0000) {
 			memsize = 0;
 			write_log ("Unsupported bogomem size!\n");
-    }
+	}
 
-    m68k_dreg (regs, 0) = 0;
+	m68k_dreg (regs, 0) = 0;
 	changed_prefs.bogomem_size = memsize;
-    uae_reset (0);
-    return 1;
+	uae_reset (0);
+	return 1;
 }
 
 /*
@@ -168,15 +168,15 @@ static uae_u32 REGPARAM2 emulib_ChgSMemSize (uae_u32 memsize)
  */
 static uae_u32 REGPARAM2 emulib_ChgFMemSize (uae_u32 memsize)
 {
-    if (memsize != 0x100000 && memsize != 0x200000 &&
+	if (memsize != 0x100000 && memsize != 0x200000 &&
 		memsize != 0x400000 && memsize != 0x800000) {
 			memsize = 0;
 			write_log ("Unsupported fastmem size!\n");
-    }
-    m68k_dreg (regs, 0) = 0;
+	}
+	m68k_dreg (regs, 0) = 0;
 	changed_prefs.fastmem_size = memsize;
-    uae_reset (0);
-    return 0;
+	uae_reset (0);
+	return 0;
 }
 
 /*
@@ -184,21 +184,21 @@ static uae_u32 REGPARAM2 emulib_ChgFMemSize (uae_u32 memsize)
  */
 static uae_u32 emulib_InsertDisk (uaecptr name, uae_u32 drive)
 {
-    int i = 0;
-    char real_name[256];
+	int i = 0;
+	char real_name[256];
 
-    if (drive > 3)
+	if (drive > 3)
 		return 0;
 
-    while ((real_name[i] = get_byte (name + i)) != 0 && i++ != 254)
+	while ((real_name[i] = get_byte (name + i)) != 0 && i++ != 254)
 		;
 
-    if (i == 255)
+	if (i == 255)
 		return 0; /* ENAMETOOLONG */
 
 	strcpy (changed_prefs.df[drive], real_name);
 
-    return 1;
+	return 1;
 }
 
 /*
@@ -206,8 +206,8 @@ static uae_u32 emulib_InsertDisk (uaecptr name, uae_u32 drive)
  */
 static uae_u32 emulib_ExitEmu (void)
 {
-    uae_quit ();
-    return 1;
+	uae_quit ();
+	return 1;
 }
 
 /*
@@ -215,38 +215,38 @@ static uae_u32 emulib_ExitEmu (void)
  */
 static uae_u32 emulib_GetUaeConfig (uaecptr place)
 {
-    int i, j;
+	int i, j;
 
 	put_long (place, UAEVERSION);
-    put_long (place + 4, allocated_chipmem);
-    put_long (place + 8, allocated_bogomem);
-    put_long (place + 12, allocated_fastmem);
-    put_long (place + 16, currprefs.gfx_framerate);
-    put_long (place + 20, currprefs.produce_sound);
+	put_long (place + 4, allocated_chipmem);
+	put_long (place + 8, allocated_bogomem);
+	put_long (place + 12, allocated_fastmem);
+	put_long (place + 16, currprefs.gfx_framerate);
+	put_long (place + 20, currprefs.produce_sound);
 	put_long (place + 24, currprefs.jports[0].id | (currprefs.jports[1].id << 8));
-    put_long (place + 28, currprefs.keyboard_lang);
-    if (disk_empty (0))
+	put_long (place + 28, currprefs.keyboard_lang);
+	if (disk_empty (0))
 		put_byte (place + 32, 0);
-    else
+	else
 		put_byte (place + 32, 1);
-    if (disk_empty (1))
+	if (disk_empty (1))
 		put_byte (place + 33, 0);
-    else
+	else
 		put_byte (place + 33, 1);
-    if (disk_empty(2))
+	if (disk_empty(2))
 		put_byte (place + 34, 0);
-    else
+	else
 		put_byte (place + 34, 1);
-    if (disk_empty(3))
+	if (disk_empty(3))
 		put_byte (place + 35, 0);
-    else
+	else
 		put_byte (place + 35, 1);
 
 	for (j = 0; j < 4; j++) {
 		for (i = 0; i < 256; i++)
 			put_byte (place + 36 + i + j * 256, currprefs.df[j][i]);
-    }
-    return 1;
+	}
+	return 1;
 }
 
 /*
@@ -256,7 +256,7 @@ static uae_u32 emulib_GetUaeConfig (uaecptr place)
  */
 static uae_u32 emulib_SetUaeConfig (uaecptr place)
 {
-    return 1;
+	return 1;
 }
 
 /*
@@ -264,14 +264,14 @@ static uae_u32 emulib_SetUaeConfig (uaecptr place)
  */
 static uae_u32 emulib_GetDisk (uae_u32 drive, uaecptr name)
 {
-    int i;
-    if (drive > 3)
+	int i;
+	if (drive > 3)
 		return 0;
 
-    for (i = 0;i < 256; i++) {
+	for (i = 0;i < 256; i++) {
 		put_byte (name + i, currprefs.df[drive][i]);
-    }
-    return 1;
+	}
+	return 1;
 }
 
 /*
@@ -280,16 +280,16 @@ static uae_u32 emulib_GetDisk (uae_u32 drive, uaecptr name)
 static uae_u32 emulib_Debug (void)
 {
 #ifdef DEBUGGER
-    activate_debugger ();
-    return 1;
+	activate_debugger ();
+	return 1;
 #else
-    return 0;
+	return 0;
 #endif
 }
 
 
-#define CREATE_NATIVE_FUNC_PTR uae_u32 (* native_func)( uae_u32, uae_u32, uae_u32, uae_u32, uae_u32, uae_u32, uae_u32, \
-						 uae_u32, uae_u32, uae_u32, uae_u32, uae_u32, uae_u32)
+#define CREATE_NATIVE_FUNC_PTR uae_u32 (* native_func) (uae_u32, uae_u32, uae_u32, uae_u32, uae_u32, uae_u32, uae_u32, \
+	uae_u32, uae_u32, uae_u32, uae_u32, uae_u32, uae_u32)
 #define SET_NATIVE_FUNC(x) native_func = (uae_u32 (*)(uae_u32, uae_u32, uae_u32, uae_u32, uae_u32, uae_u32, uae_u32, uae_u32, uae_u32, uae_u32, uae_u32, uae_u32, uae_u32))(x)
 #define CALL_NATIVE_FUNC( d1,d2,d3,d4,d5,d6,d7,a1,a2,a3,a4,a5,a6 ) if(native_func) native_func( d1,d2,d3,d4,d5,d6,d7,a1,a2,a3,a4,a5,a6 )
 /* A0 - Contains a ptr to the native .obj data.  This ptr is Amiga-based. */
@@ -297,39 +297,39 @@ static uae_u32 emulib_Debug (void)
 static uae_u32 REGPARAM2 emulib_ExecuteNativeCode (void)
 {
 #if 0
-    uaecptr object_AAM = m68k_areg (regs, 0);
-    uae_u32 d1 = m68k_dreg (regs, 1);
-    uae_u32 d2 = m68k_dreg (regs, 2);
-    uae_u32 d3 = m68k_dreg (regs, 3);
-    uae_u32 d4 = m68k_dreg (regs, 4);
-    uae_u32 d5 = m68k_dreg (regs, 5);
-    uae_u32 d6 = m68k_dreg (regs, 6);
-    uae_u32 d7 = m68k_dreg (regs, 7);
-    uae_u32 a1 = m68k_areg (regs, 1);
-    uae_u32 a2 = m68k_areg (regs, 2);
-    uae_u32 a3 = m68k_areg (regs, 3);
-    uae_u32 a4 = m68k_areg (regs, 4);
-    uae_u32 a5 = m68k_areg (regs, 5);
-    uae_u32 a6 = m68k_areg (regs, 6);
+	uaecptr object_AAM = m68k_areg (regs, 0);
+	uae_u32 d1 = m68k_dreg (regs, 1);
+	uae_u32 d2 = m68k_dreg (regs, 2);
+	uae_u32 d3 = m68k_dreg (regs, 3);
+	uae_u32 d4 = m68k_dreg (regs, 4);
+	uae_u32 d5 = m68k_dreg (regs, 5);
+	uae_u32 d6 = m68k_dreg (regs, 6);
+	uae_u32 d7 = m68k_dreg (regs, 7);
+	uae_u32 a1 = m68k_areg (regs, 1);
+	uae_u32 a2 = m68k_areg (regs, 2);
+	uae_u32 a3 = m68k_areg (regs, 3);
+	uae_u32 a4 = m68k_areg (regs, 4);
+	uae_u32 a5 = m68k_areg (regs, 5);
+	uae_u32 a6 = m68k_areg (regs, 6);
 
-    uae_u8* object_UAM = NULL;
-    CREATE_NATIVE_FUNC_PTR;
+	uae_u8* object_UAM = NULL;
+	CREATE_NATIVE_FUNC_PTR;
 
-    if( get_mem_bank( object_AAM ).check( object_AAM, 1 ) )
-	object_UAM = get_mem_bank( object_AAM).xlateaddr( object_AAM );
+	if (get_mem_bank(object_AAM).check (object_AAM, 1))
+		object_UAM = get_mem_bank (object_AAM).xlateaddr (object_AAM);
 
 	if (object_UAM) {
-	SET_NATIVE_FUNC( FindFunctionInObject( object_UAM ) );
-	CALL_NATIVE_FUNC( d1, d2, d3, d4, d5, d6, d7, a1, a2, a3, a4, a5, a6);
-    }
-    return 1;
+		SET_NATIVE_FUNC (FindFunctionInObject (object_UAM));
+		CALL_NATIVE_FUNC (d1, d2, d3, d4, d5, d6, d7, a1, a2, a3, a4, a5, a6);
+	}
+	return 1;
 #endif
-    return 0;
+	return 0;
 }
 
 static uae_u32 emulib_Minimize (void)
 {
-    return 0; // OSDEP_minimize_uae();
+	return 0; // OSDEP_minimize_uae();
 }
 
 static int native_dos_op (uae_u32 mode, uae_u32 p1, uae_u32 p2, uae_u32 p3)
@@ -369,7 +369,7 @@ static uae_u32 REGPARAM2 uaelib_demux2 (TrapContext *context)
 	//	return picasso_demux (ARG0, context);
 #endif
 
-    switch (ARG0)
+	switch (ARG0)
 	{
 	case 0: return emulib_GetVersion ();
 	case 1: return emulib_GetUaeConfig (ARG1);
@@ -414,8 +414,8 @@ static uae_u32 REGPARAM2 uaelib_demux2 (TrapContext *context)
 			return d0;
 		}
 
-    }
-    return 0;
+	}
+	return 0;
 }
 
 int uaelib_debug;
@@ -458,6 +458,6 @@ void emulib_install (void)
 	dw (get_word (rtarea_base + 38) + 12);
 #endif
 	calltrap (deftrapres (uaelib_demux, 0, "uaelib_demux"));
-    dw (RTS);
-    org (a);
+	dw (RTS);
+	org (a);
 }

@@ -237,7 +237,7 @@ void floppyfileentry_set_currentdir (FloppyFileEntry *ffe, const gchar *pathname
     int len = strlen (pathname);
 
     if (ffe_currentdir)
-	g_free (ffe_currentdir);
+		g_free (ffe_currentdir);
 
     /*
      * Make sure it has a trailing path separator so the file dialog

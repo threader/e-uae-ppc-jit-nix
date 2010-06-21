@@ -1082,10 +1082,16 @@ static void illg_init (void)
 		memset (illgdebug + 0xe00000, 1, 512 * 1024); /* CD32 ext ROM */
 	}
 #endif
+	if (currprefs.cs_ksmirror_e0)
+		memset (illgdebug + 0xe00000, 1, 512 * 1024);
+	if (currprefs.cs_ksmirror_a8)
+		memset (illgdebug + 0xa80000, 1, 2 * 512 * 1024);
 #ifdef FILESYS
 	if (uae_boot_rom) /* filesys "rom" */
 		memset (illgdebug + rtarea_base, 1, 0x10000);
 #endif
+	if (currprefs.cs_ide > 0)
+		memset (illgdebug + 0xdd0000, 3, 65536);
 }
 
 /* add special custom register check here */
@@ -1130,7 +1136,7 @@ static void illg_debug_do (uaecptr addr, int rwi, int size, uae_u32 val)
 	}
 }
 
-STATIC_INLINE uae_u8 debug_mem_off (uaecptr addr)
+STATIC_INLINE int debug_mem_off (uaecptr addr)
 {
 	return munge24 (addr) >> 16;
 }
@@ -1534,7 +1540,7 @@ static void deinitialize_memwatch (void)
     unsigned int i;
 
     if (!memwatch_enabled)
-	return;
+		return;
     for (i = 0; i < 256; i++) {
 	addrbank *a1 = debug_mem_banks[i];
 	addrbank *a2 = mem_banks[i];
@@ -1686,18 +1692,18 @@ static void memwatch (const char **c)
 	console_out ("Memwatch %d removed\n", num);
 	return;
     }
-    mwn->addr = readhex (c);
-    mwn->size = 1;
+	mwn->addr = readhex (c);
+	mwn->size = 1;
 	mwn->rwi = 7;
-    mwn->val_enabled = 0;
+	mwn->val_enabled = 0;
 	mwn->valmask = 0xffffffff;
 	mwn->frozen = 0;
-    mwn->modval_written = 0;
-    ignore_ws (c);
-    if (more_params (c)) {
-	mwn->size = readhex (c);
+	mwn->modval_written = 0;
 	ignore_ws (c);
 	if (more_params (c)) {
+		mwn->size = readhex (c);
+		ignore_ws (c);
+		if (more_params (c)) {
 	    char nc = toupper (next_char (c));
 	    if (nc == 'W')
 		mwn->rwi = 1;
@@ -1711,38 +1717,49 @@ static void memwatch (const char **c)
 				    mwn->modval_written = 1;
 				} else if (toupper (**c) == 'C') {
 					mwn->mustchange = 1;
-		} else {
-		    mwn->val = readhex (c);
-		    mwn->val_enabled = 1;
+				} else {
+					mwn->val = readhex (c);
+					mwn->val_enabled = 1;
+				}
+			}
 		}
-	    }
 	}
-    }
 	if (mwn->frozen && mwn->rwi == 0)
 		mwn->rwi = 3;
-    memwatch_dump (num);
+	memwatch_dump (num);
 }
 
 static void writeintomem (const char **c)
 {
-    uae_u32 addr = 0;
-    uae_u32 val = 0;
-    char cc;
+	uae_u32 addr = 0;
+	uae_u32 val = 0;
+	char cc;
+	int len = 1;
 
-    ignore_ws (c);
-    addr = readhex (c);
-    ignore_ws (c);
-    val = readhex (c);
-    if (val > 0xffff) {
-	put_long (addr, val);
-	cc = 'L';
-    } else if (val > 0xff) {
-	put_word (addr, val);
-	cc = 'W';
-    } else {
-	put_byte (addr, val);
-	cc = 'B';
-    }
+	ignore_ws(c);
+	addr = readhex (c);
+	ignore_ws(c);
+	val = readhex (c);
+	if (val > 0xffff)
+		len = 4;
+	else if (val > 0xff)
+		len = 2;
+	else
+		len = 1;
+	if (more_params (c)) {
+		ignore_ws (c);
+		len = readint (c);
+	}
+	if (len == 4) {
+		put_long (addr, val);
+		cc = 'L';
+	} else if (len == 2) {
+		put_word (addr, val);
+		cc = 'W';
+	} else {
+		put_byte (addr, val);
+		cc = 'B';
+	}
 	console_out ("Wrote %X (%u) at %08X.%c\n", val, val, addr, cc);
 }
 
@@ -1755,12 +1772,13 @@ static uae_u8 *dump_xlate (uae_u32 addr)
 
 static void memory_map_dump_2 (int log)
 {
-	int i, j, max, im;
+	bool imold;
+	int i, j, max;
 	addrbank *a1 = mem_banks[0];
 	char txt[256];
 
-	im = currprefs.illegal_mem;
-	currprefs.illegal_mem = 0;
+	imold = currprefs.illegal_mem;
+	currprefs.illegal_mem = false;
 	max = currprefs.address_space_24 ? 256 : 65536;
 	j = 0;
 	for (i = 0; i < max + 1; i++) {
@@ -1824,7 +1842,7 @@ static void memory_map_dump_2 (int log)
 			a1 = a2;
 		}
 	}
-	currprefs.illegal_mem = im;
+	currprefs.illegal_mem = imold;
 }
 void memory_map_dump (void)
 {
@@ -2006,56 +2024,56 @@ int instruction_breakpoint (const char **c)
 
 static void savemem (char **cc)
 {
-    uae_u8 b;
-    uae_u32 src, src2, len, len2;
+	uae_u8 b;
+	uae_u32 src, src2, len, len2;
     char *name;
-    FILE *fp;
+	FILE *fp;
 
-    if (!more_params (cc))
-	goto S_argh;
+	if (!more_params (cc))
+		goto S_argh;
 
-    name = *cc;
-    while (**cc != '\0' && !isspace (**cc))
+	name = *cc;
+	while (**cc != '\0' && !isspace (**cc))
 		(*cc)++;
-    if (!isspace (**cc))
+	if (!isspace (**cc))
 		goto S_argh;
 
 	**cc = '\0';
-    (*cc)++;
-    if (!more_params (cc))
+	(*cc)++;
+	if (!more_params (cc))
 		goto S_argh;
-    src2 = src = readhex (cc);
-    if (!more_params (cc))
+	src2 = src = readhex (cc);
+	if (!more_params (cc))
 		goto S_argh;
-    len2 = len = readhex (cc);
+	len2 = len = readhex (cc);
 	fp = fopen (name, "wb");
-    if (fp == NULL) {
+	if (fp == NULL) {
 		console_out ("Couldn't open file '%s'\n", name);
 		return;
-    }
-    while (len > 0) {
+	}
+	while (len > 0) {
 		b = get_byte (src);
 		src++;
 		len--;
 		if (fwrite (&b, 1, 1, fp) != 1) {
 			console_out ("Error writing file\n");
-		    break;
+			break;
 		}
-    }
-    fclose (fp);
-    if (len == 0)
+	}
+	fclose (fp);
+	if (len == 0)
 		console_out ("Wrote %08X - %08X (%d bytes) to '%s'\n",
 		src2, src2 + len2 - 1, len2, name);
-    return;
+	return;
 S_argh:
 	console_out ("S-command needs more arguments!\n");
 }
 
 static void searchmem (const char **cc)
 {
-    int i, sslen, got, val, stringmode;
-    uae_u8 ss[256];
-    uae_u32 addr, endaddr;
+	int i, sslen, got, val, stringmode;
+	uae_u8 ss[256];
+	uae_u32 addr, endaddr;
     char nc;
 
 	got = 0;
@@ -2075,7 +2093,7 @@ static void searchmem (const char **cc)
 		for (;;) {
 			if (**cc == 32 || **cc == 0)
 				break;
-	    nc = toupper (next_char (cc));
+			nc = toupper (next_char (cc));
 			if (isspace (nc))
 				break;
 			if (isdigit(nc))
@@ -2087,7 +2105,7 @@ static void searchmem (const char **cc)
 			val *= 16;
 			if (**cc == 32 || **cc == 0)
 				break;
-	    nc = toupper (next_char (cc));
+			nc = toupper (next_char (cc));
 			if (isspace (nc))
 				break;
 			if (isdigit(nc))
@@ -2109,30 +2127,30 @@ static void searchmem (const char **cc)
 		if (more_params (cc))
 			endaddr = readhex (cc);
 	}
-    console_out ("Searching from %08x to %08x..\n", addr, endaddr);
+	console_out ("Searching from %08x to %08x..\n", addr, endaddr);
 	while ((addr = nextaddr (addr, NULL)) != 0xffffffff) {
 		if (addr == endaddr)
 			break;
 		for (i = 0; i < sslen; i++) {
-	    uae_u8 b = get_byte (addr + i);
-	    if (stringmode) {
-		if (tolower (b) != ss[i])
-		    break;
-	    } else {
-		if (b != ss[i])
-		    break;
-	    }
+			uae_u8 b = get_byte (addr + i);
+			if (stringmode) {
+				if (tolower (b) != ss[i])
+					break;
+			} else {
+				if (b != ss[i])
+					break;
+			}
+		}
+		if (i == sslen) {
+			got++;
+			console_out (" %08x", addr);
+			if (got > 100) {
+				console_out ("\nMore than 100 results, aborting..");
+				break;
+			}
+		}
 	}
-	if (i == sslen) {
-	    got++;
-	    console_out (" %08x", addr);
-	    if (got > 100) {
-		console_out ("\nMore than 100 results, aborting..");
-		break;
-	    }
-	}
-    }
-    if (!got)
+	if (!got)
 		console_out ("nothing found");
 	console_out ("\n");
 }
@@ -2140,7 +2158,7 @@ static void searchmem (const char **cc)
 #ifdef SAVESTATE
 static int staterecorder (const char **cc)
 {
-    char nc;
+	char nc;
 
 	if (!more_params (cc)) {
 		if (savestate_dorewind (1)) {
@@ -2165,8 +2183,8 @@ static const TCHAR *debugtest_names[] = {
 
 static void disk_debug (const char **inptr)
 {
-    char parm[10];
-    unsigned int i;
+	char parm[10];
+	unsigned int i;
 
 	if (**inptr == 'd') {
 		(*inptr)++;
@@ -2236,16 +2254,16 @@ static void find_ea (char **inptr)
 
 static void m68k_modify (const char **inptr)
 {
-    uae_u32 v;
-    char parm[10];
-    unsigned char c1, c2;
+	uae_u32 v;
+	char parm[10];
+	unsigned char c1, c2;
 	int i;
 
 	if (!next_string (inptr, parm, sizeof (parm) / sizeof (TCHAR), 1))
 		return;
-    c1 = toupper (parm[0]);
-    c2 = 99;
-    if (c1 == 'A' || c1 == 'D' || c1 == 'P') {
+	c1 = toupper (parm[0]);
+	c2 = 99;
+	if (c1 == 'A' || c1 == 'D' || c1 == 'P') {
 		c2 = toupper (parm[1]);
 		if (isdigit (c2))
 			c2 -= '0';
@@ -2285,13 +2303,13 @@ static void m68k_modify (const char **inptr)
 static void debug_1 (void)
 {
 	char input[MAX_LINEWIDTH];
-    uaecptr nxdis, nxmem, addr;
+	uaecptr nxdis, nxmem, addr;
 
-    m68k_dumpstate (stdout, &nextpc);
-    nxdis = nextpc; nxmem = 0;
+	m68k_dumpstate (stdout, &nextpc);
+	nxdis = nextpc; nxmem = 0;
 	debugger_active = 1;
 
-    for (;;) {
+	for (;;) {
 		char cmd;
 		const char *inptr;
 		int v;
@@ -2333,20 +2351,24 @@ static void debug_1 (void)
 			}
 			break;
 		}
-	case 'e': dump_custom_regs (); break;
-	case 'r': if (more_params (&inptr))
-		      m68k_modify (&inptr);
-		  else
-		      m68k_dumpstate (stdout, &nextpc);
-	break;
-	case 'C': cheatsearch (&inptr); break;
-	case 'W': writeintomem (&inptr); break;
-	case 'w': memwatch (&inptr); break;
-	case 'S': savemem (&inptr); break;
-	case 's':
-	    if (*inptr == 'c') {
-//		screenshot (1, 1);
-	    } else if (*inptr == 'm') {
+		case 'e': dump_custom_regs (); break;
+		case 'r':
+			{
+				if (more_params(&inptr))
+					m68k_modify (&inptr);
+				else
+					m68k_dumpstate (stdout, &nextpc);
+			}
+			break;
+		//case 'D': deepcheatsearch (&inptr); break;
+		case 'C': cheatsearch (&inptr); break;
+		case 'W': writeintomem (&inptr); break;
+		case 'w': memwatch (&inptr); break;
+		case 'S': savemem (&inptr); break;
+		case 's':
+			if (*inptr == 'c') {
+				;//screenshot (1, 1);
+			} else if (*inptr == 'm') {
 		next_char (&inptr);
 		if (more_params (&inptr))
 		    debug_sprite_mask = readint (&inptr);
@@ -2497,13 +2519,13 @@ static void debug_1 (void)
 
 static void addhistory (void)
 {
-    history[lasthist] = regs;
-    history[lasthist].pc = m68k_getpc ();
-    if (++lasthist == MAX_HIST)
-	lasthist = 0;
-    if (lasthist == firsthist) {
-	if (++firsthist == MAX_HIST) firsthist = 0;
-    }
+	history[lasthist] = regs;
+	history[lasthist].pc = m68k_getpc ();
+	if (++lasthist == MAX_HIST)
+		lasthist = 0;
+	if (lasthist == firsthist) {
+		if (++firsthist == MAX_HIST) firsthist = 0;
+	}
 }
 
 void debug (void)
@@ -2537,91 +2559,95 @@ void debug (void)
     }
 #endif
 
-    if (!memwatch_triggered) {
-	if (do_skip) {
-	    uae_u32 pc = munge24 (m68k_getpc ());
-	    uae_u16 opcode = (currprefs.cpu_compatible || currprefs.cpu_cycle_exact) ? regs.ir : get_word (pc);
-	    int bp = 0;
+	if (!memwatch_triggered) {
+		if (do_skip) {
+			uae_u32 pc;
+			uae_u16 opcode;
+			int bp = 0;
 
-	    for (i = 0; i < BREAKPOINT_TOTAL; i++) {
-		if (!bpnodes[i].enabled)
-		    continue;
-		if (bpnodes[i].addr == pc) {
-		    bp = 1;
-		    console_out ("Breakpoint at %8.8X\n", pc);
-		    break;
+			pc = munge24 (m68k_getpc ());
+			opcode = (currprefs.cpu_compatible || currprefs.cpu_cycle_exact) ? regs.ir : get_word (pc);
+
+			for (i = 0; i < BREAKPOINT_TOTAL; i++) {
+				if (!bpnodes[i].enabled)
+					continue;
+				if (bpnodes[i].addr == pc) {
+					bp = 1;
+					console_out (L"Breakpoint at %08X\n", pc);
+					break;
+				}
+			}
+
+			if (skipaddr_doskip) {
+				if (skipaddr_start == pc)
+					bp = 1;
+				if (skipins != 0xffffffff) {
+					if (skipins == 0x10000) {
+						if (opcode == 0x4e75 || opcode == 0x4e73 || opcode == 0x4e77)
+							bp = 1;
+					} else if (opcode == skipins)
+						bp = 1;
+				} else if (skipaddr_start == 0xffffffff && skipaddr_doskip < 0) {
+					if ((pc < 0xe00000 || pc >= 0x1000000) && opcode != 0x4ef9)
+						bp = 1;
+				} else if (skipaddr_start == 0xffffffff && skipaddr_doskip > 0) {
+					bp = 1;
+				} else if (skipaddr_end != 0xffffffff) {
+					if (pc >= skipaddr_start && pc < skipaddr_end)
+						bp = 1;
+				}
+			}
+			if (sr_bpmask || sr_bpvalue) {
+				MakeSR ();
+				if ((regs.sr & sr_bpmask) == sr_bpvalue) {
+					console_out ("SR breakpoint\n");
+					bp = 1;
+				}
+			}
+			if (!bp) {
+				set_special (SPCFLAG_BRK);
+				return;
+			}
 		}
-	    }
-	    if (skipaddr_doskip) {
-		if (skipaddr_start == pc)
-		    bp = 1;
-		if (skipins != 0xffffffff) {
-		    if (skipins == 0x10000) {
-			if (opcode == 0x4e75 || opcode == 0x4e73 || opcode == 0x4e77)
-			    bp = 1;
-		    } else if (opcode == skipins)
-			bp = 1;
-		} else if (skipaddr_start == 0xffffffff && skipaddr_doskip < 0) {
-		    if ((pc < 0xe00000 || pc >= 0x1000000) && opcode != 0x4ef9)
-			bp = 1;
-		} else if (skipaddr_start == 0xffffffff && skipaddr_doskip > 0) {
-			bp = 1;
-		} else if (skipaddr_end != 0xffffffff) {
-		    if (pc >= skipaddr_start && pc < skipaddr_end)
-			bp = 1;
-		}
-	    }
-	    if (!bp) {
-		set_special (SPCFLAG_BRK);
-		return;
-	    }
-	}
-    } else {
-	write_log ("Memwatch %d: break at %8.8X.%c %c %8.8X\n", memwatch_triggered - 1, mwhit.addr,
+	} else {
+		write_log ("Memwatch %d: break at %8.8X.%c %c %8.8X\n", memwatch_triggered - 1, mwhit.addr,
 	    mwhit.size == 1 ? 'B' : (mwhit.size == 2 ? 'W' : 'L'), mwhit.rwi ? 'W' : 'R', mwhit.val);
-	memwatch_triggered = 0;
-    }
-    if (skipaddr_doskip > 0) {
-	skipaddr_doskip--;
-	if (skipaddr_doskip > 0) {
-			set_special (SPCFLAG_BRK);
-	    return;
+		memwatch_triggered = 0;
 	}
-    }
+	if (skipaddr_doskip > 0) {
+		skipaddr_doskip--;
+		if (skipaddr_doskip > 0) {
+			set_special (SPCFLAG_BRK);
+			return;
+		}
+	}
 
-    inputdevice_unacquire ();
-    audio_pause ();
-    do_skip = 0;
-    skipaddr_start = 0xffffffff;
-    skipaddr_end = 0xffffffff;
-    skipins = 0xffffffff;
-    skipaddr_doskip = 0;
-    exception_debugging = 0;
+	inputdevice_unacquire ();
+	audio_pause ();
+	do_skip = 0;
+	skipaddr_start = 0xffffffff;
+	skipaddr_end = 0xffffffff;
+	skipins = 0xffffffff;
+	skipaddr_doskip = 0;
+	exception_debugging = 0;
 
 #ifdef SAVESTATE
-    debug_rewind = 0;
+	debug_rewind = 0;
 	processptr = 0;
-#if 0
-    if (!currprefs.statecapture) {
-	changed_prefs.statecapture = currprefs.statecapture = 1;
-	savestate_init ();
-    }
 #endif
-#endif
-
-    debug_1 ();
+	debug_1 ();
 
 #ifdef SAVESTATE
-    if (!debug_rewind
+	if (!debug_rewind 
 #ifdef JIT
 	&& !currprefs.cachesize
 #endif
 #ifdef FILESYS
 		&& nr_units () == 0
 #endif
-	) {
-	savestate_capture (1);
-    }
+		) {
+			savestate_capture (1);
+	}
 #endif
 
 	for (i = 0; i < BREAKPOINT_TOTAL; i++) {
