@@ -1,12 +1,12 @@
 /*
-* UAE - The Un*x Amiga Emulator
-*
-* Custom chip emulation
-*
-* Copyright 1995-2002 Bernd Schmidt
-* Copyright 1995 Alessandro Bissacco
-* Copyright 2000-2010 Toni Wilen
-*/
+ * UAE - The Un*x Amiga Emulator
+ *
+ * Custom chip emulation
+ *
+ * Copyright 1995-2002 Bernd Schmidt
+ * Copyright 1995 Alessandro Bissacco
+ * Copyright 2000-2010 Toni Wilen
+ */
 
 #include "sysconfig.h"
 #include "sysdeps.h"

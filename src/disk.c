@@ -2613,7 +2613,7 @@ static void fetchnextrevolution (drive *drv)
 #ifdef CAPS
 		caps_loadrevolution (drv->bigmfmbuf, drv - floppy, drv->cyl * 2 + side, &drv->tracklen);
 #endif
-	break;
+		break;
 	case ADF_FDI:
 #ifdef FDI2RAW
 		fdi2raw_loadrevolution (drv->fdi, drv->bigmfmbuf, drv->tracktiming, drv->cyl * 2 + side, &drv->tracklen, 1);

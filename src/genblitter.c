@@ -174,7 +174,7 @@ static void generate_func(void)
 	if (a_is_on) printf("uae_u32 preva = 0;\n");
 	if (b_is_on) printf("uae_u32 prevb = 0, srcb = b->bltbhold;\n");
 	if (c_is_on) printf("uae_u32 srcc = b->bltcdat;\n");
-	printf("uae_u32 dstd=0;\n");
+	printf("uae_u32 dstd = 0;\n");
 	printf("uaecptr dstp = 0;\n");
 	printf("for (j = b->vblitsize; j--; ) {\n");
 	if (a_is_on) {

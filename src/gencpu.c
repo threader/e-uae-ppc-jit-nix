@@ -2128,8 +2128,8 @@ static void gen_opcode (unsigned long int opcode)
 			printf ("\t\tint offset = 8;\n");
 #if 0
 			genamode (Aipi, "7", sz_word, "sr", 1, 0, 0);
-			genamode (Aipi, "7", sz_long, "pc", 1, 0, 0);
-			genamode (Aipi, "7", sz_word, "format", 1, 0, 0);
+		    genamode (Aipi, "7", sz_long, "pc", 1, 0, 0);
+		    genamode (Aipi, "7", sz_word, "format", 1, 0, 0);
 #endif
 			printf ("\t\tnewsr = sr; newpc = pc;\n");
 		    printf ("\t\tif ((format & 0xF000) == 0x0000) { m68k_areg (regs, 7) += offset; break; }\n");

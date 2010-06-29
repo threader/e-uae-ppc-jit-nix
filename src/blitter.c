@@ -1,11 +1,11 @@
 /*
-* UAE - The Un*x Amiga Emulator
-*
-* Custom chip emulation
-*
-* (c) 1995 Bernd Schmidt, Alessandro Bissacco
-* (c) 2002 - 2005 Toni Wilen
-*/
+ * UAE - The Un*x Amiga Emulator
+ *
+ * Custom chip emulation
+ *
+ * (c) 1995 Bernd Schmidt, Alessandro Bissacco
+ * (c) 2002 - 2005 Toni Wilen
+ */
 
 //#define BLITTER_DEBUG_NOWAIT
 //#define BLITTER_DEBUG
