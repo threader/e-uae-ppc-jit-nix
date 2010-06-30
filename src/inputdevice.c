@@ -3778,7 +3778,7 @@ static void setautofires (struct uae_prefs *prefs, int port, int af)
 static void compatibility_copy (struct uae_prefs *prefs, bool gameports)
 {
 	int used[MAX_INPUT_DEVICES] = { 0 };
-	int i, joy, j;
+	int i, joy;
 
 	for (i = 0; i < MAX_JPORTS; i++) {
 		joymodes[i] = prefs->jports[i].mode;
@@ -4326,7 +4326,7 @@ void inputdevice_devicechange (struct uae_prefs *prefs)
 // set default prefs to all input configuration settings
 void inputdevice_default_prefs (struct uae_prefs *p)
 {
-	int i, j;
+	int i;
 
 	inputdevice_init ();
 	p->input_selected_setting = GAMEPORT_INPUT_SETTINGS;

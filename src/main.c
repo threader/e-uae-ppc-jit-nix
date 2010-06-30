@@ -411,7 +411,7 @@ void fixup_prefs (struct uae_prefs *p)
 	p->cpu_compatible = 1;
 	p->address_space_24 = 1;
 #endif
-#if !defined(CPUEMU_11) && !defined (CPUEMU_12)
+#if !defined (CPUEMU_11) && !defined (CPUEMU_12)
 	p->cpu_compatible = 0;
 	p->address_space_24 = 0;
 #endif
@@ -926,7 +926,7 @@ static int real_main2 (int argc, TCHAR **argv)
 	DISK_init ();
 
 	reset_frame_rate_hack ();
-	init_m68k(); /* must come after reset_frame_rate_hack (); */
+	init_m68k (); /* must come after reset_frame_rate_hack (); */
 
 	gui_update ();
 
@@ -938,7 +938,7 @@ static int real_main2 (int argc, TCHAR **argv)
 #endif
 
 		if (!init_audio ()) {
-			if (sound_available && currprefs.produce_sound > 1) { 
+			if (sound_available && currprefs.produce_sound > 1) {
 				write_log ("Sound driver unavailable: Sound output disabled\n");
 			}
 			currprefs.produce_sound = 0;
