@@ -1414,6 +1414,10 @@ static int cfgfile_parse_host (struct uae_prefs *p, TCHAR *option, TCHAR *value)
 	}
 
 #ifdef GFXFILTER
+	if (_tcscmp (option, "gfx_filter_overlay") == 0) {
+		return 1;
+	}
+
 	if (_tcscmp (option, "gfx_filter") == 0) {
 		int i = 0;
 		TCHAR *s = _tcschr (value, ':');

@@ -276,9 +276,15 @@ int scsiemul_switchscsi (TCHAR *name)
 {
 	struct devstruct *dev = NULL;
 	struct device_info *discsi, discsi2;
-	int i, j;
+	int i, j, opened[MAX_TOTAL_DEVICES];
+	bool wasopen = false;
+
+	for (i = 0; i < MAX_TOTAL_DEVICES; i++)
+		opened[i] = sys_command_isopen (i);
 
 	dev = &devst[0];
+	if ((dev->allow_ioctl || dev->allow_scsi) && dev->opencnt)
+		wasopen = true;
 	if (dev->allow_scsi)
 		sys_command_close (DF_SCSI, dev->unitnum);
 	if (dev->allow_ioctl)
@@ -307,7 +313,7 @@ int scsiemul_switchscsi (TCHAR *name)
 						dev->drivetype = discsi->type;
 						memcpy (&dev->di, discsi, sizeof (struct device_info));
 						dev->iscd = 1;
-						write_log ("%s mounted as uaescsi.device:0 (SCSI=%d)\n", discsi->label, dev->allow_scsi);
+						write_log ("%s mounted as uaescsi.device:0 (SCSI=%d IOCTL=%d)\n", discsi->label, dev->allow_scsi, dev->allow_ioctl);
 						if (dev->aunit >= 0) {
 							struct priv_devstruct *pdev = &pdevst[dev->aunit];
 							setpdev (pdev, dev);
@@ -318,7 +324,7 @@ int scsiemul_switchscsi (TCHAR *name)
 						}
 					}
 				}
-				if (devst[0].opencnt == 0)
+				if (opened[i] == 0 && !wasopen)
 					sys_command_close (mode, i);
 			}
 			i++;
@@ -335,6 +341,7 @@ static int scsiemul_switchemu (const TCHAR *name)
 
 	if (!device_func_init (DEVICE_TYPE_ANY | DEVICE_TYPE_ALLOWEMU))
 		return -1;
+	int opened = sys_command_isopen (0);
 	if (sys_command_open (DF_IOCTL, 0)) {
 		if (discsi = sys_command_info (DF_IOCTL, 0, &discsi2)) {
 			dev = &devst[0];
@@ -351,7 +358,7 @@ static int scsiemul_switchemu (const TCHAR *name)
 			}
 			dev->di.media_inserted = 0;
 		}
-		if (devst[0].opencnt == 0)
+		if (!opened)
 			sys_command_close (DF_IOCTL, 0);
 		return 0;
 	}
