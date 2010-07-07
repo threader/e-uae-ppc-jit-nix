@@ -21,10 +21,10 @@ extern void disk_insert (int num, const TCHAR *name);
 extern void disk_insert_force (int num, const TCHAR *name);
 extern void DISK_check_change (void);
 //extern int DISK_validate_filename (const TCHAR *fname, int leave_open, bool *wrprot, uae_u32 *crc32, struct zfile **zf);
-extern void DISK_handler (void);
+extern void DISK_handler (uae_u32);
 extern void DISK_update (unsigned int hpos);
 extern void DISK_update_adkcon (unsigned int hpos, uae_u16 v);
-extern void DISK_hsync (unsigned int hpos);
+extern void DISK_hsync (void);
 extern void DISK_reset (void);
 extern int disk_getwriteprotect (const TCHAR *name);
 extern int disk_setwriteprotect (int num, const TCHAR *name, int protect);
@@ -40,10 +40,14 @@ extern int disk_prevnext_name (TCHAR *img, int dir);
 
 extern void DSKLEN (uae_u16 v, unsigned int hpos);
 extern uae_u16 DSKBYTR (unsigned int hpos);
-extern void DSKDAT (uae_u16);
 extern void DSKSYNC (unsigned int, uae_u16);
 extern void DSKPTL (uae_u16);
 extern void DSKPTH (uae_u16);
+extern void DSKDAT (uae_u16);
+extern uae_u16 DSKDATR (void);
+extern uae_u16 disk_dmal (void);
+extern uaecptr disk_getpt (void);
+extern int disk_fifostatus (void);
 
 extern int disk_debug_logging;
 extern int disk_debug_mode;

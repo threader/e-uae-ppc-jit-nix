@@ -775,6 +775,8 @@ void do_leave_program (void)
 
 void start_program (void)
 {
+//TODO: remove here!
+	gui_display (-1);
 	do_start_program ();
 }
 
@@ -811,7 +813,7 @@ static int real_main2 (int argc, TCHAR **argv)
 		fixup_prefs (&currprefs);
 	}
 
-	if (!graphics_setup ()) {
+	if (! graphics_setup ()) {
 		write_log ("Graphics Setup Failed\n");
 		exit (1);
 	}

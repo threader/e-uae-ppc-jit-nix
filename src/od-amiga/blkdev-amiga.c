@@ -1,11 +1,11 @@
- /*
-  * E-UAE - The portable Amiga Emulator
-  *
-  * SCSI layer back-end for AmigaOS hosts
-  *
-  * Copyright 2005-2006 Richard Drummond
-  *           2005 Sigbjørn Skjæret (68k/MorphOS device-scanning)
-  */
+/*
+ * E-UAE - The portable Amiga Emulator
+ *
+ * SCSI layer back-end for AmigaOS hosts
+ *
+ * Copyright 2005-2006 Richard Drummond
+ *           2005 Sigbjørn Skjæret (68k/MorphOS device-scanning)
+ */
 
 #include "sysconfig.h"
 #include "sysdeps.h"
@@ -188,7 +188,7 @@ static int execscsicmd (struct IOContext *ioc, const uae_u8 *cmd_data, int cmd_l
 
     DEBUG_LOG ("SCSIDEV: sending command: 0x%2x\n", cmd->scsi_Command[0]);
 
-    gui_cd_led (0, 1);
+	gui_flicker_led (LED_CD, 0, 0);
 
     error = DoIO ((struct IORequest *)ioreq);
 
@@ -284,7 +284,7 @@ static int execscsicmd_direct (int unitnum, uaecptr acmd)
 
     DEBUG_LOG ("SCSIDEV: error: %d actual %d\n", io_error, cmd->scsi_Actual);
 
-    gui_cd_led (1);
+	gui_flicker_led (LED_CD, 0, 1);
 
     put_long (acmd + 8,  cmd->scsi_Actual);
     put_word (acmd + 18, cmd->scsi_CmdActual);

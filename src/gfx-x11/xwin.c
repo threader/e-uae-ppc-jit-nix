@@ -1221,7 +1221,7 @@ int check_prefs_changed_gfx (void)
 
     if (changed_prefs.gfx_width_win == currprefs.gfx_width_win
 	&& changed_prefs.gfx_height_win == currprefs.gfx_height_win
-	&& changed_prefs.gfx_linedbl == currprefs.gfx_linedbl
+	&& changed_prefs.gfx_vresolution == currprefs.gfx_vresolution
 	&& changed_prefs.gfx_xcenter == currprefs.gfx_xcenter
 	&& changed_prefs.gfx_ycenter == currprefs.gfx_ycenter
 	&& changed_prefs.gfx_afullscreen == currprefs.gfx_afullscreen
@@ -1231,7 +1231,7 @@ int check_prefs_changed_gfx (void)
     graphics_subshutdown ();
     currprefs.gfx_width_win = changed_prefs.gfx_width_win;
     currprefs.gfx_height_win = changed_prefs.gfx_height_win;
-    currprefs.gfx_linedbl = changed_prefs.gfx_linedbl;
+    currprefs.gfx_vresolution = changed_prefs.gfx_vresolution;
     currprefs.gfx_xcenter = changed_prefs.gfx_xcenter;
     currprefs.gfx_ycenter = changed_prefs.gfx_ycenter;
     currprefs.gfx_afullscreen = changed_prefs.gfx_afullscreen;

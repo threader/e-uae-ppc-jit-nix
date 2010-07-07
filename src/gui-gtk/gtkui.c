@@ -6,6 +6,7 @@
  * Copyright 1997, 1998 Bernd Schmidt
  * Copyright 1998 Michael Krause
  * Copyright 2003-2007 Richard Drummond
+ * Copyright 2009-2010 Mustafa TUFAN
  *
  * The Tk GUI doesn't work.
  * The X Forms Library isn't available as source, and there aren't any
@@ -83,6 +84,7 @@ static char *new_disk_string[4];
 static GtkWidget *power_led;
 
 static GtkWidget *ctpanel;
+static GtkWidget *ftpanel;
 static GtkWidget *cspanel;
 static GtkWidget *chipsettype_panel;
 static GtkWidget *chipsetspeed_panel;
@@ -92,6 +94,7 @@ static GtkWidget *memorypanel;
 
 static GtkWidget *sound_widget[4], *sound_ch_widget[3], *sound_in_widget[3], *sound_fl_widget[5];
 static GtkWidget *drvspeed_widget[5];
+static GtkWidget *cpu_widget[6], *fpu_widget[4];
 
 #ifdef JIT
 static GtkWidget *jit_page;
@@ -172,16 +175,16 @@ static smp_comm_pipe from_gui_pipe; // For sending messages from the GUI to UAE
  * Messages sent to GUI from UAE via to_gui_pipe
  */
 enum gui_commands {
-    GUICMD_STATE_CHANGE, // Tell GUI about change in emulator state.
-    GUICMD_SHOW,                 // Show yourself
-    GUICMD_UPDATE,               // Refresh your state from changed preferences
-    GUICMD_DISKCHANGE,           // Hey! A disk has been changed. Do something!
-    GUICMD_MSGBOX,               // Display a message box for me, please
-    GUICMD_NEW_ROMLIST,          // The ROM list has been updated.
-    GUICMD_FLOPPYDLG,            // Open a floppy insert dialog
-    GUICMD_FULLSCREEN,           // Fullscreen mode was toggled; update checkboxes
-    GUICMD_PAUSE,                // We're now paused, in case you didn't notice
-    GUICMD_UNPAUSE               // We're now running.
+    GUICMD_STATE_CHANGE,	// Tell GUI about change in emulator state.
+    GUICMD_SHOW,			// Show yourself
+    GUICMD_UPDATE,			// Refresh your state from changed preferences
+    GUICMD_DISKCHANGE,		// Hey! A disk has been changed. Do something!
+    GUICMD_MSGBOX,			// Display a message box for me, please
+    GUICMD_NEW_ROMLIST,		// The ROM list has been updated.
+    GUICMD_FLOPPYDLG,		// Open a floppy insert dialog
+    GUICMD_FULLSCREEN,		// Fullscreen mode was toggled; update checkboxes
+    GUICMD_PAUSE,			// We're now paused, in case you didn't notice
+    GUICMD_UNPAUSE			// We're now running.
 };
 
 enum uae_commands {
@@ -202,10 +205,10 @@ enum uae_commands {
 };
 
 
-static uae_sem_t gui_sem;        // For mutual exclusion on various prefs settings
-static uae_sem_t gui_update_sem; // For synchronization between gui_update() and the GUI thread
-static uae_sem_t gui_init_sem;   // For the GUI thread to tell UAE that it's ready.
-static uae_sem_t gui_quit_sem;   // For the GUI thread to tell UAE that it's quitting.
+static uae_sem_t gui_sem;			// For mutual exclusion on various prefs settings
+static uae_sem_t gui_update_sem;	// For synchronization between gui_update() and the GUI thread
+static uae_sem_t gui_init_sem;		// For the GUI thread to tell UAE that it's ready.
+static uae_sem_t gui_quit_sem;		// For the GUI thread to tell UAE that it's quitting.
 
 static volatile int quit_gui = 0, quitted_gui = 0;
 
@@ -216,83 +219,88 @@ static void handle_message_box_request (smp_comm_pipe *msg_pipe);
 static GtkWidget *make_message_box (const gchar *title, const gchar *message, int modal, uae_sem_t *sem);
 void on_message_box_quit (GtkWidget *w, gpointer user_data);
 
-
 static void uae_pause (void)
 {
-    write_comm_pipe_int (&from_gui_pipe, GUICMD_PAUSE , 1);
+	write_comm_pipe_int (&from_gui_pipe, GUICMD_PAUSE , 1);
 }
 
 static void uae_resume (void)
 {
-    write_comm_pipe_int (&to_gui_pipe, GUICMD_UNPAUSE, 1);
+	write_comm_pipe_int (&to_gui_pipe, GUICMD_UNPAUSE, 1);
 }
 
 static void set_mem32_widgets_state (void)
 {
-    int enable = changed_prefs.cpu_model >= 68020 && ! changed_prefs.address_space_24;
+	int enable = changed_prefs.cpu_model >= 68020 && ! changed_prefs.address_space_24;
 
 #ifdef AUTOCONFIG
     unsigned int i;
 
-    for (i = 0; i < 10; i++)
+	for (i = 0; i < 10; i++)
 		gtk_widget_set_sensitive (z3size_widget[i], enable);
 
 # ifdef PICASSO96
-    for (i = 0; i < 7; i++)
+	for (i = 0; i < 7; i++)
 		gtk_widget_set_sensitive (p96size_widget[i], enable);
 #endif
 #endif
 #ifdef JIT
-    gtk_widget_set_sensitive (jit_page, changed_prefs.cpu_model >= 68020);
+	gtk_widget_set_sensitive (jit_page, changed_prefs.cpu_model >= 68020);
 #endif
 }
 
 static void set_cpu_state (void)
 {
-    int i;
+/*
+	int i;
 	unsigned int lvl;
 	lvl = (changed_prefs.cpu_model - 68000) / 10;
 
-    DEBUG_LOG ("set_cpu_state: %d %d %d\n", lvl,
+	DEBUG_LOG ("set_cpu_state: %d %d %d\n", lvl,
 	changed_prefs.address_space_24, changed_prefs.m68k_speed);
 
     cputypepanel_set_cpulevel      (CPUTYPEPANEL (ctpanel), lvl);
     cputypepanel_set_addr24bit     (CPUTYPEPANEL (ctpanel), changed_prefs.address_space_24);
-    cputypepanel_set_compatible    (CPUTYPEPANEL (ctpanel), changed_prefs.cpu_compatible);
-    cputypepanel_set_cycleexact    (CPUTYPEPANEL (ctpanel), changed_prefs.cpu_cycle_exact);
 
     cpuspeedpanel_set_cpuspeed     (CPUSPEEDPANEL (cspanel), changed_prefs.m68k_speed);
     cpuspeedpanel_set_cpuidle      (CPUSPEEDPANEL (cspanel), changed_prefs.cpu_idle);
-
     set_mem32_widgets_state ();
+*/
+}
+
+static void set_fpu_state (void)
+{
+#ifdef FPU
+
+#endif
 }
 
 static void set_chipset_state (void)
 {
-    chipsettypepanel_set_chipset_mask     (CHIPSETTYPEPANEL  (chipsettype_panel),  currprefs.chipset_mask);
-    chipsettypepanel_set_ntscmode         (CHIPSETTYPEPANEL  (chipsettype_panel),  currprefs.ntscmode);
-    chipsetspeedpanel_set_framerate       (CHIPSETSPEEDPANEL (chipsetspeed_panel), currprefs.gfx_framerate);
-    chipsetspeedpanel_set_collision_level (CHIPSETSPEEDPANEL (chipsetspeed_panel), currprefs.collision_level);
-    chipsetspeedpanel_set_immediate_blits (CHIPSETSPEEDPANEL (chipsetspeed_panel), currprefs.immediate_blits);
+	chipsettypepanel_set_chipset_mask		(CHIPSETTYPEPANEL  (chipsettype_panel),  currprefs.chipset_mask);
+	chipsettypepanel_set_ntscmode			(CHIPSETTYPEPANEL  (chipsettype_panel),  currprefs.ntscmode);
+	chipsetspeedpanel_set_framerate			(CHIPSETSPEEDPANEL (chipsetspeed_panel), currprefs.gfx_framerate);
+	chipsetspeedpanel_set_collision_level	(CHIPSETSPEEDPANEL (chipsetspeed_panel), currprefs.collision_level);
+	chipsetspeedpanel_set_immediate_blits	(CHIPSETSPEEDPANEL (chipsetspeed_panel), currprefs.immediate_blits);
 }
 
 static void set_sound_state (void)
 {
-    int stereo = currprefs.sound_stereo + currprefs.sound_mixed_stereo_delay;
-    unsigned int i;
+	int stereo = currprefs.sound_stereo + currprefs.sound_mixed_stereo_delay;
+	unsigned int i;
 
-    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (sound_widget[currprefs.produce_sound]), 1);
-    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (sound_ch_widget[stereo]), 1);
-    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (sound_in_widget[currprefs.sound_interpol]), 1);
+	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (sound_widget[currprefs.produce_sound]), 1);
+	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (sound_ch_widget[stereo]), 1);
+	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (sound_in_widget[currprefs.sound_interpol]), 1);
 
-    if (currprefs.sound_filter == FILTER_SOUND_OFF) {
+	if (currprefs.sound_filter == FILTER_SOUND_OFF) {
 		i = 0;
-    } else {
+	} else {
 		if (currprefs.sound_filter_type == FILTER_SOUND_TYPE_A500) i = 1;
 		if (currprefs.sound_filter_type == FILTER_SOUND_TYPE_A1200) i = 3;
 		if (currprefs.sound_filter == FILTER_SOUND_ON) i++;
-    }
-    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (sound_fl_widget[i]), 1);
+	}
+	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (sound_fl_widget[i]), 1);
 }
 
 static void set_mem_state (void)
@@ -527,6 +535,9 @@ static void set_floppy_state( void )
 static void update_state (void)
 {
     set_cpu_state ();
+#ifdef FPU
+    set_fpu_state ();
+#endif
     set_joy_state ();
     set_sound_state ();
 #ifdef JIT
@@ -772,6 +783,14 @@ static void comp_changed (void)
     changed_prefs.compfpu= find_current_toggle (compfpu_widget, 2);
 }
 #endif
+
+static void cpu_changed (void)
+{
+}
+
+static void fpu_changed (void)
+{
+}
 
 static void on_start_clicked (void)
 {
@@ -1251,7 +1270,6 @@ static void on_cputype_changed (void)
     DEBUG_LOG ("called\n");
 
     changed_prefs.cpu_model       = mdl;
-    changed_prefs.cpu_compatible  = CPUTYPEPANEL (ctpanel)->compatible;
     changed_prefs.cpu_cycle_exact = CPUTYPEPANEL (ctpanel)->cycleexact;
 
     set_mem32_widgets_state ();
@@ -1263,33 +1281,32 @@ static void on_cputype_changed (void)
 
 static void on_addr24bit_changed (void)
 {
-    int i;
+	int i;
 
-    DEBUG_LOG ("called\n");
+	DEBUG_LOG ("called\n");
 
-    changed_prefs.address_space_24 = (cputypepanel_get_addr24bit (CPUTYPEPANEL (ctpanel)) != 0);
+	changed_prefs.address_space_24 = (cputypepanel_get_addr24bit (CPUTYPEPANEL (ctpanel)) != 0);
+	set_mem32_widgets_state ();
 
-    set_mem32_widgets_state ();
-
-    DEBUG_LOG ("address_space_24=%d\n", changed_prefs.address_space_24);
+	DEBUG_LOG ("address_space_24=%d\n", changed_prefs.address_space_24);
 }
 
 static void on_cpuspeed_changed (void)
 {
-    DEBUG_LOG ("called\n");
+	DEBUG_LOG ("called\n");
 
-    changed_prefs.m68k_speed = CPUSPEEDPANEL (cspanel)->cpuspeed;
+	changed_prefs.m68k_speed = CPUSPEEDPANEL (cspanel)->cpuspeed;
 
-    DEBUG_LOG ("m68k_speed=%d\n", changed_prefs.m68k_speed);
+	DEBUG_LOG ("m68k_speed=%d\n", changed_prefs.m68k_speed);
 }
 
 static void on_cpuidle_changed (void)
 {
-   DEBUG_LOG ("called\n");
+	DEBUG_LOG ("called\n");
 
-   changed_prefs.cpu_idle       = CPUSPEEDPANEL (cspanel)->cpuidle;
-
-   DEBUG_LOG ("cpu_idle=%d\n", changed_prefs.cpu_idle);
+	changed_prefs.cpu_idle       = CPUSPEEDPANEL (cspanel)->cpuidle;
+	
+	DEBUG_LOG ("cpu_idle=%d\n", changed_prefs.cpu_idle);
 }
 
 static void make_cpu_widgets (GtkWidget *vbox)
@@ -1308,12 +1325,17 @@ static void make_cpu_widgets (GtkWidget *vbox)
 		     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL), 0, 0);
     gtk_widget_show (ctpanel);
 
+    ftpanel = fputypepanel_new();
+    gtk_table_attach (GTK_TABLE (table), ftpanel, 1, 4, 3, 4,
+		     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+		     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL), 0, 0);
+    gtk_widget_show (ftpanel);
+
     cspanel = cpuspeedpanel_new();
-    gtk_table_attach (GTK_TABLE (table), cspanel, 1, 4, 3, 4,
+    gtk_table_attach (GTK_TABLE (table), cspanel, 1, 4, 5, 6,
 		     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
 		     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL), 0, 0);
     gtk_widget_show (cspanel);
-
 
     gtk_signal_connect (GTK_OBJECT (ctpanel), "cputype-changed",
 			GTK_SIGNAL_FUNC (on_cputype_changed),
@@ -1328,8 +1350,6 @@ static void make_cpu_widgets (GtkWidget *vbox)
 			GTK_SIGNAL_FUNC (on_cpuidle_changed),
 			NULL);
 }
-
-
 
 static void on_chipset_changed (void)
 {
@@ -1384,32 +1404,68 @@ static void make_chipset_widgets (GtkWidget *vbox)
     gtk_signal_connect (GTK_OBJECT (chipsetspeed_panel), "immediate-blits-changed", GTK_SIGNAL_FUNC (on_immediate_blits_changed), NULL);
 }
 
-static void make_sound_widgets (GtkWidget *vbox)
+static void make_cpu_widgets2 (GtkWidget *vbox)
 {
-    static const char *snd_em_labels[] = {
-	"Disabled", "Disabled, but Emulated", "Enabled", "Enabled, 100% Accurate", NULL
-    }, *snd_in_labels[] = {
-	"Disabled", "None", "Sinc", "RH", "Anti", NULL
-    }, *snd_fl_labels[] = {
-	"Disabled", "A500 (Power Led)", "A500 (Always on)", "A1200 (Power Led)", "A1200 (Always on)", NULL
-    }, *snd_ch_labels[] = {
-	"Mono", "Stereo", "Mixed", NULL
-    };
+	static const char *cpu_labels[] = {
+		"68000", "68010", "68020", "68030", "68040", "68060", NULL
+	}, *fpu_labels[] = {
+		"None", "68881", "68882", "CPU Internal", NULL
+	};
 
-    GtkWidget *hbox = gtk_hbox_new (FALSE, 10);
-    GtkWidget *frame, *newbox;
-    add_empty_vbox (vbox);
+	GtkWidget *hbox = gtk_hbox_new (FALSE, 10);
+	GtkWidget *frame, *newbox;
+	add_empty_vbox (vbox);
 
-    gtk_widget_show (hbox);
-    add_centered_to_vbox (vbox, hbox);
-    add_empty_vbox (vbox);
+	gtk_widget_show (hbox);
+	add_centered_to_vbox (vbox, hbox);
+	add_empty_vbox (vbox);
 
-	//sound emulation
-    newbox = make_radio_group_box ("Sound Emulation", snd_em_labels, sound_widget, 0, sound_changed);
-    gtk_widget_set_sensitive (sound_widget[2], sound_available);
-    gtk_widget_set_sensitive (sound_widget[3], sound_available);
+	//cpu emulation
+	newbox = make_radio_group_box ("CPU", cpu_labels, cpu_widget, 0, cpu_changed);
+ //   gtk_widget_set_sensitive (newbox, sound_available);
+	gtk_widget_show (newbox);
+	gtk_box_pack_start (GTK_BOX (hbox), newbox, FALSE, TRUE, 0);
+
+	newbox = gtk_check_button_new_with_label ("CE");
+	gtk_widget_show (newbox);
+	gtk_box_pack_start (GTK_BOX (hbox), newbox, FALSE, TRUE, 0);
+
+
+	gtk_box_pack_start (GTK_BOX (hbox), newbox, FALSE, TRUE, 0);
+
+	//fpu mode
+    newbox = make_radio_group_box ("FPU", fpu_labels, fpu_widget, 0, fpu_changed);
+   // gtk_widget_set_sensitive (newbox, sound_available);
     gtk_widget_show (newbox);
     gtk_box_pack_start (GTK_BOX (hbox), newbox, FALSE, TRUE, 0);
+}
+
+static void make_sound_widgets (GtkWidget *vbox)
+{
+	static const char *snd_em_labels[] = {
+	"Disabled", "Disabled, but Emulated", "Enabled", "Enabled, 100% Accurate", NULL
+	}, *snd_in_labels[] = {
+	"Disabled", "None", "Sinc", "RH", "Anti", NULL
+	}, *snd_fl_labels[] = {
+	"Disabled", "A500 (Power Led)", "A500 (Always on)", "A1200 (Power Led)", "A1200 (Always on)", NULL
+	}, *snd_ch_labels[] = {
+	"Mono", "Stereo", "Mixed", NULL
+	};
+
+	GtkWidget *hbox = gtk_hbox_new (FALSE, 10);
+	GtkWidget *frame, *newbox;
+	add_empty_vbox (vbox);
+
+	gtk_widget_show (hbox);
+	add_centered_to_vbox (vbox, hbox);
+	add_empty_vbox (vbox);
+
+	//sound emulation
+	newbox = make_radio_group_box ("Sound Emulation", snd_em_labels, sound_widget, 0, sound_changed);
+	gtk_widget_set_sensitive (sound_widget[2], sound_available);
+	gtk_widget_set_sensitive (sound_widget[3], sound_available);
+	gtk_widget_show (newbox);
+	gtk_box_pack_start (GTK_BOX (hbox), newbox, FALSE, TRUE, 0);
 
 	//channel mode
     newbox = make_radio_group_box ("Channels", snd_ch_labels, sound_ch_widget, 0, sound_changed);
@@ -2502,14 +2558,6 @@ void gui_message (const char *format,...)
     write_log (msg);
 }
 
-void gui_notify_state (int state)
-{
-    if (gui_available) {
-	write_comm_pipe_int (&to_gui_pipe, GUICMD_STATE_CHANGE, 1);
-	write_comm_pipe_int (&to_gui_pipe, state, 1);
-    }
-}
-
 /*
  * do_message_box()
  *
@@ -2638,27 +2686,6 @@ static GtkWidget *make_message_box (const gchar *title, const gchar *message, in
     gtk_widget_show( dialog );
 
     return dialog;
-}
-
-/*
- * gui_open ()
- *
- * Called by the main UAE thread during start up to display the GUI.
- */
-int gui_open (void)
-{
-    int result = 0;
-
-    DEBUG_LOG( "Entered\n" );
-
-    if (!gui_available)
-	result = -1;
-    else {
-	/* We have the technology and the will - so tell the GUI to
-	 * reveal itself */
-	write_comm_pipe_int (&to_gui_pipe, GUICMD_SHOW, 1);
-    }
-   return result;
 }
 
 int gui_init (void)

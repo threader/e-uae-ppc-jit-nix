@@ -7,7 +7,6 @@
   */
 
 extern int gui_init (void);
-extern int gui_open (void);
 extern int gui_update (void);
 extern void gui_exit (void);
 extern void gui_led (int, int);
@@ -18,12 +17,9 @@ extern void gui_changesettings (void);
 extern void gui_lock (void);
 extern void gui_unlock (void);
 extern void gui_flicker_led (int, int, int);
-extern void gui_hd_led (int, int);
-extern void gui_cd_led (int, int);
 extern void gui_disk_image_change (int, const TCHAR *);
 extern unsigned int gui_ledstate;
 extern void gui_display (int shortcut);
-extern void gui_notify_state (int state);
 
 extern bool no_gui, quit_to_gui;
 

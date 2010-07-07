@@ -680,7 +680,7 @@ STATIC_INLINE void render_gl_buffer (const struct gl_buffer_t *buffer, int first
 		amiga_real_w = 724;
 		gfx_gl_x_offset = (float) currprefs.gfx_gl_x_offset * 2;
     }
-    if (currprefs.gfx_linedbl) {
+    if (currprefs.gfx_vresolution) {
 		amiga_real_h = 568;
 		gfx_gl_y_offset = (float) currprefs.gfx_gl_y_offset * 2;
     } else {
@@ -1530,7 +1530,7 @@ int check_prefs_changed_gfx (void)
      || changed_prefs.gfx_height_fs  != currprefs.gfx_height_fs) {
 	fixup_prefs_dimensions (&changed_prefs);
     } else if (changed_prefs.gfx_lores_mode          == currprefs.gfx_lores_mode
-	    && changed_prefs.gfx_linedbl        == currprefs.gfx_linedbl
+	    && changed_prefs.gfx_vresolution    == currprefs.gfx_vresolution
 	    && changed_prefs.gfx_xcenter        == currprefs.gfx_xcenter
 	    && changed_prefs.gfx_ycenter        == currprefs.gfx_ycenter
 	    && changed_prefs.gfx_afullscreen    == currprefs.gfx_afullscreen
@@ -1549,8 +1549,8 @@ int check_prefs_changed_gfx (void)
     currprefs.gfx_height_win	 = changed_prefs.gfx_height_win;
     currprefs.gfx_width_fs	 = changed_prefs.gfx_width_fs;
     currprefs.gfx_height_fs	 = changed_prefs.gfx_height_fs;
-    currprefs.gfx_lores_mode		 = changed_prefs.gfx_lores_mode;
-    currprefs.gfx_linedbl	 = changed_prefs.gfx_linedbl;
+    currprefs.gfx_lores_mode	 = changed_prefs.gfx_lores_mode;
+    currprefs.gfx_vresolution	 = changed_prefs.gfx_vresolution;
     currprefs.gfx_xcenter	 = changed_prefs.gfx_xcenter;
     currprefs.gfx_ycenter	 = changed_prefs.gfx_ycenter;
     currprefs.gfx_afullscreen	 = changed_prefs.gfx_afullscreen;

@@ -24,7 +24,8 @@ void consolehook_config (struct uae_prefs *p)
 	//p->headless = 1;
 	p->produce_sound = 0;
 	p->gfx_resolution = 0;
-	p->gfx_linedbl = 0;
+	p->gfx_vresolution = 0;
+	p->gfx_scanlines = false;
 	p->gfx_framerate = 10;
 	p->immediate_blits = 1;
 	p->collision_level = 0;
@@ -47,8 +48,8 @@ void consolehook_config (struct uae_prefs *p)
 	p->gfx_size_win.width = 320;
 	p->gfx_size_win.height = 256;
 	p->turbo_emulation = 0;
-//	p->win32_automount_drives = 2;
-//	p->win32_automount_cddrives = 2;
+	//p->win32_automount_drives = 2;
+	//p->win32_automount_cddrives = 2;
 
 	add_filesys_config (p, -1, "DH0", "CLIBOOT", ".", 1, 0, 0, 0, 0, 15, NULL, 0, 0);
 }

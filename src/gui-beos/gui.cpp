@@ -104,15 +104,6 @@ int gui_init (void)
 {
 }
 
-int gui_open (void)
-{
-    return -1;
-}
-
-void gui_notify_state (int state)
-{
-}
-
 void gui_exit (void)
 {
 }
@@ -142,41 +133,6 @@ void gui_flicker_led (int led, int unitnum, int status)
 
 void gui_led (int led, int on)
 {
-}
-
-void gui_hd_led (int led)
-{
-    static int resetcounter;
-
-    int old = gui_data.hd;
-
-    if (led == 0) {
-	resetcounter--;
-	if (resetcounter > 0)
-	    return;
-    }
-
-    gui_data.hd = led;
-    resetcounter = 6;
-    if (old != gui_data.hd)
-	gui_led (5, gui_data.hd);
-}
-
-void gui_cd_led (int led)
-{
-    static int resetcounter;
-
-    int old = gui_data.cd;
-    if (led == 0) {
-	resetcounter--;
-	if (resetcounter > 0)
-	    return;
-    }
-
-    gui_data.cd = led;
-    resetcounter = 6;
-    if (old != gui_data.cd)
-	gui_led (6, gui_data.cd);
 }
 
 void gui_display (int shortcut)

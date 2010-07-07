@@ -159,7 +159,7 @@ static void i2c_do (void)
 						bitcounter = -1;
 					}
 				} else {
-					//write_log (L"NVRAM received bit %d, offset %d\n", sda_out, bitcounter);
+					//write_log ("NVRAM received bit %d, offset %d\n", sda_out, bitcounter);
 					nvram_byte <<= 1;
 					nvram_byte |= sda_out;
 					bitcounter++;

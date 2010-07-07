@@ -2573,7 +2573,7 @@ void debug (void)
 					continue;
 				if (bpnodes[i].addr == pc) {
 					bp = 1;
-					console_out (L"Breakpoint at %08X\n", pc);
+					console_out ("Breakpoint at %08X\n", pc);
 					break;
 				}
 			}

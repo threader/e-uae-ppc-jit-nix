@@ -289,17 +289,6 @@ int gui_init (void)
 
 static int have_rexx = 0;
 
-int gui_open (void)
-{
-    if (!have_rexx) {
-	have_rexx = rexx_init ();
-
-	if (have_rexx)
-	   atexit (rexx_exit);
-    }
-    return -1;
-}
-
 /****************************************************************************/
 
 void gui_exit (void)
@@ -341,51 +330,6 @@ void gui_handle_events (void)
 {
     if (have_rexx)
 	rexx_handle_events();
-}
-
-/****************************************************************************/
-
-void gui_notify_state (int state)
-{
-}
-
-/****************************************************************************/
-
-void gui_hd_led (int led)
-{
-    static int resetcounter;
-
-    int old = gui_data.hd;
-
-    if (led == 0) {
-	resetcounter--;
-	if (resetcounter > 0)
-	    return;
-    }
-
-    gui_data.hd = led;
-    resetcounter = 6;
-    if (old != gui_data.hd)
-	gui_led (5, gui_data.hd);
-}
-
-/****************************************************************************/
-
-void gui_cd_led (int led)
-{
-    static int resetcounter;
-
-    int old = gui_data.cd;
-    if (led == 0) {
-	resetcounter--;
-	if (resetcounter > 0)
-	    return;
-    }
-
-    gui_data.cd = led;
-    resetcounter = 6;
-    if (old != gui_data.cd)
-	gui_led (6, gui_data.cd);
 }
 
 /****************************************************************************/

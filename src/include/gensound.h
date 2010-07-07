@@ -15,6 +15,8 @@ extern unsigned int obtainedfreq;
 
 /* Determine if we can produce any sound at all.  This can be only a guess;
  * if unsure, say yes.  Any call to init_sound may change the value.  */
+extern int setup_sound (void);
+
 extern int init_sound (void);
 extern void close_sound (void);
 

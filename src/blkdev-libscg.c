@@ -1,15 +1,15 @@
- /*
-  * UAE - The Un*x Amiga Emulator
-  *
-  * Block device access using libscg
-  *
-  * Copyright 2004-2005 Richard Drummond
-  *
-  * Heavily based on code:
-  * Copyright 1995 Bernd Schmidt
-  * Copyright 1999 Patrick Ohly
-  *
-  */
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * Block device access using libscg
+ *
+ * Copyright 2004-2005 Richard Drummond
+ *
+ * Heavily based on code:
+ * Copyright 1995 Bernd Schmidt
+ * Copyright 1999 Patrick Ohly
+ *
+ */
 
 #include "sysconfig.h"
 #include "sysdeps.h"
@@ -276,7 +276,7 @@ static int execscsicmd (int unitnum, const uae_u8 *data, int len, uae_u8 *inbuf,
 
     DEBUG_LOG ("SCSIDEV: sending command: 0x%2x\n", scmd->cdb.g0_cdb.cmd);
 
-    gui_cd_led (1);
+	gui_flicker_led (LED_CD, 0, 1);
 
     scg_cmd (scgp);
 
@@ -349,7 +349,7 @@ static int execscsicmd_direct (int unitnum, uaecptr acmd)
     DEBUG_LOG ("SCSIDEV: result: %d %d %s\n", scmd->error, scmd->ux_errno,\
 	       scgp->errstr);
 
-    gui_cd_led (1);
+	gui_flicker_led (LED_CD, 0, 1);
 
     put_word (acmd + 18, scmd->error == SCG_FATAL
 					? 0 : scsi_cmd_len); /* fake scsi_CmdActual */

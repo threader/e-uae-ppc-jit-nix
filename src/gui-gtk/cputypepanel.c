@@ -18,11 +18,17 @@
 
 static void cputypepanel_init (CpuTypePanel *pathent);
 static void cputypepanel_class_init (CpuTypePanelClass *class);
-static void update_state (CpuTypePanel *ctpanel);
+static void fputypepanel_init (FpuTypePanel *pathent);
+static void fputypepanel_class_init (FpuTypePanelClass *class);
+static void update_state_cpu (CpuTypePanel *ctpanel);
+static void update_state_fpu (FpuTypePanel *ftpanel);
 static void on_cputype_changed (GtkWidget *w, CpuTypePanel *ctpanel);
 static void on_addr24bit_toggled (GtkWidget *w, CpuTypePanel *ctpanel);
-static void on_fpuenabled_toggled (GtkWidget *w, CpuTypePanel *ctpanel);
-static void on_accuracy_changed (GtkWidget *w, CpuTypePanel *ctpanel);
+static void on_cpu_morecompat_changed (GtkWidget *w, CpuTypePanel *ctpanel);
+static void on_mmu40_changed (GtkWidget *w, CpuTypePanel *ctpanel);
+
+static void on_fputype_changed (GtkWidget *w, FpuTypePanel *ftpanel);
+static void on_fpu_morecompat_changed (GtkWidget *w, FpuTypePanel *ftpanel);
 
 guint cputypepanel_get_type ()
 {
@@ -44,6 +50,26 @@ guint cputypepanel_get_type ()
     return cputypepanel_type;
 }
 
+guint fputypepanel_get_type ()
+{
+	static guint fputypepanel_type = 0;
+
+	if (!fputypepanel_type) {
+	static const GtkTypeInfo fputypepanel_info = {
+		(char *) "FpuTypePanel",
+		sizeof (FpuTypePanel),
+		sizeof (FpuTypePanelClass),
+		(GtkClassInitFunc) fputypepanel_class_init,
+		(GtkObjectInitFunc) fputypepanel_init,
+		NULL,
+		NULL,
+		(GtkClassInitFunc) NULL
+	};
+	fputypepanel_type = gtk_type_unique (gtk_frame_get_type (), &fputypepanel_info);
+	}
+	return fputypepanel_type;
+}
+
 enum {
     TYPE_CHANGE_SIGNAL,
     ADDR24_CHANGE_SIGNAL,
@@ -51,6 +77,7 @@ enum {
 };
 
 static guint cputypepanel_signals[LAST_SIGNAL];
+static guint fputypepanel_signals[LAST_SIGNAL];
 
 static void cputypepanel_class_init (CpuTypePanelClass *class)
 {
@@ -59,8 +86,21 @@ static void cputypepanel_class_init (CpuTypePanelClass *class)
 				   cputypepanel_signals,
 				   "cputype-changed",
 				   "addr24bit-changed",
+				   "cpucompat-changed",
+				   "mmu40-changed",
 				   (void*)0);
     class->cputypepanel = NULL;
+}
+
+static void fputypepanel_class_init (FpuTypePanelClass *class)
+{
+    gtkutil_add_signals_to_class ((GtkObjectClass *)class,
+				   GTK_STRUCT_OFFSET (FpuTypePanelClass, fputypepanel),
+				   fputypepanel_signals,
+				   "fputype-changed",
+				   "fpucompat-changed",
+				   (void*)0);
+    class->fputypepanel = NULL;
 }
 
 static void cputypepanel_init (CpuTypePanel *ctpanel)
@@ -73,22 +113,13 @@ static void cputypepanel_init (CpuTypePanel *ctpanel)
 
     gtkutil_add_table (GTK_WIDGET (ctpanel),
 	make_label ("CPU Model"), 1, 1, GTK_FILL,
-	ctpanel->cputype_widget    = make_chooser (
-#ifdef FPUEMU
-						   5, "68000", "68010", "68020", "68040", "68060"
-#else
-						   3, "68000", "68010", "68020"
-#endif
-						   ), 2, 1, GTK_EXPAND | GTK_FILL,
+	ctpanel->cputype_widget    = make_chooser ( 6, "68000", "68010", "68020", "68030", "68040", "68060" ), 2, 1, GTK_EXPAND | GTK_FILL,
 	GTKUTIL_ROW_END,
 	ctpanel->addr24bit_widget  = gtk_check_button_new_with_label ("24-bit addressing"), 1, 2, GTK_EXPAND,
 	GTKUTIL_ROW_END,
-#ifdef FPUEMU
-	ctpanel->fpuenabled_widget = gtk_check_button_new_with_label ("Emulate FPU"), 1, 2, GTK_EXPAND,
+	ctpanel->cpu_morecompat_widget  = gtk_check_button_new_with_label ("More Compatible"), 1, 2, GTK_EXPAND,
 	GTKUTIL_ROW_END,
-#endif
-	make_label ("Accuracy"), 1, 1, GTK_FILL,
-	ctpanel->accuracy_widget   = make_chooser (3, "Normal", "Compatible", "Cycle exact"), 2, 1, GTK_EXPAND | GTK_FILL,
+	ctpanel->mmu40_widget  = gtk_check_button_new_with_label ("68040 MMU"), 1, 2, GTK_EXPAND,
 	GTKUTIL_ROW_END,
 	GTKUTIL_TABLE_END
     );
@@ -99,63 +130,84 @@ static void cputypepanel_init (CpuTypePanel *ctpanel)
     gtk_signal_connect (GTK_OBJECT (ctpanel->addr24bit_widget), "toggled",
 			GTK_SIGNAL_FUNC (on_addr24bit_toggled),
 			ctpanel);
-#ifdef FPUEMU
-    gtk_signal_connect (GTK_OBJECT (ctpanel->fpuenabled_widget), "toggled",
-			GTK_SIGNAL_FUNC (on_fpuenabled_toggled),
+    gtk_signal_connect (GTK_OBJECT (ctpanel->cpu_morecompat_widget), "toggled",
+			GTK_SIGNAL_FUNC (on_cpu_morecompat_changed),
 			ctpanel);
-#endif
-    gtk_signal_connect (GTK_OBJECT (ctpanel->accuracy_widget), "selection-changed",
-			GTK_SIGNAL_FUNC (on_accuracy_changed),
+    gtk_signal_connect (GTK_OBJECT (ctpanel->mmu40_widget), "toggled",
+			GTK_SIGNAL_FUNC (on_mmu40_changed),
 			ctpanel);
 
-    update_state (ctpanel);
+    update_state_cpu (ctpanel);
 }
 
-static void update_state (CpuTypePanel *ctpanel)
+static void fputypepanel_init (FpuTypePanel *ftpanel)
 {
-    guint cpu    = ctpanel->cputype;
-    guint addr24 = ctpanel->addr24bit;
-    guint fpu    = ctpanel->fpuenabled;
+    GtkWidget *table;
+
+    gtk_frame_set_label (GTK_FRAME(ftpanel), "FPU Emulation");
+    gtk_container_set_border_width (GTK_CONTAINER (ftpanel), PANEL_BORDER_WIDTH);
+    gtk_frame_set_label_align (GTK_FRAME(ftpanel), 0.01, 0.5);
+
+    gtkutil_add_table (GTK_WIDGET (ftpanel),
+	make_label ("FPU Model"), 1, 1, GTK_FILL,
+
+	ftpanel->fputype_widget    = make_chooser (
+#ifdef FPUEMU
+						   4, "None", "68881", "68882", "CPU Internal"
+#else
+						   1, "None"
+#endif
+						   ), 2, 1, GTK_EXPAND | GTK_FILL,
+	GTKUTIL_ROW_END,
+	ftpanel->fpu_morecompat_widget  = gtk_check_button_new_with_label ("More Compatible"), 1, 2, GTK_EXPAND,
+	GTKUTIL_ROW_END,
+	GTKUTIL_TABLE_END
+    );
+
+    gtk_signal_connect (GTK_OBJECT (ftpanel->fputype_widget), "selection-changed",
+			GTK_SIGNAL_FUNC (on_fputype_changed),
+			ftpanel);
+    gtk_signal_connect (GTK_OBJECT (ftpanel->fpu_morecompat_widget), "toggled",
+			GTK_SIGNAL_FUNC (on_fpu_morecompat_changed),
+			ftpanel);
+
+    update_state_fpu (ftpanel);
+}
+
+static void update_state_cpu (CpuTypePanel *ctpanel)
+{
+	guint cpu			= ctpanel->cputype;
+	guint addr24		= ctpanel->addr24bit;
+	guint cpumorecompat	= ctpanel->cpumorecompat;
 
     switch (cpu) {
-	case 0:
-	case 1:
-	    addr24 = 1;
-	    fpu    = 0;
-	    break;
-	case 3:
-	case 4:
-	    addr24 = 0;
-	    fpu    = 1;
-	    break;
+		case 0:
+		case 1:
+		    addr24 = 1;
+		    break;
+		case 3:
+		case 4:
+		    addr24 = 0;
+		    break;
     }
 
     gtk_widget_set_sensitive (ctpanel->addr24bit_widget, cpu == 2);
-#ifdef FPUEMU
-    gtk_widget_set_sensitive (ctpanel->fpuenabled_widget, cpu == 2);
-
-    if (fpu != ctpanel->fpuenabled) {
-	ctpanel->fpuenabled = fpu;
-	gtk_signal_handler_block_by_data (GTK_OBJECT (ctpanel->fpuenabled_widget), ctpanel );
-	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (ctpanel->fpuenabled_widget), fpu);
-	gtk_signal_handler_unblock_by_data (GTK_OBJECT (ctpanel->fpuenabled_widget), ctpanel );
-    }
-#endif
 
     if (addr24 != ctpanel->addr24bit) {
 	ctpanel->addr24bit  = addr24;
 	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (ctpanel->addr24bit_widget), addr24);
     }
+}
 
-    gtk_widget_set_sensitive (ctpanel->accuracy_widget, cpu == 0);
-    if (cpu > 0)
-	chooserwidget_set_choice (CHOOSERWIDGET (ctpanel->accuracy_widget), 0);
+static void update_state_fpu (FpuTypePanel *ftpanel)
+{
+
 }
 
 static void on_cputype_changed (GtkWidget *w, CpuTypePanel *ctpanel)
 {
     ctpanel->cputype = CHOOSERWIDGET (w)->choice;
-    update_state (ctpanel);
+    update_state_cpu (ctpanel);
     gtk_signal_emit_by_name (GTK_OBJECT(ctpanel), "cputype-changed");
 }
 
@@ -165,30 +217,29 @@ static void on_addr24bit_toggled (GtkWidget *w, CpuTypePanel *ctpanel)
     gtk_signal_emit_by_name (GTK_OBJECT(ctpanel), "addr24bit-changed");
 }
 
-#ifdef FPUEMU
-static void on_fpuenabled_toggled (GtkWidget *w, CpuTypePanel *ctpanel)
+static void on_cpu_morecompat_changed (GtkWidget *w, CpuTypePanel *ctpanel)
 {
-    ctpanel->fpuenabled = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (ctpanel->fpuenabled_widget));
-    gtk_signal_emit_by_name (GTK_OBJECT(ctpanel), "cputype-changed");
+    ctpanel->cpumorecompat = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (ctpanel->cpu_morecompat_widget));
+    gtk_signal_emit_by_name (GTK_OBJECT(ctpanel), "cpucompat-changed");
 }
-#endif
 
-static void on_accuracy_changed (GtkWidget *w, CpuTypePanel *ctpanel)
+static void on_mmu40_changed (GtkWidget *w, CpuTypePanel *ctpanel)
 {
-    int choice = CHOOSERWIDGET (ctpanel->accuracy_widget)->choice;
+    ctpanel->mmu40 = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (ctpanel->mmu40_widget));
+    gtk_signal_emit_by_name (GTK_OBJECT(ctpanel), "mmu40-changed");
+}
 
-    if (choice == 0 ) {
-	ctpanel->compatible = 0;
-	ctpanel->cycleexact = 0;
-    } else if (choice == 1) {
-	ctpanel->compatible = 1;
-	ctpanel->cycleexact = 0;
-    } else {
-	ctpanel->compatible = 0;
-	ctpanel->cycleexact = 1;
-    }
+static void on_fputype_changed (GtkWidget *w, FpuTypePanel *ftpanel)
+{
+	ftpanel->fputype = CHOOSERWIDGET (w)->choice;
+	update_state_fpu (ftpanel);
+	gtk_signal_emit_by_name (GTK_OBJECT(ftpanel), "fputype-changed");
+}
 
-    gtk_signal_emit_by_name (GTK_OBJECT(ctpanel), "cputype-changed");
+static void on_fpu_morecompat_changed (GtkWidget *w, FpuTypePanel *ftpanel)
+{
+    ftpanel->fpumorecompat = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (ftpanel->fpu_morecompat_widget));
+    gtk_signal_emit_by_name (GTK_OBJECT(ftpanel), "fpucompat-changed");
 }
 
 GtkWidget *cputypepanel_new (void)
@@ -198,9 +249,17 @@ GtkWidget *cputypepanel_new (void)
     return GTK_WIDGET (w);
 }
 
+GtkWidget *fputypepanel_new (void)
+{
+    CpuTypePanel *w = CPUTYPEPANEL (gtk_type_new (fputypepanel_get_type ()));
+
+    return GTK_WIDGET (w);
+}
+
 void cputypepanel_set_cpulevel (CpuTypePanel *ctpanel, guint cpulevel)
 {
-    guint cputype; guint fpu = ctpanel->fpuenabled;
+    guint cputype;
+	guint fpu = ctpanel->fpuenabled;
 
     switch (cpulevel) {
 	case 0:  cputype = 0; break;
@@ -212,17 +271,10 @@ void cputypepanel_set_cpulevel (CpuTypePanel *ctpanel, guint cpulevel)
 	default: cputype = 0;
     }
     if (cputype != ctpanel->cputype) {
-	ctpanel->cputype = cputype;
-	chooserwidget_set_choice (CHOOSERWIDGET (ctpanel->cputype_widget), cputype);
-
+		ctpanel->cputype = cputype;
+		chooserwidget_set_choice (CHOOSERWIDGET (ctpanel->cputype_widget), cputype);
     }
-#ifdef FPUEMU
-    if (fpu != ctpanel->fpuenabled) {
-	ctpanel->fpuenabled = fpu;
-	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (ctpanel->fpuenabled_widget), fpu);
-    }
-#endif
-    update_state (ctpanel);
+    update_state_cpu (ctpanel);
 }
 
 guint cputypepanel_get_cpulevel (CpuTypePanel *ctpanel)
@@ -252,16 +304,4 @@ void cputypepanel_set_addr24bit (CpuTypePanel *ctpanel, guint addr24bit)
 	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON
 				     (ctpanel->addr24bit_widget),
 				      addr24bit);
-}
-
-void cputypepanel_set_compatible (CpuTypePanel *ctpanel, gboolean compatible)
-{
-    chooserwidget_set_choice (CHOOSERWIDGET (ctpanel->accuracy_widget),
-			      compatible ? 1 : 0);
-}
-
-void cputypepanel_set_cycleexact (CpuTypePanel *ctpanel, gboolean cycleexact)
-{
-    chooserwidget_set_choice (CHOOSERWIDGET (ctpanel->accuracy_widget),
-			      cycleexact ? 2 : 0);
 }

@@ -180,6 +180,7 @@ int maxhpos = MAXHPOS_PAL;
 int maxhpos_short = MAXHPOS_PAL;
 int maxvpos = MAXVPOS_PAL;
 int maxvpos_nom = MAXVPOS_PAL; // nominal value (same as maxvpos but "faked" maxvpos in fake 60hz modes)
+int hsyncstartpos;
 static int maxvpos_total = 511;
 int minfirstline = VBLANK_ENDLINE_PAL;
 int equ_vblank_endline = EQU_ENDLINE_PAL;
@@ -392,7 +393,7 @@ STATIC_INLINE int nodraw (void)
 
 static int doflickerfix (void)
 {
-	return currprefs.gfx_linedbl && doublescan < 0 && vpos < MAXVPOS;
+	return currprefs.gfx_vresolution && doublescan < 0 && vpos < MAXVPOS;
 }
 
 uae_u32 get_copper_address (int copno)
@@ -1870,7 +1871,7 @@ STATIC_INLINE void decide_line (int hpos)
 	if (hpos <= last_decide_line_hpos)
 		return;
 
-	if (fetch_state == fetch_not_started && diwstate == DIW_waiting_stop) {
+	if (fetch_state == fetch_not_started && (diwstate == DIW_waiting_stop || (currprefs.chipset_mask & CSMASK_ECS_AGNUS))) {
 		int ok = 0;
 		if (last_decide_line_hpos < plfstrt_start && hpos >= plfstrt_start) {
 			if (plf_state == plf_idle)
@@ -1886,7 +1887,7 @@ STATIC_INLINE void decide_line (int hpos)
 			if (hpos - 2 == ddfstrt_old_hpos)
 				ok = 0;
 		}
-		if (ok) {
+		if (ok && diwstate == DIW_waiting_stop) {
 			if (dmaen (DMA_BITPLANE)) {
 				start_bpl_dma (hpos, plfstrt);
 				estimate_last_fetch_cycle (plfstrt);
@@ -2734,7 +2735,7 @@ void init_hz (void)
 	int hzc = 0;
 
 	if (vsync_switchmode (-1, 0))
-		currprefs.gfx_avsync = changed_prefs.gfx_avsync = vsync_switchmode (-1, 0);
+		currprefs.gfx_avsync = changed_prefs.gfx_avsync = vsync_switchmode (-1, 0) ? 2 : 0;
 
 	if (!isvsync () && ((currprefs.chipset_refreshrate == 50 && !currprefs.ntscmode) ||
 		(currprefs.chipset_refreshrate == 60 && currprefs.ntscmode))) {
@@ -2809,6 +2810,14 @@ void init_hz (void)
 	if (vblank_hz > 300)
 		vblank_hz = 300;
 	maxhpos_short = maxhpos;
+	if (beamcon0 & 0x80) {
+		if (hbstrt > maxhpos)
+			hsyncstartpos = hbstrt;
+		else
+			hsyncstartpos = maxhpos + hbstrt;
+	} else {
+		hsyncstartpos = maxhpos_short + 7;
+	}
 	eventtab[ev_hsync].oldcycles = get_cycles ();
 	eventtab[ev_hsync].evtime = get_cycles () + HSYNCTIME;
 	events_schedule ();
@@ -3022,7 +3031,7 @@ STATIC_INLINE uae_u16 VPOSR (void)
 	vp = (vp >> 8) & 7;
 
 	if (currprefs.cs_agnusrev >= 0) {
-		csbit |= currprefs.cs_agnusrev  << 8;
+		csbit |= currprefs.cs_agnusrev << 8;
 	} else {
 #ifdef AGA
 		csbit |= (currprefs.chipset_mask & CSMASK_AGA) ? 0x2300 : 0;
@@ -3261,7 +3270,7 @@ static void DMACON (int hpos, uae_u16 v)
 		unset_special (SPCFLAG_BLTNASTY);
 
 	if (changed & (DMA_MASTER | 0x0f))
-		audio_hsync (hpos);
+		audio_state_machine ();
 
 	if (changed & (DMA_MASTER | DMA_BITPLANE)) {
 		ddf_change = vpos;
@@ -3275,13 +3284,16 @@ static void DMACON (int hpos, uae_u16 v)
 
 static void MISC_handler (void)
 {
+	static bool dorecheck;
 	int i, recheck;
 	evt mintime;
 	evt ct = get_cycles ();
 	static int recursive;
 
-	if (recursive)
+	if (recursive) {
+		dorecheck = true;
 		return;
+	}
 	recursive++;
 	eventtab[ev_misc].active = 0;
 	recheck = 1;
@@ -3293,8 +3305,10 @@ static void MISC_handler (void)
 				if (eventtab2[i].evtime == ct) {
 					eventtab2[i].active = 0;
 					eventtab2[i].handler (eventtab2[i].data);
-					if (eventtab2[i].active)
+					if (dorecheck || eventtab2[i].active) {
 						recheck = 1;
+						dorecheck = false;
+					}
 				} else {
 					evt eventtime = eventtab2[i].evtime - ct;
 					if (eventtime < mintime)
@@ -3354,9 +3368,9 @@ STATIC_INLINE void event2_newevent_x (int no, evt t, uae_u32 data, evfunc2 func)
 	event2_newevent_xx (no, t * CYCLE_UNIT, data, func);
 }
 
-void event2_newevent (int no, evt t)
+void event2_newevent (int no, evt t, uae_u32 data)
 {
-	event2_newevent_x (no, t, 0, eventtab2[no].handler);
+	event2_newevent_x (no, t, data, eventtab2[no].handler);
 }
 void event2_newevent2 (evt t, uae_u32 data, evfunc2 func)
 {
@@ -3471,9 +3485,6 @@ void INTREQ_0 (uae_u16 v)
 
 	if (!(v & 0x8000) && old == intreq)
 		return;
-
-	if (v & (0x0080 | 0x0100 | 0x0200 | 0x0400))
-		audio_update_irq (v);
 
 	if (use_eventmode (v)) {
 		event2_newevent_xx (-1, INT_PROCESSING_DELAY, intreq, send_intreq_do);
@@ -5295,7 +5306,103 @@ static void hsync_scandoubler (void)
 	}
 }
 
-void hsync_handler (void)
+static void events_dmal (int);
+static uae_u16 dmal, dmal_hpos;
+
+static void dmal_emu (uae_u32 v)
+{
+	int hpos = current_hpos ();
+	if (v >= 6) {
+		v -= 6;
+		int nr = v / 2;
+		uaecptr pt = audio_getpt (nr, v & 1);
+		uae_u16 dat = chipmem_wget_indirect (pt);
+#ifdef DEBUGGER
+		if (debug_dma)
+			record_dma (0xaa + nr * 16, dat, pt, hpos, vpos, DMARECORD_AUDIO);
+#endif
+		last_custom_value1 = dat;
+		AUDxDAT (nr, dat, pt);
+	} else {
+		uae_u16 dat;
+		int w = v & 1;
+		uaecptr pt = disk_getpt ();
+		// disk_fifostatus() needed in >100% disk speed modes
+		if (w) {
+			if (disk_fifostatus () <= 0) {
+				dat = chipmem_wget_indirect (pt);
+				last_custom_value1 = dat;
+				DSKDAT (dat);
+			}
+		} else {
+			if (disk_fifostatus () >= 0) {
+				dat = DSKDATR ();
+				chipmem_wput_indirect (pt, dat);
+			}
+		}
+#ifdef DEBUGGER
+		if (debug_dma)
+			record_dma (w ? 0x26 : 0x08, dat, pt, hpos, vpos, DMARECORD_DISK);
+#endif
+	}
+}
+
+static void dmal_func (uae_u32 v)
+{
+	dmal_emu (v);
+	events_dmal (0);
+}
+static void dmal_func2 (uae_u32 v)
+{
+	unsigned int i;
+	for (i = 0; i < 6 + 8; i += 2) {
+		if (dmal & 3)
+			dmal_emu (dmal_hpos + ((dmal & 2) ? 1 : 0));
+		dmal_hpos += 2;
+		dmal >>= 2;
+	}
+}
+
+static void events_dmal (int hp)
+{
+	int i;
+	if (!dmal)
+		return;
+	if (currprefs.cpu_cycle_exact) {
+		for (i = 0; i < 6 + 8; i += 2) {
+			if (dmal & 3)
+				break;
+			hp += 2;
+			dmal >>= 2;
+			dmal_hpos += 2;
+		}
+		event2_newevent2 (hp, dmal_hpos + ((dmal & 2) ? 1 : 0), dmal_func);
+		dmal &= ~3;
+	} else {
+		event2_newevent2 (hp, 17, dmal_func2);
+	}
+}
+
+static void events_dmal_hsync (void)
+{
+	unsigned int i;
+	if (dmal)
+		write_log ("DMAL error!? %04x\n", dmal);
+	dmal = audio_dmal ();
+	dmal <<= 6;
+	dmal |= disk_dmal ();
+	if (!dmal)
+		return;
+	dmal_hpos = 0;
+	for (i = 0; i < 6 + 8; i += 2) {
+		if (dmal & (3 << i)) {
+			alloc_cycle_ext (i + 7, CYCLE_MISC);
+		}
+	}
+	events_dmal (7);
+}
+
+static void hsync_handler (void)
 {
 	int hpos = current_hpos ();
 
@@ -5331,7 +5438,7 @@ void hsync_handler (void)
 	CDTV_hsync_handler ();
 #endif
 	decide_blitter (-1);
-	DISK_hsync (maxhpos);
+	DISK_hsync ();
 
 #ifdef CPUEMU_12
 	if (currprefs.cpu_cycle_exact || currprefs.blitter_cycle_exact) {
@@ -5455,7 +5562,9 @@ void hsync_handler (void)
 
 
 	if (currprefs.produce_sound)
-		audio_hsync (-1);
+		audio_hsync ();
+
+	events_dmal_hsync ();
 
 #ifdef JIT
 	if (currprefs.cachesize) {
@@ -5480,14 +5589,14 @@ void hsync_handler (void)
 		int lineno = vpos;
 		if (lineno >= MAXVPOS)
 			lineno %= MAXVPOS;
-		if ((bplcon0 & 4) && currprefs.gfx_linedbl)
+		if ((bplcon0 & 4) && currprefs.gfx_vresolution)
 			notice_interlace_seen ();
 		nextline_how = nln_normal;
 		if (doflickerfix () && interlace_seen) {
 			lineno *= 2;
-		} else if (currprefs.gfx_linedbl && (doublescan <= 0 || interlace_seen > 0)) {
+		} else if (currprefs.gfx_vresolution && (doublescan <= 0 || interlace_seen > 0)) {
 			lineno *= 2;
-			nextline_how = currprefs.gfx_linedbl == 1 ? nln_doubled : nln_nblack;
+			nextline_how = currprefs.gfx_vresolution > VRES_NONDOUBLE && currprefs.gfx_scanlines == false ? nln_doubled : nln_nblack;
 			if ((bplcon0 & 4) || (interlace_seen > 0 && !lof_current)) {
 				if (!lof_current) {
 					lineno++;
@@ -5740,6 +5849,7 @@ void customreset (int hardreset)
 	set_cycles (0);
 
 	vpos_count = vpos_count_prev = 0;
+	dmal = 0;
 	init_hz ();
 	vpos_lpen = -1;
 
@@ -6157,28 +6267,28 @@ static int REGPARAM2 custom_wput_1 (int hpos, uaecptr addr, uae_u32 value, int n
 	case 0x0A4: AUDxLEN (0, value); break;
 	case 0x0A6: AUDxPER (0, value); break;
 	case 0x0A8: AUDxVOL (0, value); break;
-	case 0x0AA: AUDxDAT (0, value); break;
+	case 0x0AA: AUDxDAT (0, value, 0xffffffff); break;
 
 	case 0x0B0: AUDxLCH (1, value); break;
 	case 0x0B2: AUDxLCL (1, value); break;
 	case 0x0B4: AUDxLEN (1, value); break;
 	case 0x0B6: AUDxPER (1, value); break;
 	case 0x0B8: AUDxVOL (1, value); break;
-	case 0x0BA: AUDxDAT (1, value); break;
+	case 0x0BA: AUDxDAT (1, value, 0xffffffff); break;
 
 	case 0x0C0: AUDxLCH (2, value); break;
 	case 0x0C2: AUDxLCL (2, value); break;
 	case 0x0C4: AUDxLEN (2, value); break;
 	case 0x0C6: AUDxPER (2, value); break;
 	case 0x0C8: AUDxVOL (2, value); break;
-	case 0x0CA: AUDxDAT (2, value); break;
+	case 0x0CA: AUDxDAT (2, value, 0xffffffff); break;
 
 	case 0x0D0: AUDxLCH (3, value); break;
 	case 0x0D2: AUDxLCL (3, value); break;
 	case 0x0D4: AUDxLEN (3, value); break;
 	case 0x0D6: AUDxPER (3, value); break;
 	case 0x0D8: AUDxVOL (3, value); break;
-	case 0x0DA: AUDxDAT (3, value); break;
+	case 0x0DA: AUDxDAT (3, value, 0xffffffff); break;
 
 	case 0x0E0: BPLxPTH (hpos, value, 0); break;
 	case 0x0E2: BPLxPTL (hpos, value, 0); break;
@@ -6340,12 +6450,6 @@ void REGPARAM2 custom_bput (uaecptr addr, uae_u32 value)
 			custom_wput (addr, value << 8);
 	} else {
 		custom_wput (addr & ~1, rval);
-	}
-	if (warned < 10) {
-		if (M68K_GETPC < 0xe00000 || M68K_GETPC >= 0x10000000) {
-			write_log ("Byte put to custom register %04X PC=%08X\n", addr, M68K_GETPC);
-			warned++;
-		}
 	}
 }
 

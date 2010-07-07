@@ -1,11 +1,11 @@
- /*
-  * UAE - The Un*x Amiga Emulator
-  *
-  * Joystick, mouse and keyboard emulation prototypes and definitions
-  *
-  * Copyright 1995 Bernd Schmidt
-  * Copyright 2001-2002 Toni Wilen
-  */
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * Joystick, mouse and keyboard emulation prototypes and definitions
+ *
+ * Copyright 1995 Bernd Schmidt
+ * Copyright 2001-2002 Toni Wilen
+ */
 
 
 #define IDTYPE_JOYSTICK 0

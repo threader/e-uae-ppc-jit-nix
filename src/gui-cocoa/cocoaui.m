@@ -589,11 +589,6 @@ int gui_init (void)
 {
 }
 
-int gui_open (void)
-{
-    return -1;
-}
-
 int gui_update (void)
 {
     return 0;
@@ -617,41 +612,6 @@ void gui_led (int led, int on)
 {
 }
 
-void gui_hd_led (int unitnum, int led)
-{
-    static int resetcounter;
-
-    int old = gui_data.hd;
-
-    if (led == 0) {
-		resetcounter--;
-		if (resetcounter > 0)
-			return;
-    }
-
-    gui_data.hd = led;
-    resetcounter = 6;
-    if (old != gui_data.hd)
-		gui_led (5, gui_data.hd);
-}
-
-void gui_cd_led (int unitnum, int led)
-{
-    static int resetcounter;
-
-    int old = gui_data.cd;
-    if (led == 0) {
-		resetcounter--;
-		if (resetcounter > 0)
-			return;
-    }
-
-    gui_data.cd = led;
-    resetcounter = 6;
-    if (old != gui_data.cd)
-		gui_led (6, gui_data.cd);
-}
-
 void gui_filename (int num, const char *name)
 {
 }
@@ -661,10 +621,6 @@ static void getline (char *p)
 }
 
 void gui_handle_events (void)
-{
-}
-
-void gui_notify_state (int state)
 {
 }
 

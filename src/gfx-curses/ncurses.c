@@ -467,7 +467,7 @@ int graphics_init (void)
     currprefs.gfx_width = 320;
     currprefs.gfx_height = 256;
     currprefs.gfx_lores = 1;
-    currprefs.gfx_linedbl = 0;
+    currprefs.gfx_vresolution = 0;
 
     gfxvidinfo.width = currprefs.gfx_width;
     gfxvidinfo.height = currprefs.gfx_height;

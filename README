@@ -1,4 +1,4 @@
-PUAE 2.2.00
+PUAE 2.2.1 beta series
 ============
 PUAE tries to continue where E-UAE left off..
 PUAE versioning is based on the merged WinUAE version..
@@ -55,6 +55,10 @@ distributed (so don't ask me for a copy). If you don't have an Amiga
 from which you can legally make a ROM image, a selection of ROM images
 are available for purchase online from Cloanto (publishers of the
 Amiga Forever distribution). See http://www.amigaforever.com/
+
+What's new since PUAE 2.x.x
+======================
+* trying to sync with winuae :}
 
 What's new since PUAE 0.0.0
 ======================

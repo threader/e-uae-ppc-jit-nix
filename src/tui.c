@@ -1,11 +1,11 @@
- /*
-  * UAE - The Un*x Amiga Emulator
-  *
-  * Text-based user interface
-  * Sie haben es sich verdient!
-  *
-  * Copyright 1996 Tim Gunn, Bernd Schmidt
-  */
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * Text-based user interface
+ * Sie haben es sich verdient!
+ *
+ * Copyright 1996 Tim Gunn, Bernd Schmidt
+ */
 
 #include "sysconfig.h"
 #include "sysdeps.h"
@@ -33,10 +33,6 @@
 int mountok=0;
 
 void gui_led (int led, int on)
-{
-}
-
-void gui_hd_led (int unitnum, int led)
 {
 }
 
@@ -235,7 +231,7 @@ static void print_configuration (void)
     tui_puts (tmp);
 
     tui_gotoxy (OPTION_COLUMN+7, y++);
-    if (currprefs.gfx_linedbl)
+    if (currprefs.gfx_vresolution)
 	tui_puts ("Doubling lines, ");
 /*    if (currprefs.gfx_correct_aspect)
 	tui_puts ("Aspect corrected");
@@ -470,11 +466,11 @@ static void VideoOptions (void)
 	    currprefs.gfx_ycenter = (currprefs.gfx_ycenter + 1) % 3;
 	    break;
 	 case 7:
-	    currprefs.gfx_linedbl = !currprefs.gfx_linedbl;
+	    currprefs.gfx_vresolution = !currprefs.gfx_vresolution;
 	    break;
-/*	 case 8:
-	    currprefs.gfx_correct_aspect = !currprefs.gfx_correct_aspect;
-	    break;*/
+	 case 8:
+//	    currprefs.gfx_correct_aspect = !currprefs.gfx_correct_aspect;
+	    break;
 	 case 9:
 	    currprefs.gfx_framerate++;
 	    if (currprefs.gfx_framerate > 9)
@@ -689,11 +685,6 @@ static int do_gui (int mode)
 
     chdir (cwd);
     return 0;
-}
-
-int gui_open (void)
-{
-    return do_gui (1);
 }
 
 int gui_update (void)

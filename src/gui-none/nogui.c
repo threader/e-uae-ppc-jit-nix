@@ -16,15 +16,6 @@ int gui_init (void)
 {
 }
 
-int gui_open (void)
-{
-    return -1;
-}
-
-void gui_notify_state (int state)
-{
-}
-
 void gui_fps (int fps, int idle)
 {
     gui_data.fps  = fps;
@@ -36,14 +27,6 @@ void gui_flicker_led (int led, int unitnum, int status)
 }
 
 void gui_led (int led, int on)
-{
-}
-
-void gui_hd_led (int unitnum, int led)
-{
-}
-
-void gui_cd_led (int unitnum, int led)
 {
 }
 

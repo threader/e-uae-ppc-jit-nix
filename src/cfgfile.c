@@ -148,8 +148,7 @@ static const TCHAR *guimode1[] = { "no", "yes", "nowait", 0 };
 static const TCHAR *guimode2[] = { "false", "true", "nowait", 0 };
 static const TCHAR *guimode3[] = { "0", "1", "nowait", 0 };
 static const TCHAR *csmode[] = { "ocs", "ecs_agnus", "ecs_denise", "ecs", "aga", 0 };
-static const TCHAR *linemode1[] = { "none", "double", "scanlines", 0 };
-static const TCHAR *linemode2[] = { "n", "d", "s", 0 };
+static const TCHAR *linemode[] = { "none", "none", "double", "scanlines", 0 };
 static const TCHAR *speedmode[] = { "max", "real", 0 };
 static const TCHAR *colormode1[] = { "8bit", "15bit", "16bit", "8bit_dither", "4bit_dither", "32bit", 0 };
 static const TCHAR *colormode2[] = { "8", "15", "16", "8d", "4d", "32", 0 };
@@ -763,7 +762,7 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 	cfgfile_write_str (f, "gfx_resolution", lorestype1[p->gfx_resolution]);
 	cfgfile_write_str (f, "gfx_lores_mode", loresmode[p->gfx_lores_mode]);
 	cfgfile_write_bool (f, "gfx_flickerfixer", p->gfx_scandoubler);
-	cfgfile_write_str (f, "gfx_linemode", linemode1[p->gfx_linedbl]);
+	cfgfile_write_str (f, "gfx_linemode", linemode[p->gfx_vresolution * 2 + p->gfx_scanlines]);
 	cfgfile_write_str (f, "gfx_fullscreen_amiga", fullmodes[p->gfx_afullscreen]);
 	cfgfile_write_str (f, "gfx_fullscreen_picasso", fullmodes[p->gfx_pfullscreen]);
 	cfgfile_write_str (f, "gfx_center_horizontal", centermode1[p->gfx_xcenter]);
@@ -1371,8 +1370,6 @@ static int cfgfile_parse_host (struct uae_prefs *p, TCHAR *option, TCHAR *value)
 		|| cfgfile_strval (option, value, "gfx_lores_mode", &p->gfx_lores_mode, loresmode, 0)
 		|| cfgfile_strval (option, value, "gfx_fullscreen_amiga", &p->gfx_afullscreen, fullmodes, 0)
 		|| cfgfile_strval (option, value, "gfx_fullscreen_picasso", &p->gfx_pfullscreen, fullmodes, 0)
-		|| cfgfile_strval (option, value, "gfx_linemode", &p->gfx_linedbl, linemode1, 1)
-		|| cfgfile_strval (option, value, "gfx_linemode", &p->gfx_linedbl, linemode2, 0)
 		|| cfgfile_strval (option, value, "gfx_center_horizontal", &p->gfx_xcenter, centermode1, 1)
 		|| cfgfile_strval (option, value, "gfx_center_vertical", &p->gfx_ycenter, centermode1, 1)
 		|| cfgfile_strval (option, value, "gfx_center_horizontal", &p->gfx_xcenter, centermode2, 0)
@@ -2715,14 +2712,12 @@ static void parse_gfx_specs (struct uae_prefs *p, const TCHAR *spec)
 	p->gfx_resolution = _tcschr (x2, 'l') != 0 ? 1 : 0;
 	p->gfx_xcenter = _tcschr (x2, 'x') != 0 ? 1 : _tcschr (x2, 'X') != 0 ? 2 : 0;
 	p->gfx_ycenter = _tcschr (x2, 'y') != 0 ? 1 : _tcschr (x2, 'Y') != 0 ? 2 : 0;
-	p->gfx_linedbl = _tcschr (x2, 'd') != 0;
-	p->gfx_linedbl += 2 * (_tcschr (x2, 'D') != 0);
+	p->gfx_vresolution = _tcschr (x2, 'd') != 0 ? VRES_DOUBLE : VRES_NONDOUBLE;
+	p->gfx_scanlines = _tcschr (x2, 'D') != 0;
+	if (p->gfx_scanlines)
+		p->gfx_vresolution = VRES_DOUBLE;
 	p->gfx_afullscreen = _tcschr (x2, 'a') != 0;
 	p->gfx_pfullscreen = _tcschr (x2, 'p') != 0;
-
-	if (p->gfx_linedbl == 3) {
-		write_log ("You can't use both 'd' and 'D' modifiers in the display mode specification.\n");
-	}
 
 	free (x0);
 	return;
@@ -3519,8 +3514,8 @@ void default_prefs (struct uae_prefs *p, int type)
 		p->gfx_size_win_xtra[i].width = 0;
 		p->gfx_size_win_xtra[i].height = 0;
 	}
-	p->gfx_resolution = 1;
-	p->gfx_linedbl = 1;
+	p->gfx_resolution = RES_HIRES;
+	p->gfx_vresolution = VRES_DOUBLE;
 	p->gfx_afullscreen = GFX_WINDOW;
 	p->gfx_pfullscreen = GFX_WINDOW;
 	p->gfx_xcenter = 0; p->gfx_ycenter = 0;
