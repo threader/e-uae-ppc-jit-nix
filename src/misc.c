@@ -925,3 +925,45 @@ TCHAR *au_copy (TCHAR *dst, int maxlen, const char *src)
 	memcpy (dst, src, maxlen);
         return dst;
 }
+//writelog.cpp
+int consoleopen = 0;
+static int realconsole = 1;
+
+static int debugger_type = -1;
+
+static void openconsole (void)
+{
+        if (realconsole) {
+                if (debugger_type == 2) {
+                        //open_debug_window ();
+                        consoleopen = 1;
+                } else {
+                        //close_debug_window ();
+                        consoleopen = -1;
+                }
+                return;
+        }
+}
+
+void close_console (void)
+{
+        if (realconsole)
+                return;
+}
+
+void debugger_change (int mode)
+{
+        if (mode < 0)
+                debugger_type = debugger_type == 2 ? 1 : 2;
+        else
+                debugger_type = mode;
+        if (debugger_type != 1 && debugger_type != 2)
+                debugger_type = 2;
+//        regsetint (NULL, "DebuggerType", debugger_type);
+        openconsole ();
+}
+//unicode.c
+char *ua (const TCHAR *s)
+{
+        return s;
+}

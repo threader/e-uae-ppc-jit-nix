@@ -1,10 +1,10 @@
 /*
-* UAE - The Un*x Amiga Emulator
-*
-* A4000T NCR 53C710 SCSI (nothing done yet)
-*
-* (c) 2007 Toni Wilen
-*/
+ * UAE - The Un*x Amiga Emulator
+ *
+ * A4000T NCR 53C710 SCSI (nothing done yet)
+ *
+ * (c) 2007 Toni Wilen
+ */
 
 #ifdef NCR
 #define NCR_LOG 1
@@ -47,24 +47,24 @@ static struct ncrscsi regsinfo[] =
 {
 	"SCNTL0",	 0,  3,
 	"SCNTL1",	 1,  2,
-	"SDID",	 2,  1,
-	"SIEN",	 3,  0,
-	"SCID",	 4,  7,
+	"SDID",		 2,  1,
+	"SIEN",		 3,  0,
+	"SCID",		 4,  7,
 	"SXFER",	 5,  6,
-	"SODL",	 6,  5,
-	"SOCL",	 7,  4,
-	"SFBR",	 8, 11,
-	"SIDL",	 9, 10,
-	"SBDL",	10, -1,
-	"SBCL",	11,  8,
+	"SODL",		 6,  5,
+	"SOCL",		 7,  4,
+	"SFBR",		 8, 11,
+	"SIDL",		 9, 10,
+	"SBDL",		10, -1,
+	"SBCL",		11,  8,
 	"DSTAT",	12, 15,
 	"SSTAT0",	13, 14,
 	"SSTAT1",	14, 13,
 	"SSTAT2",	15, 12,
-	"DSA0",	16, 19,
-	"DSA1",	17, 18,
-	"DSA2",	18, 17,
-	"DSA3",	19, 16,
+	"DSA0",		16, 19,
+	"DSA1",		17, 18,
+	"DSA2",		18, 17,
+	"DSA3",		19, 16,
 	"CTEST0",	20, 23,
 	"CTEST1",	21, 22,
 	"CTEST2",	22, 21,
@@ -80,19 +80,19 @@ static struct ncrscsi regsinfo[] =
 	"DFIFO",	32, 35,
 	"ISTAT",	33, 34,
 	"CTEST8",	34, 33,
-	"LCRC",	35, 32,
-	"DBC0",	36, 39,
-	"DBC1",	37, 38,
-	"DBC2",	38, 37,
-	"DCMD",	39, 36,
+	"LCRC",		35, 32,
+	"DBC0",		36, 39,
+	"DBC1",		37, 38,
+	"DBC2",		38, 37,
+	"DCMD",		39, 36,
 	"DNAD0",	40, 43,
 	"DNAD1",	41, 42,
 	"DNAD2",	42, 41,
 	"DNAD3",	43, 40,
-	"DSP0",	44, 47,
-	"DSP1",	45, 46,
-	"DSP2",	46, 45,
-	"DSP3",	47, 44,
+	"DSP0",		44, 47,
+	"DSP1",		45, 46,
+	"DSP2",		46, 45,
+	"DSP3",		47, 44,
 	"DSPS0",	48, 51,
 	"DSPS1",	49, 50,
 	"DSPS2",	50, 49,
@@ -102,8 +102,8 @@ static struct ncrscsi regsinfo[] =
 	"SCRATCH2",	54, 53,
 	"SCRATCH3",	55, 52,
 	"DMODE",	56, 59,
-	"DIEN",	57, 58,
-	"DWT",	58, 57,
+	"DIEN",		57, 58,
+	"DWT",		58, 57,
 	"DCNTL",	59, 56,
 	"ADDER0",	60, 63,
 	"ADDER1",	61, 62,

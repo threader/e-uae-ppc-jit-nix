@@ -31,89 +31,82 @@
  *
  * Evaluate operand and set Z and N flags. Always clear C and V.
  */
-#define optflag_testl(regs, v) 				\
-    do { 						\
-	uae_u32 tmp; 					\
-	asm (						\
-		"cmpi cr0, %2, 0	\n\t" 		\
-		"mfcr %1		\n\t" 		\
-		"rlwinm %0, %1, 0, 0, 3 \n\t" 		\
-							\
-		: "=r" ((regs)->ccrflags.cznv),		\
-		  "=r" (tmp)				\
-		:  "r" (v)				\
-		: "cr0"					\
-	);						\
+#define optflag_testl (v)			\
+    do {					\
+	asm (					\
+		"cmpi cr0, %2, 0	\n\t"	\
+		"mfcr %1		\n\t"	\
+		"rlwinm %0, %1, 0, 0, 3 \n\t"	\
+						\
+		::  "r" (v)			\
+		: "cr0"				\
+	);					\
     } while (0)
 
-#define optflag_testw(regs, v) optflag_testl(regs, (uae_s32)(v))
-#define optflag_testb(regs, v) optflag_testl(regs, (uae_s32)(v))
+#define optflag_testw(v) optflag_testl((uae_s32)(v))
+#define optflag_testb(v) optflag_testl((uae_s32)(v))
 
 /*
  * Add operations
  *
  * Perform v = s + d and set ZNCV accordingly
  */
-#define optflag_addl(regs, v, s, d)			\
-    do {						\
-	asm (						\
-		"addco. %1, %2, %3	\n\t"		\
-		"mcrxr  cr2		\n\t"		\
-		"mfcr   %0		\n\t"		\
-							\
-		: "=r" ((regs)->ccrflags.cznv), "=r" (v)	\
-		: "r" (s), "r" (d)			\
-		: "cr0", "cr2"  DEP_XER			\
-	);						\
-	COPY_CARRY(&(regs)->ccrflags);			\
+#define optflag_addl(v, s, d)			\
+    do {					\
+	asm (					\
+		"addco. %1, %2, %3	\n\t"	\
+		"mcrxr  cr2		\n\t"	\
+		"mfcr   %0		\n\t"	\
+						\
+		: "=r" (v)			\
+		: "r" (s), "r" (d)		\
+		: "cr0", "cr2"  DEP_XER		\
+	);					\
+	regflags.x = regflags.cznv;		\
     } while (0)
 
-#define optflag_addw(regs, v, s, d) do { optflag_addl(regs, (v), (s) << 16, (d) << 16); v = v >> 16; } while (0)
-#define optflag_addb(regs, v, s, d) do { optflag_addl(regs, (v), (s) << 24, (d) << 24); v = v >> 24; } while (0)
+#define optflag_addw(v, s, d) do { optflag_addl((v), (s) << 16, (d) << 16); v = v >> 16; } while (0)
+#define optflag_addb(v, s, d) do { optflag_addl((v), (s) << 24, (d) << 24); v = v >> 24; } while (0)
 
 /*
  * Subtraction operations
  *
  * Perform v = d - s and set ZNCV accordingly
  */
-#define optflag_subl(regs, v, s, d)				\
-    do {						\
-	asm (						\
-		"subfco. %1, %2, %3	\n\t"		\
-		"mcrxr  cr2		\n\t"		\
-		"mfcr   %0		\n\t"		\
-		"xoris  %0,%0,32	\n\t"		\
-							\
-		: "=r" ((regs)->ccrflags.cznv),			\
-		  "=r" (v)				\
-		:  "r" (s),				\
-		   "r" (d)				\
-		: "cr0", "cr2"  DEP_XER			\
-	);						\
-	COPY_CARRY(&(regs)->ccrflags);			\
+#define optflag_subl(v, s, d)			\
+    do {					\
+	asm (					\
+		"subfco. %1, %2, %3	\n\t"	\
+		"mcrxr  cr2		\n\t"	\
+		"mfcr   %0		\n\t"	\
+		"xoris  %0,%0,32	\n\t"	\
+						\
+		:  "=r" (v)			\
+		:  "r" (s),			\
+		   "r" (d)			\
+		: "cr0", "cr2"  DEP_XER		\
+	);					\
+	regflags.x = regflags.cznv;		\
     } while (0)
 
-#define optflag_subw(regs, v, s, d) do { optflag_subl(regs, v, (s) << 16, (d) << 16); v = v >> 16; } while (0)
-#define optflag_subb(regs, v, s, d) do { optflag_subl(regs, v, (s) << 24, (d) << 24); v = v >> 24; } while (0)
+#define optflag_subw(v, s, d) do { optflag_subl(v, (s) << 16, (d) << 16); v = v >> 16; } while (0)
+#define optflag_subb(v, s, d) do { optflag_subl(v, (s) << 24, (d) << 24); v = v >> 24; } while (0)
 
-#define optflag_cmpl(regs, s, d) 				\
-    do { 						\
-	uae_s32 tmp; 					\
-	asm (						\
-		"subfco. %1, %2, %3	\n\t"		\
-		"mcrxr  cr2		\n\t"		\
-		"mfcr   %0		\n\t"		\
-		"xoris  %0,%0,32	\n\t"		\
-							\
-		: "=r" ((regs)->ccrflags.cznv),			\
-		  "=r" (tmp)				\
-		:  "r" (s),				\
-		   "r" (d) 				\
-		: "cr0", "cr2"  DEP_XER			\
-	);						\
+#define optflag_cmpl(s, d) 			\
+    do { 					\
+	asm (					\
+		"subfco. %1, %2, %3	\n\t"	\
+		"mcrxr  cr2		\n\t"	\
+		"mfcr   %0		\n\t"	\
+		"xoris  %0,%0,32	\n\t"	\
+						\
+		::  "r" (s),			\
+		   "r" (d) 			\
+		: "cr0", "cr2"  DEP_XER		\
+	);					\
     } while (0)
 
-#define optflag_cmpw(regs, s, d) optflag_cmpl(regs, (s) << 16, (d) << 16)
-#define optflag_cmpb(regs, s, d) optflag_cmpl(regs, (s) << 24, (d) << 24)
+#define optflag_cmpw(s, d) optflag_cmpl((s) << 16, (d) << 16)
+#define optflag_cmpb(s, d) optflag_cmpl((s) << 24, (d) << 24)
 
 #endif /* EUAE_MACHDEP_M68KOPS_H */

@@ -24,7 +24,7 @@ extern struct flag_struct regflags;
  * with a setto %AL instr and the other flags copied to AH with an
  * lahf instr).
  *
- * The 68k CZNV flags are thus assinged in cznv as:
+ * The 68k CZNV flags are thus assigned in cznv as:
  *
  * <--AL-->  <--AH-->
  * 76543210  FEDCBA98 --------- ---------

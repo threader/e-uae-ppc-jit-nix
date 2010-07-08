@@ -68,6 +68,7 @@
 //FIXME: ---end
 
 #define TRACING_ENABLED 0
+#define TRACE2(x) do { write_log x; } while(0)
 #if TRACING_ENABLED
 #define TRACE(x) do { write_log x; } while(0)
 #define DUMPLOCK(u,x) dumplock(u,x)

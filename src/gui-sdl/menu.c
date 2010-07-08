@@ -207,11 +207,11 @@ int gui_display(int shortcut){
 
         	secilimi (iconpos_x,iconpos_y,mouse_x,mouse_y,icon_floppy, menu_sel_floppy);
 	        blit_image (icon_floppy, iconpos_x, iconpos_y);
-        
+
 	        iconpos_x += iconsizex + bosluk;
         	secilimi (iconpos_x,iconpos_y,mouse_x,mouse_y, icon_preferences, menu_sel_prefs);
 	        blit_image (icon_preferences, iconpos_x, iconpos_y);
-        
+
 	        iconpos_x += iconsizex + bosluk;
         	secilimi (iconpos_x,iconpos_y,mouse_x,mouse_y, icon_tweaks, menu_sel_tweaks);
 	        blit_image (icon_tweaks, iconpos_x, iconpos_y);
@@ -219,7 +219,7 @@ int gui_display(int shortcut){
         	iconpos_x += iconsizex + bosluk;
 	        secilimi (iconpos_x,iconpos_y,mouse_x,mouse_y, icon_keymaps, menu_sel_keymaps);
         	blit_image (icon_keymaps, iconpos_x, iconpos_y);
-        
+
 	        iconpos_x += iconsizex + bosluk;
 	        secilimi (iconpos_x,iconpos_y,mouse_x,mouse_y, icon_expansion, menu_sel_expansion);
         	blit_image (icon_expansion, iconpos_x, iconpos_y);
@@ -237,7 +237,7 @@ int gui_display(int shortcut){
 	        iconpos_x += iconsizex + bosluk;
         	secilimi (iconpos_x,iconpos_y,mouse_x,mouse_y, icon_run, menu_sel_run);
 	        blit_image (icon_run, iconpos_x, iconpos_y);
-        
+
         	iconpos_x += iconsizex + bosluk;
 	        secilimi (iconpos_x,iconpos_y,mouse_x,mouse_y, icon_exit, menu_sel_exit);
         	blit_image (icon_exit, iconpos_x, iconpos_y);
@@ -279,8 +279,8 @@ int gui_display(int shortcut){
 
 	return menu_exitcode;
 }
-                                                            
-void write_text(int x, int y, char* txt) {
+
+void write_text (int x, int y, char* txt) {
 	SDL_Surface* pText_Surface = TTF_RenderText_Solid(amiga_font, txt, text_color);
 
 	rect.x = x;
@@ -291,7 +291,8 @@ void write_text(int x, int y, char* txt) {
 	SDL_BlitSurface (pText_Surface,NULL,tmpSDLScreen,&rect);
 	SDL_FreeSurface(pText_Surface);
 }
-void blit_image(SDL_Surface* img, int x, int y) {
+
+void blit_image (SDL_Surface* img, int x, int y) {
 	SDL_Rect dest;
    	dest.x = x;
    	dest.y = y;
@@ -313,28 +314,3 @@ void secilimi (int ix, int iy, int mx, int my, SDL_Surface* img, int hangi) {
 	}
 }
 //
-static void sigchldhandler(int foo) {}
-int gui_update (void){ return 0; }
-void gui_fps (int fps, int idle){
-    gui_data.fps  = fps;
-    gui_data.idle = idle;
-}
-void gui_flicker_led (int led, int unitnum, int status){}
-void gui_led (int led, int on){}
-
-void gui_filename (int num, const char *name){}
-void gui_handle_events (void){}
-void gui_changesettings (void){}
-void gui_update_gfx (void){}
-void gui_lock (void){}
-void gui_unlock (void){}
-void gui_message (const char *format,...){   
-       char msg[2048];
-       va_list parms;
-
-       va_start (parms,format);
-       vsprintf ( msg, format, parms);
-       va_end (parms);
-
-       write_log (msg);
-}

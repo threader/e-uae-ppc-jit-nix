@@ -1,10 +1,10 @@
- /*
-  * UAE - The Un*x Amiga Emulator
-  *
-  * ADIDE
-  *
-  * (c) 2009 Toni Wilen
-  */
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * ADIDE
+ *
+ * (c) 2009 Toni Wilen
+ */
 
 #include "sysconfig.h"
 #include "sysdeps.h"
