@@ -413,6 +413,7 @@ static struct uae_input_device_kbr_default *keyboard_default;
 #define KBR_DEFAULT_MAP_XA2 7
 #define KBR_DEFAULT_MAP_ARCADIA 8
 #define KBR_DEFAULT_MAP_ARCADIA_XA 9
+#define KBR_DEFAULT_MAP_CDTV 10
 static int **keyboard_default_kbmaps;
 
 static int mouse_axis[MAX_INPUT_DEVICES][MAX_INPUT_DEVICE_EVENTS];
@@ -577,7 +578,7 @@ static struct inputdevice_functions *getidf (int devnum);
 static void kbrlabel (TCHAR *s)
 {
 	while (*s) {
-		*s = _toupper (*s);
+		*s = _totupper (*s);
 		if (*s == ' ')
 			*s = '_';
 		s++;
@@ -2491,14 +2492,26 @@ void inputdevice_add_inputcode (int code, int state)
 
 void inputdevice_do_keyboard (int code, int state)
 {
+	if (code >= 0x72 && code <= 0x77) { // CDTV keys
+		if (cdtv_front_panel (-1)) {
+			// front panel active
+			if (!state)
+				return;
+			cdtv_front_panel (code - 0x72);
+			return;
+		}
+	}
 	if (code < 0x80) {
 		uae_u8 key = code | (state ? 0x00 : 0x80);
 		keybuf[key & 0x7f] = (key & 0x80) ? 0 : 1;
+write_log("inp_do_key<80: %d\n", code);
 		if (key == AK_RESETWARNING) {
+write_log("inp_do_key<80: RST\n");
 			resetwarning_do (0);
 			return;
 		} else if ((keybuf[AK_CTRL] || keybuf[AK_RCTRL]) && keybuf[AK_LAMI] && keybuf[AK_RAMI]) {
 			int r = keybuf[AK_LALT] | keybuf[AK_RALT];
+write_log("inp_do_key<80: RST2\n", code);
 			if (!r && currprefs.cs_resetwarning && resetwarning_do (1))
 				return;
 			memset (keybuf, 0, sizeof (keybuf));
@@ -2706,27 +2719,27 @@ void inputdevice_handle_inputcode (void)
     case AKS_GLPANLEFT:									//koko
 	    currprefs.gfx_gl_x_offset = currprefs.gfx_gl_x_offset - 2;			//koko (fixme, make "-2" a variable)
 	    printf("Pan left  : gfx_gl_x_offset=%i.\n" , currprefs.gfx_gl_x_offset);	//koko
-	    break;	
+	    break;
     case AKS_GLPANRIGHT:								//koko
-	    currprefs.gfx_gl_x_offset = currprefs.gfx_gl_x_offset + 2;			//koko (fixme, make "+2" a variable)		    
-		printf("Pan right : gfx_gl_x_offset=%i.\n" , currprefs.gfx_gl_x_offset);	//koko
-	    break;	
+	    currprefs.gfx_gl_x_offset = currprefs.gfx_gl_x_offset + 2;			//koko (fixme, make "+2" a variable)
+		printf("Pan right : gfx_gl_x_offset=%i.\n" , currprefs.gfx_gl_x_offset);//koko
+	    break;
     case AKS_GLPANUP:									//koko
 	    currprefs.gfx_gl_y_offset = currprefs.gfx_gl_y_offset - 2;			//koko
 	    printf("Pan up    : gfx_gl_y_offset=%i.\n" , currprefs.gfx_gl_y_offset);	//koko
-	    break;	    
+	    break;
     case AKS_GLPANDOWN:									//koko
 	    currprefs.gfx_gl_y_offset = currprefs.gfx_gl_y_offset + 2;			//koko
 	    printf("Pan down  : gfx_gl_y_offset=%i.\n" , currprefs.gfx_gl_y_offset);	//koko
-	    break;	
-    case AKS_GLPANSCANMORE:									//koko
-	    currprefs.gfx_gl_panscan = currprefs.gfx_gl_panscan + 2;				//koko
+	    break;
+    case AKS_GLPANSCANMORE:								//koko
+	    currprefs.gfx_gl_panscan = currprefs.gfx_gl_panscan + 2;			//koko
 	    printf("PanScan + : gfx_gl_panscan=%i.\n" , currprefs.gfx_gl_panscan);	//koko
-	    break;	     
-    case AKS_GLPANSCANLESS:									//koko
-	    currprefs.gfx_gl_panscan = currprefs.gfx_gl_panscan - 2;				//koko
+	    break;
+    case AKS_GLPANSCANLESS:								//koko
+	    currprefs.gfx_gl_panscan = currprefs.gfx_gl_panscan - 2;			//koko
 	    printf("PanScan - : gfx_gl_panscan=%i.\n" , currprefs.gfx_gl_panscan);	//koko
-	    break;	     
+	    break;
 	case AKS_DISKSWAPPER_NEXT:
 		swapperslot++;
 		if (swapperslot >= MAX_SPARE_DRIVES || currprefs.dfxlist[swapperslot][0] == 0)
@@ -2746,7 +2759,7 @@ void inputdevice_handle_inputcode (void)
 	case AKS_DISKSWAPPER_INSERT1:
 	case AKS_DISKSWAPPER_INSERT2:
 	case AKS_DISKSWAPPER_INSERT3:
-		_tcscpy (changed_prefs.df[code - AKS_DISKSWAPPER_INSERT0], currprefs.dfxlist[swapperslot]);
+		_tcscpy (changed_prefs.floppyslots[code - AKS_DISKSWAPPER_INSERT0].df, currprefs.dfxlist[swapperslot]);
 		config_changed = 1;
 		break;
 
@@ -2770,6 +2783,16 @@ void inputdevice_handle_inputcode (void)
 	case AKS_DISK_NEXT3:
 		disk_prevnext (code - AKS_DISK_NEXT0, 1);
 		break;
+#ifdef CDTV
+	case AKS_CDTV_FRONT_PANEL_STOP:
+	case AKS_CDTV_FRONT_PANEL_PLAYPAUSE:
+	case AKS_CDTV_FRONT_PANEL_PREV:
+	case AKS_CDTV_FRONT_PANEL_NEXT:
+	case AKS_CDTV_FRONT_PANEL_REW:
+	case AKS_CDTV_FRONT_PANEL_FF:
+		cdtv_front_panel (code - AKS_CDTV_FRONT_PANEL_STOP);
+	break;
+#endif
 	}
 }
 
@@ -3603,6 +3626,11 @@ static int ip_mousecdtv[] =
 	INPUTEVENT_JOY1_FIRE_BUTTON, INPUTEVENT_JOY1_2ND_BUTTON,
 	-1
 };
+static int ip_mediacdtv[] =
+{
+	INPUTEVENT_KEY_CDTV_PLAYPAUSE, INPUTEVENT_KEY_CDTV_STOP, INPUTEVENT_KEY_CDTV_PREV, INPUTEVENT_KEY_CDTV_NEXT,
+	-1
+};
 static int ip_arcadia[] = {
 	INPUTEVENT_SPC_ARCADIA_DIAGNOSTICS, INPUTEVENT_SPC_ARCADIA_PLAYER1, INPUTEVENT_SPC_ARCADIA_PLAYER2,
 	INPUTEVENT_SPC_ARCADIA_COIN1, INPUTEVENT_SPC_ARCADIA_COIN2,
@@ -4281,6 +4309,11 @@ static void compatibility_copy (struct uae_prefs *prefs, bool gameports)
 			setcompakb (keyboard_default_kbmaps[KBR_DEFAULT_MAP_ARCADIA_XA], ip_arcadiaxa, JSEM_ISXARCADE2 (i, prefs) ? 1 : 0, prefs->jports[i].autofire);
 	}
 #endif
+#ifdef CDTV
+	if (0 && currprefs.cs_cdtvcd) {
+		setcompakb (keyboard_default_kbmaps[KBR_DEFAULT_MAP_CDTV], ip_mediacdtv, 0, 0);
+	}
+#endif
 	// parport
 	for (i = 2; i < MAX_JPORTS; i++) {
 		int af = prefs->jports[i].autofire;
@@ -4639,7 +4672,7 @@ int inputdevice_synccapslock (int oldcaps, int *capstable)
 {
 	struct uae_input_device *na = &keyboards[0];
 	int j, i;
-	
+
 	if (!keyboards)
 		return -1;
 	for (j = 0; na->extra[j]; j++) {
@@ -4762,7 +4795,9 @@ void inputdevice_close (void)
 	idev[IDTYPE_JOYSTICK].close ();
 	idev[IDTYPE_MOUSE].close ();
 	idev[IDTYPE_KEYBOARD].close ();
-//	inprec_close ();
+#ifdef INPREC
+	inprec_close ();
+#endif
 }
 
 static struct uae_input_device *get_uid (const struct inputdevice_functions *id, int devnum)

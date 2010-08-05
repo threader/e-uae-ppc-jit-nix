@@ -1,12 +1,12 @@
- /*
-  * UAE - The Un*x Amiga Emulator
-  *
-  *  Serial Line Emulation
-  *
-  * (c) 1996, 1997 Stefan Reinauer <stepan@linux.de>
-  * (c) 1997 Christian Schmitt <schmitt@freiburg.linux.de>
-  *
-  */
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ *  Serial Line Emulation
+ *
+ * (c) 1996, 1997 Stefan Reinauer <stepan@linux.de>
+ * (c) 1997 Christian Schmitt <schmitt@freiburg.linux.de>
+ *
+ */
 
 #include "sysconfig.h"
 #include "sysdeps.h"

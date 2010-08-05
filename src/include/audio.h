@@ -1,10 +1,10 @@
- /*
-  * UAE - The Un*x Amiga Emulator
-  *
-  * Sound emulation stuff
-  *
-  * Copyright 1995, 1996, 1997 Bernd Schmidt
-  */
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * Sound emulation stuff
+ *
+ * Copyright 1995, 1996, 1997 Bernd Schmidt
+ */
 
 #define PERIOD_MAX ULONG_MAX
 

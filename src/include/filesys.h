@@ -102,12 +102,9 @@ extern void hdf_close (struct hardfiledata *hfd);
 extern int hdf_read (struct hardfiledata *hfd, void *buffer, uae_u64 offset, int len);
 extern int hdf_write (struct hardfiledata *hfd, void *buffer, uae_u64 offset, int len);
 extern int hdf_getnumharddrives (void);
-extern char *hdf_getnameharddrive (int index, int flags, int *sectorsize, int *dangerousdrive);
-extern int isspecialdrive (const char *name);
-extern void filesys_cleanup (void);
-extern int filesys_is_readonly (const char *path);
-extern int hdf_init (void);
-extern int get_native_path(uae_u32 lock, char *out);
+extern TCHAR *hdf_getnameharddrive (int index, int flags, int *sectorsize, int *dangerousdrive);
+extern int isspecialdrive(const TCHAR *name);
+extern int get_native_path(uae_u32 lock, TCHAR *out);
 extern void hardfile_do_disk_change (struct uaedev_config_info *uci, int insert);
 
 void hdf_hd_close(struct hd_hardfiledata *hfd);

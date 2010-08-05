@@ -1,12 +1,12 @@
 /*
-* UAE - The Un*x Amiga Emulator
-*
-* bsdsocket.library emulation machine-independent part
-*
-* Copyright 1997, 1998 Mathias Ortmann
-*
-* Library initialization code (c) Tauno Taipaleenmaki
-*/
+ * UAE - The Un*x Amiga Emulator
+ *
+ * bsdsocket.library emulation machine-independent part
+ *
+ * Copyright 1997, 1998 Mathias Ortmann
+ *
+ * Library initialization code (c) Tauno Taipaleenmaki
+ */
 
 #include "sysconfig.h"
 #include "sysdeps.h"
@@ -34,13 +34,13 @@ struct socketbase *socketbases;
 static uae_u32 SockLibBase;
 
 #define SOCKPOOLSIZE 128
-#define UNIQUE_ID	(-1)
+#define UNIQUE_ID (-1)
 
 /* ObtainSocket()/ReleaseSocket() public socket pool */
 struct sockd {
-long sockpoolids[SOCKPOOLSIZE];
+	long sockpoolids[SOCKPOOLSIZE];
 	SOCKET_TYPE sockpoolsocks[SOCKPOOLSIZE];
-uae_u32 sockpoolflags[SOCKPOOLSIZE];
+	uae_u32 sockpoolflags[SOCKPOOLSIZE];
 };
 
 static long curruniqid = 65536;
@@ -48,25 +48,25 @@ static struct sockd *sockdata;
 
 uae_u32 strncpyha (uae_u32 dst, const uae_char *src, int size)
 {
-    uae_u32 res = dst;
+	uae_u32 res = dst;
 	if (!addr_valid ("strncpyha", dst, size))
-	    return res;
-    while (size--) {
+		return res;
+	while (size--) {
 		put_byte (dst++, *src);
 		if (!*src++)
-		    return res;
-    }
-    return res;
+			return res;
+	}
+	return res;
 }
 
 uae_u32 addstr (uae_u32 * dst, const TCHAR *src)
 {
-    uae_u32 res = *dst;
-    int len;
+	uae_u32 res = *dst;
+	int len;
 	len = strlen (src) + 1;
 	strcpyha_safe (*dst, src);
-    (*dst) += len;
-    return res;
+	(*dst) += len;
+	return res;
 }
 uae_u32 addstr_ansi (uae_u32 * dst, const uae_char *src)
 {
@@ -80,83 +80,83 @@ uae_u32 addstr_ansi (uae_u32 * dst, const uae_char *src)
 
 uae_u32 addmem (uae_u32 * dst, const uae_char *src, int len)
 {
-    uae_u32 res = *dst;
+	uae_u32 res = *dst;
 
-    if (!src)
-	return 0;
+	if (!src)
+		return 0;
 
 	memcpyha_safe (*dst, (uae_u8*)src, len);
-    (*dst) += len;
+	(*dst) += len;
 
-    return res;
+	return res;
 }
 
 /* Get current task */
 static uae_u32 gettask (TrapContext *context)
 {
-    uae_u32 currtask, a1 = m68k_areg (regs, 1);
+	uae_u32 currtask, a1 = m68k_areg (regs, 1);
 
-    m68k_areg (regs, 1) = 0;
-    currtask = CallLib (context, get_long (4), -0x126);	/* FindTask */
+	m68k_areg (regs, 1) = 0;
+	currtask = CallLib (context, get_long (4), -0x126); /* FindTask */
 
-    m68k_areg (regs, 1) = a1;
+	m68k_areg (regs, 1) = a1;
 
 	BSDTRACE (("[%s] ", get_real_address (get_long (currtask + 10))));
-    return currtask;
+	return currtask;
 }
 
 /* errno/herrno setting */
 void bsdsocklib_seterrno (SB, int sb_errno)
 {
-    sb->sb_errno = sb_errno;
-    if (sb->sb_errno >= 1001 && sb->sb_errno <= 1005)
-		bsdsocklib_setherrno (sb, sb->sb_errno - 1000);
-    if (sb->errnoptr) {
+	sb->sb_errno = sb_errno;
+	if (sb->sb_errno >= 1001 && sb->sb_errno <= 1005)
+		bsdsocklib_setherrno(sb,sb->sb_errno-1000);
+	if (sb->errnoptr) {
 		switch (sb->errnosize) {
-		 case 1:
-		    put_byte (sb->errnoptr, sb_errno);
-		    break;
-		 case 2:
-		    put_word (sb->errnoptr, sb_errno);
-		    break;
-		 case 4:
-		    put_long (sb->errnoptr, sb_errno);
+		case 1:
+			put_byte (sb->errnoptr, sb_errno);
+			break;
+		case 2:
+			put_word (sb->errnoptr, sb_errno);
+			break;
+		case 4:
+			put_long (sb->errnoptr, sb_errno);
 		}
-    }
+	}
 }
 
 void bsdsocklib_setherrno (SB, int sb_herrno)
 {
-    sb->sb_herrno = sb_herrno;
+	sb->sb_herrno = sb_herrno;
 
-    if (sb->herrnoptr) {
+	if (sb->herrnoptr) {
 		switch (sb->herrnosize) {
-		 case 1:
-		    put_byte (sb->herrnoptr, sb_herrno);
-		    break;
-		 case 2:
-		    put_word (sb->herrnoptr, sb_herrno);
-		    break;
-		 case 4:
-		    put_long (sb->herrnoptr, sb_herrno);
+		case 1:
+			put_byte (sb->herrnoptr, sb_herrno);
+			break;
+		case 2:
+			put_word (sb->herrnoptr, sb_herrno);
+			break;
+		case 4:
+			put_long (sb->herrnoptr, sb_herrno);
 		}
-    }
+	}
 }
 
-BOOL checksd (SB, int sd)
+BOOL checksd(SB, int sd)
 {
 	int iCounter;
 	SOCKET s;
 
-	s = getsock (sb, sd);
+	s = getsock(sb,sd);
 	if (s != INVALID_SOCKET) {
 		for (iCounter  = 1; iCounter <= sb->dtablesize; iCounter++) {
-		    if (iCounter != sd) {
-				if (getsock (sb, iCounter) == s) {
-				    releasesock (sb, sd);
+			if (iCounter != sd) {
+				if (getsock(sb,iCounter) == s) {
+					releasesock(sb,sd);
 					return 1;
 				}
-	    	 }
+			}
 		}
 		for (iCounter  = 0; iCounter < SOCKPOOLSIZE; iCounter++) {
 			if (s == sockdata->sockpoolsocks[iCounter])
@@ -169,38 +169,38 @@ BOOL checksd (SB, int sd)
 
 void setsd(SB, int sd, SOCKET_TYPE s)
 {
-    sb->dtable[sd - 1] = s;
+	sb->dtable[sd - 1] = s;
 }
 
 /* Socket descriptor/opaque socket handle management */
 int getsd (SB, SOCKET_TYPE s)
 {
-    int i;
+	int i;
 	SOCKET_TYPE *dt = sb->dtable;
 
-    /* return socket descriptor if already exists */
-    for (i = sb->dtablesize; i--;)
-	if (dt[i] == s)
-	    return i + 1;
+	/* return socket descriptor if already exists */
+	for (i = sb->dtablesize; i--;)
+		if (dt[i] == s)
+			return i + 1;
 
-    /* create new table entry */
-    for (i = 0; i < sb->dtablesize; i++)
-	if (dt[i] == -1) {
-	    dt[i] = s;
-	    sb->ftable[i] = SF_BLOCKING;
-		return i + 1;
-	}
-    /* descriptor table full. */
-    bsdsocklib_seterrno (sb, 24);		/* EMFILE */
+	/* create new table entry */
+	for (i = 0; i < sb->dtablesize; i++)
+		if (dt[i] == -1) {
+			dt[i] = s;
+			sb->ftable[i] = SF_BLOCKING;
+			return i + 1;
+		}
+		/* descriptor table full. */
+		bsdsocklib_seterrno (sb, 24); /* EMFILE */
 
-    return -1;
+		return -1;
 }
 
 SOCKET_TYPE getsock (SB, int sd)
 {
-    if ((unsigned int) (sd - 1) >= (unsigned int) sb->dtablesize) {
+	if ((unsigned int) (sd - 1) >= (unsigned int) sb->dtablesize) {
 		BSDTRACE (("Invalid Socket Descriptor (%d, %d)\n", sd - 1, sb->dtablesize));
-		bsdsocklib_seterrno (sb, 38);	/* ENOTSOCK */
+		bsdsocklib_seterrno (sb, 38); /* ENOTSOCK */
 		return -1;
 	}
 	if (sb->dtable[sd - 1] == INVALID_SOCKET) {
@@ -226,14 +226,14 @@ SOCKET_TYPE getsock (SB, int sd)
 			}
 			nsb = sb1->next;
 		}
-    }
-    return sb->dtable[sd - 1];
+	}
+	return sb->dtable[sd - 1];
 }
 
 void releasesock (SB, int sd)
 {
-    if ((unsigned int) (sd - 1) < (unsigned int) sb->dtablesize)
-	sb->dtable[sd - 1] = -1;
+	if ((unsigned int) (sd - 1) < (unsigned int) sb->dtablesize)
+		sb->dtable[sd - 1] = -1;
 }
 
 /* Signal queue */

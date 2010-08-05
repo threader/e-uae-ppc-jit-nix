@@ -2504,6 +2504,7 @@ static void finish_decisions (void)
 	decide_line (hpos);
 	decide_fetch (hpos);
 
+	record_color_change2 (hsyncstartpos, 0xffff, 0);
 	if (thisline_decision.plfleft != -1 && thisline_decision.plflinelen == -1) {
 		if (fetch_state != fetch_not_started) {
 			write_log ("fetch_state=%d plfleft=%d,len=%d,vpos=%d,hpos=%d\n",
@@ -2747,7 +2748,7 @@ void init_hz (void)
 		hzc = 1;
 	if (beamcon0 != new_beamcon0) {
 		write_log ("BEAMCON0 %04x -> %04x\n", beamcon0, new_beamcon0);
-		vpos_count = 0;
+		vpos_count = vpos_count_prev = 0;
 	}
 	beamcon0 = new_beamcon0;
 	isntsc = (beamcon0 & 0x20) ? 0 : 1;
@@ -2774,7 +2775,7 @@ void init_hz (void)
 		if (vpos_count < 10)
 			vpos_count = 10;
 		vblank_hz = (15600 + vpos_count - 1) / vpos_count;
-		maxvpos_nom = vpos_count;
+		maxvpos_nom = vpos_count - (lof_current ? 1 : 0);
 		reset_drawing ();
 	}
 	if (beamcon0 & 0x80) {
@@ -2816,7 +2817,7 @@ void init_hz (void)
 		else
 			hsyncstartpos = maxhpos + hbstrt;
 	} else {
-		hsyncstartpos = maxhpos_short + 7;
+		hsyncstartpos = maxhpos_short + 13;
 	}
 	eventtab[ev_hsync].oldcycles = get_cycles ();
 	eventtab[ev_hsync].evtime = get_cycles () + HSYNCTIME;
@@ -3120,7 +3121,8 @@ STATIC_INLINE uae_u16 VHPOSR (void)
 
 static int test_copper_dangerous (unsigned int address)
 {
-	if ((address & 0x1fe) < ((copcon & 2) ? ((currprefs.chipset_mask & CSMASK_ECS_AGNUS) ? 0 : 0x40) : 0x80)) {
+	int addr = address & 0x01fe;
+	if (addr < ((copcon & 2) ? ((currprefs.chipset_mask & CSMASK_ECS_AGNUS) ? 0 : 0x40) : 0x80)) {
 		cop_state.state = COP_stop;
 		copper_enabled_thisline = 0;
 		unset_special (SPCFLAG_COPPER);
@@ -4250,7 +4252,7 @@ static int custom_wput_copper (int hpos, uaecptr addr, uae_u32 value, int noget)
 	int v;
 
 #ifdef DEBUG
-	debug_wputpeekdma (0xdff000 + addr, value);
+	value = debug_wputpeekdma (0xdff000 + addr, value);
 #endif
 	copper_access = 1;
 	v = custom_wput_1 (hpos, addr, value, noget);
@@ -5110,6 +5112,7 @@ static void vsync_handler (void)
 	picasso_handle_vsync ();
 #endif
 	audio_vsync ();
+	blkdev_vsync ();
 
 	if (quit_program > 0) {
 		/* prevent possible infinite loop at wait_cycles().. */
@@ -5378,6 +5381,8 @@ static void events_dmal (int hp)
 		}
 		event2_newevent2 (hp, dmal_hpos + ((dmal & 2) ? 1 : 0), dmal_func);
 		dmal &= ~3;
+	} else if (currprefs.cachesize) {
+		dmal_func2 (0);
 	} else {
 		event2_newevent2 (hp, 17, dmal_func2);
 	}
@@ -5642,9 +5647,9 @@ static void hsync_handler (void)
 	}
 	while (input_recording < 0 && inprec_pstart (INPREC_DISKINSERT)) {
 		int drv = inprec_pu8 ();
-		inprec_pstr (currprefs.df[drv]);
-		_tcscpy (changed_prefs.df[drv], currprefs.df[drv]);
-		disk_insert_force (drv, currprefs.df[drv]);
+		inprec_pstr (currprefs.floppyslots[drv].df);
+		_tcscpy (changed_prefs.floppyslots[drv].df, currprefs.floppyslots[drv].df);
+		disk_insert_force (drv, currprefs.floppyslots[drv].df);
 		inprec_pend ();
 	}
 #endif
@@ -5830,6 +5835,7 @@ void customreset (int hardreset)
 	unset_special (~(SPCFLAG_BRK | SPCFLAG_MODE_CHANGE));
 
 	vpos = 0;
+	vpos_count = vpos_count_prev = 0;
 
 	inputdevice_reset ();
 	timehack_alive = 0;
@@ -5848,7 +5854,6 @@ void customreset (int hardreset)
 	diwstate = DIW_waiting_start;
 	set_cycles (0);
 
-	vpos_count = vpos_count_prev = 0;
 	dmal = 0;
 	init_hz ();
 	vpos_lpen = -1;

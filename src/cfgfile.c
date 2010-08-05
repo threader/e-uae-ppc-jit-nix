@@ -32,7 +32,7 @@
 #include "zfile.h"
 #include "fsdb.h"
 #include "disk.h"
-#include "version.h"
+#include "blkdev.h"
 #include "statusline.h"
 
 static int config_newfilesystem;
@@ -204,6 +204,7 @@ static const TCHAR *dongles[] =
 	"rugby coach", "cricket captain", "leviathan",
 	NULL
 };
+static const TCHAR *cdmodes[] = { "", "image", "ioctl", "spti", "aspi", 0 };
 
 static const TCHAR *obsolete[] = {
 	"accuracy", "gfx_opengl", "gfx_32bit_blits", "32bit_blits",
@@ -559,8 +560,10 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 	cfgfile_write_str (f, "config_host_path", p->config_host_path);
 
 	for (sl = p->all_lines; sl; sl = sl->next) {
-		if (sl->unknown)
-			cfgfile_write_str (f, sl->option, sl->value);
+		if (sl->unknown) {
+			if (sl->option)
+				cfgfile_write_str (f, sl->option, sl->value);
+		}
 	}
 
 	_stprintf (tmp, "%s.rom_path", TARGET_NAME);
@@ -607,21 +610,21 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 
 	p->nr_floppies = 4;
 	for (i = 0; i < 4; i++) {
-		str = cfgfile_subst_path (p->path_floppy, UNEXPANDED, p->df[i]);
+		str = cfgfile_subst_path (p->path_floppy, UNEXPANDED, p->floppyslots[i].df);
 		_stprintf (tmp, "floppy%d", i);
 		cfgfile_write_str (f, tmp, str);
 		xfree (str);
 #ifdef DRIVESOUND
 		_stprintf (tmp, "floppy%dtype", i);
-		cfgfile_dwrite (f, tmp, "%d", p->dfxtype[i]);
+		cfgfile_dwrite (f, tmp, "%d", p->floppyslots[i].dfxtype);
 		_stprintf (tmp, "floppy%dsound", i);
-		cfgfile_dwrite (f, tmp, "%d", p->dfxclick[i]);
-		if (p->dfxclick[i] < 0 && p->dfxclickexternal[i][0]) {
+		cfgfile_dwrite (f, tmp, "%d", p->floppyslots[i].dfxclick);
+		if (p->floppyslots[i].dfxclick < 0 && p->floppyslots[i].dfxclickexternal[0]) {
 			_stprintf (tmp, "floppy%dsoundext", i);
-			cfgfile_dwrite (f, tmp, p->dfxclickexternal[i]);
+			cfgfile_dwrite (f, tmp, p->floppyslots[i].dfxclickexternal);
 		}
 #endif
-		if (p->dfxtype[i] < 0 && p->nr_floppies > i)
+		if (p->floppyslots[i].dfxtype < 0 && p->nr_floppies > i)
 			p->nr_floppies = i;
 	}
 	for (i = 0; i < MAX_SPARE_DRIVES; i++) {
@@ -631,8 +634,24 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 		}
 	}
 
-	if (p->cdimagefile[0])
-		cfgfile_write_str (f, "cdimage0", p->cdimagefile);
+	for (i = 0; i < MAX_TOTAL_SCSI_DEVICES; i++) {
+		if (p->cdslots[i].name[0] || p->cdslots[i].inuse) {
+			TCHAR tmp2[MAX_DPATH];
+			_stprintf (tmp, "cdimage%d", i);
+			_tcscpy (tmp2, p->cdslots[i].name);
+			if (p->cdslots[i].type != SCSI_UNIT_DEFAULT || _tcschr (p->cdslots[i].name, ',') || p->cdslots[i].delayed) {
+				_tcscat (tmp2, ",");
+				if (p->cdslots[i].delayed) {
+					_tcscat (tmp2, "delay");
+					_tcscat (tmp2, ":");
+				}
+				if (p->cdslots[i].type != SCSI_UNIT_DEFAULT) {
+					_tcscat (tmp2, cdmodes[p->cdslots[i].type + 1]);
+				}
+			}
+			cfgfile_write_str (f, tmp, tmp2);
+		}
+	}
 
 	if (p->quitstatefile[0])
 		cfgfile_write_str (f, "statefile_quit", p->quitstatefile);
@@ -722,7 +741,7 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 	}
 	if (p->dongle) {
 		if (p->dongle + 1 >= sizeof (dongles) / sizeof (TCHAR*))
-			cfgfile_write (f, "dongle=%d", p->dongle);
+			cfgfile_write (f, "dongle", "%d", p->dongle);
 		else
 			cfgfile_write_str (f, "dongle", dongles[p->dongle]);
 	}
@@ -932,6 +951,7 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 		: p->keyboard_lang == KBD_LANG_SE ? "se"
 		: p->keyboard_lang == KBD_LANG_FR ? "fr"
 		: p->keyboard_lang == KBD_LANG_IT ? "it"
+		: p->keyboard_lang == KBD_LANG_TR ? "tr"
 		: "FOO"));
 
 #ifdef SAVESTATE
@@ -986,7 +1006,7 @@ int cfgfile_intval2 (const TCHAR *option, const TCHAR *value, const TCHAR *name,
 	if (_tcscmp (option, name) != 0)
 		return 0;
 	/* I guess octal isn't popular enough to worry about here...  */
-	if (value[0] == '0' && value[1] == 'x')
+	if (value[0] == '0' && _totupper (value[1]) == 'X')
 		value += 2, base = 16;
 	*location = _tcstol (value, &endptr, base) * scale;
 
@@ -1252,9 +1272,33 @@ static int cfgfile_parse_host (struct uae_prefs *p, TCHAR *option, TCHAR *value)
 		}
 	}
 
-	if (cfgfile_path (option, value, "cdimage0", p->cdimagefile, sizeof p->cdimagefile / sizeof (TCHAR))) {
-		p->cdimagefileuse = true;
-		return 1;
+	for (i = 0; i < MAX_TOTAL_SCSI_DEVICES; i++) {
+		TCHAR tmp[20];
+		_stprintf (tmp, "cdimage%d", i);
+		if (!_tcsicmp (option, tmp)) {
+			TCHAR *next = _tcsrchr (value, ',');
+			int type = SCSI_UNIT_DEFAULT;
+			if (next) {
+				*next++ = 0;
+				TCHAR *next2 = _tcschr (next, ':');
+				if (next2)
+					*next2 = 0;
+				int tmpval = 0;
+				if (cfgfile_intval (option, next, tmp, &type, 1))
+					type--;
+			}
+			_tcsncpy (p->cdslots[i].name, value, sizeof p->cdslots[i].name);
+			p->cdslots[i].name[sizeof p->cdslots[i].name - 1] = 0;
+			p->cdslots[i].inuse = true;
+			p->cdslots[i].type = type;
+			// disable all following units
+			i++;
+			while (i < MAX_TOTAL_SCSI_DEVICES) {
+				p->cdslots[i].type = SCSI_UNIT_DISABLED;
+				i++;
+			}
+			return 1;
+		}
 	}
 
 	if (cfgfile_intval (option, value, "sound_frequency", &p->sound_freq, 1)) {
@@ -1312,10 +1356,10 @@ static int cfgfile_parse_host (struct uae_prefs *p, TCHAR *option, TCHAR *value)
 		|| cfgfile_string (option, value, "gfx_filter_mask", p->gfx_filtermask, sizeof p->gfx_filtermask / sizeof (TCHAR))
 #endif
 #ifdef DRIVESOUND
-		|| cfgfile_intval (option, value, "floppy0sound", &p->dfxclick[0], 1)
-		|| cfgfile_intval (option, value, "floppy1sound", &p->dfxclick[1], 1)
-		|| cfgfile_intval (option, value, "floppy2sound", &p->dfxclick[2], 1)
-		|| cfgfile_intval (option, value, "floppy3sound", &p->dfxclick[3], 1)
+		|| cfgfile_intval (option, value, "floppy0sound", &p->floppyslots[0].dfxclick, 1)
+		|| cfgfile_intval (option, value, "floppy1sound", &p->floppyslots[1].dfxclick, 1)
+		|| cfgfile_intval (option, value, "floppy2sound", &p->floppyslots[2].dfxclick, 1)
+		|| cfgfile_intval (option, value, "floppy3sound", &p->floppyslots[3].dfxclick, 1)
 #endif
 		|| cfgfile_intval (option, value, "floppy_channel_mask", &p->dfxclickchannelmask, 1)
 		|| cfgfile_intval (option, value, "floppy_volume", &p->dfxclickvolume, 1))
@@ -1323,10 +1367,10 @@ static int cfgfile_parse_host (struct uae_prefs *p, TCHAR *option, TCHAR *value)
 
 	if (
 #ifdef DRIVESOUND
-		cfgfile_string (option, value, "floppy0soundext", p->dfxclickexternal[0], sizeof p->dfxclickexternal[0] / sizeof (TCHAR))
-		|| cfgfile_string (option, value, "floppy1soundext", p->dfxclickexternal[1], sizeof p->dfxclickexternal[1] / sizeof (TCHAR))
-		|| cfgfile_string (option, value, "floppy2soundext", p->dfxclickexternal[2], sizeof p->dfxclickexternal[2] / sizeof (TCHAR))
-		|| cfgfile_string (option, value, "floppy3soundext", p->dfxclickexternal[3], sizeof p->dfxclickexternal[3] / sizeof (TCHAR))
+		cfgfile_string (option, value, "floppy0soundext", p->floppyslots[0].dfxclickexternal, sizeof p->floppyslots[0].dfxclickexternal / sizeof (TCHAR))
+		|| cfgfile_string (option, value, "floppy1soundext", p->floppyslots[1].dfxclickexternal, sizeof p->floppyslots[1].dfxclickexternal / sizeof (TCHAR))
+		|| cfgfile_string (option, value, "floppy2soundext", p->floppyslots[2].dfxclickexternal, sizeof p->floppyslots[2].dfxclickexternal / sizeof (TCHAR))
+		|| cfgfile_string (option, value, "floppy3soundext", p->floppyslots[3].dfxclickexternal, sizeof p->floppyslots[3].dfxclickexternal / sizeof (TCHAR))
 		|| 
 #endif
 		   cfgfile_string (option, value, "gfx_display_name", p->gfx_display_name, sizeof p->gfx_display_name / sizeof (TCHAR))
@@ -1387,7 +1431,16 @@ static int cfgfile_parse_host (struct uae_prefs *p, TCHAR *option, TCHAR *value)
 		|| cfgfile_strval (option, value, "absolute_mouse", &p->input_tablet, abspointers, 0))
 		return 1;
 
-
+	if (_tcscmp (option, "gfx_linemode") == 0) {
+		int v;
+		p->gfx_vresolution = VRES_DOUBLE;
+		p->gfx_scanlines = false;
+		if (cfgfile_strval (option, value, "gfx_linemode", &v, linemode, 0)) {
+			p->gfx_scanlines = v & 1;
+			p->gfx_vresolution = v / 2;
+		}
+		return 1;
+	}
 	if (_tcscmp (option, "gfx_vsync") == 0) {
 		if (cfgfile_strval (option, value, "gfx_vsync", &p->gfx_avsync, vsyncmodes, 0) >= 0)
 			return 1;
@@ -1609,6 +1662,7 @@ static int cfgfile_parse_host (struct uae_prefs *p, TCHAR *option, TCHAR *value)
 			|| (l = KBD_LANG_US, strcasecmp (value, "us") == 0)
 			|| (l = KBD_LANG_FR, strcasecmp (value, "fr") == 0)
 			|| (l = KBD_LANG_IT, strcasecmp (value, "it") == 0)
+			|| (l = KBD_LANG_TR, strcasecmp (value, "tr") == 0)
 			|| (l = KBD_LANG_ES, strcasecmp (value, "es") == 0))
 			p->keyboard_lang = l;
 		else
@@ -1944,11 +1998,13 @@ static int cfgfile_parse_hardware (struct uae_prefs *p, TCHAR *option, TCHAR *va
 		|| cfgfile_intval (option, value, "rtg_modes", &p->picasso96_modeflags, 1)
 		|| cfgfile_intval (option, value, "floppy_speed", &p->floppy_speed, 1)
 		|| cfgfile_intval (option, value, "floppy_write_length", &p->floppy_write_length, 1)
+		|| cfgfile_intval (option, value, "floppy_random_bits_min", &p->floppy_random_bits_min, 1)
+		|| cfgfile_intval (option, value, "floppy_random_bits_max", &p->floppy_random_bits_max, 1)
 		|| cfgfile_intval (option, value, "nr_floppies", &p->nr_floppies, 1)
-		|| cfgfile_intval (option, value, "floppy0type", &p->dfxtype[0], 1)
-		|| cfgfile_intval (option, value, "floppy1type", &p->dfxtype[1], 1)
-		|| cfgfile_intval (option, value, "floppy2type", &p->dfxtype[2], 1)
-		|| cfgfile_intval (option, value, "floppy3type", &p->dfxtype[3], 1)
+		|| cfgfile_intval (option, value, "floppy0type", &p->floppyslots[0].dfxtype, 1)
+		|| cfgfile_intval (option, value, "floppy1type", &p->floppyslots[1].dfxtype, 1)
+		|| cfgfile_intval (option, value, "floppy2type", &p->floppyslots[2].dfxtype, 1)
+		|| cfgfile_intval (option, value, "floppy3type", &p->floppyslots[3].dfxtype, 1)
 		|| cfgfile_intval (option, value, "maprom", &p->maprom, 1)
 		|| cfgfile_intval (option, value, "parallel_autoflush", &p->parallel_autoflush_time, 1)
 		|| cfgfile_intval (option, value, "uae_hide", &p->uae_hide, 1)
@@ -2014,7 +2070,7 @@ static int cfgfile_parse_hardware (struct uae_prefs *p, TCHAR *option, TCHAR *va
 
 	for (i = 0; i < 4; i++) {
 		_stprintf (tmpbuf, "floppy%d", i);
-		if (cfgfile_path (option, value, tmpbuf, p->df[i], sizeof p->df[i] / sizeof (TCHAR)))
+		if (cfgfile_path (option, value, tmpbuf, p->floppyslots[i].df, sizeof p->floppyslots[i].df / sizeof (TCHAR)))
 			return 1;
 	}
 
@@ -2540,8 +2596,15 @@ static int cfgfile_load_2 (struct uae_prefs *p, const TCHAR *filename, bool real
 	while (cfg_fgets (linea, sizeof (linea), fh) != 0) {
 		trimwsa (linea);
 		if (strlen (linea) > 0) {
-			if (linea[0] == '#' || linea[0] == ';')
+			if (linea[0] == '#' || linea[0] == ';') {
+				struct strlist *u = xcalloc (struct strlist, 1);
+				u->option = NULL;
+				u->value = my_strdup (linea);
+				u->unknown = 1;
+				u->next = p->all_lines;
+				p->all_lines = u;
 				continue;
+			}
 			if (!cfgfile_separate_linea (linea, line1b, line2b))
 				continue;
 			type1 = type2 = 0;
@@ -2577,7 +2640,7 @@ static int cfgfile_load_2 (struct uae_prefs *p, const TCHAR *filename, bool real
 	}
 
 	for (i = 0; i < 4; i++)
-		subst (prefs_get_attr("floppy_path"), p->df[i], sizeof p->df[i]);
+		subst (prefs_get_attr("floppy_path"), p->floppyslots[i].df, sizeof p->floppyslots[i].df);
 
 	subst (prefs_get_attr("rom_path"), p->romfile, sizeof p->romfile);
 	subst (prefs_get_attr("rom_path"), p->romextfile, sizeof p->romextfile);
@@ -2928,10 +2991,10 @@ int parse_cmdline_option (struct uae_prefs *p, TCHAR c, const TCHAR *arg)
 	switch (c) {
 	case 'h': usage (); exit (0);
 
-	case '0': cmdpath (p->df[0], arg, 255); break;
-	case '1': cmdpath (p->df[1], arg, 255); break;
-	case '2': cmdpath (p->df[2], arg, 255); break;
-	case '3': cmdpath (p->df[3], arg, 255); break;
+	case '0': cmdpath (p->floppyslots[0].df, arg, 255); break;
+	case '1': cmdpath (p->floppyslots[1].df, arg, 255); break;
+	case '2': cmdpath (p->floppyslots[2].df, arg, 255); break;
+	case '3': cmdpath (p->floppyslots[3].df, arg, 255); break;
 	case 'r': cmdpath (p->romfile, arg, 255); break;
 	case 'K': strncpy (p->keyfile, arg, 255); p->keyfile[255] = 0; break;
 	case 'p': cmdpath (p->prtname, arg, 255); break;
@@ -3008,6 +3071,8 @@ int parse_cmdline_option (struct uae_prefs *p, TCHAR c, const TCHAR *arg)
 			p->keyboard_lang = KBD_LANG_IT;
 		else if (0 == strcasecmp(arg, "es"))
 			p->keyboard_lang = KBD_LANG_ES;
+		else if (0 == strcasecmp(arg, "tr"))
+			p->keyboard_lang = KBD_LANG_TR;
 		break;
 
 	case 'O': parse_gfx_specs (p, arg); break;
@@ -3401,8 +3466,8 @@ static void default_prefs_mini (struct uae_prefs *p, int type)
 	_tcscpy (p->description, "UAE default A500 configuration");
 
 	p->nr_floppies = 1;
-	p->dfxtype[0] = DRV_35_DD;
-	p->dfxtype[1] = DRV_NONE;
+	p->floppyslots[0].dfxtype = DRV_35_DD;
+	p->floppyslots[1].dfxtype = DRV_NONE;
 	p->cpu_model = 68000;
 	p->address_space_24 = 1;
 	p->chipmem_size = 0x00080000;
@@ -3598,10 +3663,10 @@ void default_prefs (struct uae_prefs *p, int type)
 	p->gfx_filter_autoscale = 0;
 #endif
 
-	_tcscpy (p->df[0], "df0.adf");
-	_tcscpy (p->df[1], "df1.adf");
-	_tcscpy (p->df[2], "df2.adf");
-	_tcscpy (p->df[3], "df3.adf");
+	_tcscpy (p->floppyslots[0].df, "df0.adf");
+	_tcscpy (p->floppyslots[1].df, "df1.adf");
+	_tcscpy (p->floppyslots[2].df, "df2.adf");
+	_tcscpy (p->floppyslots[3].df, "df3.adf");
 
     strcpy (p->romfile, "kick.rom");
     strcpy (p->romextfile, "");
@@ -3655,10 +3720,10 @@ void default_prefs (struct uae_prefs *p, int type)
 	p->custom_memory_sizes[1] = 0;
 
 	p->nr_floppies = 2;
-	p->dfxtype[0] = DRV_35_DD;
-	p->dfxtype[1] = DRV_35_DD;
-	p->dfxtype[2] = DRV_NONE;
-	p->dfxtype[3] = DRV_NONE;
+	p->floppyslots[0].dfxtype = DRV_35_DD;
+	p->floppyslots[1].dfxtype = DRV_35_DD;
+	p->floppyslots[2].dfxtype = DRV_NONE;
+	p->floppyslots[3].dfxtype = DRV_NONE;
 	p->floppy_speed = 100;
 	p->floppy_write_length = 0;
 	p->floppy_random_bits_min = 1;
@@ -3683,6 +3748,8 @@ void default_prefs (struct uae_prefs *p, int type)
 	p->input_magic_mouse_cursor = 0;
 
 	inputdevice_default_prefs (p);
+
+	blkdev_default_prefs (p);
 
 	zfile_fclose (default_file);
 	default_file = NULL;
@@ -3709,24 +3776,18 @@ static void buildin_default_prefs_68020 (struct uae_prefs *p)
 
 static void buildin_default_host_prefs (struct uae_prefs *p)
 {
-#if 0
-	p->sound_filter = FILTER_SOUND_OFF;
-	p->sound_stereo = SND_STEREO;
-	p->sound_stereo_separation = 7;
-	p->sound_mixed_stereo = 0;
-#endif
 }
 
 static void buildin_default_prefs (struct uae_prefs *p)
 {
 	buildin_default_host_prefs (p);
 
-	p->dfxtype[0] = DRV_35_DD;
+	p->floppyslots[0].dfxtype = DRV_35_DD;
 	if (p->nr_floppies != 1 && p->nr_floppies != 2)
 		p->nr_floppies = 2;
-	p->dfxtype[1] = p->nr_floppies >= 2 ? DRV_35_DD : DRV_NONE;
-	p->dfxtype[2] = DRV_NONE;
-	p->dfxtype[3] = DRV_NONE;
+	p->floppyslots[1].dfxtype = p->nr_floppies >= 2 ? DRV_35_DD : DRV_NONE;
+	p->floppyslots[2].dfxtype = DRV_NONE;
+	p->floppyslots[3].dfxtype = DRV_NONE;
 	p->floppy_speed = 100;
 
 	p->fpu_model = 0;
@@ -3871,7 +3932,7 @@ static int bip_a3000 (struct uae_prefs *p, int config, int compa, int romcheck)
 #ifdef JIT
 	p->cachesize = 8192;
 #endif
-	p->dfxtype[0] = DRV_35_HD;
+	p->floppyslots[0].dfxtype = DRV_35_HD;
 	p->floppy_speed = 0;
 	p->cpu_idle = 150;
 	p->cs_compatible = CP_A3000;
@@ -3905,8 +3966,8 @@ static int bip_a4000 (struct uae_prefs *p, int config, int compa, int romcheck)
 #ifdef JIT
 	p->cachesize = 8192;
 #endif
-	p->dfxtype[0] = DRV_35_HD;
-	p->dfxtype[1] = DRV_35_HD;
+	p->floppyslots[0].dfxtype = DRV_35_HD;
+	p->floppyslots[1].dfxtype = DRV_35_HD;
 	p->floppy_speed = 0;
 	p->cpu_idle = 150;
 	p->cs_compatible = CP_A4000;
@@ -3939,8 +4000,8 @@ static int bip_a4000t (struct uae_prefs *p, int config, int compa, int romcheck)
 #ifdef JIT
 	p->cachesize = 8192;
 #endif
-	p->dfxtype[0] = DRV_35_HD;
-	p->dfxtype[1] = DRV_35_HD;
+	p->floppyslots[0].dfxtype = DRV_35_HD;
+	p->floppyslots[1].dfxtype = DRV_35_HD;
 	p->floppy_speed = 0;
 	p->cpu_idle = 150;
 	p->cs_compatible = CP_A4000T;
@@ -3960,7 +4021,7 @@ static int bip_a1000 (struct uae_prefs *p, int config, int compa, int romcheck)
 	p->bogomem_size = 0;
 	p->sound_filter = FILTER_SOUND_ON;
 	set_68000_compa (p, compa);
-	p->dfxtype[1] = DRV_NONE;
+	p->floppyslots[1].dfxtype = DRV_NONE;
 	p->cs_compatible = CP_A1000;
 	p->cs_slowmemisfast = 1;
 	p->cs_dipagnus = 1;
@@ -3996,10 +4057,10 @@ static int bip_cdtv (struct uae_prefs *p, int config, int compa, int romcheck)
 		p->cs_cdtvcard = 64;
 	p->cs_rtc = 1;
 	p->nr_floppies = 0;
-	p->dfxtype[0] = DRV_NONE;
+	p->floppyslots[0].dfxtype = DRV_NONE;
 	if (config > 0)
-		p->dfxtype[0] = DRV_35_DD;
-	p->dfxtype[1] = DRV_NONE;
+		p->floppyslots[0].dfxtype = DRV_35_DD;
+	p->floppyslots[1].dfxtype = DRV_NONE;
 	set_68000_compa (p, compa);
 	p->cs_compatible = CP_CDTV;
 	built_in_chipset_prefs (p);
@@ -4031,8 +4092,8 @@ static int bip_cd32 (struct uae_prefs *p, int config, int compa, int romcheck)
 	}
 	p->cs_cd32c2p = p->cs_cd32cd = p->cs_cd32nvram = 1;
 	p->nr_floppies = 0;
-	p->dfxtype[0] = DRV_NONE;
-	p->dfxtype[1] = DRV_NONE;
+	p->floppyslots[0].dfxtype = DRV_NONE;
+	p->floppyslots[1].dfxtype = DRV_NONE;
 	set_68020_compa (p, compa, 1);
 	p->cs_compatible = CP_CD32;
 	built_in_chipset_prefs (p);
@@ -4132,7 +4193,7 @@ static int bip_a500 (struct uae_prefs *p, int config, int compa, int romcheck)
 		p->bogomem_size = 0;
 		p->chipset_mask = 0;
 		p->cs_rtc = 0;
-		p->dfxtype[1] = DRV_NONE;
+		p->floppyslots[1].dfxtype = DRV_NONE;
 		break;
 	case 4: // KS 1.2, OCS Agnus, 0.5M Chip
 		roms[0] = 5;
@@ -4141,7 +4202,7 @@ static int bip_a500 (struct uae_prefs *p, int config, int compa, int romcheck)
 		p->bogomem_size = 0;
 		p->chipset_mask = 0;
 		p->cs_rtc = 0;
-		p->dfxtype[1] = DRV_NONE;
+		p->floppyslots[1].dfxtype = DRV_NONE;
 		break;
 	case 5: // KS 1.2, OCS Agnus, 0.5M Chip + 0.5M Slow
 		roms[0] = 5;
@@ -4182,8 +4243,8 @@ static int bip_super (struct uae_prefs *p, int config, int compa, int romcheck)
 #ifdef JIT
 	p->cachesize = 8192;
 #endif
-	p->dfxtype[0] = DRV_35_HD;
-	p->dfxtype[1] = DRV_35_HD;
+	p->floppyslots[0].dfxtype = DRV_35_HD;
+	p->floppyslots[1].dfxtype = DRV_35_HD;
 	p->floppy_speed = 0;
 	p->cpu_idle = 150;
 	p->scsi = 1;
@@ -4208,8 +4269,8 @@ static int bip_arcadia (struct uae_prefs *p, int config, int compa, int romcheck
 	p->chipset_mask = 0;
 	p->cs_rtc = 0;
 	p->nr_floppies = 0;
-	p->dfxtype[0] = DRV_NONE;
-	p->dfxtype[1] = DRV_NONE;
+	p->floppyslots[0].dfxtype = DRV_NONE;
+	p->floppyslots[1].dfxtype = DRV_NONE;
 	set_68000_compa (p, compa);
 	p->cs_compatible = CP_A500;
 	built_in_chipset_prefs (p);
@@ -4282,10 +4343,6 @@ int built_in_prefs (struct uae_prefs *p, int model, int config, int compa, int r
 	case 11:
 		v = bip_super (p, config, compa, romcheck);
 		break;
-	}
-	for (i = 0; i < 4; i++) {
-		if (p->dfxtype[i] < 0)
-			p->df[i][0] = DRV_35_DD;
 	}
 	return v;
 }

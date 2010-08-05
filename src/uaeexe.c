@@ -26,13 +26,13 @@ static uae_u32 REGPARAM3 uaeexe_server (TrapContext *context) REGPARAM;
  */
 void uaeexe_install (void)
 {
-    uaecptr loop;
+	uaecptr loop;
 
-    loop = here ();
-    org (UAEEXE_ORG);
+	loop = here ();
+	org (UAEEXE_ORG);
 	calltrap (deftrapres (uaeexe_server, 0, "uaeexe_server"));
-    dw (RTS);
-    org (loop);
+	dw (RTS);
+	org (loop);
 }
 
 /*
@@ -46,38 +46,38 @@ void uaeexe_install (void)
  */
 int uaeexe (const TCHAR *cmd)
 {
-    struct uae_xcmd *nw;
+	struct uae_xcmd *nw;
 
-    if (!running)
+	if (!running)
 		goto NORUN;
 
 	nw = xmalloc (struct uae_xcmd, 1);
-    if (!nw)
+	if (!nw)
 		goto NOMEM;
 	nw->cmd = xmalloc (TCHAR, _tcslen (cmd) + 1);
-    if (!nw->cmd) {
+	if (!nw->cmd) {
 		xfree (nw);
 		goto NOMEM;
-    }
+	}
 
 	_tcscpy (nw->cmd, cmd);
-    nw->prev = last;
-    nw->next = NULL;
+	nw->prev = last;
+	nw->next = NULL;
 
-    if (!first)
-		first      = nw;
-    if (last) {
+	if (!first)
+		first = nw;
+	if (last) {
 		last->next = nw;
-		last       = nw;
-    } else
-		last       = nw;
+		last = nw;
+	} else
+		last = nw;
 
 	return UAEEXE_OK;
 NOMEM:
-    return UAEEXE_NOMEM;
+	return UAEEXE_NOMEM;
 NORUN:
 	write_log ("Remote cli is not running.\n");
-    return UAEEXE_NOTRUNNING;
+	return UAEEXE_NOTRUNNING;
 }
 
 /*
@@ -85,18 +85,18 @@ NORUN:
  */
 static TCHAR *get_cmd (void)
 {
-    struct uae_xcmd *cmd;
+	struct uae_xcmd *cmd;
 	TCHAR *s;
 
-    if (!first)
+	if (!first)
 		return NULL;
-    s = first->cmd;
-    cmd = first;
-    first = first->next;
-    if (!first)
+	s = first->cmd;
+	cmd = first;
+	first = first->next;
+	if (!first)
 		last = NULL;
-    free (cmd);
-    return s;
+	free (cmd);
+	return s;
 }
 
 /*
@@ -105,27 +105,27 @@ static TCHAR *get_cmd (void)
 #define ARG(x) (get_long (m68k_areg (regs, 7) + 4 * (x + 1)))
 static uae_u32 REGPARAM2 uaeexe_server (TrapContext *context)
 {
-    int len;
+	int len;
 	TCHAR *cmd;
 	char *dst;
 
-    if (ARG(0) && !running) {
+	if (ARG (0) && !running) {
 		running = 1;
 		write_log ("Remote CLI started.\n");
-    }
+	}
 
-    cmd = get_cmd ();
-    if (!cmd)
+	cmd = get_cmd ();
+	if (!cmd)
 		return 0;
-    if (!ARG(0)) {
+	if (!ARG (0)) {
 		running = 0;
 		return 0;
-    }
+	}
 
-    dst = (char *) get_real_address (ARG (0));
-    len = ARG (1);
+	dst = (char*)get_real_address (ARG (0));
+	len = ARG (1);
 	strncpy (dst, cmd, len);
 	write_log ("Sending '%s' to remote cli\n", cmd);
 	xfree (cmd);
-    return ARG (0);
+	return ARG (0);
 }

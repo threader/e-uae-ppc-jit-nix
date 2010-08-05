@@ -1,14 +1,14 @@
- /*
-  * UAE - The Un*x Amiga Emulator
-  *
-  * SDL keyboard driver which maps SDL cooked keysyms to raw
-  * Amiga keycodes
-  *
-  * Copyright 2004 Richard Drummond
-  *
-  * Based on previous SDL keymapping
-  * Copyright 2001 Bernd Lachner (EMail: dev@lachner-net.de)
-  */
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * SDL keyboard driver which maps SDL cooked keysyms to raw
+ * Amiga keycodes
+ *
+ * Copyright 2004 Richard Drummond
+ *
+ * Based on previous SDL keymapping
+ * Copyright 2001 Bernd Lachner (EMail: dev@lachner-net.de)
+ */
 
 #include "sysconfig.h"
 #include "sysdeps.h"
@@ -343,6 +343,22 @@ static int decode_es (int keysym)
     }
 }
 
+/*
+ * Handle keys specific to TR keymaps.
+ */
+static int decode_tr (int keysym)
+{
+    switch (keysym) {
+	case SDLK_a:		return AK_A;
+	case SDLK_m:		return AK_M;
+	case SDLK_q:		return AK_Q;
+	case SDLK_y:		return AK_Y;
+	case SDLK_w:		return AK_W;
+	case SDLK_z:		return AK_Z;
+	default: return -1;
+    }
+}
+
 int keysym2amiga (int keysym)
 {
     int amiga_keycode = kc_decode (keysym);
@@ -363,6 +379,8 @@ int keysym2amiga (int keysym)
 		amiga_keycode = decode_it (keysym); break;
 	    case KBD_LANG_ES:
 		amiga_keycode = decode_es (keysym); break;
+	    case KBD_LANG_TR:
+		amiga_keycode = decode_tr (keysym); break;
 	}
     }
     return amiga_keycode;

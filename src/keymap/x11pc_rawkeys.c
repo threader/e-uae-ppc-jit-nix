@@ -1,13 +1,11 @@
- /*
-  * UAE - The Un*x Amiga Emulator
-  *
-  * Support for mapping xfree86 keycodes (e.g. PC and Mac keyboards
-  * under XFree86) to platform-independent UAE key codes.
-  *
-  * Copyright 2004-2005 Richard Drummond
-  */
-
-#if 1
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * Support for mapping xfree86 keycodes (e.g. PC and Mac keyboards
+ * under XFree86) to platform-independent UAE key codes.
+ *
+ * Copyright 2004-2005 Richard Drummond
+ */
 
 #include "sysconfig.h"
 #include "sysdeps.h"
@@ -20,7 +18,7 @@
 /*
  * Raw scan codes
  */
-#define RAWKEY_ESCAPE		9
+#define RAWKEY_ESCAPE	9
 
 #define RAWKEY_F1		67
 #define RAWKEY_F2		68
@@ -193,5 +191,3 @@ struct uae_hotkeyseq x11pc_hotkeys[] =
     { DEFAULT_HOTKEYS },
     { HOTKEYS_END }
 };
-
-#endif

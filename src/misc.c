@@ -967,3 +967,9 @@ char *ua (const TCHAR *s)
 {
         return s;
 }
+
+//keyboard.c
+void clearallkeys (void)
+{
+        inputdevice_updateconfig (&currprefs);
+}

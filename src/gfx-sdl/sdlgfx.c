@@ -1,24 +1,25 @@
- /*
-  * UAE - The Un*x Amiga Emulator
-  *
-  * SDL graphics support
-  *
-  * Copyright 2001 Bernd Lachner (EMail: dev@lachner-net.de)
-  * Copyright 2003-2007 Richard Drummond
-  * Copyright 2006 Jochen Becher
-  *
-  * Partialy based on the UAE X interface (xwin.c)
-  *
-  * Copyright 1995, 1996 Bernd Schmidt
-  * Copyright 1996 Ed Hanway, Andre Beck, Samuel Devulder, Bruno Coste
-  * Copyright 1998 Marcus Sundberg
-  * DGA support by Kai Kollmorgen
-  * X11/DGA merge, hotkeys and grabmouse by Marcus Sundberg
-  * OpenGL support by Jochen Becher, Richard Drummond
-  */
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * SDL graphics support
+ *
+ * Copyright 2001 Bernd Lachner (EMail: dev@lachner-net.de)
+ * Copyright 2003-2007 Richard Drummond
+ * Copyright 2006 Jochen Becher
+ *
+ * Partialy based on the UAE X interface (xwin.c)
+ *
+ * Copyright 1995, 1996 Bernd Schmidt
+ * Copyright 1996 Ed Hanway, Andre Beck, Samuel Devulder, Bruno Coste
+ * Copyright 1998 Marcus Sundberg
+ * DGA support by Kai Kollmorgen
+ * X11/DGA merge, hotkeys and grabmouse by Marcus Sundberg
+ * OpenGL support by Jochen Becher, Richard Drummond
+ */
 
 #include "sysconfig.h"
 #include "sysdeps.h"
+#include "../keymap/keymap.h"
 
 #include <SDL.h>
 #include <SDL_endian.h>
@@ -105,6 +106,9 @@ static int picasso_maxw = 0, picasso_maxh = 0;
 
 static int bitdepth, bit_unit;
 static int current_width, current_height;
+
+static int num_mouse, num_keyboard, num_joystick;
+static int dd_inited, mouse_inited, keyboard_inited, joystick_inited;
 
 /* If we have to lock the SDL surface, then we remember the address
  * of its pixel data - and recalculate the row maps only when this
@@ -1349,6 +1353,7 @@ void handle_events (void)
 */
 			if (currprefs.map_raw_keys) {
 			    keycode = rEvent.key.keysym.scancode;
+write_log("sdlgfx_raw: %d\n", keycode);
 			    // Hack - OS4 keyup events have bit 7 set.
 #ifdef TARGET_AMIGAOS
 				keycode &= 0x7F;
@@ -1356,16 +1361,20 @@ void handle_events (void)
 			    modifier_hack (&keycode, &state);
 			} else
 			    keycode = rEvent.key.keysym.sym;
+write_log("sdlgfx_Nraw: %d\n", keycode);
 
 			DEBUG_LOG ("Event: key %d %s\n", keycode, state ? "down" : "up");
 
 			if ((ievent = match_hotkey_sequence (keycode, state))) {
+write_log("sdlgfx_hot: %d\n", ievent);
 			     DEBUG_LOG ("Hotkey event: %d\n", ievent);
 			     handle_hotkey_event (ievent, state);
 			} else {
 				if (currprefs.map_raw_keys) {
+write_log("sdlgfx_Nhot_raw: %d\n", keycode);
 					inputdevice_translatekeycode (0, keycode, state);
 				} else {
+write_log("sdlgfx_Nhot_Nraw: %d\n", keycode);
 					inputdevice_do_keyboard (keysym2amiga (keycode), state);
 				}
 			}
@@ -2072,20 +2081,29 @@ static int get_kb_widget_type (unsigned int kb, unsigned int num, char *name, ua
 
 static int init_kb (void)
 {
-    struct uae_input_device_kbr_default *keymap = 0;
-	inputdevice_setkeytranslation (keymap, kbmaps);
-    /* See if we support raw keys on this platform */
-    if ((keymap = get_default_raw_keymap (get_sdlgfx_type ())) != 0) {
-	inputdevice_setkeytranslation (keymap, kbmaps);
-	have_rawkeys = 1;
-    }
-    switch_keymaps ();
+	if (keyboard_inited)
+		return 1;
+	//oldusedleds = -1;
+	keyboard_inited = 1;
 
-    return 1;
+/*	struct uae_input_device_kbr_default *keymap = 0;
+	inputdevice_setkeytranslation (keymap, kbmaps);
+
+	// See if we support raw keys on this platform
+	if ((keymap = get_default_raw_keymap (get_sdlgfx_type ())) != 0) {
+		inputdevice_setkeytranslation (keymap, kbmaps);
+		have_rawkeys = 1;
+	}
+	switch_keymaps ();
+*/
+	return 1;
 }
 
 static void close_kb (void)
 {
+        if (keyboard_inited == 0)
+                return;
+        keyboard_inited = 0;
 }
 
 static int keyhack (int scancode, int pressed, int num)

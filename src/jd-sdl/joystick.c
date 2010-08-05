@@ -1,12 +1,12 @@
- /*
-  * UAE - The Un*x Amiga Emulator
-  *
-  * SDL Joystick code
-  *
-  * Copyright 1997 Bernd Schmidt
-  * Copyright 1998 Krister Walfridsson
-  * Copyright 2003-2005 Richard Drummond
-  */
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * SDL Joystick code
+ *
+ * Copyright 1997 Bernd Schmidt
+ * Copyright 1998 Krister Walfridsson
+ * Copyright 2003-2005 Richard Drummond
+ */
 
 #include "sysconfig.h"
 #include "sysdeps.h"
@@ -184,9 +184,10 @@ struct inputdevice_functions inputdevicefunc_joystick = {
 int input_get_default_joystick (struct uae_input_device *uid, int i, int port, int af, int mode)
 {
 	int h,v;
+	unsigned int j;
+	struct didata *did;
 	SDL_Joystick *joy;
 	joy = joys[i].joy;
-
 
 	if (i >= get_joystick_num ())
 		return 0;
@@ -201,8 +202,8 @@ int input_get_default_joystick (struct uae_input_device *uid, int i, int port, i
 		h = port ? INPUTEVENT_JOY2_HORIZ : INPUTEVENT_JOY1_HORIZ;;
 		v = port ? INPUTEVENT_JOY2_VERT : INPUTEVENT_JOY1_VERT;
 	}
-        setid (uid, i, ID_AXIS_OFFSET + 0, 0, port, h);
-        setid (uid, i, ID_AXIS_OFFSET + 1, 0, port, v);
+	setid (uid, i, ID_AXIS_OFFSET + 0, 0, port, h);
+	setid (uid, i, ID_AXIS_OFFSET + 1, 0, port, v);
 
 	if (port >= 2) {
 		setid_af (uid, i, ID_BUTTON_OFFSET + 0, 0, port, port == 3 ? INPUTEVENT_PAR_JOY2_FIRE_BUTTON : INPUTEVENT_PAR_JOY1_FIRE_BUTTON, af);

@@ -1,11 +1,11 @@
 /*
-* UAE - The Un*x Amiga Emulator
-*
-* AutoConfig devices
-*
-* Copyright 1995, 1996 Bernd Schmidt
-* Copyright 1996 Ed Hanway
-*/
+ * UAE - The Un*x Amiga Emulator
+ *
+ * AutoConfig devices
+ *
+ * Copyright 1995, 1996 Bernd Schmidt
+ * Copyright 1996 Ed Hanway
+ */
 
 #include "sysconfig.h"
 #include "sysdeps.h"

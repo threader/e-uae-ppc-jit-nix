@@ -27,7 +27,7 @@ extern void debugger_change (int mode);
 extern void activate_debugger (void);
 extern void deactivate_debugger (void);
 extern int notinrom (void);
-extern const char *debuginfo (int);
+extern const TCHAR *debuginfo (int);
 extern void record_copper (uaecptr addr, int hpos, int vpos);
 extern void record_copper_reset (void);
 extern int mmu_init (int, uaecptr,uaecptr);
@@ -35,7 +35,7 @@ extern void mmu_do_hit (void);
 extern void dump_aga_custom (void);
 extern void memory_map_dump (void);
 extern void debug_help (void);
-extern uaecptr dumpmem2 (uaecptr addr, char *out, int osize);
+extern uaecptr dumpmem2 (uaecptr addr, TCHAR *out, int osize);
 extern void update_debug_info (void);
 extern int instruction_breakpoint (TCHAR **c);
 extern int debug_bankchange (int);
@@ -49,23 +49,23 @@ extern struct breakpoint_node bpnodes[BREAKPOINT_TOTAL];
 
 #define MEMWATCH_TOTAL 8
 struct memwatch_node {
-    uaecptr addr;
-    int size;
-    int rwi;
-    uae_u32 val, valmask;
-    int mustchange;
-    int val_enabled;
-    uae_u32 modval;
-    int modval_written;
-    int frozen;
-    uaecptr pc;
+	uaecptr addr;
+	int size;
+	int rwi;
+	uae_u32 val, val_mask;
+	int val_size, val_enabled;
+	int mustchange;
+	uae_u32 modval;
+	int modval_written;
+	int frozen;
+	uaecptr pc;
 };
 extern struct memwatch_node mwnodes[MEMWATCH_TOTAL];
 
 extern void memwatch_dump2 (TCHAR *buf, int bufsize, int num);
 
-void debug_wgetpeekdma (uaecptr addr, uae_u32 v);
-void debug_wputpeekdma (uaecptr addr, uae_u32 v);
+uae_u16 debug_wgetpeekdma (uaecptr addr, uae_u32 v);
+uae_u16 debug_wputpeekdma (uaecptr addr, uae_u32 v);
 void debug_lgetpeek (uaecptr addr, uae_u32 v);
 void debug_wgetpeek (uaecptr addr, uae_u32 v);
 void debug_bgetpeek (uaecptr addr, uae_u32 v);
@@ -74,7 +74,7 @@ void debug_wputpeek (uaecptr addr, uae_u32 v);
 void debug_lputpeek (uaecptr addr, uae_u32 v);
 
 enum debugtest_item { DEBUGTEST_BLITTER, DEBUGTEST_KEYBOARD, DEBUGTEST_FLOPPY, DEBUGTEST_MAX };
-void debugtest (enum debugtest_item, const char *, ...);
+void debugtest (enum debugtest_item, const TCHAR *, ...);
 
 struct dma_rec
 {

@@ -1,11 +1,11 @@
- /*
-  * UAE - The Un*x Amiga Emulator
-  *
-  * Support for mapping BeOS raw key codes to platform-independent
-  * UAE key codes.
-  *
-  * Copyright 2004 Richard Drummond
-  */
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * Support for mapping BeOS raw key codes to platform-independent
+ * UAE key codes.
+ *
+ * Copyright 2004 Richard Drummond
+ */
 
 #ifdef __BEOS__
 

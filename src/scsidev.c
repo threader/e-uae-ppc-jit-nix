@@ -1,11 +1,11 @@
- /*
-  * UAE - The Un*x Amiga Emulator
-  *
-  * a SCSI device
-  *
-  * Copyright 1995 Bernd Schmidt
-  * Copyright 1999 Patrick Ohly
-  */
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * a SCSI device
+ *
+ * Copyright 1995 Bernd Schmidt
+ * Copyright 1999 Patrick Ohly
+ */
 
 #include "sysconfig.h"
 #include "sysdeps.h"
@@ -47,8 +47,8 @@ static int scsierr(SCSI *scgp)
 {
     register struct scg_cmd *cp = scgp->scmd;
 
-    if (cp->error != SCG_NO_ERROR ||
-		cp->ux_errno != 0 || *(u_char *)&cp->scb != 0)
+    if(cp->error != SCG_NO_ERROR ||
+       cp->ux_errno != 0 || *(u_char *)&cp->scb != 0)
 	return -1;
     return 0;
 }

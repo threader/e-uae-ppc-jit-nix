@@ -1,10 +1,10 @@
- /*
-  * UAE - The Un*x Amiga Emulator
-  *
-  * Support for mapping raw keys to UAE input events;
-  *
-  * Copyright 2004 Richard Drummond
-  */
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * Support for mapping raw keys to UAE input events;
+ *
+ * Copyright 2004 Richard Drummond
+ */
 
 /*
  * Default mapping from raw scancodes to UAE input events

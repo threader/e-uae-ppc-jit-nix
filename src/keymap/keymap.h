@@ -1,10 +1,10 @@
- /*
-  * UAE - The Un*x Amiga Emulator
-  *
-  * Support for platform-independent key-mapping
-  *
-  * Copyright 2004 Richard Drummond
-  */
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * Support for platform-independent key-mapping
+ *
+ * Copyright 2004 Richard Drummond
+ */
 
 
 /*
@@ -164,3 +164,4 @@ struct uaekey_hostmap
 
 
 struct uae_input_device_kbr_default *uaekey_make_default_kbr (const struct uaekey_hostmap *hostkeys);
+

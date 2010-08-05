@@ -8,10 +8,10 @@
  */
 
 #define UAEMAJOR 2
-#define UAEMINOR 2
-#define UAESUBREV 1
+#define UAEMINOR 3
+#define UAESUBREV 0
 
-typedef enum { KBD_LANG_US, KBD_LANG_DK, KBD_LANG_DE, KBD_LANG_SE, KBD_LANG_FR, KBD_LANG_IT, KBD_LANG_ES } KbdLang;
+typedef enum { KBD_LANG_US, KBD_LANG_DK, KBD_LANG_DE, KBD_LANG_SE, KBD_LANG_FR, KBD_LANG_IT, KBD_LANG_ES, KBD_LANG_TR } KbdLang;
 
 struct uaedev_mount_info;
 
@@ -20,6 +20,8 @@ struct strlist {
 	TCHAR *option, *value;
 	int unknown;
 };
+
+#define MAX_TOTAL_SCSI_DEVICES 8
 
 /* maximum number native input devices supported (single type) */
 #define MAX_INPUT_DEVICES 8
@@ -74,6 +76,21 @@ struct jport {
 #define TABLET_OFF 0
 #define TABLET_MOUSEHACK 1
 #define TABLET_REAL 2
+
+struct cdslot
+{
+	TCHAR name[MAX_DPATH];
+	bool inuse;
+	bool delayed;
+	int type;
+};
+struct floppyslot
+{
+	TCHAR df[MAX_DPATH];
+	int dfxtype;
+	int dfxclick;
+	TCHAR dfxclickexternal[256];
+};
 
 struct wh {
 	int x, y;
@@ -286,8 +303,6 @@ struct uae_prefs {
 	bool cs_dipagnus;
 	bool cs_agnusbltbusybug;
 
-	TCHAR df[4][MAX_DPATH];
-	TCHAR dfxlist[MAX_SPARE_DRIVES][MAX_DPATH];
 	TCHAR romfile[MAX_DPATH];
 	TCHAR romident[256];
 	TCHAR romextfile[MAX_DPATH];
@@ -304,8 +319,7 @@ struct uae_prefs {
 	TCHAR sername[256];
 	TCHAR amaxromfile[MAX_DPATH];
 	TCHAR a2065name[MAX_DPATH];
-	TCHAR cdimagefile[MAX_DPATH];
-	bool cdimagefileuse;
+	struct cdslot cdslots[MAX_TOTAL_SCSI_DEVICES];
 	TCHAR quitstatefile[MAX_DPATH];
 #ifndef WIN32
 	char scsi_device[256];
@@ -354,10 +368,9 @@ struct uae_prefs {
 	struct uaedev_config_info mountconfig[MOUNT_CONFIG_SIZE];
 
 	int nr_floppies;
-	int dfxtype[4];
+	struct floppyslot floppyslots[4];
+	TCHAR dfxlist[MAX_SPARE_DRIVES][MAX_DPATH];
 #ifdef DRIVESOUND
-	int dfxclick[4];
-	TCHAR dfxclickexternal[4][256];
 	int dfxclickvolume;
 	int dfxclickchannelmask;
 #endif
@@ -416,6 +429,8 @@ struct uae_prefs {
 	int win32_kbledmode;
 	TCHAR win32_commandpathstart[MAX_DPATH];
 	TCHAR win32_commandpathend[MAX_DPATH];
+	TCHAR win32_parjoyport0[MAX_DPATH];
+	TCHAR win32_parjoyport1[MAX_DPATH];
 #endif
 
 #ifdef USE_CURSES_GFX

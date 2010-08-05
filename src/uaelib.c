@@ -118,6 +118,9 @@ static uae_u32 emulib_ChangeLanguage (uae_u32 which)
 		case 6:
 			currprefs.keyboard_lang = KBD_LANG_ES;
 			break;
+		case 7:
+			currprefs.keyboard_lang = KBD_LANG_TR;
+			break;
 		default:
 			break;
 		}
@@ -196,7 +199,7 @@ static uae_u32 emulib_InsertDisk (uaecptr name, uae_u32 drive)
 	if (i == 255)
 		return 0; /* ENAMETOOLONG */
 
-	strcpy (changed_prefs.df[drive], real_name);
+	_tcscpy (changed_prefs.floppyslots[drive].df, real_name);
 
 	return 1;
 }
@@ -244,7 +247,7 @@ static uae_u32 emulib_GetUaeConfig (uaecptr place)
 
 	for (j = 0; j < 4; j++) {
 		for (i = 0; i < 256; i++)
-			put_byte (place + 36 + i + j * 256, currprefs.df[j][i]);
+			put_byte (place + 36 + i + j * 256, currprefs.floppyslots[j].df[i]);
 	}
 	return 1;
 }
@@ -269,7 +272,7 @@ static uae_u32 emulib_GetDisk (uae_u32 drive, uaecptr name)
 		return 0;
 
 	for (i = 0;i < 256; i++) {
-		put_byte (name + i, currprefs.df[drive][i]);
+		put_byte (name + i, currprefs.floppyslots[drive].df[i]);
 	}
 	return 1;
 }
@@ -403,9 +406,11 @@ static uae_u32 REGPARAM2 uaelib_demux2 (TrapContext *context)
 #endif
 	case 85: return native_dos_op (ARG1, ARG2, ARG3, ARG4);
 	case 86:
-		if (valid_address (ARG1, 1))
+		if (valid_address (ARG1, 1)) {
 			write_log ("DBG: %s\n", get_real_address (ARG1));
-		return 1;
+			return 1;
+		}
+		return 0;
 	case 87:
 		{
 			uae_u32 d0, d1;

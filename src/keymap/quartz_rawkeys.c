@@ -1,11 +1,11 @@
- /*
-  * UAE - The Un*x Amiga Emulator
-  *
-  * Support for mapping Quartz keycodes to platform-independent
-  * UAE key codes.
-  *
-  * Copyright 2004 Richard Drummond
-  */
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * Support for mapping Quartz keycodes to platform-independent
+ * UAE key codes.
+ *
+ * Copyright 2004 Richard Drummond
+ */
 
 #if defined __APPLE__
 

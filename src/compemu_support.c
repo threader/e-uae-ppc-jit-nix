@@ -56,8 +56,8 @@ const int		tune_alignment		= 1;	// Tune code alignments for running CPU ?
 const int		tune_nop_fillers	= 1;	// Tune no-op fillers for architecture
 
 static int		setzflg_uses_bsf	= 0;	// setzflg virtual instruction can use native BSF instruction correctly?
-static int align_loops = 32;// Align the start of loops
-static int align_jumps = 32;// Align the start of jumps
+static int		align_loops		= 32;	// Align the start of loops
+static int		align_jumps		= 32;	// Align the start of jumps
 
 void* pushall_call_handler=NULL;
 static void* popall_do_nothing=NULL;
@@ -167,19 +167,19 @@ uae_u32 needflags=0;
 
 STATIC_INLINE blockinfo* get_blockinfo(uae_u32 cl)
 {
-    return cache_tags[cl+1].bi;
+	return cache_tags[cl+1].bi;
 }
 
 STATIC_INLINE blockinfo* get_blockinfo_addr(void* addr)
 {
-    blockinfo*  bi=get_blockinfo(cacheline(addr));
+	blockinfo*  bi=get_blockinfo(cacheline(addr));
 
-    while (bi) {
+	while (bi) {
 		if (bi->pc_p==addr)
-		    return bi;
+			return bi;
 		bi=bi->next_same_cl;
-    }
-    return NULL;
+	}
+	return NULL;
 }
 
 
@@ -189,93 +189,93 @@ STATIC_INLINE blockinfo* get_blockinfo_addr(void* addr)
 
 STATIC_INLINE void remove_from_cl_list(blockinfo* bi)
 {
-    uae_u32 cl=cacheline(bi->pc_p);
+	uae_u32 cl=cacheline(bi->pc_p);
 
-    if (bi->prev_same_cl_p)
+	if (bi->prev_same_cl_p)
 		*(bi->prev_same_cl_p)=bi->next_same_cl;
-    if (bi->next_same_cl)
+	if (bi->next_same_cl)
 		bi->next_same_cl->prev_same_cl_p=bi->prev_same_cl_p;
-    if (cache_tags[cl+1].bi)
+	if (cache_tags[cl+1].bi)
 		cache_tags[cl].handler=cache_tags[cl+1].bi->handler_to_use;
-    else
+	else
 		cache_tags[cl].handler=(cpuop_func*)popall_execute_normal;
 }
 
 STATIC_INLINE void remove_from_list(blockinfo* bi)
 {
-    if (bi->prev_p)
+	if (bi->prev_p)
 		*(bi->prev_p)=bi->next;
-    if (bi->next)
+	if (bi->next)
 		bi->next->prev_p=bi->prev_p;
 }
 
 STATIC_INLINE void remove_from_lists(blockinfo* bi)
 {
-    remove_from_list(bi);
-    remove_from_cl_list(bi);
+	remove_from_list(bi);
+	remove_from_cl_list(bi);
 }
 
 STATIC_INLINE void add_to_cl_list(blockinfo* bi)
 {
-    uae_u32 cl=cacheline(bi->pc_p);
+	uae_u32 cl=cacheline(bi->pc_p);
 
-    if (cache_tags[cl+1].bi)
+	if (cache_tags[cl+1].bi)
 		cache_tags[cl+1].bi->prev_same_cl_p=&(bi->next_same_cl);
-    bi->next_same_cl=cache_tags[cl+1].bi;
+	bi->next_same_cl=cache_tags[cl+1].bi;
 
-    cache_tags[cl+1].bi=bi;
-    bi->prev_same_cl_p=&(cache_tags[cl+1].bi);
+	cache_tags[cl+1].bi=bi;
+	bi->prev_same_cl_p=&(cache_tags[cl+1].bi);
 
-    cache_tags[cl].handler=bi->handler_to_use;
+	cache_tags[cl].handler=bi->handler_to_use;
 }
 
 STATIC_INLINE void raise_in_cl_list(blockinfo* bi)
 {
-    remove_from_cl_list(bi);
-    add_to_cl_list(bi);
+	remove_from_cl_list(bi);
+	add_to_cl_list(bi);
 }
 
 STATIC_INLINE void add_to_active(blockinfo* bi)
 {
-    if (active)
+	if (active)
 		active->prev_p=&(bi->next);
-    bi->next=active;
+	bi->next=active;
 
-    active=bi;
-    bi->prev_p=&active;
+	active=bi;
+	bi->prev_p=&active;
 }
 
 STATIC_INLINE void add_to_dormant(blockinfo* bi)
 {
-    if (dormant)
+	if (dormant)
 		dormant->prev_p=&(bi->next);
-    bi->next=dormant;
+	bi->next=dormant;
 
-    dormant=bi;
-    bi->prev_p=&dormant;
+	dormant=bi;
+	bi->prev_p=&dormant;
 }
 
 STATIC_INLINE void remove_dep(dependency* d)
 {
-    if (d->prev_p)
+	if (d->prev_p)
 		*(d->prev_p)=d->next;
-    if (d->next)
+	if (d->next)
 		d->next->prev_p=d->prev_p;
-    d->prev_p=NULL;
-    d->next=NULL;
+	d->prev_p=NULL;
+	d->next=NULL;
 }
 
 /* This block's code is about to be thrown away, so it no longer
    depends on anything else */
 STATIC_INLINE void remove_deps(blockinfo* bi)
 {
-    remove_dep(&(bi->dep[0]));
-    remove_dep(&(bi->dep[1]));
+	remove_dep(&(bi->dep[0]));
+	remove_dep(&(bi->dep[1]));
 }
 
 STATIC_INLINE void adjust_jmpdep(dependency* d, void* a)
 {
-    *(d->jmp_off)=(uae_u32)a-((uae_u32)d->jmp_off+4);
+	*(d->jmp_off)=(uae_u32)a-((uae_u32)d->jmp_off+4);
 }
 
 /********************************************************************
@@ -285,7 +285,7 @@ STATIC_INLINE void adjust_jmpdep(dependency* d, void* a)
 STATIC_INLINE void set_dhtu(blockinfo* bi, void* dh)
 {
 	//write_log ("JIT: bi is %p\n",bi);
-    if (dh!=bi->direct_handler_to_use) {
+	if (dh!=bi->direct_handler_to_use) {
 		dependency* x=bi->deplist;
 		//write_log ("JIT: bi->deplist=%p\n",bi->deplist);
 		while (x) {
@@ -299,129 +299,129 @@ STATIC_INLINE void set_dhtu(blockinfo* bi, void* dh)
 			x=x->next;
 		}
 		bi->direct_handler_to_use=(cpuop_func*)dh;
-    }
+	}
 }
 
 STATIC_INLINE void invalidate_block(blockinfo* bi)
 {
-    int i;
+	int i;
 
-    bi->optlevel=0;
-    bi->count=currprefs.optcount[0]-1;
-    bi->handler=NULL;
-    bi->handler_to_use=(cpuop_func*)popall_execute_normal;
-    bi->direct_handler=NULL;
-    set_dhtu(bi,bi->direct_pen);
-    bi->needed_flags=0xff;
+	bi->optlevel=0;
+	bi->count=currprefs.optcount[0]-1;
+	bi->handler=NULL;
+	bi->handler_to_use=(cpuop_func*)popall_execute_normal;
+	bi->direct_handler=NULL;
+	set_dhtu(bi,bi->direct_pen);
+	bi->needed_flags=0xff;
 
-    for (i=0;i<2;i++) {
+	for (i=0;i<2;i++) {
 		bi->dep[i].jmp_off=NULL;
 		bi->dep[i].target=NULL;
-    }
-    remove_deps(bi);
+	}
+	remove_deps(bi);
 }
 
 STATIC_INLINE void create_jmpdep(blockinfo* bi, int i, uae_u32* jmpaddr, uae_u32 target)
 {
-    blockinfo*  tbi=get_blockinfo_addr((void*)target);
+	blockinfo*  tbi=get_blockinfo_addr((void*)target);
 
-    Dif(!tbi) {
+	Dif(!tbi) {
 		jit_abort ("JIT: Could not create jmpdep!\n");
-    }
-    bi->dep[i].jmp_off=jmpaddr;
-    bi->dep[i].target=tbi;
-    bi->dep[i].next=tbi->deplist;
-    if (bi->dep[i].next)
+	}
+	bi->dep[i].jmp_off=jmpaddr;
+	bi->dep[i].target=tbi;
+	bi->dep[i].next=tbi->deplist;
+	if (bi->dep[i].next)
 		bi->dep[i].next->prev_p=&(bi->dep[i].next);
-    bi->dep[i].prev_p=&(tbi->deplist);
-    tbi->deplist=&(bi->dep[i]);
+	bi->dep[i].prev_p=&(tbi->deplist);
+	tbi->deplist=&(bi->dep[i]);
 }
 
 STATIC_INLINE void big_to_small_state(bigstate* b, smallstate* s)
 {
-    int i;
-    int count=0;
+	int i;
+	int count=0;
 
-    for (i=0;i<N_REGS;i++) {
+	for (i=0;i<N_REGS;i++) {
 		s->nat[i].validsize=0;
 		s->nat[i].dirtysize=0;
 		if (b->nat[i].nholds) {
-		    int index=b->nat[i].nholds-1;
-		    int r=b->nat[i].holds[index];
-		    s->nat[i].holds=r;
-		    s->nat[i].validsize=b->state[r].validsize;
-		    s->nat[i].dirtysize=b->state[r].dirtysize;
-		    count++;
+			int index=b->nat[i].nholds-1;
+			int r=b->nat[i].holds[index];
+			s->nat[i].holds=r;
+			s->nat[i].validsize=b->state[r].validsize;
+			s->nat[i].dirtysize=b->state[r].dirtysize;
+			count++;
 		}
-    }
+	}
 	write_log ("JIT: count=%d\n",count);
-    for (i=0;i<N_REGS;i++) {  // FIXME --- don't do dirty yet
+	for (i=0;i<N_REGS;i++) {  // FIXME --- don't do dirty yet
 		s->nat[i].dirtysize=0;
-    }
+	}
 }
 
 STATIC_INLINE void attached_state(blockinfo* bi)
 {
-    bi->havestate=1;
-    if (bi->direct_handler_to_use==bi->direct_handler)
+	bi->havestate=1;
+	if (bi->direct_handler_to_use==bi->direct_handler)
 		set_dhtu(bi,bi->direct_pen);
-    bi->direct_handler=bi->direct_pen;
-    bi->status=BI_TARGETTED;
+	bi->direct_handler=bi->direct_pen;
+	bi->status=BI_TARGETTED;
 }
 
 STATIC_INLINE blockinfo* get_blockinfo_addr_new(void* addr, int setstate)
 {
-    blockinfo*  bi=get_blockinfo_addr(addr);
-    int i;
+	blockinfo*  bi=get_blockinfo_addr(addr);
+	int i;
 
 #if USE_OPTIMIZER
-    if (reg_alloc_run)
+	if (reg_alloc_run)
 		return NULL;
 #endif
-    if (!bi) {
-	for (i=0;i<MAX_HOLD_BI && !bi;i++) {
-	    if (hold_bi[i]) {
-			uae_u32 cl=cacheline(addr);
+	if (!bi) {
+		for (i=0;i<MAX_HOLD_BI && !bi;i++) {
+			if (hold_bi[i]) {
+				uae_u32 cl=cacheline(addr);
 
-			bi=hold_bi[i];
-			hold_bi[i]=NULL;
-			bi->pc_p=(uae_u8*)addr;
-			invalidate_block(bi);
-			add_to_active(bi);
-			add_to_cl_list(bi);
+				bi=hold_bi[i];
+				hold_bi[i]=NULL;
+				bi->pc_p=(uae_u8*)addr;
+				invalidate_block(bi);
+				add_to_active(bi);
+				add_to_cl_list(bi);
 
-		    }
+			}
 		}
-    }
-    if (!bi) {
+	}
+	if (!bi) {
 		jit_abort ("JIT: Looking for blockinfo, can't find free one\n");
-    }
+	}
 
 #if USE_MATCHSTATE
-    if (setstate &&
+	if (setstate &&
 		!bi->havestate) {
 			big_to_small_state(&live,&(bi->env));
 			attached_state(bi);
-    }
+	}
 #endif
-    return bi;
+	return bi;
 }
 
 static void prepare_block(blockinfo* bi);
 
 STATIC_INLINE void alloc_blockinfos(void)
 {
-    int i;
-    blockinfo* bi;
+	int i;
+	blockinfo* bi;
 
-    for (i=0;i<MAX_HOLD_BI;i++) {
+	for (i=0;i<MAX_HOLD_BI;i++) {
 		if (hold_bi[i])
-		    return;
+			return;
 		bi=hold_bi[i]=(blockinfo*)current_compile_p;
 		current_compile_p+=sizeof(blockinfo);
 
 		prepare_block(bi);
-    }
+	}
 }
 
 /********************************************************************
@@ -435,111 +435,79 @@ bool check_prefs_changed_comp (void)
 	static int cachesize_prev, comptrust_prev;
 	static bool canbang_prev;
 
-    if (currprefs.comptrustbyte != changed_prefs.comptrustbyte ||
-        currprefs.comptrustword != changed_prefs.comptrustword ||
-        currprefs.comptrustlong != changed_prefs.comptrustlong ||
-        currprefs.comptrustnaddr!= changed_prefs.comptrustnaddr ||
-        currprefs.compnf != changed_prefs.compnf ||
-        currprefs.comp_hardflush != changed_prefs.comp_hardflush ||
-        currprefs.comp_constjump != changed_prefs.comp_constjump ||
-        currprefs.comp_oldsegv != changed_prefs.comp_oldsegv ||
-        currprefs.compfpu != changed_prefs.compfpu ||
-        currprefs.fpu_strict != changed_prefs.fpu_strict)
-        changed = 1;
+	if (currprefs.comptrustbyte != changed_prefs.comptrustbyte ||
+		currprefs.comptrustword != changed_prefs.comptrustword ||
+		currprefs.comptrustlong != changed_prefs.comptrustlong ||
+		currprefs.comptrustnaddr!= changed_prefs.comptrustnaddr ||
+		currprefs.compnf != changed_prefs.compnf ||
+		currprefs.comp_hardflush != changed_prefs.comp_hardflush ||
+		currprefs.comp_constjump != changed_prefs.comp_constjump ||
+		currprefs.comp_oldsegv != changed_prefs.comp_oldsegv ||
+		currprefs.compfpu != changed_prefs.compfpu ||
+		currprefs.fpu_strict != changed_prefs.fpu_strict)
+		changed = 1;
 
-    currprefs.comptrustbyte = changed_prefs.comptrustbyte;
-    currprefs.comptrustword = changed_prefs.comptrustword;
-    currprefs.comptrustlong = changed_prefs.comptrustlong;
-    currprefs.comptrustnaddr= changed_prefs.comptrustnaddr;
-    currprefs.compnf = changed_prefs.compnf;
-    currprefs.comp_hardflush = changed_prefs.comp_hardflush;
-    currprefs.comp_constjump = changed_prefs.comp_constjump;
-    currprefs.comp_oldsegv = changed_prefs.comp_oldsegv;
-    currprefs.compfpu = changed_prefs.compfpu;
-    currprefs.fpu_strict = changed_prefs.fpu_strict;
+	currprefs.comptrustbyte = changed_prefs.comptrustbyte;
+	currprefs.comptrustword = changed_prefs.comptrustword;
+	currprefs.comptrustlong = changed_prefs.comptrustlong;
+	currprefs.comptrustnaddr= changed_prefs.comptrustnaddr;
+	currprefs.compnf = changed_prefs.compnf;
+	currprefs.comp_hardflush = changed_prefs.comp_hardflush;
+	currprefs.comp_constjump = changed_prefs.comp_constjump;
+	currprefs.comp_oldsegv = changed_prefs.comp_oldsegv;
+	currprefs.compfpu = changed_prefs.compfpu;
+	currprefs.fpu_strict = changed_prefs.fpu_strict;
 
-    if (currprefs.cachesize != changed_prefs.cachesize) {
-        if (currprefs.cachesize && !changed_prefs.cachesize) {
-            cachesize_prev = currprefs.cachesize;
-            comptrust_prev = currprefs.comptrustbyte;
-            canbang_prev = canbang;
-        } else if (!currprefs.cachesize && changed_prefs.cachesize == cachesize_prev) {
-            changed_prefs.comptrustbyte = currprefs.comptrustbyte = comptrust_prev;
-            changed_prefs.comptrustword = currprefs.comptrustword = comptrust_prev;
-            changed_prefs.comptrustlong = currprefs.comptrustlong = comptrust_prev;
-            changed_prefs.comptrustnaddr = currprefs.comptrustnaddr = comptrust_prev;
-        }
-        currprefs.cachesize = changed_prefs.cachesize;
-        alloc_cache();
-        changed = 1;
-    }
-    if (!candirect)
-        canbang = 0;
+	if (currprefs.cachesize != changed_prefs.cachesize) {
+		if (currprefs.cachesize && !changed_prefs.cachesize) {
+			cachesize_prev = currprefs.cachesize;
+			comptrust_prev = currprefs.comptrustbyte;
+			canbang_prev = canbang;
+		} else if (!currprefs.cachesize && changed_prefs.cachesize == cachesize_prev) {
+			changed_prefs.comptrustbyte = currprefs.comptrustbyte = comptrust_prev;
+			changed_prefs.comptrustword = currprefs.comptrustword = comptrust_prev;
+			changed_prefs.comptrustlong = currprefs.comptrustlong = comptrust_prev;
+			changed_prefs.comptrustnaddr = currprefs.comptrustnaddr = comptrust_prev;
+		}
+		currprefs.cachesize = changed_prefs.cachesize;
+		alloc_cache();
+		changed = 1;
+	}
+	if (!candirect)
+		canbang = 0;
 
-    // Turn off illegal-mem logging when using JIT...
-    if(currprefs.cachesize)
-        currprefs.illegal_mem = changed_prefs.illegal_mem;// = 0;
+	// Turn off illegal-mem logging when using JIT...
+	if(currprefs.cachesize)
+		currprefs.illegal_mem = changed_prefs.illegal_mem;// = 0;
 
-    currprefs.comp_midopt = changed_prefs.comp_midopt;
-    currprefs.comp_lowopt = changed_prefs.comp_lowopt;
+	currprefs.comp_midopt = changed_prefs.comp_midopt;
+	currprefs.comp_lowopt = changed_prefs.comp_lowopt;
 
-    if ((!canbang || !currprefs.cachesize) && currprefs.comptrustbyte != 1) {
-        // Set all of these to indirect when canbang == 0
-        // Basically, set the compforcesettings option...
-        currprefs.comptrustbyte = 1;
-        currprefs.comptrustword = 1;
-        currprefs.comptrustlong = 1;
-        currprefs.comptrustnaddr= 1;
+	if ((!canbang || !currprefs.cachesize) && currprefs.comptrustbyte != 1) {
+		// Set all of these to indirect when canbang == 0
+		// Basically, set the compforcesettings option...
+		currprefs.comptrustbyte = 1;
+		currprefs.comptrustword = 1;
+		currprefs.comptrustlong = 1;
+		currprefs.comptrustnaddr= 1;
 
-        changed_prefs.comptrustbyte = 1;
-        changed_prefs.comptrustword = 1;
-        changed_prefs.comptrustlong = 1;
-        changed_prefs.comptrustnaddr= 1;
+		changed_prefs.comptrustbyte = 1;
+		changed_prefs.comptrustword = 1;
+		changed_prefs.comptrustlong = 1;
+		changed_prefs.comptrustnaddr= 1;
 
-        changed = 1;
+		changed = 1;
 
 		if (currprefs.cachesize)
 			write_log ("JIT: Reverting to \"indirect\" access, because canbang is zero!\n");
-    }
-
-    if (changed)
-		write_log ("JIT: cache=%d. b=%d w=%d l=%d fpu=%d nf=%d const=%d hard=%d\n",
-            currprefs.cachesize,
-            currprefs.comptrustbyte, currprefs.comptrustword, currprefs.comptrustlong,
-            currprefs.compfpu, currprefs.compnf, currprefs.comp_constjump, currprefs.comp_hardflush);
-
-#if 0
-    if (!currprefs.compforcesettings) {
-	int stop=0;
-	if (currprefs.comptrustbyte!=0 && currprefs.comptrustbyte!=3)
-		stop = 1, write_log ("JIT: comptrustbyte is not 'direct' or 'afterpic'\n");
-	if (currprefs.comptrustword!=0 && currprefs.comptrustword!=3)
-		stop = 1, write_log ("JIT: comptrustword is not 'direct' or 'afterpic'\n");
-	if (currprefs.comptrustlong!=0 && currprefs.comptrustlong!=3)
-		stop = 1, write_log ("JIT: comptrustlong is not 'direct' or 'afterpic'\n");
-	if (currprefs.comptrustnaddr!=0 && currprefs.comptrustnaddr!=3)
-		stop = 1, write_log ("JIT: comptrustnaddr is not 'direct' or 'afterpic'\n");
-	if (currprefs.compnf!=1)
-		stop = 1, write_log ("JIT: compnf is not 'yes'\n");
-	if (currprefs.cachesize<1024)
-		stop = 1, write_log ("JIT: cachesize is less than 1024\n");
-	if (currprefs.comp_hardflush)
-		stop = 1, write_log ("JIT: comp_flushmode is 'hard'\n");
-	if (!canbang)
-		stop = 1, write_log ("JIT: Cannot use most direct memory access,\n"
-				"     and unable to recover from failed guess!\n");
-	if (stop) {
-	    gui_message("JIT: Configuration problems were detected!\n"
-		      "JIT: These will adversely affect performance, and should\n"
-		      "JIT: not be used. For more info, please see README.JIT-tuning\n"
-		      "JIT: in the UAE documentation directory. You can force\n"
-		      "JIT: your settings to be used by setting\n"
-		      "JIT:      'compforcesettings=yes'\n"
-		      "JIT: in your config file\n");
-	    exit(1);
 	}
-    }
-#endif
+
+	if (changed)
+		write_log ("JIT: cache=%d. b=%d w=%d l=%d fpu=%d nf=%d const=%d hard=%d\n",
+		currprefs.cachesize,
+		currprefs.comptrustbyte, currprefs.comptrustword, currprefs.comptrustlong, 
+		currprefs.compfpu, currprefs.compnf, currprefs.comp_constjump, currprefs.comp_hardflush);
+
 	return changed;
 }
 
@@ -562,43 +530,43 @@ static  void emit_init(void)
 
 STATIC_INLINE void emit_byte(uae_u8 x)
 {
-    *target++=x;
+	*target++=x;
 }
 
 STATIC_INLINE void emit_word(uae_u16 x)
 {
-    *((uae_u16*)target)=x;
-    target+=2;
+	*((uae_u16*)target)=x;
+	target+=2;
 }
 
 STATIC_INLINE void emit_long(uae_u32 x)
 {
-    *((uae_u32*)target)=x;
-    target+=4;
+	*((uae_u32*)target)=x;
+	target+=4;
 }
 
-STATIC_INLINE uae_u32 reverse32 (uae_u32 oldv)
+STATIC_INLINE uae_u32 reverse32(uae_u32 oldv)
 {
-    return ((oldv>>24)&0xff) | ((oldv>>8)&0xff00) |
+	return ((oldv>>24)&0xff) | ((oldv>>8)&0xff00) |
 		((oldv<<8)&0xff0000) | ((oldv<<24)&0xff000000);
 }
 
 
 void set_target(uae_u8* t)
 {
-    lopt_emit_all();
-    target=t;
+	lopt_emit_all();
+	target=t;
 }
 
 STATIC_INLINE uae_u8* get_target_noopt(void)
 {
-    return target;
+	return target;
 }
 
 STATIC_INLINE uae_u8* get_target(void)
 {
-    lopt_emit_all();
-    return get_target_noopt();
+	lopt_emit_all();
+	return get_target_noopt();
 }
 
 
@@ -617,12 +585,12 @@ static void bt_l_ri_noclobber(R4 r, IMM i);
 
 static void make_flags_live_internal(void)
 {
-    if (live.flags_in_flags==VALID)
+	if (live.flags_in_flags==VALID)
 		return;
-    Dif (live.flags_on_stack==TRASH) {
+	Dif (live.flags_on_stack==TRASH) {
 		jit_abort ("JIT: Want flags, got something on stack, but it is TRASH\n");
-    }
-    if (live.flags_on_stack==VALID) {
+	}
+	if (live.flags_on_stack==VALID) {
 		int tmp;
 		tmp=readreg_specific(FLAGTMP,4,FLAG_NREG2);
 		raw_reg_to_flags(tmp);
@@ -630,42 +598,42 @@ static void make_flags_live_internal(void)
 
 		live.flags_in_flags=VALID;
 		return;
-    }
+	}
 	jit_abort ("JIT: Huh? live.flags_in_flags=%d, live.flags_on_stack=%d, but need to make live\n",
-	       live.flags_in_flags, live.flags_on_stack);
+		live.flags_in_flags,live.flags_on_stack);
 }
 
 static void flags_to_stack(void)
 {
-    if (live.flags_on_stack==VALID)
+	if (live.flags_on_stack==VALID)
 		return;
-    if (!live.flags_are_important) {
+	if (!live.flags_are_important) {
 		live.flags_on_stack=VALID;
 		return;
-    }
-    Dif (live.flags_in_flags!=VALID)
+	}
+	Dif (live.flags_in_flags!=VALID)
 		jit_abort ("flags_to_stack != VALID");
-    else  {
+	else  {
 		int tmp;
 		tmp=writereg_specific(FLAGTMP,4,FLAG_NREG1);
 		raw_flags_to_reg(tmp);
 		unlock(tmp);
-    }
-    live.flags_on_stack=VALID;
+	}
+	live.flags_on_stack=VALID;
 }
 
 STATIC_INLINE void clobber_flags(void)
 {
-    if (live.flags_in_flags==VALID && live.flags_on_stack!=VALID)
+	if (live.flags_in_flags==VALID && live.flags_on_stack!=VALID)
 		flags_to_stack();
-    live.flags_in_flags=TRASH;
+	live.flags_in_flags=TRASH;
 }
 
 /* Prepare for leaving the compiled stuff */
 STATIC_INLINE void flush_flags(void)
 {
-    flags_to_stack();
-    return;
+	flags_to_stack();
+	return;
 }
 
 int touchcnt;
@@ -684,30 +652,30 @@ static uae_s8 nstate[N_REGS];
 
 STATIC_INLINE void log_startblock(void)
 {
-    int i;
-    for (i=0;i<VREGS;i++)
+	int i;
+	for (i=0;i<VREGS;i++)
 		vstate[i]=L_UNKNOWN;
-    for (i=0;i<N_REGS;i++)
+	for (i=0;i<N_REGS;i++)
 		nstate[i]=L_UNKNOWN;
 }
 
 STATIC_INLINE void log_isused(int n)
 {
-    if (nstate[n]==L_UNKNOWN)
+	if (nstate[n]==L_UNKNOWN)
 		nstate[n]=L_UNAVAIL;
 }
 
 STATIC_INLINE void log_isreg(int n, int r)
 {
-    if (nstate[n]==L_UNKNOWN)
+	if (nstate[n]==L_UNKNOWN)
 		nstate[n]=r;
-    if (vstate[r]==L_UNKNOWN)
+	if (vstate[r]==L_UNKNOWN)
 		vstate[r]=L_NEEDED;
 }
 
 STATIC_INLINE void log_clobberreg(int r)
 {
-    if (vstate[r]==L_UNKNOWN)
+	if (vstate[r]==L_UNKNOWN)
 		vstate[r]=L_UNNEEDED;
 }
 
@@ -715,33 +683,33 @@ STATIC_INLINE void log_clobberreg(int r)
 
 STATIC_INLINE void log_flush(void)
 {
-    int i;
-    for (i=0;i<VREGS;i++)
+	int i;
+	for (i=0;i<VREGS;i++)
 		if (vstate[i]==L_UNKNOWN)
-		    vstate[i]=L_NEEDED;
-    for (i=0;i<N_REGS;i++)
+			vstate[i]=L_NEEDED;
+	for (i=0;i<N_REGS;i++)
 		if (nstate[i]==L_UNKNOWN)
-		    nstate[i]=L_UNAVAIL;
+			nstate[i]=L_UNAVAIL;
 }
 
 STATIC_INLINE void log_dump(void)
 {
-    int i;
+	int i;
 
-    return;
+	return;
 
 	write_log ("----------------------\n");
-    for (i=0;i<N_REGS;i++) {
+	for (i=0;i<N_REGS;i++) {
 		switch(nstate[i]) {
 		case L_UNKNOWN: write_log ("Nat %d : UNKNOWN\n",i); break;
 		case L_UNAVAIL: write_log ("Nat %d : UNAVAIL\n",i); break;
 		default:        write_log ("Nat %d : %d\n",i,nstate[i]); break;
 		}
-    }
-    for (i=0;i<VREGS;i++) {
+	}
+	for (i=0;i<VREGS;i++) {
 		if (vstate[i]==L_UNNEEDED)
 			write_log ("Virt %d: UNNEEDED\n",i);
-    }
+	}
 }
 
 /********************************************************************
@@ -750,42 +718,42 @@ STATIC_INLINE void log_dump(void)
 
 STATIC_INLINE void set_status(int r, int status)
 {
-    if (status==ISCONST)
+	if (status==ISCONST)
 		log_clobberreg(r);
-    live.state[r].status=status;
+	live.state[r].status=status;
 }
 
 
 STATIC_INLINE int isinreg(int r)
 {
-    return live.state[r].status==CLEAN || live.state[r].status==DIRTY;
+	return live.state[r].status==CLEAN || live.state[r].status==DIRTY;
 }
 
 STATIC_INLINE void adjust_nreg(int r, uae_u32 val)
 {
-    if (!val)
+	if (!val)
 		return;
-    raw_lea_l_brr(r,r,val);
+	raw_lea_l_brr(r,r,val);
 }
 
 static  void tomem(int r)
 {
-    int rr=live.state[r].realreg;
+	int rr=live.state[r].realreg;
 
-    if (isinreg(r)) {
+	if (isinreg(r)) {
 		if (live.state[r].val &&
-		    live.nat[rr].nholds==1 &&
-		    !live.nat[rr].locked) {
-		    // write_log ("JIT: RemovingA offset %x from reg %d (%d) at %p\n",
-		    //   live.state[r].val,r,rr,target);
-		    adjust_nreg(rr,live.state[r].val);
-		    live.state[r].val=0;
-		    live.state[r].dirtysize=4;
-		    set_status(r,DIRTY);
+			live.nat[rr].nholds==1 &&
+			!live.nat[rr].locked) {
+				// write_log ("JIT: RemovingA offset %x from reg %d (%d) at %p\n",
+				//   live.state[r].val,r,rr,target);
+				adjust_nreg(rr,live.state[r].val);
+				live.state[r].val=0;
+				live.state[r].dirtysize=4;
+				set_status(r,DIRTY);
 		}
-    }
+	}
 
-    if (live.state[r].status==DIRTY) {
+	if (live.state[r].status==DIRTY) {
 		switch (live.state[r].dirtysize) {
 		case 1: raw_mov_b_mr((uae_u32)live.state[r].mem,rr); break;
 		case 2: raw_mov_w_mr((uae_u32)live.state[r].mem,rr); break;
@@ -794,119 +762,119 @@ static  void tomem(int r)
 		}
 		set_status(r,CLEAN);
 		live.state[r].dirtysize=0;
-    }
+	}
 }
 
 STATIC_INLINE int isconst(int r)
 {
-    return live.state[r].status==ISCONST;
+	return live.state[r].status==ISCONST;
 }
 
 int is_const(int r)
 {
-    return isconst(r);
+	return isconst(r);
 }
 
 STATIC_INLINE void writeback_const(int r)
 {
-    if (!isconst(r))
+	if (!isconst(r))
 		return;
-    Dif (live.state[r].needflush==NF_HANDLER) {
+	Dif (live.state[r].needflush==NF_HANDLER) {
 		jit_abort ("JIT: Trying to write back constant NF_HANDLER!\n");
-    }
+	}
 
-    raw_mov_l_mi((uae_u32)live.state[r].mem,live.state[r].val);
-    live.state[r].val=0;
-    set_status(r,INMEM);
+	raw_mov_l_mi((uae_u32)live.state[r].mem,live.state[r].val);
+	live.state[r].val=0;
+	set_status(r,INMEM);
 }
 
 STATIC_INLINE void tomem_c(int r)
 {
-    if (isconst(r)) {
+	if (isconst(r)) {
 		writeback_const(r);
-    }
-    else
+	}
+	else
 		tomem(r);
 }
 
 static  void evict(int r)
 {
-    int rr;
+	int rr;
 
-    if (!isinreg(r))
+	if (!isinreg(r))
 		return;
-    tomem(r);
-    rr=live.state[r].realreg;
+	tomem(r);
+	rr=live.state[r].realreg;
 
-    Dif (live.nat[rr].locked &&
+	Dif (live.nat[rr].locked &&
 		live.nat[rr].nholds==1) {
 			jit_abort ("JIT: register %d in nreg %d is locked!\n",r,live.state[r].realreg);
-    }
+	}
 
-    live.nat[rr].nholds--;
-    if (live.nat[rr].nholds!=live.state[r].realind) { /* Was not last */
+	live.nat[rr].nholds--;
+	if (live.nat[rr].nholds!=live.state[r].realind) { /* Was not last */
 		int topreg=live.nat[rr].holds[live.nat[rr].nholds];
 		int thisind=live.state[r].realind;
 		live.nat[rr].holds[thisind]=topreg;
 		live.state[topreg].realind=thisind;
-    }
-    live.state[r].realreg=-1;
-    set_status(r,INMEM);
+	}
+	live.state[r].realreg=-1;
+	set_status(r,INMEM);
 }
 
 STATIC_INLINE void free_nreg(int r)
 {
-    int i=live.nat[r].nholds;
+	int i=live.nat[r].nholds;
 
-    while (i) {
+	while (i) {
 		int vr;
 
 		--i;
 		vr=live.nat[r].holds[i];
 		evict(vr);
-    }
-    Dif (live.nat[r].nholds!=0) {
+	}
+	Dif (live.nat[r].nholds!=0) {
 		jit_abort ("JIT: Failed to free nreg %d, nholds is %d\n",r,live.nat[r].nholds);
-    }
+	}
 }
 
 /* Use with care! */
 STATIC_INLINE void isclean(int r)
 {
-    if (!isinreg(r))
+	if (!isinreg(r))
 		return;
-    live.state[r].validsize=4;
-    live.state[r].dirtysize=0;
-    live.state[r].val=0;
-    set_status(r,CLEAN);
+	live.state[r].validsize=4;
+	live.state[r].dirtysize=0;
+	live.state[r].val=0;
+	set_status(r,CLEAN);
 }
 
 STATIC_INLINE void disassociate(int r)
 {
-    isclean(r);
-    evict(r);
+	isclean(r);
+	evict(r);
 }
 
 STATIC_INLINE void set_const(int r, uae_u32 val)
 {
-    disassociate(r);
-    live.state[r].val=val;
-    set_status(r,ISCONST);
+	disassociate(r);
+	live.state[r].val=val;
+	set_status(r,ISCONST);
 }
 
 STATIC_INLINE uae_u32 get_offset(int r)
 {
-    return live.state[r].val;
+	return live.state[r].val;
 }
 
 static  int alloc_reg_hinted(int r, int size, int willclobber, int hint)
 {
-    int bestreg;
-    uae_s32 when;
-    int i;
-    uae_s32 badness=0; /* to shut up gcc */
-    bestreg=-1;
-    when=2000000000;
+	int bestreg;
+	uae_s32 when;
+	int i;
+	uae_s32 badness=0; /* to shut up gcc */
+	bestreg=-1;
+	when=2000000000;
 
     for (i=N_REGS;i--;) {
 		badness=live.nat[i].touched;

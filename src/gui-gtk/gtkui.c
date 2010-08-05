@@ -526,10 +526,10 @@ static void set_floppy_state( void )
     }
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (drvspeed_widget[i]), 1);
 
-    floppyfileentry_set_filename (FLOPPYFILEENTRY (floppy_widget[0]), currprefs.df[0]);
-    floppyfileentry_set_filename (FLOPPYFILEENTRY (floppy_widget[1]), currprefs.df[1]);
-    floppyfileentry_set_filename (FLOPPYFILEENTRY (floppy_widget[2]), currprefs.df[2]);
-    floppyfileentry_set_filename (FLOPPYFILEENTRY (floppy_widget[3]), currprefs.df[3]);
+    floppyfileentry_set_filename (FLOPPYFILEENTRY (floppy_widget[0]), currprefs.floppyslots[0].df);
+    floppyfileentry_set_filename (FLOPPYFILEENTRY (floppy_widget[1]), currprefs.floppyslots[1].df);
+    floppyfileentry_set_filename (FLOPPYFILEENTRY (floppy_widget[2]), currprefs.floppyslots[2].df);
+    floppyfileentry_set_filename (FLOPPYFILEENTRY (floppy_widget[3]), currprefs.floppyslots[3].df);
 }
 
 static void update_state (void)
@@ -620,7 +620,7 @@ static int my_idle (void)
 	 case GUICMD_DISKCHANGE:
 	    n = read_comm_pipe_int_blocking (&to_gui_pipe);
 	    if (floppy_widget[n])
-			floppyfileentry_set_filename (FLOPPYFILEENTRY (floppy_widget[n]), currprefs.df[n]);
+			floppyfileentry_set_filename (FLOPPYFILEENTRY (floppy_widget[n]), currprefs.floppyslots[n].df);
 	    break;
 	 case GUICMD_UPDATE:
 	    update_state ();
@@ -688,6 +688,9 @@ static void joy_changed (void)
 		return;
 	changed_prefs.jports[0].id = map_widget_to_jsem (find_current_toggle (joy_widget[0], JOY_WIDGET_COUNT));
 	changed_prefs.jports[1].id = map_widget_to_jsem (find_current_toggle (joy_widget[1], JOY_WIDGET_COUNT));
+
+//	write_log("Joystick Port 0: %d\n", changed_prefs.jports[0].id);
+//	write_log("Joystick Port 1: %d\n", changed_prefs.jports[1].id);
 
 	if (changed_prefs.jports[0].id != currprefs.jports[0].id || changed_prefs.jports[1].id != currprefs.jports[1].id)
 		inputdevice_config_change();
@@ -1131,7 +1134,7 @@ static void make_floppy_disks (GtkWidget *vbox)
 	sprintf (buf, "DF%d:", i);
 
 	floppy_widget[i] = floppyfileentry_new ();
-	if (currprefs.dfxtype[i] == -1)
+	if (currprefs.floppyslots[i].dfxtype == -1)
 	    gtk_widget_set_sensitive(floppy_widget[i], 0);
 	floppyfileentry_set_drivename (FLOPPYFILEENTRY (floppy_widget[i]), buf);
 	floppyfileentry_set_label (FLOPPYFILEENTRY (floppy_widget[i]), buf);
@@ -2334,7 +2337,7 @@ void gui_handle_events (void)
 	    case UAECMD_EJECTDISK: {
 			int n = read_comm_pipe_int_blocking (&from_gui_pipe);
 			uae_sem_wait (&gui_sem);
-			changed_prefs.df[n][0] = '\0';
+			changed_prefs.floppyslots[n].df[0] = '\0';
 			uae_sem_post (&gui_sem);
 			if (pause_uae) {
 			    /* When UAE is running it will notify the GUI when a disk has been inserted
@@ -2348,10 +2351,10 @@ void gui_handle_events (void)
 	    case UAECMD_INSERTDISK: {
 			int n = read_comm_pipe_int_blocking (&from_gui_pipe);
 			uae_sem_wait (&gui_sem);
-			strncpy (changed_prefs.df[n], new_disk_string[n], 255);
+			strncpy (changed_prefs.floppyslots[n].df, new_disk_string[n], 255);
 			free (new_disk_string[n]);
 			new_disk_string[n] = 0;
-			changed_prefs.df[n][255] = '\0';
+			changed_prefs.floppyslots[n].df[255] = '\0';
 			uae_sem_post (&gui_sem);
 			if (pause_uae) {
 			    /* When UAE is running it will notify the GUI when a disk has been inserted
@@ -2541,6 +2544,12 @@ void gui_display (int shortcut)
 	    write_comm_pipe_int (&to_gui_pipe, shortcut, 1);
 	}
     }
+
+	inputdevice_copyconfig (&changed_prefs, &currprefs);
+	inputdevice_config_change_test ();
+	clearallkeys ();
+	inputdevice_acquire (TRUE);
+	setmouseactive (1);
 }
 
 void gui_message (const char *format,...)

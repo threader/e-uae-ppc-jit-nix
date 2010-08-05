@@ -344,7 +344,7 @@ static struct device_info *info_device_ioctl (int unitnum, struct device_info *d
 	di->bytespersector  = 2048;
 	di->cylinders	    = 1;
 	di->type	    = INQ_ROMD; /* We only support CD/DVD drives for now */
-	di->id		    = unitnum + 1;
+	di->unitnum	    = unitnum + 1;
 	/* TODO: Create a more informative device label */
 	sprintf (di->label, "[%s]", sdd->name);
     } else {

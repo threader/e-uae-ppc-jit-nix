@@ -347,7 +347,6 @@ static void fixcharset (TCHAR *s)
 TCHAR *validatevolumename (TCHAR *s)
 {
 	stripsemicolon (s);
-	stripspace (s);
 	fixcharset (s);
 	striplength (s, 30);
 	return s;
@@ -2499,11 +2498,11 @@ static void
 	}
 
 #if 0
-    write_log ("Notify:\n");
-    write_log ("nr_Name '%s'\n", char1 (get_long (nr + 0)));
-    write_log ("nr_FullName '%s'\n", name);
-    write_log ("nr_UserData %08X\n", get_long (nr + 8));
-    write_log ("nr_Flags %08X\n", flags);
+	write_log ("Notify:\n");
+	write_log ("nr_Name '%s'\n", char1 (get_long (nr + 0)));
+	write_log ("nr_FullName '%s'\n", name);
+	write_log ("nr_UserData %08X\n", get_long (nr + 8));
+	write_log ("nr_Flags %08X\n", flags);
 	if (flags & NRF_SEND_MESSAGE) {
 		write_log ("Message NotifyRequest, port = %08X\n", get_long (nr + 16));
 	} else if (flags & NRF_SEND_SIGNAL) {
@@ -3748,8 +3747,8 @@ static void
 {
 	Key *k = lookup_key (unit, GET_PCK_ARG1 (packet));
 	uaecptr addr = GET_PCK_ARG2 (packet);
-	long size = (uae_s32)GET_PCK_ARG3 (packet);
-	int actual;
+	uae_u32 size = GET_PCK_ARG3 (packet);
+	uae_u32 actual;
 
 	if (k == 0) {
 		PUT_PCK_RES1 (packet, DOS_FALSE);
@@ -3772,6 +3771,8 @@ static void
 #endif
 	if (size == 0) {
 		actual = 0;
+		PUT_PCK_RES1 (packet, 0);
+		PUT_PCK_RES2 (packet, 0);
 	} else if (valid_address (addr, size)) {
 		uae_u8 *realpt = get_real_address (addr);
 		actual = fs_read (k->fd, realpt, size);
@@ -3840,7 +3841,7 @@ static void
 	}
 
 	gui_flicker_led (LED_HD, unit->unit, 2);
-	TRACE(("ACTION_WRITE(%s,0x%lx,%ld)\n",k->aino->nname,addr,size));
+	TRACE(("ACTION_WRITE(%s,0x%lx,%ld)\n", k->aino->nname, addr, size));
 
 	if (unit->ui.readonly || unit->ui.locked) {
 		PUT_PCK_RES1 (packet, DOS_FALSE);
@@ -3850,6 +3851,8 @@ static void
 
 	if (size == 0) {
 		actual = 0;
+		PUT_PCK_RES1 (packet, 0);
+		PUT_PCK_RES2 (packet, 0);
 	} else if (valid_address (addr, size)) {
 		uae_u8 *realpt = get_real_address (addr);
 		actual = fs_write (k->fd, realpt, size);
@@ -4037,7 +4040,7 @@ static void
 	uaecptr lock1 = GET_PCK_ARG1 (packet) << 2;
 	uaecptr lock2 = GET_PCK_ARG2 (packet) << 2;
 
-	TRACE(("ACTION_SAME_LOCK(0x%lx,0x%lx)\n",lock1,lock2));
+	TRACE(("ACTION_SAME_LOCK(0x%lx,0x%lx)\n", lock1, lock2));
 	DUMPLOCK(unit, lock1); DUMPLOCK(unit, lock2);
 
 	if (!lock1 || !lock2) {
@@ -5461,7 +5464,7 @@ static TCHAR *device_dupfix (uaecptr expbase, const TCHAR *devname)
 	return strdup (newname);
 }
 
-static void dump_partinfo (const char *name, int num, uaecptr pp, int partblock)
+static void dump_partinfo (uae_u8 *name, int num, uaecptr pp, int partblock)
 {
 	uae_u32 dostype = get_long (pp + 80);
 	uae_u64 size;
@@ -5480,7 +5483,7 @@ static void dump_partinfo (const char *name, int num, uaecptr pp, int partblock)
 
 #define rdbmnt write_log ("Mounting uaehf.device %d (%d) (size=%I64u):\n", unit_no, partnum, hfd->virtsize);
 
-static int rdb_mount (UnitInfo *uip, int unit_no, unsigned int partnum, uaecptr parmpacket)
+static int rdb_mount (UnitInfo *uip, int unit_no, int partnum, uaecptr parmpacket)
 {
 	unsigned int lastblock = 63, blocksize, readblocksize;
 	int badblock, driveinitblock;

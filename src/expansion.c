@@ -1229,7 +1229,7 @@ static void allocate_expamem (void)
 		if (allocated_z3chipmem) {
 			z3chipmem = mapped_malloc (allocated_z3chipmem, "z3_chip");
 			if (z3chipmem == 0) {
-				write_log ("Out of memory for 32 bit fake chip memory.\n");
+				write_log ("Out of memory for 32 bit chip memory.\n");
 				allocated_z3chipmem = 0;
 			}
 		}
@@ -1503,7 +1503,7 @@ void expamem_reset (void)
 		card_map[cardno++] = expamem_map_clear;
 	}
 
-	if (cardno == 0)
+	if (cardno == 0 || savestate_state)
 		expamem_init_clear_zero ();
 	else
 		(*card_init[0]) ();

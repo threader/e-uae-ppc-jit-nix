@@ -1,11 +1,11 @@
 /*
-* UAE - The Un*x Amiga Emulator
-*
-* CIA chip support
-*
-* Copyright 1995 Bernd Schmidt, Alessandro Bissacco
-* Copyright 1996, 1997 Stefan Reinauer, Christian Schmitt
-*/
+ * UAE - The Un*x Amiga Emulator
+ *
+ * CIA chip support
+ *
+ * Copyright 1995 Bernd Schmidt, Alessandro Bissacco
+ * Copyright 1996, 1997 Stefan Reinauer, Christian Schmitt
+ */
 
 
 #include "sysconfig.h"
@@ -27,14 +27,15 @@
 #include "zfile.h"
 #include "ar.h"
 #ifdef PARALLEL_PORT
-# include "parallel.h"
+#include "parallel.h"
 #endif
 #ifdef CD32
-# include "akiko.h"
+#include "akiko.h"
+#include "cdtv.h"
 #endif
 #include "debug.h"
 #ifdef ARCADIA
-# include "arcadia.h"
+#include "arcadia.h"
 #endif
 #include "keyboard.h"
 #include "uae.h"
@@ -51,7 +52,7 @@
 
 /* FIXME: Add configure support to enable this. */
 #ifdef HAVE_GETTIMEOFDAY
-# define TOD_HACK
+#define TOD_HACK
 #endif
 
 #define DIV10 (10 * CYCLE_UNIT / 2) /* Yes, a bad identifier. */
@@ -1218,7 +1219,7 @@ void CIA_reset (void)
 		DISK_select (ciabprb);
 	}
 #ifdef CD32
-	if (savestate_state != STATE_RESTORE) {
+	if (savestate_state != STATE_RESTORE && savestate_state != STATE_DORESTORE) {
 		akiko_reset ();
 		if (!akiko_init ())
 			currprefs.cs_cd32cd = changed_prefs.cs_cd32cd = 0;

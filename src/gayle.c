@@ -1,10 +1,10 @@
 /*
-* UAE - The Un*x Amiga Emulator
-*
-* Gayle (and motherboard resources) memory bank
-*
-* (c) 2006 - 2008 Toni Wilen
-*/
+ * UAE - The Un*x Amiga Emulator
+ *
+ * Gayle (and motherboard resources) memory bank
+ *
+ * (c) 2006 - 2008 Toni Wilen
+ */
 
 #ifdef GAYLE
 #define GAYLE_LOG 0

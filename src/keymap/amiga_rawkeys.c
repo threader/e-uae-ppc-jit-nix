@@ -1,11 +1,11 @@
- /*
-  * UAE - The Un*x Amiga Emulator
-  *
-  * Support for mapping raw keys codes to platform-independent
-  * UAE key codes on AmigaOS and clones.
-  *
-  * Copyright 2004-2005 Richard Drummond
-  */
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * Support for mapping raw keys codes to platform-independent
+ * UAE key codes on AmigaOS and clones.
+ *
+ * Copyright 2004-2005 Richard Drummond
+ */
 
 #include "sysconfig.h"
 #include "sysdeps.h"
@@ -23,7 +23,7 @@
 
 /* 'Classic' Amiga keys */
 
-#define RAWKEY_ESCAPE		0x45
+#define RAWKEY_ESCAPE	0x45
 
 #define RAWKEY_F1		0x50
 #define RAWKEY_F2		0x51
@@ -48,9 +48,9 @@
 #define RAWKEY_0		0x0A
 
 #define RAWKEY_TAB		0x42
-#define RAWKEY_ENTER		0x44
+#define RAWKEY_ENTER	0x44
 #define RAWKEY_BACKSPACE	0x41
-#define RAWKEY_SPACE		0x40
+#define RAWKEY_SPACE	0x40
 
 #define RAWKEY_A		0x20
 #define RAWKEY_B		0x35
@@ -90,7 +90,7 @@
 #define RAWKEY_PERIOD		0x39
 #define RAWKEY_SLASH		0x3A
 #define RAWKEY_GRAVE		0x00
-#define RAWKEY_LTGT		0x30
+#define RAWKEY_LTGT			0x30
 
 #define RAWKEY_NUMPAD_1		0x1D
 #define RAWKEY_NUMPAD_2		0x1E
@@ -108,45 +108,45 @@
 
 #define RAWKEY_NUMPAD_DIVIDE	0x5C
 #define RAWKEY_NUMPAD_MULTIPLY	0x5D
-#define RAWKEY_NUMPAD_MINUS	0x4A
-#define RAWKEY_NUMPAD_PLUS	0x5E
+#define RAWKEY_NUMPAD_MINUS		0x4A
+#define RAWKEY_NUMPAD_PLUS		0x5E
 #define RAWKEY_NUMPAD_PERIOD	0x3C
-#define RAWKEY_NUMPAD_ENTER	0x43
+#define RAWKEY_NUMPAD_ENTER		0x43
 
-#define RAWKEY_INSERT		0x47
-#define RAWKEY_DELETE		0x46
+#define RAWKEY_INSERT			0x47
+#define RAWKEY_DELETE			0x46
 #define RAWKEY_HELP             0x5F
 
-#define RAWKEY_CURSOR_UP	0x4C
-#define RAWKEY_CURSOR_DOWN	0x4D
-#define RAWKEY_CURSOR_LEFT	0x4F
-#define RAWKEY_CURSOR_RIGHT	0x4E
+#define RAWKEY_CURSOR_UP		0x4C
+#define RAWKEY_CURSOR_DOWN		0x4D
+#define RAWKEY_CURSOR_LEFT		0x4F
+#define RAWKEY_CURSOR_RIGHT		0x4E
 
-#define RAWKEY_LEFT_CTRL	0x63
-#define RAWKEY_LEFT_SHIFT	0x60
-#define RAWKEY_LEFT_ALT	        0x64
-#define RAWKEY_LEFT_SUPER	0x66
-#define RAWKEY_RIGHT_SUPER	0x67
-#define RAWKEY_RIGHT_ALT	0x65
+#define RAWKEY_LEFT_CTRL		0x63
+#define RAWKEY_LEFT_SHIFT		0x60
+#define RAWKEY_LEFT_ALT			0x64
+#define RAWKEY_LEFT_SUPER		0x66
+#define RAWKEY_RIGHT_SUPER		0x67
+#define RAWKEY_RIGHT_ALT		0x65
 
-#define RAWKEY_RIGHT_SHIFT	0x61
+#define RAWKEY_RIGHT_SHIFT		0x61
 
-#define RAWKEY_CAPSLOCK		0x62
+#define RAWKEY_CAPSLOCK			0x62
 
 /* Extra keys on PC/USB keyboards */
 
-#define RAWKEY_F11		0x4B
-#define RAWKEY_F12		0x6F
+#define RAWKEY_F11				0x4B
+#define RAWKEY_F12				0x6F
 
-#define RAWKEY_HOME		0x70
-#define RAWKEY_END		0x71
-#define RAWKEY_PAGEUP		0x48
-#define RAWKEY_PAGEDOWN		0x49
+#define RAWKEY_HOME				0x70
+#define RAWKEY_END				0x71
+#define RAWKEY_PAGEUP			0x48
+#define RAWKEY_PAGEDOWN			0x49
 
-#define RAWKEY_PAUSE            0x6E
+#define RAWKEY_PAUSE			0x6E
 
-#define RAWKEY_NUMLOCK 0xFF
-#define RAWKEY_RIGHT_CTRL 0xFF
+#define RAWKEY_NUMLOCK			0xFF
+#define RAWKEY_RIGHT_CTRL		0xFF
 //#define RAWKEY_MENU
 //#define RAWKEY_PRINTSCR
 //#define RAWKEY_SCROLL_LOCK
@@ -167,7 +167,7 @@ const struct uaekey_hostmap amiga_keymap[] =
 
 //    {RAWKEY_PRINTSCR,		UAEKEY_PRINTSCR},
 //    {RAWKEY_SCROLL_LOCK,	UAEKEY_SCROLL_LOCK},
-    {RAWKEY_PAUSE,		UAEKEY_PAUSE},
+	{RAWKEY_PAUSE,		UAEKEY_PAUSE},
 
 //    {RAWKEY_MENU,		UAEKEY_MENU},
 

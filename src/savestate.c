@@ -571,6 +571,12 @@ void restore_state (const TCHAR *filename)
 		else if (!_tcscmp (name, "CD32"))
 			end = restore_akiko (chunk);
 #endif
+#ifdef CDTV
+		else if (!_tcscmp (name, "CDTV"))
+			end = restore_cdtv (chunk);
+		else if (!_tcscmp (name, "DMAC"))
+			end = restore_dmac (chunk);
+#endif
 #ifdef GAYLE
 		else if (!_tcscmp (name, "GAYL"))
 			end = restore_gayle (chunk);
@@ -601,6 +607,9 @@ void restore_state (const TCHAR *filename)
 	restore_blitter_finish ();
 #ifdef CD32
 	restore_akiko_finish ();
+#endif
+#ifdef CDTV
+	restore_cdtv_finish ();
 #endif
 #ifdef PICASSO
 	restore_p96_finish ();
@@ -836,6 +845,15 @@ int save_state (const TCHAR *filename, const TCHAR *description)
 	save_chunk (f, dst, len, "CD32", 0);
 	xfree (dst);
 #endif
+#ifdef CDTV
+	dst = save_dmac (&len);
+	save_chunk (f, dst, len, "DMAC", 0);
+	xfree (dst);
+	dst = save_cdtv (&len);
+	save_chunk (f, dst, len, "CDTV", 0);
+	xfree (dst);
+#endif
+
 #ifdef ACTION_REPLAY
 	dst = save_action_replay (&len, 0);
 	save_chunk (f, dst, len, "ACTR", comp);

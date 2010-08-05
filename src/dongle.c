@@ -1,11 +1,11 @@
 
 /*
-* UAE - The Un*x Amiga Emulator
-*
-* Emulates simple protection dongles
-*
-* Copyright 2009 Toni Wilen
-*/
+ * UAE - The Un*x Amiga Emulator
+ *
+ * Emulates simple protection dongles
+ *
+ * Copyright 2009 Toni Wilen
+ */
 
 
 #include "sysconfig.h"
