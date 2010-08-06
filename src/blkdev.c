@@ -1689,3 +1689,4 @@ uae_u8 *restore_cd (int num, uae_u8 *src)
 }
 
 #endif
+

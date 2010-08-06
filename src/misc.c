@@ -973,3 +973,24 @@ void clearallkeys (void)
 {
         inputdevice_updateconfig (&currprefs);
 }
+//fsdb_mywin32.c
+FILE *my_opentext (const TCHAR *name)
+{
+        FILE *f;
+        uae_u8 tmp[4];
+        int v;
+
+        f = _tfopen (name, "rb");
+        if (!f)
+                return NULL;
+        v = fread (tmp, 1, 4, f);
+        fclose (f);
+        if (v == 4) {
+                if (tmp[0] == 0xef && tmp[1] == 0xbb && tmp[2] == 0xbf)
+                        return _tfopen (name, "r, ccs=UTF-8");
+                if (tmp[0] == 0xff && tmp[1] == 0xfe)
+                        return _tfopen (name, "r, ccs=UTF-16LE");
+        }
+        return _tfopen (name, "r");
+}
+

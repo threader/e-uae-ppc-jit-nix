@@ -1,12 +1,12 @@
- /*
-  * UAE - The Un*x Amiga Emulator
-  *
-  * MC68881 emulation
-  *
-  * Copyright 1996 Herman ten Brugge
-  * Adapted for JIT compilation (c) Bernd Meyer, 2000
-  * Modified 2005 Peter Keunecke
-  */
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * MC68881 emulation
+ *
+ * Copyright 1996 Herman ten Brugge
+ * Adapted for JIT compilation (c) Bernd Meyer, 2000
+ * Modified 2005 Peter Keunecke
+ */
 
 #include <math.h>
 

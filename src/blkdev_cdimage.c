@@ -416,7 +416,7 @@ static void *cdda_play_func (void *v)
 			whdr[i].lpData = (LPSTR)px[i];
 			mmr = waveOutPrepareHeader (cdda_wavehandle, &whdr[i], sizeof (WAVEHDR));
 			if (mmr != MMSYSERR_NOERROR) {
-				write_log ("CDDA: waveOutPrepareHeader %d:%d\n", i, mmr);
+				write_log ("IMAGE CDDA: waveOutPrepareHeader %d:%d\n", i, mmr);
 				goto end;
 			}
 			whdr[i].dwFlags |= WHDR_DONE;
@@ -813,8 +813,13 @@ static int command_read (int unitnum, uae_u8 *data, int sector, int size)
 		sector += size;
 	} else {
 		offset = 16;
-	zfile_fseek (t->handle, t->offset + sector * t->size + offset, SEEK_SET);
-	zfile_fread (data, size, 2048, t->handle);
+		while (size-- > 0) {
+			zfile_fseek (t->handle, t->offset + sector * t->size + offset, SEEK_SET);
+			zfile_fread (data, size, 2048, t->handle);
+			data += 2048;
+			sector++;
+		}
+	}
 	cdu->cd_last_pos = sector;
 	return 1;
 }
@@ -866,7 +871,6 @@ static int command_toc (int unitnum, struct cd_toc_head *th)
 	toc++;
 
 	memcpy (&cdu->di.toc, th, sizeof (struct cd_toc_head));
-	gui_flicker_led (LED_CD, unitnum, 1);
 	return 1;
 }
 
@@ -1109,7 +1113,7 @@ static int parseccd (struct cdunit *cdu, struct zfile *zcue, const TCHAR *img)
 	zimg = zfile_fopen (fname, "rb", ZFD_NORMAL);
 	if (!zimg) {
 		write_log ("CCD: can't open '%s'\n", fname);
-		//return 0;
+		return 0;
 	}
 	ext = _tcsrchr (fname, '.');
 	if (ext)

@@ -369,7 +369,7 @@ static uae_u32 REGPARAM2 uaelib_demux2 (TrapContext *context)
 
 #ifndef UAEGFX_INTERNAL
 //	if (ARG0 >= 16 && ARG0 <= 39)
-	//	return picasso_demux (ARG0, context);
+//		return picasso_demux (ARG0, context);
 #endif
 
 	switch (ARG0)

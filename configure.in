@@ -1717,7 +1717,9 @@ AC_CONFIG_LINKS(src/guidep:src/$GUI_DEP)
 
 AC_CONFIG_FILES([Makefile
 		 src/Makefile
-		 src/dms/Makefile
+		 src/archivers/dms/Makefile
+		 src/archivers/lha/Makefile
+		 src/archivers/zip/Makefile
 		 src/caps/Makefile
 		 src/md-generic/Makefile
 		 src/md-i386-gcc/Makefile
