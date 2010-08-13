@@ -204,7 +204,8 @@ static const TCHAR *dongles[] =
 	"rugby coach", "cricket captain", "leviathan",
 	NULL
 };
-static const TCHAR *cdmodes[] = { "", "image", "ioctl", "spti", "aspi", 0 };
+static const TCHAR *cdmodes[] = { "disabled", "", "image", "ioctl", "spti", "aspi", 0 };
+static const TCHAR *cdconmodes[] = { "", "uae", "ide", "scsi", "cdtv", "cd32", 0 };
 
 static const TCHAR *obsolete[] = {
 	"accuracy", "gfx_opengl", "gfx_32bit_blits", "32bit_blits",
@@ -653,6 +654,8 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 		}
 	}
 
+	if (p->statefile[0])
+		cfgfile_write_str (f, "statefile", p->statefile);
 	if (p->quitstatefile[0])
 		cfgfile_write_str (f, "statefile_quit", p->quitstatefile);
 
@@ -1276,18 +1279,51 @@ static int cfgfile_parse_host (struct uae_prefs *p, TCHAR *option, TCHAR *value)
 		TCHAR tmp[20];
 		_stprintf (tmp, "cdimage%d", i);
 		if (!_tcsicmp (option, tmp)) {
+			p->cdslots[i].delayed = false;
 			TCHAR *next = _tcsrchr (value, ',');
 			int type = SCSI_UNIT_DEFAULT;
-			if (next) {
+			int mode = 0;
+			int unitnum = 0;
+			for (;;) {
+				if (!next)
+					break;
 				*next++ = 0;
 				TCHAR *next2 = _tcschr (next, ':');
 				if (next2)
-					*next2 = 0;
+					*next2++ = 0;
 				int tmpval = 0;
-				if (cfgfile_intval (option, next, tmp, &type, 1))
+				if (!_tcsicmp (next, "delay")) {
+					p->cdslots[i].delayed = true;
+					next = next2;
+					if (!next)
+						break;
+					next2 = _tcschr (next, ':');
+					if (next2)
+						*next2++ = 0;
+				}
+				type = match_string (cdmodes, next);
+				if (type < 0)
+					type = SCSI_UNIT_DEFAULT;
+				else
 					type--;
+				next = next2;
+				if (!next)
+					break;
+				next2 = _tcschr (next, ':');
+				if (next2)
+					*next2++ = 0;
+				mode = match_string (cdconmodes, next);
+				if (mode < 0)
+					mode = 0;
+				next = next2;
+				if (!next)
+					break;
+				next2 = _tcschr (next, ':');
+				if (next2)
+					*next2++ = 0;
+				cfgfile_intval (option, next, tmp, &unitnum, 1);
 			}
-			_tcsncpy (p->cdslots[i].name, value, sizeof p->cdslots[i].name);
+			_tcsncpy (p->cdslots[i].name, value, sizeof p->cdslots[i].name / sizeof (TCHAR));
 			p->cdslots[i].name[sizeof p->cdslots[i].name - 1] = 0;
 			p->cdslots[i].inuse = true;
 			p->cdslots[i].type = type;
@@ -1618,6 +1654,7 @@ static int cfgfile_parse_host (struct uae_prefs *p, TCHAR *option, TCHAR *value)
 
 #ifdef SAVESTATE
 	if (cfgfile_path (option, value, "statefile", tmpbuf, sizeof tmpbuf / sizeof (TCHAR))) {
+		_tcscpy (p->statefile, tmpbuf);
 		_tcscpy (savestate_fname, tmpbuf);
 		if (zfile_exists (savestate_fname)) {
 			savestate_state = STATE_DORESTORE;
@@ -1638,8 +1675,17 @@ static int cfgfile_parse_host (struct uae_prefs *p, TCHAR *option, TCHAR *value)
 					*p = 0;
 				}
 			}
-			if (!ok)
-				savestate_fname[0] = 0;
+			if (!ok) {
+				TCHAR tmp[MAX_DPATH];
+				//fetch_statefilepath (tmp, sizeof tmp / sizeof (TCHAR));
+				_tcscat (tmp, savestate_fname);
+				if (zfile_exists (tmp)) {
+					_tcscpy (savestate_fname, tmp);
+					savestate_state = STATE_DORESTORE;
+				} else {
+					savestate_fname[0] = 0;
+				}
+			}
 		}
 		return 1;
 	}
@@ -2335,12 +2381,17 @@ static int cfgfile_parse_hardware (struct uae_prefs *p, TCHAR *option, TCHAR *va
 			}
 		}
 empty_fs:
-		if (root)
+		if (root) {
+			if (_tcslen (root) > 3 && root[0] == 'H' && root[1] == 'D' && root[2] == '_') {
+				root += 2;
+				*root = ':';
+			}
 			str = cfgfile_subst_path (UNEXPANDED, p->path_hardfile, root);
+		}
 #ifdef FILESYS
 		add_filesys_config (p, -1, dname, aname, str, ro, secs, heads, reserved, bs, bp, fs, hdcv, 0);
 #endif
-		free (str);
+		xfree (str);
 		return 1;
 
 invalid_fs:
@@ -2639,12 +2690,15 @@ static int cfgfile_load_2 (struct uae_prefs *p, const TCHAR *filename, bool real
 		cfgfile_parse_line (p, line, 0);
 	}
 
-	for (i = 0; i < 4; i++)
+	for (i = 0; i < 4; i++) {
 		subst (prefs_get_attr("floppy_path"), p->floppyslots[i].df, sizeof p->floppyslots[i].df);
-
+		subst (p->path_floppy, p->floppyslots[i].df, sizeof p->floppyslots[i].df / sizeof (TCHAR));
+	}
 	subst (prefs_get_attr("rom_path"), p->romfile, sizeof p->romfile);
 	subst (prefs_get_attr("rom_path"), p->romextfile, sizeof p->romextfile);
 	subst (prefs_get_attr("rom_path"), p->keyfile, sizeof p->keyfile);
+	subst (p->path_rom, p->romfile, sizeof p->romfile / sizeof (TCHAR));
+	subst (p->path_rom, p->romextfile, sizeof p->romextfile / sizeof (TCHAR));
 
 	return 1;
 }
@@ -3135,6 +3189,82 @@ void cfgfile_addcfgparam (TCHAR *line)
 	u->next = temp_lines;
 	temp_lines = u;
 }
+
+static int getconfigstoreline (struct zfile *z, TCHAR *option, TCHAR *value)
+{
+	TCHAR tmp[CONFIG_BLEN * 2];
+	int idx = 0;
+
+	for (;;) {
+		TCHAR b = 0;
+		if (zfile_fread (&b, 1, sizeof (TCHAR), z) != 1)
+			return 0;
+		tmp[idx++] = b;
+		tmp[idx] = 0;
+		if (b == '\n' || b == 0)
+			break;
+	}
+	return cfgfile_separate_line (tmp, option, value);
+}
+
+#if 0
+static int cfgfile_handle_custom_event (TCHAR *custom, int mode)
+{
+	TCHAR option[CONFIG_BLEN], value[CONFIG_BLEN];
+	TCHAR option2[CONFIG_BLEN], value2[CONFIG_BLEN];
+	TCHAR *tmp, *p, *nextp;
+	struct zfile *configstore = NULL;
+	int cnt = 0, cnt_ok = 0;
+
+	if (!mode) {
+		TCHAR zero = 0;
+		configstore = zfile_fopen_empty ("configstore", 50000);
+		cfgfile_save_options (configstore, &currprefs, 0);
+		cfg_write (&zero, configstore);
+	}
+
+	nextp = NULL;
+	tmp = p = xcalloc (TCHAR, _tcslen (custom) + 2);
+	_tcscpy (tmp, custom);
+	while (p && *p) {
+		if (*p == '\"') {
+			TCHAR *p2;
+			p++;
+			p2 = p;
+			while (*p2 != '\"' && *p2 != 0)
+				p2++;
+			if (*p2 == '\"') {
+				*p2++ = 0;
+				nextp = p2 + 1;
+				if (*nextp == ' ')
+					nextp++;
+			}
+		}
+		if (cfgfile_separate_line (p, option, value)) {
+			cnt++;
+			if (mode) {
+				cfgfile_parse_option (&changed_prefs, option, value, 0);
+			} else {
+				zfile_fseek (configstore, 0, SEEK_SET);
+				for (;;) {
+					if (!getconfigstoreline (configstore, option2, value2))
+						break;
+					if (!_tcscmpi (option, option2) && !_tcscmpi (value, value2)) {
+						cnt_ok++;
+						break;
+					}
+				}
+			}
+		}
+		p = nextp;
+	}
+	xfree (tmp);
+	zfile_fclose (configstore);
+	if (cnt > 0 && cnt == cnt_ok)
+		return 1;
+	return 0;
+}
+#endif
 
 int cmdlineparser (TCHAR *s, TCHAR *outp[], int max)
 {
@@ -3661,6 +3791,7 @@ void default_prefs (struct uae_prefs *p, int type)
 	p->gfx_filter_scanlineratio = (1 << 4) | 1;
 	p->gfx_filter_keep_aspect = 0;
 	p->gfx_filter_autoscale = 0;
+	p->gfx_filteroverlay_overscan = 0;
 #endif
 
 	_tcscpy (p->floppyslots[0].df, "df0.adf");
@@ -3681,6 +3812,10 @@ void default_prefs (struct uae_prefs *p, int type)
 #ifdef SAVESTATE
     prefs_set_attr ("savestate_path", strdup_path_expand (TARGET_SAVESTATE_PATH));
 #endif
+
+	_tcscpy (p->romextfile, "");
+	_tcscpy (p->flashfile, "");
+	_tcscpy (p->cartfile, "");
 
 	_tcscpy (p->path_rom, "./");
 	_tcscpy (p->path_floppy, "./");

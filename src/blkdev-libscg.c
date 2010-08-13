@@ -590,23 +590,24 @@ static struct device_info *info_device (int unitnum, struct device_info *di)
     DEBUG_LOG ("SCSIDEV: unit=%d: info_device\n", unitnum);
 
     if (unitnum < total_drives) {
-	struct scsidevdata *sdd = &drives[unitnum];
+		struct scsidevdata *sdd = &drives[unitnum];
 
-	di->bus		    = 0;
-	di->target	    = unitnum;
-	di->lun		    = 0;
-	di->media_inserted  = media_check (sdd->scgp);
-	di->write_protected = 1;
-	di->bytespersector  = 2048;
-	di->cylinders	    = 1;
-	di->type	    = INQ_ROMD; /* We only support CD/DVD drives for now */
-	di->id		    = unitnum + 1;
-	/* TODO: Create a more informative device label */
-	sprintf (di->label, "(%d,%d,%d)", sdd->bus, sdd->target, sdd->lun);
+		di->bus				= 0;
+		di->target			= unitnum;
+		di->lun				= 0;
+		di->media_inserted	= media_check (sdd->scgp);
+		di->write_protected	= 1;
+		di->bytespersector	= 2048;
+		di->cylinders		= 1;
+		di->type			= INQ_ROMD; /* We only support CD/DVD drives for now */
+		di->unitnum			= unitnum + 1;
+
+		/* TODO: Create a more informative device label */
+		sprintf (di->label, "(%d,%d,%d)", sdd->bus, sdd->target, sdd->lun);
     } else
-	di = 0;
+		di = 0;
 
-    return di;
+	return di;
 }
 
 static int check_isatapi (int unitnum)

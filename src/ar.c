@@ -1146,7 +1146,7 @@ int action_replay_freeze (void)
 	return 0;
 }
 
-void action_replay_chipwrite (void)
+static void action_replay_chipwrite (void)
 {
 	if (armodel == 2 || armodel == 3) {
 		action_replay_flag = ACTION_REPLAY_DORESET;
@@ -1465,7 +1465,7 @@ static void action_replay_unsetbanks (void)
 /* param to allow us to unload the cart. Currently we know it is safe if we are doing a reset to unload it.*/
 int action_replay_unload (int in_memory_reset)
 {
-	static const char *state[] = {
+	static const TCHAR *state[] = {
 		"ACTION_REPLAY_WAIT_PC",
 		"ACTION_REPLAY_INACTIVE",
 		"ACTION_REPLAY_WAITRESET",

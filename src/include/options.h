@@ -231,6 +231,7 @@ struct uae_prefs {
 	TCHAR gfx_filtermask[MAX_DPATH];
 	TCHAR gfx_filteroverlay[MAX_DPATH];
 	struct wh gfx_filteroverlay_pos;
+	int gfx_filteroverlay_overscan;
 	int gfx_filter_scanlines;
 	int gfx_filter_scanlineratio;
 	int gfx_filter_scanlinelevel;
@@ -321,6 +322,7 @@ struct uae_prefs {
 	TCHAR a2065name[MAX_DPATH];
 	struct cdslot cdslots[MAX_TOTAL_SCSI_DEVICES];
 	TCHAR quitstatefile[MAX_DPATH];
+	TCHAR statefile[MAX_DPATH];
 #ifndef WIN32
 	char scsi_device[256];
 #endif

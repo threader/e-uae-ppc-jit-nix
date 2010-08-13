@@ -473,7 +473,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 	    NSArray *files = [sheet filenames];
 	    NSString *file = [files objectAtIndex:0];
 		
-		lossyASCIICopy (changed_prefs.df[drive], file, COCOA_GUI_MAX_PATH);
+		lossyASCIICopy (changed_prefs.floppyslots[drive].df, file, COCOA_GUI_MAX_PATH);
 		
 		// Save the path of this disk image so that future open panels can start in the same directory
 		[[NSUserDefaults standardUserDefaults] setObject:[file stringByDeletingLastPathComponent] forKey:@"LastUsedDiskImagePath"];

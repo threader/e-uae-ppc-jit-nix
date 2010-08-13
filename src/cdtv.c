@@ -217,7 +217,7 @@ static int pause_audio (int pause)
 
 static int read_sectors (int start, int length)
 {
-#ifdef CDTV_DEBUG
+#ifdef CDTV_DEBUG_CMD
 	write_log ("READ DATA sector %d, %d sectors (blocksize=%d)\n", start, length, cdtv_sectorsize);
 #endif
 	cdrom_sector = start;
@@ -384,7 +384,7 @@ static int play_cd (uae_u8 *p)
 	play_start = start;
 	last_play_pos = start;
 	last_play_end = end;
-#ifdef CDTV_DEBUG
+#ifdef CDTV_DEBUG_CMD
 	write_log ("PLAY CD AUDIO from %06X (%d) to %06X (%d)\n",
 		lsn2msf (start), start, lsn2msf (end), end);
 #endif
@@ -682,7 +682,7 @@ static void dma_do_thread (void)
 	if (!cdtv_sectorsize)
 		return;
 	cnt = dmac_wtc;
-#ifdef CDTV_DEBUG
+#ifdef CDTV_DEBUG_CMD
 	write_log ("DMAC DMA: sector=%d, addr=%08X, words=%d (of %d)\n",
 		cdrom_offset / cdtv_sectorsize, dmac_acr, cnt, cdrom_length / 2);
 #endif
@@ -691,6 +691,8 @@ static void dma_do_thread (void)
 		uae_u8 buffer[2352];
 		if (!didread || readsector != (cdrom_offset / cdtv_sectorsize)) {
 			readsector = cdrom_offset / cdtv_sectorsize;
+//			if (readsector > 3000)
+//				write_log ("");
 			if (cdtv_sectorsize != 2048)
 				didread = read_raw (readsector, buffer, cdtv_sectorsize);
 			else
@@ -793,7 +795,7 @@ static void init_play (int start, int end)
 	play_start = start;
 	last_play_pos = start;
 	last_play_end = end;
-#ifdef CDTV_DEBUG
+#ifdef CDTV_DEBUG_CMD
 	write_log ("PLAY CD AUDIO from %06X (%d) to %06X (%d)\n",
 		lsn2msf (start), start, lsn2msf (end), end);
 #endif
@@ -1144,7 +1146,7 @@ void CDTV_hsync_handler (void)
 	if (dma_wait >= 0 && dma_wait < 1024 && dma_finished) {
 		if ((dmac_cntr & (CNTR_INTEN | CNTR_TCEN)) == (CNTR_INTEN | CNTR_TCEN)) {
 			dmac_istr |= ISTR_INT_P | ISTR_E_INT;
-#ifdef CDTV_DEBUG
+#ifdef CDTV_DEBUG_CMD
 			write_log ("DMA finished\n");
 #endif
 		}
@@ -1194,6 +1196,13 @@ void CDTV_hsync_handler (void)
 				subchannelcounter = 200;
 			}
 		}
+		if (!scor && !cd_playing) {
+			// frame interrupts happen all the time motor is running
+			scor = 1;
+			tp_check_interrupts ();
+			scor = 0;
+			subchannelcounter = 200;
+		}
 	}
 
 	if (cdtv_hsync < 200 && cdtv_hsync >= 0)
@@ -1225,7 +1234,7 @@ void CDTV_hsync_handler (void)
 		cd_led |= LED_CD_ACTIVE;
 	else
 		cd_led &= ~LED_CD_ACTIVE;
-	if (cd_led && !cd_playing)
+	if ((cd_led & ~LED_CD_ACTIVE2) && !cd_playing)
 		gui_flicker_led (LED_CD, 0, cd_led);
 
 	subqcnt--;
@@ -1265,7 +1274,7 @@ void bleh (void)
 #endif
 }
 
-static void cdtv_reset (void)
+static void cdtv_reset_int (void)
 {
 	write_log ("CDTV: reset\n");
 	cdaudiostop ();
@@ -1375,7 +1384,7 @@ static void dmac_bput2 (uaecptr addr, uae_u32 b)
 	case 0x43:
 		dmac_cntr = b;
 		if (dmac_cntr & CNTR_PREST)
-			cdtv_reset ();
+			cdtv_reset_int ();
 		break;
 	case 0x80:
 		dmac_wtc &= 0x00ffffff;
@@ -1560,6 +1569,12 @@ static void open_unit (void)
 	sys_command_info (unitnum, &di, 0);
 	write_log ("using drive %s (unit %d, media %d)\n", di.label, unitnum, di.media_inserted);
 }
+static void close_unit (void)
+{
+	if (unitnum >= 0)
+		sys_command_close (unitnum);
+	unitnum = -1;
+}
 
 static void ew (int addr, uae_u32 value)
 {
@@ -1706,14 +1721,13 @@ void cdtv_free (void)
 		write_comm_pipe_u32 (&requests, 0xffff, 1);
 		while (thread_alive > 0)
 			uae_msleep (10);
+		uae_sem_destroy (&sub_sem);
 	}
 	thread_alive = 0;
-	if (unitnum >= 0)
-		sys_command_close (unitnum);
-	unitnum = -1;
-	uae_sem_destroy (&sub_sem);
+	close_unit ();
 	configured = 0;
 }
+
 
 #ifdef ROMHACK2
 extern uae_u8 *extendedkickmemory, *cardmemory;
@@ -1758,11 +1772,13 @@ static void romhack (void)
 
 void cdtv_init (void)
 {
+	close_unit ();
 	if (!thread_alive) {
 		init_comm_pipe (&requests, 100, 1);
 		uae_start_thread ("cdtv", dev_thread, NULL, NULL);
 		while (!thread_alive)
 			uae_msleep(10);
+		uae_sem_init (&sub_sem, 0, 1);
 	}
 	write_comm_pipe_u32 (&requests, 0x0104, 1);
 
@@ -1779,8 +1795,6 @@ void cdtv_init (void)
 	ew (0x1c, 0x00); /* ser.no. Byte 1 */
 	ew (0x20, 0x00); /* ser.no. Byte 2 */
 	ew (0x24, 0x00); /* ser.no. Byte 3 */
-
-	uae_sem_init (&sub_sem, 0, 1);
 
 	/* KS autoconfig handles the rest */
 	map_banks (&dmac_bank, 0xe80000 >> 16, 0x10000 >> 16, 0x10000);

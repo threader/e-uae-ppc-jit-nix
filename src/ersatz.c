@@ -133,8 +133,8 @@ static void ersatz_init (void)
 	if (disk_empty (0)) {
 		already_failed = 1;
 		gui_message ("You need to have a diskfile in DF0 to use the Kickstart replacement!\n");
-		//uae_restart (-1, NULL);
 		uae_quit ();
+		uae_restart (-1, NULL);
 		return;
 	}
 

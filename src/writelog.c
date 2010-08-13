@@ -1,5 +1,5 @@
  /*
-  * E-UAE - The portable Amiga emulator
+  * PUAE - The portable Amiga emulator
   *
   * Standard write_log that writes to the console or to a file.
   *

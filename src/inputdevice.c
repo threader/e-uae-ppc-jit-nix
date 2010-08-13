@@ -2116,7 +2116,7 @@ static void cap_check (void)
 			int isbutton = getbuttonstate (joy, i == 0 ? JOYBUTTON_3 : JOYBUTTON_2);
 
 			if (cd32_pad_enabled[joy]) {
-				if (i != 0) // 3rd button?
+				if (i == 0) // 3rd button?
 					continue;
 				if (cd32padmode (p5dir, p5dat))
 					continue;
@@ -2238,7 +2238,7 @@ void handle_cd32_joystick_cia (uae_u8 pra, uae_u8 dra)
 		uae_u8 but = 0x40 << i;
 		uae_u16 p5dir = 0x0200 << (i * 4); /* output enable P5 */
 		uae_u16 p5dat = 0x0100 << (i * 4); /* data P5 */
-		if (!(potgo_value & p5dir) || !(potgo_value & p5dat)) {
+		if (cd32padmode (p5dir, p5dat)) {
 			if ((dra & but) && (pra & but) != oldstate[i]) {
 				if (!(pra & but)) {
 					cd32_shifter[i]--;
@@ -2286,7 +2286,7 @@ static uae_u16 handle_joystick_potgor (uae_u16 potgor)
 				potgor |= p5dat;
 
 
-			if (!cd32_pad_enabled[i]) {
+			if (!cd32_pad_enabled[i] || !cd32padmode (p5dir, p5dat)) {
 				potgor &= ~p9dat;
 				if (pot_cap[i][1] > 100)
 					potgor |= p9dat;
@@ -2504,14 +2504,11 @@ void inputdevice_do_keyboard (int code, int state)
 	if (code < 0x80) {
 		uae_u8 key = code | (state ? 0x00 : 0x80);
 		keybuf[key & 0x7f] = (key & 0x80) ? 0 : 1;
-write_log("inp_do_key<80: %d\n", code);
 		if (key == AK_RESETWARNING) {
-write_log("inp_do_key<80: RST\n");
 			resetwarning_do (0);
 			return;
 		} else if ((keybuf[AK_CTRL] || keybuf[AK_RCTRL]) && keybuf[AK_LAMI] && keybuf[AK_RAMI]) {
 			int r = keybuf[AK_LALT] | keybuf[AK_RALT];
-write_log("inp_do_key<80: RST2\n", code);
 			if (!r && currprefs.cs_resetwarning && resetwarning_do (1))
 				return;
 			memset (keybuf, 0, sizeof (keybuf));

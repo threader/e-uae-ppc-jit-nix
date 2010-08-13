@@ -4,7 +4,7 @@ AM_CPPFLAGS += -I$(top_srcdir)/src/include -I$(top_builddir)/src -I$(top_srcdir)
 
 SUBDIRS = \
 	tools @MACHDEP@ @THREADDEP@ @GFX_DEP@ @SND_DEP@ @JOY_DEP@ @GUI_DEP@ \
-	@OSDEP@ keymap archivers/dms archivers/lha archivers/zip caps
+	@OSDEP@ keymap archivers/dms archivers/zip caps
 
 DIST_SUBDIRS = \
 	md-generic md-68k md-i386-gcc md-ppc md-ppc-gcc md-amd64-gcc \
@@ -14,7 +14,7 @@ DIST_SUBDIRS = \
 	gui-none gui-beos gui-cocoa gui-gtk gui-muirexx \
 	od-generic od-amiga od-beos od-linux od-macosx od-win32 \
 	td-none td-amigaos td-beos td-posix td-sdl td-win32 \
-	keymap caps archivers/dms archivers/lha archivers/zip
+	keymap caps archivers/dms archivers/zip
 
 BUILT_SOURCES = \
 	blit.h blitfunc.h blitfunc.c blittable.c \
@@ -158,7 +158,6 @@ uae_DEPENDENCIES = \
 	@GUI_DEP@/libguidep.a		\
 	keymap/libkeymap.a		\
 	archivers/dms/libdms.a		\
-	archivers/lha/liblha.a		\
 	archivers/zip/libzip.a		\
 	caps/libcaps.a			\
 	blitfunc.o blittable.o		\
@@ -182,7 +181,6 @@ uae_LDADD = \
 	@GUI_DEP@/libguidep.a		\
 	keymap/libkeymap.a		\
 	archivers/dms/libdms.a		\
-	archivers/lha/liblha.a		\
 	archivers/zip/libzip.a		\
 	caps/libcaps.a			\
 	blitfunc.o blittable.o		\

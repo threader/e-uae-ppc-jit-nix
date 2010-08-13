@@ -1914,7 +1914,7 @@ void mapped_free (uae_u8 *p)
 
 shmpiece *shm_start;
 
-static void dumplist(void)
+static void dumplist (void)
 {
 	shmpiece *x = shm_start;
 	write_log ("Start Dump:\n");
@@ -2523,7 +2523,8 @@ void memory_reset (void)
 		map_banks (&dummy_bank, 0xc0, 0xd8 - 0xc0, 0);
 #endif
 
-	if (bogomemory != 0) { // Map "slow" memory from at 0xC00000 to max 0xDBFFFF, or 0xCFFFFF on an AGA machine.
+	if (bogomemory != 0) {
+		// Map "slow" memory from at 0xC00000 to max 0xDBFFFF, or 0xCFFFFF on an AGA machine.
 		int t = currprefs.bogomem_size >> 16;
 		if (t > 0x1C)
 			t = 0x1C;
@@ -2547,7 +2548,8 @@ void memory_reset (void)
 	}
 #endif
 	if (currprefs.cs_rtc || currprefs.cs_cdtvram)
-		map_banks (&clock_bank, 0xDC, 1, 0); // Real-time clock at 0xDC0000 - 0xDCFFFF.
+		// Real-time clock at 0xDC0000 - 0xDCFFFF.
+		map_banks (&clock_bank, 0xDC, 1, 0);
 	else if (currprefs.cs_ksmirror_a8 || currprefs.cs_ide > 0 || currprefs.cs_pcmcia)
 		map_banks (&clock_bank, 0xDC, 1, 0); /* none clock */
 #ifdef GAYLE
@@ -2570,7 +2572,8 @@ void memory_reset (void)
 	if (cardmemory != 0)
 		map_banks (&cardmem_bank, cardmem_start >> 16, allocated_cardmem >> 16, 0);
 
-	map_banks (&kickmem_bank, 0xF8, 8, 0); // Map primary Kickstart at 0xF80000 - 0xFFFFFF.
+	// Map primary Kickstart at 0xF80000 - 0xFFFFFF.
+	map_banks (&kickmem_bank, 0xF8, 8, 0);
 	if (currprefs.maprom)
 		map_banks (&kickram_bank, currprefs.maprom >> 16, 8, 0);
 	/* map beta Kickstarts at 0x200000/0xC00000/0xF00000 */
@@ -2588,7 +2591,8 @@ void memory_reset (void)
 		a1000_handle_kickstart (1);
 
 #ifdef AUTOCONFIG
-	map_banks (&expamem_bank, 0xE8, 1, 0); /* Map Autoconfig space at 0xE80000 - 0xE8FFFF. */
+	// Map Autoconfig space at 0xE80000 - 0xE8FFFF.
+	map_banks (&expamem_bank, 0xE8, 1, 0);
 #endif
 
 	if (a3000_f0)

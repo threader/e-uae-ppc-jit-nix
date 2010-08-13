@@ -13,8 +13,7 @@ extern void aud1_handler (void);
 extern void aud2_handler (void);
 extern void aud3_handler (void);
 
-//extern void AUDxDAT (int nr, uae_u16 value);
-//extern void AUDxDAT (int nr, uae_u16 value, uaecptr addr);
+extern void AUDxDAT (int nr, uae_u16 value, uaecptr addr);
 extern void AUDxVOL (int nr, uae_u16 value);
 extern void AUDxPER (int nr, uae_u16 value);
 extern void AUDxLCH (int nr, uae_u16 value);
@@ -51,7 +50,7 @@ extern int sound_available;
 
 extern void audio_sampleripper(int);
 extern int sampleripper_enabled;
-//extern void write_wavheader (FILE *wavfile, uae_u32 size, uae_u32 freq);
+//extern void write_wavheader (struct zfile *wavfile, uae_u32 size, uae_u32 freq);
 
 enum {
     SND_MONO, SND_STEREO, SND_4CH_CLONEDSTEREO, SND_4CH, SND_6CH_CLONEDSTEREO, SND_6CH, SND_NONE };

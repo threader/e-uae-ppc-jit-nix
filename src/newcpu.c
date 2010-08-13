@@ -2675,8 +2675,8 @@ STATIC_INLINE int do_specialties (int cycles)
 
 //static uae_u32 pcs[1000];
 
-//#define DEBUG_CD32IO
-#ifdef DEBUG_CD32IO
+//#define DEBUG_CD32CDTVIO
+#ifdef DEBUG_CD32CDTVIO
 
 static uae_u32 cd32nextpc, cd32request;
 
@@ -2768,7 +2768,7 @@ static void m68k_run_1 (void)
 
 		count_instr (opcode);
 
-#ifdef DEBUG_CD32IO
+#ifdef DEBUG_CD32CDTVIO
 		out_cd32io (m68k_getpc ());
 #endif
 
@@ -2815,6 +2815,9 @@ static void m68k_run_1_ce (void)
 	ipl_fetch ();
 	for (;;) {
 		uae_u32 opcode = r->ir;
+#ifdef DEBUG_CD32CDTVIO
+		out_cd32io (m68k_getpc ());
+#endif
 		(*cpufunctbl[opcode])(opcode);
 		if (r->spcflags) {
 			if (do_specialties (0))
@@ -3047,7 +3050,7 @@ static void m68k_run_2p (void)
 		uae_u32 opcode;
 		uae_u32 pc = m68k_getpc ();
 
-#ifdef DEBUG_CD32IO
+#ifdef DEBUG_CD32CDTVIO
 		out_cd32io (m68k_getpc ());
 #endif
 
@@ -3358,7 +3361,7 @@ void m68k_disasm_2 (TCHAR *buf, int bufsize, uaecptr addr, uaecptr *nextpc, int 
 	m68kpc_offset = addr - m68k_getpc ();
 
 	if (buf)
-		memset (buf, 0, bufsize);
+		memset (buf, 0, bufsize * sizeof (TCHAR));
 	if (!table68k)
 		return;
 	while (cnt-- > 0) {
