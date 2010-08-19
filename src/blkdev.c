@@ -26,7 +26,7 @@ static int scsiemu[MAX_TOTAL_SCSI_DEVICES];
 
 struct device_functions *device_func[MAX_TOTAL_SCSI_DEVICES];
 static int openlist[MAX_TOTAL_SCSI_DEVICES];
-static int waspaused[MAX_TOTAL_SCSI_DEVICES], wasslow[MAX_TOTAL_SCSI_DEVICES];
+static int waspaused[MAX_TOTAL_SCSI_DEVICES];
 static int delayed[MAX_TOTAL_SCSI_DEVICES];
 
 /* convert minutes, seconds and frames -> logical sector number */
@@ -469,7 +469,6 @@ static void check_changes (int unitnum)
 		struct device_info di;
 		device_func[unitnum]->info (unitnum, &di, 0);
 		wasopen[unitnum] = di.open;
-		wasslow[unitnum] = di.slow_unit;
 		if (wasopen[unitnum]) {
 			device_func[unitnum]->closedev (unitnum);
 			if (currprefs.scsi)  {
@@ -495,7 +494,7 @@ static void check_changes (int unitnum)
 	write_log ("CD: delayed insert '%s'\n", currprefs.cdslots[unitnum].name[0] ? currprefs.cdslots[unitnum].name : "<EMPTY>");
 	device_func_init (0);
 	if (wasopen[unitnum]) {
-		if (!device_func[unitnum]->opendev (unitnum, currprefs.cdslots[unitnum].name, wasslow[unitnum])) {
+		if (!device_func[unitnum]->opendev (unitnum, currprefs.cdslots[unitnum].name, 0)) {
 			write_log ("-> device open failed\n");
 		}
 	}
@@ -622,18 +621,18 @@ int sys_command_cd_play (int unitnum, int startlsn, int endlsn, int scan)
 		return do_scsi (unitnum, cmd, sizeof cmd) ? 0 : 1;
 	}
 	//startlsn = adjustplaypos (unitnum, startlsn);
-	return device_func[unitnum]->play (unitnum, startlsn, endlsn, scan, NULL);
+	return device_func[unitnum]->play (unitnum, startlsn, endlsn, scan, NULL, NULL);
 }
 
 /* play CD audio with subchannels */
-int sys_command_cd_play2 (int unitnum, int startlsn, int endlsn, int scan, play_subchannel_callback subfunc)
+int sys_command_cd_play2 (int unitnum, int startlsn, int endlsn, int scan, play_status_callback statusfunc, play_subchannel_callback subfunc)
 {
 	if (failunit (unitnum))
 		return 0;
 	if (device_func[unitnum]->play == NULL)
 		return sys_command_cd_play (unitnum, startlsn, endlsn, scan);
 	//startlsn = adjustplaypos (unitnum, startlsn);
-	return device_func[unitnum]->play (unitnum, startlsn, endlsn, scan, subfunc);
+	return device_func[unitnum]->play (unitnum, startlsn, endlsn, scan, statusfunc, subfunc);
 }
 
 /* set CD audio volume */
@@ -1370,7 +1369,7 @@ static int scsi_emulate (int unitnum, uae_u8 *cmdbuf, int scsi_cmd_len,
 					goto errreq;
 				start = toc->toc[toc->first_track_offset + start].paddress;
 			}
-			sys_command_cd_play2 (unitnum, start, end, scan, NULL);
+			sys_command_cd_play (unitnum, start, end, scan);
 			scsi_len = 0;
 		}
 		break;
@@ -1390,7 +1389,7 @@ static int scsi_emulate (int unitnum, uae_u8 *cmdbuf, int scsi_cmd_len,
 				goto errreq;
 			int start = toc->toc[toc->first_track_offset + strack - 1].paddress;
 			int end = etrack == toc->last_track ? toc->lastaddress : toc->toc[toc->first_track_offset + etrack - 1 + 1].paddress;
-			if (!sys_command_cd_play2 (unitnum, start, end, 0, NULL))
+			if (!sys_command_cd_play (unitnum, start, end, 0))
 				goto notdatatrack;
 			scsi_len = 0;
 		}
@@ -1411,7 +1410,7 @@ static int scsi_emulate (int unitnum, uae_u8 *cmdbuf, int scsi_cmd_len,
 			if (end > di.toc.lastaddress)
 				end = di.toc.lastaddress;
 			if (len > 0) {
-				if (!sys_command_cd_play2 (unitnum, start, start + len, 0, NULL))
+				if (!sys_command_cd_play (unitnum, start, start + len, 0))
 					goto notdatatrack;
 			}
 			scsi_len = 0;
@@ -1434,7 +1433,7 @@ static int scsi_emulate (int unitnum, uae_u8 *cmdbuf, int scsi_cmd_len,
 			if (start > end)
 				goto errreq;
 			if (start < end)
-				if (!sys_command_cd_play2 (unitnum, start, end, 0, NULL))
+				if (!sys_command_cd_play (unitnum, start, end, 0))
 					goto notdatatrack;
 			scsi_len = 0;
 		}
@@ -1459,7 +1458,7 @@ static int scsi_emulate (int unitnum, uae_u8 *cmdbuf, int scsi_cmd_len,
 				int end = start + len;
 				if (end > di.toc.lastaddress)
 					end = di.toc.lastaddress;
-				if (!sys_command_cd_play2 (unitnum, start, end, 0, NULL))
+				if (!sys_command_cd_play (unitnum, start, end, 0))
 					goto notdatatrack;
 			}
 			scsi_len = 0;
@@ -1483,7 +1482,7 @@ static int scsi_emulate (int unitnum, uae_u8 *cmdbuf, int scsi_cmd_len,
 			if (start > end)
 				goto errreq;
 			if (start < end) {
-				if (!sys_command_cd_play2 (unitnum, start, end, 0, NULL))
+				if (!sys_command_cd_play (unitnum, start, end, 0))
 					goto notdatatrack;
 			}
 		}

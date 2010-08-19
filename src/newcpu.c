@@ -8,6 +8,7 @@
 
 #define MOVEC_DEBUG 0
 #define MMUOP_DEBUG 2
+#define DEBUG_CD32CDTVIO 0
 
 #include "sysconfig.h"
 #include "sysdeps.h"
@@ -2675,8 +2676,7 @@ STATIC_INLINE int do_specialties (int cycles)
 
 //static uae_u32 pcs[1000];
 
-//#define DEBUG_CD32CDTVIO
-#ifdef DEBUG_CD32CDTVIO
+#if DEBUG_CD32CDTVIO
 
 static uae_u32 cd32nextpc, cd32request;
 
@@ -2768,7 +2768,7 @@ static void m68k_run_1 (void)
 
 		count_instr (opcode);
 
-#ifdef DEBUG_CD32CDTVIO
+#if DEBUG_CD32CDTVIO
 		out_cd32io (m68k_getpc ());
 #endif
 
@@ -2815,7 +2815,7 @@ static void m68k_run_1_ce (void)
 	ipl_fetch ();
 	for (;;) {
 		uae_u32 opcode = r->ir;
-#ifdef DEBUG_CD32CDTVIO
+#if DEBUG_CD32CDTVIO
 		out_cd32io (m68k_getpc ());
 #endif
 		(*cpufunctbl[opcode])(opcode);
@@ -2947,7 +2947,7 @@ static void opcodedebug (uae_u32 pc, uae_u16 opcode)
 	if (!fault) {
 		TCHAR buf[100];
 		write_log ("mmufixup=%d %04x %04x\n", mmufixup[0].reg, regs.wb3_status, regs.mmu_ssw);
-		m68k_disasm_2 (buf, 100, addr, NULL, 1, NULL, NULL, 0);
+		m68k_disasm_2 (buf, sizeof buf / sizeof (TCHAR), addr, NULL, 1, NULL, NULL, 0);
 		write_log ("%s\n", buf);
 		m68k_dumpstate (stdout, NULL);
 	}
@@ -3050,7 +3050,7 @@ static void m68k_run_2p (void)
 		uae_u32 opcode;
 		uae_u32 pc = m68k_getpc ();
 
-#ifdef DEBUG_CD32CDTVIO
+#if DEBUG_CD32CDTVIO
 		out_cd32io (m68k_getpc ());
 #endif
 
@@ -3218,7 +3218,7 @@ void m68k_go (int may_quit)
 #endif
 	set_x_funcs ();
 #if defined(MMU) && defined(JIT)
-		if (mmu_enabled && !currprefs.cachesize) {
+	if (mmu_enabled && !currprefs.cachesize) {
 			run_func = m68k_run_mmu;
 		} else {
 #endif

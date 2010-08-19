@@ -425,4 +425,5 @@ extern void xfree (const void*);
 #define true 1
 #define false 0
 #define _vsntprintf vsnprintf
+#define max(a,b) ((a) > (b) ? (a) : (b))
 #endif

@@ -252,8 +252,8 @@ static void generate_header(void)
 {
     unsigned int i;
     for (i = 0; i < sizeof(blttbl); i++) {
-	printf("extern blitter_func blitdofast_%x;\n",blttbl[i]);
-	printf("extern blitter_func blitdofast_desc_%x;\n",blttbl[i]);
+		printf("extern blitter_func blitdofast_%x;\n",blttbl[i]);
+		printf("extern blitter_func blitdofast_desc_%x;\n",blttbl[i]);
     }
 }
 

@@ -1551,7 +1551,7 @@ int zfile_zopen (const TCHAR *name, zfile_callback zc, void *user)
 	TCHAR path[MAX_DPATH];
 
 	manglefilename (path, name);
-	l = zfile_fopen_2 (path, L"rb", ZFD_NORMAL);
+	l = zfile_fopen_2 (path, "rb", ZFD_NORMAL);
 	if (!l)
 		return 0;
 	ztype = iszip (l);
@@ -1632,7 +1632,7 @@ static struct zfile *zfile_fopen_internet (const TCHAR *name, const TCHAR *mode,
 	if (!hi) {
 		hi = InternetOpen (WINUAEAPPNAME, INTERNET_OPEN_TYPE_PRECONFIG_WITH_NO_AUTOPROXY, NULL, NULL, 0);
 		if (hi == NULL) {
-			write_log (L"InternetOpen() failed, %d\n", GetLastError ());
+			write_log ("InternetOpen() failed, %d\n", GetLastError ());
 			return NULL;
 		}
 	}
@@ -1641,7 +1641,7 @@ static struct zfile *zfile_fopen_internet (const TCHAR *name, const TCHAR *mode,
 		DWORD err = GetLastError ();
 		if (err == ERROR_INTERNET_EXTENDED_ERROR)
 			InternetGetLastResponseInfo (&ierr, tmp, &outbuf);
-		write_log (L"InternetOpenUrl(%s) failed %d (%d,%s)\n", name, err, ierr, tmp);
+		write_log ("InternetOpenUrl(%s) failed %d (%d,%s)\n", name, err, ierr, tmp);
 		goto end;
 	}
 
@@ -1651,11 +1651,11 @@ static struct zfile *zfile_fopen_internet (const TCHAR *name, const TCHAR *mode,
 		DWORD size = sizeof statuscode;
 		if (!HttpQueryInfo (i, HTTP_QUERY_STATUS_CODE | HTTP_QUERY_FLAG_NUMBER, &statuscode, &size, &hindex)) {
 			DWORD err = GetLastError ();
-			write_log (L"HttpQueryInfo(%s) failed %d\n", name, err);
+			write_log ("HttpQueryInfo(%s) failed %d\n", name, err);
 			goto end;
 		}
 		if (statuscode != 200) {
-			write_log (L"HttpQueryInfo(%s)=%d\n", name, statuscode);
+			write_log ("HttpQueryInfo(%s)=%d\n", name, statuscode);
 			goto end;
 		}
 	}
@@ -1672,7 +1672,7 @@ static struct zfile *zfile_fopen_internet (const TCHAR *name, const TCHAR *mode,
 			DWORD err = GetLastError ();
 			if (err == ERROR_INTERNET_EXTENDED_ERROR)
 				InternetGetLastResponseInfo (&ierr, tmp, &outbuf);
-			write_log (L"InternetReadFile(%s) failed %d (%d,%s)\n", name, err, ierr, tmp);
+			write_log ("InternetReadFile(%s) failed %d (%d,%s)\n", name, err, ierr, tmp);
 			break;
 		}
 		if (didread == 0)
@@ -1751,9 +1751,9 @@ static struct zfile *zfile_fopenx2 (const TCHAR *name, const TCHAR *mode, int ma
 static struct zfile *zfile_fopenx (const TCHAR *name, const TCHAR *mode, int mask, int index)
 {
 	struct zfile *zf;
-	//write_log (L"zfile_fopen('%s','%s',%08x,%d)\n", name, mode, mask, index);
+	//write_log ("zfile_fopen('%s','%s',%08x,%d)\n", name, mode, mask, index);
 	zf = zfile_fopenx2 (name, mode, mask, index);
-	//write_log (L"=%p\n", zf);
+	//write_log ("=%p\n", zf);
 	return zf;
 }
 
@@ -2700,6 +2700,37 @@ struct znode *zvolume_adddir_abs (struct zvolume *zv, struct zarchive_info *zai)
 	return znode_adddir (zn2, p, zai);
 }
 
+struct znode *zvolume_addfile_abs (struct zvolume *zv, struct zarchive_info *zai)
+{
+	struct znode *zn, *zn2;
+	int i;
+	TCHAR *path = my_strdup (zai->name);
+	TCHAR *p, *p2;
+
+	zn2 = &zv->root;
+	p = p2 = path;
+	for (i = 0; path[i]; i++) {
+		if (path[i] == '/' || path[i] == '\\') {
+			path[i] = 0;
+			zn2 = znode_adddir (zn2, p, zai);
+			path[i] = FSDB_DIR_SEPARATOR;
+			p = p2 = &path[i + 1];
+		}
+	}
+	if (p2) {
+		zn = znode_alloc_child (zn2, p2);
+		zn->size = zai->size;
+		zn->type = ZNODE_FILE;
+		zn->mtime = zai->t;
+		if (zai->comment)
+			zn->comment = my_strdup (zai->comment);
+		zn->flags = zai->flags;
+		addvolumesize (zn->volume, zai->size);
+	}
+	xfree (path);
+	return zn;
+}
+
 void zfile_fclose_archive (struct zvolume *zv)
 {
 	struct znode *zn;
@@ -2736,6 +2767,17 @@ void zfile_fclose_archive (struct zvolume *zv)
 	}
 	xfree (zv);
 }
+
+struct zdirectory {
+	TCHAR *parentpath;
+	struct znode *first;
+	struct znode *n;
+	bool doclose;
+	struct zvolume *zv;
+	int cnt;
+	int offset;
+	TCHAR **filenames;
+};
 
 #ifdef _CONSOLE
 static TCHAR *zerror;

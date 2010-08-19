@@ -424,7 +424,7 @@ uae_u32 emulib_target_getcpurate (uae_u32 v, uae_u32 *low)
 */
         return 0;
 }
-
+/*
 int isfat (uae_u8 *p)
 {
 	int i, b;
@@ -454,7 +454,7 @@ int isfat (uae_u8 *p)
 		return 0;
 	return 1;
 }
-
+*/
 void setmouseactivexy (int x, int y, int dir)
 {
 /*        int diff = 8;

@@ -199,7 +199,7 @@ uae_u8 restore_u8_func (uae_u8 **dstp)
 	*dstp = dst + 1;
 	return v;
 }
-TCHAR *restore_string_func (const uae_u8 **dstp)
+TCHAR *restore_string_func (uae_u8 **dstp)
 {
 	int len;
 	uae_u8 v;
@@ -219,7 +219,7 @@ TCHAR *restore_string_func (const uae_u8 **dstp)
 #ifdef SAVESTATE
 /* read and write IFF-style hunks */
 
-static void save_chunk (struct zfile *f, uae_u8 *chunk, size_t len, const TCHAR *name, int compress)
+static void save_chunk (struct zfile *f, uae_u8 *chunk, size_t len, TCHAR *name, int compress)
 {
 	uae_u8 tmp[8], *dst;
 	uae_u8 zero[4]= { 0, 0, 0, 0 };
@@ -287,7 +287,7 @@ static uae_u8 *restore_chunk (struct zfile *f, TCHAR *name, size_t *len, size_t 
 	uae_u8 tmp[6], dummy[4], *mem;
 	const uae_u8 *src;
 	uae_u32 flags;
-	size_t len2;
+	int len2;
 
 	*totallen = 0;
 	/* chunk name */
@@ -846,11 +846,11 @@ int save_state (const TCHAR *filename, const TCHAR *description)
 	xfree (dst);
 #endif
 #ifdef CDTV
-	dst = save_dmac (&len);
-	save_chunk (f, dst, len, "DMAC", 0);
-	xfree (dst);
 	dst = save_cdtv (&len);
 	save_chunk (f, dst, len, "CDTV", 0);
+	xfree (dst);
+	dst = save_dmac (&len);
+	save_chunk (f, dst, len, "DMAC", 0);
 	xfree (dst);
 #endif
 
@@ -888,7 +888,7 @@ int save_state (const TCHAR *filename, const TCHAR *description)
 	}
 #endif
 #ifdef CD32
-	for (i = 0; i < 10; i++) {
+	for (i = 0; i < MAX_TOTAL_SCSI_DEVICES; i++) {
 		dst = save_cd (i, &len);
 		if (dst) {
 			_stprintf (name, "CDU%d", i);
@@ -1560,7 +1560,7 @@ ACTION REPLAY
 	Model (1,2,3)		4
 	path to rom image
 	RAM space		(depends on model)
-	ROM CRC                 4
+	ROM CRC             4
 
 "CDx "
 

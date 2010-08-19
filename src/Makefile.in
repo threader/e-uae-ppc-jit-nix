@@ -79,17 +79,17 @@ am_uae_OBJECTS = main.$(OBJEXT) newcpu.$(OBJEXT) memory.$(OBJEXT) \
 	dongle.$(OBJEXT) cia.$(OBJEXT) blitter.$(OBJEXT) \
 	autoconf.$(OBJEXT) traps.$(OBJEXT) ersatz.$(OBJEXT) \
 	keybuf.$(OBJEXT) expansion.$(OBJEXT) diskutil.$(OBJEXT) \
-	zfile.$(OBJEXT) cfgfile.$(OBJEXT) picasso96.$(OBJEXT) \
-	inputdevice.$(OBJEXT) gfxutil.$(OBJEXT) audio.$(OBJEXT) \
-	sinctable.$(OBJEXT) drawing.$(OBJEXT) consolehook.$(OBJEXT) \
-	native2amiga.$(OBJEXT) disk.$(OBJEXT) crc32.$(OBJEXT) \
-	savestate.$(OBJEXT) arcadia.$(OBJEXT) cdtv.$(OBJEXT) \
-	cd32_fmv.$(OBJEXT) uaeexe.$(OBJEXT) uaelib.$(OBJEXT) \
-	uaeresource.$(OBJEXT) fdi2raw.$(OBJEXT) hotkeys.$(OBJEXT) \
-	amax.$(OBJEXT) ar.$(OBJEXT) driveclick.$(OBJEXT) \
-	enforcer.$(OBJEXT) misc.$(OBJEXT) a2065.$(OBJEXT) \
-	gayle.$(OBJEXT) ncr_scsi.$(OBJEXT) missing.$(OBJEXT) \
-	readcpu.$(OBJEXT)
+	zfile.$(OBJEXT) zfile_archive.$(OBJEXT) cfgfile.$(OBJEXT) \
+	picasso96.$(OBJEXT) inputdevice.$(OBJEXT) gfxutil.$(OBJEXT) \
+	audio.$(OBJEXT) sinctable.$(OBJEXT) drawing.$(OBJEXT) \
+	consolehook.$(OBJEXT) native2amiga.$(OBJEXT) disk.$(OBJEXT) \
+	crc32.$(OBJEXT) savestate.$(OBJEXT) arcadia.$(OBJEXT) \
+	cdtv.$(OBJEXT) cd32_fmv.$(OBJEXT) uaeexe.$(OBJEXT) \
+	uaelib.$(OBJEXT) uaeresource.$(OBJEXT) fdi2raw.$(OBJEXT) \
+	hotkeys.$(OBJEXT) amax.$(OBJEXT) ar.$(OBJEXT) \
+	driveclick.$(OBJEXT) enforcer.$(OBJEXT) misc.$(OBJEXT) \
+	a2065.$(OBJEXT) gayle.$(OBJEXT) ncr_scsi.$(OBJEXT) \
+	missing.$(OBJEXT) readcpu.$(OBJEXT)
 uae_OBJECTS = $(am_uae_OBJECTS)
 SCRIPTS = $(dist_noinst_SCRIPTS)
 DEFAULT_INCLUDES = -I.@am__isrc@
@@ -412,7 +412,7 @@ EXTRA_DIST = \
 uae_SOURCES = \
 	main.c newcpu.c memory.c rommgr.c custom.c serial.c dongle.c cia.c \
 	blitter.c autoconf.c traps.c ersatz.c keybuf.c expansion.c \
-	diskutil.c zfile.c cfgfile.c picasso96.c inputdevice.c \
+	diskutil.c zfile.c zfile_archive.c cfgfile.c picasso96.c inputdevice.c \
 	gfxutil.c audio.c sinctable.c drawing.c consolehook.c \
 	native2amiga.c disk.c crc32.c savestate.c arcadia.c cdtv.c cd32_fmv.c \
 	uaeexe.c uaelib.c uaeresource.c fdi2raw.c hotkeys.c amax.c \
@@ -660,6 +660,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/uaeresource.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/writelog.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zfile.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zfile_archive.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<

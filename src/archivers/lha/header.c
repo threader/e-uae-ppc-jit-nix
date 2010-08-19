@@ -394,19 +394,19 @@ bool get_header(struct zfile *fp, LzHeader *hdr)
 
 	if (zfile_fread(data + I_HEADER_CHECKSUM,
 		  sizeof(char), header_size - 1, fp) < header_size - 1) {
-		fatal_error(L"Invalid header (LHarc file ?)");
+		fatal_error("Invalid header (LHarc file ?)");
 		return FALSE;	/* finish */
 	}
 	setup_get(data + I_HEADER_LEVEL);
 	hdr->header_level = get_byte ();
 	if (hdr->header_level != 2 &&
 	    zfile_fread(data + header_size, sizeof(char), 2, fp) < 2) {
-		fatal_error(L"Invalid header (LHarc file ?)");
+		fatal_error("Invalid header (LHarc file ?)");
 		return FALSE;	/* finish */
 	}
 
 	if (hdr->header_level >= 3) {
-		fatal_error(L"Unknown level header");
+		fatal_error("Unknown level header");
 		return FALSE;
 	}
 
@@ -427,7 +427,7 @@ bool get_header(struct zfile *fp, LzHeader *hdr)
 
 	if ((hdr->header_level = get_byte ()) != 2) {
 		if (calc_sum(data + I_METHOD, header_size) != checksum)
-			warning(L"Checksum error (LHarc file?)", L"");
+			warning("Checksum error (LHarc file?)", "");
 		name_length = get_byte ();
 		for (i = 0; i < name_length; i++)
 			hdr->name[i] = (char) get_byte ();
@@ -450,7 +450,7 @@ bool get_header(struct zfile *fp, LzHeader *hdr)
 				hdr->extend_type = EXTEND_GENERIC;
 				hdr->has_crc = FALSE;
 			} else {
-				fatal_error(L"Unkonwn header (lha file?)");
+				fatal_error("Unkonwn header (lha file?)");
 				return FALSE;
 			}
 		} else {
@@ -500,7 +500,7 @@ bool get_header(struct zfile *fp, LzHeader *hdr)
 			if (hdr->header_level != 2 &&
 			((data + LZHEADER_STRAGE - get_ptr < header_size) ||
 			 zfile_fread(get_ptr, sizeof(char), header_size, fp) < header_size)) {
-				fatal_error(L"Invalid header (LHa file ?)");
+				fatal_error("Invalid header (LHa file ?)");
 				return FALSE;
 			}
 			switch (get_byte ()) {
