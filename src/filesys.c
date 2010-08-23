@@ -1503,7 +1503,7 @@ static void recycle_aino (Unit *unit, a_inode *new_aino)
 #if 0
 		{
 			TCHAR buffer[40];
-	    sprintf (buffer, "%d ainos reaped.\n", i);
+			_stprintf (buffer, "%d ainos reaped.\n", i);
 			TRACE ((buffer));
 		}
 #endif
@@ -2270,7 +2270,7 @@ static void
 	int ret;
 
 /*	if (unit->volflags & MYVOLUMEINFO_ARCHIVE)
-		ret = 0; //zfile_fs_usage_archive (unit->ui.rootdir, 0, &fsu);
+		ret = zfile_fs_usage_archive (unit->ui.rootdir, 0, &fsu);
 	else*/
 		ret = get_fs_usage (unit->ui.rootdir, 0, &fsu);
 	if (ret != 0) {
@@ -2542,7 +2542,7 @@ static void
 	for (hash = 0; hash < NOTIFY_HASH_SIZE; hash++) {
 		for (n = unit->notifyhash[hash]; n; n = n->next) {
 			if (n->notifyrequest == nr) {
-				//write_log ("NotifyRequest %08.8X freed\n", n->notifyrequest);
+				//write_log ("NotifyRequest %08X freed\n", n->notifyrequest);
 				xfree (n->fullname);
 				xfree (n->partname);
 				free_notify (unit, hash, n);
@@ -2551,7 +2551,7 @@ static void
 			}
 		}
 	}
-	//write_log ("Tried to free non-existing NotifyRequest %08.8X\n", nr);
+	//write_log ("Tried to free non-existing NotifyRequest %08X\n", nr);
 	PUT_PCK_RES1 (packet, DOS_TRUE);
 }
 

@@ -502,7 +502,7 @@ static int get_floppy_speed2 (drive *drv)
 }
 
 #ifdef DEBUG_DRIVE_ID
-static const char *drive_id_name (drive *drv)
+static const TCHAR *drive_id_name(drive *drv)
 {
 	switch(drv->drive_id)
 	{
@@ -2145,14 +2145,14 @@ void disk_creatediskfile (TCHAR *name, int type, drive_type adftype, TCHAR *disk
 
 }
 
-int disk_getwriteprotect (const char *name)
+int disk_getwriteprotect (const TCHAR *name)
 {
 	int needwritefile;
 	drive_type drvtype;
 	return diskfile_iswriteprotect (name, &needwritefile, &drvtype);
 }
 
-static void diskfile_readonly (const char *name, int readonly)
+static void diskfile_readonly (const TCHAR *name, bool readonly)
 {
 	struct stat st;
 	int mode, oldmode;
@@ -3146,14 +3146,14 @@ void DSKLEN (uae_u16 v, unsigned int hpos)
 			break;
 	}
 	if (dr == 4) {
-		write_log ("disk %s DMA started, drvmask=%x motormask=%x\n",
-			dskdmaen == 3 ? "write" : "read", selected ^ 15, motormask);
+		write_log ("disk %s DMA started, drvmask=%x motormask=%x PC=%08x\n",
+			dskdmaen == 3 ? "write" : "read", selected ^ 15, motormask, M68K_GETPC);
 		noselected = 1;
 	} else {
 		if (disk_debug_logging > 0) {
-			write_log ("disk %s DMA started, drvmask=%x track %d mfmpos %d dmaen=%d\n",
+			write_log ("disk %s DMA started, drvmask=%x track %d mfmpos %d dmaen=%d PC=%08X\n",
 				dskdmaen == 3 ? "write" : "read", selected ^ 15,
-				floppy[dr].cyl * 2 + side, floppy[dr].mfmpos, dma_enable);
+				floppy[dr].cyl * 2 + side, floppy[dr].mfmpos, dma_enable, M68K_GETPC);
 			disk_dma_debugmsg ();
 		}
 	}
@@ -3494,7 +3494,7 @@ uae_u8 *restore_disk (int num,uae_u8 *src)
 {
 	drive *drv;
 	int state, dfxtype;
-	char old[MAX_DPATH];
+	TCHAR old[MAX_DPATH];
 	int newis;
 
 	drv = &floppy[num];
@@ -3645,14 +3645,14 @@ uae_u8 *save_floppy(int *len, uae_u8 *dstptr)
 #endif /* SAVESTATE */
 
 #define MAX_DISKENTRIES 4
-int disk_prevnext_name (char *imgp, int dir)
+int disk_prevnext_name (TCHAR *imgp, int dir)
 {
-	char img[MAX_DPATH], *ext, *p, *p2, *ps, *dst[MAX_DISKENTRIES];
+	TCHAR img[MAX_DPATH], *ext, *p, *p2, *ps, *dst[MAX_DISKENTRIES];
 	int num = -1;
 	int cnt, i;
-	char imgl[MAX_DPATH];
+	TCHAR imgl[MAX_DPATH];
 	int ret, gotone, wrapped;
-	char *old;
+	TCHAR *old;
 
 	old = my_strdup (imgp);
 
@@ -3708,7 +3708,7 @@ retry:
 		ext = _tcsrchr (ps, '.');
 		if (!ext || ext - ps < 4)
 			break;
-		char *ext2 = ext - imgl + img;
+		TCHAR *ext2 = ext - imgl + img;
 		// name_<non numeric character>x.ext
 		if (ext[-3] == '_' && !_istdigit (ext[-2]) && _istdigit (ext[-1])) {
 			num = _tstoi (ext - 1);
@@ -3755,7 +3755,7 @@ retry:
 		goto end;
 	}
 	if (gotone) { // was (disk x but no match, perhaps there are extra tags..
-		char *old2 = my_strdup (img);
+		TCHAR *old2 = my_strdup (img);
 		for (;;) {
 			ext = _tcsrchr (img, '.');
 			if (!ext)
@@ -3764,7 +3764,7 @@ retry:
 				break;
 			if (ext[-1] != ']')
 				break;
-			char *t = _tcsrchr (img, '[');
+			TCHAR *t = _tcsrchr (img, '[');
 			if (!t)
 				break;
 			t[0] = 0;
