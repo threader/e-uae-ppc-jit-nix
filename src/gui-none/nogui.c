@@ -63,7 +63,7 @@ void gui_message (const char *format,...)
        write_log (msg);
 }
 
-void gui_disk_image_change (int unitnum, const TCHAR *name) {}
+void gui_disk_image_change (int unitnum, const TCHAR *name, bool writeprotected) {}
 void gui_lock (void) {}
 void gui_unlock (void) {}
 

@@ -62,7 +62,7 @@ struct cdunit {
 	uae_u64 cdsize;
 	int blocksize;
 
-	int cdda_play_finished;
+	int cdda_play_state;
 	int cdda_play;
 	int cdda_paused;
 	int cdda_volume[2];
@@ -70,7 +70,8 @@ struct cdunit {
 	int cd_last_pos;
 	int cdda_start, cdda_end;
 	play_subchannel_callback cdda_subfunc;
-	bool slowunit;
+	play_status_callback cdda_statusfunc;
+	int cdda_delay, cdda_delay_frames;
 
 	int imagechange;
 	TCHAR newfile[MAX_DPATH];
@@ -92,11 +93,14 @@ static struct cdunit *unitisopen (int unitnum)
 	return NULL;
 }
 
+
 static struct cdtoc *findtoc (struct cdunit *cdu, int *sectorp)
 {
 	int i;
 	int sector;
 
+	if (*sectorp < 0)
+		return NULL;
 	sector = *sectorp;
 	for (i = 0; i <= cdu->tracks; i++) {
 		struct cdtoc *t = &cdu->toc[i];
@@ -260,7 +264,7 @@ static void sub_to_deinterleaved (const uae_u8 *s, uae_u8 *d)
 	}
 }
 
-static int getsub (uae_u8 *dst, struct cdunit *cdu, struct cdtoc *t, int sector)
+static int getsub_deinterleaved (uae_u8 *dst, struct cdunit *cdu, struct cdtoc *t, int sector)
 {
 	int ret = 0;
 	uae_sem_wait (&cdu->sub_sem);
@@ -303,31 +307,29 @@ static int getsub (uae_u8 *dst, struct cdunit *cdu, struct cdtoc *t, int sector)
 	return ret;
 }
 
-static void dosub (struct cdunit *cdu, struct cdtoc *t, int sector)
+static void dosub (struct cdunit *cdu, uae_u8 *subbuf)
 {
-	uae_u8 *d;
-	uae_u8 subbuf[SUB_CHANNEL_SIZE];
 	uae_u8 subbuf2[SUB_CHANNEL_SIZE];
 
 	if (!cdu->cdda_subfunc)
 		return;
 
-	if (!t) {
-		memset (subbuf, 0, sizeof subbuf);
-		cdu->cdda_subfunc (subbuf, 1);
+	if (!subbuf) {
+		memset (subbuf2, 0, sizeof subbuf2);
+		cdu->cdda_subfunc (subbuf2, 1);
 		return;
 	}
-	memset (subbuf, 0, SUB_CHANNEL_SIZE);
-	int mode = getsub (subbuf, cdu, t, sector);
-	if (mode == 2) { // deinterleaved -> interleaved
-		sub_to_interleaved (subbuf, subbuf2);
-		d = subbuf2;
-	} else {
-		d = subbuf;
-	}
-	cdu->cdda_subfunc (d, 1);
+	sub_to_interleaved (subbuf, subbuf2);
+	cdu->cdda_subfunc (subbuf2, 1);
 }
 
+static int setstate (struct cdunit *cdu, int state)
+{
+	cdu->cdda_play_state = state;
+	if (cdu->cdda_statusfunc)
+		return cdu->cdda_statusfunc (cdu->cdda_play_state);
+	return 0;
+}
 
 static void *cdda_unpack_func (void *v)
 {
@@ -387,8 +389,9 @@ static void *cdda_play_func (void *v)
 	MMRESULT mmr;
 	int volume[2], volume_main;
 	int oldplay;
+	int idleframes;
+	bool foundsub;
 	struct cdunit *cdu = (struct cdunit*)v;
-	int firstloops;
 
 	for (i = 0; i < 2; i++) {
 		memset (&whdr[i], 0, sizeof (WAVEHDR));
@@ -426,17 +429,19 @@ static void *cdda_play_func (void *v)
 
 			if (oldplay != cdu->cdda_play) {
 				struct cdtoc *t;
-				int sector;
-				struct _timeb tb;
+				int sector, diff;
+				struct _timeb tb1, tb2;
 
-				_ftime (&tb);
+				idleframes = 0;
+				foundsub = false;
+				_ftime (&tb1);
 				cdda_pos = cdu->cdda_start;
 				oldplay = cdu->cdda_play;
-				cdu->cd_last_pos = cdda_pos;
-				sector = cdu->cdda_start;
+				sector = cdu->cd_last_pos = cdda_pos;
 				t = findtoc (cdu, &sector);
 				if (!t) {
 					write_log ("IMAGE CDDA: illegal sector number %d\n", cdu->cdda_start);
+					setstate (cdu, AUDIO_STATUS_PLAY_ERROR);
 				} else {
 					write_log ("IMAGE CDDA: playing from %d to %d, track %d ('%s', offset %d, secoffset %d)\n",
 						cdu->cdda_start, cdu->cdda_end, t->track, t->fname, t->offset, sector);
@@ -450,13 +455,46 @@ static void *cdda_play_func (void *v)
 					while (cdimage_unpack_active == 0)
 						Sleep (10);
 				}
-				firstloops = cdu->slowunit ? 150 : 30;
+				idleframes = cdu->cdda_delay_frames;
 				while (cdu->cdda_paused && cdu->cdda_play > 0) {
 					Sleep (10);
-					firstloops = -1;
+					idleframes = -1;
 				}
-				if (firstloops > 0)
-					firstloops /= num_sectors;
+
+				if (cdu->cdda_scan == 0) {
+					// find possible P-subchannel=1 and fudge starting point so that
+					// buggy CD32/CDTV software CD+G handling does not miss any frames
+					bool seenindex = false;
+					for (sector = cdda_pos - 200; sector < cdda_pos; sector++) {
+						int sec = sector;
+						t = findtoc (cdu, &sec);
+						if (t) {
+							uae_u8 subbuf[SUB_CHANNEL_SIZE];
+							getsub_deinterleaved (subbuf, cdu, t, sector);
+							if (seenindex) {
+								for (int i = 2 * SUB_ENTRY_SIZE; i < SUB_CHANNEL_SIZE; i++) {
+									if (subbuf[i]) { // non-zero R-W subchannels
+										int diff = cdda_pos - sector + 2;
+										write_log ("-> CD+G start pos fudge -> %d (%d)\n", sector, -diff);
+										idleframes -= diff;
+										cdda_pos = sector;
+										break;
+									}
+								}
+							} else if (subbuf[0] == 0xff) { // P == 1?
+								seenindex = true;
+							}
+						}
+					}
+				}
+				cdda_pos -= idleframes;
+
+				_ftime (&tb2);
+				diff = (tb2.time * (uae_s64)1000 + tb2.millitm) - (tb1.time * (uae_s64)1000 + tb1.millitm);
+				diff -= cdu->cdda_delay;
+				if (idleframes >= 0 && diff < 0 && cdu->cdda_play > 0)
+					Sleep (-diff);
+				setstate (cdu, AUDIO_STATUS_IN_PROGRESS);
 			}
 
 			while (!(whdr[bufnum].dwFlags & WHDR_DONE)) {
@@ -466,8 +504,10 @@ static void *cdda_play_func (void *v)
 			}
 			bufon[bufnum] = 0;
 
-			if (!isaudiotrack (&cdu->di.toc, cdda_pos))
+			if (idleframes <= 0 && !isaudiotrack (&cdu->di.toc, cdda_pos)) {
+				setstate (cdu, AUDIO_STATUS_PLAY_ERROR);
 				goto end; // data track?
+			}
 
 			if ((cdda_pos < cdu->cdda_end || cdu->cdda_end == 0xffffffff) && !cdu->cdda_paused && cdu->cdda_play > 0) {
 				struct cdtoc *t;
@@ -478,48 +518,57 @@ static void *cdda_play_func (void *v)
 
 				memset (px[bufnum], 0, num_sectors * 2352);
 
-				if (firstloops > 0) {
+				for (cnt = 0; cnt < num_sectors; cnt++) {
+					uae_u8 *dst = px[bufnum] + cnt * 2352;
+					uae_u8 subbuf[SUB_CHANNEL_SIZE];
+					sector = cdda_pos;
 
-					firstloops--;
-					for (cnt = 0; cnt < num_sectors; cnt++)
-						dosub (cdu, NULL, -1);
-					
-				} else {
+					memset (subbuf, 0, SUB_CHANNEL_SIZE);
 
-					for (cnt = 0; cnt < num_sectors; cnt++) {
-						sector = cdda_pos;
-
-						if (cdu->cdda_scan) {
-							cdda_pos += cdu->cdda_scan;
-							if (cdda_pos < 0)
-								cdda_pos = 0;
-						} else  {
-							cdda_pos++;
-						}
-						if (cdda_pos - num_sectors < cdu->cdda_end && cdda_pos >= cdu->cdda_end)
-							dofinish = 1;
-
-						t = findtoc (cdu, &sector);
-						if (t) {
-							if (t->handle && !(t->ctrl & 4)) {
-								uae_u8 *dst = px[bufnum] + cnt * t->size;
-								int totalsize = t->size + t->skipsize;
-								if ((t->enctype == AUDENC_MP3 || t->enctype == AUDENC_FLAC) && t->data) {
-									if (t->filesize >= sector * totalsize + t->offset + t->size)
-										memcpy (dst, t->data + sector * totalsize + t->offset, t->size);
-								} else if (t->enctype == AUDENC_PCM) {
-									if (sector * totalsize + t->offset + totalsize < t->filesize) {
-										zfile_fseek (t->handle, sector * totalsize + t->offset, SEEK_SET);
-										zfile_fread (dst, t->size, 1, t->handle);
-									}
+					t = findtoc (cdu, &sector);
+					if (t) {
+						if (t->handle && !(t->ctrl & 4)) {
+							int totalsize = t->size + t->skipsize;
+							if ((t->enctype == AUDENC_MP3 || t->enctype == AUDENC_FLAC) && t->data) {
+								if (t->filesize >= sector * totalsize + t->offset + t->size)
+									memcpy (dst, t->data + sector * totalsize + t->offset, t->size);
+							} else if (t->enctype == AUDENC_PCM) {
+								if (sector * totalsize + t->offset + totalsize < t->filesize) {
+									zfile_fseek (t->handle, sector * totalsize + t->offset, SEEK_SET);
+									zfile_fread (dst, t->size, 1, t->handle);
 								}
 							}
-							dosub (cdu, t, cdda_pos);
 						}
+						getsub_deinterleaved (subbuf, cdu, t, cdda_pos);
 					}
+
+					if (idleframes > 0) {
+						idleframes--;
+						memset (dst, 0, 2352);
+						memset (subbuf, 0, SUB_CHANNEL_SIZE);
+					}
+
+					if (cdda_pos < cdu->cdda_start && cdu->cdda_scan == 0)
+						memset (dst, 0, 2352);
+
+					dosub (cdu, subbuf);
+
+					if (cdu->cdda_scan) {
+						cdda_pos += cdu->cdda_scan;
+						if (cdda_pos < 0)
+							cdda_pos = 0;
+					} else  {
+						cdda_pos++;
+					}
+
+					if (cdda_pos - num_sectors < cdu->cdda_end && cdda_pos >= cdu->cdda_end)
+						dofinish = 1;
 
 				}
 	
+				if (idleframes <= 0)
+					cdu->cd_last_pos = cdda_pos;
+
 				volume_main = currprefs.sound_volume;
 				int vol_mult[2];
 				for (int j = 0; j < 2; j++) {
@@ -543,10 +592,8 @@ static void *cdda_play_func (void *v)
 					break;
 				}
 
-				cdu->cd_last_pos = cdda_pos;
-
 				if (dofinish) {
-					cdu->cdda_play_finished = 1;
+					setstate (cdu, AUDIO_STATUS_PLAY_COMPLETE);
 					cdu->cdda_play = -1;
 					cdda_pos = cdu->cdda_end + 1;
 				}
@@ -592,8 +639,8 @@ static void cdda_stop (struct cdunit *cdu)
 			Sleep (10);
 		}
 	}
-	cdu->cdda_play_finished = 0;
 	cdu->cdda_paused = 0;
+	cdu->cdda_play_state = 0;
 }
 
 
@@ -616,19 +663,24 @@ static int command_stop (int unitnum)
 	return 1;
 }
 
-static int command_play (int unitnum, int startlsn, int endlsn, int scan, play_subchannel_callback subfunc)
+static int command_play (int unitnum, int startlsn, int endlsn, int scan, play_status_callback statusfunc, play_subchannel_callback subfunc)
 {
 	struct cdunit *cdu = unitisopen (unitnum);
 	if (!cdu)
 		return 0;
-	if (!isaudiotrack (&cdu->di.toc, startlsn))
-		return 0;
-	cdu->cdda_play_finished = 0;
 	cdu->cd_last_pos = startlsn;
 	cdu->cdda_start = startlsn;
 	cdu->cdda_end = endlsn;
 	cdu->cdda_subfunc = subfunc;
+	cdu->cdda_statusfunc = statusfunc;
 	cdu->cdda_scan = scan > 0 ? 10 : (scan < 0 ? 10 : 0);
+	cdu->cdda_delay = setstate (cdu, -1);
+	cdu->cdda_delay_frames = setstate (cdu, -2);
+	setstate (cdu, AUDIO_STATUS_NOT_SUPPORTED);
+	if (!isaudiotrack (&cdu->di.toc, startlsn)) {
+		setstate (cdu, AUDIO_STATUS_PLAY_ERROR);
+		return 0;
+	}
 	if (!cdu->cdda_play)
 		uae_start_thread ("cdimage_cdda_play", cdda_play_func, cdu, NULL);
 	cdu->cdda_play++;
@@ -650,14 +702,10 @@ static int command_qcode (int unitnum, uae_u8 *buf, int sector)
 	memset (buf, 0, SUBQ_SIZE);
 	p = buf;
 
-	status = AUDIO_STATUS_NO_STATUS;
-	if (cdu->cdda_play > 0) {
-		status = AUDIO_STATUS_IN_PROGRESS;
-		if (cdu->cdda_paused)
-			status = AUDIO_STATUS_PAUSED;
-	} else if (cdu->cdda_play_finished) {
-		status = AUDIO_STATUS_PLAY_COMPLETE;
-	}
+	status = cdu->cdda_play_state;
+	if (cdu->cdda_play > 0 && cdu->cdda_paused)
+		status = AUDIO_STATUS_PAUSED;
+
 	if (sector < 0)
 		pos = cdu->cd_last_pos;
 	else
@@ -681,7 +729,7 @@ static int command_qcode (int unitnum, uae_u8 *buf, int sector)
 	}
 	if (!td)
 		return 0;
-	getsub (subbuf, cdu, td, pos);
+	getsub_deinterleaved (subbuf, cdu, td, pos);
 	memcpy (p, subbuf + 12, 12);
 //	write_log ("%6d %02x.%02x.%02x.%02x.%02x.%02x.%02x.%02x.%02x.%02x.%02x.%02x\n",
 //		pos, p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10], p[11]);
@@ -710,7 +758,8 @@ static int command_rawread (int unitnum, uae_u8 *data, int sector, int size, int
 	struct cdtoc *t = findtoc (cdu, &sector);
 
 	if (!t || t->handle == NULL)
-		return 0;
+		goto end;
+
 	cdda_stop (cdu);
 	if (sectorsize > 0) {
 		if (sectorsize == 2352 && t->size == 2048) {
@@ -762,21 +811,27 @@ static int command_rawread (int unitnum, uae_u8 *data, int sector, int size, int
 		int edcecc = (cmd9 >> 3) & 1;
 		int errorfield = (cmd9 >> 1) & 3;
 		uae_u8 subs = extra & 7;
-		if (subs != 0 && subs != 1 && subs != 2 && subs != 4)
-			return -1;
+		if (subs != 0 && subs != 1 && subs != 2 && subs != 4) {
+			ret = -1;
+			goto end;
+		}
 
 		if (isaudiotrack (&cdu->di.toc, sector)) {
-			if (sectortype != 0 && sectortype != 1)
-				return -2;
-			if (t->size != 2352)
-				return -1;
+			if (sectortype != 0 && sectortype != 1) {
+				ret = -2;
+				goto end;
+			}
+			if (t->size != 2352) {
+				ret = -1;
+				goto end;
+			}
 			for (int i = 0; i < size; i++) {
 				zfile_fseek (t->handle, t->offset + sector * t->size, SEEK_SET);
 				zfile_fread (data, t->size, 1, t->handle);
 				uae_u8 *p = data + t->size;
 				if (subs) {
 					uae_u8 subdata[SUB_CHANNEL_SIZE];
-					getsub (subdata, cdu, t, sector);
+					getsub_deinterleaved (subdata, cdu, t, sector);
 					if (subs == 4) { // all, de-interleaved
 						memcpy (p, subdata, SUB_CHANNEL_SIZE);
 						p += SUB_CHANNEL_SIZE;
@@ -794,6 +849,7 @@ static int command_rawread (int unitnum, uae_u8 *data, int sector, int size, int
 			}
 		}
 	}
+end:
 	return ret;
 }
 
@@ -807,7 +863,7 @@ static int command_read (int unitnum, uae_u8 *data, int sector, int size)
 	struct cdtoc *t = findtoc (cdu, &sector);
 
 	if (!t || t->handle == NULL)
-		return NULL;
+		return 0;
 	cdda_stop (cdu);
 	if (t->size == 2048) {
 		zfile_fseek (t->handle, t->offset + sector * t->size, SEEK_SET);
@@ -1553,7 +1609,6 @@ static int parse_image (struct cdunit *cdu, const TCHAR *img)
 	return 1;
 }
 
-
 static int ismedia (int unitnum, int quick)
 {
 	struct cdunit *cdu = &cdunits[unitnum];
@@ -1569,7 +1624,6 @@ static struct device_info *info_device (int unitnum, struct device_info *di, int
 	if (!cdu->enabled)
 		return 0;
 	di->open = cdu->open;
-	di->slow_unit = cdu->slowunit;
 	di->removable = 1;
 	di->bus = unitnum;
 	di->target = 0;
@@ -1621,45 +1675,46 @@ static void unload_image (struct cdunit *cdu)
 static int open_device (int unitnum, const TCHAR *ident, int flags)
 {
 	struct cdunit *cdu = &cdunits[unitnum];
+	int ret = 0;
 
-	if (cdu->open)
-		return 0;
-	uae_sem_init (&cdu->sub_sem, 0, 1);
-	parse_image (cdu, ident);
-	cdu->open = true;
-	cdu->enabled = true;
-	cdu->cdda_volume[0] = 0x7fff;
-	cdu->cdda_volume[1] = 0x7fff;
-	cdu->slowunit = (flags & 1) != 0;
-	blkdev_cd_change (unitnum, currprefs.cdslots[unitnum].name);
-	if (cdimage_unpack_thread == 0) {
-		init_comm_pipe (&unpack_pipe, 10, 1);
-		uae_start_thread ("cdimage_unpack", cdda_unpack_func, NULL, NULL);
-		while (cdimage_unpack_thread == 0)
-			Sleep (10);
+	if (!cdu->open) {
+		uae_sem_init (&cdu->sub_sem, 0, 1);
+		parse_image (cdu, ident);
+		cdu->open = true;
+		cdu->enabled = true;
+		cdu->cdda_volume[0] = 0x7fff;
+		cdu->cdda_volume[1] = 0x7fff;
+		if (cdimage_unpack_thread == 0) {
+			init_comm_pipe (&unpack_pipe, 10, 1);
+			uae_start_thread ("cdimage_unpack", cdda_unpack_func, NULL, NULL);
+			while (cdimage_unpack_thread == 0)
+				Sleep (10);
+		}
+		ret = 1;
 	}
-	return 1;
+	blkdev_cd_change (unitnum, currprefs.cdslots[unitnum].name);
+	return ret;
 }
 
 static void close_device (int unitnum)
 {
 	struct cdunit *cdu = &cdunits[unitnum];
-	if (cdu->open == false)
-		return;
-	cdda_stop (cdu);
-	unload_image (cdu);
-	uae_sem_destroy (&cdu->sub_sem);
-	cdu->open = false;
-	blkdev_cd_change (unitnum, currprefs.cdslots[unitnum].name);
-	if (cdimage_unpack_thread) {
-		cdimage_unpack_thread = 0;
-		write_comm_pipe_u32 (&unpack_pipe, -1, 0);
-		write_comm_pipe_u32 (&unpack_pipe, -1, 1);
-		while (cdimage_unpack_thread == 0)
-			Sleep (10);
-		cdimage_unpack_thread = 0;
-		destroy_comm_pipe (&unpack_pipe);
+	if (cdu->open) {
+		cdda_stop (cdu);
+		unload_image (cdu);
+		uae_sem_destroy (&cdu->sub_sem);
+		cdu->open = false;
+		if (cdimage_unpack_thread) {
+			cdimage_unpack_thread = 0;
+			write_comm_pipe_u32 (&unpack_pipe, -1, 0);
+			write_comm_pipe_u32 (&unpack_pipe, -1, 1);
+			while (cdimage_unpack_thread == 0)
+				Sleep (10);
+			cdimage_unpack_thread = 0;
+			destroy_comm_pipe (&unpack_pipe);
+		}
 	}
+	blkdev_cd_change (unitnum, currprefs.cdslots[unitnum].name);
 }
 
 static void close_bus (void)
@@ -1690,7 +1745,7 @@ static int open_bus (int flags)
 }
 
 struct device_functions devicefunc_cdimage = {
-	L"IMAGE",
+	"IMAGE",
 	open_bus, close_bus, open_device, close_device, info_device,
 	0, 0, 0,
 	command_pause, command_stop, command_play, command_volume, command_qcode,

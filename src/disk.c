@@ -888,7 +888,6 @@ static int drive_insert (drive * drv, struct uae_prefs *p, int dnum, const TCHAR
 	int canauto;
 	const TCHAR *ext;
 
-	gui_disk_image_change (dnum, fname);
 	drive_image_free (drv);
 	DISK_validate_filename (fname, 1, &drv->wrprot, &drv->crc32, &drv->diskfile);
 	drv->ddhd = 1;
@@ -897,6 +896,8 @@ static int drive_insert (drive * drv, struct uae_prefs *p, int dnum, const TCHAR
 	drv->tracktiming[0] = 0;
 	drv->useturbo = 0;
 	drv->indexoffset = 0;
+
+	gui_disk_image_change (dnum, fname, drv->wrprot);
 
 	canauto = 0;
 	ext = _tcsrchr (fname, '.');
@@ -2023,7 +2024,7 @@ static void drive_eject (drive * drv)
 #ifdef DRIVESOUND
 	driveclick_insert (drv - floppy, 1);
 #endif
-	gui_disk_image_change (drv - floppy, NULL);
+	gui_disk_image_change (drv - floppy, NULL, drv->wrprot);
 	drive_image_free (drv);
 	drv->dskchange = 1;
 	drv->ddhd = 1;
@@ -2187,7 +2188,7 @@ void DISK_reinsert (int num)
 	setdskchangetime (&floppy[num], 20);
 }
 
-int disk_setwriteprotect (int num, const TCHAR *name, int protect)
+int disk_setwriteprotect (int num, const TCHAR *name, bool writeprotected)
 {
 	int needwritefile, oldprotect;
 	struct zfile *zf1, *zf2;
@@ -2209,7 +2210,7 @@ int disk_setwriteprotect (int num, const TCHAR *name, int protect)
 	if (needwritefile && zf2 == 0)
 		disk_creatediskfile (name2, 1, drvtype, NULL);
 	zfile_fclose (zf2);
-	if (protect && iswritefileempty (name)) {
+	if (writeprotected && iswritefileempty (name)) {
 		for (i = 0; i < MAX_FLOPPY_DRIVES; i++) {
 			if (!_tcscmp (name, floppy[i].newname))
 				drive_eject (&floppy[i]);
@@ -2218,8 +2219,8 @@ int disk_setwriteprotect (int num, const TCHAR *name, int protect)
 	}
 
 	if (!needwritefile)
-		diskfile_readonly (name, protect);
-	diskfile_readonly (name2, protect);
+		diskfile_readonly (name, writeprotected);
+	diskfile_readonly (name2, writeprotected);
 	DISK_reinsert (num);
 	return 1;
 }
@@ -2234,7 +2235,7 @@ void disk_eject (int num)
 	update_drive_gui (num);
 }
 
-int DISK_history_add (const char *name, int idx, int type, int donotcheck)
+int DISK_history_add (const TCHAR *name, int idx, int type, int donotcheck)
 {
 	int i;
 
@@ -2288,14 +2289,14 @@ int DISK_history_add (const char *name, int idx, int type, int donotcheck)
 	return 1;
 }
 
-char *DISK_history_get (int idx, int type)
+TCHAR *DISK_history_get (int idx, int type)
 {
 	if (idx >= MAX_PREVIOUS_FLOPPIES)
 		return NULL;
 	return dfxhistory[type][idx];
 }
 
-static void disk_insert_2 (int num, const char *name, int forced)
+static void disk_insert_2 (int num, const TCHAR *name, int forced)
 {
 	drive *drv = floppy + num;
 
@@ -2322,13 +2323,13 @@ static void disk_insert_2 (int num, const char *name, int forced)
 	}
 }
 
-void disk_insert (int num, const char *name)
+void disk_insert (int num, const TCHAR *name)
 {
 	config_changed = 1;
 //	target_addtorecent (name, 0);
 	disk_insert_2 (num, name, 0);
 }
-void disk_insert_force (int num, const char *name)
+void disk_insert_force (int num, const TCHAR *name)
 {
 	disk_insert_2 (num, name, 1);
 }
@@ -2379,10 +2380,10 @@ int disk_empty (int num)
 	return drive_empty (floppy + num);
 }
 
-static char *tobin (uae_u8 v)
+static TCHAR *tobin (uae_u8 v)
 {
 	int i;
-	static char buf[10];
+	static TCHAR buf[10];
 	for( i = 7; i >= 0; i--)
 		buf[7 - i] = v & (1 << i) ? '1' : '0';
 	buf[i] = 0;

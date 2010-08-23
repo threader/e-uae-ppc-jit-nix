@@ -62,115 +62,14 @@ static int data_in_serdatr; /* new data received */
 // --- dinput.cpp START ---
 int rawkeyboard = -1;
 int no_rawinput;
-// --- dinput.cpp END -----
-
-static uae_u32 REGPARAM2 gfxmem_lgetx (uaecptr addr)
-{
-	uae_u32 *m;
-	addr -= gfxmem_start & gfxmem_mask;
-	addr &= gfxmem_mask;
-	m = (uae_u32 *)(gfxmemory + addr);
-	return do_get_mem_long (m);
-}
-
-static uae_u32 REGPARAM2 gfxmem_wgetx (uaecptr addr)
-{
-	uae_u16 *m;
-	addr -= gfxmem_start & gfxmem_mask;
-	addr &= gfxmem_mask;
-	m = (uae_u16 *)(gfxmemory + addr);
-	return do_get_mem_word (m);
-}
-
-static uae_u32 REGPARAM2 gfxmem_bgetx (uaecptr addr)
-{
-	addr -= gfxmem_start & gfxmem_mask;
-	addr &= gfxmem_mask;
-	return gfxmemory[addr];
-}
-
-static void REGPARAM2 gfxmem_lputx (uaecptr addr, uae_u32 l)
-{
-	uae_u32 *m;
-	addr -= gfxmem_start & gfxmem_mask;
-	addr &= gfxmem_mask;
-	m = (uae_u32 *)(gfxmemory + addr);
-	do_put_mem_long (m, l);
-}
-
-static void REGPARAM2 gfxmem_wputx (uaecptr addr, uae_u32 w)
-{
-	uae_u16 *m;
-	addr -= gfxmem_start & gfxmem_mask;
-	addr &= gfxmem_mask;
-	m = (uae_u16 *)(gfxmemory + addr);
-	do_put_mem_word (m, (uae_u16)w);
-}
-
-static void REGPARAM2 gfxmem_bputx (uaecptr addr, uae_u32 b)
-{
-	addr -= gfxmem_start & gfxmem_mask;
-	addr &= gfxmem_mask;
-	gfxmemory[addr] = b;
-}
-
-static int REGPARAM2 gfxmem_check (uaecptr addr, uae_u32 size)
-{
-	addr -= gfxmem_start & gfxmem_mask;
-	addr &= gfxmem_mask;
-	return (addr + size) < allocated_gfxmem;
-}
-
-static uae_u8 *REGPARAM2 gfxmem_xlate (uaecptr addr)
-{
-	addr -= gfxmem_start & gfxmem_mask;
-	addr &= gfxmem_mask;
-	return gfxmemory + addr;
-}
-
-
-addrbank gfxmem_bankx = {
-	gfxmem_lgetx, gfxmem_wgetx, gfxmem_bgetx,
-	gfxmem_lputx, gfxmem_wputx, gfxmem_bputx,
-	gfxmem_xlate, gfxmem_check, NULL, "RTG RAM",
-	dummy_lgeti, dummy_wgeti, ABFLAG_RAM
-};
 
 void getgfxoffset (int *dxp, int *dyp, int *mxp, int *myp)
 {
-*dxp = 0;
-*dyp = 0;
-*mxp = 0;
-*myp = 0;
-/*
-        int dx, dy;
-
-        getfilteroffset (&dx, &dy, mxp, myp);
-        *dxp = dx;
-        *dyp = dy;
-        if (picasso_on) {
-                dx = picasso_offset_x;
-                dy = picasso_offset_y;
-                *mxp = picasso_offset_mx;
-                *myp = picasso_offset_my;
-        }
-        *dxp = dx;
-        *dyp = dy;
-        if (currentmode->flags & DM_W_FULLSCREEN) {
-                if (scalepicasso && screen_is_picasso)
-                        return;
-                if (usedfilter && !screen_is_picasso)
-                        return;
-                if (currentmode->fullfill && (currentmode->current_width > currentmode->native_width || currentmode->current_height > currentmode->native_height))
-                        return;
-                dx += (currentmode->native_width - currentmode->current_width) / 2;
-                dy += (currentmode->native_height - currentmode->current_height) / 2;
-        }
-        *dxp = dx;
-        *dyp = dy;
-*/
+	*dxp = 0;
+	*dyp = 0;
+	*mxp = 0;
+	*myp = 0;
 }
-
 
 int is_tablet (void)
 {
@@ -332,6 +231,7 @@ static int driveclick_fdrawcmd_open_2(int drive)
                 return 0;
         return 1;
 */
+                return 0;
 }
 
 int driveclick_fdrawcmd_open(int drive)
@@ -342,6 +242,7 @@ int driveclick_fdrawcmd_open(int drive)
         driveclick_fdrawcmd_init(drive);
         return 1;
 */
+                return 0;
 }
 
 void driveclick_fdrawcmd_detect(void)
@@ -406,7 +307,7 @@ static int driveclick_fdrawcmd_init(int drive)
 
 uae_u32 emulib_target_getcpurate (uae_u32 v, uae_u32 *low)
 {
-/*
+#ifdef _WIN32
         *low = 0;
         if (v == 1) {
                 LARGE_INTEGER pf;
@@ -421,40 +322,21 @@ uae_u32 emulib_target_getcpurate (uae_u32 v, uae_u32 *low)
                 *low = pf.LowPart;
                 return pf.HighPart;
         }
-*/
-        return 0;
-}
+#else
 /*
-int isfat (uae_u8 *p)
-{
-	int i, b;
+	static struct timeval _tstart, _tend;
+	static struct timezone tz;
 
-	if ((p[0x15] & 0xf0) != 0xf0)
-		return 0;
-	if (p[0x0b] != 0x00 || p[0x0c] != 0x02)
-		return 0;
-	b = 0;
-	for (i = 0; i < 8; i++) {
-		if (p[0x0d] & (1 << i))
-			b++;
+	*low = 0;
+	if (v == 1) {
+		gettimeofday (&_tstart, &tz);
+	} else if (v == 2) {
+		gettimeofday (&_tend, &tz);
 	}
-	if (b != 1)
-		return 0;
-	if (p[0x0f] != 0)
-		return 0;
-	if (p[0x0e] > 8 || p[0x0e] == 0)
-		return 0;
-	if (p[0x10] == 0 || p[0x10] > 8)
-		return 0;
-	b = (p[0x12] << 8) | p[0x11];
-	if (b > 8192 || b <= 0)
-		return 0;
-	b = p[0x16] | (p[0x17] << 8);
-	if (b == 0 || b > 8192)
-		return 0;
-	return 1;
-}
 */
+#endif
+}
+
 void setmouseactivexy (int x, int y, int dir)
 {
 /*        int diff = 8;
@@ -531,11 +413,10 @@ int my_getvolumeinfo (const char *root)
                 return -1;
         if (!S_ISDIR(sonuc.st_mode))
                 return -1;
-//------------
         return ret;
 }
 
-// --- clipboard.c --- temporary here ---
+// clipboard.c
 static uaecptr clipboard_data;
 static int vdelay, signaling, initialized;
 
@@ -744,7 +625,7 @@ uae_u8 *save_log (int bootlog, int *len)
         return dst;
 }
 
-// --- win32gui.c
+// win32gui.c
 #define MAX_ROM_PATHS 10
 int scan_roms (int show)
 {
@@ -768,7 +649,7 @@ end:
         return ret;
 }
 
-// -- dinput.c
+// dinput.c
 int input_get_default_lightpen (struct uae_input_device *uid, int i, int port, int af)
 {
 /*        struct didata *did;
@@ -962,18 +843,18 @@ void debugger_change (int mode)
 //        regsetint (NULL, "DebuggerType", debugger_type);
         openconsole ();
 }
-//unicode.c
+// unicode.c
 char *ua (const TCHAR *s)
 {
         return s;
 }
 
-//keyboard.c
+// keyboard.c
 void clearallkeys (void)
 {
         inputdevice_updateconfig (&currprefs);
 }
-//fsdb_mywin32.c
+// fsdb_mywin32.c
 FILE *my_opentext (const TCHAR *name)
 {
         FILE *f;

@@ -2725,7 +2725,7 @@ int gui_init (void)
 	return 1;
 }
 
-void gui_disk_image_change (int unitnum, const TCHAR *name) {}
+void gui_disk_image_change (int unitnum, const TCHAR *name, bool writeprotected) {}
 void gui_lock (void) {}
 void gui_unlock (void) {}
 

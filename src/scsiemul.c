@@ -709,7 +709,7 @@ static int dev_do_io (struct devstruct *dev, uaecptr request)
 				}
 			}
 		} else {
-			io_error = CDERR_NotSpecified;
+			io_error = IOERR_NotSpecified;
 		}
 	}
 	break;
@@ -848,7 +848,7 @@ static int dev_do_io (struct devstruct *dev, uaecptr request)
 				put_long (io_data + 8, diskpos);
 				io_actual = 12;
 			} else {
-				io_error = CDERR_InvalidState;
+				io_error = IOERR_InvalidState;
 			}
 		} else {
 			io_error = IOERR_BADADDRESS;
@@ -1006,7 +1006,7 @@ static uae_u32 REGPARAM2 dev_abortio (TrapContext *context)
 	}
 	put_byte (request + 31, IOERR_ABORTED);
 	if (log_scsi)
-		write_log ("abortio %s unit=%d, request=%08.8X\n", getdevname (pdev->type), pdev->unit, request);
+		write_log ("abortio %s unit=%d, request=%08X\n", getdevname (pdev->type), pdev->unit, request);
 	abort_async (dev, request, IOERR_ABORTED, 0);
 	return 0;
 }

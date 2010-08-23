@@ -1769,9 +1769,9 @@ static int cfgfile_parse_host (struct uae_prefs *p, TCHAR *option, TCHAR *value)
 	return 0;
 }
 
-static void decode_rom_ident (TCHAR *romfile, int maxlen, TCHAR *ident)
+static void decode_rom_ident (TCHAR *romfile, int maxlen, const TCHAR *ident, int romflags)
 {
-	TCHAR *p;
+	const TCHAR *p;
 	int ver, rev, subver, subrev, round, i;
 	TCHAR model[64], *modelp;
 	struct romlist **rl;
@@ -1796,7 +1796,7 @@ static void decode_rom_ident (TCHAR *romfile, int maxlen, TCHAR *ident)
 				pp1 = &subver;
 				pp2 = &subrev;
 			} else if (!_istdigit(c) && c != ' ') {
-				_tcsncpy (model, p - 1, (sizeof model) - 1);
+				_tcsncpy (model, p - 1, (sizeof model) / sizeof (TCHAR) - 1);
 				p += _tcslen (model);
 				modelp = model;
 			}
@@ -1811,7 +1811,7 @@ static void decode_rom_ident (TCHAR *romfile, int maxlen, TCHAR *ident)
 				}
 			}
 			if (*p == 0 || *p == ';') {
-				rl = getromlistbyident (ver, rev, subver, subrev, modelp, round);
+				rl = getromlistbyident (ver, rev, subver, subrev, modelp, romflags, round > 0);
 				if (rl) {
 					for (i = 0; rl[i]; i++) {
 						if (round) {
@@ -2102,15 +2102,15 @@ static int cfgfile_parse_hardware (struct uae_prefs *p, TCHAR *option, TCHAR *va
 		return 1;
 	}
 	if (cfgfile_string (option, value, "kickstart_rom", p->romident, sizeof p->romident / sizeof (TCHAR))) {
-		decode_rom_ident (p->romfile, sizeof p->romfile / sizeof (TCHAR), p->romident);
+		decode_rom_ident (p->romfile, sizeof p->romfile / sizeof (TCHAR), p->romident, ROMTYPE_ALL_KICK);
 		return 1;
 	}
 	if (cfgfile_string (option, value, "kickstart_ext_rom", p->romextident, sizeof p->romextident / sizeof (TCHAR))) {
-		decode_rom_ident (p->romextfile, sizeof p->romextfile / sizeof (TCHAR), p->romextident);
+		decode_rom_ident (p->romextfile, sizeof p->romextfile / sizeof (TCHAR), p->romextident, ROMTYPE_ALL_EXT);
 		return 1;
 	}
 	if (cfgfile_string (option, value, "cart", p->cartident, sizeof p->cartident / sizeof (TCHAR))) {
-		decode_rom_ident (p->cartfile, sizeof p->cartfile / sizeof (TCHAR), p->cartident);
+		decode_rom_ident (p->cartfile, sizeof p->cartfile / sizeof (TCHAR), p->cartident, ROMTYPE_ALL_CART);
 		return 1;
 	}
 

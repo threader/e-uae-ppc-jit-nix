@@ -503,4 +503,5 @@ void ncr_init (void)
 	}
 	map_banks (&ncr_bank, 0xe80000 >> 16, 65536 >> 16, 0);
 }
+
 #endif //ncr
