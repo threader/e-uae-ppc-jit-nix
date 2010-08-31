@@ -20,3 +20,5 @@ rm -rf `find . -type d -name autom4te.cache`
 rm -rf `find . -type d -name .deps`
 rm -rf `find . -type f -name Makefile`
 rm -rf `find . -type f -name *~`
+rm -rf `find . -type f -name *.o`
+rm -rf `find . -type f -name *.a`
