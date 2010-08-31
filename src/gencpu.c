@@ -1640,7 +1640,7 @@ static void gen_opcode (unsigned long int opcode)
 		genamode (curi->smode, "srcreg", curi->size, "src", 1, 0, 0);
 		genamode (curi->dmode, "dstreg", sz_long, "dst", 1, 0, 0);
 		if (curi->smode == immi) {
-			c = curi->size == sz_long ? 2 : 4;
+			// SUBAQ.x is always 8 cycles
 			c += 4;
 		} else {
 			c = curi->size == sz_long ? 2 : 4;
@@ -1726,7 +1726,7 @@ static void gen_opcode (unsigned long int opcode)
 		genamode (curi->smode, "srcreg", curi->size, "src", 1, 0, 0);
 		genamode (curi->dmode, "dstreg", sz_long, "dst", 1, 0, 0);
 		if (curi->smode == immi) {
-			c = curi->size == sz_long ? 2 : 4;
+			// ADDAQ.x is always 8 cycles
 			c += 4;
 		} else {
 			c = curi->size == sz_long ? 2 : 4;

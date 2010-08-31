@@ -13,6 +13,7 @@
 #include "uae.h"
 #include "zfile.h"
 
+#define DRIVER
 #include <catweasl_usr.h>
 
 struct catweasel_contr cwc;
@@ -297,16 +298,17 @@ uae_u32	catweasel_do_bget (uaecptr addr)
 	return buf2[0];
 }
 
-void catweasel_do_bput (uaecptr addr, uae_u32 b)
+void catweasel_do_bput (uaecptr	addr, uae_u32 b)
 {
 	if (addr >= 0x100)
 		return;
-#if 0
+
 	uae_u8 buf[2];
 	DWORD did_read = 0;
 
 	buf[0] = (uae_u8)addr;
 	buf[1] = b;
+#if 0
 	if (handle != INVALID_HANDLE_VALUE) {
 		if (!DeviceIoControl (handle, CW_POKEREG_FULL, buf, 2, 0, 0, &did_read, 0))
 			write_log ("catweasel_do_bput %02x=%02x fail err=%d\n", buf[0], buf[1], GetLastError ());

@@ -1323,7 +1323,8 @@ static int cfgfile_parse_host (struct uae_prefs *p, TCHAR *option, TCHAR *value)
 					*next2++ = 0;
 				cfgfile_intval (option, next, tmp, &unitnum, 1);
 			}
-			_tcsncpy (p->cdslots[i].name, value, sizeof p->cdslots[i].name / sizeof (TCHAR));
+			if (_tcslen (value) > 0)
+				_tcsncpy (p->cdslots[i].name, value, sizeof p->cdslots[i].name / sizeof (TCHAR));
 			p->cdslots[i].name[sizeof p->cdslots[i].name - 1] = 0;
 			p->cdslots[i].inuse = true;
 			p->cdslots[i].type = type;
@@ -3050,8 +3051,8 @@ int parse_cmdline_option (struct uae_prefs *p, TCHAR c, const TCHAR *arg)
 	case '2': cmdpath (p->floppyslots[2].df, arg, 255); break;
 	case '3': cmdpath (p->floppyslots[3].df, arg, 255); break;
 	case 'r': cmdpath (p->romfile, arg, 255); break;
-	case 'K': strncpy (p->keyfile, arg, 255); p->keyfile[255] = 0; break;
-	case 'p': cmdpath (p->prtname, arg, 255); break;
+	case 'K': cmdpath (p->romextfile, arg, 255); break;
+	case 'p': _tcsncpy (p->prtname, arg, 255); p->prtname[255] = 0; break;
 	case 'I': cmdpath (p->sername, arg, 255); currprefs.use_serial = 1; break;
 	case 'm': case 'M': parse_filesys_spec (p, c == 'M', arg); break;
 	case 'W': parse_hardfile_spec (p, arg); break;
@@ -3500,7 +3501,6 @@ uae_u32 cfgfile_uaelib_modify (uae_u32 index, uae_u32 parms, uae_u32 size, uae_u
 			break;
 	}
 	p[i] = 0;
-	out_p[0] = 0;
 	ret = cfgfile_modify (index, parms_p, size, out_p, outsize);
 	if (out) {
 		p = out_p;

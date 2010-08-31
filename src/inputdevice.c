@@ -57,24 +57,8 @@ extern int bootrom_header, bootrom_items;
 
 int inputdevice_logging = 0;
 
-#define DIR_LEFT 1
-#define DIR_RIGHT 2
-#define DIR_UP 4
-#define DIR_DOWN 8
-
 #define IE_INVERT 0x80
 #define IE_CDTV 0x100
-
-#define JOYBUTTON_1 0 /* fire/left mousebutton */
-#define JOYBUTTON_2 1 /* 2nd/right mousebutton */
-#define JOYBUTTON_3 2 /* 3rd/middle mousebutton */
-#define JOYBUTTON_CD32_PLAY 3
-#define JOYBUTTON_CD32_RWD 4
-#define JOYBUTTON_CD32_FFW 5
-#define JOYBUTTON_CD32_GREEN 6
-#define JOYBUTTON_CD32_YELLOW 7
-#define JOYBUTTON_CD32_RED 8
-#define JOYBUTTON_CD32_BLUE 9
 
 #define INPUTEVENT_JOY1_CD32_FIRST INPUTEVENT_JOY1_CD32_PLAY
 #define INPUTEVENT_JOY2_CD32_FIRST INPUTEVENT_JOY2_CD32_PLAY
@@ -1850,8 +1834,11 @@ static int getvelocity (int num, int subnum, int pct)
 		else if (val > 0)
 			v = 1;
 	}
-	if (!mouse_deltanoreset[num][subnum])
+	if (!mouse_deltanoreset[num][subnum]) {
 		mouse_delta[num][subnum] -= v;
+		gui_gameport_axis_change (num, subnum * 2 + 0, 0, -1);
+		gui_gameport_axis_change (num, subnum * 2 + 1, 0, -1);
+	}
 	return v;
 }
 
@@ -2886,14 +2873,10 @@ int handle_input_event (int nr, int state, int max, int autofire)
 
 			if (state) {
 				joybutton[joy] |= 1 << ie->data;
-#ifdef RETROPLATFORM
-				rp_update_gameport (joy, RP_JOYSTICK_BUTTON1 << ie->data, 1);
-#endif
+				gui_gameport_button_change (joy, ie->data, 1);
 			} else {
 				joybutton[joy] &= ~(1 << ie->data);
-#ifdef RETROPLATFORM
-				rp_update_gameport (joy, RP_JOYSTICK_BUTTON1 << ie->data, 0);
-#endif
+				gui_gameport_button_change (joy, ie->data, 0);
 			}
 
 			if (ie->data == 0 && old != (joybutton[joy] & (1 << ie->data)) && currprefs.cpu_cycle_exact) {
@@ -2935,7 +2918,30 @@ int handle_input_event (int nr, int state, int max, int autofire)
 					delta = -JOYMOUSE_CDTV;
 			}
 
-			mouse_delta[joy][unit] += delta * ((ie->data & IE_INVERT) ? -1 : 1);
+			if (ie->data & IE_INVERT)
+				delta = -delta;
+			mouse_delta[joy][unit] += delta;
+
+			max = 32;
+			if (unit) {
+				if (delta < 0) {
+					gui_gameport_axis_change (joy, DIR_UP_BIT, abs (delta), max);
+					gui_gameport_axis_change (joy, DIR_DOWN_BIT, 0, max);
+				}
+				if (delta > 0) {
+					gui_gameport_axis_change (joy, DIR_DOWN_BIT, abs (delta), max);
+					gui_gameport_axis_change (joy, DIR_UP_BIT, 0, max);
+				}
+			} else {
+				if (delta < 0) {
+					gui_gameport_axis_change (joy, DIR_LEFT_BIT, abs (delta), max);
+					gui_gameport_axis_change (joy, DIR_RIGHT_BIT, 0, max);
+				}
+				if (delta > 0) {
+					gui_gameport_axis_change (joy, DIR_RIGHT_BIT, abs (delta), max);
+					gui_gameport_axis_change (joy, DIR_LEFT_BIT, 0, max);
+				}
+			}
 
 		} else if (ie->type & 32) { /* button mouse emulation vertical */
 
@@ -2979,6 +2985,19 @@ int handle_input_event (int nr, int state, int max, int autofire)
 			}
 			if (ie->data & IE_INVERT)
 				state = -state;
+
+			if (!unit) {
+				if (state <= 0)
+					gui_gameport_axis_change (joy, DIR_UP_BIT, abs (state), max);
+				if (state >= 0)
+					gui_gameport_axis_change (joy, DIR_DOWN_BIT, abs (state), max);
+			} else {
+				if (state <= 0)
+					gui_gameport_axis_change (joy, DIR_LEFT_BIT, abs (state), max);
+				if (state >= 0)
+					gui_gameport_axis_change (joy, DIR_RIGHT_BIT, abs (state), max);
+			}
+
 			state = state * currprefs.input_analog_joystick_mult / max;
 			state += (128 * currprefs.input_analog_joystick_mult / 100) + currprefs.input_analog_joystick_offset;
 			if (state < 0)
@@ -2986,6 +3005,8 @@ int handle_input_event (int nr, int state, int max, int autofire)
 			if (state > 255)
 				state = 255;
 			joydirpot[joy][unit] = state;
+			mouse_deltanoreset[joy][0] = 1;
+			mouse_deltanoreset[joy][1] = 1;
 
 		} else {
 
@@ -3017,6 +3038,8 @@ int handle_input_event (int nr, int state, int max, int autofire)
 				if (ie->data & DIR_DOWN)
 					bot = obot[joy] = pos;
 			}
+			mouse_deltanoreset[joy][0] = 1;
+			mouse_deltanoreset[joy][1] = 1;
 			joydir[joy] = 0;
 			if (left)
 				joydir[joy] |= DIR_LEFT;
@@ -3026,12 +3049,10 @@ int handle_input_event (int nr, int state, int max, int autofire)
 				joydir[joy] |= DIR_UP;
 			if (bot)
 				joydir[joy] |= DIR_DOWN;
-#ifdef RETROPLATFORM
-			rp_update_gameport (joy, RP_JOYSTICK_LEFT, left);
-			rp_update_gameport (joy, RP_JOYSTICK_RIGHT, right);
-			rp_update_gameport (joy, RP_JOYSTICK_DOWN, bot);
-			rp_update_gameport (joy, RP_JOYSTICK_UP, top);
-#endif
+			gui_gameport_axis_change (joy, DIR_LEFT_BIT, left, 0);
+			gui_gameport_axis_change (joy, DIR_RIGHT_BIT, right, 0);
+			gui_gameport_axis_change (joy, DIR_UP_BIT, top, 0);
+			gui_gameport_axis_change (joy, DIR_DOWN_BIT, bot, 0);
 		}
 		break;
 	case 0: /* ->KEY */

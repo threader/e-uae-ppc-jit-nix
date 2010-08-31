@@ -156,3 +156,5 @@ void amax_init (void)
 }
 
 #endif //ifdef amax
+
+

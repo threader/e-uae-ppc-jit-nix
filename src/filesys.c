@@ -3124,7 +3124,7 @@ static int exalldo (uaecptr exalldata, uae_u32 exalldatasize, uae_u32 type, uaec
 	put_long (control + 0, get_long (control + 0) + 1);
 	ret = 1;
 end:
-	xfree (x);
+	//xaind: xfree (x);
 	xfree (comment);
 	return ret;
 }
@@ -3397,7 +3397,7 @@ static void populate_directory (Unit *unit, a_inode *base)
 				ok = zfile_readdir_archive(d->zd, fn);
 			else*/
 				ok = readdir (d->od);
-		} while (ok && !d->isarch && fsdb_name_invalid (ok->d_name));
+		} while (ok /*&& !d->isarch*/ && fsdb_name_invalid (ok->d_name));
 		if (!ok)
 			break;
 		/* This calls init_child_aino, which will notice that the parent is

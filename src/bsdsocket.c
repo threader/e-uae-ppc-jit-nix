@@ -770,7 +770,6 @@ static uae_u32 REGPARAM2 bsdsocklib_ReleaseSocket (TrapContext *context)
 		sockdata->sockpoolflags[i] = flags;
 
 		BSDTRACE (("id %d s 0x%x\n", id,s));
-
 	} else {
 		BSDTRACE (("[invalid socket descriptor]\n"));
 		return -1;

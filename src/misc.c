@@ -333,6 +333,12 @@ uae_u32 emulib_target_getcpurate (uae_u32 v, uae_u32 *low)
 	} else if (v == 2) {
 		gettimeofday (&_tend, &tz);
 	}
+	double t1, t2;
+
+	t1 =  (double)_tstart.tv_sec + (double)_tstart.tv_usec/(1000*1000);
+	t2 =  (double)_tend.tv_sec + (double)_tend.tv_usec/(1000*1000);
+	return t2-t1;
+
 */
 #endif
 }

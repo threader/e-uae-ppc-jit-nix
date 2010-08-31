@@ -1895,7 +1895,7 @@ err:
 
 #ifndef NATMEM_OFFSET
 
-uae_u8 *mapped_malloc (size_t s, const char *file)
+uae_u8 *mapped_malloc (size_t s, const TCHAR *file)
 {
 	return xmalloc (uae_u8, s);
 }
@@ -2057,7 +2057,7 @@ static void add_shmmaps (uae_u32 start, addrbank *what)
  * direct memory access will be disabled and memory allocated via
  * malloc().
  */
-uae_u8 *mapped_malloc (size_t s, const char *file)
+uae_u8 *mapped_malloc (size_t s, const TCHAR *file)
 {
 	int id;
 	void *answer;
@@ -2727,7 +2727,7 @@ void memory_cleanup (void)
 	if (cardmemory) {
 #ifdef CDTV
 		cdtv_savecardmem (cardmemory, allocated_cardmem);
-#endif //CDTV
+#endif
 		mapped_free (cardmemory);
 	}
 	if (custmem1)

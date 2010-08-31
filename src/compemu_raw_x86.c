@@ -122,7 +122,7 @@ uae_u8 need_to_preserve[]={1,1,1,1,0,1,1,1};
 
 //#include "compemu_optimizer_x86.c"
 
-STATIC_INLINE uae_u16 swap16 (uae_u16 x)
+STATIC_INLINE uae_u16 swap16(uae_u16 x)
 {
 	return ((x&0xff00)>>8)|((x&0x00ff)<<8);
 }
@@ -1702,7 +1702,7 @@ static uae_u8 *veccode;
 #endif
 
 extern int mman_guard_exception (LPEXCEPTION_POINTERS);
-int EvalException ( LPEXCEPTION_POINTERS blah, int n_except )
+int EvalException (LPEXCEPTION_POINTERS blah, int n_except)
 {
 	PEXCEPTION_RECORD pExceptRecord = NULL;
 	PCONTEXT          pContext = NULL;
@@ -1853,11 +1853,11 @@ int EvalException ( LPEXCEPTION_POINTERS blah, int n_except )
 #ifdef JIT_DEBUG
 				if ((addr>=0x10000000 && addr<0x40000000) ||
 					(addr>=0x50000000)) {
-					write_log ("JIT: Suspicious address 0x%x in SEGV handler.\n",addr);
+						write_log ("JIT: Suspicious address 0x%x in SEGV handler.\n",addr);
 				}
 #endif
 				if (dir==SIG_READ) {
-					switch(size) {
+					switch (size) {
 					case 1: *((uae_u8*)pr)=get_byte (addr); break;
 					case 2: *((uae_u16*)pr)=swap16(get_word (addr)); break;
 					case 4: *((uae_u32*)pr)=swap32(get_long (addr)); break;
@@ -1865,7 +1865,7 @@ int EvalException ( LPEXCEPTION_POINTERS blah, int n_except )
 					}
 				}
 				else { /* write */
-					switch(size) {
+					switch (size) {
 					case 1: put_byte (addr,*((uae_u8*)pr)); break;
 					case 2: put_word (addr,swap16(*((uae_u16*)pr))); break;
 					case 4: put_long (addr,swap32(*((uae_u32*)pr))); break;
@@ -1889,7 +1889,7 @@ int EvalException ( LPEXCEPTION_POINTERS blah, int n_except )
 #ifdef JIT_DEBUG
 				if ((addr>=0x10000000 && addr<0x40000000) ||
 					(addr>=0x50000000)) {
-					write_log ("JIT: Suspicious address 0x%x in SEGV handler.\n",addr);
+						write_log ("JIT: Suspicious address 0x%x in SEGV handler.\n",addr);
 				}
 #endif
 
@@ -2262,7 +2262,7 @@ static void vec(int x, struct sigcontext sc)
 #endif
 	signal(SIGSEGV,SIG_DFL);  /* returning here will cause a "real" SEGV */
 }
-# endif
+#endif
 #endif
 
 /*************************************************************************
@@ -2270,15 +2270,15 @@ static void vec(int x, struct sigcontext sc)
  *************************************************************************/
 
 struct cpuinfo_x86 {
-	uae_u8	x86;		// CPU family
-	uae_u8	x86_vendor;	// CPU vendor
+	uae_u8	x86;			// CPU family
+	uae_u8	x86_vendor;		// CPU vendor
 	uae_u8	x86_processor;	// CPU canonical processor type
 	uae_u8	x86_brand_id;	// CPU BrandID if supported, yield 0 otherwise
 	uae_u32	x86_hwcap;
 	uae_u8	x86_model;
 	uae_u8	x86_mask;
-	int cpuid_level;	// Maximum supported CPUID level, -1=no CPUID
-	char x86_vendor_id[16];
+	int		cpuid_level;	// Maximum supported CPUID level, -1=no CPUID
+	char	x86_vendor_id[16];
 };
 struct cpuinfo_x86 cpuinfo;
 
@@ -2391,7 +2391,7 @@ static void cpuid (uae_u32 op, uae_u32 *eax, uae_u32 *ebx, uae_u32 *ecx, uae_u32
 	cache_free (cpuid_space);
 }
 
-static void raw_init_cpu (void)
+static void raw_init_cpu(void)
 {
 	struct cpuinfo_x86 *c = &cpuinfo;
 	uae_u32 xlvl;
