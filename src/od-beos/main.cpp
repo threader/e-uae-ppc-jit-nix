@@ -107,7 +107,7 @@ void target_save_options (FILE *f, const struct uae_prefs *p)
 {
 }
 
-int target_parse_option (struct uae_prefs *p, const char *option, const char *value)
+int target_parse_option (struct uae_prefs *p, const TCHAR *option, const TCHAR *value)
 {
     return 0;
 }

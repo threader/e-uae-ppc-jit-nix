@@ -398,6 +398,7 @@ struct uae_prefs {
 	bool win32_alwaysontop;
 	bool win32_powersavedisabled;
 	bool win32_minimize_inactive;
+	int win32_statusbar;
 
 	int win32_active_priority;
 	int win32_inactive_priority;
@@ -517,11 +518,11 @@ extern int cfgfile_string (const TCHAR *option, const TCHAR *value, const TCHAR 
 extern TCHAR *cfgfile_subst_path (const TCHAR *path, const TCHAR *subst, const TCHAR *file);
 
 extern TCHAR *target_expand_environment (const TCHAR *path);
-extern int target_parse_option (struct uae_prefs *, TCHAR *option, TCHAR *value);
+extern int target_parse_option (struct uae_prefs *, const TCHAR *option, const TCHAR *value);
 /*extern void target_save_options (struct zfile*, struct uae_prefs *);
 extern void target_default_options (struct uae_prefs *, int type);
 extern void target_fixup_options (struct uae_prefs *);
-extern int target_cfgfile_load (struct uae_prefs *, TCHAR *filename, int type, int isdefault);
+extern int target_cfgfile_load (struct uae_prefs *, const TCHAR *filename, int type, int isdefault);
 extern void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type);
 
 extern int cfgfile_load (struct uae_prefs *p, const TCHAR *filename, int *type, int ignorelink, int userconfig);
@@ -537,8 +538,8 @@ extern uae_u32 cfgfile_modify (uae_u32 index, TCHAR *parms, uae_u32 size, TCHAR 
 extern void cfgfile_addcfgparam (TCHAR *);
 extern int built_in_prefs (struct uae_prefs *p, int model, int config, int compa, int romcheck);
 extern int built_in_chipset_prefs (struct uae_prefs *p);
-extern int cmdlineparser (TCHAR *s, TCHAR *outp[], int max);
-extern int cfgfile_configuration_change(int);
+extern int cmdlineparser (const TCHAR *s, TCHAR *outp[], int max);
+extern int cfgfile_configuration_change (int);
 extern void fixup_prefs_dimensions (struct uae_prefs *prefs);
 extern void fixup_prefs (struct uae_prefs *prefs);
 extern void fixup_cpu (struct uae_prefs *prefs);

@@ -642,7 +642,7 @@ static void parse_cmdline_and_init_file (int argc, TCHAR **argv)
 	/* sam: if not found in $HOME then look in current directory */
 	char *saved_path = strdup (optionsfile);
 	strcpy (optionsfile, OPTIONSFILENAME);
-	if (! target_cfgfile_load (&currprefs, optionsfile, 0, 0) ) {
+	if (! target_cfgfile_load (&currprefs, optionsfile, 0) ) {
 		/* If not in current dir either, change path back to home
 		 * directory - so that a GUI can save a new config file there */
 		strcpy (optionsfile, saved_path);

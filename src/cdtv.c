@@ -1918,15 +1918,4 @@ void restore_cdtv_finish (void)
 }
 
 #endif
-
-void cdtv_entergui (void)
-{
-	if (cd_playing && !cd_paused)
-		write_comm_pipe_u32 (&requests, 0x102, 1);
-}
-void cdtv_exitgui (void)
-{
-	if (cd_playing && !cd_paused)
-		write_comm_pipe_u32 (&requests, 0x103, 1);
-}
 #endif

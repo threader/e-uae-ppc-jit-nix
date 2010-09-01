@@ -362,13 +362,16 @@ static int get_standard_cd_unit2 (unsigned int csu)
 	int unitnum = 0;
 	int isaudio = 0;
 	if (currprefs.cdslots[unitnum].name[0] || currprefs.cdslots[unitnum].inuse) {
-		device_func_init (SCSI_UNIT_IOCTL);
-		if (!sys_command_open_internal (unitnum, currprefs.cdslots[unitnum].name, csu)) {
-			device_func_init (SCSI_UNIT_IMAGE);
-			if (!sys_command_open_internal (unitnum, currprefs.cdslots[unitnum].name, csu))
-				goto fallback;
+		if (currprefs.cdslots[unitnum].name[0]) {
+			device_func_init (SCSI_UNIT_IOCTL);
+			if (!sys_command_open_internal (unitnum, currprefs.cdslots[unitnum].name, csu)) {
+				device_func_init (SCSI_UNIT_IMAGE);
+				if (!sys_command_open_internal (unitnum, currprefs.cdslots[unitnum].name, csu))
+					goto fallback;
+			}
+		} else {
+			goto fallback;
 		}
-		getunitinfo (unitnum, 0, csu, &isaudio);
 		return unitnum;
 	}
 #ifdef _WIN32

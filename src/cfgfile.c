@@ -3267,14 +3267,14 @@ static int cfgfile_handle_custom_event (TCHAR *custom, int mode)
 }
 #endif
 
-int cmdlineparser (TCHAR *s, TCHAR *outp[], int max)
+int cmdlineparser (const TCHAR *s, TCHAR *outp[], int max)
 {
 	int j;
 	unsigned int cnt = 0;
 	int slash = 0;
 	int quote = 0;
 	TCHAR tmp1[MAX_DPATH];
-	TCHAR *prev;
+	const TCHAR *prev;
 	int doout;
 
 	doout = 0;

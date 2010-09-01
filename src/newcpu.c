@@ -215,6 +215,9 @@ static void set_cpu_caches (void)
 {
 	int i, j;
 
+	for (i = 0; i < CPU_PIPELINE_MAX; i++)
+		regs.prefetch020addr[i] = 0xffffffff;
+
 #ifdef JIT
 	if (currprefs.cachesize) {
 		if (currprefs.cpu_model < 68040) {
@@ -231,7 +234,6 @@ static void set_cpu_caches (void)
 		if (regs.cacr & 0x08) { // clear instr cache
 			for (i = 0; i < CACHELINES020; i++)
 				caches020[i].valid = 0;
-			regs.prefetch020addr = 0xff000000;
 		}
 		if (regs.cacr & 0x04) { // clear entry in instr cache
 			caches020[(regs.caar >> 2) & (CACHELINES020 - 1)].valid = 0;
@@ -247,7 +249,6 @@ static void set_cpu_caches (void)
 				icaches030[i].valid[2] = 0;
 				icaches030[i].valid[3] = 0;
 			}
-			regs.prefetch020addr = 0xff000000;
 		}
 		if (regs.cacr & 0x04) { // clear entry in instr cache
 			icaches030[(regs.caar >> 4) & (CACHELINES030 - 1)].valid[(regs.caar >> 2) & 3] = 0;
@@ -275,7 +276,6 @@ static void set_cpu_caches (void)
 				caches040[i].valid[2] = 0;
 				caches040[i].valid[3] = 0;
 			}
-			regs.prefetch020addr = 0xff000000;
 		}
 	}
 }
@@ -4208,8 +4208,8 @@ STATIC_INLINE void fill_cache040 (uae_u32 addr)
 	for (i = 0; i < CACHELINES040; i++) {
 		if (c->valid[i] && c->tag[i] == tag) {
 			// cache hit
-			regs.prefetch020addr = addr;
-			regs.prefetch020data = c->data[i][lws];
+			regs.prefetch020addr[0] = addr;
+			regs.prefetch020data[0] = c->data[i][lws];
 			return;
 		}
 	}
@@ -4224,13 +4224,13 @@ STATIC_INLINE void fill_cache040 (uae_u32 addr)
 			c->data[i][0] = data;
 		}
 	}
-	regs.prefetch020addr = addr;
-	regs.prefetch020data = data;
+	regs.prefetch020addr[0] = addr;
+	regs.prefetch020data[0] = data;
 }
 
 #ifdef CPUEMU_20
 // this one is really simple and easy
-void fill_icache020 (uae_u32 addr)
+STATIC_INLINE void fill_icache020 (uae_u32 addr, int idx)
 {
 	int index;
 	uae_u32 tag;
@@ -4243,8 +4243,8 @@ void fill_icache020 (uae_u32 addr)
 	c = &caches020[index];
 	if (c->valid && c->tag == tag) {
 		// cache hit
-		regs.prefetch020addr = addr;
-		regs.prefetch020data = c->data;
+		regs.prefetch020addr[idx] = addr;
+		regs.prefetch020data[idx] = c->data;
 		return;
 	}
 	// cache miss
@@ -4254,8 +4254,40 @@ void fill_icache020 (uae_u32 addr)
 		c->valid = !!(regs.cacr & 1);
 		c->data = data;
 	}
-	regs.prefetch020addr = addr;
-	regs.prefetch020data = data;
+	regs.prefetch020addr[idx] = addr;
+	regs.prefetch020data[idx] = data;
+}
+
+uae_u32 get_word_ce020_prefetch (int o)
+{
+	unsigned int i;
+	uae_u32 pc = m68k_getpc () + o;
+
+	for (;;) {
+		for (i = 0; i < 2; i++) {
+			if (pc == regs.prefetch020addr[0]) {
+				uae_u32 v = regs.prefetch020data[0] >> 16;
+				fill_icache020 (regs.prefetch020addr[0] + 4, 1);
+				return v;
+			}
+			if (pc == regs.prefetch020addr[0] + 2) {
+				uae_u32 v = regs.prefetch020data[0] & 0xffff;
+				if (regs.prefetch020addr[1] == regs.prefetch020addr[0] + 4) {
+					regs.prefetch020addr[0] = regs.prefetch020addr[1];
+					regs.prefetch020data[0] = regs.prefetch020data[1];
+					fill_icache020 (regs.prefetch020addr[0] + 4, 1);
+				} else {
+					fill_icache020 (pc + 4, 0);
+					fill_icache020 (regs.prefetch020addr[0] + 4, 1);
+				}
+				return v;
+			}
+			regs.prefetch020addr[0] = regs.prefetch020addr[1];
+			regs.prefetch020data[0] = regs.prefetch020data[1];
+		}
+		fill_icache020 (pc + 0, 0);
+		fill_icache020 (pc + 4, 1);
+	}
 }
 
 // 68030 caches aren't so simple as 68020 cache..
@@ -4284,7 +4316,7 @@ STATIC_INLINE void update_cache030 (struct cache030 *c, uae_u32 val, uae_u32 tag
 	c->data[lws] = val;
 }
 
-void fill_icache030 (uae_u32 addr)
+STATIC_INLINE void fill_icache030 (uae_u32 addr, int idx)
 {
 	int lws;
 	uae_u32 tag;
@@ -4295,8 +4327,8 @@ void fill_icache030 (uae_u32 addr)
 	c = getcache030 (icaches030, addr, &tag, &lws);
 	if (c->valid[lws] && c->tag == tag) {
 		// cache hit
-		regs.prefetch020addr = addr;
-		regs.prefetch020data = c->data[lws];
+		regs.prefetch020addr[idx] = addr;
+		regs.prefetch020data[idx] = c->data[lws];
 		return;
 	}
 	// cache miss
@@ -4313,8 +4345,8 @@ void fill_icache030 (uae_u32 addr)
 		}
 #endif
 	}
-	regs.prefetch020addr = addr;
-	regs.prefetch020data = data;
+	regs.prefetch020addr[idx] = addr;
+	regs.prefetch020data[idx] = data;
 }
 
 STATIC_INLINE bool cancache030 (uaecptr addr)
@@ -4461,6 +4493,39 @@ uae_u32 read_dcache030 (uaecptr addr, int size)
 	write_log ("dcache030 weirdness!?\n");
 	return 0;
 }
+
+uae_u32 get_word_ce030_prefetch (int o)
+{
+	unsigned int i;
+	uae_u32 pc = m68k_getpc () + o;
+
+	for (;;) {
+		for (i = 0; i < 2; i++) {
+			if (pc == regs.prefetch020addr[0]) {
+				uae_u32 v = regs.prefetch020data[0] >> 16;
+				fill_icache030 (regs.prefetch020addr[0] + 4, 1);
+				return v;
+			}
+			if (pc == regs.prefetch020addr[0] + 2) {
+				uae_u32 v = regs.prefetch020data[0] & 0xffff;
+				if (regs.prefetch020addr[1] == regs.prefetch020addr[0] + 4) {
+					regs.prefetch020addr[0] = regs.prefetch020addr[1];
+					regs.prefetch020data[0] = regs.prefetch020data[1];
+					fill_icache030 (regs.prefetch020addr[0] + 4, 1);
+				} else {
+					fill_icache030 (pc + 4, 0);
+					fill_icache030 (regs.prefetch020addr[0] + 4, 1);
+				}
+				return v;
+			}
+			regs.prefetch020addr[0] = regs.prefetch020addr[1];
+			regs.prefetch020data[0] = regs.prefetch020data[1];
+		}
+		fill_icache030 (pc + 0, 0);
+		fill_icache030 (pc + 4, 1);
+	}
+}
+
 
 void flush_dcache (uaecptr addr, int size)
 {
