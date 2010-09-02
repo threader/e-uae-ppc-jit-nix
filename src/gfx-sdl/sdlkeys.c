@@ -359,6 +359,120 @@ static int decode_tr (int keysym)
     }
 }
 
+int sdlk2dik (int keysym) {
+    switch (keysym) {
+	case SDLK_ESCAPE: 	return 0x01;
+
+	case SDLK_1:		return 0x02;
+	case SDLK_2:		return 0x03;
+	case SDLK_3:		return 0x04;
+	case SDLK_4:		return 0x05;
+	case SDLK_5:		return 0x06;
+	case SDLK_6:		return 0x07;
+	case SDLK_7:		return 0x08;
+	case SDLK_8:		return 0x09;
+	case SDLK_9:		return 0x0a;
+	case SDLK_0:		return 0x0b;
+
+	case SDLK_BACKSPACE:return 0x0e;
+//
+	case SDLK_TAB: 		return 0x0f;
+	case SDLK_q:		return 0x10;
+	case SDLK_w:		return 0x11;
+	case SDLK_e:		return 0x12;
+	case SDLK_r:		return 0x13;
+	case SDLK_t:		return 0x14;
+	case SDLK_y:		return 0x15;
+	case SDLK_u:		return 0x16;
+	case SDLK_i:		return 0x17;
+	case SDLK_o:		return 0x18;
+	case SDLK_p:		return 0x19;
+
+	case SDLK_RETURN: 	return 0x1c;
+	case SDLK_LCTRL: 	return 0x1d;
+//
+	case SDLK_a:		return 0x1e;
+	case SDLK_s:		return 0x1f;
+	case SDLK_d:		return 0x20;
+	case SDLK_f:		return 0x21;
+	case SDLK_g:		return 0x22;
+	case SDLK_h:		return 0x23;
+	case SDLK_j:		return 0x24;
+	case SDLK_k:		return 0x25;
+	case SDLK_l:		return 0x26;
+
+	case SDLK_LSHIFT: 	return 0x2a;
+//
+
+	case SDLK_z:		return 0x2c;
+	case SDLK_x:		return 0x2d;
+	case SDLK_c:		return 0x2e;
+	case SDLK_v:		return 0x2f;
+	case SDLK_b:		return 0x30;
+	case SDLK_n:		return 0x31;
+	case SDLK_m:		return 0x32;
+
+	case SDLK_RSHIFT: 	return 0x36;
+	case SDLK_SPACE: 	return 0x39;
+
+
+	case SDLK_F1: 		return 0x3b;
+	case SDLK_F2: 		return 0x3c;
+	case SDLK_F3: 		return 0x3d;
+	case SDLK_F4: 		return 0x3e;
+	case SDLK_F5: 		return 0x3f;
+	case SDLK_F6: 		return 0x40;
+	case SDLK_F7: 		return 0x41;
+	case SDLK_F8: 		return 0x42;
+	case SDLK_F9: 		return 0x43;
+	case SDLK_F10: 		return 0x44;
+//
+	case SDLK_KP7:		return 0x47;
+	case SDLK_KP8:		return 0x48;
+	case SDLK_KP9:		return 0x49;
+	case SDLK_KP_MINUS:	return 0x4a;
+	case SDLK_KP4:		return 0x4b;
+	case SDLK_KP5:		return 0x4c;
+	case SDLK_KP6:		return 0x4d;
+	case SDLK_KP_PLUS:	return 0x4e;
+	case SDLK_KP1:		return 0x4f;
+	case SDLK_KP2:		return 0x50;
+	case SDLK_KP3:		return 0x51;
+	case SDLK_KP0:		return 0x52;
+	case SDLK_KP_PERIOD:return 0x53;
+	case SDLK_KP_ENTER:	return 0x9c;
+
+	case SDLK_KP_DIVIDE:	return 0xB5;
+	case SDLK_KP_MULTIPLY:	return 0x37;
+
+	case SDLK_DELETE: 	return 0xd3;
+	case SDLK_RCTRL: 	return 0x9d;
+	case SDLK_LALT: 	return 0x38;
+	case SDLK_RALT: 	return 0xB8;
+/*	case SDLK_RMETA: 	return AK_RAMI;
+	case SDLK_LMETA: 	return AK_LAMI;*/
+
+	case SDLK_INSERT: 	return 0xd2;
+	case SDLK_HOME: 	return 0xc7;
+	case SDLK_END: 		return 0xcf;
+	case SDLK_CAPSLOCK: return 0x3a;
+
+	case SDLK_UP: 		return 0xc8;
+	case SDLK_PAGEUP:	return 0xc9;
+	case SDLK_LEFT: 	return 0xcb;
+	case SDLK_RIGHT: 	return 0xcd;
+	case SDLK_DOWN: 	return 0xd0;
+	case SDLK_PAGEDOWN:	return 0xd1;
+
+/*	case SDLK_RSUPER:	return AK_RAMI;
+	case SDLK_LSUPER:	return AK_LAMI;*/
+	case SDLK_PAUSE: 	return 0xc5;
+	case SDLK_SCROLLOCK:	return 0x46;
+//	case SDLK_PRINT: 	return AKS_SCREENSHOT_FILE;
+	default: return -1;
+    }
+}
+
 int keysym2amiga (int keysym)
 {
     int amiga_keycode = kc_decode (keysym);

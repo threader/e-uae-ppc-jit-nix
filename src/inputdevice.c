@@ -950,7 +950,7 @@ static bool readslot (TCHAR *parm, int num, int joystick, int button, struct uae
 	return true;
 }
 
-static struct inputevent *readevent (TCHAR *name, TCHAR **customp)
+static struct inputevent *readevent (const TCHAR *name, TCHAR **customp)
 {
 	int i = 1;
 	while (events[i].name) {

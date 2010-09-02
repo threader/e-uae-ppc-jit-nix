@@ -20,6 +20,8 @@
 #include "picasso96.h"
 #include "driveclick.h"
 #include "inputdevice.h"
+#include "keymap/keymap.h"
+#include "keyboard.h"
 #include <stdarg.h>
 
 #define TRUE 1
@@ -855,11 +857,6 @@ char *ua (const TCHAR *s)
         return s;
 }
 
-// keyboard.c
-void clearallkeys (void)
-{
-        inputdevice_updateconfig (&currprefs);
-}
 // fsdb_mywin32.c
 FILE *my_opentext (const TCHAR *name)
 {
@@ -881,3 +878,274 @@ FILE *my_opentext (const TCHAR *name)
         return _tfopen (name, "r");
 }
 
+// keyboard_win32
+
+//extern int ispressed (int key);
+#define MAX_KEYCODES 256
+static uae_u8 di_keycodes[MAX_INPUT_DEVICES][MAX_KEYCODES];
+
+int ispressed (int key)
+{
+        int i;
+        for (i = 0; i < MAX_INPUT_DEVICES; i++) {
+                if (di_keycodes[i][key])
+                        return 1;
+        }
+        return 0;
+}
+
+
+static int specialkeycode (void)
+{
+        return 0; //currprefs.win32_specialkey;
+}
+static int specialpressed (void)
+{
+        return ispressed (specialkeycode ());
+}
+
+static int shiftpressed (void)
+{
+        return ispressed (DIK_LSHIFT) || ispressed (DIK_RSHIFT);
+}
+
+static int altpressed (void)
+{
+        return ispressed (DIK_LMENU) || ispressed (DIK_RMENU);
+}
+
+static int ctrlpressed (void)
+{
+        return ispressed (DIK_LCONTROL) || ispressed (DIK_RCONTROL);
+}
+
+static int capslockstate;
+static int host_capslockstate, host_numlockstate, host_scrolllockstate;
+
+int getcapslock (void)
+{
+        int capstable[7];
+
+        // this returns bogus state if caps change when in exclusive mode..
+/*        host_capslockstate = GetKeyState (VK_CAPITAL) & 1;
+        host_numlockstate = GetKeyState (VK_NUMLOCK) & 1;
+        host_scrolllockstate = GetKeyState (VK_SCROLL) & 1;*/
+        capstable[0] = DIK_CAPITAL;
+        capstable[1] = host_capslockstate;
+        capstable[2] = DIK_NUMLOCK;
+        capstable[3] = host_numlockstate;
+        capstable[4] = DIK_SCROLL;
+        capstable[5] = host_scrolllockstate;
+        capstable[6] = 0;
+        capslockstate = inputdevice_synccapslock (capslockstate, capstable);
+        return capslockstate;
+}
+
+void clearallkeys (void)
+{
+        inputdevice_updateconfig (&currprefs);
+}
+
+static int np[] = {
+        DIK_NUMPAD0, 0, DIK_NUMPADPERIOD, 0, DIK_NUMPAD1, 1, DIK_NUMPAD2, 2,
+        DIK_NUMPAD3, 3, DIK_NUMPAD4, 4, DIK_NUMPAD5, 5, DIK_NUMPAD6, 6, DIK_NUMPAD7, 7,
+        DIK_NUMPAD8, 8, DIK_NUMPAD9, 9, -1 };
+
+void my_kbd_handler (int keyboard, int scancode, int newstate)
+{
+        int code = 0;
+        int scancode_new;
+        static int swapperdrive = 0;
+
+       if (scancode == specialkeycode ())
+                return;
+
+/*        if (scancode == DIK_F11 && currprefs.win32_ctrl_F11_is_quit && ctrlpressed ())
+                code = AKS_QUIT;*/
+
+        scancode_new = scancode;
+/*        if (!specialpressed () && inputdevice_iskeymapped (keyboard, scancode))
+                scancode = 0;*/
+        // GUI must be always available
+/*        if (scancode_new == DIK_F12 && currprefs.win32_guikey < 0)
+                scancode = scancode_new;
+        if (scancode_new == currprefs.win32_guikey && scancode_new != DIK_F12)
+                scancode = scancode_new;*/
+
+        write_log ("kbd = %d, scancode = %d, state = %d\n", keyboard, scancode, newstate );
+
+        if (newstate == 0 && code == 0) {
+                switch (scancode)
+                {
+                        case DIK_SYSRQ:
+                        screenshot (specialpressed () ? 1 : 0, 1);
+                        break;
+                }
+        }
+
+
+        if (newstate && code == 0) {
+
+                if (scancode == DIK_F12 /*|| scancode == currprefs.win32_guikey*/) {
+                        if (ctrlpressed ()) {
+                                code = AKS_TOGGLEDEFAULTSCREEN;
+                        } else if (shiftpressed () || specialpressed ()) {
+                                if (isfullscreen() <= 0) {
+                                        //disablecapture ();
+                                        code = AKS_ENTERDEBUGGER;
+                                }
+                        } else {
+                                code = AKS_ENTERGUI;
+                        }
+                }
+
+                switch (scancode)
+                {
+                case DIK_F1:
+                case DIK_F2:
+                case DIK_F3:
+                case DIK_F4:
+                        if (specialpressed ()) {
+                                if (ctrlpressed ()) {
+                                } else {
+                                        if (shiftpressed ())
+                                                code = AKS_EFLOPPY0 + (scancode - DIK_F1);
+                                        else
+                                                code = AKS_FLOPPY0 + (scancode - DIK_F1);
+                                }
+                        }
+                        break;
+                case DIK_F5:
+                        if (specialpressed ()) {
+                                if (shiftpressed ())
+                                        code = AKS_STATESAVEDIALOG;
+                                else
+                                        code = AKS_STATERESTOREDIALOG;
+                        }
+                        break;
+                case DIK_1:
+                case DIK_2:
+                case DIK_3:
+                case DIK_4:
+                case DIK_5:
+                case DIK_6:
+                case DIK_7:
+                case DIK_8:
+                case DIK_9:
+                case DIK_0:
+                        if (specialpressed ()) {
+                                int num = scancode - DIK_1;
+                                if (shiftpressed ())
+                                        num += 10;
+                                if (ctrlpressed ()) {
+                                       swapperdrive = num;
+                                        if (swapperdrive > 3)
+                                                swapperdrive = 0;
+                                } else {
+                                        int i;
+                                        for (i = 0; i < 4; i++) {
+                                                if (!_tcscmp (currprefs.floppyslots[i].df, currprefs.dfxlist[num]))
+                                                        changed_prefs.floppyslots[i].df[0] = 0;
+                                        }
+                                        _tcscpy (changed_prefs.floppyslots[swapperdrive].df, currprefs.dfxlist[num]);
+                                        config_changed = 1;
+                                }
+                        }
+                        break;
+                case DIK_NUMPAD0:
+                case DIK_NUMPAD1:
+                case DIK_NUMPAD2:
+                case DIK_NUMPAD3:
+                case DIK_NUMPAD4:
+                case DIK_NUMPAD5:
+                case DIK_NUMPAD6:
+                case DIK_NUMPAD7:
+                case DIK_NUMPAD8:
+                case DIK_NUMPAD9:
+                case DIK_NUMPADPERIOD:
+                        if (specialpressed ()) {
+                                int i = 0, v = -1;
+                                while (np[i] >= 0) {
+                                        v = np[i + 1];
+                                        if (np[i] == scancode)
+                                                break;
+                                        i += 2;
+                                }
+                                if (v >= 0)
+                                        code = AKS_STATESAVEQUICK + v * 2 + ((shiftpressed () || ctrlpressed ()) ? 0 : 1);
+                        }
+                        break;
+                case DIK_PAUSE:
+                        if (specialpressed ()) {
+                                if (shiftpressed ())
+                                        code = AKS_IRQ7;
+                                else
+                                        code = AKS_WARP;
+                        } else {
+                                code = AKS_PAUSE;
+                        }
+                        break;
+                case DIK_SCROLL:
+                        code = AKS_INHIBITSCREEN;
+                        break;
+                case DIK_NUMPADMINUS:
+                        if (specialpressed ()) {
+                                if (shiftpressed ())
+                                        code = AKS_DECREASEREFRESHRATE;
+                                else if (ctrlpressed ())
+                                        code = AKS_MVOLDOWN;
+                                else
+                                        code = AKS_VOLDOWN;
+                        }
+                        break;
+                case DIK_NUMPADPLUS:
+                        if (specialpressed ()) {
+                                if (shiftpressed ())
+                                        code = AKS_INCREASEREFRESHRATE;
+                                else if (ctrlpressed ())
+                                        code = AKS_MVOLUP;
+                                else
+                                        code = AKS_VOLUP;
+                        }
+                        break;
+                case DIK_NUMPADSTAR:
+                        if (specialpressed ()) {
+                                if (ctrlpressed ())
+                                        code = AKS_MVOLMUTE;
+                                else
+                                        code = AKS_VOLMUTE;
+                        }
+                        break;
+                case DIK_NUMPADSLASH:
+                        if (specialpressed ())
+                                code = AKS_STATEREWIND;
+                        break;
+                }
+        }
+
+        if (code) {
+                inputdevice_add_inputcode (code, 1);
+                return;
+        }
+
+        scancode = scancode_new;
+/*        if (!specialpressed () && newstate) {
+                if (scancode == DIK_CAPITAL) {
+                        host_capslockstate = host_capslockstate ? 0 : 1;
+                        capslockstate = host_capslockstate;
+                }
+                if (scancode == DIK_NUMLOCK) {
+                        host_numlockstate = host_numlockstate ? 0 : 1;
+                        capslockstate = host_numlockstate;
+                }
+                if (scancode == DIK_SCROLL) {
+                        host_scrolllockstate = host_scrolllockstate ? 0 : 1;
+                        capslockstate = host_scrolllockstate;
+                }
+        }*/
+        if (specialpressed ())
+                return;
+
+        write_log ("kbd = %d, scancode = %d, state = %d\n", keyboard, scancode, newstate );
+        inputdevice_translatekeycode (keyboard, scancode, newstate);
+}

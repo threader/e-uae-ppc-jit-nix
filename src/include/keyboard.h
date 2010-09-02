@@ -1,10 +1,10 @@
- /*
-  * UAE - The Un*x Amiga Emulator
-  *
-  * Amiga keycodes
-  *
-  * (c) 1995 Bernd Schmidt
-  */
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * Amiga keycodes
+ *
+ * (c) 1995 Bernd Schmidt
+ */
 
 /* First, two dummies */
 #define AK_mousestuff 0x100

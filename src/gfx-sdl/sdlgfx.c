@@ -1214,8 +1214,8 @@ int graphics_init (void)
     DEBUG_LOG ("Function: graphics_init\n");
 
     if (currprefs.color_mode > 5) {
-	write_log ("Bad color mode selected. Using default.\n");
-	currprefs.color_mode = 0;
+		write_log ("Bad color mode selected. Using default.\n");
+		currprefs.color_mode = 0;
     }
 
 #ifdef PICASSO96
@@ -1351,9 +1351,8 @@ void handle_events (void)
 				break;
 			}
 */
-			if (currprefs.map_raw_keys) {
+/*			if (currprefs.map_raw_keys) {
 			    keycode = rEvent.key.keysym.scancode;
-write_log("sdlgfx_raw: %d\n", keycode);
 			    // Hack - OS4 keyup events have bit 7 set.
 #ifdef TARGET_AMIGAOS
 				keycode &= 0x7F;
@@ -1361,25 +1360,23 @@ write_log("sdlgfx_raw: %d\n", keycode);
 			    modifier_hack (&keycode, &state);
 			} else
 			    keycode = rEvent.key.keysym.sym;
-write_log("sdlgfx_Nraw: %d\n", keycode);
-
-			DEBUG_LOG ("Event: key %d %s\n", keycode, state ? "down" : "up");
-
-			if ((ievent = match_hotkey_sequence (keycode, state))) {
-write_log("sdlgfx_hot: %d\n", ievent);
-			     DEBUG_LOG ("Hotkey event: %d\n", ievent);
-			     handle_hotkey_event (ievent, state);
-			} else {
-				if (currprefs.map_raw_keys) {
-write_log("sdlgfx_Nhot_raw: %d\n", keycode);
-					inputdevice_translatekeycode (0, keycode, state);
+*/
+			    keycode = rEvent.key.keysym.sym;
+//				write_log ("Event: key: %d to: %d  %s\n", keycode, sdlk2dik (keycode), state ? "down" : "up");
+				my_kbd_handler (0, sdlk2dik (keycode), state);
+/*
+				if ((ievent = match_hotkey_sequence (keycode, state))) {
+					DEBUG_LOG ("Hotkey event: %d\n", ievent);
+					handle_hotkey_event (ievent, state);
 				} else {
-write_log("sdlgfx_Nhot_Nraw: %d\n", keycode);
-					inputdevice_do_keyboard (keysym2amiga (keycode), state);
-				}
-			}
-			break;
-	    }
+					if (currprefs.map_raw_keys) {
+						inputdevice_translatekeycode (0, keycode, state);
+					} else {
+						inputdevice_do_keyboard (keysym2amiga (keycode), state);
+					}
+				}*/
+				break;
+		}
 
 	    case SDL_MOUSEMOTION:
 			DEBUG_LOG ("Event: mouse motion\n");

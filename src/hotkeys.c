@@ -42,9 +42,11 @@ int match_hotkey_sequence (int key, int state)
 {
     struct uae_hotkeyseq *seq = hotkey_table;
     int event = 0;
+write_log("K:%d, S:%d\n", key, state);
 
     if (!seq)
 		return 0;
+write_log("------------\n");
 
     if (state) {
 		/* Key down */

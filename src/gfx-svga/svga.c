@@ -395,7 +395,7 @@ static int scancode2amiga (int scancode)
     return -1;
 }
 
-static void my_kbd_handler (int scancode, int newstate)
+static void my_kbd_handlerx (int scancode, int newstate)
 {
     int akey = scancode2amiga (scancode);
 
@@ -444,7 +444,7 @@ static int post_enter_graphics (void)
 	write_log ("Are you sure you have a keyboard??\n");
 	return 0;
     }
-    keyboard_seteventhandler (my_kbd_handler);
+    keyboard_seteventhandler (my_kbd_handlerx);
     keyboard_translatekeys (DONT_CATCH_CTRLC);
 
     mouse_setxrange (-1000, 1000);
