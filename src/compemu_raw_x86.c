@@ -2115,18 +2115,18 @@ static void vec(int x, struct sigcontext sc)
 		write_log ("JIT: register was %d, direction was %d, size was %d\n",r,dir,size);
 
 		switch(r) {
-		case 0: pr=&(sc.CONTEXT_MEMBER(eax)); break;
-		case 1: pr=&(sc.CONTEXT_MEMBER(ecx)); break;
-		case 2: pr=&(sc.CONTEXT_MEMBER(edx)); break;
-		case 3: pr=&(sc.CONTEXT_MEMBER(ebx)); break;
-		case 4: pr=(size>1) ? NULL:(((uae_u8*)&(sc.CONTEXT_MEMBER(eax)))+1); break;
-		case 5: pr=(size>1) ?
+		case 0: pr = &(sc.CONTEXT_MEMBER(eax)); break;
+		case 1: pr = &(sc.CONTEXT_MEMBER(ecx)); break;
+		case 2: pr = &(sc.CONTEXT_MEMBER(edx)); break;
+		case 3: pr = &(sc.CONTEXT_MEMBER(ebx)); break;
+		case 4: pr = (size>1) ? NULL:(((uae_u8*)&(sc.CONTEXT_MEMBER(eax)))+1); break;
+		case 5: pr = (size>1) ?
 			(void*)(&(sc.CONTEXT_MEMBER(ebp))):
 			(void*)(((uae_u8*)&(sc.CONTEXT_MEMBER(ecx)))+1); break;
-		case 6: pr=(size>1) ?
+		case 6: pr = (size>1) ?
 			(void*)(&(sc.CONTEXT_MEMBER(esi))):
 			(void*)(((uae_u8*)&(sc.CONTEXT_MEMBER(edx)))+1); break;
-		case 7: pr=(size>1) ?
+		case 7: pr = (size>1) ?
 			(void*)(&(sc.CONTEXT_MEMBER(edi))):
 			(void*)(((uae_u8*)&(sc.CONTEXT_MEMBER(ebx)))+1); break;
 		default: abort();
@@ -2135,7 +2135,7 @@ static void vec(int x, struct sigcontext sc)
 			blockinfo* bi;
 
 			if (currprefs.comp_oldsegv) {
-				addr-=(uae_u8)NATMEM_OFFSET;
+				addr -= (uae_u8)NATMEM_OFFSET;
 
 				if ((addr>=0x10000000 && addr<0x40000000) ||
 					(addr>=0x50000000)) {
@@ -2160,7 +2160,7 @@ static void vec(int x, struct sigcontext sc)
 				write_log ("JIT: Handled one access!\n");
 				fflush(stdout);
 				segvcount++;
-				sc.CONTEXT_MEMBER(eip)+=len;
+				sc.CONTEXT_MEMBER(eip) += len;
 			}
 			else {
 				void* tmp=target;
@@ -2174,7 +2174,7 @@ static void vec(int x, struct sigcontext sc)
 						write_log ("JIT: Suspicious address 0x%x in SEGV handler.\n",addr);
 				}
 
-				target=(uae_u8*)sc.CONTEXT_MEMBER(eip);
+				target = (uae_u8*)sc.CONTEXT_MEMBER(eip);
 				for (i=0;i<5;i++)
 					vecbuf[i]=target[i];
 				emit_byte(0xe9);
@@ -2290,7 +2290,7 @@ enum {
 	X86_VENDOR_NEXGEN	= 4,
 	X86_VENDOR_CENTAUR	= 5,
 	X86_VENDOR_RISE		= 6,
-	X86_VENDOR_TRANSMETA	= 7,
+	X86_VENDOR_TRANSMETA= 7,
 	X86_VENDOR_NSC		= 8,
 	X86_VENDOR_UNKNOWN	= 0xff
 };
@@ -2348,7 +2348,7 @@ static void
 	else if (!strcmp(v, "RiseRiseRise"))
 		c->x86_vendor = X86_VENDOR_RISE;
 	else if (!strcmp(v, "GenuineTMx86") ||
-		 !strcmp(v, "TransmetaCPU"))
+		!strcmp(v, "TransmetaCPU"))
 		c->x86_vendor = X86_VENDOR_TRANSMETA;
 	else
 		c->x86_vendor = X86_VENDOR_UNKNOWN;
@@ -3204,7 +3204,7 @@ LOWFUNC(NONE,NONE,2,raw_fcos_rr,(FW d, FR s))
 		emit_byte(0xc0+ds); /* fld x */
 		emit_byte(0xd9);
 		emit_byte(0xff);    /* fcos cos(x) */
-		tos_make(d); /* store to destination */
+		tos_make(d);		/* store to destination */
 	}
 	else {
 		make_tos(d);

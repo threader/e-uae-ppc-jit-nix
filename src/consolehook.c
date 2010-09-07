@@ -58,7 +58,7 @@ static void *console_thread (void *v)
 {
 	uae_set_thread_priority (2);
 	for (;;) {
-		TCHAR wc = "a"; //console_getch ();
+		TCHAR wc = ""; //console_getch ();
 		char c[2];
 
 		write_log ("*");

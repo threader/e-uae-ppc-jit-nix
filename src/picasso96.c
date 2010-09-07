@@ -119,7 +119,6 @@ uae_u32 p96_rgbx16[65536];
 uae_u32 p96rc[256], p96gc[256], p96bc[256];
 
 struct PicassoResolution DisplayModes[MAX_PICASSO_MODES];
-
 static int mode_count = 0;
 
 static int cursorwidth, cursorheight, cursorok;
@@ -158,10 +157,9 @@ static void checkrtglibrary(void)
 			uae_u16 ver = get_word (v + 20);
 			uae_u16 rev = get_word (v + 22);
 			if (ver * 10000 + rev < UAE_RTG_LIBRARY_VERSION * 10000 + UAE_RTG_LIBRARY_REVISION) {
-		//		TCHAR msg[2000];
-		//		WIN32GUI_LoadUIString(IDS_OLDRTGLIBRARY, msg, sizeof(msg));
-		//		gui_message(msg, ver, rev, UAE_RTG_LIBRARY_VERSION, UAE_RTG_LIBRARY_REVISION);
-				write_log ("P96: rtg.library %d.%d\n", UAE_RTG_LIBRARY_VERSION, UAE_RTG_LIBRARY_REVISION);
+				TCHAR msg[2000];
+				sprintf(msg, "The installed LIBS:Picasso96/rtg.library (%d.%d) should be updated.\nA newer version is included in the ""Amiga Programs"" directory\n of the WinUAE distribution archive.\n\nNewer library version fixes graphics problems and increases performance.", ver, rev);
+				gui_message(msg);
 			} else {
 				write_log ("P96: rtg.library %d.%d detected\n", ver, rev);
 			}
@@ -262,49 +260,42 @@ static TCHAR *BuildBinaryString (uae_u8 value)
 
 static void DumpPattern (struct Pattern *patt)
 {
-/*
-    uae_u8 *mem;
-    int row, col;
-    for (row = 0; row < (1 << patt->Size); row++) {
-	mem = patt->Memory + row * 2;
-	for (col = 0; col < 2; col++) {
-	    write_log ("%s", BuildBinaryString (*mem++));
+	uae_u8 *mem;
+	int row, col;
+	for (row = 0; row < (1 << patt->Size); row++) {
+		mem = patt->Memory + row * 2;
+		for (col = 0; col < 2; col++) {
+			write_log ("%s ", BuildBinaryString (*mem++));
+		}
+		write_log ("\n");
 	}
-	write_log ("\n");
-    }
-*/
 }
 
 static void DumpTemplate (struct Template *tmp, unsigned long w, unsigned long h)
 {
-/*
-    uae_u8 *mem = tmp->Memory;
-    int row, col, width;
-    width = (w + 7) >> 3;
-    write_log ("xoffset = %d, bpr = %d\n", tmp->XOffset, tmp->BytesPerRow);
-    for (row = 0; row < h; row++) {
-	mem = tmp->Memory + row * tmp->BytesPerRow;
-	for (col = 0; col < width; col++) {
-	    write_log ("%s", BuildBinaryString (*mem++));
+	uae_u8 *mem = tmp->Memory;
+	unsigned int row, col, width;
+	width = (w + 7) >> 3;
+	write_log ("xoffset = %d, bpr = %d\n", tmp->XOffset, tmp->BytesPerRow);
+	for (row = 0; row < h; row++) {
+		mem = tmp->Memory + row * tmp->BytesPerRow;
+		for (col = 0; col < width; col++) {
+			write_log ("%s ", BuildBinaryString (*mem++));
+		}
+		write_log ("\n");
 	}
-	write_log ("\n");
-    }
-*/
-  }
-
-int picasso_nr_resolutions (void)
-{
-    return mode_count;
 }
 
 static void ShowSupportedResolutions (void)
 {
 	int i = 0;
 
-    return;
-
-    for (i = 0; i < mode_count; i++)
-	write_log ("%s\n", DisplayModes[i].name);
+	write_log ("-----------------\n");
+	while (newmodes[i].depth >= 0) {
+		write_log ("%s\n", newmodes[i].name);
+		i++;
+	}
+	write_log ("-----------------\n");
 }
 
 #endif

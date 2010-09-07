@@ -5609,12 +5609,12 @@ STATIC_INLINE void create_popalls(void)
 
 	current_compile_p=get_target();
 #else
-	popall_exec_nostats    = exec_nostats;
-	popall_execute_normal  = execute_normal;
-	popall_cache_miss      = cache_miss;
-	popall_recompile_block = recompile_block;
-	popall_do_nothing      = do_nothing;
-	popall_check_checksum  = check_checksum;
+	popall_exec_nostats		= exec_nostats;
+	popall_execute_normal	= execute_normal;
+	popall_cache_miss		= cache_miss;
+	popall_recompile_block	= recompile_block;
+	popall_do_nothing		= do_nothing;
+	popall_check_checksum	= check_checksum;
 #endif
 
 	/* And now, the code to do the matching pushes and then jump
