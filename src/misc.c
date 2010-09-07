@@ -1236,8 +1236,6 @@ void addmode (struct MultiDisplay *md, int w, int h, int d, int rate, int nondx)
                 md->DisplayModes[i].res.width, md->DisplayModes[i].res.height, md->DisplayModes[i].depth * 8);
 }
 
-
-
 //dxwrap
 int DirectDraw_CurrentRefreshRate (void)
 {

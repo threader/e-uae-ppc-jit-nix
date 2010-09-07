@@ -92,8 +92,8 @@ static SDL_Rect screenmode[MAX_SDL_SCREENMODE];
 static int mode_count;
 
 
-static int red_bits, green_bits, blue_bits;
-static int red_shift, green_shift, blue_shift;
+static int red_bits, green_bits, blue_bits, alpha_bits;
+static int red_shift, green_shift, blue_shift, alpha_shift;
 
 #ifdef PICASSO96
 static int screen_is_picasso;
@@ -389,6 +389,27 @@ static int find_best_mode (int *width, int *height, int depth, int fullscreen)
 }
 
 #ifdef PICASSO96
+
+int picasso_palette (void)
+{
+        int i, changed;
+
+        changed = 0;
+        for (i = 0; i < 256; i++) {
+                int r = picasso96_state.CLUT[i].Red;
+                int g = picasso96_state.CLUT[i].Green;
+                int b = picasso96_state.CLUT[i].Blue;
+                uae_u32 v = (doMask256 (r, red_bits, red_shift)
+                        | doMask256 (g, green_bits, green_shift)
+                        | doMask256 (b, blue_bits, blue_shift))
+                        | doMask256 (0xff, alpha_bits, alpha_shift);
+                if (v !=  picasso_vidinfo.clut[i]) {
+                        picasso_vidinfo.clut[i] = v;
+                        changed = 1;
+                }
+        }
+        return changed;
+}
 /*
  * Map an SDL pixel format to a P96 pixel format
  */

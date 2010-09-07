@@ -33,6 +33,7 @@
 #include "autoconf.h"
 #include "traps.h"
 #include "gui.h"
+#include "gfxdep/gfx.h"
 #include "picasso96.h"
 #include "drawing.h"
 #include "savestate.h"

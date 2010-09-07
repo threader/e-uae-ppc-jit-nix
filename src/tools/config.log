@@ -445,7 +445,7 @@ configure:4344: $? = 0
 configure:4344: result: yes
 configure:4350: checking for _doprnt
 configure:4350: gcc -o conftest -g -O2 -Wall -W -Wno-unused   conftest.c  >&5
-/tmp/cc3ddsdl.o: In function `main':
+/tmp/cctA4xTI.o: In function `main':
 /home/gnostic/puaex/src/tools/conftest.c:67: undefined reference to `_doprnt'
 collect2: ld returned 1 exit status
 configure:4350: $? = 1
@@ -533,7 +533,7 @@ configure:4364: $? = 0
 configure:4364: result: yes
 configure:4364: checking for strcmpi
 configure:4364: gcc -o conftest -g -O2 -Wall -W -Wno-unused   conftest.c  >&5
-/tmp/ccyjfxIA.o: In function `main':
+/tmp/cc0VeH5X.o: In function `main':
 /home/gnostic/puaex/src/tools/conftest.c:69: undefined reference to `strcmpi'
 collect2: ld returned 1 exit status
 configure:4364: $? = 1
@@ -613,7 +613,7 @@ configure: failed program was:
 configure:4364: result: no
 configure:4364: checking for stricmp
 configure:4364: gcc -o conftest -g -O2 -Wall -W -Wno-unused   conftest.c  >&5
-/tmp/ccs8WUKF.o: In function `main':
+/tmp/ccAFSU92.o: In function `main':
 /home/gnostic/puaex/src/tools/conftest.c:69: undefined reference to `stricmp'
 collect2: ld returned 1 exit status
 configure:4364: $? = 1
