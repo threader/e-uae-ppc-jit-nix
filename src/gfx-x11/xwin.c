@@ -1405,7 +1405,7 @@ int DX_FillResolutions (uae_u16 *ppixel_format)
 		DisplayModes[count].res.width = allmodes[i]->hdisplay;
 		DisplayModes[count].res.height = allmodes[i]->vdisplay;
 		DisplayModes[count].depth = j == 1 ? 1 : bit_unit >> 3;
-		DisplayModes[count].refresh = 75;
+		DisplayModes[count].refresh[0] = 75;
 		count++;
 	    }
 	}
@@ -1423,7 +1423,7 @@ int DX_FillResolutions (uae_u16 *ppixel_format)
 		    DisplayModes[count].res.width = x_size_table[i];
 		    DisplayModes[count].res.height = y_size_table[i];
 		    DisplayModes[count].depth = j == 1 ? 1 : bit_unit >> 3;
-		    DisplayModes[count].refresh = 75;
+		    DisplayModes[count].refresh[0] = 75;
 		    count++;
 		}
 	    }
@@ -1447,7 +1447,7 @@ static void set_window_for_picasso (void)
 #endif
 }
 
-void gfx_set_picasso_modeinfo (int w, int h, int depth, int rgbfmt)
+void gfx_set_picasso_modeinfo (uae_u32 w, uae_u32 h, uae_u32 depth, int rgbfmt)
 {
     picasso_vidinfo.width = w;
     picasso_vidinfo.height = h;

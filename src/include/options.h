@@ -412,7 +412,6 @@ struct uae_prefs {
 	bool win32_rtgscaleifsmall;
 	bool win32_rtgallowscaling;
 	int win32_rtgscaleaspectratio;
-	int win32_rtgvblankrate;
 	bool win32_borderless;
 	bool win32_ctrl_F11_is_quit;
 	bool win32_automount_removable;
@@ -435,6 +434,7 @@ struct uae_prefs {
 	TCHAR win32_parjoyport0[MAX_DPATH];
 	TCHAR win32_parjoyport1[MAX_DPATH];
 #endif
+	int win32_rtgvblankrate;
 
 #ifdef USE_CURSES_GFX
 	int curses_reverse_video;

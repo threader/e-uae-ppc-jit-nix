@@ -797,7 +797,7 @@ int DX_FillResolutions (uae_u16 *ppixel_format)
 	    DisplayModes[count].res.width = x_size_table[i];
 	    DisplayModes[count].res.height = y_size_table[i];
 	    DisplayModes[count].depth = 1;
-	    DisplayModes[count].refresh = 75;
+	    DisplayModes[count].refresh[0] = 75;
 	    count++;
 	    format |= RGBFF_CHUNKY;
 	}
@@ -806,7 +806,7 @@ int DX_FillResolutions (uae_u16 *ppixel_format)
 	    DisplayModes[count].res.width = x_size_table[i];
 	    DisplayModes[count].res.height = y_size_table[i];
 	    DisplayModes[count].depth = 2;
-	    DisplayModes[count].refresh = 75;
+	    DisplayModes[count].refresh[0] = 75;
 	    count++;
 	    format |= RGBFF_R5G6B5PC;
 	}
@@ -815,7 +815,7 @@ int DX_FillResolutions (uae_u16 *ppixel_format)
 	    DisplayModes[count].res.width = x_size_table[i];
 	    DisplayModes[count].res.height = y_size_table[i];
 	    DisplayModes[count].depth = 4;
-	    DisplayModes[count].refresh = 75;
+	    DisplayModes[count].refresh[0] = 75;
 	    count++;
 	    format |= RGBFF_B8G8R8A8;
 	}
@@ -846,7 +846,7 @@ static void set_window_for_amiga (void)
     restore_vga_colors ();
 }
 
-void gfx_set_picasso_modeinfo (int w, int h, int depth, int rgbfmt)
+void gfx_set_picasso_modeinfo (uae_u32 w, uae_u32 h, uae_u32 depth, int rgbfmt)
 {
     vga_modeinfo *info;
     int i, mode;

@@ -1,9 +1,9 @@
 /*
-* UAE - The Un*x Amiga Emulator
-*
-* uae.resource
-*
-*/
+ * UAE - The Un*x Amiga Emulator
+ *
+ * uae.resource
+ *
+ */
 
 #include "sysconfig.h"
 #include "sysdeps.h"

@@ -1703,20 +1703,28 @@ int DX_Blit (int srcx, int srcy, int dstx, int dsty, int width, int height, BLIT
  */
 static void add_p96_mode (int width, int height, int emulate_chunky, int *count)
 {
-    unsigned int i;
+	unsigned int i;
 
-    for (i = 0; i <= (emulate_chunky ? 1 : 0); i++) {
-	if (*count < MAX_PICASSO_MODES) {
-	    DisplayModes[*count].res.width  = width;
-	    DisplayModes[*count].res.height = height;
-	    DisplayModes[*count].depth      = (i == 1) ? 1 : bit_unit >> 3;
-	    DisplayModes[*count].refresh    = 75;
-	    (*count)++;
+	struct MultiDisplay *md1;
+	md1 = Displays;
+	struct MultiDisplay *md = (struct MultiDisplay*)md1;
+	md1->DisplayModes = xmalloc (struct PicassoResolution, MAX_PICASSO_MODES);
+	md1->DisplayModes[0].depth = -1;
+	md1->disabled = 1;
 
-	    write_log ("SDLGFX: Added P96 mode: %dx%dx%d\n", width, height, (i == 1) ? 8 : bitdepth);
+	for (i = 0; i <= (emulate_chunky ? 1 : 0); i++) {
+		if (*count < MAX_PICASSO_MODES) {
+			DisplayModes[*count].res.width  = width;
+			DisplayModes[*count].res.height = height;
+			DisplayModes[*count].depth      = (i == 1) ? 1 : bit_unit >> 3;
+			DisplayModes[*count].refresh[0]    = 75;
+			(*count)++;
+
+			write_log ("SDLGFX: Added P96 mode: %dx%dx%d\n", width, height, (i == 1) ? 8 : bitdepth);
+			addmode (md, width, height, bitdepth, 75, 0);
+		}
 	}
-    }
-    return;
+	return;
 }
 
 int DX_FillResolutions (uae_u16 *ppixel_format)
@@ -1806,7 +1814,7 @@ static void set_window_for_picasso (void)
     graphics_subinit();
 }
 
-void gfx_set_picasso_modeinfo (int w, int h, int depth, int rgbfmt)
+void gfx_set_picasso_modeinfo (uae_u32 w, uae_u32 h, uae_u32 depth, RGBFTYPE rgbfmt)
 {
     DEBUG_LOG ("Function: gfx_set_picasso_modeinfo w: %i h: %i depth: %i rgbfmt: %i\n", w, h, depth, rgbfmt);
 
@@ -1815,7 +1823,20 @@ void gfx_set_picasso_modeinfo (int w, int h, int depth, int rgbfmt)
     picasso_vidinfo.depth = depth;
     picasso_vidinfo.pixbytes = bit_unit >> 3;
     if (screen_is_picasso)
-	set_window_for_picasso();
+		set_window_for_picasso();
+}
+
+/* Color management */
+
+//static xcolnr xcol8[4096];
+
+static int red_bits, green_bits, blue_bits, alpha_bits;
+static int red_shift, green_shift, blue_shift, alpha_shift;
+static int alpha;
+
+void gfx_set_picasso_colors (RGBFTYPE rgbfmt)
+{
+        alloc_colors_picasso (red_bits, green_bits, blue_bits, red_shift, green_shift, blue_shift, rgbfmt);
 }
 
 void gfx_set_picasso_state (int on)
@@ -1823,12 +1844,12 @@ void gfx_set_picasso_state (int on)
     DEBUG_LOG ("Function: gfx_set_picasso_state: %d\n", on);
 
     if (on == screen_is_picasso)
-	return;
+		return;
 
     /* We can get called by drawing_init() when there's
      * no window opened yet... */
     if (display == 0)
-	return
+		return
 
     graphics_subshutdown ();
     screen_was_picasso = screen_is_picasso;
@@ -2217,3 +2238,9 @@ int gfx_parse_option (struct uae_prefs *p, const char *option, const char *value
 #endif /* USE_GL */
     return result;
 }
+
+int WIN32GFX_IsPicassoScreen (void)
+{
+        return screen_is_picasso;
+}
+

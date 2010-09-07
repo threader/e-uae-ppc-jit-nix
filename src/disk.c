@@ -203,11 +203,19 @@ static drive floppy[MAX_FLOPPY_DRIVES];
 static TCHAR dfxhistory[2][MAX_PREVIOUS_FLOPPIES][MAX_DPATH];
 
 static uae_u8 exeheader[]={0x00,0x00,0x03,0xf3,0x00,0x00,0x00,0x00};
-static uae_u8 bootblock[]={
+static uae_u8 bootblock_ofs[]={
 	0x44,0x4f,0x53,0x00,0xc0,0x20,0x0f,0x19,0x00,0x00,0x03,0x70,0x43,0xfa,0x00,0x18,
 	0x4e,0xae,0xff,0xa0,0x4a,0x80,0x67,0x0a,0x20,0x40,0x20,0x68,0x00,0x16,0x70,0x00,
 	0x4e,0x75,0x70,0xff,0x60,0xfa,0x64,0x6f,0x73,0x2e,0x6c,0x69,0x62,0x72,0x61,0x72,
 	0x79
+};
+static uae_u8 bootblock_ffs[]={
+	0x44, 0x4F, 0x53, 0x01, 0xE3, 0x3D, 0x0E, 0x72, 0x00, 0x00, 0x03, 0x70, 0x43, 0xFA, 0x00, 0x3E,
+	0x70, 0x25, 0x4E, 0xAE, 0xFD, 0xD8, 0x4A, 0x80, 0x67, 0x0C, 0x22, 0x40, 0x08, 0xE9, 0x00, 0x06,
+	0x00, 0x22, 0x4E, 0xAE, 0xFE, 0x62, 0x43, 0xFA, 0x00, 0x18, 0x4E, 0xAE, 0xFF, 0xA0, 0x4A, 0x80,
+	0x67, 0x0A, 0x20, 0x40, 0x20, 0x68, 0x00, 0x16, 0x70, 0x00, 0x4E, 0x75, 0x70, 0xFF, 0x4E, 0x75,
+	0x64, 0x6F, 0x73, 0x2E, 0x6C, 0x69, 0x62, 0x72, 0x61, 0x72, 0x79, 0x00, 0x65, 0x78, 0x70, 0x61,
+	0x6E, 0x73, 0x69, 0x6F, 0x6E, 0x2E, 0x6C, 0x69, 0x62, 0x72, 0x61, 0x72, 0x79, 0x00, 0x00, 0x00,
 };
 
 #define FS_OFS_DATABLOCKSIZE 488
@@ -281,7 +289,7 @@ static void createbootblock (uae_u8 *sector, int bootable)
 	memset (sector, 0, FS_FLOPPY_BLOCKSIZE);
 	memcpy (sector, "DOS", 3);
 	if (bootable)
-		memcpy (sector, bootblock, sizeof (bootblock));
+		memcpy (sector, bootblock_ofs, sizeof (bootblock_ofs));
 }
 
 static void createrootblock (uae_u8 *sector, const char *disk_name)
@@ -2054,17 +2062,46 @@ void DISK_ersatz_read (int tr, int sec, uaecptr dest)
 	zfile_fread (dptr, 1, 512, floppy[0].diskfile);
 }
 
+static void floppy_get_bootblock (uae_u8 *dst, bool ffs, bool bootable)
+{
+	strcpy ((char*)dst, "DOS");
+	dst[3] = ffs ? 1 : 0;
+	if (bootable)
+		memcpy (dst, ffs ? bootblock_ffs : bootblock_ofs, ffs ? sizeof bootblock_ffs : sizeof bootblock_ofs);
+}
+static void floppy_get_rootblock (uae_u8 *dst, int block, const TCHAR *disk_name, drive_type adftype)
+{
+	dst[0+3] = 2;
+	dst[12+3] = 0x48;
+	dst[312] = dst[313] = dst[314] = dst[315] = (uae_u8)0xff;
+	dst[316+2] = (block + 1) >> 8; dst[316+3] = (block + 1) & 255;
+	char *s = ua ((disk_name && _tcslen (disk_name) > 0) ? disk_name : "empty");
+	dst[432] = strlen (s);
+	strcpy ((char*)dst + 433, s);
+	xfree (s);
+	dst[508 + 3] = 1;
+	disk_date (dst + 420);
+	memcpy (dst + 472, dst + 420, 3 * 4);
+	memcpy (dst + 484, dst + 420, 3 * 4);
+	disk_checksum (dst, dst + 20);
+	/* bitmap block */
+	memset (dst + 512 + 4, 0xff, 2 * block / 8);
+	if (adftype == 0)
+		dst[512 + 0x72] = 0x3f;
+	else
+		dst[512 + 0xdc] = 0x3f;
+	disk_checksum (dst + 512, dst + 512);
+}
+
 /* type: 0=regular, 1=ext2adf */
 /* adftype: 0=DD,1=HD,2=DD PC,3=HD PC,4=525SD */
-void disk_creatediskfile (TCHAR *name, int type, drive_type adftype, TCHAR *disk_name)
+void disk_creatediskfile (const TCHAR *name, int type, drive_type adftype, const TCHAR *disk_name, bool ffs, bool bootable)
 {
+	int size = 32768;
 	struct zfile *f;
 	int i, l, file_size, tracks, track_len, sectors;
 	uae_u8 *chunk = NULL;
-	uae_u8 tmp[3*4];
-
-	if (disk_name == NULL || _tcslen (disk_name) == 0)
-		disk_name = "empty";
+	int ddhd = 1;
 
 	if (type == 1)
 		tracks = 2 * 83;
@@ -2080,62 +2117,64 @@ void disk_creatediskfile (TCHAR *name, int type, drive_type adftype, TCHAR *disk
 	if (adftype == 1 || adftype == 3) {
 		file_size *= 2;
 		track_len *= 2;
+		ddhd = 2;
 	} else if (adftype == 4) {
 		file_size /= 2;
 		tracks /= 2;
 	}
 
 	f = zfile_fopen (name, "wb", 0);
-	chunk = xmalloc (uae_u8, 32768);
+	chunk = xmalloc (uae_u8, size);
 	if (f && chunk) {
 		int cylsize = sectors * 2 * 512;
-		memset (chunk, 0, 32768);
+		memset (chunk, 0, size);
 		if (type == 0) {
 			for (i = 0; i < file_size; i += cylsize) {
 				memset(chunk, 0, cylsize);
 				if (adftype <= 1) {
 					if (i == 0) {
 						/* boot block */
-						strcpy ((char*)chunk, "DOS");
+						floppy_get_bootblock (chunk, ffs, bootable);
 					} else if (i == file_size / 2) {
-						int block = file_size / 1024;
 						/* root block */
-						chunk[0+3] = 2;
-						chunk[12+3] = 0x48;
-						chunk[312] = chunk[313] = chunk[314] = chunk[315] = (uae_u8)0xff;
-						chunk[316+2] = (block + 1) >> 8; chunk[316+3] = (block + 1) & 255;
-						chunk[432] = strlen (disk_name);
-						strcpy ((char*)chunk + 433, disk_name);
-						chunk[508 + 3] = 1;
-						disk_date (chunk + 420);
-						memcpy (chunk + 472, chunk + 420, 3 * 4);
-						memcpy (chunk + 484, chunk + 420, 3 * 4);
-						disk_checksum(chunk, chunk + 20);
-						/* bitmap block */
-						memset (chunk + 512 + 4, 0xff, 2 * file_size / (1024 * 8));
-						if (adftype == 0)
-							chunk[512 + 0x72] = 0x3f;
-						else
-							chunk[512 + 0xdc] = 0x3f;
-						disk_checksum(chunk + 512, chunk + 512);
+						floppy_get_rootblock (chunk, file_size / 1024, disk_name, adftype);
 					}
 				}
 				zfile_fwrite (chunk, cylsize, 1, f);
 			}
 		} else {
+			uae_u8 root[4];
+			uae_u8 rawtrack[3 * 4], dostrack[3 * 4];
 			l = track_len;
 			zfile_fwrite ("UAE-1ADF", 8, 1, f);
-			tmp[0] = 0; tmp[1] = 0; /* flags (reserved) */
-			tmp[2] = 0; tmp[3] = tracks; /* number of tracks */
-			zfile_fwrite (tmp, 4, 1, f);
-			tmp[0] = 0; tmp[1] = 0; /* flags (reserved) */
-			tmp[2] = 0; tmp[3] = 1; /* track type */
-			tmp[4] = 0; tmp[5] = 0; tmp[6]=(uae_u8)(l >> 8); tmp[7] = (uae_u8)l;
-			tmp[8] = 0; tmp[9] = 0; tmp[10] = 0; tmp[11] = 0;
-			for (i = 0; i < tracks; i++)
-				zfile_fwrite (tmp, sizeof (tmp), 1, f);
-			for (i = 0; i < tracks; i++)
+			root[0] = 0; root[1] = 0; /* flags (reserved) */
+			root[2] = 0; root[3] = tracks; /* number of tracks */
+			zfile_fwrite (root, 4, 1, f);
+			rawtrack[0] = 0; rawtrack[1] = 0; /* flags (reserved) */
+			rawtrack[2] = 0; rawtrack[3] = 1; /* track type */
+			rawtrack[4] = 0; rawtrack[5] = 0; rawtrack[6]=(uae_u8)(l >> 8); rawtrack[7] = (uae_u8)l;
+			rawtrack[8] = 0; rawtrack[9] = 0; rawtrack[10] = 0; rawtrack[11] = 0;
+			memcpy (dostrack, rawtrack, sizeof rawtrack);
+			dostrack[3] = 0;
+			dostrack[9] = (l * 8) >> 16; dostrack[10] = (l * 8) >> 8; dostrack[11] = (l * 8) >> 0;
+			bool dodos = ffs || bootable || (disk_name && _tcslen (disk_name) > 0);
+			for (i = 0; i < tracks; i++) {
+				uae_u8 tmp[3 * 4];
+				memcpy (tmp, rawtrack, sizeof rawtrack);
+				if (dodos)
+					memcpy (tmp, dostrack, sizeof dostrack);
+				zfile_fwrite (tmp, sizeof tmp, 1, f);
+			}
+			for (i = 0; i < tracks; i++) {
+				memset (chunk, 0, size);
+				if (dodos) {
+					if (i == 0)
+						floppy_get_bootblock (chunk, ffs, bootable);
+					else if (i == 80)
+						floppy_get_rootblock (chunk, 80 * 11 * ddhd, disk_name, adftype);
+				}
 				zfile_fwrite (chunk, l, 1, f);
+			}
 		}
 	}
 	xfree (chunk);
@@ -2208,7 +2247,7 @@ int disk_setwriteprotect (int num, const TCHAR *name, bool writeprotected)
 	name2 = DISK_get_saveimagepath (name);
 
 	if (needwritefile && zf2 == 0)
-		disk_creatediskfile (name2, 1, drvtype, NULL);
+		disk_creatediskfile (name2, 1, drvtype, NULL, 0, 0);
 	zfile_fclose (zf2);
 	if (writeprotected && iswritefileempty (name)) {
 		for (i = 0; i < MAX_FLOPPY_DRIVES; i++) {
@@ -2542,12 +2581,12 @@ uae_u8 DISK_status (void)
 	return st;
 }
 
-STATIC_INLINE int unformatted (const drive *drv)
+static bool unformatted (const drive *drv)
 {
 	unsigned int tr = drv->cyl * 2 + side;
 	if (tr >= drv->num_tracks)
 		return 1;
-	if (drv->filetype == ADF_EXT2 && drv->trackdata[tr].bitlen == 0)
+	if (drv->filetype == ADF_EXT2 && drv->trackdata[tr].bitlen == 0 && drv->trackdata[tr].type != TRACK_AMIGADOS)
 		return 1;
 	if (drv->trackdata[tr].type == TRACK_NONE)
 		return 1;

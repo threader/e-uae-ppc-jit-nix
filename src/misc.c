@@ -1149,3 +1149,113 @@ void my_kbd_handler (int keyboard, int scancode, int newstate)
         write_log ("kbd = %d, scancode = %d, state = %d\n", keyboard, scancode, newstate );
         inputdevice_translatekeycode (keyboard, scancode, newstate);
 }
+
+//win32gfx
+#define MAX_DISPLAYS 10
+struct MultiDisplay Displays[MAX_DISPLAYS];
+
+struct MultiDisplay *getdisplay (struct uae_prefs *p)
+{
+        int i;
+        int display = p->gfx_display;
+
+        write_log ("Multimonitor detection disabled\n");
+        Displays[0].primary = 1;
+    	Displays[0].name = "Display";
+		Displays[0].disabled = 0;
+
+        i = 0;
+        while (Displays[i].name) {
+                struct MultiDisplay *md = &Displays[i];
+                if (p->gfx_display_name[0] && !_tcscmp (md->name, p->gfx_display_name))
+                        return md;
+                if (p->gfx_display_name[0] && !_tcscmp (md->name2, p->gfx_display_name))
+                        return md;
+                i++;
+        }
+
+        if (i == 0) {
+                write_log ("no display adapters! Exiting");
+                exit (0);
+        }
+        if (display >= i)
+                display = 0;
+        return &Displays[display];
+}
+
+void addmode (struct MultiDisplay *md, int w, int h, int d, int rate, int nondx)
+{
+        int ct;
+        int i, j;
+
+        ct = 0;
+        if (d == 8)
+                ct = RGBMASK_8BIT;
+        if (d == 15)
+                ct = RGBMASK_15BIT;
+        if (d == 16)
+                ct = RGBMASK_16BIT;
+        if (d == 24)
+                ct = RGBMASK_24BIT;
+        if (d == 32)
+                ct = RGBMASK_32BIT;
+        if (ct == 0)
+                return;
+        d /= 8;
+        i = 0;
+        while (md->DisplayModes[i].depth >= 0) {
+                if (md->DisplayModes[i].depth == d && md->DisplayModes[i].res.width == w && md->DisplayModes[i].res.height == h) {
+                        for (j = 0; j < MAX_REFRESH_RATES; j++) {
+                                if (md->DisplayModes[i].refresh[j] == 0 || md->DisplayModes[i].refresh[j] == rate)
+                                        break;
+                        }
+                        if (j < MAX_REFRESH_RATES) {
+                                md->DisplayModes[i].refresh[j] = rate;
+                                md->DisplayModes[i].refreshtype[j] = nondx;
+                                md->DisplayModes[i].refresh[j + 1] = 0;
+                                return;
+                        }
+                }
+                i++;
+        }
+        i = 0;
+        while (md->DisplayModes[i].depth >= 0)
+                i++;
+        if (i >= MAX_PICASSO_MODES - 1)
+                return;
+        md->DisplayModes[i].nondx = nondx;
+        md->DisplayModes[i].res.width = w;
+        md->DisplayModes[i].res.height = h;
+        md->DisplayModes[i].depth = d;
+        md->DisplayModes[i].refresh[0] = rate;
+        md->DisplayModes[i].refreshtype[0] = nondx;
+        md->DisplayModes[i].refresh[1] = 0;
+        md->DisplayModes[i].colormodes = ct;
+        md->DisplayModes[i + 1].depth = -1;
+        _stprintf (md->DisplayModes[i].name, "%dx%d, %d-bit",
+                md->DisplayModes[i].res.width, md->DisplayModes[i].res.height, md->DisplayModes[i].depth * 8);
+}
+
+
+
+//dxwrap
+int DirectDraw_CurrentRefreshRate (void)
+{
+	//DirectDraw_GetDisplayMode ();
+	//return dxdata.native.dwRefreshRate;
+	return 50;
+}
+
+int DirectDraw_GetVerticalBlankStatus (void)
+{
+//        BOOL status;
+//        if (FAILED (IDirectDraw7_GetVerticalBlankStatus (dxdata.maindd, &status)))
+                return -1;
+//        return status;
+}
+
+// direct3d
+int D3D_goodenough (void)
+{
+	return 0;
+}

@@ -14,7 +14,7 @@ hostname = GnoStiC-dv7
 uname -m = i686
 uname -r = 2.6.32-24-generic
 uname -s = Linux
-uname -v = #41-Ubuntu SMP Thu Aug 19 01:12:52 UTC 2010
+uname -v = #42-Ubuntu SMP Fri Aug 20 14:24:04 UTC 2010
 
 /usr/bin/uname -p = unknown
 /bin/uname -X     = unknown
@@ -445,7 +445,7 @@ configure:4344: $? = 0
 configure:4344: result: yes
 configure:4350: checking for _doprnt
 configure:4350: gcc -o conftest -g -O2 -Wall -W -Wno-unused   conftest.c  >&5
-/tmp/ccAAwvoL.o: In function `main':
+/tmp/cc3ddsdl.o: In function `main':
 /home/gnostic/puaex/src/tools/conftest.c:67: undefined reference to `_doprnt'
 collect2: ld returned 1 exit status
 configure:4350: $? = 1
@@ -533,7 +533,7 @@ configure:4364: $? = 0
 configure:4364: result: yes
 configure:4364: checking for strcmpi
 configure:4364: gcc -o conftest -g -O2 -Wall -W -Wno-unused   conftest.c  >&5
-/tmp/ccIwYmH0.o: In function `main':
+/tmp/ccyjfxIA.o: In function `main':
 /home/gnostic/puaex/src/tools/conftest.c:69: undefined reference to `strcmpi'
 collect2: ld returned 1 exit status
 configure:4364: $? = 1
@@ -613,7 +613,7 @@ configure: failed program was:
 configure:4364: result: no
 configure:4364: checking for stricmp
 configure:4364: gcc -o conftest -g -O2 -Wall -W -Wno-unused   conftest.c  >&5
-/tmp/ccXSlxnT.o: In function `main':
+/tmp/ccs8WUKF.o: In function `main':
 /home/gnostic/puaex/src/tools/conftest.c:69: undefined reference to `stricmp'
 collect2: ld returned 1 exit status
 configure:4364: $? = 1
