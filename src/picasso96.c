@@ -768,7 +768,7 @@ static void setconvert (void)
 		alloc_colors_rgb (5, 6, 5, 11, 5, 0, 0, 0, 0, 0, p96rc, p96gc, p96bc);
 	gfx_set_picasso_colors (picasso96_state.RGBFormat);
 	if (host_mode != ohost_mode || picasso96_state.RGBFormat != orgbformat) {
-		write_log (L"RTG conversion: Depth=%d HostRGBF=%d P96RGBF=%d Mode=%d\n", d, host_mode, picasso96_state.RGBFormat, v);
+		write_log ("RTG conversion: Depth=%d HostRGBF=%d P96RGBF=%d Mode=%d\n", d, host_mode, picasso96_state.RGBFormat, v);
 		ohost_mode = host_mode;
 		orgbformat = picasso96_state.RGBFormat;
 	}
@@ -1868,7 +1868,7 @@ static uae_u32 REGPARAM2 picasso_InitCard (TrapContext *ctx)
 	uaecptr AmigaBoardInfo = m68k_areg (regs, 0);
 
 	if (!picasso96_amem) {
-		write_log (L"P96: InitCard() but no resolution memory!\n");
+		write_log ("P96: InitCard() but no resolution memory!\n");
 		return 0;
 	}
 	amem = picasso96_amem;
@@ -1951,7 +1951,7 @@ static uae_u32 REGPARAM2 picasso_SetSwitch (TrapContext *ctx)
 		_stprintf (p96text, "Picasso96 %dx%dx%d (%dx%dx%d)",
 		picasso96_state.Width, picasso96_state.Height, picasso96_state.BytesPerPixel * 8,
 		picasso_vidinfo.width, picasso_vidinfo.height, picasso_vidinfo.pixbytes * 8);
-	write_log ("SetSwitch() - %s\n", flag ? p96text : L"amiga");
+	write_log ("SetSwitch() - %s\n", flag ? p96text : "amiga");
 	/* Put old switch-state in D0 */
 	return !flag;
 }
@@ -2756,7 +2756,7 @@ static uae_u32 REGPARAM2 picasso_BlitTemplate (TrapContext *ctx)
 			if(Bpp > 1)
 				Mask = 0xFF;
 			if(tmp.DrawMode == COMP) {
-				write_log (L"WARNING - BlitTemplate() has unhandled mask 0x%x with COMP DrawMode. Using fall-back routine.\n", Mask);
+				write_log ("WARNING - BlitTemplate() has unhandled mask 0x%x with COMP DrawMode. Using fall-back routine.\n", Mask);
 				return 0;
 			} else {
 				result = 1;
@@ -2768,7 +2768,7 @@ static uae_u32 REGPARAM2 picasso_BlitTemplate (TrapContext *ctx)
 		if(result) {
 			uae_u32 fgpen, bgpen;
 
-			P96TRACE((L"BlitTemplate() xy(%d,%d), wh(%d,%d) draw 0x%x fg 0x%x bg 0x%x \n",
+			P96TRACE(("BlitTemplate() xy(%d,%d), wh(%d,%d) draw 0x%x fg 0x%x bg 0x%x \n",
 				X, Y, W, H, tmp.DrawMode, tmp.FgPen, tmp.BgPen));
 
 			bitoffset = tmp.XOffset % 8;
@@ -3059,9 +3059,9 @@ static uae_u32 REGPARAM2 picasso_BlitPlanar2Chunky (TrapContext *ctx)
 		write_log ("ERROR - BlitPlanar2Chunky() has minterm 0x%x, which I don't handle. Using fall-back routine.\n",
 			minterm);
 	} else if (CopyRenderInfoStructureA2U (ri, &local_ri) && CopyBitMapStructureA2U (bm, &local_bm)) {
-		P96TRACE((L"BlitPlanar2Chunky(%d, %d, %d, %d, %d, %d) Minterm 0x%x, Mask 0x%x, Depth %d\n",
+		P96TRACE(("BlitPlanar2Chunky(%d, %d, %d, %d, %d, %d) Minterm 0x%x, Mask 0x%x, Depth %d\n",
 			srcx, srcy, dstx, dsty, width, height, minterm, mask, local_bm.Depth));
-		P96TRACE((L"P2C - BitMap has %d BPR, %d rows\n", local_bm.BytesPerRow, local_bm.Rows));
+		P96TRACE(("P2C - BitMap has %d BPR, %d rows\n", local_bm.BytesPerRow, local_bm.Rows));
 		PlanarToChunky (&local_ri, &local_bm, srcx, srcy, dstx, dsty, width, height, mask);
 		result = 1;
 	}
