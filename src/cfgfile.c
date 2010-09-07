@@ -1583,10 +1583,10 @@ static int cfgfile_parse_host (struct uae_prefs *p, TCHAR *option, TCHAR *value)
 #endif
 
 	if (_tcscmp (option, "gfx_width") == 0 || _tcscmp (option, "gfx_height") == 0) {
-		cfgfile_intval (option, value, "gfx_width", &p->gfx_width_win, 1);
-		cfgfile_intval (option, value, "gfx_height", &p->gfx_height_win, 1);
-		p->gfx_width_fs = p->gfx_width_win;
-		p->gfx_height_fs = p->gfx_height_win;
+		cfgfile_intval (option, value, "gfx_width", &p->gfx_size_win.width, 1);
+		cfgfile_intval (option, value, "gfx_height", &p->gfx_size_win.height, 1);
+		p->gfx_size_fs.width = p->gfx_size_win.width;
+		p->gfx_size_fs.height = p->gfx_size_win.height;
 		return 1;
 	}
 
@@ -2823,8 +2823,6 @@ static void parse_gfx_specs (struct uae_prefs *p, const TCHAR *spec)
 		goto argh;
 	*x1++ = 0; *x2++ = 0;
 
-    p->gfx_width_win = p->gfx_width_fs = _tstoi (x0);
-    p->gfx_height_win = p->gfx_height_fs = _tstoi (x1);
 	p->gfx_size_win.width = p->gfx_size_fs.width = _tstoi (x0);
 	p->gfx_size_win.height = p->gfx_size_fs.height = _tstoi (x1);
 	p->gfx_resolution = _tcschr (x2, 'l') != 0 ? 1 : 0;
@@ -3699,10 +3697,6 @@ void default_prefs (struct uae_prefs *p, int type)
 	p->gfx_size_fs.height = 600;
 	p->gfx_size_win.width = 720;
 	p->gfx_size_win.height = 568;
-    p->gfx_width_fs = 800;
-    p->gfx_height_fs = 600;
-    p->gfx_width_win = 720;
-    p->gfx_height_win = 568;
 	for (i = 0; i < 4; i++) {
 		p->gfx_size_fs_xtra[i].width = 0;
 		p->gfx_size_fs_xtra[i].height = 0;
