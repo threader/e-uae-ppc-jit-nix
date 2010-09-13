@@ -692,7 +692,7 @@ static int sys_cddev_open (void)
 	struct device_info di;
 	unitnum = get_standard_cd_unit (CD_STANDARD_UNIT_CD32);
 	sys_command_info (unitnum, &di, 0);
-	write_log ("using drive %s (unit %d, media %d)\n", di.label, unitnum, di.media_inserted);
+	write_log ("AKIKO: using drive %s (unit %d, media %d)\n", di.label, unitnum, di.media_inserted);
 	/* make sure CD audio is not playing */
 	cdaudiostop_do ();
 	return 0;
@@ -706,7 +706,6 @@ static void sys_cddev_close (void)
 		sys_command_close (unitnum);
 	}
 	unitnum = -1;
-	
 }
 
 static int command_lengths[] = { 1,2,1,1,12,2,1,1,4,1,-1,-1,-1,-1,-1,-1 };

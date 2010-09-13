@@ -4,6 +4,6 @@ AM_CFLAGS    = @UAE_CFLAGS@
 
 noinst_LIBRARIES = libosdep.a
 
-libosdep_a_SOURCES = main.c memory.c blkdev-linux.c
+libosdep_a_SOURCES = main.c memory.c blkdev-linux.c parser.c
 
 noinst_HEADERS = memory.h hrtimer.h

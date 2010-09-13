@@ -972,7 +972,7 @@ void my_kbd_handler (int keyboard, int scancode, int newstate)
         if (scancode_new == currprefs.win32_guikey && scancode_new != DIK_F12)
                 scancode = scancode_new;*/
 
-        write_log ("kbd = %d, scancode = %d, state = %d\n", keyboard, scancode, newstate );
+//        write_log ("kbd = %d, scancode = %d, state = %d\n", keyboard, scancode, newstate );
 
         if (newstate == 0 && code == 0) {
                 switch (scancode)

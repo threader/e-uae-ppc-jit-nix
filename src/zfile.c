@@ -150,7 +150,7 @@ static struct zcache *zcache_put (const TCHAR *name, struct zdiskimage *data)
 	zc->tm = time (NULL);
 	return zc;
 }
-	
+
 static struct zfile *zfile_create (struct zfile *prev)
 {
 	struct zfile *z;
@@ -1491,7 +1491,11 @@ static struct zfile *zfile_fopen_2 (const TCHAR *name, const TCHAR *mode, int ma
 		}
 		l->zfdmask = mask;
 	} else {
+#if defined(__FreeBSD__)
+		struct stat st;
+#else
 		struct stat64 st;
+#endif
 		l = zfile_create (NULL);
 		l->mode = my_strdup (mode);
 		l->name = my_strdup (name);
@@ -2779,6 +2783,11 @@ struct zdirectory {
 	TCHAR **filenames;
 };
 
+struct zfile *zfile_open_archive (const TCHAR *path, int flags)
+{
+	return 0;
+}
+
 #ifdef _CONSOLE
 static TCHAR *zerror;
 #define WRITE_LOG_BUF_SIZE 4096
@@ -2803,3 +2812,4 @@ void zfile_seterror (const TCHAR *format, ...)
 {
 }
 #endif
+

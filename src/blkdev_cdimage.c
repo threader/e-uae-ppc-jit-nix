@@ -381,49 +381,20 @@ static void *cdda_play_func (void *v)
 	int num_sectors = CDDA_BUFFERS;
 	int quit = 0;
 	int bufnum;
-	int buffered;
-	uae_u8 *px[2], *p;
 	int bufon[2];
-	int i;
-	WAVEHDR whdr[2];
-	MMRESULT mmr;
-	int volume[2], volume_main;
 	int oldplay;
 	int idleframes;
 	bool foundsub;
 	struct cdunit *cdu = (struct cdunit*)v;
 
-	for (i = 0; i < 2; i++) {
-		memset (&whdr[i], 0, sizeof (WAVEHDR));
-		whdr[i].dwFlags = WHDR_DONE;
-	}
-
 	while (cdu->cdda_play == 0)
 		Sleep (10);
 	oldplay = -1;
 
-	p = xmalloc (uae_u8, 2 * num_sectors * 4096);
-	px[0] = p;
-	px[1] = p + num_sectors * 4096;
 	bufon[0] = bufon[1] = 0;
 	bufnum = 0;
-	buffered = 0;
-	volume[0] = volume[1] = -1;
-	volume_main = -1;
 
-	if (cdda_openwav ()) {
-
-		for (i = 0; i < 2; i++) {
-			memset (&whdr[i], 0, sizeof (WAVEHDR));
-			whdr[i].dwBufferLength = 2352 * num_sectors;
-			whdr[i].lpData = (LPSTR)px[i];
-			mmr = waveOutPrepareHeader (cdda_wavehandle, &whdr[i], sizeof (WAVEHDR));
-			if (mmr != MMSYSERR_NOERROR) {
-				write_log ("IMAGE CDDA: waveOutPrepareHeader %d:%d\n", i, mmr);
-				goto end;
-			}
-			whdr[i].dwFlags |= WHDR_DONE;
-		}
+	cda_audio *cda = new cda_audio (num_sectors);
 
 		while (cdu->cdda_play > 0) {
 
@@ -497,12 +468,10 @@ static void *cdda_play_func (void *v)
 				setstate (cdu, AUDIO_STATUS_IN_PROGRESS);
 			}
 
-			while (!(whdr[bufnum].dwFlags & WHDR_DONE)) {
-				Sleep (10);
+		cda->wait(bufnum);
+		bufon[bufnum] = 0;
 				if (!cdu->cdda_play)
 					goto end;
-			}
-			bufon[bufnum] = 0;
 
 			if (idleframes <= 0 && !isaudiotrack (&cdu->di.toc, cdda_pos)) {
 				setstate (cdu, AUDIO_STATUS_PLAY_ERROR);
@@ -516,10 +485,10 @@ static void *cdda_play_func (void *v)
 
 				gui_flicker_led (LED_CD, cdu->di.unitnum - 1, LED_CD_AUDIO);
 
-				memset (px[bufnum], 0, num_sectors * 2352);
+			memset (cda->buffers[bufnum], 0, num_sectors * 2352);
 
 				for (cnt = 0; cnt < num_sectors; cnt++) {
-					uae_u8 *dst = px[bufnum] + cnt * 2352;
+				uae_u8 *dst = cda->buffers[bufnum] + cnt * 2352;
 					uae_u8 subbuf[SUB_CHANNEL_SIZE];
 					sector = cdda_pos;
 
@@ -569,27 +538,11 @@ static void *cdda_play_func (void *v)
 				if (idleframes <= 0)
 					cdu->cd_last_pos = cdda_pos;
 
-				volume_main = currprefs.sound_volume;
-				int vol_mult[2];
-				for (int j = 0; j < 2; j++) {
-					volume[j] = cdu->cdda_volume[j];
-					vol_mult[j] = (100 - volume_main) * volume[j] / 100;
-					if (vol_mult[j])
-						vol_mult[j]++;
-					if (vol_mult[j] >= 32768)
-						vol_mult[j] = 32768;
-				}
-				uae_s16 *p = (uae_s16*)(px[bufnum]);
-				for (i = 0; i < num_sectors * 2352 / 4; i++) {
-					p[i * 2 + 0] = p[i * 2 + 0] * vol_mult[0] / 32768;
-					p[i * 2 + 1] = p[i * 2 + 1] * vol_mult[1] / 32768;
-				}
-
 				bufon[bufnum] = 1;
-				mmr = waveOutWrite (cdda_wavehandle, &whdr[bufnum], sizeof (WAVEHDR));
-				if (mmr != MMSYSERR_NOERROR) {
-					write_log ("IMAGE CDDA: waveOutWrite %d\n", mmr);
-					break;
+			cda->setvolume (currprefs.sound_volume, cdu->cdda_volume[0], cdu->cdda_volume[1]);
+			if (!cda->play (bufnum)) {
+				setstate (cdu, AUDIO_STATUS_PLAY_ERROR);
+				goto end;
 				}
 
 				if (dofinish) {
@@ -600,30 +553,23 @@ static void *cdda_play_func (void *v)
 
 			}
 
-
 			if (bufon[0] == 0 && bufon[1] == 0) {
-				while (!(whdr[0].dwFlags & WHDR_DONE) || !(whdr[1].dwFlags & WHDR_DONE))
-					Sleep (10);
 				while (cdu->cdda_paused && cdu->cdda_play > 0)
 					Sleep (10);
 			}
 
 			bufnum = 1 - bufnum;
-
-		}
 	}
 
 end:
-	while (!(whdr[0].dwFlags & WHDR_DONE) || !(whdr[1].dwFlags & WHDR_DONE))
-		Sleep (10);
-	for (i = 0; i < 2; i++)
-		waveOutUnprepareHeader  (cdda_wavehandle, &whdr[i], sizeof (WAVEHDR));
+	cda->wait (0);
+	cda->wait (1);
 
 	while (cdimage_unpack_active == 1)
 		Sleep (10);
 
-	cdda_closewav ();
-	xfree (p);
+	delete cda;
+
 	cdu->cdda_play = 0;
 	write_log ("IMAGE CDDA: thread killed\n");
 	return NULL;

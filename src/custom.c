@@ -33,7 +33,6 @@
 #include "autoconf.h"
 #include "traps.h"
 #include "gui.h"
-#include "gfxdep/gfx.h"
 #include "picasso96.h"
 #include "drawing.h"
 #include "savestate.h"
@@ -1930,15 +1929,26 @@ static void record_color_change (int hpos, int regno, unsigned long value)
 	if  (regno < 0x1000 && hpos < HBLANK_OFFSET && !(beamcon0 & 0x80) && prev_lineno >= 0) {
 		struct draw_info *pdip = curr_drawinfo + prev_lineno;
 		int idx = pdip->last_color_change;
+		bool lastsync = false;
 		/* Move color changes in horizontal cycles 0 to HBLANK_OFFSET to end of previous line.
 		* Cycles 0 to HBLANK_OFFSET are visible in right border on real Amigas. (because of late hsync)
 		*/
+		if (curr_color_changes[idx - 1].regno == 0xffff) {
+			idx--;
+			lastsync = true;
+		}
 		pdip->last_color_change++;
 		pdip->nr_color_changes++;
 		curr_color_changes[idx].linepos = (hpos + maxhpos) * 2;
 		curr_color_changes[idx].regno = regno;
 		curr_color_changes[idx].value = value;
-		curr_color_changes[idx + 1].regno = -1;
+		if (lastsync) {
+			curr_color_changes[idx + 1].linepos = hsyncstartpos * 2;
+			curr_color_changes[idx + 1].regno = 0xffff;
+			curr_color_changes[idx + 2].regno = -1;
+		} else {
+			curr_color_changes[idx + 1].regno = -1;
+		}
 	}
 	record_color_change2 (hpos, regno, value);
 
@@ -3467,10 +3477,6 @@ static void INTENA (uae_u16 v)
 		if (v & 0x8000)
 			doint ();
 	}
-#if 0
-	if (v & 0x40)
-		write_log ("INTENA %04X (%04X) %p\n", intena, v, M68K_GETPC);
-#endif
 }
 
 void INTREQ_f (uae_u16 v)
@@ -5212,21 +5218,6 @@ static void copper_check (int n)
 static void CIA_vsync_prehandler (int dotod)
 {
 	CIA_vsync_handler (dotod);
-#if 0
-	if (input_recording > 0) {
-		inprec_rstart(INPREC_CIAVSYNC);
-		inprec_ru32(ciavsync_counter);
-		inprec_rend();
-	} else if (input_recording < 0) {
-		uae_u32 v = -1;
-		while (inprec_pstart(INPREC_CIAVSYNC)) {
-			v = inprec_pu32();
-			inprec_pend();
-		}
-		if (v != ciavsync_counter)
-			write_log ("INPREC: ciavsync sync error %d <> %d\n", v, ciavsync_counter);
-	}
-#endif
 	ciavsync_counter++;
 }
 
@@ -5319,6 +5310,9 @@ static uae_u16 dmal, dmal_hpos;
 
 static void dmal_emu (uae_u32 v)
 {
+	// Disk and Audio DMA bits are ignored by Agnus, Agnus only checks DMAL and master bit
+	if (!(dmacon & 0x200))
+		return;
 	int hpos = current_hpos ();
 	if (v >= 6) {
 		v -= 6;
@@ -5516,21 +5510,6 @@ static void hsync_handler (void)
 		vpos = 0;
 		vsync_handler ();
 		vpos_count = 0;
-#if 0
-		if (input_recording > 0) {
-			inprec_rstart (INPREC_VSYNC);
-			inprec_ru32 (vsync_counter);
-			inprec_rend ();
-		} else if (input_recording < 0) {
-			uae_u32 v = -1;
-			while (inprec_pstart(INPREC_VSYNC)) {
-				v = inprec_pu32();
-				inprec_pend();
-			}
-			if (v != vsync_counter)
-				write_log ("INPREC: vsync sync error %d <> %d\n", v, vsync_counter);
-		}
-#endif
 		vsync_counter++;
 		if (currprefs.cs_ciaatod == 0)
 			CIA_vsync_prehandler (!(bplcon0 & 2) || ((bplcon0 & 2) && currprefs.genlock));
@@ -5625,6 +5604,16 @@ static void hsync_handler (void)
 		INTREQ (0x8000 | 0x0008);
 	}
 
+#ifdef UAENET
+	{
+		extern int volatile uaenet_int_requested;
+		extern int volatile uaenet_vsync_requested;
+		if (uaenet_int_requested || (uaenet_vsync_requested && vpos == 10)) {
+			INTREQ (0x8000 | 0x2000);
+		}
+	}
+#endif
+
 	{
 		extern void bsdsock_fake_int_handler (void);
 		extern int volatile bsd_int_requested;
@@ -5710,19 +5699,6 @@ static void hsync_handler (void)
 	if (diw_change > 0)
 		diw_change--;
 
-
-#if 0
-	{
-		static int skip;
-		if (M68K_GETPC >= 0x0C0D7A2 && M68K_GETPC < 0x00C0D7B2 && vpos == 0xf3) {
-			if (!skip)
-				activate_debugger ();
-			skip = 1;
-		}
-		if (vpos != 0xf3)
-			skip = 0;
-	}
-#endif
 }
 
 void event2_remevent (int no)
@@ -5948,7 +5924,7 @@ void customreset (int hardreset)
 	if (hardreset)
 		rtc_hardreset();
 
-    //picasso_reset ();
+	picasso_reset ();
 }
 
 void dumpcustom (void)

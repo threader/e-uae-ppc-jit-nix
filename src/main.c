@@ -137,23 +137,8 @@ static void fixup_prefs_dim2 (struct wh *wh)
 
 void fixup_prefs_dimensions (struct uae_prefs *prefs)
 {
-    if (prefs->gfx_width_fs < 320)
-		prefs->gfx_width_fs = 320;
-    if (prefs->gfx_height_fs < 200)
-		prefs->gfx_height_fs = 200;
-    if (prefs->gfx_height_fs > 1280)
-		prefs->gfx_height_fs = 1280;
-    prefs->gfx_width_fs += 7;
-    prefs->gfx_width_fs &= ~7;
-
-    if (prefs->gfx_width_win < 320)
-		prefs->gfx_width_win = 320;
-    if (prefs->gfx_height_win < 200)
-		prefs->gfx_height_win = 200;
-    if (prefs->gfx_height_win > 1280)
-		prefs->gfx_height_win = 1280;
-    prefs->gfx_width_win += 7;
-    prefs->gfx_width_win &= ~7;
+	fixup_prefs_dim2 (&prefs->gfx_size_fs);
+	fixup_prefs_dim2 (&prefs->gfx_size_win);
 }
 
 void fixup_cpu (struct uae_prefs *p)
@@ -661,7 +646,7 @@ void reset_all_systems (void)
 	init_eventtab ();
 
 #ifdef PICASSO96
-	//picasso_reset ();
+	picasso_reset ();
 #endif
 #ifdef SCSIEMU
 	scsi_reset ();

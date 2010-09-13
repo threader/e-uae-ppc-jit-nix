@@ -1997,6 +1997,8 @@ int EvalException (LPEXCEPTION_POINTERS blah, int n_except)
 
 #if defined(__APPLE__) && __DARWIN_UNIX03
 #define CONTEXT_MEMBER(x) __##x
+#elif defined(__FreeBSD__)
+#define CONTEXT_MEMBER(x) sc_##x
 #else
 #define CONTEXT_MEMBER(x) x
 #endif
@@ -2021,6 +2023,9 @@ static void vec(int x, struct sigcontext sc)
 		write_log ("Caught illegal access to (unknown) at eip=%08x\n", i);
     }
    exit (EXIT_FAILURE);
+#elif defined(__FreeBSD__)
+	//uae_u32 addr=sc.cr2;
+	uae_u32 addr=sc.CONTEXT_MEMBER(spare2); // UJ: @@@@: ????: 
 #else
 	uae_u32 addr=sc.cr2;
 #endif

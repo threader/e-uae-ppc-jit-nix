@@ -195,9 +195,6 @@ struct uae_prefs {
 	int gfx_display;
 	TCHAR gfx_display_name[256];
 	int gfx_framerate, gfx_autoframerate;
-	int gfx_width_win, gfx_height_win;
-	int gfx_width_fs, gfx_height_fs;
-	int gfx_width, gfx_height;
 	struct wh gfx_size_win;
 	struct wh gfx_size_fs;
 	struct wh gfx_size;

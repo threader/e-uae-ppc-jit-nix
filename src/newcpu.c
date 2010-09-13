@@ -416,7 +416,7 @@ static void build_cpufunctbl (void)
 	if (currprefs.mmu_model) {
 		mmu_reset ();
 		mmu_set_tc (regs.tcr);
-		mmu_set_super (regs.s);
+		mmu_set_super (regs.s != 0);
 	}
 #endif
 }
@@ -1135,7 +1135,7 @@ void REGPARAM2 MakeFromSR (void)
 	}
 #ifdef MMU
 	if (currprefs.mmu_model)
-		mmu_set_super (regs.s);
+		mmu_set_super (regs.s != 0);
 #endif
 
 	doint ();
@@ -1147,7 +1147,7 @@ void REGPARAM2 MakeFromSR (void)
 		unset_special (SPCFLAG_TRACE);
 }
 
-STATIC_INLINE void exception_trace (unsigned int nr)
+static void exception_trace (unsigned int nr)
 {
 	unset_special (SPCFLAG_TRACE | SPCFLAG_DOTRACE);
 	if (regs.t1 && !regs.t0) {
@@ -1267,7 +1267,7 @@ Interrupt cycle diagram:
 
 */
 
-STATIC_INLINE void Exception_ce000 (int nr, uaecptr oldpc)
+static void Exception_ce000 (int nr, uaecptr oldpc)
 {
 	uae_u32 currpc = m68k_getpc (), newpc;
 	int sv = regs.s;
@@ -1486,7 +1486,7 @@ static void Exception_normal (int nr, uaecptr oldpc)
 		regs.s = 1;
 #ifdef MMU
 		if (currprefs.mmu_model)
-			mmu_set_super (regs.s);
+			mmu_set_super (regs.s != 0);
 #endif
 	}
 	if (currprefs.cpu_model > 68000) {
@@ -2179,7 +2179,7 @@ void m68k_reset (int hardreset)
 	if (currprefs.mmu_model) {
 		mmu_reset ();
 		mmu_set_tc (regs.tcr);
-		mmu_set_super (regs.s);
+		mmu_set_super (regs.s != 0);
 	}
 #endif
 
@@ -2999,10 +2999,15 @@ retry:
 		}
 		//activate_debugger ();
 		TRY (prb2) {
-			Exception (2, regs.fault_pc);
+			Exception (0, regs.fault_pc);
 		} CATCH (prb2) {
 			write_log ("MMU: double bus error, rebooting..\n");
+			regs.tcr = 0;
+			m68k_reset (0);
+			m68k_setpc (0xf80002);
+			mmu_reset ();
 			uae_reset (1);
+			return;
 		}
 		goto retry;
 	}
@@ -4351,7 +4356,7 @@ STATIC_INLINE void fill_icache030 (uae_u32 addr, int idx)
 
 STATIC_INLINE bool cancache030 (uaecptr addr)
 {
-	return  ce_cachable[addr >> 16];
+	return ce_cachable[addr >> 16] != 0;
 }
 
 // and finally the worst part, 68030 data cache..

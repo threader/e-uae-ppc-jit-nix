@@ -61,7 +61,8 @@ ARFLAGS = cru
 libosdep_a_AR = $(AR) $(ARFLAGS)
 libosdep_a_LIBADD =
 am_libosdep_a_OBJECTS = main.$(OBJEXT) memory.$(OBJEXT) \
-	support.$(OBJEXT) ami-disk.$(OBJEXT) blkdev-amiga.$(OBJEXT)
+	support.$(OBJEXT) ami-disk.$(OBJEXT) blkdev-amiga.$(OBJEXT) \
+	parser.$(OBJEXT)
 libosdep_a_OBJECTS = $(am_libosdep_a_OBJECTS)
 SCRIPTS = $(dist_noinst_SCRIPTS)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)/src
@@ -240,7 +241,7 @@ AM_CPPFLAGS = @UAE_CPPFLAGS@ -I$(top_srcdir)/src/include \
 	-I$(top_builddir)/src -I$(top_srcdir)/src
 AM_CFLAGS = @UAE_CFLAGS@
 noinst_LIBRARIES = libosdep.a
-libosdep_a_SOURCES = main.c memory.c support.c ami-disk.c blkdev-amiga.c
+libosdep_a_SOURCES = main.c memory.c support.c ami-disk.c blkdev-amiga.c parser.c
 noinst_HEADERS = amiga-kludges.h memory.h hrtimer.h
 dist_noinst_SCRIPTS = scc
 all: all-am
@@ -295,6 +296,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/blkdev-amiga.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/memory.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/parser.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/support.Po@am__quote@
 
 .c.o:

@@ -4,7 +4,7 @@ AM_CFLAGS    = @UAE_CFLAGS@
 
 noinst_LIBRARIES = libosdep.a
 
-libosdep_a_SOURCES = main.m memory.c
+libosdep_a_SOURCES = main.m memory.c parser.c
 
 noinst_HEADERS = main.h memory.h hrtimer.h
 noinst_DATA = Info.plist.in euae.icns

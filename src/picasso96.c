@@ -59,17 +59,18 @@ int p96hack_vpos, p96hack_vpos2, p96refresh_active;
 int have_done_picasso = 0; /* For the JIT compiler */
 int picasso_is_special = PIC_WRITE; /* ditto */
 int picasso_is_special_read = PIC_READ; /* ditto */
+#endif
 
+static int hwsprite = 0;
 #define NOBLITTER 0
 #define NOBLITTER_BLIT 0
 #define P96TRACING_ENABLED 0
 #define P96SPRTRACING_ENABLED 0
 
-static int hwsprite = 0;
 static int picasso96_BT = BT_uaegfx;
 static int picasso96_GCT = GCT_Unknown;
 static int picasso96_PCT = PCT_Unknown;
-#endif
+
 static int p96syncrate;
 int p96hsync_counter, full_refresh;
 

@@ -85,11 +85,11 @@ am_uae_OBJECTS = main.$(OBJEXT) newcpu.$(OBJEXT) memory.$(OBJEXT) \
 	consolehook.$(OBJEXT) native2amiga.$(OBJEXT) disk.$(OBJEXT) \
 	crc32.$(OBJEXT) savestate.$(OBJEXT) arcadia.$(OBJEXT) \
 	cdtv.$(OBJEXT) cd32_fmv.$(OBJEXT) uaeexe.$(OBJEXT) \
-	uaelib.$(OBJEXT) uaeresource.$(OBJEXT) fdi2raw.$(OBJEXT) \
-	hotkeys.$(OBJEXT) amax.$(OBJEXT) ar.$(OBJEXT) \
-	driveclick.$(OBJEXT) enforcer.$(OBJEXT) misc.$(OBJEXT) \
-	a2065.$(OBJEXT) gayle.$(OBJEXT) ncr_scsi.$(OBJEXT) \
-	missing.$(OBJEXT) readcpu.$(OBJEXT)
+	uaelib.$(OBJEXT) uaeresource.$(OBJEXT) uaeserial.$(OBJEXT) \
+	fdi2raw.$(OBJEXT) hotkeys.$(OBJEXT) amax.$(OBJEXT) \
+	ar.$(OBJEXT) driveclick.$(OBJEXT) enforcer.$(OBJEXT) \
+	misc.$(OBJEXT) a2065.$(OBJEXT) gayle.$(OBJEXT) \
+	ncr_scsi.$(OBJEXT) missing.$(OBJEXT) readcpu.$(OBJEXT)
 uae_OBJECTS = $(am_uae_OBJECTS)
 SCRIPTS = $(dist_noinst_SCRIPTS)
 DEFAULT_INCLUDES = -I.@am__isrc@
@@ -386,11 +386,11 @@ noinst_HEADERS = \
 	include/osemu.h		include/picasso96.h	\
 	include/readcpu.h	include/savestate.h	\
 	include/scsidev.h	include/serial.h	\
-	include/sinctable.h				\
+	include/sinctable.h	include/sana2.h		\
 	include/sleep.h		include/sysdeps.h	\
 	include/traps.h                                 \
 	include/tui.h		include/uae.h		\
-	include/uaeexe.h \
+	include/uaeexe.h	include/uaenet.h	\
 	include/uae_endian.h \
 	include/uae_malloc.h \
 	include/uae_string.h \
@@ -415,7 +415,7 @@ uae_SOURCES = \
 	diskutil.c zfile.c zfile_archive.c cfgfile.c picasso96.c inputdevice.c \
 	gfxutil.c audio.c sinctable.c drawing.c consolehook.c \
 	native2amiga.c disk.c crc32.c savestate.c arcadia.c cdtv.c cd32_fmv.c \
-	uaeexe.c uaelib.c uaeresource.c fdi2raw.c hotkeys.c amax.c \
+	uaeexe.c uaelib.c uaeresource.c uaeserial.c fdi2raw.c hotkeys.c amax.c \
 	ar.c driveclick.c enforcer.c misc.c a2065.c gayle.c ncr_scsi.c \
 	missing.c readcpu.c
 
@@ -658,6 +658,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/uaeexe.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/uaelib.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/uaeresource.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/uaeserial.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/writelog.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zfile.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zfile_archive.Po@am__quote@

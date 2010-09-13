@@ -1516,7 +1516,7 @@ static void open_unit (void)
 	struct device_info di;
 	unitnum = get_standard_cd_unit (CD_STANDARD_UNIT_CDTV);
 	sys_command_info (unitnum, &di, 0);
-	write_log ("using drive %s (unit %d, media %d)\n", di.label, unitnum, di.media_inserted);
+	write_log ("CDTV: using drive %s (unit %d, media %d)\n", di.label, unitnum, di.media_inserted);
 }
 static void close_unit (void)
 {

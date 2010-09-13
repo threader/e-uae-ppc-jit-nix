@@ -4,7 +4,7 @@ AM_CFLAGS    = @UAE_CFLAGS@
 
 noinst_LIBRARIES = libosdep.a
 
-libosdep_a_SOURCES  = main.c memory.c support.c ami-disk.c blkdev-amiga.c
+libosdep_a_SOURCES  = main.c memory.c support.c ami-disk.c blkdev-amiga.c parser.c
 
 noinst_HEADERS = amiga-kludges.h memory.h hrtimer.h
 

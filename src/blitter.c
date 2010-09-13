@@ -1323,17 +1323,6 @@ static void do_blitter2 (int hpos, int copper)
 	if (dmaen (DMA_BLITPRI))
 		set_special (SPCFLAG_BLTNASTY);
 
-#if 0
-	if (M68K_GETPC >= 0x00070554 && M68K_GETPC <= 0x000706B0) {
-		blitter_done ();
-		return;
-	}
-	if (M68K_GETPC >= 0x00070838) {
-		blitter_done ();
-		return;
-	}
-#endif
-
 	if (dmaen (DMA_BLITTER))
 		bltstate = BLT_work;
 

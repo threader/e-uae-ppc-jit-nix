@@ -60,7 +60,8 @@ LIBRARIES = $(noinst_LIBRARIES)
 ARFLAGS = cru
 libosdep_a_AR = $(AR) $(ARFLAGS)
 libosdep_a_LIBADD =
-am_libosdep_a_OBJECTS = main.$(OBJEXT) memory.$(OBJEXT)
+am_libosdep_a_OBJECTS = main.$(OBJEXT) memory.$(OBJEXT) \
+	parser.$(OBJEXT)
 libosdep_a_OBJECTS = $(am_libosdep_a_OBJECTS)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)/src
 depcomp = $(SHELL) $(top_srcdir)/depcomp
@@ -245,7 +246,7 @@ AM_CPPFLAGS = @UAE_CPPFLAGS@ -I$(top_srcdir)/src/include \
 AM_CFLAGS = @UAE_CFLAGS@
 AM_CXXFLAGS = @UAE_CFLAGS@ -Wno-multichar
 noinst_LIBRARIES = libosdep.a
-libosdep_a_SOURCES = main.cpp memory.c
+libosdep_a_SOURCES = main.cpp memory.c parser.c
 noinst_HEADERS = memory.h hrtimer.h
 dist_noinst_DATA = uae.rsrc
 all: all-am
@@ -298,6 +299,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/memory.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/parser.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<

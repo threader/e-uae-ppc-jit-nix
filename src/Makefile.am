@@ -107,11 +107,11 @@ noinst_HEADERS = \
 	include/osemu.h		include/picasso96.h	\
 	include/readcpu.h	include/savestate.h	\
 	include/scsidev.h	include/serial.h	\
-	include/sinctable.h				\
+	include/sinctable.h	include/sana2.h		\
 	include/sleep.h		include/sysdeps.h	\
 	include/traps.h                                 \
 	include/tui.h		include/uae.h		\
-	include/uaeexe.h \
+	include/uaeexe.h	include/uaenet.h	\
 	include/uae_endian.h \
 	include/uae_malloc.h \
 	include/uae_string.h \
@@ -136,7 +136,7 @@ uae_SOURCES = \
 	diskutil.c zfile.c zfile_archive.c cfgfile.c picasso96.c inputdevice.c \
 	gfxutil.c audio.c sinctable.c drawing.c consolehook.c \
 	native2amiga.c disk.c crc32.c savestate.c arcadia.c cdtv.c cd32_fmv.c \
-	uaeexe.c uaelib.c uaeresource.c fdi2raw.c hotkeys.c amax.c \
+	uaeexe.c uaelib.c uaeresource.c uaeserial.c fdi2raw.c hotkeys.c amax.c \
 	ar.c driveclick.c enforcer.c misc.c a2065.c gayle.c ncr_scsi.c \
 	missing.c readcpu.c
 

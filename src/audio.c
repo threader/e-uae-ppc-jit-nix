@@ -295,7 +295,6 @@ float sample_evtime, scaled_sample_evtime;
 
 static unsigned long last_cycles;
 static float next_sample_evtime;
-
 unsigned int obtainedfreq;
 
 typedef uae_s8 sample8_t;
@@ -1044,7 +1043,6 @@ static void zerostate (int nr)
 	cdp->state = 0;
 	cdp->evtime = MAX_EV;
 	cdp->intreq2 = 0;
-	cdp->dsr = cdp->dr = false;
 	cdp->dmaenstore = false;
 #ifdef TEST_AUDIO
 	cdp->have_dat = false;
@@ -1345,6 +1343,10 @@ static void audio_state_channel2 (int nr, bool perfin)
 		break;
 	case 1:
 		cdp->evtime = MAX_EV;
+		if (!chan_ena) {
+			zerostate (nr);
+			return;
+		}
 		if (!cdp->dat_written)
 			return;
 #ifdef TEST_AUDIO
@@ -1361,6 +1363,10 @@ static void audio_state_channel2 (int nr, bool perfin)
 		break;
 	case 5:
 		cdp->evtime = MAX_EV;
+		if (!chan_ena) {
+			zerostate (nr);
+			return;
+		}
 		if (!cdp->dat_written)
 			return;
 #ifdef DEBUG_AUDIO

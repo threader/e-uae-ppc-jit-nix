@@ -1248,8 +1248,8 @@ int graphics_init (void)
 
     fixup_prefs_dimensions (&currprefs);
 
-    current_width  = currprefs.gfx_width_win;
-    current_height = currprefs.gfx_height_win;
+    current_width  = currprefs.gfx_size_win.width;
+    current_height = currprefs.gfx_size_win.height;
 
     if (find_best_mode (&current_width, &current_height, bitdepth, fullscreen)) {
 	gfxvidinfo.width  = current_width;
@@ -1523,82 +1523,82 @@ void handle_events (void)
 	picasso_invalid_start = picasso_vidinfo.height + 1;
 	picasso_invalid_stop = -1;
     }
-# endif /* USE_GL */
+#endif /* USE_GL */
 #endif /* PICASSSO96 */
 }
 
 static void switch_keymaps (void)
 {
-    if (currprefs.map_raw_keys) {
-	if (have_rawkeys) {
-	    set_default_hotkeys (get_default_raw_hotkeys ());
-	    write_log ("Using raw keymap\n");
-	} else {
-	    currprefs.map_raw_keys = changed_prefs.map_raw_keys = 0;
-	    write_log ("Raw keys not supported\n");
+	if (currprefs.map_raw_keys) {
+		if (have_rawkeys) {
+			set_default_hotkeys (get_default_raw_hotkeys ());
+			write_log ("Using raw keymap\n");
+		} else {
+			currprefs.map_raw_keys = changed_prefs.map_raw_keys = 0;
+			write_log ("Raw keys not supported\n");
+		}
 	}
-    }
-    if (!currprefs.map_raw_keys) {
-	set_default_hotkeys (get_default_cooked_hotkeys ());
-	write_log ("Using cooked keymap\n");
-    }
+	if (!currprefs.map_raw_keys) {
+		set_default_hotkeys (get_default_cooked_hotkeys ());
+		write_log ("Using cooked keymap\n");
+	}
 }
 
 int check_prefs_changed_gfx (void)
 {
-    if (changed_prefs.map_raw_keys != currprefs.map_raw_keys) {
-	switch_keymaps ();
-	currprefs.map_raw_keys = changed_prefs.map_raw_keys;
+	if (changed_prefs.map_raw_keys != currprefs.map_raw_keys) {
+		switch_keymaps ();
+		currprefs.map_raw_keys = changed_prefs.map_raw_keys;
+	}
+
+	if (changed_prefs.gfx_size_win.width		!= currprefs.gfx_size_win.width
+		|| changed_prefs.gfx_size_win.height	!= currprefs.gfx_size_win.height
+		|| changed_prefs.gfx_size_fs.width		!= currprefs.gfx_size_fs.width
+		|| changed_prefs.gfx_size_fs.height		!= currprefs.gfx_size_fs.height) {
+		fixup_prefs_dimensions (&changed_prefs);
+    } else if (changed_prefs.gfx_lores_mode	== currprefs.gfx_lores_mode
+		&& changed_prefs.gfx_vresolution	== currprefs.gfx_vresolution
+		&& changed_prefs.gfx_xcenter		== currprefs.gfx_xcenter
+		&& changed_prefs.gfx_ycenter		== currprefs.gfx_ycenter
+		&& changed_prefs.gfx_afullscreen	== currprefs.gfx_afullscreen
+		&& changed_prefs.gfx_pfullscreen	== currprefs.gfx_pfullscreen) {
+		return 0;
     }
 
-    if (changed_prefs.gfx_width_win  != currprefs.gfx_width_win
-     || changed_prefs.gfx_height_win != currprefs.gfx_height_win
-     || changed_prefs.gfx_width_fs   != currprefs.gfx_width_fs
-     || changed_prefs.gfx_height_fs  != currprefs.gfx_height_fs) {
-	fixup_prefs_dimensions (&changed_prefs);
-    } else if (changed_prefs.gfx_lores_mode          == currprefs.gfx_lores_mode
-	    && changed_prefs.gfx_vresolution    == currprefs.gfx_vresolution
-	    && changed_prefs.gfx_xcenter        == currprefs.gfx_xcenter
-	    && changed_prefs.gfx_ycenter        == currprefs.gfx_ycenter
-	    && changed_prefs.gfx_afullscreen    == currprefs.gfx_afullscreen
-	    && changed_prefs.gfx_pfullscreen    == currprefs.gfx_pfullscreen) {
+	DEBUG_LOG ("Function: check_prefs_changed_gfx\n");
+
+#ifdef PICASSO96
+	if (!screen_is_picasso)
+		graphics_subshutdown ();
+#endif
+
+	currprefs.gfx_size_win.width	= changed_prefs.gfx_size_win.width;
+	currprefs.gfx_size_win.height	= changed_prefs.gfx_size_win.height;
+	currprefs.gfx_size_fs.width		= changed_prefs.gfx_size_fs.width;
+	currprefs.gfx_size_fs.height	= changed_prefs.gfx_size_fs.height;
+	currprefs.gfx_lores_mode		= changed_prefs.gfx_lores_mode;
+	currprefs.gfx_vresolution		= changed_prefs.gfx_vresolution;
+	currprefs.gfx_xcenter			= changed_prefs.gfx_xcenter;
+	currprefs.gfx_ycenter			= changed_prefs.gfx_ycenter;
+	currprefs.gfx_afullscreen		= changed_prefs.gfx_afullscreen;
+	currprefs.gfx_pfullscreen		= changed_prefs.gfx_pfullscreen;
+
+#ifdef PICASSO96
+	if (!screen_is_picasso)
+#endif
+		graphics_subinit ();
+
 	return 0;
-    }
-
-    DEBUG_LOG ("Function: check_prefs_changed_gfx\n");
-
-#ifdef PICASSO96
-    if (!screen_is_picasso)
-	graphics_subshutdown ();
-#endif
-
-    currprefs.gfx_width_win	 = changed_prefs.gfx_width_win;
-    currprefs.gfx_height_win	 = changed_prefs.gfx_height_win;
-    currprefs.gfx_width_fs	 = changed_prefs.gfx_width_fs;
-    currprefs.gfx_height_fs	 = changed_prefs.gfx_height_fs;
-    currprefs.gfx_lores_mode	 = changed_prefs.gfx_lores_mode;
-    currprefs.gfx_vresolution	 = changed_prefs.gfx_vresolution;
-    currprefs.gfx_xcenter	 = changed_prefs.gfx_xcenter;
-    currprefs.gfx_ycenter	 = changed_prefs.gfx_ycenter;
-    currprefs.gfx_afullscreen	 = changed_prefs.gfx_afullscreen;
-    currprefs.gfx_pfullscreen	 = changed_prefs.gfx_pfullscreen;
-
-#ifdef PICASSO96
-    if (!screen_is_picasso)
-#endif
-	graphics_subinit ();
-
-    return 0;
 }
 
 int debuggable (void)
 {
-    return 1;
+	return 1;
 }
 
 int mousehack_allowed (void)
 {
-    return mousehack;
+	return mousehack;
 }
 
 void LED (int on)
@@ -1606,32 +1606,31 @@ void LED (int on)
 }
 
 #ifdef PICASSO96
-
 void DX_Invalidate (int first, int last)
 {
-    DEBUG_LOG ("Function: DX_Invalidate %i - %i\n", first, last);
+	DEBUG_LOG ("Function: DX_Invalidate %i - %i\n", first, last);
 
-    if (is_hwsurface)
-	return;
+	if (is_hwsurface)
+		return;
 
-    if (first > last)
-	return;
+	if (first > last)
+		return;
 
-    picasso_has_invalid_lines = 1;
-    if (first < picasso_invalid_start)
-	picasso_invalid_start = first;
-    if (last > picasso_invalid_stop)
-	picasso_invalid_stop = last;
+	picasso_has_invalid_lines = 1;
+	if (first < picasso_invalid_start)
+		picasso_invalid_start = first;
+	if (last > picasso_invalid_stop)
+		picasso_invalid_stop = last;
 
-    while (first <= last) {
-	picasso_invalid_lines[first] = 1;
-	first++;
-    }
+	while (first <= last) {
+		picasso_invalid_lines[first] = 1;
+		first++;
+	}
 }
 
 int DX_BitsPerCannon (void)
 {
-    return 8;
+	return 8;
 }
 
 static int palette_update_start = 256;
@@ -1639,84 +1638,78 @@ static int palette_update_end   = 0;
 
 void DX_SetPalette (int start, int count)
 {
-    DEBUG_LOG ("Function: DX_SetPalette\n");
+	DEBUG_LOG ("Function: DX_SetPalette\n");
 
-    if (! screen_is_picasso || picasso96_state.RGBFormat != RGBFB_CHUNKY)
-	return;
+	if (! screen_is_picasso || picasso96_state.RGBFormat != RGBFB_CHUNKY)
+		return;
 
-    if (picasso_vidinfo.pixbytes != 1) {
-	/* This is the case when we're emulating a 256 color display. */
-	while (count-- > 0) {
-	    int r = picasso96_state.CLUT[start].Red;
-	    int g = picasso96_state.CLUT[start].Green;
-	    int b = picasso96_state.CLUT[start].Blue;
-	    picasso_vidinfo.clut[start++] =
-				 (doMask256 (r, red_bits, red_shift)
-				| doMask256 (g, green_bits, green_shift)
-				| doMask256 (b, blue_bits, blue_shift));
+	if (picasso_vidinfo.pixbytes != 1) {
+		/* This is the case when we're emulating a 256 color display. */
+		while (count-- > 0) {
+			int r = picasso96_state.CLUT[start].Red;
+			int g = picasso96_state.CLUT[start].Green;
+			int b = picasso96_state.CLUT[start].Blue;
+			picasso_vidinfo.clut[start++] = (doMask256 (r, red_bits, red_shift) | doMask256 (g, green_bits, green_shift) | doMask256 (b, blue_bits, blue_shift));
+		}
+	} else {
+		int i;
+		for (i = start; i < start+count && i < 256;  i++) {
+			p96Colors[i].r = picasso96_state.CLUT[i].Red;
+			p96Colors[i].g = picasso96_state.CLUT[i].Green;
+			p96Colors[i].b = picasso96_state.CLUT[i].Blue;
+		}
+		SDL_SetColors (screen, &p96Colors[start], start, count);
 	}
-    } else {
-	int i;
-	for (i = start; i < start+count && i < 256;  i++) {
-	    p96Colors[i].r = picasso96_state.CLUT[i].Red;
-	    p96Colors[i].g = picasso96_state.CLUT[i].Green;
-	    p96Colors[i].b = picasso96_state.CLUT[i].Blue;
-	}
-	SDL_SetColors (screen, &p96Colors[start], start, count);
-    }
 }
 
 void DX_SetPalette_vsync(void)
 {
-    if (palette_update_end > palette_update_start) {
-	DX_SetPalette (palette_update_start,
-				palette_update_end - palette_update_start);
-    palette_update_end   = 0;
-    palette_update_start = 0;
-  }
+	if (palette_update_end > palette_update_start) {
+		DX_SetPalette (palette_update_start, palette_update_end - palette_update_start);
+		palette_update_end   = 0;
+		palette_update_start = 0;
+	}
 }
 
 int DX_Fill (int dstx, int dsty, int width, int height, uae_u32 color, RGBFTYPE rgbtype)
 {
-    int result = 0;
+	int result = 0;
 #ifdef USE_GL /* TODO think about optimization for GL */
-    if (!currprefs.use_gl) {
+	if (!currprefs.use_gl) {
 #endif /* USE_GL */
+	SDL_Rect rect = {dstx, dsty, width, height};
 
-    SDL_Rect rect = {dstx, dsty, width, height};
+	DEBUG_LOG ("DX_Fill (x:%d y:%d w:%d h:%d color=%08x)\n", dstx, dsty, width, height, color);
 
-    DEBUG_LOG ("DX_Fill (x:%d y:%d w:%d h:%d color=%08x)\n", dstx, dsty, width, height, color);
-
-    if (SDL_FillRect (screen, &rect, color) == 0) {
-	DX_Invalidate (dsty, dsty + height - 1);
-	result = 1;
-    }
+	if (SDL_FillRect (screen, &rect, color) == 0) {
+		DX_Invalidate (dsty, dsty + height - 1);
+		result = 1;
+	}
 #ifdef USE_GL
-    }
+	}
 #endif /* USE_GL */
-    return result;
+	return result;
 }
 
 int DX_Blit (int srcx, int srcy, int dstx, int dsty, int width, int height, BLIT_OPCODE opcode)
 {
-    int result = 0;
+	int result = 0;
 #ifdef USE_GL /* TODO think about optimization for GL */
-    if (!currprefs.use_gl) {
+	if (!currprefs.use_gl) {
 #endif /* USE_GL */
-    SDL_Rect src_rect  = {srcx, srcy, width, height};
-    SDL_Rect dest_rect = {dstx, dsty, 0, 0};
+		SDL_Rect src_rect  = {srcx, srcy, width, height};
+		SDL_Rect dest_rect = {dstx, dsty, 0, 0};
 
-    DEBUG_LOG ("DX_Blit (sx:%d sy:%d dx:%d dy:%d w:%d h:%d op:%d)\n",
-	       srcx, srcy, dstx, dsty, width, height, opcode);
+		DEBUG_LOG ("DX_Blit (sx:%d sy:%d dx:%d dy:%d w:%d h:%d op:%d)\n", srcx, srcy, dstx, dsty, width, height, opcode);
 
-    if (opcode == BLIT_SRC && SDL_BlitSurface (screen, &src_rect, screen, &dest_rect) == 0) {
-	DX_Invalidate (dsty, dsty + height - 1);
-	result = 1;
-    }
+		if (opcode == BLIT_SRC && SDL_BlitSurface (screen, &src_rect, screen, &dest_rect) == 0) {
+			DX_Invalidate (dsty, dsty + height - 1);
+			result = 1;
+		}
 #ifdef USE_GL
-    }
+	}
 #endif /* USE_GL */
-    return result;
+	return result;
 }
 
 /*
@@ -1750,100 +1743,97 @@ static void add_p96_mode (int width, int height, int emulate_chunky, int *count)
 
 int DX_FillResolutions (uae_u16 *ppixel_format)
 {
-    int i;
-    int count = 0;
-    int emulate_chunky = 0;
+	int i;
+	int count = 0;
+	int emulate_chunky = 0;
 
-    DEBUG_LOG ("Function: DX_FillResolutions\n");
+	DEBUG_LOG ("Function: DX_FillResolutions\n");
 
-    /* Find supported pixel formats */
+	/* Find supported pixel formats */
 #ifdef USE_GL
-    if (!currprefs.use_gl) {
+	if (!currprefs.use_gl) {
 #endif /* USE_GL */
-    picasso_vidinfo.rgbformat = get_p96_pixel_format (SDL_GetVideoInfo()->vfmt);
+		picasso_vidinfo.rgbformat = get_p96_pixel_format (SDL_GetVideoInfo()->vfmt);
 #ifdef USE_GL
-    } else {
+	} else {
 #if SDL_BYTEORDER == SDL_BIG_ENDIAN
-	if (bit_unit == 16)
-#	    if defined (__APPLE__)
-		picasso_vidinfo.rgbformat = RGBFB_R5G5B5;
-#           else
-		picasso_vidinfo.rgbformat = RGBFB_R5G6B5;
-#	    endif
-	else
-	    picasso_vidinfo.rgbformat = RGBFB_A8R8G8B8;
+		if (bit_unit == 16)
+#if defined (__APPLE__)
+			picasso_vidinfo.rgbformat = RGBFB_R5G5B5;
 #else
-	if (bit_unit == 16)
-#	    if defined (__APPLE__)
-		picasso_vidinfo.rgbformat = RGBFB_R5G5B5PC;
-#	    else
-		picasso_vidinfo.rgbformat = RGBFB_R5G6B5PC;
-#	    endif
-	else
-	    picasso_vidinfo.rgbformat = RGBFB_B8G8R8A8;
+			picasso_vidinfo.rgbformat = RGBFB_R5G6B5;
 #endif
-    }
+		else
+			picasso_vidinfo.rgbformat = RGBFB_A8R8G8B8;
+#else
+		if (bit_unit == 16)
+#if defined (__APPLE__)
+			picasso_vidinfo.rgbformat = RGBFB_R5G5B5PC;
+#else
+			picasso_vidinfo.rgbformat = RGBFB_R5G6B5PC;
+#endif
+		else
+			picasso_vidinfo.rgbformat = RGBFB_B8G8R8A8;
+#endif
+	}
 #endif /* USE_GL */
 
-    *ppixel_format = 1 << picasso_vidinfo.rgbformat;
-    if (bit_unit == 16 || bit_unit == 32) {
-	*ppixel_format |= RGBFF_CHUNKY;
-	emulate_chunky = 1;
-    }
-
-    /* Check list of standard P96 screenmodes */
-    for (i = 0; i < MAX_SCREEN_MODES; i++) {
-	if (SDL_VideoModeOK (x_size_table[i], y_size_table[i], bitdepth,
-			     SDL_HWSURFACE | SDL_FULLSCREEN)) {
-	    add_p96_mode (x_size_table[i], y_size_table[i], emulate_chunky, &count);
-	}
-    }
-
-    /* Check list of supported SDL screenmodes */
-    for (i = 0; i < mode_count; i++) {
-	int j;
-	int found = 0;
-	for (j = 0; j < MAX_SCREEN_MODES - 1; j++) {
-	    if (screenmode[i].w == x_size_table[j] &&
-		screenmode[i].h == y_size_table[j])
-	    {
-		found = 1;
-		break;
-	    }
+	*ppixel_format = 1 << picasso_vidinfo.rgbformat;
+	if (bit_unit == 16 || bit_unit == 32) {
+		*ppixel_format |= RGBFF_CHUNKY;
+		emulate_chunky = 1;
 	}
 
-	/* If SDL mode is not a standard P96 mode (and thus already added to the
-	 * list, above) then add it */
-	if (!found)
-	    add_p96_mode (screenmode[i].w, screenmode[i].h, emulate_chunky, &count);
-    }
+	/* Check list of standard P96 screenmodes */
+	for (i = 0; i < MAX_SCREEN_MODES; i++) {
+		if (SDL_VideoModeOK (x_size_table[i], y_size_table[i], bitdepth, SDL_HWSURFACE | SDL_FULLSCREEN)) {
+			add_p96_mode (x_size_table[i], y_size_table[i], emulate_chunky, &count);
+		}
+	}
 
-    return count;
+	/* Check list of supported SDL screenmodes */
+	for (i = 0; i < mode_count; i++) {
+		unsigned int j;
+		int found = 0;
+		for (j = 0; j < MAX_SCREEN_MODES - 1; j++) {
+			if (screenmode[i].w == x_size_table[j] && screenmode[i].h == y_size_table[j]) {
+				found = 1;
+				break;
+			}
+		}
+
+		/* If SDL mode is not a standard P96 mode (and thus already added to the
+		 * list, above) then add it */
+		if (!found)
+			add_p96_mode (screenmode[i].w, screenmode[i].h, emulate_chunky, &count);
+	}
+
+	return count;
 }
 
 static void set_window_for_picasso (void)
 {
-    DEBUG_LOG ("Function: set_window_for_picasso\n");
+	DEBUG_LOG ("Function: set_window_for_picasso\n");
 
-    if (screen_was_picasso && current_width == picasso_vidinfo.width && current_height == picasso_vidinfo.height)
-	return;
+	if (screen_was_picasso && current_width == picasso_vidinfo.width && current_height == picasso_vidinfo.height)
+		return;
 
-    screen_was_picasso = 1;
-    graphics_subshutdown();
-    current_width  = picasso_vidinfo.width;
-    current_height = picasso_vidinfo.height;
-    graphics_subinit();
+	screen_was_picasso = 1;
+	graphics_subshutdown();
+	current_width  = picasso_vidinfo.width;
+	current_height = picasso_vidinfo.height;
+	graphics_subinit();
 }
 
 void gfx_set_picasso_modeinfo (uae_u32 w, uae_u32 h, uae_u32 depth, RGBFTYPE rgbfmt)
 {
-    DEBUG_LOG ("Function: gfx_set_picasso_modeinfo w: %i h: %i depth: %i rgbfmt: %i\n", w, h, depth, rgbfmt);
+	DEBUG_LOG ("Function: gfx_set_picasso_modeinfo w: %i h: %i depth: %i rgbfmt: %i\n", w, h, depth, rgbfmt);
 
-    picasso_vidinfo.width = w;
-    picasso_vidinfo.height = h;
-    picasso_vidinfo.depth = depth;
-    picasso_vidinfo.pixbytes = bit_unit >> 3;
-    if (screen_is_picasso)
+	picasso_vidinfo.width = w;
+	picasso_vidinfo.height = h;
+	picasso_vidinfo.depth = depth;
+	picasso_vidinfo.pixbytes = bit_unit >> 3;
+	if (screen_is_picasso)
 		set_window_for_picasso();
 }
 
@@ -1857,123 +1847,123 @@ static int alpha;
 
 void gfx_set_picasso_colors (RGBFTYPE rgbfmt)
 {
-        alloc_colors_picasso (red_bits, green_bits, blue_bits, red_shift, green_shift, blue_shift, rgbfmt);
+	alloc_colors_picasso (red_bits, green_bits, blue_bits, red_shift, green_shift, blue_shift, rgbfmt);
 }
 
 void gfx_set_picasso_state (int on)
 {
-    DEBUG_LOG ("Function: gfx_set_picasso_state: %d\n", on);
+	DEBUG_LOG ("Function: gfx_set_picasso_state: %d\n", on);
 
-    if (on == screen_is_picasso)
+	if (on == screen_is_picasso)
 		return;
 
-    /* We can get called by drawing_init() when there's
-     * no window opened yet... */
-    if (display == 0)
-		return
+	/* We can get called by drawing_init() when there's
+	 * no window opened yet... */
+	if (display == 0)
+		return;
 
-    graphics_subshutdown ();
-    screen_was_picasso = screen_is_picasso;
-    screen_is_picasso = on;
+	graphics_subshutdown ();
+	screen_was_picasso = screen_is_picasso;
+	screen_is_picasso = on;
 
-    if (on) {
-	// Set height, width for Picasso gfx
-	current_width  = picasso_vidinfo.width;
-	current_height = picasso_vidinfo.height;
-	graphics_subinit ();
+	if (on) {
+		// Set height, width for Picasso gfx
+		current_width  = picasso_vidinfo.width;
+		current_height = picasso_vidinfo.height;
+		graphics_subinit ();
     } else {
-	// Set height, width for Amiga gfx
-	current_width  = gfxvidinfo.width;
-	current_height = gfxvidinfo.height;
-	graphics_subinit ();
-    }
+		// Set height, width for Amiga gfx
+		current_width  = gfxvidinfo.width;
+		current_height = gfxvidinfo.height;
+		graphics_subinit ();
+	}
 
-    if (on)
-	DX_SetPalette (0, 256);
+	if (on)
+		DX_SetPalette (0, 256);
 }
 
 uae_u8 *gfx_lock_picasso (void)
 {
-    DEBUG_LOG ("Function: gfx_lock_picasso\n");
+	DEBUG_LOG ("Function: gfx_lock_picasso\n");
 
 #ifdef USE_GL
-    if (!currprefs.use_gl) {
+	if (!currprefs.use_gl) {
 #endif /* USE_GL */
-    if (SDL_MUSTLOCK (screen))
-	SDL_LockSurface (screen);
-    picasso_vidinfo.rowbytes = screen->pitch;
-    return screen->pixels;
+		if (SDL_MUSTLOCK (screen))
+			SDL_LockSurface (screen);
+		picasso_vidinfo.rowbytes = screen->pitch;
+		return screen->pixels;
 #ifdef USE_GL
-    } else {
-	picasso_vidinfo.rowbytes = display->pitch;
-	return display->pixels;
-    }
+	} else {
+		picasso_vidinfo.rowbytes = display->pitch;
+		return display->pixels;
+	}
 #endif /* USE_GL */
 }
 
 void gfx_unlock_picasso (void)
 {
-    DEBUG_LOG ("Function: gfx_unlock_picasso\n");
+	DEBUG_LOG ("Function: gfx_unlock_picasso\n");
 
 #ifdef USE_GL
-    if (!currprefs.use_gl) {
+	if (!currprefs.use_gl) {
 #endif /* USE_GL */
-    if (SDL_MUSTLOCK (screen))
-	SDL_UnlockSurface (screen);
+		if (SDL_MUSTLOCK (screen))
+			SDL_UnlockSurface (screen);
 #ifdef USE_GL
-    }
+	}
 #endif /* USE_GL */
 }
 #endif /* PICASSO96 */
 
 int is_fullscreen (void)
 {
-    return fullscreen;
+	return fullscreen;
 }
 
 int is_vsync (void)
 {
-    return vsync;
+	return vsync;
 }
 
 void toggle_fullscreen (int mode)
 {
-    /* FIXME: Add support for separate full-screen/windowed sizes */
-    fullscreen = 1 - fullscreen;
+	/* FIXME: Add support for separate full-screen/windowed sizes */
+	fullscreen = 1 - fullscreen;
 
-    /* Close existing window and open a new one (with the new fullscreen setting) */
-    graphics_subshutdown ();
-    graphics_subinit ();
+	/* Close existing window and open a new one (with the new fullscreen setting) */
+	graphics_subshutdown ();
+	graphics_subinit ();
 
-    notice_screen_contents_lost ();
-    if (screen_is_picasso)
-	refresh_necessary = 1;
+	notice_screen_contents_lost ();
+	if (screen_is_picasso)
+		refresh_necessary = 1;
 
-    DEBUG_LOG ("ToggleFullScreen: %d\n", fullscreen );
+	DEBUG_LOG ("ToggleFullScreen: %d\n", fullscreen );
 };
 
 void toggle_mousegrab (void)
 {
-    if (!fullscreen) {
-	if (SDL_WM_GrabInput (SDL_GRAB_QUERY) == SDL_GRAB_OFF) {
-	    if (SDL_WM_GrabInput (SDL_GRAB_ON) == SDL_GRAB_ON) {
-		mousegrab = 1;
-		mousehack = 0;
-		SDL_ShowCursor (SDL_DISABLE);
-	    }
-	} else {
-	    if (SDL_WM_GrabInput (SDL_GRAB_OFF) == SDL_GRAB_OFF) {
-		mousegrab = 0;
-		mousehack = 1;
-		SDL_ShowCursor (currprefs.hide_cursor ?  SDL_DISABLE : SDL_ENABLE);
-	    }
+	if (!fullscreen) {
+		if (SDL_WM_GrabInput (SDL_GRAB_QUERY) == SDL_GRAB_OFF) {
+			if (SDL_WM_GrabInput (SDL_GRAB_ON) == SDL_GRAB_ON) {
+				mousegrab = 1;
+				mousehack = 0;
+				SDL_ShowCursor (SDL_DISABLE);
+			}
+		} else {
+			if (SDL_WM_GrabInput (SDL_GRAB_OFF) == SDL_GRAB_OFF) {
+				mousegrab = 0;
+				mousehack = 1;
+				SDL_ShowCursor (currprefs.hide_cursor ?  SDL_DISABLE : SDL_ENABLE);
+			}
+		}
 	}
-    }
 }
 
 void screenshot (int mode, int doprepare)
 {
-   write_log ("Screenshot not supported yet\n");
+	write_log ("Screenshot not supported yet\n");
 }
 
 /*
@@ -1991,72 +1981,72 @@ void screenshot (int mode, int doprepare)
 
 static int init_mouse (void)
 {
-   return 1;
+	return 1;
 }
 
 static void close_mouse (void)
 {
-   return;
+	return;
 }
 
 static int acquire_mouse (unsigned int num, int flags)
 {
-   /* SDL supports only one mouse */
-   return 1;
+	/* SDL supports only one mouse */
+	return 1;
 }
 
 static void unacquire_mouse (unsigned int num)
 {
-   return;
+	return;
 }
 
 static unsigned int get_mouse_num (void)
 {
-    return 1;
+	return 1;
 }
 
 static const char *get_mouse_friendlyname (unsigned int mouse)
 {
-    return "Default mouse";
+	return "Default mouse";
 }
 static const char *get_mouse_uniquename (unsigned int mouse)
 {
-    return "DEFMOUSE1";
+	return "DEFMOUSE1";
 }
 
 static unsigned int get_mouse_widget_num (unsigned int mouse)
 {
-    return MAX_AXES + MAX_BUTTONS;
+	return MAX_AXES + MAX_BUTTONS;
 }
 
 static int get_mouse_widget_first (unsigned int mouse, int type)
 {
-    switch (type) {
+	switch (type) {
 	case IDEV_WIDGET_BUTTON:
-	    return FIRST_BUTTON;
+		return FIRST_BUTTON;
 	case IDEV_WIDGET_AXIS:
-	    return FIRST_AXIS;
-    }
-    return -1;
+		return FIRST_AXIS;
+	}
+	return -1;
 }
 
 static int get_mouse_widget_type (unsigned int mouse, unsigned int num, char *name, uae_u32 *code)
 {
-    if (num >= MAX_AXES && num < MAX_AXES + MAX_BUTTONS) {
-	if (name)
-	    sprintf (name, "Button %d", num + 1 + MAX_AXES);
-	return IDEV_WIDGET_BUTTON;
-    } else if (num < MAX_AXES) {
-	if (name)
-	    sprintf (name, "Axis %d", num + 1);
-	return IDEV_WIDGET_AXIS;
-    }
-    return IDEV_WIDGET_NONE;
+	if (num >= MAX_AXES && num < MAX_AXES + MAX_BUTTONS) {
+		if (name)
+			sprintf (name, "Button %d", num + 1 + MAX_AXES);
+		return IDEV_WIDGET_BUTTON;
+	} else if (num < MAX_AXES) {
+		if (name)
+			sprintf (name, "Axis %d", num + 1);
+		return IDEV_WIDGET_AXIS;
+	}
+	return IDEV_WIDGET_NONE;
 }
 
 static void read_mouse (void)
 {
-    /* We handle mouse input in handle_events() */
+	/* We handle mouse input in handle_events() */
 }
 
 static int get_mouse_flags (int num)
@@ -2065,22 +2055,22 @@ static int get_mouse_flags (int num)
                 return 0;
         if (di_mouse[num].catweasel)
                 return 0;*/
-        return 1;
+	return 1;
 }
 
 struct inputdevice_functions inputdevicefunc_mouse = {
-    init_mouse,
-    close_mouse,
-    acquire_mouse,
-    unacquire_mouse,
-    read_mouse,
-    get_mouse_num,
-    get_mouse_friendlyname,
-    get_mouse_uniquename,
-    get_mouse_widget_num,
-    get_mouse_widget_type,
-    get_mouse_widget_first,
-    get_mouse_flags
+	init_mouse,
+	close_mouse,
+	acquire_mouse,
+	unacquire_mouse,
+	read_mouse,
+	get_mouse_num,
+	get_mouse_friendlyname,
+	get_mouse_uniquename,
+	get_mouse_widget_num,
+	get_mouse_widget_type,
+	get_mouse_widget_first,
+	get_mouse_flags
 };
 
 /*
@@ -2088,34 +2078,34 @@ struct inputdevice_functions inputdevicefunc_mouse = {
  */
 static unsigned int get_kb_num (void)
 {
-    /* SDL supports only one keyboard */
-    return 1;
+	/* SDL supports only one keyboard */
+	return 1;
 }
 
 static const char *get_kb_friendlyname (unsigned int kb)
 {
-    return "Default keyboard";
+	return "Default keyboard";
 }
 static const char *get_kb_uniquename (unsigned int kb)
 {
-    return "DEFKEYB1";
+	return "DEFKEYB1";
 }
 
 static unsigned  int get_kb_widget_num (unsigned int kb)
 {
-    return 255; // fix me
+	return 255; // fix me
 }
 
 static int get_kb_widget_first (unsigned int kb, int type)
 {
-    return 0;
+	return 0;
 }
 
 static int get_kb_widget_type (unsigned int kb, unsigned int num, char *name, uae_u32 *code)
 {
-    // fix me
-    *code = num;
-    return IDEV_WIDGET_KEY;
+	// fix me
+	*code = num;
+	return IDEV_WIDGET_KEY;
 }
 
 static int init_kb (void)
@@ -2140,14 +2130,14 @@ static int init_kb (void)
 
 static void close_kb (void)
 {
-        if (keyboard_inited == 0)
-                return;
-        keyboard_inited = 0;
+	if (keyboard_inited == 0)
+		return;
+	keyboard_inited = 0;
 }
 
 static int keyhack (int scancode, int pressed, int num)
 {
-    return scancode;
+	return scancode;
 }
 
 static void read_kb (void)
@@ -2156,7 +2146,7 @@ static void read_kb (void)
 
 static int acquire_kb (unsigned int num, int flags)
 {
-    return 1;
+	return 1;
 }
 
 static void unacquire_kb (unsigned int num)
@@ -2170,17 +2160,17 @@ static int get_kb_flags (int num)
 
 struct inputdevice_functions inputdevicefunc_keyboard =
 {
-    init_kb,
-    close_kb,
-    acquire_kb,
-    unacquire_kb,
-    read_kb,
-    get_kb_num,
-    get_kb_friendlyname,
-    get_kb_uniquename,
-    get_kb_widget_num,
-    get_kb_widget_type,
-    get_kb_widget_first,
+	init_kb,
+	close_kb,
+	acquire_kb,
+	unacquire_kb,
+	read_kb,
+	get_kb_num,
+	get_kb_friendlyname,
+	get_kb_uniquename,
+	get_kb_widget_num,
+	get_kb_widget_type,
+	get_kb_widget_first,
 	get_kb_flags
 };
 
@@ -2190,7 +2180,7 @@ int getcapslockstate (void)
 {
 // TODO
 //    return capslockstate;
-    return 0;
+	return 0;
 }
 void setcapslockstate (int state)
 {
@@ -2204,14 +2194,14 @@ void setcapslockstate (int state)
  */
 int input_get_default_mouse (struct uae_input_device *uid, int i, int port, int af)
 {
-    /* SDL supports only one mouse */
-        setid (uid, i, ID_AXIS_OFFSET + 0, 0, port, port ? INPUTEVENT_MOUSE2_HORIZ : INPUTEVENT_MOUSE1_HORIZ);
-        setid (uid, i, ID_AXIS_OFFSET + 1, 0, port, port ? INPUTEVENT_MOUSE2_VERT : INPUTEVENT_MOUSE1_VERT);
-        setid (uid, i, ID_AXIS_OFFSET + 2, 0, port, port ? 0 : INPUTEVENT_MOUSE1_WHEEL);
-        setid (uid, i, ID_BUTTON_OFFSET + 0, 0, port, port ? INPUTEVENT_JOY2_FIRE_BUTTON : INPUTEVENT_JOY1_FIRE_BUTTON, af);
-        setid (uid, i, ID_BUTTON_OFFSET + 1, 0, port, port ? INPUTEVENT_JOY2_2ND_BUTTON : INPUTEVENT_JOY1_2ND_BUTTON);
-        setid (uid, i, ID_BUTTON_OFFSET + 2, 0, port, port ? INPUTEVENT_JOY2_3RD_BUTTON : INPUTEVENT_JOY1_3RD_BUTTON);
-        if (port == 0) { /* map back and forward to ALT+LCUR and ALT+RCUR */
+	/* SDL supports only one mouse */
+	setid (uid, i, ID_AXIS_OFFSET + 0, 0, port, port ? INPUTEVENT_MOUSE2_HORIZ : INPUTEVENT_MOUSE1_HORIZ);
+	setid (uid, i, ID_AXIS_OFFSET + 1, 0, port, port ? INPUTEVENT_MOUSE2_VERT : INPUTEVENT_MOUSE1_VERT);
+	setid (uid, i, ID_AXIS_OFFSET + 2, 0, port, port ? 0 : INPUTEVENT_MOUSE1_WHEEL);
+	setid (uid, i, ID_BUTTON_OFFSET + 0, 0, port, port ? INPUTEVENT_JOY2_FIRE_BUTTON : INPUTEVENT_JOY1_FIRE_BUTTON, af);
+	setid (uid, i, ID_BUTTON_OFFSET + 1, 0, port, port ? INPUTEVENT_JOY2_2ND_BUTTON : INPUTEVENT_JOY1_2ND_BUTTON);
+	setid (uid, i, ID_BUTTON_OFFSET + 2, 0, port, port ? INPUTEVENT_JOY2_3RD_BUTTON : INPUTEVENT_JOY1_3RD_BUTTON);
+	if (port == 0) { /* map back and forward to ALT+LCUR and ALT+RCUR */
 //                if (isrealbutton (did, 3)) {
                         setid (uid, i, ID_BUTTON_OFFSET + 3, 0, port, INPUTEVENT_KEY_ALT_LEFT);
                         setid (uid, i, ID_BUTTON_OFFSET + 3, 1, port, INPUTEVENT_KEY_CURSOR_LEFT);
@@ -2220,10 +2210,10 @@ int input_get_default_mouse (struct uae_input_device *uid, int i, int port, int 
                                 setid (uid, i, ID_BUTTON_OFFSET + 4, 1, port, INPUTEVENT_KEY_CURSOR_RIGHT);
 //                        }
 //                }
-        }
-        if (i == 0)
-                return 1;
-        return 0;
+	}
+	if (i == 0)
+		return 1;
+	return 0;
 }
 
 /*
@@ -2231,37 +2221,36 @@ int input_get_default_mouse (struct uae_input_device *uid, int i, int port, int 
  */
 void gfx_default_options (struct uae_prefs *p)
 {
-    int type = get_sdlgfx_type ();
+	int type = get_sdlgfx_type ();
 
-    if (type == SDLGFX_DRIVER_AMIGAOS4 || type == SDLGFX_DRIVER_CYBERGFX ||
-	type == SDLGFX_DRIVER_BWINDOW  || type == SDLGFX_DRIVER_QUARTZ)
-	p->map_raw_keys = 1;
-    else
-	p->map_raw_keys = 0;
+	if (type == SDLGFX_DRIVER_AMIGAOS4 || type == SDLGFX_DRIVER_CYBERGFX || type == SDLGFX_DRIVER_BWINDOW  || type == SDLGFX_DRIVER_QUARTZ)
+		p->map_raw_keys = 1;
+	else
+		p->map_raw_keys = 0;
 #ifdef USE_GL
-    p->use_gl = 0;
+	p->use_gl = 0;
 #endif /* USE_GL */
 }
 
 void gfx_save_options (FILE *f, const struct uae_prefs *p)
 {
-    cfgfile_write (f, GFX_NAME ".map_raw_keys=%s\n", p->map_raw_keys ? "true" : "false");
+	cfgfile_write (f, GFX_NAME ".map_raw_keys=%s\n", p->map_raw_keys ? "true" : "false");
 #ifdef USE_GL
-    cfgfile_write (f, GFX_NAME ".use_gl=%s\n", p->use_gl ? "true" : "false");
+	cfgfile_write (f, GFX_NAME ".use_gl=%s\n", p->use_gl ? "true" : "false");
 #endif /* USE_GL */
 }
 
 int gfx_parse_option (struct uae_prefs *p, const char *option, const char *value)
 {
-    int result = (cfgfile_yesno (option, value, "map_raw_keys", &p->map_raw_keys));
+	int result = (cfgfile_yesno (option, value, "map_raw_keys", &p->map_raw_keys));
 #ifdef USE_GL
-    result = result || (cfgfile_yesno (option, value, "use_gl", &p->use_gl));
+	result = result || (cfgfile_yesno (option, value, "use_gl", &p->use_gl));
 #endif /* USE_GL */
-    return result;
+	return result;
 }
 
 int WIN32GFX_IsPicassoScreen (void)
 {
-        return screen_is_picasso;
+	return screen_is_picasso;
 }
 

@@ -24,6 +24,11 @@
 
 #include <zlib.h>
 
+#if defined(__FreeBSD__)
+#include <time.h>
+#include <sys/time.h>
+#endif
+
 #define unpack_log write_log
 #undef unpack_log
 #define unpack_log
@@ -43,7 +48,14 @@ static time_t fromdostime (uae_u32 dd)
 	tm.tm_mday = (dd >> 16) & 0x1f;
 	t = mktime (&tm);
 	tzset ();
+#if defined(__FreeBSD__)
+	time_t time_now = time(NULL);
+	struct tm* tm_local;
+	tm_local = localtime(&time_now);
+	t -= tm_local->tm_gmtoff;
+#else
 	t -= timezone;
+#endif
 	return t;
 }
 
@@ -252,6 +264,11 @@ struct zvolume *archive_directory_tar (struct zfile *z)
 	struct znode *zn;
 
 	tzset ();
+#if defined(__FreeBSD__)
+	time_t time_now = time(NULL);
+	struct tm* tm_local;
+	tm_local = localtime(&time_now);
+#endif
 	zv = zvolume_alloc (z, ArchiveFormatTAR, NULL, NULL);
 	for (;;) {
 		uae_u8 block[512];
@@ -287,8 +304,13 @@ struct zvolume *archive_directory_tar (struct zfile *z)
 			zai.name = my_strdup (name);
 			zai.size = size;
 			zai.t = strtoul ((char*)block + 136, NULL, 8);
+#if defined(__FreeBSD__)
+			zai.t += tm_local->tm_gmtoff;
+			if (tm_local->tm_isdst)
+#else
 			zai.t += timezone;
 			if (daylight)
+#endif
 				zai.t -= 1 * 60 * 60;
 			if (zai.name[_tcslen (zai.name) - 1] == '/') {
 				zn = zvolume_adddir_abs (zv, &zai);

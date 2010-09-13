@@ -5,7 +5,7 @@ AM_CXXFLAGS  = @UAE_CFLAGS@ -Wno-multichar
 
 noinst_LIBRARIES = libosdep.a
 
-libosdep_a_SOURCES  = main.cpp memory.c
+libosdep_a_SOURCES  = main.cpp memory.c parser.c
 
 noinst_HEADERS = memory.h hrtimer.h
 
