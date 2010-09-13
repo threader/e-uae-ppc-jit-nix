@@ -16,7 +16,7 @@ extern struct netdriverdata *uaenet_enumerate (struct netdriverdata **out, const
 extern void uaenet_enumerate_free (struct netdriverdata *tcp);
 extern void uaenet_close_driver (struct netdriverdata *tc);
 
-extern int uaenet_getdatalenght (void);
+extern int uaenet_getdatalength (void);
 extern int uaenet_getbytespending (void*);
 extern int uaenet_open (void*, struct netdriverdata*, void*, uaenet_gotfunc*, uaenet_getfunc*, int);
 extern void uaenet_close (void*);

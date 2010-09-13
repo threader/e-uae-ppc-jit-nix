@@ -53,7 +53,7 @@ struct uaenetdatawin32
 	uaenet_getfunc *getfunc;
 };
 
-int uaenet_getdatalenght (void)
+int uaenet_getdatalength (void)
 {
 	return sizeof (struct uaenetdatawin32);
 }

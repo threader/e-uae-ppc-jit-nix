@@ -516,7 +516,7 @@ static void chip_init (void)
 	uaenet_close (sysdata);
 	if (td != NULL) {
 		if (!sysdata)
-			sysdata = xcalloc (uae_u8, uaenet_getdatalenght());
+			sysdata = xcalloc (uae_u8, uaenet_getdatalength());
 		if (!uaenet_open (sysdata, td, NULL, gotfunc, getfunc, prom)) {
 			write_log ("A2065: failed to initialize winpcap driver\n");
 		}
