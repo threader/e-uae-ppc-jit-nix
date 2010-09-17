@@ -25,7 +25,9 @@
 #define IPC_CREAT   0x04
 #define IPC_STAT    0x08
 
+#if !defined(__FreeBSD__)
 typedef int key_t;
+#endif
 
 /* One shmid data structure for each shared memory segment in the system. */
 struct shmid_ds {

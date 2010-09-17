@@ -6,8 +6,9 @@ PUAE versioning is based on the merged WinUAE version..
 All is done by:
 	Mustafa 'GnoStiC' TUFAN (mustafa.tufan@gmail.com)
 
-with OS-X fixes from:
-	Steven 'xaind' Saunders
+with fixes from:
+	Steven 'xaind' Saunders (MacOSX)
+	'wuffe' (FreeBSD)
 
 Thanks for the morale support:
 	Dom 'Hungry Horace' Cresswell
@@ -144,6 +145,7 @@ See the docs/compiling.txt file for more information about building PUAE.
 
 GIT
 ===
+http://github.com/GnoStiC/PUAE
 
 
 Contact

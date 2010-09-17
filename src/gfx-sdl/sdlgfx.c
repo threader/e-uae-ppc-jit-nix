@@ -1728,16 +1728,27 @@ static void add_p96_mode (int width, int height, int emulate_chunky, int *count)
 
 	for (i = 0; i <= (emulate_chunky ? 1 : 0); i++) {
 		if (*count < MAX_PICASSO_MODES) {
-			DisplayModes[*count].res.width  = width;
-			DisplayModes[*count].res.height = height;
-			DisplayModes[*count].depth      = (i == 1) ? 1 : bit_unit >> 3;
-			DisplayModes[*count].refresh[0]    = 75;
+			DisplayModes[*count].res.width	= width;
+			DisplayModes[*count].res.height	= height;
+			DisplayModes[*count].depth	= (i == 1) ? 1 : bit_unit >> 3;
+			DisplayModes[*count].refresh[0]	= 75;
 			(*count)++;
 
 			write_log ("SDLGFX: Added P96 mode: %dx%dx%d\n", width, height, (i == 1) ? 8 : bitdepth);
 			addmode (md, width, height, bitdepth, 75, 0);
 		}
 	}
+
+        md1 = Displays;
+	if (md1->DisplayModes[0].depth >= 0)
+		md1->disabled = 0;
+
+        i = 0;
+        while (md1->DisplayModes[i].depth > 0)
+                i++;
+        write_log ("'%s', %d display modes (%s)\n", md1->name, i, md1->disabled ? "disabled" : "enabled");
+        md1++;
+
 	return;
 }
 
