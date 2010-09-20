@@ -3163,6 +3163,15 @@ void m68k_go (int may_quit)
 
 			quit_program = 0;
 			hardboot = 0;
+
+#ifdef INPREC
+			if (currprefs.inprecfile[0] && currprefs.inprecmode < 0) {
+				inprec_open (currprefs.inprecfile, currprefs.inprecmode);
+				changed_prefs.inprecmode = currprefs.inprecmode = 0;
+				changed_prefs.inprecfile[0] = currprefs.inprecfile[0] = 0;
+			}
+#endif
+
 #ifdef SAVESTATE
 			if (savestate_state == STATE_RESTORE)
 				restore_state (savestate_fname);
@@ -3184,6 +3193,14 @@ void m68k_go (int may_quit)
 			}
 			savestate_restore_finish ();
 #endif
+#ifdef INPREC
+			if (currprefs.inprecfile[0] && currprefs.inprecmode > 0) {
+				inprec_open (currprefs.inprecfile, currprefs.inprecmode);
+				changed_prefs.inprecmode = currprefs.inprecmode = 0;
+				changed_prefs.inprecfile[0] = currprefs.inprecfile[0] = 0;
+			}
+#endif
+
 			fill_prefetch_slow ();
 			if (currprefs.produce_sound == 0)
 				eventtab[ev_audio].active = 0;

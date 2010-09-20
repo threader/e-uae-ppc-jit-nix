@@ -1746,7 +1746,7 @@ static void add_p96_mode (int width, int height, int emulate_chunky, int *count)
         i = 0;
         while (md1->DisplayModes[i].depth > 0)
                 i++;
-        write_log ("'%s', %d display modes (%s)\n", md1->name, i, md1->disabled ? "disabled" : "enabled");
+        //write_log ("'%s', %d display modes (%s)\n", md1->name, i, md1->disabled ? "disabled" : "enabled");
         md1++;
 
 	return;
@@ -2189,14 +2189,11 @@ struct inputdevice_functions inputdevicefunc_keyboard =
 
 int getcapslockstate (void)
 {
-// TODO
-//    return capslockstate;
-	return 0;
+	return SDL_GetModState() & KMOD_CAPS;
 }
 void setcapslockstate (int state)
 {
-// TODO
-//    capslockstate = state;
+	//TODO:
 }
 
 
@@ -2263,5 +2260,21 @@ int gfx_parse_option (struct uae_prefs *p, const char *option, const char *value
 int WIN32GFX_IsPicassoScreen (void)
 {
 	return screen_is_picasso;
+}
+
+int target_checkcapslock (int scancode, int *state)
+{
+        if (scancode != DIK_CAPITAL && scancode != DIK_NUMLOCK && scancode != DIK_SCROLL)
+                return 0;
+        if (*state == 0)
+                return -1;
+
+        if (scancode == DIK_CAPITAL)
+                *state = SDL_GetModState() & KMOD_CAPS;
+        if (scancode == DIK_NUMLOCK)
+                *state = SDL_GetModState() & KMOD_NUM;
+//        if (scancode == DIK_SCROLL)
+//                *state = host_scrolllockstate;
+        return 1;
 }
 

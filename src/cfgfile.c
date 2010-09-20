@@ -1234,7 +1234,7 @@ static int cfgfile_parse_host (struct uae_prefs *p, TCHAR *option, TCHAR *value)
 	TCHAR *tmpp;
 	TCHAR tmpbuf[CONFIG_BLEN];
 
-	if (memcmp (option, "input.", 6) == 0) {
+	if (_tcsncmp (option, "input.", 6) == 0) {
 		read_inputdevice_config (p, option, value);
 		return 1;
 	}
@@ -1531,37 +1531,10 @@ static int cfgfile_parse_host (struct uae_prefs *p, TCHAR *option, TCHAR *value)
 		return 1;
 	}
 	if (_tcscmp (option, "gfx_filter_mode") == 0) {
-		p->gfx_filter_filtermode = 0;
-		if (p->gfx_filter > 0) {
-			struct uae_filter *uf;
-			int i = 0;
-			while(uaefilters[i].name) {
-				uf = &uaefilters[i];
-				if (uf->type == p->gfx_filter) {
-					if (!uf->x[0]) {
-						int mt[4], j;
-						i = 0;
-						if (uf->x[1])
-							mt[i++] = 1;
-						if (uf->x[2])
-							mt[i++] = 2;
-						if (uf->x[3])
-							mt[i++] = 3;
-						if (uf->x[4])
-							mt[i++] = 4;
-						cfgfile_strval (option, value, "gfx_filter_mode", &i, filtermode2, 0);
-						for (j = 0; j < i; j++) {
-							if (mt[j] == i)
-								p->gfx_filter_filtermode = j;
-						}
-					}
-					break;
-				}
-				i++;
-			}
-		}
+		cfgfile_strval (option, value, "gfx_filter_mode", &p->gfx_filter_filtermode, filtermode2, 0);
 		return 1;
 	}
+
 	if (cfgfile_string (option, value, "gfx_filter_aspect_ratio", tmpbuf, sizeof tmpbuf / sizeof (TCHAR))) {
 		int v1, v2;
 		TCHAR *s;
@@ -1709,8 +1682,8 @@ static int cfgfile_parse_host (struct uae_prefs *p, TCHAR *option, TCHAR *value)
 			|| (l = KBD_LANG_US, strcasecmp (value, "us") == 0)
 			|| (l = KBD_LANG_FR, strcasecmp (value, "fr") == 0)
 			|| (l = KBD_LANG_IT, strcasecmp (value, "it") == 0)
-			|| (l = KBD_LANG_TR, strcasecmp (value, "tr") == 0)
-			|| (l = KBD_LANG_ES, strcasecmp (value, "es") == 0))
+			|| (l = KBD_LANG_ES, strcasecmp (value, "es") == 0)
+			|| (l = KBD_LANG_TR, strcasecmp (value, "tr") == 0))
 			p->keyboard_lang = l;
 		else
 			write_log ("Unknown keyboard language\n");
@@ -1790,25 +1763,25 @@ static void decode_rom_ident (TCHAR *romfile, int maxlen, const TCHAR *ident, in
 		while (*p) {
 			TCHAR c = *p++;
 			int *pp1 = NULL, *pp2 = NULL;
-			if (_totupper(c) == 'V' && _istdigit(*p)) {
+			if (_totupper (c) == 'V' && _istdigit (*p)) {
 				pp1 = &ver;
 				pp2 = &rev;
-			} else if (_totupper(c) == 'R' && _istdigit(*p)) {
+			} else if (_totupper (c) == 'R' && _istdigit (*p)) {
 				pp1 = &subver;
 				pp2 = &subrev;
-			} else if (!_istdigit(c) && c != ' ') {
+			} else if (!_istdigit (c) && c != ' ') {
 				_tcsncpy (model, p - 1, (sizeof model) / sizeof (TCHAR) - 1);
 				p += _tcslen (model);
 				modelp = model;
 			}
 			if (pp1) {
-				*pp1 = _tstol(p);
+				*pp1 = _tstol (p);
 				while (*p != 0 && *p != '.' && *p != ' ')
 					p++;
 				if (*p == '.') {
 					p++;
 					if (pp2)
-						*pp2 = _tstol(p);
+						*pp2 = _tstol (p);
 				}
 			}
 			if (*p == 0 || *p == ';') {
@@ -1932,7 +1905,7 @@ static void parse_addmem (struct uae_prefs *p, TCHAR *buf, int num)
 	p->custom_memory_sizes[num] = size;
 }
 
-static int cfgfile_parse_hardware (struct uae_prefs *p, TCHAR *option, TCHAR *value)
+static int cfgfile_parse_hardware (struct uae_prefs *p, const TCHAR *option, TCHAR *value)
 {
 	int tmpval, dummyint, i;
 	bool tmpbool, dummybool;

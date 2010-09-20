@@ -161,3 +161,23 @@ int getcapslockstate (void)
 void setcapslockstate (int state)
 {
 }
+
+int target_checkcapslock (int scancode, int *state)
+{
+        if (scancode != DIK_CAPITAL && scancode != DIK_NUMLOCK && scancode != DIK_SCROLL)
+                return 0;
+        if (*state == 0)
+                return -1;
+
+        /*
+        if (scancode == DIK_CAPITAL)
+                *state = SDL_GetModState() & KMOD_CAPS;
+        if (scancode == DIK_NUMLOCK)
+                *state = SDL_GetModState() & KMOD_NUM;
+        if (scancode == DIK_SCROLL)
+                *state = host_scrolllockstate;
+        return 1;  
+        */
+        return 0;
+}
+

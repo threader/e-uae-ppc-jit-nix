@@ -3514,7 +3514,11 @@ static void copyall (uae_u8 *src, uae_u8 *dst)
 static int flushpixels (void)
 {
 	int i;
+#ifdef JIT
 	uae_u8 *src = p96ram_start + natmem_offset;
+#else
+	uae_u8 *src = p96ram_start;
+#endif
 	int off = picasso96_state.XYOffset - gfxmem_start;
 	uae_u8 *src_start = src + (off & ~gwwpagemask);
 	uae_u8 *src_end = src + ((off + picasso96_state.BytesPerRow * picasso96_state.Height + gwwpagesize - 1) & ~gwwpagemask);

@@ -162,6 +162,11 @@ int inprec_open (TCHAR *fname, int record)
 		while (i-- > 0)
 			inprec_pu8 ();
 		inprec_p = inprec_plastptr;
+		if (inprec_pstart (INPREC_STATEFILE)) {
+			inprec_pstr (savestate_fname);
+			savestate_state = STATE_RESTORE;
+			inprec_pend ();
+		}
 		oldbuttons[0] = oldbuttons[1] = oldbuttons[2] = oldbuttons[3] = 0;
 		oldjoy[0] = oldjoy[1] = 0;
 		if (record < -1)
@@ -175,6 +180,11 @@ int inprec_open (TCHAR *fname, int record)
 		inprec_ru8 (UAESUBREV);
 		inprec_ru32 (t);
 		inprec_ru32 (0); // extra header size
+		if (savestate_state == STATE_DORESTORE) {
+			inprec_rstart (INPREC_STATEFILE);
+			inprec_rstr (savestate_fname);
+			inprec_rend ();
+		}
 	} else {
 		return 0;
 	}
@@ -1798,7 +1808,7 @@ int getbuttonstate (int joy, int button)
 		inprec_ru8 (v);
 		inprec_rend ();
 	} else if (input_recording < 0) {
-		while(inprec_pstart (INPREC_JOYBUTTON)) {
+		while (inprec_pstart (INPREC_JOYBUTTON)) {
 			uae_u8 j = inprec_pu8 ();
 			uae_u8 but = inprec_pu8 ();
 			uae_u8 vv = inprec_pu8 ();
@@ -4747,7 +4757,7 @@ static int inputdevice_translatekeycode_2 (int keyboard, int scancode, int state
 				int toggle = (na->flags[j][sublevdir[state == 0 ? 1 : 0][k]] & ID_FLAG_TOGGLE) ? 1 : 0;
 				int evt = na->eventid[j][sublevdir[state == 0 ? 1 : 0][k]];
 				int toggled;
-/*
+
 				// if evt == caps and scan == caps: sync with native caps led
 				if (evt == INPUTEVENT_KEY_CAPS_LOCK) {
 					int v;
@@ -4762,7 +4772,7 @@ static int inputdevice_translatekeycode_2 (int keyboard, int scancode, int state
 					// it was caps lock resync, ignore, not mapped to caps
 					continue;
 				}
-*/
+
 				if (toggle) {
 					if (!state)
 						continue;

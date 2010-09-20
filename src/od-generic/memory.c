@@ -118,7 +118,7 @@ void preinit_shm (void)
 //xaind
 	int mib[2];
 	size_t len;
-        
+
 	mib[0] = CTL_HW;
 	mib[1] = HW_MEMSIZE; /* gives a 64 bit int */
 	len = sizeof(totalphys64);
