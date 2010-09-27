@@ -96,7 +96,7 @@ int firsthist = 0;
 int lasthist = 0;
 static struct regstruct history[MAX_HIST];
 
-static const char help[] = {
+static const TCHAR help[] = {
 	"          HELP for UAE Debugger\n"
 	"         -----------------------\n\n"
 	"  g [<address>]         Start execution at the current address or <address>\n"
@@ -558,14 +558,7 @@ static uaecptr nextaddr (uaecptr addr, uaecptr last, uaecptr *end)
 	addr = nextaddr2 (addr + 1, &next);
 	if (end)
 		*end = next;
-#if 0
-	if (next && addr != 0xffffffff) {
-		uaecptr xa = addr;
-		if (xa == 1)
-			xa = 0;
-		console_out_f ("%08X -> %08X (%08X)...\n", xa, xa + next - 1, next);
-	}
-#endif
+
 	return addr;
 }
 
@@ -1560,7 +1553,7 @@ static void illg_debug_do (uaecptr addr, int rwi, int size, uae_u32 val)
 	}
 }
 
-STATIC_INLINE int debug_mem_off (uaecptr addr)
+static int debug_mem_off (uaecptr addr)
 {
 	return munge24 (addr) >> 16;
 }
@@ -2065,7 +2058,7 @@ void memwatch_dump2 (TCHAR *buf, int bufsize, int num)
 	struct memwatch_node *mwn;
 
 	if (buf)
-		memset (buf, 0, bufsize);
+		memset (buf, 0, bufsize * sizeof (TCHAR));
 	for (i = 0; i < MEMWATCH_TOTAL; i++) {
 		if ((num >= 0 && num == i) || (num < 0)) {
 			mwn = &mwnodes[i];
@@ -2495,14 +2488,7 @@ int instruction_breakpoint (TCHAR **c)
 			return 0;
 		}
 	}
-#if 0
-	if (skipaddr_start == 0xC0DEDBAD) {
-		trace_same_insn_count = 0;
-		logfile = fopen ("uae.trace", "w");
-		memcpy (trace_insn_copy, regs.pc_p, 10);
-		memcpy (&trace_prev_regs, &regs, sizeof regs);
-	}
-#endif
+
 	do_skip = 1;
 	skipaddr_doskip = -1;
 	return 1;
@@ -3143,11 +3129,11 @@ static void debug_1 (void)
 
 		case 'f':
 			if (inptr[0] == 'a') {
-				next_char(&inptr);
+				next_char (&inptr);
 				find_ea (&inptr);
 			} else if (inptr[0] == 'p') {
 				inptr++;
-				if (process_breakpoint(&inptr))
+				if (process_breakpoint (&inptr))
 					return;
 			} else {
 				if (instruction_breakpoint (&inptr))

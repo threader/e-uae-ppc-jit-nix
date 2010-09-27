@@ -1416,7 +1416,7 @@ static void make_cpu_widgets2 (GtkWidget *vbox)
 	};
 
 	GtkWidget *hbox = gtk_hbox_new (FALSE, 10);
-	GtkWidget *frame, *newbox;
+	GtkWidget *frame, *newbox, *newbox2;
 	add_empty_vbox (vbox);
 
 	gtk_widget_show (hbox);
@@ -1425,21 +1425,32 @@ static void make_cpu_widgets2 (GtkWidget *vbox)
 
 	//cpu emulation
 	newbox = make_radio_group_box ("CPU", cpu_labels, cpu_widget, 0, cpu_changed);
- //   gtk_widget_set_sensitive (newbox, sound_available);
 	gtk_widget_show (newbox);
-	gtk_box_pack_start (GTK_BOX (hbox), newbox, FALSE, TRUE, 0);
+    gtk_box_pack_start (GTK_BOX (hbox), newbox, FALSE, TRUE, 0);
 
-	newbox = gtk_check_button_new_with_label ("CE");
+	newbox2 = gtk_check_button_new_with_label ("24-bit addressing");
+	gtk_widget_show (newbox2);
+    gtk_box_pack_start (GTK_BOX (newbox), newbox2, FALSE, TRUE, 0);
+
+	newbox2 = gtk_check_button_new_with_label ("More compatible");
+	gtk_widget_show (newbox2);
+    gtk_box_pack_start (GTK_BOX (newbox), newbox2, FALSE, TRUE, 0);
+
+	newbox = gtk_check_button_new_with_label ("JIT");
 	gtk_widget_show (newbox);
-	gtk_box_pack_start (GTK_BOX (hbox), newbox, FALSE, TRUE, 0);
+    gtk_box_pack_start (GTK_BOX (hbox), newbox, FALSE, TRUE, 0);
 
-
+	newbox = gtk_check_button_new_with_label ("68040 MMU");
+	gtk_widget_show (newbox);
 	gtk_box_pack_start (GTK_BOX (hbox), newbox, FALSE, TRUE, 0);
 
 	//fpu mode
     newbox = make_radio_group_box ("FPU", fpu_labels, fpu_widget, 0, fpu_changed);
-   // gtk_widget_set_sensitive (newbox, sound_available);
     gtk_widget_show (newbox);
+	gtk_box_pack_start (GTK_BOX (hbox), newbox, FALSE, TRUE, 0);
+
+	newbox = gtk_check_button_new_with_label ("More compatible");
+	gtk_widget_show (newbox);
     gtk_box_pack_start (GTK_BOX (hbox), newbox, FALSE, TRUE, 0);
 }
 
@@ -1665,18 +1676,18 @@ static void make_joy_widgets (GtkWidget *dvbox)
     GtkWidget *hbox = gtk_hbox_new (FALSE, 12);
 
     static const char *joylabels[] = {
-	"None",
-	"Joystick 0",
-	"Joystick 1",
-	"Mouse",
-	"Keyboard Layout A (NumPad, 0 & 5 = Fire)",
-	"Keyboard Layout B (Cursor, RCtrl & Alt = Fire)",
-	"Keyboard Layout C (WASD, LAlt = Fire)",
+		"None",
+		"Joystick 0",
+		"Joystick 1",
+		"Mouse",
+		"Keyboard Layout A (NumPad, 0 & 5 = Fire)",
+		"Keyboard Layout B (Cursor, RCtrl & Alt = Fire)",
+		"Keyboard Layout C (WASD, LAlt = Fire)",
 #ifdef XARCADE
-	"X-Arcade (Left)",
-	"X-Arcade (Right)",
+		"X-Arcade (Left)",
+		"X-Arcade (Right)",
 #endif
-	NULL
+		NULL
     };
 
     add_empty_vbox (dvbox);
@@ -1684,18 +1695,18 @@ static void make_joy_widgets (GtkWidget *dvbox)
     add_centered_to_vbox (dvbox, hbox);
 
     for (i = 0; i < 2; i++) {
-	GtkWidget *frame;
-	char buffer[20];
+		GtkWidget *frame;
+		char buffer[20];
 
-	sprintf (buffer, "Port %d", i);
-	frame = make_radio_group_box (buffer, joylabels, joy_widget[i], 0, joy_changed);
-	gtk_widget_show (frame);
-	gtk_box_pack_start (GTK_BOX (hbox), frame, FALSE, TRUE, 0);
+		sprintf (buffer, "Port %d", i);
+		frame = make_radio_group_box (buffer, joylabels, joy_widget[i], 0, joy_changed);
+		gtk_widget_show (frame);
+		gtk_box_pack_start (GTK_BOX (hbox), frame, FALSE, TRUE, 0);
 
-	if (joy_count < 2)
-	    gtk_widget_set_sensitive (joy_widget[i][2], 0);
-	if (joy_count == 0)
-	    gtk_widget_set_sensitive (joy_widget[i][1], 0);
+		if (joy_count < 2)
+		    gtk_widget_set_sensitive (joy_widget[i][2], 0);
+		if (joy_count == 0)
+		    gtk_widget_set_sensitive (joy_widget[i][1], 0);
     }
 
     add_empty_vbox (dvbox);
@@ -2099,7 +2110,7 @@ static void create_guidlg (void)
     } pages[] = {
 	{ "Floppy disks", make_floppy_disks },
 	{ "Memory",       make_mem_widgets },
-	{ "CPU",          make_cpu_widgets },
+	{ "CPU",          make_cpu_widgets2 },
 	{ "Chipset",      make_chipset_widgets },
 	{ "Sound",        make_sound_widgets },
 #ifdef JIT

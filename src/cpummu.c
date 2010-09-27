@@ -312,7 +312,7 @@ static void mmu_bus_error(uaecptr addr, int fc, bool write, int size)
 
 	D(bug("BUS ERROR: fc=%d w=%d log=%08x ssw=%04x PC=%08x\n", fc, write, addr, ssw, m68k_getpc()));
 
-	//write_log(L"BUS ERROR: fc=%d w=%d log=%08x ssw=%04x PC=%08x\n", fc, write, addr, ssw, m68k_getpc());
+	//write_log("BUS ERROR: fc=%d w=%d log=%08x ssw=%04x PC=%08x\n", fc, write, addr, ssw, m68k_getpc());
 
 	THROW(2);
 }

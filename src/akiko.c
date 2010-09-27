@@ -706,6 +706,7 @@ static void sys_cddev_close (void)
 		sys_command_close (unitnum);
 	}
 	unitnum = -1;
+
 }
 
 static int command_lengths[] = { 1,2,1,1,12,2,1,1,4,1,-1,-1,-1,-1,-1,-1 };
@@ -1450,7 +1451,7 @@ static uae_u32 REGPARAM2 akiko_wget (uaecptr addr)
 	return v;
 }
 
-uae_u32 REGPARAM2 akiko_lget (uaecptr addr)
+static uae_u32 REGPARAM2 akiko_lget (uaecptr addr)
 {
 	uae_u32 v;
 
@@ -1467,7 +1468,7 @@ uae_u32 REGPARAM2 akiko_lget (uaecptr addr)
 	return v;
 }
 
-STATIC_INLINE void REGPARAM2 akiko_bput2 (uaecptr addr, uae_u32 v, int msg)
+static void akiko_bput2 (uaecptr addr, uae_u32 v, int msg)
 {
 	uae_u32 tmp;
 
@@ -1586,7 +1587,7 @@ static void REGPARAM2 akiko_bput (uaecptr addr, uae_u32 v)
 	akiko_bput2 (addr, v, 1);
 }
 
-void REGPARAM2 akiko_wput (uaecptr addr, uae_u32 v)
+static void REGPARAM2 akiko_wput (uaecptr addr, uae_u32 v)
 {
 #ifdef JIT
 	special_mem |= S_WRITE;
@@ -1598,7 +1599,7 @@ void REGPARAM2 akiko_wput (uaecptr addr, uae_u32 v)
 	akiko_bput2 (addr + 0, v >> 8, 0);
 }
 
-void REGPARAM2 akiko_lput (uaecptr addr, uae_u32 v)
+static void REGPARAM2 akiko_lput (uaecptr addr, uae_u32 v)
 {
 #ifdef JIT
 	special_mem |= S_WRITE;

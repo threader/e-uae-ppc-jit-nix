@@ -58,7 +58,7 @@ static struct arcadiarom roms[]	= {
 	{ 35, "ar_dart.zip", "dart_",	    ARCADIA_GAME, 1, 4, 0, 7, 6, 3, 1, 2, 5 },
 	{ 36, "ar_fast.zip", "fastv28.",	    ARCADIA_GAME, 0, 7, 6, 5, 4, 3, 2, 1, 0 },
 	{ 37, "ar_ldrb.zip", "lbg240",	    ARCADIA_GAME, 0, 7, 6, 5, 4, 3, 2, 1, 0 },
-	{ 38, "ar_ldrba.zip",L"ldrb_",	    ARCADIA_GAME, 1, 2, 3, 4, 1, 0, 7, 5, 6 },
+	{ 38, "ar_ldrba.zip","ldrb_",	    ARCADIA_GAME, 1, 2, 3, 4, 1, 0, 7, 5, 6 },
 	{ 39, "ar_ninj.zip", "ninj_",	    ARCADIA_GAME, 1, 1, 6, 5, 7, 4, 2, 0, 3 },
 	{ 40, "ar_rdwr.zip", "rdwr_",	    ARCADIA_GAME, 1, 3, 1, 6, 4, 0, 5, 2, 7 },
 	{ 41, "ar_sdwr.zip", "sdwr_",	    ARCADIA_GAME, 1, 6, 3, 4, 5, 2, 1, 0, 7 },
