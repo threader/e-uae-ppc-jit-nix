@@ -79,7 +79,7 @@ static const char *get_last_floppy_dir (void)
 	    atexit (free_last_floppy_dir);
 	}
 
-	last_floppy_dir = my_strdup (prefs_get_attr ("floppy_path"));
+	last_floppy_dir = my_strdup (currprefs.path_floppy);
     }
     return last_floppy_dir;
 }
@@ -95,7 +95,7 @@ static const char *get_last_savestate_dir (void)
 	    atexit (free_last_savestate_dir);
 	}
 
-	last_savestate_dir = my_strdup (prefs_get_attr ("savestate_path"));
+	last_savestate_dir = my_strdup (currprefs.path_savestate);
     }
     return last_savestate_dir;
 }

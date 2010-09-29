@@ -435,7 +435,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 	if (!run_once) {
 		run_once++;
 		
-		const char *floppy_path = prefs_get_attr("floppy_path");
+		const char *floppy_path = currprefs.path_floppy;
 		
 		if (floppy_path != NULL) {
 			char homedir[MAX_PATH];

@@ -327,6 +327,7 @@ struct uae_prefs {
 	TCHAR path_floppy[256];
 	TCHAR path_hardfile[256];
 	TCHAR path_rom[256];
+	TCHAR path_savestate[256];
 
 	int m68k_speed;
 	int cpu_model;

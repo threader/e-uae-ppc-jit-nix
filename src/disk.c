@@ -788,8 +788,8 @@ TCHAR *DISK_get_saveimagepath (const TCHAR *name)
 		}
 		i--;
 	}
-
-    sprintf (name1, "%s%s_save.adf", prefs_get_attr ("floppy_path"), name2 + i);
+	fetch_saveimagepath (path, sizeof path / sizeof (TCHAR), 1);
+	_stprintf (name1, "%s%s_save.adf", path, name2 + i);
 	return name1;
 }
 

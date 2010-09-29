@@ -5123,7 +5123,9 @@ static void vsync_handler (void)
 	picasso_handle_vsync ();
 #endif
 	audio_vsync ();
+#ifdef SCSIEMU
 	blkdev_vsync ();
+#endif
 
 	if (quit_program > 0) {
 		/* prevent possible infinite loop at wait_cycles().. */

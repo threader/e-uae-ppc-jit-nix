@@ -608,10 +608,10 @@ static int my_idle (void)
 	    }
 	    if (cmd == GUICMD_SHOW) {
 			gtk_widget_show (gui_window);
-#	    if GTK_MAJOR_VERSION >= 2
+#if GTK_MAJOR_VERSION >= 2
 			gtk_window_present (GTK_WINDOW (gui_window));
 			gui_active = 1;
-#	    endif
+#endif
 	    } else {
 			n = read_comm_pipe_int_blocking (&to_gui_pipe);
 			floppyfileentry_do_dialog (FLOPPYFILEENTRY (floppy_widget[n]));
@@ -943,9 +943,8 @@ static void did_romchange (GtkWidget *w, gpointer data)
 {
     gtk_widget_set_sensitive (rom_change_widget, 0);
 
-    rom_selector = make_file_selector ("Select a ROM file",
-				       did_rom_select, did_close_rom);
-    filesel_set_path (rom_selector, prefs_get_attr ("rom_path"));
+    rom_selector = make_file_selector ("Select a ROM file", did_rom_select, did_close_rom);
+    filesel_set_path (rom_selector, currprefs.path_rom);
 }
 
 static GtkWidget *key_selector;
@@ -977,7 +976,7 @@ static void did_keychange (GtkWidget *w, gpointer data)
     gtk_widget_set_sensitive (key_change_widget, 0);
 
     key_selector = make_file_selector ("Select a Kickstart key file", did_key_select, did_close_key);
-    filesel_set_path (key_selector, prefs_get_attr ("rom_path"));
+    filesel_set_path (key_selector, currprefs.path_rom);
 }
 
 static void add_empty_vbox (GtkWidget *tobox)
@@ -1138,7 +1137,7 @@ static void make_floppy_disks (GtkWidget *vbox)
 	    gtk_widget_set_sensitive(floppy_widget[i], 0);
 	floppyfileentry_set_drivename (FLOPPYFILEENTRY (floppy_widget[i]), buf);
 	floppyfileentry_set_label (FLOPPYFILEENTRY (floppy_widget[i]), buf);
-	floppyfileentry_set_currentdir (FLOPPYFILEENTRY (floppy_widget[i]), prefs_get_attr ("floppy_path"));
+	floppyfileentry_set_currentdir (FLOPPYFILEENTRY (floppy_widget[i]), currprefs.path_floppy);
 	gtk_box_pack_start (GTK_BOX (vbox), floppy_widget[i], FALSE, TRUE, 0);
 	gtk_widget_show (floppy_widget[i]);
 	gtk_signal_connect (GTK_OBJECT (floppy_widget[i]), "disc-changed", (GtkSignalFunc) disc_changed, GINT_TO_POINTER (i));
@@ -1175,7 +1174,7 @@ static void did_sstate_change (GtkWidget *w, gpointer data)
     gtk_widget_set_sensitive (sstate_change_widget, 0);
 
     sstate_selector = make_file_selector ("Select a Savestate file", did_sstate_select, did_close_sstate);
-    filesel_set_path (sstate_selector, prefs_get_attr ("savestate_path"));
+    filesel_set_path (sstate_selector, currprefs.path_savestate);
 }
 
 static void did_sstate_load (GtkWidget *w, gpointer data)

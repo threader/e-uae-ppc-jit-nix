@@ -92,7 +92,7 @@ static const struct cfg_lines opttable[] =
     {"gfx_gl_left_crop", "crop image in gl mode (+ integer)" },		//koko
     {"gfx_gl_right_crop", "crop image in gl mode (+ integer)" },*/	//koko
     {"gfx_gl_smoothing", "Linear smoothing in gl mode (true/false)" },	//koko
-    
+
     {"gfx_colour_mode", "" },
     {"32bit_blits", "Enable 32 bit blitter emulation" },
     {"immediate_blits", "Perform blits immediately" },
@@ -220,83 +220,6 @@ static const TCHAR *obsolete[] = {
 };
 
 #define UNEXPANDED "$(FILE_PATH)"
-
-
-/*
- * The beginnings of a less brittle, more easily maintainable way of handling
- * prefs options.
- *
- * We maintain a key/value table of options.
- *
- * TODO:
- *  Make this a hash table.
- *  Add change notification.
- *  Support other value data types.
- *  Migrate more options.
- */
-
-typedef struct {
-    const char *key;
-    int         target_specific;
-    const char *value;
-    const char *help;
-} prefs_attr_t;
-
-static prefs_attr_t prefs_attr_table[] = {
-    {"floppy_path",            1, 0, "Default directory for floppy disk images"},
-    {"rom_path",               1, 0, "Default directory for ROM images"},
-    {"hardfile_path",          1, 0, "Default directory for hardfiles and filesystems"},
-    {"savestate_path",         1, 0, "Default directory for saved-state images"},
-    {0,                        0, 0, 0}
-};
-
-static prefs_attr_t *lookup_attr (const char *key)
-{
-    prefs_attr_t *attr = &prefs_attr_table[0];
-
-    while (attr->key) {
-	if (0 == strcmp (key, attr->key))
-	    return attr;
-	attr++;
-    }
-    return 0;
-}
-
-static void prefs_dump_help (void)
-{
-    prefs_attr_t *attr = &prefs_attr_table[0];
-
-    while (attr->key) {
-	int width = -MAX_OPTION_KEY_LEN;
-	if (attr->target_specific) {
-	    width += strlen (TARGET_NAME) + 1;
-	    write_log ("%s.", TARGET_NAME);
-	}
-	write_log ("%*s: %s.\n", width, attr->key, attr->help ? attr->help : "");
-	attr++;
-    }
-}
-
-void prefs_set_attr (const char *key, const char *value)
-{
-    prefs_attr_t *attr = lookup_attr (key);
-
-    if (attr) {
-	if (attr->value)
-	    free ((void *)attr->value);
-	attr->value = value;
-    }
-}
-
-const char *prefs_get_attr (const char *key)
-{
-    prefs_attr_t *attr = lookup_attr (key);
-
-    if (attr)
-		return attr->value;
-    else
-		return 0;
-}
 
 static void trimwsa (char *s)
 {
@@ -428,7 +351,7 @@ void cfgfile_write (struct zfile *f, const TCHAR *option, const TCHAR *format,..
 	TCHAR tmp[CONFIG_BLEN];
 
 	va_start (parms, format);
-	vsnprintf (tmp, CONFIG_BLEN, format, parms);
+	_vsntprintf (tmp, CONFIG_BLEN, format, parms);
 	cfg_dowrite (f, option, tmp, 0, 0);
 	va_end (parms);
 }
@@ -438,7 +361,7 @@ void cfgfile_dwrite (struct zfile *f, const TCHAR *option, const TCHAR *format,.
 	TCHAR tmp[CONFIG_BLEN];
 
 	va_start (parms, format);
-	vsnprintf (tmp, CONFIG_BLEN, format, parms);
+	_vsntprintf (tmp, CONFIG_BLEN, format, parms);
 	cfg_dowrite (f, option, tmp, 1, 0);
 	va_end (parms);
 }
@@ -448,7 +371,7 @@ void cfgfile_target_write (struct zfile *f, const TCHAR *option, const TCHAR *fo
 	TCHAR tmp[CONFIG_BLEN];
 
 	va_start (parms, format);
-	vsnprintf (tmp, CONFIG_BLEN, format, parms);
+	_vsntprintf (tmp, CONFIG_BLEN, format, parms);
 	cfg_dowrite (f, option, tmp, 0, 1);
 	va_end (parms);
 }
@@ -458,7 +381,7 @@ void cfgfile_target_dwrite (struct zfile *f, const TCHAR *option, const TCHAR *f
 	TCHAR tmp[CONFIG_BLEN];
 
 	va_start (parms, format);
-	vsnprintf (tmp, CONFIG_BLEN, format, parms);
+	_vsntprintf (tmp, CONFIG_BLEN, format, parms);
 	cfg_dowrite (f, option, tmp, 1, 1);
 	va_end (parms);
 }
@@ -481,6 +404,45 @@ static void cfgfile_write_rom (struct zfile *f, const TCHAR *path, const TCHAR *
 	}
 	xfree (str);
 
+}
+
+
+static void write_filesys_config (struct uae_prefs *p, const TCHAR *unexpanded,
+	const TCHAR *default_path, struct zfile *f)
+{
+	int i;
+	TCHAR tmp[MAX_DPATH], tmp2[MAX_DPATH];
+	TCHAR *hdcontrollers[] = { "uae",
+		"ide0", "ide1", "ide2", "ide3",
+		"scsi0", "scsi1", "scsi2", "scsi3", "scsi4", "scsi5", "scsi6",
+		"scsram", "scside" }; /* scsram = smart card sram = pcmcia sram card */
+
+	for (i = 0; i < p->mountitems; i++) {
+		struct uaedev_config_info *uci = &p->mountconfig[i];
+		TCHAR *str;
+		int bp = uci->bootpri;
+
+		if (!uci->autoboot)
+			bp = -128;
+		if (uci->donotmount)
+			bp = -129;
+		str = cfgfile_subst_path (default_path, unexpanded, uci->rootdir);
+		if (!uci->ishdf) {
+			_stprintf (tmp, "%s,%s:%s:%s,%d", uci->readonly ? "ro" : "rw",
+				uci->devname ? uci->devname : "", uci->volname, str, bp);
+			cfgfile_write_str (f, "filesystem2", tmp);
+		} else {
+			_stprintf (tmp, "%s,%s:%s,%d,%d,%d,%d,%d,%s,%s",
+				uci->readonly ? "ro" : "rw",
+				uci->devname ? uci->devname : "", str,
+				uci->sectors, uci->surfaces, uci->reserved, uci->blocksize,
+				bp, uci->filesys ? uci->filesys : "", hdcontrollers[uci->controller]);
+			cfgfile_write_str (f, "hardfile2", tmp);
+		}
+		_stprintf (tmp2, "uaehf%d", i);
+		cfgfile_write (f, tmp2, "%s,%s", uci->ishdf ? "hdf" : "dir", tmp);
+		xfree (str);
+	}
 }
 
 static void subst_home (char *f, int n)
@@ -514,13 +476,13 @@ void do_cfgfile_write (FILE *f, const char *format,...)
 static void cfgfile_write_path_option (FILE *f, const char *key)
 {
     const char *home = getenv ("HOME");
-    const char *path = prefs_get_attr (key);
+    const char *path = "./";
     char *out_path = 0;
 
     if (path)
-	out_path = cfgfile_subst_path (home, "~", path);
+		out_path = cfgfile_subst_path (home, "~", path);
 
-    cfgfile_write (f, "%s.%s=%s\n", TARGET_NAME, key, out_path ? out_path : "");
+	cfgfile_write (f, "%s.%s=%s\n", TARGET_NAME, key, out_path ? out_path : "");
 
     if (out_path)
 	free (out_path);
@@ -965,7 +927,7 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 	cfgfile_dwrite_bool (f, "warp", p->turbo_emulation);
 
 #ifdef FILESYS
-	//write_filesys_config (currprefs.mountinfo, UNEXPANDED, prefs_get_attr ("hardfile_path"), f);
+	write_filesys_config (p, UNEXPANDED, p->path_hardfile, f);
 	if (p->filesys_no_uaefsdb)
 		cfgfile_write_bool (f, "filesys_no_fsdb", p->filesys_no_uaefsdb);
 #endif
@@ -2664,13 +2626,8 @@ static int cfgfile_load_2 (struct uae_prefs *p, const TCHAR *filename, bool real
 		cfgfile_parse_line (p, line, 0);
 	}
 
-	for (i = 0; i < 4; i++) {
-		subst (prefs_get_attr("floppy_path"), p->floppyslots[i].df, sizeof p->floppyslots[i].df);
+	for (i = 0; i < 4; i++)
 		subst (p->path_floppy, p->floppyslots[i].df, sizeof p->floppyslots[i].df / sizeof (TCHAR));
-	}
-	subst (prefs_get_attr("rom_path"), p->romfile, sizeof p->romfile);
-	subst (prefs_get_attr("rom_path"), p->romextfile, sizeof p->romextfile);
-	subst (prefs_get_attr("rom_path"), p->keyfile, sizeof p->keyfile);
 	subst (p->path_rom, p->romfile, sizeof p->romfile / sizeof (TCHAR));
 	subst (p->path_rom, p->romextfile, sizeof p->romextfile / sizeof (TCHAR));
 
@@ -3773,17 +3730,6 @@ void default_prefs (struct uae_prefs *p, int type)
     strcpy (p->cartfile, "");
 #endif
 
-    prefs_set_attr ("rom_path",       strdup_path_expand (TARGET_ROM_PATH));
-    prefs_set_attr ("floppy_path",    strdup_path_expand (TARGET_FLOPPY_PATH));
-    prefs_set_attr ("hardfile_path",  strdup_path_expand (TARGET_HARDFILE_PATH));
-#ifdef SAVESTATE
-    prefs_set_attr ("savestate_path", strdup_path_expand (TARGET_SAVESTATE_PATH));
-#endif
-
-	_tcscpy (p->romextfile, "");
-	_tcscpy (p->flashfile, "");
-	_tcscpy (p->cartfile, "");
-
 	_tcscpy (p->path_rom, "./");
 	_tcscpy (p->path_floppy, "./");
 	_tcscpy (p->path_hardfile, "./");
@@ -3851,7 +3797,9 @@ void default_prefs (struct uae_prefs *p, int type)
 
 	inputdevice_default_prefs (p);
 
+#ifdef SCSIEMU
 	blkdev_default_prefs (p);
+#endif
 
 	zfile_fclose (default_file);
 	default_file = NULL;
