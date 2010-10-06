@@ -55,11 +55,35 @@ dnl AC_CHECK_LIB(vga, vga_setmode, HAVE_SVGA_LIB=yes, HAVE_SVGA_LIB=no)
 
 AC_CHECK_LIB(ossaudio,_oss_ioctl, HAVE_LIBOSSAUDIO=yes, HAVE_LIBOSSAUDIO=no)
 
-dnl  Prefer Gtk2.x over Gtk1.x if both are available
+dnl
+dnl Prefer Gtk2.x over Gtk1.x if both are available
+dnl
 AM_PATH_GTK_2_0(2.0.0,HAVE_GTK=yes,HAVE_GTK=no)
 if [[ "x$HAVE_GTK" = "xno" ]]; then
   AM_PATH_GTK(1.0.0,HAVE_GTK=yes,HAVE_GTK=no)
 fi
+
+dnl
+dnl Check if Qt 4 is installed
+dnl
+HAVE_QT=no
+AC_MSG_CHECKING(QT version via qmake-qt4)
+if test -z "$QMAKE"; then
+dnl AC_MSG_NOTICE([QMAKE env not set, we'll try to find it on our own])
+QMAKE=`which qmake-qt4`
+if test -z "$QMAKE"; then
+AC_MSG_NOTICE([Can't find qmake-qt4])
+else
+HAVE_QT=yes
+qmake_version=`$QMAKE -v 2>&1 | awk '/Using Qt version/ { print $4;}'`
+AC_MSG_RESULT( $qmake_version )
+fi
+else
+HAVE_QT=yes
+qmake_version=`$QMAKE -v 2>&1 | awk '/Using Qt version/ { print $4;}'`
+AC_MSG_RESULT( $qmake_version )
+fi
+
 
 dnl
 dnl  Checks for header files.
@@ -592,6 +616,10 @@ AC_ARG_WITH(sdl-gl,
   AS_HELP_STRING([--with-sdl-gl], [Allow GL for 2D acceleration with SDL graphics]),
   [WANT_SDLGL=$withval], [])
 
+AC_ARG_WITH(qt,
+  AS_HELP_STRING([--with-qt], [Use QT library for graphics/ui]),
+  [WANT_QT=$withval], [])
+
 AC_ARG_WITH(curses,
   AS_HELP_STRING([--with-curses], [Use ncurses library for graphics]),
   [WANT_NCURSES=$withval], [])
@@ -659,9 +687,10 @@ AC_PATH_XTRA
 dnl Check for ncurses
 AC_CHECK_LIB(ncurses, waddch, HAVE_NCURSES_LIB=yes, HAVE_NCURSES_LIB=no)
 
+dnl
 dnl Check for SDL
+dnl
 if [[ "x$WANT_SDL" != "xno" ]]; then
-
   if [[ "$HOST_OS" = "darwin" ]]; then
 
     dnl Assume this is MacOS X and try to use SDL framework
@@ -863,6 +892,16 @@ if [[ "x$WANT_NCURSES" = "xyes" ]]; then
  fi
 fi
 
+dnl Qt graphics
+if [[ "x$WANT_QT" = "xyes" ]]; then
+ if [[ "x$HAVE_QT" = "xyes" ]]; then
+  GFX_DEP=gfx-qt
+  GFX_NAME=QT
+  GFX_LIBS=
+  GFX_CFLAGS=
+  GFX_CPPFLAGS=
+ fi
+fi
 
 dnl  Check whether we actually wanted to use SDL or whether
 dnl  we need to use SDL because we couldn't find any other
@@ -1080,6 +1119,22 @@ if [[ "x$WANT_UI" = "xno" ]]; then
   GUI_LIBS=
   GUI_NAME=none
 else
+ dnl 
+ dnl
+ if [[ "x$WANT_QT" = "xyes" ]]; then
+  if [[ "x$HAVE_QT" = "xyes" ]]; then
+      GUI_DEP=gui-qt
+      GUI_LIBS="$QT_LIBS"
+      GUI_NAME="Qt"
+      GUI_CFLAGS="$QT_CFLAGS"
+      GUI_LDFLAGS="-lgcc -lstdc++"
+      NEED_THREAD_SUPPORT=yes
+      if [[ "x$WANT_THREADS" = "xno" ]]; then
+        AC_MSG_ERROR([Thread support disabled, but Qt UI requires threads])
+      fi
+  fi
+ fi
+
   dnl Hack for building Cocoa gui on OS X
   dnl We really should reall check for the presence of objc and Cocoa first
   if [[ "$HOST_OS" = "darwin" ]]; then
