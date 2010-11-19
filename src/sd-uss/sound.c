@@ -11,6 +11,7 @@
 #include "sysdeps.h"
 
 #include "options.h"
+#include "audio.h"
 #include "gensound.h"
 #include "sounddep/sound.h"
 
