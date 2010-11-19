@@ -706,7 +706,6 @@ static void sys_cddev_close (void)
 		sys_command_close (unitnum);
 	}
 	unitnum = -1;
-
 }
 
 static int command_lengths[] = { 1,2,1,1,12,2,1,1,4,1,-1,-1,-1,-1,-1,-1 };
@@ -1702,7 +1701,7 @@ int akiko_init (void)
 
 #ifdef SAVESTATE
 
-uae_u8 *save_akiko (int *len)
+uae_u8 *save_akiko (int *len, uae_u8 *dstptr)
 {
 	uae_u8 *dstbak, *dst;
 	int i;
@@ -1710,7 +1709,10 @@ uae_u8 *save_akiko (int *len)
 	if (!currprefs.cs_cd32cd)
 		return NULL;
 
-	dstbak = dst = xmalloc (uae_u8, 1000);
+	if (dstptr)
+		dstbak = dst = dstptr;
+	else
+		dstbak = dst = xmalloc (uae_u8, 1000);
 	save_u16 (0);
 	save_u16 (0xCAFE);
 	save_u32 (cdrom_intreq);

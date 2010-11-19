@@ -2415,14 +2415,14 @@ void gui_handle_events (void)
 			break;
 	    case UAECMD_SAVESTATE_LOAD:
 			uae_sem_wait (&gui_sem);
-			savestate_initsave (gui_sstate_name, 0, 0);
+			savestate_initsave (gui_sstate_name, 0, 0, 0);
 			savestate_state = STATE_DORESTORE;
             write_log ("Restoring state from '%s'...\n", gui_sstate_name);
 			uae_sem_post (&gui_sem);
 			break;
 	    case UAECMD_SAVESTATE_SAVE:
 			uae_sem_wait (&gui_sem);
-			savestate_initsave (gui_sstate_name, 0, 0);
+			savestate_initsave (gui_sstate_name, 0, 0, 0);
 			save_state (gui_sstate_name, "puae");
             write_log ("Saved state to '%s'...\n", gui_sstate_name);
 			uae_sem_post (&gui_sem);

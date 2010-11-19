@@ -16,12 +16,11 @@ extern xcolnr xcolors_16[4096];
 extern xcolnr xcolors_32[4096];
 extern uae_u32 p96_rgbx16[65536];
 
-extern int vsync_switchmode (int, int);
+extern bool vsync_switchmode (int, int);
 extern void doflashscreen (void);
 extern int flashscreen;
 
 extern int debuggable (void);
-extern void togglemouse (void);
 extern void LED (int);
 extern void screenshot (int,int);
 
@@ -76,6 +75,8 @@ struct vidbuf_description
     int maxblocklines; /* Set to 0 if you want calls to flush_line after each drawn line, or the number of
 			* lines that flush_block wants to/can handle (it isn't really useful to use another
 			* value than maxline here). */
+	int gfx_resolution_reserved; // reserved space for currprefs.gfx_resolution
+	int gfx_vresolution_reserved; // reserved space for currprefs.gfx_resolution
 };
 
 #define MAXBLOCKLINES_MAX INT_MAX;
@@ -122,7 +123,7 @@ extern void graphics_close        (void);
 extern void graphics_notify_state (int state);
 extern void handle_events         (void);
 extern int  is_fullscreen         (void);
-extern int  is_vsync              (void);
+//extern int  is_vsync              (void);
 extern void toggle_fullscreen     (int mode);
 extern void toggle_mousegrab      (void);
 

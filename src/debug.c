@@ -904,20 +904,28 @@ struct dma_rec *record_dma (uae_u16 reg, uae_u16 dat, uae_u32 addr, int hpos, in
 	return dr;
 }
 
-static void decode_dma_record (int hpos, int vpos, int toggle)
+static void decode_dma_record (int hpos, int vpos, int toggle, bool logfile)
 {
 	struct dma_rec *dr;
-	int h, i, maxh;
+	int h, i, maxh, cnt;
+	uae_u32 cycles;
 
 	if (!dma_record[0])
 		return;
 	dr = &dma_record[dma_record_toggle ^ toggle][vpos * NR_DMA_REC_HPOS];
-	console_out_f ("Line: %02X %3d HPOS %02X %3d:\n", vpos, vpos, hpos, hpos);
+	if (logfile)
+		write_dlog ("Line: %02X %3d HPOS %02X %3d:\n", vpos, vpos, hpos, hpos);
+	else
+		console_out_f ("Line: %02X %3d HPOS %02X %3d:\n", vpos, vpos, hpos, hpos);
 	h = hpos;
 	dr += hpos;
 	maxh = hpos + 80;
 	if (maxh > maxhpos)
 		maxh = maxhpos;
+	cycles = vsync_cycles;
+	if (toggle)
+		cycles -= maxvpos * maxhpos * CYCLE_UNIT;
+	cnt = 0;
 	while (h < maxh) {
 		int col = 9;
 		int cols = 8;
@@ -925,6 +933,7 @@ static void decode_dma_record (int hpos, int vpos, int toggle)
 		TCHAR l2[81];
 		TCHAR l3[81];
 		TCHAR l4[81];
+		TCHAR l5[81];
 		for (i = 0; i < cols && h < maxh; i++, h++, dr++) {
 			int cl = i * col, cl2;
 			int r = dr->reg;
@@ -982,19 +991,38 @@ static void decode_dma_record (int hpos, int vpos, int toggle)
 				l3[cl2++] = 'I';
 			if (dr->evt & DMA_EVENT_INTREQ)
 				l3[cl2++] = 'i';
+			_stprintf (l5 + cl, "%08X", cycles + (vpos * maxhpos + (hpos + cnt)) * CYCLE_UNIT);
 			if (i < cols - 1 && h < maxh - 1) {
 				l1[cl + col - 1] = 32;
 				l2[cl + col - 1] = 32;
 				l3[cl + col - 1] = 32;
 				l4[cl + col - 1] = 32;
+				l5[cl + col - 1] = 32;
 			}
+			cnt++;
 		}
-		console_out_f ("%s\n", l1);
-		console_out_f ("%s\n", l2);
-		console_out_f ("%s\n", l3);
-		console_out_f ("%s\n", l4);
-		console_out_f ("\n");
+		if (logfile) {
+			write_dlog ("%s\n", l1);
+			write_dlog ("%s\n", l2);
+			write_dlog ("%s\n", l3);
+			write_dlog ("%s\n", l4);
+			write_dlog ("%s\n", l5);
+			write_dlog ("\n");
+		} else {
+			console_out_f ("%s\n", l1);
+			console_out_f ("%s\n", l2);
+			console_out_f ("%s\n", l3);
+			console_out_f ("%s\n", l4);
+			console_out_f ("%s\n", l5);
+			console_out_f ("\n");
+		}
 	}
+}
+void log_dma_record (void)
+{
+	if (!debug_dma)
+		debug_dma = 1;
+	decode_dma_record (0, 0, 0, true);
 }
 
 void record_copper (uaecptr addr, int hpos, int vpos)
@@ -1649,6 +1677,74 @@ static void smc_detector (uaecptr addr, int rwi, int size, uae_u32 *valp)
 	}
 }
 
+uae_u8 *save_debug_memwatch (int *len, uae_u8 *dstptr)
+{
+	uae_u8 *dstbak, *dst;
+	int total;
+	unsigned int i;
+
+	total = 0;
+	for (i = 0; i < MEMWATCH_TOTAL; i++) {
+		if (mwnodes[i].size > 0)
+			total++;
+	}
+	if (!total)
+		return NULL;
+
+	if (dstptr)
+		dstbak = dst = dstptr;
+	else
+		dstbak = dst = xmalloc (uae_u8, 1000);
+	save_u32 (1);
+	save_u8 (total);
+	for (i = 0; i < MEMWATCH_TOTAL; i++) {
+		struct memwatch_node *m = &mwnodes[i];
+		if (m->size <= 0)
+			continue;
+		save_store_pos ();
+		save_u8 (i);
+		save_u8 (m->modval_written);
+		save_u8 (m->mustchange);
+		save_u8 (m->frozen);
+		save_u8 (m->val_enabled);
+		save_u8 (m->rwi);
+		save_u32 (m->addr);
+		save_u32 (m->size);
+		save_u32 (m->modval);
+		save_u32 (m->val_mask);
+		save_u32 (m->val_size);
+		save_store_size ();
+	}
+	*len = dst - dstbak;
+	return dstbak;
+}
+
+uae_u8 *restore_debug_memwatch (uae_u8 *src)
+{
+	if (restore_u32 () != 1)
+		return src;
+	int total = restore_u8 ();
+	unsigned int i;
+
+	for (i = 0; i < total; i++) {
+		restore_store_pos ();
+		int idx = restore_u8 ();
+		struct memwatch_node *m = &mwnodes[idx];
+		m->modval_written = restore_u8 ();
+		m->mustchange = restore_u8 ();
+		m->frozen = restore_u8 ();
+		m->val_enabled = restore_u8 ();
+		m->rwi = restore_u8 ();
+		m->addr = restore_u32 ();
+		m->size = restore_u32 ();
+		m->modval = restore_u32 ();
+		m->val_mask = restore_u32 ();
+		m->val_size = restore_u32 ();
+		restore_store_size ();
+	}
+	return src;
+}
+
 static int memwatch_func (uaecptr addr, int rwi, int size, uae_u32 *valp)
 {
 	int i, brk;
@@ -2070,7 +2166,7 @@ void memwatch_dump2 (TCHAR *buf, int bufsize, int num)
 			if (mwn->frozen)
 				buf = buf_out (buf, &bufsize, "F");
 			if (mwn->val_enabled)
-				buf = buf_out (buf, &bufsize, " =%X", mwn->val);
+				buf = buf_out (buf, &bufsize, " =%X%s", mwn->val, getsizechar (mwn->val_size));
 			if (mwn->modval_written)
 				buf = buf_out (buf, &bufsize, " =M");
 			if (mwn->mustchange)
@@ -2381,8 +2477,62 @@ static void show_exec_tasks (void)
 
 static void show_exec_lists (TCHAR t)
 {
+	unsigned int i, j;
 	uaecptr execbase = get_long (4);
 	uaecptr list = 0, node;
+
+	if (_totupper (t) == 'I') {
+		static const int it[] = {  1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0 };
+		static const int it2[] = { 1, 1, 1, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5, 6, 6, 7 };
+		list = execbase + 84;
+		for (i = 0; i < 16; i++) {
+			console_out_f ("%2d %d: %08x\n", i + 1, it2[i], list);
+			if (it[i]) {
+				console_out_f ("  [H] %08x\n", get_long (list));
+				node = get_long (list + 8);
+				if (node) {
+					uae_u8 *addr = get_real_address (get_long (node + 10));
+					TCHAR *name = addr ? ((char*)addr) : "<null>";
+					console_out_f ("      %08x (C=%08X D=%08X) '%s'\n", node, get_long (list + 4), get_long (list), name);
+					xfree (name);
+				}
+			} else {
+				int cnt = 0;
+				node = get_long (list);
+				node = get_long (node);
+				while (get_long (node)) {
+					uae_u8 *addr = get_real_address (get_long (node + 10));
+					TCHAR *name = addr ? ((char*)addr) : "<null>";
+					console_out_f ("  [S] %08x (C=%08x D=%08X) '%s'\n", node, get_long (node + 18), get_long (node + 14), name);
+					if (i == 4 - 1 || i == 14 - 1) {
+						if (!_tcsicmp (name, "cia-a") || !_tcsicmp (name, "cia-b")) {
+							static const TCHAR *ciai[] = { "A", "B", "ALRM", "SP", "FLG" };
+							uaecptr cia = node + 22;
+							for (j = 0; j < 5; j++) {
+								uaecptr ciap = get_long (cia);
+								console_out_f ("        %5s: %08x", ciai[j], ciap);
+								if (ciap) {
+									uae_u8 *addr2 = get_real_address (get_long (ciap + 10));
+									TCHAR *name2 = addr ? ((char*)addr2) : "<null>";
+									console_out_f (" (C=%08x D=%08X) '%s'", get_long (ciap + 18), get_long (ciap + 14), name2);
+									xfree (name2);
+								}
+								console_out_f ("\n");
+								cia += 4;
+							}
+						}
+					}
+					xfree (name);
+					node = get_long (node);
+					cnt++;
+				}
+				if (!cnt)
+					console_out_f ("  [S] <none>\n");
+			}
+			list += 12;
+		}
+		return;
+	}
 
 	switch (_totupper (t))
 	{
@@ -2647,9 +2797,9 @@ static void searchmem (TCHAR **cc)
 	console_out ("\n");
 }
 
-#ifdef SAVESTATE
 static int staterecorder (TCHAR **cc)
 {
+#if 0
 	TCHAR nc;
 
 	if (!more_params (cc)) {
@@ -2664,9 +2814,9 @@ static int staterecorder (TCHAR **cc)
 		savestate_listrewind ();
 		return 0;
 	}
+#endif
 	return 0;
 }
-#endif
 
 static int debugtest_modes[DEBUGTEST_MAX];
 static const TCHAR *debugtest_names[] = {
@@ -2718,7 +2868,7 @@ static void debugtest_set (TCHAR **inptr)
 		else
 			debugtest_modes[val] = val2;
 		console_out_f ("Debugtest '%s': %s. break = %s\n",
-			debugtest_names[val], debugtest_modes[val] ? "on" :L"off", val2 == 2 ? "on" : "off");
+			debugtest_names[val], debugtest_modes[val] ? "on" :"off", val2 == 2 ? "on" : "off");
 	}
 }
 
@@ -2971,7 +3121,7 @@ static void m68k_modify (TCHAR **inptr)
 		regs.isp = v;
 	} else if (!_tcscmp (parm, "PC")) {
 		m68k_setpc (v);
-		fill_prefetch_slow ();
+		fill_prefetch ();
 	} else {
 		for (i = 0; m2cregs[i].regname; i++) {
 			if (!_tcscmp (parm, m2cregs[i].regname))
@@ -3149,7 +3299,7 @@ static void debug_1 (void)
 		case 'g':
 			if (more_params (&inptr)) {
 				m68k_setpc (readhex (&inptr));
-				fill_prefetch_slow ();
+				fill_prefetch ();
 			}
 			deactivate_debugger();
 			return;
@@ -3269,7 +3419,7 @@ static void debug_1 (void)
 				if (more_params (&inptr))
 					v2 = readint (&inptr);
 				if (debug_dma) {
-					decode_dma_record (v2, v1, cmd == 'v');
+					decode_dma_record (v2, v1, cmd == 'v', false);
 				} else {
 					debug_dma = v1 < 0 ? -v1 : 1;
 					console_out_f ("DMA debugger enabled, mode=%d.\n", debug_dma);
@@ -3293,19 +3443,19 @@ static void debug_1 (void)
 			break;
 		case 'U':
 			if (currprefs.cpu_model && more_params (&inptr)) {
-				int super, data, i;
+				int i;
 				uaecptr addrl = readhex (&inptr);
 				uaecptr addrp;
 				console_out_f ("%08X translates to:\n", addrl);
 				for (i = 0; i < 4; i++) {
-					super = (i & 2) ? 1 : 0;
-					data = (i & 1) ? 1 : 0;
+					bool super = (i & 2) != 0;
+					bool data = (i & 1) != 0;
 					console_out_f ("S%dD%d=", super, data);
 					TRY(prb) {
-						addrp = mmu_translate (addrl, super, data, 0);
+						addrp = mmu_translate (addrl, super, data, false);
 						console_out_f ("%08X", addrp);
 						TRY(prb2) {
-							addrp = mmu_translate (addrl, super, data, 1);
+							addrp = mmu_translate (addrl, super, data, true);
 							console_out_f (" RW");
 						} CATCH(prb2) {
 							console_out_f (" RO");
@@ -3476,26 +3626,22 @@ void debug (void)
 	skipins = 0xffffffff;
 	skipaddr_doskip = 0;
 	exception_debugging = 0;
-
-#ifdef SAVESTATE
 	debug_rewind = 0;
 	processptr = 0;
+#if 0
+	if (!currprefs.statecapture) {
+		changed_prefs.statecapture = currprefs.statecapture = 1;
+		savestate_init ();
+	}
 #endif
 	debug_1 ();
-
-#ifdef SAVESTATE
-	if (!debug_rewind 
-#ifdef JIT
-	&& !currprefs.cachesize
-#endif
+	if (!debug_rewind && !currprefs.cachesize
 #ifdef FILESYS
 		&& nr_units () == 0
 #endif
 		) {
 			savestate_capture (1);
 	}
-#endif
-
 	for (i = 0; i < BREAKPOINT_TOTAL; i++) {
 		if (bpnodes[i].enabled)
 			do_skip = 1;
@@ -3583,7 +3729,7 @@ void mmu_do_hit (void)
 	}
 	MakeSR ();
 	m68k_setpc (mmu_callback);
-	fill_prefetch_slow ();
+	fill_prefetch ();
 
 	if (currprefs.cpu_model > 68000) {
 		for (i = 0 ; i < 9; i++) {

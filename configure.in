@@ -6,7 +6,7 @@ dnl Updated and generally mauled 2008 Mustafa Tufan
 dnl
 
 AC_PREREQ(2.55)
-AC_INIT(PUAE, 2.3.0, ,puae)
+AC_INIT(PUAE, 2.3.1, ,puae)
 AC_CONFIG_SRCDIR([bootstrap.sh])
 AM_CONFIG_HEADER([src/sysconfig.h])
 AC_CANONICAL_TARGET

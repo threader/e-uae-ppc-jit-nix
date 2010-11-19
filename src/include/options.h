@@ -9,7 +9,7 @@
 
 #define UAEMAJOR 2
 #define UAEMINOR 3
-#define UAESUBREV 0
+#define UAESUBREV 1
 
 typedef enum { KBD_LANG_US, KBD_LANG_DK, KBD_LANG_DE, KBD_LANG_SE, KBD_LANG_FR, KBD_LANG_IT, KBD_LANG_ES, KBD_LANG_TR } KbdLang;
 
@@ -53,6 +53,7 @@ struct uae_input_device {
 };
 
 #define MAX_JPORTS 4
+#define NORMAL_JPORTS 2
 #define MAX_JPORTNAME 128
 struct jport {
 	int id;
@@ -126,6 +127,14 @@ enum { CP_GENERIC = 1, CP_CDTV, CP_CD32, CP_A500, CP_A500P, CP_A600, CP_A1000,
 #define GFX_FULLSCREEN 1
 #define GFX_FULLWINDOW 2
 
+#define AUTOSCALE_NONE 0
+#define AUTOSCALE_STATIC_AUTO 1
+#define AUTOSCALE_STATIC_NOMINAL 2
+#define AUTOSCALE_STATIC_MAX 3
+#define AUTOSCALE_NORMAL 4
+#define AUTOSCALE_RESIZE 5
+#define AUTOSCALE_CENTER 6
+
 struct uae_prefs {
 
 	struct strlist *all_lines;
@@ -198,8 +207,8 @@ struct uae_prefs {
 	struct wh gfx_size_win;
 	struct wh gfx_size_fs;
 	struct wh gfx_size;
-	struct wh gfx_size_win_xtra[4];
-	struct wh gfx_size_fs_xtra[4];
+	struct wh gfx_size_win_xtra[6];
+	struct wh gfx_size_fs_xtra[6];
 	bool gfx_autoresolution;
 	bool gfx_scandoubler;
 	int gfx_refreshrate;
@@ -320,6 +329,8 @@ struct uae_prefs {
 	struct cdslot cdslots[MAX_TOTAL_SCSI_DEVICES];
 	TCHAR quitstatefile[MAX_DPATH];
 	TCHAR statefile[MAX_DPATH];
+	TCHAR inprecfile[MAX_DPATH];
+	bool inprec_autoplay;
 #ifndef WIN32
 	char scsi_device[256];
 #endif
@@ -362,6 +373,7 @@ struct uae_prefs {
 	bool filesys_custom_uaefsdb;
 	bool mmkeyboard;
 	int uae_hide;
+	bool clipboard_sharing;
 
 	struct uaedev_mount_info *mountinfo;
 	int mountitems;
@@ -474,6 +486,7 @@ struct uae_prefs {
 	struct uae_input_device mouse_settings[MAX_INPUT_SETTINGS][MAX_INPUT_DEVICES];
 	struct uae_input_device keyboard_settings[MAX_INPUT_SETTINGS][MAX_INPUT_DEVICES];
 	int dongle;
+	int input_contact_bounce;
 };
 
 extern int config_changed;

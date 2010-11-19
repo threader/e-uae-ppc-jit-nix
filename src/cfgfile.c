@@ -4515,13 +4515,6 @@ int built_in_chipset_prefs (struct uae_prefs *p)
 
 void config_check_vsync (void)
 {
-	static int cnt = 0;
-	if (cnt == 0) {
-		/* resolution_check_change (); */
-		DISK_check_change ();
-		cnt = 5;
-	}
-	cnt--;
 	if (config_changed) {
 //		if (config_changed == 1)
 //			write_log ("* configuration check trigger\n");

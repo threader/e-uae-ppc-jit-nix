@@ -28,8 +28,8 @@
 	<key>CFBundleName</key>
 	<string>PUAE</string>
 	<key>CFBundleGetInfoString</key>
-	<string>2.3.0</string>
+	<string>2.3.1</string>
 	<key>CFBundleVersion</key>
-	<string>2.3.0</string>
+	<string>2.3.1</string>
 </dict>
 </plist>

@@ -1,9 +1,10 @@
 /*
- * E-UAE - The portable Amiga Emulator
+ * PUAE - The portable Amiga Emulator
  *
  * Version/revision info.
  *
  * (c) 2006 Richard Drummond
+ * (c) 2010 Mustafa TUFAN
  */
 
 #ifndef EUAE_VERSION_H
@@ -18,7 +19,7 @@
 
 #define UAEMAJOR   2
 #define UAEMINOR   3
-#define UAESUBREV  0
+#define UAESUBREV  1
 
 #define UAEVERSION (256*65536L*UAEMAJOR + 65536L*UAEMINOR + UAESUBREV)
 

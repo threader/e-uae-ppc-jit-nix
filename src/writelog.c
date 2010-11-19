@@ -95,3 +95,8 @@ void flush_log (void)
 {
     fflush (logfile ? logfile : stderr);
 }
+
+void write_dlog (const char *format, ...)
+{
+
+}

@@ -24,6 +24,7 @@
 #include "options.h"
 #include "keyboard.h"
 #include "inputdevice.h"
+#include "inputrecord.h"
 #include "keybuf.h"
 #include "custom.h"
 #include "xwin.h"
@@ -397,43 +398,55 @@ static struct uae_input_device *joysticks;
 static struct uae_input_device *mice;
 static struct uae_input_device *keyboards;
 static struct uae_input_device_kbr_default *keyboard_default;
+
+#define KBR_DEFAULT_MAP_FIRST 0
+#define KBR_DEFAULT_MAP_LAST 5
+#define KBR_DEFAULT_MAP_CD32_FIRST 6
+#define KBR_DEFAULT_MAP_CD32_LAST 8
+
 #define KBR_DEFAULT_MAP_NP 0
 #define KBR_DEFAULT_MAP_CK 1
 #define KBR_DEFAULT_MAP_SE 2
-#define KBR_DEFAULT_MAP_CD32_NP 3
-#define KBR_DEFAULT_MAP_CD32_CK 4
-#define KBR_DEFAULT_MAP_CD32_SE 5
-#define KBR_DEFAULT_MAP_XA1 6
-#define KBR_DEFAULT_MAP_XA2 7
-#define KBR_DEFAULT_MAP_ARCADIA 8
-#define KBR_DEFAULT_MAP_ARCADIA_XA 9
-#define KBR_DEFAULT_MAP_CDTV 10
+#define KBR_DEFAULT_MAP_NP3 3
+#define KBR_DEFAULT_MAP_CK3 4
+#define KBR_DEFAULT_MAP_SE3 5
+#define KBR_DEFAULT_MAP_CD32_NP 6
+#define KBR_DEFAULT_MAP_CD32_CK 7
+#define KBR_DEFAULT_MAP_CD32_SE 8
+#define KBR_DEFAULT_MAP_XA1 9
+#define KBR_DEFAULT_MAP_XA2 10
+#define KBR_DEFAULT_MAP_ARCADIA 11
+#define KBR_DEFAULT_MAP_ARCADIA_XA 12
+#define KBR_DEFAULT_MAP_CDTV 13
 static int **keyboard_default_kbmaps;
 
 static int mouse_axis[MAX_INPUT_DEVICES][MAX_INPUT_DEVICE_EVENTS];
 static int oldm_axis[MAX_INPUT_DEVICES][MAX_INPUT_DEVICE_EVENTS];
 
-static int mouse_x[MAX_INPUT_DEVICES], mouse_y[MAX_INPUT_DEVICE_EVENTS];
-static int mouse_delta[MAX_INPUT_DEVICES][MAX_INPUT_DEVICE_EVENTS];
-static int mouse_deltanoreset[MAX_INPUT_DEVICES][MAX_INPUT_DEVICE_EVENTS];
-static int joybutton[MAX_INPUT_DEVICES];
-static unsigned int joydir[MAX_INPUT_DEVICE_EVENTS];
-static int joydirpot[MAX_INPUT_DEVICE_EVENTS][2];
-static int mouse_frame_x[2], mouse_frame_y[2];
+#define MOUSE_AXIS_TOTAL 4
 
-static int mouse_port[2];
-static int cd32_shifter[2];
-static int cd32_pad_enabled[2];
+static uae_s16 mouse_x[MAX_JPORTS], mouse_y[MAX_JPORTS];
+static uae_s16 mouse_delta[MAX_JPORTS][MOUSE_AXIS_TOTAL];
+static uae_s16 mouse_deltanoreset[MAX_JPORTS][MOUSE_AXIS_TOTAL];
+static int joybutton[MAX_JPORTS];
+static int joydir[MAX_JPORTS];
+static int joydirpot[MAX_JPORTS][2];
+static uae_s16 mouse_frame_x[MAX_JPORTS], mouse_frame_y[MAX_JPORTS];
+
+static int mouse_port[NORMAL_JPORTS];
+static int cd32_shifter[NORMAL_JPORTS];
+static int cd32_pad_enabled[NORMAL_JPORTS];
 static int parport_joystick_enabled;
-static int oldmx[4], oldmy[4];
-static int oleft[4], oright[4], otop[4], obot[4];
+static int oldmx[MAX_JPORTS], oldmy[MAX_JPORTS];
+static int oleft[MAX_JPORTS], oright[MAX_JPORTS], otop[MAX_JPORTS], obot[MAX_JPORTS];
+static int horizclear[MAX_JPORTS], vertclear[MAX_JPORTS];
 
 uae_u16 potgo_value;
-static int pot_cap[2][2];
-static uae_u8 pot_dat[2][2];
-static int pot_dat_act[2][2];
-static int analog_port[2][2];
-static int digital_port[2][2];
+static int pot_cap[NORMAL_JPORTS][2];
+static uae_u8 pot_dat[NORMAL_JPORTS][2];
+static int pot_dat_act[NORMAL_JPORTS][2];
+static int analog_port[NORMAL_JPORTS][2];
+static int digital_port[NORMAL_JPORTS][2];
 #define POTDAT_DELAY_PAL 8
 #define POTDAT_DELAY_NTSC 7
 
@@ -2015,9 +2028,34 @@ uae_u16 JOY0DAT (void)
 uae_u16 JOY1DAT (void)
 {
 	uae_u16 v;
+	readinput ();
 	v = getjoystate (1);
 	v = dongle_joydat (1, v);
+#ifdef INPREC
+	if (inputrecord_debug & 2) {
+		if (input_record > 0)
+			inprec_recorddebug_cia (v, -1, m68k_getpc ());
+		else if (input_play > 0)
+			inprec_playdebug_cia (v, -1, m68k_getpc ());
+	}
+#endif
 	return v;
+}
+
+uae_u16 JOYGET (int num)
+{
+	uae_u16 v;
+	v = getjoystate (num);
+	v = dongle_joydat (num, v);
+	return v;
+}
+
+void JOYSET (int num, uae_u16 dat)
+{
+	mouse_x[num] = dat & 0xff;
+	mouse_y[num] = (dat >> 8) & 0xff;
+	mouse_frame_x[num] = mouse_x[num];
+	mouse_frame_y[num] = mouse_y[num];
 }
 
 void JOYTEST (uae_u16 v)
@@ -3025,14 +3063,34 @@ int handle_input_event (int nr, int state, int max, int autofire)
 			int left = oleft[joy], right = oright[joy], top = otop[joy], bot = obot[joy];
 			if (ie->type & 16) {
 				/* button to axis mapping */
-				if (ie->data & DIR_LEFT)
+				if (ie->data & DIR_LEFT) {
 					left = oleft[joy] = state ? 1 : 0;
-				if (ie->data & DIR_RIGHT)
+					if (horizclear[joy] && left) {
+						horizclear[joy] = 0;
+						right = oright[joy] = 0;
+					}
+				}
+				if (ie->data & DIR_RIGHT) {
 					right = oright[joy] = state ? 1 : 0;
-				if (ie->data & DIR_UP)
+					if (horizclear[joy] && right) {
+						horizclear[joy] = 0;
+						left = oleft[joy] = 0;
+					}
+				}
+				if (ie->data & DIR_UP) {
 					top = otop[joy] = state ? 1 : 0;
-				if (ie->data & DIR_DOWN)
+					if (vertclear[joy] && top) {
+						vertclear[joy] = 0;
+						bot = obot[joy] = 0;
+					}
+				}
+				if (ie->data & DIR_DOWN) {
 					bot = obot[joy] = state ? 1 : 0;
+					if (vertclear[joy] && bot) {
+						vertclear[joy] = 0;
+						top = otop[joy] = 0;
+					}
+				}
 			} else {
 				/* "normal" joystick axis */
 				int deadzone = currprefs.input_joystick_deadzone * max / 100;
@@ -3041,14 +3099,34 @@ int handle_input_event (int nr, int state, int max, int autofire)
 					state = 0;
 				neg = state < 0 ? 1 : 0;
 				pos = state > 0 ? 1 : 0;
-				if (ie->data & DIR_LEFT)
+				if (ie->data & DIR_LEFT) {
 					left = oleft[joy] = neg;
-				if (ie->data & DIR_RIGHT)
+					if (horizclear[joy] && left) {
+						horizclear[joy] = 0;
+						right = oright[joy] = 0;
+					}
+				}
+				if (ie->data & DIR_RIGHT) {
 					right = oright[joy] = pos;
-				if (ie->data & DIR_UP)
+					if (horizclear[joy] && right) {
+						horizclear[joy] = 0;
+						left = oleft[joy] = 0;
+					}
+				}
+				if (ie->data & DIR_UP) {
 					top = otop[joy] = neg;
-				if (ie->data & DIR_DOWN)
+					if (vertclear[joy] && top) {
+						vertclear[joy] = 0;
+						bot = obot[joy] = 0;
+					}
+				}
+				if (ie->data & DIR_DOWN) {
 					bot = obot[joy] = pos;
+					if (vertclear[joy] && bot) {
+						vertclear[joy] = 0;
+						top = otop[joy] = 0;
+					}
+				}
 			}
 			mouse_deltanoreset[joy][0] = 1;
 			mouse_deltanoreset[joy][1] = 1;
@@ -5845,3 +5923,84 @@ int inputdevice_getjoyportdevice (int port, int val)
 	}
 	return idx;
 }
+
+#ifdef SAVESTATE
+// for state recorder use only!
+
+uae_u8 *save_inputstate (int *len, uae_u8 *dstptr)
+{
+	unsigned int i, j;
+	uae_u8 *dstbak, *dst;
+
+	if (dstptr)
+		dstbak = dst = dstptr;
+	else
+		dstbak = dst = xmalloc (uae_u8, 1000);
+	for (i = 0; i < MAX_JPORTS; i++) {
+		save_u16 (joydir[i]);
+		save_u16 (joybutton[i]);
+		save_u16 (otop[i]);
+		save_u16 (obot[i]);
+		save_u16 (oleft[i]);
+		save_u16 (oright[i]);
+	}
+	for (i = 0; i < NORMAL_JPORTS; i++) {
+		save_u16 (cd32_shifter[i]);
+		for (j = 0; j < 2; j++) {
+			save_u16 (pot_cap[i][j]);
+			save_u16 (joydirpot[i][j]);
+		}
+	}
+	for (i = 0; i < NORMAL_JPORTS; i++) {
+		for (j = 0; j < MOUSE_AXIS_TOTAL; j++) {
+			save_u16 (mouse_delta[i][j]);
+			save_u16 (mouse_deltanoreset[i][j]);
+		}
+		save_u16 (mouse_frame_x[i]);
+		save_u16 (mouse_frame_y[i]);
+	}
+	*len = dst - dstbak;
+	return dstbak;
+}
+
+uae_u8 *restore_inputstate (uae_u8 *src)
+{
+	unsigned int i, j;
+
+	for (i = 0; i < MAX_JPORTS; i++) {
+		joydir[i] = restore_u16 ();
+		joybutton[i] = restore_u16 ();
+		otop[i] = restore_u16 ();
+		obot[i] = restore_u16 ();
+		oleft[i] = restore_u16 ();
+		oright[i] = restore_u16 ();
+	}
+	for (i = 0; i < NORMAL_JPORTS; i++) {
+		cd32_shifter[i] = restore_u16 ();
+		for (j = 0; j < 2; j++) {
+			pot_cap[i][j] = restore_u16 ();
+			joydirpot[i][j] = restore_u16 ();
+		}
+	}
+	for (i = 0; i < NORMAL_JPORTS; i++) {
+		for (j = 0; j < MOUSE_AXIS_TOTAL; j++) {
+			mouse_delta[i][j] = restore_u16 ();
+			mouse_deltanoreset[i][j] = restore_u16 ();
+		}
+		mouse_frame_x[i] = restore_u16 ();
+		mouse_frame_y[i] = restore_u16 ();
+	}
+	return src;
+}
+
+void clear_inputstate (void)
+{
+	return;
+	unsigned int i;
+
+	for (i = 0; i < MAX_JPORTS; i++) {
+		horizclear[i] = 1;
+		vertclear[i] = 1;
+	}
+}
+#endif
