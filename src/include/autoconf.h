@@ -60,7 +60,7 @@ extern char *validatedevicename (char *s);
 extern char *validatevolumename (char *s);
 
 int filesys_insert (int nr, TCHAR *volume, const TCHAR *rootdir, bool readonly, int flags);
-int filesys_eject(int nr);
+int filesys_eject (int nr);
 int filesys_media_change (const char *rootdir, int inserted, struct uaedev_config_info *uci);
 
 extern char *filesys_createvolname (const char *volname, const char *rootdir, const char *def);

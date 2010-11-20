@@ -1733,47 +1733,47 @@ uae_u8 *restore_cia (int num, uae_u8 *src)
 	uae_u32 l;
 
 	/* CIA registers */
-	b = restore_u8 ();					/* 0 PRA */
+	b = restore_u8 ();						/* 0 PRA */
 	if (num) ciabpra = b; else ciaapra = b;
-	b = restore_u8 ();					/* 1 PRB */
+	b = restore_u8 ();						/* 1 PRB */
 	if (num) ciabprb = b; else ciaaprb = b;
-	b = restore_u8 ();					/* 2 DDRA */
+	b = restore_u8 ();						/* 2 DDRA */
 	if (num) ciabdra = b; else ciaadra = b;
-	b = restore_u8 ();					/* 3 DDRB */
+	b = restore_u8 ();						/* 3 DDRB */
 	if (num) ciabdrb = b; else ciaadrb = b;
-	w = restore_u16 ();					/* 4 TA */
+	w = restore_u16 ();						/* 4 TA */
 	if (num) ciabta = w; else ciaata = w;
-	w = restore_u16 ();					/* 6 TB */
+	w = restore_u16 ();						/* 6 TB */
 	if (num) ciabtb = w; else ciaatb = w;
-	l = restore_u8 ();					/* 8/9/A TOD */
+	l = restore_u8 ();						/* 8/9/A TOD */
 	l |= restore_u8 () << 8;
 	l |= restore_u8 () << 16;
 	if (num) ciabtod = l; else ciaatod = l;
-	restore_u8 ();					/* B unused */
-	b = restore_u8 ();					/* C SDR */
+	restore_u8 ();							/* B unused */
+	b = restore_u8 ();						/* C SDR */
 	if (num) ciabsdr = b; else ciaasdr = b;
-	b = restore_u8 ();					/* D ICR INFORMATION (not mask!) */
+	b = restore_u8 ();						/* D ICR INFORMATION (not mask!) */
 	if (num) ciabicr = b; else ciaaicr = b;
-	b = restore_u8 ();					/* E CRA */
+	b = restore_u8 ();						/* E CRA */
 	if (num) ciabcra = b; else ciaacra = b;
-	b = restore_u8 ();					/* F CRB */
+	b = restore_u8 ();						/* F CRB */
 	if (num) ciabcrb = b; else ciaacrb = b;
 
 	/* CIA internal data */
 
-	b = restore_u8 ();					/* ICR MASK */
+	b = restore_u8 ();						/* ICR MASK */
 	if (num) ciabimask = b; else ciaaimask = b;
-	w = restore_u8 ();					/* timer A latch */
+	w = restore_u8 ();						/* timer A latch */
 	w |= restore_u8 () << 8;
 	if (num) ciabla = w; else ciaala = w;
-	w = restore_u8 ();					/* timer B latch */
+	w = restore_u8 ();						/* timer B latch */
 	w |= restore_u8 () << 8;
 	if (num) ciablb = w; else ciaalb = w;
-	w = restore_u8 ();					/* TOD latched value */
+	w = restore_u8 ();						/* TOD latched value */
 	w |= restore_u8 () << 8;
 	w |= restore_u8 () << 16;
 	if (num) ciabtol = w; else ciaatol = w;
-	l = restore_u8 ();					/* alarm */
+	l = restore_u8 ();						/* alarm */
 	l |= restore_u8 () << 8;
 	l |= restore_u8 () << 16;
 	if (num) ciabalarm = l; else ciaaalarm = l;
@@ -1814,13 +1814,13 @@ uae_u8 *save_cia (int num, int *len, uae_u8 *dstptr)
 	save_u16 (t);
 	t = (num ? ciabtb - ciabtb_passed : ciaatb - ciaatb_passed);/* 6 TB */
 	save_u16 (t);
-	b = (num ? ciabtod : ciaatod);			/* 8 TODL */
+	b = (num ? ciabtod : ciaatod);				/* 8 TODL */
 	save_u8 (b);
-	b = (num ? ciabtod >> 8 : ciaatod >> 8);		/* 9 TODM */
+	b = (num ? ciabtod >> 8 : ciaatod >> 8);	/* 9 TODM */
 	save_u8 (b);
-	b = (num ? ciabtod >> 16 : ciaatod >> 16);		/* A TODH */
+	b = (num ? ciabtod >> 16 : ciaatod >> 16);	/* A TODH */
 	save_u8 (b);
-	save_u8 (0);						/* B unused */
+	save_u8 (0);								/* B unused */
 	b = num ? ciabsdr : ciaasdr;				/* C SDR */
 	save_u8 (b);
 	b = num ? ciabicr : ciaaicr;				/* D ICR INFORMATION (not mask!) */
@@ -1832,24 +1832,24 @@ uae_u8 *save_cia (int num, int *len, uae_u8 *dstptr)
 
 	/* CIA internal data */
 
-	save_u8 (num ? ciabimask : ciaaimask);			/* ICR */
-	b = (num ? ciabla : ciaala);			/* timer A latch LO */
+	save_u8 (num ? ciabimask : ciaaimask);		/* ICR */
+	b = (num ? ciabla : ciaala);				/* timer A latch LO */
 	save_u8 (b);
 	b = (num ? ciabla >> 8 : ciaala >> 8);		/* timer A latch HI */
 	save_u8 (b);
-	b = (num ? ciablb : ciaalb);			/* timer B latch LO */
+	b = (num ? ciablb : ciaalb);				/* timer B latch LO */
 	save_u8 (b);
 	b = (num ? ciablb >> 8 : ciaalb >> 8);		/* timer B latch HI */
 	save_u8 (b);
-	b = (num ? ciabtol : ciaatol);			/* latched TOD LO */
+	b = (num ? ciabtol : ciaatol);				/* latched TOD LO */
 	save_u8 (b);
-	b = (num ? ciabtol >> 8 : ciaatol >> 8);		/* latched TOD MED */
+	b = (num ? ciabtol >> 8 : ciaatol >> 8);	/* latched TOD MED */
 	save_u8 (b);
-	b = (num ? ciabtol >> 16 : ciaatol >> 16);		/* latched TOD HI */
+	b = (num ? ciabtol >> 16 : ciaatol >> 16);	/* latched TOD HI */
 	save_u8 (b);
 	b = (num ? ciabalarm : ciaaalarm);			/* alarm LO */
 	save_u8 (b);
-	b = (num ? ciabalarm >> 8 : ciaaalarm >> 8);	/* alarm MED */
+	b = (num ? ciabalarm >> 8 : ciaaalarm >> 8);/* alarm MED */
 	save_u8 (b);
 	b = (num ? ciabalarm >> 16 : ciaaalarm >> 16);	/* alarm HI */
 	save_u8 (b);

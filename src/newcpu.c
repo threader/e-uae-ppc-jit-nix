@@ -1921,7 +1921,7 @@ static void Exception_ce000 (int nr)
 		x_put_word (m68k_areg (regs, 7) + 0, mode);
 		x_put_word (m68k_areg (regs, 7) + 2, last_fault_for_exception_3 >> 16);
 		x_do_cycles (2 * cpucycleunit);
-		write_log ("Exception %d (%x) at %x -> %x!\n", nr, last_addr_for_exception_3, currpc, get_long (4 * nr));
+		write_log ("Exception CE %d (%x) at %x -> %x!\n", nr, last_addr_for_exception_3, currpc, get_long (4 * nr));
 		goto kludge_me_do;
 	}
 	m68k_areg (regs, 7) -= 6;
@@ -2218,7 +2218,7 @@ static void Exception_normal (int nr)
 				m68k_areg (regs, 7) -= 2;
 				x_put_word (m68k_areg (regs, 7), 0xb000 + nr * 4);
 			}
-			write_log ("Exception %d (%x) at %x -> %x!\n", nr, regs.instruction_pc, currpc, x_get_long (regs.vbr + 4*nr));
+			write_log ("Exception 20 %d (%x) at %x -> %x!\n", nr, regs.instruction_pc, currpc, x_get_long (regs.vbr + 4*nr));
 		} else if (nr ==5 || nr == 6 || nr == 7 || nr == 9) {
 			m68k_areg (regs, 7) -= 4;
 			x_put_long (m68k_areg (regs, 7), regs.instruction_pc);
@@ -2253,7 +2253,7 @@ static void Exception_normal (int nr)
 			x_put_word (m68k_areg (regs, 7) + 6, last_op_for_exception_3);
 			x_put_word (m68k_areg (regs, 7) + 8, regs.sr);
 			x_put_long (m68k_areg (regs, 7) + 10, last_addr_for_exception_3);
-			write_log ("Exception %d (%x) at %x -> %x!\n", nr, last_fault_for_exception_3, currpc, x_get_long (regs.vbr + 4*nr));
+			write_log ("Exception 00 %d (%x) at %x -> %x!\n", nr, last_fault_for_exception_3, currpc, x_get_long (regs.vbr + 4*nr));
 			goto kludge_me_do;
 		}
 	}
@@ -2894,7 +2894,7 @@ unsigned long REGPARAM2 op_illg (uae_u32 opcode)
 
 	if ((opcode & 0xF000) == 0xF000) {
 		if (warned < 20) {
-			write_log ("B-Trap %x at %x (%p)\n", opcode, pc, regs.pc_p);
+			//write_log ("B-Trap %x at %x (%p)\n", opcode, pc, regs.pc_p);
 			warned++;
 		}
 		Exception (0xB);
@@ -2903,7 +2903,7 @@ unsigned long REGPARAM2 op_illg (uae_u32 opcode)
 	}
 	if ((opcode & 0xF000) == 0xA000) {
 		if (warned < 20) {
-			write_log ("A-Trap %x at %x (%p)\n", opcode, pc, regs.pc_p);
+			//write_log ("A-Trap %x at %x (%p)\n", opcode, pc, regs.pc_p);
 			warned++;
 		}
 		Exception (0xA);
@@ -2911,7 +2911,7 @@ unsigned long REGPARAM2 op_illg (uae_u32 opcode)
 		return 4;
 	}
 	if (warned < 20) {
-		write_log ("Illegal instruction: %04x at %08X -> %08X\n", opcode, pc, get_long (regs.vbr + 0x10));
+		//write_log ("Illegal instruction: %04x at %08X -> %08X\n", opcode, pc, get_long (regs.vbr + 0x10));
 		warned++;
 		//activate_debugger();
 	}
@@ -3505,6 +3505,7 @@ static void m68k_run_1_ce (void)
 			cputrace.cyclecounter = cputrace.cyclecounter_pre = cputrace.cyclecounter_post = 0;
 			cputrace.readcounter = cputrace.writecounter = 0;
 		}
+
 		if (inputrecord_debug & 4) {
 			if (input_record > 0)
 				inprec_recorddebug_cpu (1);
@@ -3831,6 +3832,7 @@ static void m68k_run_2ce (void)
 			cputrace.cyclecounter = cputrace.cyclecounter_pre = cputrace.cyclecounter_post = 0;
 			cputrace.readcounter = cputrace.writecounter = 0;
 		}
+
 		if (inputrecord_debug & 4) {
 			if (input_record > 0)
 				inprec_recorddebug_cpu (1);
@@ -4049,6 +4051,7 @@ void m68k_go (int may_quit)
 
 		if (changed_prefs.inprecfile[0] && input_record)
 			inprec_prepare_record (savestate_fname[0] ? savestate_fname : NULL);
+
 		set_cpu_tracer (false);
 
 #ifdef DEBUGGER
