@@ -5107,7 +5107,9 @@ static void vsync_handler_pre (void)
 	picasso_handle_vsync ();
 #endif
 	audio_vsync ();
+#ifdef SCSIEMU
 	blkdev_vsync ();
+#endif
 	CIA_vsync_prehandler ();
 
 	if (quit_program > 0) {

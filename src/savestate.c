@@ -679,8 +679,12 @@ void savestate_restore_finish (void)
 	restore_audio_finish ();
 	restore_disk_finish ();
 	restore_blitter_finish ();
+#ifdef CD32
 	restore_akiko_finish ();
+#endif
+#ifdef CDTV
 	restore_cdtv_finish ();
+#endif
 	restore_p96_finish ();
 #ifdef A2065
 	restore_a2065_finish ();
@@ -927,6 +931,7 @@ static int save_state_internal (struct zfile *f, const TCHAR *description, int c
 		}
 	}
 #endif
+#ifdef GAYLE
 	dst = save_gayle (&len, NULL);
 	if (dst) {
 		save_chunk (f, dst, len, "GAYL", 0);
@@ -939,7 +944,8 @@ static int save_state_internal (struct zfile *f, const TCHAR *description, int c
 			xfree (dst);
 		}
 	}
-
+#endif
+#ifdef CDTV
 	for (i = 0; i < MAX_TOTAL_SCSI_DEVICES; i++) {
 		dst = save_cd (i, &len);
 		if (dst) {
@@ -947,7 +953,7 @@ static int save_state_internal (struct zfile *f, const TCHAR *description, int c
 			save_chunk (f, dst, len, name, 0);
 		}
 	}
-
+#endif
 	dst = save_debug_memwatch (&len, NULL);
 	if (dst) {
 		save_chunk (f, dst, len, "DMWP", 0);
@@ -1223,12 +1229,14 @@ void savestate_rewind (void)
 	if (restore_u32_func (&p))
 		p = restore_dmac (p);
 #endif
+#ifdef GAYLE
 	if (restore_u32_func (&p))
 		p = restore_gayle (p);
 	for (i = 0; i < 4; i++) {
 		if (restore_u32_func (&p))
 			p = restore_ide (p);
 	}
+#endif
 	p += 4;
 	if (p != p2) {
 		gui_message ("reload failure, address mismatch %p != %p", p, p2);
@@ -1565,6 +1573,7 @@ retry2:
 		p += len;
 	}
 #endif
+#ifdef GAYLE
 	if (bufcheck (st, p, 0))
 		goto retry;
 	p3 = p;
@@ -1587,6 +1596,7 @@ retry2:
 			p += len;
 		}
 	}
+#endif
 	save_u32_func (&p, tlen);
 	st->end = p;
 	st->inuse = 1;
