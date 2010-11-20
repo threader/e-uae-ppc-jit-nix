@@ -2668,7 +2668,8 @@ void vsync_handle_redraw (int long_frame, int lof_changed)
 #ifdef SAVESTATE
 			if (!savestate_state) {
 				if (currprefs.quitstatefile[0]) {
-					savestate_initsave (currprefs.quitstatefile, 1, 1, true); 
+					write_log ("Draw: Save_State");
+					savestate_initsave (currprefs.quitstatefile, 1, 1, true);
 					save_state (currprefs.quitstatefile, "");
 				}
 			}

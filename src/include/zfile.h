@@ -69,6 +69,7 @@ extern int zfile_convertimage (const TCHAR *src, const TCHAR *dst);
 //extern struct zfile *zuncompress (struct znode*, struct zfile *z, int dodefault, int mask, int *retcode, int index);
 extern void zfile_seterror (const TCHAR *format, ...);
 extern TCHAR *zfile_geterror (void);
+extern int zfile_truncate (struct zfile *z, uae_s64 size);
 
 #define ZFD_NONE 0
 #define ZFD_ARCHIVE 1 //zip/lha..
@@ -120,3 +121,4 @@ extern unsigned int zfile_read_archive (struct zfile *d, void *b, unsigned int s
 extern void zfile_close_archive (struct zfile *d);
 extern struct zfile *zfile_open_archive (const TCHAR *path, int flags);
 extern int zfile_exists_archive (const TCHAR *path, const TCHAR *rel);
+extern bool zfile_needwrite (struct zfile*);

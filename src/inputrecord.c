@@ -11,6 +11,8 @@
 #define ENABLE_DEBUGGER 0
 
 #define HEADERSIZE 12
+#define TRUE 1
+#define FALSE 0
 
 #include "sysconfig.h"
 #include "sysdeps.h"
@@ -162,6 +164,7 @@ static int inprec_pstart (uae_u8 type)
 	static uae_u8 *lastp;
 	uae_u32 hc_orig, hc2_orig;
 	int mvp = current_maxvpos ();
+	unsigned int i;
 
 	if (!input_play || !inprec_zf)
 		return 0;
@@ -228,7 +231,7 @@ static int inprec_pstart (uae_u8 type)
 			if (cycles != cycles2 + cycleoffset) {
 				if (warned > 0) {
 					warned--;
-					for (int i = 0; i < 7; i++)
+					for (i = 0; i < 7; i++)
 						write_log ("%08x (%08x) ", pcs[i], pcs2[i]);
 					write_log ("\n");
 				}
@@ -316,9 +319,9 @@ static int inprec_pstr (TCHAR *dst)
 		len++;
 	}
 	if (tmp[0]) {
-		TCHAR *d = utf8u (tmp);
-		_tcscpy (dst, d);
-		xfree (d);
+		//TCHAR *d = utf8u (tmp);
+		_tcscpy (dst, tmp);
+		//xfree (d);
 	}
 	return len;
 }
@@ -342,7 +345,7 @@ int inprec_open (const TCHAR *fname, const TCHAR *statefilename)
 
 	inprec_close (false);
 	if (fname == NULL)
-		inprec_zf = zfile_fopen_empty (NULL, "inp");
+		inprec_zf = zfile_fopen_empty (NULL, "inp", false);
 	else
 		inprec_zf = zfile_fopen (fname, input_record ? "wb" : "rb", ZFD_NORMAL);
 	if (inprec_zf == NULL)
@@ -516,14 +519,14 @@ void inprec_close (bool clear)
 
 static void setwriteprotect (const TCHAR *fname, bool readonly)
 {
-	struct _stat64 st;
+	struct stat64 st;
 	int mode, oldmode;
 	if (stat (fname, &st))
 		return;
 	oldmode = mode = st.st_mode;
-	mode &= ~FILEFLAG_WRITE;
+	mode &= ~0x04;
 	if (!readonly)
-		mode |= FILEFLAG_WRITE;
+		mode |= 0x04;
 	if (mode != oldmode)
 		chmod (fname, mode);
 }
@@ -615,6 +618,8 @@ void inprec_playdebug_cpu (int mode)
 {
 #if INPUTRECORD_DEBUG > 0
 	int err = 0;
+	unsigned int i;
+
 	if (inprec_pstart (INPREC_DEBUG2)) {
 		uae_u32 pc1 = m68k_getpc ();
 		uae_u32 pc2 = inprec_pu32 ();
@@ -624,7 +629,7 @@ void inprec_playdebug_cpu (int mode)
 			if (warned > 0) {
 				warned--;
 				write_log ("SYNC ERROR2 PC %08x != %08x\n", pc1, pc2);
-				for (int i = 0; i < 15; i++)
+				for (i = 0; i < 15; i++)
 					write_log ("%08x ", pcs[i]);
 				write_log ("\n");
 
@@ -640,7 +645,7 @@ void inprec_playdebug_cpu (int mode)
 			if (warned > 0) {
 				warned--;
 				write_log ("SYNC ERROR2 %08x != %08x\n", v1, v2);
-				for (int i = 0; i < 15; i++)
+				for (i = 0; i < 15; i++)
 					write_log ("%08x ", pcs[i]);
 				write_log ("\n");
 			}
@@ -757,7 +762,7 @@ void inprec_playtorecord (void)
 	input_play = INPREC_PLAY_RERECORD;
 	input_record = INPREC_RECORD_PLAYING;
 	zfile_fclose (inprec_zf);
-	inprec_zf = zfile_fopen_empty (NULL, "inp");
+	inprec_zf = zfile_fopen_empty (NULL, "inp", false);
 	zfile_fwrite (inprec_buffer, header_end2, 1, inprec_zf);
 	uae_u8 *p = inprec_buffer + header_end2;
 	uae_u8 *end = inprec_buffer + inprec_size;
@@ -768,7 +773,7 @@ void inprec_playtorecord (void)
 	}
 	zfile_fwrite (inprec_buffer + header_end2, inprec_size - header_end2, 1, inprec_zf);
 	inprec_realtime (false);
-	savestate_capture_request ();
+//	savestate_capture_request ();
 }
 
 void inprec_setposition (int offset, int replaycounter)
@@ -801,7 +806,7 @@ static void savelog (const TCHAR *path, const TCHAR *file)
 	_tcscpy (tmp, path);
 	_tcscat (tmp, file);
 	_tcscat (tmp, ".log.txt");
-	struct zfile *zfd = zfile_fopen (tmp, "wb");
+	struct zfile *zfd = zfile_fopen (tmp, "wb", 0);
 	if (zfd) {
 		int loglen;
 		uae_u8 *log;
@@ -842,7 +847,7 @@ static int savedisk (const TCHAR *path, const TCHAR *file, uae_u8 *data, uae_u8 
 			_tcscat (filename, ".");
 			getfilepart (filename + _tcslen (filename), MAX_DPATH, zfile_getname (zf));
 			_tcscat (tmp, filename);
-			struct zfile *zfd = zfile_fopen (tmp, "wb");
+			struct zfile *zfd = zfile_fopen (tmp, "wb", 0);
 			if (zfd) {
 				int size = zfile_size (zf);
 				uae_u8 *data = zfile_getdata (zf, 0, size);
@@ -914,7 +919,7 @@ void inprec_save (const TCHAR *filename, const TCHAR *statefilename)
 	}
 }
 
-bool inprec_realtime (void)
+bool inprec_realtimev (void)
 {
 	if (input_record != INPREC_RECORD_PLAYING || input_play != INPREC_PLAY_RERECORD)
 		return false;

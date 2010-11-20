@@ -708,9 +708,7 @@ void savestate_initsave (const TCHAR *filename, int mode, int nodialogs, bool sa
 	new_blitter = false;
 	if (save) {
 		savestate_free ();
-#ifdef INPREC
 		inprec_close (true);
-#endif
 	}
 }
 
@@ -1060,10 +1058,8 @@ void savestate_quick (int slot, int save)
 bool savestate_check (void)
 {
 	if (vpos == 0 && !savestate_state) {
-#ifdef INPREC
 		if (hsync_counter == 0 && input_play == INPREC_PLAY_NORMAL)
 			savestate_memorysave ();
-#endif
 		savestate_capture (0);
 	}
 	if (savestate_state == STATE_DORESTORE) {
@@ -1239,9 +1235,7 @@ void savestate_rewind (void)
 		uae_reset (0);
 		return;
 	}
-#ifdef INPREC
 	inprec_setposition (st->inprecoffset, pos);
-#endif
 	write_log ("state %d restored.  (%010d/%03d)\n", pos, hsync_counter, vsync_counter);
 	if (rewind) {
 		replaycounter--;
@@ -1285,7 +1279,6 @@ void savestate_capture (int force)
 #endif
 	if (!staterecords)
 		return;
-#ifdef INPREC
 	if (!input_record)
 		return;
 	if (currprefs.statecapturerate && hsync_counter == 0 && input_record == INPREC_RECORD_START && savestate_first_capture > 0) {
@@ -1296,7 +1289,6 @@ void savestate_capture (int force)
 		force = true;
 		firstcapture = false;
 	}
-#endif
 	if (!force) {
 		if (currprefs.statecapturerate <= 0)
 			return;
@@ -1598,9 +1590,7 @@ retry2:
 	save_u32_func (&p, tlen);
 	st->end = p;
 	st->inuse = 1;
-#ifdef INPREC
 	st->inprecoffset = inprec_getposition ();
-#endif
 
 	replaycounter++;
 	if (replaycounter >= staterecords_max)
@@ -1618,19 +1608,13 @@ retry2:
 
 	if (firstcapture) {
 		savestate_memorysave ();
-#ifdef INPREC
 		input_record++;
-#endif
 		for (i = 0; i < 4; i++) {
 			bool wp = true;
 			DISK_validate_filename (currprefs.floppyslots[i].df, false, &wp, NULL, NULL);
-#ifdef INPREC
 			inprec_recorddiskchange (i, currprefs.floppyslots[i].df, wp);
-#endif
 		}
-#ifdef INPREC
 		input_record--;
-#endif
 	}
 
 
@@ -1660,7 +1644,6 @@ void savestate_init (void)
 	staterecords_max = currprefs.statecapturebuffersize;
 	staterecords = xcalloc (struct staterecord*, staterecords_max);
 	statefile_alloc = STATEFILE_ALLOC_SIZE;
-#ifdef INPREC
 	if (input_record && savestate_state != STATE_DORESTORE) {
 		zfile_fclose (staterecord_statefile);
 		staterecord_statefile = NULL;
@@ -1668,7 +1651,6 @@ void savestate_init (void)
 		inprec_open (NULL, NULL);
 		savestate_first_capture = 1;
 	}
-#endif
 }
 
 

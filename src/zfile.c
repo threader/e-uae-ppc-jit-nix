@@ -10,6 +10,7 @@
 #define ZLIB_WINAPI
 #define RECURSIVE_ARCHIVES 1
 //#define ZFILE_DEBUG
+#define FSDB_DIR_SEPARATOR_S "\\"
 
 #include "sysconfig.h"
 #include "sysdeps.h"
@@ -1839,9 +1840,11 @@ struct zfile *zfile_fopen_empty (struct zfile *prev, const TCHAR *name, uae_u64 
 		}
 		l->size = size;
 		l->datasize = size;
+		l->allocsize = size;
 	} else {
-		l->data = xcalloc (uae_u8, 1);
+		l->data = xcalloc (uae_u8, 1000);
 		l->size = 0;
+		l->allocsize = 1000;
 	}
 	return l;
 }
@@ -1883,6 +1886,24 @@ struct zfile *zfile_fopen_data (const TCHAR *name, uae_u64 size, uae_u8 *data)
 	l->datasize = size;
 	memcpy (l->data, data, size);
 	return l;
+}
+
+int zfile_truncate (struct zfile *z, uae_s64 size)
+{
+	if (z->data) {
+		if (z->size > size) {
+			z->size = size;
+			if (z->datasize > z->size)
+				z->datasize = z->size;
+			if (z->seek > z->size)
+				z->seek = z->size;
+			return 1;
+		}
+		return 0;
+	} else {
+		/* !!! */
+		return 0;
+	}
 }
 
 uae_s64 zfile_size (struct zfile *z)
@@ -1983,12 +2004,25 @@ size_t zfile_fwrite (void *b, size_t l1, size_t l2, struct zfile *z)
 		return 0;
 	if (z->data) {
 		int off = z->seek + l1 * l2;
-		if (off > z->size) {
-			z->data = xrealloc (uae_u8, z->data, off);
+		if (z->allocsize == 0) {
+			write_log ("zfile_fwrite(data,%s) but allocsize=0!\n", z->name);
+			return 0;
+		}
+		if (off > z->allocsize) {
+			if (z->allocsize < off)
+				z->allocsize = off;
+			z->allocsize += z->size / 2;
+			if (z->allocsize < 10000)
+				z->allocsize = 10000;
+			z->data = xrealloc (uae_u8, z->data, z->allocsize);
 			z->datasize = z->size = off;
 		}
 		memcpy (z->data + z->seek, b, l1 * l2);
 		z->seek += l1 * l2;
+		if (z->seek > z->size)
+			z->size = z->seek;
+		if (z->size > z->datasize)
+			z->datasize = z->size;
 		return l2;
 	}
 	return fwrite (b, l1, l2, z->f);
@@ -2089,7 +2123,7 @@ int zfile_ferror (struct zfile *z)
 
 uae_u8 *zfile_getdata (struct zfile *z, uae_s64 offset, int len)
 {
-	uae_s64 pos;
+	uae_s64 pos = zfile_ftell (z);
 	uae_u8 *b;
 	if (len < 0) {
 		zfile_fseek (z, 0, SEEK_END);
@@ -2097,7 +2131,6 @@ uae_u8 *zfile_getdata (struct zfile *z, uae_s64 offset, int len)
 		zfile_fseek (z, 0, SEEK_SET);
 	}
 	b = xmalloc (uae_u8, len);
-	pos = zfile_ftell (z);
 	zfile_fseek (z, offset, SEEK_SET);
 	zfile_fread (b, len, 1, z);
 	zfile_fseek (z, pos, SEEK_SET);
@@ -2206,7 +2239,6 @@ static struct zvolume *zvolume_list;
 
 static void recurparent (TCHAR *newpath, struct znode *zn, int recurse)
 {
-	TCHAR tmp[2] = { FSDB_DIR_SEPARATOR, 0 };
 	if (zn->parent && (&zn->volume->root != zn->parent || zn->volume->parentz == NULL)) {
 		if (&zn->volume->root == zn->parent && zn->volume->parentz == NULL && !_tcscmp (zn->name, zn->parent->name))
 			goto end;
@@ -2218,7 +2250,7 @@ static void recurparent (TCHAR *newpath, struct znode *zn, int recurse)
 	}
 end:
 	if (newpath[0])
-		_tcscat (newpath, tmp);
+		_tcscat (newpath, FSDB_DIR_SEPARATOR_S);
 	_tcscat (newpath, zn->name);
 }
 
@@ -2228,7 +2260,6 @@ static struct znode *znode_alloc (struct znode *parent, const TCHAR *name)
 	TCHAR tmpname[MAX_DPATH];
 	struct znode *zn = xcalloc (struct znode, 1);
 	struct znode *zn2;
-	TCHAR sep[] = { FSDB_DIR_SEPARATOR, 0 };
 
 	_tcscpy (tmpname, name);
 	zn2 = parent->child;
@@ -2255,7 +2286,7 @@ static struct znode *znode_alloc (struct znode *parent, const TCHAR *name)
 
 	fullpath[0] = 0;
 	recurparent (fullpath, parent, 0);
-	_tcscat (fullpath, sep);
+	_tcscat (fullpath, FSDB_DIR_SEPARATOR_S);
 	_tcscat (fullpath, tmpname);
 #ifdef ZFILE_DEBUG
 	write_log ("znode_alloc vol='%s' parent='%s' name='%s'\n", parent->volume->root.name, parent->name, name);
@@ -2657,11 +2688,10 @@ struct znode *znode_adddir (struct znode *parent, const TCHAR *name, struct zarc
 {
 	struct znode *zn;
 	TCHAR path[MAX_DPATH];
-	TCHAR sep[] = { FSDB_DIR_SEPARATOR, 0 };
 
 	path[0] = 0;
-	//recurparent (path, parent, 0);
-	_tcscat (path, sep);
+	recurparent (path, parent, 0);
+	_tcscat (path, FSDB_DIR_SEPARATOR_S);
 	_tcscat (path, name);
 	//zn = get_znode (parent->volume, path, 0);
 	if (zn)

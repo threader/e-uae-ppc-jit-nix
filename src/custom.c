@@ -5716,25 +5716,6 @@ static void hsync_handler_post (bool isvsync)
 	do_sprites (0);
 #endif
 
-#ifdef INPREC
-	while (input_recording < 0 && inprec_pstart (INPREC_KEY)) {
-		record_key_direct (inprec_pu8 ());
-		inprec_pend ();
-	}
-	while (input_recording < 0 && inprec_pstart (INPREC_DISKREMOVE)) {
-		disk_eject (inprec_pu8 ());
-		inprec_pend ();
-	}
-	while (input_recording < 0 && inprec_pstart (INPREC_DISKINSERT)) {
-		int drv = inprec_pu8 ();
-		inprec_pstr (currprefs.floppyslots[drv].df);
-		_tcscpy (changed_prefs.floppyslots[drv].df, currprefs.floppyslots[drv].df);
-		disk_insert_force (drv, currprefs.floppyslots[drv].df);
-		inprec_pend ();
-	}
-#endif
-
-	inputdevice_hsync ();
 #ifdef GAYLE
 	gayle_hsync ();
 #endif
@@ -7118,7 +7099,6 @@ uae_u8 *save_custom_event_delay (int *len, uae_u8 *dstptr)
 			save_u8 (1);
 			save_u64 (e->evtime - get_cycles ());
 			save_u32 (e->data);
-		
 		}
 	}
 

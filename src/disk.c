@@ -931,10 +931,8 @@ static int drive_insert (drive * drv, struct uae_prefs *p, int dnum, const TCHAR
 		return 0;
 	}
 
-#ifdef INPREC
 	if (!fake)
 		inprec_recorddiskchange (dnum, fname, drv->wrprot);
-#endif
 
 	_tcsncpy (currprefs.floppyslots[dnum].df, fname, 255);
 	currprefs.floppyslots[dnum].df[255] = 0;
@@ -2049,9 +2047,7 @@ static void drive_eject (drive * drv)
 	drive_settype_id (drv); /* Back to 35 DD */
 	if (disk_debug_logging > 0)
 		write_log ("eject drive %d\n", drv - &floppy[0]);
-#ifdef INPREC
 	inprec_recorddiskchange (drv - floppy, NULL, false);
-#endif
 }
 
 /* We use this function if we have no Kickstart ROM.

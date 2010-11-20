@@ -633,6 +633,48 @@ uae_u8 *save_log (int bootlog, int *len)
         return dst;
 }
 
+void stripslashes (TCHAR *p)
+{
+        while (_tcslen (p) > 0 && (p[_tcslen (p) - 1] == '\\' || p[_tcslen (p) - 1] == '/'))
+                p[_tcslen (p) - 1] = 0;
+}
+
+void fixtrailing (TCHAR *p)
+{
+        if (_tcslen(p) == 0)
+                return;
+        if (p[_tcslen(p) - 1] == '/' || p[_tcslen(p) - 1] == '\\')
+                return;
+        _tcscat(p, "\\");
+}
+
+void getpathpart (TCHAR *outpath, int size, const TCHAR *inpath)
+{
+        _tcscpy (outpath, inpath);
+        TCHAR *p = _tcsrchr (outpath, '\\');
+        if (p)
+                p[0] = 0;
+        fixtrailing (outpath);
+}
+
+void getfilepart (TCHAR *out, int size, const TCHAR *path)
+{
+        out[0] = 0;
+        const TCHAR *p = _tcsrchr (path, '\\');
+        if (p)
+                _tcscpy (out, p + 1);
+        else
+                _tcscpy (out, path);
+}
+
+void refreshtitle (void)
+{
+/*
+        if (isfullscreen () == 0)
+                setmaintitle (hMainWnd);
+*/
+}
+
 // win32gui.c
 #define MAX_ROM_PATHS 10
 int scan_roms (int show)
@@ -802,6 +844,14 @@ void fetch_ripperpath (TCHAR *out, int size)
 {
         fetch_path ("RipperPath", out, size);
 }
+void fetch_statefilepath (TCHAR *out, int size)
+{
+        fetch_path ("StatefilePath", out, size);
+}
+void fetch_inputfilepath (TCHAR *out, int size)
+{
+        fetch_path ("InputPath", out, size);
+}
 void fetch_datapath (TCHAR *out, int size)
 {
         fetch_path (NULL, out, size);
@@ -854,7 +904,15 @@ void debugger_change (int mode)
 // unicode.c
 char *ua (const TCHAR *s)
 {
-        return s;
+	return s;
+}
+char *uutf8 (const char *s)
+{
+	return s;
+}
+char *utf8u (const char *s)
+{
+	return s;
 }
 
 // fsdb_mywin32.c
@@ -1146,7 +1204,7 @@ void my_kbd_handler (int keyboard, int scancode, int newstate)
         if (specialpressed ())
                 return;
 
-        write_log ("kbd = %d, scancode = %d, state = %d\n", keyboard, scancode, newstate );
+//        write_log ("kbd = %d, scancode = %d, state = %d\n", keyboard, scancode, newstate );
         inputdevice_translatekeycode (keyboard, scancode, newstate);
 }
 

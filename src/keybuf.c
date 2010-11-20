@@ -48,11 +48,7 @@ int get_next_key (void)
 
 int record_key (int kc)
 {
-#ifdef INPREC
-	if (input_recording < 0 || pause_emulation)
-#else
 	if (pause_emulation)
-#endif
 		return 0;
 	return record_key_direct (kc);
 }

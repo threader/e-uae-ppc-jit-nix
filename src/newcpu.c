@@ -828,10 +828,8 @@ bool set_cpu_tracer (bool state)
 	if (cpu_tracer < 0)
 		return false;
 	int old = cpu_tracer;
-#ifdef INPREC
 	if (input_record)
 		state = true;
-#endif
 	cpu_tracer = 0;
 	if (state && can_cpu_tracer ()) {
 		cpu_tracer = 1;
@@ -2318,14 +2316,12 @@ STATIC_INLINE void do_interrupt (int nr)
 	if (debug_dma)
 		record_dma_event (DMA_EVENT_CPUIRQ, current_hpos (), vpos);
 #endif
-#ifdef INPREC
 	if (inputrecord_debug & 2) {
 		if (input_record > 0)
 			inprec_recorddebug_cpu (2);
 		else if (input_play > 0)
 			inprec_playdebug_cpu (2);
 	}
-#endif
 
 	regs.stopped = 0;
 	unset_special (SPCFLAG_STOP);
@@ -3509,14 +3505,12 @@ static void m68k_run_1_ce (void)
 			cputrace.cyclecounter = cputrace.cyclecounter_pre = cputrace.cyclecounter_post = 0;
 			cputrace.readcounter = cputrace.writecounter = 0;
 		}
-#ifdef INPREC
 		if (inputrecord_debug & 4) {
 			if (input_record > 0)
 				inprec_recorddebug_cpu (1);
 			else if (input_play > 0)
 				inprec_playdebug_cpu (1);
 		}
-#endif
 
 		(*cpufunctbl[opcode])(opcode);
 		if (cpu_tracer) {
@@ -3837,14 +3831,12 @@ static void m68k_run_2ce (void)
 			cputrace.cyclecounter = cputrace.cyclecounter_pre = cputrace.cyclecounter_post = 0;
 			cputrace.readcounter = cputrace.writecounter = 0;
 		}
-#ifdef INPREC
 		if (inputrecord_debug & 4) {
 			if (input_record > 0)
 				inprec_recorddebug_cpu (1);
 			else if (input_play > 0)
 				inprec_playdebug_cpu (1);
 		}
-#endif
 
 		docodece020 (opcode);
 
@@ -3989,7 +3981,6 @@ void m68k_go (int may_quit)
 
 		cputrace.state = -1;
 
-#ifdef INPREC
 		if (currprefs.inprecfile[0] && input_play) {
 			inprec_open (currprefs.inprecfile, NULL);
 			changed_prefs.inprecfile[0] = currprefs.inprecfile[0] = 0;
@@ -3997,7 +3988,6 @@ void m68k_go (int may_quit)
 		}
 		if (input_play || input_record)
 			inprec_startup ();
-#endif
 
 		if (quit_program > 0) {
 			int hardreset = (quit_program == 3 ? 1 : 0) | hardboot;
@@ -4045,12 +4035,9 @@ void m68k_go (int may_quit)
 
 			if (!restored || hsync_counter == 0)
 				savestate_check ();
-#ifdef INPREC
 			if (input_record == INPREC_RECORD_START)
 				input_record = INPREC_RECORD_NORMAL;
-#endif
 		} else {
-#ifdef INPREC
 			if (input_record == INPREC_RECORD_START) {
 				input_record = INPREC_RECORD_NORMAL;
 				savestate_init ();
@@ -4058,13 +4045,10 @@ void m68k_go (int may_quit)
 				vsync_counter = 0;
 				savestate_check ();
 			}
-#endif
 		}
 
-#ifdef INPREC
 		if (changed_prefs.inprecfile[0] && input_record)
 			inprec_prepare_record (savestate_fname[0] ? savestate_fname : NULL);
-#endif
 		set_cpu_tracer (false);
 
 #ifdef DEBUGGER
