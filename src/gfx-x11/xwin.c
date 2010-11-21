@@ -813,7 +813,7 @@ static void graphics_subinit (void)
 
     if (need_dither) {
 	gfxvidinfo.maxblocklines = 0;
-	gfxvidinfo.rowbytes = gfxvidinfo.pixbytes * currprefs.gfx_width_win;
+	gfxvidinfo.rowbytes = gfxvidinfo.pixbytes * currprefs.gfx_size_win.width;
 	gfxvidinfo.linemem = malloc (gfxvidinfo.rowbytes);
 	gfxvidinfo.flush_line  = x11_flush_line_dither;
     } else if (! dgamode) {
@@ -907,10 +907,10 @@ int graphics_init (void)
 
     fixup_prefs_dimensions (&currprefs);
 
-    gfxvidinfo.width = currprefs.gfx_width_win;
-    gfxvidinfo.height = currprefs.gfx_height_win;
-    current_width = currprefs.gfx_width_win;
-    current_height = currprefs.gfx_height_win;
+    gfxvidinfo.width = currprefs.gfx_size_win.width;
+    gfxvidinfo.height = currprefs.gfx_size_win.height;
+    current_width = currprefs.gfx_size_win.width;
+    current_height = currprefs.gfx_size_win.height;
 
     cmap = XCreateColormap (display, rootwin, vis, AllocNone);
     cmap2 = XCreateColormap (display, rootwin, vis, AllocNone);
@@ -1215,12 +1215,12 @@ void handle_events (void)
 
 int check_prefs_changed_gfx (void)
 {
-    if (changed_prefs.gfx_width_win != currprefs.gfx_width_win
-	|| changed_prefs.gfx_height_win != currprefs.gfx_height_win)
+    if (changed_prefs.gfx_size_win.width != currprefs.gfx_size_win.width
+	|| changed_prefs.gfx_size_win.height != currprefs.gfx_size_win.height)
 	fixup_prefs_dimensions (&changed_prefs);
 
-    if (changed_prefs.gfx_width_win == currprefs.gfx_width_win
-	&& changed_prefs.gfx_height_win == currprefs.gfx_height_win
+    if (changed_prefs.gfx_size_win.width == currprefs.gfx_size_win.width
+	&& changed_prefs.gfx_size_win.height == currprefs.gfx_size_win.height
 	&& changed_prefs.gfx_vresolution == currprefs.gfx_vresolution
 	&& changed_prefs.gfx_xcenter == currprefs.gfx_xcenter
 	&& changed_prefs.gfx_ycenter == currprefs.gfx_ycenter
@@ -1229,8 +1229,8 @@ int check_prefs_changed_gfx (void)
 	return 0;
 
     graphics_subshutdown ();
-    currprefs.gfx_width_win = changed_prefs.gfx_width_win;
-    currprefs.gfx_height_win = changed_prefs.gfx_height_win;
+    currprefs.gfx_size_win.width = changed_prefs.gfx_size_win.width;
+    currprefs.gfx_size_win.height = changed_prefs.gfx_size_win.height;
     currprefs.gfx_vresolution = changed_prefs.gfx_vresolution;
     currprefs.gfx_xcenter = changed_prefs.gfx_xcenter;
     currprefs.gfx_ycenter = changed_prefs.gfx_ycenter;
@@ -1447,7 +1447,7 @@ static void set_window_for_picasso (void)
 #endif
 }
 
-void gfx_set_picasso_modeinfo (uae_u32 w, uae_u32 h, uae_u32 depth, int rgbfmt)
+void gfx_set_picasso_modeinfo (uae_u32 w, uae_u32 h, uae_u32 depth, RGBFTYPE rgbfmt)
 {
     picasso_vidinfo.width = w;
     picasso_vidinfo.height = h;
@@ -1695,7 +1695,7 @@ static int init_kb (void)
 {
     if (currprefs.map_raw_keys) {
 	if (rawkeys_available) {
-	    inputdevice_setkeytranslation (raw_keyboard, kbmaps);
+//	    inputdevice_setkeytranslation (raw_keyboard, kbmaps);
 	    set_default_hotkeys (x11pc_hotkeys);
 	    write_log ("X11GFX: Enabling raw key-mapping.\n");
 	} else {

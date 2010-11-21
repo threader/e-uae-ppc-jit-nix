@@ -112,7 +112,7 @@ static const struct cfg_lines opttable[] =
     {"comp_trustlong", "How to access longs in compiler (direct/indirect/indirectKS/afterPic" },
     {"comp_nf", "Whether to optimize away flag generation where possible" },
     {"comp_fpu", "Whether to provide JIT FPU emulation" },
-	{"compforcesettings", "Whether to force the JIT compiler settings" },
+    {"compforcesettings", "Whether to force the JIT compiler settings" },
     {"cachesize", "How many MB to use to buffer translated instructions"},
 #endif
     {"override_dga_address", "Address from which to map the frame buffer (upper 16 bits) (DANGEROUS!)"},
