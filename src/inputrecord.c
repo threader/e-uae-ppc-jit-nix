@@ -773,7 +773,7 @@ void inprec_playtorecord (void)
 	}
 	zfile_fwrite (inprec_buffer + header_end2, inprec_size - header_end2, 1, inprec_zf);
 	inprec_realtime (false);
-//	savestate_capture_request ();
+	savestate_capture_request ();
 }
 
 void inprec_setposition (int offset, int replaycounter)

@@ -190,8 +190,8 @@ static const TCHAR *maxhoriz[] = { "lores", "hires", "superhires", 0 };
 static const TCHAR *maxvert[] = { "nointerlace", "interlace", 0 };
 static const TCHAR *abspointers[] = { "none", "mousehack", "tablet", 0 };
 static const TCHAR *magiccursors[] = { "both", "native", "host", 0 };
-static const TCHAR *autoscale[] = { "none", "scale", "resize", 0 };
-static const TCHAR *joyportmodes[] = { NULL, "mouse", "djoy", "ajoy", "cdtvjoy", "cd32joy", "lightpen", 0 };
+static const TCHAR *autoscale[] = { "none", "auto", "standard", "max", "scale", "resize", "center", 0 };
+static const TCHAR *joyportmodes[] = { "", "mouse", "djoy", "gamepad", "ajoy", "cdtvjoy", "cd32joy", "lightpen", 0 };
 static const TCHAR *joyaf[] = { "none", "normal", "toggle", 0 };
 static const TCHAR *epsonprinter[] = { "none", "ascii", "epson_matrix_9pin", "epson_matrix_24pin", "epson_matrix_48pin", 0 };
 static const TCHAR *aspects[] = { "none", "vga", "tv", 0 };
@@ -726,6 +726,7 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 	cfgfile_dwrite_bool (f, "magic_mouse", p->input_magic_mouse);
 	cfgfile_dwrite_str (f, "magic_mousecursor", magiccursors[p->input_magic_mouse_cursor]);
 	cfgfile_dwrite_str (f, "absolute_mouse", abspointers[p->input_tablet]);
+	cfgfile_dwrite_bool (f, "clipboard_sharing", p->clipboard_sharing);
 
 	cfgfile_write (f, "gfx_display", "%d", p->gfx_display);
 	cfgfile_write_str (f, "gfx_display_name", p->gfx_display_name);
@@ -740,6 +741,7 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 	cfgfile_write (f, "gfx_height_fullscreen", "%d", p->gfx_size_fs.height);
 	cfgfile_write (f, "gfx_refreshrate", "%d", p->gfx_refreshrate);
 	cfgfile_write_bool (f, "gfx_autoresolution", p->gfx_autoresolution);
+	cfgfile_write (f, "gfx_backbuffers", "%d", p->gfx_backbuffers);
 	cfgfile_write_str (f, "gfx_vsync", vsyncmodes[p->gfx_avsync]);
 	cfgfile_write_str (f, "gfx_vsync_picasso", vsyncmodes[p->gfx_pvsync]);
 	cfgfile_write_bool (f, "gfx_lores", p->gfx_resolution == 0);
@@ -920,9 +922,9 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 		: "FOO"));
 
 #ifdef SAVESTATE
-	cfgfile_dwrite_str (f, "state_replay", p->statecapture ? "yes" : "no");
 	cfgfile_dwrite (f, "state_replay_rate", "%d", p->statecapturerate);
-	cfgfile_dwrite (f, "state_replay_buffer", "%d", p->statecapturebuffersize);
+	cfgfile_dwrite (f, "state_replay_buffers", "%d", p->statecapturebuffersize);
+	cfgfile_dwrite_bool (f, "state_replay_autoplay", p->inprec_autoplay);
 #endif
 	cfgfile_dwrite_bool (f, "warp", p->turbo_emulation);
 
@@ -1309,7 +1311,8 @@ static int cfgfile_parse_host (struct uae_prefs *p, TCHAR *option, TCHAR *value)
 	if (cfgfile_intval (option, value, "sound_latency", &p->sound_latency, 1)
 		|| cfgfile_intval (option, value, "sound_max_buff", &p->sound_maxbsiz, 1)
 		|| cfgfile_intval (option, value, "state_replay_rate", &p->statecapturerate, 1)
-		|| cfgfile_intval (option, value, "state_replay_buffer", &p->statecapturebuffersize, 1)
+		|| cfgfile_intval (option, value, "state_replay_buffers", &p->statecapturebuffersize, 1)
+		|| cfgfile_yesno (option, value, "state_replay_autoplay", &p->inprec_autoplay)
 		|| cfgfile_intval (option, value, "sound_frequency", &p->sound_freq, 1)
 		|| cfgfile_intval (option, value, "sound_volume", &p->sound_volume, 1)
 		|| cfgfile_intval (option, value, "sound_stereo_separation", &p->sound_stereo_separation, 1)
@@ -1381,17 +1384,16 @@ static int cfgfile_parse_host (struct uae_prefs *p, TCHAR *option, TCHAR *value)
 		|| cfgfile_yesno (option, value, "sound_auto", &p->sound_auto)
 		|| cfgfile_yesno (option, value, "sound_stereo_swap_paula", &p->sound_stereo_swap_paula)
 		|| cfgfile_yesno (option, value, "sound_stereo_swap_ahi", &p->sound_stereo_swap_ahi)
-		|| cfgfile_yesno (option, value, "state_replay", &p->statecapture)
 		|| cfgfile_yesno (option, value, "avoid_cmov", &p->avoid_cmov)
 		|| cfgfile_yesno (option, value, "log_illegal_mem", &p->illegal_mem)
 		|| cfgfile_yesno (option, value, "filesys_no_fsdb", &p->filesys_no_uaefsdb)
-		|| cfgfile_yesno (option, value, "gfx_vsync_picasso", &p->gfx_pvsync)
 		|| cfgfile_yesno (option, value, "gfx_blacker_than_black", &p->gfx_blackerthanblack)
 		|| cfgfile_yesno (option, value, "gfx_flickerfixer", &p->gfx_scandoubler)
 		|| cfgfile_yesno (option, value, "synchronize_clock", &p->tod_hack)
 		|| cfgfile_yesno (option, value, "magic_mouse", &p->input_magic_mouse)
 		|| cfgfile_yesno (option, value, "warp", &p->turbo_emulation)
 		|| cfgfile_yesno (option, value, "headless", &p->headless)
+		|| cfgfile_yesno (option, value, "clipboard_sharing", &p->clipboard_sharing)
 		|| cfgfile_yesno (option, value, "bsdsocket_emu", &p->socket_emu))
 		return 1;
 
@@ -3680,6 +3682,7 @@ void default_prefs (struct uae_prefs *p, int type)
 	p->picasso96_nocustom = 1;
 	p->cart_internal = 1;
 	p->sana2 = 0;
+	p->clipboard_sharing = true;
 
 	p->cs_compatible = 1;
 	p->cs_rtc = 2;
@@ -3708,13 +3711,13 @@ void default_prefs (struct uae_prefs *p, int type)
 	p->gfx_filter = 0;
 	p->gfx_filtershader[0] = 0;
 	p->gfx_filtermask[0] = 0;
-	p->gfx_filter_horiz_zoom_mult = 0;
-	p->gfx_filter_vert_zoom_mult = 0;
+	p->gfx_filter_horiz_zoom_mult = 1000;
+	p->gfx_filter_vert_zoom_mult = 1000;
 	p->gfx_filter_bilinear = 0;
 	p->gfx_filter_filtermode = 0;
 	p->gfx_filter_scanlineratio = (1 << 4) | 1;
 	p->gfx_filter_keep_aspect = 0;
-	p->gfx_filter_autoscale = 0;
+	p->gfx_filter_autoscale = AUTOSCALE_STATIC_AUTO;
 	p->gfx_filteroverlay_overscan = 0;
 #endif
 
@@ -3782,9 +3785,9 @@ void default_prefs (struct uae_prefs *p, int type)
 #endif
 
 #ifdef SAVESTATE
-	p->statecapturebuffersize = 20 * 1024 * 1024;
+	p->statecapturebuffersize = 100;
 	p->statecapturerate = 5 * 50;
-	p->statecapture = 0;
+	p->inprec_autoplay = true;
 #endif
 
 #ifdef UAE_MINI

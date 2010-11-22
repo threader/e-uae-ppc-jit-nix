@@ -1284,8 +1284,10 @@ static void do_blitter2 (int hpos, int copper)
 
 #ifdef BLITTER_DEBUG_NOWAIT
 	if (bltstate != BLT_done) {
-		if (blit_final)
+		if (blit_final) {
 			write_log ("blitter was already active! PC=%08x\n", M68K_GETPC);
+			//activate_debugger();
+		}
 	}
 #endif
 	cleanstart = 0;

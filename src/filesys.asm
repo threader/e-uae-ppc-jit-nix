@@ -70,6 +70,14 @@ bootcode:
 
 residenthack
 	movem.l d0-d2/a0-a2/a6,-(sp)
+
+	move.w #$FF38,d0
+	moveq #17,d1
+	bsr.w getrtbase
+	jsr (a0)
+	tst.l d0
+	beq.s .rsh
+
 	move.l 4.w,a6
 	cmp.w #37,20(a6)
 	bcs.s .rsh
@@ -347,8 +355,8 @@ EXTS_loop:
 	jsr -366(a6) ; PutMsg
 	bra.b EXTS_loop
 EXTS_signal_reply:
-        cmp.w #2,d0
-        bgt.b EXTS_reply
+	cmp.w #2,d0
+	bgt.b EXTS_reply
 	move.l d1,d0
 	jsr -$144(a6)	; Signal
 	bra.b EXTS_loop
@@ -1226,15 +1234,15 @@ FSML_loop:
 	clr.b 172(a3)
 .nodc
 	move.l a4,d0
-	beq.s FSML_loop
+	beq.s nonnotif
 
 	; notify reply?
 	cmp.w #38, 18(a4)
-	bne.s nonotif
+	bne.s nonnotif
 	cmp.l #NOTIFY_CLASS, 20(a4)
-	bne.s nonotif
+	bne.s nonnotif
 	cmp.w #NOTIFY_CODE, 24(a4)
-	bne.s nonotif
+	bne.s nonnotif
 	move.l 26(a4),a0 ; NotifyRequest
 	move.l 12(a0),d0 ; flags
 	and.l #NRF_WAIT_REPLY|NRF_MAGIC,d0
@@ -1252,15 +1260,20 @@ nonoti
 	jsr FreeMem(a6)
 	bra.w FSML_loop
 
-nonotif
+nonnotif
+	moveq #-2,d2 ; lock timeout "done" value
+	move.l a4,d0
+	beq.s FSML_check_queue_other
 	move.l 10(a4),d3 ; ln_Name
 	bne.b FSML_FromDOS
+	moveq #-1,d2 ; normal "done" value
 
 	; It's a dummy packet indicating that some queued command finished.
 	move.w #$FF50,d0 ; exter_int_helper
 	bsr.w getrtbase
 	moveq.l #1,d0
 	jsr (a0)
+FSML_check_queue_other:
 	; Go through the queue and reply all those that finished.
 	lea.l 4(a3),a2
 	move.l (a2),a0
@@ -1272,7 +1285,8 @@ FSML_check_old:
 	; This field may be accessed concurrently by several UAE threads.
 	; This _should_ be harmless on all reasonable machines.
 	move.l 4(a0),d0
-	bpl.b FSML_check_next
+	cmp.l d0,d2
+	bne.b FSML_check_next
 	movem.l a0/a1,-(a7)
 	move.l 10(a0),a4
 	bsr.b ReplyOne
@@ -2061,6 +2075,14 @@ CLIP_END = (CLIP_POINTER_PREFS+32)
 
 clipboard_init:
 	movem.l a5/a6,-(sp)
+
+	move.w #$FF38,d0
+	moveq #17,d1
+	bsr.w getrtbase
+	jsr (a0)
+	btst #0,d0
+	beq.s .noclip
+
 	move.l 4.w,a6
 	move.l #CLIP_END,d0
 	move.l #$10001,d1
@@ -2082,7 +2104,7 @@ clipboard_init:
 	moveq #-10,d0
 	move.l #10000,d1
 	bsr.w createproc
-
+.noclip
 	moveq #0,d0
 	movem.l (sp)+,a5/a6
 	rts
@@ -2413,13 +2435,15 @@ cliphook:
 
 consolehook:
 	move.l 4.w,a6
+
 	moveq #-1,d2
 	move.w #$FF38,d0
-	moveq #100,d1
+	moveq #17,d1
 	bsr.w getrtbase
 	jsr (a0)
-	tst.l d0
+	btst #1,d0
 	beq.s .ch2
+
 	moveq #0,d2
 	jsr -$0084(a6) ;Forbid
 	lea 350(a6),a0 ;DeviceList

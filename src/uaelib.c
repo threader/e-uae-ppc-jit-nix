@@ -271,7 +271,7 @@ static uae_u32 emulib_GetDisk (uae_u32 drive, uaecptr name)
 	if (drive > 3)
 		return 0;
 
-	for (i = 0;i < 256; i++) {
+	for (i = 0; i < 256; i++) {
 		put_byte (name + i, currprefs.floppyslots[drive].df[i]);
 	}
 	return 1;
