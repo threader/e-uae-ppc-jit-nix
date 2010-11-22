@@ -39,7 +39,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "sysconfig.h"
 #include "sysdeps.h"
 #include "zfile.h"
-/* ELSE	*/
+/* ELSE */
 //#include "types.h"
 
 #include "fdi2raw.h"
@@ -525,7 +525,7 @@ static void s0b(FDI *fdi)
 		i = 7;
 		b = *fdi->track_src++;
 		while (bits--) {
-			bit_add	(fdi, b	& (1 <<	i));
+			bit_add (fdi, b & (1 << i));
 			i--;
 		}
 	}
@@ -746,7 +746,7 @@ static int amiga_check_track (FDI *fdi)
 		if (chksum) {
 			outlog ("sector %d data checksum error\n",trackoffs);
 			ok = 0;
-		} else if (sectable[trackoffs])	{
+		} else if (sectable[trackoffs]) {
 			outlog ("sector %d already found?\n", trackoffs);
 			mbuf = mbuf2;
 		} else {
@@ -767,7 +767,7 @@ static int amiga_check_track (FDI *fdi)
 	return ok;
 }
 
-static void amiga_data_raw (FDI	*fdi, uae_u8 *secbuf, uae_u8 *crc, unsigned int len)
+static void amiga_data_raw (FDI *fdi, uae_u8 *secbuf, uae_u8 *crc, unsigned int len)
 {
 	unsigned int i;
 	uae_u8 crcbuf[4];
@@ -1321,13 +1321,13 @@ static int handle_sectors_described_track (FDI *fdi)
 
 	do {
 		fdi->track_type = *fdi->track_src++;
-		outlog ("%06.6X	%06.6X %02.2X:",fdi->track_src - start_src + 0x200, fdi->out/8,	fdi->track_type);
+		outlog ("%06X %06X %02X:",fdi->track_src - start_src + 0x200, fdi->out/8, fdi->track_type);
 		oldout = fdi->out;
 		decode_sectors_described_track[fdi->track_type](fdi);
 		outlog (" %d\n", fdi->out - oldout);
 		oldout = fdi->out;
 		if (fdi->out < 0 || fdi->err) {
-			outlog ("\nin %d bytes, out %d bits\n", fdi->track_src - fdi->track_src_buffer,	fdi->out);
+			outlog ("\nin %d bytes, out %d bits\n", fdi->track_src - fdi->track_src_buffer, fdi->out);
 			return -1;
 		}
 		if (fdi->track_src - fdi->track_src_buffer >= fdi->track_src_len) {
@@ -1375,8 +1375,8 @@ static void dumpstream(int track, uae_u8 *stream, int len)
 	FILE *f;
 
 	sprintf (name, "track_%d.raw", track);
-	f =	fopen(name, "wb");
-	fwrite (stream, 1, len * 4,	f);
+	f = fopen(name, "wb");
+	fwrite (stream, 1, len * 4, f);
 	fclose (f);
 #endif
 }
@@ -1474,7 +1474,7 @@ static void fdi2_decode (FDI *fdi, unsigned long totalavg, uae_u32 *avgp, uae_u3
 			if (i >= pulses)
 				i = 0;
 			indx = idx[i];
-			if (rand() <= (indx * RAND_MAX) / maxidx) {
+			if (uaerand() <= (indx * RAND_MAX) / maxidx) {
 				pulse += avgp[i] - ref_pulse;
 				if (indx >= maxidx)
 					ref_pulse = 0;
@@ -1525,8 +1525,8 @@ static void fdi2_decode (FDI *fdi, unsigned long totalavg, uae_u32 *avgp, uae_u3
 			for (j = real_size; j > 1; j--)
 				addbit (d, 0);
 			addbit (d, 1);
-			for (j = 0; j <	real_size; j++)
-				*pt++ =	(uae_u16)(pulse	/ real_size);
+			for (j = 0; j < real_size; j++)
+				*pt++ = (uae_u16)(pulse / real_size);
 		}
 
 		/* prepares for the next pulse */
@@ -1625,7 +1625,7 @@ static void fdi2_decode (FDI *fdi, unsigned long totalavg, uae_u32 *avgp, uae_u3
 					max_pulse = avg_pulse + (avgp[nexti] - minp[nexti]);
 				if (min_pulse < ref_pulse)
 					min_pulse = ref_pulse;
-				randval = rand();
+				randval = uaerand();
 				if (randval < (RAND_MAX / 2)) {
 					if (randval > (RAND_MAX / 4)) {
 						if (randval <= (3 * RAND_MAX / 8))
@@ -1656,11 +1656,11 @@ static void fdi2_decode (FDI *fdi, unsigned long totalavg, uae_u32 *avgp, uae_u3
 				ref_pulse = 0;
 				if (i == eodat)
 					outstep++;
-			} else if ((unsigned int)rand () <= ((idx[i] * RAND_MAX) / maxidx)) {
+			} else if (uaerand() <= ((idx[i] * RAND_MAX) / maxidx)) {
 				avg_pulse = avgp[i];
 				min_pulse = minp[i];
 				max_pulse = maxp[i];
-				randval = rand();
+				randval = uaerand();
 				if (randval < (RAND_MAX / 2)) {
 					if (randval > (RAND_MAX / 4)) {
 						if (randval <= (3 * RAND_MAX / 8))
@@ -1793,7 +1793,7 @@ static void fdi2_decode (FDI *fdi, unsigned long totalavg, uae_u32 *avgp, uae_u3
 
 #endif
 
-static void fdi2_celltiming (FDI *fdi, unsigned	long totalavg, unsigned int bitoffset, uae_u16 *out)
+static void fdi2_celltiming (FDI *fdi, unsigned long totalavg, unsigned int bitoffset, uae_u16 *out)
 {
 	uae_u16 *pt2, *pt;
 	double avg_bit_len;

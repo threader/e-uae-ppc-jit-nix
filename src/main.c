@@ -111,7 +111,7 @@ uae_u32 uaesrand (uae_u32 seed)
 	oldhcounter = -1;
 	randseed = seed;
 	//randseed = 0x12345678;
-	//write_log (L"seed=%08x\n", randseed);
+	//write_log ("seed=%08x\n", randseed);
 	return randseed;
 }
 uae_u32 uaerand (void)
@@ -121,7 +121,7 @@ uae_u32 uaerand (void)
 		oldhcounter = hsync_counter;
 	}
 	uae_u32 r = rand ();
-	//write_log (L"rand=%08x\n", r);
+	//write_log ("rand=%08x\n", r);
 	return r;
 }
 uae_u32 uaerandgetseed (void)

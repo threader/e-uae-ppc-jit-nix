@@ -178,7 +178,7 @@ void dongle_potgo (uae_u16 val)
 	case ITALY90:
 	case LOGISTIX:
 	case DAMESGRANDMAITRE:
-		flag = (rand () & 7) - 3;
+		flag = (uaerand () & 7) - 3;
 		break;
 	}
 

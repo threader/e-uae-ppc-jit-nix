@@ -3640,7 +3640,7 @@ void debug (void)
 		&& nr_units () == 0
 #endif
 		) {
-			//savestate_capture (1);
+			savestate_capture (1);
 	}
 	for (i = 0; i < BREAKPOINT_TOTAL; i++) {
 		if (bpnodes[i].enabled)

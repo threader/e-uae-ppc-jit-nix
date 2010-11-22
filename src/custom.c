@@ -2196,10 +2196,7 @@ STATIC_INLINE void record_sprite_1 (int sprxp, uae_u16 *buf, uae_u32 datab, int 
 
 		if ((sprxp >= sprite_minx && sprxp < sprite_maxx) || (bplcon3 & 2))
 			col = (datab & 3) << (2 * num);
-#if 0
-		if (sprxp == sprite_minx || sprxp == sprite_maxx - 1)
-			col ^= (rand () << 16) | rand ();
-#endif
+
 		if ((j & mask) == 0) {
 			unsigned int tmp = (*buf) | col;
 			*buf++ = tmp;

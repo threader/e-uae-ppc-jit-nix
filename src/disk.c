@@ -1138,8 +1138,8 @@ static int drive_insert (drive * drv, struct uae_prefs *p, int dnum, const TCHAR
 	openwritefile (drv, 0);
 	drive_settype_id (drv); /* Set DD or HD drive */
 	drive_fill_bigbuf (drv, 1);
-	drv->mfmpos = rand ();
-	drv->mfmpos |= (rand () << 16);
+	drv->mfmpos = uaerand ();
+	drv->mfmpos |= (uaerand () << 16);
 	drv->mfmpos %= drv->tracklen;
 	drv->prevtracklen = 0;
 #ifdef DRIVESOUND
@@ -1151,10 +1151,10 @@ static int drive_insert (drive * drv, struct uae_prefs *p, int dnum, const TCHAR
 
 static void rand_shifter (void)
 {
-	unsigned int r = ((rand () >> 4) & 7) + 1;
+	unsigned int r = ((uaerand () >> 4) & 7) + 1;
 	while (r-- > 0) {
 		word <<= 1;
-		word |= (rand () & 0x1000) ? 1 : 0;
+		word |= (uaerand () & 0x1000) ? 1 : 0;
 		bitoffset++;
 		bitoffset &= 15;
 	}
@@ -2391,6 +2391,7 @@ static void DISK_check_change (void)
 void DISK_vsync (void)
 {
 	unsigned int i;
+
 	DISK_check_change ();
 	for (i = 0; i < MAX_FLOPPY_DRIVES; i++) {
 		drive *drv = floppy + i;
