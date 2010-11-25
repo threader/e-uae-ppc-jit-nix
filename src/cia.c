@@ -673,12 +673,14 @@ static uae_u8 ReadCIAA (unsigned int addr)
 		if (notinrom())
 			write_log ("BFE001 R %02X %s\n", tmp, debuginfo(0));
 #endif
+
 		if (inputrecord_debug & 2) {
 			if (input_record > 0)
 				inprec_recorddebug_cia (tmp, div10, m68k_getpc ());
 			else if (input_play > 0)
 				inprec_playdebug_cia (tmp, div10, m68k_getpc ());
 		}
+
 		return tmp;
 	case 1:
 #ifdef PARALLEL_PORT

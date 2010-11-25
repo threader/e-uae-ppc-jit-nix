@@ -1693,7 +1693,7 @@ STATIC_INLINE void raw_inc_sp(int off)
 static int in_handler=0;
 static uae_u8 *veccode;
 
-# ifdef _WIN32
+#ifdef _WIN32
 
 #if defined(CPU_64_BIT)
 #define ctxPC (pContext->Rip)
@@ -1945,7 +1945,7 @@ int EvalException (LPEXCEPTION_POINTERS blah, int n_except)
 #endif
 						invalidate_block(bi);
 						raise_in_cl_list(bi);
-						set_special (0);
+						set_special(0);
 						return EXCEPTION_CONTINUE_EXECUTION;
 				}
 				bi=bi->next;
@@ -2359,7 +2359,7 @@ static void
 		c->x86_vendor = X86_VENDOR_UNKNOWN;
 }
 
-static void cpuid (uae_u32 op, uae_u32 *eax, uae_u32 *ebx, uae_u32 *ecx, uae_u32 *edx)
+static void cpuid(uae_u32 op, uae_u32 *eax, uae_u32 *ebx, uae_u32 *ecx, uae_u32 *edx)
 {
 	const int CPUID_SPACE = 4096;
 	uae_u8* cpuid_space = (uae_u8*)cache_alloc(CPUID_SPACE);

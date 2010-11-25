@@ -37,7 +37,7 @@
 #define f_out fprintf
 #define console_out printf
 #ifdef JIT
-extern uae_u8* compiled_code;
+//extern uae_u8* compiled_code;
 #include "compemu.h"
 #else
 /* Need to have these somewhere */

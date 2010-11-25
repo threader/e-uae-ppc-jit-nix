@@ -1701,7 +1701,7 @@ MIDFUNC(0,live_flags,(void))
 }
 MENDFUNC(0,live_flags,(void))
 
-MIDFUNC(0,dont_care_flags,(void))
+	MIDFUNC(0,dont_care_flags,(void))
 {
 	live.flags_are_important=0;
 }
@@ -1795,7 +1795,7 @@ MENDFUNC(2,bt_l_ri,(R4 r, IMM i)) /* This is defined as only affecting C */
 }
 MENDFUNC(2,bt_l_rr,(R4 r, R4 b)) /* This is defined as only affecting C */
 
-MIDFUNC(2,btc_l_ri,(RW4 r, IMM i))
+	MIDFUNC(2,btc_l_ri,(RW4 r, IMM i))
 {
 	int size=4;
 	if (i<16)
@@ -1831,7 +1831,7 @@ MENDFUNC(2,btc_l_rr,(RW4 r, R4 b))
 }
 MENDFUNC(2,btr_l_ri,(RW4 r, IMM i))
 
-MIDFUNC(2,btr_l_rr,(RW4 r, R4 b))
+	MIDFUNC(2,btr_l_rr,(RW4 r, R4 b))
 {
 	CLOBBER_BT;
 	b=readreg(b,4);
@@ -1843,7 +1843,7 @@ MIDFUNC(2,btr_l_rr,(RW4 r, R4 b))
 MENDFUNC(2,btr_l_rr,(RW4 r, R4 b))
 
 
-MIDFUNC(2,bts_l_ri,(RW4 r, IMM i))
+	MIDFUNC(2,bts_l_ri,(RW4 r, IMM i))
 {
 	int size=4;
 	if (i<16)
@@ -1855,7 +1855,7 @@ MIDFUNC(2,bts_l_ri,(RW4 r, IMM i))
 }
 MENDFUNC(2,bts_l_ri,(RW4 r, IMM i))
 
-MIDFUNC(2,bts_l_rr,(RW4 r, R4 b))
+	MIDFUNC(2,bts_l_rr,(RW4 r, R4 b))
 {
 	CLOBBER_BT;
 	b=readreg(b,4);

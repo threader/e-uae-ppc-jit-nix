@@ -298,13 +298,15 @@ static void REGPARAM2 expamem_wput (uaecptr addr, uae_u32 value)
 					// Z3 P96 RAM
 					p2 = p96ram_start >> 16;
 				}
-				put_word (regs.regs[11] + 0x20, p2);
-				put_word (regs.regs[11] + 0x28, p2);
+				if (value != p2) {
+					put_word (regs.regs[11] + 0x20, p2);
+					put_word (regs.regs[11] + 0x28, p2);
+				}
 				// -Bernd Roesch
 				expamem_hi = p2;
 				(*card_map[ecard]) ();
 				ecard++;
-				if (p1 != p2)
+				if (value != p2)
 					write_log ("   Card %d remapped %04x0000 -> %04x0000\n", ecard, p1, p2);
 				write_log ("   Card %d (Zorro%s) done.\n", ecard, expamem_type () == 0xc0 ? "II" : "III");
 				if (ecard < cardno)
@@ -982,7 +984,7 @@ static void expamem_init_filesys (void)
 
 	expamem_write (0x08, no_shutup);
 
-	expamem_write (0x04, 2);
+	expamem_write (0x04, currprefs.maprom ? 2 : 82);
 	expamem_write (0x10, uae_id >> 8);
 	expamem_write (0x14, uae_id & 0xff);
 
