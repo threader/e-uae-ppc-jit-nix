@@ -1259,6 +1259,7 @@ void addmode (struct MultiDisplay *md, int w, int h, int d, int rate, int nondx)
                 ct = RGBMASK_32BIT;
         if (ct == 0)
                 return;
+
         d /= 8;
         i = 0;
         while (md->DisplayModes[i].depth >= 0) {
@@ -1276,9 +1277,11 @@ void addmode (struct MultiDisplay *md, int w, int h, int d, int rate, int nondx)
                 }
                 i++;
         }
+
         i = 0;
         while (md->DisplayModes[i].depth >= 0)
                 i++;
+
         if (i >= MAX_PICASSO_MODES - 1)
                 return;
         md->DisplayModes[i].nondx = nondx;

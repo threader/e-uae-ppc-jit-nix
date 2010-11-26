@@ -388,6 +388,38 @@ struct Template {
     uae_u32 BgPen;
 };
 
+#define PSSO_Line_X 0
+#define PSSO_Line_Y 2
+#define PSSO_Line_Length 4
+#define PSSO_Line_dX 6
+#define PSSO_Line_dY 8
+#define PSSO_Line_sDelta 10
+#define PSSO_Line_lDelta 12
+#define PSSO_Line_twoSDminusLD 14
+#define PSSO_Line_LinePtrn 16
+#define PSSO_Line_PatternShift 18
+#define PSSO_Line_FgPen 20
+#define PSSO_Line_BgPen 24
+#define PSSO_Line_Horizontal 28
+#define PSSO_Line_DrawMode 30
+#define PSSO_Line_pad 31
+#define PSSO_Line_Xorigin 32
+#define PSSO_Line_Yorigin 34
+
+struct Line {
+	uae_u16			X, Y;
+	uae_u16			Length;
+	uae_s16			dX, dY;
+	uae_s16			sDelta, lDelta, twoSDminusLD;
+	uae_u16			LinePtrn;
+	uae_u16			PatternShift;
+	uae_u32			FgPen, BgPen;
+	uae_u16			Horizontal;
+	uae_u8			DrawMode;
+	uae_s8			pad;
+	uae_u16			Xorigin, Yorigin;
+};
+
 #define PSSO_BitMapExtra_BoardNode	  0
 #define PSSO_BitMapExtra_HashChain	  8 /* BoardNode is 8-bytes */
 #define PSSO_BitMapExtra_Match		 12

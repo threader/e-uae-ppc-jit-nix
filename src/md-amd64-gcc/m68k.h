@@ -1,11 +1,11 @@
- /*
-  * UAE - The Un*x Amiga Emulator
-  *
-  * MC68000 emulation - machine dependent bits
-  *
-  * Copyright 1996 Bernd Schmidt
-  * Copyright 2004-2007 Richard Drummond
-  */
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * MC68000 emulation - machine dependent bits
+ *
+ * Copyright 1996 Bernd Schmidt
+ * Copyright 2004-2007 Richard Drummond
+ */
 
  /*
   * Machine dependent structure for holding the 68k CCR flags
@@ -24,7 +24,7 @@ extern struct flag_struct regflags;
  * with a setto %AL instr and the other flags copied to AH with an
  * lahf instr).
  *
- * The 68k CZNV flags are thus assinged in cznv as:
+ * The 68k CZNV flags are thus assigned in cznv as:
  *
  * <--AL-->  <--AH-->
  * 76543210  FEDCBA98 --------- ---------
@@ -60,13 +60,13 @@ extern struct flag_struct regflags;
 #define IOR_CZNV(X) (regflags.cznv |= (X))
 #define SET_CZNV(X) (regflags.cznv = (X))
 
-#define COPY_CARRY (regflags.x = regflags.cznv)
+#define COPY_CARRY() (regflags.x = regflags.cznv)
 
 
 /*
  * Test CCR condition
  */
-STATIC_INLINE int cctrue(int cc)
+STATIC_INLINE int cctrue (int cc)
 {
     uae_u32 cznv = regflags.cznv;
 

@@ -368,8 +368,8 @@ static uae_u32 REGPARAM2 uaelib_demux2 (TrapContext *context)
 #define ARG5 (get_long (m68k_areg (regs, 7) + 24))
 
 #ifndef UAEGFX_INTERNAL
-//	if (ARG0 >= 16 && ARG0 <= 39)
-//		return picasso_demux (ARG0, context);
+	if (ARG0 >= 16 && ARG0 <= 39)
+		return picasso_demux (ARG0, context);
 #endif
 
 	switch (ARG0)
@@ -423,7 +423,7 @@ static uae_u32 REGPARAM2 uaelib_demux2 (TrapContext *context)
 	return 0;
 }
 
-int uaelib_debug;
+extern int uaelib_debug;
 static uae_u32 REGPARAM2 uaelib_demux (TrapContext *context)
 {
 	uae_u32 v;

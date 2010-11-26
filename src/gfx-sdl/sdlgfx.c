@@ -1717,38 +1717,6 @@ int DX_Blit (int srcx, int srcy, int dstx, int dsty, int width, int height, BLIT
  */
 static void add_p96_mode (int width, int height, int emulate_chunky, int *count)
 {
-	unsigned int i;
-
-	struct MultiDisplay *md1;
-	md1 = Displays;
-	struct MultiDisplay *md = (struct MultiDisplay*)md1;
-	md1->DisplayModes = xmalloc (struct PicassoResolution, MAX_PICASSO_MODES);
-	md1->DisplayModes[0].depth = -1;
-	md1->disabled = 1;
-
-	for (i = 0; i <= (emulate_chunky ? 1 : 0); i++) {
-		if (*count < MAX_PICASSO_MODES) {
-			DisplayModes[*count].res.width	= width;
-			DisplayModes[*count].res.height	= height;
-			DisplayModes[*count].depth	= (i == 1) ? 1 : bit_unit >> 3;
-			DisplayModes[*count].refresh[0]	= 75;
-			(*count)++;
-
-			write_log ("SDLGFX: Added P96 mode: %dx%dx%d\n", width, height, (i == 1) ? 8 : bitdepth);
-			addmode (md, width, height, bitdepth, 75, 0);
-		}
-	}
-
-        md1 = Displays;
-	if (md1->DisplayModes[0].depth >= 0)
-		md1->disabled = 0;
-
-        i = 0;
-        while (md1->DisplayModes[i].depth > 0)
-                i++;
-        //write_log ("'%s', %d display modes (%s)\n", md1->name, i, md1->disabled ? "disabled" : "enabled");
-        md1++;
-
 	return;
 }
 
@@ -1795,10 +1763,19 @@ int DX_FillResolutions (uae_u16 *ppixel_format)
 		emulate_chunky = 1;
 	}
 
+	struct MultiDisplay *md = getdisplay (&currprefs);
+	struct PicassoResolution *DisplayModes = md->DisplayModes;
+	md->DisplayModes = xmalloc (struct PicassoResolution, MAX_PICASSO_MODES);
+	md->DisplayModes[0].depth = -1;
+	md->disabled = 1;
+
 	/* Check list of standard P96 screenmodes */
 	for (i = 0; i < MAX_SCREEN_MODES; i++) {
 		if (SDL_VideoModeOK (x_size_table[i], y_size_table[i], bitdepth, SDL_HWSURFACE | SDL_FULLSCREEN)) {
-			add_p96_mode (x_size_table[i], y_size_table[i], emulate_chunky, &count);
+
+			//add_p96_mode (x_size_table[i], y_size_table[i], emulate_chunky, &count);
+			addmode (md, x_size_table[i], y_size_table[i], bitdepth, 75, 0);
+			write_log ("SDLGFX: Added P96 mode: %dx%dx%d\n", x_size_table[i], y_size_table[i], bitdepth);
 		}
 	}
 
@@ -1816,7 +1793,7 @@ int DX_FillResolutions (uae_u16 *ppixel_format)
 		/* If SDL mode is not a standard P96 mode (and thus already added to the
 		 * list, above) then add it */
 		if (!found)
-			add_p96_mode (screenmode[i].w, screenmode[i].h, emulate_chunky, &count);
+			addmode (screenmode[i].w, screenmode[i].h, bitdepth, 75, 0);
 	}
 
 	return count;

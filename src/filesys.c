@@ -2306,8 +2306,6 @@ static void free_key (Unit *unit, Key *k)
 {
 	Key *k1;
 	Key *prev = 0;
-	struct lockrecord *lr;
-
 	for (k1 = unit->keys; k1; k1 = k1->next) {
 		if (k == k1) {
 			if (prev)
@@ -2318,6 +2316,8 @@ static void free_key (Unit *unit, Key *k)
 		}
 		prev = k1;
 	}
+
+	struct lockrecord *lr;
 
 	for (lr = k->record; lr;) {
 		struct lockrecord *next = lr->next;
@@ -5346,8 +5346,6 @@ void filesys_cleanup (void)
 void filesys_free_handles (void)
 {
 	Unit *u, *u1;
-	struct lockrecord *lr;
-
 	for (u = units; u; u = u1) {
 		Key *k1, *knext;
 		u1 = u->next;
@@ -5359,6 +5357,8 @@ void filesys_free_handles (void)
 		}
 		u->keys = NULL;
 		struct lockrecord *lrnext;
+		struct lockrecord *lr;
+
 		for (lr = u->waitingrecords; lr; lr = lrnext) {
 			lrnext = lr->next;
 			xfree (lr);
