@@ -107,7 +107,7 @@ static uae_u32 REGPARAM2 uaeexe_server (TrapContext *context)
 {
 	int len;
 	TCHAR *cmd;
-	char *dst;
+	char *dst, *s;
 
 	if (ARG (0) && !running) {
 		running = 1;
@@ -124,8 +124,10 @@ static uae_u32 REGPARAM2 uaeexe_server (TrapContext *context)
 
 	dst = (char*)get_real_address (ARG (0));
 	len = ARG (1);
-	strncpy (dst, cmd, len);
+	s = ua (cmd);
+	strncpy (dst, s, len);
 	write_log ("Sending '%s' to remote cli\n", cmd);
+	xfree (s);
 	xfree (cmd);
 	return ARG (0);
 }

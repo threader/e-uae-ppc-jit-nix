@@ -19,6 +19,20 @@ extern int paula_sndbufsize;
 extern snd_pcm_t *alsa_playback_handle;
 extern int bytes_per_frame;
 
+struct sound_data
+{
+        int waiting_for_buffer;
+        int devicetype;
+        int obtainedfreq;
+        int paused;
+        int mute;
+        int channels;
+        int freq;
+        int samplesize;
+        int sndbufsize;
+        struct sound_dp *data;
+};
+
 /* alsa_xrun_recovery() function is copied from ALSA manual. why the hell did
    they make ALSA this hard?! i bet 95% of ALSA programmers would like a
    simpler way to do error handling.. let the 5% use tricky APIs.
@@ -73,12 +87,12 @@ static void check_sound_buffers (void)
 
 STATIC_INLINE void clear_sound_buffers (void)
 {
-    memset (paula_sndbuffer, 0, paula_sndbufsize);
-    paula_sndbufpt = paula_sndbuffer;
+	memset (paula_sndbuffer, 0, paula_sndbufsize);
+	paula_sndbufpt = paula_sndbuffer;
 }
 
 STATIC_INLINE void set_sound_buffers (void)
-{ 
+{
 }
 
 #define PUT_SOUND_WORD(b) do { *(uae_u16 *)paula_sndbufpt = b; paula_sndbufpt = (uae_u16 *)(((uae_u8 *)paula_sndbufpt) + 2); } while (0)

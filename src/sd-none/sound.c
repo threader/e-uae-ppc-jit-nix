@@ -61,3 +61,11 @@ int audio_parse_option (struct uae_prefs *p, const char *option, const char *val
 {
     return 0;
 }
+
+void master_sound_volume (int dir)
+{
+}
+
+void sound_mute (int newmute)
+{
+}

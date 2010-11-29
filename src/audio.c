@@ -1436,7 +1436,7 @@ static void audio_state_channel2 (int nr, bool perfin)
 #ifdef DEBUG_AUDIO
 			if (debugchannel (nr))
 				write_log ("%d: IDLE\n", nr);
-#endif			
+#endif
 				zerostate (nr);
 				return;
 			}
@@ -2015,12 +2015,6 @@ void audio_vsync (void)
 		extrasamples = -99;
 #endif
 }
-
-int  audio_setup (void)			{ return setup_sound (); }
-void audio_close (void)			{ close_sound (); }
-void audio_pause (void)			{ pause_sound (); }
-void audio_resume (void)		{ resume_sound (); }
-void audio_volume (int volume)	{ sound_volume (volume); }
 
 #ifdef SAVESTATE
 void restore_audio_finish (void)

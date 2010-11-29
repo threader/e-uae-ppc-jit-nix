@@ -37,13 +37,6 @@ extern void set_audio (void);
 extern int audio_activate (void);
 extern void audio_vsync (void);
 
-extern int  audio_setup (void);
-extern void audio_close (void);
-extern void audio_reset (void);
-extern void audio_pause (void);
-extern void audio_resume (void);
-extern void audio_volume (int);
-
 void switch_audio_interpol (void);
 
 extern int sound_available;

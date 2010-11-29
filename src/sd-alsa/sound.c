@@ -19,6 +19,7 @@
 #include "options.h"
 #include "gensound.h"
 #include "sounddep/sound.h"
+#include "driveclick.h"
 
 #include <alsa/asoundlib.h>
 
@@ -34,6 +35,8 @@ int paula_sndbufsize;
 snd_pcm_t *alsa_playback_handle = 0;
 int bytes_per_frame;
 
+static struct sound_data sdpaula;
+static struct sound_data *sdp = &sdpaula;
 
 void close_sound (void)
 {
@@ -299,3 +302,67 @@ int audio_parse_option (struct uae_prefs *p, const char *option, const char *val
     return (cfgfile_string (option, value, "device",   alsa_device, 256)
 	 || cfgfile_yesno  (option, value, "verbose", &alsa_verbose));
 }
+
+void set_volume_sound_device (struct sound_data *sd, int volume, int mute)
+{
+}
+
+void set_volume (int volume, int mute)
+{
+        set_volume_sound_device (sdp, volume, mute);
+        config_changed = 1;
+}
+
+static int setget_master_volume_linux (int setvolume, int *volume, int *mute)
+{
+        unsigned int ok = 0;
+
+        if (setvolume) {
+                ;//set
+        } else {
+                ;//get
+        }
+
+        return ok;
+}
+
+static int set_master_volume (int volume, int mute)
+{
+        return setget_master_volume_linux (1, &volume, &mute);
+}
+
+static int get_master_volume (int *volume, int *mute)
+{
+        *volume = 0;
+        *mute = 0;
+        return setget_master_volume_linux (0, volume, mute);
+}
+
+void master_sound_volume (int dir)
+{
+        int vol, mute, r;
+
+        r = get_master_volume (&vol, &mute);
+        if (!r)
+                return;
+        if (dir == 0)
+                mute = mute ? 0 : 1;
+        vol += dir * (65536 / 10);
+        if (vol < 0)
+                vol = 0;
+        if (vol > 65535)
+                vol = 65535;
+        set_master_volume (vol, mute);
+        config_changed = 1;
+}
+
+void sound_mute (int newmute)
+{
+        if (newmute < 0)
+                sdp->mute = sdp->mute ? 0 : 1;
+        else
+                sdp->mute = newmute;
+        set_volume (currprefs.sound_volume, sdp->mute);
+        config_changed = 1;
+}
+

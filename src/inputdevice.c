@@ -781,6 +781,8 @@ void read_inputdevice_config (struct uae_prefs *pr, const TCHAR *option, TCHAR *
 		pr->input_analog_joystick_mult = _tstol (value);
 	if (!strcasecmp (p, "analog_joystick_offset"))
 		pr->input_analog_joystick_offset = _tstol (value);
+	if (!strcasecmp (p, "contact_bounce"))
+		pr->input_contact_bounce = _tstol (value);
 
 	idnum = _tstol (p);
 	if (idnum <= 0 || idnum > MAX_INPUT_SETTINGS)
@@ -2451,16 +2453,16 @@ void inputdevice_handle_inputcode (void)
 		sound_volume (1);
 		break;
 	case AKS_VOLMUTE:
-		//sound_mute (-1);
+		sound_mute (-1);
 		break;
 	case AKS_MVOLDOWN:
-		//master_sound_volume (-1);
+		master_sound_volume (-1);
 		break;
 	case AKS_MVOLUP:
-		//master_sound_volume (1);
+		master_sound_volume (1);
 		break;
 	case AKS_MVOLMUTE:
-		//master_sound_volume (0);
+		master_sound_volume (0);
 		break;
 	case AKS_QUIT:
 		uae_quit ();
@@ -5618,9 +5620,9 @@ void warpmode (int mode)
 	if (currprefs.turbo_emulation) {
 		if (!currprefs.cpu_cycle_exact && !currprefs.blitter_cycle_exact)
 			changed_prefs.gfx_framerate = currprefs.gfx_framerate = 10;
-		audio_pause ();
+		pause_sound ();
 	} else {
-		audio_resume ();
+		resume_sound ();
 	}
 	compute_vsynctime ();
 #ifdef RETROPLATFORM

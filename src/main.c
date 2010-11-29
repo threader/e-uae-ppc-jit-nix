@@ -853,7 +853,7 @@ static int real_main2 (int argc, TCHAR **argv)
 		fixup_prefs (&currprefs);
 	}
 
-	if (! audio_setup ()) {
+	if (! setup_sound ()) {
 		write_log ("Sound driver unavailable: Sound output disabled\n");
 		currprefs.produce_sound = 0;
 	}
