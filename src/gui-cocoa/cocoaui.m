@@ -5,6 +5,7 @@
  *
  * Copyright 1996 Bernd Schmidt
  * Copyright 2004,2010 Steven J. Saunders
+ *           2010 Mustafa TUFAN
  */
 #include <stdlib.h>
 #include <stdarg.h>
@@ -131,11 +132,12 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
     NSString *menuTitle;
 
 	// Create a menu for manipulating the emulated amiga
-	NSMenu *vAmigaMenu = [[NSMenu alloc] initWithTitle:@"Virtual Amiga"];
+	NSMenu *vAmigaMenu = [[NSMenu alloc] initWithTitle:@"PUAE"];
 	
-	[self createMenuItemInMenu:vAmigaMenu withTitle:@"Cold Reset" action:@selector(resetAmiga:) tag:1];
-	[self createMenuItemInMenu:vAmigaMenu withTitle:@"Warm Reset" action:@selector(resetAmiga:) tag:0];
-	[self createMenuItemInMenu:vAmigaMenu withTitle:@"Pause" action:@selector(pauseAmiga:) tag:0];
+	[self createMenuItemInMenu:vAmigaMenu withTitle:@"Reset" action:@selector(resetAmiga:) tag:0];
+	[self createMenuItemInMenu:vAmigaMenu withTitle:@"Hard Reset" action:@selector(resetAmiga:) tag:1];
+	[self createMenuItemInMenu:vAmigaMenu withTitle:@"Hebe" action:@selector(hebeHebe:) tag:0];
+//	[self createMenuItemInMenu:vAmigaMenu withTitle:@"Pause" action:@selector(pauseAmiga:) tag:0];
 	
 #ifdef ACTION_REPLAY
 	[self createMenuItemInMenu:vAmigaMenu
@@ -184,7 +186,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 	
 	[ejectFloppyMenu release];
 
-	menuItem = [[NSMenuItem alloc] initWithTitle:@"Virtual Amiga" action:nil keyEquivalent:@""];
+	menuItem = [[NSMenuItem alloc] initWithTitle:@"PUAE" action:nil keyEquivalent:@""];
     [menuItem setSubmenu:vAmigaMenu];
 
 	[[NSApp mainMenu] insertItem:menuItem atIndex:1];
@@ -198,12 +200,16 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 	NSMenu *portMenu = [[NSMenu alloc] initWithTitle:@"Game Port 0"];
 
     [self createMenuItemInMenu:portMenu withTitle:@"None" action:@selector(changePort0:) tag:JSEM_END];
+    [self createMenuItemInMenu:portMenu withTitle:@"Joystick 0" action:@selector(changePort0:) tag:JSEM_JOYS];
+    [self createMenuItemInMenu:portMenu withTitle:@"Joystick 1" action:@selector(changePort0:) tag:JSEM_JOYS+1];
     [self createMenuItemInMenu:portMenu withTitle:@"Mouse" action:@selector(changePort0:) tag:JSEM_MICE];
-    [self createMenuItemInMenu:portMenu withTitle:@"Joystick" action:@selector(changePort0:) tag:JSEM_JOYS];
-    [self createMenuItemInMenu:portMenu withTitle:@"Second Joystick" action:@selector(changePort0:) tag:JSEM_JOYS+1];
-    [self createMenuItemInMenu:portMenu withTitle:@"Numeric Keypad 2/4/6/8 + 5" action:@selector(changePort0:) tag:JSEM_KBDLAYOUT];
-    [self createMenuItemInMenu:portMenu withTitle:@"Cursor Keys + Right Ctrl/Alt" action:@selector(changePort0:) tag:JSEM_KBDLAYOUT+1];
-    [self createMenuItemInMenu:portMenu withTitle:@"Keyboard T/B/F/H + Left Alt" action:@selector(changePort0:) tag:JSEM_KBDLAYOUT+2];
+    [self createMenuItemInMenu:portMenu withTitle:@"Keyboard Layout A (NumPad, 0 & 5 = Fire)" action:@selector(changePort0:) tag:JSEM_KBDLAYOUT];
+    [self createMenuItemInMenu:portMenu withTitle:@"Keyboard Layout B (Cursor, RCtrl & Alt = Fire)" action:@selector(changePort0:) tag:JSEM_KBDLAYOUT+1];
+    [self createMenuItemInMenu:portMenu withTitle:@"Keyboard Layout C (WASD, LAlt = Fire)" action:@selector(changePort0:) tag:JSEM_KBDLAYOUT+2];
+#ifdef ARCADE
+    [self createMenuItemInMenu:portMenu withTitle:@"X-Arcade (Left)" action:@selector(changePort0:) tag:JSEM_KBDLAYOUT+3];
+    [self createMenuItemInMenu:portMenu withTitle:@"X-Arcade (Right)" action:@selector(changePort0:) tag:JSEM_KBDLAYOUT+4];
+#endif
 
     menuItem = [[NSMenuItem alloc] initWithTitle:@"Game Port 0" action:nil keyEquivalent:@""];
     [menuItem setSubmenu:portMenu];
@@ -215,12 +221,16 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 	portMenu = [[NSMenu alloc] initWithTitle:@"Game Port 1"];
 
     [self createMenuItemInMenu:portMenu withTitle:@"None" action:@selector(changePort1:) tag:JSEM_END];
+    [self createMenuItemInMenu:portMenu withTitle:@"Joystick 0" action:@selector(changePort1:) tag:JSEM_JOYS];
+    [self createMenuItemInMenu:portMenu withTitle:@"Joystick 1" action:@selector(changePort1:) tag:JSEM_JOYS+1];
     [self createMenuItemInMenu:portMenu withTitle:@"Mouse" action:@selector(changePort1:) tag:JSEM_MICE];
-    [self createMenuItemInMenu:portMenu withTitle:@"Joystick" action:@selector(changePort1:) tag:JSEM_JOYS];
-    [self createMenuItemInMenu:portMenu withTitle:@"Second Joystick" action:@selector(changePort1:) tag:JSEM_JOYS+1];
-    [self createMenuItemInMenu:portMenu withTitle:@"Numeric Keypad 2/4/6/8 + 5" action:@selector(changePort1:) tag:JSEM_KBDLAYOUT];
-    [self createMenuItemInMenu:portMenu withTitle:@"Cursor Keys + Right Ctrl/Alt" action:@selector(changePort1:) tag:JSEM_KBDLAYOUT+1];
-    [self createMenuItemInMenu:portMenu withTitle:@"Keyboard T/B/F/H + Left Alt" action:@selector(changePort1:) tag:JSEM_KBDLAYOUT+2];
+    [self createMenuItemInMenu:portMenu withTitle:@"Keyboard Layout A (NumPad, 0 & 5 = Fire)" action:@selector(changePort1:) tag:JSEM_KBDLAYOUT];
+    [self createMenuItemInMenu:portMenu withTitle:@"Keyboard Layout B (Cursor, RCtrl & Alt = Fire)" action:@selector(changePort1:) tag:JSEM_KBDLAYOUT+1];
+    [self createMenuItemInMenu:portMenu withTitle:@"Keyboard Layout C (WASD, LAlt = Fire)" action:@selector(changePort1:) tag:JSEM_KBDLAYOUT+2];
+#ifdef ARCADE
+    [self createMenuItemInMenu:portMenu withTitle:@"X-Arcade (Left)" action:@selector(changePort1:) tag:JSEM_KBDLAYOUT+3];
+    [self createMenuItemInMenu:portMenu withTitle:@"X-Arcade (Right)" action:@selector(changePort1:) tag:JSEM_KBDLAYOUT+4];
+#endif
 
     menuItem = [[NSMenuItem alloc] initWithTitle:@"Game Port 1" action:nil keyEquivalent:@""];
     [menuItem setSubmenu:portMenu];
@@ -464,20 +474,36 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
     restoreFullscreen();
 #endif
 
-    if (returnCode != NSOKButton) return;
+	if (returnCode != NSOKButton) return;
 
-    int drive = [((NSString*)contextInfo) intValue];
-    [((NSString*)contextInfo) release];
+	int drive = [((NSString*)contextInfo) intValue];
+	[((NSString*)contextInfo) release];
 
-    if ((drive >= 0) && (drive < 4)) {
-	    NSArray *files = [sheet filenames];
-	    NSString *file = [files objectAtIndex:0];
+	if ((drive >= 0) && (drive < 4)) {
+		NSArray *files = [sheet filenames];
+		NSString *file = [files objectAtIndex:0];
 		
 		lossyASCIICopy (changed_prefs.floppyslots[drive].df, file, COCOA_GUI_MAX_PATH);
 		
 		// Save the path of this disk image so that future open panels can start in the same directory
 		[[NSUserDefaults standardUserDefaults] setObject:[file stringByDeletingLastPathComponent] forKey:@"LastUsedDiskImagePath"];
 	}
+}
+
+- (void)hebeHebe:(id)sender
+{
+	NSRect frame = NSMakeRect(100, 100, 200, 200);
+	NSUInteger styleMask;
+	NSRect rect = [NSWindow contentRectForFrameRect:frame styleMask:styleMask];
+	NSWindow * window = [[NSWindow alloc] initWithContentRect:rect styleMask:styleMask backing:NSBackingStoreBuffered defer:false];
+	[window center];
+	[window makeKeyAndOrderFront: window];
+
+	NSTabViewItem* item=[[NSTabViewItem alloc] initWithIdentifier:identifier];
+	[item setLabel:label];
+	[item setView:newView];
+	[tabView addTabViewItem:item];
+
 }
 
 - (void)resetAmiga:(id)sender

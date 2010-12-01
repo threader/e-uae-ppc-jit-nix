@@ -19,6 +19,7 @@ rm -rf ./src/machdep
 rm -rf ./src/osdep
 rm -rf ./src/sounddep
 rm -rf ./src/threaddep
+rm -rf ./src/PUAE.app
 
 rm -rf `find . -type d -name autom4te.cache`
 rm -rf `find . -type d -name .deps`
