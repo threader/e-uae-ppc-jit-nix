@@ -67,23 +67,72 @@ dnl
 dnl Check if Qt 4 is installed
 dnl
 HAVE_QT=no
-AC_MSG_CHECKING(QT version via qmake-qt4)
+AC_MSG_CHECKING(QT version via qmake)
 if test -z "$QMAKE"; then
 dnl AC_MSG_NOTICE([QMAKE env not set, we'll try to find it on our own])
-QMAKE=`which qmake-qt4`
+QMAKE=`which qmake`
 if test -z "$QMAKE"; then
-AC_MSG_NOTICE([Can't find qmake-qt4])
+AC_MSG_NOTICE([Can't find qmake])
 else
 HAVE_QT=yes
-qmake_version=`$QMAKE -v 2>&1 | awk '/Using Qt version/ { print $4;}'`
+qmake_version=`$QMAKE -query QT_VERSION 2>&1`
 AC_MSG_RESULT( $qmake_version )
 fi
 else
 HAVE_QT=yes
-qmake_version=`$QMAKE -v 2>&1 | awk '/Using Qt version/ { print $4;}'`
+qmake_version=`$QMAKE -query QT_VERSION 2>&1`
 AC_MSG_RESULT( $qmake_version )
 fi
 
+dnl
+dnl if QT
+dnl
+if [[ "x$HAVE_QT" = "xyes" ]]; then
+
+AC_MSG_CHECKING(QT: Meta Object Compiler)
+if test -z "$QT_MOC"; then
+dnl AC_MSG_NOTICE([QT_MOC env not set, we'll try to find it on our own])
+QT_MOC=`which moc`
+if test -z "$QT_MOC"; then
+AC_MSG_NOTICE([Can't find moc])
+else
+AC_MSG_RESULT( $QT_MOC )
+fi
+fi
+
+AC_MSG_CHECKING(QT: User Interface Compiler)
+if test -z "$QT_UIC"; then
+dnl AC_MSG_NOTICE([QT_UIC env not set, we'll try to find it on our own])
+QT_UIC=`which uic`
+if test -z "$QT_UIC"; then
+AC_MSG_NOTICE([Can't find uic])
+else
+AC_MSG_RESULT( $QT_UIC )
+fi
+fi
+
+AC_MSG_CHECKING(QT: Resource Compiler)
+if test -z "$QT_RCC"; then
+dnl AC_MSG_NOTICE([QT_RCC env not set, we'll try to find it on our own])
+QT_RCC=`which rcc`
+if test -z "$QT_RCC"; then
+AC_MSG_NOTICE([Can't find rcc])
+else
+AC_MSG_RESULT( $QT_RCC )
+fi
+fi
+
+dnl
+dnl
+AC_MSG_CHECKING(QT HEADERS via qmake)
+QT_INSTALL_HEADERS=`$QMAKE -query QT_INSTALL_HEADERS 2>&1`
+AC_MSG_RESULT( $QT_INSTALL_HEADERS )
+
+AC_MSG_CHECKING(QT LIBS via qmake)
+QT_INSTALL_LIBS=`$QMAKE -query QT_INSTALL_LIBS 2>&1`
+AC_MSG_RESULT( $QT_INSTALL_LIBS )
+
+fi
 
 dnl
 dnl  Checks for header files.
@@ -1278,7 +1327,7 @@ if [[ "x$WANT_SCSIEMU" = "xyes" ]]; then
       UAE_DEFINES="$UAE_DEFINES -DSCSIEMU"
 if [[ "x$WANT_A2091" = "xyes" ]]; then
       UAE_DEFINES="$UAE_DEFINES -DA2091"
-      SCSIOBJS='$SCSIOBJS a2091.$(OBJEXT)'
+      SCSIOBJS='scsiemul.$(OBJEXT) blkdev.$(OBJEXT) scsi.$(OBJEXT) a2091.$(OBJEXT)'
 fi
       NEED_THREAD_SUPPORT=yes
     else
@@ -1316,7 +1365,7 @@ typedef int BOOL;
       UAE_DEFINES="$UAE_DEFINES -DSCSIEMU"
 if [[ "x$WANT_A2091" = "xyes" ]]; then
       UAE_DEFINES="$UAE_DEFINES -DA2091"
-      SCSIOBJS='$SCSIOBJS a2091.$(OBJEXT)'
+      SCSIOBJS='scsiemul.$(OBJEXT) blkdev.$(OBJEXT) blkdev-libscg.$(OBJEXT) scsi.$(OBJEXT) a2091.$(OBJEXT)'
 fi
       UAE_CPPFLAGS="$UAE_CPPFLAGS $LIBSCG_CPPFLAGS"
       UAE_LIBS="$LIBSCG_LIBS $UAE_LIBS"
@@ -1341,7 +1390,7 @@ typedef int BOOL;
         UAE_DEFINES="$UAE_DEFINES -DSCSIEMU"
 if [[ "x$WANT_A2091" = "xyes" ]]; then
 	UAE_DEFINES="$UAE_DEFINES -DA2091"
-	SCSIOBJS='$SCSIOBJS a2091.$(OBJEXT)'
+	SCSIOBJS='scsiemul.$(OBJEXT) blkdev.$(OBJEXT) blkdev-libscg.$(OBJEXT) scsi.$(OBJEXT) a2091.$(OBJEXT)'
 fi
         NEED_THREAD_SUPPORT=yes
         if [[ "$srcdir" != "." ]]; then
@@ -1367,7 +1416,7 @@ fi
 	   UAE_DEFINES="$UAE_DEFINES -DSCSIEMU -DSCSIEMU_LINUX_IOCTL"
 if [[ "x$WANT_A2091" = "xyes" ]]; then
 	UAE_DEFINES="$UAE_DEFINES -DA2091"
-	SCSIOBJS='$SCSIOBJS a2091.$(OBJEXT)'
+	SCSIOBJS='scsiemul.$(OBJEXT) blkdev.$(OBJEXT) scsi.$(OBJEXT) a2091.$(OBJEXT)'
 fi
 	   NEED_THREAD_SUPPORT=yes
 	],
@@ -1829,6 +1878,7 @@ AC_CONFIG_FILES([Makefile
 		 src/gui-cocoa/Makefile
 		 src/gui-gtk/Makefile
 		 src/gui-muirexx/Makefile
+		 src/gui-qt/Makefile
 		 src/keymap/Makefile
 		 src/test/Makefile
 ])
