@@ -2193,13 +2193,14 @@ static void memwatch (TCHAR **c)
 {
 	int num;
 	struct memwatch_node *mwn;
-	TCHAR nc;
+	TCHAR nc, *cp;
 
 	if (!memwatch_enabled) {
 		initialize_memwatch (0);
 		console_out ("Memwatch breakpoints enabled\n");
 	}
 
+	cp = *c;
 	ignore_ws (c);
 	if (!more_params (c)) {
 		memwatch_dump (-1);
@@ -2240,7 +2241,8 @@ static void memwatch (TCHAR **c)
 		}
 		return;
 	}
-	num = nc - '0';
+	*c = cp;
+	num = readint (c);
 	if (num < 0 || num >= MEMWATCH_TOTAL)
 		return;
 	mwn = &mwnodes[num];
@@ -3130,35 +3132,18 @@ static void m68k_modify (TCHAR **inptr)
 	}
 }
 
-static void debug_1 (void)
+static uaecptr nxdis, nxmem;
+
+static bool debug_line (TCHAR *input)
 {
-	TCHAR input[MAX_LINEWIDTH];
-	uaecptr nxdis, nxmem, addr;
+	TCHAR cmd, *inptr;
+	uaecptr addr;
 
-	m68k_dumpstate (stdout, &nextpc);
-	nxdis = nextpc; nxmem = 0;
-	debugger_active = 1;
+	inptr = input;
+	cmd = next_char (&inptr);
 
-	for (;;) {
-		TCHAR cmd, *inptr;
-		int v;
-
-		if (!debugger_active)
-			return;
-		//update_debug_info ();
-		console_out (">");
-		console_flush ();
-		debug_linecounter = 0;
-		v = console_get (input, MAX_LINEWIDTH);
-		if (v < 0)
-			return;
-		if (v == 0)
-			continue;
-
-		inptr = input;
-		cmd = next_char (&inptr);
-		switch (cmd)
-		{
+	switch (cmd)
+	{
 		case 'c': dumpcia (); dumpdisk (); dumpcustom (); break;
 		case 'i':
 		{
@@ -3269,13 +3254,13 @@ static void debug_1 (void)
 			}
 			set_special (SPCFLAG_BRK);
 			exception_debugging = 1;
-			return;
+			return true;
 		case 'z':
 			skipaddr_start = nextpc;
 			skipaddr_doskip = 1;
 			do_skip = 1;
 			exception_debugging = 1;
-			return;
+			return true;
 
 		case 'f':
 			if (inptr[0] == 'a') {
@@ -3284,17 +3269,17 @@ static void debug_1 (void)
 			} else if (inptr[0] == 'p') {
 				inptr++;
 				if (process_breakpoint (&inptr))
-					return;
+					return true;
 			} else {
 				if (instruction_breakpoint (&inptr))
-					return;
+					return true;
 			}
 			break;
 
 		case 'q':
 			uae_quit();
 			deactivate_debugger();
-			return;
+			return true;
 
 		case 'g':
 			if (more_params (&inptr)) {
@@ -3302,7 +3287,7 @@ static void debug_1 (void)
 				fill_prefetch ();
 			}
 			deactivate_debugger();
-			return;
+			return true;
 
 		case 'x':
 			if (_totupper(inptr[0]) == 'X') {
@@ -3310,7 +3295,7 @@ static void debug_1 (void)
 			} else {
 				deactivate_debugger();
 				close_console();
-				return;
+				return true;
 			}
 			break;
 
@@ -3431,7 +3416,7 @@ static void debug_1 (void)
 				if (copper_debugger (&inptr)) {
 					debugger_active = 0;
 					debugging = 0;
-					return;
+					return true;
 				}
 				break;
 			}
@@ -3439,7 +3424,7 @@ static void debug_1 (void)
 			break;
 		case 'b':
 			if (staterecorder (&inptr))
-				return;
+				return true;
 			break;
 		case 'U':
 			if (currprefs.cpu_model && more_params (&inptr)) {
@@ -3475,7 +3460,34 @@ static void debug_1 (void)
 			else
 				debug_help ();
 			break;
-		}
+	}
+	return false;
+}
+
+static void debug_1 (void)
+{
+	TCHAR input[MAX_LINEWIDTH];
+
+	m68k_dumpstate (stdout, &nextpc);
+	nxdis = nextpc; nxmem = 0;
+	debugger_active = 1;
+
+	for (;;) {
+		int v;
+
+		if (!debugger_active)
+			return;
+		update_debug_info ();
+		console_out (">");
+		console_flush ();
+		debug_linecounter = 0;
+		v = console_get (input, MAX_LINEWIDTH);
+		if (v < 0)
+			return;
+		if (v == 0)
+			continue;
+		if (debug_line (input))
+			return;
 	}
 }
 
@@ -4022,4 +4034,17 @@ int mmu_init(int mode, uaecptr parm, uaecptr parm2)
 		size - 1, mmu_callback, parm, banks, mmu_regs, mmu_slots, 1 << MMU_PAGE_SHIFT);
 	set_special (SPCFLAG_BRK);
 	return 1;
+}
+
+void debug_parser (const TCHAR *cmd, TCHAR *out, uae_u32 outsize)
+{
+	TCHAR empty[2] = { 0 };
+	TCHAR *input = my_strdup (cmd);
+	if (out == NULL || outsize == 0)
+		setconsolemode (empty, 1);
+	else
+		setconsolemode (out, outsize);
+	debug_line (input);
+	setconsolemode (NULL, 0);
+	xfree (input);
 }

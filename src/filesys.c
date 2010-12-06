@@ -3701,9 +3701,6 @@ static void do_find (Unit *unit, dpacket packet, int mode, int create, int fallb
 	TRACE(("fh=%x lock=%x name=%x\n", fh, lock, name));
 	DUMPLOCK(unit, lock);
 
-	if (!_tcsicmp(bstr(unit,name), "Nù"))
-		activate_debugger();
-
 	aino = find_aino (unit, lock, bstr (unit, name), &err);
 
 	if (aino == 0 || (err != 0 && err != ERROR_OBJECT_NOT_AROUND)) {

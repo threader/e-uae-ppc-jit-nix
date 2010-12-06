@@ -546,9 +546,12 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 #ifdef DEBUGGER
 	cfgfile_write_bool (f, "use_debugger", p->start_debugger);
 #endif
-
 	cfgfile_write_rom (f, p->path_rom, p->romfile, "kickstart_rom_file");
 	cfgfile_write_rom (f, p->path_rom, p->romextfile, "kickstart_ext_rom_file");
+	if (p->romextfile2addr) {
+		cfgfile_write (f, "kickstart_ext_rom_file2_address", "%x", p->romextfile2addr);
+		cfgfile_write_rom (f, p->path_rom, p->romextfile2, "kickstart_ext_rom_file2");
+	}
 	if (p->romident[0])
 		cfgfile_dwrite_str (f, "kickstart_rom", p->romident);
 	if (p->romextident[0])
@@ -765,22 +768,6 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 			uf = &uaefilters[i];
 			if (uf->type == p->gfx_filter) {
 				cfgfile_dwrite_str (f, "gfx_filter", uf->cfgname);
-				if (uf->type == p->gfx_filter) {
-					if (uf->x[0]) {
-						cfgfile_dwrite_str (f, "gfx_filter_mode", filtermode2[1]);
-					} else {
-						int mt[4], i = 0;
-						if (uf->x[1])
-							mt[i++] = 1;
-						if (uf->x[2])
-							mt[i++] = 2;
-						if (uf->x[3])
-							mt[i++] = 3;
-						if (uf->x[4])
-							mt[i++] = 4;
-						cfgfile_dwrite (f, "gfx_filter_mode", "%dx", mt[p->gfx_filter_filtermode]);
-					}
-				}
 			}
 			i++;
 		}
@@ -991,6 +978,7 @@ int cfgfile_intval2 (const TCHAR *option, const TCHAR *value, const TCHAR *name,
 	}
 	return 1;
 }
+
 int cfgfile_intval (const TCHAR *option, const TCHAR *value, const TCHAR *name, int *location, int scale)
 {
 	unsigned int v = 0;
@@ -1000,8 +988,6 @@ int cfgfile_intval (const TCHAR *option, const TCHAR *value, const TCHAR *name, 
 	*location = (int)v;
 	return r;
 }
-
-
 
 int cfgfile_strval (const TCHAR *option, const TCHAR *value, const TCHAR *name, int *location, const TCHAR *table[], int more)
 {
@@ -2632,6 +2618,7 @@ static int cfgfile_load_2 (struct uae_prefs *p, const TCHAR *filename, bool real
 		subst (p->path_floppy, p->floppyslots[i].df, sizeof p->floppyslots[i].df / sizeof (TCHAR));
 	subst (p->path_rom, p->romfile, sizeof p->romfile / sizeof (TCHAR));
 	subst (p->path_rom, p->romextfile, sizeof p->romextfile / sizeof (TCHAR));
+	subst (p->path_rom, p->romextfile2, sizeof p->romextfile2 / sizeof (TCHAR));
 
 	return 1;
 }
@@ -3238,8 +3225,10 @@ int cmdlineparser (const TCHAR *s, TCHAR *outp[], int max)
 			j++;
 		}
 		if (doout) {
-			outp[cnt++] = my_strdup (tmp1);
-			outp[cnt] = 0;
+			if (_tcslen (tmp1) > 0) {
+				outp[cnt++] = my_strdup (tmp1);
+				outp[cnt] = 0;
+			}
 			tmp1[0] = 0;
 			doout = 0;
 			j = 0;
@@ -3382,7 +3371,9 @@ uae_u32 cfgfile_modify (uae_u32 index, TCHAR *parms, uae_u32 size, TCHAR *out, u
 
 	for (i = 0; i < argv; i++) {
 		if (i + 2 <= argv) {
-			if (!inputdevice_uaelib (argc[i], argc[i + 1])) {
+			if (!_tcsicmp (argc[i], "dbg")) {
+				debug_parser (argc[i + 1], out, outsize);
+			} else if (!inputdevice_uaelib (argc[i], argc[i + 1])) {
 				if (!cfgfile_parse_option (&changed_prefs, argc[i], argc[i + 1], 0)) {
 					err = 5;
 					break;

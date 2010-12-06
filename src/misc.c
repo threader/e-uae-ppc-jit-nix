@@ -1318,3 +1318,8 @@ int D3D_goodenough (void)
 {
 	return 0;
 }
+
+//debug_win32
+void update_debug_info(void)
+{
+}
