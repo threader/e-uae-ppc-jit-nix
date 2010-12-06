@@ -1,6 +1,14 @@
+QT_INCPATH = $(shell qmake -query QT_INSTALL_HEADERS)
+
 AM_CFLAGS    = @UAE_CFLAGS@
 AM_CPPFLAGS  = @UAE_CPPFLAGS@
 AM_CPPFLAGS += -I$(top_srcdir)/src/include -I$(top_builddir)/src -I$(top_srcdir)/src -I$(top_srcdir)
+AM_CPPFLAGS += -I$(QT_INCPATH) -I$(QT_INCPATH)/QtCore -I$(QT_INCPATH)/QtGui -I/usr/local/Qt4.7/mkspecs/macx-xcode 
+AM_CPPFLAGS += -I/Library/Frameworks/QtCore.framework/Versions/4/Headers -I/Library/Frameworks/QtGui.framework/Versions/4/Headers 
+AM_CPPFLAGS += -I/System/Library/Frameworks/CarbonCore.framework/Headers -F/Library/Frameworks
+DEFINES = -DQT_NO_DEBUG -DQT_GUI_LIB -DQT_CORE_LIB -DQT_SHARED
+LIBS = -L/usr/lib -lQtGui -lQtCore -lpthread
+
 
 SUBDIRS = \
 	tools @MACHDEP@ @THREADDEP@ @GFX_DEP@ @SND_DEP@ @JOY_DEP@ @GUI_DEP@ \

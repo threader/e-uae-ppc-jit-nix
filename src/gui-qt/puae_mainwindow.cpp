@@ -1,14 +1,15 @@
 #include "puae_mainwindow.h"
 #include "ui_puae_mainwindow.h"
 
-#include "gui.h"
-#include "options.h"
-
 #include <QMessageBox>
 #include <QDir>
 #include <QFileDialog>
 
+extern "C" {
+#include "include/options.h"
 struct uae_prefs workprefs;
+}
+
 
 // Paths Tab
 QString PATHS_ROM, PATHS_CONFIG, PATHS_SCREENSHOT, PATHS_SAVESTATE, PATHS_AVIOUTPUT, PATHS_SAVEIMAGE, PATHS_RIP;
@@ -908,61 +909,4 @@ void puae_MainWindow::enable_for_memorydlg ()
     ui->IDC_RTG_SCALE_ALLOW->setEnabled(rtg2);
     ui->IDC_RTG_SCALE_ASPECTRATIO->setEnabled(rtg2);
     ui->IDC_RTG_VBLANKRATE->setEnabled(rtg2);
-}
-
-/*
- * 
- * 
- */
-
-int gui_init (void)
-{
-}
-
-void gui_exit (void)
-{
-}
-
-int gui_update (void)
-{
-}
-
-void gui_display (int shortcut)
-{
-}
-
-void gui_message (const char *format,...)
-{
-}
-
-void gui_fps (int fps, int idle)
-{
-}
-
-void gui_handle_events (void)
-{
-}
-
-void gui_led (int num, int on)
-{
-}
-
-void gui_flicker_led (int led, int unitnum, int status)
-{
-}
-
-void gui_gameport_axis_change (int port, int axis, int state, int max)
-{
-}
-
-void gui_gameport_button_change (int port, int button, int onoff)
-{
-}
-
-void gui_disk_image_change (int unitnum, const TCHAR *name, bool writeprotected)
-{
-}
-
-void gui_filename (int num, const char *name)
-{
 }
