@@ -59,7 +59,7 @@ int p96hack_vpos, p96hack_vpos2, p96refresh_active;
 #define NOBLITTER 0
 #define NOBLITTER_BLIT 0
 #define USE_HARDWARESPRITE 1
-#define P96TRACING_ENABLED 1
+#define P96TRACING_ENABLED 0
 #define P96SPRTRACING_ENABLED 0
 
 static int hwsprite = 0;

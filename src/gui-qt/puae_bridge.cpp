@@ -8,11 +8,14 @@
  */
 
 #include <QtGui/QApplication>
+#include <QtGui/QMessageBox>
 #include <QThread>
 #include "puae_bridge.h"
 #include "puae_mainwindow.h"
 //#include "ui_puae_mainwindow.h"
 
+static unsigned int gui_available;
+ 
 extern "C" {
 #include "gui.h"
 #include "options.h"
@@ -79,6 +82,17 @@ void gui_display (int shortcut)
 
 extern "C" void gui_message (const char *format,...)
 {
+	char msg[2048];
+	va_list parms;
+
+	va_start (parms, format);
+	vsprintf (msg, format, parms);
+	va_end (parms);
+
+	if (gui_available)
+		QMessageBox::information(0, "PUAE", msg);
+
+//	write_log (msg);
 }
 
 void gui_fps (int fps, int idle)
