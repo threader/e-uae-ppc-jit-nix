@@ -14,11 +14,11 @@ AM_CPPFLAGS += -I/System/Library/Frameworks/CarbonCore.framework/Headers
 AM_CPPFLAGS += -F/Library/Frameworks
 AM_CPPFLAGS += -I/Library/Frameworks/QtCore.framework/Versions/4/Headers
 AM_CPPFLAGS += -I/Library/Frameworks/QtGui.framework/Versions/4/Headers
-endif
-DEFINES = -DQT_NO_DEBUG -DQT_GUI_LIB -DQT_CORE_LIB -DQT_SHARED
+else
 LIBS += -lQtGui -lQtCore
 endif
-
+DEFINES = -DQT_NO_DEBUG -DQT_GUI_LIB -DQT_CORE_LIB -DQT_SHARED
+endif
 
 SUBDIRS = \
 	tools @MACHDEP@ @THREADDEP@ @GFX_DEP@ @SND_DEP@ @JOY_DEP@ @GUI_DEP@ \
