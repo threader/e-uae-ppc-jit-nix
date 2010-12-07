@@ -36,6 +36,13 @@ void MyThread::run()
 }
 */
 
+/* This function is called from od-macosx/main.m
+ * WARNING: This gets called *before* real_main(...)!
+ */
+extern "C" void cocoa_gui_early_setup (void)
+{
+}
+
 int gui_init (void)
 {
 //  MyThread *QT_GUI_Thread=new MyThread;
@@ -55,12 +62,18 @@ int gui_update (void)
 
 void gui_display (int shortcut)
 {
-	if (shortcut == -1) {
-		QApplication *pApp = new QApplication(NULL,NULL);
-		puae_MainWindow wptr;
+	int foo;
 
-		wptr.show();
-		pApp->exec();
+	if (shortcut == -1) {
+	int argc;
+	char *argv[0];
+	argc = NULL;
+	*argv = NULL;
+		QApplication myApp(argc,argv);
+		puae_MainWindow w;
+
+		w.show();
+		foo = myApp.exec();
 	}
 }
 

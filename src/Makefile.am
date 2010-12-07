@@ -1,19 +1,20 @@
 AM_CFLAGS = @UAE_CFLAGS@
 AM_CPPFLAGS = @UAE_CPPFLAGS@
 AM_CPPFLAGS += -I$(top_srcdir)/src/include -I$(top_builddir)/src -I$(top_srcdir)/src -I$(top_srcdir)
-LIBS = -L/usr/lib -lpthread
-
+LIBS = -L/usr/lib -lpthread -lstdc++
 if IS_QT
 QT_INCPATH = $(shell qmake -query QT_INSTALL_HEADERS)
 QT_INSPATH = $(shell qmake -query QT_INSTALL_DATA)
+QT_INSLIBS = $(shell qmake -query QT_INSTALL_LIBS)
 AM_CPPFLAGS += -I$(QT_INCPATH) -I$(QT_INCPATH)/QtCore -I$(QT_INCPATH)/QtGui
 AM_CPPFLAGS += -I$(QT_INSPATH)/mkspecs/default
 if BUILD_MACOSX_BUNDLE
-AM_CPPFLAGS += -I/usr/local/Qt4.7/mkspecs/macx-xcode
+AM_CPPFLAGS += -I$(QT_INSPATH)/mkspecs/macx-xcode -I$(QT_INSPATH)/mkspecs/macx-g++
 AM_CPPFLAGS += -I/System/Library/Frameworks/CarbonCore.framework/Headers
-AM_CPPFLAGS += -F/Library/Frameworks
-AM_CPPFLAGS += -I/Library/Frameworks/QtCore.framework/Versions/4/Headers
-AM_CPPFLAGS += -I/Library/Frameworks/QtGui.framework/Versions/4/Headers
+AM_CPPFLAGS += -F$(QT_INSLIBS)
+AM_CPPFLAGS += -I$(QT_INSLIBS)/QtCore.framework/Versions/4/Headers
+AM_CPPFLAGS += -I$(QT_INSLIBS)/QtGui.framework/Versions/4/Headers
+LIBS += -F$(QT_INSLIBS) -L$(QT_INSLIBS) -framework QtGui -framework QtCore 
 else
 LIBS += -lQtGui -lQtCore
 endif

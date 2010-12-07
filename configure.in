@@ -2,7 +2,7 @@ dnl Process this file with autoconf to produce a configure script.
 dnl Written 1996, 1997, 1998 Bernd Schmidt
 dnl
 dnl Updated, re-written and generally mauled 2003 Richard Drummond
-dnl Updated and generally mauled 2008 Mustafa Tufan
+dnl Updated and generally mauled             2008-2010 Mustafa Tufan
 dnl
 
 AC_PREREQ(2.55)
@@ -13,7 +13,7 @@ AC_CANONICAL_TARGET
 AM_INIT_AUTOMAKE(1.7 dist-bzip2 foreign)
 
 dnl
-dnl  Checks for programs.
+dnl Checks for programs.
 dnl
 
 AC_PROG_CC
@@ -950,16 +950,18 @@ if [[ "x$WANT_NCURSES" = "xyes" ]]; then
  fi
 fi
 
-dnl Qt graphics
-if [[ "x$WANT_QT" = "xyes" ]]; then
- if [[ "x$HAVE_QT" = "xyes" ]]; then
-  GFX_DEP=gfx-qt
-  GFX_NAME=QT
-  GFX_LIBS=
-  GFX_CFLAGS=
-  GFX_CPPFLAGS=
- fi
-fi
+dnl
+dnl QT graphics
+dnl
+dnl if [[ "x$WANT_QT" = "xyes" ]]; then
+dnl if [[ "x$HAVE_QT" = "xyes" ]]; then
+dnl  GFX_DEP=gfx-qt
+dnl  GFX_NAME=QT
+dnl  GFX_LIBS=
+dnl  GFX_CFLAGS=
+dnl  GFX_CPPFLAGS=
+dnl fi
+dnl fi
 
 dnl  Check whether we actually wanted to use SDL or whether
 dnl  we need to use SDL because we couldn't find any other
@@ -1176,9 +1178,22 @@ if [[ "x$WANT_UI" = "xno" ]]; then
   GUI_DEP=gui-none
   GUI_LIBS=
   GUI_NAME=none
-else
- dnl 
- dnl
+fi
+
+  dnl Hack for building Cocoa gui on OS X
+  dnl We really should reall check for the presence of objc and Cocoa first
+  if [[ "$HOST_OS" = "darwin" ]]; then
+    if [[ "x$WANT_COCOA_UI" != "xno" -o "x$HAVE_GTK" = "xno" ]]; then
+      GUI_DEP=gui-cocoa
+      GUI_CFLAGS="$CFLAGS -DNO_MAIN_IN_MAIN_C"
+      GUI_LIBS="-framework Cocoa"
+      GUI_NAME="Cocoa"
+    fi
+  fi
+
+dnl 
+dnl QT GUI
+dnl
  if [[ "x$WANT_QT" = "xyes" ]]; then
   if [[ "x$HAVE_QT" = "xyes" ]]; then
       GUI_DEP=gui-qt
@@ -1193,16 +1208,6 @@ else
   fi
  fi
 
-  dnl Hack for building Cocoa gui on OS X
-  dnl We really should reall check for the presence of objc and Cocoa first
-  if [[ "$HOST_OS" = "darwin" ]]; then
-    if [[ "x$WANT_COCOA_UI" != "xno" -o "x$HAVE_GTK" = "xno" ]]; then
-      GUI_DEP=gui-cocoa
-      GUI_CFLAGS="$CFLAGS -DNO_MAIN_IN_MAIN_C"
-      GUI_LIBS="-framework Cocoa"
-      GUI_NAME="Cocoa"
-    fi
-  fi
   if [[ "$GUI_DEP" = "gui-none" ]]; then
     if [[ "x$HAVE_GTK" = "xno" ]]; then
       AC_MSG_WARN([UI wanted, but no UI useable target found])
@@ -1219,7 +1224,7 @@ else
       fi
     fi
   fi
-fi
+
 AC_MSG_RESULT("$GUI_NAME")
 
 
@@ -1693,7 +1698,11 @@ dnl
 AC_MSG_CHECKING([want floppy drive sound emulation])
 if [[ "x$WANT_DRVSND" != "xno" ]]; then
   AC_MSG_RESULT(yes)
+if [[ "x$SND_NAME" != "xnone" ]]; then
   UAE_DEFINES="$UAE_DEFINES -DDRIVESOUND"
+else
+ AC_MSG_NOTICE([No (No Sound Emulation)])
+fi
 else
   AC_MSG_RESULT(no)
 fi
@@ -1711,10 +1720,10 @@ UAE_DEFINES="$UAE_DEFINES -DCPU_64_BIT -D__x86_64__"
 fi
 AC_MSG_RESULT([$is_64bit])
 
-dnl
-dnl Do we want CPU Specific Optimizations
-dnl //mtufan
-dnl
+dnl -----------------------------------------------
+dnl Do we want CPU Specific Optimizations?
+dnl mtufan
+dnl -----------------------------------------------
 AC_MSG_CHECKING([whether to use CPU Specific GCC Optimizations])
 if [[ "x$WANT_OPT" == "xyes" ]]; then
   AC_MSG_RESULT(yes)

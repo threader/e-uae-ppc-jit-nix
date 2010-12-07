@@ -1348,9 +1348,10 @@ static int cfgfile_parse_host (struct uae_prefs *p, TCHAR *option, TCHAR *value)
 		|| cfgfile_intval (option, value, "floppy1sound", &p->floppyslots[1].dfxclick, 1)
 		|| cfgfile_intval (option, value, "floppy2sound", &p->floppyslots[2].dfxclick, 1)
 		|| cfgfile_intval (option, value, "floppy3sound", &p->floppyslots[3].dfxclick, 1)
-#endif
 		|| cfgfile_intval (option, value, "floppy_channel_mask", &p->dfxclickchannelmask, 1)
-		|| cfgfile_intval (option, value, "floppy_volume", &p->dfxclickvolume, 1))
+		|| cfgfile_intval (option, value, "floppy_volume", &p->dfxclickvolume, 1)
+#endif
+		)
 		return 1;
 
 	if (

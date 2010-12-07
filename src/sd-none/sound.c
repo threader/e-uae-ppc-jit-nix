@@ -69,3 +69,8 @@ void master_sound_volume (int dir)
 void sound_mute (int newmute)
 {
 }
+
+void restart_sound_buffer (void)
+{
+}
+
