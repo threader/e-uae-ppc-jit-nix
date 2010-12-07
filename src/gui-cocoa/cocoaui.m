@@ -136,7 +136,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 	
 	[self createMenuItemInMenu:vAmigaMenu withTitle:@"Reset" action:@selector(resetAmiga:) tag:0];
 	[self createMenuItemInMenu:vAmigaMenu withTitle:@"Hard Reset" action:@selector(resetAmiga:) tag:1];
-	[self createMenuItemInMenu:vAmigaMenu withTitle:@"Hebe" action:@selector(hebeHebe:) tag:0];
+//	[self createMenuItemInMenu:vAmigaMenu withTitle:@"Hebe" action:@selector(hebeHebe:) tag:0];
 //	[self createMenuItemInMenu:vAmigaMenu withTitle:@"Pause" action:@selector(pauseAmiga:) tag:0];
 	
 #ifdef ACTION_REPLAY
@@ -499,11 +499,10 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 	[window center];
 	[window makeKeyAndOrderFront: window];
 
-	NSTabViewItem* item=[[NSTabViewItem alloc] initWithIdentifier:identifier];
+/*	NSTabViewItem* item=[[NSTabViewItem alloc] initWithIdentifier:identifier];
 	[item setLabel:label];
 	[item setView:newView];
-	[tabView addTabViewItem:item];
-
+	[tabView addTabViewItem:item];*/
 }
 
 - (void)resetAmiga:(id)sender
