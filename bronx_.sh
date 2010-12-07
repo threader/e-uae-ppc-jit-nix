@@ -13,6 +13,6 @@ other=" --with-caps --enable-amax "
 #
 #
 ./bootstrap.sh
-./configure $base $cd32 $a600 $scsi $other
+./configure $base $wiqt $cd32 $a600 $scsi $other
 make clean
 make

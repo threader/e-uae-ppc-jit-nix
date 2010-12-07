@@ -1,13 +1,23 @@
-QT_INCPATH = $(shell qmake -query QT_INSTALL_HEADERS)
-
-AM_CFLAGS    = @UAE_CFLAGS@
-AM_CPPFLAGS  = @UAE_CPPFLAGS@
+AM_CFLAGS = @UAE_CFLAGS@
+AM_CPPFLAGS = @UAE_CPPFLAGS@
 AM_CPPFLAGS += -I$(top_srcdir)/src/include -I$(top_builddir)/src -I$(top_srcdir)/src -I$(top_srcdir)
-AM_CPPFLAGS += -I$(QT_INCPATH) -I$(QT_INCPATH)/QtCore -I$(QT_INCPATH)/QtGui -I/usr/local/Qt4.7/mkspecs/macx-xcode 
-AM_CPPFLAGS += -I/Library/Frameworks/QtCore.framework/Versions/4/Headers -I/Library/Frameworks/QtGui.framework/Versions/4/Headers 
-AM_CPPFLAGS += -I/System/Library/Frameworks/CarbonCore.framework/Headers -F/Library/Frameworks
+LIBS = -L/usr/lib -lpthread
+
+if IS_QT
+QT_INCPATH = $(shell qmake -query QT_INSTALL_HEADERS)
+QT_INSPATH = $(shell qmake -query QT_INSTALL_DATA)
+AM_CPPFLAGS += -I$(QT_INCPATH) -I$(QT_INCPATH)/QtCore -I$(QT_INCPATH)/QtGui
+AM_CPPFLAGS += -I$(QT_INSPATH)/mkspecs/default
+if BUILD_MACOSX_BUNDLE
+AM_CPPFLAGS += -I/usr/local/Qt4.7/mkspecs/macx-xcode
+AM_CPPFLAGS += -I/System/Library/Frameworks/CarbonCore.framework/Headers
+AM_CPPFLAGS += -F/Library/Frameworks
+AM_CPPFLAGS += -I/Library/Frameworks/QtCore.framework/Versions/4/Headers
+AM_CPPFLAGS += -I/Library/Frameworks/QtGui.framework/Versions/4/Headers
+endif
 DEFINES = -DQT_NO_DEBUG -DQT_GUI_LIB -DQT_CORE_LIB -DQT_SHARED
-LIBS = -L/usr/lib -lQtGui -lQtCore -lpthread
+LIBS += -lQtGui -lQtCore
+endif
 
 
 SUBDIRS = \

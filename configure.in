@@ -135,6 +135,15 @@ AC_MSG_RESULT( $QT_INSTALL_LIBS )
 fi
 
 dnl
+dnl
+dnl
+if [[ "x$HAVE_QT" = "xno" ]]; then
+if [[ "x$WANT_QT" = "xyes" ]]; then
+WANT_QT=no
+fi
+fi
+
+dnl
 dnl  Checks for header files.
 dnl
 AC_HEADER_DIRENT
@@ -1886,7 +1895,9 @@ AC_CONFIG_FILES([Makefile
 AM_CONDITIONAL(TARGET_BIGENDIAN, test x$ac_cv_c_bigendian = xyes)
 AM_CONDITIONAL(TARGET_BEOS,  test x$OSDEP = xod-beos)
 AM_CONDITIONAL(TARGET_WIN32, test x$OSDEP = xod-win32)
+AM_CONDITIONAL(TARGET_LINUX, test x$OSDEP = xod-linux)
 AM_CONDITIONAL(BUILD_MACOSX_BUNDLE, test x$OSDEP = xod-macosx)
+AM_CONDITIONAL(IS_QT, test x$WANT_QT = xyes)
 
 AC_SUBST(UAE_CFLAGS)
 AC_SUBST(UAE_CPPFLAGS)

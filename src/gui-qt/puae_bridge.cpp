@@ -1,3 +1,12 @@
+/*
+ * PUAE - The *nix Amiga Emulator
+ *
+ * QT GUI for PUAE
+ *
+ * Copyright 2010 Mustafa 'GnoStiC' TUFAN
+ *
+ */
+
 #include <QtGui/QApplication>
 #include <QThread>
 #include "puae_bridge.h"

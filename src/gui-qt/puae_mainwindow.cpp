@@ -1,3 +1,13 @@
+/*
+ * PUAE - The *nix Amiga Emulator
+ *
+ * QT GUI for PUAE
+ *
+ * Copyright 2010 Mustafa 'GnoStiC' TUFAN
+ * (GUI layout cloned from WinUAE/Toni Wilen)
+ *
+ */
+
 #include "puae_mainwindow.h"
 #include "ui_puae_mainwindow.h"
 
