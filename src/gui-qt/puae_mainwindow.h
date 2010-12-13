@@ -115,11 +115,55 @@ private slots:
     void on_IDC_PATHS_CONFIGS_clicked();
     void on_IDC_PATHS_ROMS_clicked();
 //macros
-    void values_to_memorydlg();
     void out_floppyspeed();
-    void fix_values_memorydlg();
     void updatez3 (unsigned int *size1p, unsigned int *size2p);
+    int getcpufreq (int);
+//
     void enable_for_memorydlg ();
+    void values_from_memorydlg ();
+    void values_to_memorydlg ();
+    void fix_values_memorydlg ();
+//
+    void enable_for_chipsetdlg ();
+    void values_from_chipsetdlg ();
+    void values_to_chipsetdlg ();
+//
+    void enable_for_chipsetdlg2 ();
+    void values_from_chipsetdlg2 ();
+    void values_to_chipsetdlg2 ();
+//
+    void enable_for_displaydlg ();
+    void values_from_displaydlg ();
+    void values_to_displaydlg ();
+//
+    void enable_for_sounddlg ();
+    void values_from_sounddlg ();
+    void values_to_sounddlg ();
+//
+    void enable_for_expansiondlg ();
+    void values_to_expansiondlg ();
+//
+    void enable_for_miscdlg ();
+    void values_to_miscdlg ();
+//
+    void enable_for_gameportsdlg ();
+    void values_from_gameportsdlg ();
+//
+    void enable_for_cpudlg ();
+    void values_from_cpudlg ();
+    void values_to_cpudlg ();
+//
+    void enable_for_inputdlg ();
+    void values_from_inputdlg ();
+    void values_to_inputdlg ();
+//
+    void init_portsdlg ();
+    void enable_for_portsdlg ();
+    void values_from_portsdlg ();
+    void values_to_portsdlg ();
+//
+    void values_from_kickstartdlg ();
+    void values_to_kickstartdlg ();
 };
 
 #define TCHAR char

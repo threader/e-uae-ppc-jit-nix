@@ -17,9 +17,18 @@
 
 extern "C" {
 #include "include/options.h"
+extern int candirect;
+extern bool canbang;
 struct uae_prefs workprefs;
 }
 
+// defs from custom.h
+/* These are the masks that are ORed together in the chipset_mask option.
+ * If CSMASK_AGA is set, the ECS bits are guaranteed to be set as well.  */
+#define CSMASK_ECS_AGNUS 1
+#define CSMASK_ECS_DENISE 2
+#define CSMASK_AGA 4
+#define CSMASK_MASK (CSMASK_ECS_AGNUS | CSMASK_ECS_DENISE | CSMASK_AGA)
 
 // Paths Tab
 QString PATHS_ROM, PATHS_CONFIG, PATHS_SCREENSHOT, PATHS_SAVESTATE, PATHS_AVIOUTPUT, PATHS_SAVEIMAGE, PATHS_RIP;
@@ -523,7 +532,6 @@ void puae_MainWindow::on_IDC_CS_CD32CD_toggled(bool ischecked)
     workprefs.cs_cd32cd = ischecked;
 }
 
-
 void puae_MainWindow::on_IDC_CS_CD32C2P_toggled(bool ischecked)
 {
     workprefs.cs_cd32c2p = ischecked;
@@ -731,6 +739,14 @@ void puae_MainWindow::on_IDC_FLOPPYSPD_valueChanged(int value)
 //
 // Santa's Little Helpers
 //
+int puae_MainWindow::getcpufreq (int m)
+{
+        int f;
+
+        f = workprefs.ntscmode ? 28636360.0 : 28375160.0;
+        return f * (m >> 8) / 8;
+}
+
 void puae_MainWindow::fix_values_memorydlg()
 {
     if (workprefs.chipmem_size > 0x200000)
@@ -919,4 +935,660 @@ void puae_MainWindow::enable_for_memorydlg ()
     ui->IDC_RTG_SCALE_ALLOW->setEnabled(rtg2);
     ui->IDC_RTG_SCALE_ASPECTRATIO->setEnabled(rtg2);
     ui->IDC_RTG_VBLANKRATE->setEnabled(rtg2);
+}
+
+void puae_MainWindow::values_to_chipsetdlg ()
+{
+        switch (workprefs.chipset_mask) {
+        case 0:
+		ui->IDC_OCS->setChecked(true);
+                break;
+        case CSMASK_ECS_AGNUS:
+		ui->IDC_ECS_AGNUS->setChecked(true);
+                break;
+        case CSMASK_ECS_DENISE:
+		ui->IDC_ECS_DENISE->setChecked(true);
+                break;
+        case CSMASK_ECS_AGNUS | CSMASK_ECS_DENISE:
+		ui->IDC_ECS->setChecked(true);
+                break;
+        case CSMASK_AGA:
+        case CSMASK_ECS_AGNUS | CSMASK_ECS_DENISE | CSMASK_AGA:
+		ui->IDC_AGA->setChecked(true);
+                break;
+        }
+	
+	ui->IDC_NTSC->setChecked(workprefs.ntscmode);
+	ui->IDC_GENLOCK->setChecked(workprefs.genlock);
+	ui->IDC_BLITIMM->setChecked(workprefs.immediate_blits);
+	switch (workprefs.collision_level) {
+	case 0:
+		ui->IDC_COLLISION0->setChecked(true);
+		break;
+	case 1:
+		ui->IDC_COLLISION1->setChecked(true);
+		break;
+	case 2:
+		ui->IDC_COLLISION2->setChecked(true);
+		break;
+	case 3:
+		ui->IDC_COLLISION3->setChecked(true);
+		break;
+	}
+	ui->IDC_CYCLEEXACT->setChecked(workprefs.cpu_cycle_exact);
+	int index = ui->IDC_CS_EXT->findData(workprefs.cs_compatible);
+	ui->IDC_CS_EXT->setCurrentIndex(index);
+}
+
+void puae_MainWindow::values_from_chipsetdlg ()
+{
+        bool success = FALSE;
+        int nn;
+        bool n;
+
+        workprefs.genlock = ui->IDC_GENLOCK->checkState();
+        workprefs.immediate_blits = ui->IDC_BLITIMM->checkState();
+        n = ui->IDC_CYCLEEXACT->checkState();
+        if (workprefs.cpu_cycle_exact != n) {
+                workprefs.cpu_cycle_exact = workprefs.blitter_cycle_exact = n;
+                if (n) {
+                        if (workprefs.cpu_model == 68000)
+                                workprefs.cpu_compatible = 1;
+                        if (workprefs.cpu_model <= 68020)
+                                workprefs.m68k_speed = 0;
+                        workprefs.immediate_blits = 0;
+                        workprefs.gfx_framerate = 1;
+                        workprefs.cachesize = 0;
+                }   
+        }
+        workprefs.collision_level = ui->IDC_COLLISION0->isChecked() ? 0
+                : ui->IDC_COLLISION1->isChecked() ? 1
+                : ui->IDC_COLLISION2->isChecked() ? 2 : 3;
+        workprefs.chipset_mask = ui->IDC_OCS->isChecked() ? 0
+                : ui->IDC_ECS_AGNUS->isChecked() ? CSMASK_ECS_AGNUS
+                : ui->IDC_ECS_DENISE->isChecked() ? CSMASK_ECS_DENISE
+                : ui->IDC_ECS->isChecked() ? CSMASK_ECS_AGNUS | CSMASK_ECS_DENISE
+                : CSMASK_AGA | CSMASK_ECS_AGNUS | CSMASK_ECS_DENISE;
+        n = ui->IDC_NTSC->isChecked();
+        if (workprefs.ntscmode != n) {
+                workprefs.ntscmode = n;
+        }
+//TODO
+
+}
+
+void puae_MainWindow::values_to_chipsetdlg2 ()
+{
+        TCHAR txt[32];
+        uae_u32 rev;
+
+        switch(workprefs.cs_ciaatod) {
+        case 0:                 
+		ui->IDC_CS_CIAA_TOD1->setChecked(true);
+                break;
+        case 1:
+		ui->IDC_CS_CIAA_TOD2->setChecked(true);
+                break;
+        case 2:
+		ui->IDC_CS_CIAA_TOD3->setChecked(true);
+                break;
+        }
+
+        switch(workprefs.cs_rtc) {
+        case 0:
+		ui->IDC_CS_RTC1->setChecked(true);
+                break;
+        case 1:
+		ui->IDC_CS_RTC2->setChecked(true);
+                break;
+        case 2:
+		ui->IDC_CS_RTC3->setChecked(true);
+                break;
+        }
+
+        ui->IDC_CS_COMPATIBLE->setChecked(workprefs.cs_compatible);
+        ui->IDC_CS_RESETWARNING->setChecked(workprefs.cs_resetwarning);
+        ui->IDC_CS_NOEHB->setChecked(workprefs.cs_denisenoehb);
+        ui->IDC_CS_DIPAGNUS->setChecked(workprefs.cs_dipagnus);
+        ui->IDC_CS_KSMIRROR_E0->setChecked(workprefs.cs_ksmirror_e0);
+        ui->IDC_CS_KSMIRROR_A8->setChecked(workprefs.cs_ksmirror_a8);
+        ui->IDC_CS_CIAOVERLAY->setChecked(workprefs.cs_ciaoverlay);
+        ui->IDC_CS_DF0IDHW->setChecked(workprefs.cs_df0idhw);
+        ui->IDC_CS_CD32CD->setChecked(workprefs.cs_cd32cd);
+        ui->IDC_CS_CD32C2P->setChecked(workprefs.cs_cd32c2p);
+        ui->IDC_CS_CD32NVRAM->setChecked(workprefs.cs_cd32nvram);
+        ui->IDC_CS_CDTVCD->setChecked(workprefs.cs_cdtvcd);
+        ui->IDC_CS_CDTVRAM->setChecked(workprefs.cs_cdtvram);
+        ui->IDC_CS_CDTVRAMEXP->setChecked(workprefs.cs_cdtvcard);
+        ui->IDC_CS_A1000RAM->setChecked(workprefs.cs_a1000ram);
+        ui->IDC_CS_RAMSEY->setChecked(workprefs.cs_ramseyrev >= 0);
+        ui->IDC_CS_FATGARY->setChecked(workprefs.cs_fatgaryrev >= 0);
+        ui->IDC_CS_AGNUS->setChecked(workprefs.cs_agnusrev >= 0);
+        ui->IDC_CS_DENISE->setChecked(workprefs.cs_deniserev >= 0);
+        ui->IDC_CS_DMAC->setChecked(workprefs.cs_mbdmac == 1);
+        ui->IDC_CS_DMAC2->setChecked(workprefs.cs_mbdmac == 2);
+        ui->IDC_CS_A2091->setChecked(workprefs.cs_a2091);
+        ui->IDC_CS_A4091->setChecked(workprefs.cs_a4091);
+        ui->IDC_CS_CDTVSCSI->setChecked(workprefs.cs_cdtvscsi);
+  //      ui->IDC_CS_SCSIMODE->setChecked(workprefs.scsi == 2);
+        ui->IDC_CS_PCMCIA->setChecked(workprefs.cs_pcmcia);
+        ui->IDC_CS_SLOWISFAST->setChecked(workprefs.cs_slowmemisfast);
+        ui->IDC_CS_IDE1->setChecked(workprefs.cs_ide > 0 && (workprefs.cs_ide & 1));
+        ui->IDC_CS_IDE2->setChecked(workprefs.cs_ide > 0 && (workprefs.cs_ide & 2));
+        txt[0] = 0;
+
+        printf (txt, "%d", workprefs.cs_rtc_adjust);
+        ui->IDC_CS_RTCADJUST->setText(txt);
+        txt[0] = 0;
+        if (workprefs.cs_fatgaryrev >= 0)
+                printf (txt, "%02X", workprefs.cs_fatgaryrev);
+        ui->IDC_CS_FATGARYREV->setText(txt);
+        txt[0] = 0;
+        if (workprefs.cs_ramseyrev >= 0)
+                printf (txt, "%02X", workprefs.cs_ramseyrev);
+        ui->IDC_CS_RAMSEYREV->setText(txt);
+        txt[0] = 0;
+        if (workprefs.cs_agnusrev >= 0) {
+                rev = workprefs.cs_agnusrev;
+                printf (txt, "%02X", rev);
+        } else if (workprefs.cs_compatible) {
+                rev = 0;
+                if (workprefs.ntscmode)
+                        rev |= 0x10;
+                rev |= (workprefs.chipset_mask & CSMASK_AGA) ? 0x23 : 0;
+                rev |= (currprefs.chipset_mask & CSMASK_ECS_AGNUS) ? 0x20 : 0;
+                if (workprefs.chipmem_size > 1024 * 1024 && (workprefs.chipset_mask & CSMASK_ECS_AGNUS))
+                        rev |= 0x21;
+                printf (txt, "%02X", rev);
+        }
+        ui->IDC_CS_AGNUSREV->setText(txt);
+        txt[0] = 0;
+        if (workprefs.cs_deniserev >= 0) {
+                rev = workprefs.cs_deniserev;
+                printf (txt, "%01.1X", rev);
+        } else if (workprefs.cs_compatible) {
+                rev = 0xf;
+                if (workprefs.chipset_mask & CSMASK_ECS_DENISE)
+                        rev = 0xc;
+                if (workprefs.chipset_mask & CSMASK_AGA)
+                        rev = 0x8;
+                printf (txt, "%01.1X", rev);
+        }
+        ui->IDC_CS_DENISEREV->setText(txt);
+}
+
+void puae_MainWindow::values_from_chipsetdlg2 ()
+{
+        TCHAR txt[32], *p;
+        int v;
+
+        workprefs.cs_compatible = ui->IDC_CS_COMPATIBLE->isChecked();
+        workprefs.cs_resetwarning = ui->IDC_CS_RESETWARNING->isChecked();
+        workprefs.cs_denisenoehb = ui->IDC_CS_NOEHB->isChecked();
+        workprefs.cs_dipagnus = ui->IDC_CS_DIPAGNUS->isChecked();
+        workprefs.cs_agnusbltbusybug = workprefs.cs_dipagnus;
+        workprefs.cs_ksmirror_e0 = ui->IDC_CS_KSMIRROR_E0->isChecked();
+        workprefs.cs_ksmirror_a8 = ui->IDC_CS_KSMIRROR_A8->isChecked();
+        workprefs.cs_ciaoverlay = ui->IDC_CS_CIAOVERLAY->isChecked();
+        workprefs.cs_df0idhw = ui->IDC_CS_DF0IDHW->isChecked();
+        workprefs.cs_cd32cd = ui->IDC_CS_CD32CD->isChecked();
+        workprefs.cs_cd32c2p = ui->IDC_CS_CD32C2P->isChecked();
+        workprefs.cs_cd32nvram = ui->IDC_CS_CD32NVRAM->isChecked();
+        workprefs.cs_cdtvcd = ui->IDC_CS_CDTVCD->isChecked();
+        workprefs.cs_cdtvram = ui->IDC_CS_CDTVRAM->isChecked();
+        workprefs.cs_cdtvcard = ui->IDC_CS_CDTVRAMEXP->isChecked() ? 64 : 0;
+        workprefs.cs_a1000ram = ui->IDC_CS_A1000RAM->isChecked();
+        workprefs.cs_ramseyrev = ui->IDC_CS_RAMSEY->isChecked() ? 0x0f : -1;
+        workprefs.cs_fatgaryrev = ui->IDC_CS_FATGARY->isChecked() ? 0x00 : -1;
+        workprefs.cs_mbdmac = ui->IDC_CS_DMAC->isChecked() ? 1 : 0;
+        if (workprefs.cs_mbdmac == 0)
+                workprefs.cs_mbdmac = ui->IDC_CS_DMAC2->isChecked() ? 2 : 0;
+        workprefs.cs_a2091 = ui->IDC_CS_A2091->isChecked() ? 1 : 0;
+        workprefs.cs_a4091 = ui->IDC_CS_A4091->isChecked() ? 1 : 0;
+
+        workprefs.cs_cdtvscsi = ui->IDC_CS_CDTVSCSI->isChecked() ? 1 : 0;
+        workprefs.cs_pcmcia = ui->IDC_CS_PCMCIA->isChecked() ? 1 : 0;
+        workprefs.cs_slowmemisfast = ui->IDC_CS_SLOWISFAST->isChecked() ? 1 : 0;
+        workprefs.cs_ide = ui->IDC_CS_IDE1->isChecked() ? 1 : (ui->IDC_CS_IDE2->isChecked() ? 2 : 0);
+        workprefs.cs_ciaatod = ui->IDC_CS_CIAA_TOD1->isChecked() ? 0
+                : (ui->IDC_CS_CIAA_TOD2->isChecked() ? 1 : 2);
+        workprefs.cs_rtc = ui->IDC_CS_RTC1->isChecked() ? 0
+                : (ui->IDC_CS_RTC2->isChecked() ? 1 : 2);
+
+/*        if (workprefs.cs_rtc) {
+                txt[0] = 0;
+                SendDlgItemMessage (hDlg, IDC_CS_RTCADJUST, WM_GETTEXT, (WPARAM)sizeof (txt) / sizeof (TCHAR), (LPARAM)txt);
+                workprefs.cs_rtc_adjust = _tstol(txt);
+        }
+        if (workprefs.cs_fatgaryrev >= 0) {
+                txt[0] = 0;
+                SendDlgItemMessage (hDlg, IDC_CS_FATGARYREV, WM_GETTEXT, (WPARAM)sizeof (txt) / sizeof (TCHAR), (LPARAM)txt);
+                v = _tcstol (txt, &p, 16);
+                if (v >= 0 && v <= 255)
+                        workprefs.cs_fatgaryrev = v;
+        }
+        if (workprefs.cs_ramseyrev >= 0) {
+                txt[0] = 0;
+                SendDlgItemMessage (hDlg, IDC_CS_RAMSEYREV, WM_GETTEXT, (WPARAM)sizeof (txt) / sizeof (TCHAR), (LPARAM)txt);
+                v = _tcstol (txt, &p, 16);
+                if (v >= 0 && v <= 255)
+                        workprefs.cs_ramseyrev = v;
+        }
+        if (workprefs.cs_agnusrev >= 0) {
+                txt[0] = 0;
+                SendDlgItemMessage (hDlg, IDC_CS_AGNUSREV, WM_GETTEXT, (WPARAM)sizeof (txt) / sizeof (TCHAR), (LPARAM)txt);
+                v = _tcstol (txt, &p, 16);
+                if (v >= 0 && v <= 255)
+                        workprefs.cs_agnusrev = v;
+        }
+        if (workprefs.cs_deniserev >= 0) {
+                txt[0] = 0;
+                SendDlgItemMessage (hDlg, IDC_CS_DENISEREV, WM_GETTEXT, (WPARAM)sizeof (txt) / sizeof (TCHAR), (LPARAM)txt);
+                v = _tcstol (txt, &p, 16);
+                if (v >= 0 && v <= 15)
+                        workprefs.cs_deniserev = v;
+        }
+*/
+
+}
+
+void puae_MainWindow::enable_for_chipsetdlg2 ()
+{
+        int e = workprefs.cs_compatible ? FALSE : TRUE;
+
+        ui->IDC_CS_FATGARY->setEnabled(e);
+        ui->IDC_CS_RAMSEY->setEnabled(e);
+        ui->IDC_CS_AGNUS->setEnabled(e);
+        ui->IDC_CS_DENISE->setEnabled(e);
+        ui->IDC_CS_FATGARYREV->setEnabled(e);
+        ui->IDC_CS_RAMSEYREV->setEnabled(e);
+        ui->IDC_CS_AGNUSREV->setEnabled(e);
+        ui->IDC_CS_DENISEREV->setEnabled(e);
+        ui->IDC_CS_IDE1->setEnabled(e);
+        ui->IDC_CS_IDE2->setEnabled(e);
+        ui->IDC_CS_DMAC->setEnabled(e);
+        ui->IDC_CS_DMAC2->setEnabled(e);
+        ui->IDC_CS_A2091->setEnabled(e);
+        ui->IDC_CS_A4091->setEnabled(e);
+//        ShowWindow (GetDlgItem(hDlg, IDC_CS_SCSIMODE), SW_HIDE);
+//        ui->IDC_CS_SCSIMODE, FALSE);
+        ui->IDC_CS_CDTVSCSI->setEnabled(e);
+        ui->IDC_CS_PCMCIA->setEnabled(e);
+        ui->IDC_CS_SLOWISFAST->setEnabled(e);
+        ui->IDC_CS_CD32CD->setEnabled(e);
+        ui->IDC_CS_CD32NVRAM->setEnabled(e);
+        ui->IDC_CS_CD32C2P->setEnabled(e);
+        ui->IDC_CS_CDTVCD->setEnabled(e);
+        ui->IDC_CS_CDTVRAM->setEnabled(e);
+        ui->IDC_CS_CDTVRAMEXP->setEnabled(e);
+        ui->IDC_CS_RESETWARNING->setEnabled(e);
+        ui->IDC_CS_NOEHB->setEnabled(e);
+        ui->IDC_CS_DIPAGNUS->setEnabled(e);
+        ui->IDC_CS_KSMIRROR_E0->setEnabled(e);
+        ui->IDC_CS_KSMIRROR_A8->setEnabled(e);
+        ui->IDC_CS_CIAOVERLAY->setEnabled(e);
+        ui->IDC_CS_A1000RAM->setEnabled(e);
+        ui->IDC_CS_DF0IDHW->setEnabled(e);
+        ui->IDC_CS_CIAA_TOD1->setEnabled(e);
+        ui->IDC_CS_CIAA_TOD2->setEnabled(e);
+        ui->IDC_CS_CIAA_TOD3->setEnabled(e);
+        ui->IDC_CS_RTC1->setEnabled(e);
+        ui->IDC_CS_RTC2->setEnabled(e);
+        ui->IDC_CS_RTC3->setEnabled(e);
+        ui->IDC_CS_RTCADJUST->setEnabled(e);
+
+}
+
+void puae_MainWindow::enable_for_chipsetdlg ()
+{
+        int enable = workprefs.cpu_cycle_exact ? FALSE : TRUE;
+        
+#if !defined (CPUEMU_12)
+        ui->IDC_CYCLEEXACT->setEnabled(FALSE);
+#endif
+//        ui->IDC_FASTCOPPER->setEnabled(enable);
+//        ui->IDC_GENLOCK->setEnabled(full_property_sheet);
+        ui->IDC_BLITIMM->setEnabled(enable);
+        if (enable == FALSE) {
+                workprefs.immediate_blits = 0;
+//		ui->IDC_FASTCOPPER->setEnabled(FALSE);
+		ui->IDC_BLITIMM->setEnabled(FALSE);
+        }
+        ui->IDC_CS_EXT->setEnabled(workprefs.cs_compatible ? TRUE : FALSE);
+}
+
+void puae_MainWindow::enable_for_displaydlg ()
+{
+        int rtg = ! workprefs.address_space_24;
+#ifndef PICASSO96
+        rtg = FALSE;
+#endif
+        ui->IDC_SCREENMODE_RTG->setEnabled(rtg);
+        ui->IDC_XCENTER->setEnabled(TRUE);
+        ui->IDC_YCENTER->setEnabled(TRUE);
+        ui->IDC_LM_SCANLINES->setEnabled(TRUE);
+        ui->IDC_FRAMERATE2->setEnabled(!workprefs.gfx_avsync);
+        ui->IDC_FRAMERATE->setEnabled(!workprefs.cpu_cycle_exact);
+        ui->IDC_LORES->setEnabled(!workprefs.gfx_autoresolution);
+        ui->IDC_LM_NORMAL->setEnabled(!workprefs.gfx_autoresolution);
+        ui->IDC_LM_DOUBLED->setEnabled(!workprefs.gfx_autoresolution);
+        ui->IDC_LM_SCANLINES->setEnabled(!workprefs.gfx_autoresolution);
+}
+
+void puae_MainWindow::enable_for_cpudlg ()
+{
+        bool enable = FALSE, jitenable = FALSE;
+        bool cpu_based_enable = FALSE;
+        bool fpu;
+
+        /* These four items only get enabled when adjustable CPU style is enabled */
+        ui->IDC_SPEED->setEnabled(workprefs.m68k_speed > 0);
+        ui->IDC_COMPATIBLE24->setEnabled(workprefs.cpu_model == 68020);
+        ui->IDC_CS_HOST->setEnabled(!workprefs.cpu_cycle_exact);
+        ui->IDC_CS_68000->setEnabled(!workprefs.cpu_cycle_exact);
+        ui->IDC_CS_ADJUSTABLE->setEnabled(!workprefs.cpu_cycle_exact);
+        ui->IDC_CPUIDLE->setEnabled(workprefs.m68k_speed != 0 ? TRUE : FALSE);
+#if !defined(CPUEMU_0) || defined(CPUEMU_68000_ONLY)
+        ui->IDC_CPU1->setEnabled(FALSE);
+        ui->IDC_CPU2->setEnabled(FALSE);
+        ui->IDC_CPU3->setEnabled(FALSE);
+        ui->IDC_CPU4->setEnabled(FALSE);
+        ui->IDC_CPU5->setEnabled(FALSE);
+#endif
+
+        cpu_based_enable = workprefs.cpu_model >= 68020 && workprefs.address_space_24 == 0;
+
+        jitenable = cpu_based_enable;
+#ifndef JIT
+        jitenable = FALSE;
+#endif
+        enable = jitenable && workprefs.cachesize;
+
+        ui->IDC_TRUST0->setEnabled(enable);
+        ui->IDC_TRUST1->setEnabled(enable);
+        ui->IDC_HARDFLUSH->setEnabled(enable);
+        ui->IDC_CONSTJUMP->setEnabled(enable);
+        ui->IDC_JITFPU->setEnabled(enable);
+        ui->IDC_NOFLAGS->setEnabled(enable);
+//        ui->IDC_CS_CACHE_TEXT->setEnabled(enable);
+        ui->IDC_CACHE->setEnabled(enable);
+        ui->IDC_JITENABLE->setEnabled(jitenable);
+        ui->IDC_COMPATIBLE->setEnabled(!workprefs.cpu_cycle_exact && !workprefs.cachesize);
+        ui->IDC_COMPATIBLE_FPU->setEnabled(workprefs.fpu_model > 0);
+        ui->IDC_CPU_FREQUENCY->setEnabled(workprefs.cpu_cycle_exact);
+        ui->IDC_CPU_FREQUENCY2->setEnabled(workprefs.cpu_cycle_exact && !workprefs.cpu_clock_multiplier);
+
+        fpu = TRUE;
+        if (workprefs.cpu_model > 68030 || workprefs.cpu_compatible || workprefs.cpu_cycle_exact)
+                fpu = FALSE;
+        ui->IDC_FPU1->setEnabled(fpu);
+        ui->IDC_FPU2->setEnabled(fpu);
+        ui->IDC_FPU3->setEnabled(workprefs.cpu_model >= 68040);
+        ui->IDC_MMUENABLE->setEnabled(workprefs.cpu_model == 68040 && workprefs.cachesize == 0);
+}
+
+void puae_MainWindow::values_to_cpudlg ()
+{
+        TCHAR cache[8] = "";
+        int cpu;
+
+//        ui->IDC_SPEED->setChecked( workprefs.m68k_speed <= 0 ? 1 : workprefs.m68k_speed / CYCLE_UNIT );
+//        ui->IDC_CPUTEXT->setChecked(workprefs.m68k_speed <= 0 ? 1 : workprefs.m68k_speed / CYCLE_UNIT);
+        ui->IDC_COMPATIBLE->setChecked(workprefs.cpu_compatible);
+        ui->IDC_COMPATIBLE24->setChecked(workprefs.address_space_24);
+        ui->IDC_COMPATIBLE_FPU->setChecked(workprefs.fpu_strict);
+//	ui->IDC_CPUIDLE->setPOS ( workprefs.cpu_idle == 0 ? 0 : 12 - workprefs.cpu_idle / 15);
+        cpu = (workprefs.cpu_model - 68000) / 10;
+        if (cpu >= 5)
+                cpu--;
+	switch (cpu) {
+	case 0:
+        	ui->IDC_CPU0->setChecked(true);
+	case 1:
+        	ui->IDC_CPU1->setChecked(true);
+	case 2:
+        	ui->IDC_CPU2->setChecked(true);
+	case 3:
+        	ui->IDC_CPU3->setChecked(true);
+	case 4:
+        	ui->IDC_CPU4->setChecked(true);
+	case 5:
+        	ui->IDC_CPU5->setChecked(true);
+	}
+
+	switch (workprefs.fpu_model == 0 ? 0 : (workprefs.fpu_model == 68881 ? 1 : (workprefs.fpu_model == 68882 ? 2 : 3))) {
+	case 0:
+        	ui->IDC_FPU0->setChecked(true);
+	case 1:
+        	ui->IDC_FPU1->setChecked(true);
+	case 2:
+        	ui->IDC_FPU2->setChecked(true);
+	case 3:
+        	ui->IDC_FPU3->setChecked(true);
+	}
+
+/*        if (workprefs.m68k_speed == -1)
+                CheckRadioButton(hDlg, IDC_CS_HOST, IDC_CS_ADJUSTABLE, IDC_CS_HOST);
+        else if (workprefs.m68k_speed == 0)
+                CheckRadioButton(hDlg, IDC_CS_HOST, IDC_CS_ADJUSTABLE, IDC_CS_68000);
+        else
+                CheckRadioButton(hDlg, IDC_CS_HOST, IDC_CS_ADJUSTABLE, IDC_CS_ADJUSTABLE);
+*/
+	switch (workprefs.comptrustbyte) {
+	case 0:
+		ui->IDC_TRUST0->setChecked(true);
+	case 1:
+		ui->IDC_TRUST1->setChecked(true);
+	}
+
+//        SendDlgItemMessage (hDlg, IDC_CACHE, TBM_SETPOS, TRUE, workprefs.cachesize / 1024);
+        printf (cache, "%d MB", workprefs.cachesize / 1024 );
+//        ui->IDC_CACHETEXT->setText(cache);
+
+        ui->IDC_NOFLAGS->setChecked(workprefs.compnf);
+        ui->IDC_JITFPU->setChecked(workprefs.compfpu);
+        ui->IDC_HARDFLUSH->setChecked(workprefs.comp_hardflush);
+        ui->IDC_CONSTJUMP->setChecked(workprefs.comp_constjump);
+        ui->IDC_JITENABLE->setChecked(workprefs.cachesize > 0);
+        ui->IDC_MMUENABLE->setChecked(workprefs.cpu_model == 68040 && workprefs.cachesize == 0 && workprefs.mmu_model == 68040);
+
+        if (workprefs.cpu_cycle_exact) {
+                if (workprefs.cpu_clock_multiplier) {
+                        TCHAR txt[20];
+                        double f = getcpufreq (workprefs.cpu_clock_multiplier);
+                        printf (txt, "%.6f", f / 1000000.0);
+			ui->IDC_CPU_FREQUENCY2->setText(txt);
+                }
+        } else {
+		ui->IDC_CPU_FREQUENCY2->setText("");
+        }
+}
+
+void puae_MainWindow::values_from_cpudlg ()
+{
+        int newcpu, newfpu, newtrust, oldcache, jitena, idx;
+        static int cachesize_prev, trust_prev;
+
+        workprefs.cpu_compatible = workprefs.cpu_cycle_exact | (ui->IDC_COMPATIBLE->isChecked() ? 1 : 0);
+        workprefs.fpu_strict = ui->IDC_COMPATIBLE_FPU->isChecked() ? 1 : 0;
+        workprefs.address_space_24 = ui->IDC_COMPATIBLE24->isChecked() ? 1 : 0;
+/*        workprefs.m68k_speed = ui->IDC_CS_HOST->isChecked() ? -1
+                : ui->IDC_CS_68000->isChecked() ? 0
+                : SendMessage (GetDlgItem (hDlg, IDC_SPEED), TBM_GETPOS, 0, 0) * CYCLE_UNIT;*/
+        workprefs.mmu_model = ui->IDC_MMUENABLE->isChecked() ? 68040 : 0;
+
+        newcpu = ui->IDC_CPU0->isChecked() ? 68000
+                : ui->IDC_CPU1->isChecked() ? 68010
+                : ui->IDC_CPU2->isChecked() ? 68020
+                : ui->IDC_CPU3->isChecked() ? 68030
+                : ui->IDC_CPU4->isChecked() ? 68040
+                : ui->IDC_CPU5->isChecked() ? 68060 : 0;
+        newfpu = ui->IDC_FPU0->isChecked() ? 0
+                : ui->IDC_FPU1->isChecked() ? 1
+                : ui->IDC_FPU2->isChecked() ? 2
+                : ui->IDC_FPU3->isChecked() ? 3 : 0;
+
+        /* When switching away from 68000, disable 24 bit addressing.  */
+        workprefs.cpu_model = newcpu;
+        switch(newcpu)
+        {
+        case 68000:
+        case 68010:
+                workprefs.fpu_model = newfpu == 0 ? 0 : (newfpu == 2 ? 68882 : 68881);
+                if (workprefs.cpu_compatible || workprefs.cpu_cycle_exact)
+                        workprefs.fpu_model = 0;
+                workprefs.address_space_24 = 1;
+                if (newcpu == 0 && workprefs.cpu_cycle_exact)
+                        workprefs.m68k_speed = 0;
+                break;
+        case 68020:
+                workprefs.fpu_model = newfpu == 0 ? 0 : (newfpu == 2 ? 68882 : 68881);
+                break;
+        case 68030:
+                workprefs.address_space_24 = 0;
+                workprefs.fpu_model = newfpu == 0 ? 0 : (newfpu == 2 ? 68882 : 68881);
+                break;
+        case 68040:
+                workprefs.fpu_model = newfpu ? 68040 : 0;
+                workprefs.address_space_24 = 0;
+                if (workprefs.fpu_model)
+                        workprefs.fpu_model = 68040;
+                break;
+        case 68060:
+                workprefs.fpu_model = newfpu ? 68060 : 0;
+                workprefs.address_space_24 = 0;
+                break;
+        }
+
+        newtrust = ui->IDC_TRUST0->isChecked() ? 0 : 1;
+        workprefs.comptrustbyte = newtrust;
+        workprefs.comptrustword = newtrust;
+        workprefs.comptrustlong = newtrust;
+        workprefs.comptrustnaddr= newtrust;
+
+        workprefs.compnf            = ui->IDC_NOFLAGS->isChecked();
+        workprefs.compfpu           = ui->IDC_JITFPU->isChecked();
+        workprefs.comp_hardflush    = ui->IDC_HARDFLUSH->isChecked();
+        workprefs.comp_constjump    = ui->IDC_CONSTJUMP->isChecked();
+
+#ifdef JIT
+        oldcache = workprefs.cachesize;
+        jitena = ui->IDC_JITENABLE->isChecked() ? 1 : 0;
+//        workprefs.cachesize = SendMessage (GetDlgItem (hDlg, IDC_CACHE), TBM_GETPOS, 0, 0) * 1024;
+        if (!jitena) {
+                cachesize_prev = workprefs.cachesize;
+                trust_prev = workprefs.comptrustbyte;
+                workprefs.cachesize = 0;
+        } else if (jitena && !oldcache) {
+                workprefs.cachesize = 8192;
+                if (cachesize_prev) {
+                        workprefs.cachesize = cachesize_prev;
+                        workprefs.comptrustbyte = trust_prev;
+                        workprefs.comptrustword = trust_prev;
+                        workprefs.comptrustlong = trust_prev;
+                        workprefs.comptrustnaddr = trust_prev;
+                }
+        }
+        if (oldcache == 0 && candirect && workprefs.cachesize > 0)
+                canbang = 1;
+#endif
+//        workprefs.cpu_idle = SendMessage (GetDlgItem (hDlg, IDC_CPUIDLE), TBM_GETPOS, 0, 0);
+        if (workprefs.cpu_idle > 0)
+                workprefs.cpu_idle = (12 - workprefs.cpu_idle) * 15;
+
+        if (workprefs.cachesize > 0)
+                workprefs.cpu_compatible = 0;
+/*        if (pages[KICKSTART_ID])
+                SendMessage (pages[KICKSTART_ID], WM_USER, 0, 0);
+        if (pages[DISPLAY_ID])
+                SendMessage (pages[DISPLAY_ID], WM_USER, 0, 0);
+        if (pages[MEMORY_ID])
+                SendMessage (pages[MEMORY_ID], WM_USER, 0, 0);*/
+
+/*        idx = SendDlgItemMessage (hDlg, IDC_CPU_FREQUENCY, CB_GETCURSEL, 0, 0);
+        if (idx != CB_ERR) {
+                int m = workprefs.cpu_clock_multiplier;
+                workprefs.cpu_frequency = 0;
+                workprefs.cpu_clock_multiplier = 0;
+                if (idx == 0)
+                        workprefs.cpu_clock_multiplier = 2 << 8;
+                if (idx == 1)
+                        workprefs.cpu_clock_multiplier = 4 << 8;
+                if (idx == 2)
+                        workprefs.cpu_clock_multiplier = 8 << 8;
+                if (idx == 3) {
+                        TCHAR txt[20];
+                        SendDlgItemMessage (hDlg, IDC_CPU_FREQUENCY2, WM_GETTEXT, (WPARAM)sizeof (txt) / sizeof (TCHAR), (LPARAM)txt);
+                        workprefs.cpu_clock_multiplier = 0;
+                        workprefs.cpu_frequency = _tstof (txt) * 1000000.0;
+                        if (workprefs.cpu_frequency < 1 * 1000000)
+                                workprefs.cpu_frequency = 0;
+                        if (workprefs.cpu_frequency >= 99 * 1000000)
+                                workprefs.cpu_frequency = 0;
+                }
+        }
+*/
+}
+
+void puae_MainWindow::values_from_kickstartdlg () {
+}
+
+void puae_MainWindow::values_to_kickstartdlg () {
+}
+
+void puae_MainWindow::values_from_memorydlg () {
+}
+
+void puae_MainWindow::values_from_displaydlg () {
+}
+
+void puae_MainWindow::values_to_displaydlg () {
+}
+
+void puae_MainWindow::enable_for_sounddlg () {
+}
+
+void puae_MainWindow::values_from_sounddlg () {
+}
+
+void puae_MainWindow::values_to_sounddlg () {
+}
+
+void puae_MainWindow::enable_for_expansiondlg () {
+}
+
+void puae_MainWindow::values_to_expansiondlg () {
+}
+
+void puae_MainWindow::enable_for_miscdlg () {
+}
+
+void puae_MainWindow::values_to_miscdlg () {
+}
+
+void puae_MainWindow::enable_for_gameportsdlg () {
+}
+
+void puae_MainWindow::values_from_gameportsdlg () {
+}
+
+void puae_MainWindow::enable_for_inputdlg () {
+}
+
+void puae_MainWindow::values_from_inputdlg () {
+}
+
+void puae_MainWindow::values_to_inputdlg () {
+}
+
+void puae_MainWindow::init_portsdlg () {
+}
+
+void puae_MainWindow::enable_for_portsdlg () {
+}
+
+void puae_MainWindow::values_from_portsdlg () {
+}
+
+void puae_MainWindow::values_to_portsdlg () {
 }

@@ -5,7 +5,6 @@
 # this is the main script to build (and test) PUAE
 #
 base=" --with-sdl --with-sdl-gl --with-sdl-gfx --with-sdl-sound --enable-drvsnd "
-wiqt=" --with-qt "
 cd32=" --enable-cd32 "
 a600=" --enable-gayle "
 scsi=" --enable-scsi-device --enable-ncr --enable-a2091 "
