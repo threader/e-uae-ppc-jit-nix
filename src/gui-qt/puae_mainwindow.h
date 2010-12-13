@@ -118,9 +118,9 @@ private slots:
     void out_floppyspeed();
     void updatez3 (unsigned int *size1p, unsigned int *size2p);
     int getcpufreq (int);
+    void display_fromselect (int val, int *fs, int *vsync, int p96);
 //
     void enable_for_memorydlg ();
-    void values_from_memorydlg ();
     void values_to_memorydlg ();
     void fix_values_memorydlg ();
 //

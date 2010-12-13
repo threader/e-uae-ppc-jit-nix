@@ -407,4 +407,23 @@ static int catweasel4_configure (void)
 	return 1;
 }
 
+static int detected;
+
+void catweasel_free (void)
+{
+}
+
+int catweasel_init(void)
+{
+fail:
+	catweasel_free ();
+	return 0;
+}
+
+int catweasel_detect (void)
+{
+        if (detected)
+                return detected < 0 ? 0 : 1;
+} 
+
 #endif

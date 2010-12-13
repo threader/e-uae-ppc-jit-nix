@@ -11,9 +11,13 @@
 #include "puae_mainwindow.h"
 #include "ui_puae_mainwindow.h"
 
+#include "puae_bridge.h"
+#include "puae_misc.h"
+
 #include <QMessageBox>
 #include <QDir>
 #include <QFileDialog>
+#define hDlg 0
 
 extern "C" {
 #include "include/options.h"
@@ -22,15 +26,21 @@ extern bool canbang;
 struct uae_prefs workprefs;
 }
 
-// defs from custom.h
-/* These are the masks that are ORed together in the chipset_mask option.
- * If CSMASK_AGA is set, the ECS bits are guaranteed to be set as well.  */
+// defs from *.h
 #define CSMASK_ECS_AGNUS 1
 #define CSMASK_ECS_DENISE 2
 #define CSMASK_AGA 4
 #define CSMASK_MASK (CSMASK_ECS_AGNUS | CSMASK_ECS_DENISE | CSMASK_AGA)
 
-// Paths Tab
+#define VRES_NONDOUBLE 0
+#define VRES_DOUBLE 1
+#define VRES_MAX 1
+
+#define DEFAULT_SOUND_MAXB 16384
+
+int full_property_sheet = 1;
+ 
+ // Paths Tab
 QString PATHS_ROM, PATHS_CONFIG, PATHS_SCREENSHOT, PATHS_SAVESTATE, PATHS_AVIOUTPUT, PATHS_SAVEIMAGE, PATHS_RIP;
 
 // mem
@@ -735,6 +745,54 @@ void puae_MainWindow::on_IDC_FLOPPYSPD_valueChanged(int value)
     out_floppyspeed();
 }
 
+void puae_MainWindow::display_fromselect (int val, int *fs, int *vsync, int p96)
+{
+	int ofs = *fs;
+	if (val == NULL)
+		return;
+	*fs = 0;
+	*vsync = 0;
+	if (p96) {
+		*fs = val / 2;
+		*vsync = val & 1;
+		/*if (*fs == 2 && *fs != ofs) {
+			workprefs.win32_rtgscaleifsmall = 1;
+			workprefs.win32_rtgmatchdepth = 0;
+		}*/
+		return;
+	}
+	switch (val)
+	{
+	case 0:
+		*fs = 0;
+		break;
+	case 1:
+		*fs = 1;
+		break;
+	case 2:
+		*fs = 1;
+		*vsync = 1;
+		break;
+	case 3:
+		*fs = 1;
+		*vsync = 2;
+		break;
+	case 4:
+		*fs = 2;
+		if (workprefs.gfx_filter == 0 && *fs != ofs && !workprefs.gfx_api) {
+			workprefs.gfx_filter = 1;
+			workprefs.gfx_filter_horiz_zoom = 0;
+			workprefs.gfx_filter_vert_zoom = 0;
+			workprefs.gfx_filter_horiz_zoom_mult = 0;
+			workprefs.gfx_filter_vert_zoom_mult = 0;
+			workprefs.gfx_filter_aspect = -1;
+			workprefs.gfx_filter_horiz_offset = 0;
+			workprefs.gfx_filter_vert_offset = 0;
+			workprefs.gfx_filter_keep_aspect = 0;
+		}
+		break;
+	}
+}
 
 //
 // Santa's Little Helpers
@@ -1531,48 +1589,306 @@ void puae_MainWindow::values_from_cpudlg ()
 }
 
 void puae_MainWindow::values_from_kickstartdlg () {
+/*
+  	getromfile (hDlg, IDC_ROMFILE, workprefs.romfile, sizeof (workprefs.romfile) / sizeof (TCHAR));
+	getromfile (hDlg, IDC_ROMFILE2, workprefs.romextfile, sizeof (workprefs.romextfile) / sizeof (TCHAR));
+	getromfile (hDlg, IDC_CARTFILE, workprefs.cartfile, sizeof (workprefs.cartfile) / sizeof (TCHAR));
+*/
 }
 
 void puae_MainWindow::values_to_kickstartdlg () {
-}
+/*
+	addromfiles (fkey, hDlg, IDC_ROMFILE, workprefs.romfile, ROMTYPE_KICK | ROMTYPE_KICKCD32);
+	addromfiles (fkey, hDlg, IDC_ROMFILE2, workprefs.romextfile, ROMTYPE_EXTCD32 | ROMTYPE_EXTCDTV | ROMTYPE_ARCADIABIOS);
+	addromfiles (fkey, hDlg, IDC_CARTFILE, workprefs.cartfile, ROMTYPE_AR | ROMTYPE_SUPERIV | ROMTYPE_NORDIC | ROMTYPE_XPOWER | ROMTYPE_ARCADIAGAME | ROMTYPE_HRTMON | ROMTYPE_CD32CART);
+*/
 
-void puae_MainWindow::values_from_memorydlg () {
+	ui->IDC_FLASHFILE->setText(workprefs.flashfile);
+	ui->IDC_KICKSHIFTER->setChecked(workprefs.kickshifter);
+	ui->IDC_MAPROM->setChecked(workprefs.maprom);
 }
 
 void puae_MainWindow::values_from_displaydlg () {
+	bool success = FALSE;
+	int i, j;
+	int gfx_width = workprefs.gfx_size_win.width;
+	int gfx_height = workprefs.gfx_size_win.height;
+
+/*	display_fromselect (SendDlgItemMessage (hDlg, IDC_SCREENMODE_NATIVE, CB_GETCURSEL, 0, 0), &workprefs.gfx_afullscreen, &workprefs.gfx_avsync, 0);
+	display_fromselect (SendDlgItemMessage (hDlg, IDC_SCREENMODE_RTG, CB_GETCURSEL, 0, 0), &workprefs.gfx_pfullscreen, &workprefs.gfx_pvsync, 1);*/
+
+	workprefs.gfx_lores_mode     = ui->IDC_LORES_SMOOTHED->isChecked();
+	workprefs.gfx_scandoubler     = ui->IDC_FLICKERFIXER->isChecked();
+	workprefs.gfx_blackerthanblack = ui->IDC_BLACKER_THAN_BLACK->isChecked();
+	workprefs.gfx_vresolution = ui->IDC_LM_DOUBLED->isChecked() || ui->IDC_LM_SCANLINES->isChecked() ? VRES_DOUBLE : VRES_NONDOUBLE;
+	workprefs.gfx_scanlines = ui->IDC_LM_SCANLINES->isChecked();	
+//	workprefs.gfx_backbuffers = SendDlgItemMessage (hDlg, IDC_DISPLAY_BUFFERCNT, CB_GETCURSEL, 0, 0);
+//	workprefs.gfx_framerate = SendDlgItemMessage (hDlg, IDC_FRAMERATE, TBM_GETPOS, 0, 0);
+//	workprefs.chipset_refreshrate = SendDlgItemMessage (hDlg, IDC_FRAMERATE2, TBM_GETPOS, 0, 0);
 }
 
 void puae_MainWindow::values_to_displaydlg () {
 }
 
 void puae_MainWindow::enable_for_sounddlg () {
+	int numdevs;
+
+	numdevs = enumerate_sound_devices ();
+	if (numdevs == 0)
+		ui->IDC_SOUNDCARDLIST->setEnabled(FALSE);
+	else
+		ui->IDC_SOUNDCARDLIST->setEnabled(workprefs.produce_sound);
+
+//	ui->IDC_FREQUENCY->setEnabled(workprefs.produce_sound);
+	ui->IDC_SOUNDFREQ->setEnabled(workprefs.produce_sound ? TRUE : FALSE);
+	ui->IDC_SOUNDSTEREO->setEnabled(workprefs.produce_sound);
+	ui->IDC_SOUNDINTERPOLATION->setEnabled(workprefs.produce_sound);
+	ui->IDC_SOUNDVOLUME->setEnabled(workprefs.produce_sound);
+	ui->IDC_SOUNDVOLUME2->setEnabled(workprefs.produce_sound);
+	ui->IDC_SOUNDSTEREOSEP->setEnabled(workprefs.sound_stereo > 0 && workprefs.produce_sound);
+	ui->IDC_SOUNDSTEREOMIX->setEnabled(workprefs.sound_stereo > 0 && workprefs.produce_sound);
+
+/*	ui->IDC_SOUNDBUFFERMEM->setEnabled(workprefs.produce_sound);
+	ui->IDC_SOUNDBUFFERRAM->setEnabled(workprefs.produce_sound);
+	ui->IDC_SOUNDADJUST->setEnabled(workprefs.produce_sound);
+	ui->IDC_SOUNDADJUSTNUM->setEnabled(workprefs.produce_sound);
+	ui->IDC_SOUNDBUFFERTEXT->setEnabled(workprefs.produce_sound);*/
+
+	ui->IDC_SOUNDDRIVE->setEnabled(workprefs.produce_sound);
+	ui->IDC_SOUNDDRIVESELECT->setEnabled(workprefs.produce_sound);
+	ui->IDC_SOUNDDRIVEVOLUME->setEnabled(workprefs.produce_sound);
+	ui->IDC_SOUNDDRIVEVOLUME2->setEnabled(workprefs.produce_sound);
+//	ui->IDC_AUDIOSYNC->setEnabled(workprefs.produce_sound);
+	ui->IDC_SOUNDFILTER->setEnabled(workprefs.produce_sound);
+	ui->IDC_SOUNDSWAP->setEnabled(workprefs.produce_sound);
+
+//	ui->IDC_SOUNDCALIBRATE->setEnabled(workprefs.produce_sound /*&& full_property_sheet*/);
 }
 
 void puae_MainWindow::values_from_sounddlg () {
+	TCHAR txt[10];
+	int soundcard, i;
+	int idx, res;
+
+	idx = ui->IDC_SOUNDFREQ->currentIndex();
+	if (idx >= 0) {
+		workprefs.sound_freq = idx;
+	} else {
+//		txt = ui->IDC_SOUNDFREQ->itemData(ui->IDC_SOUNDFREQ->currentIndex());
+//		workprefs.sound_freq = atol (txt);
+	}
+	if (workprefs.sound_freq < 8000)
+		workprefs.sound_freq = 8000;
+	if (workprefs.sound_freq > 96000)
+		workprefs.sound_freq = 96000;
+
+	//workprefs.produce_sound = ui->IDC_SOUND0->isChecked() ? 0 : (ui->IDC_SOUND1->isChecked() ? 1 : 3);
+	workprefs.sound_auto =  ui->IDC_SOUND_AUTO->isChecked();
+
+	idx = ui->IDC_SOUNDSTEREO->currentIndex();
+	if (idx != NULL)
+		workprefs.sound_stereo = idx;
+	workprefs.sound_stereo_separation = 0;
+	workprefs.sound_mixed_stereo_delay = 0;
+	if (workprefs.sound_stereo > 0) {
+		idx = ui->IDC_SOUNDSTEREOSEP->currentIndex();
+		if (idx != NULL) {
+			if (idx > 0)
+				workprefs.sound_mixed_stereo_delay = -1;
+			workprefs.sound_stereo_separation = 10 - idx;
+		}
+		idx = ui->IDC_SOUNDSTEREOMIX->currentIndex();
+		if (idx != NULL && idx > 0)
+			workprefs.sound_mixed_stereo_delay = idx;
+	}
+
+	workprefs.sound_interpol = ui->IDC_SOUNDINTERPOLATION->currentIndex();
+//	workprefs.win32_soundexclusive = ui->IDC_SOUND_EXCLUSIVE->isChecked();
+	soundcard = ui->IDC_SOUNDCARDLIST->currentIndex();
+/*	if (soundcard != workprefs.win32_soundcard && soundcard != NULL) {
+		workprefs.win32_soundcard = soundcard;
+		update_soundgui ();
+	}*/
+
+	switch (ui->IDC_SOUNDFILTER->currentIndex())
+	{
+	case 0:
+		workprefs.sound_filter = FILTER_SOUND_OFF;
+		break;
+	case 1:
+		workprefs.sound_filter = FILTER_SOUND_EMUL;
+		workprefs.sound_filter_type = 0;
+		break;
+	case 2:
+		workprefs.sound_filter = FILTER_SOUND_EMUL;
+		workprefs.sound_filter_type = 1;
+		break;
+	case 3:
+		workprefs.sound_filter = FILTER_SOUND_ON;
+		workprefs.sound_filter_type = 0;
+		break;
+	case 4:
+		workprefs.sound_filter = FILTER_SOUND_ON;
+		workprefs.sound_filter_type = 1;
+		break;
+	}
+
+	workprefs.sound_stereo_swap_paula = (ui->IDC_SOUNDSWAP->currentIndex() & 1) ? 1 : 0;
+	workprefs.sound_stereo_swap_ahi = (ui->IDC_SOUNDSWAP->currentIndex() & 2) ? 1 : 0;
+/*
+	for (i = 0; sounddrivers[i]; i++) {
+		int old = sounddrivermask;
+		sounddrivermask &= ~(1 << i);
+		if (ischecked (hDlg, sounddrivers[i]))
+			sounddrivermask |= 1 << i;
+		if (old != sounddrivermask)
+			regsetint (NULL, "SoundDriverMask", sounddrivermask);
+	}
+
+	idx = ui->IDC_SOUNDDRIVE->currentIndex();
+	if (idx != NULL && idx >= 0) {
+		res = ui->IDC_SOUNDDRIVESELECT->currentIndex();
+		if (res != NULL && res >= 0) {
+			int xtra = driveclick_pcdrivemask ? 2 : 0;
+			if (res > DS_BUILD_IN_SOUNDS + xtra) {
+				int j = res - (DS_BUILD_IN_SOUNDS + xtra + 1);
+				TCHAR *p = drivesounds;
+				while (j-- > 0)
+					p += _tcslen (p) + 1;
+				workprefs.floppyslots[idx].dfxclick = -1;
+				tcscpy (workprefs.floppyslots[idx].dfxclickexternal, p);
+			} else {
+				workprefs.floppyslots[idx].dfxclick = res;
+				workprefs.floppyslots[idx].dfxclickexternal[0] = 0;
+			}
+		}
+	}
+*/
 }
 
 void puae_MainWindow::values_to_sounddlg () {
+	int which_button;
+	int sound_freq = workprefs.sound_freq;
+	int produce_sound = workprefs.produce_sound;
+	int stereo = workprefs.sound_stereo;
+	TCHAR txt[100], txt2[100], *p;
+	int i, selected;
+	int idx;
+
+	if (workprefs.sound_maxbsiz & (workprefs.sound_maxbsiz - 1))
+		workprefs.sound_maxbsiz = DEFAULT_SOUND_MAXB;
+
+	i = 0;
+	switch (workprefs.sound_filter)
+	{
+	case 0:
+		i = 0;
+		break;
+	case 1:
+		i = workprefs.sound_filter_type ? 2 : 1;
+		break;
+	case 2:
+		i = workprefs.sound_filter_type ? 4 : 3;
+		break;
+	}
+
 }
 
 void puae_MainWindow::enable_for_expansiondlg () {
+	int cw, en;
+
+	en = !!full_property_sheet;
+#ifdef CATWEASEL
+	cw = catweasel_detect ();
+#else
+	cw = 0;
+#endif
+	ui->IDC_CATWEASEL->setEnabled(cw && en);
+	//ui->IDC_SOCKETS->setEnabled(en);
+	ui->IDC_SCSIDEVICE->setEnabled(en);
+	//ui->IDC_CATWEASEL->setEnabled(en);
+	ui->IDC_NETDEVICE->setEnabled(en);
+	//ui->IDC_SANA2->setEnabled(en);
+	//ui->IDC_A2065->setEnabled(en);
+	ui->IDC_NETDEVICE->setEnabled(en && workprefs.a2065name[0]);
 }
 
 void puae_MainWindow::values_to_expansiondlg () {
+	int cw;
+
+	ui->IDC_SOCKETS->setChecked(workprefs.socket_emu);
+	ui->IDC_CATWEASEL->setChecked(workprefs.catweasel);
+	ui->IDC_SCSIDEVICE->setChecked(workprefs.scsi == 1);
+	ui->IDC_SANA2->setChecked(workprefs.sana2);
+	ui->IDC_A2065->setChecked(workprefs.a2065name[0] ? 1 : 0);
+#ifdef CATWEASEL
+	cw = catweasel_detect ();
+#else
+	cw = 0;
+#endif
+	ui->IDC_CATWEASEL->setEnabled(cw);
+	if (!cw && workprefs.catweasel < 100)
+		workprefs.catweasel = 0;
 }
 
 void puae_MainWindow::enable_for_miscdlg () {
+/*
+	if (!full_property_sheet) {
+		ui->IDC_JULIAN->setEnabled(TRUE);
+		ui->IDC_CTRLF11->setEnabled(TRUE);
+		ui->IDC_SHOWGUI->setEnabled(FALSE);
+		ui->IDC_NOSPEED->setEnabled(TRUE);
+		ui->IDC_NOSPEEDPAUSE->setEnabled(TRUE);
+		ui->IDC_NOSOUND->setEnabled(TRUE);
+		ui->IDC_DOSAVESTATE->setEnabled(TRUE);
+		ui->IDC_SCSIMODE->setEnabled(FALSE);
+		ui->IDC_CLOCKSYNC->setEnabled(FALSE);
+		ui->IDC_CLIPBOARDSHARE->setEnabled(FALSE);
+	} else {
+#if !defined (SCSIEMU)
+		EnableWindow (GetDlgItem(hDlg, IDC_SCSIMODE, TRUE);
+#endif
+		ui->IDC_DOSAVESTATE->setEnabled(FALSE);
+	}
+	ui->IDC_ASSOCIATELIST->setEnabled(!rp_isactive ());
+	ui->IDC_ASSOCIATE_ON->setEnabled(!rp_isactive ());
+	ui->IDC_ASSOCIATE_OFF->setEnabled(!rp_isactive ());
+	ui->IDC_DD_SURFACETYPE->setEnabled(full_property_sheet && workprefs.gfx_api == 0);
+*/
 }
 
 void puae_MainWindow::values_to_miscdlg () {
+//	if (currentpage == MISC1_ID) {
 }
 
 void puae_MainWindow::enable_for_gameportsdlg () {
+/*
+	int v = full_property_sheet;
+	ui->IDC_PORT_TABLET_FULL->setEnabled(v && is_tablet () && workprefs.input_tablet > 0);
+	ui->IDC_PORT_TABLET_CURSOR->setEnabled(v && workprefs.input_tablet > 0);
+	ui->IDC_PORT_TABLET->setEnabled(v);
+*/
 }
 
 void puae_MainWindow::values_from_gameportsdlg () {
 }
 
 void puae_MainWindow::enable_for_inputdlg () {
+/*
+	bool v = workprefs.input_selected_setting != GAMEPORT_INPUT_SETTINGS;
+	ui->IDC_INPUTLIST->setEnabled(TRUE);
+	ui->IDC_INPUTAMIGA->setEnabled(v);
+	ui->IDC_INPUTAMIGACNT->setEnabled(TRUE);
+	ui->IDC_INPUTDEADZONE->setEnabled(TRUE);
+	ui->IDC_INPUTAUTOFIRERATE->setEnabled(TRUE);
+	ui->IDC_INPUTSPEEDA->setEnabled(TRUE);
+	ui->IDC_INPUTSPEEDD->setEnabled(TRUE);
+	ui->IDC_INPUTCOPY->setEnabled(v);
+	ui->IDC_INPUTCOPYFROM->setEnabled(v);
+	ui->IDC_INPUTSWAP->setEnabled(v);
+	ui->IDC_INPUTDEVICEDISABLE->setEnabled(v);
+	ui->IDC_INPUTREMAP->setEnabled(v);
+*/
 }
 
 void puae_MainWindow::values_from_inputdlg () {
@@ -1585,6 +1901,48 @@ void puae_MainWindow::init_portsdlg () {
 }
 
 void puae_MainWindow::enable_for_portsdlg () {
+	int v;
+	int isprinter, issampler;
+
+	ui->IDC_SWAP->setEnabled(TRUE);
+#if !defined (SERIAL_PORT)
+/*
+	ui->IDC_MIDIOUTLIST->setEnabled(FALSE);
+	ui->IDC_MIDIINLIST->setEnabled(FALSE);
+	ui->IDC_SHARED->setEnabled(FALSE);
+	ui->IDC_SER_CTSRTS->setEnabled(FALSE);
+	ui->IDC_SERIAL_DIRECT->setEnabled(FALSE);
+	ui->IDC_SERIAL->setEnabled(FALSE);
+	ui->IDC_UAESERIAL->setEnabled(FALSE);
+*/
+#else
+	v = workprefs.use_serial ? TRUE : FALSE;
+	ui->IDC_SER_SHARED->setEnabled(v);
+	ui->IDC_SER_CTSRTS->setEnabled(v);
+	ui->IDC_SER_DIRECT->setEnabled(v);
+	ui->IDC_UAESERIAL->setEnabled(full_property_sheet);
+#endif
+	isprinter = true;
+	issampler = true;
+#if !defined (PARALLEL_PORT)
+	isprinter = false;
+	issampler = false;
+#endif
+/*	if (workprefs.prtname[0]) {
+		issampler = false;
+		workprefs.win32_samplersoundcard = -1;
+	} else if (workprefs.win32_samplersoundcard >= 0) {
+		isprinter = false;
+	}
+	ui->IDC_PRINTERLIST->setEnabled (isprinter);
+	ui->IDC_SAMPLERLIST->setEnabled (issampler);
+	ui->IDC_PRINTERAUTOFLUSH->setEnabled (isprinter);
+	ui->IDC_PRINTERTYPELIST->setEnabled (isprinter);
+	ui->IDC_FLUSHPRINTER->setEnabled (isprinteropen () && isprinter ? TRUE : FALSE);
+	ui->IDC_PSPRINTER->setEnabled (full_property_sheet && ghostscript_available && isprinter ? TRUE : FALSE);
+	ui->IDC_PSPRINTERDETECT->setEnabled (full_property_sheet && isprinter ? TRUE : FALSE);
+	ui->IDC_PS_PARAMS->setEnabled (full_property_sheet && ghostscript_available && isprinter);
+*/
 }
 
 void puae_MainWindow::values_from_portsdlg () {
