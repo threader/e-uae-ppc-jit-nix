@@ -119,6 +119,10 @@ private slots:
     void updatez3 (unsigned int *size1p, unsigned int *size2p);
     int getcpufreq (int);
     void display_fromselect (int val, int *fs, int *vsync, int p96);
+    int isromext (const char *path, bool deepscan);
+    int scan_rom (const char *path, bool deepscan);
+    bool scan_rom_hook (const char *name, int line);
+    int addrom (struct romdata *rd, const char *name);
 //
     void enable_for_memorydlg ();
     void values_to_memorydlg ();

@@ -303,7 +303,7 @@ static void REGPARAM2 fmv_lput (uaecptr addr, uae_u32 w)
 	fmv_wput (addr + 2, w >>  0);
 }
 
-extern addrbank fmv_bank;
+//extern addrbank fmv_bank;
 
 static void REGPARAM2 fmv_bput (uaecptr addr, uae_u32 w)
 {
@@ -370,7 +370,7 @@ static uae_u8 *REGPARAM2 fmv_xlate (uaecptr addr)
 	return rom + addr;
 }
 
-addrbank fmv_bank = {
+static addrbank fmv_bank = {
 	fmv_lget, fmv_wget, fmv_bget,
 	fmv_lput, fmv_wput, fmv_bput,
 	fmv_xlate, fmv_check, NULL, "CD32 FMV module",

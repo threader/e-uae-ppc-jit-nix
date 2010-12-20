@@ -25,11 +25,25 @@ AR_FLAGS = $(LIBS)
 
 noinst_LIBRARIES = libguidep.a
 
-libguidep_a_SOURCES = puae_mainwindow.cpp moc_puae_mainwindow.cpp puae_bridge.cpp moc_puae_bridge.cpp puae_misc.cpp moc_puae_misc.cpp
+libguidep_a_SOURCES = \
+		puae_mainwindow.cpp moc_puae_mainwindow.cpp \
+		puae_bridge.cpp moc_puae_bridge.cpp \
+		puae_misc.cpp moc_puae_misc.cpp \
+		puae_registry.cpp moc_puae_registry.cpp
 
-noinst_HEADERS = puae_mainwindow.h ui_puae_mainwindow.h puae_bridge.h puae_misc.h
+noinst_HEADERS = \
+		ui_puae_mainwindow.h \
+		puae_mainwindow.h \
+		puae_bridge.h \
+		puae_misc.h \
+		puae_registry.h
 
-BUILT_SOURCES = moc_puae_mainwindow.cpp moc_puae_bridge.cpp moc_puae_misc.cpp ui_puae_mainwindow.h
+BUILT_SOURCES = \
+		moc_puae_mainwindow.cpp \
+		moc_puae_bridge.cpp \
+		moc_puae_misc.cpp \
+		moc_puae_registry.cpp \
+		ui_puae_mainwindow.h
 
 CLEANFILES = *.o qrc*.* ui*.* moc*.*
 

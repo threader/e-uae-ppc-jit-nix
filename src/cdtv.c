@@ -765,8 +765,6 @@ static void init_play (int start, int end)
 
 bool cdtv_front_panel (int button)
 {
-	unsigned int j; 
-
 	if (!frontpanel || configured <= 0)
 		return false;
 	if (button < 0)
@@ -792,6 +790,7 @@ bool cdtv_front_panel (int button)
 	uae_u8 *sq = cdrom_qcode + 4;
 	int track = frombcd (sq[1]);
 	int pos = 0;
+	unsigned int j; 
 	for (j = 0; j < toc.points; j++) {
 		int t = toc.toc[j].track;
 		pos = toc.toc[j].paddress;
@@ -1861,7 +1860,6 @@ uae_u8 *save_cdtv (int *len, uae_u8 *dstptr)
 uae_u8 *restore_cdtv (uae_u8 *src)
 {
 	unsigned int i;
- 
 	cdtv_free ();
 	if (!currprefs.cs_cdtvcd) {
 		changed_prefs.cs_cdtvcd = changed_prefs.cs_cdtvram = true;

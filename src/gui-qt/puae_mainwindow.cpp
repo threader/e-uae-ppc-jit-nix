@@ -8,6 +8,20 @@
  *
  */
 
+// REMOVEME>tmp stuff from *.h
+#define CSMASK_ECS_AGNUS 1
+#define CSMASK_ECS_DENISE 2
+#define CSMASK_AGA 4
+#define CSMASK_MASK (CSMASK_ECS_AGNUS | CSMASK_ECS_DENISE | CSMASK_AGA)
+
+#define VRES_NONDOUBLE 0
+#define VRES_DOUBLE 1
+#define VRES_MAX 1
+
+#define DEFAULT_SOUND_MAXB 16384
+// REMOVEME>tmp stuff from *.h
+
+#include "puae_registry.h"
 #include "puae_mainwindow.h"
 #include "ui_puae_mainwindow.h"
 
@@ -20,24 +34,21 @@
 #define hDlg 0
 
 extern "C" {
+#include "include/rommgr.h"
 #include "include/options.h"
 extern int candirect;
 extern bool canbang;
 struct uae_prefs workprefs;
+
+// REMOVEME>tmp
+extern const char *uae_archive_extensions[];
+#ifdef ARCADIA
+extern struct romdata *scan_arcadia_rom (char*, int);
+#endif
+// REMOVEME>tmp
 }
 
-// defs from *.h
-#define CSMASK_ECS_AGNUS 1
-#define CSMASK_ECS_DENISE 2
-#define CSMASK_AGA 4
-#define CSMASK_MASK (CSMASK_ECS_AGNUS | CSMASK_ECS_DENISE | CSMASK_AGA)
-
-#define VRES_NONDOUBLE 0
-#define VRES_DOUBLE 1
-#define VRES_MAX 1
-
-#define DEFAULT_SOUND_MAXB 16384
-
+//
 int full_property_sheet = 1;
  
  // Paths Tab
@@ -745,6 +756,95 @@ void puae_MainWindow::on_IDC_FLOPPYSPD_valueChanged(int value)
     out_floppyspeed();
 }
 
+//
+// Santa's Little Helpers
+//
+
+int puae_MainWindow::isromext (const char *path, bool deepscan)
+{
+	const TCHAR *ext;
+	int i;
+
+	if (!path)
+		return 0;
+	ext = strrchr (path, '.');
+	if (!ext)
+		return 0;
+	ext++;
+
+	if (!strcasecmp (ext, "rom") ||  !strcasecmp (ext, "adf") || !strcasecmp (ext, "key")
+		|| !strcasecmp (ext, "a500") || !strcasecmp (ext, "a1200") || !strcasecmp (ext, "a4000") || !strcasecmp (ext, "cd32"))
+		return 1;
+	if (strlen (ext) >= 2 && toupper(ext[0]) == 'U' && isdigit (ext[1]))
+		return 1;
+	if (!deepscan)
+		return 0;
+	for (i = 0; uae_archive_extensions[i]; i++) {
+		if (!strcasecmp (ext, uae_archive_extensions[i]))
+			return 1;
+	}
+	return 0;
+}
+
+bool puae_MainWindow::scan_rom_hook (const char *name, int line)
+{
+/*	MSG msg;
+	if (!infoboxhwnd)
+		return true;
+	if (name != NULL) {
+		const char *s = NULL;
+		if (line == 2) {
+			s = strrchr (name, '/');
+			if (!s)
+				s = strrchr (name, '\\');
+			if (s)
+				s++;
+		}
+		SetWindowText (GetDlgItem (infoboxhwnd, line == 1 ? IDC_INFOBOX_TEXT1 : (line == 2 ? IDC_INFOBOX_TEXT2 : IDC_INFOBOX_TEXT3)), s ? s : name);
+	}
+	while (PeekMessage (&msg, infoboxhwnd, 0, 0, PM_REMOVE)) {
+		if (!IsDialogMessage (infoboxhwnd, &msg)) {
+			TranslateMessage (&msg);
+			DispatchMessage (&msg);
+		}
+	}
+	return infoboxdialogstate;*/
+	return false;
+}
+
+int puae_MainWindow::addrom (struct romdata *rd, const char *name)
+{
+	char tmp1[MAX_DPATH], tmp2[MAX_DPATH];
+
+	printf (tmp1, "ROM_%03d", rd->id);
+}
+
+int puae_MainWindow::scan_rom (const char *path, bool deepscan)
+{
+	struct romdata *rd;
+	int cnt = 0;
+
+	if (!isromext (path, deepscan)) {
+		return 0;
+	}
+	scan_rom_hook (path, 2);
+#ifdef ARCADIA
+	for (;;) {
+		char tmp[MAX_DPATH];
+		strcpy (tmp, path);
+		rd = scan_arcadia_rom (tmp, cnt++);
+		if (rd) {
+			if (!addrom (rd, tmp))
+				return 1;
+			continue;
+		}
+		break;
+	}
+#endif
+	return 0;
+}
+
+
 void puae_MainWindow::display_fromselect (int val, int *fs, int *vsync, int p96)
 {
 	int ofs = *fs;
@@ -794,9 +894,6 @@ void puae_MainWindow::display_fromselect (int val, int *fs, int *vsync, int p96)
 	}
 }
 
-//
-// Santa's Little Helpers
-//
 int puae_MainWindow::getcpufreq (int m)
 {
         int f;
@@ -1621,7 +1718,7 @@ void puae_MainWindow::values_from_displaydlg () {
 	workprefs.gfx_scandoubler     = ui->IDC_FLICKERFIXER->isChecked();
 	workprefs.gfx_blackerthanblack = ui->IDC_BLACKER_THAN_BLACK->isChecked();
 	workprefs.gfx_vresolution = ui->IDC_LM_DOUBLED->isChecked() || ui->IDC_LM_SCANLINES->isChecked() ? VRES_DOUBLE : VRES_NONDOUBLE;
-	workprefs.gfx_scanlines = ui->IDC_LM_SCANLINES->isChecked();	
+	workprefs.gfx_scanlines = ui->IDC_LM_SCANLINES->isChecked();
 //	workprefs.gfx_backbuffers = SendDlgItemMessage (hDlg, IDC_DISPLAY_BUFFERCNT, CB_GETCURSEL, 0, 0);
 //	workprefs.gfx_framerate = SendDlgItemMessage (hDlg, IDC_FRAMERATE, TBM_GETPOS, 0, 0);
 //	workprefs.chipset_refreshrate = SendDlgItemMessage (hDlg, IDC_FRAMERATE2, TBM_GETPOS, 0, 0);

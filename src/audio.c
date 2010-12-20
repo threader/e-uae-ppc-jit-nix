@@ -109,7 +109,8 @@ struct audio_channel_data {
 
 static int samplecnt;
 #if SOUNDSTUFF > 0
-int extrasamples, outputsample, doublesample;
+static int extrasamples;
+int outputsample, doublesample;
 #endif
 
 int sampleripper_enabled;
@@ -292,7 +293,8 @@ int sound_available = 0;
 void (*sample_handler) (void);
 static void (*sample_prehandler) (unsigned long best_evtime);
 
-float sample_evtime, scaled_sample_evtime;
+static float sample_evtime;
+float scaled_sample_evtime;
 
 static unsigned long last_cycles;
 static float next_sample_evtime;
@@ -1840,7 +1842,7 @@ void AUDxDAT (int nr, uae_u16 v, uaecptr addr)
 					do_samplerip (cdp);
 #ifdef DEBUG_AUDIO
 				if (debugchannel (nr))
-					write_log ("AUD%d looped, IRQ=%d, LC=%08X LEN=%d\n", nr, isirq (nr), cdp->pt, cdp->wlen);
+					write_log ("AUD%d looped, IRQ=%d, LC=%08X LEN=%d\n", nr, isirq (nr) ? 1 : 0, cdp->pt, cdp->wlen);
 #endif
 			} else {
 				cdp->wlen = (cdp->wlen - 1) & 0xffff;

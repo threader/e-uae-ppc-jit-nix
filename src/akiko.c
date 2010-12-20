@@ -1163,10 +1163,10 @@ static void akiko_internal (void)
 
 void AKIKO_hsync_handler (void)
 {
-	unsigned int i;
 	if (!currprefs.cs_cd32cd || !akiko_inited)
 		return;
 
+	unsigned int i;
 	static float framecounter;
 	framecounter--;
 	if (framecounter <= 0) {

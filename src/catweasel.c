@@ -315,10 +315,8 @@ void catweasel_do_bput (uaecptr	addr, uae_u32 b)
 	} else {
 #endif
 		ioport_write (cwc.iobase + addr, b);
-#if 0
 	}
 	//write_log ("P %02X %02X %d\n", (uae_u8)addr, (uae_u8)b, did_read);
-#endif
 }
 
 #include "core.cw4.cpp"
@@ -422,8 +420,8 @@ fail:
 
 int catweasel_detect (void)
 {
-        if (detected)
-                return detected < 0 ? 0 : 1;
-} 
+	if (detected)
+		return detected < 0 ? 0 : 1;
+}
 
 #endif

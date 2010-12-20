@@ -97,24 +97,6 @@ static void uae_abort (const TCHAR *format,...)
 	nomore = 1;
 }
 
-#if 0
-void customhack_put (struct customhack *ch, uae_u16 v, int hpos)
-{
-	ch->v = v;
-	ch->vpos = vpos;
-	ch->hpos = hpos;
-}
-
-uae_u16 customhack_get (struct customhack *ch, int hpos)
-{
-	if (ch->vpos == vpos && ch->hpos == hpos) {
-		ch->vpos = -1;
-		return 0xffff;
-	}
-	return ch->v;
-}
-#endif
-
 uae_u16 last_custom_value1;
 
 static unsigned int n_consecutive_skipped = 0;
@@ -233,7 +215,7 @@ static uae_u16 sprdata[MAX_SPRITES][1], sprdatb[MAX_SPRITES][1];
 #endif
 static int sprite_last_drawn_at[MAX_SPRITES];
 static int last_sprite_point, nr_armed;
-int sprite_width, sprres;
+static int sprite_width, sprres;
 int sprite_buffer_res;
 
 #ifdef CPUEMU_12
@@ -264,16 +246,16 @@ enum diw_states
 	DIW_waiting_start, DIW_waiting_stop
 };
 
-int plffirstline, plflastline;
+static int plffirstline, plflastline;
 int plffirstline_total, plflastline_total;
 static int autoscale_bordercolors;
-int plfstrt_start, plfstrt, plfstop;
+static int plfstrt_start, plfstrt, plfstop;
 static int sprite_minx, sprite_maxx;
 static int first_bpl_vpos;
 static int last_ddf_pix_hpos;
 static int last_decide_line_hpos;
 static int last_fetch_hpos, last_sprite_hpos;
-int diwfirstword, diwlastword;
+static int diwfirstword, diwlastword;
 static int plfleft_real;
 static int last_hdiw;
 static enum diw_states diwstate, hdiwstate, ddfstate;
@@ -334,15 +316,15 @@ int bogusframe;
 
 /* Recording of custom chip register changes.  */
 static int current_change_set;
-struct sprite_entry sprite_entries[2][MAX_SPR_PIXELS / 16];
-struct color_change color_changes[2][MAX_REG_CHANGE];
+static struct sprite_entry sprite_entries[2][MAX_SPR_PIXELS / 16];
+static struct color_change color_changes[2][MAX_REG_CHANGE];
 
 struct decision line_decisions[2 * (MAXVPOS + 2) + 1];
-struct draw_info line_drawinfo[2][2 * (MAXVPOS + 2) + 1];
+static struct draw_info line_drawinfo[2][2 * (MAXVPOS + 2) + 1];
 #define COLOR_TABLE_SIZE (MAXVPOS + 2) * 2
-struct color_entry color_tables[2][COLOR_TABLE_SIZE];
+static struct color_entry color_tables[2][COLOR_TABLE_SIZE];
 
-int next_sprite_entry = 0;
+static int next_sprite_entry = 0;
 static int prev_next_sprite_entry;
 static int next_sprite_forced = 1;
 
@@ -5221,7 +5203,7 @@ STATIC_INLINE int trigger_frh (int v)
 	return (v & (N_LINES - 1)) == 0;
 }
 
-long int diff32 (frame_time_t x, frame_time_t y)
+static long int diff32 (frame_time_t x, frame_time_t y)
 {
 	return (long int)(x - y);
 }

@@ -24,6 +24,8 @@
 #include "bsdsocket.h"
 #include "native2amiga.h"
 
+#define TRUE 1
+#define FALSE 0
 #ifdef BSDSOCKET
 
 #ifdef WIN32
@@ -154,17 +156,17 @@ BOOL checksd(SB, int sd)
 			if (iCounter != sd) {
 				if (getsock(sb,iCounter) == s) {
 					releasesock(sb,sd);
-					return 1;
+					return TRUE;
 				}
 			}
 		}
 		for (iCounter  = 0; iCounter < SOCKPOOLSIZE; iCounter++) {
 			if (s == sockdata->sockpoolsocks[iCounter])
-				return 1;
+				return TRUE;
 		}
 	}
 	BSDTRACE(("checksd FALSE s 0x%x sd %d\n",s,sd));
-	return 0;
+	return FALSE;
 }
 
 void setsd(SB, int sd, SOCKET_TYPE s)
