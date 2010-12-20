@@ -36,7 +36,7 @@ int regqueryint (const char *name, int *val)
 	int ret = 0;
 
 	*val = settings.value(name).toInt();
-  
+
 	ret = 1;
 	return ret;
 }
