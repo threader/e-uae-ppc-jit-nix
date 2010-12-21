@@ -635,14 +635,6 @@ static int alloc_gl_buffer (struct gl_buffer_t *buffer, int width, int height, i
 		glPixelStorei (GL_UNPACK_CLIENT_STORAGE_APPLE, GL_TRUE);
     if (have_apple_texture_range)
 		glTexParameteri (buffer->target, GL_TEXTURE_STORAGE_HINT_APPLE, GL_STORAGE_SHARED_APPLE);
-    
-    if (currprefs.gfx_gl_smoothing) {						//KOKO
-		glTexParameteri (buffer->target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);  	//KOKO
-		glTexParameteri (buffer->target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);	//KOKO
-    } else {
-    	glTexParameteri (buffer->target, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    	glTexParameteri (buffer->target, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    }  
 
     glTexParameteri (buffer->target, GL_TEXTURE_WRAP_S, GL_CLAMP);
     glTexParameteri (buffer->target, GL_TEXTURE_WRAP_T, GL_CLAMP);
@@ -684,8 +676,6 @@ STATIC_INLINE void flush_gl_buffer (const struct gl_buffer_t *buffer, int first_
 
 STATIC_INLINE void render_gl_buffer (const struct gl_buffer_t *buffer, int first_line, int last_line)
 {
-    //ToFix: Disable vsync make this function mad and put garbage on the screen KOKO.
-    
     float tx0, ty0, tx1, ty1; //source buffer coords
     float wx0, wy0, wx1, wy1; //destination text coords
     float left_crop, right_crop, top_crop, bottom_crop;  //buffer cropping

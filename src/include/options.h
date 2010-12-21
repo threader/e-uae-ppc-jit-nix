@@ -228,10 +228,6 @@ struct uae_prefs {
 	int gfx_backbuffers;
 	int gfx_api;
 	int color_mode;
-	int gfx_gl_x_offset; //koko
-	int gfx_gl_y_offset; //koko
-	int gfx_gl_smoothing; //koko
-	int gfx_gl_panscan; //koko
 
 	int gfx_filter;
 	TCHAR gfx_filtershader[MAX_DPATH];

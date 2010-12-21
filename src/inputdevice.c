@@ -82,7 +82,7 @@ int inputdevice_logging = 0;
 #define JOYMOUSE_CDTV 8
 
 #define DEFEVENT(A, B, C, D, E, F) {#A, B, C, D, E, F },
-const struct inputevent events[] = {
+static struct inputevent events[] = {
 	{0, 0, AM_K,0,0,0},
 #include "inputevents.def"
 	{0, 0, 0, 0, 0, 0}
@@ -2539,30 +2539,6 @@ void inputdevice_handle_inputcode (void)
 			config_changed = 1;
 		}
 		break;
-    case AKS_GLPANLEFT:									//koko
-	    currprefs.gfx_gl_x_offset = currprefs.gfx_gl_x_offset - 2;			//koko (fixme, make "-2" a variable)
-	    printf("Pan left  : gfx_gl_x_offset=%i.\n" , currprefs.gfx_gl_x_offset);	//koko
-	    break;
-    case AKS_GLPANRIGHT:								//koko
-	    currprefs.gfx_gl_x_offset = currprefs.gfx_gl_x_offset + 2;			//koko (fixme, make "+2" a variable)
-		printf("Pan right : gfx_gl_x_offset=%i.\n" , currprefs.gfx_gl_x_offset);//koko
-	    break;
-    case AKS_GLPANUP:									//koko
-	    currprefs.gfx_gl_y_offset = currprefs.gfx_gl_y_offset - 2;			//koko
-	    printf("Pan up    : gfx_gl_y_offset=%i.\n" , currprefs.gfx_gl_y_offset);	//koko
-	    break;
-    case AKS_GLPANDOWN:									//koko
-	    currprefs.gfx_gl_y_offset = currprefs.gfx_gl_y_offset + 2;			//koko
-	    printf("Pan down  : gfx_gl_y_offset=%i.\n" , currprefs.gfx_gl_y_offset);	//koko
-	    break;
-    case AKS_GLPANSCANMORE:								//koko
-	    currprefs.gfx_gl_panscan = currprefs.gfx_gl_panscan + 2;			//koko
-	    printf("PanScan + : gfx_gl_panscan=%i.\n" , currprefs.gfx_gl_panscan);	//koko
-	    break;
-    case AKS_GLPANSCANLESS:								//koko
-	    currprefs.gfx_gl_panscan = currprefs.gfx_gl_panscan - 2;			//koko
-	    printf("PanScan - : gfx_gl_panscan=%i.\n" , currprefs.gfx_gl_panscan);	//koko
-	    break;
 	case AKS_DISKSWAPPER_NEXT:
 		swapperslot++;
 		if (swapperslot >= MAX_SPARE_DRIVES || currprefs.dfxlist[swapperslot][0] == 0)

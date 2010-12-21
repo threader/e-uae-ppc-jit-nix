@@ -295,5 +295,3 @@ STATIC_INLINE void toggle_inhibit_frame (int bit)
 	inhibit_frame ^= 1 << bit;
 }
 
-int bottom_crop_global; //koko
-int right_crop_global; //koko

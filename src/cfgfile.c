@@ -84,15 +84,6 @@ static const struct cfg_lines opttable[] =
     {"gfx_center_horizontal", "Center display horizontally?" },
     {"gfx_center_vertical", "Center display vertically?" },
 
-    {"gfx_gl_x_offset", "horizontal panning in gl mode (+/- integer hint: -37" },//koko
-    {"gfx_gl_y_offset", "vertical panning in gl mode (+/- integer hint: -2)" }, 	//koko
-    {"gfx_gl_panscan", "Zoom in/out in gl mode (+/- integer)" }, 	//koko
-  /*{"gfx_gl_top_crop", "crop image in gl mode (+ integer)" }, 		//koko
-    {"gfx_gl_bottom_crop", "crop image in gl mode (+ integer)" },	//koko
-    {"gfx_gl_left_crop", "crop image in gl mode (+ integer)" },		//koko
-    {"gfx_gl_right_crop", "crop image in gl mode (+ integer)" },*/	//koko
-    {"gfx_gl_smoothing", "Linear smoothing in gl mode (true/false)" },	//koko
-
     {"gfx_colour_mode", "" },
     {"32bit_blits", "Enable 32 bit blitter emulation" },
     {"immediate_blits", "Perform blits immediately" },
@@ -1382,11 +1373,6 @@ static int cfgfile_parse_host (struct uae_prefs *p, TCHAR *option, TCHAR *value)
 		|| cfgfile_yesno (option, value, "headless", &p->headless)
 		|| cfgfile_yesno (option, value, "clipboard_sharing", &p->clipboard_sharing)
 		|| cfgfile_yesno (option, value, "bsdsocket_emu", &p->socket_emu))
-		return 1;
-
-	if    (cfgfile_intval (option, value, "gfx_gl_x_offset", &p->gfx_gl_x_offset, 1)   //koko
-		|| cfgfile_intval (option, value, "gfx_gl_y_offset", &p->gfx_gl_y_offset, 1)  //koko
-		|| cfgfile_intval (option, value, "gfx_gl_panscan", &p->gfx_gl_panscan, 1))  //koko
 		return 1;
 
 	if (cfgfile_strval (option, value, "sound_output", &p->produce_sound, soundmode1, 1)

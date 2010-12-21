@@ -2549,7 +2549,7 @@ void finish_drawing_frame (void)
 
 	if (currprefs.leds_on_screen) {
 		for (i = 0; i < TD_TOTAL_HEIGHT; i++) {
-			int line = gfxvidinfo.height - TD_TOTAL_HEIGHT + i - bottom_crop_global;//koko
+			int line = gfxvidinfo.height - TD_TOTAL_HEIGHT + i;
 			draw_status_line (line);
 			do_flush_line (line);
 		}
