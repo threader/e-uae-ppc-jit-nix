@@ -679,9 +679,7 @@ STATIC_INLINE void render_gl_buffer (const struct gl_buffer_t *buffer, int first
     float tx0, ty0, tx1, ty1; //source buffer coords
     float wx0, wy0, wx1, wy1; //destination text coords
     float left_crop, right_crop, top_crop, bottom_crop;  //buffer cropping
-    float gfx_gl_x_offset, gfx_gl_y_offset; //buffer panning
     float amiga_real_w,amiga_real_h ; //used to calulate cropping
-    float gfx_gl_x_panscan, gfx_gl_y_panscan ; //zoom in/out
     float bottomledspace = 0;
 
     last_line++;
@@ -690,45 +688,34 @@ STATIC_INLINE void render_gl_buffer (const struct gl_buffer_t *buffer, int first
 
     if (currprefs.gfx_lores_mode) {
 		amiga_real_w = 362;
-		gfx_gl_x_offset = (float) currprefs.gfx_gl_x_offset;
     } else {
 		amiga_real_w = 724;
-		gfx_gl_x_offset = (float) currprefs.gfx_gl_x_offset * 2;
     }
     if (currprefs.gfx_vresolution) {
 		amiga_real_h = 568;
-		gfx_gl_y_offset = (float) currprefs.gfx_gl_y_offset * 2;
     } else {
 		amiga_real_h = 284;
-		gfx_gl_y_offset = (float) currprefs.gfx_gl_y_offset;
     }
 
     if ((current_width >= amiga_real_w ) &&  (current_height >= amiga_real_h )  && (!screen_is_picasso)  ) {
-        gfx_gl_x_panscan = currprefs.gfx_gl_panscan * 1.33f;
-		gfx_gl_y_panscan = currprefs.gfx_gl_panscan;
+		right_crop	= (current_width - amiga_real_w);
+		left_crop	= 0;
+		bottom_crop	= (current_height - amiga_real_h);
+		top_crop	= 0;
 
-		right_crop	= (current_width - amiga_real_w) + gfx_gl_x_panscan ;
-		left_crop	= gfx_gl_x_panscan;
-		bottom_crop	= (current_height - amiga_real_h) + gfx_gl_y_panscan;
-		top_crop	= gfx_gl_y_panscan;
-
-		bottom_crop			= bottom_crop - bottomledspace ;
-		bottom_crop_global	= (int) (bottom_crop - gfx_gl_y_panscan);
-		right_crop_global	= (int) (right_crop - gfx_gl_x_panscan);
+		bottom_crop		= bottom_crop - bottomledspace ;
     } else {
 		right_crop = 0;
 		left_crop = 0;
 		bottom_crop = 0;
 		top_crop = 0;
-		gfx_gl_x_offset = 0;
-		gfx_gl_y_offset = 0;
     }
 
     if (have_texture_rectangles) {
-		tx0 = 			      left_crop  - gfx_gl_x_offset;
-		tx1 = (float) buffer->width - right_crop - gfx_gl_x_offset;
-		ty0 = (float) first_line + top_crop - gfx_gl_y_offset;
-		ty1 = (float) last_line - bottom_crop - gfx_gl_y_offset;
+		tx0 = 			      left_crop;
+		tx1 = (float) buffer->width - right_crop;
+		ty0 = (float) first_line + top_crop;
+		ty1 = (float) last_line - bottom_crop;
     } else {
 		tx0 = 0.0f;
 		ty0 = (float) first_line    / (float) buffer->texture_height;
