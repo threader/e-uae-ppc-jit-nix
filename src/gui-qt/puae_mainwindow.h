@@ -18,7 +18,7 @@ public:
     explicit puae_MainWindow(QWidget *parent = 0);
     ~puae_MainWindow();
 
-//private:
+private:
     Ui::puae_MainWindow *ui;
 
 private slots:
