@@ -119,7 +119,7 @@ puae_MainWindow::puae_MainWindow(QWidget *parent) :
     ui->setupUi(this);
 
     QString myPath;
-    myPath = QDir::currentPath();
+    myPath = QDir::currentPath ();
 
     // Paths Tab
     PATHS_ROM = myPath;
@@ -129,6 +129,13 @@ puae_MainWindow::puae_MainWindow(QWidget *parent) :
     PATHS_AVIOUTPUT = myPath;
     PATHS_SAVEIMAGE = myPath;
     PATHS_RIP = myPath;
+    
+    // USER
+	values_to_expansiondlg ();
+	enable_for_expansiondlg ();
+	values_to_memorydlg ();
+	enable_for_memorydlg ();
+
 }
 
 puae_MainWindow::~puae_MainWindow()
@@ -902,6 +909,219 @@ int puae_MainWindow::getcpufreq (int m)
         return f * (m >> 8) / 8;
 }
 
+void puae_MainWindow::out_floppyspeed()
+{
+    char spe[30];
+
+    if (workprefs.floppy_speed)
+            sprintf (spe, "%d%%%s", workprefs.floppy_speed, workprefs.floppy_speed == 100 ? " (compatible)" : "");
+    else
+            strcpy (spe, "Turbo");
+    ui->IDC_FLOPPYSPDTEXT->setText(spe);
+}
+
+void puae_MainWindow::values_to_memorydlg()
+{
+    unsigned int mem_size = 0;
+    unsigned long v;
+
+    switch (workprefs.chipmem_size) {
+    case 0x00040000: mem_size = 0; break;
+    case 0x00080000: mem_size = 1; break;
+    case 0x00100000: mem_size = 2; break;
+    case 0x00180000: mem_size = 3; break;
+    case 0x00200000: mem_size = 4; break;
+    case 0x00400000: mem_size = 5; break;
+    case 0x00800000: mem_size = 6; break;
+    }
+    ui->IDC_CHIPMEM->setValue(mem_size);
+	ui->IDC_CHIPRAM->setText(memsize_names[msi_chip[mem_size]]);
+
+    mem_size = 0;
+    switch (workprefs.fastmem_size) {
+    case 0x00000000: mem_size = 0; break;
+    case 0x00100000: mem_size = 1; break;
+    case 0x00200000: mem_size = 2; break;
+    case 0x00400000: mem_size = 3; break;
+    case 0x00800000: mem_size = 4; break;
+    case 0x01000000: mem_size = 5; break;
+    }
+    ui->IDC_FASTMEM->setValue(mem_size);
+	ui->IDC_FASTRAM->setText(memsize_names[msi_fast[mem_size]]);
+
+    mem_size = 0;
+    switch (workprefs.bogomem_size) {
+    case 0x00000000: mem_size = 0; break;
+    case 0x00080000: mem_size = 1; break;
+    case 0x00100000: mem_size = 2; break;
+    case 0x00180000: mem_size = 3; break;
+    case 0x001C0000: mem_size = 4; break;
+    }
+    ui->IDC_SLOWMEM->setValue(mem_size);
+	ui->IDC_SLOWRAM->setText(memsize_names[msi_bogo[mem_size]]);
+
+    mem_size = 0;
+    v = workprefs.z3fastmem_size + workprefs.z3fastmem2_size;
+    if      (v < 0x00100000)
+            mem_size = 0;
+    else if (v < 0x00200000)
+            mem_size = 1;
+    else if (v < 0x00400000)
+            mem_size = 2;
+    else if (v < 0x00800000)
+            mem_size = 3;
+    else if (v < 0x01000000)
+            mem_size = 4;
+    else if (v < 0x02000000)
+            mem_size = 5;
+    else if (v < 0x04000000)
+            mem_size = 6;
+    else if (v < 0x08000000)
+            mem_size = 7;
+    else if (v < 0x10000000)
+            mem_size = 8;
+    else if (v < 0x18000000)
+            mem_size = 9;
+    else if (v < 0x20000000)
+            mem_size = 10;
+    else if (v < 0x30000000)
+            mem_size = 11;
+    else if (v < 0x40000000) // 1GB
+            mem_size = 12;
+    else if (v < 0x60000000) // 1.5GB
+            mem_size = 13;
+    else if (v < 0x80000000) // 2GB
+            mem_size = 14;
+    else if (v < 0xA8000000) // 2.5GB
+            mem_size = 15;
+    else if (v < 0xC0000000) // 3GB
+            mem_size = 16;
+    else
+            mem_size = 17;
+    ui->IDC_Z3FASTMEM->setValue(mem_size);
+	ui->IDC_Z3FASTRAM->setText(memsize_names[msi_z3fast[mem_size]]);
+
+	mem_size = 0;
+	v = workprefs.z3chipmem_size;
+	if (v < 0x01000000)
+		mem_size = 0;
+	else if (v < 0x02000000)
+		mem_size = 1;
+	else if (v < 0x04000000)
+		mem_size = 2;
+	else if (v < 0x08000000)
+		mem_size = 3;
+	else if (v < 0x10000000)
+		mem_size = 4;
+	else if (v < 0x20000000)
+		mem_size = 5;
+	else if (v < 0x40000000)
+		mem_size = 6;
+	else
+		mem_size = 7;
+//	ui->IDC_Z3CHIPMEM->setValue(mem_size);
+//	ui->IDC_Z3CHIPRAM->setText(memsize_names[msi_z3chip[mem_size]]);
+
+    mem_size = 0;
+    switch (workprefs.gfxmem_size) {
+    case 0x00000000: mem_size = 0; break;
+    case 0x00100000: mem_size = 1; break;
+    case 0x00200000: mem_size = 2; break;
+    case 0x00400000: mem_size = 3; break;
+    case 0x00800000: mem_size = 4; break;
+    case 0x01000000: mem_size = 5; break;
+    case 0x02000000: mem_size = 6; break;
+    case 0x04000000: mem_size = 7; break;
+    case 0x08000000: mem_size = 8; break;
+    case 0x10000000: mem_size = 9; break;
+    case 0x20000000: mem_size = 10; break;
+    case 0x40000000: mem_size = 11; break;
+    }
+    ui->IDC_P96MEM->setValue(mem_size);
+    ui->IDC_P96RAM->setText(memsize_names[msi_gfx[mem_size]]);
+    
+/*
+	ui->IDC_RTG_8BIT->setValue ((workprefs.picasso96_modeflags & RGBFF_CLUT) ? 1 : 0, 0);
+	ui->IDC_RTG_16BIT->setValue (
+		(manybits (workprefs.picasso96_modeflags, RGBFF_R5G6B5PC | RGBFF_R5G6B5PC | RGBFF_R5G6B5 | RGBFF_R5G5B5 | RGBFF_B5G6R5PC | RGBFF_B5G5R5PC)) ? 1 :
+		(workprefs.picasso96_modeflags & RGBFF_R5G6B5PC) ? 2 :
+		(workprefs.picasso96_modeflags & RGBFF_R5G5B5PC) ? 3 :
+		(workprefs.picasso96_modeflags & RGBFF_R5G6B5) ? 4 :
+		(workprefs.picasso96_modeflags & RGBFF_R5G5B5) ? 5 :
+		(workprefs.picasso96_modeflags & RGBFF_B5G6R5PC) ? 6 :
+		(workprefs.picasso96_modeflags & RGBFF_B5G5R5PC) ? 7 : 0, 0);
+	ui->IDC_RTG_24BIT->setValue (
+		(manybits (workprefs.picasso96_modeflags, RGBFF_R8G8B8 | RGBFF_B8G8R8)) ? 1 :
+		(workprefs.picasso96_modeflags & RGBFF_R8G8B8) ? 2 :
+		(workprefs.picasso96_modeflags & RGBFF_B8G8R8) ? 3 : 0, 0);
+	ui->IDC_RTG_32BIT->setValue (
+		(manybits (workprefs.picasso96_modeflags, RGBFF_A8R8G8B8 | RGBFF_A8B8G8R8 | RGBFF_R8G8B8A8 | RGBFF_B8G8R8A8)) ? 1 :
+		(workprefs.picasso96_modeflags & RGBFF_A8R8G8B8) ? 2 :
+		(workprefs.picasso96_modeflags & RGBFF_A8B8G8R8) ? 3 :
+		(workprefs.picasso96_modeflags & RGBFF_R8G8B8A8) ? 4 :
+		(workprefs.picasso96_modeflags & RGBFF_B8G8R8A8) ? 5 : 0, 0);
+*/
+	if (workprefs.win32_rtgvblankrate <= 0 ||
+		workprefs.win32_rtgvblankrate == 50 ||
+		workprefs.win32_rtgvblankrate == 60 ||
+		workprefs.win32_rtgvblankrate == 70 ||
+		workprefs.win32_rtgvblankrate == 75)
+	{
+			ui->IDC_RTG_VBLANKRATE->setCurrentIndex(
+				(workprefs.win32_rtgvblankrate == 0) ? 1 :
+				(workprefs.win32_rtgvblankrate == -1) ? 2 :
+				(workprefs.win32_rtgvblankrate == -2) ? 0 :
+				(workprefs.win32_rtgvblankrate == 50) ? 3 :
+				(workprefs.win32_rtgvblankrate == 60) ? 4 :
+				(workprefs.win32_rtgvblankrate == 70) ? 5 :
+				(workprefs.win32_rtgvblankrate == 75) ? 6 : 0);
+	} else {
+		char tmp[10];
+		printf (tmp, "%d", workprefs.win32_rtgvblankrate);
+		//ui->IDC_RTG_VBLANKRATE->setText(tmp);
+	}
+/*
+	workprefs.win32_rtgscaleifsmall = ui->IDC_RTG_SCALE->getValue();
+	workprefs.win32_rtgallowscaling = ui->IDC_RTG_SCALE_ALLOW->getValue();
+	workprefs.win32_rtgmatchdepth = ui->IDC_RTG_MATCH_DEPTH->getValue();
+
+	ui->IDC_RTG_SCALE_ASPECTRATIO->setCurrentIndex (
+		(workprefs.win32_rtgscaleaspectratio == 0) ? 0 :
+		(workprefs.win32_rtgscaleaspectratio == 4 * 256 + 3) ? 2 :
+		(workprefs.win32_rtgscaleaspectratio == 5 * 256 + 4) ? 3 :
+		(workprefs.win32_rtgscaleaspectratio == 15 * 256 + 9) ? 4 :
+		(workprefs.win32_rtgscaleaspectratio == 16 * 256 + 9) ? 5 :
+		(workprefs.win32_rtgscaleaspectratio == 16 * 256 + 10) ? 6 : 1);
+*/
+	mem_size = 0;
+	switch (workprefs.mbresmem_low_size) {
+	case 0x00000000: mem_size = 0; break;
+	case 0x00100000: mem_size = 1; break;
+	case 0x00200000: mem_size = 2; break;
+	case 0x00400000: mem_size = 3; break;
+	case 0x00800000: mem_size = 4; break;
+	case 0x01000000: mem_size = 5; break;
+	case 0x02000000: mem_size = 6; break;
+	case 0x04000000: mem_size = 7; break;
+	}
+	ui->IDC_MBMEM1->setValue(mem_size);
+	ui->IDC_MBRAM1->setText(memsize_names[msi_gfx[mem_size]]);
+
+	mem_size = 0;
+	switch (workprefs.mbresmem_high_size) {
+	case 0x00000000: mem_size = 0; break;
+	case 0x00100000: mem_size = 1; break;
+	case 0x00200000: mem_size = 2; break;
+	case 0x00400000: mem_size = 3; break;
+	case 0x00800000: mem_size = 4; break;
+	case 0x01000000: mem_size = 5; break;
+	case 0x02000000: mem_size = 6; break;
+	case 0x04000000: mem_size = 7; break;
+	}
+	ui->IDC_MBMEM2->setValue(mem_size);
+	ui->IDC_MBRAM2->setText(memsize_names[msi_gfx[mem_size]]);
+}
+
 void puae_MainWindow::fix_values_memorydlg()
 {
     if (workprefs.chipmem_size > 0x200000)
@@ -947,113 +1167,6 @@ void puae_MainWindow::updatez3 (unsigned int *size1p, unsigned int *size2p)
                 s2 = 0;
         *size1p = s1;
         *size2p = s2;
-}
-
-void puae_MainWindow::out_floppyspeed()
-{
-    char spe[30];
-
-    if (workprefs.floppy_speed)
-            sprintf (spe, "%d%%%s", workprefs.floppy_speed, workprefs.floppy_speed == 100 ? " (compatible)" : "");
-    else
-            strcpy (spe, "Turbo");
-    ui->IDC_FLOPPYSPDTEXT->setText(spe);
-}
-
-void puae_MainWindow::values_to_memorydlg()
-{
-    unsigned int mem_size = 0;
-    unsigned long v;
-
-    switch (workprefs.chipmem_size) {
-    case 0x00040000: mem_size = 0; break;
-    case 0x00080000: mem_size = 1; break;
-    case 0x00100000: mem_size = 2; break;
-    case 0x00180000: mem_size = 3; break;
-    case 0x00200000: mem_size = 4; break;
-    case 0x00400000: mem_size = 5; break;
-    case 0x00800000: mem_size = 6; break;
-    }
-    ui->IDC_CHIPMEM->setValue(mem_size);
-
-    mem_size = 0;
-    switch (workprefs.fastmem_size) {
-    case 0x00000000: mem_size = 0; break;
-    case 0x00100000: mem_size = 1; break;
-    case 0x00200000: mem_size = 2; break;
-    case 0x00400000: mem_size = 3; break;
-    case 0x00800000: mem_size = 4; break;
-    case 0x01000000: mem_size = 5; break;
-    }
-    ui->IDC_FASTMEM->setValue(mem_size);
-
-    mem_size = 0;
-    switch (workprefs.bogomem_size) {
-    case 0x00000000: mem_size = 0; break;
-    case 0x00080000: mem_size = 1; break;
-    case 0x00100000: mem_size = 2; break;
-    case 0x00180000: mem_size = 3; break;
-    case 0x001C0000: mem_size = 4; break;
-    }
-    ui->IDC_SLOWMEM->setValue(mem_size);
-
-    mem_size = 0;
-    v = workprefs.z3fastmem_size + workprefs.z3fastmem2_size;
-    if      (v < 0x00100000)
-            mem_size = 0;
-    else if (v < 0x00200000)
-            mem_size = 1;
-    else if (v < 0x00400000)
-            mem_size = 2;
-    else if (v < 0x00800000)
-            mem_size = 3;
-    else if (v < 0x01000000)
-            mem_size = 4;
-    else if (v < 0x02000000)
-            mem_size = 5;
-    else if (v < 0x04000000)
-            mem_size = 6;
-    else if (v < 0x08000000)
-            mem_size = 7;
-    else if (v < 0x10000000)
-            mem_size = 8;
-    else if (v < 0x18000000)
-            mem_size = 9;
-    else if (v < 0x20000000)
-            mem_size = 10;
-    else if (v < 0x30000000)
-            mem_size = 11;
-    else if (v < 0x40000000) // 1GB
-            mem_size = 12;
-    else if (v < 0x60000000) // 1.5GB
-            mem_size = 13;
-    else if (v < 0x80000000) // 2GB
-            mem_size = 14;
-    else if (v < 0xA8000000) // 2.5GB
-            mem_size = 15;
-    else if (v < 0xC0000000) // 3GB
-            mem_size = 16;
-    else
-            mem_size = 17;
-    ui->IDC_Z3FASTMEM->setValue(mem_size);
-
-    mem_size = 0;
-    switch (workprefs.gfxmem_size) {
-    case 0x00000000: mem_size = 0; break;
-    case 0x00100000: mem_size = 1; break;
-    case 0x00200000: mem_size = 2; break;
-    case 0x00400000: mem_size = 3; break;
-    case 0x00800000: mem_size = 4; break;
-    case 0x01000000: mem_size = 5; break;
-    case 0x02000000: mem_size = 6; break;
-    case 0x04000000: mem_size = 7; break;
-    case 0x08000000: mem_size = 8; break;
-    case 0x10000000: mem_size = 9; break;
-    case 0x20000000: mem_size = 10; break;
-    case 0x40000000: mem_size = 11; break;
-    }
-    //ui->IDC_P96MEM->setValue(mem_size);
-    //ui->IDC_P96RAM->setValue(memsize_names[msi_gfx[mem_size]]);
 }
 
 void puae_MainWindow::enable_for_memorydlg ()
