@@ -133,9 +133,30 @@ puae_MainWindow::puae_MainWindow(QWidget *parent) :
     // USER
 	values_to_expansiondlg ();
 	enable_for_expansiondlg ();
+
 	values_to_memorydlg ();
 	enable_for_memorydlg ();
 
+	values_to_cpudlg ();
+	enable_for_cpudlg ();
+
+	values_to_sounddlg ();
+	enable_for_sounddlg ();
+
+	enable_for_inputdlg ();
+	values_to_inputdlg ();
+
+	values_to_displaydlg ();
+	enable_for_displaydlg ();
+
+	values_to_chipsetdlg ();
+	enable_for_chipsetdlg ();
+
+	values_to_chipsetdlg2 ();
+	enable_for_chipsetdlg2 ();
+
+	values_to_miscdlg ();
+	enable_for_miscdlg ();
 }
 
 puae_MainWindow::~puae_MainWindow()
@@ -1607,32 +1628,43 @@ void puae_MainWindow::values_to_cpudlg ()
         ui->IDC_COMPATIBLE_FPU->setChecked(workprefs.fpu_strict);
 //	ui->IDC_CPUIDLE->setPOS ( workprefs.cpu_idle == 0 ? 0 : 12 - workprefs.cpu_idle / 15);
         cpu = (workprefs.cpu_model - 68000) / 10;
+	printf("CPU: %d\n", cpu);
         if (cpu >= 5)
                 cpu--;
 	switch (cpu) {
 	case 0:
         	ui->IDC_CPU0->setChecked(true);
+		break;
 	case 1:
         	ui->IDC_CPU1->setChecked(true);
+		break;
 	case 2:
         	ui->IDC_CPU2->setChecked(true);
+		break;
 	case 3:
         	ui->IDC_CPU3->setChecked(true);
+		break;
 	case 4:
         	ui->IDC_CPU4->setChecked(true);
+		break;
 	case 5:
         	ui->IDC_CPU5->setChecked(true);
+		break;
 	}
 
 	switch (workprefs.fpu_model == 0 ? 0 : (workprefs.fpu_model == 68881 ? 1 : (workprefs.fpu_model == 68882 ? 2 : 3))) {
 	case 0:
         	ui->IDC_FPU0->setChecked(true);
+		break;
 	case 1:
         	ui->IDC_FPU1->setChecked(true);
+		break;
 	case 2:
         	ui->IDC_FPU2->setChecked(true);
+		break;
 	case 3:
         	ui->IDC_FPU3->setChecked(true);
+		break;
 	}
 
 /*        if (workprefs.m68k_speed == -1)
@@ -1645,8 +1677,10 @@ void puae_MainWindow::values_to_cpudlg ()
 	switch (workprefs.comptrustbyte) {
 	case 0:
 		ui->IDC_TRUST0->setChecked(true);
+		break;
 	case 1:
 		ui->IDC_TRUST1->setChecked(true);
+		break;
 	}
 
 //        SendDlgItemMessage (hDlg, IDC_CACHE, TBM_SETPOS, TRUE, workprefs.cachesize / 1024);
@@ -2065,10 +2099,28 @@ void puae_MainWindow::enable_for_miscdlg () {
 	ui->IDC_ASSOCIATE_OFF->setEnabled(!rp_isactive ());
 	ui->IDC_DD_SURFACETYPE->setEnabled(full_property_sheet && workprefs.gfx_api == 0);
 */
+	; //
 }
 
 void puae_MainWindow::values_to_miscdlg () {
-//	if (currentpage == MISC1_ID) {
+#define STATUSLINE_CHIPSET 1
+#define STATUSLINE_RTG 2
+#define STATUSLINE_TARGET 0x80
+/*                ui->IDC_FOCUSMINIMIZE->setEnabled(workprefs.win32_minimize_inactive);
+                ui->IDC_ILLEGAL->setEnabled(workprefs.illegal_mem);
+                ui->IDC_SHOWGUI->setEnabled(workprefs.start_gui);
+                ui->IDC_JULIAN->setEnabled(workprefs.win32_middle_mouse);
+                ui->IDC_CREATELOGFILE->setEnabled(workprefs.win32_logfile);
+                ui->IDC_CTRLF11->setEnabled(workprefs.win32_ctrl_F11_is_quit);
+                ui->IDC_SHOWLEDS->setEnabled((workprefs.leds_on_screen & STATUSLINE_CHIPSET) ? 1 : 0);
+                ui->IDC_SHOWLEDSRTG->setEnabled((workprefs.leds_on_screen & STATUSLINE_RTG) ? 1 : 0);
+                ui->IDC_NOTASKBARBUTTON->setEnabled(workprefs.win32_notaskbarbutton);
+                ui->IDC_ALWAYSONTOP->setEnabled(workprefs.win32_alwaysontop);
+                ui->IDC_CLOCKSYNC->setEnabled(workprefs.tod_hack);
+                ui->IDC_CLIPBOARDSHARE->setEnabled(workprefs.clipboard_sharing);
+                ui->IDC_POWERSAVE->setEnabled(workprefs.win32_powersavedisabled);
+                ui->IDC_FASTERRTG->setEnabled(workprefs.picasso96_nocustom);
+*/
 }
 
 void puae_MainWindow::enable_for_gameportsdlg () {
