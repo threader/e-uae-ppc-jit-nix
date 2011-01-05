@@ -122,7 +122,7 @@ static int selected_hd_row;
 static GtkWidget *hdchange_button, *hddel_button;
 static GtkWidget *devname_entry, *volname_entry, *path_entry;
 static GtkWidget *readonly_widget, *bootpri_widget;
-static GtkWidget *leds_on_screen_widget, *gl_smoothing_widget;
+static GtkWidget *leds_on_screen_widget;
 static GtkWidget *dirdlg;
 static GtkWidget *dirdlg_ok;
 static char dirdlg_devname[256], dirdlg_volname[256], dirdlg_path[256], floppydlg_path[256];
@@ -365,7 +365,6 @@ static void set_comp_state (void)
 static void set_misc_state (void)
 {
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (leds_on_screen_widget), currprefs.leds_on_screen);
-    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (gl_smoothing_widget), currprefs.gfx_gl_smoothing);
 }
 
 /*
@@ -1233,12 +1232,6 @@ static void leds_on_screen_changed (void)
     DEBUG_LOG("leds_on_screen = %d\n", currprefs.leds_on_screen);
 }
 
-static void gl_smoothing_changed (void)
-{
-    currprefs.gfx_gl_smoothing = GTK_TOGGLE_BUTTON(gl_smoothing_widget)->active;
-    DEBUG_LOG("gl_smoothing = %d\n", currprefs.gfx_gl_smoothing);
-}
-
 static void make_misc_widgets (GtkWidget *vbox)
 {
 	GtkWidget *hbox = gtk_hbox_new (FALSE, 10);
@@ -1249,11 +1242,6 @@ static void make_misc_widgets (GtkWidget *vbox)
 	gtk_signal_connect (GTK_OBJECT (leds_on_screen_widget), "clicked", (GtkSignalFunc) leds_on_screen_changed, 0);
 	gtk_widget_show (leds_on_screen_widget);
 	gtk_box_pack_start (GTK_BOX (hbox), leds_on_screen_widget, FALSE, TRUE, 0);
-
-	gl_smoothing_widget = gtk_check_button_new_with_label ("GL Smoothing");
-	gtk_signal_connect (GTK_OBJECT (gl_smoothing_widget), "clicked", (GtkSignalFunc) gl_smoothing_changed, 0);
-	gtk_widget_show (gl_smoothing_widget);
-	gtk_box_pack_start (GTK_BOX (hbox), gl_smoothing_widget, FALSE, TRUE, 0);
 
     gtk_widget_show (hbox);
     add_centered_to_vbox (vbox, hbox);
