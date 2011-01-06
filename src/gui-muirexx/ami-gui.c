@@ -79,7 +79,7 @@ static const char *get_last_floppy_dir (void)
 	    atexit (free_last_floppy_dir);
 	}
 
-	last_floppy_dir = my_strdup (currprefs.path_floppy);
+	last_floppy_dir = my_strdup (currprefs.path_floppy.path[0]);
     }
     return last_floppy_dir;
 }

@@ -943,7 +943,7 @@ static void did_romchange (GtkWidget *w, gpointer data)
     gtk_widget_set_sensitive (rom_change_widget, 0);
 
     rom_selector = make_file_selector ("Select a ROM file", did_rom_select, did_close_rom);
-    filesel_set_path (rom_selector, currprefs.path_rom);
+    filesel_set_path (rom_selector, currprefs.path_rom.path[0]);
 }
 
 static GtkWidget *key_selector;
@@ -975,7 +975,7 @@ static void did_keychange (GtkWidget *w, gpointer data)
     gtk_widget_set_sensitive (key_change_widget, 0);
 
     key_selector = make_file_selector ("Select a Kickstart key file", did_key_select, did_close_key);
-    filesel_set_path (key_selector, currprefs.path_rom);
+    filesel_set_path (key_selector, currprefs.path_rom.path[0]);
 }
 
 static void add_empty_vbox (GtkWidget *tobox)
@@ -1136,7 +1136,7 @@ static void make_floppy_disks (GtkWidget *vbox)
 	    gtk_widget_set_sensitive(floppy_widget[i], 0);
 	floppyfileentry_set_drivename (FLOPPYFILEENTRY (floppy_widget[i]), buf);
 	floppyfileentry_set_label (FLOPPYFILEENTRY (floppy_widget[i]), buf);
-	floppyfileentry_set_currentdir (FLOPPYFILEENTRY (floppy_widget[i]), currprefs.path_floppy);
+	floppyfileentry_set_currentdir (FLOPPYFILEENTRY (floppy_widget[i]), currprefs.path_floppy.path[i]);
 	gtk_box_pack_start (GTK_BOX (vbox), floppy_widget[i], FALSE, TRUE, 0);
 	gtk_widget_show (floppy_widget[i]);
 	gtk_signal_connect (GTK_OBJECT (floppy_widget[i]), "disc-changed", (GtkSignalFunc) disc_changed, GINT_TO_POINTER (i));

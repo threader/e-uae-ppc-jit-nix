@@ -241,6 +241,17 @@ static void removeext (TCHAR *s, TCHAR *ext)
 		s[_tcslen (s) - _tcslen (ext)] = 0;
 }
 
+static bool checkwrite (struct zfile *zf, int *retcode)
+{
+	if (zfile_needwrite (zf)) {
+		if (retcode)
+			*retcode = -1;
+		return true;
+	}
+	return false;
+}
+
+
 static uae_u8 exeheader[]={ 0x00,0x00,0x03,0xf3,0x00,0x00,0x00,0x00 };
 static TCHAR *diskimages[] = { "adf", "adz", "ipf", "fdi", "dms", "wrp", "dsq", 0 };
 
@@ -1057,6 +1068,8 @@ static struct zfile *dms (struct zfile *z, int index, int *retcode)
 	int i;
 	struct zfile *zextra[DMS_EXTRA_SIZE] = { 0 };
 
+	if (checkwrite (z, retcode))
+		return NULL;
 	if (recursive)
 		return NULL;
 	if (ext) {
@@ -1473,6 +1486,17 @@ static struct zfile *openzip (const TCHAR *pname)
 	return 0;
 }
 
+static bool writeneeded (const TCHAR *mode)
+{
+	return _tcschr (mode, 'w') || _tcschr (mode, 'a') || _tcschr (mode, '+') || _tcschr (mode, 't');
+}
+bool zfile_needwrite (struct zfile *zf)
+{
+	if (!zf->mode)
+		return false;
+	return writeneeded (zf->mode);
+}
+
 static struct zfile *zfile_fopen_2 (const TCHAR *name, const TCHAR *mode, int mask)
 {
 	struct zfile *l;
@@ -1486,7 +1510,7 @@ static struct zfile *zfile_fopen_2 (const TCHAR *name, const TCHAR *mode, int ma
 #endif
 	l = openzip (name);
 	if (l) {
-		if (_tcsicmp (mode, "rb") && _tcsicmp (mode, "r")) {
+		if (writeneeded (mode)) {
 			zfile_fclose (l);
 			return 0;
 		}
@@ -1584,8 +1608,6 @@ static struct zfile *zfile_fopen_x (const TCHAR *name, const TCHAR *mode, int ma
 	l = zfile_fopen_2 (path, mode, mask);
 	if (!l)
 		return 0;
-	if (_tcschr (mode, 'w') || _tcschr (mode, 'a'))
-		return l;
 	l2 = NULL;
 	while (cnt-- > 0) {
 		int rc;
