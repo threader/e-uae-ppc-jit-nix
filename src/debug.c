@@ -2160,7 +2160,7 @@ void memwatch_dump2 (TCHAR *buf, int bufsize, int num)
 			mwn = &mwnodes[i];
 			if (mwn->size == 0)
 				continue;
-			buf = buf_out (buf, &bufsize, "%d: %08X - %08X (%d) %c%c%c",
+			buf = buf_out (buf, &bufsize, "%2d: %08X - %08X (%d) %c%c%c",
 				i, mwn->addr, mwn->addr + (mwn->size - 1), mwn->size,
 				(mwn->rwi & 1) ? 'R' : ' ', (mwn->rwi & 2) ? 'W' : ' ', (mwn->rwi & 4) ? 'I' : ' ');
 			if (mwn->frozen)
@@ -2477,13 +2477,74 @@ static void show_exec_tasks (void)
 	}
 }
 
+static uaecptr get_base (const uae_char *name)
+{
+	uaecptr v = get_long (4);
+	addrbank *b = &get_mem_bank(v);
+
+	if (!b || !b->check (v, 400) || b->flags != ABFLAG_RAM)
+		return 0;
+	v += 378; // liblist
+	while (v = get_long (v)) {
+		uae_u32 v2;
+		uae_u8 *p;
+		b = &get_mem_bank (v);
+		if (!b || !b->check (v, 32) || b->flags != ABFLAG_RAM)
+			goto fail;
+		v2 = get_long (v + 10); // name
+		b = &get_mem_bank (v2);
+		if (!b || !b->check (v2, 20))
+			goto fail;
+		if (b->flags != ABFLAG_ROM && b->flags != ABFLAG_RAM)
+			return 0;
+		p = b->xlateaddr (v2);
+		if (!memcmp (p, name, strlen (name) + 1))
+			return v;
+	}
+	return 0;
+fail:
+	return 0xffffffff;
+}
+
+static TCHAR *getfrombstr(uaecptr pp)
+{
+	uae_u8 *p = get_real_address ((uaecptr)(pp << 2));
+	TCHAR *s = xmalloc (TCHAR, p[0] + 1);
+	return au_copy (s, p[0] + 1, (char*)p + 1);
+}
+
 static void show_exec_lists (TCHAR t)
 {
 	unsigned int i, j;
 	uaecptr execbase = get_long (4);
 	uaecptr list = 0, node;
 
-	if (_totupper (t) == 'I') {
+	if (_totupper (t) == 'O') { // doslist
+		uaecptr dosbase = get_base ("dos.library");
+		if (dosbase) {
+			uaecptr rootnode = get_long (dosbase + 34);
+			uaecptr dosinfo = get_long (rootnode + 24) << 2;
+			console_out_f ("ROOTNODE: %08x DOSINFO: %08x\n", rootnode, dosinfo);
+			uaecptr doslist = get_long (dosinfo + 4) << 2;
+			while (doslist) {
+				int type = get_long (doslist + 4);
+				uaecptr msgport = get_long (doslist + 8);
+				TCHAR *name = getfrombstr (get_long (doslist + 40));
+				console_out_f ("%08x: %d %08x '%s'\n", doslist, type, msgport, name);
+				if (type == 0) {
+					console_out_f (" - H=%08x Stack=%5d Pri=%2d Start=%08x Seg=%08x GV=%08x\n",
+						get_long (doslist + 16) << 2, get_long (doslist + 20),
+						get_long (doslist + 24), get_long (doslist + 28),
+						get_long (doslist + 32) << 2, get_long (doslist + 36));
+				}
+				xfree (name);
+				doslist = get_long (doslist) << 2;
+			}
+		} else {
+			console_out_f ("can't find dos.library\n");
+		}
+		return;
+	} else if (_totupper (t) == 'I') { // interrupts
 		static const int it[] = {  1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0 };
 		static const int it2[] = { 1, 1, 1, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5, 6, 6, 7 };
 		list = execbase + 84;

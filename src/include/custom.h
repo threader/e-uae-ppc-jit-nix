@@ -44,7 +44,6 @@ extern unsigned long int hsync_counter, vsync_counter;
 extern uae_u16 dmacon;
 extern uae_u16 intena, intreq, intreqr;
 
-//extern int current_hpos (void);
 extern int vpos;
 
 //extern int find_copper_record (uaecptr, int *, int *);
@@ -115,7 +114,6 @@ extern int hsyncstartpos;
 extern int minfirstline, vblank_endline, numscrlines;
 extern int vblank_hz, fake_vblank_hz, vblank_skip, doublescan;
 extern frame_time_t syncbase;
-#define NUMSCRLINES (maxvpos + 1 - minfirstline + 1)
 
 #define DMA_AUD0      0x0001
 #define DMA_AUD1      0x0002
@@ -170,6 +168,7 @@ extern int xbluecolor_s, xbluecolor_b, xbluecolor_m;
 #define RES_MAX 2
 #define VRES_NONDOUBLE 0
 #define VRES_DOUBLE 1
+#define VRES_QUAD 2
 #define VRES_MAX 1
 
 /* calculate shift depending on resolution (replaced "decided_hires ? 4 : 8") */

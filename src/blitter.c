@@ -1166,6 +1166,7 @@ static void blit_bltset (int con)
 	if (!savestate_state && bltstate != BLT_done && blitline) {
 		blitline = 0;
 		bltstate = BLT_done;
+		blit_interrupt = 1;
 		write_log ("BLITTER: register modification during linedraw!\n");
 	}
 

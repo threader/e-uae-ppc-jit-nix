@@ -856,6 +856,13 @@ void fetch_datapath (TCHAR *out, int size)
 {
         fetch_path (NULL, out, size);
 }
+// convert path to absolute or relative
+void fullpath (TCHAR *path, int size)
+{
+        if (path[0] == 0 || (path[0] == '\\' && path[1] == '\\') || path[0] == ':')
+                return;
+        /* <drive letter>: is supposed to mean same as <drive letter>:\ */
+}
 
 //
 TCHAR *au_copy (TCHAR *dst, int maxlen, const char *src)

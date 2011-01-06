@@ -1625,7 +1625,9 @@ void puae_MainWindow::values_to_cpudlg ()
 //        ui->IDC_CPUTEXT->setChecked(workprefs.m68k_speed <= 0 ? 1 : workprefs.m68k_speed / CYCLE_UNIT);
         ui->IDC_COMPATIBLE->setChecked(workprefs.cpu_compatible);
         ui->IDC_COMPATIBLE24->setChecked(workprefs.address_space_24);
+#ifdef JIT
         ui->IDC_COMPATIBLE_FPU->setChecked(workprefs.fpu_strict);
+#endif
 //	ui->IDC_CPUIDLE->setPOS ( workprefs.cpu_idle == 0 ? 0 : 12 - workprefs.cpu_idle / 15);
         cpu = (workprefs.cpu_model - 68000) / 10;
 	printf("CPU: %d\n", cpu);
@@ -1674,6 +1676,7 @@ void puae_MainWindow::values_to_cpudlg ()
         else
                 CheckRadioButton(hDlg, IDC_CS_HOST, IDC_CS_ADJUSTABLE, IDC_CS_ADJUSTABLE);
 */
+#ifdef JIT
 	switch (workprefs.comptrustbyte) {
 	case 0:
 		ui->IDC_TRUST0->setChecked(true);
@@ -1682,15 +1685,16 @@ void puae_MainWindow::values_to_cpudlg ()
 		ui->IDC_TRUST1->setChecked(true);
 		break;
 	}
-
+#endif
 //        SendDlgItemMessage (hDlg, IDC_CACHE, TBM_SETPOS, TRUE, workprefs.cachesize / 1024);
         printf (cache, "%d MB", workprefs.cachesize / 1024 );
 //        ui->IDC_CACHETEXT->setText(cache);
-
+#ifdef JIT
         ui->IDC_NOFLAGS->setChecked(workprefs.compnf);
         ui->IDC_JITFPU->setChecked(workprefs.compfpu);
         ui->IDC_HARDFLUSH->setChecked(workprefs.comp_hardflush);
         ui->IDC_CONSTJUMP->setChecked(workprefs.comp_constjump);
+#endif
         ui->IDC_JITENABLE->setChecked(workprefs.cachesize > 0);
         ui->IDC_MMUENABLE->setChecked(workprefs.cpu_model == 68040 && workprefs.cachesize == 0 && workprefs.mmu_model == 68040);
 
@@ -1712,7 +1716,9 @@ void puae_MainWindow::values_from_cpudlg ()
         static int cachesize_prev, trust_prev;
 
         workprefs.cpu_compatible = workprefs.cpu_cycle_exact | (ui->IDC_COMPATIBLE->isChecked() ? 1 : 0);
+#ifdef JIT
         workprefs.fpu_strict = ui->IDC_COMPATIBLE_FPU->isChecked() ? 1 : 0;
+#endif
         workprefs.address_space_24 = ui->IDC_COMPATIBLE24->isChecked() ? 1 : 0;
 /*        workprefs.m68k_speed = ui->IDC_CS_HOST->isChecked() ? -1
                 : ui->IDC_CS_68000->isChecked() ? 0
@@ -1762,6 +1768,7 @@ void puae_MainWindow::values_from_cpudlg ()
                 break;
         }
 
+#ifdef JIT
         newtrust = ui->IDC_TRUST0->isChecked() ? 0 : 1;
         workprefs.comptrustbyte = newtrust;
         workprefs.comptrustword = newtrust;
@@ -1772,6 +1779,7 @@ void puae_MainWindow::values_from_cpudlg ()
         workprefs.compfpu           = ui->IDC_JITFPU->isChecked();
         workprefs.comp_hardflush    = ui->IDC_HARDFLUSH->isChecked();
         workprefs.comp_constjump    = ui->IDC_CONSTJUMP->isChecked();
+#endif
 
 #ifdef JIT
         oldcache = workprefs.cachesize;

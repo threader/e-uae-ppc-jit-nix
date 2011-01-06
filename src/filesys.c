@@ -2557,7 +2557,7 @@ static void
 			}
 		}
 	}
-	//write_log ("Tried to free non-existing NotifyRequest %08X\n", nr);
+	write_log ("Tried to free non-existing NotifyRequest %08X\n", nr);
 	PUT_PCK_RES1 (packet, DOS_TRUE);
 }
 
@@ -6809,10 +6809,17 @@ uae_u8 *save_filesys (int num, int *len)
 	save_u32 (2); /* version */
 	save_u32 (ui->devno);
 	save_u16 (type);
-	save_string (ui->rootdir);
+	if (type == FILESYS_VIRTUAL)
+		save_path (ui->rootdir, SAVESTATE_PATH_VDIR);
+	else if (type == FILESYS_HARDFILE || type == FILESYS_HARDFILE_RDB)
+		save_path (ui->rootdir, SAVESTATE_PATH_HDF);
+	else if (type == FILESYS_HARDDRIVE)
+		save_path (ui->rootdir, SAVESTATE_PATH_HD);
+	else
+		save_path (ui->rootdir, SAVESTATE_PATH);
 	save_string (ui->devname);
 	save_string (ui->volname);
-	save_string (ui->filesysdir);
+	save_path (ui->filesysdir, SAVESTATE_PATH);
 	save_u8 (ui->bootpri);
 	save_u8 (ui->readonly);
 	save_u32 (ui->startup);
@@ -6832,20 +6839,28 @@ uae_u8 *restore_filesys (uae_u8 *src)
 	TCHAR *devname = 0, *volname = 0, *rootdir = 0, *filesysdir = 0;
 	int bootpri;
 	bool readonly;
+	uae_u32 startup;
 
 	if (restore_u32 () != 2)
 		return src;
 	devno = restore_u32 ();
 	type = restore_u16 ();
-	rootdir = restore_string ();
+	if (type == FILESYS_VIRTUAL)
+		rootdir = restore_path (SAVESTATE_PATH_VDIR);
+	else if (type == FILESYS_HARDFILE || type == FILESYS_HARDFILE_RDB)
+		rootdir = restore_path (SAVESTATE_PATH_HDF);
+	else if (type == FILESYS_HARDDRIVE)
+		rootdir = restore_path (SAVESTATE_PATH_HD);
+	else
+		rootdir = restore_path (SAVESTATE_PATH);
 	devname = restore_string ();
 	volname = restore_string ();
-	filesysdir = restore_string ();
+	filesysdir = restore_path (SAVESTATE_PATH);
 	bootpri = restore_u8 ();
 	readonly = restore_u8 () != 0;
-	ui = &mountinfo.ui[devno];
-	ui->startup = restore_u32 ();
+	startup = restore_u32 ();
 	filesys_configdev = restore_u32 ();
+	ui = &mountinfo.ui[devno];
 	if (type == FILESYS_HARDFILE || type == FILESYS_HARDFILE_RDB) {
 		src = restore_filesys_hardfile (ui, src);
 		xfree (volname);
@@ -6857,6 +6872,8 @@ uae_u8 *restore_filesys (uae_u8 *src)
 			write_log ("filesys '%s' failed to restore\n", rootdir);
 			goto end;
 	}
+	ui->devno = devno;
+	ui->startup = startup;
 	if (type == FILESYS_VIRTUAL)
 		src = restore_filesys_virtual (ui, src, devno);
 	write_log ("'%s' restored\n", rootdir);

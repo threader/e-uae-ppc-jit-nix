@@ -586,11 +586,15 @@ void blkdev_vsync (void)
 
 static int do_scsi (int unitnum, uae_u8 *cmd, int cmdlen)
 {
-	return 0;
+	uae_u8 *p = device_func[unitnum]->exec_out (unitnum, cmd, cmdlen);
+	return p != NULL;
 }
 static int do_scsi2 (int unitnum, uae_u8 *cmd, int cmdlen, uae_u8 *out, int outsize)
 {
-	return 0;
+	uae_u8 *p = device_func[unitnum]->exec_in (unitnum, cmd, cmdlen, &outsize);
+	if (p)
+		memcpy (out, p, outsize);
+	return p != NULL;
 }
 
 static int failunit (int unitnum)
@@ -762,9 +766,6 @@ int sys_command_cd_read (int unitnum, uae_u8 *data, int block, int size)
 		return 0;
 	if (device_func[unitnum]->read == NULL) {
 		uae_u8 cmd[12] = { 0xbe, 0, block >> 24, block >> 16, block >> 8, block >> 0, size >> 16, size >> 8, size >> 0, 0x10, 0, 0 };
-		cmd[1] = 2 << 3; // 2048
-		if (!do_scsi2 (unitnum, cmd, sizeof cmd, data, size * 2048))
-			cmd[1] = 4 << 3; // 2048 mode2
 		v = do_scsi2 (unitnum, cmd, sizeof cmd, data, size * 2048);
 	} else {
 		v = device_func[unitnum]->read (unitnum, data, block, size);
@@ -1504,6 +1505,7 @@ static int scsi_emulate (int unitnum, uae_u8 *cmdbuf, int scsi_cmd_len,
 					goto errreq;
 				start = toc->toc[toc->first_track_offset + start].paddress;
 			}
+			sys_command_cd_pause (unitnum, 0);
 			sys_command_cd_play (unitnum, start, end, scan);
 			scsi_len = 0;
 		}
@@ -1524,6 +1526,7 @@ static int scsi_emulate (int unitnum, uae_u8 *cmdbuf, int scsi_cmd_len,
 				goto errreq;
 			int start = toc->toc[toc->first_track_offset + strack - 1].paddress;
 			int end = etrack == toc->last_track ? toc->lastaddress : toc->toc[toc->first_track_offset + etrack - 1 + 1].paddress;
+			sys_command_cd_pause (unitnum, 0);
 			if (!sys_command_cd_play (unitnum, start, end, 0))
 				goto notdatatrack;
 			scsi_len = 0;
@@ -1545,6 +1548,7 @@ static int scsi_emulate (int unitnum, uae_u8 *cmdbuf, int scsi_cmd_len,
 			if (end > di.toc.lastaddress)
 				end = di.toc.lastaddress;
 			if (len > 0) {
+				sys_command_cd_pause (unitnum, 0);
 				if (!sys_command_cd_play (unitnum, start, start + len, 0))
 					goto notdatatrack;
 			}
@@ -1568,6 +1572,7 @@ static int scsi_emulate (int unitnum, uae_u8 *cmdbuf, int scsi_cmd_len,
 			if (start > end)
 				goto errreq;
 			if (start < end)
+				sys_command_cd_pause (unitnum, 0);
 				if (!sys_command_cd_play (unitnum, start, end, 0))
 					goto notdatatrack;
 			scsi_len = 0;
@@ -1580,7 +1585,7 @@ static int scsi_emulate (int unitnum, uae_u8 *cmdbuf, int scsi_cmd_len,
 				goto nodisk;
 			int start = rl (cmdbuf + 2);
 			int len;
-			if (cmd= 0xa5)
+			if (cmd = 0xa5)
 				len = rl (cmdbuf + 6);
 			else
 				len = rw (cmdbuf + 7);
@@ -1593,6 +1598,7 @@ static int scsi_emulate (int unitnum, uae_u8 *cmdbuf, int scsi_cmd_len,
 				int end = start + len;
 				if (end > di.toc.lastaddress)
 					end = di.toc.lastaddress;
+				sys_command_cd_pause (unitnum, 0);
 				if (!sys_command_cd_play (unitnum, start, end, 0))
 					goto notdatatrack;
 			}
@@ -1617,6 +1623,7 @@ static int scsi_emulate (int unitnum, uae_u8 *cmdbuf, int scsi_cmd_len,
 			if (start > end)
 				goto errreq;
 			if (start < end) {
+				sys_command_cd_pause (unitnum, 0);
 				if (!sys_command_cd_play (unitnum, start, end, 0))
 					goto notdatatrack;
 			}
@@ -1802,7 +1809,7 @@ uae_u8 *save_cd (int num, int *len)
 #endif
 	dstbak = dst = xmalloc (uae_u8, 4 + 256 + 4 + 4);
 	save_u32 (4);
-	save_string (currprefs.cdslots[num].name);
+	save_path (currprefs.cdslots[num].name, SAVESTATE_PATH_CD);
 	save_u32 (currprefs.cdslots[num].type);
 	save_u32 (0);
 	*len = dst - dstbak;
@@ -1817,7 +1824,7 @@ uae_u8 *restore_cd (int num, uae_u8 *src)
 	if (num >= MAX_TOTAL_SCSI_DEVICES)
 		return NULL;
 	flags = restore_u32 ();
-	s = restore_string ();
+	s = restore_path (SAVESTATE_PATH_CD);
 	int type = restore_u32 ();
 	restore_u32 ();
 	if (flags & 4) {

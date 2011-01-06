@@ -658,11 +658,11 @@ static void update_drive_gui (int num)
 	bool writ = dskdmaen == 3 && drv->state && !((selected | disabled) & (1 << num));
 
 	if (drv->state == gui_data.drive_motor[num]
-	&& drv->cyl == gui_data.drive_track[num]
-	&& side == gui_data.drive_side
+		&& drv->cyl == gui_data.drive_track[num]
+		&& side == gui_data.drive_side
 		&& drv->crc32 == gui_data.crc32[num]
-	&& writ == gui_data.drive_writing[num]
-	&& !_tcscmp (gui_data.df[num], currprefs.floppyslots[num].df))
+		&& writ == gui_data.drive_writing[num]
+		&& !_tcscmp (gui_data.df[num], currprefs.floppyslots[num].df))
 		return;
 	_tcscpy (gui_data.df[num], currprefs.floppyslots[num].df);
 	gui_data.crc32[num] = drv->crc32;
@@ -3633,7 +3633,7 @@ uae_u8 *restore_disk (int num,uae_u8 *src)
 	int mfmpos = restore_u32 ();
 	drv->dskchange_time = 0;
 	restore_u32 ();
-	s = restore_string ();
+	s = restore_path (SAVESTATE_PATH_FLOPPY);
 	_tcscpy (old, currprefs.floppyslots[num].df);
 	_tcsncpy (changed_prefs.floppyslots[num].df, s, 255);
 	xfree (s);
@@ -3702,7 +3702,7 @@ uae_u8 *save_disk (int num, int *len, uae_u8 *dstptr, bool usepath)
 	save_u8 (drv->drive_id_scnt);   /* id mode position */
 	save_u32 (drv->mfmpos);			/* disk position */
 	save_u32 (getadfcrc (drv));	    /* CRC of disk image */
-	save_string (usepath ? currprefs.floppyslots[num].df : "");/* image name */
+	save_path (usepath ? currprefs.floppyslots[num].df : "", SAVESTATE_PATH_FLOPPY);/* image name */
 	save_u16 (drv->dskready_up_time);
 	save_u16 (drv->dskready_down_time);
 	*len = dst - dstbak;
