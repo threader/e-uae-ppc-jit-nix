@@ -1173,7 +1173,7 @@ static void did_sstate_change (GtkWidget *w, gpointer data)
     gtk_widget_set_sensitive (sstate_change_widget, 0);
 
     sstate_selector = make_file_selector ("Select a Savestate file", did_sstate_select, did_close_sstate);
-    filesel_set_path (sstate_selector, currprefs.path_savestate);
+//    filesel_set_path (sstate_selector, currprefs.path_savestate);
 }
 
 static void did_sstate_load (GtkWidget *w, gpointer data)

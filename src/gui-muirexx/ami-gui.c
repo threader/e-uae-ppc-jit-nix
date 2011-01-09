@@ -95,7 +95,8 @@ static const char *get_last_savestate_dir (void)
 	    atexit (free_last_savestate_dir);
 	}
 
-	last_savestate_dir = my_strdup (currprefs.path_savestate);
+//	last_savestate_dir = my_strdup (currprefs.path_savestate);
+	last_savestate_dir = my_strdup (" ");
     }
     return last_savestate_dir;
 }
