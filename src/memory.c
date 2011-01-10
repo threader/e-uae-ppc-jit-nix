@@ -6,6 +6,8 @@
  * (c) 1995 Bernd Schmidt
  */
 
+#define DEBUG_STUPID 0
+
 #include "sysconfig.h"
 #include "sysdeps.h"
 
@@ -1246,6 +1248,9 @@ uae_u8 *REGPARAM2 default_xlate (uaecptr a)
 				uaecptr a2 = a - 32;
 				uaecptr a3 = m68k_getpc () - 32;
 				write_log ("Your Amiga program just did something terribly stupid %08X PC=%08X\n", a, M68K_GETPC);
+#if DEBUG_STUPID
+	//			activate_debugger();
+#endif
 				m68k_dumpstate (0, 0);
 				for (i = 0; i < 10; i++) {
 					write_log ("%08X ", i >= 5 ? a3 : a2);

@@ -241,6 +241,10 @@ filesys_dev_storeinfo
 FSIN_ksold
 
 	; add >2MB-6MB chip RAM to memory list
+	lea $210000,a1
+	jsr -$216(a6) ; TypeOfMem
+	tst.l d0
+	bne.s FSIN_chip_done
 	move.w #$FF80,d0
 	bsr.w getrtbase
 	jsr (a0)

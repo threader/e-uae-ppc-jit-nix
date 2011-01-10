@@ -2232,7 +2232,7 @@ static void center_image (void)
 		thisframe_y_adjust = minfirstline;
 
 	thisframe_y_adjust_real = thisframe_y_adjust << linedbl;
-	tmp = (maxvpos_nom - thisframe_y_adjust) << linedbl;
+	tmp = (maxvpos_nom - thisframe_y_adjust + 1) << linedbl;
 	if (tmp != max_ypos_thisframe) {
 		last_max_ypos = tmp;
 		if (last_max_ypos < 0)

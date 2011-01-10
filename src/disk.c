@@ -2382,7 +2382,7 @@ static void DISK_check_change (void)
 			currprefs.floppyslots[i].dfxtype = changed_prefs.floppyslots[i].dfxtype;
 			reset_drive (i);
 #ifdef RETROPLATFORM
-			rp_floppydrive_change (i, currprefs.floppyslots[i].dfxtype >= 0 ? 1 : 0);
+			rp_floppy_device_enable (i, currprefs.floppyslots[i].dfxtype >= 0);
 #endif
 		}
 	}
@@ -3024,7 +3024,7 @@ static void DISK_start (void)
 	unsigned int dr, i;
 
 	for (i = 0; i < 3; i++)
-		fifo_inuse[0] = 0;
+		fifo_inuse[i] = 0;
 	fifo_filled = 0;
 	for (dr = 0; dr < MAX_FLOPPY_DRIVES; dr++) {
 		drive *drv = &floppy[dr];
