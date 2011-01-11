@@ -371,7 +371,7 @@ HOST_CPU=generic
 MDFPP_H=fpp-unknown.h
 
 case $host_cpu in
-     i[[3-6]]86)
+     i[[3-7]]86)
        HOST_CPU=i386
        MDFPP_H=fpp-ieee.h
        ;;
@@ -379,11 +379,11 @@ case $host_cpu in
        HOST_CPU=amd64
        MDFPP_H=fpp-ieee.h
        ;;
-     powerpc)
+     powerpc*)
        HOST_CPU=ppc
        MDFPP_H=fpp-ieee.h
        ;;
-     m68k)
+     m68k | m680[246]0)
        HOST_CPU=68k
        MDFPP_H=fpp-ieee.h
        ;;
