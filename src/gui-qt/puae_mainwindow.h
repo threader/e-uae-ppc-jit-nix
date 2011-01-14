@@ -52,8 +52,6 @@ private slots:
     void on_IDC_CS_CIAA_TOD2_clicked();
     void on_IDC_CS_RTC3_clicked();
     void on_IDC_CS_RTC2_clicked();
-    void on_IDC_CS_SOUND2_clicked();
-    void on_IDC_CS_SOUND1_clicked();
     void on_IDC_COLLISION3_clicked();
     void on_IDC_COLLISION2_clicked();
     void on_IDC_COLLISION1_clicked();
@@ -75,7 +73,6 @@ private slots:
     void on_IDC_CS_CIAA_TOD1_clicked();
     void on_IDC_CS_RTC1_clicked();
     void on_IDC_CS_COMPATIBLE_toggled(bool checked);
-    void on_IDC_CS_SOUND0_clicked();
     void on_IDC_COLLISION0_clicked();
     void on_IDC_NTSC_toggled(bool checked);
     void on_IDC_GENLOCK_toggled(bool checked);

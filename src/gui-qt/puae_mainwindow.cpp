@@ -505,24 +505,6 @@ void puae_MainWindow::on_IDC_COLLISION3_clicked()
     workprefs.collision_level = 3;
 }
 
-/* Sound Disabled */
-void puae_MainWindow::on_IDC_CS_SOUND0_clicked()
-{
-    workprefs.produce_sound = 0;
-}
-
-/* Sound Emulated */
-void puae_MainWindow::on_IDC_CS_SOUND1_clicked()
-{
-    workprefs.produce_sound = 1;
-}
-
-/* Sound Emulated %100 */
-void puae_MainWindow::on_IDC_CS_SOUND2_clicked()
-{
-    workprefs.produce_sound = 2;
-}
-
 //*************************************************
 // Advanced Chipset
 //*************************************************
@@ -1019,7 +1001,7 @@ void puae_MainWindow::values_to_memorydlg()
             mem_size = 16;
     else
             mem_size = 17;
-    ui->IDC_Z3FASTMEM->setValue(mem_size);
+	ui->IDC_Z3FASTMEM->setValue(mem_size);
 	ui->IDC_Z3FASTRAM->setText(memsize_names[msi_z3fast[mem_size]]);
 
 	mem_size = 0;
@@ -1040,8 +1022,8 @@ void puae_MainWindow::values_to_memorydlg()
 		mem_size = 6;
 	else
 		mem_size = 7;
-//	ui->IDC_Z3CHIPMEM->setValue(mem_size);
-//	ui->IDC_Z3CHIPRAM->setText(memsize_names[msi_z3chip[mem_size]]);
+	ui->IDC_Z3CHIPMEM->setValue(mem_size);
+	ui->IDC_Z3CHIPRAM->setText(memsize_names[msi_z3chip[mem_size]]);
 
     mem_size = 0;
     switch (workprefs.gfxmem_size) {
@@ -2164,7 +2146,18 @@ void puae_MainWindow::enable_for_inputdlg () {
 void puae_MainWindow::values_from_inputdlg () {
 }
 
+static int input_selected_device, input_selected_widget, input_total_devices;
+static int input_selected_event, input_selected_sub_num;
+
+
 void puae_MainWindow::values_to_inputdlg () {
+	ui->IDC_INPUTTYPE->setCurrentIndex(workprefs.input_selected_setting);
+	ui->IDC_INPUTDEVICE->setCurrentIndex(input_selected_device);
+//        ui->IDC_INPUTDEADZONE->setText(workprefs.input_joystick_deadzone);
+//        ui->IDC_INPUTAUTOFIRERATE->setText(workprefs.input_autofire_linecnt);
+//        ui->IDC_INPUTSPEEDD->setText(workprefs.input_joymouse_speed);
+//        ui->IDC_INPUTSPEEDA->setText(workprefs.input_joymouse_multiplier);
+//	ui->IDC_INPUTDEVICEDISABLE->setEnabled(!input_total_devices || inputdevice_get_device_status (input_selected_device)) ? BST_CHECKED : BST_UNCHECKED);
 }
 
 void puae_MainWindow::init_portsdlg () {
