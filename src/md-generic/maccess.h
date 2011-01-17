@@ -54,3 +54,4 @@ STATIC_INLINE void do_put_mem_byte(uae_u8 *a, uae_u8 v)
 #undef NO_INLINE_MEMORY_ACCESS
 #undef MD_HAVE_MEM_1_FUNCS
 
+#define ALIGN_POINTER_TO32(p) ((~(unsigned long)(p)) & 3)
