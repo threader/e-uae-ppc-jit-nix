@@ -112,8 +112,8 @@ struct mnemolookup lookuptab[] = {
     { i_ROXLW,	"ROXLW","ROXLW" },
     { i_ROXRW,	"ROXRW","ROXRW" },
 
-    { i_MOVE2C,	"MOVE2C", "MOVE" },
-    { i_MOVEC2,	"MOVEC2", "MOVE" },
+    { i_MOVE2C,	"MOVE2C", "MOVEC" },
+    { i_MOVEC2,	"MOVEC2", "MOVEC" },
     { i_CAS,	"CAS","CAS" },
     { i_CAS2,	"CAS2","CAS2" },
     { i_MULL,	"MULL","MULL" },

@@ -625,8 +625,7 @@ static void dumpmem (uaecptr addr, uaecptr *nxmem, int lines)
 
 static void dump_custom_regs (int aga)
 {
-	unsigned int len;
-	unsigned int i, j, end;
+	unsigned int len, i, j, end;
 	uae_u8 *p1, *p2, *p3, *p4;
 
 	if (aga) {

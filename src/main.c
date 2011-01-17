@@ -615,7 +615,7 @@ static void parse_cmdline (int argc, TCHAR **argv)
 			TCHAR *txt2 = xmalloc(TCHAR, _tcslen(txt) + 2);
 			_tcscpy(txt2, txt);
 			if (_tcsrchr(txt2, ',') != NULL)
-				_tcscat(txt2, L",");
+				_tcscat(txt2, ",");
 			cfgfile_parse_option (&currprefs, "cdimage0", txt2, 0);
 			xfree(txt2);
 			xfree (txt);

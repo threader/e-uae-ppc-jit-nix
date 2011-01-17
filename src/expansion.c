@@ -306,7 +306,7 @@ static void REGPARAM2 expamem_wput (uaecptr addr, uae_u32 value)
 				ecard++;
 				if (p1 != p2)
 					write_log ("   Card %d remapped %04x0000 -> %04x0000\n", ecard, p1, p2);
-				write_log ("   Card %d (Zorro%s) done.\n", ecard, expamem_type () == 0xc0 ? L"II" : L"III");
+				write_log ("   Card %d (Zorro%s) done.\n", ecard, expamem_type () == 0xc0 ? "II" : "III");
 				if (ecard < cardno)
 					(*card_init[ecard]) ();
 				else
