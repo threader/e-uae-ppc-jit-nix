@@ -3887,7 +3887,6 @@ static void remove_custom_config (struct uae_prefs *prefs, bool nocustom, int in
 	}
 }
 
-
 // prepare port for custom mapping, remove all current Amiga side device mappings
 void inputdevice_compa_prepare_custom (struct uae_prefs *prefs, int index)
 {

@@ -3,7 +3,7 @@
  *
  * Gayle (and motherboard resources) memory bank
  *
- * (c) 2006 - 2008 Toni Wilen
+ * (c) 2006 - 2011 Toni Wilen
  */
 
 #ifdef GAYLE
@@ -480,6 +480,15 @@ static void ide_identify_drive (void)
 	}
 }
 
+static void ide_execute_drive_diagnostics (void)
+{
+	ide_error = 1;
+	ide_sector = ide_nsector = 1;
+	ide_select = 0;
+	ide_lcyl = ide_hcyl = 0;
+	ide->status &= ~IDE_STATUS_BSY;
+}
+
 static void ide_initialize_drive_parameters (void)
 {
 	if (ide->hdhfd.size) {
@@ -667,6 +676,8 @@ static void ide_do_command (uae_u8 cmd)
 		ide_recalibrate ();
 	} else if (cmd == 0xec) { /* identify drive */
 		ide_identify_drive ();
+	} else if (cmd == 0x90) { /* execute drive diagnostics */
+		ide_execute_drive_diagnostics ();
 	} else if (cmd == 0x91) { /* initialize drive parameters */
 		ide_initialize_drive_parameters ();
 	} else if (cmd == 0xc6) { /* set multiple mode */
@@ -744,16 +755,16 @@ static uae_u16 ide_get_data (void)
 
 	v = ide->secbuf[ide->data_offset + 1] | (ide->secbuf[ide->data_offset + 0] << 8);
 	ide->data_offset += 2;
-	if (ide->data_size >= 0)
-		ide->data_size -= 2;
-	else
+	if (ide->data_size < 0) {
 		ide->data_size += 2;
-	if (((ide->data_offset % ide->blocksize) == 0) && ((ide->data_offset / ide->blocksize) % ide->data_multi) == 0) {
-		irq = 1;
-		ide->data_offset = 0;
+	} else {
+		ide->data_size -= 2;
+		if (((ide->data_offset % ide->blocksize) == 0) && ((ide->data_offset / ide->blocksize) % ide->data_multi) == 0) {
+			irq = 1;
+			ide->data_offset = 0;
+		}
 	}
 	if (ide->data_size == 0) {
-		irq = 1;
 		ide->status &= ~IDE_STATUS_DRQ;
 		if (IDE_LOG > 1)
 			write_log ("IDE%d read finished\n", ide->num);
@@ -805,7 +816,6 @@ static void ide_put_data (uae_u16 v)
 		ide->status &= ~IDE_STATUS_DRQ;
 		if (IDE_LOG > 1)
 			write_log ("IDE%d write finished\n", ide->num);
-		irq = 1;
 	}
 	if (irq)
 		ide_interrupt ();
@@ -951,6 +961,8 @@ static void ide_write (uaecptr addr, uae_u32 val)
 	case IDE_DRVADDR:
 		break;
 	case IDE_DEVCON:
+		if ((ide_devcon & 4) == 0 && (val & 4) != 0)
+			ide_execute_drive_diagnostics ();
 		ide_devcon = val;
 		break;
 	case IDE_DATA:

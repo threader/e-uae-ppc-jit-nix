@@ -28,6 +28,24 @@
 #include "SDL.h"
 #endif
 
+// MacOSX < 10.5
+#ifndef NSINTEGER_DEFINED
+#define NSINTEGER_DEFINED
+#ifdef __LP64__ || NS_BUILD_32_LIKE_64
+typedef long           NSInteger;
+typedef unsigned long  NSUInteger;
+#define NSIntegerMin   LONG_MIN
+#define NSIntegerMax   LONG_MAX
+#define NSUIntegerMax  ULONG_MAX
+#else
+typedef int            NSInteger;
+typedef unsigned int   NSUInteger;
+#define NSIntegerMin   INT_MIN
+#define NSIntegerMax   INT_MAX
+#define NSUIntegerMax  UINT_MAX
+#endif
+#endif
+
 #import <Cocoa/Cocoa.h>
 
 /* The GTK GUI code seems to use 255 as max path length. Not sure why it 
