@@ -557,6 +557,7 @@ WANT_CYCLEEXACT=yes
 WANT_CAPS=no
 WANT_FDI=yes
 WANT_ENFORCER=dunno
+WANT_CATWEASEL=no
 
 MATHLIB=-lm
 
@@ -629,7 +630,6 @@ dnl
 dnl  Options
 dnl
 
-AC_ARG_ENABLE(profiling,       AS_HELP_STRING([--enable-profiling],       [Build a profiling (SLOW!) version]),                       [DO_PROFILING=$enableval],[])
 AC_ARG_ENABLE(a2065,           AS_HELP_STRING([--enable-a2065],           [Enable A2065 Ethernet emulation (default no)]),            [WANT_A2065=$enableval],[])
 AC_ARG_ENABLE(a2091,           AS_HELP_STRING([--enable-a2091],           [Enable A2091 SCSI emulation (default no)]),                [WANT_A2091=$enableval],[])
 AC_ARG_ENABLE(action-replay,   AS_HELP_STRING([--enable-action-replay],   [Enable Action Replay cartridge emulation (default yes)]),  [WANT_ACTION_REPLAY=$enableval],[])
@@ -638,6 +638,7 @@ AC_ARG_ENABLE(autoconfig,      AS_HELP_STRING([--enable-autoconfig],      [Enabl
 AC_ARG_ENABLE(audio,	       AS_HELP_STRING([--enable-audio],           [Enable audio output (default auto)]),                      [WANT_AUDIO=$enableval],[])
 AC_ARG_ENABLE(amax,            AS_HELP_STRING([--enable-amax],            [Enable AMAX support (default no)]),                        [WANT_AMAX=$enableval],[])
 AC_ARG_ENABLE(bsdsock,         AS_HELP_STRING([--enable-bsdsock],         [Enable bsdsocket.library emulation]),                      [WANT_BSDSOCK=$enableval],[])
+AC_ARG_ENABLE(catweasel,       AS_HELP_STRING([--enable-catweasel],       [Enable Catweasel support (default no)]),                   [WANT_CATWEASEL=$enableval],[])
 AC_ARG_ENABLE(cdtv,            AS_HELP_STRING([--enable-cdtv],            [Enable CDTV emulation (default no)]),                      [WANT_CDTV=$enableval],[])
 AC_ARG_ENABLE(cd32,            AS_HELP_STRING([--enable-cd32],            [Enable CD32 emulation (default no)]),                      [WANT_CD32=$enableval],[])
 AC_ARG_ENABLE(compatible-cpu,  AS_HELP_STRING([--enable-compatible-cpu],  [Enable compatible CPU emulation (default yes)]),           [WANT_COMPATIBLE=$enableval],[])
@@ -646,11 +647,12 @@ AC_ARG_ENABLE(debugger,        AS_HELP_STRING([--disable-debugger],       [Disab
 AC_ARG_ENABLE(dga,             AS_HELP_STRING([--enable-dga],             [X11 version: Use the DGA extension]),                      [WANT_DGA=$enableval],[])
 AC_ARG_ENABLE(drvsnd,	       AS_HELP_STRING([--enable-drvsnd],          [Enable Floppy Drive Sound Emulation (default no)]),	      [WANT_DRVSND=$enableval],[])
 AC_ARG_ENABLE(enforcer,	       AS_HELP_STRING([--enable-enforcer],        [Enable ersatz Enforcer support (default auto)]),           [WANT_ENFORCER=$enableval],[])
-AC_ARG_ENABLE(gayle,           AS_HELP_STRING([--enable-gayle],           [Enable GAYLE IDE emulation (default no)]),                 [WANT_GAYLE=$enableval],[])
-AC_ARG_ENABLE(gccopt,	       AS_HELP_STRING([--enable-gccopt],          [Enable CPU Specific Optimizations (default no)]),	      [WANT_OPT=$enableval],[])
 AC_ARG_ENABLE(fpu,             AS_HELP_STRING([--enable-fpu],             [Enable FPU emulation (default yes)]),                      [WANT_FPU=$enableval],[])
 AC_ARG_ENABLE(fdi,	       AS_HELP_STRING([--enable-fdi],             [Enable FDI support (default yes)]),                        [WANT_FDI=$enableval],[])
+AC_ARG_ENABLE(gayle,           AS_HELP_STRING([--enable-gayle],           [Enable GAYLE IDE emulation (default no)]),                 [WANT_GAYLE=$enableval],[])
+AC_ARG_ENABLE(gccopt,	       AS_HELP_STRING([--enable-gccopt],          [Enable CPU Specific Optimizations (default no)]),	      [WANT_OPT=$enableval],[])
 AC_ARG_ENABLE(jit,             AS_HELP_STRING([--enable-jit],             [Enable JIT compiler (currently x86 only)]),                [WANT_JIT=$enableval],[])
+AC_ARG_ENABLE(profiling,       AS_HELP_STRING([--enable-profiling],       [Build a profiling (SLOW!) version]),                       [DO_PROFILING=$enableval],[])
 AC_ARG_ENABLE(natmem,          AS_HELP_STRING([--enable-natmem],          [Enable JIT direct memory support (default auto)]),         [NATMEM=$enableval],[])
 AC_ARG_ENABLE(noflags,	       AS_HELP_STRING([--enable-noflags],         [Enable noflags support in JIT (default no)]),              [NOFLAGS=$enableval],[])
 AC_ARG_ENABLE(ncr,             AS_HELP_STRING([--enable-ncr],             [Enable NCR SCSI emulation (default no)]),                  [WANT_NCR=$enableval],[])
@@ -1453,6 +1455,18 @@ fi
 if [[ "x$WANT_SCSIEMU" != "xyes" ]]; then
   SCSIOBJS='scsi-none.$(OBJEXT)'
   AC_MSG_RESULT(no)
+fi
+
+
+dnl
+dnl  Do we want Catweasel support ?
+dnl
+AC_MSG_CHECKING([whether to have Catweasel support])
+if [[ "x$WANT_CATWEASEL" != "xno" ]]; then
+ AC_MSG_RESULT(yes)
+ UAE_DEFINES="$UAE_DEFINES -DCATWEASEL"
+else
+ AC_MSG_RESULT(no)
 fi
 
 

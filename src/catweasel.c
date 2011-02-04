@@ -1,3 +1,13 @@
+/*
+ * PUAE Catweasel support
+ *
+ * Copyright
+ * Copyright 2011 Mustafa TUFAN
+ *
+ * some parts inspired or taken from cwfloppy
+ * Copyright (C) 1998-2009 Michael Krause
+ *
+ */
 
 #include <stdio.h>
 
@@ -420,8 +430,70 @@ fail:
 
 int catweasel_detect (void)
 {
+//	static struct cw_controller_struct controllers[2];
+	int err;
+
+	err = pci_register_driver (&cwfloppy_pci_mk3);
+	if (err && err != -ENODEV)
+		return err;
+	err = pci_register_driver (&cwfloppy_pci_mk4);
+	if (err && err != -ENODEV)
+		return err;
+//	if (controllers[0].c.type == CATWEASEL_TYPE_NONE) {
+//		write_log("No PCI Catweasels found.\n");
+//	}
+
+	pci_unregister_driver(&cwfloppy_pci_mk4);
+	pci_unregister_driver(&cwfloppy_pci_mk3);
+
 	if (detected)
 		return detected < 0 ? 0 : 1;
 }
+
+static int cwfloppy_probe_mk3(struct pci_dev *pcidev, const struct pci_device_id *pciid)
+{
+	return 0;
+}
+
+static int cwfloppy_probe_mk4(struct pci_dev *pcidev, const struct pci_device_id *pciid)
+{
+	return 0;
+}
+
+#define CATWEASEL_TYPE_NONE  -1
+#define CATWEASEL_TYPE_MK1    1
+#define CATWEASEL_TYPE_MK3    3
+#define CATWEASEL_TYPE_MK4    4
+
+/* pci ids */
+#define CW_MK4_VENDOR           0xe159
+#define CW_MK4_DEVICE           0x0001
+
+static struct pci_device_id id_table_mk3[] = {
+	{ CW_MK4_VENDOR, CW_MK4_DEVICE, 0x1212, 0x0002, },
+	{ 0, }
+};
+MODULE_DEVICE_TABLE(pci, id_table_mk3);
+static struct pci_driver cwfloppy_pci_mk3 = {
+	name: "cwfloppy_mk3",
+	id_table: id_table_mk3,
+	probe: cwfloppy_probe_mk3
+};
+
+static struct pci_device_id id_table_mk4[] = {
+	/* The MK4 PCI bridge has a bug where the reported subvendor and
+	 * subdevice IDs may randomly change between various values. */
+	{ CW_MK4_VENDOR, CW_MK4_DEVICE, 0x5213, 0x0002, },
+	{ CW_MK4_VENDOR, CW_MK4_DEVICE, 0x5213, 0x0003, },
+	{ CW_MK4_VENDOR, CW_MK4_DEVICE, 0x5200, 0x0002, },
+	{ CW_MK4_VENDOR, CW_MK4_DEVICE, 0x5200, 0x0003, },
+	{ 0, }
+};
+MODULE_DEVICE_TABLE(pci, id_table_mk4);
+static struct pci_driver cwfloppy_pci_mk4 = {
+	.name = "cwfloppy_mk4",
+	.id_table = id_table_mk4,
+	.probe = cwfloppy_probe_mk4,
+};
 
 #endif

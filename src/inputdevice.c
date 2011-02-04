@@ -220,7 +220,7 @@ static struct input_queue_struct input_queue[INPUT_QUEUE_SIZE];
 
 uae_u8 *restore_input (uae_u8 *src)
 {
-	unsigned int i,j;
+	unsigned int i, j;
 	restore_u32 ();
 	for (i = 0; i < 2; i++) {
 		for (j = 0; j < 2; j++) {
@@ -232,7 +232,7 @@ uae_u8 *restore_input (uae_u8 *src)
 uae_u8 *save_input (int *len, uae_u8 *dstptr)
 {
 	uae_u8 *dstbak, *dst;
-	unsigned int i,j;
+	unsigned int i, j;
 
 	if (dstptr)
 		dstbak = dst = dstptr;
@@ -581,7 +581,7 @@ static TCHAR *getstring (const TCHAR **pp)
 
 static void reset_inputdevice_settings (struct uae_input_device *uid)
 {
-	unsigned int l, i;
+	unsigned int l,i;
 	for (l = 0; l < MAX_INPUT_DEVICE_EVENTS; l++) {
 		for (i = 0; i < MAX_INPUT_SUB_EVENT; i++) {
 			uid->eventid[l][i] = 0;
@@ -4344,7 +4344,7 @@ static void compatibility_copy (struct uae_prefs *prefs, bool gameports)
 
 static void disableifempty2 (struct uae_input_device *uid)
 {
-	unsigned int i,j;
+	unsigned int i, j;
 	for (i = 0; i < MAX_INPUT_DEVICE_EVENTS; i++) {
 		for (j = 0; j < MAX_INPUT_SUB_EVENT; j++) {
 			if (uid->eventid[i][j] > 0 || uid->custom[i][j] != NULL)
