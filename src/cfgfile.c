@@ -78,12 +78,13 @@ static const struct cfg_lines opttable[] =
     {"gfx_width", "Screen width" },
     {"gfx_height", "Screen height" },
     {"gfx_refreshrate", "Fullscreen refresh rate" },
+    {"gfx_vsync", "Sync screen refresh to refresh rate" },
+    {"gfx_lores", "Treat display as lo-res?" },
     {"gfx_linemode", "Can be none, double, or scanlines" },
     {"gfx_fullscreen_amiga", "Amiga screens are fullscreen?" },
     {"gfx_fullscreen_picasso", "Picasso screens are fullscreen?" },
     {"gfx_center_horizontal", "Center display horizontally?" },
     {"gfx_center_vertical", "Center display vertically?" },
-
     {"gfx_colour_mode", "" },
     {"32bit_blits", "Enable 32 bit blitter emulation" },
     {"immediate_blits", "Perform blits immediately" },
@@ -95,7 +96,6 @@ static const struct cfg_lines opttable[] =
     {"sound_frequency", "" },
     {"sound_bits", "" },
     {"sound_channels", "" },
-    {"sound_latency", "" },
     {"sound_max_buff", "" },
 #ifdef JIT
     {"comp_trustbyte", "How to access bytes in compiler (direct/indirect/indirectKS/afterPic" },
@@ -115,6 +115,7 @@ static const struct cfg_lines opttable[] =
     {"scsi", "scsi.device emulation" },
     {"joyport0", "" },
     {"joyport1", "" },
+    {"pci_devices", "List of PCI devices to make visible to the emulated Amiga" },
     {"kickstart_rom_file", "Kickstart ROM image, (C) Copyright Amiga, Inc." },
     {"kickstart_ext_rom_file", "Extended Kickstart ROM image, (C) Copyright Amiga, Inc." },
     {"kickstart_key_file", "Key-file for encrypted ROM images (from Cloanto's Amiga Forever)" },
@@ -160,7 +161,7 @@ static const TCHAR *lorestype1[] = { "lores", "hires", "superhires" };
 static const TCHAR *lorestype2[] = { "true", "false" };
 static const TCHAR *loresmode[] = { "normal", "filtered", 0 };
 #ifdef GFXFILTER
-static const TCHAR *filtermode2[] = { "0x", "1x", "2x", "3x", "4x", 0 };
+static const TCHAR *filtermode2[] = { "1x", "2x", "3x", "4x", 0 };
 #endif
 static const TCHAR *cartsmode[] = { "none", "hrtmon", 0 };
 static const TCHAR *idemode[] = { "none", "a600/a1200", "a4000", 0 };
@@ -784,6 +785,7 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 		cfgfile_dwrite (f, "gfx_filter", "no");
 	}
 
+	cfgfile_dwrite_str (f, "gfx_filter_mode", filtermode2[p->gfx_filter_filtermode]);
 	cfgfile_dwrite (f, "gfx_filter_vert_zoom", "%d", p->gfx_filter_vert_zoom);
 	cfgfile_dwrite (f, "gfx_filter_horiz_zoom", "%d", p->gfx_filter_horiz_zoom);
 	cfgfile_dwrite (f, "gfx_filter_vert_zoom_mult", "%d", p->gfx_filter_vert_zoom_mult);
@@ -809,6 +811,10 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 	cfgfile_dwrite (f, "gfx_contrast", "%d", p->gfx_contrast);
 	cfgfile_dwrite (f, "gfx_gamma", "%d", p->gfx_gamma);
 	cfgfile_dwrite_str (f, "gfx_filter_mask", p->gfx_filtermask);
+	if (p->gfx_filteroverlay[0]) {
+		cfgfile_dwrite (f, "gfx_filter_overlay", "%s%s",
+			p->gfx_filteroverlay, _tcschr (p->gfx_filteroverlay, ',') ? "," : "");
+	}
 #endif
 
 	cfgfile_write_bool (f, "immediate_blits", p->immediate_blits);
@@ -1558,27 +1564,27 @@ static int cfgfile_parse_host (struct uae_prefs *p, TCHAR *option, TCHAR *value)
 	}
 
 	if (_tcscmp (option, "joyportfriendlyname0") == 0 || _tcscmp (option, "joyportfriendlyname1") == 0) {
-		inputdevice_joyport_config (p, value, _tcscmp (option, "joyportfriendlyname0") == 0 ? 0 : 1, 0, 2);
+		inputdevice_joyport_config (p, value, _tcscmp (option, "joyportfriendlyname0") == 0 ? 0 : 1, -1, 2);
 		return 1;
 	}
 	if (_tcscmp (option, "joyportfriendlyname2") == 0 || _tcscmp (option, "joyportfriendlyname3") == 0) {
-		inputdevice_joyport_config (p, value, _tcscmp (option, "joyportfriendlyname2") == 0 ? 2 : 3, 0, 2);
+		inputdevice_joyport_config (p, value, _tcscmp (option, "joyportfriendlyname2") == 0 ? 2 : 3, -1, 2);
 		return 1;
 	}
 	if (_tcscmp (option, "joyportname0") == 0 || _tcscmp (option, "joyportname1") == 0) {
-		inputdevice_joyport_config (p, value, _tcscmp (option, "joyportname0") == 0 ? 0 : 1, 0, 1);
+		inputdevice_joyport_config (p, value, _tcscmp (option, "joyportname0") == 0 ? 0 : 1, -1, 1);
 		return 1;
 	}
 	if (_tcscmp (option, "joyportname2") == 0 || _tcscmp (option, "joyportname3") == 0) {
-		inputdevice_joyport_config (p, value, _tcscmp (option, "joyportname2") == 0 ? 2 : 3, 0, 1);
+		inputdevice_joyport_config (p, value, _tcscmp (option, "joyportname2") == 0 ? 2 : 3, -1, 1);
 		return 1;
 	}
 	if (_tcscmp (option, "joyport0") == 0 || _tcscmp (option, "joyport1") == 0) {
-		inputdevice_joyport_config (p, value, _tcscmp (option, "joyport0") == 0 ? 0 : 1, 0, 0);
+		inputdevice_joyport_config (p, value, _tcscmp (option, "joyport0") == 0 ? 0 : 1, -1, 0);
 		return 1;
 	}
 	if (_tcscmp (option, "joyport2") == 0 || _tcscmp (option, "joyport3") == 0) {
-		inputdevice_joyport_config (p, value, _tcscmp (option, "joyport2") == 0 ? 2 : 3, 0, 0);
+		inputdevice_joyport_config (p, value, _tcscmp (option, "joyport2") == 0 ? 2 : 3, -1, 0);
 		return 1;
 	}
 	if (cfgfile_strval (option, value, "joyport0mode", &p->jports[0].mode, joyportmodes, 0))
@@ -2004,6 +2010,7 @@ static int cfgfile_parse_hardware (struct uae_prefs *p, const TCHAR *option, TCH
 		|| cfgfile_intval (option, value, "parallel_autoflush", &p->parallel_autoflush_time, 1)
 		|| cfgfile_intval (option, value, "uae_hide", &p->uae_hide, 1)
 		|| cfgfile_intval (option, value, "cpu_frequency", &p->cpu_frequency, 1)
+		|| cfgfile_intval (option, value, "kickstart_ext_rom_file2addr", &p->romextfile2addr, 1)
 		|| cfgfile_intval (option, value, "catweasel", &p->catweasel, 1))
 	return 1;
 
@@ -3743,8 +3750,9 @@ void default_prefs (struct uae_prefs *p, int type)
 	_tcscpy (p->floppyslots[3].df, "df3.adf");
 
 	configure_rom (p, roms, 0);
-    strcpy (p->romfile, "kick.rom");
-    strcpy (p->romextfile, "");
+	_tcscpy (p->romfile, "kick.rom");
+	_tcscpy (p->romextfile, "");
+	_tcscpy (p->romextfile2, "");
 	p->romextfile2addr = 0;
     strcpy (p->flashfile, "");
 #ifdef ACTION_REPLAY
@@ -4373,7 +4381,7 @@ static int bip_arcadia (struct uae_prefs *p, int config, int compa, int romcheck
 
 int built_in_prefs (struct uae_prefs *p, int model, int config, int compa, int romcheck)
 {
-	int v = 0, i;
+	int v = 0;
 
 	buildin_default_prefs (p);
 	switch (model)
