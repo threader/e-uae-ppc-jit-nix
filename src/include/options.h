@@ -319,7 +319,6 @@ struct uae_prefs {
 	uae_u32 romextfile2addr;
 	TCHAR romextfile2[MAX_DPATH];
 	TCHAR romextident[256];
-	TCHAR keyfile[256];
 	TCHAR flashfile[MAX_DPATH];
 #ifdef ACTION_REPLAY
 	TCHAR cartfile[MAX_DPATH];

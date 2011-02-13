@@ -1,10 +1,10 @@
- /*
-  * UAE - The Un*x Amiga Emulator
-  *
-  * custom chip support
-  *
-  * (c) 1995 Bernd Schmidt
-  */
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * custom chip support
+ *
+ * (c) 1995 Bernd Schmidt
+ */
 
 #include "machdep/rpt.h"
 

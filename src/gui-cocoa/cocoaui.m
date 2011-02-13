@@ -428,8 +428,10 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 {
     changed_prefs.jports[1].id = [((NSMenuItem*)sender) tag];
 
-    if( changed_prefs.jports[1].id != currprefs.jports[1].id )
-        inputdevice_config_change();
+	if (changed_prefs.jports[1].id != currprefs.jports[1].id) {
+		inputdevice_updateconfig (&changed_prefs);
+		inputdevice_config_change();
+	}
 }
 
 - (void)swapGamePorts:(id)sender

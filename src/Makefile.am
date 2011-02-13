@@ -97,7 +97,7 @@ noinst_HEADERS = \
 	include/audio.h		include/autoconf.h	\
 	include/blitter.h	include/blkdev.h	\
 	include/bsdsocket.h 	include/caps.h		\
-	include/catweasel.h     include/cdrom.h         \
+	include/catweasel.h     \
 	include/cia.h		                        \
 	include/commpipe.h	include/compemu.h	\
 	include/cpu_prefetch.h  include/custom.h	\
@@ -126,7 +126,7 @@ noinst_HEADERS = \
 	include/osemu.h		include/picasso96.h	\
 	include/readcpu.h	include/savestate.h	\
 	include/scsidev.h	include/serial.h	\
-	include/sinctable.h	include/sana2.h		\
+	include/sana2.h		\
 	include/sleep.h		include/sysdeps.h	\
 	include/traps.h                                 \
 	include/tui.h		include/uae.h		\

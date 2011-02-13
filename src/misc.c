@@ -1,5 +1,5 @@
 /*
- * A collection of ugly and random junk brought in from Win32
+ * A collection of ugly and random stuff brought in from Win32
  * which desparately needs to be tidied up
  *
  *
@@ -28,8 +28,8 @@
 #define FALSE 0
 
 static int logging_started;
-#define LOG_BOOT "puaebootlog.txt"
-#define LOG_NORMAL "puaelog.txt"
+#define LOG_BOOT "puae_bootlog.txt"
+#define LOG_NORMAL "puae_log.txt"
 
 static int tablet;
 static int axmax, aymax, azmax;
@@ -63,6 +63,8 @@ static int data_in_serdatr; /* new data received */
 
 // --- dinput.cpp START ---
 int rawkeyboard = -1;
+static bool rawinput_enabled_mouse, rawinput_enabled_keyboard;
+
 int no_rawinput;
 
 void getgfxoffset (int *dxp, int *dyp, int *mxp, int *myp)
@@ -75,7 +77,7 @@ void getgfxoffset (int *dxp, int *dyp, int *mxp, int *myp)
 
 int is_tablet (void)
 {
-        return tablet ? 1 : 0;
+	return tablet ? 1 : 0;
 }
 
 int vsync_switchmode (int hz, int oldhz)
@@ -340,7 +342,6 @@ uae_u32 emulib_target_getcpurate (uae_u32 v, uae_u32 *low)
 	t1 =  (double)_tstart.tv_sec + (double)_tstart.tv_usec/(1000*1000);
 	t2 =  (double)_tend.tv_sec + (double)_tend.tv_usec/(1000*1000);
 	return t2-t1;
-
 */
 #endif
 }
@@ -493,9 +494,6 @@ static int testwritewatch (void)
 
 void machdep_free (void)
 {
-#ifdef LOGITECHLCD
-        lcd_close ();
-#endif
 }
 
 void target_run (void)
@@ -506,15 +504,13 @@ void target_run (void)
 // --- dinput.cpp ---
 int input_get_default_keyboard (int i)
 {
-        if (rawkeyboard > 0) {
-                if (i == 0)
-                        return 0;
-                return 1;
-        } else {
-                if (i == 0)
-                        return 1;
-                return 0;
-        }
+	if (rawinput_enabled_keyboard) {
+		return 1;
+	} else {
+		if (i == 0)
+			return 1;
+		return 0;
+	}
 }
 
 // --- unicode.cpp ---
@@ -589,6 +585,7 @@ int target_cfgfile_load (struct uae_prefs *p, char *filename, int type, int isde
 	v = 1;
 	return v;
 }
+
 // --- win32gfx.c
 int screen_is_picasso = 0;
 struct uae_filter *usedfilter;
@@ -763,18 +760,26 @@ TCHAR* buf_out (TCHAR *buffer, int *bufsize, const TCHAR *format, ...)
 // dinput
 void setid (struct uae_input_device *uid, int i, int slot, int sub, int port, int evt)
 {
-        uid[i].eventid[slot][sub] = evt;
-        uid[i].port[slot][sub] = port + 1;
+	// wrong place!
+	uid->eventid[slot][SPARE_SUB_EVENT] = uid->eventid[slot][sub];
+	uid->flags[slot][SPARE_SUB_EVENT] = uid->flags[slot][sub];
+	uid->port[slot][SPARE_SUB_EVENT] = MAX_JPORTS + 1;
+	xfree (uid->custom[slot][SPARE_SUB_EVENT]);
+	uid->custom[slot][SPARE_SUB_EVENT] = uid->custom[slot][sub];
+	uid->custom[slot][sub] = NULL;
+
+	uid[i].eventid[slot][sub] = evt;
+	uid[i].port[slot][sub] = port + 1;
 }
 
 void setid_af (struct uae_input_device *uid, int i, int slot, int sub, int port, int evt, int af)
 {
-        setid (uid, i, slot, sub, port, evt);
-        uid[i].flags[slot][sub] &= ~(ID_FLAG_AUTOFIRE | ID_FLAG_TOGGLE);
-        if (af >= JPORT_AF_NORMAL)
-                uid[i].flags[slot][sub] |= ID_FLAG_AUTOFIRE;
-        if (af == JPORT_AF_TOGGLE)
-                uid[i].flags[slot][sub] |= ID_FLAG_TOGGLE;
+	setid (uid, i, slot, sub, port, evt);
+	uid[i].flags[slot][sub] &= ~(ID_FLAG_AUTOFIRE | ID_FLAG_TOGGLE);
+	if (af >= JPORT_AF_NORMAL)
+		uid[i].flags[slot][sub] |= ID_FLAG_AUTOFIRE;
+	if (af == JPORT_AF_TOGGLE)
+		uid[i].flags[slot][sub] |= ID_FLAG_TOGGLE;
 }
 
 // win32.c
@@ -951,7 +956,7 @@ static uae_u8 di_keycodes[MAX_INPUT_DEVICES][MAX_KEYCODES];
 
 int ispressed (int key)
 {
-        int i;
+        unsigned int i;
         for (i = 0; i < MAX_INPUT_DEVICES; i++) {
                 if (di_keycodes[i][key])
                         return 1;
@@ -1018,26 +1023,26 @@ static int np[] = {
 
 void my_kbd_handler (int keyboard, int scancode, int newstate)
 {
-        int code = 0;
-        int scancode_new;
-        static int swapperdrive = 0;
+	int code = 0;
+	int scancode_new;
+	static int swapperdrive = 0;
 
-       if (scancode == specialkeycode ())
-                return;
+	if (scancode == specialkeycode ())
+		return;
 
 /*        if (scancode == DIK_F11 && currprefs.win32_ctrl_F11_is_quit && ctrlpressed ())
                 code = AKS_QUIT;*/
 
-        scancode_new = scancode;
-/*        if (!specialpressed () && inputdevice_iskeymapped (keyboard, scancode))
-                scancode = 0;*/
+	scancode_new = scancode;
+        if (!specialpressed () && inputdevice_iskeymapped (keyboard, scancode))
+                scancode = 0;
         // GUI must be always available
 /*        if (scancode_new == DIK_F12 && currprefs.win32_guikey < 0)
                 scancode = scancode_new;
         if (scancode_new == currprefs.win32_guikey && scancode_new != DIK_F12)
                 scancode = scancode_new;*/
 
-//        write_log ("kbd = %d, scancode = %d, state = %d\n", keyboard, scancode, newstate );
+//        write_log ("kbd1 = %d, scancode = %d (0x%02x), state = %d\n", keyboard, scancode, scancode, newstate);
 
         if (newstate == 0 && code == 0) {
                 switch (scancode)
@@ -1050,7 +1055,6 @@ void my_kbd_handler (int keyboard, int scancode, int newstate)
 
 
         if (newstate && code == 0) {
-
                 if (scancode == DIK_F12 /*|| scancode == currprefs.win32_guikey*/) {
                         if (ctrlpressed ()) {
                                 code = AKS_TOGGLEDEFAULTSCREEN;
@@ -1211,7 +1215,8 @@ void my_kbd_handler (int keyboard, int scancode, int newstate)
         if (specialpressed ())
                 return;
 
-//        write_log ("kbd = %d, scancode = %d, state = %d\n", keyboard, scancode, newstate );
+//        write_log ("kbd2 = %d, scancode = %d (0x%02x), state = %d\n", keyboard, scancode, scancode, newstate);
+
         inputdevice_translatekeycode (keyboard, scancode, newstate);
 }
 

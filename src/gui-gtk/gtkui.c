@@ -74,8 +74,8 @@ static GtkWidget *z3size_widget[10];
 #ifdef PICASSO96
 static GtkWidget *p96size_widget[7];
 #endif
-static GtkWidget *rom_text_widget, *key_text_widget;
-static GtkWidget *rom_change_widget, *key_change_widget;
+static GtkWidget *rom_text_widget;
+static GtkWidget *rom_change_widget;
 static GtkWidget  *sstate_text_widget, *sstate_change_widget, *sstate_load_widget, *sstate_save_widget;
 
 static GtkWidget *floppy_widget[4];
@@ -199,7 +199,6 @@ enum uae_commands {
     UAECMD_EJECTDISK,
     UAECMD_INSERTDISK,
     UAECMD_SELECT_ROM,
-    UAECMD_SELECT_KEY,
 	UAECMD_SAVESTATE_LOAD,
 	UAECMD_SAVESTATE_SAVE
 };
@@ -341,9 +340,6 @@ static void set_mem_state (void)
 
     gtk_label_set_text (GTK_LABEL (rom_text_widget), changed_prefs.romfile[0]!='\0' ?
 					changed_prefs.romfile : currprefs.romfile);
-
-    gtk_label_set_text (GTK_LABEL (key_text_widget), changed_prefs.keyfile[0]!='\0' ?
-					changed_prefs.keyfile : currprefs.keyfile);
 }
 
 #ifdef JIT
@@ -565,7 +561,6 @@ static void update_buttons (void)
 		gtk_widget_set_sensitive (hdpanel,     !running && !paused);
 		gtk_widget_set_sensitive (memorypanel, !running && !paused);
 		gtk_widget_set_sensitive (rom_change_widget, !running && !paused);
-		gtk_widget_set_sensitive (key_change_widget, !running && !paused);
 //		gtk_widget_set_sensitive (sstate_change_widget, !running && !paused);
 
 		gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (pause_uae_widget), paused);
@@ -844,7 +839,7 @@ static void on_pause_clicked (GtkWidget *widget, gpointer data)
 }
 
 
-static char *gui_romname, *gui_keyname;
+static char *gui_romname;
 static char *gui_sstate_name;
 
 static void disc_changed (FloppyFileEntry *ffe, gpointer p)
@@ -944,38 +939,6 @@ static void did_romchange (GtkWidget *w, gpointer data)
 
     rom_selector = make_file_selector ("Select a ROM file", did_rom_select, did_close_rom);
     filesel_set_path (rom_selector, currprefs.path_rom.path[0]);
-}
-
-static GtkWidget *key_selector;
-
-static void did_close_key (gpointer gdata)
-{
-    gtk_widget_set_sensitive (key_change_widget, 1);
-}
-
-static void did_key_select (GtkObject *o)
-{
-    const char *s = gtk_file_selection_get_filename (GTK_FILE_SELECTION (key_selector));
-
-    if (quit_gui)
-		return;
-
-    gtk_widget_set_sensitive (key_change_widget, 1);
-
-    uae_sem_wait (&gui_sem);
-    gui_keyname = strdup (s);
-    uae_sem_post (&gui_sem);
-    gtk_label_set_text (GTK_LABEL (key_text_widget), gui_keyname);
-    write_comm_pipe_int (&from_gui_pipe, UAECMD_SELECT_KEY, 0);
-    gtk_widget_destroy (key_selector);
-}
-
-static void did_keychange (GtkWidget *w, gpointer data)
-{
-    gtk_widget_set_sensitive (key_change_widget, 0);
-
-    key_selector = make_file_selector ("Select a Kickstart key file", did_key_select, did_close_key);
-    filesel_set_path (key_selector, currprefs.path_rom.path[0]);
 }
 
 static void add_empty_vbox (GtkWidget *tobox)
@@ -1295,7 +1258,7 @@ static void on_cpuidle_changed (void)
 	DEBUG_LOG ("called\n");
 
 	changed_prefs.cpu_idle       = CPUSPEEDPANEL (cspanel)->cpuidle;
-	
+
 	DEBUG_LOG ("cpu_idle=%d\n", changed_prefs.cpu_idle);
 }
 
@@ -1413,32 +1376,32 @@ static void make_cpu_widgets2 (GtkWidget *vbox)
 	//cpu emulation
 	newbox = make_radio_group_box ("CPU", cpu_labels, cpu_widget, 0, cpu_changed);
 	gtk_widget_show (newbox);
-    gtk_box_pack_start (GTK_BOX (hbox), newbox, FALSE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (hbox), newbox, FALSE, TRUE, 0);
 
 	newbox2 = gtk_check_button_new_with_label ("24-bit addressing");
 	gtk_widget_show (newbox2);
-    gtk_box_pack_start (GTK_BOX (newbox), newbox2, FALSE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (newbox), newbox2, FALSE, TRUE, 0);
 
 	newbox2 = gtk_check_button_new_with_label ("More compatible");
 	gtk_widget_show (newbox2);
-    gtk_box_pack_start (GTK_BOX (newbox), newbox2, FALSE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (newbox), newbox2, FALSE, TRUE, 0);
 
 	newbox = gtk_check_button_new_with_label ("JIT");
 	gtk_widget_show (newbox);
-    gtk_box_pack_start (GTK_BOX (hbox), newbox, FALSE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (hbox), newbox, FALSE, TRUE, 0);
 
 	newbox = gtk_check_button_new_with_label ("68040 MMU");
 	gtk_widget_show (newbox);
 	gtk_box_pack_start (GTK_BOX (hbox), newbox, FALSE, TRUE, 0);
 
 	//fpu mode
-    newbox = make_radio_group_box ("FPU", fpu_labels, fpu_widget, 0, fpu_changed);
-    gtk_widget_show (newbox);
+	newbox = make_radio_group_box ("FPU", fpu_labels, fpu_widget, 0, fpu_changed);
+	gtk_widget_show (newbox);
 	gtk_box_pack_start (GTK_BOX (hbox), newbox, FALSE, TRUE, 0);
 
 	newbox = gtk_check_button_new_with_label ("More compatible");
 	gtk_widget_show (newbox);
-    gtk_box_pack_start (GTK_BOX (hbox), newbox, FALSE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (hbox), newbox, FALSE, TRUE, 0);
 }
 
 static void make_sound_widgets (GtkWidget *vbox)
@@ -1523,19 +1486,6 @@ static void make_mem_widgets (GtkWidget *vbox)
 	gtk_widget_show (thing);
 	rom_change_widget = thing;
 	gtk_signal_connect (GTK_OBJECT (thing), "clicked", (GtkSignalFunc) did_romchange, 0);
-    }
-
-    {
-	GtkWidget *buttonbox = make_file_container ("ROM key file for Cloanto Amiga Forever:", vbox);
-	GtkWidget *thing = gtk_button_new_with_label ("Change");
-
-	/* Current file display */
-	key_text_widget = make_file_widget (buttonbox);
-
-	gtk_box_pack_start (GTK_BOX (buttonbox), thing, FALSE, TRUE, 0);
-	gtk_widget_show (thing);
-	key_change_widget = thing;
-	gtk_signal_connect (GTK_OBJECT (thing), "clicked", (GtkSignalFunc) did_keychange, 0);
     }
 
     gtk_widget_show (hbox);
@@ -1976,6 +1926,7 @@ static void make_hd_widgets (GtkWidget *dvbox)
 //	"Volume", "File/Directory", "R/O", "Heads", "Cyl.", "Sec.", "Rsrvd", "Size", "Blksize"
 //    };
 
+
     frame = gtk_frame_new (NULL);
     gtk_widget_show (frame);
     gtk_box_pack_start (GTK_BOX (dvbox), frame, TRUE, TRUE, 0);
@@ -2394,25 +2345,18 @@ void gui_handle_events (void)
 			free (gui_romname);
 			uae_sem_post (&gui_sem);
 			break;
-	    case UAECMD_SELECT_KEY:
-			uae_sem_wait (&gui_sem);
-			strncpy (changed_prefs.keyfile, gui_keyname, 255);
-			changed_prefs.keyfile[255] = '\0';
-			free (gui_keyname);
-			uae_sem_post (&gui_sem);
-			break;
 	    case UAECMD_SAVESTATE_LOAD:
 			uae_sem_wait (&gui_sem);
 			savestate_initsave (gui_sstate_name, 0, 0, 0);
 			savestate_state = STATE_DORESTORE;
-            write_log ("Restoring state from '%s'...\n", gui_sstate_name);
+			write_log ("Restoring state from '%s'...\n", gui_sstate_name);
 			uae_sem_post (&gui_sem);
 			break;
 	    case UAECMD_SAVESTATE_SAVE:
 			uae_sem_wait (&gui_sem);
 			savestate_initsave (gui_sstate_name, 0, 0, 0);
 			save_state (gui_sstate_name, "puae");
-            write_log ("Saved state to '%s'...\n", gui_sstate_name);
+			write_log ("Saved state to '%s'...\n", gui_sstate_name);
 			uae_sem_post (&gui_sem);
 			break;
 /*	    case UAECMD_START:

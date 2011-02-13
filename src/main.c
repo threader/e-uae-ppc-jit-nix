@@ -97,9 +97,9 @@ static void show_version_full (void)
     show_version ();
 	hr ();
     write_log ("Copyright 1995-2002 Bernd Schmidt\n");
-    write_log ("          1999-2010 Toni Wilen\n");
+    write_log ("          1999-2011 Toni Wilen\n");
     write_log ("          2003-2007 Richard Drummond\n");
-    write_log ("          2006-2010 Mustafa 'GnoStiC' Tufan\n\n");
+    write_log ("          2006-2011 Mustafa 'GnoStiC' Tufan\n\n");
     write_log ("See the source for a full list of contributors.\n");
     write_log ("This is free software; see the file COPYING for copying conditions.  There is NO\n");
     write_log ("warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n");
@@ -821,7 +821,7 @@ static int real_main2 (int argc, TCHAR **argv)
 	{
 
 #ifdef USE_SDL
-	int result = (SDL_Init (SDL_INIT_TIMER | /*SDL_INIT_AUDIO |*/ SDL_INIT_JOYSTICK | SDL_INIT_NOPARACHUTE) == 0);
+	int result = (SDL_Init (SDL_INIT_TIMER | SDL_INIT_JOYSTICK | SDL_INIT_NOPARACHUTE) == 0);
 	if (result)
 		atexit (SDL_Quit);
 #endif

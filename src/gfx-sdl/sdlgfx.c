@@ -1402,6 +1402,13 @@ void handle_events (void)
 	} /* end switch() */
     } /* end while() */
 
+//abant
+		inputdevicefunc_keyboard.read ();
+		inputdevicefunc_mouse.read ();
+		inputdevicefunc_joystick.read ();
+		inputdevice_handle_inputcode ();
+		check_prefs_changed_gfx ();
+
 #ifdef PICASSO96
 # ifdef USE_GL
     if (!currprefs.use_gl) {
@@ -2056,7 +2063,7 @@ static const char *get_kb_uniquename (unsigned int kb)
 	return "DEFKEYB1";
 }
 
-static unsigned  int get_kb_widget_num (unsigned int kb)
+static unsigned int get_kb_widget_num (unsigned int kb)
 {
 	return 255; // fix me
 }
