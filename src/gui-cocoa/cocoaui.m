@@ -46,6 +46,34 @@ typedef unsigned int   NSUInteger;
 #endif
 #endif
 
+
+static unsigned long memsizes[] = {
+        /* 0 */ 0,  
+        /* 1 */ 0x00040000, /* 256K */
+        /* 2 */ 0x00080000, /* 512K */
+        /* 3 */ 0x00100000, /* 1M */
+        /* 4 */ 0x00200000, /* 2M */
+        /* 5 */ 0x00400000, /* 4M */
+        /* 6 */ 0x00800000, /* 8M */
+        /* 7 */ 0x01000000, /* 16M */
+        /* 8 */ 0x02000000, /* 32M */
+        /* 9 */ 0x04000000, /* 64M */
+        /* 10*/ 0x08000000, //128M
+        /* 11*/ 0x10000000, //256M
+        /* 12*/ 0x20000000, //512M
+        /* 13*/ 0x40000000, //1GB
+        /* 14*/ 0x00180000, //1.5MB
+        /* 15*/ 0x001C0000, //1.8MB
+        /* 16*/ 0x80000000, //2GB
+        /* 17*/ 0x18000000, //384M
+        /* 18*/ 0x30000000, //768M
+        /* 19*/ 0x60000000, //1.5GB
+        /* 20*/ 0xA8000000, //2.5GB
+        /* 21*/ 0xC0000000, //3GB
+};
+
+//----------
+
 #import <Cocoa/Cocoa.h>
 
 /* The GTK GUI code seems to use 255 as max path length. Not sure why it 
@@ -96,6 +124,15 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 - (void)grabMouse:(id)sender;
 - (void)goFullscreen:(id)sender;
 - (void)toggleInhibitDisplay:(id)sender;
+- (void)changeChipMem:(id)sender;
+- (void)changeBogoMem:(id)sender;
+- (void)changeFastMem:(id)sender;
+- (void)changeZ3FastMem:(id)sender;
+- (void)changeZ3ChipMem:(id)sender;
+- (void)changeGfxMem:(id)sender;
+- (void)changeCPU:(id)sender;
+- (void)changeCPUSpeed:(id)sender;
+- (void)changeFPU:(id)sender;
 @end
 
 @implementation PuaeGui
@@ -205,15 +242,168 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 	[ejectFloppyMenu release];
 
 	menuItem = [[NSMenuItem alloc] initWithTitle:@"PUAE" action:nil keyEquivalent:@""];
-    [menuItem setSubmenu:vAmigaMenu];
+	[menuItem setSubmenu:vAmigaMenu];
 
 	[[NSApp mainMenu] insertItem:menuItem atIndex:1];
 	
 	[menuItem release];
 	[vAmigaMenu release];
-	
-    // Create a menu for changing aspects of emulator control
-    NSMenu *controlMenu = [[NSMenu alloc] initWithTitle:@"Control"];
+
+	// MEM MENU START
+	NSMenu *memMenu = [[NSMenu alloc] initWithTitle:@"Memory"];
+
+		NSMenu *chipMenu = [[NSMenu alloc] initWithTitle:@"Chip Mem"];
+			[self createMenuItemInMenu:chipMenu withTitle:@"256 KB" action:@selector(changeChipMem:) tag:1];
+			[self createMenuItemInMenu:chipMenu withTitle:@"512 KB" action:@selector(changeChipMem:) tag:2];
+			[self createMenuItemInMenu:chipMenu withTitle:@"1 MB" action:@selector(changeChipMem:) tag:3];
+			[self createMenuItemInMenu:chipMenu withTitle:@"1.5 MB" action:@selector(changeChipMem:) tag:14];
+			[self createMenuItemInMenu:chipMenu withTitle:@"2 MB" action:@selector(changeChipMem:) tag:4];
+			[self createMenuItemInMenu:chipMenu withTitle:@"4 MB" action:@selector(changeChipMem:) tag:5];
+			[self createMenuItemInMenu:chipMenu withTitle:@"8 MB" action:@selector(changeChipMem:) tag:6];
+		menuItem = [[NSMenuItem alloc] initWithTitle:@"Chip Mem" action:nil keyEquivalent:@""];
+		[menuItem setSubmenu:chipMenu];
+		[memMenu addItem:menuItem];
+		[menuItem release];
+
+		NSMenu *bogoMenu = [[NSMenu alloc] initWithTitle:@"Bogo Mem"];
+			[self createMenuItemInMenu:bogoMenu withTitle:@"None" action:@selector(changeBogoMem:) tag:0];
+			[self createMenuItemInMenu:bogoMenu withTitle:@"512 KB" action:@selector(changeBogoMem:) tag:2];
+			[self createMenuItemInMenu:bogoMenu withTitle:@"1 MB" action:@selector(changeBogoMem:) tag:3];
+			[self createMenuItemInMenu:bogoMenu withTitle:@"1.5 MB" action:@selector(changeBogoMem:) tag:14];
+			[self createMenuItemInMenu:bogoMenu withTitle:@"1.8 MB" action:@selector(changeBogoMem:) tag:15];
+		menuItem = [[NSMenuItem alloc] initWithTitle:@"Bogo Mem" action:nil keyEquivalent:@""];
+		[menuItem setSubmenu:bogoMenu];
+		[memMenu addItem:menuItem];
+		[menuItem release];
+
+		NSMenu *fastMenu = [[NSMenu alloc] initWithTitle:@"Fast Mem"];
+			[self createMenuItemInMenu:fastMenu withTitle:@"None" action:@selector(changeFastMem:) tag:0];
+			[self createMenuItemInMenu:fastMenu withTitle:@"1 MB" action:@selector(changeFastMem:) tag:3];
+			[self createMenuItemInMenu:fastMenu withTitle:@"2 MB" action:@selector(changeFastMem:) tag:4];
+			[self createMenuItemInMenu:fastMenu withTitle:@"4 MB" action:@selector(changeFastMem:) tag:5];
+			[self createMenuItemInMenu:fastMenu withTitle:@"8 MB" action:@selector(changeFastMem:) tag:6];
+		menuItem = [[NSMenuItem alloc] initWithTitle:@"Fast Mem" action:nil keyEquivalent:@""];
+		[menuItem setSubmenu:fastMenu];
+		[memMenu addItem:menuItem];
+		[menuItem release];
+
+		NSMenu *z3fastMenu = [[NSMenu alloc] initWithTitle:@"Z3 Fast Mem"];
+			[self createMenuItemInMenu:z3fastMenu withTitle:@"None" action:@selector(changeZ3FastMem:) tag:0];
+			[self createMenuItemInMenu:z3fastMenu withTitle:@"1 MB" action:@selector(changeZ3FastMem:) tag:3];
+			[self createMenuItemInMenu:z3fastMenu withTitle:@"2 MB" action:@selector(changeZ3FastMem:) tag:4];
+			[self createMenuItemInMenu:z3fastMenu withTitle:@"4 MB" action:@selector(changeZ3FastMem:) tag:5];
+			[self createMenuItemInMenu:z3fastMenu withTitle:@"8 MB" action:@selector(changeZ3FastMem:) tag:6];
+			[self createMenuItemInMenu:z3fastMenu withTitle:@"16 MB" action:@selector(changeZ3FastMem:) tag:7];
+			[self createMenuItemInMenu:z3fastMenu withTitle:@"32 MB" action:@selector(changeZ3FastMem:) tag:8];
+			[self createMenuItemInMenu:z3fastMenu withTitle:@"64 MB" action:@selector(changeZ3FastMem:) tag:9];
+			[self createMenuItemInMenu:z3fastMenu withTitle:@"128 MB" action:@selector(changeZ3FastMem:) tag:10];
+			[self createMenuItemInMenu:z3fastMenu withTitle:@"256 MB" action:@selector(changeZ3FastMem:) tag:11];
+			[self createMenuItemInMenu:z3fastMenu withTitle:@"384 MB" action:@selector(changeZ3FastMem:) tag:17];
+			[self createMenuItemInMenu:z3fastMenu withTitle:@"512 MB" action:@selector(changeZ3FastMem:) tag:12];
+			[self createMenuItemInMenu:z3fastMenu withTitle:@"768 MB" action:@selector(changeZ3FastMem:) tag:18];
+			[self createMenuItemInMenu:z3fastMenu withTitle:@"1 GB" action:@selector(changeZ3FastMem:) tag:13];
+			[self createMenuItemInMenu:z3fastMenu withTitle:@"1.5 GB" action:@selector(changeZ3FastMem:) tag:19];
+			[self createMenuItemInMenu:z3fastMenu withTitle:@"2 GB" action:@selector(changeZ3FastMem:) tag:16];
+			[self createMenuItemInMenu:z3fastMenu withTitle:@"2.5 GB" action:@selector(changeZ3FastMem:) tag:20];
+			[self createMenuItemInMenu:z3fastMenu withTitle:@"3 GB" action:@selector(changeZ3FastMem:) tag:21];
+		menuItem = [[NSMenuItem alloc] initWithTitle:@"Z3 Fast Mem" action:nil keyEquivalent:@""];
+		[menuItem setSubmenu:z3fastMenu];
+		[memMenu addItem:menuItem];
+		[menuItem release];
+
+		NSMenu *z3chipMenu = [[NSMenu alloc] initWithTitle:@"Z3 Chip Mem"];
+			[self createMenuItemInMenu:z3chipMenu withTitle:@"None" action:@selector(changeZ3ChipMem:) tag:0];
+			[self createMenuItemInMenu:z3chipMenu withTitle:@"16 MB" action:@selector(changeZ3ChipMem:) tag:7];
+			[self createMenuItemInMenu:z3chipMenu withTitle:@"32 MB" action:@selector(changeZ3ChipMem:) tag:8];
+			[self createMenuItemInMenu:z3chipMenu withTitle:@"64 MB" action:@selector(changeZ3ChipMem:) tag:9];
+			[self createMenuItemInMenu:z3chipMenu withTitle:@"128 MB" action:@selector(changeZ3ChipMem:) tag:10];
+			[self createMenuItemInMenu:z3chipMenu withTitle:@"256 MB" action:@selector(changeZ3ChipMem:) tag:11];
+			[self createMenuItemInMenu:z3chipMenu withTitle:@"512 MB" action:@selector(changeZ3ChipMem:) tag:12];
+			[self createMenuItemInMenu:z3chipMenu withTitle:@"1 GB" action:@selector(changeZ3ChipMem:) tag:13];
+		menuItem = [[NSMenuItem alloc] initWithTitle:@"Z3 Chip Mem" action:nil keyEquivalent:@""];
+		[menuItem setSubmenu:z3chipMenu];
+		[memMenu addItem:menuItem];
+		[menuItem release];
+
+		NSMenu *gfxMenu = [[NSMenu alloc] initWithTitle:@"Gfx Mem"];
+			[self createMenuItemInMenu:gfxMenu withTitle:@"None" action:@selector(changeGfxMem:) tag:0];
+			[self createMenuItemInMenu:gfxMenu withTitle:@"1 MB" action:@selector(changeGfxMem:) tag:3];
+			[self createMenuItemInMenu:gfxMenu withTitle:@"2 MB" action:@selector(changeGfxMem:) tag:4];
+			[self createMenuItemInMenu:gfxMenu withTitle:@"4 MB" action:@selector(changeGfxMem:) tag:5];
+			[self createMenuItemInMenu:gfxMenu withTitle:@"8 MB" action:@selector(changeGfxMem:) tag:6];
+			[self createMenuItemInMenu:gfxMenu withTitle:@"16 MB" action:@selector(changeGfxMem:) tag:7];
+			[self createMenuItemInMenu:gfxMenu withTitle:@"32 MB" action:@selector(changeGfxMem:) tag:8];
+			[self createMenuItemInMenu:gfxMenu withTitle:@"64 MB" action:@selector(changeGfxMem:) tag:9];
+			[self createMenuItemInMenu:gfxMenu withTitle:@"128 MB" action:@selector(changeGfxMem:) tag:10];
+			[self createMenuItemInMenu:gfxMenu withTitle:@"256 MB" action:@selector(changeGfxMem:) tag:11];
+			[self createMenuItemInMenu:gfxMenu withTitle:@"512 MB" action:@selector(changeGfxMem:) tag:12];
+			[self createMenuItemInMenu:gfxMenu withTitle:@"1 GB" action:@selector(changeGfxMem:) tag:13];
+		menuItem = [[NSMenuItem alloc] initWithTitle:@"Gfx Mem" action:nil keyEquivalent:@""];
+		[menuItem setSubmenu:gfxMenu];
+		[memMenu addItem:menuItem];
+		[menuItem release];
+
+	menuItem = [[NSMenuItem alloc] initWithTitle:@"Memory" action:nil keyEquivalent:@""];
+	[menuItem setSubmenu:memMenu];
+	[[NSApp mainMenu] insertItem:menuItem atIndex:2];
+	[memMenu release];
+	[menuItem release];
+	// MEM MENU END
+
+	// CHIPSET MENU START
+	NSMenu *systemMenu = [[NSMenu alloc] initWithTitle:@"System"];
+
+		NSMenu *cpuMenu = [[NSMenu alloc] initWithTitle:@"CPU"];
+			[self createMenuItemInMenu:cpuMenu withTitle:@"68000" action:@selector(changeCPU:) tag:0];
+			[self createMenuItemInMenu:cpuMenu withTitle:@"68010" action:@selector(changeCPU:) tag:1];
+			[self createMenuItemInMenu:cpuMenu withTitle:@"68020" action:@selector(changeCPU:) tag:2];
+			[self createMenuItemInMenu:cpuMenu withTitle:@"68030" action:@selector(changeCPU:) tag:3];
+			[self createMenuItemInMenu:cpuMenu withTitle:@"68040" action:@selector(changeCPU:) tag:4];
+			[self createMenuItemInMenu:cpuMenu withTitle:@"68060" action:@selector(changeCPU:) tag:6];
+		menuItem = [[NSMenuItem alloc] initWithTitle:@"CPU" action:nil keyEquivalent:@""];
+		[menuItem setSubmenu:cpuMenu];
+		[systemMenu addItem:menuItem];
+		[menuItem release];
+
+		NSMenu *cpuspeedMenu = [[NSMenu alloc] initWithTitle:@"CPU Speed"];
+			[self createMenuItemInMenu:cpuspeedMenu withTitle:@"Fastest Possible but maintain chipset timing" action:@selector(changeCPUSpeed:) tag:0];
+			[self createMenuItemInMenu:cpuspeedMenu withTitle:@"Approximate A500/A1200 Cycle Exact" action:@selector(changeCPUSpeed:) tag:1];
+			[self createMenuItemInMenu:cpuspeedMenu withTitle:@"Cycle Exact" action:@selector(changeCPUSpeed:) tag:2];
+		menuItem = [[NSMenuItem alloc] initWithTitle:@"CPU Speed" action:nil keyEquivalent:@""];
+		[menuItem setSubmenu:cpuspeedMenu];
+		[systemMenu addItem:menuItem];
+		[menuItem release];
+
+		NSMenu *fpuMenu = [[NSMenu alloc] initWithTitle:@"FPU"];
+			[self createMenuItemInMenu:fpuMenu withTitle:@"None" action:@selector(changeFPU:) tag:0];
+			[self createMenuItemInMenu:fpuMenu withTitle:@"68881" action:@selector(changeFPU:) tag:1];
+			[self createMenuItemInMenu:fpuMenu withTitle:@"68882" action:@selector(changeFPU:) tag:2];
+			[self createMenuItemInMenu:fpuMenu withTitle:@"CPU Internal" action:@selector(changeFPU:) tag:3];
+		menuItem = [[NSMenuItem alloc] initWithTitle:@"FPU" action:nil keyEquivalent:@""];
+		[menuItem setSubmenu:fpuMenu];
+		[systemMenu addItem:menuItem];
+		[menuItem release];
+
+		NSMenu *chipsetMenu = [[NSMenu alloc] initWithTitle:@"Chipset"];
+			[self createMenuItemInMenu:chipsetMenu withTitle:@"OCS" action:@selector(changeChipset:) tag:0];
+			[self createMenuItemInMenu:chipsetMenu withTitle:@"ECS Agnus" action:@selector(changeChipset:) tag:1];
+			[self createMenuItemInMenu:chipsetMenu withTitle:@"ECS Denise" action:@selector(changeChipset:) tag:2];
+			[self createMenuItemInMenu:chipsetMenu withTitle:@"ECS Full" action:@selector(changeChipset:) tag:3];
+			[self createMenuItemInMenu:chipsetMenu withTitle:@"AGA" action:@selector(changeChipset:) tag:4];
+		menuItem = [[NSMenuItem alloc] initWithTitle:@"Chipset" action:nil keyEquivalent:@""];
+		[menuItem setSubmenu:chipsetMenu];
+		[systemMenu addItem:menuItem];
+		[menuItem release];
+
+	menuItem = [[NSMenuItem alloc] initWithTitle:@"System" action:nil keyEquivalent:@""];
+	[menuItem setSubmenu:systemMenu];
+	[[NSApp mainMenu] insertItem:menuItem atIndex:3];
+	[systemMenu release];
+	[menuItem release];
+	// CHIPSET MENU END
+
+	// Create a menu for changing aspects of emulator control
+	NSMenu *controlMenu = [[NSMenu alloc] initWithTitle:@"Control"];
 
 	NSMenu *portMenu = [[NSMenu alloc] initWithTitle:@"Game Port 0"];
 
@@ -267,7 +457,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
     menuItem = [[NSMenuItem alloc] initWithTitle:@"Control" action:nil keyEquivalent:@""];
     [menuItem setSubmenu:controlMenu];
 
-    [[NSApp mainMenu] insertItem:menuItem atIndex:2];
+    [[NSApp mainMenu] insertItem:menuItem atIndex:4];
 
     [controlMenu release];
     [menuItem release];
@@ -283,7 +473,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 	menuItem = [[NSMenuItem alloc] initWithTitle:@"Display" action:nil keyEquivalent:@""];
     [menuItem setSubmenu:displayMenu];
 
-    [[NSApp mainMenu] insertItem:menuItem atIndex:3];
+    [[NSApp mainMenu] insertItem:menuItem atIndex:5];
 
 	[displayMenu release];
 	[menuItem release];
@@ -358,21 +548,188 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
     }
 
 	// Repeat the above for Port 1
-    if (menuAction == @selector(changePort1:)) {
-        if (currprefs.jports[1].id == tag) [menuItem setState:NSOnState];
-        else [menuItem setState:NSOffState];
+	if (menuAction == @selector(changePort1:)) {
+		if (currprefs.jports[1].id == tag) [menuItem setState:NSOnState];
+		else [menuItem setState:NSOffState];
 
-        if (((tag == JSEM_JOYS) || (tag == (JSEM_JOYS+1)))) {
+		if (((tag == JSEM_JOYS) || (tag == (JSEM_JOYS+1)))) {
 			if ((tag - JSEM_JOYS) >= inputdevice_get_device_total (IDTYPE_JOYSTICK))
 				return NO;
 		}
 
-        if ((tag != JSEM_END) && (currprefs.jports[0].id == tag))
-            return NO;
+		if ((tag != JSEM_END) && (currprefs.jports[0].id == tag))
+			return NO;
 
-        return YES;
-    }
+		return YES;
+	}
 
+	long mem_size, v;
+	if (menuAction == @selector(changeChipMem:)) {
+		mem_size = 0;
+	        switch (currprefs.chipmem_size) {
+		        case 0x00040000: mem_size = 1; break;
+		        case 0x00080000: mem_size = 2; break;
+		        case 0x00100000: mem_size = 3; break;
+		        case 0x00180000: mem_size = 14; break;
+		        case 0x00200000: mem_size = 4; break;
+		        case 0x00400000: mem_size = 5; break;
+		        case 0x00800000: mem_size = 6; break;
+        	}
+		if (mem_size == tag) [menuItem setState:NSOnState];
+		else [menuItem setState:NSOffState];
+	}
+
+	if (menuAction == @selector(changeBogoMem:)) {
+		mem_size = 0;
+	        switch (currprefs.bogomem_size) {
+		        case 0x00000000: mem_size = 0; break;
+        		case 0x00080000: mem_size = 2; break;
+	        	case 0x00100000: mem_size = 3; break;
+        		case 0x00180000: mem_size = 14; break;
+		        case 0x001C0000: mem_size = 15; break;
+	        }
+		if (mem_size == tag) [menuItem setState:NSOnState];
+		else [menuItem setState:NSOffState];
+	}
+
+	if (menuAction == @selector(changeFastMem:)) {
+		mem_size = 0;
+        	switch (currprefs.fastmem_size) {
+		        case 0x00000000: mem_size = 0; break;
+		        case 0x00100000: mem_size = 3; break;
+	        	case 0x00200000: mem_size = 4; break;
+		        case 0x00400000: mem_size = 5; break;
+		        case 0x00800000: mem_size = 6; break;
+	        }
+		if (mem_size == tag) [menuItem setState:NSOnState];
+		else [menuItem setState:NSOffState];
+	}
+
+	if (menuAction == @selector(changeZ3FastMem:)) {
+		mem_size = 0;
+        	v = currprefs.z3fastmem_size + currprefs.z3fastmem2_size;
+	        if      (v < 0x00100000)
+        	        mem_size = 0;
+	        else if (v < 0x00200000)
+        	        mem_size = 3;
+	        else if (v < 0x00400000)
+        	        mem_size = 4;
+	        else if (v < 0x00800000)
+        	        mem_size = 5;
+	        else if (v < 0x01000000)
+        	        mem_size = 6;
+	        else if (v < 0x02000000)
+        	        mem_size = 7;
+	        else if (v < 0x04000000)
+        	        mem_size = 8;
+	        else if (v < 0x08000000)
+        	        mem_size = 9;
+	        else if (v < 0x10000000)
+        	        mem_size = 10;
+	        else if (v < 0x18000000)
+        	        mem_size = 11;
+	        else if (v < 0x20000000)
+        	        mem_size = 17;
+	        else if (v < 0x30000000)
+        	        mem_size = 12;
+	        else if (v < 0x40000000) // 1GB
+        	        mem_size = 18;
+	        else if (v < 0x60000000) // 1.5GB
+        	        mem_size = 13;
+	        else if (v < 0x80000000) // 2GB
+        	        mem_size = 19;
+	        else if (v < 0xA8000000) // 2.5GB
+        	        mem_size = 16;
+	        else if (v < 0xC0000000) // 3GB
+                	mem_size = 20;
+        	else
+	                mem_size = 21;
+
+		if (mem_size == tag) [menuItem setState:NSOnState];
+		else [menuItem setState:NSOffState];
+	}
+
+	if (menuAction == @selector(changeZ3ChipMem:)) {
+		mem_size = 0;
+        	v = currprefs.z3chipmem_size;
+	        if (v < 0x01000000)
+        	        mem_size = 0;
+	        else if (v < 0x02000000)
+        	        mem_size = 7;
+	        else if (v < 0x04000000)
+        	        mem_size = 8;
+	        else if (v < 0x08000000)
+        	        mem_size = 9;
+	        else if (v < 0x10000000)
+        	        mem_size = 10;
+	        else if (v < 0x20000000)
+        	        mem_size = 11;
+	        else if (v < 0x40000000)
+                	mem_size = 12;
+        	else
+	                mem_size = 13;
+
+		if (mem_size == tag) [menuItem setState:NSOnState];
+		else [menuItem setState:NSOffState];
+	}
+
+	if (menuAction == @selector(changeGfxMem:)) {
+	        mem_size = 0;
+	        switch (currprefs.gfxmem_size) {
+        		case 0x00000000: mem_size = 0; break;
+	        	case 0x00100000: mem_size = 3; break;
+		        case 0x00200000: mem_size = 4; break;
+        		case 0x00400000: mem_size = 5; break;
+	        	case 0x00800000: mem_size = 6; break;
+	        	case 0x01000000: mem_size = 7; break;
+		        case 0x02000000: mem_size = 8; break;
+        		case 0x04000000: mem_size = 9; break;
+	        	case 0x08000000: mem_size = 10; break;
+		        case 0x10000000: mem_size = 11; break;
+	        	case 0x20000000: mem_size = 12; break;
+	        	case 0x40000000: mem_size = 13; break;
+	        }
+		if (mem_size == tag) [menuItem setState:NSOnState];
+		else [menuItem setState:NSOffState];
+	}
+
+	if (menuAction == @selector(changeChipset:)) {
+		v = 0;
+        	switch (currprefs.chipset_mask) {
+		        case 0: v = 0; break;
+        		case 1: v = 1; break;
+	        	case 2: v = 2; break;
+        		case 3: v = 3; break;
+		        case 4: v = 4; break;
+        		case 7: v = 4; break;
+	        }
+		if (v == tag) [menuItem setState:NSOnState];
+		else [menuItem setState:NSOffState];
+	}
+
+	if (menuAction == @selector(changeCPU:)) {
+		v = (currprefs.cpu_model - 68000) / 10;
+		if (v == tag) [menuItem setState:NSOnState];
+		else [menuItem setState:NSOffState];
+	}
+
+	if (menuAction == @selector(changeCPUSpeed:)) {
+		if (currprefs.cpu_cycle_exact == 1) {
+			v = 2;
+		} else {
+			if (currprefs.m68k_speed == -1) v = 0;
+			if (currprefs.m68k_speed == 0) v = 1;
+		}
+		if (v == tag) [menuItem setState:NSOnState];
+		else [menuItem setState:NSOffState];
+	}
+
+	if (menuAction == @selector(changeFPU:)) {
+		v = currprefs.fpu_model == 0 ? 0 : (currprefs.fpu_model == 68881 ? 1 : (currprefs.fpu_model == 68882 ? 2 : 3));
+		if (v == tag) [menuItem setState:NSOnState];
+		else [menuItem setState:NSOffState];
+	}
+	
 	if (menuAction == @selector(pauseAmiga:)) {
 		if (pause_emulation)
 			[menuItem setTitle:@"Resume"];
@@ -557,6 +914,118 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 	toggle_inhibit_frame (IHF_SCROLLLOCK);
 }
 
+// chip mem
+- (void)changeChipMem:(id)sender
+{
+	changed_prefs.chipmem_size = memsizes[[((NSMenuItem*)sender) tag]];
+        if (changed_prefs.chipmem_size > 0x200000)
+                changed_prefs.fastmem_size = 0;
+}
+
+// bogo mem
+- (void)changeBogoMem:(id)sender
+{
+	changed_prefs.bogomem_size = memsizes[[((NSMenuItem*)sender) tag]];
+}
+
+// fast mem
+- (void)changeFastMem:(id)sender
+{
+	changed_prefs.fastmem_size = memsizes[[((NSMenuItem*)sender) tag]];
+}
+
+// z3 fast mem
+- (void)changeZ3FastMem:(id)sender
+{
+	changed_prefs.z3fastmem_size = memsizes[[((NSMenuItem*)sender) tag]];
+}
+
+// z3 chip mem
+- (void)changeZ3ChipMem:(id)sender
+{
+	changed_prefs.z3chipmem_size = memsizes[[((NSMenuItem*)sender) tag]];
+}
+
+// gfx mem
+- (void)changeGfxMem:(id)sender
+{
+	changed_prefs.gfxmem_size = memsizes[[((NSMenuItem*)sender) tag]];
+}
+
+// chipset
+- (void)changeChipset:(id)sender
+{
+	changed_prefs.chipset_mask = [((NSMenuItem*)sender) tag];
+}
+
+// cpu
+- (void)changeCPU:(id)sender
+{
+	unsigned int newcpu, newfpu;
+	newcpu = 68000 + ([((NSMenuItem*)sender) tag] * 10);
+	newfpu = changed_prefs.fpu_model;
+	changed_prefs.cpu_model = newcpu;
+
+        switch (newcpu) {
+        case 68000:
+        case 68010:
+                changed_prefs.fpu_model = newfpu == 0 ? 0 : (newfpu == 2 ? 68882 : 68881);
+                if (changed_prefs.cpu_compatible || changed_prefs.cpu_cycle_exact)
+                        changed_prefs.fpu_model = 0;
+                changed_prefs.address_space_24 = 1;
+                if (newcpu == 0 && changed_prefs.cpu_cycle_exact)
+                        changed_prefs.m68k_speed = 0;
+                break;
+        case 68020:
+                changed_prefs.fpu_model = newfpu == 0 ? 0 : (newfpu == 2 ? 68882 : 68881);
+                break;
+        case 68030:
+                changed_prefs.address_space_24 = 0;
+                changed_prefs.fpu_model = newfpu == 0 ? 0 : (newfpu == 2 ? 68882 : 68881);
+                break;
+        case 68040:
+                changed_prefs.fpu_model = newfpu ? 68040 : 0;
+                changed_prefs.address_space_24 = 0;
+                if (changed_prefs.fpu_model)
+                        changed_prefs.fpu_model = 68040;
+                break;
+        case 68060:
+                changed_prefs.fpu_model = newfpu ? 68060 : 0;
+                changed_prefs.address_space_24 = 0;
+                break;
+        }
+
+
+}
+
+// cpu speed
+- (void)changeCPUSpeed:(id)sender
+{
+	unsigned int v;
+	v = [((NSMenuItem*)sender) tag];
+	if (v == 0) {
+		changed_prefs.m68k_speed = -1;
+		changed_prefs.cpu_cycle_exact = 0;
+	}
+	if (v == 1) {
+		changed_prefs.m68k_speed = 0;
+		changed_prefs.cpu_cycle_exact = 0;
+	}
+	if (v == 2) {
+		changed_prefs.m68k_speed = 0;
+		changed_prefs.cpu_cycle_exact = 1;
+	}
+}
+
+// fpu
+- (void)changeFPU:(id)sender
+{
+	unsigned int v;
+	v = [((NSMenuItem*)sender) tag];
+/*	if (v == 1) v = 68881;
+	if (v == 2) v = 68882;*/
+	changed_prefs.fpu_model = v;
+}
 @end
 
 /*
@@ -760,4 +1229,3 @@ void gui_gameport_axis_change (int port, int axis, int state, int max)
         }
         guijoychange = true;
 }
-
