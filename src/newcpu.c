@@ -3180,8 +3180,6 @@ STATIC_INLINE int do_specialties (int cycles)
 			hrtmon_breakenter ();
 		if (hrtmon_flag == ACTION_REPLAY_ACTIVATE)
 			hrtmon_enter ();
-		if (!(regs.spcflags & ~SPCFLAG_ACTION_REPLAY))
-			return 0;
 	}
 #endif
 	if ((regs.spcflags & SPCFLAG_ACTION_REPLAY) && action_replay_flag != ACTION_REPLAY_INACTIVE) {

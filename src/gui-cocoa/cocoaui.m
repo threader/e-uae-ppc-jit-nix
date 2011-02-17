@@ -159,7 +159,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
             nil]; // Note: Use lowercase for these
 
 		KickRomTypes =[[NSArray alloc] initWithObjects:@"rom", @"roz"];
-		FlashRamTypes =[[NSArray alloc] initWithObjects:@"ram", @"raz"];
+		FlashRamTypes =[[NSArray alloc] initWithObjects:@"nvr"];
 		CartridgeTypes =[[NSArray alloc] initWithObjects:@"cart", @"rom", @"roz"];
 	}
 

@@ -232,7 +232,6 @@ FSIN_none:
 ;FSIN_scandone:
 ;	jsr -$007e(a6) ; Enable
 
-
 filesys_dev_storeinfo
 	moveq #3,d4 ; MEMF_CHIP | MEMF_PUBLIC
 	cmp.w #36,20(a6)
@@ -242,6 +241,7 @@ FSIN_ksold
 
 	; add >2MB-6MB chip RAM to memory list
 	lea $210000,a1
+	; do not add if RAM detected already
 	jsr -$216(a6) ; TypeOfMem
 	tst.l d0
 	bne.s FSIN_chip_done

@@ -237,7 +237,7 @@ void audio_sampleripper (int mode)
 static void do_samplerip (struct audio_channel_data *adp)
 {
 	struct ripped_sample *rs = ripped_samples, *prev;
-	int len = adp->len * 2;
+	int len = adp->wlen * 2;
 	uae_u8 *smp = chipmem_xlate_indirect (adp->pt);
 	int cnt = 0, i;
 
@@ -1895,10 +1895,12 @@ void AUDxLCL (int nr, uae_u16 v)
 void AUDxPER (int nr, uae_u16 v)
 {
 	struct audio_channel_data *cdp = audio_channel + nr;
-	unsigned long per = v * CYCLE_UNIT;
+	unsigned long per;
 
 	audio_activate ();
 	update_audio ();
+
+	per = v * CYCLE_UNIT;
 	if (per == 0)
 		per = PERIOD_MAX - 1;
 

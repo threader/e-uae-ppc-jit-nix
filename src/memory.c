@@ -2076,7 +2076,6 @@ uae_u8 *mapped_malloc (size_t s, const TCHAR *file)
 	if (id == -1) {
 		// Failed to allocate new shared mem segment, so turn
 		// off direct memory access and fall back on regular malloc()
-		static int recurse;
 		uae_u8 *p;
 		nocanbang ();
 		if (recurse)
@@ -2193,7 +2192,7 @@ static void allocate_memory (void)
 		bogomemory_allocated = 0;
 
 		allocated_bogomem = currprefs.bogomem_size;
-		if (allocated_bogomem == 0x180000)
+		if (allocated_bogomem >= 0x180000)
 			allocated_bogomem = 0x200000;
 		bogomem_mask = allocated_bogomem - 1;
 
@@ -2537,7 +2536,7 @@ void memory_reset (void)
 		int t = currprefs.bogomem_size >> 16;
 		if (t > 0x1C)
 			t = 0x1C;
-		if (t > 0x10 && ((currprefs.chipset_mask & CSMASK_AGA) || currprefs.cpu_model >= 68020))
+		if (t > 0x10 && ((currprefs.chipset_mask & CSMASK_AGA) || (currprefs.cpu_model >= 68020 && !currprefs.address_space_24)))
 			t = 0x10;
 		map_banks (&bogomem_bank, 0xC0, t, 0);
 	}
