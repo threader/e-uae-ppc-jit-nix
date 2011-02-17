@@ -169,7 +169,7 @@ static void trim (TCHAR *s)
 		s[_tcslen(s) - 1] = 0;
 }
 
-int isharddrive (const TCHAR *name)
+static int isharddrive (const TCHAR *name)
 {
 	int i;
 
@@ -271,7 +271,8 @@ int hdf_open_target (struct hardfiledata *hfd, const char *pname)
 			i--;
 		}
 		if (h != INVALID_HANDLE_VALUE) {
-			size_t ret, low;
+			size_t ret;
+			int low;
 			ret = fseek (h, 0, SEEK_END);
 			if (ret)
 				goto end;
@@ -478,7 +479,7 @@ int hdf_read_target (struct hardfiledata *hfd, void *buffer, uae_u64 offset, int
 	if (hfd->drive_empty)
 		return 0;
 	if (offset < hfd->virtual_size) {
-		uae_u64 len2 = offset + len <= hfd->virtual_size ? len : hfd->virtual_size - offset;
+		uae_u64 len2 = offset + (unsigned)len <= hfd->virtual_size ? (unsigned)len : hfd->virtual_size - offset;
 		if (!hfd->virtual_rdb)
 			return 0;
 		memcpy (buffer, hfd->virtual_rdb + offset, len2);
@@ -486,7 +487,7 @@ int hdf_read_target (struct hardfiledata *hfd, void *buffer, uae_u64 offset, int
 	}
 	offset -= hfd->virtual_size;
 	while (len > 0) {
-		int maxlen;
+		unsigned int maxlen;
 		size_t ret;
 		if (hfd->physsize < CACHE_SIZE) {
 		    hfd->cache_valid = 0;

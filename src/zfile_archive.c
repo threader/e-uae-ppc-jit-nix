@@ -844,10 +844,10 @@ static void recurseadf (struct znode *zn, int root, TCHAR *name)
 				return;
 			if (gl (adf, 0) != 2)
 				break;
-			if (gl (adf, 1 * 4) != block)
+			if (gl (adf, 1 * 4) != (unsigned)block)
 				break;
 			secondary = gl (adf, bs - 1 * 4);
-			if (secondary != -3 && secondary != 2)
+			if (/*secondary != -3 &&*/ secondary != 2)
 				break;
 			memset (&zai, 0, sizeof zai);
 			fname = getBSTR (adf->block + bs - 20 * 4);
@@ -860,7 +860,7 @@ static void recurseadf (struct znode *zn, int root, TCHAR *name)
 			}
 			_tcscat (name2, fname);
 			zai.name = name2;
-			if (size < 0 || size > 0x7fffffff)
+			if (/*size < 0 ||*/ size > 0x7fffffff)
 				size = 0;
 			zai.size = size;
 			zai.flags = gl (adf, bs - 48 * 4);
@@ -1134,7 +1134,7 @@ static int sfsfindblock (struct adfhandle *adf, int btree, int theblock, struct 
 				blocks = glx (p + 12);
 			else
 				blocks = gwx (p + 12);
-			if (key == theblock) {
+			if (key == (unsigned)theblock) {
 				struct sfsblock *sb;
 				if (*sfsblockcnt >= *sfsmaxblockcnt) {
 					*sfsmaxblockcnt += 100;

@@ -1,10 +1,11 @@
- /*
-  * UAE - The Un*x Amiga Emulator
-  *
-  * OS-specific memory support functions
-  *
-  * Copyright 2004 Richard Drummond
-  */
+/*
+ * PUAE - The Un*x Amiga Emulator
+ *
+ * OS-specific memory support functions
+ *
+ * Copyright 2004 Richard Drummond
+ * Copyright 2010 Mustafa Tufan
+ */
 
 #include "sysconfig.h"
 #include "sysdeps.h"
@@ -110,6 +111,13 @@ void preinit_shm (void)
 	uae_u64 totalphys64;
 	uae_u32 max_allowed_mman;
 
+        if (natmem_offset)
+                free (natmem_offset);
+        natmem_offset = NULL;
+        if (p96mem_offset)
+                free (p96mem_offset);
+        p96mem_offset = NULL;
+
 #ifdef CPU_64_BIT
 	max_allowed_mman = 2048;
 #else
@@ -202,7 +210,7 @@ restart:
 			write_log ("NATMEM: retrying %d..\n", rounds);
 		rounds++;
 		if (natmem_offset)
-			free(natmem_offset);
+			free (natmem_offset);
 		natmem_offset = NULL;
 		natmem_offset_end = NULL;
 		canbang = 0;
@@ -214,15 +222,17 @@ restart:
 		rtgbarrier = getpagesize();
 		if (currprefs.cpu_model >= 68020)
 			size = 0x10000000;
-		if (currprefs.z3fastmem_size || currprefs.z3fastmem2_size || currprefs.z3chipmem_size) {
-			z3size = currprefs.z3fastmem_size + currprefs.z3fastmem2_size + currprefs.z3chipmem_size + (currprefs.z3fastmem_start - 0x10000000);
-			if (currprefs.gfxmem_size)
-				rtgbarrier = 16 * 1024 * 1024;
-			if (currprefs.z3chipmem_size && (currprefs.z3fastmem_size || currprefs.z3fastmem2_size))
-				z3chipbarrier = 16 * 1024 * 1024;
-		} else {
-			rtgbarrier = 0;
-		}
+                if (currprefs.z3fastmem_size || currprefs.z3fastmem2_size || currprefs.z3chipmem_size) {
+                        z3size = currprefs.z3fastmem_size + currprefs.z3fastmem2_size + currprefs.z3chipmem_size + (currprefs.z3fastmem_start - 0x10000000);
+                        if (currprefs.gfxmem_size) {
+                                rtgbarrier = 16 * 1024 * 1024 - ((currprefs.z3fastmem_size + currprefs.z3fastmem2_size) & 0x00ffffff);
+                        }
+                        if (currprefs.z3chipmem_size && (currprefs.z3fastmem_size || currprefs.z3fastmem2_size))
+                                z3chipbarrier = 16 * 1024 * 1024;
+                } else {
+                        rtgbarrier = 0;
+                }
+
 		totalsize = size + z3size + currprefs.gfxmem_size;
 		while (totalsize > size64) {
 			int change = lowmem ();
@@ -265,8 +275,8 @@ restart:
 			write_log ("VirtualAlloc() part 2 error %d. RTG disabled.\n", errno);
 			currprefs.gfxmem_size = changed_prefs.gfxmem_size = 0;
 			rtgbarrier = getpagesize();
-            rtgextra = 0;
-            goto restart;
+			rtgextra = 0;
+			goto restart;
 		}
 		mprotect (natmem_offset, size, PROT_READ|PROT_WRITE|PROT_EXEC);
 		size = p96mem_size + rtgextra;
@@ -281,11 +291,11 @@ restart:
 	if (!natmem_offset) {
 		write_log ("NATMEM: No special area could be allocated! (1) err=%d\n", errno);
 	} else {
-		write_log ("NATMEM: Our special area: 0x%p-0x%p (%08x %dM)\n",
+		write_log ("NATMEM: Our special area: %p-%p (%08x %dM)\n",
 			natmem_offset, (uae_u8*)natmem_offset + natmemsize,
 			natmemsize, natmemsize >> 20);
 		if (currprefs.gfxmem_size)
-			write_log ("NATMEM: P96 special area: 0x%p-0x%p (%08x %dM)\n",
+			write_log ("NATMEM: P96 special area: %p-%p (%08x %dM)\n",
 			p96mem_offset, (uae_u8*)p96mem_offset + currprefs.gfxmem_size,
 			currprefs.gfxmem_size, currprefs.gfxmem_size >> 20);
 		canbang = 1;
@@ -489,7 +499,7 @@ void *my_shmat (int shmid, void *shmaddr, int shmflg)
 	if (shmids[shmid].key == shmid && shmids[shmid].size) {
 		shmids[shmid].mode = 0;
 		shmids[shmid].natmembase = natmem_offset;
-		write_log ("SHMAddr %s %p = 0x%p - 0x%p\n", shmids[shmid].name, (uae_u8*)shmaddr-natmem_offset, shmaddr, natmem_offset);
+		write_log ("SHMAddr %s %p = %p - %p\n", shmids[shmid].name, (uae_u8*)shmaddr-natmem_offset, shmaddr, natmem_offset);
 //		if (shmaddr)
 //			free (shmaddr);
 		result = valloc (/*shmaddr,*/ size);

@@ -27,6 +27,8 @@
 #include "audio.h"
 #include "picasso96.h"
 #include "version.h"
+#include "filesys.h"
+#include "misc.h"
 
 /*
  * Returns UAE Version
@@ -246,10 +248,10 @@ static uae_u32 emulib_GetUaeConfig (uaecptr place)
 		put_byte (place + 35, 1);
 
 	for (j = 0; j < 4; j++) {
-		char *s = ua (currprefs.floppyslots[j].df);
+//		char *s = ua (currprefs.floppyslots[j].df);
 		for (i = 0; i < 256; i++)
-			put_byte (place + 36 + i + j * 256, s[i]);
-		xfree (s);
+			put_byte (place + 36 + i + j * 256, currprefs.floppyslots[j].df[i]);
+//		xfree (s);
 	}
 	return 1;
 }
@@ -341,7 +343,8 @@ static int native_dos_op (uae_u32 mode, uae_u32 p1, uae_u32 p2, uae_u32 p3)
 {
 	TCHAR tmp[MAX_DPATH];
 	char *s;
-	int v, i;
+	int v;
+	unsigned int i;
 
 	if (mode)
 		return -1;
@@ -351,12 +354,12 @@ static int native_dos_op (uae_u32 mode, uae_u32 p1, uae_u32 p2, uae_u32 p3)
 	v = get_native_path (p1, tmp);
 	if (v)
 		return v;
-	s = ua (tmp);
-	for (i = 0; i <= strlen (s) && i < p3 - 1; i++) {
-		put_byte (p2 + i, s[i]);
+	//s = ua (tmp);
+	for (i = 0; i <= strlen (tmp) && i < p3 - 1; i++) {
+		put_byte (p2 + i, tmp[i]);
 		put_byte (p2 + i + 1, 0);
 	}
-	xfree (s);
+	//xfree (s);
 	return 0;
 }
 #ifndef UAEGFX_INTERNAL

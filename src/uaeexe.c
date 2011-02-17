@@ -124,10 +124,10 @@ static uae_u32 REGPARAM2 uaeexe_server (TrapContext *context)
 
 	dst = (char*)get_real_address (ARG (0));
 	len = ARG (1);
-	s = ua (cmd);
-	strncpy (dst, s, len);
+//	s = ua (cmd);
+	strncpy (dst, cmd, len);
 	write_log ("Sending '%s' to remote cli\n", cmd);
-	xfree (s);
+//	xfree (s);
 	xfree (cmd);
 	return ARG (0);
 }

@@ -32,6 +32,7 @@
 #include "archivers/wrp/warp.h"
 #include <zlib.h>
 #include <stdarg.h>
+#include "misc.h"
 
 static struct zfile *zlist = 0;
 
@@ -1465,7 +1466,7 @@ static struct zfile *openzip (const TCHAR *pname)
 	_tcscpy (name, pname);
 	i = _tcslen (name) - 2;
 	while (i > 0) {
-		if (name[i] == '/' || name[i] == '\\' && i > 4) {
+		if ((name[i] == '/' || name[i] == '\\') && i > 4) {
 			v = name[i];
 			name[i] = 0;
 			for (j = 0; plugins_7z[j]; j++) {
@@ -1989,8 +1990,8 @@ size_t zfile_fread  (void *b, size_t l1, size_t l2, struct zfile *z)
 				l2 = (z->size - z->seek) / l1;
 			else
 				l2 = 0;
-			if (l2 < 0)
-				l2 = 0;
+//			if (l2 < 0)
+//				l2 = 0;
 		}
 		memcpy (b, z->data + z->offset + z->seek, l1 * l2);
 		z->seek += l1 * l2;
@@ -2006,8 +2007,8 @@ size_t zfile_fread  (void *b, size_t l1, size_t l2, struct zfile *z)
 				l2 = (size - v) / l1;
 			else
 				l2 = 0;
-			if (l2 < 0)
-				l2 = 0;
+//			if (l2 < 0)
+//				l2 = 0;
 		}
 		zfile_fseek (z->parent, z->seek + z->offset, SEEK_SET);
 		v = z->seek;
@@ -2102,7 +2103,7 @@ TCHAR *zfile_fgets (TCHAR *s, int size, struct zfile *z)
 			p++;
 		}
 		*p = 0;
-		if (size > strlen (s2) + 1)
+		if ((unsigned)size > strlen (s2) + 1)
 			size = strlen (s2) + 1;
 		au_copy (s, size, s2);
 		return s + size;
@@ -2112,7 +2113,7 @@ TCHAR *zfile_fgets (TCHAR *s, int size, struct zfile *z)
 		s1 = fgets (s2, size, z->f);
 		if (!s1)
 			return NULL;
-		if (size > strlen (s2) + 1)
+		if ((unsigned)size > strlen (s2) + 1)
 			size = strlen (s2) + 1;
 		au_copy (s, size, s2);
 		return s + size;
@@ -2178,7 +2179,7 @@ int zfile_zuncompress (void *dst, int dstsize, struct zfile *src, int srcsize)
 			int left = srcsize - incnt;
 			if (left == 0)
 				break;
-			if (left > sizeof (inbuf))
+			if ((unsigned)left > sizeof (inbuf))
 				left = sizeof (inbuf);
 			zs.next_in = inbuf;
 			zs.avail_in = zfile_fread (inbuf, 1, left, src);
@@ -2659,7 +2660,7 @@ static struct znode *get_znode (struct zvolume *zv, const TCHAR *ppath, int recu
 				return zn;
 		} else {
 			int len = _tcslen (zpath);
-			if (_tcslen (path) >= len && (path[len] == 0 || path[len] == FSDB_DIR_SEPARATOR) && !_tcsnicmp (zpath, path, len)) {
+			if (_tcslen (path) >= (unsigned)len && (path[len] == 0 || path[len] == FSDB_DIR_SEPARATOR) && !_tcsnicmp (zpath, path, len)) {
 				if (path[len] == 0)
 					return zn;
 				if (zn->vchild) {

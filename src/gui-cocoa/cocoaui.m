@@ -5,8 +5,9 @@
  *
  * Copyright 1996 Bernd Schmidt
  * Copyright 2004,2010 Steven J. Saunders
- *           2010 Mustafa TUFAN
+ *           2010,2011 Mustafa TUFAN
  */
+
 #include <stdlib.h>
 #include <stdarg.h>
 
@@ -46,7 +47,6 @@ typedef unsigned int   NSUInteger;
 #endif
 #endif
 
-
 static unsigned long memsizes[] = {
         /* 0 */ 0,  
         /* 1 */ 0x00040000, /* 256K */
@@ -76,10 +76,7 @@ static unsigned long memsizes[] = {
 
 #import <Cocoa/Cocoa.h>
 
-/* The GTK GUI code seems to use 255 as max path length. Not sure why it 
- * doesn't use MAX_DPATH... but we will follow its example.
- */
-#define COCOA_GUI_MAX_PATH 255
+#define COCOA_GUI_MAX_PATH MAX_DPATH
 
 /* These prototypes aren't declared in the sdlgfx header for some reason */
 extern void toggle_fullscreen (int mode);
@@ -99,14 +96,16 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 /* Objective-C class for an object to respond to events */
 @interface PuaeGui : NSObject
 {
-    NSString *applicationName;
-    NSArray *diskImageTypes;
+	NSString *applicationName;
+	NSArray *diskImageTypes;
+	NSArray *KickRomTypes;
+	NSArray *FlashRamTypes;
+	NSArray *CartridgeTypes;
 }
 + (id) sharedInstance;
 - (void)createMenus;
 - (void)createMenuItemInMenu:(NSMenu *)menu withTitle:(NSString *)title action:(SEL)anAction tag:(int)tag;
-- (void)createMenuItemInMenu:(NSMenu *)menu withTitle:(NSString *)title action:(SEL)anAction tag:(int)tag
-    keyEquivalent:(NSString *)keyEquiv keyEquivalentMask:(NSUInteger)mask;
+- (void)createMenuItemInMenu:(NSMenu *)menu withTitle:(NSString *)title action:(SEL)anAction tag:(int)tag keyEquivalent:(NSString *)keyEquiv keyEquivalentMask:(NSUInteger)mask;
 - (BOOL)validateMenuItem:(id <NSMenuItem>)item;
 - (void)insertDisk:(id)sender;
 - (void)ejectDisk:(id)sender;
@@ -133,58 +132,62 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 - (void)changeCPU:(id)sender;
 - (void)changeCPUSpeed:(id)sender;
 - (void)changeFPU:(id)sender;
+- (void)changeBlitter:(id)sender;
+- (void)changeCollision:(id)sender;
 @end
 
 @implementation PuaeGui
 
 + (id) sharedInstance
 {
-    static id sharedInstance = nil;
+	static id sharedInstance = nil;
+	if (sharedInstance == nil) sharedInstance = [[self alloc] init];
 
-    if (sharedInstance == nil) sharedInstance = [[self alloc] init];
-
-    return sharedInstance;
+	return sharedInstance;
 }
 
 -(PuaeGui *) init
 {
-    self = [super init];
+	self = [super init];
 
-    if (self) {
-        applicationName = [[NSString alloc] initWithString:getApplicationName()];
-        diskImageTypes =[[NSArray alloc] initWithObjects:@"adf", @"adz",
-            @"zip", @"dms", @"fdi", 
+	if (self) {
+		applicationName = [[NSString alloc] initWithString:getApplicationName()];
+		diskImageTypes =[[NSArray alloc] initWithObjects:@"adf", @"adz", @"zip", @"dms", @"fdi", 
 #ifdef CAPS        
             @"ipf",
 #endif
             nil]; // Note: Use lowercase for these
-    }
 
-    return self;
+		KickRomTypes =[[NSArray alloc] initWithObjects:@"rom", @"roz"];
+		FlashRamTypes =[[NSArray alloc] initWithObjects:@"ram", @"raz"];
+		CartridgeTypes =[[NSArray alloc] initWithObjects:@"cart", @"rom", @"roz"];
+	}
+
+	return self;
 }
 
 -(void) dealloc
 {
-    [applicationName release];
-    [diskImageTypes release];
-    [super dealloc];
+	[applicationName release];
+	[diskImageTypes release];
+	[super dealloc];
 }
 
 -(NSArray *) diskImageTypes
 {
-    return diskImageTypes;
+	return diskImageTypes;
 }
 
 -(NSString *)applicationName
 {
-    return applicationName;
+	return applicationName;
 }
 
 - (void)createMenus
 {
-    int driveNumber;
-    NSMenuItem *menuItem;
-    NSString *menuTitle;
+	int driveNumber;
+	NSMenuItem *menuItem;
+	NSString *menuTitle;
 
 	// Create a menu for manipulating the emulated amiga
 	NSMenu *vAmigaMenu = [[NSMenu alloc] initWithTitle:@"PUAE"];
@@ -195,57 +198,66 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 //	[self createMenuItemInMenu:vAmigaMenu withTitle:@"Pause" action:@selector(pauseAmiga:) tag:0];
 	
 #ifdef ACTION_REPLAY
-	[self createMenuItemInMenu:vAmigaMenu
-                     withTitle:@"Action Replay Freeze"
-                        action:@selector(actionReplayFreeze:)
-                           tag:0];
+	[self createMenuItemInMenu:vAmigaMenu withTitle:@"Action Replay Freeze" action:@selector(actionReplayFreeze:) tag:0];
 #endif
+	[vAmigaMenu addItem:[NSMenuItem separatorItem]];
+
+	// quick starts
+	NSMenu *quickstartMenu = [[NSMenu alloc] initWithTitle:@"QuickStart"];
+		[self createMenuItemInMenu:quickstartMenu withTitle:@"Amiga 500" action:@selector(QuickStart:) tag:500];
+		[self createMenuItemInMenu:quickstartMenu withTitle:@"Amiga 500+" action:@selector(QuickStart:) tag:501];
+		[self createMenuItemInMenu:quickstartMenu withTitle:@"Amiga 600" action:@selector(QuickStart:) tag:600];
+		[self createMenuItemInMenu:quickstartMenu withTitle:@"Amiga 1000" action:@selector(QuickStart:) tag:1000];
+		[self createMenuItemInMenu:quickstartMenu withTitle:@"Amiga 1200" action:@selector(QuickStart:) tag:1200];
+		[self createMenuItemInMenu:quickstartMenu withTitle:@"Amiga 3000" action:@selector(QuickStart:) tag:3000];
+		[self createMenuItemInMenu:quickstartMenu withTitle:@"Amiga 4000" action:@selector(QuickStart:) tag:4000];
+		[self createMenuItemInMenu:quickstartMenu withTitle:@"Amiga 4000T" action:@selector(QuickStart:) tag:4001];
+		[self createMenuItemInMenu:quickstartMenu withTitle:@"CD32" action:@selector(QuickStart:) tag:32];
+		[self createMenuItemInMenu:quickstartMenu withTitle:@"CDTV" action:@selector(QuickStart:) tag:33];
+		[self createMenuItemInMenu:quickstartMenu withTitle:@"Arcadia" action:@selector(QuickStart:) tag:34];
+	menuItem = [[NSMenuItem alloc] initWithTitle:@"QuickStart" action:nil keyEquivalent:@""];
+	[menuItem setSubmenu:quickstartMenu];
+	[vAmigaMenu addItem:menuItem];
+	[menuItem release];
+	[quickstartMenu release];
+
+	[vAmigaMenu addItem:[NSMenuItem separatorItem]];
+
+	[self createMenuItemInMenu:vAmigaMenu withTitle:@"Select Kick ROM" action:@selector(selectKickROM:) tag:0];
+	[self createMenuItemInMenu:vAmigaMenu withTitle:@"Select Cartridge ROM" action:@selector(selectCartridge:) tag:0];
+	[self createMenuItemInMenu:vAmigaMenu withTitle:@"Select Flash RAM" action:@selector(selectFlashRAM:) tag:0];
 
 	[vAmigaMenu addItem:[NSMenuItem separatorItem]];
 	
 	// Add menu items for inserting into floppy drives 1 - 4
 	NSMenu *insertFloppyMenu = [[NSMenu alloc] initWithTitle:@"Insert Floppy"];
-	
-	for (driveNumber=0; driveNumber<4; driveNumber++) {
-        [self createMenuItemInMenu:insertFloppyMenu
-                         withTitle:[NSString stringWithFormat:@"DF%d...",driveNumber]
-                            action:@selector(insertDisk:)
-                               tag:driveNumber];
-    }
+
+		for (driveNumber=0; driveNumber<4; driveNumber++) {
+			[self createMenuItemInMenu:insertFloppyMenu withTitle:[NSString stringWithFormat:@"DF%d...",driveNumber] action:@selector(insertDisk:) tag:driveNumber];
+		}
 
 	menuItem = [[NSMenuItem alloc] initWithTitle:@"Insert Floppy" action:nil keyEquivalent:@""];
 	[menuItem setSubmenu:insertFloppyMenu];
 	[vAmigaMenu addItem:menuItem];
 	[menuItem release];
-	
 	[insertFloppyMenu release];
 	
 	// Add menu items for ejecting from floppy drives 1 - 4
 	NSMenu *ejectFloppyMenu = [[NSMenu alloc] initWithTitle:@"Eject Floppy"];
-	
-	[self createMenuItemInMenu:ejectFloppyMenu withTitle:@"All" action:@selector(ejectAllDisks:) tag:0];
-	
-	[ejectFloppyMenu addItem:[NSMenuItem separatorItem]];
-	
-	for (driveNumber=0; driveNumber<4; driveNumber++) {
-        [self createMenuItemInMenu:ejectFloppyMenu
-                         withTitle:[NSString stringWithFormat:@"DF%d",driveNumber]
-                            action:@selector(ejectDisk:)
-                               tag:driveNumber];
-    }
-
+		[self createMenuItemInMenu:ejectFloppyMenu withTitle:@"All" action:@selector(ejectAllDisks:) tag:0];
+		[ejectFloppyMenu addItem:[NSMenuItem separatorItem]];
+		for (driveNumber=0; driveNumber<4; driveNumber++) {
+			[self createMenuItemInMenu:ejectFloppyMenu withTitle:[NSString stringWithFormat:@"DF%d",driveNumber] action:@selector(ejectDisk:) tag:driveNumber];
+		}
 	menuItem = [[NSMenuItem alloc] initWithTitle:@"Eject Floppy" action:nil keyEquivalent:@""];
 	[menuItem setSubmenu:ejectFloppyMenu];
 	[vAmigaMenu addItem:menuItem];
 	[menuItem release];
-	
 	[ejectFloppyMenu release];
 
 	menuItem = [[NSMenuItem alloc] initWithTitle:@"PUAE" action:nil keyEquivalent:@""];
 	[menuItem setSubmenu:vAmigaMenu];
-
 	[[NSApp mainMenu] insertItem:menuItem atIndex:1];
-	
 	[menuItem release];
 	[vAmigaMenu release];
 
@@ -265,13 +277,13 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 		[memMenu addItem:menuItem];
 		[menuItem release];
 
-		NSMenu *bogoMenu = [[NSMenu alloc] initWithTitle:@"Bogo Mem"];
+		NSMenu *bogoMenu = [[NSMenu alloc] initWithTitle:@"Slow Mem"];
 			[self createMenuItemInMenu:bogoMenu withTitle:@"None" action:@selector(changeBogoMem:) tag:0];
 			[self createMenuItemInMenu:bogoMenu withTitle:@"512 KB" action:@selector(changeBogoMem:) tag:2];
 			[self createMenuItemInMenu:bogoMenu withTitle:@"1 MB" action:@selector(changeBogoMem:) tag:3];
 			[self createMenuItemInMenu:bogoMenu withTitle:@"1.5 MB" action:@selector(changeBogoMem:) tag:14];
 			[self createMenuItemInMenu:bogoMenu withTitle:@"1.8 MB" action:@selector(changeBogoMem:) tag:15];
-		menuItem = [[NSMenuItem alloc] initWithTitle:@"Bogo Mem" action:nil keyEquivalent:@""];
+		menuItem = [[NSMenuItem alloc] initWithTitle:@"Slow Mem" action:nil keyEquivalent:@""];
 		[menuItem setSubmenu:bogoMenu];
 		[memMenu addItem:menuItem];
 		[menuItem release];
@@ -311,7 +323,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 		[memMenu addItem:menuItem];
 		[menuItem release];
 
-		NSMenu *z3chipMenu = [[NSMenu alloc] initWithTitle:@"Z3 Chip Mem"];
+		NSMenu *z3chipMenu = [[NSMenu alloc] initWithTitle:@"32bit Chip Mem"];
 			[self createMenuItemInMenu:z3chipMenu withTitle:@"None" action:@selector(changeZ3ChipMem:) tag:0];
 			[self createMenuItemInMenu:z3chipMenu withTitle:@"16 MB" action:@selector(changeZ3ChipMem:) tag:7];
 			[self createMenuItemInMenu:z3chipMenu withTitle:@"32 MB" action:@selector(changeZ3ChipMem:) tag:8];
@@ -320,7 +332,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 			[self createMenuItemInMenu:z3chipMenu withTitle:@"256 MB" action:@selector(changeZ3ChipMem:) tag:11];
 			[self createMenuItemInMenu:z3chipMenu withTitle:@"512 MB" action:@selector(changeZ3ChipMem:) tag:12];
 			[self createMenuItemInMenu:z3chipMenu withTitle:@"1 GB" action:@selector(changeZ3ChipMem:) tag:13];
-		menuItem = [[NSMenuItem alloc] initWithTitle:@"Z3 Chip Mem" action:nil keyEquivalent:@""];
+		menuItem = [[NSMenuItem alloc] initWithTitle:@"32bit Chip Mem" action:nil keyEquivalent:@""];
 		[menuItem setSubmenu:z3chipMenu];
 		[memMenu addItem:menuItem];
 		[menuItem release];
@@ -350,7 +362,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 	[menuItem release];
 	// MEM MENU END
 
-	// CHIPSET MENU START
+	// SYSTEM MENU START
 	NSMenu *systemMenu = [[NSMenu alloc] initWithTitle:@"System"];
 
 		NSMenu *cpuMenu = [[NSMenu alloc] initWithTitle:@"CPU"];
@@ -360,6 +372,12 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 			[self createMenuItemInMenu:cpuMenu withTitle:@"68030" action:@selector(changeCPU:) tag:3];
 			[self createMenuItemInMenu:cpuMenu withTitle:@"68040" action:@selector(changeCPU:) tag:4];
 			[self createMenuItemInMenu:cpuMenu withTitle:@"68060" action:@selector(changeCPU:) tag:6];
+			[cpuMenu addItem:[NSMenuItem separatorItem]];
+			[self createMenuItemInMenu:cpuMenu withTitle:@"24-bit Addressing" action:@selector(changeCPU:) tag:10];
+			[self createMenuItemInMenu:cpuMenu withTitle:@"More Compatible" action:@selector(changeCPU:) tag:11];
+#ifdef MMU
+			[self createMenuItemInMenu:cpuMenu withTitle:@"68040 MMU" action:@selector(changeCPU:) tag:12];
+#endif
 		menuItem = [[NSMenuItem alloc] initWithTitle:@"CPU" action:nil keyEquivalent:@""];
 		[menuItem setSubmenu:cpuMenu];
 		[systemMenu addItem:menuItem];
@@ -379,6 +397,8 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 			[self createMenuItemInMenu:fpuMenu withTitle:@"68881" action:@selector(changeFPU:) tag:1];
 			[self createMenuItemInMenu:fpuMenu withTitle:@"68882" action:@selector(changeFPU:) tag:2];
 			[self createMenuItemInMenu:fpuMenu withTitle:@"CPU Internal" action:@selector(changeFPU:) tag:3];
+			[fpuMenu addItem:[NSMenuItem separatorItem]];
+			[self createMenuItemInMenu:fpuMenu withTitle:@"More Compatible" action:@selector(changeFPU:) tag:10];
 		menuItem = [[NSMenuItem alloc] initWithTitle:@"FPU" action:nil keyEquivalent:@""];
 		[menuItem setSubmenu:fpuMenu];
 		[systemMenu addItem:menuItem];
@@ -390,8 +410,48 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 			[self createMenuItemInMenu:chipsetMenu withTitle:@"ECS Denise" action:@selector(changeChipset:) tag:2];
 			[self createMenuItemInMenu:chipsetMenu withTitle:@"ECS Full" action:@selector(changeChipset:) tag:3];
 			[self createMenuItemInMenu:chipsetMenu withTitle:@"AGA" action:@selector(changeChipset:) tag:4];
+			[chipsetMenu addItem:[NSMenuItem separatorItem]];
+			[self createMenuItemInMenu:chipsetMenu withTitle:@"NTSC" action:@selector(changeChipset:) tag:10];
 		menuItem = [[NSMenuItem alloc] initWithTitle:@"Chipset" action:nil keyEquivalent:@""];
 		[menuItem setSubmenu:chipsetMenu];
+		[systemMenu addItem:menuItem];
+		[menuItem release];
+
+		NSMenu *chipsetXMenu = [[NSMenu alloc] initWithTitle:@"Chipset Extra"];
+			[self createMenuItemInMenu:chipsetXMenu withTitle:@"" action:@selector(changeChipsetX:) tag:0];
+			[self createMenuItemInMenu:chipsetXMenu withTitle:@"Generic" action:@selector(changeChipsetX:) tag:1];
+			[self createMenuItemInMenu:chipsetXMenu withTitle:@"CDTV" action:@selector(changeChipsetX:) tag:2];
+			[self createMenuItemInMenu:chipsetXMenu withTitle:@"CD32" action:@selector(changeChipsetX:) tag:3];
+			[self createMenuItemInMenu:chipsetXMenu withTitle:@"A500" action:@selector(changeChipsetX:) tag:4];
+			[self createMenuItemInMenu:chipsetXMenu withTitle:@"A500+" action:@selector(changeChipsetX:) tag:5];
+			[self createMenuItemInMenu:chipsetXMenu withTitle:@"A600" action:@selector(changeChipsetX:) tag:6];
+			[self createMenuItemInMenu:chipsetXMenu withTitle:@"A1000" action:@selector(changeChipsetX:) tag:7];
+			[self createMenuItemInMenu:chipsetXMenu withTitle:@"A1200" action:@selector(changeChipsetX:) tag:8];
+			[self createMenuItemInMenu:chipsetXMenu withTitle:@"A2000" action:@selector(changeChipsetX:) tag:9];
+			[self createMenuItemInMenu:chipsetXMenu withTitle:@"A3000" action:@selector(changeChipsetX:) tag:10];
+			[self createMenuItemInMenu:chipsetXMenu withTitle:@"A3000T" action:@selector(changeChipsetX:) tag:11];
+			[self createMenuItemInMenu:chipsetXMenu withTitle:@"A4000" action:@selector(changeChipsetX:) tag:12];
+			[self createMenuItemInMenu:chipsetXMenu withTitle:@"A4000T" action:@selector(changeChipsetX:) tag:13];
+		menuItem = [[NSMenuItem alloc] initWithTitle:@"Chipset Extra" action:nil keyEquivalent:@""];
+		[menuItem setSubmenu:chipsetXMenu];
+		[systemMenu addItem:menuItem];
+		[menuItem release];
+
+		NSMenu *blitterMenu = [[NSMenu alloc] initWithTitle:@"Blitter"];
+			[self createMenuItemInMenu:blitterMenu withTitle:@"Immediate Blits" action:@selector(changeBlitter:) tag:0];
+			[self createMenuItemInMenu:blitterMenu withTitle:@"Cycle-exact Blitter" action:@selector(changeBlitter:) tag:1];
+		menuItem = [[NSMenuItem alloc] initWithTitle:@"Blitter" action:nil keyEquivalent:@""];
+		[menuItem setSubmenu:blitterMenu];
+		[systemMenu addItem:menuItem];
+		[menuItem release];
+
+		NSMenu *collisionMenu = [[NSMenu alloc] initWithTitle:@"Collision Level"];
+			[self createMenuItemInMenu:collisionMenu withTitle:@"None" action:@selector(changeCollision:) tag:0];
+			[self createMenuItemInMenu:collisionMenu withTitle:@"Sprites Only" action:@selector(changeCollision:) tag:1];
+			[self createMenuItemInMenu:collisionMenu withTitle:@"Sprites and Sprites vs. Playfield" action:@selector(changeCollision:) tag:2];
+			[self createMenuItemInMenu:collisionMenu withTitle:@"Full" action:@selector(changeCollision:) tag:3];
+		menuItem = [[NSMenuItem alloc] initWithTitle:@"Collision Level" action:nil keyEquivalent:@""];
+		[menuItem setSubmenu:collisionMenu];
 		[systemMenu addItem:menuItem];
 		[menuItem release];
 
@@ -400,106 +460,130 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 	[[NSApp mainMenu] insertItem:menuItem atIndex:3];
 	[systemMenu release];
 	[menuItem release];
-	// CHIPSET MENU END
+	// SYSTEM MENU END
+
+	// SOUND MENU START
+	NSMenu *soundMenu = [[NSMenu alloc] initWithTitle:@"Sound"];
+
+		NSMenu *semuMenu = [[NSMenu alloc] initWithTitle:@"Emulation"];
+			[self createMenuItemInMenu:semuMenu withTitle:@"Disabled" action:@selector(changeSound:) tag:0];
+			[self createMenuItemInMenu:semuMenu withTitle:@"Disabled, but emulated" action:@selector(changeSound:) tag:1];
+			[self createMenuItemInMenu:semuMenu withTitle:@"Enabled" action:@selector(changeSound:) tag:2];
+		menuItem = [[NSMenuItem alloc] initWithTitle:@"Emulation" action:nil keyEquivalent:@""];
+		[menuItem setSubmenu:semuMenu];
+		[soundMenu addItem:menuItem];
+		[menuItem release];
+
+		NSMenu *sfilterMenu = [[NSMenu alloc] initWithTitle:@"Filter"];
+			[self createMenuItemInMenu:sfilterMenu withTitle:@"Always Off" action:@selector(changeSoundFilter:) tag:0];
+			[self createMenuItemInMenu:sfilterMenu withTitle:@"Emulated (A500)" action:@selector(changeSoundFilter:) tag:1];
+			[self createMenuItemInMenu:sfilterMenu withTitle:@"Emulated (A1200)" action:@selector(changeSoundFilter:) tag:2];
+			[self createMenuItemInMenu:sfilterMenu withTitle:@"Always On (A500)" action:@selector(changeSoundFilter:) tag:3];
+			[self createMenuItemInMenu:sfilterMenu withTitle:@"Always On (A1200)" action:@selector(changeSoundFilter:) tag:4];
+		menuItem = [[NSMenuItem alloc] initWithTitle:@"Filter" action:nil keyEquivalent:@""];
+		[menuItem setSubmenu:sfilterMenu];
+		[soundMenu addItem:menuItem];
+		[menuItem release];
+
+		NSMenu *sinterMenu = [[NSMenu alloc] initWithTitle:@"Interpolation"];
+			[self createMenuItemInMenu:sinterMenu withTitle:@"" action:@selector(changeSoundInterpolation:) tag:0];
+			[self createMenuItemInMenu:sinterMenu withTitle:@"Anti" action:@selector(changeSoundInterpolation:) tag:1];
+			[self createMenuItemInMenu:sinterMenu withTitle:@"Sinc" action:@selector(changeSoundInterpolation:) tag:2];
+			[self createMenuItemInMenu:sinterMenu withTitle:@"RH" action:@selector(changeSoundInterpolation:) tag:3];
+			[self createMenuItemInMenu:sinterMenu withTitle:@"Crux" action:@selector(changeSoundInterpolation:) tag:4];
+		menuItem = [[NSMenuItem alloc] initWithTitle:@"Interpolation" action:nil keyEquivalent:@""];
+		[menuItem setSubmenu:sinterMenu];
+		[soundMenu addItem:menuItem];
+		[menuItem release];
+
+	menuItem = [[NSMenuItem alloc] initWithTitle:@"Sound" action:nil keyEquivalent:@""];
+	[menuItem setSubmenu:soundMenu];
+	[[NSApp mainMenu] insertItem:menuItem atIndex:4];
+	[soundMenu release];
+	[menuItem release];
+	// SOUND MENU END
+
 
 	// Create a menu for changing aspects of emulator control
 	NSMenu *controlMenu = [[NSMenu alloc] initWithTitle:@"Control"];
 
-	NSMenu *portMenu = [[NSMenu alloc] initWithTitle:@"Game Port 0"];
-
-    [self createMenuItemInMenu:portMenu withTitle:@"None" action:@selector(changePort0:) tag:JSEM_END];
-    [self createMenuItemInMenu:portMenu withTitle:@"Joystick 0" action:@selector(changePort0:) tag:JSEM_JOYS];
-    [self createMenuItemInMenu:portMenu withTitle:@"Joystick 1" action:@selector(changePort0:) tag:JSEM_JOYS+1];
-    [self createMenuItemInMenu:portMenu withTitle:@"Mouse" action:@selector(changePort0:) tag:JSEM_MICE];
-    [self createMenuItemInMenu:portMenu withTitle:@"Keyboard Layout A (NumPad, 0 & 5 = Fire)" action:@selector(changePort0:) tag:JSEM_KBDLAYOUT];
-    [self createMenuItemInMenu:portMenu withTitle:@"Keyboard Layout B (Cursor, RCtrl & Alt = Fire)" action:@selector(changePort0:) tag:JSEM_KBDLAYOUT+1];
-    [self createMenuItemInMenu:portMenu withTitle:@"Keyboard Layout C (WASD, LAlt = Fire)" action:@selector(changePort0:) tag:JSEM_KBDLAYOUT+2];
+		NSMenu *portMenu = [[NSMenu alloc] initWithTitle:@"Game Port 0"];
+			[self createMenuItemInMenu:portMenu withTitle:@"None" action:@selector(changePort0:) tag:JSEM_END];
+			[self createMenuItemInMenu:portMenu withTitle:@"Joystick 0" action:@selector(changePort0:) tag:JSEM_JOYS];
+			[self createMenuItemInMenu:portMenu withTitle:@"Joystick 1" action:@selector(changePort0:) tag:JSEM_JOYS+1];
+			[self createMenuItemInMenu:portMenu withTitle:@"Mouse" action:@selector(changePort0:) tag:JSEM_MICE];
+			[self createMenuItemInMenu:portMenu withTitle:@"Keyboard Layout A (NumPad, 0 & 5 = Fire)" action:@selector(changePort0:) tag:JSEM_KBDLAYOUT];
+			[self createMenuItemInMenu:portMenu withTitle:@"Keyboard Layout B (Cursor, RCtrl & Alt = Fire)" action:@selector(changePort0:) tag:JSEM_KBDLAYOUT+1];
+			[self createMenuItemInMenu:portMenu withTitle:@"Keyboard Layout C (WASD, LAlt = Fire)" action:@selector(changePort0:) tag:JSEM_KBDLAYOUT+2];
 #ifdef ARCADE
-    [self createMenuItemInMenu:portMenu withTitle:@"X-Arcade (Left)" action:@selector(changePort0:) tag:JSEM_KBDLAYOUT+3];
-    [self createMenuItemInMenu:portMenu withTitle:@"X-Arcade (Right)" action:@selector(changePort0:) tag:JSEM_KBDLAYOUT+4];
+			[self createMenuItemInMenu:portMenu withTitle:@"X-Arcade (Left)" action:@selector(changePort0:) tag:JSEM_KBDLAYOUT+3];
+			[self createMenuItemInMenu:portMenu withTitle:@"X-Arcade (Right)" action:@selector(changePort0:) tag:JSEM_KBDLAYOUT+4];
 #endif
+		menuItem = [[NSMenuItem alloc] initWithTitle:@"Game Port 0" action:nil keyEquivalent:@""];
+		[menuItem setSubmenu:portMenu];
+		[controlMenu addItem:menuItem];
+		[menuItem release];
+		[portMenu release];
 
-    menuItem = [[NSMenuItem alloc] initWithTitle:@"Game Port 0" action:nil keyEquivalent:@""];
-    [menuItem setSubmenu:portMenu];
-    [controlMenu addItem:menuItem];
-    [menuItem release];
-
-	[portMenu release];
-	
-	portMenu = [[NSMenu alloc] initWithTitle:@"Game Port 1"];
-
-    [self createMenuItemInMenu:portMenu withTitle:@"None" action:@selector(changePort1:) tag:JSEM_END];
-    [self createMenuItemInMenu:portMenu withTitle:@"Joystick 0" action:@selector(changePort1:) tag:JSEM_JOYS];
-    [self createMenuItemInMenu:portMenu withTitle:@"Joystick 1" action:@selector(changePort1:) tag:JSEM_JOYS+1];
-    [self createMenuItemInMenu:portMenu withTitle:@"Mouse" action:@selector(changePort1:) tag:JSEM_MICE];
-    [self createMenuItemInMenu:portMenu withTitle:@"Keyboard Layout A (NumPad, 0 & 5 = Fire)" action:@selector(changePort1:) tag:JSEM_KBDLAYOUT];
-    [self createMenuItemInMenu:portMenu withTitle:@"Keyboard Layout B (Cursor, RCtrl & Alt = Fire)" action:@selector(changePort1:) tag:JSEM_KBDLAYOUT+1];
-    [self createMenuItemInMenu:portMenu withTitle:@"Keyboard Layout C (WASD, LAlt = Fire)" action:@selector(changePort1:) tag:JSEM_KBDLAYOUT+2];
+		portMenu = [[NSMenu alloc] initWithTitle:@"Game Port 1"];
+			[self createMenuItemInMenu:portMenu withTitle:@"None" action:@selector(changePort1:) tag:JSEM_END];
+			[self createMenuItemInMenu:portMenu withTitle:@"Joystick 0" action:@selector(changePort1:) tag:JSEM_JOYS];
+			[self createMenuItemInMenu:portMenu withTitle:@"Joystick 1" action:@selector(changePort1:) tag:JSEM_JOYS+1];
+			[self createMenuItemInMenu:portMenu withTitle:@"Mouse" action:@selector(changePort1:) tag:JSEM_MICE];
+			[self createMenuItemInMenu:portMenu withTitle:@"Keyboard Layout A (NumPad, 0 & 5 = Fire)" action:@selector(changePort1:) tag:JSEM_KBDLAYOUT];
+			[self createMenuItemInMenu:portMenu withTitle:@"Keyboard Layout B (Cursor, RCtrl & Alt = Fire)" action:@selector(changePort1:) tag:JSEM_KBDLAYOUT+1];
+			[self createMenuItemInMenu:portMenu withTitle:@"Keyboard Layout C (WASD, LAlt = Fire)" action:@selector(changePort1:) tag:JSEM_KBDLAYOUT+2];
 #ifdef ARCADE
-    [self createMenuItemInMenu:portMenu withTitle:@"X-Arcade (Left)" action:@selector(changePort1:) tag:JSEM_KBDLAYOUT+3];
-    [self createMenuItemInMenu:portMenu withTitle:@"X-Arcade (Right)" action:@selector(changePort1:) tag:JSEM_KBDLAYOUT+4];
+			[self createMenuItemInMenu:portMenu withTitle:@"X-Arcade (Left)" action:@selector(changePort1:) tag:JSEM_KBDLAYOUT+3];
+			[self createMenuItemInMenu:portMenu withTitle:@"X-Arcade (Right)" action:@selector(changePort1:) tag:JSEM_KBDLAYOUT+4];
 #endif
-
-    menuItem = [[NSMenuItem alloc] initWithTitle:@"Game Port 1" action:nil keyEquivalent:@""];
-    [menuItem setSubmenu:portMenu];
-    [controlMenu addItem:menuItem];
-    [menuItem release];
-
-	[portMenu release];
+		menuItem = [[NSMenuItem alloc] initWithTitle:@"Game Port 1" action:nil keyEquivalent:@""];
+		[menuItem setSubmenu:portMenu];
+		[controlMenu addItem:menuItem];
+		[menuItem release];
+		[portMenu release];
 
 	[self createMenuItemInMenu:controlMenu withTitle:@"Swap Port 0 and 1" action:@selector(swapGamePorts:) tag:0];
 
 	[controlMenu addItem:[NSMenuItem separatorItem]];
 	
-	[self createMenuItemInMenu:controlMenu withTitle:@"Grab Mouse" action:@selector(grabMouse:) tag:0 
-		keyEquivalent:@"g" keyEquivalentMask:NSCommandKeyMask|NSAlternateKeyMask];
-	
-    menuItem = [[NSMenuItem alloc] initWithTitle:@"Control" action:nil keyEquivalent:@""];
-    [menuItem setSubmenu:controlMenu];
+	[self createMenuItemInMenu:controlMenu withTitle:@"Grab Mouse" action:@selector(grabMouse:) tag:0  keyEquivalent:@"g" keyEquivalentMask:NSCommandKeyMask|NSAlternateKeyMask];
 
-    [[NSApp mainMenu] insertItem:menuItem atIndex:4];
-
-    [controlMenu release];
-    [menuItem release];
+	menuItem = [[NSMenuItem alloc] initWithTitle:@"Control" action:nil keyEquivalent:@""];
+	[menuItem setSubmenu:controlMenu];
+	[[NSApp mainMenu] insertItem:menuItem atIndex:5];
+	[controlMenu release];
+	[menuItem release];
 
 	// Create a menu for changing aspects of emulator control
-    NSMenu *displayMenu = [[NSMenu alloc] initWithTitle:@"Display"];
-
-	[self createMenuItemInMenu:displayMenu withTitle:@"Fullscreen" action:@selector(goFullscreen:) tag:0 
-		keyEquivalent:@"s" keyEquivalentMask:NSCommandKeyMask|NSAlternateKeyMask];
-		
-	[self createMenuItemInMenu:displayMenu withTitle:@"Inhibit" action:@selector(toggleInhibitDisplay:) tag:0];
-	
+	NSMenu *displayMenu = [[NSMenu alloc] initWithTitle:@"Display"];
+		[self createMenuItemInMenu:displayMenu withTitle:@"Fullscreen" action:@selector(goFullscreen:) tag:0  keyEquivalent:@"s" keyEquivalentMask:NSCommandKeyMask|NSAlternateKeyMask];
+		[self createMenuItemInMenu:displayMenu withTitle:@"Inhibit" action:@selector(toggleInhibitDisplay:) tag:0];
 	menuItem = [[NSMenuItem alloc] initWithTitle:@"Display" action:nil keyEquivalent:@""];
-    [menuItem setSubmenu:displayMenu];
-
-    [[NSApp mainMenu] insertItem:menuItem atIndex:5];
-
+	[menuItem setSubmenu:displayMenu];
+	[[NSApp mainMenu] insertItem:menuItem atIndex:6];
 	[displayMenu release];
 	[menuItem release];
 }
 
 - (void)createMenuItemInMenu:(NSMenu *)menu withTitle:(NSString *)title action:(SEL)anAction tag:(int)tag
 {
-	[self createMenuItemInMenu:menu withTitle:title action:anAction tag:tag
-		keyEquivalent:@"" keyEquivalentMask:NSCommandKeyMask];
+	[self createMenuItemInMenu:menu withTitle:title action:anAction tag:tag keyEquivalent:@"" keyEquivalentMask:NSCommandKeyMask];
 }
 
-- (void)createMenuItemInMenu:(NSMenu *)menu withTitle:(NSString *)title action:(SEL)anAction tag:(int)tag
-    keyEquivalent:(NSString *)keyEquiv keyEquivalentMask:(NSUInteger)mask
+- (void)createMenuItemInMenu:(NSMenu *)menu withTitle:(NSString *)title action:(SEL)anAction tag:(int)tag keyEquivalent:(NSString *)keyEquiv keyEquivalentMask:(NSUInteger)mask
 {
-    NSMenuItem *menuItem = [[NSMenuItem alloc] initWithTitle:title action:anAction keyEquivalent:keyEquiv];
+	NSMenuItem *menuItem = [[NSMenuItem alloc] initWithTitle:title action:anAction keyEquivalent:keyEquiv];
 	[menuItem setKeyEquivalentModifierMask:mask];
-    [menuItem setTag:tag];
-    [menuItem setTarget:self];
-    [menu addItem:menuItem];
-    [menuItem release];
+	[menuItem setTag:tag];
+	[menuItem setTarget:self];
+	[menu addItem:menuItem];
+	[menuItem release];
 }
 
 - (BOOL)validateMenuItem:(id <NSMenuItem>)item
 {
 	NSMenuItem *menuItem = (NSMenuItem *)item;
-	
 	BOOL canSetHidden = [menuItem respondsToSelector:@selector(setHidden:)];
 	
     SEL menuAction = [menuItem action];
@@ -566,7 +650,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 	long mem_size, v;
 	if (menuAction == @selector(changeChipMem:)) {
 		mem_size = 0;
-	        switch (currprefs.chipmem_size) {
+	        switch (changed_prefs.chipmem_size) {
 		        case 0x00040000: mem_size = 1; break;
 		        case 0x00080000: mem_size = 2; break;
 		        case 0x00100000: mem_size = 3; break;
@@ -581,7 +665,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 
 	if (menuAction == @selector(changeBogoMem:)) {
 		mem_size = 0;
-	        switch (currprefs.bogomem_size) {
+	        switch (changed_prefs.bogomem_size) {
 		        case 0x00000000: mem_size = 0; break;
         		case 0x00080000: mem_size = 2; break;
 	        	case 0x00100000: mem_size = 3; break;
@@ -593,8 +677,10 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 	}
 
 	if (menuAction == @selector(changeFastMem:)) {
+	        if (changed_prefs.chipmem_size > 0x200000) return NO;
+
 		mem_size = 0;
-        	switch (currprefs.fastmem_size) {
+        	switch (changed_prefs.fastmem_size) {
 		        case 0x00000000: mem_size = 0; break;
 		        case 0x00100000: mem_size = 3; break;
 	        	case 0x00200000: mem_size = 4; break;
@@ -603,11 +689,15 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 	        }
 		if (mem_size == tag) [menuItem setState:NSOnState];
 		else [menuItem setState:NSOffState];
+
+		return YES;
 	}
 
 	if (menuAction == @selector(changeZ3FastMem:)) {
+		if (changed_prefs.address_space_24) return NO;
+
 		mem_size = 0;
-        	v = currprefs.z3fastmem_size + currprefs.z3fastmem2_size;
+        	v = changed_prefs.z3fastmem_size + changed_prefs.z3fastmem2_size;
 	        if      (v < 0x00100000)
         	        mem_size = 0;
 	        else if (v < 0x00200000)
@@ -647,11 +737,15 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 
 		if (mem_size == tag) [menuItem setState:NSOnState];
 		else [menuItem setState:NSOffState];
+
+		return YES;
 	}
 
 	if (menuAction == @selector(changeZ3ChipMem:)) {
+		if (changed_prefs.address_space_24) return NO;
+
 		mem_size = 0;
-        	v = currprefs.z3chipmem_size;
+        	v = changed_prefs.z3chipmem_size;
 	        if (v < 0x01000000)
         	        mem_size = 0;
 	        else if (v < 0x02000000)
@@ -671,11 +765,13 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 
 		if (mem_size == tag) [menuItem setState:NSOnState];
 		else [menuItem setState:NSOffState];
+
+		return YES;
 	}
 
 	if (menuAction == @selector(changeGfxMem:)) {
 	        mem_size = 0;
-	        switch (currprefs.gfxmem_size) {
+	        switch (changed_prefs.gfxmem_size) {
         		case 0x00000000: mem_size = 0; break;
 	        	case 0x00100000: mem_size = 3; break;
 		        case 0x00200000: mem_size = 4; break;
@@ -695,7 +791,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 
 	if (menuAction == @selector(changeChipset:)) {
 		v = 0;
-        	switch (currprefs.chipset_mask) {
+        	switch (changed_prefs.chipset_mask) {
 		        case 0: v = 0; break;
         		case 1: v = 1; break;
 	        	case 2: v = 2; break;
@@ -705,31 +801,119 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 	        }
 		if (v == tag) [menuItem setState:NSOnState];
 		else [menuItem setState:NSOffState];
+
+		if (tag == 10) {
+			if (changed_prefs.ntscmode) [menuItem setState:NSOnState];
+			else [menuItem setState:NSOffState];
+		}
 	}
 
-	if (menuAction == @selector(changeCPU:)) {
-		v = (currprefs.cpu_model - 68000) / 10;
-		if (v == tag) [menuItem setState:NSOnState];
+	if (menuAction == @selector(changeChipsetX:)) {
+		if (changed_prefs.cs_compatible == tag) [menuItem setState:NSOnState];
 		else [menuItem setState:NSOffState];
 	}
 
+	if (menuAction == @selector(changeCPU:)) {
+		v = (changed_prefs.cpu_model - 68000) / 10;
+		if (v == tag) [menuItem setState:NSOnState];
+		else [menuItem setState:NSOffState];
+
+		if (tag == 10) {
+			if (changed_prefs.cpu_model != 68020) return NO;
+			if (changed_prefs.address_space_24) [menuItem setState:NSOnState];
+			else [menuItem setState:NSOffState];
+		}
+		if (tag == 11) {
+			if (changed_prefs.cpu_compatible) [menuItem setState:NSOnState];
+			else [menuItem setState:NSOffState];
+		}
+#ifdef MMU
+		if (tag == 12) {
+			if (changed_prefs.mmu_model) [menuItem setState:NSOnState];
+			else [menuItem setState:NSOffState];
+		}
+#endif
+		return YES;
+	}
+
 	if (menuAction == @selector(changeCPUSpeed:)) {
-		if (currprefs.cpu_cycle_exact == 1) {
+		if (changed_prefs.cpu_cycle_exact == 1) {
 			v = 2;
 		} else {
-			if (currprefs.m68k_speed == -1) v = 0;
-			if (currprefs.m68k_speed == 0) v = 1;
+			if (changed_prefs.m68k_speed == -1) v = 0;
+			if (changed_prefs.m68k_speed == 0) v = 1;
 		}
 		if (v == tag) [menuItem setState:NSOnState];
 		else [menuItem setState:NSOffState];
 	}
 
 	if (menuAction == @selector(changeFPU:)) {
-		v = currprefs.fpu_model == 0 ? 0 : (currprefs.fpu_model == 68881 ? 1 : (currprefs.fpu_model == 68882 ? 2 : 3));
+		v = changed_prefs.fpu_model == 0 ? 0 : (changed_prefs.fpu_model == 68881 ? 1 : (changed_prefs.fpu_model == 68882 ? 2 : 3));
+		if (v == tag) [menuItem setState:NSOnState];
+		else [menuItem setState:NSOffState];
+
+		if (tag == 10) {
+			if (changed_prefs.fpu_strict) [menuItem setState:NSOnState];
+			else [menuItem setState:NSOffState];
+		}
+
+		if (changed_prefs.cpu_model > 68030 || changed_prefs.cpu_compatible || changed_prefs.cpu_cycle_exact) {
+			if (tag < 3) return NO;
+		}
+		if (tag == 3) {
+			if (!changed_prefs.cpu_model >= 68040) {
+				return NO;
+			}
+		}
+		return YES;
+	}
+	
+	if (menuAction == @selector(changeBlitter:)) {
+		if (tag == 0) {
+			if (changed_prefs.immediate_blits) [menuItem setState:NSOnState];
+			else [menuItem setState:NSOffState];
+		}
+		if (tag == 1) {
+			if (changed_prefs.blitter_cycle_exact) [menuItem setState:NSOnState];
+			else [menuItem setState:NSOffState];
+		}
+	}
+
+	if (menuAction == @selector(changeCollision:)) {
+		if (changed_prefs.collision_level == tag) [menuItem setState:NSOnState];
+		else [menuItem setState:NSOffState];
+	}
+
+	if (menuAction == @selector(changeSound:)) {
+		v = changed_prefs.produce_sound;
+		if (v == 3) v = 2;
 		if (v == tag) [menuItem setState:NSOnState];
 		else [menuItem setState:NSOffState];
 	}
-	
+
+	if (menuAction == @selector(changeSoundInterpolation:)) {
+		if (changed_prefs.sound_interpol == tag) [menuItem setState:NSOnState];
+		else [menuItem setState:NSOffState];
+	}
+
+	if (menuAction == @selector(changeSoundFilter:)) {
+        	v = 0;
+		switch (changed_prefs.sound_filter) {
+		case 0:
+			v = 0;
+			break;
+		case 1:
+			v = changed_prefs.sound_filter_type ? 2 : 1;
+			break;
+		case 2:  
+			v = changed_prefs.sound_filter_type ? 4 : 3;
+			break;
+		}
+
+		if (v == tag) [menuItem setState:NSOnState];
+		else [menuItem setState:NSOffState];
+	}
+
 	if (menuAction == @selector(pauseAmiga:)) {
 		if (pause_emulation)
 			[menuItem setTitle:@"Resume"];
@@ -774,16 +958,18 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 // Invoked when the user selects an option from the 'Port 0' menu
 - (void)changePort0:(id)sender
 {
-    changed_prefs.jports[0].id = [((NSMenuItem*)sender) tag];
+	changed_prefs.jports[0].id = [((NSMenuItem*)sender) tag];
 
-    if( changed_prefs.jports[0].id != currprefs.jports[0].id )
-        inputdevice_config_change();
+	if (changed_prefs.jports[0].id != currprefs.jports[0].id) {
+		inputdevice_updateconfig (&changed_prefs);
+		inputdevice_config_change();
+	}
 }
 
 // Invoked when the user selects an option from the 'Port 1' menu
 - (void)changePort1:(id)sender
 {
-    changed_prefs.jports[1].id = [((NSMenuItem*)sender) tag];
+	changed_prefs.jports[1].id = [((NSMenuItem*)sender) tag];
 
 	if (changed_prefs.jports[1].id != currprefs.jports[1].id) {
 		inputdevice_updateconfig (&changed_prefs);
@@ -795,6 +981,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 {
 	changed_prefs.jports[0].id = currprefs.jports[1].id;
 	changed_prefs.jports[1].id = currprefs.jports[0].id;
+	inputdevice_updateconfig (&changed_prefs);
 	inputdevice_config_change();
 }
 
@@ -865,6 +1052,174 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 		// Save the path of this disk image so that future open panels can start in the same directory
 		[[NSUserDefaults standardUserDefaults] setObject:[file stringByDeletingLastPathComponent] forKey:@"LastUsedDiskImagePath"];
 	}
+}
+
+// kick.rom
+- (void)displayOpenPanelForKickROM:(id)sender
+{
+	ensureNotFullscreen();
+
+	NSOpenPanel *oPanel = [NSOpenPanel openPanel];
+	[oPanel setTitle:@"Select Kick ROM"];
+
+	// make sure setMessage (OS X 10.3+) is available before calling it
+	if ([oPanel respondsToSelector:@selector(setMessage:)])
+		[oPanel setMessage:@"Select Kick ROM"];
+
+	[oPanel setPrompt:@"Select"];
+	NSString *contextInfo = "";
+
+	// recall the path of kick rom that was loaded last time 
+	NSString *nskickpath = [[NSUserDefaults standardUserDefaults] stringForKey:@"LastUsedKickPath"];
+
+	// If the configuration includes a setting for the "kick_path" attribute
+	// start the OpenPanel in that directory.. but only the first time.
+	static int kick_run_once = 0;
+	if (!kick_run_once) {
+		kick_run_once++;
+		
+		const char *kick_path = currprefs.romfile;
+		
+		if (kick_path != NULL) {
+			char homedir[MAX_PATH];
+			snprintf(homedir, MAX_PATH, "%s/", getenv("HOME"));
+			
+			// default value for kick_path is "$HOME/"
+			if (strncmp(kick_path, homedir, MAX_PATH) != 0)
+				nskickpath = [NSString stringWithCString:kick_path encoding:NSASCIIStringEncoding];
+		}
+	}
+
+    [oPanel beginSheetForDirectory:nskickpath file:nil
+                             types:KickRomTypes
+                    modalForWindow:[NSApp mainWindow]
+                     modalDelegate:self
+                    didEndSelector:@selector(selectKickROMPanelDidEnd:returnCode:contextInfo:)
+                       contextInfo:contextInfo];
+}
+
+// called after kick rom selection panel
+- (void)selectKickROMPanelDidEnd:(NSOpenPanel *)sheet returnCode:(int)returnCode contextInfo:(void *)contextInfo
+{
+	if (returnCode != NSOKButton) return;
+
+	NSArray *files = [sheet filenames];
+	NSString *file = [files objectAtIndex:0];
+	lossyASCIICopy (changed_prefs.romfile, file, COCOA_GUI_MAX_PATH);
+		
+	[[NSUserDefaults standardUserDefaults] setObject:[file stringByDeletingLastPathComponent] forKey:@"LastUsedKickPath"];
+}
+
+// flash.rom
+- (void)displayOpenPanelForFlashRAM:(id)sender
+{
+	ensureNotFullscreen();
+
+	NSOpenPanel *oPanel = [NSOpenPanel openPanel];
+	[oPanel setTitle:@"Select Flash RAM"];
+
+	// make sure setMessage (OS X 10.3+) is available before calling it
+	if ([oPanel respondsToSelector:@selector(setMessage:)])
+		[oPanel setMessage:@"Select Flash RAM"];
+
+	[oPanel setPrompt:@"Select"];
+	NSString *contextInfo = "";
+
+	// recall the path of kick rom that was loaded last time 
+	NSString *nsflashpath = [[NSUserDefaults standardUserDefaults] stringForKey:@"LastUsedFlashPath"];
+
+	// If the configuration includes a setting for the "flash_path" attribute
+	// start the OpenPanel in that directory.. but only the first time.
+	static int flash_run_once = 0;
+	if (!flash_run_once) {
+		flash_run_once++;
+		
+		const char *flash_path = currprefs.flashfile;
+		
+		if (flash_path != NULL) {
+			char homedir[MAX_PATH];
+			snprintf(homedir, MAX_PATH, "%s/", getenv("HOME"));
+			
+			// default value for flash_path is "$HOME/"
+			if (strncmp(flash_path, homedir, MAX_PATH) != 0)
+				nsflashpath = [NSString stringWithCString:flash_path encoding:NSASCIIStringEncoding];
+		}
+	}
+
+    [oPanel beginSheetForDirectory:nsflashpath file:nil
+                             types:FlashRamTypes
+                    modalForWindow:[NSApp mainWindow]
+                     modalDelegate:self
+                    didEndSelector:@selector(selectFlashRAMPanelDidEnd:returnCode:contextInfo:)
+                       contextInfo:contextInfo];
+}
+
+// called after flash ram selection panel
+- (void)selectFlashRAMPanelDidEnd:(NSOpenPanel *)sheet returnCode:(int)returnCode contextInfo:(void *)contextInfo
+{
+	if (returnCode != NSOKButton) return;
+
+	NSArray *files = [sheet filenames];
+	NSString *file = [files objectAtIndex:0];
+	lossyASCIICopy (changed_prefs.flashfile, file, COCOA_GUI_MAX_PATH);
+		
+	[[NSUserDefaults standardUserDefaults] setObject:[file stringByDeletingLastPathComponent] forKey:@"LastUsedFlashPath"];
+}
+
+// cartridge rom
+- (void)displayOpenPanelForCartridge:(id)sender
+{
+	ensureNotFullscreen();
+
+	NSOpenPanel *oPanel = [NSOpenPanel openPanel];
+	[oPanel setTitle:@"Select Cartridge ROM"];
+
+	// make sure setMessage (OS X 10.3+) is available before calling it
+	if ([oPanel respondsToSelector:@selector(setMessage:)])
+		[oPanel setMessage:@"Select Cartridge ROM"];
+
+	[oPanel setPrompt:@"Select"];
+	NSString *contextInfo = "";
+
+	// recall the path of kick rom that was loaded last time 
+	NSString *nscartpath = [[NSUserDefaults standardUserDefaults] stringForKey:@"LastUsedCartPath"];
+
+	// If the configuration includes a setting for the "cart_path" attribute
+	// start the OpenPanel in that directory.. but only the first time.
+	static int cart_run_once = 0;
+	if (!cart_run_once) {
+		cart_run_once++;
+		
+		const char *cart_path = currprefs.cartfile;
+		
+		if (cart_path != NULL) {
+			char homedir[MAX_PATH];
+			snprintf(homedir, MAX_PATH, "%s/", getenv("HOME"));
+			
+			// default value for cart_path is "$HOME/"
+			if (strncmp(cart_path, homedir, MAX_PATH) != 0)
+				nscartpath = [NSString stringWithCString:cart_path encoding:NSASCIIStringEncoding];
+		}
+	}
+
+    [oPanel beginSheetForDirectory:nscartpath file:nil
+                             types:CartridgeTypes
+                    modalForWindow:[NSApp mainWindow]
+                     modalDelegate:self
+                    didEndSelector:@selector(selectCartridgePanelDidEnd:returnCode:contextInfo:)
+                       contextInfo:contextInfo];
+}
+
+// called after cartridge rom selection panel
+- (void)selectCartridgePanelDidEnd:(NSOpenPanel *)sheet returnCode:(int)returnCode contextInfo:(void *)contextInfo
+{
+	if (returnCode != NSOKButton) return;
+
+	NSArray *files = [sheet filenames];
+	NSString *file = [files objectAtIndex:0];
+	lossyASCIICopy (changed_prefs.cartfile, file, COCOA_GUI_MAX_PATH);
+		
+	[[NSUserDefaults standardUserDefaults] setObject:[file stringByDeletingLastPathComponent] forKey:@"LastUsedCartPath"];
 }
 
 - (void)hebeHebe:(id)sender
@@ -955,12 +1310,41 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 // chipset
 - (void)changeChipset:(id)sender
 {
-	changed_prefs.chipset_mask = [((NSMenuItem*)sender) tag];
+	if ([((NSMenuItem*)sender) tag] < 10) {
+		changed_prefs.chipset_mask = [((NSMenuItem*)sender) tag];
+	} else {
+		changed_prefs.ntscmode = !changed_prefs.ntscmode;
+	}
+}
+
+// chipset extra
+- (void)changeChipsetX:(id)sender
+{
+	changed_prefs.cs_compatible = [((NSMenuItem*)sender) tag];
+	built_in_chipset_prefs (&changed_prefs);
+}
+
+// blitter
+- (void)changeBlitter:(id)sender
+{
+	if ([((NSMenuItem*)sender) tag] == 0)
+		changed_prefs.immediate_blits = !changed_prefs.immediate_blits;
+	if ([((NSMenuItem*)sender) tag] == 1)
+		changed_prefs.blitter_cycle_exact = !changed_prefs.blitter_cycle_exact;
+	config_changed = 1;
+}
+
+// collision
+- (void)changeCollision:(id)sender
+{
+	changed_prefs.collision_level = [((NSMenuItem*)sender) tag];
+	config_changed = 1;
 }
 
 // cpu
 - (void)changeCPU:(id)sender
 {
+ if ([((NSMenuItem*)sender) tag] < 10) {
 	unsigned int newcpu, newfpu;
 	newcpu = 68000 + ([((NSMenuItem*)sender) tag] * 10);
 	newfpu = changed_prefs.fpu_model;
@@ -994,8 +1378,21 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
                 changed_prefs.address_space_24 = 0;
                 break;
         }
-
-
+ } else {
+	switch ([((NSMenuItem*)sender) tag]) {
+	case 10:
+		changed_prefs.address_space_24 = !changed_prefs.address_space_24;
+		break;
+	case 11:
+		changed_prefs.cpu_compatible = !changed_prefs.cpu_compatible;
+		break;
+#ifdef MMU
+	case 12:
+//		changed_prefs.mmu_model = 68040;
+		break;
+#endif
+	}
+ }
 }
 
 // cpu speed
@@ -1015,6 +1412,17 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 		changed_prefs.m68k_speed = 0;
 		changed_prefs.cpu_cycle_exact = 1;
 	}
+
+	changed_prefs.blitter_cycle_exact = changed_prefs.cpu_cycle_exact;
+	if (changed_prefs.cpu_cycle_exact) {
+		if (changed_prefs.cpu_model == 68000)
+			changed_prefs.cpu_compatible = 1;
+		if (changed_prefs.cpu_model <= 68020)
+			changed_prefs.m68k_speed = 0;
+		changed_prefs.immediate_blits = 0;
+		changed_prefs.gfx_framerate = 1;
+		changed_prefs.cachesize = 0;
+	}
 }
 
 // fpu
@@ -1022,9 +1430,72 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 {
 	unsigned int v;
 	v = [((NSMenuItem*)sender) tag];
-/*	if (v == 1) v = 68881;
-	if (v == 2) v = 68882;*/
-	changed_prefs.fpu_model = v;
+	if (v < 10) {
+	/*	if (v == 1) v = 68881;
+		if (v == 2) v = 68882;*/
+		changed_prefs.fpu_model = v;
+	} else {
+		changed_prefs.fpu_strict = !changed_prefs.fpu_strict;
+	}
+}
+
+// sound
+- (void)changeSound:(id)sender
+{
+	changed_prefs.produce_sound = [((NSMenuItem*)sender) tag];
+	config_changed = 1;
+}
+
+// sound interpolation
+- (void)changeSoundInterpolation:(id)sender
+{
+	changed_prefs.sound_interpol = [((NSMenuItem*)sender) tag];
+	config_changed = 1;
+}
+
+// sound filter
+- (void)changeSoundFilter:(id)sender
+{
+	switch ([((NSMenuItem*)sender) tag]) {
+        case 0:
+                changed_prefs.sound_filter = 0;
+                break;
+        case 1:
+                changed_prefs.sound_filter = 1;
+                changed_prefs.sound_filter_type = 0;
+                break;
+        case 2:
+                changed_prefs.sound_filter = 1;
+                changed_prefs.sound_filter_type = 1;
+                break;
+        case 3:
+                changed_prefs.sound_filter = 2;
+                changed_prefs.sound_filter_type = 0;
+                break;
+        case 4:
+                changed_prefs.sound_filter = 2;
+                changed_prefs.sound_filter_type = 1;
+                break;
+        }
+	config_changed = 1;
+}
+
+// select kick rom
+- (void)selectKickROM:(id)sender
+{
+	[self displayOpenPanelForKickROM:[((NSMenuItem*)sender) tag]];
+}
+
+// select flash ram
+- (void)selectFlashRAM:(id)sender
+{
+	[self displayOpenPanelForFlashRAM:[((NSMenuItem*)sender) tag]];
+}
+
+// select cartridge rom
+- (void)selectCartridge:(id)sender
+{
+	[self displayOpenPanelForCartridge:[((NSMenuItem*)sender) tag]];
 }
 @end
 
@@ -1034,37 +1505,37 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
  */
 int ensureNotFullscreen (void)
 {
-    int result = 0;
+	unsigned int result = 0;
 
-    if (is_fullscreen ()) {
+	if (is_fullscreen ()) {
 		toggle_fullscreen (0);
 
-		if (is_fullscreen ())
+		if (is_fullscreen ()) {
 			write_log ("Cannot activate GUI in full-screen mode\n");
-		else {
-		  result = 1;
-		  wasFullscreen = YES;
-        }
-        }
+		} else {
+			result = 1;
+			wasFullscreen = YES;
+		}
+	}
+
 #ifdef USE_SDL
-    // Un-hide the mouse
-    SDL_ShowCursor(SDL_ENABLE);
+	// Un-hide the mouse
+	SDL_ShowCursor(SDL_ENABLE);
 #endif
 
-    return result;
+	return result;
 }
 
 void restoreFullscreen (void)
 {
 #ifdef USE_SDL
-    // Re-hide the mouse
-    SDL_ShowCursor(SDL_DISABLE);
+	// Re-hide the mouse
+	SDL_ShowCursor(SDL_DISABLE);
 #endif
+	if ((!is_fullscreen ()) && (wasFullscreen == YES))
+		toggle_fullscreen(0);
 
-    if ((!is_fullscreen ()) && (wasFullscreen == YES))
-        toggle_fullscreen(0);
-
-    wasFullscreen = NO;
+	wasFullscreen = NO;
 }
 
 /* Make a null-terminated copy of the source NSString into buffer using lossy
@@ -1105,7 +1576,7 @@ int gui_init (void)
 
 int gui_update (void)
 {
-    return 0;
+	return 0;
 }
 
 void gui_exit (void)
@@ -1114,8 +1585,8 @@ void gui_exit (void)
 
 void gui_fps (int fps, int idle)
 {
-    gui_data.fps  = fps;
-    gui_data.idle = idle;
+	gui_data.fps  = fps;
+	gui_data.idle = idle;
 }
 
 void gui_flicker_led (int led, int unitnum, int status)
@@ -1140,29 +1611,29 @@ void gui_handle_events (void)
 
 void gui_display (int shortcut)
 {
-    int result;
+	//int result;
 
-    if ((shortcut >= 0) && (shortcut < 4)) {
-        [[PuaeGui sharedInstance] displayOpenPanelForInsertIntoDriveNumber:shortcut];
-    }
+	if ((shortcut >= 0) && (shortcut < 4)) {
+		[[PuaeGui sharedInstance] displayOpenPanelForInsertIntoDriveNumber:shortcut];
+	}
 }
 
 void gui_message (const char *format,...)
 {
-    char msg[2048];
-    va_list parms;
+	char msg[2048];
+	va_list parms;
 
-    ensureNotFullscreen ();
+	ensureNotFullscreen ();
 
-    va_start (parms,format);
-    vsprintf (msg, format, parms);
-    va_end (parms);
+	va_start (parms,format);
+	vsprintf (msg, format, parms);
+	va_end (parms);
 
-    NSRunAlertPanel(nil, [NSString stringWithCString:msg encoding:NSASCIIStringEncoding], nil, nil, nil);
+	NSRunAlertPanel(nil, [NSString stringWithCString:msg encoding:NSASCIIStringEncoding], nil, nil, nil);
 
-    write_log ("%s", msg);
+	write_log ("%s", msg);
 
-    restoreFullscreen ();
+	restoreFullscreen ();
 }
 void gui_disk_image_change (int unitnum, const TCHAR *name, bool writeprotected) {}
 void gui_lock (void) {}

@@ -96,6 +96,7 @@ void flush_log (void)
     fflush (logfile ? logfile : stderr);
 }
 
+// Write Debug Log
 void write_dlog (const char *format, ...)
 {
 

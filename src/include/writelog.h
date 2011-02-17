@@ -22,5 +22,8 @@ extern void write_log   (const char *, ...) PRINTF_FORMAT;
 extern void flush_log   (void);
 extern void set_logfile (const char *logfile_name);
 extern void uae_reset (int);
+extern void jit_abort (const char *fmt, ...);
+extern void write_dlog (const char *format, ...);
+extern char *setconsolemode (char *buffer, int maxlen);
 
 #endif /* WRITELOG_H */

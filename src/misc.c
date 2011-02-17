@@ -1,13 +1,17 @@
 /*
+ * PUAE - The Un*x Amiga Emulator
+ *
  * A collection of ugly and random stuff brought in from Win32
  * which desparately needs to be tidied up
  *
- *
+ * Copyright 2004 Richard Drummond
+ * Copyright 2010-2011 Mustafa TUFAN
  */
 
 #include "sysconfig.h"
 #include "sysdeps.h"
 
+#include "misc.h"
 #include "options.h"
 #include "memory.h"
 #include "custom.h"
@@ -23,6 +27,9 @@
 #include "keymap/keymap.h"
 #include "keyboard.h"
 #include <stdarg.h>
+#include "clipboard.h"
+#include "fsdb.h"
+#include "debug.h"
 
 #define TRUE 1
 #define FALSE 0
@@ -45,14 +52,14 @@ int log_net, uaelib_debug;
 unsigned int flashscreen;
 
 struct winuae_currentmode {
-        unsigned int flags;
-        int native_width, native_height, native_depth, pitch;
-        int current_width, current_height, current_depth;
-        int amiga_width, amiga_height;
-        int frequency;
-        int initdone;
-        int fullfill;
-        int vsync;
+	unsigned int flags;
+	int native_width, native_height, native_depth, pitch;
+	int current_width, current_height, current_depth;
+	int amiga_width, amiga_height;
+	int frequency;
+	int initdone;
+	int fullfill;
+	int vsync;
 };
 
 static struct winuae_currentmode currentmodestruct;
@@ -61,12 +68,17 @@ static struct winuae_currentmode *currentmode = &currentmodestruct;
 static int serial_period_hsyncs, serial_period_hsync_counter;
 static int data_in_serdatr; /* new data received */
 
-// --- dinput.cpp START ---
+// dinput
 int rawkeyboard = -1;
 static bool rawinput_enabled_mouse, rawinput_enabled_keyboard;
-
 int no_rawinput;
 
+int is_tablet (void)
+{
+	return tablet ? 1 : 0;
+}
+
+//win32gfx
 void getgfxoffset (int *dxp, int *dyp, int *mxp, int *myp)
 {
 	*dxp = 0;
@@ -75,48 +87,44 @@ void getgfxoffset (int *dxp, int *dyp, int *mxp, int *myp)
 	*myp = 0;
 }
 
-int is_tablet (void)
-{
-	return tablet ? 1 : 0;
-}
-
 int vsync_switchmode (int hz, int oldhz)
 {
-        static int tempvsync;
-        int w = currentmode->native_width;
-        int h = currentmode->native_height;
-        int d = currentmode->native_depth / 8;
+	static int tempvsync;
+	int w = currentmode->native_width;
+	int h = currentmode->native_height;
+	int d = currentmode->native_depth / 8;
 //        struct MultiDisplay *md = getdisplay (&currprefs);
-        struct PicassoResolution *found;
+	struct PicassoResolution *found;
 
-        int newh, i, cnt;
-        int dbl = getvsyncrate (currprefs.chipset_refreshrate) != currprefs.chipset_refreshrate ? 2 : 1;
+	int newh, i, cnt;
+	int dbl = getvsyncrate (currprefs.chipset_refreshrate) != currprefs.chipset_refreshrate ? 2 : 1;
 
-        if (hz < 0)
-                return tempvsync;
+	if (hz < 0)
+		return tempvsync;
 
-        newh = h * oldhz / hz;
-        hz = hz * dbl;
+	newh = h * oldhz / hz;
+	hz = hz * dbl;
 
-        found = NULL;
-/*        for (i = 0; md->DisplayModes[i].depth >= 0 && !found; i++) {
-                struct PicassoResolution *r = &md->DisplayModes[i];
-                if (r->res.width == w && r->res.height == h && r->depth == d) {
-                        int j;
-                        for (j = 0; r->refresh[j] > 0; j++) {
-                                if (r->refresh[j] == oldhz) {
-                                        found = r;
-                                        break;
-                                }
-                        }
-                }
-        }*/
-        if (found == NULL) {
-                write_log ("refresh rate changed to %d but original rate was not found\n", hz);
-                return 0;
-        }
+	found = NULL;
+        
+/*	for (i = 0; md->DisplayModes[i].depth >= 0 && !found; i++) {
+		struct PicassoResolution *r = &md->DisplayModes[i];
+		if (r->res.width == w && r->res.height == h && r->depth == d) {
+			int j;
+			for (j = 0; r->refresh[j] > 0; j++) {
+				if (r->refresh[j] == oldhz) {
+					found = r;
+					break;
+				}
+			}
+		}
+	}*/
+	if (found == NULL) {
+		write_log ("refresh rate changed to %d but original rate was not found\n", hz);
+		return 0;
+	}
 
-        found = NULL;
+	found = NULL;
 /*        for (cnt = 0; cnt <= abs (newh - h) + 1 && !found; cnt++) {
                 for (i = 0; md->DisplayModes[i].depth >= 0 && !found; i++) {
                         struct PicassoResolution *r = &md->DisplayModes[i];
@@ -147,6 +155,7 @@ int vsync_switchmode (int hz, int oldhz)
         return 0;
 }
 
+// serial_win32
 void serial_check_irq (void)
 {
         if (data_in_serdatr)
@@ -179,6 +188,7 @@ void serial_hsynchandler (void)
 */
 }
 
+//win32
 /*
 static int drvsampleres[] = {
         IDR_DRIVE_CLICK_A500_1, DS_CLICK,
@@ -189,6 +199,8 @@ static int drvsampleres[] = {
         -1
 };
 */
+
+// driveclick_win32
 int driveclick_loadresource (struct drvsample *sp, int drivetype)
 {
 /*
@@ -235,7 +247,7 @@ static int driveclick_fdrawcmd_open_2(int drive)
                 return 0;
         return 1;
 */
-                return 0;
+	return 0;
 }
 
 int driveclick_fdrawcmd_open(int drive)
@@ -307,8 +319,10 @@ static int driveclick_fdrawcmd_init(int drive)
         uae_start_thread ("DriveClick", driveclick_thread, NULL, NULL);
         return 1;
 */
+	return 1;
 }
 
+// win32
 uae_u32 emulib_target_getcpurate (uae_u32 v, uae_u32 *low)
 {
 #ifdef _WIN32
@@ -344,7 +358,9 @@ uae_u32 emulib_target_getcpurate (uae_u32 v, uae_u32 *low)
 	return t2-t1;
 */
 #endif
+	return 0;
 }
+
 
 void setmouseactivexy (int x, int y, int dir)
 {
@@ -378,6 +394,7 @@ void setmouseactive (int active)
 {
 }
 
+// unicode
 char *au_fs_copy (char *dst, int maxlen, const char *src)
 {
         unsigned int i;
@@ -388,6 +405,7 @@ char *au_fs_copy (char *dst, int maxlen, const char *src)
         return dst;
 }
 
+// fsdb_mywin32
 int my_existsfile (const char *name)
 {
 	struct stat sonuc;
@@ -425,7 +443,7 @@ int my_getvolumeinfo (const char *root)
         return ret;
 }
 
-// clipboard.c
+// clipboard
 static uaecptr clipboard_data;
 static int vdelay, signaling, initialized;
 
@@ -465,7 +483,7 @@ void amiga_clipboard_got_data (uaecptr data, uae_u32 size, uae_u32 actual)
 	}
 }
 
-
+// win32
 int get_guid_target (uae_u8 *out)
 {
 	unsigned Data1, Data2, Data3, Data4;
@@ -488,10 +506,7 @@ int get_guid_target (uae_u8 *out)
 	return 1;
 }
 
-static int testwritewatch (void)
-{
-}
-
+// win32gfx
 void machdep_free (void)
 {
 }
@@ -501,7 +516,7 @@ void target_run (void)
         //shellexecute (currprefs.win32_commandpathstart);
 }
 
-// --- dinput.cpp ---
+// dinput
 int input_get_default_keyboard (int i)
 {
 	if (rawinput_enabled_keyboard) {
@@ -513,7 +528,7 @@ int input_get_default_keyboard (int i)
 	}
 }
 
-// --- unicode.cpp ---
+// unicode
 static unsigned int fscodepage;
 
 char *ua_fs (const char *s, int defchar)
@@ -528,7 +543,7 @@ char *ua_copy (char *dst, int maxlen, const char *src)
         return dst;
 }
 
-// --- win32gui.cpp ---
+// win32gui
 static int qs_override;
 
 int target_cfgfile_load (struct uae_prefs *p, char *filename, int type, int isdefault)
@@ -586,7 +601,7 @@ int target_cfgfile_load (struct uae_prefs *p, char *filename, int type, int isde
 	return v;
 }
 
-// --- win32gfx.c
+// win32gfx
 int screen_is_picasso = 0;
 struct uae_filter *usedfilter;
 uae_u32 redc[3 * 256], grec[3 * 256], bluc[3 * 256];
@@ -603,7 +618,7 @@ int isfullscreen (void)
         return isfullscreen_2 (&currprefs);
 }
 
-// --- win32.c
+// win32
 uae_u8 *save_log (int bootlog, int *len)
 {
         FILE *f;
@@ -672,7 +687,7 @@ void refreshtitle (void)
 */
 }
 
-// win32gui.c
+// win32gui
 #define MAX_ROM_PATHS 10
 int scan_roms (int show)
 {
@@ -696,7 +711,7 @@ end:
         return ret;
 }
 
-// dinput.c
+// dinput
 int input_get_default_lightpen (struct uae_input_device *uid, int i, int port, int af)
 {
 /*        struct didata *did;
@@ -782,7 +797,7 @@ void setid_af (struct uae_input_device *uid, int i, int slot, int sub, int port,
 		uid[i].flags[slot][sub] |= ID_FLAG_TOGGLE;
 }
 
-// win32.c
+// win32
 void target_quit (void)
 {
         //shellexecute (currprefs.win32_commandpathend);
@@ -876,7 +891,8 @@ TCHAR *au_copy (TCHAR *dst, int maxlen, const char *src)
 	memcpy (dst, src, maxlen);
         return dst;
 }
-//writelog.cpp
+
+// writelog
 int consoleopen = 0;
 static int realconsole = 1;
 
@@ -913,7 +929,7 @@ void debugger_change (int mode)
 //        regsetint (NULL, "DebuggerType", debugger_type);
         openconsole ();
 }
-// unicode.c
+// unicode
 char *ua (const TCHAR *s)
 {
 	return s;
@@ -927,7 +943,7 @@ char *utf8u (const char *s)
 	return s;
 }
 
-// fsdb_mywin32.c
+// fsdb_mywin32
 FILE *my_opentext (const TCHAR *name)
 {
         FILE *f;
@@ -964,7 +980,6 @@ int ispressed (int key)
         return 0;
 }
 
-
 static int specialkeycode (void)
 {
         return 0; //currprefs.win32_specialkey;
@@ -997,9 +1012,9 @@ int getcapslock (void)
         int capstable[7];
 
         // this returns bogus state if caps change when in exclusive mode..
-/*        host_capslockstate = GetKeyState (VK_CAPITAL) & 1;
-        host_numlockstate = GetKeyState (VK_NUMLOCK) & 1;
-        host_scrolllockstate = GetKeyState (VK_SCROLL) & 1;*/
+	host_capslockstate = 1; //GetKeyState (VK_CAPITAL) & 1;
+        host_numlockstate = 0; //GetKeyState (VK_NUMLOCK) & 1;
+        host_scrolllockstate = 0; //GetKeyState (VK_SCROLL) & 1;
         capstable[0] = DIK_CAPITAL;
         capstable[1] = host_capslockstate;
         capstable[2] = DIK_NUMLOCK;
@@ -1030,19 +1045,24 @@ void my_kbd_handler (int keyboard, int scancode, int newstate)
 	if (scancode == specialkeycode ())
 		return;
 
-/*        if (scancode == DIK_F11 && currprefs.win32_ctrl_F11_is_quit && ctrlpressed ())
-                code = AKS_QUIT;*/
+#ifdef WIN32
+        if (scancode == DIK_F11 && currprefs.win32_ctrl_F11_is_quit && ctrlpressed ())
+                code = AKS_QUIT;
+#endif
 
 	scancode_new = scancode;
         if (!specialpressed () && inputdevice_iskeymapped (keyboard, scancode))
                 scancode = 0;
+
+#ifdef WIN32
         // GUI must be always available
-/*        if (scancode_new == DIK_F12 && currprefs.win32_guikey < 0)
+        if (scancode_new == DIK_F12 && currprefs.win32_guikey < 0)
                 scancode = scancode_new;
         if (scancode_new == currprefs.win32_guikey && scancode_new != DIK_F12)
-                scancode = scancode_new;*/
+                scancode = scancode_new;
+#endif
 
-//        write_log ("kbd1 = %d, scancode = %d (0x%02x), state = %d\n", keyboard, scancode, scancode, newstate);
+//	 write_log ("kbd1 = %d, scancode = %d (0x%02x), state = %d\n", keyboard, scancode, scancode, newstate);
 
         if (newstate == 0 && code == 0) {
                 switch (scancode)
@@ -1052,7 +1072,6 @@ void my_kbd_handler (int keyboard, int scancode, int newstate)
                         break;
                 }
         }
-
 
         if (newstate && code == 0) {
                 if (scancode == DIK_F12 /*|| scancode == currprefs.win32_guikey*/) {
@@ -1198,7 +1217,7 @@ void my_kbd_handler (int keyboard, int scancode, int newstate)
         }
 
         scancode = scancode_new;
-/*        if (!specialpressed () && newstate) {
+        if (!specialpressed () && newstate) {
                 if (scancode == DIK_CAPITAL) {
                         host_capslockstate = host_capslockstate ? 0 : 1;
                         capslockstate = host_capslockstate;
@@ -1211,7 +1230,7 @@ void my_kbd_handler (int keyboard, int scancode, int newstate)
                         host_scrolllockstate = host_scrolllockstate ? 0 : 1;
                         capslockstate = host_scrolllockstate;
                 }
-        }*/
+        }
         if (specialpressed ())
                 return;
 
@@ -1220,7 +1239,7 @@ void my_kbd_handler (int keyboard, int scancode, int newstate)
         inputdevice_translatekeycode (keyboard, scancode, newstate);
 }
 
-//win32gfx
+// win32gfx
 #define MAX_DISPLAYS 10
 struct MultiDisplay Displays[MAX_DISPLAYS];
 
@@ -1309,7 +1328,7 @@ void addmode (struct MultiDisplay *md, int w, int h, int d, int rate, int nondx)
                 md->DisplayModes[i].res.width, md->DisplayModes[i].res.height, md->DisplayModes[i].depth * 8);
 }
 
-//dxwrap
+// dxwrap
 int DirectDraw_CurrentRefreshRate (void)
 {
 	//DirectDraw_GetDisplayMode ();
@@ -1331,7 +1350,7 @@ int D3D_goodenough (void)
 	return 0;
 }
 
-//debug_win32
+// debug_win32
 void update_debug_info(void)
 {
 }
