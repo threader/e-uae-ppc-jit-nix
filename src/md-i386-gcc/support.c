@@ -80,6 +80,38 @@ static frame_time_t beos_get_tsc_freq (void)
 }
 #endif
 
+#ifdef __APPLE__
+frame_time_t apple_get_tsc_freq (void)
+{
+    int  sysctl_hw;
+    char buffer[1024];
+    uae_s64 tsc_freq = 0;
+
+    sysctl_hw = open ("sysctl -a hw", O_RDONLY);
+
+    if (sysctl_hw >= 0) {
+	char *ptr       = &buffer[0];
+	int   size_read = read (sysctl_hw, ptr, 1024);
+
+	while (size_read > 0) {
+	   if (strncmp (ptr, "hw.cpufrequency: ", 17) != 0) {
+		while ((size_read-- > 0) && (*ptr != '\n'))
+		    ptr++;
+		size_read--;
+		ptr++;
+		continue;
+	    } else {
+		ptr += 17;
+		tsc_freq = atoll (ptr) * 1000000 / 2;
+	    }
+	}
+   }
+   close (sysctl_hw);
+
+   return tsc_freq;
+}
+#endif
+
 static volatile frame_time_t last_time, best_time;
 static frame_time_t timebase;
 
@@ -179,6 +211,9 @@ int machdep_inithrtimer (void)
 #ifdef __BEOS__
 		timebase = beos_get_tsc_freq ();
 #endif
+#ifdef __APPLE__
+//		timebase = apple_get_tsc_freq ();
+#endif
 #endif
 
 		if (timebase <= 0) {
@@ -218,7 +253,6 @@ int machdep_inithrtimer (void)
 	}
 
 	write_log ("TSC frequency: %f MHz\n", timebase / 1000000.0);
-
 	done = 1;
      }
      return done;
@@ -226,7 +260,7 @@ int machdep_inithrtimer (void)
 
 frame_time_t machdep_gethrtimebase (void)
 {
-    return timebase;
+	return timebase;
 }
 
 int machdep_init (void)

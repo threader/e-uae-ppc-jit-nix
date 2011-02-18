@@ -1757,6 +1757,12 @@ have_sse2=no
 have_sse=no
 have_3dnow=no
 
+dnl -- macos
+if [[ "x$OSDEP" = "xod-macosx" ]]; then
+have_mmx=no
+fi
+
+dnl -- linux
 CPUFLAGS=`cat /proc/cpuinfo | grep flags`
 AC_MSG_CHECKING([host cpu MMX support])
 if grep "^flags.* mmx" /proc/cpuinfo > /dev/null; then

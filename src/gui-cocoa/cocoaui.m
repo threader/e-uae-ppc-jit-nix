@@ -101,6 +101,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 	NSArray *KickRomTypes;
 	NSArray *FlashRamTypes;
 	NSArray *CartridgeTypes;
+	NSArray *SaveStateTypes;
 }
 + (id) sharedInstance;
 - (void)createMenus;
@@ -158,9 +159,10 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 #endif
             nil]; // Note: Use lowercase for these
 
-		KickRomTypes =[[NSArray alloc] initWithObjects:@"rom", @"roz"];
-		FlashRamTypes =[[NSArray alloc] initWithObjects:@"nvr"];
-		CartridgeTypes =[[NSArray alloc] initWithObjects:@"cart", @"rom", @"roz"];
+		KickRomTypes =[[NSArray alloc] initWithObjects:@"rom", @"roz", nil];
+		FlashRamTypes =[[NSArray alloc] initWithObjects:@"nvr", nil];
+		CartridgeTypes =[[NSArray alloc] initWithObjects:@"crt", @"rom", @"roz", nil];
+		SaveStateTypes =[[NSArray alloc] initWithObjects:@"uss", nil];
 	}
 
 	return self;
@@ -220,6 +222,11 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 	[vAmigaMenu addItem:menuItem];
 	[menuItem release];
 	[quickstartMenu release];
+
+	[vAmigaMenu addItem:[NSMenuItem separatorItem]];
+
+	[self createMenuItemInMenu:vAmigaMenu withTitle:@"Save State" action:@selector(selectSaveState:) tag:0];
+	[self createMenuItemInMenu:vAmigaMenu withTitle:@"Load State" action:@selector(selectLoadState:) tag:0];
 
 	[vAmigaMenu addItem:[NSMenuItem separatorItem]];
 
@@ -931,25 +938,25 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 	if (menuAction == @selector(actionReplayFreeze:)) 
 		return ( (hrtmon_flag == ACTION_REPLAY_IDLE) || (action_replay_flag == ACTION_REPLAY_IDLE) );
 	
-    return YES;
+	return YES;
 }
 
 // Invoked when the user selects one of the 'Insert DFx:' menu items
 - (void)insertDisk:(id)sender
 {
-    [self displayOpenPanelForInsertIntoDriveNumber:[((NSMenuItem*)sender) tag]];
+	[self displayOpenPanelForInsertIntoDriveNumber:[((NSMenuItem*)sender) tag]];
 }
 
 // Invoked when the user selects one of the 'Eject DFx:' menu items
 - (void)ejectDisk:(id)sender
 {
-    disk_eject([((NSMenuItem*)sender) tag]);
+	disk_eject([((NSMenuItem*)sender) tag]);
 }
 
 // Invoked when the user selects "Eject All Disks"
 - (void)ejectAllDisks:(id)sender
 {
-	int i;
+	unsigned int i;
 	for (i=0; i<4; i++)
 		if ((!gui_data.drive_disabled[i]) && (!disk_empty(i)))
 			disk_eject(i);
@@ -1055,7 +1062,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 }
 
 // kick.rom
-- (void)displayOpenPanelForKickROM:(id)sender
+- (void)displayOpenPanelForKickROM:(int)foo
 {
 	ensureNotFullscreen();
 
@@ -1067,7 +1074,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 		[oPanel setMessage:@"Select Kick ROM"];
 
 	[oPanel setPrompt:@"Select"];
-	NSString *contextInfo = "";
+	NSString *contextInfo = [[NSString alloc] initWithString:@"kick"];
 
 	// recall the path of kick rom that was loaded last time 
 	NSString *nskickpath = [[NSUserDefaults standardUserDefaults] stringForKey:@"LastUsedKickPath"];
@@ -1111,7 +1118,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 }
 
 // flash.rom
-- (void)displayOpenPanelForFlashRAM:(id)sender
+- (void)displayOpenPanelForFlashRAM:(int)foo
 {
 	ensureNotFullscreen();
 
@@ -1123,9 +1130,9 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 		[oPanel setMessage:@"Select Flash RAM"];
 
 	[oPanel setPrompt:@"Select"];
-	NSString *contextInfo = "";
+	NSString *contextInfo = [[NSString alloc] initWithString:@"flash"];
 
-	// recall the path of kick rom that was loaded last time 
+	// recall the path of flash ram that was loaded last time 
 	NSString *nsflashpath = [[NSUserDefaults standardUserDefaults] stringForKey:@"LastUsedFlashPath"];
 
 	// If the configuration includes a setting for the "flash_path" attribute
@@ -1167,7 +1174,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 }
 
 // cartridge rom
-- (void)displayOpenPanelForCartridge:(id)sender
+- (void)displayOpenPanelForCartridge:(int)foo
 {
 	ensureNotFullscreen();
 
@@ -1179,9 +1186,9 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 		[oPanel setMessage:@"Select Cartridge ROM"];
 
 	[oPanel setPrompt:@"Select"];
-	NSString *contextInfo = "";
+	NSString *contextInfo = [[NSString alloc] initWithString:@"cart"];
 
-	// recall the path of kick rom that was loaded last time 
+	// recall the path of cartridge that was loaded last time 
 	NSString *nscartpath = [[NSUserDefaults standardUserDefaults] stringForKey:@"LastUsedCartPath"];
 
 	// If the configuration includes a setting for the "cart_path" attribute
@@ -1220,6 +1227,62 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 	lossyASCIICopy (changed_prefs.cartfile, file, COCOA_GUI_MAX_PATH);
 		
 	[[NSUserDefaults standardUserDefaults] setObject:[file stringByDeletingLastPathComponent] forKey:@"LastUsedCartPath"];
+}
+
+// load save state
+- (void)displayOpenPanelForLoadSate:(id)sender
+{
+	ensureNotFullscreen();
+
+	NSOpenPanel *oPanel = [NSOpenPanel openPanel];
+	[oPanel setTitle:@"Select a Save State to Load"];
+
+	// make sure setMessage (OS X 10.3+) is available before calling it
+	if ([oPanel respondsToSelector:@selector(setMessage:)])
+		[oPanel setMessage:@"Select a Save State to Load"];
+
+	[oPanel setPrompt:@"Select"];
+	NSString *contextInfo = [[NSString alloc] initWithString:@"loadstate"];
+
+	// recall the path of save state that was loaded last time 
+	NSString *nssavestatepath = [[NSUserDefaults standardUserDefaults] stringForKey:@"LastUsedSaveStatePath"];
+
+	// If the configuration includes a setting for the "savestate_path" attribute
+	// start the OpenPanel in that directory.. but only the first time.
+	static int sstate_run_once = 0;
+	if (!sstate_run_once) {
+		sstate_run_once++;
+		
+		const char *savestate_path = currprefs.cartfile;
+		
+		if (savestate_path != NULL) {
+			char homedir[MAX_PATH];
+			snprintf(homedir, MAX_PATH, "%s/", getenv("HOME"));
+			
+			// default value for savestate_path is "$HOME/"
+			if (strncmp(savestate_path, homedir, MAX_PATH) != 0)
+				nssavestatepath = [NSString stringWithCString:savestate_path encoding:NSASCIIStringEncoding];
+		}
+	}
+
+    [oPanel beginSheetForDirectory:nssavestatepath file:nil
+                             types:SaveStateTypes
+                    modalForWindow:[NSApp mainWindow]
+                     modalDelegate:self
+                    didEndSelector:@selector(selectLoadStatePanelDidEnd:returnCode:contextInfo:)
+                       contextInfo:contextInfo];
+}
+
+// called after load a save state selection panel
+- (void)selectLoadStatePanelDidEnd:(NSOpenPanel *)sheet returnCode:(int)returnCode contextInfo:(void *)contextInfo
+{
+	if (returnCode != NSOKButton) return;
+
+	NSArray *files = [sheet filenames];
+	NSString *file = [files objectAtIndex:0];
+//	lossyASCIICopy (changed_prefs.cartfile, file, COCOA_GUI_MAX_PATH);
+		
+	[[NSUserDefaults standardUserDefaults] setObject:[file stringByDeletingLastPathComponent] forKey:@"LastUsedSaveStatePath"];
 }
 
 - (void)hebeHebe:(id)sender
@@ -1572,25 +1635,66 @@ void cocoa_gui_early_setup (void)
 
 int gui_init (void)
 {
+//        read_rom_list ();
+        inputdevice_updateconfig (&changed_prefs);
+
+	return 1;
 }
 
 int gui_update (void)
 {
-	return 0;
+	return 1;
 }
 
 void gui_exit (void)
 {
 }
 
-void gui_fps (int fps, int idle)
+static void gui_flicker_led2 (int led, int unitnum, int status)
 {
-	gui_data.fps  = fps;
-	gui_data.idle = idle;
+        static int resetcounter[LED_MAX];
+        uae_u8 old;
+        uae_u8 *p;
+
+        if (led == LED_HD)
+                p = &gui_data.hd;
+        else if (led == LED_CD)
+                p = &gui_data.cd;
+        else if (led == LED_MD)
+                p = &gui_data.md;
+        else
+                return;
+        old = *p;
+        if (status == 0) {
+                resetcounter[led]--;
+                if (resetcounter[led] > 0)
+                        return;
+        }
+
+        *p = status;
+        resetcounter[led] = 6;
+        if (old != *p)
+                gui_led (led, *p);
 }
 
 void gui_flicker_led (int led, int unitnum, int status)
 {
+        if (led < 0) {
+                gui_flicker_led2 (LED_HD, 0, 0);
+                gui_flicker_led2 (LED_CD, 0, 0);
+                gui_flicker_led2 (LED_MD, 0, 0);
+        } else {
+                gui_flicker_led2 (led, unitnum, status);
+        }
+}
+
+void gui_fps (int fps, int idle)
+{
+	gui_data.fps  = 0; //LATER: fps
+	gui_data.idle = 0; //LATER: idle
+        gui_led (LED_FPS, 0);
+        gui_led (LED_CPU, 0);
+        gui_led (LED_SND, (gui_data.sndbuf_status > 1 || gui_data.sndbuf_status < 0) ? 0 : 1);
 }
 
 void gui_led (int led, int on)
@@ -1598,10 +1702,6 @@ void gui_led (int led, int on)
 }
 
 void gui_filename (int num, const char *name)
-{
-}
-
-static void getline (char *p)
 {
 }
 

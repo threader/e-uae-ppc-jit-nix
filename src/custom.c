@@ -5063,7 +5063,7 @@ static void fpscounter (void)
 	timeframes++;
 	if ((timeframes % mcnt) == 0) {
 		double idle = 1000 - (idletime == 0 ? 0.0 : (double)idletime * 1000.0 / (vsynctime * mcnt));
-		int fps = frametime2 == 0 ? 0 : (syncbase * mcnt) / (frametime2 / 10);
+		int fps = frametime2 == 0 ? 0 : (int)(syncbase * mcnt) / (int)(frametime2 / 10);
 		if (fps > 9999)
 			fps = 9999;
 		if (idle < 0)
