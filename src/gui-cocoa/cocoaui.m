@@ -24,6 +24,7 @@
 #include "custom.h"
 #include "xwin.h"
 #include "drawing.h"
+#include "savestate.h"
 
 #ifdef USE_SDL
 #include "SDL.h"
@@ -1229,20 +1230,19 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 	[[NSUserDefaults standardUserDefaults] setObject:[file stringByDeletingLastPathComponent] forKey:@"LastUsedCartPath"];
 }
 
-// load save state
-- (void)displayOpenPanelForLoadSate:(id)sender
+// load savestate
+- (void)displayOpenPanelForLoadState:(id)sender
 {
 	ensureNotFullscreen();
 
 	NSOpenPanel *oPanel = [NSOpenPanel openPanel];
-	[oPanel setTitle:@"Select a Save State to Load"];
+	[oPanel setTitle:@"Select a SaveState to Load"];
 
 	// make sure setMessage (OS X 10.3+) is available before calling it
 	if ([oPanel respondsToSelector:@selector(setMessage:)])
-		[oPanel setMessage:@"Select a Save State to Load"];
+		[oPanel setMessage:@"Select a SaveState to Load"];
 
 	[oPanel setPrompt:@"Select"];
-	NSString *contextInfo = [[NSString alloc] initWithString:@"loadstate"];
 
 	// recall the path of save state that was loaded last time 
 	NSString *nssavestatepath = [[NSUserDefaults standardUserDefaults] stringForKey:@"LastUsedSaveStatePath"];
@@ -1253,7 +1253,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 	if (!sstate_run_once) {
 		sstate_run_once++;
 		
-		const char *savestate_path = currprefs.cartfile;
+		const char *savestate_path = "./";
 		
 		if (savestate_path != NULL) {
 			char homedir[MAX_PATH];
@@ -1265,15 +1265,15 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 		}
 	}
 
-    [oPanel beginSheetForDirectory:nssavestatepath file:nil
-                             types:SaveStateTypes
+//                             types:SaveStateTypes
+    [oPanel beginSheetForDirectory:nssavestatepath file:@""
                     modalForWindow:[NSApp mainWindow]
                      modalDelegate:self
                     didEndSelector:@selector(selectLoadStatePanelDidEnd:returnCode:contextInfo:)
-                       contextInfo:contextInfo];
+                       contextInfo:NULL];
 }
 
-// called after load a save state selection panel
+// called after load a savestate selection panel
 - (void)selectLoadStatePanelDidEnd:(NSOpenPanel *)sheet returnCode:(int)returnCode contextInfo:(void *)contextInfo
 {
 	if (returnCode != NSOKButton) return;
@@ -1281,8 +1281,49 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 	NSArray *files = [sheet filenames];
 	NSString *file = [files objectAtIndex:0];
 //	lossyASCIICopy (changed_prefs.cartfile, file, COCOA_GUI_MAX_PATH);
-		
+
 	[[NSUserDefaults standardUserDefaults] setObject:[file stringByDeletingLastPathComponent] forKey:@"LastUsedSaveStatePath"];
+
+	write_log ("Loading SaveState from: %s ...", file);
+	savestate_initsave (file, 0, 0, 0);
+	savestate_state = STATE_DORESTORE;
+	write_log ("done\n");
+}
+
+// save savestate
+- (void)displayOpenPanelForSaveState:(id)sender
+{
+	ensureNotFullscreen();
+
+	NSSavePanel *sPanel = [NSSavePanel savePanel];
+	[sPanel setTitle:@"Select a SaveState to Save"];
+	[sPanel setCanSelectHiddenExtension:true];
+
+	// make sure setMessage (OS X 10.3+) is available before calling it
+	if ([sPanel respondsToSelector:@selector(setMessage:)])
+		[sPanel setMessage:@"Select a SaveState to Save"];
+
+	[sPanel beginSheetForDirectory:NSHomeDirectory() file:nil
+			modalForWindow:[NSApp mainWindow]
+			 modalDelegate:self
+			didEndSelector:@selector(selectSaveStatePanelDidEnd:returnCode:contextInfo:)
+			   contextInfo:NULL];
+}
+
+// called after save a savestate selection panel
+- (void)selectSaveStatePanelDidEnd:(NSSavePanel *)sheet returnCode:(int)returnCode contextInfo:(void *)contextInfo
+{
+	if (returnCode != NSOKButton) return;
+
+	NSString *file = [sheet filename];
+	char *sfile = [file UTF8String];
+
+	[[NSUserDefaults standardUserDefaults] setObject:[file stringByDeletingLastPathComponent] forKey:@"LastUsedSaveStatePath"];
+
+	write_log ("Saving SaveState to: %s ...", sfile);
+//	savestate_initsave (sfile, 0, 0, 0);
+	save_state (sfile, "puae");
+	write_log ("done\n");
 }
 
 - (void)hebeHebe:(id)sender
@@ -1559,6 +1600,18 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 - (void)selectCartridge:(id)sender
 {
 	[self displayOpenPanelForCartridge:[((NSMenuItem*)sender) tag]];
+}
+
+// select savestate to save
+- (void)selectSaveState:(id)sender
+{
+	[self displayOpenPanelForSaveState:[((NSMenuItem*)sender) tag]];
+}
+
+// select savestate to load
+- (void)selectLoadState:(id)sender
+{
+	[self displayOpenPanelForLoadState:[((NSMenuItem*)sender) tag]];
 }
 @end
 
