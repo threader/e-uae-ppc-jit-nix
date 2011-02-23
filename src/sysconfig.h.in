@@ -122,8 +122,14 @@
 /* CPU supports SSE2 */
 #undef HAVE_SSE2
 
+/* CPU supports SSE3 */
+#undef HAVE_SSE3
+
 /* CPU supports SSE4_1 */
 #undef HAVE_SSE4_1
+
+/* CPU supports SSE4_2 */
+#undef HAVE_SSE4_2
 
 /* CPU supports SSSE3 */
 #undef HAVE_SSSE3

@@ -1331,7 +1331,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 	NSRect frame = NSMakeRect(100, 100, 200, 200);
 	NSUInteger styleMask;
 	NSRect rect = [NSWindow contentRectForFrameRect:frame styleMask:styleMask];
-	NSWindow * window = [[NSWindow alloc] initWithContentRect:rect styleMask:styleMask backing:NSBackingStoreBuffered defer:false];
+	NSWindow *window = [[NSWindow alloc] initWithContentRect:rect styleMask:styleMask backing:NSBackingStoreBuffered defer:false];
 	[window center];
 	[window makeKeyAndOrderFront: window];
 

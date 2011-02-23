@@ -1759,8 +1759,65 @@ have_3dnow=no
 
 dnl -- macos
 if [[ "x$OSDEP" = "xod-macosx" ]]; then
-have_mmx=no
+
+AC_MSG_CHECKING([host cpu MMX support])
+CPUFLAGS=`sysctl -a hw | grep hw.optional.mmx: | awk '{print $2}'`
+if test "$CPUFLAGS" = "1"; then
+have_mmx=yes
+AC_DEFINE(HAVE_MMX,1,[CPU supports MMX])
 fi
+AC_MSG_RESULT([$have_mmx])
+
+AC_MSG_CHECKING([host cpu SSSE3 support])
+CPUFLAGS=`sysctl -a hw | grep hw.optional.supplementalsse3: | awk '{print $2}'`
+if test "$CPUFLAGS" = "1"; then
+have_ssse3=yes
+AC_DEFINE(HAVE_SSSE3,1,[CPU supports SSSE3])
+fi
+AC_MSG_RESULT([$have_ssse3])
+
+AC_MSG_CHECKING([host cpu SSE4_2 support])
+CPUFLAGS=`sysctl -a hw | grep hw.optional.sse4_2: | awk '{print $2}'`
+if test "$CPUFLAGS" = "1"; then
+have_sse4_2=yes
+AC_DEFINE(HAVE_SSE4_2,1,[CPU supports SSE4_2])
+fi
+AC_MSG_RESULT([$have_sse4_2])
+
+AC_MSG_CHECKING([host cpu SSE4_1 support])
+CPUFLAGS=`sysctl -a hw | grep hw.optional.sse4_1: | awk '{print $2}'`
+if test "$CPUFLAGS" = "1"; then
+have_sse4_1=yes
+AC_DEFINE(HAVE_SSE4_1,1,[CPU supports SSE4_1])
+fi
+AC_MSG_RESULT([$have_sse4_1])
+
+AC_MSG_CHECKING([host cpu SSE3 support])
+CPUFLAGS=`sysctl -a hw | grep hw.optional.sse3: | awk '{print $2}'`
+if test "$CPUFLAGS" = "1"; then
+have_sse3=yes
+AC_DEFINE(HAVE_SSE3,1,[CPU supports SSE3])
+fi
+AC_MSG_RESULT([$have_sse3])
+
+AC_MSG_CHECKING([host cpu SSE2 support])
+CPUFLAGS=`sysctl -a hw | grep hw.optional.sse2: | awk '{print $2}'`
+if test "$CPUFLAGS" = "1"; then
+have_sse2=yes
+AC_DEFINE(HAVE_SSE2,1,[CPU supports SSE2])
+fi
+AC_MSG_RESULT([$have_sse2])
+
+AC_MSG_CHECKING([host cpu SSE support])
+CPUFLAGS=`sysctl -a hw | grep hw.optional.sse: | awk '{print $2}'`
+if test "$CPUFLAGS" = "1"; then
+have_sse=yes
+AC_DEFINE(HAVE_SSE,1,[CPU supports SSE])
+fi
+AC_MSG_RESULT([$have_sse])
+
+dnl -- macos
+else
 
 dnl -- linux
 CPUFLAGS=`cat /proc/cpuinfo | grep flags`
@@ -1805,6 +1862,9 @@ have_3dnow=yes
 AC_DEFINE(HAVE_3DNOW,1,[CPU supports 3DNOW])
 fi
 AC_MSG_RESULT([$have_3dnow])
+
+dnl --
+fi
 
 dnl detect cpu
 AX_GCC_ARCHFLAG(no)

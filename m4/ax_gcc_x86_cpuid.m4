@@ -1,5 +1,5 @@
 # ===========================================================================
-#            http://autoconf-archive.cryp.to/ax_gcc_x86_cpuid.html
+#     http://www.gnu.org/software/autoconf-archive/ax_gcc_x86_cpuid.html
 # ===========================================================================
 #
 # SYNOPSIS
@@ -24,14 +24,11 @@
 #
 #   This macro mainly exists to be used in AX_GCC_ARCHFLAG.
 #
-# LAST MODIFICATION
-#
-#   2008-04-12
-#
-# COPYLEFT
+# LICENSE
 #
 #   Copyright (c) 2008 Steven G. Johnson <stevenj@alum.mit.edu>
 #   Copyright (c) 2008 Matteo Frigo
+#   Copyright (c) 2011 Mustafa TUFAN (apple def)
 #
 #   This program is free software: you can redistribute it and/or modify it
 #   under the terms of the GNU General Public License as published by the
@@ -55,9 +52,11 @@
 #   all other use of the material that constitutes the Autoconf Macro.
 #
 #   This special exception to the GPL applies to versions of the Autoconf
-#   Macro released by the Autoconf Macro Archive. When you make and
-#   distribute a modified version of the Autoconf Macro, you may extend this
-#   special exception to the GPL to apply to your modified version as well.
+#   Macro released by the Autoconf Archive. When you make and distribute a
+#   modified version of the Autoconf Macro, you may extend this special
+#   exception to the GPL to apply to your modified version as well.
+
+#serial 7
 
 AC_DEFUN([AX_GCC_X86_CPUID],
 [AC_REQUIRE([AC_PROG_CC])
@@ -66,8 +65,16 @@ AC_CACHE_CHECK(for x86 cpuid $1 output, ax_cv_gcc_x86_cpuid_$1,
  [AC_RUN_IFELSE([AC_LANG_PROGRAM([#include <stdio.h>], [
      int op = $1, eax, ebx, ecx, edx;
      FILE *f;
-      __asm__("cpuid"
+#ifdef __APPLE__
+      __asm__ ( "pushl %%ebx	\n\t"
+		"cpuid		\n\t"
+		"movl %%ebx, %1	\n\t"
+		"popl %%ebx	\n\t"
+        : "=a" (eax), "=r" (ebx), "=c" (ecx), "=d" (edx)
+#else
+      __asm__ ("cpuid"
         : "=a" (eax), "=b" (ebx), "=c" (ecx), "=d" (edx)
+#endif
         : "a" (op));
      f = fopen("conftest_cpuid", "w"); if (!f) return 1;
      fprintf(f, "%x:%x:%x:%x\n", eax, ebx, ecx, edx);
