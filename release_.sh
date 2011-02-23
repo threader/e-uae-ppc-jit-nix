@@ -82,3 +82,8 @@ rm -rf src/td-posix/Makefile.in
 rm -rf src/td-sdl/Makefile.in
 rm -rf src/td-win32/Makefile.in
 rm -rf src/test/Makefile.in
+
+echo "=================================================="
+echo "Current Commit: "
+tail -1 .git/packed-refs | awk '{print $1}'
+echo "=================================================="

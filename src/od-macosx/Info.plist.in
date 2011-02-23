@@ -10,7 +10,7 @@
 		    <string>uaerc</string>
 		</array>
 		<key>CFBundleTypeName</key>
-		<string>UAE Configuration</string>
+		<string>PUAE Configuration</string>
 		<key>CFBundleTypeRole</key>
 		<string>Viewer</string>
 	    </dict>
@@ -20,7 +20,7 @@
 	<key>CFBundleExecutable</key>
 	<string>uae</string>
 	<key>CFBundleIconFile</key>
-	<string>euae.icns</string>
+	<string>puae.icns</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleSignature</key>

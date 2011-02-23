@@ -52,20 +52,33 @@ static char  **gArgv;
 BOOL           gFinderLaunch = NO;
 BOOL           gFinishedLaunching = NO;
 
-NSString *getApplicationName (void)
+NSString *getApplicationName ()
 {
     NSDictionary *dict;
     NSString *appName = 0;
 
     /* Determine the application name */
     dict = (NSDictionary *) CFBundleGetInfoDictionary (CFBundleGetMainBundle ());
-    if (dict)
-	appName = [dict objectForKey: @"CFBundleName"];
+	if (dict)
+		appName = [dict objectForKey: @"CFBundleName"];
 
     if (![appName length])
 	appName = [[NSProcessInfo processInfo] processName];
 
-    return appName;
+	return appName;
+}
+
+NSString *getApplicationVersion ()
+{
+    NSDictionary *dict;
+    NSString *appVersion = 0;
+
+    /* Determine the application name */
+    dict = (NSDictionary *) CFBundleGetInfoDictionary (CFBundleGetMainBundle ());
+	if (dict)
+		appVersion = [dict objectForKey: @"CFBundleVersion"];
+
+	return appVersion;
 }
 
 /* Fix warnings generated when using the setAppleMenu method and compiling
@@ -124,6 +137,17 @@ in Tiger or later */
     }
 }
 
+-(void)performAbout:(id)sender
+{
+	const NSDictionary *nfo;
+	NSString *aName, *aVer;
+	aName = getApplicationName ();
+	aVer = getApplicationVersion ();
+
+	nfo = [NSDictionary dictionaryWithObjectsAndKeys: aName, @"ApplicationName", aVer, @"Version", nil];
+	[NSApp orderFrontStandardAboutPanelWithOptions: nfo];
+}
+
 static void setApplicationMenu (void)
 {
     /* warning: this code is very odd */
@@ -137,7 +161,7 @@ static void setApplicationMenu (void)
 
     /* Add menu items */
     title = [@"About " stringByAppendingString:appName];
-    [appleMenu addItemWithTitle:title action:@selector(orderFrontStandardAboutPanel:) keyEquivalent:@""];
+    [appleMenu addItemWithTitle:title action:@selector(performAbout:) keyEquivalent:@""];
 
     [appleMenu addItem:[NSMenuItem separatorItem]];
 

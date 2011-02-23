@@ -2,7 +2,7 @@ dnl Process this file with autoconf to produce a configure script.
 dnl Written 1996, 1997, 1998 Bernd Schmidt
 dnl
 dnl Updated, re-written and generally mauled 2003 Richard Drummond
-dnl Updated and generally mauled             2008-2010 Mustafa Tufan
+dnl Updated and generally mauled             2008-2011 Mustafa Tufan
 dnl
 
 AC_PREREQ(2.55)
