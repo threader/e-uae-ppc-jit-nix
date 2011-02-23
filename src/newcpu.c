@@ -2895,7 +2895,7 @@ unsigned long REGPARAM2 op_illg (uae_u32 opcode)
 	if ((opcode & 0xF000) == 0xF000) {
 		if (warned < 20) {
 			//write_log ("B-Trap %x at %x (%p)\n", opcode, pc, regs.pc_p);
-			warned++;
+			//warned++;
 		}
 		Exception (0xB);
 		//activate_debugger ();
@@ -2904,14 +2904,14 @@ unsigned long REGPARAM2 op_illg (uae_u32 opcode)
 	if ((opcode & 0xF000) == 0xA000) {
 		if (warned < 20) {
 			//write_log ("A-Trap %x at %x (%p)\n", opcode, pc, regs.pc_p);
-			warned++;
+			//warned++;
 		}
 		Exception (0xA);
 		//activate_debugger();
 		return 4;
 	}
 	if (warned < 20) {
-		//write_log ("Illegal instruction: %04x at %08X -> %08X\n", opcode, pc, get_long (regs.vbr + 0x10));
+		write_log ("Illegal instruction: %04x at %08X -> %08X\n", opcode, pc, get_long (regs.vbr + 0x10));
 		warned++;
 		//activate_debugger();
 	}
@@ -3064,7 +3064,7 @@ void mmu_op30 (uaecptr pc, uae_u32 opcode, uae_u16 extra, uaecptr extraa)
 void mmu_op (uae_u32 opcode, uae_u32 extra)
 {
 	if (currprefs.cpu_model) {
-#if MMU
+#ifdef MMU
 		mmu_op_real (opcode, extra);
 		return;
 #endif
