@@ -27,8 +27,8 @@
 	<string>????</string>
 	<key>CFBundleName</key>
 	<string>PUAE</string>
-	<key>CFBundleGetInfoString</key>
-	<string>@PACKAGE_COMMIT@</string>
+	<key>CFBundleShortVersionString</key>
+	<string>2.3.1.397698e373c41c61eaab29f18e10f870c8c39819</string>
 	<key>CFBundleVersion</key>
 	<string>2.3.1</string>
 </dict>

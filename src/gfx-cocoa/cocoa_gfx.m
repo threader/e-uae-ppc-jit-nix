@@ -169,7 +169,7 @@ void toggle_mousegrab (void)
 
 int graphics_init (void)
 {
-    int success = 0;
+	int success = 0;
 	return success;
 }
 

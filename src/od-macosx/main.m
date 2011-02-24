@@ -54,44 +54,31 @@ BOOL           gFinishedLaunching = NO;
 
 NSString *getApplicationName ()
 {
-    NSDictionary *dict;
-    NSString *appName = 0;
+	NSDictionary *dict;
+	NSString *appName = 0;
 
-    /* Determine the application name */
-    dict = (NSDictionary *) CFBundleGetInfoDictionary (CFBundleGetMainBundle ());
+	/* Determine the application name */
+	dict = (NSDictionary *) CFBundleGetInfoDictionary (CFBundleGetMainBundle ());
 	if (dict)
 		appName = [dict objectForKey: @"CFBundleName"];
 
-    if (![appName length])
-	appName = [[NSProcessInfo processInfo] processName];
+	if (![appName length])
+		appName = [[NSProcessInfo processInfo] processName];
 
 	return appName;
 }
 
-NSString *getApplicationVersion ()
-{
-    NSDictionary *dict;
-    NSString *appVersion = 0;
-
-    /* Determine the application name */
-    dict = (NSDictionary *) CFBundleGetInfoDictionary (CFBundleGetMainBundle ());
-	if (dict)
-		appVersion = [dict objectForKey: @"CFBundleVersion"];
-
-	return appVersion;
-}
-
 /* Fix warnings generated when using the setAppleMenu method and compiling
 in Tiger or later */
-@interface NSApplication (EUAE)
+@interface NSApplication (PUAE)
 - (void)setAppleMenu:(NSMenu *)menu;
 @end
 
 
-@interface EUAE_Application : NSApplication
+@interface PUAE_Application : NSApplication
 @end
 
-@implementation EUAE_Application
+@implementation PUAE_Application
 
 /* Invoked from the Quit menu item */
 - (void)terminate:(id)sender
@@ -119,7 +106,7 @@ in Tiger or later */
 
 
 /* The main class of the application, the application's delegate */
-@implementation EUAE_Main
+@implementation PUAE_Main
 
 /* Set the working directory to the .app's parent directory */
 - (void) setupWorkingDirectory:(BOOL)shouldChdir
@@ -139,12 +126,8 @@ in Tiger or later */
 
 -(void)performAbout:(id)sender
 {
-	const NSDictionary *nfo;
-	NSString *aName, *aVer;
-	aName = getApplicationName ();
-	aVer = getApplicationVersion ();
-
-	nfo = [NSDictionary dictionaryWithObjectsAndKeys: aName, @"ApplicationName", aVer, @"Version", nil];
+	NSDictionary *nfo;
+	nfo = (NSDictionary *) CFBundleGetInfoDictionary (CFBundleGetMainBundle ());
 	[NSApp orderFrontStandardAboutPanelWithOptions: nfo];
 }
 
@@ -227,10 +210,10 @@ static void setupWindowMenu (void)
 static void CustomApplicationMain (int argc, char **argv)
 {
     NSAutoreleasePool	*pool = [[NSAutoreleasePool alloc] init];
-    EUAE_Main		*euae_main;
+    PUAE_Main		*puae_main;
 
     /* Ensure the application object is initialised */
-    [EUAE_Application sharedApplication];
+    [PUAE_Application sharedApplication];
 
 #ifdef SDL_USE_CPS
     {
@@ -239,7 +222,7 @@ static void CustomApplicationMain (int argc, char **argv)
 	if (!CPSGetCurrentProcess(&PSN))
 	    if (!CPSEnableForegroundOperation(&PSN,0x03,0x3C,0x2C,0x1103))
 		if (!CPSSetFrontProcess(&PSN))
-		    [EUAE_Application sharedApplication];
+		    [PUAE_Application sharedApplication];
     }
 #endif /* SDL_USE_CPS */
 
@@ -252,13 +235,13 @@ static void CustomApplicationMain (int argc, char **argv)
 	cocoa_gui_early_setup();
 
     /* Create SDLMain and make it the app delegate */
-    euae_main = [[EUAE_Main alloc] init];
-    [NSApp setDelegate:euae_main];
+    puae_main = [[PUAE_Main alloc] init];
+    [NSApp setDelegate:puae_main];
 
     /* Start the main event loop */
     [NSApp run];
 
-    [euae_main release];
+    [puae_main release];
     [pool release];
 }
 

@@ -83,7 +83,7 @@ if BUILD_MACOSX_BUNDLE
 		mkdir -p $(bundle_contents)/Resources
 		$(INSTALL_DATA) od-macosx/Info.plist $(bundle_contents)
 		$(INSTALL_PROGRAM) uae$(EXEEXT) $(bundle_contents)/MacOS/
-		$(INSTALL_DATA) $(srcdir)/od-macosx/euae.icns $(bundle_contents)/Resources/
+		$(INSTALL_DATA) $(srcdir)/od-macosx/puae.icns $(bundle_contents)/Resources/
 endif
 
 noinst_LIBRARIES = \

@@ -33,5 +33,5 @@ typedef unsigned int   NSUInteger;
 
 #import <Cocoa/Cocoa.h>
 
-@interface EUAE_Main : NSObject
+@interface PUAE_Main : NSObject
 @end

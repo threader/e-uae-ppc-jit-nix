@@ -6,7 +6,7 @@ dnl Updated and generally mauled             2008-2011 Mustafa Tufan
 dnl
 
 AC_PREREQ(2.55)
-AC_INIT(PUAE, 2.3.1, 'mustafa.tufan@gmail.com', puae)
+AC_INIT(PUAE, 2.3.1, mustafa.tufan@gmail.com, puae)
 AC_CONFIG_SRCDIR([bootstrap.sh])
 AM_CONFIG_HEADER([src/sysconfig.h])
 AC_CANONICAL_TARGET
@@ -63,6 +63,7 @@ if test -z "$commit"; then
 commit="not git"
 fi
 AC_DEFINE_UNQUOTED(PACKAGE_COMMIT, "$commit", [cloned git commit version])
+AC_SUBST(PACKAGE_COMMIT, $commit)
 
 dnl
 dnl Prefer Gtk2.x over Gtk1.x if both are available

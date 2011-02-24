@@ -27,8 +27,8 @@
 	<string>????</string>
 	<key>CFBundleName</key>
 	<string>@PACKAGE_NAME@</string>
-	<key>CFBundleGetInfoString</key>
-	<string>@PACKAGE_COMMIT@</string>
+	<key>CFBundleShortVersionString</key>
+	<string>@VERSION@-@PACKAGE_COMMIT@</string>
 	<key>CFBundleVersion</key>
 	<string>@VERSION@</string>
 </dict>
