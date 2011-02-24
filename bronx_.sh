@@ -1,6 +1,6 @@
 # P-UAE
 #
-# 2010 Mustafa TUFAN (aka GnoStiC/BRONX)
+# 2006-2011 Mustafa TUFAN (aka GnoStiC/BRONX)
 #
 # this is the main script to build (and test) PUAE
 #

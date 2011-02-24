@@ -82,27 +82,28 @@ static int oldhcounter;
 
 static void hr (void)
 {
-    write_log ("------------------------------------------------------------------------------------\n");
+	write_log ("------------------------------------------------------------------------------------\n");
 }
 
 static void show_version (void)
 {
-    write_log ("P-UAE %d.%d.%d\n", UAEMAJOR, UAEMINOR, UAESUBREV);
-    write_log ("Build date: " __DATE__ " " __TIME__ "\n");
+	write_log ("P-UAE %d.%d.%d\n", UAEMAJOR, UAEMINOR, UAESUBREV);
+	write_log ("Git Commit: %s\n", PACKAGE_COMMIT);
+	write_log ("Build date: " __DATE__ " " __TIME__ "\n");
 }
 
 static void show_version_full (void)
 {
 	hr ();
-    show_version ();
+	show_version ();
 	hr ();
-    write_log ("Copyright 1995-2002 Bernd Schmidt\n");
-    write_log ("          1999-2011 Toni Wilen\n");
-    write_log ("          2003-2007 Richard Drummond\n");
-    write_log ("          2006-2011 Mustafa 'GnoStiC' Tufan\n\n");
-    write_log ("See the source for a full list of contributors.\n");
-    write_log ("This is free software; see the file COPYING for copying conditions.  There is NO\n");
-    write_log ("warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n");
+	write_log ("Copyright 1995-2002 Bernd Schmidt\n");
+	write_log ("          1999-2011 Toni Wilen\n");
+	write_log ("          2003-2007 Richard Drummond\n");
+	write_log ("          2006-2011 Mustafa 'GnoStiC' Tufan\n\n");
+	write_log ("See the source for a full list of contributors.\n");
+	write_log ("This is free software; see the file COPYING for copying conditions.  There is NO\n");
+	write_log ("warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n");
 	hr ();
 }
 

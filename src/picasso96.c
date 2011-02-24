@@ -256,7 +256,7 @@ static TCHAR *BuildBinaryString (uae_u8 value)
 	return binary_byte;
 }
 
-static void DumpPattern (struct Pattern *patt)
+static void DumpPattern (struct pPattern *patt)
 {
 	uae_u8 *mem;
 	int row, col;
@@ -372,7 +372,7 @@ static int CopyRenderInfoStructureA2U (uaecptr amigamemptr, struct RenderInfo *r
 	return 0;
 }
 
-static int CopyPatternStructureA2U (uaecptr amigamemptr, struct Pattern *pattern)
+static int CopyPatternStructureA2U (uaecptr amigamemptr, struct pPattern *pattern)
 {
 	uaecptr memp = get_long (amigamemptr + PSSO_Pattern_Memory);
 	if (valid_address (memp, PSSO_Pattern_sizeof)) {
@@ -400,7 +400,7 @@ static void CopyColorIndexMappingA2U (uaecptr amigamemptr, struct ColorIndexMapp
 	}
 }
 
-static int CopyBitMapStructureA2U (uaecptr amigamemptr, struct BitMap *bm)
+static int CopyBitMapStructureA2U (uaecptr amigamemptr, struct pBitMap *bm)
 {
 	int i;
 
@@ -2570,7 +2570,7 @@ STATIC_INLINE void PixelWrite (uae_u8 *mem, int bits, uae_u32 fgpen, int Bpp, ua
  * Inputs:
  * a0:struct BoardInfo *bi
  * a1:struct RenderInfo *ri
- * a2:struct Pattern *pattern
+ * a2:struct pPattern *pattern
  * d0.w:X
  * d1.w:Y
  * d2.w:Width
@@ -2598,7 +2598,7 @@ static uae_u32 REGPARAM2 picasso_BlitPattern (TrapContext *ctx)
 	uae_u8 Bpp = GetBytesPerPixel (RGBFmt);
 	int inversion = 0;
 	struct RenderInfo ri;
-	struct Pattern pattern;
+	struct pPattern pattern;
 	unsigned long rows;
 	uae_u8 *uae_mem;
 	int xshift;
@@ -2977,7 +2977,7 @@ void init_hz_p96 (void)
 }
 
 /* NOTE: Watch for those planeptrs of 0x00000000 and 0xFFFFFFFF for all zero / all one bitmaps !!!! */
-static void PlanarToChunky (struct RenderInfo *ri, struct BitMap *bm,
+static void PlanarToChunky (struct RenderInfo *ri, struct pBitMap *bm,
 	unsigned long srcx, unsigned long srcy,
 	unsigned long dstx, unsigned long dsty,
 	unsigned long width, unsigned long height,
@@ -3046,7 +3046,7 @@ static void PlanarToChunky (struct RenderInfo *ri, struct BitMap *bm,
 /*
  * BlitPlanar2Chunky:
  * a0: struct BoardInfo *bi
- * a1: struct BitMap *bm - source containing planar information and assorted details
+ * a1: struct pBitMap *bm - source containing planar information and assorted details
  * a2: struct RenderInfo *ri - dest area and its details
  * d0.w: SrcX
  * d1.w: SrcY
@@ -3074,7 +3074,7 @@ static uae_u32 REGPARAM2 picasso_BlitPlanar2Chunky (TrapContext *ctx)
 	uae_u8 minterm = m68k_dreg (regs, 6) & 0xFF;
 	uae_u8 mask = m68k_dreg (regs, 7) & 0xFF;
 	struct RenderInfo local_ri;
-	struct BitMap local_bm;
+	struct pBitMap local_bm;
 	uae_u32 result = 0;
 
 	if (NOBLITTER)
@@ -3093,7 +3093,7 @@ static uae_u32 REGPARAM2 picasso_BlitPlanar2Chunky (TrapContext *ctx)
 }
 
 /* NOTE: Watch for those planeptrs of 0x00000000 and 0xFFFFFFFF for all zero / all one bitmaps !!!! */
-static void PlanarToDirect (struct RenderInfo *ri, struct BitMap *bm,
+static void PlanarToDirect (struct RenderInfo *ri, struct pBitMap *bm,
 	unsigned long srcx, unsigned long srcy,
 	unsigned long dstx, unsigned long dsty,
 	unsigned long width, unsigned long height, uae_u8 mask, struct ColorIndexMapping *cim)
@@ -3179,7 +3179,7 @@ static void PlanarToDirect (struct RenderInfo *ri, struct BitMap *bm,
 * BlitPlanar2Direct(bi, bm, ri, cim, SrcX, SrcY, DstX, DstY, SizeX, SizeY, MinTerm, Mask);
 * Inputs:
 * a0:struct BoardInfo *bi
-* a1:struct BitMap *bm
+* a1:struct pBitMap *bm
 * a2:struct RenderInfo *ri
 * a3:struct ColorIndexMapping *cmi
 * d0.w:SrcX
@@ -3213,7 +3213,7 @@ static uae_u32 REGPARAM2 picasso_BlitPlanar2Direct (TrapContext *ctx)
 	uae_u8 minterm = m68k_dreg (regs, 6);
 	uae_u8 Mask = m68k_dreg (regs, 7);
 	struct RenderInfo local_ri;
-	struct BitMap local_bm;
+	struct pBitMap local_bm;
 	struct ColorIndexMapping local_cim;
 	uae_u32 result = 0;
 

@@ -258,7 +258,7 @@ struct CLUTEntry {
 #ifdef TARGET_AMIGAOS
 #include <graphics/gfx.h>
 #else
-struct BitMap
+struct pBitMap
 {
     uae_u16 BytesPerRow;
     uae_u16 Rows;
@@ -363,7 +363,7 @@ struct RenderInfo {
 #define PSSO_Pattern_Size 16
 #define PSSO_Pattern_DrawMode 17
 #define PSSO_Pattern_sizeof 18
-struct Pattern {
+struct pPattern {
     uae_u8 *Memory;
     uae_u16 XOffset, YOffset;
     uae_u32 FgPen, BgPen;

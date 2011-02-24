@@ -2152,11 +2152,11 @@ int getcapslockstate (void)
 {
 	return SDL_GetModState() & KMOD_CAPS;
 }
+
 void setcapslockstate (int state)
 {
 	//TODO:
 }
-
 
 /*
  * Default inputdevice config for SDL mouse

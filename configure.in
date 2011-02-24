@@ -6,7 +6,7 @@ dnl Updated and generally mauled             2008-2011 Mustafa Tufan
 dnl
 
 AC_PREREQ(2.55)
-AC_INIT(PUAE, 2.3.1, ,puae)
+AC_INIT(PUAE, 2.3.1, 'mustafa.tufan@gmail.com', puae)
 AC_CONFIG_SRCDIR([bootstrap.sh])
 AM_CONFIG_HEADER([src/sysconfig.h])
 AC_CANONICAL_TARGET
@@ -54,6 +54,15 @@ dnl AC_CHECK_LIB(amiga, OpenLibrary, HAVE_AMIGA_LIB=yes, HAVE_AMIGA_LIB=n)
 dnl AC_CHECK_LIB(vga, vga_setmode, HAVE_SVGA_LIB=yes, HAVE_SVGA_LIB=no)
 
 AC_CHECK_LIB(ossaudio,_oss_ioctl, HAVE_LIBOSSAUDIO=yes, HAVE_LIBOSSAUDIO=no)
+
+dnl
+dnl commit version
+dnl
+commit=`tail -1 .git/packed-refs | awk '{print $1}'`
+if test -z "$commit"; then
+commit="not git"
+fi
+AC_DEFINE_UNQUOTED(PACKAGE_COMMIT, "$commit", [cloned git commit version])
 
 dnl
 dnl Prefer Gtk2.x over Gtk1.x if both are available
@@ -676,6 +685,10 @@ AC_ARG_WITH(sdl-gl,
   AS_HELP_STRING([--with-sdl-gl], [Allow GL for 2D acceleration with SDL graphics]),
   [WANT_SDLGL=$withval], [])
 
+AC_ARG_WITH(cocoa-gfx,
+  AS_HELP_STRING([--with-cocoa-gfx], [Use Cocoa library for graphics]),
+  [WANT_COCOAGFX=$withval], [])
+
 AC_ARG_WITH(qt,
   AS_HELP_STRING([--with-qt], [Use QT library for graphics/ui]),
   [WANT_QT=$withval], [])
@@ -990,6 +1003,15 @@ if [[ "x$WANT_SDL" = "xyes" -o "x$GFX_DEP" = "x" ]]; then
   fi
 fi
 
+dnl
+if [[ "x$WANT_COCOAGFX" = "xyes" ]]; then
+GFX_DEP=gfx-cocoa
+GFX_NAME=COCOA
+GFX_LIBS=""
+GFX_CFLAGS=""
+GFX_CPPFLAGS=""
+GFX_LIBS="-framework OpenGL"
+fi
 
 dnl  If we got here and we still haven't found a graphics target
 dnl  then bail out.
@@ -1957,7 +1979,7 @@ AC_CONFIG_FILES([Makefile
 		 src/gfx-x11/Makefile
 		 src/gfx-sdl/Makefile
 		 src/gfx-curses/Makefile
-		 src/gfx-svga/Makefile
+		 src/gfx-cocoa/Makefile
 		 src/sd-alsa/Makefile
 		 src/sd-amigaos/Makefile
 		 src/sd-beos/Makefile

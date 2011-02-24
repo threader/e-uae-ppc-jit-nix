@@ -235,39 +235,62 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 	[self createMenuItemInMenu:vAmigaMenu withTitle:@"Select Cartridge ROM" action:@selector(selectCartridge:) tag:0];
 	[self createMenuItemInMenu:vAmigaMenu withTitle:@"Select Flash RAM" action:@selector(selectFlashRAM:) tag:0];
 
-	[vAmigaMenu addItem:[NSMenuItem separatorItem]];
-	
-	// Add menu items for inserting into floppy drives 1 - 4
-	NSMenu *insertFloppyMenu = [[NSMenu alloc] initWithTitle:@"Insert Floppy"];
-
-		for (driveNumber=0; driveNumber<4; driveNumber++) {
-			[self createMenuItemInMenu:insertFloppyMenu withTitle:[NSString stringWithFormat:@"DF%d...",driveNumber] action:@selector(insertDisk:) tag:driveNumber];
-		}
-
-	menuItem = [[NSMenuItem alloc] initWithTitle:@"Insert Floppy" action:nil keyEquivalent:@""];
-	[menuItem setSubmenu:insertFloppyMenu];
-	[vAmigaMenu addItem:menuItem];
-	[menuItem release];
-	[insertFloppyMenu release];
-	
-	// Add menu items for ejecting from floppy drives 1 - 4
-	NSMenu *ejectFloppyMenu = [[NSMenu alloc] initWithTitle:@"Eject Floppy"];
-		[self createMenuItemInMenu:ejectFloppyMenu withTitle:@"All" action:@selector(ejectAllDisks:) tag:0];
-		[ejectFloppyMenu addItem:[NSMenuItem separatorItem]];
-		for (driveNumber=0; driveNumber<4; driveNumber++) {
-			[self createMenuItemInMenu:ejectFloppyMenu withTitle:[NSString stringWithFormat:@"DF%d",driveNumber] action:@selector(ejectDisk:) tag:driveNumber];
-		}
-	menuItem = [[NSMenuItem alloc] initWithTitle:@"Eject Floppy" action:nil keyEquivalent:@""];
-	[menuItem setSubmenu:ejectFloppyMenu];
-	[vAmigaMenu addItem:menuItem];
-	[menuItem release];
-	[ejectFloppyMenu release];
-
 	menuItem = [[NSMenuItem alloc] initWithTitle:@"PUAE" action:nil keyEquivalent:@""];
 	[menuItem setSubmenu:vAmigaMenu];
 	[[NSApp mainMenu] insertItem:menuItem atIndex:1];
 	[menuItem release];
 	[vAmigaMenu release];
+
+	// DISK MENU START
+	NSMenu *dskMenu = [[NSMenu alloc] initWithTitle:@"Disk"];
+
+		// Add menu items for inserting into floppy drives 1 - 4
+		NSMenu *insertFloppyMenu = [[NSMenu alloc] initWithTitle:@"Insert Floppy"];
+			for (driveNumber=0; driveNumber<4; driveNumber++) {
+				[self createMenuItemInMenu:insertFloppyMenu withTitle:[NSString stringWithFormat:@"DF%d...",driveNumber] action:@selector(insertDisk:) tag:driveNumber];
+			}
+
+		menuItem = [[NSMenuItem alloc] initWithTitle:@"Insert Floppy" action:nil keyEquivalent:@""];
+		[menuItem setSubmenu:insertFloppyMenu];
+		[dskMenu addItem:menuItem];
+		[menuItem release];
+
+		[dskMenu addItem:[NSMenuItem separatorItem]];
+
+		// Add menu items for ejecting from floppy drives 1 - 4
+		NSMenu *ejectFloppyMenu = [[NSMenu alloc] initWithTitle:@"Eject Floppy"];
+			[self createMenuItemInMenu:ejectFloppyMenu withTitle:@"All" action:@selector(ejectAllDisks:) tag:0];
+			[ejectFloppyMenu addItem:[NSMenuItem separatorItem]];
+			for (driveNumber=0; driveNumber<4; driveNumber++) {
+				[self createMenuItemInMenu:ejectFloppyMenu withTitle:[NSString stringWithFormat:@"DF%d",driveNumber] action:@selector(ejectDisk:) tag:driveNumber];
+			}
+		menuItem = [[NSMenuItem alloc] initWithTitle:@"Eject Floppy" action:nil keyEquivalent:@""];
+		[menuItem setSubmenu:ejectFloppyMenu];
+		[dskMenu addItem:menuItem];
+		[menuItem release];
+
+		[dskMenu addItem:[NSMenuItem separatorItem]];
+
+		NSMenu *hddMenu = [[NSMenu alloc] initWithTitle:@"Mount HDF"];
+
+		menuItem = [[NSMenuItem alloc] initWithTitle:@"Mount HDF" action:nil keyEquivalent:@""];
+		[menuItem setSubmenu:hddMenu];
+		[dskMenu addItem:menuItem];
+		[menuItem release];
+
+		NSMenu *vhddMenu = [[NSMenu alloc] initWithTitle:@"Mount Folder as HDD"];
+
+		menuItem = [[NSMenuItem alloc] initWithTitle:@"Mount Folder as HDD" action:nil keyEquivalent:@""];
+		[menuItem setSubmenu:vhddMenu];
+		[dskMenu addItem:menuItem];
+		[menuItem release];
+
+	menuItem = [[NSMenuItem alloc] initWithTitle:@"Disk" action:nil keyEquivalent:@""];
+	[menuItem setSubmenu:dskMenu];
+	[[NSApp mainMenu] insertItem:menuItem atIndex:2];
+	[dskMenu release];
+	[menuItem release];
+	// DISK MENU END
 
 	// MEM MENU START
 	NSMenu *memMenu = [[NSMenu alloc] initWithTitle:@"Memory"];
@@ -365,7 +388,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 
 	menuItem = [[NSMenuItem alloc] initWithTitle:@"Memory" action:nil keyEquivalent:@""];
 	[menuItem setSubmenu:memMenu];
-	[[NSApp mainMenu] insertItem:menuItem atIndex:2];
+	[[NSApp mainMenu] insertItem:menuItem atIndex:3];
 	[memMenu release];
 	[menuItem release];
 	// MEM MENU END
@@ -465,7 +488,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 
 	menuItem = [[NSMenuItem alloc] initWithTitle:@"System" action:nil keyEquivalent:@""];
 	[menuItem setSubmenu:systemMenu];
-	[[NSApp mainMenu] insertItem:menuItem atIndex:3];
+	[[NSApp mainMenu] insertItem:menuItem atIndex:4];
 	[systemMenu release];
 	[menuItem release];
 	// SYSTEM MENU END
@@ -506,7 +529,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 
 	menuItem = [[NSMenuItem alloc] initWithTitle:@"Sound" action:nil keyEquivalent:@""];
 	[menuItem setSubmenu:soundMenu];
-	[[NSApp mainMenu] insertItem:menuItem atIndex:4];
+	[[NSApp mainMenu] insertItem:menuItem atIndex:5];
 	[soundMenu release];
 	[menuItem release];
 	// SOUND MENU END
@@ -559,7 +582,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 
 	menuItem = [[NSMenuItem alloc] initWithTitle:@"Control" action:nil keyEquivalent:@""];
 	[menuItem setSubmenu:controlMenu];
-	[[NSApp mainMenu] insertItem:menuItem atIndex:5];
+	[[NSApp mainMenu] insertItem:menuItem atIndex:6];
 	[controlMenu release];
 	[menuItem release];
 
@@ -569,7 +592,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 		[self createMenuItemInMenu:displayMenu withTitle:@"Inhibit" action:@selector(toggleInhibitDisplay:) tag:0];
 	menuItem = [[NSMenuItem alloc] initWithTitle:@"Display" action:nil keyEquivalent:@""];
 	[menuItem setSubmenu:displayMenu];
-	[[NSApp mainMenu] insertItem:menuItem atIndex:6];
+	[[NSApp mainMenu] insertItem:menuItem atIndex:7];
 	[displayMenu release];
 	[menuItem release];
 }

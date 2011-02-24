@@ -1,6 +1,6 @@
 # P-UAE
 #
-# 2010 Mustafa TUFAN
+# 2006-2011 Mustafa TUFAN
 #
 # this script cleans up various files so that we don't push unnecessary files to git..
 #
@@ -43,6 +43,7 @@ rm -rf src/gfx-curses/Makefile.in
 rm -rf src/gfx-sdl/Makefile.in
 rm -rf src/gfx-svga/Makefile.in
 rm -rf src/gfx-x11/Makefile.in
+rm -rf src/gfx-cocoa/Makefile.in
 rm -rf src/gui-beos/Makefile.in
 rm -rf src/gui-cocoa/Makefile.in
 rm -rf src/gui-gtk/Makefile.in
