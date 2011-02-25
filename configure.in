@@ -1968,6 +1968,7 @@ AC_CONFIG_FILES([Makefile
 		 src/od-beos/Makefile
 		 src/od-macosx/Makefile
 		 src/od-macosx/Info.plist
+		 src/od-macosx/Credits.rtf
 		 src/od-win32/Makefile
 		 src/td-none/Makefile
 		 src/td-amigaos/Makefile

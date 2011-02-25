@@ -28,8 +28,10 @@
 	<key>CFBundleName</key>
 	<string>@PACKAGE_NAME@</string>
 	<key>CFBundleShortVersionString</key>
-	<string>@VERSION@-@PACKAGE_COMMIT@</string>
-	<key>CFBundleVersion</key>
 	<string>@VERSION@</string>
+	<key>CFBundleVersion</key>
+	<string>@PACKAGE_COMMIT@</string>
+	<key>NSHumanReadableCopyright</key>
+	<string>(c) 2006-2011 Mustafa 'GnoStiC' Tufan</string>
 </dict>
 </plist>

@@ -68,6 +68,8 @@ rm -rf src/od-beos/Makefile.in
 rm -rf src/od-generic/Makefile.in
 rm -rf src/od-linux/Makefile.in
 rm -rf src/od-macosx/Makefile.in
+rm -rf src/od-macosx/Credits.rtf
+rm -rf src/od-macosx/Info.plist
 rm -rf src/od-win32/Makefile.in
 rm -rf src/sd-alsa/Makefile.in
 rm -rf src/sd-amigaos/Makefile.in

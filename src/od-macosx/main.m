@@ -126,9 +126,7 @@ in Tiger or later */
 
 -(void)performAbout:(id)sender
 {
-	NSDictionary *nfo;
-	nfo = (NSDictionary *) CFBundleGetInfoDictionary (CFBundleGetMainBundle ());
-	[NSApp orderFrontStandardAboutPanelWithOptions: nfo];
+	[NSApp orderFrontStandardAboutPanelWithOptions: nil];
 }
 
 static void setApplicationMenu (void)
@@ -144,7 +142,7 @@ static void setApplicationMenu (void)
 
     /* Add menu items */
     title = [@"About " stringByAppendingString:appName];
-    [appleMenu addItemWithTitle:title action:@selector(performAbout:) keyEquivalent:@""];
+    [appleMenu addItemWithTitle:title action:@selector(orderFrontStandardAboutPanel:) keyEquivalent:@""];
 
     [appleMenu addItem:[NSMenuItem separatorItem]];
 

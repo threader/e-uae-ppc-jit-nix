@@ -7,6 +7,6 @@ noinst_LIBRARIES = libosdep.a
 libosdep_a_SOURCES = main.m memory.c parser.c
 
 noinst_HEADERS = main.h memory.h hrtimer.h
-noinst_DATA = Info.plist.in puae.icns
+noinst_DATA = Info.plist.in puae.icns Credits.rtf.in
 
 EXTRA_DIST = puae.icns

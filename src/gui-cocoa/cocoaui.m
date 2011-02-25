@@ -193,7 +193,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 	NSString *menuTitle;
 
 	// Create a menu for manipulating the emulated amiga
-	NSMenu *vAmigaMenu = [[NSMenu alloc] initWithTitle:@"PUAE"];
+	NSMenu *vAmigaMenu = [[NSMenu alloc] initWithTitle:@"Machine"];
 	
 	[self createMenuItemInMenu:vAmigaMenu withTitle:@"Reset" action:@selector(resetAmiga:) tag:0];
 	[self createMenuItemInMenu:vAmigaMenu withTitle:@"Hard Reset" action:@selector(resetAmiga:) tag:1];
@@ -235,7 +235,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 	[self createMenuItemInMenu:vAmigaMenu withTitle:@"Select Cartridge ROM" action:@selector(selectCartridge:) tag:0];
 	[self createMenuItemInMenu:vAmigaMenu withTitle:@"Select Flash RAM" action:@selector(selectFlashRAM:) tag:0];
 
-	menuItem = [[NSMenuItem alloc] initWithTitle:@"PUAE" action:nil keyEquivalent:@""];
+	menuItem = [[NSMenuItem alloc] initWithTitle:@"Machine" action:nil keyEquivalent:@""];
 	[menuItem setSubmenu:vAmigaMenu];
 	[[NSApp mainMenu] insertItem:menuItem atIndex:1];
 	[menuItem release];
