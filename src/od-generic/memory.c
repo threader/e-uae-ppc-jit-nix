@@ -57,19 +57,24 @@ int maxmem;
  */
 uae_u8 *cache_alloc (int size)
 {
-   void *cache;
+	void *cache;
 
-   size = size < getpagesize() ? getpagesize() : size;
+	size = size < getpagesize() ? getpagesize() : size;
 
-	if ((cache = valloc (size)))
-		mprotect (cache, size, PROT_READ|PROT_WRITE|PROT_EXEC);
+	if ((cache = valloc (size))) {
+		if (mprotect (cache, size, PROT_READ|PROT_WRITE|PROT_EXEC)) {
+			write_log ("MProtect Cache of %d failed. ERR=%d\n", size, errno);
+		}
+	} else {
+		write_log ("Cache_Alloc of %d failed. ERR=%d\n", size, errno);
+	}
 
-   return cache;
+	return cache;
 }
 
 void cache_free (uae_u8 *cache)
 {
-    free (cache);
+	free (cache);
 }
 
 #ifdef NATMEM_OFFSET

@@ -86,6 +86,31 @@ rm -rf src/td-sdl/Makefile.in
 rm -rf src/td-win32/Makefile.in
 rm -rf src/test/Makefile.in
 
+# remove generated files, just in case
+# blitter
+rm -rf src/blit.h
+rm -rf src/blitfunc.c
+rm -rf src/blitfunc.h
+rm -rf src/blittable.c
+rm -rf src/linetoscr.c
+# cpu
+rm -rf src/cpudefs.c
+rm -rf src/cputbl.h
+rm -rf src/cpustbl.c
+rm -rf src/compemu.c
+rm -rf src/comptbl.h
+rm -rf src/compstbl.c
+rm -rf src/cpuemu_0.c
+rm -rf src/cpuemu_11.c
+rm -rf src/cpuemu_12.c
+rm -rf src/cpuemu_20.c
+rm -rf src/cpuemu_21.c
+rm -rf src/cpuemu_31.c
+# jit
+rm -rf src/compemu.cpp
+rm -rf src/compstbl.h
+rm -rf src/compstbl.cpp
+
 echo "=================================================="
 echo "Current Commit: "
 tail -1 .git/packed-refs | awk '{print $1}'

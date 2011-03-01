@@ -5394,6 +5394,8 @@ void alloc_cache(void)
 		max_compile_start=compiled_code+currprefs.cachesize*1024-BYTES_PER_INST;
 		current_compile_p=compiled_code;
 	}
+
+	write_log ("JIT: Allocated %d KB translation cache.\n", currprefs.cachesize);
 }
 
 static void calc_checksum(blockinfo* bi, uae_u32* c1, uae_u32* c2)

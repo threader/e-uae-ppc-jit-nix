@@ -1749,6 +1749,7 @@ dnl 64 bit?
 dnl //mtufan
 dnl
 is_64bit=no
+is_64bit=yes
 AC_MSG_CHECKING([whether CPU is 64bit])
 if [[ "$HOST_CPU" = amd64 ]]; then
 is_64bit=yes

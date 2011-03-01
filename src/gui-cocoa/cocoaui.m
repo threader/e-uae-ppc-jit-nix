@@ -73,6 +73,12 @@ static unsigned long memsizes[] = {
         /* 21*/ 0xC0000000, //3GB
 };
 
+static int quickstart_model = 0, quickstart_conf = 0, quickstart_compa = 1;
+static int quickstart_floppy = 1, quickstart_cd = 0, quickstart_ntsc = 0;
+static int quickstart_cdtype = 0;
+static char quickstart_cddrive[16];
+static int quickstart_ok, quickstart_ok_floppy;
+
 //----------
 
 #import <Cocoa/Cocoa.h>
@@ -207,17 +213,17 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 
 	// quick starts
 	NSMenu *quickstartMenu = [[NSMenu alloc] initWithTitle:@"QuickStart"];
-		[self createMenuItemInMenu:quickstartMenu withTitle:@"Amiga 500" action:@selector(QuickStart:) tag:500];
-		[self createMenuItemInMenu:quickstartMenu withTitle:@"Amiga 500+" action:@selector(QuickStart:) tag:501];
-		[self createMenuItemInMenu:quickstartMenu withTitle:@"Amiga 600" action:@selector(QuickStart:) tag:600];
-		[self createMenuItemInMenu:quickstartMenu withTitle:@"Amiga 1000" action:@selector(QuickStart:) tag:1000];
-		[self createMenuItemInMenu:quickstartMenu withTitle:@"Amiga 1200" action:@selector(QuickStart:) tag:1200];
-		[self createMenuItemInMenu:quickstartMenu withTitle:@"Amiga 3000" action:@selector(QuickStart:) tag:3000];
-		[self createMenuItemInMenu:quickstartMenu withTitle:@"Amiga 4000" action:@selector(QuickStart:) tag:4000];
-		[self createMenuItemInMenu:quickstartMenu withTitle:@"Amiga 4000T" action:@selector(QuickStart:) tag:4001];
-		[self createMenuItemInMenu:quickstartMenu withTitle:@"CD32" action:@selector(QuickStart:) tag:32];
-		[self createMenuItemInMenu:quickstartMenu withTitle:@"CDTV" action:@selector(QuickStart:) tag:33];
-		[self createMenuItemInMenu:quickstartMenu withTitle:@"Arcadia" action:@selector(QuickStart:) tag:34];
+		[self createMenuItemInMenu:quickstartMenu withTitle:@"Amiga 500" action:@selector(QuickStart:) tag:0];
+		[self createMenuItemInMenu:quickstartMenu withTitle:@"Amiga 500+" action:@selector(QuickStart:) tag:1];
+		[self createMenuItemInMenu:quickstartMenu withTitle:@"Amiga 600" action:@selector(QuickStart:) tag:2];
+		[self createMenuItemInMenu:quickstartMenu withTitle:@"Amiga 1000" action:@selector(QuickStart:) tag:3];
+		[self createMenuItemInMenu:quickstartMenu withTitle:@"Amiga 1200" action:@selector(QuickStart:) tag:4];
+		[self createMenuItemInMenu:quickstartMenu withTitle:@"Amiga 3000" action:@selector(QuickStart:) tag:5];
+		[self createMenuItemInMenu:quickstartMenu withTitle:@"Amiga 4000" action:@selector(QuickStart:) tag:6];
+		[self createMenuItemInMenu:quickstartMenu withTitle:@"Amiga 4000T" action:@selector(QuickStart:) tag:7];
+		[self createMenuItemInMenu:quickstartMenu withTitle:@"CD32" action:@selector(QuickStart:) tag:8];
+		[self createMenuItemInMenu:quickstartMenu withTitle:@"CDTV" action:@selector(QuickStart:) tag:9];
+		[self createMenuItemInMenu:quickstartMenu withTitle:@"Arcadia" action:@selector(QuickStart:) tag:10];
 	menuItem = [[NSMenuItem alloc] initWithTitle:@"QuickStart" action:nil keyEquivalent:@""];
 	[menuItem setSubmenu:quickstartMenu];
 	[vAmigaMenu addItem:menuItem];
@@ -1348,6 +1354,21 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 	save_state (sfile, "puae");
 	write_log ("done\n");
 }
+
+/*
+- (void)QuickStart:(id)sender
+{
+	unsigned int romcheck = 0;
+	quickstart_model = [((NSMenuItem*)sender) tag];
+	quickstart_conf = 0;
+	quickstart_compa = 0;
+
+	changed_prefs.nr_floppies = quickstart_floppy;
+	quickstart_ok = built_in_prefs (&changed_prefs, quickstart_model, quickstart_conf, quickstart_compa, romcheck);
+
+	uae_reset(0);
+}
+*/
 
 - (void)hebeHebe:(id)sender
 {

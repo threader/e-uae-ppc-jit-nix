@@ -3621,17 +3621,17 @@ void default_prefs (struct uae_prefs *p, int type)
 	p->sound_auto = 1;
 
 #ifdef JIT
-# ifdef NATMEM_OFFSET
+#ifdef NATMEM_OFFSET
 	p->comptrustbyte = 0;
 	p->comptrustword = 0;
 	p->comptrustlong = 0;
 	p->comptrustnaddr= 0;
-# else
-    p->comptrustbyte = 1;
-    p->comptrustword = 1;
-    p->comptrustlong = 1;
-    p->comptrustnaddr= 1;
-# endif
+#else
+	p->comptrustbyte = 1;
+	p->comptrustword = 1;
+	p->comptrustlong = 1;
+	p->comptrustnaddr= 1;
+#endif
 	p->compnf = 1;
 	p->comp_hardflush = 0;
 	p->comp_constjump = 1;
