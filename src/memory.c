@@ -2016,7 +2016,7 @@ static void add_shmmaps (uae_u32 start, addrbank *what)
 		return; // Nothing to do. There is no actual host memory attached to this bank.
 
 	x = find_shmpiece (base); // Find the block's current shmpiece node.
-    if (!x)
+	if (!x)
 		return;
 	y = xmalloc (shmpiece, 1); // Create another shmpiece node for the new mapping
 	*y = *x;
@@ -2024,7 +2024,7 @@ static void add_shmmaps (uae_u32 start, addrbank *what)
 	y->native_address = (uae_u8*)my_shmat (y->id, base, 0);
 	if (y->native_address == (void *) -1) {
 		write_log ("NATMEM: Failure to map id %d existing at %08x (%p):%d ", y->id, start, base, errno);
-			 if (errno == 12) write_log ("(Can't allocate memory)\n");
+		if (errno == 12) write_log ("(Can't allocate memory)\n");
 		else if (errno == 13) write_log ("(Permission denied)\n");
 		else if (errno == 22) write_log ("(Invalid argument)\n");
 		else if (errno == 24) write_log ("(Too many open files)\n");

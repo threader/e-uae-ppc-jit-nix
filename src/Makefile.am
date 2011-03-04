@@ -81,8 +81,10 @@ if BUILD_MACOSX_BUNDLE
 		rm -fr $(bundle)
 		mkdir -p $(bundle_contents)/MacOS
 		mkdir -p $(bundle_contents)/Resources
+		mkdir -p $(bundle_contents)/Frameworks
 		$(INSTALL_DATA) od-macosx/Info.plist $(bundle_contents)
 		$(INSTALL_PROGRAM) uae$(EXEEXT) $(bundle_contents)/MacOS/
+		cp -R /Library/Frameworks/SDL.framework $(bundle_contents)/Frameworks
 		$(INSTALL_DATA) $(srcdir)/od-macosx/puae.icns $(bundle_contents)/Resources/
 		$(INSTALL_DATA) $(srcdir)/od-macosx/Credits.rtf $(bundle_contents)/Resources/
 endif

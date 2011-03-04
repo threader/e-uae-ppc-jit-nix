@@ -258,7 +258,7 @@ restart:
 			rtgbarrier = 0;
 			rtgextra = 0;
 		}
-		size = natmemsize + rtgbarrier + currprefs.gfxmem_size + rtgextra + 16 * getpagesize();
+		size = natmemsize + rtgbarrier + z3chipbarrier + currprefs.gfxmem_size + rtgextra + 16 * getpagesize();
 		blah = (uae_u8*)valloc (size);
 		mprotect (blah, size, PROT_READ|PROT_WRITE|PROT_EXEC);
 		if (blah) {
@@ -505,8 +505,9 @@ void *my_shmat (int shmid, void *shmaddr, int shmflg)
 		shmids[shmid].mode = 0;
 		shmids[shmid].natmembase = natmem_offset;
 		write_log ("SHMAddr %s %p = %p - %p\n", shmids[shmid].name, (uae_u8*)shmaddr-natmem_offset, shmaddr, natmem_offset);
-//		if (shmaddr)
-//			free (shmaddr);
+//here
+		if (shmaddr)
+			free (shmaddr);
 		result = valloc (/*shmaddr,*/ size);
 		if (result == NULL) {
 			result = (void*)-1;
