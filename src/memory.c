@@ -1767,6 +1767,35 @@ static void patch_kick (void)
 		kickstart_fix_checksum (kickmemory, kickmem_size);
 }
 
+extern unsigned char arosrom[];
+extern unsigned int arosrom_len;
+extern int seriallog;
+static bool load_kickstart_replacement (void)
+{
+	struct zfile *f;
+	
+	f = zfile_fopen_data ("aros.gz", arosrom_len, arosrom);
+	if (!f)
+		return false;
+	f = zfile_gunzip (f);
+	if (!f)
+		return false;
+	kickmem_mask = 0x80000 - 1;
+	kickmem_size = 0x80000;
+	extendedkickmem_size = 0x80000;
+	extendedkickmem_type = EXTENDED_ROM_KS;
+	extendedkickmemory = mapped_malloc (extendedkickmem_size, "rom_e0");
+	extendedkickmem_bank.baseaddr = extendedkickmemory;
+	read_kickstart (f, extendedkickmemory, extendedkickmem_size, 0, 1);
+	extendedkickmem_mask = extendedkickmem_size - 1;
+	read_kickstart (f, kickmemory, 0x80000, 1, 0);
+	zfile_fclose (f);
+#ifdef SERIAL_PORT
+	seriallog = -1;
+#endif
+	return true;
+}
+
 static int load_kickstart (void)
 {
 	struct zfile *f;
@@ -1774,6 +1803,8 @@ static int load_kickstart (void)
 	int patched = 0;
 
 	cloanto_rom = 0;
+	if (!_tcscmp (currprefs.romfile, ":AROS"))
+		return load_kickstart_replacement ();
 	f = read_rom_name (currprefs.romfile);
 	_tcscpy (tmprom, currprefs.romfile);
 	if (f == NULL) {
@@ -2458,16 +2489,7 @@ void memory_reset (void)
 				write_log ("Failed to open '%s'\n", currprefs.romfile);
 				gui_message ("Could not load system ROM, trying system ROM replacement.\n");
 			}
-#ifdef AUTOCONFIG
-			init_ersatz_rom (kickmemory);
-			kickmem_mask = 262144 - 1;
-			kickmem_size = 262144;
-			ersatzkickfile = 1;
-#else
-			gui_message ("No Kickstart image selected\n");
-			uae_restart (-1, NULL);
-			return;
-#endif
+			load_kickstart_replacement ();
 		} else {
 			struct romdata *rd = getromdatabydata (kickmemory, kickmem_size);
 			if (rd) {

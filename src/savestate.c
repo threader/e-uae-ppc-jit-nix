@@ -505,6 +505,7 @@ void restore_state (const TCHAR *filename)
 
 	chunk = restore_chunk (f, name, &len, &totallen, &filepos);
 	if (!chunk || _tcsncmp (name, "ASF ", 4)) {
+		write_log ("%s is not an AmigaStateFile\n", filename);
 		gui_message ("Cannot restore state from '%s'.\nIt is not an AmigaStateFile.\n", filename);
 		goto error;
 	}
@@ -739,6 +740,7 @@ void savestate_restore_finish (void)
 	restore_a2065_finish ();
 #endif
 	restore_cia_finish ();
+	restore_debug_memwatch_finish ();
 	savestate_state = 0;
 	init_hz_full ();
 	audio_activate ();

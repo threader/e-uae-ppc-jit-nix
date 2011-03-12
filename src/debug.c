@@ -34,6 +34,7 @@
 #include "crc32.h"
 #include "cpummu.h"
 #include "rommgr.h"
+#include "inputrecord.h"
 
 int debugger_active;
 static uaecptr skipaddr_start, skipaddr_end;
@@ -1019,6 +1020,8 @@ static void decode_dma_record (int hpos, int vpos, int toggle, bool logfile)
 }
 void log_dma_record (void)
 {
+	if (!input_record && !input_play)
+		return;
 	if (!debug_dma)
 		debug_dma = 1;
 	decode_dma_record (0, 0, 0, true);
@@ -1744,6 +1747,20 @@ uae_u8 *restore_debug_memwatch (uae_u8 *src)
 	return src;
 }
 
+void restore_debug_memwatch_finish (void)
+{
+	unsigned int i;
+
+	for (i = 0; i < MEMWATCH_TOTAL; i++) {
+		struct memwatch_node *m = &mwnodes[i];
+		if (m->size) {
+			if (!memwatch_enabled)
+				initialize_memwatch (0);
+			return;
+		}
+	}
+}
+
 static int memwatch_func (uaecptr addr, int rwi, int size, uae_u32 *valp)
 {
 	int i, brk;
@@ -1790,18 +1807,21 @@ static int memwatch_func (uaecptr addr, int rwi, int size, uae_u32 *valp)
 		if (!m->frozen && m->val_enabled) {
 			int trigger = 0;
 			uae_u32 mask = (1 << (m->size * 8)) - 1;
+			uae_u32 mval = m->val;
 			int scnt = size;
 			for (;;) {
-				if (((m->val & mask) & m->val_mask) == ((val & mask) & m->val_mask))
+				if (((mval & mask) & m->val_mask) == ((val & mask) & m->val_mask))
 					trigger = 1;
 				if (mask & 0x80000000)
 					break;
 				if (m->size == 1) {
 					mask <<= 8;
+					mval <<= 8;
 					scnt--;
 				} else if (m->size == 2) {
 					mask <<= 16;
 					scnt -= 2;
+					mval <<= 16;
 				}
 				if (scnt <= 0)
 					break;

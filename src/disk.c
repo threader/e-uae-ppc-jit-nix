@@ -2645,6 +2645,7 @@ static void disk_dmafinished (void)
 	INTREQ (0x8000 | 0x0002);
 	longwritemode = 0;
 	dskdmaen = 0;
+	dsklength = 0;
 	if (disk_debug_logging > 0) {
 		unsigned int dr;
 		int mfmpos = -1;
@@ -2682,8 +2683,6 @@ void DISK_handler (uae_u32 data)
 	int hpos = current_hpos ();
 
 	event2_remevent (ev2_disk);
-	if (disk_sync_cycle >= maxhpos)
-		return;
 	DISK_update (disk_sync_cycle);
 	if (flag & (DISK_REVOLUTION << 0))
 		fetchnextrevolution (&floppy[0]);
@@ -2804,7 +2803,7 @@ static void disk_doupdate_predict (int startcycle)
 			continue;
 		int diskevent_flag = 0;
 		uae_u32 tword = word;
-		int countcycle = startcycle;
+		int countcycle = startcycle + (drv->floppybitcounter % drv->trackspeed);
 		int mfmpos = drv->mfmpos;
 		int indexhack = drv->indexhack;
 		while (countcycle < (maxhpos << 8)) {
@@ -2872,6 +2871,11 @@ static bool doreaddma (void)
 {
 	if (dmaen (DMA_DISK) && bitoffset == 15 && dma_enable && dskdmaen == 2 && dsklength >= 0) {
 		if (dsklength > 0) {
+			// DSKLEN == 1: finish without DMA transfer.
+			if (dsklength == 1 && dsklength2 == 1) {
+				disk_dmafinished ();
+				return false;
+			}
 			// fast disk modes, just flush the fifo
 			if (currprefs.floppy_speed > 100 && fifo_inuse[0] && fifo_inuse[1] && fifo_inuse[2]) {
 				while (fifo_inuse[0]) {
@@ -2882,9 +2886,6 @@ static bool doreaddma (void)
 			}
 			DSKDAT (word);
 			dsklength--;
-		} else if (dsklength == 0 && disk_fifostatus () < 0) {
-			// zero length transfer wouldn't finish without this
-			disk_dmafinished ();
 		}
 		return true;
 	}
@@ -3125,6 +3126,10 @@ void DISK_update (unsigned int tohpos)
 		disk_doupdate_read_nothing (cycles);
 	}
 
+	/* instantly finish dma if dsklen==0 and wordsync detected */
+	if (dskdmaen && dma_enable && dsklength2 == 0 && dsklength == 0)
+		disk_dmafinished ();
+
 	disk_doupdate_predict (disk_hpos);
 }
 
@@ -3143,6 +3148,7 @@ void DSKLEN (uae_u16 v, unsigned int hpos)
 			dma_enable = (adkcon & 0x400) ? 0 : 1;
 	}
 	if (!(v & 0x8000)) {
+		dma_enable = 0;
 		if (dskdmaen) {
 			/* Megalomania and Knightmare does this */
 			if (disk_debug_logging > 0 && dskdmaen == 2)
@@ -3166,6 +3172,11 @@ void DSKLEN (uae_u16 v, unsigned int hpos)
 	if (dskdmaen == 0)
 		return;
 
+	if (dsklength == 0 && dma_enable) {
+		disk_dmafinished ();
+		return;
+	}
+
 	if ((v & 0x4000) && (prev & 0x4000)) {
 		if (dsklength == 0)
 			return;
@@ -3176,9 +3187,6 @@ void DSKLEN (uae_u16 v, unsigned int hpos)
 		dskdmaen = 3;
 		DISK_start ();
 	}
-
-	if (dsklength == 1)
-		dsklength = 0;
 
 #ifdef DEBUGGER
 	if (((disk_debug_mode & DISK_DEBUG_DMA_READ) && dskdmaen == 2) ||
