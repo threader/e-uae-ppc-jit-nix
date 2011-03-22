@@ -76,8 +76,6 @@ static void nocanbang (void)
 	canbang = 0;
 }
 
-bool ersatzkickfile;
-
 uae_u32 allocated_chipmem;
 uae_u32 allocated_fastmem;
 uae_u32 allocated_bogomem;
@@ -2464,9 +2462,8 @@ void memory_reset (void)
 	if (_tcscmp (currprefs.romfile, changed_prefs.romfile) != 0
 		|| _tcscmp (currprefs.romextfile, changed_prefs.romextfile) != 0)
 	{
-		write_log ("ROM loader..\n");
+		write_log ("ROM loader.. (%s)\n", currprefs.romfile);
 		kickstart_rom = 1;
-		ersatzkickfile = 0;
 		a1000_handle_kickstart (0);
 		xfree (a1000_bootrom);
 		a1000_bootrom = 0;

@@ -35,6 +35,9 @@ static int delayed[MAX_TOTAL_SCSI_DEVICES];
 static uae_sem_t unitsem[MAX_TOTAL_SCSI_DEVICES];
 static int unitsem_cnt[MAX_TOTAL_SCSI_DEVICES];
 
+static int play_end_pos[MAX_TOTAL_SCSI_DEVICES];
+static uae_u8 play_qcode[MAX_TOTAL_SCSI_DEVICES][SUBQ_SIZE];
+
 static TCHAR newimagefiles[MAX_TOTAL_SCSI_DEVICES][256];
 static int imagechangetime[MAX_TOTAL_SCSI_DEVICES];
 static bool cdimagefileinuse[MAX_TOTAL_SCSI_DEVICES], wasopen[MAX_TOTAL_SCSI_DEVICES];
@@ -674,6 +677,7 @@ int sys_command_cd_play (int unitnum, int startlsn, int endlsn, int scan)
 		return 0;
 	if (!getsem (unitnum))
 		return 0;
+	play_end_pos[unitnum] = endlsn;
 	if (device_func[unitnum]->play == NULL) {
 		uae_u8 cmd[12] = {0,0,0,0,0,0,0,0,0,0,0,0};
 		int startmsf = lsn2msf (startlsn);
@@ -1812,6 +1816,7 @@ uae_u8 *save_cd (int num, int *len)
 	unsigned int i;
 	uae_u8 *dstbak, *dst;
 
+	memset(play_qcode[num], 0, SUBQ_SIZE);
 	if (!currprefs.cdslots[num].inuse || num >= MAX_TOTAL_SCSI_DEVICES)
 		return NULL;
 #ifdef CD32
@@ -1819,10 +1824,15 @@ uae_u8 *save_cd (int num, int *len)
 		return NULL;
 #endif
 	dstbak = dst = xmalloc (uae_u8, 4 + 256 + 4 + 4);
-	save_u32 (4);
+	save_u32 (4 | 8);
 	save_path (currprefs.cdslots[num].name, SAVESTATE_PATH_CD);
 	save_u32 (currprefs.cdslots[num].type);
 	save_u32 (0);
+	save_u32 (0);
+	sys_command_cd_qcode (num, play_qcode[num]);
+	for (i = 0; i < SUBQ_SIZE; i++)
+		save_u8 (play_qcode[num][i]);
+	save_u32 (play_end_pos[num]);
 	*len = dst - dstbak;
 	return dstbak;
 }
@@ -1834,6 +1844,8 @@ uae_u8 *restore_cd (int num, uae_u8 *src)
 
 	if (num >= MAX_TOTAL_SCSI_DEVICES)
 		return NULL;
+	unsigned int i;
+
 	flags = restore_u32 ();
 	s = restore_path (SAVESTATE_PATH_CD);
 	int type = restore_u32 ();
@@ -1842,6 +1854,12 @@ uae_u8 *restore_cd (int num, uae_u8 *src)
 		_tcscpy (changed_prefs.cdslots[num].name, s);
 		_tcscpy (currprefs.cdslots[num].name, s);
 		changed_prefs.cdslots[num].type = currprefs.cdslots[num].type = type;
+	}
+	if (flags & 8) {
+		restore_u32 ();
+		for (i = 0; i < SUBQ_SIZE; i++)
+			play_qcode[num][i] = restore_u8 ();
+		play_end_pos[num] = restore_u32 ();
 	}
 	return src;
 }

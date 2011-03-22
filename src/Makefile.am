@@ -111,7 +111,7 @@ noinst_HEADERS = \
 	include/dongle.h	include/a2065.h		\
 	include/gayle.h		include/a2091.h		include/ncr_scsi.h	\
 	include/drawing.h 	include/driveclick.h	\
-	include/enforcer.h	include/ersatz.h	\
+	include/enforcer.h	\
 	include/events.h 	include/events_jit.h 	include/events_normal.h \
 	include/execlib.h 	\
 	include/fdi2raw.h	include/filesys.h	\
@@ -154,7 +154,7 @@ EXTRA_DIST = \
 
 uae_SOURCES = \
 	main.c newcpu.c memory.c rommgr.c custom.c serial.c dongle.c cia.c \
-	blitter.c autoconf.c traps.c ersatz.c keybuf.c expansion.c inputrecord.c \
+	blitter.c autoconf.c traps.c keybuf.c expansion.c inputrecord.c \
 	diskutil.c zfile.c zfile_archive.c cfgfile.c picasso96.c inputdevice.c \
 	gfxutil.c audio.c sinctable.c statusline.c drawing.c consolehook.c \
 	native2amiga.c disk.c crc32.c savestate.c arcadia.c cdtv.c cd32_fmv.c \

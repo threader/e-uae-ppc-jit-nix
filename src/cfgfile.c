@@ -1248,7 +1248,7 @@ static int cfgfile_parse_host (struct uae_prefs *p, TCHAR *option, TCHAR *value)
 			/* We special case the various path options here.  */
 			if (cfgfile_multipath (option, value, "rom_path", &p->path_rom)
 				|| cfgfile_multipath (option, value, "floppy_path", &p->path_floppy)
-				|| cfgfile_multipath (option, value, "cd_path", &p->path_floppy)
+				|| cfgfile_multipath (option, value, "cd_path", &p->path_cd)
 				|| cfgfile_multipath (option, value, "hardfile_path", &p->path_hardfile))
 				return 1;
 			return target_parse_option (p, option, value);
