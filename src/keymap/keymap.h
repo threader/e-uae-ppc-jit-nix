@@ -4,6 +4,7 @@
  * Support for platform-independent key-mapping
  *
  * Copyright 2004 Richard Drummond
+ *           2010-2011 Mustafa Tufan
  */
 
 

@@ -4,6 +4,7 @@
  * Support for platform-independent key-mapping
  *
  * Copyright 2004 Richard Drummond
+ *           2010-2011 Mustafa Tufan
  */
 
 #include "sysconfig.h"
@@ -328,17 +329,17 @@ struct uae_input_device_kbr_default *uaekey_make_default_kbr (const struct uaeke
 	if (i == 256)
 		abort ();
 
-    count = i;
+	count = i;
 
-    trans = (struct uae_input_device_kbr_default*) malloc (sizeof (struct uae_input_device_kbr_default) * (count + 1));
+	trans = (struct uae_input_device_kbr_default*) malloc (sizeof (struct uae_input_device_kbr_default) * (count + 1));
 
-    if (trans) {
+	if (trans) {
 		for (i = 0; i < count; i++) {
-		    trans[i].scancode	= hostkeys[i].hostkey;
-		    trans[i].evt	= default_keymap[hostkeys[i].uaekey];
+			trans[i].scancode	= hostkeys[i].hostkey;
+			trans[i].evt		= default_keymap[hostkeys[i].uaekey];
 		}
 		trans[i].scancode = -1;
-    }
+	}
 
-    return trans;
+	return trans;
 };

@@ -929,15 +929,18 @@ void debugger_change (int mode)
 //        regsetint (NULL, "DebuggerType", debugger_type);
         openconsole ();
 }
+
 // unicode
 char *ua (const TCHAR *s)
 {
 	return s;
 }
+
 char *uutf8 (const char *s)
 {
 	return s;
 }
+
 char *utf8u (const char *s)
 {
 	return s;
@@ -1062,16 +1065,16 @@ void my_kbd_handler (int keyboard, int scancode, int newstate)
                 scancode = scancode_new;
 #endif
 
-//	 write_log ("kbd1 = %d, scancode = %d (0x%02x), state = %d\n", keyboard, scancode, scancode, newstate);
+	write_log ("kbd= %d, sc_new= %d, scancode= %d (0x%02x), state= %d\n", keyboard, scancode_new, scancode, scancode, newstate);
 
-        if (newstate == 0 && code == 0) {
-                switch (scancode)
-                {
+	if (newstate == 0 && code == 0) {
+		switch (scancode)
+		{
                         case DIK_SYSRQ:
                         screenshot (specialpressed () ? 1 : 0, 1);
                         break;
-                }
-        }
+		}
+	}
 
         if (newstate && code == 0) {
                 if (scancode == DIK_F12 /*|| scancode == currprefs.win32_guikey*/) {

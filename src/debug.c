@@ -131,8 +131,8 @@ static const TCHAR help[] = {
 	"  Cl                    List currently found trainer addresses\n"
 	"  D[idxzs <[max diff]>] Deep trainer. i=new value must be larger, d=smaller,\n"
 	"                        x = must be same, z = must be different, s = restart.\n"
-	"  W <address> <value>   Write into Amiga memory\n"
-	"  w <num> <address> <length> <R/W/I/F/C> [<value>] (read/write/opcode/freeze/mustchange)\n"
+	"  W <address> <value[.x]> Write into Amiga memory\n"
+	"  w <num> <address> <length> <R/W/I/F/C> [<value[.x]>] (read/write/opcode/freeze/mustchange)\n"
 	"                        Add/remove memory watchpoints\n"
 	"  wd [<0-1>]            Enable illegal access logger. 1 = enable break.\n"
 	"  S <file> <addr> <n>   Save a block of Amiga memory\n"
@@ -1784,6 +1784,8 @@ static int memwatch_func (uaecptr addr, int rwi, int size, uae_u32 *valp)
 			continue;
 		if (!(rwi & rwi2))
 			continue;
+		if (addr == 0x100)
+			write_log("*\n");
 		if (addr >= addr2 && addr < addr3)
 			brk = 1;
 		if (!brk && size == 2 && (addr + 1 >= addr2 && addr + 1 < addr3))
@@ -1848,16 +1850,29 @@ static int memwatch_func (uaecptr addr, int rwi, int size, uae_u32 *valp)
 		}
 		if (m->frozen) {
 			if (m->val_enabled) {
-				int shift = addr - m->addr;
-				int max = 0;
-				if (m->val_size == 2) {
-					max = 1;
-					shift = 1 - ((addr - m->addr) & 1);
-				} else if (m->val_size == 4) {
-					max = 3;
-					shift = 3 - ((addr - m->addr) & 3);
+				int shift = (addr + size - 1) - (m->addr + m->val_size - 1);
+				uae_u32 sval;
+				uae_u32 mask;
+
+				if (m->val_size == 4)
+					mask = 0xffffffff;
+				else if (m->val_size == 2)
+					mask = 0x0000ffff;
+				else
+					mask = 0x000000ff;
+
+				sval = m->val;
+				if (shift < 0) {
+					shift = -8 * shift;
+					sval >>= shift;
+					mask >>= shift;
+				} else {
+					shift = 8 * shift;
+					sval <<= shift;
+					mask <<= shift;
 				}
-				*valp = m->val >> ((max - shift) * 8);
+				*valp = (sval & mask) | ((*valp) & ~mask);
+				write_log ("%p %p %08x %08x %d\n", addr, m->addr, *valp, mask, shift);
 				return 1;
 			}
 			return 0;
