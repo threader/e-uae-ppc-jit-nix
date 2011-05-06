@@ -1,1 +1,1 @@
-../blitops.c
+./../blitops.c

@@ -1,1 +1,1 @@
-../gencpu.c
+./../gencpu.c

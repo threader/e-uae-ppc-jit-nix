@@ -1,1 +1,1 @@
-../readcpu.c
+./../readcpu.c

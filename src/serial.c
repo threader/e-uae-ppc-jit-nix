@@ -84,7 +84,6 @@ int sd = -1;
 #endif
 
 uae_u16 serper=0,serdat;
-int seriallog = 0, log_sercon = 0;
 
 void SERPER (uae_u16 w)
 {

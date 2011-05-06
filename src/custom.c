@@ -170,12 +170,13 @@ int hsyncendpos, hsyncstartpos;
 static int maxvpos_total = 511;
 int minfirstline = VBLANK_ENDLINE_PAL;
 int equ_vblank_endline = EQU_ENDLINE_PAL;
-int vblank_hz = VBLANK_HZ_PAL, fake_vblank_hz, vblank_skip, doublescan;
+double vblank_hz = VBLANK_HZ_PAL, fake_vblank_hz, vblank_hz_stored;
+int vblank_skip, doublescan;
 frame_time_t syncbase;
 static int fmode;
 uae_u16 beamcon0, new_beamcon0;
 uae_u16 vtotal = MAXVPOS_PAL, htotal = MAXHPOS_PAL;
-static int maxvpos_stored, maxhpos_stored, vblank_hz_stored;
+static int maxvpos_stored, maxhpos_stored;
 static uae_u16 hsstop, hbstrt, hbstop, vsstop, vbstrt, vbstop, hsstrt, vsstrt, hcenter;
 static int ciavsyncmode;
 static int diw_hstrt, diw_hstop;
@@ -246,7 +247,7 @@ enum diw_states
 	DIW_waiting_start, DIW_waiting_stop
 };
 
-static int plffirstline, plflastline;
+int plffirstline, plflastline;
 int plffirstline_total, plflastline_total;
 static int autoscale_bordercolors;
 static int plfstrt_start, plfstrt, plfstop;
@@ -2686,7 +2687,7 @@ int vsynctime_orig;
 void compute_vsynctime (void)
 {
 	fake_vblank_hz = 0;
-	if (currprefs.chipset_refreshrate) {
+	if (abs (currprefs.chipset_refreshrate) > 0.1) {
 		vblank_hz = currprefs.chipset_refreshrate;
 		if (isvsync ()) {
 			vblank_skip = 1;
@@ -2737,7 +2738,7 @@ void init_hz (bool fullinit)
 {
 	int isntsc;
 	int odbl = doublescan, omaxvpos = maxvpos;
-	int ovblank = vblank_hz;
+	double ovblank = vblank_hz;
 	int hzc = 0;
 
 	if (fullinit)
@@ -2746,9 +2747,9 @@ void init_hz (bool fullinit)
 	if (vsync_switchmode (-1, 0))
 		currprefs.gfx_avsync = changed_prefs.gfx_avsync = vsync_switchmode (-1, 0) ? 2 : 0;
 
-	if (!isvsync () && ((currprefs.chipset_refreshrate == 50 && !currprefs.ntscmode) ||
-		(currprefs.chipset_refreshrate == 60 && currprefs.ntscmode))) {
-			currprefs.chipset_refreshrate = changed_prefs.chipset_refreshrate = 0;
+	if (!isvsync () && (DBLEQU (currprefs.chipset_refreshrate, 50) && !currprefs.ntscmode) ||
+		(DBLEQU (currprefs.chipset_refreshrate, 60) && currprefs.ntscmode)) {
+			currprefs.chipset_refreshrate = changed_prefs.chipset_refreshrate = 0.0;
 	}
 
 	doublescan = 0;
@@ -2782,7 +2783,7 @@ void init_hz (bool fullinit)
 		// we come here if vpos_count != maxvpos (someone poked VPOSW)
 		if (vpos_count < 10)
 			vpos_count = 10;
-		vblank_hz = (15600 + vpos_count - 1) / vpos_count;
+		vblank_hz = (isntsc ? 15734 : 15625.0) / vpos_count;
 		maxvpos_nom = vpos_count - (lof_current ? 1 : 0);
 		reset_drawing ();
 	}
@@ -2794,7 +2795,7 @@ void init_hz (bool fullinit)
 		if (htotal >= MAXHPOS)
 			htotal = MAXHPOS - 1;
 		maxhpos = htotal + 1;
-		vblank_hz = 227 * 312 * 50 / (maxvpos * maxhpos);
+		vblank_hz = 227.0 * 312.0 * 50.0 / (maxvpos * maxhpos);
 		minfirstline = vsstop;
 		if (minfirstline < 2)
 			minfirstline = 2;
@@ -2839,7 +2840,7 @@ void init_hz (bool fullinit)
 		interlace_seen = (bplcon0 & 4) ? 1 : 0;
 		reset_drawing ();
 	}
-	if ((vblank_hz == 50 || vblank_hz == 60) && isvsync () == 2) {
+	if ((DBLEQU (vblank_hz, 50) || DBLEQU (vblank_hz, 60)) && isvsync () == 2) {
 		if (getvsyncrate (currprefs.gfx_refreshrate) != vblank_hz)
 			vsync_switchmode (vblank_hz, currprefs.gfx_refreshrate);
 	}
@@ -2869,7 +2870,7 @@ void init_hz (bool fullinit)
 	}
 
 	//inputdevice_tablet_strobe ();
-	write_log ("%s mode%s%s V=%dHz H=%dHz (%dx%d+%d)\n",
+	write_log ("%s mode%s%s V=%.4fHz H=%0.4fHz (%dx%d+%d)\n",
 		isntsc ? "NTSC" : "PAL",
 		(bplcon0 & 4) ? " interlaced" : "",
 		doublescan > 0 ? " dblscan" : "",

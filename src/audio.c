@@ -1144,11 +1144,11 @@ extern unsigned int have_sound;
 extern float sampler_evtime;
 #endif
 
-void update_sound (int freq, int longframe, int linetoggle)
+void update_sound (double freq, int longframe, int linetoggle)
 {
 	static int lastfreq;
-	float lines = 0;
-	float hpos;
+	double lines = 0;
+	double hpos;
 
 	if (freq < 0)
 		freq = lastfreq;
@@ -1169,7 +1169,7 @@ void update_sound (int freq, int longframe, int linetoggle)
 	}
 	lines += maxvpos_nom;
 
-	scaled_sample_evtime = hpos * lines * freq * CYCLE_UNIT / (float)obtainedfreq;
+	scaled_sample_evtime = hpos * lines * freq * CYCLE_UNIT / (double)obtainedfreq;
 #ifdef SAMPLER
 	sampler_evtime = hpos * lines * freq * CYCLE_UNIT;
 #endif

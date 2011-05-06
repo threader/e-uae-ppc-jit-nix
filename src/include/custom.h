@@ -112,7 +112,8 @@ extern int maxhpos, maxhpos_short;
 extern int maxvpos, maxvpos_nom;
 extern int hsyncstartpos;
 extern int minfirstline, vblank_endline, numscrlines;
-extern int vblank_hz, fake_vblank_hz, vblank_skip, doublescan;
+extern double vblank_hz, fake_vblank_hz;
+extern int vblank_skip, doublescan;
 extern frame_time_t syncbase;
 
 #define DMA_AUD0      0x0001
@@ -137,6 +138,8 @@ extern frame_time_t syncbase;
 #define CYCLE_CPUNASTY	0x80
 
 extern unsigned long frametime, timeframes;
+extern int plffirstline, plflastline;
+//plfstrt, plfstop, ;
 extern uae_u16 htotal, vtotal, beamcon0;
 
 /* 100 words give you 1600 horizontal pixels. Should be more than enough for

@@ -1,1 +1,1 @@
-../genblitter.c
+./../genblitter.c

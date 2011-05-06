@@ -72,6 +72,7 @@ struct jport {
 #define JPORT_CUSTOM -2
 #define JPORT_AF_NORMAL 1
 #define JPORT_AF_TOGGLE 2
+#define JPORT_AF_ALWAYS 3
 
 #define MAX_SPARE_DRIVES 20
 #define MAX_CUSTOM_MEMORY_ADDRS 2
@@ -157,6 +158,7 @@ struct uae_prefs {
 	bool serial_demand;
 	bool serial_hwctsrts;
 	bool serial_direct;
+	int serial_stopbits;
 	bool parallel_demand;
 	int parallel_matrix_emulation;
 	bool parallel_postscript_emulation;
@@ -256,10 +258,11 @@ struct uae_prefs {
 	int gfx_filter_autoscale;
 
 	bool immediate_blits;
+	bool waiting_blits;
 	unsigned int chipset_mask;
 	bool ntscmode;
 	bool genlock;
-	int chipset_refreshrate;
+	double chipset_refreshrate;
 	int collision_level;
 	int leds_on_screen;
 	struct wh osd_pos;

@@ -389,6 +389,8 @@ extern void xfree (const void*);
 
 #endif
 
+#define DBLEQU(f, i) (abs ((f) - (i)) < 0.000001)
+
 #define TCHAR char
 #define REGPARAM3
 #define uae_char char

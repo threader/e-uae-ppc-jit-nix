@@ -360,138 +360,9 @@ static int decode_tr (int keysym)
     }
 }
 
-int sdlk2dik (int keysym) {
-    switch (keysym) {
-	case SDLK_ESCAPE: 	return DIK_ESCAPE;
-//
-	case SDLK_1:		return DIK_1;
-	case SDLK_2:		return DIK_2;
-	case SDLK_3:		return DIK_3;
-	case SDLK_4:		return DIK_4;
-	case SDLK_5:		return DIK_5;
-	case SDLK_6:		return DIK_6;
-	case SDLK_7:		return DIK_7;
-	case SDLK_8:		return DIK_8;
-	case SDLK_9:		return DIK_9;
-	case SDLK_0:		return DIK_0;
-	case SDLK_MINUS:	return DIK_MINUS;	//?*
-	case SDLK_EQUALS:	return DIK_EQUALS;	//-_
-	case SDLK_BACKSPACE:	return DIK_BACK;
-//
-	case SDLK_TAB: 		return DIK_TAB;
-	case SDLK_q:		return DIK_Q;
-	case SDLK_w:		return DIK_W;
-	case SDLK_e:		return DIK_E;
-	case SDLK_r:		return DIK_R;
-	case SDLK_t:		return DIK_T;
-	case SDLK_y:		return DIK_Y;
-	case SDLK_u:		return DIK_U;
-	case SDLK_i:		return DIK_I;
-	case SDLK_o:		return DIK_O;
-	case SDLK_p:		return DIK_P;
-	case SDLK_LEFTBRACKET:	return DIK_LBRACKET;	//tr kbd g
-	case SDLK_RIGHTBRACKET:	return DIK_RBRACKET;	//tr kbd u
+/*
 
-	case SDLK_RETURN: 	return DIK_RETURN;
-	case SDLK_LCTRL: 	return DIK_LCONTROL;
-//
-	case SDLK_a:		return DIK_A;
-	case SDLK_s:		return DIK_S;
-	case SDLK_d:		return DIK_D;
-	case SDLK_f:		return DIK_F;
-	case SDLK_g:		return DIK_G;
-	case SDLK_h:		return DIK_H;
-	case SDLK_j:		return DIK_J;
-	case SDLK_k:		return DIK_K;
-	case SDLK_l:		return DIK_L;
-
-	case SDLK_SEMICOLON:	return DIK_SEMICOLON;	//tr kbd s
-	case SDLK_QUOTE:	return DIK_APOSTROPHE;	//tr kbd i
-//	case SDLK_		return DIK_GRAVE;	//tr kdb ;,
-	case SDLK_LSHIFT: 	return DIK_LSHIFT;
-//
-	case SDLK_z:		return DIK_Z;
-	case SDLK_x:		return DIK_X;
-	case SDLK_c:		return DIK_C;
-	case SDLK_v:		return DIK_V;
-	case SDLK_b:		return DIK_B;
-	case SDLK_n:		return DIK_N;
-	case SDLK_m:		return DIK_M;
-
-	case SDLK_COMMA:	return DIK_COMMA;	//tr kbd o
-	case SDLK_PERIOD:	return DIK_PERIOD;	//tr kbd c
-	case SDLK_SLASH:	return DIK_SLASH;	//tr kbd .
-	case SDLK_RSHIFT: 	return DIK_RSHIFT;
-	case SDLK_SPACE: 	return DIK_SPACE;
-//
-	case SDLK_F1: 		return DIK_F1;
-	case SDLK_F2: 		return DIK_F2;
-	case SDLK_F3: 		return DIK_F3;
-	case SDLK_F4: 		return DIK_F4;
-	case SDLK_F5: 		return DIK_F5;
-	case SDLK_F6: 		return DIK_F6;
-	case SDLK_F7: 		return DIK_F7;
-	case SDLK_F8: 		return DIK_F8;
-	case SDLK_F9: 		return DIK_F9;
-	case SDLK_F10: 		return DIK_F10;
-	case SDLK_F11: 		return DIK_F11;
-	case SDLK_F12: 		return DIK_F12;
-	case SDLK_F13: 		return DIK_F13;
-	case SDLK_F14: 		return DIK_F14;
-	case SDLK_F15: 		return DIK_F15;
-	case SDLK_NUMLOCK:	return DIK_NUMLOCK;
-//	case SDLK_CAPSLOCK:	return DIK_CAPSLOCK;
-	case SDLK_CAPSLOCK:	return DIK_CAPITAL;
-	case SDLK_SCROLLOCK:	return DIK_SCROLL;
-//
-	case SDLK_KP7:		return DIK_NUMPAD7;
-	case SDLK_KP8:		return DIK_NUMPAD8;
-	case SDLK_KP9:		return DIK_NUMPAD9;
-	case SDLK_KP_MINUS:	return DIK_SUBTRACT;
-	case SDLK_KP4:		return DIK_NUMPAD4;
-	case SDLK_KP5:		return DIK_NUMPAD5;
-	case SDLK_KP6:		return DIK_NUMPAD6;
-	case SDLK_KP_PLUS:	return DIK_ADD;
-	case SDLK_KP1:		return DIK_NUMPAD1;
-	case SDLK_KP2:		return DIK_NUMPAD2;
-	case SDLK_KP3:		return DIK_NUMPAD3;
-	case SDLK_KP0:		return DIK_NUMPAD0;
-	case SDLK_KP_PERIOD:	return DIK_DECIMAL;
-	case SDLK_KP_ENTER:	return DIK_NUMPADENTER;
-	case SDLK_KP_DIVIDE:	return DIK_DIVIDE;
-	case SDLK_KP_MULTIPLY:	return DIK_MULTIPLY;
-	case SDLK_KP_EQUALS:	return DIK_NUMPADEQUALS;
-
-	case SDLK_DELETE: 	return DIK_DELETE;
-	case SDLK_RCTRL: 	return DIK_RCONTROL;
-	case SDLK_LALT: 	return DIK_LMENU;
-	case SDLK_RALT: 	return DIK_RMENU;
-
-	case SDLK_INSERT: 	return DIK_INSERT;
-	case SDLK_HOME: 	return DIK_HOME;
-	case SDLK_END: 		return DIK_END;
-
-	case SDLK_UP: 		return DIK_UP;
-	case SDLK_PAGEUP:	return DIK_PRIOR;
-	case SDLK_LEFT: 	return DIK_LEFT;
-	case SDLK_RIGHT: 	return DIK_RIGHT;
-	case SDLK_DOWN: 	return DIK_DOWN;
-	case SDLK_PAGEDOWN:	return DIK_NEXT;
-
-/*	case SDLK_RSUPER:	return AK_RAMI;
-	case SDLK_LSUPER:	return AK_LAMI;*/
-	case SDLK_PAUSE: 	return DIK_PAUSE;
-//	case SDLK_PRINT: 	return AKS_SCREENSHOT_FILE;
-//here
-
-	case SDLK_LMETA:	return DIK_LWIN;	//mac LCMD
-	case SDLK_RMETA:	return DIK_RWIN;	//mac RCMD
-//	case SDLK_WORLD_0:	return 0;	//e"
-
-	default: return -1;
-    }
-}
-
+*/
 int keysym2amiga (int keysym)
 {
     int amiga_keycode = kc_decode (keysym);
@@ -518,7 +389,6 @@ int keysym2amiga (int keysym)
     }
     return amiga_keycode;
 }
-
 
 /*
  * Default hotkeys
@@ -580,8 +450,8 @@ static struct uae_hotkeyseq sdl_quartz_hotkeys[] =
 
 struct uae_hotkeyseq *get_default_cooked_hotkeys (void)
 {
-    if (get_sdlgfx_type() == SDLGFX_DRIVER_QUARTZ)
-	return sdl_quartz_hotkeys;
-    else
-	return sdl_hotkeys;
+	if (get_sdlgfx_type() == SDLGFX_DRIVER_QUARTZ)
+		return sdl_quartz_hotkeys;
+	else
+		return sdl_hotkeys;
 }

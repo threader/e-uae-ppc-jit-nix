@@ -1,1 +1,1 @@
-../genlinetoscr.c
+./../genlinetoscr.c

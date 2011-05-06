@@ -1,1 +1,1 @@
-../gencomp.c
+./../gencomp.c

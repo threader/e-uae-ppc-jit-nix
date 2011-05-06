@@ -4,6 +4,6 @@ AM_CFLAGS    = @UAE_CFLAGS@
 
 noinst_LIBRARIES = libgfxdep.a
 
-libgfxdep_a_SOURCES = sdlgfx.c sdlkeys.c rawkeys.c
+libgfxdep_a_SOURCES = sdlgfx.c sdlkeys.c sdlkeys_dik.c rawkeys.c
 
 noinst_HEADERS = gfx.h sdlgfx.h

@@ -1784,8 +1784,6 @@ static int memwatch_func (uaecptr addr, int rwi, int size, uae_u32 *valp)
 			continue;
 		if (!(rwi & rwi2))
 			continue;
-		if (addr == 0x100)
-			write_log("*\n");
 		if (addr >= addr2 && addr < addr3)
 			brk = 1;
 		if (!brk && size == 2 && (addr + 1 >= addr2 && addr + 1 < addr3))

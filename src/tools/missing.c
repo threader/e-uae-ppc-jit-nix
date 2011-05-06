@@ -1,1 +1,1 @@
-../missing.c
+./../missing.c

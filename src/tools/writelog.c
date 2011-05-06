@@ -1,1 +1,1 @@
-../writelog.c
+./../writelog.c

@@ -1,1 +1,1 @@
-../build68k.c
+./../build68k.c

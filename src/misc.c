@@ -1065,7 +1065,7 @@ void my_kbd_handler (int keyboard, int scancode, int newstate)
                 scancode = scancode_new;
 #endif
 
-	write_log ("kbd= %d, sc_new= %d, scancode= %d (0x%02x), state= %d\n", keyboard, scancode_new, scancode, scancode, newstate);
+	//write_log ("kbd= %d, sc_new= %d, scancode= %d (0x%02x), state= %d\n", keyboard, scancode_new, scancode, scancode, newstate);
 
 	if (newstate == 0 && code == 0) {
 		switch (scancode)

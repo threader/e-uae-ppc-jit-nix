@@ -2318,7 +2318,6 @@ static void free_key (Unit *unit, Key *k)
 	}
 
 	struct lockrecord *lr;
-
 	for (lr = k->record; lr;) {
 		struct lockrecord *next = lr->next;
 		xfree (lr);
@@ -3164,7 +3163,6 @@ static void action_free_record (Unit *unit, dpacket packet)
 
 	struct lockrecord *prev = NULL;
 	struct lockrecord *lr;
-
 	for (lr = k->record; lr; lr = lr->next) {
 		if (lr->pos == pos && lr->len == len) {
 			if (prev)
@@ -4626,7 +4624,7 @@ static void
 	if (err == 0 && SetFileDate (a->nname, (struct DateStamp *) date) == DOSFALSE)
 		err = IoErr ();
 #else
-	ut.actime = ut.modtime = put_time (get_long (date), get_long (date + 4),get_long (date + 8));
+	ut.actime = ut.modtime = put_time (get_long (date), get_long (date + 4), get_long (date + 8));
 	a = find_aino (unit, lock, bstr (unit, name), &err);
 	if (err == 0 && utime (a->nname, &ut) == -1)
 		err = dos_errno ();
@@ -5355,7 +5353,6 @@ void filesys_free_handles (void)
 		u->keys = NULL;
 		struct lockrecord *lrnext;
 		struct lockrecord *lr;
-
 		for (lr = u->waitingrecords; lr; lr = lrnext) {
 			lrnext = lr->next;
 			xfree (lr);
