@@ -265,7 +265,6 @@ static bool check_trace (void)
 static bool get_trace (uaecptr addr, int accessmode, int size, uae_u32 *data)
 {
 	unsigned int i;
-
 	int mode = accessmode | (size << 4);
 	for (i = 0; i < cputrace.memoryoffset; i++) {
 		struct cputracememory *ctm = &cputrace.ctm[i];

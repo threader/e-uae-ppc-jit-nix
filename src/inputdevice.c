@@ -350,7 +350,7 @@ static void kbrlabel (TCHAR *s)
 	}
 }
 
-static void write_config2 (struct zfile *f, int idnum, int i, int offset, TCHAR *tmp1, struct uae_input_device *id)
+static void write_config2 (struct zfile *f, int idnum, int i, int offset, const TCHAR *extra, struct uae_input_device *id)
 {
 	TCHAR tmp2[200], tmp3[200], *p;
 	int evt, got, j, k;
@@ -360,6 +360,7 @@ static void write_config2 (struct zfile *f, int idnum, int i, int offset, TCHAR 
 	int *slotorder;
 	int io = i + offset;
 
+	tmp2[0] = 0;
 	p = tmp2;
 	got = 0;
 
@@ -404,7 +405,7 @@ static void write_config2 (struct zfile *f, int idnum, int i, int offset, TCHAR 
 		}
 	}
 	if (p > tmp2) {
-		_stprintf (tmp3, "input.%d.%s%d", idnum + 1, tmp1, i);
+		_stprintf (tmp3, "input.%d.%s%d", idnum + 1, extra, i);
 		cfgfile_write_str (f, tmp3, tmp2);
 	}
 }
@@ -460,8 +461,8 @@ static void write_kbr_config (struct zfile *f, int idnum, int devnum, struct uae
 			i++;
 			continue;
 		}
+		tmp2[0] = 0;
 		p = tmp2;
-		p[0] = 0;
 		for (j = 0; j < MAX_INPUT_SUB_EVENT; j++) {
 			TCHAR *custom = kbr->custom[i][slotorder[j]];
 			evt = kbr->eventid[i][slotorder[j]];
@@ -583,7 +584,7 @@ static void reset_inputdevice_settings (struct uae_input_device *uid)
 {
 	unsigned int l,i;
 	for (l = 0; l < MAX_INPUT_DEVICE_EVENTS; l++) {
-		for (i = 0; i < MAX_INPUT_SUB_EVENT; i++) {
+		for (i = 0; i < MAX_INPUT_SUB_EVENT_ALL; i++) {
 			uid->eventid[l][i] = 0;
 			uid->flags[l][i] = 0;
 			xfree (uid->custom[l][i]);
@@ -665,7 +666,7 @@ static void clear_id (struct uae_input_device *id)
 #ifndef	_DEBUG
 	int i, j;
 	for (i = 0; i < MAX_INPUT_DEVICE_EVENTS; i++) {
-		for (j = 0; j < MAX_INPUT_SUB_EVENT; j++)
+		for (j = 0; j < MAX_INPUT_SUB_EVENT_ALL; j++)
 			xfree (id->custom[i][j]);
 	}
 #endif
@@ -5856,7 +5857,6 @@ uae_u8 *save_inputstate (int *len, uae_u8 *dstptr)
 uae_u8 *restore_inputstate (uae_u8 *src)
 {
 	unsigned int i, j;
-
 	for (i = 0; i < MAX_JPORTS; i++) {
 		joydir[i] = restore_u16 ();
 		joybutton[i] = restore_u16 ();

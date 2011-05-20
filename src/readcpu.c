@@ -30,7 +30,7 @@ int nr_cpuop_funcs;
 
 struct mnemolookup lookuptab[] = {
     { i_ILLG,	"ILLEGAL",	"ILLEGAL" },
-    { i_OR,		"OR",		"OR" },
+    { i_OR,	"OR",		"OR" },
     { i_CHK,	"CHK",		"CHK" },
     { i_CHK2,	"CHK2",		"CHK2" },
     { i_AND,	"AND", 		"AND" },
