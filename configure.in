@@ -685,6 +685,9 @@ AC_ARG_WITH(sdl-gfx,
 AC_ARG_WITH(sdl-gl,
   AS_HELP_STRING([--with-sdl-gl], [Allow GL for 2D acceleration with SDL graphics]),
   [WANT_SDLGL=$withval], [])
+AC_ARG_WITH(sdl-gui,
+  AS_HELP_STRING([--with-sdl-gui], [Use SDL for GUI]),
+  [WANT_SDL_UI=$withval], [])
 
 AC_ARG_WITH(cocoa-gfx,
   AS_HELP_STRING([--with-cocoa-gfx], [Use Cocoa library for graphics]),
@@ -1322,7 +1325,7 @@ fi
 dnl
 dnl  Do we want Autoconfig?
 dnl
-AC_MSG_CHECKING([whether to build support for Autconfig devices])
+AC_MSG_CHECKING([whether to build support for Autoconfig devices])
 if [[ "x$WANT_AUTOCONFIG" != "xno" ]]; then
   UAE_DEFINES="$UAE_DEFINES -DAUTOCONFIG"
 
@@ -2012,6 +2015,7 @@ AM_CONDITIONAL(TARGET_WIN32, test x$OSDEP = xod-win32)
 AM_CONDITIONAL(TARGET_LINUX, test x$OSDEP = xod-linux)
 AM_CONDITIONAL(BUILD_MACOSX_BUNDLE, test x$OSDEP = xod-macosx)
 AM_CONDITIONAL(IS_QT, test x$WANT_QT = xyes)
+AM_CONDITIONAL(SDL_UI, test x$WANT_SDL_UI = xyes)
 
 AC_SUBST(UAE_CFLAGS)
 AC_SUBST(UAE_CPPFLAGS)

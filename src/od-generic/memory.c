@@ -506,8 +506,8 @@ void *my_shmat (int shmid, void *shmaddr, int shmflg)
 		shmids[shmid].natmembase = natmem_offset;
 		write_log ("SHMAddr %s %p = %p - %p\n", shmids[shmid].name, (uae_u8*)shmaddr-natmem_offset, shmaddr, natmem_offset);
 //here
-		if (shmaddr)
-			free (shmaddr);
+		if (shmids[shmid].attached != NULL)
+			free (shmids[shmid].attached);
 		result = valloc (/*shmaddr,*/ size);
 		if (result == NULL) {
 			result = (void*)-1;

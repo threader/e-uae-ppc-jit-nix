@@ -111,6 +111,20 @@ rm -rf src/compemu.cpp
 rm -rf src/compstbl.h
 rm -rf src/compstbl.cpp
 
+rm -rf src/md-fpp.h
+rm -rf src/target.h
+
+# tools
+rm -rf src/tools/blitops.c
+rm -rf src/tools/build68k.c
+rm -rf src/tools/genblitter.c
+rm -rf src/tools/gencomp.c
+rm -rf src/tools/gencpu.c
+rm -rf src/tools/genlinetoscr.c
+rm -rf src/tools/missing.c
+rm -rf src/tools/readcpu.c
+rm -rf src/tools/writelog.c
+
 echo "=================================================="
 echo "Current Commit: "
 tail -1 .git/packed-refs | awk '{print $1}'

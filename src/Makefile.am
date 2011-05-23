@@ -73,18 +73,28 @@ endif
 uae$(EXEEXT):	$(uae_OBJECTS) $(uae_DEPENDENCIES)
 		@rm -f uae$(EXEEXT)
 		$(LINK) $(uae_LDFLAGS) $(uae_OBJECTS) $(uae_LDADD) $(LIBS)
+
 if TARGET_BEOS
 		xres -o $@ @UAE_RSRCFILE@
 		mimeset -f $@
 endif
+
 if BUILD_MACOSX_BUNDLE
-		rm -fr $(bundle)
+all-local: $(bundle)
+$(bundle): uae$(EXEEXT) od-macosx/Info.plist $(srcdir)/od-macosx/puae.icns $(srcdir)/od-macosx/Credits.rtf
+		rm -rf $(bundle)
 		mkdir -p $(bundle_contents)/MacOS
 		mkdir -p $(bundle_contents)/Resources
 		mkdir -p $(bundle_contents)/Frameworks
 		$(INSTALL_DATA) od-macosx/Info.plist $(bundle_contents)
 		$(INSTALL_PROGRAM) uae$(EXEEXT) $(bundle_contents)/MacOS/
 		cp -R /Library/Frameworks/SDL.framework $(bundle_contents)/Frameworks
+if SDL_UI
+		cp -R /Library/Frameworks/SDL_image.framework $(bundle_contents)/Frameworks
+		cp -R /Library/Frameworks/SDL_ttf.framework $(bundle_contents)/Frameworks
+		cp -R $(srcdir)/gui-sdl/fonts $(bundle_contents)/MacOS
+		cp -R $(srcdir)/gui-sdl/images $(bundle_contents)/MacOS
+endif
 		$(INSTALL_DATA) $(srcdir)/od-macosx/puae.icns $(bundle_contents)/Resources/
 		$(INSTALL_DATA) $(srcdir)/od-macosx/Credits.rtf $(bundle_contents)/Resources/
 endif

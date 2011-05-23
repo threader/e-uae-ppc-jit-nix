@@ -933,6 +933,7 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 		: p->keyboard_lang == KBD_LANG_SE ? "se"
 		: p->keyboard_lang == KBD_LANG_FR ? "fr"
 		: p->keyboard_lang == KBD_LANG_IT ? "it"
+		: p->keyboard_lang == KBD_LANG_FI ? "fi"
 		: p->keyboard_lang == KBD_LANG_TR ? "tr"
 		: "FOO"));
 
@@ -1699,8 +1700,9 @@ static int cfgfile_parse_host (struct uae_prefs *p, TCHAR *option, TCHAR *value)
 			|| (l = KBD_LANG_SE, strcasecmp (value, "se") == 0)
 			|| (l = KBD_LANG_US, strcasecmp (value, "us") == 0)
 			|| (l = KBD_LANG_FR, strcasecmp (value, "fr") == 0)
-			|| (l = KBD_LANG_IT, strcasecmp (value, "it") == 0)
 			|| (l = KBD_LANG_ES, strcasecmp (value, "es") == 0)
+			|| (l = KBD_LANG_IT, strcasecmp (value, "it") == 0)
+			|| (l = KBD_LANG_FI, strcasecmp (value, "fi") == 0)
 			|| (l = KBD_LANG_TR, strcasecmp (value, "tr") == 0))
 			p->keyboard_lang = l;
 		else
@@ -3108,10 +3110,12 @@ int parse_cmdline_option (struct uae_prefs *p, TCHAR c, const TCHAR *arg)
 			p->keyboard_lang = KBD_LANG_SE;
 		else if (0 == strcasecmp(arg, "fr"))
 			p->keyboard_lang = KBD_LANG_FR;
-		else if (0 == strcasecmp(arg, "it"))
-			p->keyboard_lang = KBD_LANG_IT;
 		else if (0 == strcasecmp(arg, "es"))
 			p->keyboard_lang = KBD_LANG_ES;
+		else if (0 == strcasecmp(arg, "it"))
+			p->keyboard_lang = KBD_LANG_IT;
+		else if (0 == strcasecmp(arg, "fi"))
+			p->keyboard_lang = KBD_LANG_FI;
 		else if (0 == strcasecmp(arg, "tr"))
 			p->keyboard_lang = KBD_LANG_TR;
 		break;

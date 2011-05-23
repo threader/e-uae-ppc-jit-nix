@@ -1378,7 +1378,7 @@ void bsdlib_reset (void)
 	SockLibBase = 0;
 
 	write_log ("BSDSOCK: cleanup start..\n");
-	host_sbcleanup (NULL);
+	//host_sbcleanup (NULL);
 	for (sb = socketbases; sb; sb = nsb) {
 		nsb = sb->next;
 

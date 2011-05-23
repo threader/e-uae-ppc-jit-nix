@@ -341,6 +341,45 @@ static int decode_dik_es (int key) {
 }
 
 /*
+ * Handle keys specific to FI keymaps.
+ */
+
+static int decode_dik_fi (int key) {
+	switch (key) {
+		case SDLK_a:		return AK_A;
+		case SDLK_m:		return AK_M;
+		case SDLK_q:		return AK_Q;
+		case SDLK_w:		return AK_W;
+		case SDLK_y:		return AK_Y;
+		case SDLK_z:		return AK_Z;
+		case SDLK_WORLD_0:	return AK_LBRACKET;
+		case SDLK_WORLD_1:	return AK_QUOTE;
+		case SDLK_WORLD_2:	return AK_LBRACKET;
+		case SDLK_WORLD_3:	return AK_LBRACKET;
+		case SDLK_WORLD_4:	return AK_LBRACKET;
+		case SDLK_WORLD_5:	return AK_LBRACKET;
+
+		case SDLK_WORLD_86:	return AK_SEMICOLON;
+		case SDLK_WORLD_68:	return AK_QUOTE;
+		case SDLK_WORLD_69:	return AK_LBRACKET;
+
+		case SDLK_COMMA:	return AK_COMMA;
+		case SDLK_PERIOD:	return AK_PERIOD;
+		case SDLK_MINUS:	return AK_SLASH;
+		case SDLK_LESS:
+		case SDLK_GREATER:	return AK_LTGT;
+		case SDLK_PLUS:
+		case SDLK_QUESTION:	return AK_EQUAL;
+		case SDLK_AT:
+		case SDLK_WORLD_29:	return AK_BACKQUOTE;
+		case SDLK_CARET:	return AK_RBRACKET;
+		case SDLK_BACKSLASH:	return AK_MINUS;
+		case SDLK_HASH:		return AK_NUMBERSIGN;
+		default:		return -1;
+	}
+}
+
+/*
  * Handle keys specific to TR keymaps.
  */
 static int decode_dik_tr (int key) {
@@ -391,6 +430,8 @@ int sdlk2dik (int key) {
 				amiga_keycode = decode_dik_it (key); break;
 			case KBD_LANG_ES:
 				amiga_keycode = decode_dik_es (key); break;
+			case KBD_LANG_FI:
+				amiga_keycode = decode_dik_fi (key); break;
 			case KBD_LANG_TR:
 				amiga_keycode = decode_dik_tr (key); break;
 		}

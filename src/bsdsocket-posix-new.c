@@ -1,27 +1,27 @@
 /*
-  * UAE - The Un*x Amiga Emulator
-  *
-  * bsdsocket.library emulation - Unix
-  *
-  * Copyright 2000-2001 Carl Drougge <carl.drougge@home.se> <bearded@longhaired.org>
-  * Copyright 2003-2005 Richard Drummond
-  * Copyright 2004      Jeff Shepherd
-  *
-  * This program is free software; you can redistribute it and/or modify
-  * it under the terms of the GNU General Public License as published by
-  * the Free Software Foundation; either version 2 of the License, or
-  * (at your option) any later version.
-  *
-  * This program is distributed in the hope that it will be useful,
-  * but WITHOUT ANY WARRANTY; without even the implied warranty of
-  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  * GNU General Public License for more details.
-  *
-  * You should have received a copy of the GNU General Public License
-  * along with this program; if not, write to the Free Software
-  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-  *
-  */
+ * UAE - The Un*x Amiga Emulator
+ *
+ * bsdsocket.library emulation - Unix
+ *
+ * Copyright 2000-2001 Carl Drougge <carl.drougge@home.se> <bearded@longhaired.org>
+ * Copyright 2003-2005 Richard Drummond
+ * Copyright 2004      Jeff Shepherd
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *
+ */
 
 #include "sysconfig.h"
 #include "sysdeps.h"
@@ -1393,7 +1393,7 @@ int host_sbinit (TrapContext *context, SB)
     sb->hostentsize = 1024;
 
     /* @@@ The thread should be PTHREAD_CREATE_DETACHED */
-    if (uae_start_thread ("bsdsocket", bsdlib_threadfunc, (void *)sb, &sb->thread)) {
+    if (uae_start_thread ("bsdsocket", bsdlib_threadfunc, (void *)sb, &sb->thread) == BAD_THREAD) {
 		write_log ("BSDSOCK: Failed to create thread.\n");
 		uae_sem_destroy (&sb->sem);
 		close (sb->sockabort[0]);
