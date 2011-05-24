@@ -123,6 +123,9 @@ static uae_u32 emulib_ChangeLanguage (uae_u32 which)
 		case 7:
 			currprefs.keyboard_lang = KBD_LANG_TR;
 			break;
+		case 8:
+			currprefs.keyboard_lang = KBD_LANG_FI;
+			break;
 		default:
 			break;
 		}
@@ -248,10 +251,8 @@ static uae_u32 emulib_GetUaeConfig (uaecptr place)
 		put_byte (place + 35, 1);
 
 	for (j = 0; j < 4; j++) {
-//		char *s = ua (currprefs.floppyslots[j].df);
 		for (i = 0; i < 256; i++)
 			put_byte (place + 36 + i + j * 256, currprefs.floppyslots[j].df[i]);
-//		xfree (s);
 	}
 	return 1;
 }
@@ -354,12 +355,10 @@ static int native_dos_op (uae_u32 mode, uae_u32 p1, uae_u32 p2, uae_u32 p3)
 	v = get_native_path (p1, tmp);
 	if (v)
 		return v;
-	//s = ua (tmp);
 	for (i = 0; i <= strlen (tmp) && i < p3 - 1; i++) {
 		put_byte (p2 + i, tmp[i]);
 		put_byte (p2 + i + 1, 0);
 	}
-	//xfree (s);
 	return 0;
 }
 #ifndef UAEGFX_INTERNAL

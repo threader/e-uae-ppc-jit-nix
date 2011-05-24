@@ -30,7 +30,7 @@ struct hardfiledata {
     TCHAR product_rev[4 + 1];
     TCHAR device_name[256];
     /* geometry from possible RDSK block */
-	unsigned int cylinders;
+    unsigned int cylinders;
     unsigned int sectors;
     unsigned int heads;
     uae_u8 *virtual_rdb;
@@ -59,11 +59,11 @@ struct hd_hardfiledata {
     struct hardfiledata hfd;
     int bootpri;
     uae_u64 size;
-	unsigned int cyls;
-	unsigned int heads;
-	unsigned int secspertrack;
-	unsigned int cyls_def;
-	unsigned int secspertrack_def;
+    unsigned int cyls;
+    unsigned int heads;
+    unsigned int secspertrack;
+    unsigned int cyls_def;
+    unsigned int secspertrack_def;
     unsigned int heads_def;
     TCHAR *path;
     int ansi_version;

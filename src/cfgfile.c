@@ -250,6 +250,25 @@ TCHAR *cfgfile_subst_path (const TCHAR *path, const TCHAR *subst, const TCHAR *f
 	return my_strdup (file);
 }
 
+static TCHAR *cfgfile_subst_path_load (const TCHAR *path, struct multipath *mp, const TCHAR *file, bool dir)
+{
+        unsigned int i;
+	for (i = 0; i < MAX_PATHS; i++) {
+		if (mp->path[i][0] && _tcscmp (mp->path[i], ".\\") != 0 && _tcscmp (mp->path[i], "./") != 0) {
+			TCHAR *s = cfgfile_subst_path (path, mp->path[i], file);
+			if (dir) {
+				if (my_existsdir (s))
+					return s;
+			} else {
+				if (zfile_exists (s))
+					return s;
+			}
+			xfree (s);
+		}
+	}
+	return cfgfile_subst_path (path, mp->path[0], file);
+}
+
 static int isdefault (const TCHAR *s)
 {
 	TCHAR tmp[MAX_DPATH];
@@ -513,6 +532,7 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 	cfgfile_write (f, "config_version", "%d.%d.%d", UAEMAJOR, UAEMINOR, UAESUBREV);
 	cfgfile_write_str (f, "config_hardware_path", p->config_hardware_path);
 	cfgfile_write_str (f, "config_host_path", p->config_host_path);
+	cfgfile_write_str (f, "config_window_title", p->config_window_title);
 
 	for (sl = p->all_lines; sl; sl = sl->next) {
 		if (sl->unknown) {
@@ -644,6 +664,7 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 	cfgfile_write_bool (f, "serial_on_demand", p->serial_demand);
 	cfgfile_write_bool (f, "serial_hardware_ctsrts", p->serial_hwctsrts);
 	cfgfile_write_bool (f, "serial_direct", p->serial_direct);
+	cfgfile_dwrite (f, "serial_stopbits", "%d", p->serial_stopbits);
 	cfgfile_write_str (f, "scsi", scsimode[p->scsi]);
 	cfgfile_write_bool (f, "uaeserial", p->uaeserial);
 	cfgfile_write_bool (f, "sana2", p->sana2);
@@ -826,6 +847,7 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 #endif
 
 	cfgfile_write_bool (f, "immediate_blits", p->immediate_blits);
+	cfgfile_write_bool (f, "waiting_blits", p->waiting_blits);
 	cfgfile_write_bool (f, "ntsc", p->ntscmode);
 	cfgfile_write_bool (f, "genlock", p->genlock);
 	cfgfile_dwrite_bool (f, "show_leds", !!(p->leds_on_screen & STATUSLINE_CHIPSET));
@@ -1413,6 +1435,7 @@ static int cfgfile_parse_host (struct uae_prefs *p, TCHAR *option, TCHAR *value)
 		|| 
 #endif
 		   cfgfile_string (option, value, "gfx_display_name", p->gfx_display_name, sizeof p->gfx_display_name / sizeof (TCHAR))
+		|| cfgfile_string (option, value, "config_window_title", p->config_window_title, sizeof p->config_window_title / sizeof (TCHAR))
 		|| cfgfile_string (option, value, "config_info", p->info, sizeof p->info / sizeof (TCHAR))
 		|| cfgfile_string (option, value, "config_description", p->description, sizeof p->description / sizeof (TCHAR)))
 		return 1;
@@ -1593,7 +1616,7 @@ static int cfgfile_parse_host (struct uae_prefs *p, TCHAR *option, TCHAR *value)
 			tmpp = _tcschr (tmpp2, ',');
 			tmpp++;
 			wh[i].width = _tstol (tmpp);
-			while (*tmpp != ',' && *tmpp != 'x')
+			while (*tmpp != ',' && *tmpp != 'x' && *tmpp != '*')
 				tmpp++;
 			wh[i].height = _tstol (tmpp + 1);
 			tmpp2 = tmpp;
@@ -1710,7 +1733,7 @@ static int cfgfile_parse_host (struct uae_prefs *p, TCHAR *option, TCHAR *value)
 		return 1;
 	}
 
-	if (cfgfile_string (option, value, "config_version", tmpbuf, sizeof (tmpbuf) / sizeof (char))) {
+	if (cfgfile_string (option, value, "config_version", tmpbuf, sizeof (tmpbuf) / sizeof (TCHAR))) {
 		TCHAR *tmpp2;
 		tmpp = _tcschr (value, '.');
 		if (tmpp) {
@@ -1971,6 +1994,7 @@ static int cfgfile_parse_hardware (struct uae_prefs *p, const TCHAR *option, TCH
 		return 1;
 
 	if (cfgfile_yesno (option, value, "immediate_blits", &p->immediate_blits)
+		|| cfgfile_yesno (option, value, "waiting_blits", &p->waiting_blits)
 		|| cfgfile_yesno (option, value, "cd32cd", &p->cs_cd32cd)
 		|| cfgfile_yesno (option, value, "cd32c2p", &p->cs_cd32c2p)
 		|| cfgfile_yesno (option, value, "cd32nvram", &p->cs_cd32nvram)
@@ -2020,7 +2044,8 @@ static int cfgfile_parse_hardware (struct uae_prefs *p, const TCHAR *option, TCH
 		|| cfgfile_yesno (option, value, "uaeserial", &p->uaeserial))
 		return 1;
 
-	if (cfgfile_intval (option, value, "cpu060_revision", &p->cpu060_revision, 1)
+	if (cfgfile_intval (option, value, "serial_stopbits", &p->serial_stopbits, 1)
+		|| cfgfile_intval (option, value, "cpu060_revision", &p->cpu060_revision, 1)
 		|| cfgfile_intval (option, value, "fpu_revision", &p->fpu_revision, 1)
 		|| cfgfile_intval (option, value, "cdtvramcard", &p->cs_cdtvcard, 1)
 		|| cfgfile_intval (option, value, "fatgary", &p->cs_fatgaryrev, 1)
@@ -2079,13 +2104,16 @@ static int cfgfile_parse_hardware (struct uae_prefs *p, const TCHAR *option, TCH
 	 || cfgfile_strval (option, value, "parallel_matrix_emulation", &p->parallel_matrix_emulation, epsonprinter, 0))
 	return 1;
 
-	if (cfgfile_string (option, value, "kickstart_rom_file", p->romfile, sizeof p->romfile / sizeof (char))
-	 || cfgfile_string (option, value, "kickstart_ext_rom_file", p->romextfile, sizeof p->romextfile / sizeof (char))
-	 || cfgfile_string (option, value, "amax_rom_file", p->amaxromfile, sizeof p->amaxromfile / sizeof (char))
-	 || cfgfile_string (option, value, "flash_file", p->flashfile, sizeof p->flashfile / sizeof (char))
-	 || cfgfile_string (option, value, "cart_file", p->cartfile, sizeof p->cartfile / sizeof (char))
-	 || cfgfile_string (option, value, "pci_devices", p->pci_devices, sizeof p->pci_devices / sizeof (char))
-	 || cfgfile_string (option, value, "ghostscript_parameters", p->ghostscript_parameters, sizeof p->ghostscript_parameters / sizeof (char)))
+	if (cfgfile_string (option, value, "kickstart_rom_file", p->romfile, sizeof p->romfile / sizeof (TCHAR))
+	 || cfgfile_string (option, value, "kickstart_ext_rom_file", p->romextfile, sizeof p->romextfile / sizeof (TCHAR))
+	 || cfgfile_string (option, value, "kickstart_ext_rom_file2", p->romextfile2, sizeof p->romextfile2 / sizeof (TCHAR))
+	 || cfgfile_string (option, value, "kickstart_rom_file_id", p->romfile, sizeof p->romfile / sizeof (TCHAR))
+	 || cfgfile_string (option, value, "kickstart_ext_rom_file_id", p->romextfile, sizeof p->romextfile / sizeof (TCHAR))
+	 || cfgfile_string (option, value, "amax_rom_file", p->amaxromfile, sizeof p->amaxromfile / sizeof (TCHAR))
+	 || cfgfile_string (option, value, "flash_file", p->flashfile, sizeof p->flashfile / sizeof (TCHAR))
+	 || cfgfile_string (option, value, "cart_file", p->cartfile, sizeof p->cartfile / sizeof (TCHAR))
+	 || cfgfile_string (option, value, "pci_devices", p->pci_devices, sizeof p->pci_devices / sizeof (TCHAR))
+	 || cfgfile_string (option, value, "ghostscript_parameters", p->ghostscript_parameters, sizeof p->ghostscript_parameters / sizeof (TCHAR)))
 	return 1;
 
 	if (cfgfile_strval (option, value, "cart_internal", &p->cart_internal, cartsmode, 0)) {
@@ -2286,7 +2314,7 @@ static int cfgfile_parse_hardware (struct uae_prefs *p, const TCHAR *option, TCH
 			root = value;
 			aname = 0;
 		}
-		str = cfgfile_subst_path (UNEXPANDED, p->path_hardfile.path[0], root);
+		str = cfgfile_subst_path_load (UNEXPANDED, &p->path_hardfile, root, true);
 #ifdef FILESYS
 		add_filesys_config (p, -1, NULL, aname, str, ro, secs, heads, reserved, bs, 0, NULL, 0, 0);
 #endif
@@ -2381,7 +2409,7 @@ empty_fs:
 				root += 2;
 				*root = ':';
 			}
-			str = cfgfile_subst_path (UNEXPANDED, p->path_hardfile.path[0], root);
+			str = cfgfile_subst_path_load (UNEXPANDED, &p->path_hardfile, root, false);
 		}
 #ifdef FILESYS
 		add_filesys_config (p, -1, dname, aname, str, ro, secs, heads, reserved, bs, bp, fs, hdcv, 0);
@@ -2668,6 +2696,7 @@ static int cfgfile_load_2 (struct uae_prefs *p, const TCHAR *filename, bool real
 				cfgfile_string (line1b, line2b, "config_description", p->description, sizeof p->description / sizeof (TCHAR));
 				cfgfile_path (line1b, line2b, "config_hardware_path", p->config_hardware_path, sizeof p->config_hardware_path / sizeof (TCHAR));
 				cfgfile_path (line1b, line2b, "config_host_path", p->config_host_path, sizeof p->config_host_path / sizeof (TCHAR));
+				cfgfile_string (line1b, line2b, "config_window_title", p->config_window_title, sizeof p->config_window_title / sizeof (TCHAR));
 			}
 		}
 	}
@@ -3625,6 +3654,7 @@ void default_prefs (struct uae_prefs *p, int type)
 	p->use_serial = 0;
 	p->serial_demand = 0;
 	p->serial_hwctsrts = 1;
+	p->serial_stopbits = 0;
 	p->parallel_demand = 0;
 	p->parallel_matrix_emulation = 0;
 	p->parallel_postscript_emulation = 0;
@@ -3731,6 +3761,7 @@ void default_prefs (struct uae_prefs *p, int type)
     audio_default_options (p);
 
 	p->immediate_blits = 0;
+	p->waiting_blits = 0;
 	p->collision_level = 2;
 	p->leds_on_screen = 0;
 	p->keyboard_leds_in_use = 0;
@@ -3925,6 +3956,7 @@ static void buildin_default_prefs (struct uae_prefs *p)
 	p->blitter_cycle_exact = 0;
 	p->chipset_mask = CSMASK_ECS_AGNUS;
 	p->immediate_blits = 0;
+	p->waiting_blits = 0;
 	p->collision_level = 2;
 	p->produce_sound = 3;
 	p->scsi = 0;

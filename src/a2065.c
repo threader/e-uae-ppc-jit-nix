@@ -21,6 +21,8 @@
 #include "savestate.h"
 #include "autoconf.h"
 
+#define DUMPPACKET 0
+
 int log_a2065 = 0;
 static int log_transmit = 1;
 static int log_receive = 1;
@@ -133,7 +135,8 @@ void a2065_reset (void)
 	td = NULL;
 }
 
-static void dumppacket (TCHAR *n, uae_u8 *packet, int len)
+#if DUMPPACKET
+static void dumppacket (const TCHAR *n, uae_u8 *packet, int len)
 {
 	int i;
 	TCHAR buf[10000];
@@ -145,6 +148,7 @@ static void dumppacket (TCHAR *n, uae_u8 *packet, int len)
 	write_log (buf);
 	write_log ("\n\n");
 }
+#endif
 
 #define MAX_PACKET_SIZE 4000
 static uae_u8 transmitbuffer[MAX_PACKET_SIZE];
@@ -173,9 +177,11 @@ static int mungepacket (uae_u8 *packet, int len)
 	uae_u16 type;
 	int ret = 0;
 
-	if (len < 60)
+	if (len < 20)
 		return 0;
-	//dumppacket ("pre:", packet, len);
+#if DUMPPACKET
+	dumppacket ("pre:", packet, len);
+#endif
 	data = packet + 14;
 	type = (packet[12] << 8) | packet[13];
 	// switch destination mac
@@ -227,7 +233,9 @@ static int mungepacket (uae_u8 *packet, int len)
 			// this all just to translate single DHCP MAC..
 		}
 	}
-	//dumppacket ("post:", packet, len);
+#if DUMPPACKET
+	dumppacket ("post:", packet, len);
+#endif
 	return ret;
 }
 
@@ -260,7 +268,7 @@ static void gotfunc (struct s2devstruct *dev, const uae_u8 *databuf, int len)
 
 	if (!(csr[0] & CSR0_RXON)) // receiver off?
 		return;
-	if (len < 60) { // too short
+	if (len < 20) { // too short
 		if (log_a2065)
 			write_log ("A2065: short frame, %d bytes\n", len);
 		return;

@@ -73,11 +73,11 @@ static unsigned long memsizes[] = {
         /* 21*/ 0xC0000000, //3GB
 };
 
-static int quickstart_model = 0, quickstart_conf = 0, quickstart_compa = 1;
-static int quickstart_floppy = 1, quickstart_cd = 0, quickstart_ntsc = 0;
-static int quickstart_cdtype = 0;
-static char quickstart_cddrive[16];
-static int quickstart_ok, quickstart_ok_floppy;
+int quickstart_model = 0, quickstart_conf = 0, quickstart_compa = 1;
+int quickstart_floppy = 1, quickstart_cd = 0, quickstart_ntsc = 0;
+int quickstart_cdtype = 0;
+char quickstart_cddrive[16];
+int quickstart_ok, quickstart_ok_floppy;
 
 //----------
 
@@ -1360,11 +1360,12 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 {
 	unsigned int romcheck = 0;
 	quickstart_model = [((NSMenuItem*)sender) tag];
-	quickstart_conf = 0;
-	quickstart_compa = 0;
 
 	changed_prefs.nr_floppies = quickstart_floppy;
 	quickstart_ok = built_in_prefs (&changed_prefs, quickstart_model, quickstart_conf, quickstart_compa, romcheck);
+	changed_prefs.ntscmode = quickstart_ntsc != 0;
+	//quickstart_cd = chnaged_prefs.floppyslots[1].dfxtype == DRV_NONE && (quickstart_model == 8 || quickstart_model == 9);
+    config_filename[0] = 0;
 
 	uae_reset(0);
 }
