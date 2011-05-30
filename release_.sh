@@ -31,6 +31,7 @@ rm -rf `find . -type f -name configure`
 rm -rf `find . -type f -name config.log`
 rm -rf `find . -type f -name config.status`
 rm -rf `find . -type f -name .DS_Store`
+rm -rf `find . -type f -name sysconfig.h`
 
 rm -rf Makefile.in
 rm -rf src/Makefile.in
