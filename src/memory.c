@@ -171,7 +171,7 @@ static int REGPARAM3 dummy_check (uaecptr addr, uae_u32 size) REGPARAM;
 
 static void dummylog (int rw, uaecptr addr, int size, uae_u32 val, int ins)
 {
-	if (illegal_count >= MAX_ILG)
+	if (illegal_count >= MAX_ILG && MAX_ILG > 0)
 		return;
 	/* ignore Zorro3 expansion space */
 	if (addr >= 0xff000000 && addr <= 0xff000200)
@@ -1643,28 +1643,30 @@ static int read_kickstart (struct zfile *f, uae_u8 *mem, int size, int dochecksu
 	return i;
 }
 
-static int load_extendedkickstart (void)
+static bool load_extendedkickstart (const TCHAR *romextfile, int type)
 {
 	struct zfile *f;
 	int size, off;
+	bool ret = false;
 
-	if (_tcslen (currprefs.romextfile) == 0)
-		return 0;
+	if (_tcslen (romextfile) == 0)
+		return false;
 #ifdef ARCADIA
-	if (is_arcadia_rom (currprefs.romextfile) == ARCADIA_BIOS) {
+	if (is_arcadia_rom (romextfile) == ARCADIA_BIOS) {
 		extendedkickmem_type = EXTENDED_ROM_ARCADIA;
-		return 0;
+		return false;
 	}
 #endif
-	f = read_rom_name (currprefs.romextfile);
+	f = read_rom_name (romextfile);
 	if (!f) {
 		gui_message ("No extended ROM found.");
-		return 0;
+		return false;
 	}
 	zfile_fseek (f, 0, SEEK_END);
 	size = zfile_ftell (f);
 	extendedkickmem_size = 524288;
 	off = 0;
+	if (type == 0) {
 	if (currprefs.cs_cd32cd) {
 		extendedkickmem_type = EXTENDED_ROM_CD32;
 	} else if (currprefs.cs_cdtvcd || currprefs.cs_cdtvram) {
@@ -1673,9 +1675,11 @@ static int load_extendedkickstart (void)
 		extendedkickmem_type = EXTENDED_ROM_CD32;
 	} else if (need_uae_boot_rom () != 0xf00000) {
 		extendedkickmem_type = EXTENDED_ROM_CDTV;
-	} else
-		return 0;
-
+		}	
+	} else {
+		extendedkickmem_type = type;
+	}
+	if (extendedkickmem_type) {
 	zfile_fseek (f, off, SEEK_SET);
 	switch (extendedkickmem_type) {
 	case EXTENDED_ROM_CDTV:
@@ -1687,10 +1691,14 @@ static int load_extendedkickstart (void)
 		extendedkickmem_bank.baseaddr = extendedkickmemory;
 		break;
 	}
+		if (extendedkickmemory) {
 	read_kickstart (f, extendedkickmemory, extendedkickmem_size, 0, 1);
 	extendedkickmem_mask = extendedkickmem_size - 1;
+			ret = true;
+		}
+	}
 	zfile_fclose (f);
-	return 1;
+	return ret;
 }
 
 static int patch_shapeshifter (uae_u8 *kickmemory)
@@ -2479,7 +2487,8 @@ void memory_reset (void)
 		extendedkickmemory2 = 0;
 		extendedkickmem2_size = 0;
 		extendedkickmem_type = 0;
-		load_extendedkickstart ();
+		load_extendedkickstart (currprefs.romextfile, 0);
+		load_extendedkickstart (currprefs.romextfile2, EXTENDED_ROM_CDTV);
 		kickmem_mask = 524288 - 1;
 		if (!load_kickstart ()) {
 			if (_tcslen (currprefs.romfile) > 0) {
@@ -2549,8 +2558,8 @@ void memory_reset (void)
 		int t = currprefs.bogomem_size >> 16;
 		if (t > 0x1C)
 			t = 0x1C;
-		if (t > 0x10 && ((currprefs.chipset_mask & CSMASK_AGA) || (currprefs.cpu_model >= 68020 && !currprefs.address_space_24)))
-			t = 0x10;
+		if (t > 0x18 && ((currprefs.chipset_mask & CSMASK_AGA) || (currprefs.cpu_model >= 68020 && !currprefs.address_space_24)))
+			t = 0x18;
 		map_banks (&bogomem_bank, 0xC0, t, 0);
 	}
 #ifdef GAYLE
