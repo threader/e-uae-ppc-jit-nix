@@ -38,7 +38,7 @@ struct shmid_ds {
     char  name[MAX_PATH];
     void   *attached;
     int    mode;
-    void   *natmembase;
+    void   *natmembase; /* if != NULL then shmem is shared from natmem */
 };
 
 static struct shmid_ds shmids[MAX_SHMID];
@@ -356,7 +356,7 @@ void *my_shmat (int shmid, void *shmaddr, int shmflg)
 	unsigned int got = FALSE;
 	int p96special = FALSE;
 
-#ifdef NATMEM_OFFSET
+//#ifdef NATMEM_OFFSET
 	unsigned int size = shmids[shmid].size;
 
 	if (shmids[shmid].attached)
@@ -438,6 +438,7 @@ void *my_shmat (int shmid, void *shmaddr, int shmflg)
 				filesysptr = xcalloc (uae_u8, size);
 			result = filesysptr;
 			shmids[shmid].attached = result;
+			shmids[shmid].natmembase = NULL;
 			return result;
 		}
 		if(!_tcscmp (shmids[shmid].name, "custmem1")) {
@@ -499,28 +500,31 @@ void *my_shmat (int shmid, void *shmaddr, int shmflg)
 			got = TRUE;
 		}
 	}
-#endif
+//#endif
 
 	if (shmids[shmid].key == shmid && shmids[shmid].size) {
 		shmids[shmid].mode = 0;
-		shmids[shmid].natmembase = natmem_offset;
-		write_log ("SHMAddr %s %p = %p - %p\n", shmids[shmid].name, (uae_u8*)shmaddr-natmem_offset, shmaddr, natmem_offset);
-//here
-		if (shmids[shmid].attached != NULL)
-			free (shmids[shmid].attached);
-		result = valloc (/*shmaddr,*/ size);
-		if (result == NULL) {
-			result = (void*)-1;
-			write_log ("VirtualAlloc %08X - %08X %x (%dk) failed %d\n",
-				(uae_u8*)shmaddr - natmem_offset, (uae_u8*)shmaddr - natmem_offset + size,
-				size, size >> 10, errno);
+
+		// we have natmem -> we can share the memory from there
+		if ( ((shmaddr >= natmem_offset) && ((shmaddr + size) <= natmem_offset_end)) || ((p96mem_offset != NULL) && p96special) ) {
+			shmids[shmid].natmembase = natmem_offset;
+			shmids[shmid].attached = shmaddr;
+			write_log ("SHMAddr: %08x = %08p - %08p   %s from NATMEM %s\n", (uae_u8*)shmaddr-natmem_offset, shmaddr, natmem_offset, shmids[shmid].name, got ? "identified":"unknown");
+			result = shmaddr;
 		} else {
-			shmids[shmid].attached = result;
-			write_log ("VirtualAlloc %08X - %08X %x (%dk) ok (%08X)%s\n",
-				(uae_u8*)shmaddr - natmem_offset, (uae_u8*)shmaddr - natmem_offset + size,
-				size, size >> 10, shmaddr, p96special ? " P96" : "");
+			// not natmem was allocated -> allocate own chunk here
+			shmids[shmid].natmembase = NULL;
+			result = valloc (/*shmaddr,*/ size);
+			if (result == NULL) {
+				result = (void*)-1;
+				write_log ("VirtualAlloc %08X - %08X %x (%dk) failed %d\n", (uae_u8*)shmaddr - natmem_offset, (uae_u8*)shmaddr - natmem_offset + size, size, size >> 10, errno);
+			} else {
+				shmids[shmid].attached = result;
+				write_log ("VirtualAlloc %08X - %08X %x (%dk) ok (%08X)%s\n", (uae_u8*)shmaddr - natmem_offset, (uae_u8*)shmaddr - natmem_offset + size, size, size >> 10, shmaddr, p96special ? " P96" : "");
+			}
 		}
 	}
+
 	return result;
 }
 
@@ -559,7 +563,7 @@ int my_shmget (key_t key, size_t size, int shmflg, const char *name)
 
 //	write_log ("key %d (%d), size %d, shmflg %d, name %s\n", key, IPC_PRIVATE, size, shmflg, name);
 //	if((key == IPC_PRIVATE) || ((shmflg & IPC_CREAT) && (find_shmkey (key) == -1))) {
-		write_log ("shmget of size %d (%dk) for %s\n", size, size >> 10, name);
+		//write_log ("shmget of size %d (%dk) for %s\n", size, size >> 10, name);
 		if ((result = get_next_shmkey ()) != -1) {
 			shmids[result].size = size;
 			_tcscpy (shmids[result].name, name);
@@ -582,12 +586,16 @@ int my_shmctl (int shmid, int cmd, struct shmid_ds *buf)
 			result = 0;
 			break;
 		case IPC_RMID:
-			free (shmids[shmid].attached);
+			// shmem was not shared from natmem but allocated -> so free it now
+			if (shmids[shmid].natmembase == NULL) {
+				free (shmids[shmid].attached);
+			}
 			shmids[shmid].key = -1;
 			shmids[shmid].name[0] = '\0';
 			shmids[shmid].size = 0;
 			shmids[shmid].attached = 0;
 			shmids[shmid].mode = 0;
+			shmids[shmid].natmembase = NULL;
 			result = 0;
 			break;
 		}

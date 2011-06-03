@@ -2973,7 +2973,7 @@ void init_hz_p96 (void)
 	if (p96vblank >= 300)
 		p96vblank = 300;
 	p96syncrate = maxvpos * vblank_hz / p96vblank;
-	write_log ("P96FREQ: %d*%d = %d / %d = %d\n", maxvpos, vblank_hz, maxvpos_nom * vblank_hz, p96vblank, p96syncrate);
+	write_log ("P96FREQ: %d * %g = %d / %d = %d\n", maxvpos, vblank_hz, maxvpos_nom * vblank_hz, p96vblank, p96syncrate);
 }
 
 /* NOTE: Watch for those planeptrs of 0x00000000 and 0xFFFFFFFF for all zero / all one bitmaps !!!! */
@@ -3573,8 +3573,8 @@ static int flushpixels (void)
 		} else {
 			long ps;
 			gwwcnt = gwwbufsize;
-			//if (mman_GetWriteWatch (src_start, src_end - src_start, gwwbuf, &gwwcnt, &ps))
-				break;
+			/*if (mman_GetWriteWatch (src_start, src_end - src_start, gwwbuf, &gwwcnt, &ps))
+				break;*/
 		}
 
 		if (gwwcnt == 0)
@@ -3655,7 +3655,7 @@ static int flushpixels (void)
 		if (doskip () && p96skipmode == 4) {
 			;
 		} else {
-			DX_Invalidate (0, miny, picasso96_state.Width, maxy - miny);
+			DX_Invalidate (miny, maxy);
 		}
 	}
 
