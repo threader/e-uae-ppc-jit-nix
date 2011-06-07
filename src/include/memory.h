@@ -11,8 +11,6 @@ extern void a1000_reset (void);
 
 #ifdef JIT
 extern int special_mem;
-#define SPECIAL_MEM_READ 1
-#define SPECIAL_MEM_WRITE 2
 #define S_READ 1
 #define S_WRITE 2
 

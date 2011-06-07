@@ -2065,6 +2065,7 @@ static void add_shmmaps (uae_u32 start, addrbank *what)
 		else if (errno == 13) write_log ("(Permission denied)\n");
 		else if (errno == 22) write_log ("(Invalid argument)\n");
 		else if (errno == 24) write_log ("(Too many open files)\n");
+		else write_log("\n");
 		dumplist ();
 		nocanbang ();
 		return;

@@ -2734,7 +2734,7 @@ int current_maxvpos (void)
 }
 
 /* set PAL/NTSC or custom timing variables */
-void init_hz (bool fullinit)
+void init_hz_fullinit (bool fullinit)
 {
 	int isntsc;
 	int odbl = doublescan, omaxvpos = maxvpos;
@@ -2879,9 +2879,13 @@ void init_hz (bool fullinit)
 	config_changed = 1;
 }
 
+void init_hz (void)
+{
+	init_hz_fullinit (false);
+}
 void init_hz_full (void)
 {
-	init_hz (true);
+	init_hz_fullinit (true);
 }
 
 static void calcdiw (void)
@@ -5149,7 +5153,7 @@ static void vsync_handler_post (void)
 		vtotal = vpos_count;
 	}
 	if ((beamcon0 & (0x20 | 0x80)) != (new_beamcon0 & (0x20 | 0x80)) || (abs (vpos_count - vpos_count_prev)  > 1))
-		init_hz (false);
+		init_hz ();
 	if (lof_changed)
 		compute_vsynctime ();
 	vpos_count_prev = vpos_count;
@@ -5312,7 +5316,7 @@ static void dmal_emu (uae_u32 v)
 			record_dma (0xaa + nr * 16, dat, pt, hpos, vpos, DMARECORD_AUDIO);
 #endif
 		last_custom_value1 = dat;
-		AUDxDAT (nr, dat, pt);
+		AUDxDAT_addr (nr, dat, pt);
 	} else {
 		uae_u16 dat;
 		int w = v & 1;
@@ -6290,28 +6294,28 @@ static int REGPARAM2 custom_wput_1 (int hpos, uaecptr addr, uae_u32 value, int n
 	case 0x0A4: AUDxLEN (0, value); break;
 	case 0x0A6: AUDxPER (0, value); break;
 	case 0x0A8: AUDxVOL (0, value); break;
-	case 0x0AA: AUDxDAT (0, value, 0xffffffff); break;
+	case 0x0AA: AUDxDAT (0, value); break;
 
 	case 0x0B0: AUDxLCH (1, value); break;
 	case 0x0B2: AUDxLCL (1, value); break;
 	case 0x0B4: AUDxLEN (1, value); break;
 	case 0x0B6: AUDxPER (1, value); break;
 	case 0x0B8: AUDxVOL (1, value); break;
-	case 0x0BA: AUDxDAT (1, value, 0xffffffff); break;
+	case 0x0BA: AUDxDAT (1, value); break;
 
 	case 0x0C0: AUDxLCH (2, value); break;
 	case 0x0C2: AUDxLCL (2, value); break;
 	case 0x0C4: AUDxLEN (2, value); break;
 	case 0x0C6: AUDxPER (2, value); break;
 	case 0x0C8: AUDxVOL (2, value); break;
-	case 0x0CA: AUDxDAT (2, value, 0xffffffff); break;
+	case 0x0CA: AUDxDAT (2, value); break;
 
 	case 0x0D0: AUDxLCH (3, value); break;
 	case 0x0D2: AUDxLCL (3, value); break;
 	case 0x0D4: AUDxLEN (3, value); break;
 	case 0x0D6: AUDxPER (3, value); break;
 	case 0x0D8: AUDxVOL (3, value); break;
-	case 0x0DA: AUDxDAT (3, value, 0xffffffff); break;
+	case 0x0DA: AUDxDAT (3, value); break;
 
 	case 0x0E0: BPLxPTH (hpos, value, 0); break;
 	case 0x0E2: BPLxPTL (hpos, value, 0); break;

@@ -13,7 +13,8 @@ extern void aud1_handler (void);
 extern void aud2_handler (void);
 extern void aud3_handler (void);
 
-extern void AUDxDAT (int nr, uae_u16 value, uaecptr addr);
+extern void AUDxDAT (int nr, uae_u16 value);
+extern void AUDxDAT_addr (int nr, uae_u16 value, uaecptr addr);
 extern void AUDxVOL (int nr, uae_u16 value);
 extern void AUDxPER (int nr, uae_u16 value);
 extern void AUDxLCH (int nr, uae_u16 value);
@@ -38,7 +39,6 @@ extern int audio_activate (void);
 extern void audio_vsync (void);
 
 void switch_audio_interpol (void);
-
 extern int sound_available;
 
 extern void audio_sampleripper(int);

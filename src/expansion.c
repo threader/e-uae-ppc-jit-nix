@@ -230,7 +230,7 @@ static uae_u32 REGPARAM2 expamem_bget (uaecptr addr)
 {
 	uae_u8 b;
 #ifdef JIT
-	special_mem |= SPECIAL_MEM_READ;
+	special_mem |= S_READ;
 #endif
 	addr &= 0xFFFF;
 	b = expamem[addr];
@@ -240,7 +240,7 @@ static uae_u32 REGPARAM2 expamem_bget (uaecptr addr)
 static void REGPARAM2 expamem_write (uaecptr addr, uae_u32 value)
 {
 #ifdef JIT
-	special_mem |= SPECIAL_MEM_WRITE;
+	special_mem |= S_WRITE;
 #endif
 	addr &= 0xffff;
 	if (addr == 00 || addr == 02 || addr == 0x40 || addr == 0x42) {
@@ -260,7 +260,7 @@ static int REGPARAM2 expamem_type (void)
 static void REGPARAM2 expamem_lput (uaecptr addr, uae_u32 value)
 {
 #ifdef JIT
-	special_mem |= SPECIAL_MEM_WRITE;
+	special_mem |= S_WRITE;
 #endif
 	write_log ("warning: WRITE.L to address $%lx : value $%lx\n", addr, value);
 }
@@ -268,7 +268,7 @@ static void REGPARAM2 expamem_lput (uaecptr addr, uae_u32 value)
 static void REGPARAM2 expamem_wput (uaecptr addr, uae_u32 value)
 {
 #ifdef JIT
-	special_mem |= SPECIAL_MEM_WRITE;
+	special_mem |= S_WRITE;
 #endif
 	value &= 0xffff;
 	if (ecard >= cardno)
@@ -320,7 +320,7 @@ static void REGPARAM2 expamem_wput (uaecptr addr, uae_u32 value)
 static void REGPARAM2 expamem_bput (uaecptr addr, uae_u32 value)
 {
 #ifdef JIT
-	special_mem |= SPECIAL_MEM_WRITE;
+	special_mem |= S_WRITE;
 #endif
 	if (ecard >= cardno)
 		return;
@@ -505,7 +505,7 @@ static uae_u32 catweasel_start;
 static uae_u32 REGPARAM2 catweasel_lget (uaecptr addr)
 {
 #ifdef JIT
-	special_mem |= SPECIAL_MEM_READ;
+	special_mem |= S_READ;
 #endif
 	write_log ("catweasel_lget @%08X!\n",addr);
 	return 0;
@@ -514,7 +514,7 @@ static uae_u32 REGPARAM2 catweasel_lget (uaecptr addr)
 static uae_u32 REGPARAM2 catweasel_wget (uaecptr addr)
 {
 #ifdef JIT
-	special_mem |= SPECIAL_MEM_READ;
+	special_mem |= S_READ;
 #endif
 	write_log ("catweasel_wget @%08X!\n",addr);
 	return 0;
@@ -523,7 +523,7 @@ static uae_u32 REGPARAM2 catweasel_wget (uaecptr addr)
 static uae_u32 REGPARAM2 catweasel_bget (uaecptr addr)
 {
 #ifdef JIT
-	special_mem |= SPECIAL_MEM_READ;
+	special_mem |= S_READ;
 #endif
 	addr -= catweasel_start & catweasel_mask;
 	addr &= catweasel_mask;
@@ -533,7 +533,7 @@ static uae_u32 REGPARAM2 catweasel_bget (uaecptr addr)
 static void REGPARAM2 catweasel_lput (uaecptr addr, uae_u32 l)
 {
 #ifdef JIT
-	special_mem |= SPECIAL_MEM_WRITE;
+	special_mem |= S_WRITE;
 #endif
 	write_log ("catweasel_lput @%08X=%08X!\n",addr,l);
 }
@@ -541,7 +541,7 @@ static void REGPARAM2 catweasel_lput (uaecptr addr, uae_u32 l)
 static void REGPARAM2 catweasel_wput (uaecptr addr, uae_u32 w)
 {
 #ifdef JIT
-	special_mem |= SPECIAL_MEM_WRITE;
+	special_mem |= S_WRITE;
 #endif
 	write_log ("catweasel_wput @%08X=%04X!\n",addr,w);
 }
@@ -549,7 +549,7 @@ static void REGPARAM2 catweasel_wput (uaecptr addr, uae_u32 w)
 static void REGPARAM2 catweasel_bput (uaecptr addr, uae_u32 b)
 {
 #ifdef JIT
-	special_mem |= SPECIAL_MEM_WRITE;
+	special_mem |= S_WRITE;
 #endif
 	addr -= catweasel_start & catweasel_mask;
 	addr &= catweasel_mask;
@@ -633,7 +633,7 @@ static uae_u32 REGPARAM2 filesys_lget (uaecptr addr)
 {
 	uae_u8 *m;
 #ifdef JIT
-	special_mem |= SPECIAL_MEM_READ;
+	special_mem |= S_READ;
 #endif
 	addr -= filesys_start & 65535;
 	addr &= 65535;
@@ -645,7 +645,7 @@ static uae_u32 REGPARAM2 filesys_wget (uaecptr addr)
 {
 	uae_u8 *m;
 #ifdef JIT
-	special_mem |= SPECIAL_MEM_READ;
+	special_mem |= S_READ;
 #endif
 	addr -= filesys_start & 65535;
 	addr &= 65535;
@@ -656,7 +656,7 @@ static uae_u32 REGPARAM2 filesys_wget (uaecptr addr)
 static uae_u32 REGPARAM2 filesys_bget (uaecptr addr)
 {
 #ifdef JIT
-	special_mem |= SPECIAL_MEM_READ;
+	special_mem |= S_READ;
 #endif
 	addr -= filesys_start & 65535;
 	addr &= 65535;
@@ -666,7 +666,7 @@ static uae_u32 REGPARAM2 filesys_bget (uaecptr addr)
 static void REGPARAM2 filesys_lput (uaecptr addr, uae_u32 l)
 {
 #ifdef JIT
-	special_mem |= SPECIAL_MEM_WRITE;
+	special_mem |= S_WRITE;
 #endif
 	write_log ("filesys_lput called PC=%p\n", M68K_GETPC);
 }
@@ -674,7 +674,7 @@ static void REGPARAM2 filesys_lput (uaecptr addr, uae_u32 l)
 static void REGPARAM2 filesys_wput (uaecptr addr, uae_u32 w)
 {
 #ifdef JIT
-	special_mem |= SPECIAL_MEM_WRITE;
+	special_mem |= S_WRITE;
 #endif
 	write_log ("filesys_wput called PC=%p\n", M68K_GETPC);
 }
@@ -682,7 +682,7 @@ static void REGPARAM2 filesys_wput (uaecptr addr, uae_u32 w)
 static void REGPARAM2 filesys_bput (uaecptr addr, uae_u32 b)
 {
 #ifdef JIT
-	special_mem |= SPECIAL_MEM_WRITE;
+	special_mem |= S_WRITE;
 #endif
 }
 

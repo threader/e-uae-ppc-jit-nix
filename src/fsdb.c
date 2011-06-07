@@ -200,7 +200,7 @@ a_inode *fsdb_lookup_aino_nname (a_inode *base, const TCHAR *nname)
 		uae_u8 buf[1 + 4 + 257 + 257 + 81];
 		if (fread (buf, 1, sizeof buf, f) < sizeof buf)
 		    break;
-		if (buf[0] != 0 && strcmp (buf + 5 + 257, nname) == 0) {
+		if (buf[0] != 0 && strcmp ((char*)buf + 5 + 257, nname) == 0) {
 		    long pos = ftell (f) - sizeof buf;
 		    fclose (f);
 		    return aino_from_buf (base, buf, pos);

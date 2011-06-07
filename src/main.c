@@ -464,7 +464,7 @@ void fixup_prefs (struct uae_prefs *p)
 		p->m68k_speed = 0;
 	}
 #endif
-	if (p->maprom && !p->address_space_24)
+		if (p->maprom && !p->address_space_24)
 		p->maprom = 0x0f000000;
 	if (p->tod_hack && p->cs_ciaatod == 0)
 		p->cs_ciaatod = p->ntscmode ? 2 : 1;
@@ -575,6 +575,13 @@ static TCHAR *parsetext (const TCHAR *s)
 		return my_strdup (s);
 	}
 }
+static TCHAR *parsetextpath (const TCHAR *s)
+{
+	TCHAR *s3 = parsetext (s);
+	//TCHAR *s3 = target_expand_environment (s2);
+	//xfree (s2);
+	return s3;
+}
 
 static void parse_cmdline (int argc, TCHAR **argv)
 {
@@ -582,7 +589,7 @@ static void parse_cmdline (int argc, TCHAR **argv)
 
 	for (i = 1; i < argc; i++) {
 		if (!_tcsncmp (argv[i], "-diskswapper=", 13)) {
-			TCHAR *txt = parsetext (argv[i] + 13);
+			TCHAR *txt = parsetextpath (argv[i] + 13);
 			parse_diskswapper (txt);
 			xfree (txt);
 		} else if (_tcsncmp (argv[i], "-cfgparam=", 10) == 0) {
@@ -591,12 +598,12 @@ static void parse_cmdline (int argc, TCHAR **argv)
 			if (i + 1 < argc)
 				i++;
 		} else if (_tcsncmp (argv[i], "-config=", 8) == 0) {
-			TCHAR *txt = parsetext (argv[i] + 8);
+			TCHAR *txt = parsetextpath (argv[i] + 8);
 			currprefs.mountitems = 0;
 			target_cfgfile_load (&currprefs, txt, -1, 0);
 			xfree (txt);
 		} else if (_tcsncmp (argv[i], "-statefile=", 11) == 0) {
-			TCHAR *txt = parsetext (argv[i] + 11);
+			TCHAR *txt = parsetextpath (argv[i] + 11);
 			savestate_state = STATE_DORESTORE;
 			_tcscpy (savestate_fname, txt);
 			xfree (txt);
@@ -605,7 +612,7 @@ static void parse_cmdline (int argc, TCHAR **argv)
 			if (i + 1 == argc) {
 				write_log ("Missing argument for '-f' option.\n");
 			} else {
-				TCHAR *txt = parsetext (argv[++i]);
+				TCHAR *txt = parsetextpath (argv[++i]);
 				currprefs.mountitems = 0;
 				target_cfgfile_load (&currprefs, txt, -1, 0);
 				xfree (txt);
@@ -619,7 +626,7 @@ static void parse_cmdline (int argc, TCHAR **argv)
 			usage ();
 			exit (0);
 		} else if (_tcsncmp (argv[i], "-cdimage=", 9) == 0) {
-			TCHAR *txt = parsetext (argv[i] + 9);
+			TCHAR *txt = parsetextpath (argv[i] + 9);
 			TCHAR *txt2 = xmalloc(TCHAR, _tcslen(txt) + 2);
 			_tcscpy(txt2, txt);
 			if (_tcsrchr(txt2, ',') != NULL)
@@ -665,14 +672,8 @@ static void parse_cmdline_and_init_file (int argc, TCHAR **argv)
 		write_log ("failed to load config '%s'\n", optionsfile);
 #ifdef OPTIONS_IN_HOME
 	/* sam: if not found in $HOME then look in current directory */
-	char *saved_path = strdup (optionsfile);
-	strcpy (optionsfile, OPTIONSFILENAME);
-	if (!target_cfgfile_load (&currprefs, optionsfile, 0) ) {
-		/* If not in current dir either, change path back to home
-		 * directory - so that a GUI can save a new config file there */
-		strcpy (optionsfile, saved_path);
-	}
-	free (saved_path);
+	_tcscpy (optionsfile, restart_config);
+        target_cfgfile_load (&currprefs, optionsfile, 0);
 #endif
 	}
 	fixup_prefs (&currprefs);
@@ -801,7 +802,7 @@ void do_leave_program (void)
 
 void start_program (void)
 {
-//TODO: remove here!
+//TODO: remove
 	gui_display (-1);
 	do_start_program ();
 }

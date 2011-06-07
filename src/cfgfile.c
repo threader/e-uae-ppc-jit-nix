@@ -1004,7 +1004,17 @@ int cfgfile_yesno (const TCHAR *option, const TCHAR *value, const TCHAR *name, b
 	return 1;
 }
 
-int cfgfile_intval2 (const TCHAR *option, const TCHAR *value, const TCHAR *name, unsigned int *location, int scale)
+int cfgfile_doubleval (const TCHAR *option, const TCHAR *value, const TCHAR *name, double *location)
+{
+	int base = 10;
+	TCHAR *endptr;
+	if (_tcscmp (option, name) != 0)
+		return 0;
+	*location = _tcstod (value, &endptr);
+	return 1;
+}
+
+int cfgfile_intval_unsigned (const TCHAR *option, const TCHAR *value, const TCHAR *name, unsigned int *location, int scale)
 {
 	int base = 10;
 	TCHAR *endptr;
@@ -1033,7 +1043,7 @@ int cfgfile_intval2 (const TCHAR *option, const TCHAR *value, const TCHAR *name,
 int cfgfile_intval (const TCHAR *option, const TCHAR *value, const TCHAR *name, int *location, int scale)
 {
 	unsigned int v = 0;
-	int r = cfgfile_intval2 (option, value, name, &v, scale);
+	int r = cfgfile_intval_unsigned (option, value, name, &v, scale);
 	if (!r)
 		return 0;
 	*location = (int)v;
@@ -1075,7 +1085,7 @@ int cfgfile_string (const TCHAR *option, const TCHAR *value, const TCHAR *name, 
 	return 1;
 }
 
-int cfgfile_path (const TCHAR *option, const TCHAR *value, const TCHAR *name, TCHAR *location, int maxsz)
+int cfgfile_path_mp (const TCHAR *option, const TCHAR *value, const TCHAR *name, TCHAR *location, int maxsz, struct multipath *mp)
 {
 	if (!cfgfile_string (option, value, name, location, maxsz))
 		return 0;
@@ -1084,6 +1094,10 @@ int cfgfile_path (const TCHAR *option, const TCHAR *value, const TCHAR *name, TC
 	location[maxsz - 1] = 0;
 	//xfree (s);
 	return 1;
+}
+int cfgfile_path (const TCHAR *option, const TCHAR *value, const TCHAR *name, TCHAR *location, int maxsz)
+{
+	return cfgfile_path_mp (option, value, name, location, maxsz, NULL);
 }
 
 int cfgfile_multipath (const TCHAR *option, const TCHAR *value, const TCHAR *name, struct multipath *mp)
@@ -1723,8 +1737,8 @@ static int cfgfile_parse_host (struct uae_prefs *p, TCHAR *option, TCHAR *value)
 			|| (l = KBD_LANG_SE, strcasecmp (value, "se") == 0)
 			|| (l = KBD_LANG_US, strcasecmp (value, "us") == 0)
 			|| (l = KBD_LANG_FR, strcasecmp (value, "fr") == 0)
-			|| (l = KBD_LANG_ES, strcasecmp (value, "es") == 0)
 			|| (l = KBD_LANG_IT, strcasecmp (value, "it") == 0)
+			|| (l = KBD_LANG_ES, strcasecmp (value, "es") == 0)
 			|| (l = KBD_LANG_FI, strcasecmp (value, "fi") == 0)
 			|| (l = KBD_LANG_TR, strcasecmp (value, "tr") == 0))
 			p->keyboard_lang = l;
@@ -2030,7 +2044,7 @@ static int cfgfile_parse_hardware (struct uae_prefs *p, const TCHAR *option, TCH
 		|| cfgfile_yesno (option, value, "comp_nf", &p->compnf)
 		|| cfgfile_yesno (option, value, "comp_constjump", &p->comp_constjump)
 		|| cfgfile_yesno (option, value, "comp_oldsegv", &p->comp_oldsegv)
-		|| cfgfile_yesno (option, value, "compforcesettings", &dummyint)
+		|| cfgfile_yesno (option, value, "compforcesettings", &dummybool)
 		|| cfgfile_yesno (option, value, "compfpu", &p->compfpu)
 #endif
 #ifdef FPU
@@ -2050,7 +2064,7 @@ static int cfgfile_parse_hardware (struct uae_prefs *p, const TCHAR *option, TCH
 		|| cfgfile_intval (option, value, "cdtvramcard", &p->cs_cdtvcard, 1)
 		|| cfgfile_intval (option, value, "fatgary", &p->cs_fatgaryrev, 1)
 		|| cfgfile_intval (option, value, "ramsey", &p->cs_ramseyrev, 1)
-		|| cfgfile_intval (option, value, "chipset_refreshrate", &p->chipset_refreshrate, 1)
+		|| cfgfile_doubleval (option, value, "chipset_refreshrate", &p->chipset_refreshrate)
 		|| cfgfile_intval (option, value, "fastmem_size", &p->fastmem_size, 0x100000)
 		|| cfgfile_intval (option, value, "a3000mem_size", &p->mbresmem_low_size, 0x100000)
 		|| cfgfile_intval (option, value, "mbresmem_size", &p->mbresmem_high_size, 0x100000)
@@ -2757,6 +2771,7 @@ int cfgfile_load (struct uae_prefs *p, const TCHAR *filename, int *type, int ign
 	}
 end:
 	recursive--;
+	write_log("cfgfile--");
 	fixup_prefs (p);
 	return v;
 }

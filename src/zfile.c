@@ -1593,7 +1593,6 @@ int zfile_zopen (const TCHAR *name, zfile_callback zc, void *user)
 	return 1;
 }
 
-
 /*
 * fopen() for a compressed file
 */
@@ -2788,6 +2787,22 @@ struct znode *zvolume_addfile_abs (struct zvolume *zv, struct zarchive_info *zai
 	return zn;
 }
 
+struct zvolume *zfile_fopen_directory (const TCHAR *dirname)
+{
+}
+
+struct zvolume *zfile_fopen_archive_flags (const TCHAR *filename, int flags)
+{
+}
+struct zvolume *zfile_fopen_archive (const TCHAR *filename)
+{
+	return zfile_fopen_archive_flags (filename, ZFD_ALL);
+}
+
+struct zvolume *zfile_fopen_archive_root (const TCHAR *filename, int flags)
+{
+}
+
 void zfile_fclose_archive (struct zvolume *zv)
 {
 	struct znode *zn;
@@ -2836,9 +2851,85 @@ struct zdirectory {
 	TCHAR **filenames;
 };
 
+struct zdirectory *zfile_opendir_archive_flags (const TCHAR *path, int flags)
+{
+}
+struct zdirectory *zfile_opendir_archive (const TCHAR *path)
+{
+	return zfile_opendir_archive_flags (path, ZFD_ALL | ZFD_NORECURSE);
+}
+void zfile_closedir_archive (struct zdirectory *zd)
+{
+	if (!zd)
+		return;
+	zfile_fclose_archive (zd->zv);
+	xfree (zd->parentpath);
+	xfree (zd->filenames);
+	xfree (zd);
+}
+int zfile_readdir_archive_fullpath (struct zdirectory *zd, TCHAR *out, bool fullpath)
+{
+	if (out)
+		out[0] = 0;
+	return 1;
+}
+int zfile_readdir_archive (struct zdirectory *zd, TCHAR *out)
+{
+	return zfile_readdir_archive_fullpath (zd, out, false);
+}
+void zfile_resetdir_archive (struct zdirectory *zd)
+{
+	zd->offset = 0;
+	zd->n = zd->first;
+}
+
+int zfile_fill_file_attrs_archive (const TCHAR *path, int *isdir, int *flags, TCHAR **comment)
+{
+	return 1;
+}
+
+int zfile_fs_usage_archive (const TCHAR *path, const TCHAR *disk, struct fs_usage *fsp)
+{
+	return 0;
+}
+
+int zfile_stat_archive (const TCHAR *path, struct _stat64 *s)
+{
+	return 1;
+}
+
+uae_s64 zfile_lseek_archive (struct zfile *d, uae_s64 offset, int whence)
+{
+	if (zfile_fseek (d, offset, whence))
+		return -1;
+	return zfile_ftell (d);
+}
+
+unsigned int zfile_read_archive (struct zfile *d, void *b, unsigned int size)
+{
+	return zfile_fread (b, 1, size, d);
+}
+
+void zfile_close_archive (struct zfile *d)
+{
+	/* do nothing, keep file cached */
+}
+
 struct zfile *zfile_open_archive (const TCHAR *path, int flags)
 {
 	return 0;
+}
+
+int zfile_exists_archive (const TCHAR *path, const TCHAR *rel)
+{
+}
+
+int zfile_convertimage (const TCHAR *src, const TCHAR *dst)
+{
+	struct zfile *s, *d;
+	int ret = 0;
+
+	return ret;
 }
 
 #ifdef _CONSOLE

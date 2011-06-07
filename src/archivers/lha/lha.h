@@ -73,7 +73,7 @@ typedef struct LzHeader {
 	unsigned char   header_level;
 	char            name[256];
 	unsigned short  crc;
-	bool         has_crc;
+	bool            has_crc;
 	unsigned char   extend_type;
 	unsigned char   minor_version;
 
