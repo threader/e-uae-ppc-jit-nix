@@ -16,7 +16,7 @@
 
 #include "uae_endian.h"
 
-int getvsyncrate (int hz)
+double getvsyncrate (double hz)
 {
 	if (hz > 85)
 		return hz / 2;
