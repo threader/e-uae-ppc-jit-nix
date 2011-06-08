@@ -78,7 +78,7 @@ int quickstart_floppy = 1, quickstart_cd = 0, quickstart_ntsc = 0;
 int quickstart_cdtype = 0;
 char quickstart_cddrive[16];
 int quickstart_ok, quickstart_ok_floppy;
-
+extern TCHAR config_filename[256];
 //----------
 
 #import <Cocoa/Cocoa.h>
@@ -203,7 +203,6 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 	
 	[self createMenuItemInMenu:vAmigaMenu withTitle:@"Reset" action:@selector(resetAmiga:) tag:0];
 	[self createMenuItemInMenu:vAmigaMenu withTitle:@"Hard Reset" action:@selector(resetAmiga:) tag:1];
-//	[self createMenuItemInMenu:vAmigaMenu withTitle:@"Hebe" action:@selector(hebeHebe:) tag:0];
 //	[self createMenuItemInMenu:vAmigaMenu withTitle:@"Pause" action:@selector(pauseAmiga:) tag:0];
 	
 #ifdef ACTION_REPLAY
@@ -540,7 +539,6 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 	[menuItem release];
 	// SOUND MENU END
 
-
 	// Create a menu for changing aspects of emulator control
 	NSMenu *controlMenu = [[NSMenu alloc] initWithTitle:@"Control"];
 
@@ -646,7 +644,6 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 		// There's a disk in the drive, show its name in the menu item
 		NSString *diskImage = [[NSString stringWithCString:gui_data.df[tag] encoding:NSASCIIStringEncoding] lastPathComponent];
 		[menuItem setTitle:[NSString stringWithFormat:@"DF%d (%@)",tag,diskImage]];
-		//if (canSetHidden) [menuItem setHidden:NO];
 		return YES;
 	}
 
@@ -1040,8 +1037,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 	NSString *nsfloppypath = [[NSUserDefaults standardUserDefaults] stringForKey:@"LastUsedDiskImagePath"];
 	
 	/* If the configuration includes a setting for the "floppy_path" attribute
-	 * start the OpenPanel in that directory.. but only the first time.
-	 */
+	 * start the OpenPanel in that directory.. but only the first time. */
 	static int run_once = 0;
 	if (!run_once) {
 		run_once++;
@@ -1053,8 +1049,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 			snprintf(homedir, MAX_PATH, "%s/", getenv("HOME"));
 			
 			/* The default value for floppy_path is "$HOME/". We only want to use it if the
-			 * user provided an actual value though, so we don't use it if it equals "$HOME/"
-			 */
+			 * user provided an actual value though, so we don't use it if it equals "$HOME/" */
 			if (strncmp(floppy_path, homedir, MAX_PATH) != 0)
 				nsfloppypath = [NSString stringWithCString:floppy_path encoding:NSASCIIStringEncoding];
 		}
@@ -1294,7 +1289,6 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 		}
 	}
 
-//                             types:SaveStateTypes
     [oPanel beginSheetForDirectory:nssavestatepath file:@""
                     modalForWindow:[NSApp mainWindow]
                      modalDelegate:self
@@ -1309,12 +1303,12 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 
 	NSArray *files = [sheet filenames];
 	NSString *file = [files objectAtIndex:0];
-//	lossyASCIICopy (changed_prefs.cartfile, file, COCOA_GUI_MAX_PATH);
+	char *sfile = [file UTF8String];
 
 	[[NSUserDefaults standardUserDefaults] setObject:[file stringByDeletingLastPathComponent] forKey:@"LastUsedSaveStatePath"];
 
-	write_log ("Loading SaveState from: %s ...", file);
-	savestate_initsave (file, 0, 0, 0);
+	write_log ("Loading SaveState from: %s ...", sfile);
+	savestate_initsave (sfile, 0, 0, 0);
 	savestate_state = STATE_DORESTORE;
 	write_log ("done\n");
 }
@@ -1355,7 +1349,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 	write_log ("done\n");
 }
 
-/*
+
 - (void)QuickStart:(id)sender
 {
 	unsigned int romcheck = 0;
@@ -1366,24 +1360,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 	changed_prefs.ntscmode = quickstart_ntsc != 0;
 	//quickstart_cd = chnaged_prefs.floppyslots[1].dfxtype == DRV_NONE && (quickstart_model == 8 || quickstart_model == 9);
     config_filename[0] = 0;
-
-	uae_reset(0);
-}
-*/
-
-- (void)hebeHebe:(id)sender
-{
-	NSRect frame = NSMakeRect(100, 100, 200, 200);
-	NSUInteger styleMask;
-	NSRect rect = [NSWindow contentRectForFrameRect:frame styleMask:styleMask];
-	NSWindow *window = [[NSWindow alloc] initWithContentRect:rect styleMask:styleMask backing:NSBackingStoreBuffered defer:false];
-	[window center];
-	[window makeKeyAndOrderFront: window];
-
-/*	NSTabViewItem* item=[[NSTabViewItem alloc] initWithIdentifier:identifier];
-	[item setLabel:label];
-	[item setView:newView];
-	[tabView addTabViewItem:item];*/
+	//uae_reset(0);
 }
 
 - (void)resetAmiga:(id)sender

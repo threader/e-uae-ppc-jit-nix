@@ -134,18 +134,7 @@ static int last_state = -1;
 int alt_pressed;
 unsigned int mouse_capture;
 
-/*
- * Set window title with some useful status info.
- */
-static void set_window_title (void)
-{
-    const char *title = PACKAGE_NAME;
-
-    if (last_state == UAE_STATE_PAUSED)
-	title = PACKAGE_NAME " (paused)";
-
-    SDL_WM_SetCaption (title, title);
-}
+TCHAR config_filename[256] = "";
 
 #ifdef WIN32_OR_X11 && GL_SHADER
 PFNGLCREATEPROGRAMOBJECTARBPROC     glCreateProgramObjectARB = NULL;
@@ -1185,7 +1174,7 @@ static int graphics_subinit (void)
 #endif /* USE_GL */
 
     /* Set UAE window title and icon name */
-    set_window_title ();
+    setmaintitle ();
 
     /* Mouse is now always grabbed when full-screen - to work around
      * problems with full-screen mouse input in some SDL implementations */
@@ -1292,7 +1281,7 @@ void graphics_notify_state (int state)
     if (last_state != state) {
 	last_state = state;
 	if (display)
-	    set_window_title ();
+	    setmaintitle ();
     }
 }
 
@@ -2239,3 +2228,34 @@ int target_checkcapslock (int scancode, int *state)
         return 1;
 }
 
+void setmaintitle (void)
+{
+	TCHAR txt[1000], txt2[500];
+    const char *title = PACKAGE_NAME;
+
+	txt[0] = 0;
+#ifdef INPREC
+	inprec_getstatus (txt);
+#endif
+	if (currprefs.config_window_title[0]) {
+		_tcscat (txt, currprefs.config_window_title);
+		_tcscat (txt, " - ");
+	} else if (config_filename[0]) {
+		_tcscat (txt, "[");
+		_tcscat (txt, config_filename);
+		_tcscat (txt, "] - ");
+	}
+	_tcscat (txt, title);
+	txt2[0] = 0;
+/*	if (mouseactive > 0) {
+		WIN32GUI_LoadUIString (currprefs.win32_middle_mouse ? IDS_WINUAETITLE_MMB : IDS_WINUAETITLE_NORMAL,
+			txt2, sizeof (txt2) / sizeof (TCHAR));
+	}
+*/
+	if (txt2[0]) {
+		_tcscat (txt, " - ");
+		_tcscat (txt, txt2);
+	}
+
+	SDL_WM_SetCaption(txt, txt);
+}

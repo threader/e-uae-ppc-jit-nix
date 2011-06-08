@@ -2771,7 +2771,6 @@ int cfgfile_load (struct uae_prefs *p, const TCHAR *filename, int *type, int ign
 	}
 end:
 	recursive--;
-	write_log("cfgfile--");
 	fixup_prefs (p);
 	return v;
 }
@@ -4473,6 +4472,8 @@ static int bip_arcadia (struct uae_prefs *p, int config, int compa, int romcheck
 
 int built_in_prefs (struct uae_prefs *p, int model, int config, int compa, int romcheck)
 {
+	write_log("built in model: %d, config: %d, compa: %d, romchk: %d\n", model, config, compa, romcheck);
+
 	int v = 0;
 
 	buildin_default_prefs (p);

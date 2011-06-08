@@ -681,10 +681,8 @@ void getfilepart (TCHAR *out, int size, const TCHAR *path)
 
 void refreshtitle (void)
 {
-/*
-        if (isfullscreen () == 0)
-                setmaintitle (hMainWnd);
-*/
+	if (isfullscreen () == 0)
+		setmaintitle ();
 }
 
 // win32gui
