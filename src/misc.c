@@ -30,6 +30,7 @@
 #include "clipboard.h"
 #include "fsdb.h"
 #include "debug.h"
+#include "sleep.h"
 
 #define TRUE 1
 #define FALSE 0
@@ -67,6 +68,10 @@ static struct winuae_currentmode *currentmode = &currentmodestruct;
 
 static int serial_period_hsyncs, serial_period_hsync_counter;
 static int data_in_serdatr; /* new data received */
+
+//win32gfx.cpp
+static double remembered_vblank;
+static int vblankbase;
 
 // dinput
 int rawkeyboard = -1;
@@ -1354,4 +1359,114 @@ int D3D_goodenough (void)
 // debug_win32
 void update_debug_info(void)
 {
+}
+
+//win32gfx.cpp
+void update_screen (void)
+{
+	//
+}
+
+double vblank_calibrate (bool waitonly)
+{
+  frame_time_t t1, t2;
+  double tsum, tsum2, tval, tfirst;
+  int maxcnt, maxtotal, total, cnt, tcnt2;
+  
+  if (remembered_vblank > 0)
+    return remembered_vblank;
+  if (waitonly) {
+    vblankbase = (syncbase / currprefs.chipset_refreshrate) * 3 / 4;
+    remembered_vblank = -1;
+    return -1;
+  }
+/*
+  th = GetCurrentThread ();
+  int oldpri = GetThreadPriority (th);
+  SetThreadPriority (th, THREAD_PRIORITY_HIGHEST);
+  dummythread_die = -1;
+  dummy_counter = 0;
+  _beginthread (&dummythread, 0, 0);
+  sleep_millis (100);
+ maxtotal = 10;
+ maxcnt = maxtotal;
+  tsum2 = 0;
+  tcnt2 = 0;
+  for (maxcnt = 0; maxcnt < maxtotal; maxcnt++) {
+    total = 10;
+    tsum = 0;
+    cnt = total;
+    for (cnt = 0; cnt < total; cnt++) {
+      if (!waitvblankstate (true))
+        return -1;
+      if (!waitvblankstate (false))
+        return -1;
+      if (!waitvblankstate (true))
+        return -1;
+      t1 = read_processor_time ();
+      if (!waitvblankstate (false))
+        return -1;
+      if (!waitvblankstate (true))
+        return -1;
+      t2 = read_processor_time ();
+      tval = (double)syncbase / (t2 - t1);
+      if (cnt == 0)
+        tfirst = tval;
+      if (abs (tval - tfirst) > 1) {
+        write_log (L"very unstable vsync! %.6f vs %.6f, retrying..\n", tval, tfirst);
+        break;
+      }
+      tsum2 += tval;
+      tcnt2++;
+      if (abs (tval - tfirst) > 0.1) {
+        write_log (L"unstable vsync! %.6f vs %.6f\n", tval, tfirst);
+        break;
+      }
+      tsum += tval;
+    }
+    if (cnt >= total)
+      break;
+  }
+  dummythread_die = 0;
+  SetThreadPriority (th, oldpri);
+  if (maxcnt >= maxtotal) {
+    tsum = tsum2 / tcnt2;
+    write_log (L"unstable vsync reporting, using average value\n");
+  } else {
+    tsum /= total;
+  }
+  if (tsum >= 85)
+    tsum /= 2;
+  vblankbase = (syncbase / tsum) * 3 / 4;
+  write_log (L"VSync calibration: %.6fHz\n", tsum);
+  remembered_vblank = tsum;
+  return tsum;
+*/
+ return -1;
+
+}
+
+bool vsync_busywait (void)
+{
+  bool v;
+  static frame_time_t prevtime;
+
+  if (currprefs.turbo_emulation)
+    return true;
+
+  while (uae_gethrtime () - prevtime < vblankbase)
+    uae_msleep (1);
+  v = false;
+/*
+  if (currprefs.gfx_api) {
+    v = D3D_vblank_busywait ();
+  } else {
+    v = DirectDraw_vblank_busywait ();
+  }
+*/
+  if (v) {
+    prevtime = uae_gethrtime ();
+    return true;
+  }
+  return false;
 }

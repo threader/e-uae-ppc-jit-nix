@@ -580,8 +580,12 @@ static void picasso_trigger_vblank (void)
 
 static int isvsync (void)
 {
-	return currprefs.gfx_pfullscreen && currprefs.gfx_pvsync;
-}
+	if (currprefs.gfx_pfullscreen && currprefs.gfx_pvsync)
+		return 1;
+	if (currprefs.gfx_pvsync && currprefs.gfx_pvsyncmode)
+		return -1;
+	return 0;
+	}
 
 void picasso_handle_vsync (void)
 {

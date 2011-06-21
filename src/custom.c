@@ -1651,6 +1651,36 @@ STATIC_INLINE int one_fetch_cycle (int pos, int ddfstop_to_test, int dma, int fm
 	}
 }
 
+static void update_fetch_x (int hpos, int fm)
+{
+  int pos;
+
+  if (nodraw ())
+    return;
+
+  unsigned int i;
+  pos = last_fetch_hpos;
+  update_toscr_planes ();
+  for (i = 0; i < 8; i++)
+    fetched[i] = bplxdat[i];
+  beginning_of_plane_block (hpos, fm);
+  for (; pos < hpos; pos++) {
+
+    toscr_nbits += 2 << toscr_res;
+
+    if (toscr_nbits > 16) {
+      uae_abort ("toscr_nbits > 16 (%d)", toscr_nbits);
+      toscr_nbits = 0;
+    }
+    if (toscr_nbits == 16)
+      flush_display (fm);
+
+  }
+  flush_display (fm);
+  bpl1dat_written = 0;
+}
+
+
 STATIC_INLINE void update_fetch (int until, int fm)
 {
 	int pos;
@@ -1778,6 +1808,9 @@ STATIC_INLINE void decide_fetch (int hpos)
 #endif
 			default: uae_abort ("fetchmode corrupt");
 			}
+		} else if (0 && bpl1dat_written) {
+		      // "pio" mode display
+		      update_fetch_x (hpos, fetchmode);
 		}
 		maybe_check (hpos);
 		last_fetch_hpos = hpos;
@@ -2504,6 +2537,7 @@ static void finish_decisions (void)
 	decide_diw (hpos);
 	decide_line (hpos);
 	decide_fetch (hpos);
+	finish_final_fetch (hpos, fetchmode);
 
 	record_color_change2 (hsyncstartpos, 0xffff, 0);
 	if (thisline_decision.plfleft != -1 && thisline_decision.plflinelen == -1) {
@@ -2677,9 +2711,9 @@ static int islinetoggle (void)
 
 static int isvsync (void)
 {
-	if (currprefs.gfx_afullscreen != GFX_FULLSCREEN || picasso_on || !currprefs.gfx_avsync)
+	if (picasso_on || !currprefs.gfx_avsync || (currprefs.gfx_avsync == 0 && !currprefs.gfx_afullscreen))
 		return 0;
-	return currprefs.gfx_avsync;
+	return currprefs.gfx_avsyncmode == 0 ? 1 : -1;
 }
 
 int vsynctime_orig;
@@ -2736,21 +2770,14 @@ int current_maxvpos (void)
 /* set PAL/NTSC or custom timing variables */
 void init_hz_fullinit (bool fullinit)
 {
-	int isntsc;
+	int isntsc, islace;
 	int odbl = doublescan, omaxvpos = maxvpos;
 	double ovblank = vblank_hz;
 	int hzc = 0;
+	unsigned int i;
 
 	if (fullinit)
 		vpos_count = vpos_count_prev = 0;
-
-	if (vsync_switchmode (-1, 0))
-		currprefs.gfx_avsync = changed_prefs.gfx_avsync = vsync_switchmode (-1, 0) ? 2 : 0;
-
-	if (!isvsync () && (DBLEQU (currprefs.chipset_refreshrate, 50) && !currprefs.ntscmode) ||
-		(DBLEQU (currprefs.chipset_refreshrate, 60) && currprefs.ntscmode)) {
-			currprefs.chipset_refreshrate = changed_prefs.chipset_refreshrate = 0.0;
-	}
 
 	doublescan = 0;
 	if ((beamcon0 & 0xA0) != (new_beamcon0 & 0xA0))
@@ -2761,6 +2788,7 @@ void init_hz_fullinit (bool fullinit)
 	}
 	beamcon0 = new_beamcon0;
 	isntsc = (beamcon0 & 0x20) ? 0 : 1;
+	islace = (bplcon0 & 4) ? 1 : 0;
 	if (!(currprefs.chipset_mask & CSMASK_ECS_AGNUS))
 		isntsc = currprefs.ntscmode ? 1 : 0;
 	if (!isntsc) {
@@ -2837,16 +2865,49 @@ void init_hz_fullinit (bool fullinit)
 	eventtab[ev_hsync].evtime = get_cycles () + HSYNCTIME;
 	events_schedule ();
 	if (hzc) {
-		interlace_seen = (bplcon0 & 4) ? 1 : 0;
+		interlace_seen = islace;
 		reset_drawing ();
 	}
-	if ((DBLEQU (vblank_hz, 50) || DBLEQU (vblank_hz, 60)) && isvsync () == 2) {
-		if (getvsyncrate (currprefs.gfx_refreshrate) != vblank_hz)
-			vsync_switchmode (vblank_hz, currprefs.gfx_refreshrate);
-	}
-	if (isvsync ()) {
-		changed_prefs.chipset_refreshrate = currprefs.chipset_refreshrate = abs (currprefs.gfx_refreshrate);
-	}
+
+  for (i = 0; i < MAX_CHIPSET_REFRESH_TOTAL; i++) {
+    struct chipset_refresh *cr = &currprefs.cr[i];
+    if ((cr->horiz < 0 || cr->horiz == maxhpos) &&
+      (cr->vert < 0 || cr->vert == maxvpos_nom) &&
+      (cr->ntsc < 0 || (cr->ntsc > 0 && isntsc) || (cr->ntsc == 0 && !isntsc)) &&
+      (cr->lace < 0 || (cr->lace > 0 && islace) || (cr->lace == 0 && !islace)) &&
+      (cr->framelength < 0 || (cr->framelength > 0 && lof_store) || (cr->framelength == 0 && !lof_store)) &&
+      (cr->vsync < 0 || (cr->vsync > 0 && isvsync ()) || (cr->vsync == 0 && !isvsync ()))) {
+        double v = -1;
+
+        if (isvsync ()) {
+          if (i == CHIPSET_REFRESH_PAL || i == CHIPSET_REFRESH_NTSC) {
+            if ((abs (vblank_hz - 50) < 1 || abs (vblank_hz - 60) < 1) && currprefs.gfx_avsync == 2 && currprefs.gfx_afullscreen > 0) {
+              vsync_switchmode (vblank_hz > 55 ? 60 : 50);
+            }
+          }
+          if (isvsync () < 0) {
+            double v2;
+            changed_prefs.chipset_refreshrate = currprefs.chipset_refreshrate = cr->rate;
+            v2 = vblank_calibrate (cr->locked);
+            if (!cr->locked)
+              v = v2;
+          }
+        } else {
+          if (cr->locked == true)
+            v = cr->rate;
+          else
+            v = vblank_hz;
+        }
+        if (v < 0)
+          v = cr->rate;
+        if (v > 0) {
+          changed_prefs.chipset_refreshrate = currprefs.chipset_refreshrate = v;
+          cfgfile_parse_lines (&changed_prefs, cr->commands, -1);
+        }
+        break;
+    }
+   }
+
 	maxvpos_total = (currprefs.chipset_mask & CSMASK_ECS_AGNUS) ? 2047 : 511;
 	if (maxvpos_total > MAXVPOS)
 		maxvpos_total = MAXVPOS;
@@ -2872,7 +2933,7 @@ void init_hz_fullinit (bool fullinit)
 	//inputdevice_tablet_strobe ();
 	write_log ("%s mode%s%s V=%.4fHz H=%0.4fHz (%dx%d+%d)\n",
 		isntsc ? "NTSC" : "PAL",
-		(bplcon0 & 4) ? " interlaced" : "",
+		islace ? " laced" : "",
 		doublescan > 0 ? " dblscan" : "",
 		vblank_hz, vblank_hz * maxvpos_nom,
 		maxhpos, maxvpos, lof_store ? 1 : 0);
@@ -2951,7 +3012,7 @@ void init_custom (void)
 	update_mirrors();
 	create_cycle_diagram_table ();
 	reset_drawing ();
-	init_hz_full ();
+	init_hz ();
 	calcdiw ();
 }
 
@@ -4982,9 +5043,16 @@ static void framewait (void)
 {
 	frame_time_t curr_time;
 	frame_time_t start;
+	int vs = isvsync ();
 
-	if (isvsync ()) {
+	if (vs > 0) {
 		vsyncmintime = vsynctime;
+		update_screen ();
+		return;
+	} else if (vs < 0) {
+		vsyncmintime = vsynctime;
+		vsync_busywait ();
+		update_screen ();
 		return;
 	}
 	for (;;) {
@@ -4993,6 +5061,7 @@ static void framewait (void)
 			break;
 		uae_msleep (2);
 	}
+	update_screen ();
 	curr_time = start = uae_gethrtime ();
 	while (rpt_vsync () < 0);
 	curr_time = uae_gethrtime ();
@@ -5108,6 +5177,7 @@ static void vsync_handler_post (void)
 					if ((long int)(curr_time - vsyncmintime) > 0 || rpt_did_reset)
 						vsyncmintime = curr_time + vsynctime;
 					rpt_did_reset = 0;
+					update_screen ();
 				} else if (rpt_available) {
 					framewait ();
 				}
@@ -5115,11 +5185,15 @@ static void vsync_handler_post (void)
 			} else {
 				if (rpt_available && currprefs.m68k_speed == 0) {
 					framewait ();
+				} else {
+					update_screen ();
 				}
 			}
 #endif
-	} else {
+	} else if (currprefs.m68k_speed == 0) {
 		framewait ();
+	} else {
+		update_screen ();
 	}
 
 	gui_handle_events ();
@@ -7115,13 +7189,9 @@ void check_prefs_changed_custom (void)
 	currprefs.cs_slowmemisfast = changed_prefs.cs_slowmemisfast;
 
 	if (currprefs.chipset_mask != changed_prefs.chipset_mask ||
-		currprefs.gfx_avsync != changed_prefs.gfx_avsync ||
-		currprefs.gfx_pvsync != changed_prefs.gfx_pvsync ||
 		currprefs.picasso96_nocustom != changed_prefs.picasso96_nocustom ||
 		currprefs.ntscmode != changed_prefs.ntscmode) {
 			currprefs.picasso96_nocustom = changed_prefs.picasso96_nocustom;
-			currprefs.gfx_avsync = changed_prefs.gfx_avsync;
-			currprefs.gfx_pvsync = changed_prefs.gfx_pvsync;
 			currprefs.chipset_mask = changed_prefs.chipset_mask;
 			if (currprefs.ntscmode != changed_prefs.ntscmode) {
 				currprefs.ntscmode = changed_prefs.ntscmode;

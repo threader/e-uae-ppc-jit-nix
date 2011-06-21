@@ -16,7 +16,9 @@ extern xcolnr xcolors_16[4096];
 extern xcolnr xcolors_32[4096];
 extern uae_u32 p96_rgbx16[65536];
 
-extern bool vsync_switchmode (int, int);
+extern bool vsync_switchmode (int);
+extern bool vsync_busywait (void);
+extern double vblank_calibrate (bool);
 extern void doflashscreen (void);
 extern int flashscreen;
 
