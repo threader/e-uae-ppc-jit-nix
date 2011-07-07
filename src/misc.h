@@ -11,4 +11,4 @@ extern int ispressed (int key);
 extern int D3D_goodenough (void);
 extern int DirectDraw_CurrentRefreshRate (void);
 extern int DirectDraw_GetVerticalBlankStatus (void);
-
+extern double getcurrentvblankrate (void);

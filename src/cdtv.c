@@ -233,7 +233,8 @@ static void subfunc (uae_u8 *data, int cnt)
 	uae_sem_wait (&sub_sem);
 #ifdef CDTV_SUB_DEBUG
 	int total = 0;
-	for (int i = 0; i < MAX_SUBCODEBUFFER; i++) {
+	unsigned int i;
+	for (i = 0; i < MAX_SUBCODEBUFFER; i++) {
 		if (subcodebufferinuse[i])
 			total++;
 	}

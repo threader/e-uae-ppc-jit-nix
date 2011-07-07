@@ -169,7 +169,7 @@ uae_SOURCES = \
 	gfxutil.c audio.c sinctable.c statusline.c drawing.c consolehook.c \
 	native2amiga.c disk.c crc32.c savestate.c arcadia.c cdtv.c cd32_fmv.c \
 	uaeexe.c uaelib.c uaeresource.c uaeserial.c fdi2raw.c hotkeys.c amax.c \
-	ar.c driveclick.c enforcer.c misc.c a2065.c gayle.c ncr_scsi.c \
+	ar.c driveclick.c enforcer.c misc.c uaenet.c a2065.c gayle.c ncr_scsi.c \
 	missing.c readcpu.c aros.rom.c hrtmon.rom.c
 
 EXTRA_uae_SOURCES = \
@@ -178,7 +178,7 @@ EXTRA_uae_SOURCES = \
 	debug.c identify.c filesys.c filesys_bootrom.c fsdb.c fsdb_unix.c fsusage.c genblitter.c \
 	gencpu.c gengenblitter.c gencomp.c genlinetoscr.c hardfile.c \
 	hardfile_unix.c scsi-none.c scsiemul.c svgancui.c tui.c \
-	blkdev-libscg.c filesys_unix.c amax.c \
+	blkdev-libscg.c blkdev_cdimage.c filesys_unix.c amax.c \
 	akiko.c cd32_fmv.c ar.c blkdev.c blitops.c scsi.c \
 	writelog.c
 

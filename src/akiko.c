@@ -468,14 +468,7 @@ static void subfunc (uae_u8 *data, int cnt)
 	if (!(cdrom_flags & CDFLAG_SUBCODE))
 		return;
 	uae_sem_wait (&sub_sem);
-#if 0
-	int total = 0;
-	for (int i = 0; i < MAX_SUBCODEBUFFER; i++) {
-		if (subcodebufferinuse[i])
-			total++;
-	}
-	write_log ("%d ", total);
-#endif
+
 	if (subcodebufferinuse[subcodebufferoffsetw]) {
 		memset (subcodebufferinuse, 0,sizeof (subcodebufferinuse));
 		subcodebufferoffsetw = subcodebufferoffset = 0;

@@ -1361,6 +1361,7 @@ void a2091_init (void)
 		z = read_rom (&rd);
 		if (z) {
 			int slotsize = 65536;
+			unsigned int i;
 			write_log ("A590/A2091 BOOT ROM %d.%d ", rd->ver, rd->rev);
 			rom_size = rd->size;
 			rom = xmalloc (uae_u8, slotsize);
@@ -1368,7 +1369,7 @@ void a2091_init (void)
 				rombankswitcher = 1;
 			zfile_fread (rom, rom_size, 1, z);
 			zfile_fclose (z);
-			for (int i = 1; i < slotsize / rom_size; i++)
+			for (i = 1; i < slotsize / rom_size; i++)
 				memcpy (rom + i * rom_size, rom, rom_size);
 			rom_mask = rom_size - 1;
 		}

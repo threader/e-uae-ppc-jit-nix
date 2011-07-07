@@ -16,7 +16,6 @@
 
 #define PICASSO96
 
-
 /* Seems the same routines copy back and forth ;-) */
 #define PIC_READ	(SPECIAL_MEM_READ | SPECIAL_MEM_WRITE)
 #define PIC_WRITE	(SPECIAL_MEM_READ | SPECIAL_MEM_WRITE)

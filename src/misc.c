@@ -808,7 +808,12 @@ void target_quit (void)
 
 void target_fixup_options (struct uae_prefs *p)
 {
-	//
+	if (p->gfx_avsync)
+		p->gfx_avsyncmode = 0;
+
+#ifdef RETROPLATFORM
+	//rp_fixup_options (p);
+#endif
 }
 
 TCHAR start_path_data[MAX_DPATH];
@@ -1413,13 +1418,13 @@ double vblank_calibrate (bool waitonly)
       if (cnt == 0)
         tfirst = tval;
       if (abs (tval - tfirst) > 1) {
-        write_log (L"very unstable vsync! %.6f vs %.6f, retrying..\n", tval, tfirst);
+        write_log ("very unstable vsync! %.6f vs %.6f, retrying..\n", tval, tfirst);
         break;
       }
       tsum2 += tval;
       tcnt2++;
       if (abs (tval - tfirst) > 0.1) {
-        write_log (L"unstable vsync! %.6f vs %.6f\n", tval, tfirst);
+        write_log ("unstable vsync! %.6f vs %.6f\n", tval, tfirst);
         break;
       }
       tsum += tval;
@@ -1431,14 +1436,14 @@ double vblank_calibrate (bool waitonly)
   SetThreadPriority (th, oldpri);
   if (maxcnt >= maxtotal) {
     tsum = tsum2 / tcnt2;
-    write_log (L"unstable vsync reporting, using average value\n");
+    write_log ("unstable vsync reporting, using average value\n");
   } else {
     tsum /= total;
   }
   if (tsum >= 85)
     tsum /= 2;
   vblankbase = (syncbase / tsum) * 3 / 4;
-  write_log (L"VSync calibration: %.6fHz\n", tsum);
+  write_log ("VSync calibration: %.6fHz\n", tsum);
   remembered_vblank = tsum;
   return tsum;
 */
@@ -1469,4 +1474,17 @@ bool vsync_busywait (void)
     return true;
   }
   return false;
+}
+
+double getcurrentvblankrate (void)
+{
+        if (remembered_vblank)
+                return remembered_vblank;
+/*
+        if (currprefs.gfx_api)
+                return D3D_getrefreshrate ();
+        else
+                return DirectDraw_CurrentRefreshRate ();
+*/
+	return 50;
 }

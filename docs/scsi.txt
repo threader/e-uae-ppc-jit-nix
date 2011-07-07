@@ -21,7 +21,7 @@ Just set the 'scsi=true' config option and away you go.
 Linux
 -----
 
-Starting with version 0.8.29, PUAE's SCSI emulation can directly
+Starting with version 0.8.29, UAE's SCSI emulation can directly
 communicate with the Linux kernel's CD-ROM driver to access a single
 CD/DVD drive (it currently doesn't support multiple drives, unlike the
 libscg back-end).
@@ -72,9 +72,9 @@ One solution to this is to set the owner of the /dev/sgx nodes as the group
 'cdrom' and add you own user account to that group. For example, as root, do
 
 # chgrp cdrom /dev/sg*
-# adduser evilrich cdrom
+# adduser gnostic cdrom
 
-Use your own account ID, of course, rather than 'evilrich', which is me.
+Use your own account ID, of course, rather than 'gnostic', which is me.
 
 If your system doesn't have the adduser command, you can always manually
 edit the /etc/group file or use some whizz-bang, GUI-based user/group

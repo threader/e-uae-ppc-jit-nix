@@ -3019,7 +3019,8 @@ generate_one_opcode (int rp, int noflags)
 	comprintf ("}\n");
 
 /*	char name[100] = { 0 };
-	for (int k = 0; lookuptab[i].name[k]; k++)
+	unsigned int k;
+	for (k = 0; lookuptab[i].name[k]; k++)
 		name[k] = lookuptab[i].name[k];*/
 	
 	if (aborted) {

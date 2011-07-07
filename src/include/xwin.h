@@ -18,7 +18,7 @@ extern uae_u32 p96_rgbx16[65536];
 
 extern bool vsync_switchmode (int);
 extern bool vsync_busywait (void);
-extern double vblank_calibrate (bool);
+extern double vblank_calibrate (double, bool);
 extern void doflashscreen (void);
 extern int flashscreen;
 

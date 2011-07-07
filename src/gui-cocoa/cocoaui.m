@@ -104,6 +104,8 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 {
 	NSString *applicationName;
 	NSArray *diskImageTypes;
+	NSArray *CDImageTypes;
+	NSArray *HDDFileTypes;
 	NSArray *KickRomTypes;
 	NSArray *FlashRamTypes;
 	NSArray *CartridgeTypes;
@@ -159,12 +161,14 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 
 	if (self) {
 		applicationName = [[NSString alloc] initWithString:getApplicationName()];
-		diskImageTypes =[[NSArray alloc] initWithObjects:@"adf", @"adz", @"zip", @"dms", @"fdi", 
+		diskImageTypes =[[NSArray alloc] initWithObjects:@"adf", @"adz", @"gz", @"exe", @"zip", @"dms", @"fdi", 
 #ifdef CAPS        
             @"ipf",
 #endif
             nil]; // Note: Use lowercase for these
 
+		CDImageTypes =[[NSArray alloc] initWithObjects:@"cue", @"ccd", @"mds", @"iso", nil];
+		HDDFileTypes =[[NSArray alloc] initWithObjects:@"hdf", @"vhd", @"rdr", @"hdz", @"rdz", nil];
 		KickRomTypes =[[NSArray alloc] initWithObjects:@"rom", @"roz", nil];
 		FlashRamTypes =[[NSArray alloc] initWithObjects:@"nvr", nil];
 		CartridgeTypes =[[NSArray alloc] initWithObjects:@"crt", @"rom", @"roz", nil];
@@ -276,16 +280,26 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 		[dskMenu addItem:[NSMenuItem separatorItem]];
 
 		NSMenu *hddMenu = [[NSMenu alloc] initWithTitle:@"Mount HDF"];
-
 		menuItem = [[NSMenuItem alloc] initWithTitle:@"Mount HDF" action:nil keyEquivalent:@""];
 		[menuItem setSubmenu:hddMenu];
 		[dskMenu addItem:menuItem];
 		[menuItem release];
 
 		NSMenu *vhddMenu = [[NSMenu alloc] initWithTitle:@"Mount Folder as HDD"];
-
 		menuItem = [[NSMenuItem alloc] initWithTitle:@"Mount Folder as HDD" action:nil keyEquivalent:@""];
 		[menuItem setSubmenu:vhddMenu];
+		[dskMenu addItem:menuItem];
+		[menuItem release];
+
+		NSMenu *CDMenu = [[NSMenu alloc] initWithTitle:@"Mount CD Image"];
+		menuItem = [[NSMenuItem alloc] initWithTitle:@"Mount CD Image" action:nil keyEquivalent:@""];
+		[menuItem setSubmenu:CDMenu];
+		[dskMenu addItem:menuItem];
+		[menuItem release];
+
+		NSMenu *CDEMenu = [[NSMenu alloc] initWithTitle:@"Eject CD Image"];
+		menuItem = [[NSMenuItem alloc] initWithTitle:@"Eject CD Image" action:nil keyEquivalent:@""];
+		[menuItem setSubmenu:CDEMenu];
 		[dskMenu addItem:menuItem];
 		[menuItem release];
 
@@ -1084,6 +1098,71 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 		// Save the path of this disk image so that future open panels can start in the same directory
 		[[NSUserDefaults standardUserDefaults] setObject:[file stringByDeletingLastPathComponent] forKey:@"LastUsedDiskImagePath"];
 	}
+}
+
+// Eject CD
+- (void)ejectCD:(id)sender
+{
+	changed_prefs.cdslots[0].name[0] = 0;
+	changed_prefs.cdslots[0].inuse = false;
+}
+
+// cd image
+- (void)displayOpenPanelForCDImage:(int)foo
+{
+        ensureNotFullscreen();
+
+        NSOpenPanel *oPanel = [NSOpenPanel openPanel];
+        [oPanel setTitle:@"Select CD Image"];
+
+        // make sure setMessage (OS X 10.3+) is available before calling it
+        if ([oPanel respondsToSelector:@selector(setMessage:)])
+                [oPanel setMessage:@"Select Kick ROM"];
+
+        [oPanel setPrompt:@"Select"];
+        NSString *contextInfo = [[NSString alloc] initWithString:@"cdimage"];
+
+        // recall the path of kick rom that was loaded last time
+        NSString *nscdpath = [[NSUserDefaults standardUserDefaults] stringForKey:@"LastUsedCDPath"];
+
+        // If the configuration includes a setting for the "cd_path" attribute
+        // start the OpenPanel in that directory.. but only the first time.
+        static int cd_run_once = 0;
+        if (!cd_run_once) {  
+                cd_run_once++;
+
+                const char *cd_path = currprefs.cdslots[0].name;
+
+                if (cd_path != NULL) {
+                        char homedir[MAX_PATH];
+                        snprintf(homedir, MAX_PATH, "%s/", getenv("HOME"));
+
+                        // default value for cd_path is "$HOME/"
+                        if (strncmp(cd_path, homedir, MAX_PATH) != 0)
+                                nscdpath = [NSString stringWithCString:cd_path encoding:NSASCIIStringEncoding];
+                }
+        }
+
+    [oPanel beginSheetForDirectory:nscdpath file:nil
+                             types:CDImageTypes
+                    modalForWindow:[NSApp mainWindow]
+                     modalDelegate:self
+                    didEndSelector:@selector(selectCDImagePanelDidEnd:returnCode:contextInfo:)
+                       contextInfo:contextInfo];
+}
+
+// called after cd image selection panel
+- (void)selectCDImagePanelDidEnd:(NSOpenPanel *)sheet returnCode:(int)returnCode contextInfo:(void *)contextInfo
+{
+        if (returnCode != NSOKButton) return;
+
+        NSArray *files = [sheet filenames];
+        NSString *file = [files objectAtIndex:0];
+        char *sfile = [file UTF8String];
+        strcpy(changed_prefs.cdslots[0].name, sfile);
+        write_log ("Selected CD Image: %s\n", sfile);
+
+        [[NSUserDefaults standardUserDefaults] setObject:[file stringByDeletingLastPathComponent] forKey:@"LastUsedCDPath"];
 }
 
 // kick.rom

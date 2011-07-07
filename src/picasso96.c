@@ -55,6 +55,7 @@ int p96hack_vpos, p96hack_vpos2, p96refresh_active;
 #include "picasso96.h"
 #include "uae_endian.h"
 #include "traps.h"
+#include "misc.h"
 
 #define NOBLITTER 0
 #define NOBLITTER_BLIT 0
@@ -2946,7 +2947,7 @@ void picasso_handle_hsync (void)
 		return;
 	if (WIN32GFX_IsPicassoScreen () && isvsync ()) {
 		int vbs = DirectDraw_GetVerticalBlankStatus ();
-		if (vbs == 0) {
+		if (vbs <= 0) {
 			if (p96hsync > 0)
 				p96hsync = -1;
 			return;
@@ -2966,12 +2967,18 @@ void picasso_handle_hsync (void)
 
 void init_hz_p96 (void)
 {
-	if (currprefs.win32_rtgvblankrate < 0 || isvsync ()) 
-		p96vblank = DirectDraw_CurrentRefreshRate ();
-	else if (currprefs.win32_rtgvblankrate == 0)
-		p96vblank = vblank_hz;
-	else
-		p96vblank = currprefs.win32_rtgvblankrate;
+        if (currprefs.win32_rtgvblankrate < 0 || isvsync ())  {
+                double rate = getcurrentvblankrate ();
+                if (rate < 0)
+                        p96vblank = (int)(vblank_hz + 0.5);
+                else
+                        p96vblank = (int)(getcurrentvblankrate () + 0.5);
+        } else if (currprefs.win32_rtgvblankrate == 0) {
+                p96vblank = (int)(vblank_hz + 0.5);
+        } else {
+                p96vblank = currprefs.win32_rtgvblankrate;
+        }
+
 	if (p96vblank <= 0)
 		p96vblank = 60;
 	if (p96vblank >= 300)

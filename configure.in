@@ -1287,7 +1287,7 @@ if [[ "x$WANT_NCR" = "xno" ]]; then
 else
   UAE_DEFINES="$UAE_DEFINES"
   AC_MSG_RESULT(yes)
-  WANT_NCR = yes
+  WANT_NCR=yes
 fi
 
 dnl
@@ -1365,11 +1365,11 @@ if [[ "x$WANT_SCSIEMU" = "xyes" ]]; then
   else
     if [[ "$OSDEP" = "od-amiga" ]]; then
       AC_MSG_RESULT(yes)
-      SCSIOBJS='scsiemul.$(OBJEXT) blkdev.$(OBJEXT) scsi.$(OBJEXT)'
+      SCSIOBJS='scsiemul.$(OBJEXT) blkdev.$(OBJEXT) blkdev_cdimage.$(OBJEXT) scsi.$(OBJEXT)'
       UAE_DEFINES="$UAE_DEFINES -DSCSIEMU"
 if [[ "x$WANT_A2091" = "xyes" ]]; then
       UAE_DEFINES="$UAE_DEFINES -DA2091"
-      SCSIOBJS='scsiemul.$(OBJEXT) blkdev.$(OBJEXT) scsi.$(OBJEXT) a2091.$(OBJEXT)'
+      SCSIOBJS='scsiemul.$(OBJEXT) blkdev.$(OBJEXT) blkdev_cdimage.$(OBJEXT) scsi.$(OBJEXT) a2091.$(OBJEXT)'
 fi
       NEED_THREAD_SUPPORT=yes
     else
@@ -1403,11 +1403,11 @@ typedef int BOOL;
 [{SCSI *scgp = scg_open (0, 0, 0, 0, 0);}],
     [
       AC_MSG_RESULT(yes)
-      SCSIOBJS='scsiemul.$(OBJEXT) blkdev.$(OBJEXT) blkdev-libscg.$(OBJEXT) scsi.$(OBJEXT)'
+      SCSIOBJS='scsiemul.$(OBJEXT) blkdev.$(OBJEXT) blkdev_cdimage.$(OBJEXT) blkdev-libscg.$(OBJEXT) scsi.$(OBJEXT)'
       UAE_DEFINES="$UAE_DEFINES -DSCSIEMU"
 if [[ "x$WANT_A2091" = "xyes" ]]; then
       UAE_DEFINES="$UAE_DEFINES -DA2091"
-      SCSIOBJS='scsiemul.$(OBJEXT) blkdev.$(OBJEXT) blkdev-libscg.$(OBJEXT) scsi.$(OBJEXT) a2091.$(OBJEXT)'
+      SCSIOBJS='scsiemul.$(OBJEXT) blkdev.$(OBJEXT) blkdev_cdimage.$(OBJEXT) blkdev-libscg.$(OBJEXT) scsi.$(OBJEXT) a2091.$(OBJEXT)'
 fi
       UAE_CPPFLAGS="$UAE_CPPFLAGS $LIBSCG_CPPFLAGS"
       UAE_LIBS="$LIBSCG_LIBS $UAE_LIBS"
@@ -1428,16 +1428,16 @@ typedef int BOOL;
 [{SCSI *scgp = scg_open (0, 0, 0, 0, 0);}],
       [
         AC_MSG_RESULT(yes)
-        SCSIOBJS='scsiemul.$(OBJEXT) blkdev.$(OBJEXT) blkdev-libscg.$(OBJEXT) scsi.$(OBJEXT)'
+        SCSIOBJS='scsiemul.$(OBJEXT) blkdev.$(OBJEXT) blkdev_cdimage.$(OBJEXT) blkdev-libscg.$(OBJEXT) scsi.$(OBJEXT)'
         UAE_DEFINES="$UAE_DEFINES -DSCSIEMU"
 if [[ "x$WANT_A2091" = "xyes" ]]; then
 	UAE_DEFINES="$UAE_DEFINES -DA2091"
-	SCSIOBJS='scsiemul.$(OBJEXT) blkdev.$(OBJEXT) blkdev-libscg.$(OBJEXT) scsi.$(OBJEXT) a2091.$(OBJEXT)'
+	SCSIOBJS='scsiemul.$(OBJEXT) blkdev.$(OBJEXT) blkdev_cdimage.$(OBJEXT) blkdev-libscg.$(OBJEXT) scsi.$(OBJEXT) a2091.$(OBJEXT)'
 fi
         NEED_THREAD_SUPPORT=yes
         if [[ "$srcdir" != "." ]]; then
-#          AC_CONFIG_LINKS(src/libscg.a:src/libscg.a)
- #         AC_CONFIG_LINKS(src/libschily.a:src/libschily.a)
+          AC_CONFIG_LINKS(src/libscg.a:src/libscg.a)
+          AC_CONFIG_LINKS(src/libschily.a:src/libschily.a)
 	  UAE_LIBS="$LIBSCG_LIBS $UAE_LIBS"
         else
           UAE_LIBS="-L. $SCGLIBS $UAE_LIBS"
@@ -1454,11 +1454,11 @@ fi
 [{struct cdrom_generic_command cmd; ioctl (0, CDROM_SEND_PACKET, &cmd);}],
 	[
 	   AC_MSG_RESULT(yes)
-	   SCSIOBJS='scsiemul.$(OBJEXT) blkdev.$(OBJEXT) scsi.$(OBJEXT)'
+	   SCSIOBJS='scsiemul.$(OBJEXT) blkdev.$(OBJEXT) blkdev_cdimage.$(OBJEXT) scsi.$(OBJEXT)'
 	   UAE_DEFINES="$UAE_DEFINES -DSCSIEMU -DSCSIEMU_LINUX_IOCTL"
 if [[ "x$WANT_A2091" = "xyes" ]]; then
 	UAE_DEFINES="$UAE_DEFINES -DA2091"
-	SCSIOBJS='scsiemul.$(OBJEXT) blkdev.$(OBJEXT) scsi.$(OBJEXT) a2091.$(OBJEXT)'
+	SCSIOBJS='scsiemul.$(OBJEXT) blkdev.$(OBJEXT) blkdev_cdimage.$(OBJEXT) scsi.$(OBJEXT) a2091.$(OBJEXT)'
 fi
 	   NEED_THREAD_SUPPORT=yes
 	],

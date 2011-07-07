@@ -554,9 +554,10 @@ static void chip_init (void)
 {
 	uae_u32 iaddr = ((csr[2] & 0xff) << 16) | csr[1];
 	uae_u8 *p = boardram + (iaddr & RAM_MASK);
+	unsigned int i;
 
 	write_log ("A2065: Initialization block2:\n");
-	for (int i = 0; i < 24; i++)
+	for (i = 0; i < 24; i++)
 		write_log (".%02X", p[i]);
 	write_log ("\n");
 
@@ -842,7 +843,7 @@ static uae_u32 REGPARAM2 a2065_lgeti (uaecptr addr)
 	return v;
 }
 
-static addrbank a2065_bank = {
+addrbank a2065_bank = {
 	a2065_lget, a2065_wget, a2065_bget,
 	a2065_lput, a2065_wput, a2065_bput,
 	default_xlate, default_check, NULL, "A2065 Z2 Ethernet",
@@ -908,16 +909,19 @@ uae_u8 *save_a2065 (int *len, uae_u8 *dstptr)
 		dstbak = dst = (uae_u8*)malloc (16);
 	save_u32 (0);
 	save_u8 (configured);
-	for (int i = 0; i < 6; i++)
+        unsigned int i;
+
+	for (i = 0; i < 6; i++)
 		save_u8 (realmac[i]);
 	*len = dst - dstbak;
 	return dstbak;
 }
 uae_u8 *restore_a2065 (uae_u8 *src)
 {
+        unsigned int i;
 	restore_u32 ();
 	configured = restore_u8 ();
-	for (int i = 0; i < 6; i++)
+	for (i = 0; i < 6; i++)
 		realmac[i] = restore_u8 ();
 	return src;
 }

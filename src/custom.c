@@ -1680,7 +1680,6 @@ static void update_fetch_x (int hpos, int fm)
   bpl1dat_written = 0;
 }
 
-
 STATIC_INLINE void update_fetch (int until, int fm)
 {
 	int pos;
@@ -2869,44 +2868,46 @@ void init_hz_fullinit (bool fullinit)
 		reset_drawing ();
 	}
 
-  for (i = 0; i < MAX_CHIPSET_REFRESH_TOTAL; i++) {
-    struct chipset_refresh *cr = &currprefs.cr[i];
-    if ((cr->horiz < 0 || cr->horiz == maxhpos) &&
-      (cr->vert < 0 || cr->vert == maxvpos_nom) &&
-      (cr->ntsc < 0 || (cr->ntsc > 0 && isntsc) || (cr->ntsc == 0 && !isntsc)) &&
-      (cr->lace < 0 || (cr->lace > 0 && islace) || (cr->lace == 0 && !islace)) &&
-      (cr->framelength < 0 || (cr->framelength > 0 && lof_store) || (cr->framelength == 0 && !lof_store)) &&
-      (cr->vsync < 0 || (cr->vsync > 0 && isvsync ()) || (cr->vsync == 0 && !isvsync ()))) {
-        double v = -1;
+	if (!picasso_on) {
+		for (i = 0; i < MAX_CHIPSET_REFRESH_TOTAL; i++) {
+			struct chipset_refresh *cr = &currprefs.cr[i];
+			if ((cr->horiz < 0 || cr->horiz == maxhpos) &&
+				(cr->vert < 0 || cr->vert == maxvpos_nom) &&
+				(cr->ntsc < 0 || (cr->ntsc > 0 && isntsc) || (cr->ntsc == 0 && !isntsc)) &&
+				(cr->lace < 0 || (cr->lace > 0 && islace) || (cr->lace == 0 && !islace)) &&
+				(cr->framelength < 0 || (cr->framelength > 0 && lof_store) || (cr->framelength == 0 && !lof_store)) &&
+				(cr->vsync < 0 || (cr->vsync > 0 && isvsync ()) || (cr->vsync == 0 && !isvsync ()))) {
+					double v = -1;
 
-        if (isvsync ()) {
-          if (i == CHIPSET_REFRESH_PAL || i == CHIPSET_REFRESH_NTSC) {
-            if ((abs (vblank_hz - 50) < 1 || abs (vblank_hz - 60) < 1) && currprefs.gfx_avsync == 2 && currprefs.gfx_afullscreen > 0) {
-              vsync_switchmode (vblank_hz > 55 ? 60 : 50);
-            }
-          }
-          if (isvsync () < 0) {
-            double v2;
-            changed_prefs.chipset_refreshrate = currprefs.chipset_refreshrate = cr->rate;
-            v2 = vblank_calibrate (cr->locked);
-            if (!cr->locked)
-              v = v2;
-          }
-        } else {
-          if (cr->locked == true)
-            v = cr->rate;
-          else
-            v = vblank_hz;
-        }
-        if (v < 0)
-          v = cr->rate;
-        if (v > 0) {
-          changed_prefs.chipset_refreshrate = currprefs.chipset_refreshrate = v;
-          cfgfile_parse_lines (&changed_prefs, cr->commands, -1);
-        }
-        break;
-    }
-   }
+					if (isvsync ()) {
+						if (i == CHIPSET_REFRESH_PAL || i == CHIPSET_REFRESH_NTSC) {
+							if ((abs (vblank_hz - 50) < 1 || abs (vblank_hz - 60) < 1) && currprefs.gfx_avsync == 2 && currprefs.gfx_afullscreen > 0) {
+								vsync_switchmode (vblank_hz > 55 ? 60 : 50);
+							}
+						}
+						if (isvsync () < 0) {
+							double v2;
+							v2 = vblank_calibrate (cr->locked ? vblank_hz : cr->rate, cr->locked);
+							if (!cr->locked)
+								v = v2;
+						}
+					} else {
+						if (cr->locked == false) {
+							changed_prefs.chipset_refreshrate = currprefs.chipset_refreshrate = vblank_hz;
+							break;
+						}
+						v = cr->rate;
+					}
+					if (v < 0)
+						v = cr->rate;
+					if (v > 0) {
+						changed_prefs.chipset_refreshrate = v;
+						cfgfile_parse_lines (&changed_prefs, cr->commands, -1);
+					}
+					break;
+			}
+		}
+	}
 
 	maxvpos_total = (currprefs.chipset_mask & CSMASK_ECS_AGNUS) ? 2047 : 511;
 	if (maxvpos_total > MAXVPOS)
@@ -3648,7 +3649,7 @@ static void BPLCON0_Denise (int hpos, uae_u16 v)
 	if (! (currprefs.chipset_mask & CSMASK_ECS_DENISE))
 		v &= ~0x00F1;
 	else if (! (currprefs.chipset_mask & CSMASK_AGA))
-		v &= ~0x00B1;
+		v &= ~0x00B0;
 	v &= ~(0x0200 | 0x0100 | 0x0080 | 0x0020);
 #if SPRBORDER
 	v |= 1;
@@ -6115,8 +6116,8 @@ int custom_init (void)
 
 	create_cycle_diagram_table ();
 
-    /* We have to do this somewhere... */
-    syncbase = uae_gethrtimebase ();
+        /* We have to do this somewhere... */
+        syncbase = uae_gethrtimebase ();
 
 	return 1;
 }

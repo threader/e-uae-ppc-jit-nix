@@ -1698,7 +1698,8 @@ static __inline__ void remove_all_offsets(void)
 static inline void flush_reg_count(void)
 {
 #if RECORD_REGISTER_USAGE
-    for (int r = 0; r < 16; r++)
+    unsigned int r;
+    for (r = 0; r < 16; r++)
 	if (reg_count_local[r])
 	    ADDQim(reg_count_local[r], ((uintptr)reg_count) + (8 * r), X86_NOREG, X86_NOREG, 1);
 #endif
@@ -5092,6 +5093,7 @@ void compiler_exit(void)
 		popallspace = 0;
 	}
 	
+	unsigned int i;
 #if PROFILE_COMPILE_TIME
 	write_log("### Compile Block statistics\n");
 	write_log("Number of calls to compile_block : %d\n", compile_count);
@@ -5104,14 +5106,14 @@ void compiler_exit(void)
 
 #if PROFILE_UNTRANSLATED_INSNS
 	uae_u64 untranslated_count = 0;
-	for (int i = 0; i < 65536; i++) {
+	for (i = 0; i < 65536; i++) {
 		opcode_nums[i] = i;
 		untranslated_count += raw_cputbl_count[i];
 	}
 	write_log("Sorting out untranslated instructions count...\n");
 	qsort(opcode_nums, 65536, sizeof(uae_u16), untranslated_compfn);
 	write_log("\nRank  Opc      Count Name\n");
-	for (int i = 0; i < untranslated_top_ten; i++) {
+	for (i = 0; i < untranslated_top_ten; i++) {
 		uae_u32 count = raw_cputbl_count[opcode_nums[i]];
 		struct instr *dp;
 		struct mnemolookup *lookup;
@@ -5127,13 +5129,13 @@ void compiler_exit(void)
 #if RECORD_REGISTER_USAGE
 	int reg_count_ids[16];
 	uint64 tot_reg_count = 0;
-	for (int i = 0; i < 16; i++) {
+	for (i = 0; i < 16; i++) {
 	    reg_count_ids[i] = i;
 	    tot_reg_count += reg_count[i];
 	}
 	qsort(reg_count_ids, 16, sizeof(int), reg_count_compare);
 	uint64 cum_reg_count = 0;
-	for (int i = 0; i < 16; i++) {
+	for (i = 0; i < 16; i++) {
 	    int r = reg_count_ids[i];
 	    cum_reg_count += reg_count[r];
 	    printf("%c%d : %16ld %2.1f%% [%2.1f]\n", r < 8 ? 'D' : 'A', r % 8,
@@ -5700,12 +5702,13 @@ static uint8 *do_alloc_code(uint32 size, int depth)
 	*/
 	static uint8 * code_base = NULL;
 	if (code_base == NULL) {
+		unsigned int attempts;
 		uintptr page_size = getpagesize();
 		uintptr boundaries = CODE_ALLOC_BOUNDARIES;
 		if (boundaries < page_size)
 			boundaries = page_size;
 		code_base = (uint8 *)sbrk(0);
-		for (int attempts = 0; attempts < CODE_ALLOC_MAX_ATTEMPTS; attempts++) {
+		for (attempts = 0; attempts < CODE_ALLOC_MAX_ATTEMPTS; attempts++) {
 			if (vm_acquire_fixed(code_base, size) == 0) {
 				uint8 *code = code_base;
 				code_base += size;
@@ -6159,7 +6162,8 @@ static inline void reset_compop(int opcode)
 static int read_opcode(const char *p)
 {
 	int opcode = 0;
-	for (int i = 0; i < 4; i++) {
+	unsigned int i;
+	for (i = 0; i < 4; i++) {
 		int op = p[i];
 		switch (op) {
 		case '0': case '1': case '2': case '3': case '4':
@@ -6202,9 +6206,10 @@ static bool merge_blacklist()
 				p += 4;
 			}
 
+			int opcode;
 			if (*p == 0 || *p == ',' || *p == ';') {
 				write_log("<JIT compiler> : blacklist opcodes : %04x-%04x\n", opcode1, opcode2);
-				for (int opcode = opcode1; opcode <= opcode2; opcode++)
+				for (opcode = opcode1; opcode <= opcode2; opcode++)
 					reset_compop(cft_map(opcode));
 
 				if (*p == ',' || *p++ == ';')

@@ -130,7 +130,9 @@ static int driver_installed[6];
 
 static void install_driver (int flags)
 {
-	for (int i = 0; i < MAX_TOTAL_SCSI_DEVICES; i++) {
+	unsigned int i, j;
+
+	for (i = 0; i < MAX_TOTAL_SCSI_DEVICES; i++) {
 		scsiemu[i] = false;
 		device_func[i] = NULL;
 	}
@@ -138,7 +140,7 @@ static void install_driver (int flags)
 		device_func[0] = devicetable[flags];
 		scsiemu[0] = true;
 	} else {
-		for (int i = 0; i < MAX_TOTAL_SCSI_DEVICES; i++) {
+		for (i = 0; i < MAX_TOTAL_SCSI_DEVICES; i++) {
 			scsiemu[i] = false;
 			device_func[i] = NULL;
 			switch (cdscsidevicetype[i])
@@ -170,9 +172,9 @@ static void install_driver (int flags)
 		}
 	}
 
-	for (int j = 1; devicetable[j]; j++) {
+	for (j = 1; devicetable[j]; j++) {
 		if (!driver_installed[j]) {
-			for (int i = 0; i < MAX_TOTAL_SCSI_DEVICES; i++) {
+			for (i = 0; i < MAX_TOTAL_SCSI_DEVICES; i++) {
 				if (device_func[i] == devicetable[j]) {
 					int ok = device_func[i]->openbus (0);
 					driver_installed[j] = 1;
@@ -222,7 +224,7 @@ void blkdev_fix_prefs (struct uae_prefs *p)
 	// blkdev_win32_aspi.cpp does not support multi units
 #ifdef _WIN32
 	if (currprefs.win32_uaescsimode >= UAESCSI_ASPI_FIRST) {
-		for (int i = 0; i < MAX_TOTAL_SCSI_DEVICES; i++) {
+		for (i = 0; i < MAX_TOTAL_SCSI_DEVICES; i++) {
 			if (cdscsidevicetype[i] != SCSI_UNIT_DISABLED)
 				cdscsidevicetype[i] = SCSI_UNIT_ASPI;
 		}
@@ -383,7 +385,8 @@ static int get_standard_cd_unit2 (unsigned int csu)
 	}
 #ifdef _WIN32
 	device_func_init (SCSI_UNIT_IOCTL);
-	for (int drive = 'C'; drive <= 'Z'; ++drive) {
+	int drive;
+	for (drive = 'C'; drive <= 'Z'; ++drive) {
 		TCHAR vol[100];
 		_stprintf (vol, "%c:\\", drive);
 		int drivetype = GetDriveType (vol);
@@ -572,9 +575,9 @@ static void check_changes (int unitnum)
 	if (wasopen[unitnum]) {
 		if (!device_func[unitnum]->opendev (unitnum, currprefs.cdslots[unitnum].name, 0)) {
 			write_log ("-> device open failed\n");
+                	wasopen[unitnum] = 0;
 		}
 	}
-	wasopen[unitnum] = 0;
 	if (currprefs.scsi) {
 		struct device_info di;
 		device_func[unitnum]->info (unitnum, &di, 0);
