@@ -254,8 +254,9 @@ static TCHAR *cfgfile_subst_path2 (const TCHAR *path, const TCHAR *subst, const 
 TCHAR *cfgfile_subst_path (const TCHAR *path, const TCHAR *subst, const TCHAR *file)
 {
 	TCHAR *s = cfgfile_subst_path2 (path, subst, file);
-/*	if (s)
+	if (s)
 		return s;
+/*
 	s = target_expand_environment (file);
 	if (s) {
 		TCHAR tmp[MAX_DPATH];
@@ -264,6 +265,7 @@ TCHAR *cfgfile_subst_path (const TCHAR *path, const TCHAR *subst, const TCHAR *f
 		fullpath (tmp, sizeof tmp / sizeof (TCHAR));
 		s = my_strdup (tmp);
 	}*/
+	return file;
 	return s;
 }
 
@@ -308,7 +310,7 @@ static TCHAR *cfgfile_get_multipath (struct multipath *mp, const TCHAR *path, co
 static TCHAR *cfgfile_put_multipath (struct multipath *mp, const TCHAR *s)
 {
         unsigned int i;
-        
+
 	for (i = 0; i < MAX_PATHS; i++) {
 		if (mp->path[i][0] && _tcscmp (mp->path[i], ".\\") != 0 && _tcscmp (mp->path[i], "./") != 0) {
 			if (_tcsnicmp (mp->path[i], s, _tcslen (mp->path[i])) == 0) {
@@ -646,11 +648,11 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 #ifdef DEBUGGER
 	cfgfile_write_bool (f, "use_debugger", p->start_debugger);
 #endif
-	cfgfile_write_rom (f, &p->path_rom, p->romfile, "kickstart_rom_file");
-	cfgfile_write_rom (f, &p->path_rom, p->romextfile, "kickstart_ext_rom_file");
+//	cfgfile_write_rom (f, &p->path_rom, p->romfile, "kickstart_rom_file");
+//	cfgfile_write_rom (f, &p->path_rom, p->romextfile, "kickstart_ext_rom_file");
 	if (p->romextfile2addr) {
 		cfgfile_write (f, "kickstart_ext_rom_file2_address", "%x", p->romextfile2addr);
-		cfgfile_write_rom (f, &p->path_rom, p->romextfile2, "kickstart_ext_rom_file2");
+//		cfgfile_write_rom (f, &p->path_rom, p->romextfile2, "kickstart_ext_rom_file2");
 	}
 	if (p->romident[0])
 		cfgfile_dwrite_str (f, "kickstart_rom", p->romident);
@@ -671,9 +673,9 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 	for (i = 0; i < 4; i++) {
 		_stprintf (tmp, "floppy%d", i);
 		cfgfile_write_path (f, &p->path_floppy, tmp, p->floppyslots[i].df);
-#ifdef DRIVESOUND
 		_stprintf (tmp, "floppy%dtype", i);
 		cfgfile_dwrite (f, tmp, "%d", p->floppyslots[i].dfxtype);
+#ifdef DRIVESOUND
 		_stprintf (tmp, "floppy%dsound", i);
 		cfgfile_dwrite (f, tmp, "%d", p->floppyslots[i].dfxclick);
 		if (p->floppyslots[i].dfxclick < 0 && p->floppyslots[i].dfxclickexternal[0]) {
