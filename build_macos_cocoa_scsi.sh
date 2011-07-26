@@ -14,6 +14,6 @@ scg=" --with-libscg-prefix=/opt/schily"
 #
 #
 ./bootstrap.sh
-./configure $base $cd32 $a600 $scsi $other $scg CFLAGS="-m32" LDFLAGS="-m32" CPPFLAGS="-m32"
+./configure $base $cd32 $a600 $scsi $other $scg $debug CFLAGS="-m32" LDFLAGS="-m32" CPPFLAGS="-m32"
 make clean
 make

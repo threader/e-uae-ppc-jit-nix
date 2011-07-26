@@ -2663,7 +2663,7 @@ empty_fs:
 #ifdef FILESYS
 		add_filesys_config (p, -1, dname, aname, str, ro, secs, heads, reserved, bs, bp, fs, hdcv, 0);
 #endif
-		xfree (str);
+	//FIXME:	xfree (str);
 		return 1;
 
 invalid_fs:
@@ -2865,7 +2865,7 @@ static void subst (TCHAR *p, TCHAR *f, int n)
 	TCHAR *str = cfgfile_subst_path (UNEXPANDED, p, f);
 	_tcsncpy (f, str, n - 1);
 	f[n - 1] = '\0';
-	free (str);
+	//FIXME: free (str);
 }
 
 static char *cfg_fgets (char *line, int max, struct zfile *fh)
