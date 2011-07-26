@@ -13,5 +13,5 @@ other=" --with-caps --enable-amax --enable-gccopt"
 #
 ./bootstrap.sh
 ./configure $base $cd32 $a600 $scsi $other CFLAGS="-m32" LDFLAGS="-m32" CPPFLAGS="-m32"
-#make clean
-#make
+make clean
+make

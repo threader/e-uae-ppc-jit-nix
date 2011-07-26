@@ -648,11 +648,11 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 #ifdef DEBUGGER
 	cfgfile_write_bool (f, "use_debugger", p->start_debugger);
 #endif
-//	cfgfile_write_rom (f, &p->path_rom, p->romfile, "kickstart_rom_file");
-//	cfgfile_write_rom (f, &p->path_rom, p->romextfile, "kickstart_ext_rom_file");
+	cfgfile_write_rom (f, &p->path_rom, p->romfile, "kickstart_rom_file");
+	cfgfile_write_rom (f, &p->path_rom, p->romextfile, "kickstart_ext_rom_file");
 	if (p->romextfile2addr) {
 		cfgfile_write (f, "kickstart_ext_rom_file2_address", "%x", p->romextfile2addr);
-//		cfgfile_write_rom (f, &p->path_rom, p->romextfile2, "kickstart_ext_rom_file2");
+		cfgfile_write_rom (f, &p->path_rom, p->romextfile2, "kickstart_ext_rom_file2");
 	}
 	if (p->romident[0])
 		cfgfile_dwrite_str (f, "kickstart_rom", p->romident);
