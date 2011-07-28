@@ -969,6 +969,8 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 			_tcscat (s, ",vsync");
 		else if (cr->vsync == 0)
 			_tcscat (s, ",nvsync");
+		if (cr->rtg)
+			_tcscat (s, ",rtg");
 		if (cr->commands[0]) {
 			_tcscat (s, ",");
 			_tcscat (s, cr->commands);
@@ -1948,7 +1950,8 @@ static int cfgfile_parse_host (struct uae_prefs *p, TCHAR *option, TCHAR *value)
 	    tmpbuf[sizeof tmpbuf / sizeof (TCHAR) - 1] = '\0';
 	
 	    int vert = -1, horiz = -1, lace = -1, ntsc = -1, framelength = -1, vsync = -1;
-	    int locked = 0;
+	    bool locked = false;
+	    bool rtg = false;
 	    double rate = -1;
 	    TCHAR cmd[MAX_DPATH], label[16] = { 0 };
 	    TCHAR *tmpp = tmpbuf;
@@ -1981,7 +1984,7 @@ static int cfgfile_parse_host (struct uae_prefs *p, TCHAR *option, TCHAR *value)
 	        }
 	      }
 	      if (!_tcsnicmp (tmpp, "locked", 4))
-	        locked = 1;
+	        locked = true;
 	      if (!_tcsnicmp (tmpp, "nlace", 5))
 	        lace = 0;
 	      if (!_tcsnicmp (tmpp, "lace", 4))
@@ -1998,6 +2001,8 @@ static int cfgfile_parse_host (struct uae_prefs *p, TCHAR *option, TCHAR *value)
 	        framelength = 1;
 	      if (!_tcsnicmp (tmpp, "shf", 3))
 	        framelength = 0;
+	      if (!_tcsnicmp (tmpp, "rtg", 3))
+	        rtg = true;
 	      tmpp = next;
 	      if (tmpp >= end)
 	        break;
@@ -2020,7 +2025,8 @@ static int cfgfile_parse_host (struct uae_prefs *p, TCHAR *option, TCHAR *value)
 	          p->cr[i].lace = lace;
 	          p->cr[i].ntsc = ntsc;
 	          p->cr[i].vsync = vsync;
-	          p->cr[i].locked = locked != 0;
+	          p->cr[i].locked = locked;
+	          p->cr[i].rtg = rtg;
 	          p->cr[i].framelength = framelength;
 	          p->cr[i].rate = rate;
 	          _tcscpy (p->cr[i].commands, cmd);
@@ -2865,7 +2871,8 @@ static void subst (TCHAR *p, TCHAR *f, int n)
 	TCHAR *str = cfgfile_subst_path (UNEXPANDED, p, f);
 	_tcsncpy (f, str, n - 1);
 	f[n - 1] = '\0';
-	//FIXME: free (str);
+	//FIXME:
+	free (str);
 }
 
 static char *cfg_fgets (char *line, int max, struct zfile *fh)

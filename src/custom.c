@@ -2868,7 +2868,6 @@ void init_hz_fullinit (bool fullinit)
 		reset_drawing ();
 	}
 
-	if (!picasso_on) {
 		for (i = 0; i < MAX_CHIPSET_REFRESH_TOTAL; i++) {
 			struct chipset_refresh *cr = &currprefs.cr[i];
 			if ((cr->horiz < 0 || cr->horiz == maxhpos) &&
@@ -2876,9 +2875,11 @@ void init_hz_fullinit (bool fullinit)
 				(cr->ntsc < 0 || (cr->ntsc > 0 && isntsc) || (cr->ntsc == 0 && !isntsc)) &&
 				(cr->lace < 0 || (cr->lace > 0 && islace) || (cr->lace == 0 && !islace)) &&
 				(cr->framelength < 0 || (cr->framelength > 0 && lof_store) || (cr->framelength == 0 && !lof_store)) &&
+				((cr->rtg && picasso_on) || (!cr->rtg && !picasso_on)) &&
 				(cr->vsync < 0 || (cr->vsync > 0 && isvsync ()) || (cr->vsync == 0 && !isvsync ()))) {
 					double v = -1;
 
+				if (!picasso_on) {
 					if (isvsync ()) {
 						if (i == CHIPSET_REFRESH_PAL || i == CHIPSET_REFRESH_NTSC) {
 							if ((abs (vblank_hz - 50) < 1 || abs (vblank_hz - 60) < 1) && currprefs.gfx_avsync == 2 && currprefs.gfx_afullscreen > 0) {
@@ -2901,11 +2902,18 @@ void init_hz_fullinit (bool fullinit)
 					if (v < 0)
 						v = cr->rate;
 					if (v > 0) {
-						changed_prefs.chipset_refreshrate = v;
+						changed_prefs.chipset_refreshrate = currprefs.chipset_refreshrate = v;
 						cfgfile_parse_lines (&changed_prefs, cr->commands, -1);
 					}
-					break;
-			}
+		        } else {
+		          if (cr->locked == false)
+		            v = vblank_hz;
+		          else
+		            v = cr->rate;
+		          changed_prefs.chipset_refreshrate = currprefs.chipset_refreshrate = v;
+		          cfgfile_parse_lines (&changed_prefs, cr->commands, -1);
+		        }
+		        break;
 		}
 	}
 
@@ -5048,26 +5056,29 @@ static void framewait (void)
 
 	if (vs > 0) {
 		vsyncmintime = vsynctime;
-		update_screen ();
+		render_screen ();
+		show_screen ();
 		return;
 	} else if (vs < 0) {
 		vsyncmintime = vsynctime;
+		render_screen ();
 		vsync_busywait ();
-		update_screen ();
+		show_screen ();
 		return;
 	}
+	render_screen ();
 	for (;;) {
 		double v = rpt_vsync () / (syncbase / 1000.0);
 		if (v >= -4)
 			break;
 		uae_msleep (2);
 	}
-	update_screen ();
 	curr_time = start = uae_gethrtime ();
 	while (rpt_vsync () < 0);
 	curr_time = uae_gethrtime ();
 	vsyncmintime = curr_time + vsynctime;
 	idletime += uae_gethrtime () - start;
+	show_screen ();
 }
 
 static frame_time_t frametime2;
@@ -5178,7 +5189,8 @@ static void vsync_handler_post (void)
 					if ((long int)(curr_time - vsyncmintime) > 0 || rpt_did_reset)
 						vsyncmintime = curr_time + vsynctime;
 					rpt_did_reset = 0;
-					update_screen ();
+					render_screen ();
+					show_screen ();
 				} else if (rpt_available) {
 					framewait ();
 				}
@@ -5187,14 +5199,16 @@ static void vsync_handler_post (void)
 				if (rpt_available && currprefs.m68k_speed == 0) {
 					framewait ();
 				} else {
-					update_screen ();
+					render_screen ();
+					show_screen ();
 				}
 			}
 #endif
 	} else if (currprefs.m68k_speed == 0) {
 		framewait ();
 	} else {
-		update_screen ();
+		render_screen ();
+		show_screen ();
 	}
 
 	gui_handle_events ();

@@ -1436,8 +1436,8 @@ if [[ "x$WANT_A2091" = "xyes" ]]; then
 fi
         NEED_THREAD_SUPPORT=yes
         if [[ "$srcdir" != "." ]]; then
-          AC_CONFIG_LINKS(src/libscg.a:src/libscg.a)
-          AC_CONFIG_LINKS(src/libschily.a:src/libschily.a)
+dnl          AC_CONFIG_LINKS(src/libscg.a:src/libscg.a)
+dnl          AC_CONFIG_LINKS(src/libschily.a:src/libschily.a)
 	  UAE_LIBS="$LIBSCG_LIBS $UAE_LIBS"
         else
           UAE_LIBS="-L. $SCGLIBS $UAE_LIBS"
