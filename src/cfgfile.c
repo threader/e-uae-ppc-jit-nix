@@ -536,7 +536,7 @@ static void subst_home (char *f, int n)
 	char *str = cfgfile_subst_path ("~", home, f);
 	strncpy (f, str, n - 1);
 	f[n - 1] = '\0';
-	free (str);
+	//FIXME: free (str);
     }
 }
 
@@ -2871,8 +2871,7 @@ static void subst (TCHAR *p, TCHAR *f, int n)
 	TCHAR *str = cfgfile_subst_path (UNEXPANDED, p, f);
 	_tcsncpy (f, str, n - 1);
 	f[n - 1] = '\0';
-	//FIXME:
-	free (str);
+	//FIXME: free (str);
 }
 
 static char *cfg_fgets (char *line, int max, struct zfile *fh)

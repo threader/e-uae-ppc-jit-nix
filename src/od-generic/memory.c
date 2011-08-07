@@ -123,7 +123,7 @@ void preinit_shm (void)
                 free (p96mem_offset);
         p96mem_offset = NULL;
 
-#ifdef CPU_64_BIT
+#ifdef __x86_64__
 	max_allowed_mman = 2048;
 #else
 	max_allowed_mman = 1536;
@@ -148,7 +148,7 @@ void preinit_shm (void)
 		size64 = MAXZ3MEM;
 	else if (maxmem > 0)
 		size64 = maxmem * 1024 * 1024;
-#ifdef CPU_64_BIT
+#ifdef __x86_64__
 	if (size64 > MAXZ3MEM64)
 		size64 = MAXZ3MEM64;
 #else

@@ -1,7 +1,7 @@
 
 #include "flags_x86.h"
 
-#ifdef CPU_64_BIT
+#ifdef __x86_64__
 typedef uae_u64 uintptr;
 #else
 typedef uae_u32 uintptr;

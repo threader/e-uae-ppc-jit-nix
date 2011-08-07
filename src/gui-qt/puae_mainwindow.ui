@@ -423,7 +423,7 @@
         <rect>
          <x>206</x>
          <y>20</y>
-         <width>295</width>
+         <width>236</width>
          <height>25</height>
         </rect>
        </property>
@@ -504,6 +504,22 @@
          <width>296</width>
          <height>25</height>
         </rect>
+       </property>
+      </widget>
+      <widget class="QCheckBox" name="IDC_QUICKSTART_NTSC">
+       <property name="geometry">
+        <rect>
+         <x>445</x>
+         <y>20</y>
+         <width>61</width>
+         <height>21</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>NTSC</string>
+       </property>
+       <property name="checked">
+        <bool>false</bool>
        </property>
       </widget>
      </widget>
@@ -914,6 +930,9 @@
          <property name="text">
           <string>More Compatible</string>
          </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
         </widget>
         <widget class="QCheckBox" name="IDC_JITENABLE">
          <property name="geometry">
@@ -1048,7 +1067,7 @@
           <string>Fastest possible, but maintain chipset timing</string>
          </property>
          <property name="checked">
-          <bool>true</bool>
+          <bool>false</bool>
          </property>
         </widget>
         <widget class="QRadioButton" name="IDC_CS_68000">
@@ -1062,6 +1081,9 @@
          </property>
          <property name="text">
           <string>Approximate A500 or A500/A1200 cycle-exact</string>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
          </property>
         </widget>
         <widget class="QRadioButton" name="IDC_CS_ADJUSTABLE">
@@ -3946,7 +3968,7 @@
        </rect>
       </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="tab_host_display">
        <attribute name="title">
@@ -4074,6 +4096,31 @@
          <property name="text">
           <string>Fullscreen:</string>
          </property>
+        </widget>
+        <widget class="QComboBox" name="IDC_BUFFERING">
+         <property name="geometry">
+          <rect>
+           <x>335</x>
+           <y>75</y>
+           <width>161</width>
+           <height>25</height>
+          </rect>
+         </property>
+         <item>
+          <property name="text">
+           <string>No buffering</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>Double buffering</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>Triple buffering</string>
+          </property>
+         </item>
         </widget>
        </widget>
        <widget class="QGroupBox" name="groupBox_21">
@@ -4317,6 +4364,19 @@
           <enum>Qt::Horizontal</enum>
          </property>
         </widget>
+        <widget class="QCheckBox" name="IDC_RES_AUTOSWITCH">
+         <property name="geometry">
+          <rect>
+           <x>215</x>
+           <y>95</y>
+           <width>171</width>
+           <height>21</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>Resolution autoswitch</string>
+         </property>
+        </widget>
        </widget>
        <widget class="QGroupBox" name="groupBox_22">
         <property name="geometry">
@@ -4415,9 +4475,9 @@
        <widget class="QPushButton" name="IDC_DA_RESET">
         <property name="geometry">
          <rect>
-          <x>345</x>
+          <x>380</x>
           <y>355</y>
-          <width>166</width>
+          <width>131</width>
           <height>26</height>
          </rect>
         </property>
@@ -4428,7 +4488,7 @@
        <widget class="QSlider" name="IDC_DA_SLIDER">
         <property name="geometry">
          <rect>
-          <x>150</x>
+          <x>140</x>
           <y>360</y>
           <width>160</width>
           <height>16</height>
@@ -4441,7 +4501,7 @@
        <widget class="QComboBox" name="IDC_DA_MODE">
         <property name="geometry">
          <rect>
-          <x>10</x>
+          <x>0</x>
           <y>355</y>
           <width>126</width>
           <height>25</height>
@@ -4462,6 +4522,16 @@
           <string>Gamma</string>
          </property>
         </item>
+       </widget>
+       <widget class="QLineEdit" name="IDC_BRIGHTNESSTEXT">
+        <property name="geometry">
+         <rect>
+          <x>315</x>
+          <y>360</y>
+          <width>41</width>
+          <height>20</height>
+         </rect>
+        </property>
        </widget>
       </widget>
       <widget class="QWidget" name="tab_host_sound">
@@ -5042,7 +5112,7 @@
          <property name="geometry">
           <rect>
            <x>10</x>
-           <y>45</y>
+           <y>50</y>
            <width>351</width>
            <height>25</height>
           </rect>
@@ -5062,7 +5132,7 @@
          <property name="geometry">
           <rect>
            <x>10</x>
-           <y>20</y>
+           <y>25</y>
            <width>160</width>
            <height>16</height>
           </rect>
@@ -5078,9 +5148,9 @@
          <property name="geometry">
           <rect>
            <x>195</x>
-           <y>15</y>
+           <y>20</y>
            <width>76</width>
-           <height>25</height>
+           <height>21</height>
           </rect>
          </property>
         </widget>
@@ -5088,7 +5158,7 @@
          <property name="geometry">
           <rect>
            <x>280</x>
-           <y>15</y>
+           <y>20</y>
            <width>82</width>
            <height>25</height>
           </rect>
@@ -5612,7 +5682,7 @@
          <property name="geometry">
           <rect>
            <x>40</x>
-           <y>15</y>
+           <y>20</y>
            <width>406</width>
            <height>25</height>
           </rect>
@@ -6026,7 +6096,7 @@
           <rect>
            <x>15</x>
            <y>30</y>
-           <width>91</width>
+           <width>131</width>
            <height>26</height>
           </rect>
          </property>
@@ -6039,71 +6109,12 @@
           <rect>
            <x>15</x>
            <y>75</y>
-           <width>91</width>
+           <width>131</width>
            <height>26</height>
           </rect>
          </property>
          <property name="text">
           <string>Save state..</string>
-         </property>
-        </widget>
-        <widget class="QCheckBox" name="checkBox_11">
-         <property name="geometry">
-          <rect>
-           <x>180</x>
-           <y>25</y>
-           <width>170</width>
-           <height>21</height>
-          </rect>
-         </property>
-         <property name="text">
-          <string>Enable state recording</string>
-         </property>
-        </widget>
-        <widget class="QComboBox" name="comboBox_29">
-         <property name="geometry">
-          <rect>
-           <x>281</x>
-           <y>85</y>
-           <width>66</width>
-           <height>25</height>
-          </rect>
-         </property>
-        </widget>
-        <widget class="QComboBox" name="comboBox_30">
-         <property name="geometry">
-          <rect>
-           <x>281</x>
-           <y>60</y>
-           <width>66</width>
-           <height>25</height>
-          </rect>
-         </property>
-        </widget>
-        <widget class="QLabel" name="label_51">
-         <property name="geometry">
-          <rect>
-           <x>120</x>
-           <y>65</y>
-           <width>161</width>
-           <height>16</height>
-          </rect>
-         </property>
-         <property name="text">
-          <string>Recording rate (seconds):</string>
-         </property>
-        </widget>
-        <widget class="QLabel" name="label_52">
-         <property name="geometry">
-          <rect>
-           <x>140</x>
-           <y>90</y>
-           <width>141</width>
-           <height>16</height>
-          </rect>
-         </property>
-         <property name="text">
-          <string>Recording buffer (MB):</string>
          </property>
         </widget>
        </widget>

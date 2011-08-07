@@ -178,7 +178,7 @@ EXTRA_uae_SOURCES = \
 	debug.c identify.c filesys.c filesys_bootrom.c fsdb.c fsdb_unix.c fsusage.c genblitter.c \
 	gencpu.c gengenblitter.c gencomp.c genlinetoscr.c hardfile.c \
 	hardfile_unix.c scsi-none.c scsiemul.c svgancui.c tui.c \
-	blkdev-libscg.c blkdev_cdimage.c filesys_unix.c amax.c \
+	blkdev-libscg.c filesys_unix.c amax.c \
 	akiko.c cd32_fmv.c ar.c blkdev.c blitops.c scsi.c \
 	writelog.c
 

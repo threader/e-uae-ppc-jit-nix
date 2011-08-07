@@ -1695,7 +1695,7 @@ static uae_u8 *veccode;
 
 #ifdef _WIN32
 
-#if defined(CPU_64_BIT)
+#if defined(__x86_64__)
 #define ctxPC (pContext->Rip)
 #else
 #define ctxPC (pContext->Eip)
@@ -1811,7 +1811,7 @@ int EvalException (LPEXCEPTION_POINTERS blah, int n_except)
 #endif
 
 		switch(r) {
-#if defined(CPU_64_BIT)
+#if defined(__x86_64__)
 		case 0: pr=&(pContext->Rax); break;
 		case 1: pr=&(pContext->Rcx); break;
 		case 2: pr=&(pContext->Rdx); break;

@@ -87,7 +87,7 @@ uae_u32 allocated_cardmem;
 uae_u8 ce_banktype[65536];
 uae_u8 ce_cachable[65536];
 
-#if defined(CPU_64_BIT)
+#if defined(__x86_64__)
 uae_u32 max_z3fastmem = 2048UL * 1024 * 1024;
 #else
 uae_u32 max_z3fastmem = 512 * 1024 * 1024;

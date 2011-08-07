@@ -16,6 +16,8 @@ INCLUDES += -I/Library/Frameworks/QtGui.framework/Versions/4/Headers
 endif
 DEFINES = -DQT_NO_DEBUG -DQT_GUI_LIB -DQT_CORE_LIB -DQT_SHARED
 LIBS = -L/usr/lib -lQtGui -lQtCore -lpthread 
+##QMAKE_CFLAGS = $(QMAKE_CFLAGS) ) -m32
+##QMAKE_CXXFLAGS = $(QMAKE_CXXFLAGS) -m32
 
 AM_CPPFLAGS = @UAE_CPPFLAGS@
 AM_CPPFLAGS += -I$(top_srcdir)/src/include -I$(top_builddir)/src -I$(top_srcdir)/src

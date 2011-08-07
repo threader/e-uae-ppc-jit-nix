@@ -165,6 +165,7 @@ private slots:
 //
     void values_from_kickstartdlg ();
     void values_to_kickstartdlg ();
+    void on_IDC_CACHE_valueChanged(int value);
 };
 
 #define TCHAR char

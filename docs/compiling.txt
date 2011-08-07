@@ -13,7 +13,6 @@ Currently zlib is also required to build PUAE for all supported
 platforms. This isn't much of hardship since zlib is available
 everywhere, but shout loudly enough and I'll fix this.
 
-
 Required Stuff
 ==============
 (for debian based Linux)
@@ -22,7 +21,6 @@ apt-get install automake
 apt-get install zlib1g
 apt-get install libsdl1.2-dev
 apt-get install libgtk2.0-dev
-apt-get install xorg-core
 
 
 Configuring

@@ -3,7 +3,7 @@
  *
  * QT GUI for PUAE
  *
- * Copyright 2010 Mustafa 'GnoStiC' TUFAN
+ * Copyright 2010-2011 Mustafa 'GnoStiC' TUFAN
  * (GUI layout cloned from WinUAE/Toni Wilen)
  *
  */
@@ -41,6 +41,7 @@ extern bool canbang;
 struct uae_prefs workprefs;
 
 // REMOVEME>tmp
+#define CYCLE_UNIT 512
 extern const char *uae_archive_extensions[];
 #ifdef ARCADIA
 extern struct romdata *scan_arcadia_rom (char*, int);
@@ -51,7 +52,7 @@ extern struct romdata *scan_arcadia_rom (char*, int);
 //
 int full_property_sheet = 1;
  
- // Paths Tab
+// Paths Tab
 QString PATHS_ROM, PATHS_CONFIG, PATHS_SCREENSHOT, PATHS_SAVESTATE, PATHS_AVIOUTPUT, PATHS_SAVEIMAGE, PATHS_RIP;
 
 // mem
@@ -129,7 +130,8 @@ puae_MainWindow::puae_MainWindow(QWidget *parent) :
     PATHS_AVIOUTPUT = myPath;
     PATHS_SAVEIMAGE = myPath;
     PATHS_RIP = myPath;
-    
+
+    workprefs = currprefs;
     // USER
 	values_to_expansiondlg ();
 	enable_for_expansiondlg ();
@@ -195,6 +197,8 @@ void puae_MainWindow::on_IDC_PATHS_ROMS_clicked()
 {
     PATHS_ROM = GetPath(this, "Select System ROMS Path", PATHS_ROM);
     ui->IDC_PATHS_ROM->setText (PATHS_ROM);
+    //if (!scan_roms())
+    //  notice
 }
 
 /* Choose Configuration Files Path */
@@ -291,58 +295,77 @@ void puae_MainWindow::on_IDC_KICKSHIFTER_toggled(bool ischecked)
 /* CPU 68000 */
 void puae_MainWindow::on_IDC_CPU0_clicked()
 {
-    workprefs.cpu_model = 0;
+    workprefs.cpu_model = 68000;
+    enable_for_cpudlg ();
+
 }
 
 /* CPU 68010 */
 void puae_MainWindow::on_IDC_CPU1_clicked()
 {
-    workprefs.cpu_model = 1;
+    workprefs.cpu_model = 68010;
+    enable_for_cpudlg ();
 }
 
 /* CPU 68020 */
 void puae_MainWindow::on_IDC_CPU2_clicked()
 {
-    workprefs.cpu_model = 2;
+    workprefs.cpu_model = 68020;
+    enable_for_cpudlg ();
 }
 
 /* CPU 68030 */
 void puae_MainWindow::on_IDC_CPU3_clicked()
 {
-    workprefs.cpu_model = 3;
+    workprefs.cpu_model = 68030;
+    enable_for_cpudlg ();
 }
 
 /* CPU 68040 */
 void puae_MainWindow::on_IDC_CPU4_clicked()
 {
-    workprefs.cpu_model = 4;
+    workprefs.cpu_model = 68040;
+    enable_for_cpudlg ();
 }
 
 /* CPU 68060 */
 void puae_MainWindow::on_IDC_CPU5_clicked()
 {
-    workprefs.cpu_model = 5;
+    workprefs.cpu_model = 68060;
+    enable_for_cpudlg ();
 }
 
 /* 24-bit Addressing */
 void puae_MainWindow::on_IDC_COMPATIBLE24_toggled(bool ischecked)
 {
     workprefs.address_space_24 = ischecked;
+    enable_for_cpudlg ();
 }
 
 /* More Compatible */
 void puae_MainWindow::on_IDC_COMPATIBLE_toggled(bool ischecked)
 {
     workprefs.cpu_compatible = ischecked;
+    enable_for_cpudlg ();
 }
 
 /* JIT Enable */
 void puae_MainWindow::on_IDC_JITENABLE_toggled(bool ischecked)
 {
-//    cachesize_prev = workprefs.cachesize;
-//    trust_prev = workprefs.comptrustbyte;
+    //
+    enable_for_cpudlg ();
+}
 
-    workprefs.cachesize = 0;
+/* JIT Cache Size */
+void puae_MainWindow::on_IDC_CACHE_valueChanged(int value)
+{
+    char foo[30];
+
+    value = value *1024;
+    workprefs.cachesize = value;
+
+    sprintf (foo, "%d", value);
+    ui->IDC_CACHETEXT->setText(foo);
 }
 
 /*68040 MMU Enable */
@@ -1702,9 +1725,10 @@ void puae_MainWindow::values_from_cpudlg ()
         workprefs.fpu_strict = ui->IDC_COMPATIBLE_FPU->isChecked() ? 1 : 0;
 #endif
         workprefs.address_space_24 = ui->IDC_COMPATIBLE24->isChecked() ? 1 : 0;
-/*        workprefs.m68k_speed = ui->IDC_CS_HOST->isChecked() ? -1
+        workprefs.m68k_speed = ui->IDC_CS_HOST->isChecked() ? -1
                 : ui->IDC_CS_68000->isChecked() ? 0
-                : SendMessage (GetDlgItem (hDlg, IDC_SPEED), TBM_GETPOS, 0, 0) * CYCLE_UNIT;*/
+                : ui->IDC_SPEED->value() * CYCLE_UNIT;
+
         workprefs.mmu_model = ui->IDC_MMUENABLE->isChecked() ? 68040 : 0;
 
         newcpu = ui->IDC_CPU0->isChecked() ? 68000
@@ -1719,8 +1743,10 @@ void puae_MainWindow::values_from_cpudlg ()
                 : ui->IDC_FPU3->isChecked() ? 3 : 0;
 
         /* When switching away from 68000, disable 24 bit addressing.  */
+        if (workprefs.cpu_model != newcpu && newcpu <= 68010)
+                newfpu = 0;
         workprefs.cpu_model = newcpu;
-        switch(newcpu)
+        switch (newcpu)
         {
         case 68000:
         case 68010:
@@ -1761,12 +1787,10 @@ void puae_MainWindow::values_from_cpudlg ()
         workprefs.compfpu           = ui->IDC_JITFPU->isChecked();
         workprefs.comp_hardflush    = ui->IDC_HARDFLUSH->isChecked();
         workprefs.comp_constjump    = ui->IDC_CONSTJUMP->isChecked();
-#endif
 
-#ifdef JIT
         oldcache = workprefs.cachesize;
         jitena = ui->IDC_JITENABLE->isChecked() ? 1 : 0;
-//        workprefs.cachesize = SendMessage (GetDlgItem (hDlg, IDC_CACHE), TBM_GETPOS, 0, 0) * 1024;
+
         if (!jitena) {
                 cachesize_prev = workprefs.cachesize;
                 trust_prev = workprefs.comptrustbyte;
@@ -1784,21 +1808,15 @@ void puae_MainWindow::values_from_cpudlg ()
         if (oldcache == 0 && candirect && workprefs.cachesize > 0)
                 canbang = 1;
 #endif
-//        workprefs.cpu_idle = SendMessage (GetDlgItem (hDlg, IDC_CPUIDLE), TBM_GETPOS, 0, 0);
+        workprefs.cpu_idle = ui->IDC_CPUIDLE->value();
         if (workprefs.cpu_idle > 0)
                 workprefs.cpu_idle = (12 - workprefs.cpu_idle) * 15;
 
         if (workprefs.cachesize > 0)
                 workprefs.cpu_compatible = 0;
-/*        if (pages[KICKSTART_ID])
-                SendMessage (pages[KICKSTART_ID], WM_USER, 0, 0);
-        if (pages[DISPLAY_ID])
-                SendMessage (pages[DISPLAY_ID], WM_USER, 0, 0);
-        if (pages[MEMORY_ID])
-                SendMessage (pages[MEMORY_ID], WM_USER, 0, 0);*/
 
-/*        idx = SendDlgItemMessage (hDlg, IDC_CPU_FREQUENCY, CB_GETCURSEL, 0, 0);
-        if (idx != CB_ERR) {
+        idx = ui->IDC_CPU_FREQUENCY->currentIndex();
+        if (idx != -1) {
                 int m = workprefs.cpu_clock_multiplier;
                 workprefs.cpu_frequency = 0;
                 workprefs.cpu_clock_multiplier = 0;
@@ -1810,16 +1828,15 @@ void puae_MainWindow::values_from_cpudlg ()
                         workprefs.cpu_clock_multiplier = 8 << 8;
                 if (idx == 3) {
                         TCHAR txt[20];
-                        SendDlgItemMessage (hDlg, IDC_CPU_FREQUENCY2, WM_GETTEXT, (WPARAM)sizeof (txt) / sizeof (TCHAR), (LPARAM)txt);
+                        ui->IDC_CPU_FREQUENCY2->text();
                         workprefs.cpu_clock_multiplier = 0;
-                        workprefs.cpu_frequency = _tstof (txt) * 1000000.0;
+                        workprefs.cpu_frequency = atof (txt) * 1000000.0;
                         if (workprefs.cpu_frequency < 1 * 1000000)
                                 workprefs.cpu_frequency = 0;
                         if (workprefs.cpu_frequency >= 99 * 1000000)
                                 workprefs.cpu_frequency = 0;
                 }
         }
-*/
 }
 
 void puae_MainWindow::values_from_kickstartdlg () {
@@ -2213,3 +2230,4 @@ void puae_MainWindow::values_from_portsdlg () {
 
 void puae_MainWindow::values_to_portsdlg () {
 }
+
