@@ -578,7 +578,7 @@ static void check_changes (int unitnum)
                 	wasopen[unitnum] = 0;
 		}
 	}
-	if (currprefs.scsi) {
+	if (currprefs.scsi && wasopen[unitnum]) {
 		struct device_info di;
 		device_func[unitnum]->info (unitnum, &di, 0);
 		int pollmode;

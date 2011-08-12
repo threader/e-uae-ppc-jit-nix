@@ -1298,9 +1298,9 @@ void handle_events (void)
 
 	    case SDL_MOUSEBUTTONDOWN:
 	    case SDL_MOUSEBUTTONUP: {
-			DEBUG_LOG ("Event: mouse button %d %s\n", rEvent.button.button, state ? "down" : "up");
 			int state = (rEvent.type == SDL_MOUSEBUTTONDOWN);
 			int buttonno = -1;
+			DEBUG_LOG ("Event: mouse button %d %s\n", rEvent.button.button, state ? "down" : "up");
 
 			switch (rEvent.button.button) {
 			    case SDL_BUTTON_LEFT:      buttonno = 0; break;

@@ -1486,7 +1486,7 @@ static int mouseedge (void)
 	static int melast_x, melast_y;
 	static int isnonzero;
 
-	if (currprefs.input_magic_mouse == 0 || currprefs.input_tablet > 0 || isfullscreen ())
+	if (currprefs.input_magic_mouse == 0 || currprefs.input_tablet > 0)
 		return 0;
 	if (magicmouse_ibase == 0xffffffff)
 		return 0;
@@ -3066,6 +3066,10 @@ static int switchdevice (struct uae_input_device *id, int num, bool buttonmode)
 
 	if (num >= 4)
 		return 0;
+#ifdef RETROPLATFORM
+	if (rp_isactive ())
+		return 0;
+#endif
 	for (i = 0; i < MAX_INPUT_DEVICES; i++) {
 		if (id == &joysticks[i]) {
 			name = idev[IDTYPE_JOYSTICK].get_uniquename (i);
@@ -5714,7 +5718,7 @@ int jsem_iskbdjoy (int port, const struct uae_prefs *p)
 	return v;
 }
 
-int inputdevice_joyport_config (struct uae_prefs *p, TCHAR *value, int portnum, int mode, int type)
+int inputdevice_joyport_config (struct uae_prefs *p, const TCHAR *value, int portnum, int mode, int type)
 {
 	switch (type)
 	{
@@ -5748,7 +5752,7 @@ int inputdevice_joyport_config (struct uae_prefs *p, TCHAR *value, int portnum, 
 	case 0:
 		{
 			int start = JPORT_NONE, got = 0, max = -1;
-			TCHAR *pp = 0;
+			const TCHAR *pp = 0;
 			if (_tcsncmp (value, "kbd", 3) == 0) {
 				start = JSEM_KBDLAYOUT;
 				pp = value + 3;

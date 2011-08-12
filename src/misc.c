@@ -69,10 +69,6 @@ static struct winuae_currentmode *currentmode = &currentmodestruct;
 static int serial_period_hsyncs, serial_period_hsync_counter;
 static int data_in_serdatr; /* new data received */
 
-//win32gfx.cpp
-static double remembered_vblank;
-static int vblankbasewait, vblankbasefull;
-
 // dinput
 int rawkeyboard = -1;
 static bool rawinput_enabled_mouse, rawinput_enabled_keyboard;
@@ -83,7 +79,10 @@ int is_tablet (void)
 	return tablet ? 1 : 0;
 }
 
-//win32gfx
+//win32gfx.cpp
+static double remembered_vblank;
+static int vblankbasewait, vblankbasefull;
+
 void getgfxoffset (int *dxp, int *dyp, int *mxp, int *myp)
 {
 	*dxp = 0;
@@ -193,7 +192,9 @@ void serial_hsynchandler (void)
 */
 }
 
-//win32
+//win32.cpp
+int extraframewait = 5;
+
 /*
 static int drvsampleres[] = {
         IDR_DRIVE_CLICK_A500_1, DS_CLICK,

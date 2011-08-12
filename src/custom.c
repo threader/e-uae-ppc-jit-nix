@@ -2491,13 +2491,14 @@ STATIC_INLINE int sprites_differ (struct draw_info *dip, struct draw_info *dip_o
 	if (dip->nr_sprites == 0)
 		return 0;
 
-	for (i = 0; i < dip->nr_sprites; i++)
+	for (i = 0; i < dip->nr_sprites; i++) {
 		if (this_first[i].pos != prev_first[i].pos
 			|| this_first[i].max != prev_first[i].max
 			|| this_first[i].has_attached != prev_first[i].has_attached)
 			return 1;
+	}
 
-	npixels = this_last->first_pixel + (this_last->max - this_last->pos) - this_first->first_pixel;
+	npixels = this_last->max - this_last->pos;
 	if (memcmp (spixels + this_first->first_pixel, spixels + prev_first->first_pixel,
 		npixels * sizeof (uae_u16)) != 0)
 		return 1;
@@ -2591,8 +2592,12 @@ static void finish_decisions (void)
 		changed = 1;
 	if (! changed && color_changes_differ (dip, dip_old))
 		changed = 1;
-	if (!changed && thisline_decision.plfleft != -1 && sprites_differ (dip, dip_old))
+	if (!changed && /* bitplane visible in this line OR border sprites enabled */
+	 (thisline_decision.plfleft != -1 || ((thisline_decision.bplcon0 & 1) && (thisline_decision.bplcon3 & 0x02) && !(thisline_decision.bplcon3 & 0x20)))
+	 && sprites_differ (dip, dip_old))
+	{
 		changed = 1;
+	}
 
 	if (changed) {
 		thisline_changed = 1;
@@ -2868,43 +2873,45 @@ void init_hz_fullinit (bool fullinit)
 		reset_drawing ();
 	}
 
-		for (i = 0; i < MAX_CHIPSET_REFRESH_TOTAL; i++) {
-			struct chipset_refresh *cr = &currprefs.cr[i];
-			if ((cr->horiz < 0 || cr->horiz == maxhpos) &&
-				(cr->vert < 0 || cr->vert == maxvpos_nom) &&
-				(cr->ntsc < 0 || (cr->ntsc > 0 && isntsc) || (cr->ntsc == 0 && !isntsc)) &&
-				(cr->lace < 0 || (cr->lace > 0 && islace) || (cr->lace == 0 && !islace)) &&
-				(cr->framelength < 0 || (cr->framelength > 0 && lof_store) || (cr->framelength == 0 && !lof_store)) &&
-				((cr->rtg && picasso_on) || (!cr->rtg && !picasso_on)) &&
-				(cr->vsync < 0 || (cr->vsync > 0 && isvsync ()) || (cr->vsync == 0 && !isvsync ()))) {
-					double v = -1;
+	bool found = false;
+	for (i = 0; i < MAX_CHIPSET_REFRESH_TOTAL; i++) {
+		struct chipset_refresh *cr = &currprefs.cr[i];
+		if ((cr->horiz < 0 || cr->horiz == maxhpos) &&
+			(cr->vert < 0 || cr->vert == maxvpos_nom) &&
+			(cr->ntsc < 0 || (cr->ntsc > 0 && isntsc) || (cr->ntsc == 0 && !isntsc)) &&
+			(cr->lace < 0 || (cr->lace > 0 && islace) || (cr->lace == 0 && !islace)) &&
+			(cr->framelength < 0 || (cr->framelength > 0 && lof_store) || (cr->framelength == 0 && !lof_store) || (cr->framelength >= 0 && islace)) &&
+			((cr->rtg && picasso_on) || (!cr->rtg && !picasso_on)) &&
+			(cr->vsync < 0 || (cr->vsync > 0 && isvsync ()) || (cr->vsync == 0 && !isvsync ()))) {
+				double v = -1;
 
-				if (!picasso_on) {
-					if (isvsync ()) {
-						if (i == CHIPSET_REFRESH_PAL || i == CHIPSET_REFRESH_NTSC) {
-							if ((abs (vblank_hz - 50) < 1 || abs (vblank_hz - 60) < 1) && currprefs.gfx_avsync == 2 && currprefs.gfx_afullscreen > 0) {
-								vsync_switchmode (vblank_hz > 55 ? 60 : 50);
-							}
+			if (!picasso_on) {
+				if (isvsync ()) {
+					if (i == CHIPSET_REFRESH_PAL || i == CHIPSET_REFRESH_NTSC) {
+						if ((abs (vblank_hz - 50) < 1 || abs (vblank_hz - 60) < 1) && currprefs.gfx_avsync == 2 && currprefs.gfx_afullscreen > 0) {
+							vsync_switchmode (vblank_hz > 55 ? 60 : 50);
 						}
-						if (isvsync () < 0) {
-							double v2;
-							v2 = vblank_calibrate (cr->locked ? vblank_hz : cr->rate, cr->locked);
-							if (!cr->locked)
-								v = v2;
-						}
-					} else {
-						if (cr->locked == false) {
-							changed_prefs.chipset_refreshrate = currprefs.chipset_refreshrate = vblank_hz;
-							break;
-						}
-						v = cr->rate;
 					}
-					if (v < 0)
-						v = cr->rate;
-					if (v > 0) {
-						changed_prefs.chipset_refreshrate = currprefs.chipset_refreshrate = v;
+					if (isvsync () < 0) {
+						double v2;
+						v2 = vblank_calibrate (cr->locked ? vblank_hz : cr->rate, cr->locked);
+						if (!cr->locked)
+							v = v2;
+					}
+				} else {
+					if (cr->locked == false) {
+						changed_prefs.chipset_refreshrate = currprefs.chipset_refreshrate = vblank_hz;
 						cfgfile_parse_lines (&changed_prefs, cr->commands, -1);
+						break;
 					}
+					v = cr->rate;
+				}
+				if (v < 0)
+					v = cr->rate;
+				if (v > 0) {
+					changed_prefs.chipset_refreshrate = currprefs.chipset_refreshrate = v;
+					cfgfile_parse_lines (&changed_prefs, cr->commands, -1);
+				}
 		        } else {
 		          if (cr->locked == false)
 		            v = vblank_hz;
@@ -2913,8 +2920,13 @@ void init_hz_fullinit (bool fullinit)
 		          changed_prefs.chipset_refreshrate = currprefs.chipset_refreshrate = v;
 		          cfgfile_parse_lines (&changed_prefs, cr->commands, -1);
 		        }
+			found = true;
 		        break;
 		}
+	}
+
+	if (!found) {
+		changed_prefs.chipset_refreshrate = currprefs.chipset_refreshrate = vblank_hz;
 	}
 
 	maxvpos_total = (currprefs.chipset_mask & CSMASK_ECS_AGNUS) ? 2047 : 511;
@@ -5064,6 +5076,9 @@ static void framewait (void)
 		render_screen ();
 		vsync_busywait ();
 		show_screen ();
+		extern int extraframewait;
+		if (extraframewait)
+			uae_msleep (extraframewait);
 		return;
 	}
 	render_screen ();
