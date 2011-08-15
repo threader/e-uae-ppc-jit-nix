@@ -899,10 +899,12 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 		if (v == tag) [menuItem setState:NSOnState];
 		else [menuItem setState:NSOffState];
 
+#ifdef JIT
 		if (tag == 10) {
 			if (changed_prefs.fpu_strict) [menuItem setState:NSOnState];
 			else [menuItem setState:NSOffState];
 		}
+#endif
 
 		if (changed_prefs.cpu_model > 68030 || changed_prefs.cpu_compatible || changed_prefs.cpu_cycle_exact) {
 			if (tag < 3) return NO;
@@ -1645,8 +1647,10 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 	/*	if (v == 1) v = 68881;
 		if (v == 2) v = 68882;*/
 		changed_prefs.fpu_model = v;
+#ifdef JIT
 	} else {
 		changed_prefs.fpu_strict = !changed_prefs.fpu_strict;
+#endif
 	}
 }
 

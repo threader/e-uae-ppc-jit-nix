@@ -54,7 +54,7 @@ static time_t fromdostime (uae_u32 dd)
 	tm_local = localtime(&time_now);
 	t -= tm_local->tm_gmtoff;
 #else
-	t -= timezone;
+	t -= (time_t)timezone;
 #endif
 	return t;
 }

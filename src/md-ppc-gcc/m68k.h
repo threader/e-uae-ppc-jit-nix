@@ -73,7 +73,7 @@ extern struct flag_struct regflags;
 #define IOR_CZNV(X) (regflags.cznv |= (X))
 #define SET_CZNV(X) (regflags.cznv = (X))
 
-#define COPY_CARRY (regflags.x = regflags.cznv)
+#define COPY_CARRY() (regflags.x = regflags.cznv)
 
 
 /*

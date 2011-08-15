@@ -64,6 +64,9 @@
 
 #ifdef HAVE_SYS_STAT_H
 #include <sys/stat.h>
+#ifndef stat64
+#define stat64 stat
+#endif
 #endif
 
 #if TIME_WITH_SYS_TIME

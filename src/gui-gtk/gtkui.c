@@ -2345,6 +2345,7 @@ void gui_handle_events (void)
 			free (gui_romname);
 			uae_sem_post (&gui_sem);
 			break;
+#ifdef SAVESTATE
 	    case UAECMD_SAVESTATE_LOAD:
 			uae_sem_wait (&gui_sem);
 			savestate_initsave (gui_sstate_name, 0, 0, 0);
@@ -2359,6 +2360,7 @@ void gui_handle_events (void)
 			write_log ("Saved state to '%s'...\n", gui_sstate_name);
 			uae_sem_post (&gui_sem);
 			break;
+#endif
 /*	    case UAECMD_START:
 			uae_start ();
 			break;
