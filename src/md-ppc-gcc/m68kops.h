@@ -66,7 +66,7 @@
  * Perform v = d - s and set ZNCV accordingly
  */
 
-#define optflag_sublong(v, s, d) do { \
+#define optflag_sublong(v, s, d) \
   __asm__ __volatile__ ("subfco. %1, %2, %3\n\t" \
 			"mcrxr cr2\n\t" \
 			"mfcr %0\n\t" \
@@ -84,7 +84,7 @@
 #define optflag_cmplong(s, d) \
     do { \
 	register uae_s32 tmp; \
-	 __asm__ __volatile__ ( \
+	__asm__ __volatile__ ( \
 		"subfco. %1, %2, %3\n\t" \
 		"mcrxr  cr2\n\t" \
 		"mfcr   %0\n\t" \
