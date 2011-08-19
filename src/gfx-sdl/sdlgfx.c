@@ -1843,7 +1843,7 @@ void gfx_set_picasso_state (int on)
 		DX_SetPalette (0, 256);
 }
 
-uae_u8 *gfx_lock_picasso (void)
+uae_u8 *gfx_lock_picasso (int fullupdate)
 {
 	DEBUG_LOG ("Function: gfx_lock_picasso\n");
 

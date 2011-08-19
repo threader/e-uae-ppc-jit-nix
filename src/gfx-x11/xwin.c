@@ -1485,7 +1485,7 @@ void gfx_set_picasso_state (int on)
 	DX_SetPalette_real (0, 256);
 }
 
-uae_u8 *gfx_lock_picasso (void)
+uae_u8 *gfx_lock_picasso (int fullupdate)
 {
 #ifdef USE_DGA_EXTENSION
     if (dgamode)

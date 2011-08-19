@@ -40,7 +40,8 @@ static uae_u8 play_qcode[MAX_TOTAL_SCSI_DEVICES][SUBQ_SIZE];
 
 static TCHAR newimagefiles[MAX_TOTAL_SCSI_DEVICES][256];
 static int imagechangetime[MAX_TOTAL_SCSI_DEVICES];
-static bool cdimagefileinuse[MAX_TOTAL_SCSI_DEVICES], wasopen[MAX_TOTAL_SCSI_DEVICES];
+static bool cdimagefileinuse[MAX_TOTAL_SCSI_DEVICES];
+static bool wasopen[MAX_TOTAL_SCSI_DEVICES];
 
 /* convert minutes, seconds and frames -> logical sector number */
 int msf2lsn (int msf)
@@ -552,7 +553,7 @@ static void check_changes (int unitnum)
 					imagechangetime[unitnum] = 8 * 50;
 			}
 		}
-		write_log ("CD: eject (%s)\n", pollmode ? "slow" : "fast");
+		write_log ("CD: eject (%s) open=%d\n", pollmode ? L"slow" : L"fast", wasopen[unitnum] ? 1 : 0);
 #ifdef RETROPLATFORM
 		rp_cd_image_change (unitnum, NULL); 
 #endif
@@ -570,12 +571,14 @@ static void check_changes (int unitnum)
 	_tcscpy (changed_prefs.cdslots[unitnum].name, newimagefiles[unitnum]);
 	currprefs.cdslots[unitnum].inuse = changed_prefs.cdslots[unitnum].inuse = cdimagefileinuse[unitnum];
 	newimagefiles[unitnum][0] = 0;
-	write_log ("CD: delayed insert '%s'\n", currprefs.cdslots[unitnum].name[0] ? currprefs.cdslots[unitnum].name : "<EMPTY>");
+	write_log ("CD: delayed insert '%s' (open=%d)\n", currprefs.cdslots[unitnum].name[0] ? currprefs.cdslots[unitnum].name : L"<EMPTY>", wasopen[unitnum] ? 1 : 0);
 	device_func_init (0);
 	if (wasopen[unitnum]) {
 		if (!device_func[unitnum]->opendev (unitnum, currprefs.cdslots[unitnum].name, 0)) {
 			write_log ("-> device open failed\n");
                 	wasopen[unitnum] = 0;
+		} else {
+			write_log ("-> device reopened\n");
 		}
 	}
 	if (currprefs.scsi && wasopen[unitnum]) {

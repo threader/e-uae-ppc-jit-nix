@@ -138,7 +138,7 @@ int input_get_default_mouse (struct uae_input_device *uid, int i, int port, int 
 {
 }
 
-uae_u8 *gfx_lock_picasso (void)
+uae_u8 *gfx_lock_picasso (int fullupdate)
 {
 }
 

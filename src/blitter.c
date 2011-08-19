@@ -359,6 +359,7 @@ STATIC_INLINE void chipmem_agnus_wput2 (uaecptr addr, uae_u32 w)
 	last_custom_value1 = w;
 #ifndef BLITTER_DEBUG_NO_D
 	chipmem_wput_indirect (addr, w);
+	debug_wputpeekdma (addr, w);
 #endif
 }
 

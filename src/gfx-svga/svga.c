@@ -891,7 +891,7 @@ void gfx_set_picasso_state (int on)
 	set_window_for_amiga ();
 }
 
-uae_u8 *gfx_lock_picasso (void)
+uae_u8 *gfx_lock_picasso (int fullupdate)
 {
     return linear_mem;
 }

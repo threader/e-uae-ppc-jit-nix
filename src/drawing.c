@@ -7,7 +7,7 @@
  *
  * Copyright 1995-2000 Bernd Schmidt
  * Copyright 1995 Alessandro Bissacco
- * Copyright 2000-2008 Toni Wilen
+ * Copyright 2000-2011 Toni Wilen
  */
 
 /* There are a couple of concepts of "coordinates" in this file.
