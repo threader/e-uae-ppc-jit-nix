@@ -157,9 +157,10 @@ static const TCHAR *kbleds[] = { "none", "POWER", "DF0", "DF1", "DF2", "DF3", "H
 static const TCHAR *onscreenleds[] = { "false", "true", "rtg", "both", 0 };
 static const TCHAR *soundfiltermode1[] = { "off", "emulated", "on", 0 };
 static const TCHAR *soundfiltermode2[] = { "standard", "enhanced", 0 };
-static const TCHAR *lorestype1[] = { "lores", "hires", "superhires" };
-static const TCHAR *lorestype2[] = { "true", "false" };
+static const TCHAR *lorestype1[] = { "lores", "hires", "superhires", 0 };
+static const TCHAR *lorestype2[] = { "true", "false", 0 };
 static const TCHAR *loresmode[] = { "normal", "filtered", 0 };
+static const TCHAR *vertmode[] = { "single", "double", "quadruple", 0 };
 #ifdef GFXFILTER
 static const TCHAR *filtermode2[] = { "1x", "2x", "3x", "4x", 0 };
 #endif
@@ -842,6 +843,9 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 	cfgfile_write (f, "gfx_height_fullscreen", "%d", p->gfx_size_fs.height);
 	cfgfile_write (f, "gfx_refreshrate", "%d", p->gfx_refreshrate);
 	cfgfile_write_bool (f, "gfx_autoresolution", p->gfx_autoresolution);
+	cfgfile_dwrite (f, "gfx_autoresolution_min_vertical", lorestype1[p->gfx_autoresolution_minv]);
+	cfgfile_dwrite (f, "gfx_autoresolution_min_horizontal", vertmode[p->gfx_autoresolution_minh]);
+
 	cfgfile_write (f, "gfx_backbuffers", "%d", p->gfx_backbuffers);
 	cfgfile_write_str (f, "gfx_vsync", vsyncmodes[p->gfx_avsync]);
 	cfgfile_write_str (f, "gfx_vsyncmode", vsyncmodes2[p->gfx_avsyncmode]);
@@ -1540,7 +1544,9 @@ static int cfgfile_parse_host (struct uae_prefs *p, TCHAR *option, TCHAR *value)
 		|| cfgfile_intval (option, value, "gfx_height_fullscreen", &p->gfx_size_fs.height, 1)
 		|| cfgfile_intval (option, value, "gfx_refreshrate", &p->gfx_refreshrate, 1)
 		|| cfgfile_yesno (option, value, "gfx_autoresolution", &p->gfx_autoresolution)
-		|| cfgfile_intval (option, value, "gfx_backbuffers", &p->gfx_backbuffers, 1)
+		|| cfgfile_strval (option, value, "gfx_autoresolution_min_vertical", &p->gfx_autoresolution_minv, lorestype1, 0)
+		|| cfgfile_strval (option, value, "gfx_autoresolution_min_horizontal", &p->gfx_autoresolution_minh, vertmode, 0)
+ 		|| cfgfile_intval (option, value, "gfx_backbuffers", &p->gfx_backbuffers, 1)
 
 		|| cfgfile_intval (option, value, "gfx_center_horizontal_position", &p->gfx_xcenter_pos, 1)
 		|| cfgfile_intval (option, value, "gfx_center_vertical_position", &p->gfx_ycenter_pos, 1)

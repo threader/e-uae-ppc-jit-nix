@@ -2498,7 +2498,7 @@ STATIC_INLINE int sprites_differ (struct draw_info *dip, struct draw_info *dip_o
 			return 1;
 	}
 
-	npixels = this_last->max - this_last->pos;
+	npixels = this_last->first_pixel + (this_last->max - this_last->pos) - this_first->first_pixel;
 	if (memcmp (spixels + this_first->first_pixel, spixels + prev_first->first_pixel,
 		npixels * sizeof (uae_u16)) != 0)
 		return 1;
@@ -5214,16 +5214,16 @@ static void vsync_handler_post (void)
 				if (rpt_available && currprefs.m68k_speed == 0) {
 					framewait ();
 				} else {
-					render_screen ();
-					show_screen ();
+					if (render_screen ())
+						show_screen ();
 				}
 			}
 #endif
 	} else if (currprefs.m68k_speed == 0) {
 		framewait ();
 	} else {
-		render_screen ();
-		show_screen ();
+		if (render_screen ())
+			show_screen ();
 	}
 
 	gui_handle_events ();
@@ -5787,8 +5787,8 @@ static void hsync_handler_post (bool isvsync)
 			last_planes_vpos = vpos;
 		if (vpos >= minfirstline && first_planes_vpos == 0) {
 			first_planes_vpos = vpos > minfirstline ? vpos - 1 : vpos;
-		} else if (vpos == current_maxvpos () - 1) {
-			last_planes_vpos = vpos - 1;
+		} else if (vpos >= current_maxvpos () - 1) {
+			last_planes_vpos = current_maxvpos ();
 		}
 	}
 	if (diw_change == 0) {

@@ -307,7 +307,7 @@ void alloc_colors_rgb (int rw, int gw, int bw, int rs, int gs, int bs, int aw, i
 		int j;
 
 		if (currprefs.gfx_blackerthanblack) {
-			j = i * 15 / 16;
+			j = i * 15 / 16 + 15;
 		} else {  
 			j = i;
 		}
