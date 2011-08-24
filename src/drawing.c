@@ -2583,7 +2583,7 @@ void finish_drawing_frame (void)
 #ifdef ECS_DENISE
 	if (brdblank_changed) {
 		last_max_ypos = max_ypos_thisframe;
-		for (i = 0; i < sizeof linestate / sizeof *linestate; i++)
+		for (i = sizeof linestate / sizeof *linestate; i--;)
 			linestate[i] = LINE_UNDECIDED;
 		notice_screen_contents_lost ();
 		brdblank_changed = 0;

@@ -41,7 +41,7 @@ static uae_u8 dither[4][4] =
 unsigned int doMask (int p, int bits, int shift)
 {
 	/* scale to 0..255, shift to align msb with mask, and apply mask */
-	unsigned long val;
+	unsigned int val;
 
 	if (flashscreen)
 		p ^= 0xff;
