@@ -577,6 +577,7 @@ WANT_CAPS=no
 WANT_FDI=yes
 WANT_ENFORCER=dunno
 WANT_CATWEASEL=no
+WANT_SERIAL=no
 
 MATHLIB=-lm
 
@@ -1770,10 +1771,10 @@ dnl
 dnl  serial port emulation
 dnl
 AC_MSG_CHECKING([whether to build serial port emulation])
-if [[ "x$WANT_BSDSOCK" != "xyes" ]]; then
-dnl    NEED_THREAD_SUPPORT=yes
-    UAE_DEFINES="$UAE_DEFINES -DSERIAL_PORT"
-    AC_MSG_RESULT(yes)
+if [[ "x$WANT_SERIAL" != "xno" ]]; then
+dnl NEED_THREAD_SUPPORT=yes
+  UAE_DEFINES="$UAE_DEFINES -DSERIAL_PORT"
+  AC_MSG_RESULT(yes)
 else
   AC_MSG_RESULT(no)
 fi
