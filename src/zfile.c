@@ -1757,7 +1757,6 @@ static struct zfile *zfile_fopenx2 (const TCHAR *name, const TCHAR *mode, int ma
 {
 	struct zfile *f;
 	TCHAR tmp[MAX_DPATH];
-	TCHAR dirsep[2] = { FSDB_DIR_SEPARATOR, '\0' };
 
 #ifdef _WIN32
 	if (isinternetfile (name))

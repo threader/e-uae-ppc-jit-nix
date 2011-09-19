@@ -677,6 +677,7 @@ AC_ARG_ENABLE(noflags,	       AS_HELP_STRING([--enable-noflags],         [Enable
 AC_ARG_ENABLE(ncr,             AS_HELP_STRING([--enable-ncr],             [Enable NCR SCSI emulation (default no)]),                  [WANT_NCR=$enableval],[])
 AC_ARG_ENABLE(scsi-device,     AS_HELP_STRING([--enable-scsi-device],     [Enable emulation of SCSI devices (default no)]),           [WANT_SCSIEMU=$enableval],[])
 AC_ARG_ENABLE(save-state,      AS_HELP_STRING([--disable-save-state],     [Disable support for saving state snapshots (default no)]), [WANT_SAVESTATE=$enableval],[])
+AC_ARG_ENABLE(serial-port,     AS_HELP_STRING([--enable-serial-port],     [Enable serial port emulation (default no)]),               [WANT_SERIAL=$enableval],[])
 AC_ARG_ENABLE(threads,         AS_HELP_STRING([--enable-threads],         [Enable thread support (default auto)]),                    [WANT_THREADS=$enableval],[])
 AC_ARG_ENABLE(ui,              AS_HELP_STRING([--enable-ui],              [Use a user interface if possible (default on)]),           [WANT_UI=$enableval],[])
 AC_ARG_ENABLE(vidmode,         AS_HELP_STRING([--enable-vidmode],         [X11 version: Use the XF86VidMode extension]),              [WANT_VIDMODE=$enableval],[])
@@ -1763,6 +1764,20 @@ fi
 else
   AC_MSG_RESULT(no)
 fi
+
+
+dnl
+dnl  serial port emulation
+dnl
+AC_MSG_CHECKING([whether to build serial port emulation])
+if [[ "x$WANT_BSDSOCK" != "xyes" ]]; then
+dnl    NEED_THREAD_SUPPORT=yes
+    UAE_DEFINES="$UAE_DEFINES -DSERIAL_PORT"
+    AC_MSG_RESULT(yes)
+else
+  AC_MSG_RESULT(no)
+fi
+
 
 dnl
 dnl 64 bit?

@@ -8,7 +8,7 @@ base=" --with-sdl --with-sdl-gl --with-sdl-gfx --with-sdl-sound --enable-drvsnd 
 cd32=" --enable-cd32 "
 a600=" --enable-gayle "
 scsi=" --enable-scsi-device --enable-ncr --enable-a2091 "
-other=" --with-caps --enable-amax --enable-gccopt"
+other=" --with-caps --enable-amax --enable-gccopt --enable-serial-port"
 #
 #
 ./bootstrap.sh

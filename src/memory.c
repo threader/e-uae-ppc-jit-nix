@@ -1781,11 +1781,18 @@ static bool load_kickstart_replacement (void)
 	struct zfile *f;
 	
 	f = zfile_fopen_data ("aros.gz", arosrom_len, arosrom);
-	if (!f)
+	if (!f) {
+		write_log ("KS Replacement: AROS open failed\n");
 		return false;
+	}
 	f = zfile_gunzip (f);
-	if (!f)
+	if (!f) {
+		write_log ("KS Replacement: AROS gunzip failed\n");
 		return false;
+	} else {
+		write_log ("KS Replacement: AROS ok\n");
+	}
+
 	kickmem_mask = 0x80000 - 1;
 	kickmem_size = 0x80000;
 	extendedkickmem_size = 0x80000;

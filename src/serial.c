@@ -42,7 +42,7 @@
 #define O_NONBLOCK O_NDELAY
 #endif
 
-#define SERIALDEBUG 1 /* 0, 1, 2 3 */
+#define SERIALDEBUG 0 /* 0, 1, 2 3 */
 #define MODEMTEST   0 /* 0 or 1 */
 
 void serial_open (void);

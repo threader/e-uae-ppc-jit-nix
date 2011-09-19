@@ -69,6 +69,9 @@ static struct winuae_currentmode *currentmode = &currentmodestruct;
 static int serial_period_hsyncs, serial_period_hsync_counter;
 static int data_in_serdatr; /* new data received */
 
+// serial
+unsigned int seriallog = 0;
+
 // dinput
 int rawkeyboard = -1;
 static bool rawinput_enabled_mouse, rawinput_enabled_keyboard;
@@ -1515,4 +1518,18 @@ double getcurrentvblankrate (void)
                 return DirectDraw_CurrentRefreshRate ();
 */
 	return 50;
+}
+
+// parser.c
+
+void serialuartbreak (int v)
+{
+        if (/*hCom == INVALID_HANDLE_VALUE ||*/ !currprefs.use_serial)
+                return;
+
+/*        if (v)
+                EscapeCommFunction (hCom, SETBREAK);
+        else
+                EscapeCommFunction (hCom, CLRBREAK);
+*/
 }

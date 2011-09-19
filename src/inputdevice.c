@@ -2966,6 +2966,10 @@ static void inputdevice_checkconfig (void)
 		currprefs.jports[1].id != changed_prefs.jports[1].id ||
 		currprefs.jports[2].id != changed_prefs.jports[2].id ||
 		currprefs.jports[3].id != changed_prefs.jports[3].id ||
+		currprefs.jports[0].mode != changed_prefs.jports[0].mode ||
+		currprefs.jports[1].mode != changed_prefs.jports[1].mode ||
+		currprefs.jports[2].mode != changed_prefs.jports[2].mode ||
+		currprefs.jports[3].mode != changed_prefs.jports[3].mode ||
 		currprefs.input_selected_setting != changed_prefs.input_selected_setting ||
 		currprefs.input_joymouse_multiplier != changed_prefs.input_joymouse_multiplier ||
 		currprefs.input_joymouse_deadzone != changed_prefs.input_joymouse_deadzone ||
