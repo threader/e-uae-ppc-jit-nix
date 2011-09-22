@@ -367,7 +367,7 @@ int
 
 #endif /* STAT_STATVFS */
 
-#if !defined(STAT_STATFS2_FS_DATA) && !defined(STAT_READ_FILSYS)
+#if !defined(STAT_STATFS2_FS_DATA) && !defined(STAT_READ_FILSYS) && !defined(ANDROID)
 	/* !Ultrix && !SVR2 */
 
 	fsp->fsu_blocks = CONVERT_BLOCKS (fsd.f_blocks);

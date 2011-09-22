@@ -11,7 +11,9 @@
 #include "sysdeps.h"
 
 #include "options.h"
+#ifndef ANDROID
 #include <sys/sysctl.h>
+#endif
 #include "include/memory.h"
 
 #ifdef JIT

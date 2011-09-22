@@ -60,6 +60,9 @@
 #endif
 
 #define WAITSIGNAL	waitsig (context, sb)
+#ifdef ANDROID
+#define IPPROTO_ENCAP 98
+#endif
 
 /* Sigqueue is unsafe on SMP machines.
  * Temporary work-around.
