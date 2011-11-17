@@ -1540,6 +1540,7 @@ void expansion_init (void)
 	allocated_gfxmem = 0;
 	gfxmem_mask = gfxmem_start = 0;
 	gfxmemory = 0;
+	p96memstart();
 #endif
 
 #ifdef CATWEASEL
