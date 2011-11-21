@@ -81,7 +81,7 @@ endif
 
 if BUILD_MACOSX_BUNDLE
 all-local: $(bundle)
-$(bundle): uae$(EXEEXT) od-macosx/Info.plist $(srcdir)/od-macosx/puae.icns $(srcdir)/od-macosx/Credits.rtf
+$(bundle): uae$(EXEEXT) od-macosx/Info.plist od-macosx/puae.icns od-macosx/Credits.rtf
 		rm -rf $(bundle)
 		mkdir -p $(bundle_contents)/MacOS
 		mkdir -p $(bundle_contents)/Resources
@@ -95,8 +95,8 @@ if SDL_UI
 		cp -R $(srcdir)/gui-sdl/fonts $(bundle_contents)/MacOS
 		cp -R $(srcdir)/gui-sdl/images $(bundle_contents)/MacOS
 endif
-		$(INSTALL_DATA) $(srcdir)/od-macosx/puae.icns $(bundle_contents)/Resources/
-		$(INSTALL_DATA) $(srcdir)/od-macosx/Credits.rtf $(bundle_contents)/Resources/
+		$(INSTALL_DATA) od-macosx/puae.icns $(bundle_contents)/Resources/
+		$(INSTALL_DATA) od-macosx/Credits.rtf $(bundle_contents)/Resources/
 endif
 
 noinst_LIBRARIES = \
