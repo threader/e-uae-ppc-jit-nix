@@ -1,0 +1,21 @@
+E-UAE PowerPC JIT project
+=========================
+
+This project is a fork of the E-UAE Amiga emulation project. You can find the
+original project's pages here:
+
+http://www.rcdrummond.net/uae
+
+Please also read the details of the original project in the included
+README_original file.
+
+The goal of the project is implementing Just-In-Time compiling for PowerPC
+processors, using (some of) the already available intel x86 implementation.
+
+For further details please have a look on the project blog:
+
+http://euaejit.blogspot.com
+
+You can find the actual project sources in the SourceForge project:
+
+https://sourceforge.net/projects/euaeppcjit
