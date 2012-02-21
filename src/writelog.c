@@ -39,6 +39,29 @@ void set_logfile (const char *logfile_name)
     }
 }
 
+/**
+ * Writing JIT compiling-related log, can be retargeted to a file
+ */
+void write_jit_log (const char *fmt, ...)
+{
+	//TODO: implement write_jit_log function
+//    va_list ap;
+//    va_start (ap, fmt);
+//
+//    {
+//	int x1, x2, x3, x4, x5, x6, x7, x8;
+//	x1 = va_arg (ap, int);
+//	x2 = va_arg (ap, int);
+//	x3 = va_arg (ap, int);
+//	x4 = va_arg (ap, int);
+//	x5 = va_arg (ap, int);
+//	x6 = va_arg (ap, int);
+//	x7 = va_arg (ap, int);
+//	x8 = va_arg (ap, int);
+//	fprintf (stdout, fmt, x1, x2, x3, x4, x5, x6, x7, x8);
+//    }
+}
+
 void write_log (const char *fmt, ...)
 {
     va_list ap;

@@ -1113,17 +1113,10 @@ static int cfgfile_parse_hardware (struct uae_prefs *p, char *option, char *valu
 	return 1;
 #ifdef JIT
     if (cfgfile_intval (option, value, "cachesize", &p->cachesize, 1)
-# ifdef NATMEM_OFFSET
-	|| cfgfile_strval (option, value, "comp_trustbyte",  &p->comptrustbyte,  compmode, 0)
-	|| cfgfile_strval (option, value, "comp_trustword",  &p->comptrustword,  compmode, 0)
-	|| cfgfile_strval (option, value, "comp_trustlong",  &p->comptrustlong,  compmode, 0)
-	|| cfgfile_strval (option, value, "comp_trustnaddr", &p->comptrustnaddr, compmode, 0)
-# else
 	|| cfgfile_strval (option, value, "comp_trustbyte",  &p->comptrustbyte,  compmode, 1)
 	|| cfgfile_strval (option, value, "comp_trustword",  &p->comptrustword,  compmode, 1)
 	|| cfgfile_strval (option, value, "comp_trustlong",  &p->comptrustlong,  compmode, 1)
 	|| cfgfile_strval (option, value, "comp_trustnaddr", &p->comptrustnaddr, compmode, 1)
-# endif
 	|| cfgfile_strval (option, value, "comp_flushmode", &p->comp_hardflush, flushmode, 0))
 	return 1;
 #endif

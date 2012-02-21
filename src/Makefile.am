@@ -22,15 +22,12 @@ BUILT_SOURCES = \
 	cpudefs.c \
 	cpuemu_0.c cpuemu_5.c cpuemu_6.c \
 	cpustbl.c cputbl.h \
-	compemu.c \
 	compstbl.c comptbl.h
-
 CLEANFILES = \
 	blit.h blitfunc.h blitfunc.c blittable.c \
 	cpudefs.c \
 	cpuemu_0.c cpuemu_5.c cpuemu_6.c \
 	cpustbl.c cputbl.h \
-	compemu.c \
 	compstbl.c comptbl.h \
 	linetoscr.c
 
@@ -139,7 +136,7 @@ uae_SOURCES = \
 
 EXTRA_uae_SOURCES = \
 	bsdsocket.c bsdsocket-posix-new.c build68k.c catweasel.c cdrom.c \
-	compemu_fpp.c compemu_raw_x86.c compemu_support.c \
+	compemu_support.c compemu_macroblocks_ppc.c \
 	debug.c identify.c filesys.c filesys_bootrom.c fsdb.c fsdb_unix.c fsusage.c genblitter.c \
 	gencpu.c gengenblitter.c gencomp.c genlinetoscr.c hardfile.c \
 	hardfile_unix.c scsi-none.c \
@@ -211,22 +208,13 @@ cpuemu_5.c:	cpuemu_0.c
 
 cpuemu_6.c:	cpuemu_0.c
 
-compemu.c:	tools/gencomp
+compstbl.c:	tools/gencomp
 		./tools/gencomp
 
-compstbl.c:	compemu.c
-
-comptbl.h:	compemu.c
-
-cpuemu_nf_%.o: cpuemu_%.c
-	$(CC) $(INCLUDES) -c $(CPPFLAGS) $(CFLAGS) $(DEBUGFLAGS) $(NO_SCHED_CFLAGS) -DNOFLAGS $< -o $@
+comptbl.h:	compstbl.c
 
 cpuemu_%.o: cpuemu_%.c
 	$(CC) $(INCLUDES) -c $(CPPFLAGS) $(CFLAGS) $(DEBUGFLAGS) $(NO_SCHED_CFLAGS) $< -o $@
-
-cpustbl_nf.o: cpustbl.c
-	$(CC) $(INCLUDES) -c $(CPPFLAGS) $(CFLAGS) $(DEBUGFLAGS) $(NO_SCHED_CFLAGS) -DNOFLAGS cpustbl.c -o $@
-
 
 blit.h:		tools/genblitter
 		./tools/genblitter i >blit.h

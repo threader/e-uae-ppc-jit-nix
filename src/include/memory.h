@@ -18,6 +18,9 @@ extern void cache_free (void*);
 
 extern int canbang;
 void init_shm (void);
+
+//PowerPC cache flush function
+extern void ppc_cacheflush(void* start, int length);
 #endif
 
 #ifdef ADDRESS_SPACE_24BIT
