@@ -47,10 +47,14 @@
 #  define uae_msleep(msecs) Sleep (msecs)
 # else
 #  if defined TARGET_AMIGAOS
-#   if defined __amigaos4__ || defined __MORPHOS__ 
+#   if defined __MORPHOS__ 
 #    define uae_msleep(msecs) TimeDelay (0, msecs / ONE_THOUSAND, (msecs % ONE_THOUSAND) * ONE_THOUSAND)
 #   else
-#    define uae_msleep(msecs) Delay (msecs <= 20 ? 1 : msecs/20);
+#    if defined __amigaos4__
+#     define uae_msleep(msecs) MicroDelay(msecs)
+#    else
+#     define uae_msleep(msecs) Delay (msecs <= 20 ? 1 : msecs/20);
+#    endif
 #   endif
 #  else
 #   ifdef HAVE_NANOSLEEP

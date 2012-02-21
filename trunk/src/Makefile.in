@@ -105,6 +105,7 @@ PACKAGE_BUGREPORT = @PACKAGE_BUGREPORT@
 PACKAGE_NAME = @PACKAGE_NAME@
 PACKAGE_STRING = @PACKAGE_STRING@
 PACKAGE_TARNAME = @PACKAGE_TARNAME@
+PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
 PKG_CONFIG = @PKG_CONFIG@
@@ -217,16 +218,13 @@ BUILT_SOURCES = \
 	cpudefs.c \
 	cpuemu_0.c cpuemu_5.c cpuemu_6.c \
 	cpustbl.c cputbl.h \
-	compemu.c \
 	compstbl.c comptbl.h
-
 
 CLEANFILES = \
 	blit.h blitfunc.h blitfunc.c blittable.c \
 	cpudefs.c \
 	cpuemu_0.c cpuemu_5.c cpuemu_6.c \
 	cpustbl.c cputbl.h \
-	compemu.c \
 	compstbl.c comptbl.h \
 	linetoscr.c
 
@@ -323,7 +321,7 @@ uae_SOURCES = \
 
 EXTRA_uae_SOURCES = \
 	bsdsocket.c bsdsocket-posix-new.c build68k.c catweasel.c cdrom.c \
-	compemu_fpp.c compemu_raw_x86.c compemu_support.c \
+	compemu_support.c compemu_macroblocks_ppc.c \
 	debug.c identify.c filesys.c filesys_bootrom.c fsdb.c fsdb_unix.c fsusage.c genblitter.c \
 	gencpu.c gengenblitter.c gencomp.c genlinetoscr.c hardfile.c \
 	hardfile_unix.c scsi-none.c \
@@ -433,8 +431,7 @@ am__depfiles_maybe = depfiles
 @AMDEP_TRUE@	./$(DEPDIR)/bsdsocket.Po ./$(DEPDIR)/build68k.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/catweasel.Po ./$(DEPDIR)/cdrom.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/cfgfile.Po ./$(DEPDIR)/cia.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/compemu_fpp.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/compemu_raw_x86.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/compemu_macroblocks_ppc.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/compemu_support.Po ./$(DEPDIR)/crc32.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/custom.Po ./$(DEPDIR)/debug.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/disk.Po ./$(DEPDIR)/drawing.Po \
@@ -568,8 +565,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cdrom.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cfgfile.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cia.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/compemu_fpp.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/compemu_raw_x86.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/compemu_macroblocks_ppc.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/compemu_support.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/crc32.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/custom.Po@am__quote@
@@ -945,21 +941,13 @@ cpuemu_5.c:	cpuemu_0.c
 
 cpuemu_6.c:	cpuemu_0.c
 
-compemu.c:	tools/gencomp
+compstbl.c:	tools/gencomp
 		./tools/gencomp
 
-compstbl.c:	compemu.c
-
-comptbl.h:	compemu.c
-
-cpuemu_nf_%.o: cpuemu_%.c
-	$(CC) $(INCLUDES) -c $(CPPFLAGS) $(CFLAGS) $(DEBUGFLAGS) $(NO_SCHED_CFLAGS) -DNOFLAGS $< -o $@
+comptbl.h:	compstbl.c
 
 cpuemu_%.o: cpuemu_%.c
 	$(CC) $(INCLUDES) -c $(CPPFLAGS) $(CFLAGS) $(DEBUGFLAGS) $(NO_SCHED_CFLAGS) $< -o $@
-
-cpustbl_nf.o: cpustbl.c
-	$(CC) $(INCLUDES) -c $(CPPFLAGS) $(CFLAGS) $(DEBUGFLAGS) $(NO_SCHED_CFLAGS) -DNOFLAGS cpustbl.c -o $@
 
 blit.h:		tools/genblitter
 		./tools/genblitter i >blit.h

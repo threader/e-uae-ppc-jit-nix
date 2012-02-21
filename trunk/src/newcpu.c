@@ -1789,6 +1789,8 @@ static void m68k_run_1_ce (void)
 
 #ifdef JIT  /* Completely different run_2 replacement */
 
+/* Do the required environmental emulation steps without processor emulation
+ * for the accumulated cycles */
 void do_nothing(void)
 {
     /* What did you expect this to do? */
@@ -1796,93 +1798,87 @@ void do_nothing(void)
     /* I bet you didn't expect *that* ;-) */
 }
 
+/* Execute the code with compiling disabled on the block */
 void exec_nostats(void)
 {
-    struct regstruct *r = &regs;
-    unsigned long cycles_mask_local = cycles_mask;
-    unsigned long cycles_val_local  = cycles_val;
+	struct regstruct *r = &regs;
+	unsigned long cycles_mask_local = cycles_mask;
+	unsigned long cycles_val_local = cycles_val;
+	uae_u16 opcode;
 
-    for (;;)
-    {
-	int new_cycles;
-	uae_u32 opcode = get_iword (r, 0);
+	do
+	{
+		int new_cycles;
+		opcode = get_iword (r, 0);
 
-	new_cycles = (*cpufunctbl[opcode])(opcode, r);
+		new_cycles = (*cpufunctbl[opcode])(opcode, r);
 
-	new_cycles &= cycles_mask_local;
-	new_cycles |= cycles_val_local;
-	do_cycles (new_cycles);
+		new_cycles &= cycles_mask_local;
+		new_cycles |= cycles_val_local;
+		do_cycles(new_cycles);
+	} while ((!end_block(opcode) && (!r->spcflags)));
 
-	if (end_block(opcode) || r->spcflags)
-	    return; /* We will deal with the spcflags in the caller */
-    }
+	/* We will deal with the spcflags in the caller */
 }
 
 static int triggered;
 
+/* Execute the code with compiling enabled on the block */
 void execute_normal(void)
 {
-    struct regstruct *r = &regs;
-    unsigned long cycles_mask_local = cycles_mask;
-    unsigned long cycles_val_local  = cycles_val;
-    int blocklen;
-    cpu_history pc_hist[MAXRUN];
-    int new_cycles;
-    int total_cycles;
+	struct regstruct *r = &regs;
+	unsigned long cycles_mask_local = cycles_mask;
+	unsigned long cycles_val_local = cycles_val;
+	int blocklen;
+	cpu_history pc_hist[MAXRUN];
+	int new_cycles;
+	int total_cycles;
+	uae_u16 opcode;
 
-    if (check_for_cache_miss())
-	return;
+	total_cycles = 0;
+	blocklen = 0;
 
-    total_cycles = 0;
-    blocklen = 0;
-    start_pc_p = r->pc_oldp;
-    start_pc   = r->pc;
+	do
+	{
+		/* Take note: This is the do-it-normal loop */
+		opcode = get_iword (r, 0);
 
-    for (;;) {
-	/* Take note: This is the do-it-normal loop */
-	uae_u32 opcode = get_iword (r, 0);
+		special_mem = DISTRUST_CONSISTENT_MEM;
+		pc_hist[blocklen].location = (uae_u16*) r->pc_p;
+		pc_hist[blocklen].pc = m68k_getpc(r);
 
-	special_mem = DISTRUST_CONSISTENT_MEM;
-	pc_hist[blocklen].location = (uae_u16*)r->pc_p;
+		new_cycles = (*cpufunctbl[opcode])(opcode, r);
 
-	new_cycles = (*cpufunctbl[opcode])(opcode, r);
+		new_cycles &= cycles_mask_local;
+		new_cycles |= cycles_val_local;
+		do_cycles(new_cycles);
+		total_cycles += new_cycles;
+		pc_hist[blocklen].specmem = special_mem;
+		blocklen++;
 
-	new_cycles &= cycles_mask_local;
-	new_cycles |= cycles_val_local;
-	do_cycles (new_cycles);
-	total_cycles += new_cycles;
-	pc_hist[blocklen].specmem = special_mem;
-	blocklen++;
-	if (end_block(opcode) || blocklen >= MAXRUN || r->spcflags) {
-	    compile_block(pc_hist,blocklen,total_cycles);
-	    return; /* We will deal with the spcflags in the caller */
-	}
-	/* No need to check regs.spcflags, because if they were set,
-	   we'd have ended up inside that "if" */
-    }
+		//TODO: removed spcflag checking from breaking the JIT compile pre-charge loop, it must be investigated on what conditions we MUST stop the cycle. At the moment I don't see any reason why the actual loop cannot be completed.
+		//} while (!end_block(opcode) && (blocklen < MAXRUN) && (!r->spcflags));
+	} while (!end_block(opcode) && (blocklen < MAXRUN));
+
+	compile_block(pc_hist, blocklen, total_cycles);
+
+	/* We will deal with the spcflags in the caller */
 }
 
 typedef void compiled_handler(void);
 
 static void m68k_run_2a (void)
 {
-    for (;;) {
-#if defined X86_ASSEMBLY
-	__asm__ __volatile__(
-	    "\tpush %%ebp\n\tcall *%0\n\tpop %%ebp"  /* FIXME */
-	    :: "m" (cache_tags[cacheline(regs.pc_p)].handler)
-	    : "%edx", "%ecx", "%eax",
-	    "%esi", "%ebx", "%edi", "%ebp", "memory", "cc");
-#else
-	((compiled_handler*)(pushall_call_handler))();
-#endif
-	/* Whenever we return from that, we should check spcflags */
-	if (regs.spcflags) {
-	    if (do_specialties (0, &regs)) {
-		return;
-	    }
+	for (;;) {
+		((compiled_handler*)(cache_tags[cacheline(regs.pc_p)].handler))();
+
+		/* Whenever we return from that, we should check spcflags */
+		if (regs.spcflags) {
+			if (do_specialties (0, &regs)) {
+				return;
+			}
+		}
 	}
-    }
 }
 #endif /* JIT */
 

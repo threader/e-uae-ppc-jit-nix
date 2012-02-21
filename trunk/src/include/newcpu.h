@@ -58,13 +58,44 @@ struct cputbl {
 };
 
 #ifdef JIT
-typedef unsigned long compop_func (uae_u32) REGPARAM;
 
+//Prototype for the comptbl structure to allow us using it in the function type definition
+struct comptbl;
+
+//Compile function for JIT, can be either an address or an instruction compiler
+//First parameter is a pointer to the instruction in memory,
+//second parameter is pointer to the compiling properties for the instruction (struct comptbl)
+typedef void compop_func (uae_u16*, struct comptbl*) REGPARAM;
+
+//Structure for instruction compiling function parameters
 struct comptbl {
-    compop_func *handler;
-    uae_u32 opcode;
-    int specific;
+    compop_func* instr_handler;
+    uae_u8 srcreg;
+    uae_u8 destreg;
+    uae_u8 src_addr;
+    uae_u8 dest_addr;
+    uae_u8 src_flags;
+    uae_u8 dest_flags;
+    uae_u8 specific;
 };
+
+#define COMPTBL_SPEC_ISNOTIMPLEMENTED 0
+#define COMPTBL_SPEC_ISIMPLEMENTED 1
+#define COMPTBL_SPEC_ISJUMP 2
+#define COMPTBL_SPEC_ISCONSTJUMP 4
+
+extern struct comptbl compprops[65536];
+
+extern compop_func* compsrc_pre_func[];
+extern compop_func* compdest_pre_func[];
+extern compop_func* compsrc_post_func[];
+extern compop_func* compdest_post_func[];
+
+STATIC_INLINE int end_block(uae_u16 opcode)
+{
+	uae_u8 specific = compprops[opcode].specific;
+	return (specific & COMPTBL_SPEC_ISJUMP) || ((specific & COMPTBL_SPEC_ISCONSTJUMP) && !currprefs.comp_constjump);
+}
 #endif
 
 extern unsigned long op_illg (uae_u32, struct regstruct *regs) REGPARAM;
@@ -131,10 +162,9 @@ extern struct regstruct
 
 typedef struct {
   uae_u16* location;
+  uaecptr pc;
   uae_u8  cycles;
   uae_u8  specmem;
-  uae_u8  dummy2;
-  uae_u8  dummy3;
 } cpu_history;
 
 struct blockinfo_t;

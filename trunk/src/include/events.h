@@ -139,7 +139,4 @@ STATIC_INLINE void do_extra_cycles (unsigned long cycles_to_add)
     pissoff -= cycles_to_add;
 #endif
 }
-
-#define countdown pissoff
-
 #endif
