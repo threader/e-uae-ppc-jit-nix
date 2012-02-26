@@ -1,0 +1,4 @@
+.key src
+phxass noexe opt 0 machine 68000 <src>.asm
+vlink <src>.o padding.pad -T rawlink.ld -b rawbin1 -o <src>.bin
+romchecksum <src>.bin <src>.kick
