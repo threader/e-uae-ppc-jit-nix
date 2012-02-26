@@ -1,0 +1,14 @@
+In this directory you can find some test code sources for E-UAE.
+
+The directories are for:
+
+build_kick - a simple environment to build a Kickstart binary file out of
+             (almost) any M68k assembly source file. Please see the README file
+             inside the directory for more details.
+
+test_kicks - a few test "Kickstart" sources, that can be loaded into the
+             E-UAE emulator instead of the real AmigaOS Kickstart ROM
+             binary files.
+             These tests are rather simple hardware banging M68k assembly
+             programs, they are able to initialize the hardware on a minimal
+             level then show some action on the screen.
