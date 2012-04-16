@@ -10931,7 +10931,7 @@ $as_echo_n "checking whether to build JIT compiler... " >&6; }
 JITOBJS=""
 if [ "x$WANT_JIT" != "xno" -a "$HOST_CPU" = "ppc" ]; then
   UAE_DEFINES="$UAE_DEFINES -DJIT"
-  JITOBJS="compstbl.o compemu_macroblocks_ppc.o compemu_support.o"
+  JITOBJS="compstbl.o compemu_macroblocks_ppc.o compemu_compiler_ppc.o compemu_support.o"
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 

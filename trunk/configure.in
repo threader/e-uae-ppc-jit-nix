@@ -743,7 +743,7 @@ AC_MSG_CHECKING([whether to build JIT compiler])
 JITOBJS=""
 if [[ "x$WANT_JIT" != "xno" -a "$HOST_CPU" = "ppc" ]]; then
   UAE_DEFINES="$UAE_DEFINES -DJIT"
-  JITOBJS="compstbl.o compemu_macroblocks_ppc.o compemu_support.o"
+  JITOBJS="compstbl.o compemu_macroblocks_ppc.o compemu_compiler_ppc.o compemu_support.o"
   AC_MSG_RESULT(yes)
 
   AC_MSG_CHECKING([whether assembler supports --execstack option])
