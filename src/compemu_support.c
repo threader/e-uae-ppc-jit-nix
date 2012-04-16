@@ -7,6 +7,42 @@
 #include "newcpu.h"
 #include "compemu.h"
 #include "uae_endian.h"
+#include "compemu_compiler.h"
+#include "compemu_macroblocks.h"
+
+/* Number of temporary registers */
+#define PPC_TMP_REGS_COUNT 10
+
+/* List of temporary registers
+ * Note: do not use this array directly, get the register mapping by
+ * calling function comp_get_gpr_for_temp_register(). */
+const int PPC_TMP_REGS[PPC_TMP_REGS_COUNT] = {  PPCR_TMP0,
+												PPCR_TMP1,
+												PPCR_TMP2,
+												PPCR_TMP3,
+												PPCR_TMP4,
+												PPCR_TMP5,
+												PPCR_TMP6,
+												PPCR_TMP7,
+												PPCR_TMP8,
+												PPCR_TMP9 };
+
+/**
+ *  List of temporary register usage,
+ *  items can be either:
+ *    PPC_TMP_REG_NOTUSED - temporary register is not mapped
+ *    PPC_TMP_REG_ALLOCATED - temporary register is allocated for other purpose than M68k register emulation
+ *    other - temporary register is allocated and mapped for a M68k register, the item contains the M68k register number */
+int used_tmp_regs[PPC_TMP_REGS_COUNT];
+
+/* Structure for the M68k register mapping to the temporary registers */
+struct m68k_register {
+	int tmpreg;			//Mapped temporary register number or PPC_TMP_REG_NOTUSED
+	int needs_flush;	//0 - no need to flush this register, 1 - compile code for writing back the register out to the interpretive regs structure
+};
+
+/* M68k register mapping to the temp registers */
+struct m68k_register comp_m68k_registers[16];
 
 /**
  * Compiled code cache memory start address
@@ -18,6 +54,11 @@ uae_u8* compiled_code = NULL;
  */
 
 uae_u8* compiled_code_top = NULL;
+
+/**
+ * Base register for the M68k interpretive registers array
+ */
+int comp_regs_base_reg = PPC_TMP_REG_NOTUSED;
 
 /**
  * Current top of the compiling target
@@ -74,15 +115,6 @@ cacheline cache_tags[TAGSIZE];
 //TODO: do we need preallocated blockinfo?
 blockinfo* hold_bi[MAX_HOLD_BI];
 
-/* Number of temporary registers */
-#define PPC_TMP_REGS_COUNT 8
-
-/* List of temporary registers */
-const int PPC_TMP_REGS[PPC_TMP_REGS_COUNT] = { PPCR_TMP0, PPCR_TMP1, PPCR_TMP2, PPCR_TMP3,
-		PPCR_TMP4, PPCR_TMP5, PPCR_TMP6, PPCR_TMP7 };
-
-/* List of temporary register usage */
-int used_tmp_regs[PPC_TMP_REGS_COUNT];
 
 static void free_cache(void)
 {
@@ -195,12 +227,11 @@ void comp_init(void)
 
 	write_jit_log("Init compiling\n");
 
-	/* Clear used temporary registers list */
-	for (i = 0; i < PPC_TMP_REGS_COUNT; i++)
-		used_tmp_regs[i] = FALSE;
-
 	/* Initialize branch compiling: both pointers must be zero */
 	compiled_branch_instruction = compiled_branch_target = NULL;
+
+	/* Initialize macroblock compiler */
+	comp_compiler_init();
 }
 
 /**
@@ -221,6 +252,14 @@ void comp_done(void)
 		write_log("Compiling error: branch instruction compiling was scheduled, but not completed, target address: 0x%08x\n", compiled_branch_target);
 		abort();
 	}
+
+	//Flush all temp registers
+	comp_flush_temp_registers();
+
+	//Release regs base register if it was allocated
+	comp_free_regs_base_register();
+
+	comp_compiler_done();
 }
 
 STATIC_INLINE int isinrom(uae_uintptr addr)
@@ -279,10 +318,22 @@ static void check_checksum(void)
 
 void compemu_reset(void)
 {
+	int i;
 	write_log("JIT: Compiling reset\n");
 
 	//Disable cache emulation
 	set_cache_state(0);
+
+	/* Clear used temporary registers list */
+	for (i = 0; i < PPC_TMP_REGS_COUNT; i++)
+		used_tmp_regs[i] = PPC_TMP_REG_NOTUSED;
+
+	/* Clear M68k - PPC temp register mapping */
+	for (i = 0; i < 16; i++)
+		comp_m68k_registers[i].tmpreg = PPC_TMP_REG_NOTUSED;
+
+	/* Clear the base register for the regs array */
+	comp_regs_base_reg = PPC_TMP_REG_NOTUSED;
 }
 
 void build_comp(void)
@@ -396,8 +447,8 @@ void flush_icache(int n)
 
 void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 {
-	write_jit_log("JIT: compile code, location: %08x, block length: %d, total cycles: %d\n",
-			pc_hist->location, blocklen, totcycles);
+	write_jit_log("JIT: compile code, pc: %08x, block length: %d, total cycles: %d\n",
+			pc_hist->pc, blocklen, totcycles);
 
 	if (cache_enabled && compiled_code && currprefs.cpu_level >= 2)
 	{
@@ -451,6 +502,9 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 		//Compile prolog (stackframe preparing) to the buffer
 		comp_ppc_prolog();
 
+		//First block: load flags into the register
+		comp_macroblock_push_load_flags();
+
 		//Loop trough the previously collected instructions
 		for (i = 0; i < blocklen && current_compile_p < max_compile_start; i++)
 		{
@@ -486,17 +540,18 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 				//Not supported: compile direct call to the interpretive emulator
 				write_jit_log("Unsupported opcode: 0x%04x\n", opcode);
 
-				//Compile call to the interpretive emulator
-				// ## liw	r3,opcode
-				// ## liw	r4,&reg
-				// ## liw	r0,inst_func
-				// ## mtlr	r0
-				// ## blrl
-				comp_ppc_liw(PPCR_PARAM1, opcode);
-				comp_ppc_liw(PPCR_PARAM2, (uae_u32) &regs);
-				comp_ppc_call(PPCR_SPECTMP, (uae_uintptr) cpufunctbl[opcode]);
+				comp_opcode_unsupported(location, opcode);
 			}
 		}
+
+		//Last block: save flags back to memory from register
+		comp_macroblock_push_save_flags();
+
+		//Optimize the collected macroblocks
+		comp_compiler_optimize_macroblocks();
+
+		//Generate the PPC code from the macroblocks
+		comp_compiler_generate_code();
 
 		//Compile calling the do_cycles function at the end of the block with the pre-calculated cycles
 		comp_ppc_do_cycles(scaled_cycles(totcycles));
@@ -541,7 +596,215 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 }
 
 /**
- *  Callback functions for main code handling routines
+ * Get the base register for the M68k regs array, allocate a temporary register
+ * if it was not done yet and load the base address to that register.
+ * Returns the temp register index that is mapped.
+ */
+uae_u8 comp_get_regs_base_register()
+{
+	if (comp_regs_base_reg == PPC_TMP_REG_NOTUSED)
+	{
+		//It is not mapped yet, we need to get a temp register
+		comp_regs_base_reg = comp_allocate_temp_register(PPC_TMP_REG_BASEREG);
+
+		//Compile code to load the base pointer to the regs array
+		comp_macroblock_push_load_register_long(
+				COMP_COMPILER_MACROBLOCK_REG_TMP(comp_regs_base_reg),
+				comp_get_gpr_for_temp_register(comp_regs_base_reg),
+				(uae_u32)&regs.regs[0]);
+	}
+
+	return comp_regs_base_reg;
+}
+
+/**
+ * Release the temp register for the base register for the M68k regs array,
+ * if there was one allocated.
+ */
+void comp_free_regs_base_register()
+{
+	if (comp_regs_base_reg != PPC_TMP_REG_NOTUSED)
+	{
+		comp_free_temp_register(comp_regs_base_reg);
+		comp_regs_base_reg = PPC_TMP_REG_NOTUSED;
+	}
+}
+
+/**
+ * Allocate a temporary register
+ * Parameters:
+ *   allocate_for - the M68k register number that was mapped to the temp
+ *                  register, or one of the PPC_TMP_REG_* constants.
+ * Returns the index of the PPC temporary register that was allocated
+ */
+uae_u8 comp_allocate_temp_register(int allocate_for)
+{
+	uae_u8 i;
+
+	//Allocate the next free temporary register
+	for(i = 0; i < PPC_TMP_REGS_COUNT; i++)
+		if (used_tmp_regs[i] == PPC_TMP_REG_NOTUSED) break;
+
+	if (i == PPC_TMP_REGS_COUNT)
+	{
+		//TODO: free up the oldest register
+		write_log("Error: JIT compiler ran out of free temporary registers\n");
+		abort();
+	}
+
+	//Set allocated state for the register
+	used_tmp_regs[i] = allocate_for;
+
+	return i;
+}
+
+/**
+ * Free previously allocated temporary register
+ * Parameters:
+ *    temp_reg - index of the temporary register that needs to be free'd
+ */
+void comp_free_temp_register(uae_u8 temp_reg)
+{
+	if (used_tmp_regs[temp_reg] == PPC_TMP_REG_NOTUSED)
+	{
+		//Wasn't allocated
+		write_jit_log("Warning: Temporary register %d was not allocated, but now it is free'd\n", temp_reg);
+		return;
+	}
+
+	used_tmp_regs[temp_reg] = PPC_TMP_REG_NOTUSED;
+}
+
+/**
+ * Returns the GPR register that is mapped to a temporary register index
+ */
+uae_u8 comp_get_gpr_for_temp_register(uae_u8 tmpreg)
+{
+	if (tmpreg >= PPC_TMP_REGS_COUNT)
+	{
+		write_log("ERROR: JIT temporary register index '%d' cannot be mapped to GPR\n", tmpreg);
+	}
+
+	if (used_tmp_regs[tmpreg] == PPC_TMP_REG_NOTUSED)
+	{
+		write_log("ERROR: JIT temporary register '%d' is not allocated, but mapping info is requested\n");
+		abort();
+	}
+
+	return PPC_TMP_REGS[tmpreg];
+}
+
+/**
+ * Flush all the allocated temporary registers (except base register),
+ * reset allocation state.
+ */
+void comp_flush_temp_registers()
+{
+	int i;
+
+	/* Flush temporary registers list */
+	for (i = 0; i < PPC_TMP_REGS_COUNT; i++)
+	{
+		switch (used_tmp_regs[i])
+		{
+		case PPC_TMP_REG_NOTUSED:
+		case PPC_TMP_REG_BASEREG:
+			break;
+		case PPC_TMP_REG_ALLOCATED:
+			//This register is allocated for temporary operations, must be deallocated, but let it slip with a warning
+			write_jit_log("Warning: Temporary register %d allocated but not free'd\n", i);
+			used_tmp_regs[i] = PPC_TMP_REG_NOTUSED;
+			break;
+		default:
+			//Temp register is mapped to a M68k register
+			comp_unmap_temp_register(used_tmp_regs[i]);
+			break;
+		}
+	}
+}
+
+/**
+ * Maps a temporary register to a M68k register
+ * Parameters:
+ *   reg_number - number of the M68k register for the mapping
+ *   needs_init - if 1 then the register must be initialized in the compiled code with the register from the regs array
+ *   needs_flush - if 1 then the register must be written back to the regs array on releasing
+ * Returns the mapped physical PPC register number.
+ */
+uae_u8 comp_map_temp_register(uae_u8 reg_number, int needs_init, int needs_flush)
+{
+	uae_u8 tmpreg;
+	uae_u8 basereg;
+	uae_u8 ppc_reg;
+	struct m68k_register* reg = &comp_m68k_registers[reg_number];
+
+	//Check for already mapped register
+	if (reg->tmpreg != PPC_TMP_REG_NOTUSED)
+	{
+		//It is already mapped, but we need to make sure that if flush is
+		//requested for this mapping and wasn't for the previous mapping then
+		//still it will be done at the end
+		reg->needs_flush |= needs_flush;
+		ppc_reg = comp_get_gpr_for_temp_register(reg->tmpreg);
+	} else {
+		//Allocate a temp register for the mapping
+		tmpreg = comp_allocate_temp_register(reg_number);
+
+		//Map the temp register
+		reg->tmpreg = tmpreg;
+		reg->needs_flush = needs_flush;
+		ppc_reg = comp_get_gpr_for_temp_register(tmpreg);
+
+		if (needs_init)
+		{
+			//The register needs initialization from the interpretive M68k register array
+			basereg = comp_get_regs_base_register();
+			comp_macroblock_push_load_memory_long(
+					COMP_COMPILER_MACROBLOCK_REG_TMP(basereg),
+					COMP_COMPILER_MACROBLOCK_REG_DX_OR_AX(reg_number),
+					ppc_reg,
+					comp_get_gpr_for_temp_register(basereg),
+					reg_number * 4);
+		}
+	}
+
+	return ppc_reg;
+}
+
+/**
+ * Free up mapping of a temp register to a M68k register
+ * Parameters:
+ *    reg_number - M68k register number that is mapped
+ */
+void comp_unmap_temp_register(uae_u8 reg_number)
+{
+	struct m68k_register* reg = &comp_m68k_registers[reg_number];
+	uae_u8 basereg;
+
+	if (reg->tmpreg == PPC_TMP_REG_NOTUSED)
+	{
+		write_jit_log("Warning: Free'd M68k register %d is not mapped to a temp register\n", reg_number);
+	}
+	else
+	{
+		if (reg->needs_flush)
+		{
+			//Register must be written back to the regs array
+			basereg = comp_get_regs_base_register();
+			comp_macroblock_push_save_memory_long(
+					COMP_COMPILER_MACROBLOCK_REG_TMP(basereg) | COMP_COMPILER_MACROBLOCK_REG_DX_OR_AX(used_tmp_regs[reg_number]),
+					COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
+					comp_get_gpr_for_temp_register(reg->tmpreg),
+					comp_get_gpr_for_temp_register(basereg),
+					reg_number * 4);
+		}
+		used_tmp_regs[reg->tmpreg] = PPC_TMP_REG_NOTUSED;
+		reg->tmpreg = PPC_TMP_REG_NOTUSED;
+	}
+}
+
+/**
+ * Callback functions for main code handling routines
  * Parameters are ignored
  */
 
@@ -1033,16 +1296,14 @@ void comp_not_implemented(uae_u16 opcode)
  */
 
 /* Pushes a word to the code cache and updates the pointer */
-STATIC_INLINE void comp_ppc_emit_word(
-		uae_u32 word)
+void comp_ppc_emit_word(uae_u32 word)
 {
 	*((uae_u32*) current_compile_p) = word;
 	current_compile_p += 4;
 }
 
 /* Pushes two halfwords to the code cache and updates the pointer */
-STATIC_INLINE void comp_ppc_emit_halfwords(
-		uae_u16 halfword_high, uae_u16 halfword_low)
+void comp_ppc_emit_halfwords(uae_u16 halfword_high, uae_u16 halfword_low)
 {
 	comp_ppc_emit_word((((uae_u32) halfword_high) << 16) | halfword_low);
 }
@@ -1051,13 +1312,27 @@ STATIC_INLINE void comp_ppc_emit_halfwords(
  * Instruction compilers
  */
 
+/* Compiles addco instruction
+ * Parameters:
+ * 		regd - target register
+ * 		rega - source register 1
+ * 		regb - source register 2
+ * 		updateflags - compiles the flag updating version if TRUE
+ */
+void comp_ppc_addco(int regd, int rega, int regb, int updateflags)
+{
+	// ## addco(x) rega, regs, regb
+	comp_ppc_emit_halfwords(0x7c00 | ((regd) << 5) | rega,
+			0x0414 | (regb << 11) | (updateflags ? 1 : 0));
+}
+
 /* Compiles addi instruction
  * Parameters:
  * 		regd - target register
  * 		rega - source register
  * 		imm - immediate to be added
  */
-STATIC_INLINE void comp_ppc_addi(int regd, int rega, uae_u16 imm)
+void comp_ppc_addi(int regd, int rega, uae_u16 imm)
 {
 	//Parameter validation
 	if (rega == 0)
@@ -1077,7 +1352,7 @@ STATIC_INLINE void comp_ppc_addi(int regd, int rega, uae_u16 imm)
  * 		rega - source register
  * 		imm - immediate to be added
  */
- STATIC_INLINE void comp_ppc_addis(int regd, int rega, uae_u16 imm)
+void comp_ppc_addis(int regd, int rega, uae_u16 imm)
 {
 	//Parameter validation
 	if (rega == 0)
@@ -1091,11 +1366,49 @@ STATIC_INLINE void comp_ppc_addi(int regd, int rega, uae_u16 imm)
 	comp_ppc_emit_halfwords(0x3c00 | (regd << 5) | rega, imm);
 }
 
+/* Compiles and instruction
+ * Parameters:
+ * 		rega - target register
+ * 		regs - source register 1
+ * 		regb - source register 2
+ * 		updateflags - compiles the flag updating version if TRUE
+ */
+void comp_ppc_and(int rega, int regs, int regb, int updateflags)
+{
+	// ## and(x) rega, regs, regb
+	comp_ppc_emit_halfwords(0x7c00 | ((regs) << 5) | rega,
+			0x0038 | (regb << 11) | (updateflags ? 1 : 0));
+}
+
+/* Compiles andi. instruction
+ * Parameters:
+ * 		rega - target register
+ * 		regs - source register
+ * 		imm - immediate to be and'ed to the register
+ */
+void comp_ppc_andi(int rega, int regs, uae_u16 imm)
+{
+	// ## andi. rega, regs, imm
+	comp_ppc_emit_halfwords(0x7000 | ((regs) << 5) | rega, imm);
+}
+
+/* Compiles andis. instruction
+ * Parameters:
+ * 		rega - target register
+ * 		regs - source register
+ * 		imm - immediate to be and'ed to the register
+ */
+void comp_ppc_andis(int rega, int regs, uae_u16 imm)
+{
+	// ## andis. rega, regs, imm
+	comp_ppc_emit_halfwords(0x7400 | ((regs) << 5) | rega, imm);
+}
+
 /* Compiles b instruction
  * Parameters:
  * 		target - target address for the branch
  */
- STATIC_INLINE void comp_ppc_b(uae_u32 target)
+void comp_ppc_b(uae_u32 target)
 {
 	// ## b target
 	comp_ppc_emit_word(0x48000000 | (target & 0x3fffffc));
@@ -1104,7 +1417,7 @@ STATIC_INLINE void comp_ppc_addi(int regd, int rega, uae_u16 imm)
 /* Schedules a branch instruction target or compiles a conditional branch, if it was scheduled before.
  * See also:  comp_ppc_bc() function
  */
-STATIC_INLINE void comp_ppc_branch_target()
+void comp_ppc_branch_target()
 {
 	//Is there an already scheduled target?
 	if (compiled_branch_target != NULL)
@@ -1150,7 +1463,7 @@ STATIC_INLINE void comp_ppc_branch_target()
  * 		bibo - the combined value for BI and BO instruction parts (conditional code)
  * See also: PPC_B_* defines and comp_ppc_branch_target() function
  */
-STATIC_INLINE void comp_ppc_bc(int bibo)
+void comp_ppc_bc(int bibo)
 {
 	//Is there a scheduled branch instruction already?
 	if (compiled_branch_instruction != NULL)
@@ -1199,7 +1512,7 @@ STATIC_INLINE void comp_ppc_bc(int bibo)
  * Parameters:
  * 		target - target address for the branch
  */
- STATIC_INLINE void comp_ppc_bl(uae_u32 target)
+void comp_ppc_bl(uae_u32 target)
 {
 	// ## bl target
 	comp_ppc_emit_word(0x48000001 | (target & 0x3fffffc));
@@ -1209,7 +1522,7 @@ STATIC_INLINE void comp_ppc_bc(int bibo)
  * Parameters:
  * 		none
  */
- STATIC_INLINE void comp_ppc_blr()
+void comp_ppc_blr()
 {
 	// ## mtlr reg
 	comp_ppc_emit_word(0x4e800020);
@@ -1219,7 +1532,7 @@ STATIC_INLINE void comp_ppc_bc(int bibo)
  * Parameters:
  * 		none
  */
- STATIC_INLINE void comp_ppc_blrl()
+void comp_ppc_blrl()
 {
 	// ## blrl
 	comp_ppc_emit_word(0x4e800021);
@@ -1231,7 +1544,7 @@ STATIC_INLINE void comp_ppc_bc(int bibo)
  * 		rega - first register for comparing
  * 		regb - second register for comparing
  */
-STATIC_INLINE void comp_ppc_cmplw(int regcrfd, int rega, int regb)
+void comp_ppc_cmplw(int regcrfd, int rega, int regb)
 {
 	// ## cmpl regcrfd, 0, rega, regb
 	comp_ppc_emit_halfwords(0x7C00 | regcrfd << 7 | rega, 0x0040 | regb << 11);
@@ -1242,7 +1555,7 @@ STATIC_INLINE void comp_ppc_cmplw(int regcrfd, int rega, int regb)
  * 		rega - target register
  * 		imm - immediate to be loaded
  */
- STATIC_INLINE void comp_ppc_li(int rega, uae_u16 imm)
+void comp_ppc_li(int rega, uae_u16 imm)
 {
 	// ## li rega, imm ==> addi reg, 0, imm
 	comp_ppc_emit_halfwords(0x3800 | (rega << 5), imm);
@@ -1253,7 +1566,7 @@ STATIC_INLINE void comp_ppc_cmplw(int regcrfd, int rega, int regb)
  * 		rega - target register
  * 		imm - immediate to be added
  */
- STATIC_INLINE void comp_ppc_lis(int rega, uae_u16 imm)
+void comp_ppc_lis(int rega, uae_u16 imm)
 {
 	// ## lis rega, imm ==> addis rega, 0, imm
 	comp_ppc_emit_halfwords(0x3c00 | (rega << 5), imm);
@@ -1264,7 +1577,7 @@ STATIC_INLINE void comp_ppc_cmplw(int regcrfd, int rega, int regb)
  * 		reg - target register
  * 		value - value to be loaded
  */
- STATIC_INLINE void comp_ppc_liw(int reg, uae_u32 value)
+void comp_ppc_liw(int reg, uae_u32 value)
 {
 	//Value smaller than 0x00008000 or bigger than 0xffff7fff?
 	if ((value < 0x00008000) || (value > 0xffff7fff))
@@ -1296,29 +1609,57 @@ STATIC_INLINE void comp_ppc_cmplw(int regcrfd, int rega, int regb)
  * 		delta - offset for the source address register
  * 		rega - source register
  */
- STATIC_INLINE void comp_ppc_lwz(int regd, uae_u16 delta, int rega)
+void comp_ppc_lwz(int regd, uae_u16 delta, int rega)
 {
 	// ## lwz regd, delta(rega)
 	comp_ppc_emit_halfwords(0x8000 | ((regd) << 5) | rega, delta);
 }
 
+/* Compiles mcrxr instruction
+ * Parameters:
+ * 		reg - target flag register
+ */
+void comp_ppc_mcrxr(int crreg)
+{
+	// ## mcrxr crreg
+	comp_ppc_emit_word(0x7c000400 | (crreg << 23));
+}
+
+/* Compiles mfcr instruction
+ * Parameters:
+ * 		reg - target register
+ */
+void comp_ppc_mfcr(int reg)
+{
+	// ## mflr reg
+	comp_ppc_emit_word(0x7c000026 | (reg << 21));
+}
+
 /* Compiles mflr instruction
  * Parameters:
  * 		reg - target register
- * 		value - value to be loaded
  */
- STATIC_INLINE void comp_ppc_mflr(int reg)
+void comp_ppc_mflr(int reg)
 {
 	// ## mflr reg
 	comp_ppc_emit_word(0x7c0802a6 | (reg << 21));
 }
 
-/* Compiles mtlr instruction
+/* Compiles mfxer instruction
  * Parameters:
  * 		reg - target register
- * 		value - value to be loaded
  */
- STATIC_INLINE void comp_ppc_mtlr(int reg)
+void comp_ppc_mfxer(int reg)
+{
+	// ## mflr reg
+	comp_ppc_emit_word(0x7c0102a6 | (reg << 21));
+}
+
+/* Compiles mtlr instruction
+ * Parameters:
+ * 		reg - source register
+ */
+void comp_ppc_mtlr(int reg)
 {
 	// ## mtlr reg
 	comp_ppc_emit_word(0x7c0803a6 | (reg << 21));
@@ -1330,10 +1671,20 @@ STATIC_INLINE void comp_ppc_cmplw(int regcrfd, int rega, int regb)
  * 		regs - source register
  * 		updateflags - compiles the flag updating version if TRUE
  */
- STATIC_INLINE void comp_ppc_mr(int rega, int regs, BOOL updateflags)
+void comp_ppc_mr(int rega, int regs, int updateflags)
 {
 	// ## mr(x) rega, regs ==> or(x) rega, regs, regs
 	comp_ppc_or(rega, regs, regs, updateflags);
+}
+
+/* Compiles nop instruction
+ * Parameters:
+ * 		none
+ */
+void comp_ppc_nop()
+{
+	// ## nop = ori r0,r0,0
+	comp_ppc_ori(0, 0, 0);
 }
 
 /* Compiles or instruction
@@ -1343,7 +1694,7 @@ STATIC_INLINE void comp_ppc_cmplw(int regcrfd, int rega, int regb)
  * 		regb - source register 2
  * 		updateflags - compiles the flag updating version if TRUE
  */
- STATIC_INLINE void comp_ppc_or(int rega, int regs, int regb, BOOL updateflags)
+void comp_ppc_or(int rega, int regs, int regb, int updateflags)
 {
 	// ## or(x) rega, regs, regb
 	comp_ppc_emit_halfwords(0x7c00 | ((regs) << 5) | rega,
@@ -1356,10 +1707,38 @@ STATIC_INLINE void comp_ppc_cmplw(int regcrfd, int rega, int regb)
  * 		regs - source register
  * 		imm - immediate to be or'ed to the register
  */
- STATIC_INLINE void comp_ppc_ori(int rega, int regs, uae_u16 imm)
+void comp_ppc_ori(int rega, int regs, uae_u16 imm)
 {
 	// ## ori rega, regs, imm
 	comp_ppc_emit_halfwords(0x6000 | ((regs) << 5) | rega, imm);
+}
+
+/* Compiles oris instruction
+ * Parameters:
+ * 		rega - target register
+ * 		regs - source register
+ * 		imm - immediate to be or'ed to the register
+ */
+void comp_ppc_oris(int rega, int regs, uae_u16 imm)
+{
+	// ## oris rega, regs, imm
+	comp_ppc_emit_halfwords(0x6400 | ((regs) << 5) | rega, imm);
+}
+
+/* Compiles rlwimi instruction
+ * Parameters:
+ * 		rega - target register
+ * 		regs - source register
+ * 		shift - shift amount
+ * 		maskb - mask beginning
+ * 		maske - mask end
+ * 		updateflags - compiles the flag updating version if TRUE
+ */
+void comp_ppc_rlwimi(int rega, int regs, int shift, int maskb, int maske, int updateflags)
+{
+	// ## rlwimi(x) rega, regs, shift, maskb, maske
+	comp_ppc_emit_halfwords(0x5000 | ((regs) << 5) | rega,
+			(shift << 11) | (maskb << 6) | (maske << 1) | (updateflags ? 1 : 0));
 }
 
 /* Compiles rlwinm instruction
@@ -1371,12 +1750,23 @@ STATIC_INLINE void comp_ppc_cmplw(int regcrfd, int rega, int regb)
  * 		maske - mask end
  * 		updateflags - compiles the flag updating version if TRUE
  */
- STATIC_INLINE void comp_ppc_rlwinm(int rega, int regs, int shift, int maskb, int maske,
-		BOOL updateflags)
+void comp_ppc_rlwinm(int rega, int regs, int shift, int maskb, int maske, int updateflags)
 {
 	// ## rlwinm(x) rega, regs, shift, maskb, maske
 	comp_ppc_emit_halfwords(0x5400 | ((regs) << 5) | rega,
 			(shift << 11) | (maskb << 6) | (maske << 1) | (updateflags ? 1 : 0));
+}
+
+/* Compiles sth instruction
+ * Parameters:
+ * 		regs - source register
+ * 		delta - offset for the source address register
+ * 		rega - source register
+ */
+void comp_ppc_sth(int regs, uae_u16 delta, int rega)
+{
+	// ## sth regs, delta(rega)
+	comp_ppc_emit_halfwords(0xb000 | ((regs) << 5) | rega, delta);
 }
 
 /* Compiles stw instruction
@@ -1385,7 +1775,7 @@ STATIC_INLINE void comp_ppc_cmplw(int regcrfd, int rega, int regb)
  * 		delta - offset for the source address register
  * 		rega - source register
  */
- STATIC_INLINE void comp_ppc_stw(int regs, uae_u16 delta, int rega)
+void comp_ppc_stw(int regs, uae_u16 delta, int rega)
 {
 	// ## stw regs, delta(rega)
 	comp_ppc_emit_halfwords(0x9000 | ((regs) << 5) | rega, delta);
@@ -1395,7 +1785,7 @@ STATIC_INLINE void comp_ppc_cmplw(int regcrfd, int rega, int regb)
   * Parameters:
   * 		none
   */
- STATIC_INLINE void comp_ppc_trap()
+void comp_ppc_trap()
  {
  	// ## trap
  	comp_ppc_emit_word(0x7fe00008);
@@ -1410,7 +1800,7 @@ STATIC_INLINE void comp_ppc_cmplw(int regcrfd, int rega, int regb)
  * 		reg - a temporary register (not preserved)
  * 		addr - target address for the subroutine
  */
- STATIC_INLINE void comp_ppc_call(int reg, uae_uintptr addr)
+void comp_ppc_call(int reg, uae_uintptr addr)
 {
 	//Calculate the offset to the target from the actual PC address
 	uae_u32 offset = ((uae_u32) addr) - ((uae_u32) current_compile_p);
@@ -1434,7 +1824,7 @@ STATIC_INLINE void comp_ppc_cmplw(int regcrfd, int rega, int regb)
  * 		reg - a temporary register (not preserved)
  * 		addr - target address for the jump
  */
- STATIC_INLINE void comp_ppc_jump(int reg, uae_uintptr addr)
+void comp_ppc_jump(int reg, uae_uintptr addr)
 {
 	//Calculate the offset to the target from the actual PC address
 	uae_u32 offset = ((uae_u32) addr) - ((uae_u32) current_compile_p);
@@ -1457,7 +1847,7 @@ STATIC_INLINE void comp_ppc_cmplw(int regcrfd, int rega, int regb)
 /* Compiles prolog to the beginnig of the function call (stackframe preparing)
  * Note: emitted code uses PPCR_TMP0 register, it is not restored
  */
- STATIC_INLINE void comp_ppc_prolog()
+void comp_ppc_prolog()
 {
 	comp_ppc_mflr(PPCR_TMP0); //Read LR
 	comp_ppc_stw(PPCR_TMP0, -4, PPCR_SP); //Store in stack frame
@@ -1471,7 +1861,7 @@ STATIC_INLINE void comp_ppc_cmplw(int regcrfd, int rega, int regb)
 /* Compiles epilog to the end of the function call (stackframe freeing)
  * Note: emitted code uses PPCR_TMP0 and PPCR_SPECTMP registers, these are not restored
  */
- STATIC_INLINE void comp_ppc_epilog()
+void comp_ppc_epilog()
 {
 	comp_ppc_lwz(PPCR_TMP0, 0, PPCR_SP); //Read the pointer to the previous stack frame
 	comp_ppc_lwz(PPCR_SPECTMP, 4, PPCR_TMP0); //Read LR from the stackframe
@@ -1483,14 +1873,14 @@ STATIC_INLINE void comp_ppc_cmplw(int regcrfd, int rega, int regb)
  * Parameters:
  *      totalcycles - precalculated cycles for the executed chunk of compiled code
  */
-STATIC_INLINE void comp_ppc_do_cycles(int totalcycles)
+void comp_ppc_do_cycles(int totalcycles)
 {
 	comp_ppc_liw(PPCR_PARAM1, totalcycles);
 	comp_ppc_call(PPCR_SPECTMP, (uae_uintptr) do_cycles_callback);
 }
 
 /* Compiles "return from function" code to the code cache actual position */
- STATIC_INLINE void comp_ppc_return_to_caller()
+void comp_ppc_return_to_caller()
 {
 	comp_ppc_epilog();
 	comp_ppc_blr();
@@ -1502,7 +1892,7 @@ STATIC_INLINE void comp_ppc_do_cycles(int totalcycles)
   *      pc_addr_exp - expected 68k PC address (value)
   *      pc_addr_act - pointer to the memory address that contains the actual 58k PC address
   */
-STATIC_INLINE void comp_ppc_verify_pc(uae_u8* pc_addr_exp, uae_u8** pc_addr_act)
+void comp_ppc_verify_pc(uae_u8* pc_addr_exp, uae_u8** pc_addr_act)
 {
 	//TODO: simplify access to the actual PC register by using regs variable pointer in a prepopulated native register
 	comp_ppc_liw(PPCR_TMP0, (uae_u32) pc_addr_exp);
@@ -1523,7 +1913,7 @@ STATIC_INLINE void comp_ppc_verify_pc(uae_u8* pc_addr_exp, uae_u8** pc_addr_act)
 }
 
 /* Compiles a piece of code to reload the regs.pc_p pointer to the specified address. */
-STATIC_INLINE void comp_ppc_reload_pc_p(uae_u8* new_pc_p, uae_u8** regs_pc_p)
+void comp_ppc_reload_pc_p(uae_u8* new_pc_p, uae_u8** regs_pc_p)
 {
 	//TODO: simplify access to the actual PC register by using regs variable pointer in a prepopulated native register
 
