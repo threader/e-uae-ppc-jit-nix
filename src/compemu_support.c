@@ -1920,5 +1920,4 @@ void comp_ppc_reload_pc_p(uae_u8* new_pc_p, uae_u8** regs_pc_p)
 	comp_ppc_liw(PPCR_TMP0, (uae_u32) new_pc_p);
 	comp_ppc_liw(PPCR_TMP1, (uae_u32) regs_pc_p);
 	comp_ppc_stw(PPCR_TMP0, 0, PPCR_TMP1);
-	comp_ppc_trap();
 }
