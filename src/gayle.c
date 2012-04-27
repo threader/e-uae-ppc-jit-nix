@@ -28,6 +28,9 @@
 #include "a2091.h"
 #include "ncr_scsi.h"
 
+#define PCMCIA_SRAM 1
+#define PCMCIA_IDE 2
+
 /*
 600000 to 9FFFFF	4 MB	Credit Card memory if CC present
 A00000 to A1FFFF	128 KB	Credit Card Attributes
@@ -159,9 +162,17 @@ read 1 byte to stop reset */
 #define MAX_IDE_MULTIPLE_SECTORS 64
 #define SECBUF_SIZE (512 * (MAX_IDE_MULTIPLE_SECTORS * 2))
 
+struct ide_registers
+{
+	uae_u8 ide_select, ide_nsector, ide_sector, ide_lcyl, ide_hcyl, ide_devcon, ide_error, ide_feat;
+	uae_u8 ide_nsector2, ide_sector2, ide_lcyl2, ide_hcyl2, ide_feat2;
+	uae_u8 ide_drv;
+};
+
 struct ide_hdf
 {
 	struct hd_hardfiledata hdhfd;
+	struct ide_registers *regs;
 
 	uae_u8 secbuf[SECBUF_SIZE];
 	int data_offset;
@@ -178,16 +189,23 @@ struct ide_hdf
 	int maxtransferstate;
 };
 
-static struct ide_hdf *idedrive[4];
+#define TOTAL_IDE 3
+#define GAYLE_IDE_ID 0
+#define PCMCIA_IDE_ID 2
+
+static struct ide_hdf *idedrive[TOTAL_IDE * 2];
+static struct ide_registers ideregs[TOTAL_IDE];
 struct hd_hardfiledata *pcmcia_sram;
+
 static int pcmcia_card;
 static int pcmcia_readonly;
+static int pcmcia_type;
+static uae_u8 pcmcia_configuration[20];
+static bool pcmcia_configured;
 
 static int gayle_id_cnt;
 static uae_u8 gayle_irq, gayle_int, gayle_cs, gayle_cs_mask, gayle_cfg;
-static uae_u8 ide_select, ide_nsector, ide_sector, ide_lcyl, ide_hcyl, ide_devcon, ide_error, ide_feat;
-static uae_u8 ide_nsector2, ide_sector2, ide_lcyl2, ide_hcyl2, ide_feat2;
-static int ide_drv, ide2, ide_splitter;
+static int ide2, ide_splitter;
 
 static struct ide_hdf *ide;
 
@@ -199,31 +217,54 @@ STATIC_INLINE void pw (int offset, uae_u16 w)
 static void ps (int offset, const TCHAR *src, int max)
 {
 	int i, len;
+	char *s;
 
 	offset *= 2;
-	len = strlen (src);
+	s = ua (src);
+	len = strlen (s);
 	for (i = 0; i < max; i++) {
 		char c = ' ';
 		if (i < len)
-			c = src[i];
+			c = s[i];
 		ide->secbuf[offset ^ 1] = c;
 		offset++;
 	}
+	xfree (s);
 }
 
-static int isideirq (void)
+static void pcmcia_reset (void)
 {
+	memset (pcmcia_configuration, 0, sizeof pcmcia_configuration);
+	pcmcia_configured = false;
+	if (PCMCIA_LOG > 0)
+		write_log (_T("PCMCIA reset\n"));
+}
+
+static uae_u8 checkpcmciaideirq (void)
+{
+	if (!idedrive || pcmcia_type != PCMCIA_IDE || !pcmcia_configured)
+		return 0;
+	if (ideregs[PCMCIA_IDE_ID].ide_devcon & 2)
+		return 0;
+	if (idedrive[PCMCIA_IDE_ID * 2]->irq)
+		return GAYLE_IRQ_BSY;
+		return 0;
+}
+
+static uae_u8 checkgayleideirq (void)
+{
+	int i;
 	if (!idedrive)
 		return 0;
-	if (ide_devcon & 2)
-		return 0;
-	if (idedrive[ide_drv] == NULL)
-		return 0;
-	if (idedrive[ide_drv]->irq || idedrive[ide_drv + 2]->irq) {
+	for (i = 0; i < 2; i++) {
+		if (ideregs[i].ide_devcon & 2)
+			continue;
+		if (idedrive[i]->irq || idedrive[i + 2]->irq) {
 		/* IDE killer feature. Do not eat interrupt to make booting faster. */
-		if (idedrive[ide_drv]->irq && idedrive[ide_drv]->hdhfd.size == 0)
-			idedrive[ide_drv]->irq = 0;
-		return 1;
+			if (idedrive[i]->irq && idedrive[i]->hdhfd.size == 0)
+				idedrive[i]->irq = 0;
+			return GAYLE_IRQ_IDE;
+		}
 	}
 	return 0;
 }
@@ -235,16 +276,16 @@ void rethink_gayle (void)
 	uae_u8 mask;
 
 	if (currprefs.cs_ide == IDE_A4000) {
-		if (isideirq ())
-			gayle_irq |= GAYLE_IRQ_IDE;
+		gayle_irq |= checkgayleideirq ();
 		if ((gayle_irq & GAYLE_IRQ_IDE) && !(intreq & 0x0008))
 			INTREQ_0 (0x8000 | 0x0008);
+		return;
 	}
 
 	if (currprefs.cs_ide != IDE_A600A1200 && !currprefs.cs_pcmcia)
 		return;
-	if (isideirq ())
-		gayle_irq |= GAYLE_IRQ_IDE;
+	gayle_irq |= checkgayleideirq ();
+	gayle_irq |= checkpcmciaideirq ();
 	mask = gayle_int & gayle_irq;
 	if (mask & (GAYLE_IRQ_IDE | GAYLE_IRQ_WR))
 		lev2 = 1;
@@ -281,7 +322,7 @@ static void gayle_cs_change (uae_u8 mask, int onoff)
 	if (changed) {
 		gayle_irq |= mask;
 		rethink_gayle ();
-		if (mask & GAYLE_CS_CCDET) {
+		if ((mask & GAYLE_CS_CCDET) && (gayle_irq & (GAYLE_IRQ_RESET | GAYLE_IRQ_BERR)) != (GAYLE_IRQ_RESET | GAYLE_IRQ_BERR)) {
 			if (gayle_irq & GAYLE_IRQ_RESET)
 				uae_reset (0);
 			if (gayle_irq & GAYLE_IRQ_BERR)
@@ -320,7 +361,9 @@ static uae_u8 read_gayle_cfg (void)
 }
 static void write_gayle_irq (uae_u8 val)
 {
-	gayle_irq = (gayle_irq & val) | (val & 3);
+	gayle_irq = (gayle_irq & val) | (val & (GAYLE_IRQ_RESET | GAYLE_IRQ_BERR));
+	if ((gayle_irq & (GAYLE_IRQ_RESET | GAYLE_IRQ_BERR)) == (GAYLE_IRQ_RESET | GAYLE_IRQ_BERR))
+		pcmcia_reset ();
 }
 static uae_u8 read_gayle_irq (void)
 {
@@ -346,7 +389,7 @@ static void write_gayle_cs (uae_u8 val)
 		/* PCMCIA disable -> enable */
 		card_trigger (!(gayle_cs & GAYLE_CS_DIS) ? 1 : 0);
 		if (PCMCIA_LOG)
-			write_log ("PCMCIA slot: %s PC=%08X\n", !(gayle_cs & 1) ? "enabled" : "disabled", M68K_GETPC);
+			write_log (_T("PCMCIA slot: %s PC=%08X\n"), !(gayle_cs & 1) ? _T("enabled") : _T("disabled"), M68K_GETPC);
 	}
 }
 static uae_u8 read_gayle_cs (void)
@@ -354,15 +397,15 @@ static uae_u8 read_gayle_cs (void)
 	uae_u8 v;
 
 	v = gayle_cs_mask | gayle_cs;
-	if (isideirq ())
-		v |= GAYLE_CS_IDE;
+	v |= checkgayleideirq ();
+	v |= checkpcmciaideirq ();
 	return v;
 }
 
 
 static void ide_interrupt (void)
 {
-	if (ide_devcon & 2)
+	if (ide->regs->ide_devcon & 2)
 		return;
 	//ide->status |= IDE_STATUS_BSY;
 	ide->irq_delay = 2;
@@ -378,8 +421,8 @@ static void ide_interrupt_do (struct ide_hdf *ide)
 
 static void ide_fail_err (uae_u8 err)
 {
-	ide_error |= err;
-	if (ide_drv == 1 && idedrive[ide2 + 1]->hdhfd.size == 0)
+	ide->regs->ide_error |= err;
+	if (ide->regs->ide_drv == 1 && idedrive[ide2 + 1]->hdhfd.size == 0)
 		idedrive[ide2]->status |= IDE_STATUS_ERR;
 	ide->status |= IDE_STATUS_ERR;
 	ide_interrupt ();
@@ -401,9 +444,9 @@ static void ide_data_ready (void)
 
 static void ide_recalibrate (void)
 {
-	write_log ("IDE%d recalibrate\n", ide->num);
-	ide_sector = 0;
-	ide_lcyl = ide_hcyl = 0;
+	write_log (_T("IDE%d recalibrate\n"), ide->num);
+	ide->regs->ide_sector = 0;
+	ide->regs->ide_lcyl = ide->regs->ide_hcyl = 0;
 	ide_interrupt ();
 }
 static void ide_identify_drive (void)
@@ -419,7 +462,7 @@ static void ide_identify_drive (void)
 	}
 	memset (buf, 0, ide->blocksize);
 	if (IDE_LOG > 0)
-		write_log ("IDE%d identify drive\n", ide->num);
+		write_log (_T("IDE%d identify drive\n"), ide->num);
 	ide_data_ready ();
 	ide->data_size *= -1;
 	pw (0, 1 << 6);
@@ -429,12 +472,12 @@ static void ide_identify_drive (void)
 	pw (4, ide->blocksize * ide->hdhfd.secspertrack_def);
 	pw (5, ide->blocksize);
 	pw (6, ide->hdhfd.secspertrack_def);
-	ps (10, "68000", 20); /* serial */
+	ps (10, _T("68000"), 20); /* serial */
 	pw (20, 3);
 	pw (21, ide->blocksize);
 	pw (22, 4);
-	ps (23, "0.3", 8); /* firmware revision */
-	_stprintf (tmp, "UAE-IDE %s", ide->hdhfd.hfd.product_id);
+	ps (23, _T("0.4"), 8); /* firmware revision */
+	_stprintf (tmp, _T("UAE-IDE %s"), ide->hdhfd.hfd.product_id);
 	ps (27, tmp, 40); /* model */
 	pw (47, MAX_IDE_MULTIPLE_SECTORS >> (ide->blocksize / 512 - 1)); /* max sectors in multiple mode */
 	pw (48, 1);
@@ -448,7 +491,7 @@ static void ide_identify_drive (void)
 	totalsecs = ide->hdhfd.cyls * ide->hdhfd.heads * ide->hdhfd.secspertrack;
 	pw (57, (uae_u16)totalsecs);
 	pw (58, (uae_u16)(totalsecs >> 16));
-	v = idedrive[ide_drv]->multiple_mode;
+	v = idedrive[ide->regs->ide_drv]->multiple_mode;
 	pw (59, (v > 0 ? 0x100 : 0) | v);
 	totalsecs = ide->hdhfd.size / ide->blocksize;
 	if (totalsecs > 0x0fffffff)
@@ -481,20 +524,23 @@ static void ide_identify_drive (void)
 	}
 }
 
-static void ide_execute_drive_diagnostics (void)
+static void ide_execute_drive_diagnostics (bool irq)
 {
-	ide_error = 1;
-	ide_sector = ide_nsector = 1;
-	ide_select = 0;
-	ide_lcyl = ide_hcyl = 0;
-	ide->status &= ~IDE_STATUS_BSY;
+	ide->regs->ide_error = 1;
+	ide->regs->ide_sector = ide->regs->ide_nsector = 1;
+	ide->regs->ide_select = 0;
+	ide->regs->ide_lcyl = ide->regs->ide_hcyl = 0;
+	if (irq)
+		ide_interrupt ();
+	else
+		ide->status = ~IDE_STATUS_BSY;
 }
 
 static void ide_initialize_drive_parameters (void)
 {
 	if (ide->hdhfd.size) {
-		ide->hdhfd.secspertrack = ide_nsector == 0 ? 256 : ide_nsector;
-		ide->hdhfd.heads = (ide_select & 15) + 1;
+		ide->hdhfd.secspertrack = ide->regs->ide_nsector == 0 ? 256 : ide->regs->ide_nsector;
+		ide->hdhfd.heads = (ide->regs->ide_select & 15) + 1;
 		ide->hdhfd.cyls = (ide->hdhfd.size / ide->blocksize) / (ide->hdhfd.secspertrack * ide->hdhfd.heads);
 		if (ide->hdhfd.heads * ide->hdhfd.cyls * ide->hdhfd.secspertrack > 16515072 || ide->lba48) {
 			ide->hdhfd.cyls = ide->hdhfd.cyls_def;
@@ -502,42 +548,42 @@ static void ide_initialize_drive_parameters (void)
 			ide->hdhfd.secspertrack = ide->hdhfd.secspertrack_def;
 		}
 	} else {
-		ide_error |= IDE_ERR_ABRT;
+		ide->regs->ide_error |= IDE_ERR_ABRT;
 		ide->status |= IDE_STATUS_ERR;
 	}
-	write_log ("IDE%d initialize drive parameters, CYL=%d,SPT=%d,HEAD=%d\n",
+	write_log (_T("IDE%d initialize drive parameters, CYL=%d,SPT=%d,HEAD=%d\n"),
 		ide->num, ide->hdhfd.cyls, ide->hdhfd.secspertrack, ide->hdhfd.heads);
 	ide_interrupt ();
 }
 static void ide_set_multiple_mode (void)
 {
-	write_log ("IDE%d drive multiple mode = %d\n", ide->num, ide_nsector);
-	ide->multiple_mode = ide_nsector;
+	write_log (_T("IDE%d drive multiple mode = %d\n"), ide->num, ide->regs->ide_nsector);
+	ide->multiple_mode = ide->regs->ide_nsector;
 	ide_interrupt ();
 }
 static void ide_set_features (void)
 {
-	int type = ide_nsector >> 3;
-	int mode = ide_nsector & 7;
+	int type = ide->regs->ide_nsector >> 3;
+	int mode = ide->regs->ide_nsector & 7;
 
-	write_log ("IDE%d set features %02X (%02X)\n", ide->num, ide_feat, ide_nsector);
+	write_log (_T("IDE%d set features %02X (%02X)\n"), ide->num, ide->regs->ide_feat, ide->regs->ide_nsector);
 	ide_fail ();
 }
 
 static void get_lbachs (struct ide_hdf *ide, uae_u64 *lbap, unsigned int *cyl, unsigned int *head, unsigned int *sec, int lba48)
 {
-	if (lba48 && (ide_select & 0x40)) {
+	if (lba48 && (ide->regs->ide_select & 0x40)) {
 		uae_u64 lba;
-		lba = (ide_hcyl << 16) | (ide_lcyl << 8) | ide_sector;
-		lba |= ((ide_hcyl2 << 16) | (ide_lcyl2 << 8) | ide_sector2) << 24;
+		lba = (ide->regs->ide_hcyl << 16) | (ide->regs->ide_lcyl << 8) | ide->regs->ide_sector;
+		lba |= ((ide->regs->ide_hcyl2 << 16) | (ide->regs->ide_lcyl2 << 8) | ide->regs->ide_sector2) << 24;
 		*lbap = lba;
 	} else {
-		if (ide_select & 0x40) {
-			*lbap = ((ide_select & 15) << 24) | (ide_hcyl << 16) | (ide_lcyl << 8) | ide_sector;
+		if (ide->regs->ide_select & 0x40) {
+			*lbap = ((ide->regs->ide_select & 15) << 24) | (ide->regs->ide_hcyl << 16) | (ide->regs->ide_lcyl << 8) | ide->regs->ide_sector;
 		} else {
-			*cyl = (ide_hcyl << 8) | ide_lcyl;
-			*head = ide_select & 15;
-			*sec = ide_sector;
+			*cyl = (ide->regs->ide_hcyl << 8) | ide->regs->ide_lcyl;
+			*head = ide->regs->ide_select & 15;
+			*sec = ide->regs->ide_sector;
 			*lbap = (((*cyl) * ide->hdhfd.heads + (*head)) * ide->hdhfd.secspertrack) + (*sec) - 1;
 		}
 	}
@@ -546,22 +592,22 @@ static void get_lbachs (struct ide_hdf *ide, uae_u64 *lbap, unsigned int *cyl, u
 static int get_nsec (int lba48)
 {
 	if (lba48)
-		return (ide_nsector == 0 && ide_nsector2 == 0) ? 65536 : (ide_nsector2 * 256 + ide_nsector);
+		return (ide->regs->ide_nsector == 0 && ide->regs->ide_nsector2 == 0) ? 65536 : (ide->regs->ide_nsector2 * 256 + ide->regs->ide_nsector);
 	else
-		return ide_nsector == 0 ? 256 : ide_nsector;
+		return ide->regs->ide_nsector == 0 ? 256 : ide->regs->ide_nsector;
 }
 static int dec_nsec (int lba48, int v)
 {
 	if (lba48) {
 		uae_u16 nsec;
-		nsec = ide_nsector2 * 256 + ide_nsector;
-		ide_nsector -= v;
-		ide_nsector2 = nsec >> 8;
-		ide_nsector = nsec & 0xff;
-		return (ide_nsector2 << 8) | ide_nsector;
+		nsec = ide->regs->ide_nsector2 * 256 + ide->regs->ide_nsector;
+		ide->regs->ide_nsector -= v;
+		ide->regs->ide_nsector2 = nsec >> 8;
+		ide->regs->ide_nsector = nsec & 0xff;
+		return (ide->regs->ide_nsector2 << 8) | ide->regs->ide_nsector;
 	} else {
-		ide_nsector -= v;
-		return ide_nsector;
+		ide->regs->ide_nsector -= v;
+		return ide->regs->ide_nsector;
 	}
 }
 
@@ -569,21 +615,21 @@ static void put_lbachs (struct ide_hdf *ide, uae_u64 lba, unsigned int cyl, unsi
 {
 	if (lba48) {
 		lba += inc;
-		ide_hcyl = (lba >> 16) & 0xff;
-		ide_lcyl = (lba >> 8) & 0xff;
-		ide_sector = lba & 0xff;
+		ide->regs->ide_hcyl = (lba >> 16) & 0xff;
+		ide->regs->ide_lcyl = (lba >> 8) & 0xff;
+		ide->regs->ide_sector = lba & 0xff;
 		lba >>= 24;
-		ide_hcyl2 = (lba >> 16) & 0xff;
-		ide_lcyl2 = (lba >> 8) & 0xff;
-		ide_sector2 = lba & 0xff;
+		ide->regs->ide_hcyl2 = (lba >> 16) & 0xff;
+		ide->regs->ide_lcyl2 = (lba >> 8) & 0xff;
+		ide->regs->ide_sector2 = lba & 0xff;
 	} else {
-		if (ide_select & 0x40) {
+		if (ide->regs->ide_select & 0x40) {
 			lba += inc;
-			ide_select &= ~15;
-			ide_select |= (lba >> 24) & 15;
-			ide_hcyl = (lba >> 16) & 0xff;
-			ide_lcyl = (lba >> 8) & 0xff;
-			ide_sector = lba & 0xff;
+			ide->regs->ide_select &= ~15;
+			ide->regs->ide_select |= (lba >> 24) & 15;
+			ide->regs->ide_hcyl = (lba >> 16) & 0xff;
+			ide->regs->ide_lcyl = (lba >> 8) & 0xff;
+			ide->regs->ide_sector = lba & 0xff;
 		} else {
 			sec += inc;
 			while (sec >= ide->hdhfd.secspertrack) {
@@ -594,11 +640,11 @@ static void put_lbachs (struct ide_hdf *ide, uae_u64 lba, unsigned int cyl, unsi
 					cyl++;
 				}
 			}
-			ide_select &= ~15;
-			ide_select |= head;
-			ide_sector = sec;
-			ide_hcyl = cyl >> 8;
-			ide_lcyl = (uae_u8)cyl;
+			ide->regs->ide_select &= ~15;
+			ide->regs->ide_select |= head;
+			ide->regs->ide_sector = sec;
+			ide->regs->ide_hcyl = cyl >> 8;
+			ide->regs->ide_lcyl = (uae_u8)cyl;
 		}
 	}
 }
@@ -607,11 +653,11 @@ static void check_maxtransfer (int state)
 {
   if (state == 1) {
     // transfer was started
-    if (ide->maxtransferstate < 2 && ide_nsector == 0) {
+		if (ide->maxtransferstate < 2 && ide->regs->ide_nsector == 0) {
       ide->maxtransferstate = 1;
     } else if (ide->maxtransferstate == 2) {
       // second transfer was started (part of split)
-      write_log ("IDE maxtransfer check detected split >256 block transfer\n");
+			write_log (_T("IDE maxtransfer check detected split >256 block transfer\n"));
       ide->maxtransferstate = 0;
     } else {
       ide->maxtransferstate = 0;
@@ -641,7 +687,7 @@ static void ide_read_sectors (int flags)
 	nsec = get_nsec (lba48);
 	get_lbachs (ide, &lba, &cyl, &head, &sec, lba48);
 	if (IDE_LOG > 0)
-		write_log ("IDE%d read off=%d, sec=%d (%d) lba%d\n", ide->num, (uae_u32)lba, nsec, ide->multiple_mode, lba48 ? 48 : 28);
+		write_log (_T("IDE%d read off=%d, sec=%d (%d) lba%d\n"), ide->num, (uae_u32)lba, nsec, ide->multiple_mode, lba48 ? 48 : 28);
 	if (lba * ide->blocksize >= ide->hdhfd.size) {
 		ide_data_ready ();
 		ide_fail_err (IDE_ERR_IDNF);
@@ -675,7 +721,7 @@ static void ide_write_sectors (int flags)
 		return;
 	}
 	if (IDE_LOG > 0)
-		write_log ("IDE%d write off=%d, sec=%d (%d) lba%d\n", ide->num, (uae_u32)lba, nsec, ide->multiple_mode, lba48 ? 48 : 28);
+		write_log (_T("IDE%d write off=%d, sec=%d (%d) lba%d\n"), ide->num, (uae_u32)lba, nsec, ide->multiple_mode, lba48 ? 48 : 28);
 	if (nsec * ide->blocksize > ide->hdhfd.size - lba * ide->blocksize)
 		nsec = (ide->hdhfd.size - lba * ide->blocksize) / ide->blocksize;
 	if (nsec <= 0) {
@@ -694,16 +740,16 @@ static void ide_do_command (uae_u8 cmd)
 	int lba48 = ide->lba48;
 
 	if (IDE_LOG > 1)
-		write_log ("**** IDE%d command %02X\n", ide->num, cmd);
+		write_log (_T("**** IDE%d command %02X\n"), ide->num, cmd);
 	ide->status &= ~ (IDE_STATUS_DRDY | IDE_STATUS_DRQ | IDE_STATUS_ERR);
-	ide_error = 0;
+	ide->regs->ide_error = 0;
 
 	if (cmd == 0x10) { /* recalibrate */
 		ide_recalibrate ();
 	} else if (cmd == 0xec) { /* identify drive */
 		ide_identify_drive ();
 	} else if (cmd == 0x90) { /* execute drive diagnostics */
-		ide_execute_drive_diagnostics ();
+		ide_execute_drive_diagnostics (true);
 	} else if (cmd == 0x91) { /* initialize drive parameters */
 		ide_initialize_drive_parameters ();
 	} else if (cmd == 0xc6) { /* set multiple mode */
@@ -735,11 +781,11 @@ static void ide_do_command (uae_u8 cmd)
 	} else if (cmd == 0xe0 || cmd == 0xe1 || cmd == 0xe7 || cmd == 0xea) { /* standby now/idle/flush cache/flush cache ext */
 		ide_interrupt ();
 	} else if (cmd == 0xe5) { /* check power mode */
-		ide_nsector = 0xff;
+		ide->regs->ide_nsector = 0xff;
 		ide_interrupt ();
 	} else {
 		ide_fail ();
-		write_log ("IDE%d: unknown command %x\n", ide->num, cmd);
+		write_log (_T("IDE%d: unknown command %x\n"), ide->num, cmd);
 	}
 }
 
@@ -752,10 +798,10 @@ static uae_u16 ide_get_data (void)
 	uae_u16 v;
 
 	if (IDE_LOG > 4)
-		write_log ("IDE%d DATA read\n", ide->num);
+		write_log (_T("IDE%d DATA read\n"), ide->num);
 	if (ide->data_size == 0) {
 		if (IDE_LOG > 0)
-			write_log ("IDE%d DATA read without DRQ!?\n", ide->num);
+			write_log (_T("IDE%d DATA read without DRQ!?\n"), ide->num);
 		if (ide->hdhfd.size == 0)
 			return 0xffff;
 		return 0;
@@ -777,7 +823,7 @@ static uae_u16 ide_get_data (void)
 		if (!dec_nsec (ide->lba48, nsec))
 			last = true;
 		if (IDE_LOG > 1)
-			write_log ("IDE%d read, read %d bytes to buffer\n", ide->num, nsec * ide->blocksize);
+			write_log (_T("IDE%d read, read %d bytes to buffer\n"), ide->num, nsec * ide->blocksize);
 	}
 
 	v = ide->secbuf[ide->data_offset + 1] | (ide->secbuf[ide->data_offset + 0] << 8);
@@ -787,14 +833,14 @@ static uae_u16 ide_get_data (void)
 	} else {
 		ide->data_size -= 2;
 		if (((ide->data_offset % ide->blocksize) == 0) && ((ide->data_offset / ide->blocksize) % ide->data_multi) == 0) {
-			irq = 1;
+			irq = true;
 			ide->data_offset = 0;
 		}
 	}
 	if (ide->data_size == 0) {
 		ide->status &= ~IDE_STATUS_DRQ;
 		if (IDE_LOG > 1)
-			write_log ("IDE%d read finished\n", ide->num);
+			write_log (_T("IDE%d read finished\n"), ide->num);
 	}
 	if (nsec) {
 		put_lbachs (ide, lba, cyl, head, sec, last ? nsec - 1 : nsec, ide->lba48);
@@ -815,10 +861,10 @@ static void ide_write_drive (bool last)
 		return;
 	get_lbachs (ide, &lba, &cyl, &head, &sec, ide->lba48);
 	hdf_write (&ide->hdhfd.hfd, ide->secbuf, lba * ide->blocksize, ide->data_offset);
-	put_lbachs (ide, lba, cyl, head, sec, last ? nsec - 1 : sec, ide->lba48);
+	put_lbachs (ide, lba, cyl, head, sec, last ? nsec - 1 : nsec, ide->lba48);
 	dec_nsec (ide->lba48, nsec);
 	if (IDE_LOG > 1)
-		write_log ("IDE%d write interrupt, %d bytes written\n", ide->num, ide->data_offset);
+		write_log (_T("IDE%d write interrupt, %d bytes written\n"), ide->num, ide->data_offset);
 	ide->data_offset = 0;
 }
 
@@ -827,10 +873,10 @@ static void ide_put_data (uae_u16 v)
 	int irq = 0;
 
 	if (IDE_LOG > 4)
-		write_log ("IDE%d DATA write %04x %d/%d\n", ide->num, v, ide->data_offset, ide->data_size);
+		write_log (_T("IDE%d DATA write %04x %d/%d\n"), ide->num, v, ide->data_offset, ide->data_size);
 	if (ide->data_size == 0) {
 		if (IDE_LOG > 0)
-			write_log ("IDE%d DATA write without DRQ!?\n", ide->num);
+			write_log (_T("IDE%d DATA write without DRQ!?\n"), ide->num);
 		return;
 	}
 	ide->secbuf[ide->data_offset + 1] = v & 0xff;
@@ -842,7 +888,7 @@ static void ide_put_data (uae_u16 v)
 		ide_write_drive (true);
 		ide->status &= ~IDE_STATUS_DRQ;
 		if (IDE_LOG > 1)
-			write_log ("IDE%d write finished\n", ide->num);
+			write_log (_T("IDE%d write finished\n"), ide->num);
 	} else if (((ide->data_offset % ide->blocksize) == 0) && ((ide->data_offset / ide->blocksize) % ide->data_multi) == 0) {
 		irq = 1;
 		ide_write_drive (false);
@@ -851,7 +897,7 @@ static void ide_put_data (uae_u16 v)
 		ide_interrupt ();
 }
 
-static int get_ide_reg (uaecptr addr)
+static int get_gayle_ide_reg (uaecptr addr)
 {
 	uaecptr a = addr;
 	addr &= 0xffff;
@@ -866,18 +912,136 @@ static int get_ide_reg (uaecptr addr)
 			addr &= ~0x400;
 		}
 	}
-	ide = idedrive[ide_drv + ide2];
+	ide = idedrive[ide2];
+	if (ide->regs->ide_drv)
+		ide = idedrive[ide2 + 1];
 	return addr;
 }
 
-static uae_u32 ide_read (uaecptr addr)
+static uae_u32 ide_read_reg (int ide_reg)
+{
+	uae_u8 v = 0;
+	bool isdrive = ide->hdhfd.size != 0;
+
+	switch (ide_reg)
+	{
+	case IDE_DRVADDR:
+		v = ((ide->regs->ide_drv ? 2 : 1) | ((ide->regs->ide_select & 15) << 2)) ^ 0xff;
+		break;
+	case IDE_DATA:
+		break;
+	case IDE_ERROR:
+		v = ide->regs->ide_error;
+		break;
+	case IDE_NSECTOR:
+		if (isdrive) {
+		if (ide->regs->ide_devcon & 0x80)
+			v = ide->regs->ide_nsector2;
+		else
+			v = ide->regs->ide_nsector;
+		}
+		break;
+	case IDE_SECTOR:
+		if (isdrive) {
+		if (ide->regs->ide_devcon & 0x80)
+			v = ide->regs->ide_sector2;
+		else
+			v = ide->regs->ide_sector;
+			check_maxtransfer (2);
+		}
+		break;
+	case IDE_LCYL:
+		if (isdrive) {
+		if (ide->regs->ide_devcon & 0x80)
+			v = ide->regs->ide_lcyl2;
+		else
+			v = ide->regs->ide_lcyl;
+		}
+		break;
+	case IDE_HCYL:
+		if (isdrive) {
+		if (ide->regs->ide_devcon & 0x80)
+			v = ide->regs->ide_hcyl2;
+		else
+			v = ide->regs->ide_hcyl;
+		}
+		break;
+	case IDE_SELECT:
+		v = ide->regs->ide_select;
+		break;
+	case IDE_STATUS:
+		ide->irq = 0; /* fall through */
+	case IDE_DEVCON: /* ALTSTATUS when reading */
+		if (!isdrive) {
+			v = 0;
+			if (ide->regs->ide_error)
+				v |= IDE_STATUS_ERR;
+		} else {
+			v = ide->status;
+			v |= IDE_STATUS_DRDY | IDE_STATUS_DSC;
+		}
+		break;
+	}
+	if (IDE_LOG > 2 && ide_reg > 0 && (1 || ide->num > 0))
+		write_log (_T("IDE%d GET register %d->%02X\n"), ide->num, ide_reg, (uae_u32)v & 0xff);
+	return v;
+}
+
+static void ide_write_reg (int ide_reg, uae_u32 val)
+{
+	ide->regs->ide_devcon &= ~0x80; /* clear HOB */
+	if (IDE_LOG > 2 && ide_reg > 0 && (1 || ide->num > 0))
+		write_log (_T("IDE%d PUT register %d=%02X\n"), ide->num, ide_reg, (uae_u32)val & 0xff);
+	switch (ide_reg)
+	{
+	case IDE_DRVADDR:
+		break;
+	case IDE_DEVCON:
+		if ((ide->regs->ide_devcon & 4) == 0 && (val & 4) != 0)
+			ide_execute_drive_diagnostics (false);
+		ide->regs->ide_devcon = val;
+		break;
+	case IDE_DATA:
+		break;
+	case IDE_ERROR:
+		ide->regs->ide_feat2 = ide->regs->ide_feat;
+		ide->regs->ide_feat = val;
+		break;
+	case IDE_NSECTOR:
+		ide->regs->ide_nsector2 = ide->regs->ide_nsector;
+		ide->regs->ide_nsector = val;
+		break;
+	case IDE_SECTOR:
+		ide->regs->ide_sector2 = ide->regs->ide_sector;
+		ide->regs->ide_sector = val;
+		break;
+	case IDE_LCYL:
+		ide->regs->ide_lcyl2 = ide->regs->ide_lcyl;
+		ide->regs->ide_lcyl = val;
+		break;
+	case IDE_HCYL:
+		ide->regs->ide_hcyl2 = ide->regs->ide_hcyl;
+		ide->regs->ide_hcyl = val;
+		break;
+	case IDE_SELECT:
+		ide->regs->ide_select = val;
+		ide->regs->ide_drv = (val & 0x10) ? 1 : 0;
+		break;
+	case IDE_STATUS:
+		ide->irq = 0;
+		ide_do_command (val);
+		break;
+	}
+}
+
+static uae_u32 gayle_read2 (uaecptr addr)
 {
 	int ide_reg;
 	uae_u8 v = 0;
 
 	addr &= 0xffff;
 	if ((IDE_LOG > 2 && (addr != 0x2000 && addr != 0x2001 && addr != 0x2020 && addr != 0x2021 && addr != GAYLE_IRQ_1200)) || IDE_LOG > 4)
-		write_log ("IDE_READ %08X PC=%X\n", addr, M68K_GETPC);
+		write_log (_T("IDE_READ %08X PC=%X\n"), addr, M68K_GETPC);
 	if (currprefs.cs_ide <= 0) {
 		if (addr == 0x201c) // AR1200 IDE detection hack
 			return 0x7f;
@@ -900,75 +1064,22 @@ static uae_u32 ide_read (uaecptr addr)
 		}
 		return 0;
 	}
-	ide_reg = get_ide_reg (addr);
+	ide_reg = get_gayle_ide_reg (addr);
 	/* Emulated "ide killer". Prevents long KS boot delay if no drives installed */
 	if (idedrive[0]->hdhfd.size == 0 && idedrive[2]->hdhfd.size == 0) {
 		if (ide_reg == IDE_STATUS)
 			return 0x7f;
 		return 0xff;
 	}
-	switch (ide_reg)
-	{
-	case IDE_DRVADDR:
-		v = ((ide_drv ? 2 : 1) | ((ide_select & 15) << 2)) ^ 0xff;
-		break;
-	case IDE_DATA:
-		break;
-	case IDE_ERROR:
-		v = ide_error;
-		break;
-	case IDE_NSECTOR:
-		if (ide_devcon & 0x80)
-			v = ide_nsector2;
-		else
-			v = ide_nsector;
-		break;
-	case IDE_SECTOR:
-		if (ide_devcon & 0x80)
-			v = ide_sector2;
-		else
-			v = ide_sector;
-			check_maxtransfer (2);
-		break;
-	case IDE_LCYL:
-		if (ide_devcon & 0x80)
-			v = ide_lcyl2;
-		else
-			v = ide_lcyl;
-		break;
-	case IDE_HCYL:
-		if (ide_devcon & 0x80)
-			v = ide_hcyl2;
-		else
-			v = ide_hcyl;
-		break;
-	case IDE_SELECT:
-		v = ide_select;
-		break;
-	case IDE_STATUS:
-		ide->irq = 0; /* fall through */
-	case IDE_DEVCON: /* ALTSTATUS when reading */
-		if (ide->hdhfd.size == 0) {
-			v = 0;
-			if (ide_error)
-				v |= IDE_STATUS_ERR;
-		} else {
-			v = ide->status;
-			v |= IDE_STATUS_DRDY | IDE_STATUS_DSC;
-		}
-		break;
-	}
-	if (IDE_LOG > 2 && ide_reg > 0)
-		write_log ("IDE%d register %d->%02X\n", ide->num, ide_reg, (uae_u32)v & 0xff);
-	return v;
+	return ide_read_reg (ide_reg);
 }
 
-static void ide_write (uaecptr addr, uae_u32 val)
+static void gayle_write2 (uaecptr addr, uae_u32 val)
 {
 	int ide_reg;
 
 	if ((IDE_LOG > 2 && (addr != 0x2000 && addr != 0x2001 && addr != 0x2020 && addr != 0x2021 && addr != GAYLE_IRQ_1200)) || IDE_LOG > 4)
-		write_log ("IDE_WRITE %08X=%02X PC=%X\n", addr, (uae_u32)val & 0xff, M68K_GETPC);
+		write_log (_T("IDE_WRITE %08X=%02X PC=%X\n"), addr, (uae_u32)val & 0xff, M68K_GETPC);
 	if (currprefs.cs_ide <= 0)
 		return;
 	if (currprefs.cs_ide == IDE_A600A1200) {
@@ -983,50 +1094,8 @@ static void ide_write (uaecptr addr, uae_u32 val)
 	}
 	if (addr >= 0x4000)
 		return;
-	ide_devcon &= ~0x80; /* clear HOB */
-	ide_reg = get_ide_reg (addr);
-	if (IDE_LOG > 2 && ide_reg > 0)
-		write_log ("IDE%d register %d=%02X\n", ide->num, ide_reg, (uae_u32)val & 0xff);
-	switch (ide_reg)
-	{
-	case IDE_DRVADDR:
-		break;
-	case IDE_DEVCON:
-		if ((ide_devcon & 4) == 0 && (val & 4) != 0)
-			ide_execute_drive_diagnostics ();
-		ide_devcon = val;
-		break;
-	case IDE_DATA:
-		break;
-	case IDE_ERROR:
-		ide_feat2 = ide_feat;
-		ide_feat = val;
-		break;
-	case IDE_NSECTOR:
-		ide_nsector2 = ide_nsector;
-		ide_nsector = val;
-		break;
-	case IDE_SECTOR:
-		ide_sector2 = ide_sector;
-		ide_sector = val;
-		break;
-	case IDE_LCYL:
-		ide_lcyl2 = ide_lcyl;
-		ide_lcyl = val;
-		break;
-	case IDE_HCYL:
-		ide_hcyl2 = ide_hcyl;
-		ide_hcyl = val;
-		break;
-	case IDE_SELECT:
-		ide_select = val;
-		ide_drv = (val & 0x10) ? 1 : 0;
-		break;
-	case IDE_STATUS:
-		ide->irq = 0;
-		ide_do_command (val);
-		break;
-	}
+	ide_reg = get_gayle_ide_reg (addr);
+	ide_write_reg (ide_reg, val);
 }
 
 static int gayle_read (uaecptr addr)
@@ -1056,18 +1125,18 @@ static int gayle_read (uaecptr addr)
 			v = read_gayle_cs ();
 			got = 1;
 			if (PCMCIA_LOG)
-				write_log ("PCMCIA STATUS READ %08X=%02X PC=%08X\n", oaddr, (uae_u32)v & 0xff, M68K_GETPC);
+				write_log (_T("PCMCIA STATUS READ %08X=%02X PC=%08X\n"), oaddr, (uae_u32)v & 0xff, M68K_GETPC);
 		} else if (addr == GAYLE_CFG_1200) {
 			v = read_gayle_cfg ();
 			got = 1;
 			if (PCMCIA_LOG)
-				write_log ("PCMCIA CONFIG READ %08X=%02X PC=%08X\n", oaddr, (uae_u32)v & 0xff, M68K_GETPC);
+				write_log (_T("PCMCIA CONFIG READ %08X=%02X PC=%08X\n"), oaddr, (uae_u32)v & 0xff, M68K_GETPC);
 		}
 	}
 	if (!got)
-		v = ide_read (addr);
+		v = gayle_read2 (addr);
 	if (GAYLE_LOG)
-		write_log ("GAYLE_READ %08X=%02X PC=%08X\n", oaddr, (uae_u32)v & 0xff, M68K_GETPC);
+		write_log (_T("GAYLE_READ %08X=%02X PC=%08X\n"), oaddr, (uae_u32)v & 0xff, M68K_GETPC);
 	return v;
 }
 
@@ -1097,19 +1166,19 @@ static void gayle_write (uaecptr addr, int val)
 			write_gayle_cs (val);
 			got = 1;
 			if (PCMCIA_LOG > 1)
-				write_log ("PCMCIA STATUS WRITE %08X=%02X PC=%08X\n", oaddr, (uae_u32)val & 0xff, M68K_GETPC);
+				write_log (_T("PCMCIA STATUS WRITE %08X=%02X PC=%08X\n"), oaddr, (uae_u32)val & 0xff, M68K_GETPC);
 		} else if (addr == GAYLE_CFG_1200) {
 			write_gayle_cfg (val);
 			got = 1;
 			if (PCMCIA_LOG > 1)
-				write_log ("PCMCIA CONFIG WRITE %08X=%02X PC=%08X\n", oaddr, (uae_u32)val & 0xff, M68K_GETPC);
+				write_log (_T("PCMCIA CONFIG WRITE %08X=%02X PC=%08X\n"), oaddr, (uae_u32)val & 0xff, M68K_GETPC);
 		}
 	}
 
 	if (GAYLE_LOG)
-		write_log ("GAYLE_WRITE %08X=%02X PC=%08X\n", addr, (uae_u32)val & 0xff, M68K_GETPC);
+		write_log (_T("GAYLE_WRITE %08X=%02X PC=%08X\n"), oaddr, (uae_u32)val & 0xff, M68K_GETPC);
 	if (!got)
-		ide_write (addr, val);
+		gayle_write2 (addr, val);
 }
 
 static uae_u32 REGPARAM3 gayle_lget (uaecptr) REGPARAM;
@@ -1122,7 +1191,7 @@ static void REGPARAM3 gayle_bput (uaecptr, uae_u32) REGPARAM;
 addrbank gayle_bank = {
 	gayle_lget, gayle_wget, gayle_bget,
 	gayle_lput, gayle_wput, gayle_bput,
-	default_xlate, default_check, NULL, "Gayle (low)",
+	default_xlate, default_check, NULL, _T("Gayle (low)"),
 	dummy_lgeti, dummy_wgeti, ABFLAG_IO
 };
 
@@ -1156,7 +1225,7 @@ static uae_u32 REGPARAM2 gayle_wget (uaecptr addr)
 		addr -= NCR_OFFSET;
 		return (ncr_bget2 (addr) << 8) | ncr_bget2 (addr + 1);
 	}
-	ide_reg = get_ide_reg (addr);
+	ide_reg = get_gayle_ide_reg (addr);
 	if (ide_reg == IDE_DATA)
 		return ide_get_data ();
 	v = gayle_bget (addr) << 8;
@@ -1195,7 +1264,7 @@ static void REGPARAM2 gayle_wput (uaecptr addr, uae_u32 value)
 		ncr_bput2 (addr + 1, value);
 		return;
 	}
-	ide_reg = get_ide_reg (addr);
+	ide_reg = get_gayle_ide_reg (addr);
 	if (ide_reg == IDE_DATA) {
 		ide_put_data (value);
 		return;
@@ -1227,7 +1296,7 @@ static uae_u32 gayle2_read (uaecptr addr)
 	uae_u8 v = 0;
 	addr &= 0xffff;
 	if (addr == 0x1000) {
-		/* Gayle ID */
+		/* Gayle ID. Gayle = 0xd0. AA Gayle = 0xd1 */
 		if (gayle_id_cnt == 0 || gayle_id_cnt == 1 || gayle_id_cnt == 3 || ((currprefs.chipset_mask & CSMASK_AGA) && gayle_id_cnt == 7) ||
 			(currprefs.cs_cd32cd && !currprefs.cs_ide && !currprefs.cs_pcmcia && gayle_id_cnt == 2))
 			v = 0x80;
@@ -1248,7 +1317,7 @@ static void REGPARAM3 gayle2_bput (uaecptr, uae_u32) REGPARAM;
 addrbank gayle2_bank = {
 	gayle2_lget, gayle2_wget, gayle2_bget,
 	gayle2_lput, gayle2_wput, gayle2_bput,
-	default_xlate, default_check, NULL, "Gayle (high)",
+	default_xlate, default_check, NULL, _T("Gayle (high)"),
 	dummy_lgeti, dummy_wgeti, ABFLAG_IO
 };
 
@@ -1315,7 +1384,7 @@ static void mbres_write (uaecptr addr, uae_u32 val, int size)
 	addr &= 0xffff;
 
 	if (MBRES_LOG > 0)
-		write_log ("MBRES_WRITE %08X=%08X (%d) PC=%08X S=%d\n", addr, val, size, M68K_GETPC, regs.s);
+		write_log (_T("MBRES_WRITE %08X=%08X (%d) PC=%08X S=%d\n"), addr, val, size, M68K_GETPC, regs.s);
 	if (1 || regs.s) { /* CPU FC = supervisor only */
 		uae_u32 addr2 = addr & 3;
 		uae_u32 addr64 = (addr >> 6) & 3;
@@ -1380,7 +1449,7 @@ static uae_u32 mbres_read (uaecptr addr, int size)
 		v = 0xff;
 	}
 	if (MBRES_LOG > 0)
-		write_log ("MBRES_READ %08X=%08X (%d) PC=%08X S=%d\n", addr, v, size, M68K_GETPC, regs.s);
+		write_log (_T("MBRES_READ %08X=%08X (%d) PC=%08X S=%d\n"), addr, v, size, M68K_GETPC, regs.s);
 	return v;
 }
 
@@ -1444,7 +1513,7 @@ static void REGPARAM2 mbres_bput (uaecptr addr, uae_u32 value)
 addrbank mbres_bank = {
 	mbres_lget, mbres_wget, mbres_bget,
 	mbres_lput, mbres_wput, mbres_bput,
-	default_xlate, default_check, NULL, "Motherboard Resources",
+	default_xlate, default_check, NULL, _T("Motherboard Resources"),
 	dummy_lgeti, dummy_wgeti, ABFLAG_IO
 };
 
@@ -1452,7 +1521,7 @@ void gayle_hsync (void)
 {
 	int i;
 
-	for (i = 0; i < 4; i++) {
+	for (i = 0; i < TOTAL_IDE * 2; i++) {
 		struct ide_hdf *ide = idedrive[i];
 		if (ide->irq_delay > 0) {
 			ide->irq_delay--;
@@ -1462,40 +1531,243 @@ void gayle_hsync (void)
 	}
 }
 
+static void alloc_ide_mem (struct ide_hdf **ide, int max)
+{
+	int i;
+
+	for (i = 0; i < max; i++) {
+		if (!ide[i])
+			ide[i] = xcalloc (struct ide_hdf, 1);
+	}
+}
+
+static struct ide_hdf *add_ide_unit (int ch, const TCHAR *path, int blocksize, int readonly,
+	const TCHAR *devname, int sectors, int surfaces, int reserved,
+	int bootpri, TCHAR *filesys)
+{
+	struct ide_hdf *ide;
+
+	alloc_ide_mem (idedrive, TOTAL_IDE * 2);
+	ide = idedrive[ch];
+	if (!hdf_hd_open (&ide->hdhfd, path, blocksize, readonly, devname, sectors, surfaces, reserved, bootpri, filesys))
+		return NULL;
+	ide->blocksize = blocksize;
+	ide->lba48 = ide->hdhfd.size >= 128 * (uae_u64)0x40000000 ? 1 : 0;
+	ide->status = 0;
+	ide->data_offset = 0;
+	ide->data_size = 0;
+	return ide;
+}
+
 static int pcmcia_common_size, pcmcia_attrs_size;
 static int pcmcia_common_mask;
 static uae_u8 *pcmcia_common;
 static uae_u8 *pcmcia_attrs;
 static int pcmcia_write_min, pcmcia_write_max;
 
+static int get_pcmcmia_ide_reg (uaecptr addr)
+{
+	int reg;
+
+	addr &= 0x80000 - 1;
+	if (addr < 0x20000)
+		return -1; /* attribute */
+	if (addr >= 0x40000)
+		return -1;
+	addr -= 0x20000;
+	reg = addr & 15;
+	ide = idedrive[PCMCIA_IDE_ID * 2];
+	if (ide->regs->ide_drv)
+		ide = idedrive[PCMCIA_IDE_ID * 2 + 1];
+	if (reg < 8)
+		return reg;
+	if (reg == 8)
+		reg = IDE_DATA;
+	else if (reg == 9)
+		reg = IDE_DATA;
+	else if (reg == 13)
+		reg = IDE_ERROR;
+	else if (reg == 14)
+		reg = IDE_DEVCON;
+	else if (reg == 15)
+		reg = IDE_DRVADDR;
+	else
+		reg = -1;
+	return reg;
+}
+
 static uae_u32 gayle_attr_read (uaecptr addr)
 {
 	uae_u8 v = 0;
 
 	if (PCMCIA_LOG > 1)
-		write_log ("PCMCIA ATTR R: %x %x\n", addr, M68K_GETPC);
+		write_log (_T("PCMCIA ATTR R: %x %x\n"), addr, M68K_GETPC);
 	addr &= 0x80000 - 1;
 	if (addr >= 0x40000) {
 		if (PCMCIA_LOG > 0)
-			write_log ("GAYLE: Reset disabled\n");
+			write_log (_T("GAYLE: Reset disabled\n"));
 		return v;
 	}
 	if (addr >= pcmcia_attrs_size)
 		return v;
+	if (pcmcia_type == PCMCIA_IDE) {
+		if (addr >= 0x200 && addr < 0x200 + sizeof (pcmcia_configuration) * 2) {
+			int offset = (addr - 0x200) / 2;
+			return pcmcia_configuration[offset];
+		}
+		if (pcmcia_configured) {
+			int reg = get_pcmcmia_ide_reg (addr);
+			if (reg >= 0) {
+				if (reg == 0) {
+					static uae_u16 data;
+					if (addr < 0x30000)
+						data = ide_get_data ();
+					else
+						return data & 0xff;
+					return (data >> 8) & 0xff;
+				} else {
+					return ide_read_reg (reg);
+				}
+			}
+		}
+	}
 	v = pcmcia_attrs[addr / 2];
 	return v;
 }
+
 static void gayle_attr_write (uaecptr addr, uae_u32 v)
 {
 	if (PCMCIA_LOG > 1)
-		write_log ("PCMCIA ATTR W: %x=%x %x\n", addr, v, M68K_GETPC);
+		write_log (_T("PCMCIA ATTR W: %x=%x %x\n"), addr, v, M68K_GETPC);
 	addr &= 0x80000 - 1;
 	if (addr >= 0x40000) {
 		if (PCMCIA_LOG > 0)
-			write_log ("GAYLE: Reset active\n");
+			write_log (_T("GAYLE: Reset enabled\n"));
+		pcmcia_reset ();
 	} else if (addr < pcmcia_attrs_size) {
-		;
+		 if (pcmcia_type == PCMCIA_IDE) {
+			 if (addr >= 0x200 && addr < 0x200 + sizeof (pcmcia_configuration) * 2) {
+				int offset = (addr - 0x200) / 2;
+				pcmcia_configuration[offset] = v;
+				if (offset == 0) {
+					if (v & 0x80) {
+						pcmcia_reset ();
+					} else {
+						write_log (_T("PCMCIA IO configured = %02x\n"), v);
+						if ((v & 0x3f) != 1)
+							write_log (_T("WARNING: Only config index 1 is emulated!\n"));
+						pcmcia_configured = true;
+					}
+				}
+			}
+			if (pcmcia_configured) {
+				int reg = get_pcmcmia_ide_reg (addr);
+				if (reg >= 0) {
+					if (reg == 0) {
+						static uae_u16 data;
+						if (addr >= 0x30000) {
+							data = (v & 0xff) << 8;
+						} else {
+							data |= v & 0xff;
+							ide_put_data (data);
+						}
+						return;
+					}
+					ide_write_reg (reg, v);
 	}
+}
+		 }
+	}
+}
+
+static void initscideattr (int readonly)
+{
+	uae_u8 *rp;
+	uae_u8 *p = pcmcia_attrs;
+	struct hardfiledata *hfd = &pcmcia_sram->hfd;
+
+	/* Mostly just copied from real CF cards.. */
+
+	/* CISTPL_DEVICE */
+	*p++ = 0x01;
+	*p++ = 0x04;
+	*p++ = 0xdf;
+	*p++ = 0x4a;
+	*p++ = 0x01;
+	*p++ = 0xff;
+
+	/* CISTPL_DEVICEOC */
+	*p++ = 0x1c;
+	*p++ = 0x04;
+	*p++ = 0x02;
+	*p++ = 0xd9;
+	*p++ = 0x01;
+	*p++ = 0xff;
+
+	/* CISTPL_JEDEC */
+	*p++ = 0x18;
+	*p++ = 0x02;
+	*p++ = 0xdf;
+	*p++ = 0x01;
+
+	/* CISTPL_VERS_1 */
+	*p++= 0x15;
+	rp = p++;
+	*p++= 4; /* PCMCIA 2.1 */
+	*p++= 1;
+	strcpy ((char*)p, "UAE");
+	p += strlen ((char*)p) + 1;
+	strcpy ((char*)p, "68000");
+	p += strlen ((char*)p) + 1;
+	strcpy ((char*)p, "Generic Emulated PCMCIA IDE");
+	p += strlen ((char*)p) + 1;
+	*p++= 0xff;
+	*rp = p - rp - 1;
+
+	/* CISTPL_FUNCID */
+	*p++ = 0x21;
+	*p++ = 0x02;
+	*p++ = 0x04;
+	*p++ = 0x01;
+
+	/* CISTPL_FUNCE */
+	*p++ = 0x22;
+	*p++ = 0x02;
+	*p++ = 0x01;
+	*p++ = 0x01;
+
+	/* CISTPL_FUNCE */
+	*p++ = 0x22;
+	*p++ = 0x03;
+	*p++ = 0x02;
+	*p++ = 0x0c;
+	*p++ = 0x0f;
+
+	/* CISTPL_CONFIG */
+	*p++ = 0x1a;
+	*p++ = 0x05;
+	*p++ = 0x01;
+	*p++ = 0x01;
+	*p++ = 0x00;
+	*p++ = 0x02;
+	*p++ = 0x0f;
+
+	/* CISTPL_CFTABLEENTRY */
+	*p++ = 0x1b;
+	*p++ = 0x06;
+	*p++ = 0xc0;
+	*p++ = 0x01;
+	*p++ = 0x21;
+	*p++ = 0xb5;
+	*p++ = 0x1e;
+	*p++ = 0x4d;
+
+	/* CISTPL_NO_LINK */
+	*p++ = 0x14;
+	*p++ = 0x00;
+
+	/* CISTPL_END */
+	*p++ = 0xff;
 }
 
 static void initsramattr (int size, int readonly)
@@ -1551,9 +1823,8 @@ static void initsramattr (int size, int readonly)
 	p += strlen ((char*)p) + 1;
 	sprintf ((char*)p, "Generic Emulated %dKB PCMCIA SRAM Card", size >> 10);
 	p += strlen ((char*)p) + 1;
-	*p++= 0;
 	*p++= 0xff;
-	*rp = p - rp; 
+	*rp = p - rp - 1;
 
 	/* CISTPL_FUNCID */
 	*p++ = 0x21;
@@ -1617,6 +1888,8 @@ static int freepcmcia (int reset)
 	}
 	if (pcmcia_card)
 		gayle_cs_change (GAYLE_CS_CCDET, 0);
+	
+	pcmcia_reset ();
 	pcmcia_card = 0;
 
 	xfree (pcmcia_common);
@@ -1631,7 +1904,7 @@ static int freepcmcia (int reset)
 	return 1;
 }
 
-static int initpcmcia (const TCHAR *path, int readonly, int reset)
+static int initpcmcia (const TCHAR *path, int readonly, int type, int reset)
 {
 	if (currprefs.cs_pcmcia == 0)
 		return 0;
@@ -1640,26 +1913,31 @@ static int initpcmcia (const TCHAR *path, int readonly, int reset)
 		pcmcia_sram = xcalloc (struct hd_hardfiledata, 1);
 	if (!pcmcia_sram->hfd.handle_valid)
 		reset = 1;
+
+	if (type == PCMCIA_SRAM) {
 	if (reset) {
 		if (path)
 			hdf_hd_open (pcmcia_sram, path, 512, readonly, NULL, 0, 0, 0, 0, NULL);
 	} else {
 		pcmcia_sram->hfd.drive_empty = 0;
 	}
+
 	if (pcmcia_sram->hfd.readonly)
 		readonly = 1;
 	pcmcia_common_size = 0;
 	pcmcia_readonly = readonly;
 	pcmcia_attrs_size = 256;
 	pcmcia_attrs = xcalloc (uae_u8, pcmcia_attrs_size);
+		pcmcia_type = type;
+
 	if (!pcmcia_sram->hfd.drive_empty) {
 		pcmcia_common_size = pcmcia_sram->hfd.virtsize;
 		if (pcmcia_sram->hfd.virtsize > 4 * 1024 * 1024) {
-			write_log ("PCMCIA SRAM: too large device, %d bytes\n", pcmcia_sram->hfd.virtsize);
+				write_log (_T("PCMCIA SRAM: too large device, %d bytes\n"), pcmcia_sram->hfd.virtsize);
 			pcmcia_common_size = 4 * 1024 * 1024;
 		}
 		pcmcia_common = xcalloc (uae_u8, pcmcia_common_size);
-		write_log ("PCMCIA SRAM: '%s' open, size=%d\n", path, pcmcia_common_size);
+			write_log (_T("PCMCIA SRAM: '%s' open, size=%d\n"), path, pcmcia_common_size);
 		hdf_read (&pcmcia_sram->hfd, pcmcia_common, 0, pcmcia_common_size);
 		pcmcia_card = 1;
 		initsramattr (pcmcia_common_size, readonly);
@@ -1668,6 +1946,28 @@ static int initpcmcia (const TCHAR *path, int readonly, int reset)
 			card_trigger (1);
 		}
 	}
+	} else if (type == PCMCIA_IDE) {
+
+		if (reset) {
+			if (path)
+				add_ide_unit (PCMCIA_IDE_ID * 2, path, 512, readonly, NULL, 0, 0, 0, 0, NULL);
+		}
+
+		pcmcia_common_size = 0;
+		pcmcia_readonly = readonly;
+		pcmcia_attrs_size = 0x40000;
+		pcmcia_attrs = xcalloc (uae_u8, pcmcia_attrs_size);
+		pcmcia_type = type;
+
+		write_log (_T("PCMCIA IDE: '%s' open\n"), path);
+		pcmcia_card = 1;
+		initscideattr (readonly);
+		if (!(gayle_cs & GAYLE_CS_DIS)) {
+			gayle_map_pcmcia ();
+			card_trigger (1);
+		}
+	}
+
 	pcmcia_write_min = -1;
 	pcmcia_write_max = -1;
 	return 1;
@@ -1677,7 +1977,7 @@ static uae_u32 gayle_common_read (uaecptr addr)
 {
 	uae_u8 v = 0;
 	if (PCMCIA_LOG > 2)
-		write_log ("PCMCIA COMMON R: %x %x\n", addr, M68K_GETPC);
+		write_log (_T("PCMCIA COMMON R: %x %x\n"), addr, M68K_GETPC);
 	if (!pcmcia_common_size)
 		return 0;
 	addr -= PCMCIA_COMMON_START & (PCMCIA_COMMON_SIZE - 1);
@@ -1686,10 +1986,11 @@ static uae_u32 gayle_common_read (uaecptr addr)
 		v = pcmcia_common[addr];
 	return v;
 }
+
 static void gayle_common_write (uaecptr addr, uae_u32 v)
 {
 	if (PCMCIA_LOG > 2)
-		write_log ("PCMCIA COMMON W: %x=%x %x\n", addr, v, M68K_GETPC);
+		write_log (_T("PCMCIA COMMON W: %x=%x %x\n"), addr, v, M68K_GETPC);
 	if (!pcmcia_common_size)
 		return;
 	if (pcmcia_readonly)
@@ -1730,7 +2031,7 @@ static uae_u8 *REGPARAM2 gayle_common_xlate (uaecptr addr)
 static addrbank gayle_common_bank = {
 	gayle_common_lget, gayle_common_wget, gayle_common_bget,
 	gayle_common_lput, gayle_common_wput, gayle_common_bput,
-	gayle_common_xlate, gayle_common_check, NULL, "Gayle PCMCIA Common",
+	gayle_common_xlate, gayle_common_check, NULL, _T("Gayle PCMCIA Common"),
 	gayle_common_lget, gayle_common_wget, ABFLAG_RAM | ABFLAG_SAFE
 };
 
@@ -1745,7 +2046,7 @@ static void REGPARAM3 gayle_attr_bput (uaecptr, uae_u32) REGPARAM;
 addrbank gayle_attr_bank = {
 	gayle_attr_lget, gayle_attr_wget, gayle_attr_bget,
 	gayle_attr_lput, gayle_attr_wput, gayle_attr_bput,
-	default_xlate, default_check, NULL, "Gayle PCMCIA Attribute/Misc",
+	default_xlate, default_check, NULL, _T("Gayle PCMCIA Attribute/Misc"),
 	dummy_lgeti, dummy_wgeti, ABFLAG_IO | ABFLAG_SAFE
 };
 
@@ -1765,6 +2066,15 @@ static uae_u32 REGPARAM2 gayle_attr_wget (uaecptr addr)
 #ifdef JIT
 	special_mem |= S_READ;
 #endif
+
+	if (pcmcia_type == PCMCIA_IDE && pcmcia_configured) {
+		int reg = get_pcmcmia_ide_reg (addr);
+		if (reg == IDE_DATA) {
+			// 16-bit register
+			return ide_get_data ();
+		}
+	}
+
 	v = gayle_attr_bget (addr) << 8;
 	v |= gayle_attr_bget (addr + 1);
 	return v;
@@ -1789,6 +2099,16 @@ static void REGPARAM2 gayle_attr_wput (uaecptr addr, uae_u32 value)
 #ifdef JIT
 	special_mem |= S_WRITE;
 #endif
+
+	if (pcmcia_type == PCMCIA_IDE && pcmcia_configured) {
+		int reg = get_pcmcmia_ide_reg (addr);
+		if (reg == IDE_DATA) {
+			// 16-bit register
+			ide_put_data (value);
+			return;
+		}
+	}
+
 	gayle_attr_bput (addr, value >> 8);
 	gayle_attr_bput (addr + 1, value & 0xff);
 }
@@ -1858,11 +2178,11 @@ void gayle_map_pcmcia (void)
 		return;
 	if (pcmcia_card == 0 || (gayle_cs & GAYLE_CS_DIS)) {
 		map_banks (&dummy_bank, 0xa0, 8, 0);
-		if (currprefs.chipmem_size <= 4 * 1024 * 1024 && currprefs.fastmem_size <= 4 * 1024 * 1024)
+		if (currprefs.chipmem_size <= 4 * 1024 * 1024 && getz2endaddr () <= 4 * 1024 * 1024)
 			map_banks (&dummy_bank, PCMCIA_COMMON_START >> 16, PCMCIA_COMMON_SIZE >> 16, 0);
 	} else {
 		map_banks (&gayle_attr_bank, 0xa0, 8, 0);
-		if (currprefs.chipmem_size <= 4 * 1024 * 1024 && currprefs.fastmem_size <= 4 * 1024 * 1024)
+		if (currprefs.chipmem_size <= 4 * 1024 * 1024 && getz2endaddr () <= 4 * 1024 * 1024)
 			map_banks (&gayle_common_bank, PCMCIA_COMMON_START >> 16, PCMCIA_COMMON_SIZE >> 16, 0);
 	}
 }
@@ -1876,7 +2196,7 @@ void gayle_free_units (void)
 {
 	int i;
 
-	for (i = 0; i < 4; i++) {
+	for (i = 0; i < TOTAL_IDE * 2; i++) {
 		struct ide_hdf *ide = idedrive[i];
 		if (ide) {
 			hdf_hd_close (&ide->hdhfd);
@@ -1884,16 +2204,6 @@ void gayle_free_units (void)
 		}
 	}
 	freepcmcia (1);
-}
-
-static void alloc_ide_mem (struct ide_hdf **ide, int max)
-{
-	int i;
-
-	for (i = 0; i < max; i++) {
-		if (!ide[i])
-			ide[i] = xcalloc (struct ide_hdf, 1);
-	}
 }
 
 #if 0
@@ -1922,19 +2232,13 @@ int gayle_add_ide_unit (int ch, TCHAR *path, int blocksize, int readonly,
 {
 	struct ide_hdf *ide;
 
-	if (ch >= 4)
+	if (ch >= 2 * 2)
 		return -1;
-	alloc_ide_mem (idedrive, 4);
-	ide = idedrive[ch];
-	if (!hdf_hd_open (&ide->hdhfd, path, blocksize, readonly, devname, sectors, surfaces, reserved, bootpri, filesys))
-		return -1;
-	ide->blocksize = blocksize;
-	ide->lba48 = ide->hdhfd.size >= 128 * (uae_u64)0x40000000 ? 1 : 0;
-	write_log ("GAYLE_IDE%d '%s', CHS=%d,%d,%d. %uM. LBA48=%d\n",
+	ide = add_ide_unit (ch, path, blocksize, readonly, devname, sectors, surfaces, reserved, bootpri, filesys);
+	if (ide == NULL)
+		return 0;
+	write_log (_T("GAYLE_IDE%d '%s', CHS=%d,%d,%d. %uM. LBA48=%d\n"),
 		ch, path, ide->hdhfd.cyls, ide->hdhfd.heads, ide->hdhfd.secspertrack, (int)(ide->hdhfd.size / (1024 * 1024)), ide->lba48);
-	ide->status = 0;
-	ide->data_offset = 0;
-	ide->data_size = 0;
 	ide->type = IDE_GAYLE;
 	//dumphdf (&ide->hdhfd.hfd);
 	return 1;
@@ -1942,13 +2246,26 @@ int gayle_add_ide_unit (int ch, TCHAR *path, int blocksize, int readonly,
 
 int gayle_add_pcmcia_sram_unit (const TCHAR *path, int readonly)
 {
-	return initpcmcia (path, readonly, 1);
+	return initpcmcia (path, readonly, PCMCIA_SRAM, 1);
+}
+
+int gayle_add_pcmcia_ide_unit (const TCHAR *path, int readonly)
+{
+	return initpcmcia (path, readonly, PCMCIA_IDE, 1);
 }
 
 int gayle_modify_pcmcia_sram_unit (const TCHAR *path, int readonly, int insert)
 {
 	if (insert)
-		return initpcmcia (path, readonly, pcmcia_sram ? 0 : 1);
+		return initpcmcia (path, readonly, PCMCIA_SRAM, pcmcia_sram ? 0 : 1);
+	else
+		return freepcmcia (0);
+}
+
+int gayle_modify_pcmcia_ide_unit (const TCHAR *path, int readonly, int insert)
+{
+	if (insert)
+		return initpcmcia (path, readonly, PCMCIA_IDE, pcmcia_sram ? 0 : 1);
 	else
 		return freepcmcia (0);
 }
@@ -1957,20 +2274,23 @@ static void initide (void)
 {
 	int i;
 
-	alloc_ide_mem (idedrive, 4);
+	alloc_ide_mem (idedrive, TOTAL_IDE * 2);
 	if (isrestore ())
 		return;
-	ide_error = 1;
-	ide_sector = ide_nsector = 1;
-	ide_select = 0;
-	ide_lcyl = ide_hcyl = ide_devcon = ide_feat = 0;
-	ide_drv = 0;
+	for (i = 0; i < TOTAL_IDE; i++) {
+		ideregs[i].ide_error = 1;
+		ideregs[i].ide_sector = ideregs[i].ide_nsector = 1;
+		ideregs[i].ide_select = 0;
+		ideregs[i].ide_lcyl = ideregs[i].ide_hcyl = ideregs[i].ide_devcon = ideregs[i].ide_feat = 0;
+		idedrive[i * 2 + 0]->regs = &ideregs[i];
+		idedrive[i * 2 + 1]->regs = &ideregs[i];
+	}
 	ide_splitter = 0;
 	if (idedrive[2]->hdhfd.size) {
 		ide_splitter = 1;
-		write_log ("IDE splitter enabled\n");
+		write_log (_T("IDE splitter enabled\n"));
 	}
-	for (i = 0; i < 4; i++)
+	for (i = 0; i < TOTAL_IDE * 2; i++)
 		idedrive[i]->num = i;
 	gayle_irq = gayle_int = 0;
 }
@@ -1986,11 +2306,11 @@ void gayle_reset (int hardreset)
 		gary_timeout = 0;
 		gary_toenb = 0;
 	}
-	_tcscpy (bankname, "Gayle (low)");
+	_tcscpy (bankname, _T("Gayle (low)"));
 	if (currprefs.cs_ide == IDE_A4000)
-		_tcscpy (bankname, "A4000 IDE");
+		_tcscpy (bankname, _T("A4000 IDE"));
 	if (currprefs.cs_mbdmac == 2) {
-		_tcscat (bankname, " + NCR53C710 SCSI");
+		_tcscat (bankname, _T(" + NCR53C710 SCSI"));
 		ncr_reset ();
 	}
 	gayle_bank.name = bankname;
@@ -2005,7 +2325,8 @@ uae_u8 *restore_gayle (uae_u8 *src)
 	gayle_cs = restore_u8 ();
 	gayle_cs_mask = restore_u8 ();
 	gayle_cfg = restore_u8 ();
-	ide_error = 0;
+	ideregs[0].ide_error = 0;
+	ideregs[1].ide_error = 0;
 	return src;
 }
 
@@ -2034,7 +2355,7 @@ uae_u8 *save_ide (int num, int *len, uae_u8 *dstptr)
 	uae_u8 *dstbak, *dst;
 	struct ide_hdf *ide;
 
-	if (idedrive[num] == NULL)
+	if (num >= TOTAL_IDE * 2 || idedrive[num] == NULL)
 		return NULL;
 	if (currprefs.cs_ide <= 0)
 		return NULL;
@@ -2054,19 +2375,19 @@ uae_u8 *save_ide (int num, int *len, uae_u8 *dstptr)
 	save_u32 (ide->hdhfd.cyls);
 	save_u32 (ide->hdhfd.heads);
 	save_u32 (ide->hdhfd.secspertrack);
-	save_u8 (ide_select);
-	save_u8 (ide_nsector);
-	save_u8 (ide_nsector2);
-	save_u8 (ide_sector);
-	save_u8 (ide_sector2);
-	save_u8 (ide_lcyl);
-	save_u8 (ide_lcyl2);
-	save_u8 (ide_hcyl);
-	save_u8 (ide_hcyl2);
-	save_u8 (ide_feat);
-	save_u8 (ide_feat2);
-	save_u8 (ide_error);
-	save_u8 (ide_devcon);
+	save_u8 (ide->regs->ide_select);
+	save_u8 (ide->regs->ide_nsector);
+	save_u8 (ide->regs->ide_nsector2);
+	save_u8 (ide->regs->ide_sector);
+	save_u8 (ide->regs->ide_sector2);
+	save_u8 (ide->regs->ide_lcyl);
+	save_u8 (ide->regs->ide_lcyl2);
+	save_u8 (ide->regs->ide_hcyl);
+	save_u8 (ide->regs->ide_hcyl2);
+	save_u8 (ide->regs->ide_feat);
+	save_u8 (ide->regs->ide_feat2);
+	save_u8 (ide->regs->ide_error);
+	save_u8 (ide->regs->ide_devcon);
 	save_u64 (ide->hdhfd.hfd.virtual_size);
 	save_u32 (ide->hdhfd.hfd.secspertrack);
 	save_u32 (ide->hdhfd.hfd.heads);
@@ -2083,7 +2404,7 @@ uae_u8 *restore_ide (uae_u8 *src)
 	TCHAR *path;
 	struct ide_hdf *ide;
 
-	alloc_ide_mem (idedrive, 4);
+	alloc_ide_mem (idedrive, TOTAL_IDE * 2);
 	num = restore_u32 ();
 	ide = idedrive[num];
 	size = restore_u64 ();
@@ -2094,19 +2415,19 @@ uae_u8 *restore_ide (uae_u8 *src)
 	ide->hdhfd.cyls = restore_u32 ();
 	ide->hdhfd.heads = restore_u32 ();
 	ide->hdhfd.secspertrack = restore_u32 ();
-	ide_select = restore_u8 ();
-	ide_nsector = restore_u8 ();
-	ide_sector = restore_u8 ();
-	ide_lcyl = restore_u8 ();
-	ide_hcyl = restore_u8 ();
-	ide_feat = restore_u8 ();
-	ide_nsector2 = restore_u8 ();
-	ide_sector2 = restore_u8 ();
-	ide_lcyl2 = restore_u8 ();
-	ide_hcyl2 = restore_u8 ();
-	ide_feat2 = restore_u8 ();
-	ide_error = restore_u8 ();
-	ide_devcon = restore_u8 ();
+	ide->regs->ide_select = restore_u8 ();
+	ide->regs->ide_nsector = restore_u8 ();
+	ide->regs->ide_sector = restore_u8 ();
+	ide->regs->ide_lcyl = restore_u8 ();
+	ide->regs->ide_hcyl = restore_u8 ();
+	ide->regs->ide_feat = restore_u8 ();
+	ide->regs->ide_nsector2 = restore_u8 ();
+	ide->regs->ide_sector2 = restore_u8 ();
+	ide->regs->ide_lcyl2 = restore_u8 ();
+	ide->regs->ide_hcyl2 = restore_u8 ();
+	ide->regs->ide_feat2 = restore_u8 ();
+	ide->regs->ide_error = restore_u8 ();
+	ide->regs->ide_devcon = restore_u8 ();
 	ide->hdhfd.hfd.virtual_size = restore_u64 ();
 	ide->hdhfd.hfd.secspertrack = restore_u32 ();
 	ide->hdhfd.hfd.heads = restore_u32 ();

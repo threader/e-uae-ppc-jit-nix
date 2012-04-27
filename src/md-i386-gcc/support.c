@@ -181,7 +181,7 @@ static RETSIGTYPE illhandler (...)
 static RETSIGTYPE illhandler (int foo)
 #endif
 {
-    rpt_available = 0;
+//    rpt_available = 0;
     longjmp (catch_test, 1);
 }
 
@@ -190,7 +190,7 @@ int machdep_inithrtimer (void)
     static int done = 0;
 
     if (!done) {
-		rpt_available = 1;
+//		rpt_available = 1;
 
 		write_log ("Testing the RDTSC instruction ... ");
 		signal (SIGILL, illhandler);
@@ -199,10 +199,10 @@ int machdep_inithrtimer (void)
 		signal (SIGILL, SIG_DFL);
 		write_log ("done.\n");
 
-		if (! rpt_available) {
+/*		if (! rpt_available) {
 		    write_log ("Your processor does not support the RDTSC instruction.\n");
 			return 0;
-		}
+		}*/
 
 		timebase = 0;
 #ifdef __linux__

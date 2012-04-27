@@ -87,9 +87,9 @@ static void hr (void)
 
 static void show_version (void)
 {
-	write_log ("P-UAE %d.%d.%d\n", UAEMAJOR, UAEMINOR, UAESUBREV);
-	write_log ("Git Commit: %s\n", PACKAGE_COMMIT);
-	write_log ("Build date: " __DATE__ " " __TIME__ "\n");
+	write_log (_T("P-UAE %d.%d.%d\n"), UAEMAJOR, UAEMINOR, UAESUBREV);
+	write_log (_T("Git Commit: %s\n"), PACKAGE_COMMIT);
+	write_log (_T("Build date: " __DATE__ " " __TIME__ "\n"));
 }
 
 static void show_version_full (void)
@@ -97,13 +97,13 @@ static void show_version_full (void)
 	hr ();
 	show_version ();
 	hr ();
-	write_log ("Copyright 1995-2002 Bernd Schmidt\n");
-	write_log ("          1999-2011 Toni Wilen\n");
-	write_log ("          2003-2007 Richard Drummond\n");
-	write_log ("          2006-2011 Mustafa 'GnoStiC' Tufan\n\n");
-	write_log ("See the source for a full list of contributors.\n");
-	write_log ("This is free software; see the file COPYING for copying conditions.  There is NO\n");
-	write_log ("warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n");
+	write_log (_T("Copyright 1995-2002 Bernd Schmidt\n"));
+	write_log (_T("          1999-2012 Toni Wilen\n"));
+	write_log (_T("          2003-2007 Richard Drummond\n"));
+	write_log (_T("          2006-2012 Mustafa 'GnoStiC' Tufan\n\n"));
+	write_log (_T("See the source for a full list of contributors.\n"));
+	write_log (_T("This is free software; see the file COPYING for copying conditions.  There is NO\n"));
+	write_log (_T("warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n"));
 	hr ();
 }
 
@@ -112,7 +112,7 @@ uae_u32 uaesrand (uae_u32 seed)
 	oldhcounter = -1;
 	randseed = seed;
 	//randseed = 0x12345678;
-	//write_log ("seed=%08x\n", randseed);
+	//write_log (_T("seed=%08x\n"), randseed);
 	return randseed;
 }
 uae_u32 uaerand (void)
@@ -122,12 +122,38 @@ uae_u32 uaerand (void)
 		oldhcounter = hsync_counter;
 	}
 	uae_u32 r = rand ();
-	//write_log ("rand=%08x\n", r);
+	//write_log (_T("rand=%08x\n"), r);
 	return r;
 }
 uae_u32 uaerandgetseed (void)
 {
 	return randseed;
+}
+
+ void my_trim (TCHAR *s)
+{
+	int len;
+	while (_tcscspn (s, _T("\t \r\n")) == 0)
+		memmove (s, s + 1, (_tcslen (s + 1) + 1) * sizeof (TCHAR));
+	len = _tcslen (s);
+	while (len > 0 && _tcscspn (s + len - 1, _T("\t \r\n")) == 0)
+		s[--len] = '\0';
+}
+
+TCHAR *my_strdup_trim (const TCHAR *s)
+{
+	TCHAR *out;
+	int len;
+
+	while (_tcscspn (s, _T("\t \r\n")) == 0)
+		s++;
+	len = _tcslen (s);
+	while (len > 0 && _tcscspn (s + len - 1, _T("\t \r\n")) == 0)
+		len--;
+	out = xmalloc (TCHAR, len + 1);
+	memcpy (out, s, len * sizeof (TCHAR));
+	out[len] = 0;
+	return out;
 }
 
 void discard_prefs (struct uae_prefs *p, int type)
@@ -161,6 +187,37 @@ void fixup_prefs_dimensions (struct uae_prefs *prefs)
 {
 	fixup_prefs_dim2 (&prefs->gfx_size_fs);
 	fixup_prefs_dim2 (&prefs->gfx_size_win);
+	if (prefs->gfx_apmode[1].gfx_vsync)
+		prefs->gfx_apmode[1].gfx_vsyncmode = 1;
+
+        unsigned int i;
+	for (i = 0; i < 2; i++) {
+		struct apmode *ap = &prefs->gfx_apmode[i];
+		ap->gfx_vflip = 0;
+		if (ap->gfx_vsync) {
+			if (ap->gfx_vsyncmode) {
+				// low latency vsync: no flip only if no-buffer
+				if (ap->gfx_backbuffers >= 1)
+					ap->gfx_vflip = -1;
+				if (!i && ap->gfx_backbuffers == 2)
+					ap->gfx_vflip = 1;
+			} else {
+				// legacy vsync: always wait for flip
+				ap->gfx_vflip = -1;
+				if (ap->gfx_backbuffers < 1)
+					ap->gfx_backbuffers = 1;
+			}
+		} else {
+			// no vsync: wait if triple bufferirng
+			if (ap->gfx_backbuffers >= 2)
+				ap->gfx_vflip = -1;
+		}
+	}
+
+	if (prefs->gfx_filter == 0 && ((prefs->gfx_filter_autoscale && !prefs->gfx_api) || (prefs->gfx_apmode[0].gfx_vsyncmode)))
+		prefs->gfx_filter = 1;
+	if (prefs->gfx_filter == 0 && prefs->monitoremu)
+		prefs->gfx_filter = 1;
 }
 
 void fixup_cpu (struct uae_prefs *p)
@@ -195,9 +252,21 @@ void fixup_cpu (struct uae_prefs *p)
 			p->fpu_model = 68060;
 		break;
 	}
+
 	if (p->cpu_model != 68040)
 		p->mmu_model = 0;
+
+	if (p->cachesize && p->cpu_cycle_exact)
+		p->cachesize = 0;
+
+	if (p->cpu_cycle_exact && p->m68k_speed < 0)
+		p->m68k_speed = 0;
+
+	if (p->immediate_blits && p->blitter_cycle_exact)
+		p->immediate_blits = false;
 }
+
+
 
 void fixup_prefs (struct uae_prefs *p)
 {
@@ -210,30 +279,31 @@ void fixup_prefs (struct uae_prefs *p)
 		|| p->chipmem_size < 0x20000
 		|| p->chipmem_size > 0x800000)
 	{
-		write_log ("Unsupported chipmem size %x!\n", p->chipmem_size);
+		write_log (_T("Unsupported chipmem size %x!\n"), p->chipmem_size);
 		p->chipmem_size = 0x200000;
 		err = 1;
 	}
 	if ((p->fastmem_size & (p->fastmem_size - 1)) != 0
 		|| (p->fastmem_size != 0 && (p->fastmem_size < 0x100000 || p->fastmem_size > 0x800000)))
 	{
-		write_log ("Unsupported fastmem size %x!\n", p->fastmem_size);
+		write_log (_T("Unsupported fastmem size %x!\n"), p->fastmem_size);
 		err = 1;
 	}
-	if ((p->gfxmem_size & (p->gfxmem_size - 1)) != 0
-		|| (p->gfxmem_size != 0 && (p->gfxmem_size < 0x100000 || p->gfxmem_size > max_z3fastmem / 2)))
+	if ((p->rtgmem_size & (p->rtgmem_size - 1)) != 0
+		|| (p->rtgmem_size != 0 && (p->rtgmem_size < 0x100000 || p->rtgmem_size > max_z3fastmem / 2)))
 	{
-		write_log ("Unsupported graphics card memory size %x (%x)!\n", p->gfxmem_size, max_z3fastmem / 2);
-		if (p->gfxmem_size > max_z3fastmem / 2)
-			p->gfxmem_size = max_z3fastmem / 2;
+		write_log (_T("Unsupported graphics card memory size %x (%x)!\n"), p->rtgmem_size, max_z3fastmem / 2);
+		if (p->rtgmem_size > max_z3fastmem / 2)
+			p->rtgmem_size = max_z3fastmem / 2;
 		else
-			p->gfxmem_size = 0;
+			p->rtgmem_size = 0;
 		err = 1;
 	}
+
 	if ((p->z3fastmem_size & (p->z3fastmem_size - 1)) != 0
 		|| (p->z3fastmem_size != 0 && (p->z3fastmem_size < 0x100000 || p->z3fastmem_size > max_z3fastmem)))
 	{
-		write_log ("Unsupported Zorro III fastmem size %x (%x)!\n", p->z3fastmem_size, max_z3fastmem);
+		write_log (_T("Unsupported Zorro III fastmem size %x (%x)!\n"), p->z3fastmem_size, max_z3fastmem);
 		if (p->z3fastmem_size > max_z3fastmem)
 			p->z3fastmem_size = max_z3fastmem;
 		else
@@ -243,7 +313,7 @@ void fixup_prefs (struct uae_prefs *p)
 	if ((p->z3fastmem2_size & (p->z3fastmem2_size - 1)) != 0
 		|| (p->z3fastmem2_size != 0 && (p->z3fastmem2_size < 0x100000 || p->z3fastmem2_size > max_z3fastmem)))
 	{
-		write_log ("Unsupported Zorro III fastmem size %x (%x)!\n", p->z3fastmem2_size, max_z3fastmem);
+		write_log (_T("Unsupported Zorro III fastmem size %x (%x)!\n"), p->z3fastmem2_size, max_z3fastmem);
 		if (p->z3fastmem2_size > max_z3fastmem)
 			p->z3fastmem2_size = max_z3fastmem;
 		else
@@ -256,7 +326,7 @@ void fixup_prefs (struct uae_prefs *p)
 	if ((p->z3chipmem_size & (p->z3chipmem_size - 1)) != 0
 		|| (p->z3chipmem_size != 0 && (p->z3chipmem_size < 0x100000 || p->z3chipmem_size > max_z3fastmem)))
 	{
-		write_log ("Unsupported Zorro III fake chipmem size %x (%x)!\n", p->z3chipmem_size, max_z3fastmem);
+		write_log (_T("Unsupported Zorro III fake chipmem size %x (%x)!\n"), p->z3chipmem_size, max_z3fastmem);
 		if (p->z3chipmem_size > max_z3fastmem)
 			p->z3chipmem_size = max_z3fastmem;
 		else
@@ -264,116 +334,103 @@ void fixup_prefs (struct uae_prefs *p)
 		err = 1;
 	}
 
-	if (p->address_space_24 && (p->gfxmem_size != 0 || p->z3fastmem_size != 0)) {
-		p->z3fastmem_size = p->gfxmem_size = 0;
-		write_log ("Can't use a graphics card or Zorro III fastmem when using a 24 bit\n"
-			"address space - sorry.\n");
+	if (p->address_space_24 && (p->z3fastmem_size != 0 || p->z3fastmem2_size != 0 || p->z3chipmem_size != 0)) {
+		p->z3fastmem_size = p->z3fastmem2_size = p->z3chipmem_size = 0;
+		write_log (_T("Can't use a graphics card or 32-bit memory when using a 24 bit\naddress space.\n"));
 	}
 	if (p->bogomem_size != 0 && p->bogomem_size != 0x80000 && p->bogomem_size != 0x100000 && p->bogomem_size != 0x180000 && p->bogomem_size != 0x1c0000) {
 		p->bogomem_size = 0;
-		write_log ("Unsupported bogomem size!\n");
+		write_log (_T("Unsupported bogomem size!\n"));
 		err = 1;
 	}
-	if (p->bogomem_size > 0x100000 && (p->cs_fatgaryrev >= 0 || p->cs_ide || p->cs_ramseyrev >= 0)) {
-		p->bogomem_size = 0x100000;
-		write_log ("Possible Gayle bogomem conflict fixed\n");
+	if (p->bogomem_size > 0x180000 && (p->cs_fatgaryrev >= 0 || p->cs_ide || p->cs_ramseyrev >= 0)) {
+		p->bogomem_size = 0x180000;
+		write_log (_T("Possible Gayle bogomem conflict fixed\n"));
 	}
 	if (p->chipmem_size > 0x200000 && p->fastmem_size != 0) {
-		write_log ("You can't use fastmem and more than 2MB chip at the same time!\n");
+		write_log (_T("You can't use fastmem and more than 2MB chip at the same time!\n"));
 		p->fastmem_size = 0;
 		err = 1;
 	}
 	if (p->mbresmem_low_size > 0x04000000 || (p->mbresmem_low_size & 0xfffff)) {
 		p->mbresmem_low_size = 0;
-		write_log ("Unsupported A3000 MB RAM size\n");
+		write_log (_T("Unsupported A3000 MB RAM size\n"));
 	}
 	if (p->mbresmem_high_size > 0x04000000 || (p->mbresmem_high_size & 0xfffff)) {
 		p->mbresmem_high_size = 0;
-		write_log ("Unsupported Motherboard RAM size\n");
+		write_log (_T("Unsupported Motherboard RAM size\n"));
 	}
+
+	if (p->address_space_24 && p->rtgmem_size)
+		p->rtgmem_type = 0;
+	if (!p->rtgmem_type && (p->chipmem_size > 2 * 1024 * 1024 || getz2size (p) > 8 * 1024 * 1024 || getz2size (p) < 0)) {
+		p->rtgmem_size = 0;
+		write_log (_T("Too large Z2 RTG memory size\n"));
+	}
+
 
 #if 0
 	if (p->m68k_speed < -1 || p->m68k_speed > 20) {
-		write_log ("Bad value for -w parameter: must be -1, 0, or within 1..20.\n");
+		write_log (_T("Bad value for -w parameter: must be -1, 0, or within 1..20.\n"));
 		p->m68k_speed = 4;
 		err = 1;
 	}
 #endif
 
 	if (p->produce_sound < 0 || p->produce_sound > 3) {
-		write_log ("Bad value for -S parameter: enable value must be within 0..3\n");
+		write_log (_T("Bad value for -S parameter: enable value must be within 0..3\n"));
 		p->produce_sound = 0;
 		err = 1;
 	}
 #ifdef JIT
 	if (p->comptrustbyte < 0 || p->comptrustbyte > 3) {
-		write_log ("Bad value for comptrustbyte parameter: value must be within 0..2\n");
+		write_log (_T("Bad value for comptrustbyte parameter: value must be within 0..2\n"));
 		p->comptrustbyte = 1;
 		err = 1;
 	}
 	if (p->comptrustword < 0 || p->comptrustword > 3) {
-		write_log ("Bad value for comptrustword parameter: value must be within 0..2\n");
+		write_log (_T("Bad value for comptrustword parameter: value must be within 0..2\n"));
 		p->comptrustword = 1;
 		err = 1;
 	}
 	if (p->comptrustlong < 0 || p->comptrustlong > 3) {
-		write_log ("Bad value for comptrustlong parameter: value must be within 0..2\n");
+		write_log (_T("Bad value for comptrustlong parameter: value must be within 0..2\n"));
 		p->comptrustlong = 1;
 		err = 1;
 	}
 	if (p->comptrustnaddr < 0 || p->comptrustnaddr > 3) {
-		write_log ("Bad value for comptrustnaddr parameter: value must be within 0..2\n");
+		write_log (_T("Bad value for comptrustnaddr parameter: value must be within 0..2\n"));
 		p->comptrustnaddr = 1;
 		err = 1;
 	}
-	if (p->compnf < 0 || p->compnf > 1) {
-		write_log ("Bad value for compnf parameter: value must be within 0..1\n");
-		p->compnf = 1;
-		err = 1;
-	}
-	if (p->comp_hardflush < 0 || p->comp_hardflush > 1) {
-		write_log ("Bad value for comp_hardflush parameter: value must be within 0..1\n");
-		p->comp_hardflush = 1;
-		err = 1;
-	}
-	if (p->comp_constjump < 0 || p->comp_constjump > 1) {
-		write_log ("Bad value for comp_constjump parameter: value must be within 0..1\n");
-		p->comp_constjump = 1;
-		err = 1;
-	}
-	if (p->comp_oldsegv < 0 || p->comp_oldsegv > 1) {
-		write_log ("Bad value for comp_oldsegv parameter: value must be within 0..1\n");
-		p->comp_oldsegv = 1;
-		err = 1;
-	}
 	if (p->cachesize < 0 || p->cachesize > 16384) {
-		write_log ("Bad value for cachesize parameter: value must be within 0..16384\n");
+		write_log (_T("Bad value for cachesize parameter: value must be within 0..16384\n"));
 		p->cachesize = 0;
 		err = 1;
 	}
 #endif
 	if (p->z3fastmem_size > 0 && (p->address_space_24 || p->cpu_model < 68020)) {
-		write_log ("Z3 fast memory can't be used with a 68000/68010 emulation. It\n"
-			"requires a 68020 emulation. Turning off Z3 fast memory.\n");
+		write_log (_T("Z3 fast memory can't be used with a 68000/68010 emulation. It\n"));
+		write_log (_T("requires a 68020 emulation. Turning off Z3 fast memory.\n"));
 		p->z3fastmem_size = 0;
 		err = 1;
 	}
-	if (p->gfxmem_size > 0 && (p->cpu_model < 68020 || p->address_space_24)) {
-		write_log ("Picasso96 can't be used with a 68000/68010 or 68EC020 emulation. It\n"
-			"requires a 68020 emulation. Turning off Picasso96.\n");
-		p->gfxmem_size = 0;
+	if (p->rtgmem_size > 0 && p->rtgmem_type && (p->cpu_model < 68020 || p->address_space_24)) {
+		write_log (_T("RTG can't be used with a 68000/68010 or 68EC020 emulation. It\n"));
+		write_log (_T("requires a 68020 emulation. Turning off RTG.\n"));
+		p->rtgmem_size = 0;
 		err = 1;
 	}
 #if !defined (BSDSOCKET)
 	if (p->socket_emu) {
-		write_log ("Compile-time option of BSDSOCKET_SUPPORTED was not enabled.  You can't use bsd-socket emulation.\n");
+		write_log (_T("Compile-time option of BSDSOCKET_SUPPORTED was not enabled.  You can't use bsd-socket emulation.\n"));
 		p->socket_emu = 0;
 		err = 1;
 	}
 #endif
 
 	if (p->nr_floppies < 0 || p->nr_floppies > 4) {
-		write_log ("Invalid number of floppies.  Using 4.\n");
+		write_log (_T("Invalid number of floppies.  Using 4.\n"));
 		p->nr_floppies = 4;
 		p->floppyslots[0].dfxtype = 0;
 		p->floppyslots[1].dfxtype = 0;
@@ -388,7 +445,7 @@ void fixup_prefs (struct uae_prefs *p)
 		p->input_mouse_speed = 100;
 	}
 	if (p->collision_level < 0 || p->collision_level > 3) {
-		write_log ("Invalid collision support level.  Using 1.\n");
+		write_log (_T("Invalid collision support level.  Using 1.\n"));
 		p->collision_level = 1;
 		err = 1;
 	}
@@ -411,6 +468,13 @@ void fixup_prefs (struct uae_prefs *p)
 				p->cs_ramseyrev = 0x0f;
 		}
 	}
+	/* Can't fit genlock and A2024 or Graffiti at the same time,
+	 * also Graffiti uses genlock audio bit as an enable signal
+	 */
+	if (p->genlock && p->monitoremu)
+		p->genlock = false;
+
+
 	fixup_prefs_dimensions (p);
 
 #if !defined (JIT)
@@ -437,7 +501,7 @@ void fixup_prefs (struct uae_prefs *p)
 #ifndef AUTOCONFIG
 	p->z3fastmem_size = 0;
 	p->fastmem_size = 0;
-	p->gfxmem_size = 0;
+	p->rtgmem_size = 0;
 #endif
 #if !defined (BSDSOCKET)
 	p->socket_emu = 0;
@@ -524,11 +588,11 @@ static void parse_cmdline_2 (int argc, TCHAR **argv)
 
 	cfgfile_addcfgparam (0);
 	for (i = 1; i < argc; i++) {
-		if (_tcsncmp (argv[i], "-cfgparam=", 10) == 0) {
+		if (_tcsncmp (argv[i], _T("-cfgparam="), 10) == 0) {
 			cfgfile_addcfgparam (argv[i] + 10);
-		} else if (_tcscmp (argv[i], "-cfgparam") == 0) {
+		} else if (_tcscmp (argv[i], _T("-cfgparam")) == 0) {
 			if (i + 1 == argc)
-				write_log ("Missing argument for '-cfgparam' option.\n");
+				write_log (_T("Missing argument for '-cfgparam' option.\n"));
 			else
 				cfgfile_addcfgparam (argv[++i]);
 		}
@@ -538,7 +602,7 @@ static void parse_cmdline_2 (int argc, TCHAR **argv)
 static void parse_diskswapper (TCHAR *s)
 {
 	TCHAR *tmp = my_strdup (s);
-	TCHAR *delim = ",";
+	TCHAR *delim = _T(",");
 	TCHAR *p1, *p2;
 	int num = 0;
 
@@ -587,50 +651,50 @@ static void parse_cmdline (int argc, TCHAR **argv)
 	int i;
 
 	for (i = 1; i < argc; i++) {
-		if (!_tcsncmp (argv[i], "-diskswapper=", 13)) {
+		if (!_tcsncmp (argv[i], _T("-diskswapper="), 13)) {
 			TCHAR *txt = parsetextpath (argv[i] + 13);
 			parse_diskswapper (txt);
 			xfree (txt);
-		} else if (_tcsncmp (argv[i], "-cfgparam=", 10) == 0) {
+		} else if (_tcsncmp (argv[i], _T("-cfgparam="), 10) == 0) {
 			;
-		} else if (_tcscmp (argv[i], "-cfgparam") == 0) {
+		} else if (_tcscmp (argv[i], _T("-cfgparam")) == 0) {
 			if (i + 1 < argc)
 				i++;
-		} else if (_tcsncmp (argv[i], "-config=", 8) == 0) {
+		} else if (_tcsncmp (argv[i], _T("-config="), 8) == 0) {
 			TCHAR *txt = parsetextpath (argv[i] + 8);
 			currprefs.mountitems = 0;
 			target_cfgfile_load (&currprefs, txt, -1, 0);
 			xfree (txt);
-		} else if (_tcsncmp (argv[i], "-statefile=", 11) == 0) {
+		} else if (_tcsncmp (argv[i], _T("-statefile="), 11) == 0) {
 			TCHAR *txt = parsetextpath (argv[i] + 11);
 			savestate_state = STATE_DORESTORE;
 			_tcscpy (savestate_fname, txt);
 			xfree (txt);
-		} else if (_tcscmp (argv[i], "-f") == 0) {
+		} else if (_tcscmp (argv[i], _T("-f")) == 0) {
 			/* Check for new-style "-f xxx" argument, where xxx is config-file */
 			if (i + 1 == argc) {
-				write_log ("Missing argument for '-f' option.\n");
+				write_log (_T("Missing argument for '-f' option.\n"));
 			} else {
 				TCHAR *txt = parsetextpath (argv[++i]);
 				currprefs.mountitems = 0;
 				target_cfgfile_load (&currprefs, txt, -1, 0);
 				xfree (txt);
 			}
-		} else if (_tcscmp (argv[i], "-s") == 0) {
+		} else if (_tcscmp (argv[i], _T("-s")) == 0) {
 			if (i + 1 == argc)
-				write_log ("Missing argument for '-s' option.\n");
+				write_log (_T("Missing argument for '-s' option.\n"));
 			else
 				cfgfile_parse_line (&currprefs, argv[++i], 0);
-		} else if (_tcscmp (argv[i], "-h") == 0 || _tcscmp (argv[i], "-help") == 0) {
+		} else if (_tcscmp (argv[i], _T("-h")) == 0 || _tcscmp (argv[i], _T("-help")) == 0) {
 			usage ();
 			exit (0);
-		} else if (_tcsncmp (argv[i], "-cdimage=", 9) == 0) {
+		} else if (_tcsncmp (argv[i], _T("-cdimage="), 9) == 0) {
 			TCHAR *txt = parsetextpath (argv[i] + 9);
 			TCHAR *txt2 = xmalloc(TCHAR, _tcslen(txt) + 2);
 			_tcscpy(txt2, txt);
 			if (_tcsrchr(txt2, ',') != NULL)
-				_tcscat(txt2, ",");
-			cfgfile_parse_option (&currprefs, "cdimage0", txt2, 0);
+				_tcscat(txt2, _T(","));
+			cfgfile_parse_option (&currprefs, _T("cdimage0"), txt2, 0);
 			xfree(txt2);
 			xfree (txt);
 		} else {
@@ -650,7 +714,7 @@ static void parse_cmdline (int argc, TCHAR **argv)
 static void parse_cmdline_and_init_file (int argc, TCHAR **argv)
 {
 
-	_tcscpy (optionsfile, "");
+	_tcscpy (optionsfile, _T(""));
 
 #ifdef OPTIONS_IN_HOME
 	{
@@ -658,7 +722,7 @@ static void parse_cmdline_and_init_file (int argc, TCHAR **argv)
 		if (home != NULL && strlen (home) < 240)
 		{
 			_tcscpy (optionsfile, home);
-			_tcscat (optionsfile, "/");
+			_tcscat (optionsfile, _T("/"));
 		}
 	}
 #endif
@@ -668,7 +732,7 @@ static void parse_cmdline_and_init_file (int argc, TCHAR **argv)
 	_tcscat (optionsfile, restart_config);
 
 	if (! target_cfgfile_load (&currprefs, optionsfile, 0, default_config)) {
-		write_log ("failed to load config '%s'\n", optionsfile);
+		write_log (_T("failed to load config '%s'\n"), optionsfile);
 #ifdef OPTIONS_IN_HOME
 	/* sam: if not found in $HOME then look in current directory */
 	_tcscpy (optionsfile, restart_config);
@@ -867,7 +931,7 @@ static int real_main2 (int argc, TCHAR **argv)
 	}
 
 	if (! setup_sound ()) {
-		write_log ("Sound driver unavailable: Sound output disabled\n");
+		write_log (_T("Sound driver unavailable: Sound output disabled\n"));
 		currprefs.produce_sound = 0;
 	}
 	inputdevice_init ();
@@ -884,7 +948,7 @@ static int real_main2 (int argc, TCHAR **argv)
 		currprefs = changed_prefs;
 		config_changed = 1;
 		if (err == -1) {
-			write_log ("Failed to initialize the GUI\n");
+			write_log (_T("Failed to initialize the GUI\n"));
 			return -1;
 		} else if (err == -2) {
 			return 1;
@@ -901,6 +965,9 @@ static int real_main2 (int argc, TCHAR **argv)
 #endif
 
 	fixup_prefs (&currprefs);
+#ifdef RETROPLATFORM
+	rp_fixup_options (&currprefs);
+#endif
 	changed_prefs = currprefs;
 	target_run ();
 	/* force sound settings change */
@@ -967,7 +1034,7 @@ static int real_main2 (int argc, TCHAR **argv)
 
 		if (!init_audio ()) {
 			if (sound_available && currprefs.produce_sound > 1) {
-				write_log ("Sound driver unavailable: Sound output disabled\n");
+				write_log (_T("Sound driver unavailable: Sound output disabled\n"));
 			}
 			currprefs.produce_sound = 0;
 		}

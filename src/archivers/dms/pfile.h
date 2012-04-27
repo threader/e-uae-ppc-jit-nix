@@ -39,6 +39,7 @@
 #define OPT_QUIET 2
 
 #define DMS_EXTRA_SIZE 10
+#define USHORT unsigned short
 
 USHORT DMS_Process_File(struct zfile *, struct zfile *, USHORT, USHORT, USHORT, USHORT, int, struct zfile **extra);
 

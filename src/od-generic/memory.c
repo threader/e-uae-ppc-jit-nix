@@ -101,10 +101,10 @@ static uae_u32 lowmem (void)
 			currprefs.z3fastmem_size /= 2;
 			changed_prefs.z3fastmem_size = currprefs.z3fastmem_size;
 		}
-	} else if (currprefs.gfxmem_size >= 1 * 1024 * 1024) {
-		change = currprefs.gfxmem_size - currprefs.gfxmem_size / 2;
-		currprefs.gfxmem_size /= 2;
-		changed_prefs.gfxmem_size = currprefs.gfxmem_size;
+	} else if (currprefs.rtgmem_size >= 1 * 1024 * 1024) {
+		change = currprefs.rtgmem_size - currprefs.rtgmem_size / 2;
+		currprefs.rtgmem_size /= 2;
+		changed_prefs.rtgmem_size = currprefs.rtgmem_size;
 	}
 	if (currprefs.z3fastmem2_size < 128 * 1024 * 1024)
 		currprefs.z3fastmem2_size = changed_prefs.z3fastmem2_size = 0;
@@ -231,7 +231,7 @@ restart:
 			size = 0x10000000;
                 if (currprefs.z3fastmem_size || currprefs.z3fastmem2_size || currprefs.z3chipmem_size) {
                         z3size = currprefs.z3fastmem_size + currprefs.z3fastmem2_size + currprefs.z3chipmem_size + (currprefs.z3fastmem_start - 0x10000000);
-                        if (currprefs.gfxmem_size) {
+                        if (currprefs.rtgmem_size) {
                                 rtgbarrier = 16 * 1024 * 1024 - ((currprefs.z3fastmem_size + currprefs.z3fastmem2_size) & 0x00ffffff);
                         }
                         if (currprefs.z3chipmem_size && (currprefs.z3fastmem_size || currprefs.z3fastmem2_size))
@@ -240,7 +240,7 @@ restart:
                         rtgbarrier = 0;
                 }
 
-		totalsize = size + z3size + currprefs.gfxmem_size;
+		totalsize = size + z3size + currprefs.rtgmem_size;
 		while (totalsize > size64) {
 			int change = lowmem ();
 			if (!change)
@@ -254,13 +254,13 @@ restart:
 		}
 		natmemsize = size + z3size;
 
-		if (currprefs.gfxmem_size) {
+		if (currprefs.rtgmem_size) {
 			rtgextra = getpagesize();
 		} else {
 			rtgbarrier = 0;
 			rtgextra = 0;
 		}
-		size = natmemsize + rtgbarrier + z3chipbarrier + currprefs.gfxmem_size + rtgextra + 16 * getpagesize();
+		size = natmemsize + rtgbarrier + z3chipbarrier + currprefs.rtgmem_size + rtgextra + 16 * getpagesize();
 		blah = (uae_u8*)valloc (size);
 		mprotect (blah, size, PROT_READ|PROT_WRITE|PROT_EXEC);
 		if (blah) {
@@ -268,19 +268,19 @@ restart:
 			break;
 		}
 		write_log ("NATMEM: %dM area failed to allocate, err=%d (Z3=%dM,RTG=%dM)\n",
-			natmemsize >> 20, errno, (currprefs.z3fastmem_size + currprefs.z3fastmem2_size + currprefs.z3chipmem_size) >> 20, currprefs.gfxmem_size >> 20);
+			natmemsize >> 20, errno, (currprefs.z3fastmem_size + currprefs.z3fastmem2_size + currprefs.z3chipmem_size) >> 20, currprefs.rtgmem_size >> 20);
 		if (!lowmem ()) {
 			write_log ("NATMEM: No special area could be allocated (2)!\n");
 			return 0;
 		}
 	}
-	p96mem_size = currprefs.gfxmem_size;
+	p96mem_size = currprefs.rtgmem_size;
 	if (p96mem_size) {
 		free (natmem_offset);
 		size = natmemsize + rtgbarrier + z3chipbarrier;
 		if (!(natmem_offset = valloc (size))) {
 			write_log ("VirtualAlloc() part 2 error %d. RTG disabled.\n", errno);
-			currprefs.gfxmem_size = changed_prefs.gfxmem_size = 0;
+			currprefs.rtgmem_size = changed_prefs.rtgmem_size = 0;
 			rtgbarrier = getpagesize();
 			rtgextra = 0;
 			goto restart;
@@ -290,7 +290,7 @@ restart:
 		p96mem_offset = (uae_u8*)valloc (/*natmem_offset + natmemsize + rtgbarrier,*/ size);
 		mprotect (p96mem_offset, size, PROT_READ|PROT_WRITE|PROT_EXEC);
 		if (!p96mem_offset) {
-			currprefs.gfxmem_size = changed_prefs.gfxmem_size = 0;
+			currprefs.rtgmem_size = changed_prefs.rtgmem_size = 0;
 			write_log ("NATMEM: failed to allocate special Picasso96 GFX RAM, err=%d\n", errno);
 		}
 	}
@@ -301,12 +301,12 @@ restart:
 		write_log ("NATMEM: Our special area: %p-%p (%08x %dM)\n",
 			natmem_offset, (uae_u8*)natmem_offset + natmemsize,
 			natmemsize, natmemsize >> 20);
-		if (currprefs.gfxmem_size)
+		if (currprefs.rtgmem_size)
 			write_log ("NATMEM: P96 special area: %p-%p (%08x %dM)\n",
-			p96mem_offset, (uae_u8*)p96mem_offset + currprefs.gfxmem_size,
-			currprefs.gfxmem_size, currprefs.gfxmem_size >> 20);
+			p96mem_offset, (uae_u8*)p96mem_offset + currprefs.rtgmem_size,
+			currprefs.rtgmem_size, currprefs.rtgmem_size >> 20);
 		canbang = 1;
-		natmem_offset_end = p96mem_offset + currprefs.gfxmem_size;
+		natmem_offset_end = p96mem_offset + currprefs.rtgmem_size;
 	}
 
 	resetmem ();

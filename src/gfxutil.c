@@ -16,10 +16,19 @@
 
 #include "uae_endian.h"
 
-double getvsyncrate (double hz)
+double getvsyncrate (double hz, int *mult)
 {
-	if (hz > 85)
+	if (hz < 0)
+		return 0;
+	if (hz > 85) {
+		*mult = -1;
 		return hz / 2;
+	}
+	if (hz < 35 && hz > 0) {
+		*mult = 1;
+		return hz * 2;
+	}
+	*mult = 0;
 	return hz;
 }
 
@@ -41,7 +50,7 @@ static uae_u8 dither[4][4] =
 unsigned int doMask (int p, int bits, int shift)
 {
 	/* scale to 0..255, shift to align msb with mask, and apply mask */
-	unsigned int val;
+	unsigned long val;
 
 	if (flashscreen)
 		p ^= 0xff;
@@ -67,6 +76,8 @@ int bits_in_mask (unsigned long mask)
 int mask_shift (unsigned long mask)
 {
 	int n = 0;
+	if (!mask)
+		return 0;
 	while (!(mask & 1)) {
 		n++;
 		mask >>= 1;
@@ -258,9 +269,7 @@ void alloc_colors_picasso (int rw, int gw, int bw, int rs, int gs, int bs, int r
 		blue_shift = 11;
 		break;
 	case RGBFB_B5G5R5PC:
-		red_bits = 5;
-		green_bits = 5;
-		blue_bits = 5;
+		red_bits = green_bits = blue_bits = 5;
 		red_shift = 0;
 		green_shift = 5;
 		blue_shift = 10;

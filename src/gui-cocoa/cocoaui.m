@@ -137,7 +137,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 - (void)changeFastMem:(id)sender;
 - (void)changeZ3FastMem:(id)sender;
 - (void)changeZ3ChipMem:(id)sender;
-- (void)changeGfxMem:(id)sender;
+//- (void)changeGfxMem:(id)sender;
 - (void)changeCPU:(id)sender;
 - (void)changeCPUSpeed:(id)sender;
 - (void)changeFPU:(id)sender;
@@ -386,7 +386,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 		[memMenu addItem:menuItem];
 		[menuItem release];
 
-		NSMenu *gfxMenu = [[NSMenu alloc] initWithTitle:@"Gfx Mem"];
+/*		NSMenu *gfxMenu = [[NSMenu alloc] initWithTitle:@"Gfx Mem"];
 			[self createMenuItemInMenu:gfxMenu withTitle:@"None" action:@selector(changeGfxMem:) tag:0];
 			[self createMenuItemInMenu:gfxMenu withTitle:@"1 MB" action:@selector(changeGfxMem:) tag:3];
 			[self createMenuItemInMenu:gfxMenu withTitle:@"2 MB" action:@selector(changeGfxMem:) tag:4];
@@ -402,7 +402,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 		menuItem = [[NSMenuItem alloc] initWithTitle:@"Gfx Mem" action:nil keyEquivalent:@""];
 		[menuItem setSubmenu:gfxMenu];
 		[memMenu addItem:menuItem];
-		[menuItem release];
+		[menuItem release];*/
 
 	menuItem = [[NSMenuItem alloc] initWithTitle:@"Memory" action:nil keyEquivalent:@""];
 	[menuItem setSubmenu:memMenu];
@@ -552,6 +552,33 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 	[menuItem release];
 	// SOUND MENU END
 
+	// GFX MENU START
+	NSMenu *graphicsMenu = [[NSMenu alloc] initWithTitle:@"Graphics"];
+
+		NSMenu *lmodeMenu = [[NSMenu alloc] initWithTitle:@"Line Mode"];
+			[self createMenuItemInMenu:lmodeMenu withTitle:@"Normal" action:@selector(changeGfxLineMode:) tag:0];
+			[self createMenuItemInMenu:lmodeMenu withTitle:@"Double" action:@selector(changeGfxLineMode:) tag:1];
+			[self createMenuItemInMenu:lmodeMenu withTitle:@"Scanlines" action:@selector(changeGfxLineMode:) tag:2];
+		menuItem = [[NSMenuItem alloc] initWithTitle:@"Line Mode" action:nil keyEquivalent:@""];
+		[menuItem setSubmenu:lmodeMenu];
+		[graphicsMenu addItem:menuItem];
+		[menuItem release];
+
+		NSMenu *centeringMenu = [[NSMenu alloc] initWithTitle:@"Centering"];
+			[self createMenuItemInMenu:centeringMenu withTitle:@"Horizontal" action:@selector(changeGfxCentering:) tag:0];
+			[self createMenuItemInMenu:centeringMenu withTitle:@"Vertical" action:@selector(changeGfxCentering:) tag:1];
+		menuItem = [[NSMenuItem alloc] initWithTitle:@"Centering" action:nil keyEquivalent:@""];
+		[menuItem setSubmenu:centeringMenu];
+		[graphicsMenu addItem:menuItem];
+		[menuItem release];
+
+	menuItem = [[NSMenuItem alloc] initWithTitle:@"Graphics" action:nil keyEquivalent:@""];
+	[menuItem setSubmenu:graphicsMenu];
+	[[NSApp mainMenu] insertItem:menuItem atIndex:6];
+	[graphicsMenu release];
+	[menuItem release];
+	// GFX MENU END
+
 	// Create a menu for changing aspects of emulator control
 	NSMenu *controlMenu = [[NSMenu alloc] initWithTitle:@"Control"];
 
@@ -599,7 +626,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 
 	menuItem = [[NSMenuItem alloc] initWithTitle:@"Control" action:nil keyEquivalent:@""];
 	[menuItem setSubmenu:controlMenu];
-	[[NSApp mainMenu] insertItem:menuItem atIndex:6];
+	[[NSApp mainMenu] insertItem:menuItem atIndex:7];
 	[controlMenu release];
 	[menuItem release];
 
@@ -609,7 +636,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 		[self createMenuItemInMenu:displayMenu withTitle:@"Inhibit" action:@selector(toggleInhibitDisplay:) tag:0];
 	menuItem = [[NSMenuItem alloc] initWithTitle:@"Display" action:nil keyEquivalent:@""];
 	[menuItem setSubmenu:displayMenu];
-	[[NSApp mainMenu] insertItem:menuItem atIndex:7];
+	[[NSApp mainMenu] insertItem:menuItem atIndex:8];
 	[displayMenu release];
 	[menuItem release];
 }
@@ -815,10 +842,10 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 
 		return YES;
 	}
-
+/*
 	if (menuAction == @selector(changeGfxMem:)) {
 	        mem_size = 0;
-	        switch (changed_prefs.gfxmem_size) {
+	        switch (changed_prefs.rtgmem_size) {
         		case 0x00000000: mem_size = 0; break;
 	        	case 0x00100000: mem_size = 3; break;
 		        case 0x00200000: mem_size = 4; break;
@@ -835,7 +862,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 		if (mem_size == tag) [menuItem setState:NSOnState];
 		else [menuItem setState:NSOffState];
 	}
-
+*/
 	if (menuAction == @selector(changeChipset:)) {
 		v = 0;
         	switch (changed_prefs.chipset_mask) {
@@ -961,6 +988,23 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 
 		if (v == tag) [menuItem setState:NSOnState];
 		else [menuItem setState:NSOffState];
+	}
+
+	if (menuAction == @selector(changeGfxLineMode:)) {
+		v = changed_prefs.gfx_scanlines;
+		if (v == tag) [menuItem setState:NSOnState];
+		else [menuItem setState:NSOffState];
+	}
+
+	if (menuAction == @selector(changeGfxCentering:)) {
+		if (tag == 0) {
+			if (changed_prefs.gfx_xcenter) [menuItem setState:NSOnState];
+			else [menuItem setState:NSOffState];
+		}
+		if (tag == 1) {
+			if (changed_prefs.gfx_ycenter) [menuItem setState:NSOnState];
+			else [menuItem setState:NSOffState];
+		}
 	}
 
 	if (menuAction == @selector(pauseAmiga:)) {
@@ -1514,11 +1558,11 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 	changed_prefs.z3chipmem_size = memsizes[[((NSMenuItem*)sender) tag]];
 }
 
-// gfx mem
+/* gfx mem
 - (void)changeGfxMem:(id)sender
 {
-	changed_prefs.gfxmem_size = memsizes[[((NSMenuItem*)sender) tag]];
-}
+	changed_prefs.rtgmem_size = memsizes[[((NSMenuItem*)sender) tag]];
+}*/
 
 // chipset
 - (void)changeChipset:(id)sender
@@ -1692,6 +1736,23 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
                 changed_prefs.sound_filter_type = 1;
                 break;
 	}
+	config_changed = 1;
+}
+
+// gfx - line mode
+- (void)changeGfxLineMode:(id)sender
+{
+	changed_prefs.gfx_scanlines = [((NSMenuItem*)sender) tag];
+	config_changed = 1;
+}
+
+// gfx - centering
+- (void)changeGfxCentering:(id)sender
+{
+	if ([((NSMenuItem*)sender) tag] == 0)
+		changed_prefs.gfx_xcenter = !changed_prefs.gfx_xcenter;
+	if ([((NSMenuItem*)sender) tag] == 1)
+		changed_prefs.gfx_ycenter = !changed_prefs.gfx_ycenter;
 	config_changed = 1;
 }
 

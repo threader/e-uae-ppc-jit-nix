@@ -8,8 +8,8 @@
  */
 
 #define UAEMAJOR 2
-#define UAEMINOR 3
-#define UAESUBREV 3
+#define UAEMINOR 4
+#define UAESUBREV 1
 
 typedef enum { KBD_LANG_US, KBD_LANG_DK, KBD_LANG_DE, KBD_LANG_SE, KBD_LANG_FR, KBD_LANG_IT, KBD_LANG_ES, KBD_LANG_FI, KBD_LANG_TR } KbdLang;
 
@@ -36,9 +36,10 @@ struct strlist {
 /* 4 different customization settings */
 #define MAX_INPUT_SETTINGS 4
 #define GAMEPORT_INPUT_SETTINGS 3 // last slot is for gameport panel mappings
-#define MAX_INPUT_SUB_EVENT 4
-#define MAX_INPUT_SUB_EVENT_ALL 5
-#define SPARE_SUB_EVENT 4
+
+#define MAX_INPUT_SUB_EVENT 8
+#define MAX_INPUT_SUB_EVENT_ALL 9
+#define SPARE_SUB_EVENT 8
 
 // this better be here than in sound.h -mustafa.
 #define FILTER_SOUND_OFF 0
@@ -53,7 +54,7 @@ struct uae_input_device {
 	TCHAR *configname;
 	uae_s16 eventid[MAX_INPUT_DEVICE_EVENTS][MAX_INPUT_SUB_EVENT_ALL];
 	TCHAR *custom[MAX_INPUT_DEVICE_EVENTS][MAX_INPUT_SUB_EVENT_ALL];
-	uae_u16 flags[MAX_INPUT_DEVICE_EVENTS][MAX_INPUT_SUB_EVENT_ALL];
+	uae_u32 flags[MAX_INPUT_DEVICE_EVENTS][MAX_INPUT_SUB_EVENT_ALL];
 	uae_s8 port[MAX_INPUT_DEVICE_EVENTS][MAX_INPUT_SUB_EVENT_ALL];
 	uae_s16 extra[MAX_INPUT_DEVICE_EVENTS];
 	uae_s8 enabled;
@@ -74,6 +75,10 @@ struct jport {
 #define JPORT_AF_NORMAL 1
 #define JPORT_AF_TOGGLE 2
 #define JPORT_AF_ALWAYS 3
+
+#define KBTYPE_AMIGA 0
+#define KBTYPE_PC1 1
+#define KBTYPE_PC2 2
 
 #define MAX_SPARE_DRIVES 20
 #define MAX_CUSTOM_MEMORY_ADDRS 2
@@ -145,23 +150,47 @@ enum { CP_GENERIC = 1, CP_CDTV, CP_CD32, CP_A500, CP_A500P, CP_A600, CP_A1000,
 #define AUTOSCALE_MANUAL 7 // use gfx_xcenter_pos and gfx_ycenter_pos
 #define AUTOSCALE_INTEGER 8
 
+#define MONITOREMU_NONE 0
+#define MONITOREMU_AUTO 1
+#define MONITOREMU_A2024 2
+#define MONITOREMU_GRAFFITI 3
+
 #define MAX_CHIPSET_REFRESH 10
 #define MAX_CHIPSET_REFRESH_TOTAL (MAX_CHIPSET_REFRESH + 2)
 #define CHIPSET_REFRESH_PAL (MAX_CHIPSET_REFRESH + 0)
 #define CHIPSET_REFRESH_NTSC (MAX_CHIPSET_REFRESH + 1)
 struct chipset_refresh
 {
-  bool locked;
-  bool rtg;
-  int horiz;
-  int vert;
-  int lace;
-  int ntsc;
-  int vsync;
-  int framelength;
-  double rate;
-  TCHAR label[16];
-  TCHAR commands[256];
+	int index;
+	bool locked;
+	bool rtg;
+	int horiz;
+	int vert;
+	int lace;
+	int ntsc;
+	int vsync;
+	int framelength;
+	double rate;
+	TCHAR label[16];
+	TCHAR commands[256];
+};
+
+#define APMODE_NATIVE 0
+#define APMODE_RTG 1
+
+struct apmode
+{
+	int gfx_fullscreen;
+	int gfx_display;
+	int gfx_vsync;
+	// 0 = immediate flip
+	// -1 = wait for flip, before frame ends
+	// 1 = wait for flip, after new frame has started
+	int gfx_vflip;
+	int gfx_vsyncmode;
+	int gfx_backbuffers;
+	bool gfx_interlaced;
+	int gfx_refreshrate;
 };
 
 struct uae_prefs {
@@ -244,6 +273,7 @@ struct uae_prefs {
 	bool gfx_autoresolution;
 	int gfx_autoresolution_minv, gfx_autoresolution_minh;
 	bool gfx_scandoubler;
+	struct apmode gfx_apmode[2];
 	int gfx_refreshrate;
 	int gfx_avsync, gfx_pvsync;
 	int gfx_avsyncmode, gfx_pvsyncmode;
@@ -286,6 +316,7 @@ struct uae_prefs {
 	unsigned int chipset_mask;
 	bool ntscmode;
 	bool genlock;
+	int monitoremu;
 	double chipset_refreshrate;
 	struct chipset_refresh cr[MAX_CHIPSET_REFRESH + 2];
 	int cr_selected;
@@ -376,6 +407,7 @@ struct uae_prefs {
 	struct multipath path_cd;
 
 	int m68k_speed;
+	int m68k_speed_throttle;
 	int cpu_model;
 	int mmu_model;
 	int cpu060_revision;
@@ -394,12 +426,14 @@ struct uae_prefs {
 	uae_u32 z3fastmem_start;
 	uae_u32 z3chipmem_size;
 	uae_u32 z3chipmem_start;
-	uae_u32 fastmem_size;
+	uae_u32 fastmem_size, fastmem2_size;
+	bool fastmem_autoconfig;
 	uae_u32 chipmem_size;
 	uae_u32 bogomem_size;
 	uae_u32 mbresmem_low_size;
 	uae_u32 mbresmem_high_size;
-	uae_u32 gfxmem_size;
+	uae_u32 rtgmem_size;
+	int rtgmem_type;
 	uae_u32 custom_memory_addrs[MAX_CUSTOM_MEMORY_ADDRS];
 	uae_u32 custom_memory_sizes[MAX_CUSTOM_MEMORY_ADDRS];
 
@@ -409,6 +443,7 @@ struct uae_prefs {
 	bool mmkeyboard;
 	int uae_hide;
 	bool clipboard_sharing;
+	bool native_code;
 
 	struct uaedev_mount_info *mountinfo;
 	int mountitems;
@@ -416,6 +451,7 @@ struct uae_prefs {
 
 	int nr_floppies;
 	struct floppyslot floppyslots[4];
+	bool floppy_read_only;
 	TCHAR dfxlist[MAX_SPARE_DRIVES][MAX_DPATH];
 #ifdef DRIVESOUND
 	int dfxclickvolume;
@@ -445,7 +481,9 @@ struct uae_prefs {
 	bool win32_minimize_inactive;
 	int win32_statusbar;
 
-	int win32_active_priority;
+	int win32_active_capture_priority;
+	bool win32_active_nocapture_pause;
+	bool win32_active_nocapture_nosound;
 	int win32_inactive_priority;
 	bool win32_inactive_pause;
 	bool win32_inactive_nosound;
@@ -469,9 +507,7 @@ struct uae_prefs {
 	int win32_uaescsimode;
 	int win32_soundcard;
 	int win32_samplersoundcard;
-	bool win32_soundexclusive;
 	bool win32_norecyclebin;
-	int win32_specialkey;
 	int win32_guikey;
 	int win32_kbledmode;
 	TCHAR win32_commandpathstart[MAX_DPATH];
@@ -518,9 +554,11 @@ struct uae_prefs {
 	int input_tablet;
 	bool input_magic_mouse;
 	int input_magic_mouse_cursor;
+	int input_keyboard_type;
 	struct uae_input_device joystick_settings[MAX_INPUT_SETTINGS][MAX_INPUT_DEVICES];
 	struct uae_input_device mouse_settings[MAX_INPUT_SETTINGS][MAX_INPUT_DEVICES];
 	struct uae_input_device keyboard_settings[MAX_INPUT_SETTINGS][MAX_INPUT_DEVICES];
+	TCHAR input_config_name[GAMEPORT_INPUT_SETTINGS][256];
 	int dongle;
 	int input_contact_bounce;
 };

@@ -284,14 +284,14 @@ STATIC_INLINE void adjust_jmpdep(dependency* d, void* a)
 
 STATIC_INLINE void set_dhtu(blockinfo* bi, void* dh)
 {
-	//write_log ("JIT: bi is %p\n",bi);
+	//write_log (_T("JIT: bi is %p\n"),bi);
 	if (dh!=bi->direct_handler_to_use) {
 		dependency* x=bi->deplist;
-		//write_log ("JIT: bi->deplist=%p\n",bi->deplist);
+		//write_log (_T("JIT: bi->deplist=%p\n"),bi->deplist);
 		while (x) {
-			//write_log ("JIT: x is %p\n",x);
-			//write_log ("JIT: x->next is %p\n",x->next);
-			//write_log ("JIT: x->prev_p is %p\n",x->prev_p);
+			//write_log (_T("JIT: x is %p\n"),x);
+			//write_log (_T("JIT: x->next is %p\n"),x->next);
+			//write_log (_T("JIT: x->prev_p is %p\n"),x->prev_p);
 
 			if (x->jmp_off) {
 				adjust_jmpdep(x,dh);
@@ -326,7 +326,7 @@ STATIC_INLINE void create_jmpdep(blockinfo* bi, int i, uae_u32* jmpaddr, uae_u32
 	blockinfo*  tbi=get_blockinfo_addr((void*)target);
 
 	Dif(!tbi) {
-		jit_abort ("JIT: Could not create jmpdep!\n");
+		jit_abort (_T("JIT: Could not create jmpdep!\n"));
 	}
 	bi->dep[i].jmp_off=jmpaddr;
 	bi->dep[i].target=tbi;
@@ -499,15 +499,47 @@ bool check_prefs_changed_comp (void)
 		changed = 1;
 
 		if (currprefs.cachesize)
-			write_log ("JIT: Reverting to \"indirect\" access, because canbang is zero!\n");
+			write_log (_T("JIT: Reverting to \"indirect\" access, because canbang is zero!\n"));
 	}
 
 	if (changed)
-		write_log ("JIT: cache=%d. b=%d w=%d l=%d fpu=%d nf=%d const=%d hard=%d\n",
+		write_log (_T("JIT: cache=%d. b=%d w=%d l=%d fpu=%d nf=%d const=%d hard=%d\n"),
 		currprefs.cachesize,
 		currprefs.comptrustbyte, currprefs.comptrustword, currprefs.comptrustlong, 
 		currprefs.compfpu, currprefs.compnf, currprefs.comp_constjump, currprefs.comp_hardflush);
 
+#if 0
+	if (!currprefs.compforcesettings) {
+		int stop=0;
+		if (currprefs.comptrustbyte!=0 && currprefs.comptrustbyte!=3)
+			stop = 1, write_log (_T("JIT: comptrustbyte is not 'direct' or 'afterpic'\n"));
+		if (currprefs.comptrustword!=0 && currprefs.comptrustword!=3)
+			stop = 1, write_log (_T("JIT: comptrustword is not 'direct' or 'afterpic'\n"));
+		if (currprefs.comptrustlong!=0 && currprefs.comptrustlong!=3)
+			stop = 1, write_log (_T("JIT: comptrustlong is not 'direct' or 'afterpic'\n"));
+		if (currprefs.comptrustnaddr!=0 && currprefs.comptrustnaddr!=3)
+			stop = 1, write_log (_T("JIT: comptrustnaddr is not 'direct' or 'afterpic'\n"));
+		if (currprefs.compnf!=1)
+			stop = 1, write_log (_T("JIT: compnf is not 'yes'\n"));
+		if (currprefs.cachesize<1024)
+			stop = 1, write_log (_T("JIT: cachesize is less than 1024\n"));
+		if (currprefs.comp_hardflush)
+			stop = 1, write_log (_T("JIT: comp_flushmode is 'hard'\n"));
+		if (!canbang)
+			stop = 1, write_log (_T("JIT: Cannot use most direct memory access,\n")
+			"     and unable to recover from failed guess!\n");
+		if (stop) {
+			gui_message("JIT: Configuration problems were detected!\n"
+				"JIT: These will adversely affect performance, and should\n"
+				"JIT: not be used. For more info, please see README.JIT-tuning\n"
+				"JIT: in the UAE documentation directory. You can force\n"
+				"JIT: your settings to be used by setting\n"
+				"JIT:      'compforcesettings=yes'\n"
+				"JIT: in your config file\n");
+			exit(1);
+		}
+	}
+#endif
 	return changed;
 }
 
@@ -588,7 +620,7 @@ static void make_flags_live_internal(void)
 	if (live.flags_in_flags==VALID)
 		return;
 	Dif (live.flags_on_stack==TRASH) {
-		jit_abort ("JIT: Want flags, got something on stack, but it is TRASH\n");
+		jit_abort (_T("JIT: Want flags, got something on stack, but it is TRASH\n"));
 	}
 	if (live.flags_on_stack==VALID) {
 		int tmp;
@@ -599,7 +631,7 @@ static void make_flags_live_internal(void)
 		live.flags_in_flags=VALID;
 		return;
 	}
-	jit_abort ("JIT: Huh? live.flags_in_flags=%d, live.flags_on_stack=%d, but need to make live\n",
+	jit_abort (_T("JIT: Huh? live.flags_in_flags=%d, live.flags_on_stack=%d, but need to make live\n"),
 		live.flags_in_flags,live.flags_on_stack);
 }
 
@@ -612,7 +644,7 @@ static void flags_to_stack(void)
 		return;
 	}
 	Dif (live.flags_in_flags!=VALID)
-		jit_abort ("flags_to_stack != VALID");
+		jit_abort (_T("flags_to_stack != VALID"));
 	else  {
 		int tmp;
 		tmp=writereg_specific(FLAGTMP,4,FLAG_NREG1);
@@ -698,17 +730,17 @@ STATIC_INLINE void log_dump(void)
 
 	return;
 
-	write_log ("----------------------\n");
+	write_log (_T("----------------------\n"));
 	for (i=0;i<N_REGS;i++) {
 		switch(nstate[i]) {
-		case L_UNKNOWN: write_log ("Nat %d : UNKNOWN\n",i); break;
-		case L_UNAVAIL: write_log ("Nat %d : UNAVAIL\n",i); break;
-		default:        write_log ("Nat %d : %d\n",i,nstate[i]); break;
+		case L_UNKNOWN: write_log (_T("Nat %d : UNKNOWN\n"),i); break;
+		case L_UNAVAIL: write_log (_T("Nat %d : UNAVAIL\n"),i); break;
+		default:        write_log (_T("Nat %d : %d\n"),i,nstate[i]); break;
 		}
 	}
 	for (i=0;i<VREGS;i++) {
 		if (vstate[i]==L_UNNEEDED)
-			write_log ("Virt %d: UNNEEDED\n",i);
+			write_log (_T("Virt %d: UNNEEDED\n"),i);
 	}
 }
 
@@ -744,7 +776,7 @@ static  void tomem(int r)
 		if (live.state[r].val &&
 			live.nat[rr].nholds==1 &&
 			!live.nat[rr].locked) {
-				// write_log ("JIT: RemovingA offset %x from reg %d (%d) at %p\n",
+				// write_log (_T("JIT: RemovingA offset %x from reg %d (%d) at %p\n"),
 				//   live.state[r].val,r,rr,target);
 				adjust_nreg(rr,live.state[r].val);
 				live.state[r].val=0;
@@ -780,7 +812,7 @@ STATIC_INLINE void writeback_const(int r)
 	if (!isconst(r))
 		return;
 	Dif (live.state[r].needflush==NF_HANDLER) {
-		jit_abort ("JIT: Trying to write back constant NF_HANDLER!\n");
+		jit_abort (_T("JIT: Trying to write back constant NF_HANDLER!\n"));
 	}
 
 	raw_mov_l_mi((uae_u32)live.state[r].mem,live.state[r].val);
@@ -808,7 +840,7 @@ static  void evict(int r)
 
 	Dif (live.nat[rr].locked &&
 		live.nat[rr].nholds==1) {
-			jit_abort ("JIT: register %d in nreg %d is locked!\n",r,live.state[r].realreg);
+			jit_abort (_T("JIT: register %d in nreg %d is locked!\n"),r,live.state[r].realreg);
 	}
 
 	live.nat[rr].nholds--;
@@ -834,7 +866,7 @@ STATIC_INLINE void free_nreg(int r)
 		evict(vr);
 	}
 	Dif (live.nat[r].nholds!=0) {
-		jit_abort ("JIT: Failed to free nreg %d, nholds is %d\n",r,live.nat[r].nholds);
+		jit_abort (_T("JIT: Failed to free nreg %d, nholds is %d\n"),r,live.nat[r].nholds);
 	}
 }
 
@@ -896,7 +928,7 @@ static  int alloc_reg_hinted(int r, int size, int willclobber, int hint)
 		}
 	}
 	Dif (bestreg==-1)
-		jit_abort ("alloc_reg_hinted bestreg=-1");
+		jit_abort (_T("alloc_reg_hinted bestreg=-1"));
 
 	if (live.nat[bestreg].nholds>0) {
 		free_nreg(bestreg);
@@ -906,9 +938,9 @@ static  int alloc_reg_hinted(int r, int size, int willclobber, int hint)
 		/* This will happen if we read a partially dirty register at a
 		bigger size */
 		Dif (willclobber || live.state[r].validsize>=size)
-			jit_abort ("willclobber || live.state[r].validsize>=size");
+			jit_abort (_T("willclobber || live.state[r].validsize>=size"));
 		Dif (live.nat[rr].nholds!=1)
-			jit_abort ("live.nat[rr].nholds!=1");
+			jit_abort (_T("live.nat[rr].nholds!=1"));
 		if (size==4 && live.state[r].validsize==2) {
 			log_isused(bestreg);
 			raw_mov_l_rm(bestreg,(uae_u32)live.state[r].mem);
@@ -996,7 +1028,7 @@ static  int alloc_reg(int r, int size, int willclobber)
 static  void unlock(int r)
 {
 	Dif (!live.nat[r].locked)
-		jit_abort ("unlock %d not locked", r);
+		jit_abort (_T("unlock %d not locked"), r);
 	live.nat[r].locked--;
 }
 
@@ -1063,7 +1095,7 @@ STATIC_INLINE void make_exclusive(int r, int size, int spec)
 			}
 		}
 		Dif (live.nat[rr].nholds!=1) {
-			jit_abort ("JIT: natreg %d holds %d vregs, %d not exclusive\n",
+			jit_abort (_T("JIT: natreg %d holds %d vregs, %d not exclusive\n"),
 				rr,live.nat[rr].nholds,r);
 		}
 		return;
@@ -1124,7 +1156,7 @@ STATIC_INLINE void remove_offset(int r, int spec)
 		alloc_reg_hinted(r,4,0,spec);
 
 	Dif (live.state[r].validsize!=4) {
-		jit_abort ("JIT: Validsize=%d in remove_offset\n",live.state[r].validsize);
+		jit_abort (_T("JIT: Validsize=%d in remove_offset\n"),live.state[r].validsize);
 	}
 	make_exclusive(r,0,-1);
 	/* make_exclusive might have done the job already */
@@ -1134,7 +1166,7 @@ STATIC_INLINE void remove_offset(int r, int spec)
 	rr=live.state[r].realreg;
 
 	if (live.nat[rr].nholds==1) {
-		//write_log ("JIT: RemovingB offset %x from reg %d (%d) at %p\n",
+		//write_log (_T("JIT: RemovingB offset %x from reg %d (%d) at %p\n"),
 		//       live.state[r].val,r,rr,target);
 		adjust_nreg(rr,live.state[r].val);
 		live.state[r].dirtysize=4;
@@ -1142,7 +1174,7 @@ STATIC_INLINE void remove_offset(int r, int spec)
 		set_status(r,DIRTY);
 		return;
 	}
-	jit_abort ("JIT: Failed in remove_offset\n");
+	jit_abort (_T("JIT: Failed in remove_offset\n"));
 }
 
 STATIC_INLINE void remove_all_offsets(void)
@@ -1159,7 +1191,7 @@ STATIC_INLINE int readreg_general(int r, int size, int spec, int can_offset)
 	int answer=-1;
 
 	if (live.state[r].status==UNDEF) {
-		write_log ("JIT: WARNING: Unexpected read of undefined register %d\n",r);
+		write_log (_T("JIT: WARNING: Unexpected read of undefined register %d\n"),r);
 	}
 	if (!can_offset)
 		remove_offset(r,spec);
@@ -1235,7 +1267,7 @@ STATIC_INLINE int writereg_general(int r, int size, int spec)
 		n=live.state[r].realreg;
 
 		Dif (live.nat[n].nholds!=1)
-			jit_abort ("live.nat[%d].nholds!=1", n);
+			jit_abort (_T("live.nat[%d].nholds!=1"), n);
 		switch(size) {
 		case 1:
 			if (live.nat[n].canbyte || spec>=0) {
@@ -1282,7 +1314,7 @@ STATIC_INLINE int writereg_general(int r, int size, int spec)
 	}
 	else {
 		Dif (live.state[r].val) {
-			jit_abort ("JIT: Problem with val\n");
+			jit_abort (_T("JIT: Problem with val\n"));
 		}
 	}
 	set_status(r,DIRTY);
@@ -1305,18 +1337,18 @@ STATIC_INLINE int rmw_general(int r, int wsize, int rsize, int spec)
 	int answer=-1;
 
 	if (live.state[r].status==UNDEF) {
-		write_log ("JIT: WARNING: Unexpected read of undefined register %d\n",r);
+		write_log (_T("JIT: WARNING: Unexpected read of undefined register %d\n"),r);
 	}
 	remove_offset(r,spec);
 	make_exclusive(r,0,spec);
 
 	Dif (wsize<rsize) {
-		jit_abort ("JIT: Cannot handle wsize<rsize in rmw_general()\n");
+		jit_abort (_T("JIT: Cannot handle wsize<rsize in rmw_general()\n"));
 	}
 	if (isinreg(r) && live.state[r].validsize>=rsize) {
 		n=live.state[r].realreg;
 		Dif (live.nat[n].nholds!=1)
-			jit_abort ("live.nat[n].nholds!=1", n);
+			jit_abort (_T("live.nat[n].nholds!=1"), n);
 
 		switch(rsize) {
 		case 1:
@@ -1358,7 +1390,7 @@ STATIC_INLINE int rmw_general(int r, int wsize, int rsize, int spec)
 	live.nat[answer].touched=touchcnt++;
 
 	Dif (live.state[r].val) {
-		jit_abort ("JIT: Problem with val(rmw)\n");
+		jit_abort (_T("JIT: Problem with val(rmw)\n"));
 	}
 	return answer;
 }
@@ -1433,7 +1465,7 @@ static void f_evict(int r)
 
 	Dif (live.fat[rr].locked &&
 		live.fat[rr].nholds==1) {
-			jit_abort ("JIT: FPU register %d in nreg %d is locked!\n",r,live.fate[r].realreg);
+			jit_abort (_T("JIT: FPU register %d in nreg %d is locked!\n"),r,live.fate[r].realreg);
 	}
 
 	live.fat[rr].nholds--;
@@ -1459,7 +1491,7 @@ STATIC_INLINE void f_free_nreg(int r)
 		f_evict(vr);
 	}
 	Dif (live.fat[r].nholds!=0) {
-		jit_abort ("JIT: Failed to free nreg %d, nholds is %d\n",r,live.fat[r].nholds);
+		jit_abort (_T("JIT: Failed to free nreg %d, nholds is %d\n"),r,live.fat[r].nholds);
 	}
 }
 
@@ -1535,7 +1567,7 @@ static  int f_alloc_reg(int r, int willclobber)
 static  void f_unlock(int r)
 {
 	Dif (!live.fat[r].locked)
-		jit_abort ("unlock %d", r);
+		jit_abort (_T("unlock %d"), r);
 	live.fat[r].locked--;
 }
 
@@ -1591,14 +1623,14 @@ STATIC_INLINE void f_make_exclusive(int r, int clobber)
 			}
 		}
 		Dif (live.fat[rr].nholds!=1) {
-			write_log ("JIT: realreg %d holds %d (",rr,live.fat[rr].nholds);
+			write_log (_T("JIT: realreg %d holds %d ("),rr,live.fat[rr].nholds);
 			for (i=0;i<live.fat[rr].nholds;i++) {
-				write_log ("JIT: %d(%d,%d)",live.fat[rr].holds[i],
+				write_log (_T("JIT: %d(%d,%d)"),live.fat[rr].holds[i],
 					live.fate[live.fat[rr].holds[i]].realreg,
 					live.fate[live.fat[rr].holds[i]].realind);
 			}
-			write_log ("\n");
-			jit_abort ("x");
+			write_log (_T("\n"));
+			jit_abort (_T("x"));
 		}
 		return;
 	}
@@ -1955,7 +1987,7 @@ MENDFUNC(2,rol_l_ri,(RW4 r, IMM i))
 	r=readreg_specific(r,1,SHIFTCOUNT_NREG);
 	d=rmw(d,4,4);
 	Dif (r!=1) {
-		jit_abort ("JIT: Illegal register %d in raw_rol_b\n",r);
+		jit_abort (_T("JIT: Illegal register %d in raw_rol_b\n"),r);
 	}
 	raw_rol_l_rr(d,r) ;
 	unlock(r);
@@ -1974,7 +2006,7 @@ MENDFUNC(2,rol_l_rr,(RW4 d, R1 r))
 	r=readreg_specific(r,1,SHIFTCOUNT_NREG);
 	d=rmw(d,2,2);
 	Dif (r!=1) {
-		jit_abort ("JIT: Illegal register %d in raw_rol_b\n",r);
+		jit_abort (_T("JIT: Illegal register %d in raw_rol_b\n"),r);
 	}
 	raw_rol_w_rr(d,r) ;
 	unlock(r);
@@ -1994,7 +2026,7 @@ MENDFUNC(2,rol_w_rr,(RW2 d, R1 r))
 	r=readreg_specific(r,1,SHIFTCOUNT_NREG);
 	d=rmw(d,1,1);
 	Dif (r!=1) {
-		jit_abort ("JIT: Illegal register %d in raw_rol_b\n",r);
+		jit_abort (_T("JIT: Illegal register %d in raw_rol_b\n"),r);
 	}
 	raw_rol_b_rr(d,r) ;
 	unlock(r);
@@ -2013,7 +2045,7 @@ MENDFUNC(2,rol_b_rr,(RW1 d, R1 r))
 	r=readreg_specific(r,1,SHIFTCOUNT_NREG);
 	d=rmw(d,4,4);
 	Dif (r!=1) {
-		jit_abort ("JIT: Illegal register %d in raw_rol_b\n",r);
+		jit_abort (_T("JIT: Illegal register %d in raw_rol_b\n"),r);
 	}
 	raw_shll_l_rr(d,r) ;
 	unlock(r);
@@ -2032,7 +2064,7 @@ MENDFUNC(2,shll_l_rr,(RW4 d, R1 r))
 	r=readreg_specific(r,1,SHIFTCOUNT_NREG);
 	d=rmw(d,2,2);
 	Dif (r!=1) {
-		jit_abort ("JIT: Illegal register %d in raw_shll_b\n",r);
+		jit_abort (_T("JIT: Illegal register %d in raw_shll_b\n"),r);
 	}
 	raw_shll_w_rr(d,r) ;
 	unlock(r);
@@ -2052,7 +2084,7 @@ MENDFUNC(2,shll_w_rr,(RW2 d, R1 r))
 	r=readreg_specific(r,1,SHIFTCOUNT_NREG);
 	d=rmw(d,1,1);
 	Dif (r!=1) {
-		jit_abort ("JIT: Illegal register %d in raw_shll_b\n",r);
+		jit_abort (_T("JIT: Illegal register %d in raw_shll_b\n"),r);
 	}
 	raw_shll_b_rr(d,r) ;
 	unlock(r);
@@ -2150,7 +2182,7 @@ MENDFUNC(2,ror_b_rr,(R1 d, R1 r))
 	r=readreg_specific(r,1,SHIFTCOUNT_NREG);
 	d=rmw(d,4,4);
 	Dif (r!=1) {
-		jit_abort ("JIT: Illegal register %d in raw_rol_b\n",r);
+		jit_abort (_T("JIT: Illegal register %d in raw_rol_b\n"),r);
 	}
 	raw_shrl_l_rr(d,r) ;
 	unlock(r);
@@ -2169,7 +2201,7 @@ MENDFUNC(2,shrl_l_rr,(RW4 d, R1 r))
 	r=readreg_specific(r,1,SHIFTCOUNT_NREG);
 	d=rmw(d,2,2);
 	Dif (r!=1) {
-		jit_abort ("JIT: Illegal register %d in raw_shrl_b\n",r);
+		jit_abort (_T("JIT: Illegal register %d in raw_shrl_b\n"),r);
 	}
 	raw_shrl_w_rr(d,r) ;
 	unlock(r);
@@ -2189,7 +2221,7 @@ MENDFUNC(2,shrl_w_rr,(RW2 d, R1 r))
 	r=readreg_specific(r,1,SHIFTCOUNT_NREG);
 	d=rmw(d,1,1);
 	Dif (r!=1) {
-		jit_abort ("JIT: Illegal register %d in raw_shrl_b\n",r);
+		jit_abort (_T("JIT: Illegal register %d in raw_shrl_b\n"),r);
 	}
 	raw_shrl_b_rr(d,r) ;
 	unlock(r);
@@ -2314,7 +2346,7 @@ MENDFUNC(2,shra_b_ri,(RW1 r, IMM i))
 	r=readreg_specific(r,1,SHIFTCOUNT_NREG);
 	d=rmw(d,4,4);
 	Dif (r!=1) {
-		jit_abort ("JIT: Illegal register %d in raw_rol_b\n",r);
+		jit_abort (_T("JIT: Illegal register %d in raw_rol_b\n"),r);
 	}
 	raw_shra_l_rr(d,r) ;
 	unlock(r);
@@ -2333,7 +2365,7 @@ MENDFUNC(2,shra_l_rr,(RW4 d, R1 r))
 	r=readreg_specific(r,1,SHIFTCOUNT_NREG);
 	d=rmw(d,2,2);
 	Dif (r!=1) {
-		jit_abort ("JIT: Illegal register %d in raw_shra_b\n",r);
+		jit_abort (_T("JIT: Illegal register %d in raw_shra_b\n"),r);
 	}
 	raw_shra_w_rr(d,r) ;
 	unlock(r);
@@ -2353,7 +2385,7 @@ MENDFUNC(2,shra_w_rr,(RW2 d, R1 r))
 	r=readreg_specific(r,1,SHIFTCOUNT_NREG);
 	d=rmw(d,1,1);
 	Dif (r!=1) {
-		jit_abort ("JIT: Illegal register %d in raw_shra_b\n",r);
+		jit_abort (_T("JIT: Illegal register %d in raw_shra_b\n"),r);
 	}
 	raw_shra_b_rr(d,r) ;
 	unlock(r);
@@ -2426,7 +2458,7 @@ MENDFUNC(3,cmov_l_rr,(RW4 d, R4 s, IMM cc))
 	}
 	else {
 		Dif (live.flags_in_flags!=VALID) {
-			jit_abort ("JIT: setzflg() wanted flags in native flags, they are %d\n",
+			jit_abort (_T("JIT: setzflg() wanted flags in native flags, they are %d\n"),
 				live.flags_in_flags);
 		}
 		r=readreg(r,4);
@@ -2705,7 +2737,7 @@ MENDFUNC(3,mov_b_rrm_indexed,(W1 d, R4 baser, R4 index))
 	s=readreg(s,4);
 
 	Dif (baser==s || index==s)
-		jit_abort ("mov_l_mrr_indexed");
+		jit_abort (_T("mov_l_mrr_indexed"));
 
 	raw_mov_l_mrr_indexed(baser,index,s);
 	unlock(s);
@@ -3138,7 +3170,7 @@ MENDFUNC(1,gen_bswap_16,(RW2 r))
 	live.nat[s].nholds++;
 	log_clobberreg(d);
 
-	/* write_log ("JIT: Added %d to nreg %d(%d), now holds %d regs\n",
+	/* write_log (_T("JIT: Added %d to nreg %d(%d), now holds %d regs\n"),
 	d,s,live.state[d].realind,live.nat[s].nholds); */
 	unlock(s);
 #else
@@ -4427,7 +4459,7 @@ uae_u32 get_const(int r)
 	if (!reg_alloc_run)
 #endif
 		Dif (!isconst(r)) {
-			jit_abort ("JIT: Register %d should be constant, but isn't\n",r);
+			jit_abort (_T("JIT: Register %d should be constant, but isn't\n"),r);
 	}
 	return live.state[r].val;
 }
@@ -4543,11 +4575,11 @@ static void vinton(int i, uae_s8* vton, int depth)
 	int rr;
 
 	Dif (vton[i]==-1) {
-		jit_abort ("JIT: Asked to load register %d, but nowhere to go\n",i);
+		jit_abort (_T("JIT: Asked to load register %d, but nowhere to go\n"),i);
 	}
 	n=vton[i];
 	Dif (live.nat[n].nholds>1)
-		jit_abort ("vinton");
+		jit_abort (_T("vinton"));
 	if (live.nat[n].nholds && depth<N_REGS) {
 		vinton(live.nat[n].holds[0],vton,depth+1);
 	}
@@ -4626,7 +4658,7 @@ STATIC_INLINE void match_states(smallstate* s)
 		case UNDEF:
 			break;
 		default:
-			write_log ("JIT: Weird status: %d\n",live.state[i].status);
+			write_log (_T("JIT: Weird status: %d\n"),live.state[i].status);
 			abort();
 		}
 	}
@@ -4637,12 +4669,12 @@ STATIC_INLINE void match_states(smallstate* s)
 			int n=live.state[i].realreg;
 
 			if (live.nat[n].nholds!=1) {
-				write_log ("JIT: Register %d isn't alone in nreg %d\n",
+				write_log (_T("JIT: Register %d isn't alone in nreg %d\n"),
 					i,n);
 				abort();
 			}
 			if (vton[i]==-1) {
-				write_log ("JIT: Register %d is still in register, shouldn't be\n",
+				write_log (_T("JIT: Register %d is still in register, shouldn't be\n"),
 					i);
 				abort();
 			}
@@ -4661,7 +4693,7 @@ STATIC_INLINE void match_states(smallstate* s)
 		int n=vton[i];
 		if (n==-1) {
 			Dif (isinreg(i)) {
-				write_log ("JIT: Register %d unexpectedly in nreg %d\n",
+				write_log (_T("JIT: Register %d unexpectedly in nreg %d\n"),
 					i,live.state[i].realreg);
 				abort();
 			}
@@ -4675,7 +4707,7 @@ STATIC_INLINE void match_states(smallstate* s)
 				break;
 			case INMEM:
 				Dif (live.nat[n].nholds) {
-					write_log ("JIT: natreg %d holds %d vregs, should be empty\n",
+					write_log (_T("JIT: natreg %d holds %d vregs, should be empty\n"),
 						n,live.nat[n].nholds);
 				}
 				raw_mov_l_rm(n,(uae_u32)live.state[i].mem);
@@ -4692,7 +4724,7 @@ STATIC_INLINE void match_states(smallstate* s)
 				break;
 			case ISCONST:
 				if (i!=PC_P) {
-					write_log ("JIT: Got constant in matchstate for reg %d. Bad!\n",i);
+					write_log (_T("JIT: Got constant in matchstate for reg %d. Bad!\n"),i);
 					abort();
 				}
 				break;
@@ -4777,7 +4809,7 @@ void flush(int save_regs)
 				default: break;
 				}
 				Dif (live.state[i].val && i!=PC_P) {
-					write_log ("JIT: Register %d still has val %x\n",
+					write_log (_T("JIT: Register %d still has val %x\n"),
 						i,live.state[i].val);
 				}
 			}
@@ -4791,7 +4823,7 @@ void flush(int save_regs)
 		raw_fp_cleanup_drop();
 	}
 	if (needflags) {
-		write_log ("JIT: Warning! flush with needflags=1!\n");
+		write_log (_T("JIT: Warning! flush with needflags=1!\n"));
 	}
 
 	lopt_emit_all();
@@ -4839,7 +4871,7 @@ void freescratch(void)
 	int i;
 	for (i=0;i<N_REGS;i++)
 		if (live.nat[i].locked && i!=4)
-			write_log ("JIT: Warning! %d is locked\n",i);
+			write_log (_T("JIT: Warning! %d is locked\n"),i);
 
 	for (i=0;i<VREGS;i++)
 		if (live.state[i].needflush==NF_SCRATCH) {
@@ -5395,7 +5427,7 @@ void alloc_cache(void)
 		current_compile_p=compiled_code;
 	}
 
-	write_log ("JIT: Allocated %d KB translation cache.\n", currprefs.cachesize);
+	write_log (_T("JIT: Allocated %d KB translation cache.\n"), currprefs.cachesize);
 }
 
 static void calc_checksum(blockinfo* bi, uae_u32* c1, uae_u32* c2)
@@ -5443,11 +5475,11 @@ static void show_checksum(blockinfo* bi)
 	}
 	else {
 		while (len>0) {
-			write_log ("%08x ",*pos);
+			write_log (_T("%08x "),*pos);
 			pos++;
 			len-=4;
 		}
-		write_log (" bla\n");
+		write_log (_T(" bla\n"));
 	}
 }
 
@@ -5475,7 +5507,7 @@ static void recompile_block(void)
 	blockinfo*  bi=get_blockinfo_addr(regs.pc_p);
 
 	Dif (!bi)
-		jit_abort ("recompile_block");
+		jit_abort (_T("recompile_block"));
 	raise_in_cl_list(bi);
 	execute_normal();
 	return;
@@ -5492,7 +5524,7 @@ static void cache_miss(void)
 		return;
 	}
 	Dif (!bi2 || bi==bi2) {
-		jit_abort ("Unexplained cache miss %p %p\n",bi,bi2);
+		jit_abort (_T("Unexplained cache miss %p %p\n"),bi,bi2);
 	}
 	raise_in_cl_list(bi);
 	return;
@@ -5532,7 +5564,7 @@ static void check_checksum(void)
 		bi->handler_to_use=bi->handler;
 		set_dhtu(bi,bi->direct_handler);
 
-		/*	write_log ("JIT: reactivate %p/%p (%x %x/%x %x)\n",bi,bi->pc_p,
+		/*	write_log (_T("JIT: reactivate %p/%p (%x %x/%x %x)\n"),bi,bi->pc_p,
 		c1,c2,bi->c1,bi->c2);*/
 		remove_from_list(bi);
 		add_to_active(bi);
@@ -5541,7 +5573,7 @@ static void check_checksum(void)
 	else {
 		/* This block actually changed. We need to invalidate it,
 		and set it up to be recompiled */
-		/* write_log ("JIT: discard %p/%p (%x %x/%x %x)\n",bi,bi->pc_p,
+		/* write_log (_T("JIT: discard %p/%p (%x %x/%x %x)\n"),bi,bi->pc_p,
 		c1,c2,bi->c1,bi->c2); */
 		invalidate_block(bi);
 		raise_in_cl_list(bi);
@@ -5698,12 +5730,12 @@ void build_comp(void)
 #endif
 	raw_init_cpu();
 #ifdef NATMEM_OFFSET
-	write_log ("JIT: Setting signal handler\n");
+	write_log (_T("JIT: Setting signal handler\n"));
 #ifndef _WIN32
 	signal(SIGSEGV,vec);
 #endif
 #endif
-	write_log ("JIT: Building Compiler function table\n");
+	write_log (_T("JIT: Building Compiler function table\n"));
 	for (opcode = 0; opcode < 65536; opcode++) {
 #ifdef NOFLAGS_SUPPORT
 		nfcpufunctbl[opcode] = op_illg;
@@ -5792,7 +5824,7 @@ void build_comp(void)
 		if (compfunctbl[opcode])
 			count++;
 	}
-	write_log ("JIT: Supposedly %d compileable opcodes!\n",count);
+	write_log (_T("JIT: Supposedly %d compileable opcodes!\n"),count);
 
 	/* Initialise state */
 	alloc_cache();
@@ -5826,7 +5858,7 @@ static void flush_icache_hard(uae_u32 ptr, int n)
 
 	hard_flush_count++;
 #if 0
-	write_log ("JIT: Flush Icache_hard(%d/%x/%p), %u instruction bytes\n",
+	write_log (_T("JIT: Flush Icache_hard(%d/%x/%p), %u instruction bytes\n"),
 		n,regs.pc,regs.pc_p,current_compile_p-compiled_code);
 #endif
 	bi=active;
@@ -5898,7 +5930,7 @@ void flush_icache(uaecptr ptr, int n)
 
 static void catastrophe(void)
 {
-	jit_abort ("catastprophe");
+	jit_abort (_T("catastprophe"));
 }
 
 int failure;
@@ -5935,14 +5967,14 @@ void compile_block(cpu_history* pc_hist, int blocklen, int totcycles)
 			Dif (bi!=bi2) {
 				/* I don't think it can happen anymore. Shouldn't, in
 				any case. So let's make sure... */
-				jit_abort ("JIT: WOOOWOO count=%d, ol=%d %p %p\n",
+				jit_abort (_T("JIT: WOOOWOO count=%d, ol=%d %p %p\n"),
 					bi->count,bi->optlevel,bi->handler_to_use,
 					cache_tags[cl].handler);
 			}
 
 			Dif (bi->count!=-1 && bi->status!=BI_TARGETTED) {
 				/* What the heck? We are not supposed to be here! */
-				jit_abort ("BI_TARGETTED");
+				jit_abort (_T("BI_TARGETTED"));
 			}
 		}
 		if (bi->count==-1) {

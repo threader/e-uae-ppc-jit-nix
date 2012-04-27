@@ -30,9 +30,9 @@ struct hardfiledata {
     TCHAR product_rev[4 + 1];
     TCHAR device_name[256];
     /* geometry from possible RDSK block */
-    unsigned int cylinders;
-    unsigned int sectors;
-    unsigned int heads;
+    int cylinders;
+    int sectors;
+    int heads;
     uae_u8 *virtual_rdb;
     uae_u64 virtual_size;
     int unitnum;
@@ -59,12 +59,12 @@ struct hd_hardfiledata {
     struct hardfiledata hfd;
     int bootpri;
     uae_u64 size;
-    unsigned int cyls;
-    unsigned int heads;
-    unsigned int secspertrack;
-    unsigned int cyls_def;
-    unsigned int secspertrack_def;
-    unsigned int heads_def;
+    int cyls;
+    int heads;
+    int secspertrack;
+    int cyls_def;
+    int secspertrack_def;
+    int heads_def;
     TCHAR *path;
     int ansi_version;
 };
@@ -88,8 +88,11 @@ struct hd_hardfiledata {
 #define FILESYS_HARDFILE 1
 #define FILESYS_HARDFILE_RDB 2
 #define FILESYS_HARDDRIVE 3
+#define FILESYS_CD 4
 
 #define MAX_FILESYSTEM_UNITS 30
+
+#define USE_CDFS 2
 
 struct uaedev_mount_info;
 extern struct uaedev_mount_info options_mountinfo;
@@ -124,3 +127,4 @@ extern int hdf_read_target (struct hardfiledata *hfd, void *buffer, uae_u64 offs
 extern int hdf_write_target (struct hardfiledata *hfd, void *buffer, uae_u64 offset, int len);
 extern int hdf_resize_target (struct hardfiledata *hfd, uae_u64 newsize);
 extern void getchsgeometry (uae_u64 size, int *pcyl, int *phead, int *psectorspertrack);
+extern void getchsgeometry_hdf (struct hardfiledata *hfd, uae_u64 size, int *pcyl, int *phead, int *psectorspertrack);

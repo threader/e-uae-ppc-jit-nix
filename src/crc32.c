@@ -345,7 +345,7 @@ const TCHAR *get_sha1_txt (uae_u8 *input, int len)
 	p = outtxt;
 	get_sha1 (input, len, out);
 	for (i = 0; i < SHA1_SIZE; i++) {
-		_stprintf (p, "%02X", out[i]);
+		_stprintf (p, _T("%02X"), out[i]);
 		p += 2;
 	}
 	*p = 0;

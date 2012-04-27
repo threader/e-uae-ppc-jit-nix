@@ -33,4 +33,4 @@ struct fs_usage
 #endif  /* GCC.  */
 #endif  /* Not __P.  */
 
-int get_fs_usage __P ((const char *path, const char *disk, struct fs_usage *fsp));
+int get_fs_usage __P ((const TCHAR *path, const TCHAR *disk, struct fs_usage *fsp));

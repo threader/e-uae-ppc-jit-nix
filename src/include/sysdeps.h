@@ -155,6 +155,14 @@ struct utimbuf
 #define DONT_HAVE_POSIX
 #endif
 
+#define FILEFLAG_DIR     0x1
+#define FILEFLAG_ARCHIVE 0x2
+#define FILEFLAG_WRITE   0x4
+#define FILEFLAG_READ    0x8
+#define FILEFLAG_EXECUTE 0x10
+#define FILEFLAG_SCRIPT  0x20
+#define FILEFLAG_PURE    0x40
+
 #if defined _WIN32
 
 #if defined __WATCOMC__
@@ -178,14 +186,6 @@ extern void gettimeofday( struct timeval *tv, void *blah );
 #endif
 
 #define O_NDELAY 0
-
-#define FILEFLAG_DIR     0x1
-#define FILEFLAG_ARCHIVE 0x2
-#define FILEFLAG_WRITE   0x4
-#define FILEFLAG_READ    0x8
-#define FILEFLAG_EXECUTE 0x10
-#define FILEFLAG_SCRIPT  0x20
-#define FILEFLAG_PURE    0x40
 
 #ifdef REGPARAM2
 #undef REGPARAM2
@@ -432,4 +432,12 @@ extern void xfree (const void*);
 #define _vsntprintf vsnprintf
 #define max(a,b) ((a) > (b) ? (a) : (b))
 #define _tcstod strtod
+#define _T
+#define sleep_millis uae_msleep
+#define _istalnum iswalnum
+#define offsetof(type, member)  __builtin_offsetof (type, member)
+#define ULONG unsigned long
+#define _strtoui64 strtoul
+#define _tcscspn wcscspn
+#define _stat64 stat64
 #endif

@@ -168,7 +168,7 @@ void regstatus (void)
 
 int reginitializeinit (const char *ppath)
 {
-	QSettings settings("PUAE", "2.3.3");
+	QSettings settings("PUAE", "2.4.1");
 
 	settings.beginGroup("Warning");
 	settings.setValue("info1", "This is unsupported file. Compatibility between versions is not guaranteed.");

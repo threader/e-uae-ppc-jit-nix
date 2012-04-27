@@ -91,9 +91,9 @@ typedef struct {
 	 * This is used for example to translate bitplane pointers in custom.c */
 	check_func check;
 	/* For those banks that refer to real memory, we can save the whole trouble
-	 * of going through function calls, and instead simply grab the memory
-	 * ourselves. This holds the memory address where the start of memory is
-	 * for this particular bank. */
+	of going through function calls, and instead simply grab the memory
+	ourselves. This holds the memory address where the start of memory is
+	for this particular bank. */
 	uae_u8 *baseaddr;
 	TCHAR *name;
 	/* for instruction opcode/operand fetches */
@@ -297,7 +297,7 @@ STATIC_INLINE int valid_address (uaecptr addr, uae_u32 size)
 	return get_mem_bank (addr).check(addr, size);
 }
 
-extern int addr_valid (TCHAR*, uaecptr,uae_u32);
+extern int addr_valid (const TCHAR*, uaecptr,uae_u32);
 
 /* For faster access in custom chip emulation.  */
 extern uae_u32 REGPARAM3 chipmem_lget (uaecptr) REGPARAM;
@@ -363,3 +363,5 @@ extern void memcpyha_safe (uaecptr dst, const uae_u8 *src, int size);
 extern void memcpyah_safe (uae_u8 *dst, uaecptr src, int size);
 extern void memcpyah (uae_u8 *dst, uaecptr src, int size);
 
+extern uae_s32 getz2size (struct uae_prefs *p);
+extern ULONG getz2endaddr (void);

@@ -10,31 +10,38 @@ struct zfile;
 struct zvolume;
 struct zdirectory;
 
+#define FS_DIRECTORY 0
+#define FS_ARCHIVE 1
+#define FS_CDFS 2
+
 struct fs_dirhandle
 {
-	int isarch;
+	int fstype;
 	union {
 		struct zdirectory *zd;
 		struct my_opendir_s *od;
+		struct cd_opendir_s *isod;
 	};
 };
 struct fs_filehandle
 {
-	int isarch;
+	int fstype;
 	union {
 		struct zfile *zf;
 		struct my_openfile_s *of;
+		struct cd_openfile_s *isof;
 	};
 };
-extern int is_zlib;
 
 typedef int (*zfile_callback)(struct zfile*, void*);
 
 extern struct zfile *zfile_fopen (const TCHAR *, const TCHAR *, int mask);
-extern struct zfile *zfile_fopen2 (const TCHAR *, const TCHAR *, int mask, int index);
+extern struct zfile *zfile_fopen2 (const TCHAR *, const TCHAR *);
+extern struct zfile *zfile_fopen4 (const TCHAR *, const TCHAR *, int mask, int index);
 extern struct zfile *zfile_fopen_empty (struct zfile*, const TCHAR *name, uae_u64 size);
 extern struct zfile *zfile_fopen_empty2 (struct zfile*, const TCHAR *name);
-extern struct zfile *zfile_fopen_data (const TCHAR *name, uae_u64 size, uae_u8 *data);
+//extern struct zfile *zfile_fopen_data (const TCHAR *name, uae_u64 size, const uae_u8 *data);
+extern uae_u8 *zfile_load_data (const TCHAR *name, const uae_u8 *data,int datalen, int *outlen);
 extern struct zfile *zfile_fopen_parent (struct zfile*, const TCHAR*, uae_u64 offset, uae_u64 size);
 
 extern int zfile_exists (const TCHAR *name);
@@ -104,19 +111,20 @@ extern const TCHAR *uae_ignoreextensions[];
 extern const TCHAR *uae_diskimageextensions[];
 
 extern struct zvolume *zfile_fopen_archive (const TCHAR *filename);
-extern struct zvolume *zfile_fopen_archive_flags (const TCHAR *filename, int flags);
+extern struct zvolume *zfile_fopen_archive2 (const TCHAR *filename, int flags);
 extern struct zvolume *zfile_fopen_archive_root (const TCHAR *filename, int flags);
 extern void zfile_fclose_archive (struct zvolume *zv);
 //extern int zfile_fs_usage_archive (const TCHAR *path, const TCHAR *disk, struct fs_usage *fsp);
 //extern int zfile_stat_archive (const TCHAR *path, struct _stat64 *statbuf);
 extern struct zdirectory *zfile_opendir_archive (const TCHAR *path);
-extern struct zdirectory *zfile_opendir_archive_flags (const TCHAR *path, int flags);
+extern struct zdirectory *zfile_opendir_archive2 (const TCHAR *path, int flags);
 extern void zfile_closedir_archive (struct zdirectory *);
 extern int zfile_readdir_archive (struct zdirectory *, TCHAR*);
-extern int zfile_readdir_archive_fullpath (struct zdirectory *, TCHAR*, bool fullpath);
+extern int zfile_readdir_archive3 (struct zdirectory *, TCHAR*, bool fullpath);
 extern void zfile_resetdir_archive (struct zdirectory *);
 extern int zfile_fill_file_attrs_archive (const TCHAR *path, int *isdir, int *flags, TCHAR **comment);
 extern uae_s64 zfile_lseek_archive (struct zfile *d, uae_s64 offset, int whence);
+extern uae_s64 zfile_fsize_archive (struct zfile *d);
 extern unsigned int zfile_read_archive (struct zfile *d, void *b, unsigned int size);
 extern void zfile_close_archive (struct zfile *d);
 extern struct zfile *zfile_open_archive (const TCHAR *path, int flags);

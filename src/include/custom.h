@@ -105,7 +105,7 @@ extern uae_u16 INTREQR (void);
 #define VBLANK_SPRITE_NTSC 20
 #define VBLANK_HZ_PAL 50
 #define VBLANK_HZ_NTSC 60
-#define EQU_ENDLINE_PAL 9
+#define EQU_ENDLINE_PAL 8
 #define EQU_ENDLINE_NTSC 10
 
 extern int maxhpos, maxhpos_short;
@@ -114,6 +114,7 @@ extern int hsyncstartpos;
 extern int minfirstline, vblank_endline, numscrlines;
 extern double vblank_hz, fake_vblank_hz;
 extern int vblank_skip, doublescan;
+extern bool programmedmode;
 extern frame_time_t syncbase;
 
 #define DMA_AUD0      0x0001
@@ -214,5 +215,7 @@ uae_u16 customhack_get (struct customhack *ch, int hpos);
 extern void alloc_cycle_ext (int, int);
 extern bool ispal (void);
 extern int current_maxvpos (void);
+extern struct chipset_refresh *get_chipset_refresh (void);
+extern void compute_framesync (void);
 
 #define HSYNCTIME (maxhpos * CYCLE_UNIT);

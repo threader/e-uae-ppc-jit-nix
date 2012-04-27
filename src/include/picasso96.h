@@ -94,17 +94,20 @@ struct PicassoResolution
 	TCHAR name[25];
 	/* Bit mask of RGBFF_xxx values.  */
 	uae_u32 colormodes;
-	int nondx;
+        int rawmode;
+        bool lace;
 };
 extern struct PicassoResolution DisplayModes[MAX_PICASSO_MODES];
 
 #define MAX_DISPLAYS 10
 struct MultiDisplay {
-	int primary, disabled, gdi;
-//	GUID guid;
-	TCHAR *name, *name2, *name3;
-	struct PicassoResolution *DisplayModes;
-//	RECT rect;
+        bool primary;
+//        GUID ddguid;
+        TCHAR *adaptername, *adapterid, *adapterkey;
+        TCHAR *monitorname, *monitorid;
+        TCHAR *fullname;
+        struct PicassoResolution *DisplayModes;
+ //       RECT rect;
 };
 extern struct MultiDisplay Displays[MAX_DISPLAYS];
 
@@ -718,6 +721,7 @@ extern uae_u8 *gfxmemory;
 extern int uaegfx_card_found;
 
 extern struct picasso96_state_struct picasso96_state;
+extern uae_u16 picasso96_pixel_format;
 
 #ifdef _WIN32
 extern unsigned int timer_id;
@@ -725,9 +729,10 @@ extern unsigned int timer_id;
 
 extern void picasso_enablescreen (int on);
 extern void picasso_refresh (void);
-extern void picasso_handle_vsync (void);
 extern void init_hz_p96 (void);
 extern void picasso_handle_hsync (void);
+extern void picasso_handle_vsync (void);
+extern void picasso_trigger_vblank (void);
 extern void picasso_reset (void);
 extern int picasso_setwincursor (void);
 extern int picasso_palette (void);
@@ -751,8 +756,8 @@ extern void gfx_set_picasso_modeinfo (uae_u32 w, uae_u32 h, uae_u32 d, RGBFTYPE 
 extern void gfx_set_picasso_colors (RGBFTYPE rgbfmt);
 extern void gfx_set_picasso_baseaddr (uaecptr);
 extern void gfx_set_picasso_state (int on);
-extern uae_u8 *gfx_lock_picasso (int fullupdate);
-extern void gfx_unlock_picasso (void);
+//extern uae_u8 *gfx_lock_picasso (bool, bool);
+//extern void gfx_unlock_picasso (bool);
 extern void picasso_clip_mouse (int *, int *);
 
 extern int picasso_is_special;

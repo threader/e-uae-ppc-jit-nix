@@ -122,7 +122,7 @@ noinst_HEADERS = \
 	include/gayle.h		include/a2091.h		include/ncr_scsi.h	\
 	include/drawing.h 	include/driveclick.h	\
 	include/enforcer.h	\
-	include/events.h 	include/events_jit.h 	include/events_normal.h \
+	include/events.h 	\
 	include/execlib.h 	\
 	include/fdi2raw.h	include/filesys.h	\
 	include/fpp-ieee.h	include/fpp-unknown.h	\
@@ -170,7 +170,7 @@ uae_SOURCES = \
 	native2amiga.c disk.c crc32.c savestate.c arcadia.c cdtv.c cd32_fmv.c \
 	uaeexe.c uaelib.c uaeresource.c uaeserial.c fdi2raw.c hotkeys.c amax.c \
 	ar.c driveclick.c enforcer.c misc.c uaenet.c a2065.c gayle.c ncr_scsi.c \
-	missing.c readcpu.c aros.rom.c hrtmon.rom.c
+	missing.c readcpu.c aros.rom.c hrtmon.rom.c events.c calc.c
 
 EXTRA_uae_SOURCES = \
 	bsdsocket.c bsdsocket-posix-new.c build68k.c catweasel.c cdrom.c \

@@ -73,12 +73,12 @@ struct uae_input_device_kbr_default *get_default_raw_keymap (int type)
 
 	while (k->sdl_gfx_driver != type && k->sdl_gfx_driver != 0)
 		k++;
-
+/*
 	if (k->keymap) {
 		write_log ("Found %s raw keyboard mapping\n", k->name);
 		modkeytable = k->modtable;
 		keyboard = uaekey_make_default_kbr (k->keymap);
-	}
+	}*/
 
 	return keyboard;
 }

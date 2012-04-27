@@ -373,7 +373,7 @@ int main (int argc, char **argv)
     if (argc >= 2 && strncmp (argv[1], "-psn", 4) == 0 ) {
 	gArgc = 1;
         gFinderLaunch = YES;
-        cfgfile_subst_home (logfile_path, MAX_PATH);
+//        cfgfile_subst_home (logfile_path, MAX_PATH);
         set_logfile (logfile_path);
     } else {
 	gArgc = argc;

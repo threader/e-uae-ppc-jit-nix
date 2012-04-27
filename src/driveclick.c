@@ -66,13 +66,13 @@ static int loadsample (TCHAR *path, struct drvsample *ds)
 	int size;
 	TCHAR name[MAX_DPATH];
 
-	f = zfile_fopen (path, "rb", ZFD_NORMAL);
+	f = zfile_fopen (path, _T("rb"), ZFD_NORMAL);
 	if (!f) {
 		_tcscpy (name, path);
-		_tcscat (name, ".wav");
-		f = zfile_fopen (name, "rb", ZFD_NORMAL);
+		_tcscat (name, _T(".wav"));
+		f = zfile_fopen (name, _T("rb"), ZFD_NORMAL);
 		if (!f) {
-			write_log ("driveclick: can't open '%s' (or '%s')\n", path, name);
+			write_log (_T("driveclick: can't open '%s' (or '%s')\n"), path, name);
 			return 0;
 		}
 	}
@@ -168,26 +168,23 @@ void driveclick_init (void)
 				wave_initialized = 1;
 				for (j = 0; j < CLICK_TRACKS; j++)
 					drvs[i][DS_CLICK].lengths[j] = drvs[i][DS_CLICK].len;
-/*				_stprintf (tmp, "%splugins%cfloppysounds%c", "./", FSDB_DIR_SEPARATOR, FSDB_DIR_SEPARATOR, FSDB_DIR_SEPARATOR);
-				if (my_existsdir (tmp))
-					_tcscpy (path2, tmp);
-				else*/
-					_stprintf (path2, "%suae_data%c", "./", FSDB_DIR_SEPARATOR);
-				_stprintf (tmp, "%sdrive_click_LOUD%s",
+//				get_plugin_path (path2, sizeof path2 / sizeof (TCHAR), _T("floppysounds"));
+				_stprintf (path2, "%suae_data%c", "./", FSDB_DIR_SEPARATOR);
+				_stprintf (tmp, _T("%sdrive_click_LOUD%s"),
 					path2, fs->dfxclickexternal);
 				v = loadsample (tmp, &drvs[i][DS_CLICK]);
 				if (v)
 					processclicks (&drvs[i][DS_CLICK]);
-				_stprintf (tmp, "%sdrive_spin_LOUD%s",
+				_stprintf (tmp, _T("%sdrive_spin_LOUD%s"),
 					path2, fs->dfxclickexternal);
 				v += loadsample (tmp, &drvs[i][DS_SPIN]);
-				_stprintf (tmp, "%sdrive_spinnd_LOUD%s",
+				_stprintf (tmp, _T("%sdrive_spinnd_LOUD%s"),
 					path2, fs->dfxclickexternal);
 				v += loadsample (tmp, &drvs[i][DS_SPINND]);
-				_stprintf (tmp, "%sdrive_startup_LOUD%s",
+				_stprintf (tmp, _T("%sdrive_startup_LOUD%s"),
 					path2, fs->dfxclickexternal);
 				v += loadsample (tmp, &drvs[i][DS_START]);
-				_stprintf (tmp, "%sdrive_snatch_LOUD%s",
+				_stprintf (tmp, _T("%sdrive_snatch_LOUD%s"),
 					path2, fs->dfxclickexternal);
 				v += loadsample (tmp, &drvs[i][DS_SNATCH]);
 			}

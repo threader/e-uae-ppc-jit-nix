@@ -68,15 +68,24 @@ extern struct gui_info gui_data;
 /* Functions to be called when prefs are changed by non-gui code.  */
 extern void gui_update_gfx (void);
 
-/*void notify_user (int msg);
-void notify_user_parms (int msg, const TCHAR *parms, ...);
-int translate_message (int msg, TCHAR *out);
-typedef enum {
-    NUMSG_NEEDEXT2, NUMSG_NOROM, NUMSG_NOROMKEY,
-    NUMSG_KSROMCRCERROR, NUMSG_KSROMREADERROR, NUMSG_NOEXTROM,
-    NUMSG_MODRIP_NOTFOUND, NUMSG_MODRIP_FINISHED, NUMSG_MODRIP_SAVE,
-    NUMSG_KS68EC020, NUMSG_KS68020, NUMSG_KS68030,
-    NUMSG_ROMNEED, NUMSG_EXPROMNEED, NUMSG_NOZLIB, NUMSG_STATEHD,
-    NUMSG_NOCAPS, NUMSG_OLDCAPS, NUMSG_KICKREP, NUMSG_KICKREPNO
-} notify_user_msg;*/
+#define notify_user gui_message
+#define NUMSG_NEEDEXT2      "The software uses a non-standard floppy disk format. You may need to use a custom floppy disk image file instead of a standard one. This message will not appear again."
+#define NUMSG_NOROMKEY      "Could not find system ROM key file."
+#define NUMSG_KSROMCRCERROR "System ROM checksum incorrect. The system ROM image file may be corrupt."
+#define NUMSG_KSROMREADERROR "Error while reading system ROM."
+#define NUMSG_NOEXTROM      "No extended ROM found."
+#define NUMSG_MODRIP_NOTFOUND "No music modules or packed data found."
+#define NUMSG_MODRIP_FINISHED "Scan finished."
+#define NUMSG_MODRIP_SAVE   "Module/packed data found\n%s\nStart address %08.8X, Size %d bytes\nWould you like to save it?"
+#define NUMSG_KS68020       "The selected system ROM requires a 68020 with 32-bit addressing or 68030 or higher CPU."
+#define NUMSG_ROMNEED       "One of the following system ROMs is required:\n\n%s\n\nCheck the System ROM path in the Paths panel and click Rescan ROMs."
+#define NUMSG_STATEHD       "WARNING: Current configuration is not fully compatible with state saves.\nThis message will not appear again."
+#define NUMSG_NOCAPS        "Selected disk image needs the SPS plugin\nwhich is available from\nhttp//www.softpres.org/"
+#define NUMSG_OLDCAPS       "You need an updated SPS plugin\nwhich is available from\nhttp//www.softpres.org/"
+#define NUMSG_KS68EC020     "The selected system ROM requires a 68020 with 24-bit addressing or higher CPU."
+#define NUMSG_KICKREP       "You need to have a floppy disk (image file) in DF0: to use the system ROM replacement."
+#define NUMSG_KICKREPNO     "The floppy disk (image file) in DF0: is not compatible with the system ROM replacement functionality."
+#define NUMSG_NOROM         "Could not load system ROM, trying system ROM replacement."
+#define NUMSG_EXPROMNEED    "One of the following expansion boot ROMs is required:\n\n%s\n\nCheck the System ROM path in the Paths panel and click Rescan ROMs."
+#define NUMSG_KS68030       "The selected system ROM requires a 68030 CPU."
 

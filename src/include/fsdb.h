@@ -8,7 +8,7 @@
   */
 
 #ifndef FSDB_FILE
-#define FSDB_FILE "_UAEFSDB.___"
+#define FSDB_FILE _T("_UAEFSDB.___")
 #endif
 
 #ifndef FSDB_DIR_SEPARATOR
@@ -64,10 +64,10 @@ typedef struct a_inode_struct {
     struct a_inode_struct *child, *sibling;
     /* AmigaOS name, and host OS name.  The host OS name is a full path, the
      * AmigaOS name is relative to the parent.  */
-    char *aname;
-    char *nname;
+    TCHAR *aname;
+    TCHAR *nname;
     /* AmigaOS file comment, or NULL if file has none.  */
-    char *comment;
+    TCHAR *comment;
     /* AmigaOS protection bits.  */
     int amigaos_mode;
     /* Unique number for identification.  */
@@ -95,37 +95,38 @@ typedef struct a_inode_struct {
     unsigned int volflags;
     /* not equaling unit.mountcount -> not in this volume */
     unsigned int mountcount;
+	uae_u64 uniq_external;
 #ifdef AINO_DEBUG
     uae_u32 checksum2;
 #endif
 } a_inode;
 
-extern char *nname_begin (char *);
+extern TCHAR *nname_begin (TCHAR *);
 
-extern char *build_nname (const char *d, const char *n);
-extern char *build_aname (const char *d, const char *n);
+extern TCHAR *build_nname (const TCHAR *d, const TCHAR *n);
+extern TCHAR *build_aname (const TCHAR *d, const TCHAR *n);
 
 /* Filesystem-independent functions.  */
 extern void fsdb_clean_dir (a_inode *);
-extern char *fsdb_search_dir (const char *dirname, char *rel);
+extern TCHAR *fsdb_search_dir (const TCHAR *dirname, TCHAR *rel);
 extern void fsdb_dir_writeback (a_inode *);
-extern int fsdb_used_as_nname (a_inode *base, const char *);
-extern a_inode *fsdb_lookup_aino_aname (a_inode *base, const char *);
-extern a_inode *fsdb_lookup_aino_nname (a_inode *base, const char *);
-extern int fsdb_exists (char *nname);
+extern int fsdb_used_as_nname (a_inode *base, const TCHAR *);
+extern a_inode *fsdb_lookup_aino_aname (a_inode *base, const TCHAR *);
+extern a_inode *fsdb_lookup_aino_nname (a_inode *base, const TCHAR *);
+extern int fsdb_exists (TCHAR *nname);
 
-STATIC_INLINE int same_aname (const char *an1, const char *an2)
+STATIC_INLINE int same_aname (const TCHAR *an1, const TCHAR *an2)
 {
     return strcasecmp (an1, an2) == 0;
 }
 
 /* Filesystem-dependent functions.  */
-extern int fsdb_name_invalid (const char *n);
+extern int fsdb_name_invalid (const TCHAR *n);
 extern int fsdb_fill_file_attrs (a_inode *, a_inode *);
 extern int fsdb_set_file_attrs (a_inode *);
 extern int fsdb_mode_representable_p (const a_inode *, int);
 extern int fsdb_mode_supported (const a_inode *);
-extern char *fsdb_create_unique_nname (a_inode *base, const char *);
+extern TCHAR *fsdb_create_unique_nname (a_inode *base, const TCHAR *);
 
 extern int dos_errno (void);
 
@@ -133,3 +134,6 @@ extern int dos_errno (void);
 #define MYVOLUMEINFO_STREAMS 2
 #define MYVOLUMEINFO_ARCHIVE 4
 #define MYVOLUMEINFO_REUSABLE 8
+#define MYVOLUMEINFO_CDFS 16
+
+extern int my_getvolumeinfo (const TCHAR *root);

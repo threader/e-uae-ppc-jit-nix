@@ -45,7 +45,7 @@ static void load_byte (void)
 	}
 	data = val;
 	if (AMAX_LOG > 0)
-		write_log ("AMAX: load byte, rom=%d addr=%06x (%06x) data=%02x (%02x) PC=%08X\n", rom_oddeven, romptr, addr, v, val, M68K_GETPC);
+		write_log (_T("AMAX: load byte, rom=%d addr=%06x (%06x) data=%02x (%02x) PC=%08X\n"), rom_oddeven, romptr, addr, v, val, M68K_GETPC);
 }
 
 static void amax_check (void)
@@ -53,7 +53,7 @@ static void amax_check (void)
 	/* DIR low = reset address counter */
 	if ((bfd100 & 2)) {
 		if (romptr && AMAX_LOG > 0)
-			write_log ("AMAX: counter reset PC=%08X\n", M68K_GETPC);
+			write_log (_T("AMAX: counter reset PC=%08X\n"), M68K_GETPC);
 		romptr = 0;
 	}
 }
@@ -69,7 +69,7 @@ void amax_diskwrite (uae_u16 w)
 		if (dwlastbit && !(w & 0x8000)) {
 			romptr++;
 			if (AMAX_LOG > 0)
-				write_log ("AMAX: counter increase %d PC=%08X\n", romptr, M68K_GETPC);
+				write_log (_T("AMAX: counter increase %d PC=%08X\n"), romptr, M68K_GETPC);
 		}
 		dwlastbit = (w & 0x8000) ? 1 : 0;
 		w <<= 1;
@@ -90,7 +90,7 @@ void amax_bfe001_write (uae_u8 pra, uae_u8 dra)
 		data <<= 1;
 		data |= 1;
 		if (AMAX_LOG > 0)
-			write_log ("AMAX: data shifted\n");
+			write_log (_T("AMAX: data shifted\n"));
 	}
 	/* TK0 = even, WPRO = odd */
 	rom_oddeven = -1;
@@ -140,9 +140,9 @@ void amax_init (void)
 	if (!currprefs.amaxromfile[0])
 		return;
 	amax_reset ();
-	z = zfile_fopen (currprefs.amaxromfile, "rb", ZFD_NORMAL);
+	z = zfile_fopen (currprefs.amaxromfile, _T("rb"), ZFD_NORMAL);
 	if (!z) {
-		write_log ("AMAX: failed to load rom '%s'\n", currprefs.amaxromfile);
+		write_log (_T("AMAX: failed to load rom '%s'\n"), currprefs.amaxromfile);
 		return;
 	}
 	zfile_fseek (z, 0, SEEK_END);
@@ -151,7 +151,7 @@ void amax_init (void)
 	rom = xmalloc (uae_u8, rom_size);
 	zfile_fread (rom, rom_size, 1, z);
 	zfile_fclose (z);
-	write_log ("AMAX: '%s' loaded, %d bytes\n", currprefs.amaxromfile, rom_size);
+	write_log (_T("AMAX: '%s' loaded, %d bytes\n"), currprefs.amaxromfile, rom_size);
 	dselect = 0x20;
 }
 

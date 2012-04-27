@@ -143,7 +143,7 @@ static uae_u32 REGPARAM2 emulib_ChgCMemSize (uae_u32 memsize)
 	if (memsize != 0x80000 && memsize != 0x100000 &&
 		memsize != 0x200000) {
 			memsize = 0x200000;
-			write_log ("Unsupported chipmem size!\n");
+			write_log (_T("Unsupported chipmem size!\n"));
 	}
 	m68k_dreg (regs, 0) = 0;
 
@@ -161,7 +161,7 @@ static uae_u32 REGPARAM2 emulib_ChgSMemSize (uae_u32 memsize)
 	if (memsize != 0x80000 && memsize != 0x100000 &&
 		memsize != 0x180000 && memsize != 0x1C0000) {
 			memsize = 0;
-			write_log ("Unsupported bogomem size!\n");
+			write_log (_T("Unsupported bogomem size!\n"));
 	}
 
 	m68k_dreg (regs, 0) = 0;
@@ -179,7 +179,7 @@ static uae_u32 REGPARAM2 emulib_ChgFMemSize (uae_u32 memsize)
 	if (memsize != 0x100000 && memsize != 0x200000 &&
 		memsize != 0x400000 && memsize != 0x800000) {
 			memsize = 0;
-			write_log ("Unsupported fastmem size!\n");
+			write_log (_T("Unsupported fastmem size!\n"));
 	}
 	m68k_dreg (regs, 0) = 0;
 	changed_prefs.fastmem_size = memsize;
@@ -194,6 +194,7 @@ static uae_u32 emulib_InsertDisk (uaecptr name, uae_u32 drive)
 {
 	int i = 0;
 	char real_name[256];
+	TCHAR *s;
 
 	if (drive > 3)
 		return 0;
@@ -204,7 +205,9 @@ static uae_u32 emulib_InsertDisk (uaecptr name, uae_u32 drive)
 	if (i == 255)
 		return 0; /* ENAMETOOLONG */
 
-	_tcscpy (changed_prefs.floppyslots[drive].df, real_name);
+	s = au (real_name);
+	_tcscpy (changed_prefs.floppyslots[drive].df, s);
+	xfree (s);
 
 	return 1;
 }
@@ -251,8 +254,10 @@ static uae_u32 emulib_GetUaeConfig (uaecptr place)
 		put_byte (place + 35, 1);
 
 	for (j = 0; j < 4; j++) {
+		char *s = ua (currprefs.floppyslots[j].df);
 		for (i = 0; i < 256; i++)
-			put_byte (place + 36 + i + j * 256, currprefs.floppyslots[j].df[i]);
+			put_byte (place + 36 + i + j * 256, s[i]);
+		xfree (s);
 	}
 	return 1;
 }
@@ -344,8 +349,7 @@ static int native_dos_op (uae_u32 mode, uae_u32 p1, uae_u32 p2, uae_u32 p3)
 {
 	TCHAR tmp[MAX_DPATH];
 	char *s;
-	int v;
-	unsigned int i;
+	int v, i;
 
 	if (mode)
 		return -1;
@@ -355,10 +359,12 @@ static int native_dos_op (uae_u32 mode, uae_u32 p1, uae_u32 p2, uae_u32 p3)
 	v = get_native_path (p1, tmp);
 	if (v)
 		return v;
-	for (i = 0; i <= strlen (tmp) && i < p3 - 1; i++) {
-		put_byte (p2 + i, tmp[i]);
+	s = ua (tmp);
+	for (i = 0; i <= strlen (s) && i < p3 - 1; i++) {
+		put_byte (p2 + i, s[i]);
 		put_byte (p2 + i + 1, 0);
 	}
+	xfree (s);
 	return 0;
 }
 #ifndef UAEGFX_INTERNAL
@@ -414,7 +420,9 @@ static uae_u32 REGPARAM2 uaelib_demux2 (TrapContext *context)
 	case 85: return native_dos_op (ARG1, ARG2, ARG3, ARG4);
 	case 86:
 		if (valid_address (ARG1, 1)) {
-			write_log ("DBG: %s\n", get_real_address (ARG1));
+			TCHAR *s = au ((char*)get_real_address (ARG1));
+			write_log (_T("DBG: %s\n"), s);
+			xfree (s);
 			return 1;
 		}
 		return 0;
@@ -437,7 +445,7 @@ static uae_u32 REGPARAM2 uaelib_demux (TrapContext *context)
 	struct regstruct *r = &regs;
 
 	if (uaelib_debug)
-		write_log ("%d: %08x %08x %08x %08x %08x %08x %08x %08x, %08x %08x %08x %08x %08x %08x %08x %08x\n",
+		write_log (_T("%d: %08x %08x %08x %08x %08x %08x %08x %08x, %08x %08x %08x %08x %08x %08x %08x %08x\n"),
 		ARG0,
 		r->regs[0],r->regs[1],r->regs[2],r->regs[3],r->regs[4],r->regs[5],r->regs[6],r->regs[7],
 		r->regs[8],r->regs[9],r->regs[10],r->regs[11],r->regs[12],r->regs[13],r->regs[14],r->regs[15]);
@@ -449,7 +457,7 @@ static uae_u32 REGPARAM2 uaelib_demux (TrapContext *context)
 #endif
 	v = uaelib_demux2 (context);
 	if (uaelib_debug)
-		write_log ("=%08x\n", v);
+		write_log (_T("=%08x\n"), v);
 	return v;
 }
 
@@ -469,7 +477,7 @@ void emulib_install (void)
 	dw ((rtarea_base >> 16) | get_word (rtarea_base + 36));
 	dw (get_word (rtarea_base + 38) + 12);
 #endif
-	calltrap (deftrapres (uaelib_demux, 0, "uaelib_demux"));
+	calltrap (deftrapres (uaelib_demux, 0, _T("uaelib_demux")));
 	dw (RTS);
 	org (a);
 }

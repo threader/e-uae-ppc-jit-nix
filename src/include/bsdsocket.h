@@ -38,6 +38,7 @@ struct socketbase {
     struct socketbase *next;
     struct socketbase *nextsig;	/* queue for tasks to signal */
 
+    uaecptr sysbase;
     int dosignal;		/* signal flag */
     uae_u32 ownertask;		/* task that opened the library */
     int signal;			/* signal allocated for that task */
@@ -59,6 +60,11 @@ struct socketbase {
     uae_u32 eintrsigs;		/* EINTR sigmask */
     int eintr;			/* interrupted by eintrsigs? */
     int eventindex;		/* current socket looked at by GetSocketEvents() to prevent starvation */
+	uae_u32 logstat;
+	uae_u32 logptr;
+	uae_u32 logmask;
+	uae_u32 logfacility;
+	uaecptr fdcallback;
 
     /* host-specific fields below */
 #ifdef _WIN32
@@ -118,6 +124,10 @@ struct UAEBSDBase {
 /* socket properties */
 #define SF_BLOCKING 0x80000000
 #define SF_BLOCKINGINPROGRESS 0x40000000
+/* STBC_FDCALLBACK */
+#define FDCB_FREE  0
+#define FDCB_ALLOC 1
+#define FDCB_CHECK 2
 
 extern uae_u32 addstr (uae_u32 *, const char *);
 extern uae_u32 addmem (uae_u32 *, const char *, int len);

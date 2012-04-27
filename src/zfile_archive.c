@@ -17,6 +17,7 @@
 #include "options.h"
 #include "zfile.h"
 #include "archivers/zip/unzip.h"
+#include "archivers/dms/pfile.h"
 #include "crc32.h"
 #include "zarchive.h"
 #include "disk.h"
@@ -173,15 +174,15 @@ struct zfile *archive_access_select (struct znode *parent, struct zfile *zf, uns
 				int whf = 1;
 				int ft = 0;
 				if (mask & ZFD_CD) {
-					if (ext && !_tcsicmp (ext, ".iso")) {
+					if (ext && !_tcsicmp (ext, _T(".iso"))) {
 						whf = 2;
 						ft = ZFILE_CDIMAGE;
 					}
-					if (ext && !_tcsicmp (ext, ".ccd")) {
+					if (ext && !_tcsicmp (ext, _T(".ccd"))) {
 						whf = 9;
 						ft = ZFILE_CDIMAGE;
 					}
-					if (ext && !_tcsicmp (ext, ".cue")) {
+					if (ext && !_tcsicmp (ext, _T(".cue"))) {
 						whf = 10;
 						ft = ZFILE_CDIMAGE;
 					}
@@ -307,13 +308,13 @@ struct zvolume *archive_directory_tar (struct zfile *z)
 		if (ustar && (block[256] != 0 && block[256] != '0'))
 			valid = 0;
 
-		size = strtoul ((char*)block + 124, NULL, 8);
+		size = _strtoui64 ((char*)block + 124, NULL, 8);
 
 		if (valid) {
 			memset (&zai, 0, sizeof zai);
-			zai.name = my_strdup (name);
+			zai.name = au (name);
 			zai.size = size;
-			zai.t = strtoul ((char*)block + 136, NULL, 8);
+			zai.t = _strtoui64 ((char*)block + 136, NULL, 8);
 #if defined(__FreeBSD__)
 			zai.t += tm_local->tm_gmtoff;
 			if (tm_local->tm_isdst)
@@ -339,7 +340,14 @@ struct zvolume *archive_directory_tar (struct zfile *z)
 
 struct zfile *archive_access_tar (struct znode *zn)
 {
+#if 0
+	struct zfile *zf = zfile_fopen_empty (zn->volume->archive, zn->fullname, zn->size);
+	zfile_fseek (zn->volume->archive, zn->offset, SEEK_SET);
+	zfile_fwrite (zf->data, zn->size, 1, zn->volume->archive);
+	return zf;
+#else
 	return zfile_fopen_parent (zn->volume->archive, zn->fullname, zn->offset, zn->size);
+#endif
 }
 
 /* ZIP */
@@ -372,7 +380,11 @@ struct zvolume *archive_directory_zip (struct zfile *z)
 		err = unzGetCurrentFileInfo (uz, &file_info, filename_inzip2, sizeof (filename_inzip2), NULL, 0, NULL, 0);
 		if (err != UNZ_OK)
 			return 0;
-		filename_inzip = my_strdup (filename_inzip2);
+		if (file_info.flag & (1 << 11)) { // UTF-8 encoded
+			filename_inzip = utf8u (filename_inzip2);
+		} else {
+			filename_inzip = au (filename_inzip2);
+		}
 		dd = file_info.dosDate;
 		t = fromdostime (dd);
 		memset (&zai, 0, sizeof zai);
@@ -445,22 +457,22 @@ static struct zfile *archive_do_zip (struct znode *zn, struct zfile *z, int flag
 	if (z) {
 		int err = -1;
 		if (!(flags & FILE_DELAYEDOPEN) || z->size <= PEEK_BYTES) {
-			unpack_log ("ZIP: unpacking %s, flags=%d\n", name, flags);
+			unpack_log (_T("ZIP: unpacking %s, flags=%d\n"), name, flags);
 			err = unzReadCurrentFile (uz, z->data, z->datasize);
-			unpack_log ("ZIP: unpacked, code=%d\n", err);
+			unpack_log (_T("ZIP: unpacked, code=%d\n"), err);
 		} else {
 			z->archiveparent = zfile_dup (zn->volume->archive);
 			if (z->archiveparent) {
-				unpack_log ("ZIP: delayed open '%s'\n", name);
+				unpack_log (_T("ZIP: delayed open '%s'\n"), name);
 				xfree (z->archiveparent->name);
 				z->archiveparent->name = my_strdup (tmp);
 				z->datasize = PEEK_BYTES;
 				err = unzReadCurrentFile (uz, z->data, z->datasize);
-				unpack_log ("ZIP: unpacked, code=%d\n", err);
+				unpack_log (_T("ZIP: unpacked, code=%d\n"), err);
 			} else {
-				unpack_log ("ZIP: unpacking %s (failed DELAYEDOPEN)\n", name);
+				unpack_log (_T("ZIP: unpacking %s (failed DELAYEDOPEN)\n"), name);
 				err = unzReadCurrentFile (uz, z->data, z->datasize);
-				unpack_log ("ZIP: unpacked, code=%d\n", err);
+				unpack_log (_T("ZIP: unpacked, code=%d\n"), err);
 			}
 		}
 	}
@@ -574,7 +586,7 @@ struct zvolume *archive_directory_arcacc (struct zfile *z, unsigned int id)
 			if (fi.IsDir)
 				continue;
 
-			name = my_strdup (fi.path);
+			name = au (fi.path);
 			memset (&zai, 0, sizeof zai);
 			zai.name = name;
 			zai.flags = -1;
@@ -679,7 +691,7 @@ struct zvolume *archive_directory_plain (struct zfile *z)
 		char *an = ua (zai.name);
 		char *data = xmalloc (char, 1 + strlen (an) + 1 + 1 + 1);
 		sprintf (data, "\"%s\"\n", an);
-		zn = addfile (zv, z, "s/startup-sequence", (uae_u8*)data, strlen (data));
+		zn = addfile (zv, z, _T("s/startup-sequence"), (uae_u8*)data, strlen (data));
 		xfree (data);
 		xfree (an);
 	}
@@ -719,7 +731,7 @@ struct zfile *archive_access_plain (struct znode *zn)
 	if (zn->offset) {
 		struct zfile *zf;
 		z = zfile_fopen_empty (zn->volume->archive, zn->fullname, zn->size);
-		zf = zfile_fopen2 (zfile_getname (zn->volume->archive), "rb", zn->volume->archive->zfdmask & ~ZFD_ADF, zn->offset - 1);
+		zf = zfile_fopen4 (zfile_getname (zn->volume->archive), _T("rb"), zn->volume->archive->zfdmask & ~ZFD_ADF, zn->offset - 1);
 		if (zf) {
 			zfile_fread (z->data, zn->size, 1, zf);
 			zfile_fclose (zf);
@@ -771,7 +783,7 @@ static TCHAR *getBSTR (uae_u8 *bstr)
 	for (i = 0; i < n; i++)
 		buf[i] = *bstr++;
 	buf[i] = 0;
-	return my_strdup (buf);
+	return au (buf);
 }
 
 static uae_u32 gl (struct adfhandle *adf, int off)
@@ -844,10 +856,10 @@ static void recurseadf (struct znode *zn, int root, TCHAR *name)
 				return;
 			if (gl (adf, 0) != 2)
 				break;
-			if (gl (adf, 1 * 4) != (unsigned)block)
+			if (gl (adf, 1 * 4) != block)
 				break;
 			secondary = gl (adf, bs - 1 * 4);
-			if (/*secondary != -3 &&*/ secondary != 2)
+			if (secondary != -3 && secondary != 2)
 				break;
 			memset (&zai, 0, sizeof zai);
 			fname = getBSTR (adf->block + bs - 20 * 4);
@@ -860,7 +872,7 @@ static void recurseadf (struct znode *zn, int root, TCHAR *name)
 			}
 			_tcscat (name2, fname);
 			zai.name = name2;
-			if (/*size < 0 ||*/ size > 0x7fffffff)
+			if (size < 0 || size > 0x7fffffff)
 				size = 0;
 			zai.size = size;
 			zai.flags = gl (adf, bs - 48 * 4);
@@ -904,7 +916,7 @@ static void recursesfs (struct znode *zn, int root, TCHAR *name, int sfs2)
 			memset (&zai, 0, sizeof zai);
 			zai.flags = glx (p + 8) ^ 0x0f;
 			s = p + (sfs2 ? 27 : 25);
-			fname = my_strdup ((char*)s);
+			fname = au ((char*)s);
 			i = 0;
 			while (*s) {
 				s++;
@@ -913,7 +925,7 @@ static void recursesfs (struct znode *zn, int root, TCHAR *name, int sfs2)
 			s++;
 			i++;
 			if (*s)
-				zai.comment = my_strdup ((char*)s);
+				zai.comment = au ((char*)s);
 			while (*s) {
 				s++;
 				i++;
@@ -1134,7 +1146,7 @@ static int sfsfindblock (struct adfhandle *adf, int btree, int theblock, struct 
 				blocks = glx (p + 12);
 			else
 				blocks = gwx (p + 12);
-			if (key == (unsigned)theblock) {
+			if (key == theblock) {
 				struct sfsblock *sb;
 				if (*sfsblockcnt >= *sfsmaxblockcnt) {
 					*sfsmaxblockcnt += 100;
@@ -1239,7 +1251,7 @@ struct zfile *archive_access_adf (struct znode *zn)
 		for (i = 0; i < sfsblockcnt; i++)
 			bsize += sfsblocks[i].length * adf->blocksize;
 		if (bsize < size)
-			write_log ("SFS extracting error, %s size mismatch %d<%d\n", z->name, bsize, size);
+			write_log (_T("SFS extracting error, %s size mismatch %d<%d\n"), z->name, bsize, size);
 
 		dst = z->data;
 		block = zn->offset;
@@ -1289,7 +1301,7 @@ static TCHAR *tochar (uae_u8 *s, int len)
 		}
 		tmp[j] = 0;
 	}
-	return my_strdup (tmp);
+	return au (tmp);
 }
 
 struct zvolume *archive_directory_rdb (struct zfile *z)
@@ -1342,15 +1354,15 @@ struct zvolume *archive_directory_rdb (struct zfile *z)
 
 		dos = tochar (buf + 192, 4);
 
-		if (!memcmp (dos, "DOS", 3))
+		if (!memcmp (dos, _T("DOS"), 3))
 			rootblock = ((size / blocksize) - 1 + 2) / 2;
 		else
 			rootblock = 0;
 
 		devname = getBSTR (buf + 36);
-		_stprintf (tmp, "%s.hdf", devname);
+		_stprintf (tmp, _T("%s.hdf"), devname);
 		memset (&zai, 0, sizeof zai);
-		_stprintf (comment, "FS=%s LO=%d HI=%d HEADS=%d SPT=%d RES=%d BLOCK=%d ROOT=%d",
+		_stprintf (comment, _T("FS=%s LO=%d HI=%d HEADS=%d SPT=%d RES=%d BLOCK=%d ROOT=%d"),
 			dos, lowcyl, highcyl, surf, spt, reserved, blocksize, rootblock);
 		zai.comment = comment;
 		xfree (dos);
@@ -1365,7 +1377,7 @@ struct zvolume *archive_directory_rdb (struct zfile *z)
 	zfile_fseek (z, 0, SEEK_SET);
 	p = buf;
 	zfile_fread (buf, 1, 512, z);
-	zai.name = "rdb_dump.dat";
+	zai.name = _T("rdb_dump.dat");
 	bs = rl (p + 16);
 	zai.size = rl (p + 140) * bs;
 	zai.comment = NULL;
@@ -1579,7 +1591,7 @@ static void fatdirectory (struct zfile *z, struct zvolume *zv, TCHAR *name, int 
 		}
 		fatname[cnt] = 0;
 
-		fname = my_strdup ((char*)fatname);
+		fname = au ((char*)fatname);
 		name2[0] = 0;
 		if (name[0]) {
 			TCHAR sep[] = { FSDB_DIR_SEPARATOR, 0 };
@@ -1636,7 +1648,7 @@ struct zvolume *archive_directory_fat (struct zfile *z)
 	dataregion = rootdir + rootentries * 32 / 512;
 
 	zv = zvolume_alloc (z, ArchiveFormatFAT, NULL, NULL);
-	fatdirectory (z, zv, "", rootdir, rootentries, sectorspercluster, reserved, dataregion, fatbits);
+	fatdirectory (z, zv, _T(""), rootdir, rootentries, sectorspercluster, reserved, dataregion, fatbits);
 	zv->method = ArchiveFormatFAT;
 	return zv;
 }
@@ -1712,7 +1724,7 @@ void archive_access_close (void *handle, unsigned int id)
 
 struct zfile *archive_access_dir (struct znode *zn)
 {
-	return zfile_fopen (zn->fullname, "rb", 0);
+	return zfile_fopen (zn->fullname, _T("rb"), 0);
 }
 
 
@@ -1721,7 +1733,7 @@ struct zfile *archive_unpackzfile (struct zfile *zf)
 	struct zfile *zout = NULL;
 	if (!zf->archiveparent)
 		return NULL;
-	unpack_log ("delayed unpack '%s'\n", zf->name);
+	unpack_log (_T("delayed unpack '%s'\n"), zf->name);
 	zf->datasize = zf->size;
 	switch (zf->archiveid)
 	{

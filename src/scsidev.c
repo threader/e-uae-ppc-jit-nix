@@ -219,7 +219,8 @@ static uae_u32 scsidev_open (void)
 #endif
 
     /* Check unit number */
-    if ((sdd = get_scsidev_data (unit)) && start_thread (sdd)) {
+    if ((sdd = get_scsidev_data (unit)) &&
+	start_thread (sdd)) {
 		opencount++;
 		put_word (m68k_areg (regs, 6)+32, get_word (m68k_areg (regs, 6)+32) + 1);
 		put_long (tmp1 + 24, unit); /* io_Unit */
@@ -319,7 +320,8 @@ static void scsidev_do_scsi (struct scsidevdata *sdd, uaecptr request)
     addrbank *bank_cmd  = &get_mem_bank (scsi_cmd);
 
     /* do transfer directly to and from Amiga memory */
-    if (!bank_data || !bank_data->check (scsi_data, scsi_len) || !bank_cmd  || !bank_cmd->check (scsi_cmd, scsi_cmd_len)) {
+    if (!bank_data || !bank_data->check (scsi_data, scsi_len) ||
+	!bank_cmd  || !bank_cmd->check (scsi_cmd, scsi_cmd_len)) {
 		put_byte (request + 31, (uae_u8)-5); /* IOERR_BADADDRESS */
 		return;
     }

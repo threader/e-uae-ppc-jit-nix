@@ -51,6 +51,7 @@
 #define CIAB_DEBUG_R 0
 #define CIAB_DEBUG_W 0
 #define DONGLE_DEBUG 0
+#define KB_DEBUG 0
 
 /* FIXME: Add configure support to enable this. */
 #ifdef HAVE_GETTIMEOFDAY
@@ -91,8 +92,8 @@ static int ciaatodon, ciabtodon;
 static unsigned int ciaapra, ciaaprb, ciaadra, ciaadrb, ciaasdr, ciaasdr_cnt;
 static unsigned int ciabprb, ciabdra, ciabdrb, ciabsdr, ciabsdr_cnt;
 static int div10;
-static int kbstate, kback, ciaasdr_unread;
-static unsigned int sleepyhead;
+static int kbstate, kblostsynccnt;
+static uae_u8 kbcode;
 
 static uae_u8 serbits;
 static int warned = 10;
@@ -311,14 +312,16 @@ static int CIA_update_check (void)
 	if (aovfla) {
 		ciaaicr |= 1; icr = 1;
 		ciaata = ciaala;
-		if (ciaacra & 0x8)
+		if (ciaacra & 0x8) {
 			ciaacra &= ~1;
+	}
 	}
 	if (aovflb) {
 		ciaaicr |= 2; icr = 1;
 		ciaatb = ciaalb;
-		if (ciaacrb & 0x8)
+		if (ciaacrb & 0x8) {
 			ciaacrb &= ~1;
+	}
 	}
 	if (asp) {
 		ciaaicr |= 8; icr = 1;
@@ -326,14 +329,16 @@ static int CIA_update_check (void)
 	if (bovfla) {
 		ciabicr |= 1; icr |= 2;
 		ciabta = ciabla;
-		if (ciabcra & 0x8)
+		if (ciabcra & 0x8) {
 			ciabcra &= ~1;
+	}
 	}
 	if (bovflb) {
 		ciabicr |= 2; icr |= 2;
 		ciabtb = ciablb;
-		if (ciabcrb & 0x8)
+		if (ciabcrb & 0x8) {
 			ciabcrb &= ~1;
+	}
 	}
 	if (bsp) {
 		ciabicr |= 8; icr |= 2;
@@ -494,7 +499,7 @@ static void do_tod_hack (int dotod)
 	if (tod_hack_enabled > 1) {
 		tod_hack_enabled--;
 		if (tod_hack_enabled == 1) {
-			write_log ("TOD HACK enabled\n");
+			write_log (_T("TOD HACK enabled\n"));
 			tod_hack_reset ();
 		}
 		return;
@@ -510,7 +515,7 @@ static void do_tod_hack (int dotod)
 		return;
 	if (rate != oldrate || ciaatod != tod_hack_tod_last) {
 		if (ciaatod != 0)
-			write_log ("TOD HACK reset %d,%d %d,%d\n",
+			write_log (_T("TOD HACK reset %d,%d %d,%d\n"),
 			rate, oldrate, ciaatod, tod_hack_tod_last);
 		tod_hack_reset ();
 		oldrate = rate;
@@ -536,16 +541,17 @@ static int resetwarning_phase, resetwarning_timer;
 
 static void setcode (uae_u8 keycode)
 {
-	ciaasdr = ~((keycode << 1) | (keycode >> 7));
+	kbcode = ~((keycode << 1) | (keycode >> 7));
 }
 
 static void sendrw (void)
 {
 	setcode (AK_RESETWARNING);
-	ciaasdr_unread = 1;
+	ciaasdr = kbcode;
+	kblostsynccnt = 8 * maxvpos * 8; // 8 frames * 8 bits.
 	ciaaicr |= 8;
 	RethinkICRA ();
-	write_log ("KB: sent reset warning code (phase=%d)\n", resetwarning_phase);
+	write_log (_T("KB: sent reset warning code (phase=%d)\n"), resetwarning_phase);
 }
 
 int resetwarning_do (int canreset)
@@ -560,7 +566,7 @@ int resetwarning_do (int canreset)
 	}
 	resetwarning_phase = 1;
 	resetwarning_timer = maxvpos_nom * 5;
-	write_log ("KB: reset warning triggered\n");
+	write_log (_T("KB: reset warning triggered\n"));
 	sendrw ();
 	return 1;
 }
@@ -570,28 +576,31 @@ static void resetwarning_check (void)
 	if (resetwarning_timer > 0) {
 		resetwarning_timer--;
 		if (resetwarning_timer <= 0) {
-			write_log ("KB: reset warning forced reset. Phase=%d\n", resetwarning_phase);
+			write_log (_T("KB: reset warning forced reset. Phase=%d\n"), resetwarning_phase);
 			resetwarning_phase = -1;
+			kblostsynccnt = 0;
 			uae_reset (0);
 		}
 	}
 	if (resetwarning_phase == 1) {
-		if (kback && !(ciaacra & 0x40) && ciaasdr_unread == 2) {
-			write_log ("KB: reset warning second phase..\n");
+		if (!kblostsynccnt) { /* first AK_RESETWARNING handshake received */
+			write_log (_T("KB: reset warning second phase..\n"));
 			resetwarning_phase = 2;
 			resetwarning_timer = maxvpos_nom * 5;
 			sendrw ();
 		}
 	} else if (resetwarning_phase == 2) {
-		if (ciaacra & 0x40) {
+		if (ciaacra & 0x40) { /* second AK_RESETWARNING handshake active */
 			resetwarning_phase = 3;
-			write_log ("KB: reset warning SP = output\n");
-			resetwarning_timer = 10 * maxvpos_nom * vblank_hz; /* wait max 10s */
+			write_log (_T("KB: reset warning SP = output\n"));
+			/* System won't reset until handshake signal becomes inactive or 10s has passed */
+			resetwarning_timer = 10 * maxvpos_nom * vblank_hz;
 		}
 	} else if (resetwarning_phase == 3) {
-		if (!(ciaacra & 0x40)) {
-			write_log ("KB: reset warning end by software. reset.\n");
+		if (!(ciaacra & 0x40)) { /* second AK_RESETWARNING handshake disabled */
+			write_log (_T("KB: reset warning end by software. reset.\n"));
 			resetwarning_phase = -1;
+			kblostsynccnt = 0;
 			uae_reset (0);
 		}
 	}
@@ -599,6 +608,17 @@ static void resetwarning_check (void)
 
 void CIA_hsync_prehandler (void)
 {
+}
+
+static void keyreq (void)
+{
+#if KB_DEBUG
+	write_log (_T("code=%x\n"), kbcode);
+#endif
+	ciaasdr = kbcode;
+	kblostsynccnt = 8 * maxvpos * 8; // 8 frames * 8 bits.
+	ciaaicr |= 8;
+	RethinkICRA ();
 }
 
 void CIA_hsync_posthandler (bool dotod)
@@ -617,54 +637,26 @@ void CIA_hsync_posthandler (bool dotod)
 		resetwarning_check ();
 		while (keys_available ())
 			get_next_key ();
-	} else if ((keys_available () || kbstate < 3) && kback && (ciaacra & 0x40) == 0 && (hsync_counter & 15) == 0) {
-		/*
-		* This hack lets one possible ciaaicr cycle go by without any key
-		* being read, for every cycle in which a key is pulled out of the
-		* queue.  If no hack is used, a lot of key events just get lost
-		* when you type fast.  With a simple hack that waits for ciaasdr
-		* to be read before feeding it another, it will keep up until the
-		* queue gets about 14 characters ahead and then lose events, and
-		* the mouse pointer will freeze while typing is being taken in.
-		* With this hack, you can type 30 or 40 characters ahead with little
-		* or no lossage, and the mouse doesn't get stuck.  The tradeoff is
-		* that the total slowness of typing appearing on screen is worse.
-		*/
-		if (ciaasdr_unread == 2) {
-			ciaasdr_unread = 0;
-		} else if (ciaasdr_unread == 0) {
-			switch (kbstate) {
+	} else if ((keys_available () || kbstate < 3) && !kblostsynccnt && (hsync_counter & 15) == 0) {
+		switch (kbstate)
+		{
 			case 0:
-				ciaasdr = 0; /* powerup resync */
+				kbcode = 0; /* powerup resync */
 				kbstate++;
-				ciaasdr_unread = 3;
 				break;
 			case 1:
 				setcode (AK_INIT_POWERUP);
 				kbstate++;
-				ciaasdr_unread = 3;
 				break;
 			case 2:
 				setcode (AK_TERM_POWERUP);
 				kbstate++;
-				ciaasdr_unread = 3;
 				break;
 			case 3:
-				ciaasdr = ~get_next_key ();
-				ciaasdr_unread = 1;      /* interlock to prevent lost keystrokes */
+				kbcode = ~get_next_key ();
 				break;
 			}
-			ciaaicr |= 8;
-			RethinkICRA ();
-			sleepyhead = 0;
-		} else if (!(++sleepyhead & 15)) {
-			if (ciaasdr_unread == 3) {
-				ciaaicr |= 8;
-				RethinkICRA ();
-			}
-			if (ciaasdr_unread < 3)
-				ciaasdr_unread = 0;	/* give up on this key event after unread for a long time */
-		}
+		keyreq ();
 	}
 }
 
@@ -712,6 +704,16 @@ void CIA_vsync_prehandler (void)
 {
 	led_vsync ();
 	CIA_handler ();
+	if (kblostsynccnt > 0) {
+		kblostsynccnt -= maxvpos;
+		if (kblostsynccnt <= 0) {
+			kblostsynccnt = 0;
+			keyreq ();
+#if KB_DEBUG
+			write_log (_T("lostsync\n"));
+#endif
+		}
+	}
 }
 
 void CIA_vsync_posthandler (bool dotod)
@@ -725,6 +727,12 @@ void CIA_vsync_posthandler (bool dotod)
 		ciaatod &= 0xFFFFFF;
 		ciaa_checkalarm (1);
 	}
+#if 0
+	if (vpos == 0) {
+		write_log (_T("%d\n"), vsync_counter);
+		dumpcia ();
+	}
+#endif
 }
 
 static void bfe001_change (void)
@@ -764,7 +772,7 @@ static uae_u8 ReadCIAA (unsigned int addr)
 	compute_passed_time ();
 
 #if CIAA_DEBUG_R > 0
-	write_log ("R_CIAA: bfe%x01 %08X\n", reg, M68K_GETPC);
+	write_log (_T("R_CIAA: bfe%x01 %08X\n"), reg, M68K_GETPC);
 #endif
 
 	switch (reg) {
@@ -778,7 +786,7 @@ static uae_u8 ReadCIAA (unsigned int addr)
 		tmp = dongle_cia_read (0, reg, tmp);
 #if DONGLE_DEBUG > 0
 		if (notinrom())
-			write_log ("BFE001 R %02X %s\n", tmp, debuginfo(0));
+			write_log (_T("BFE001 R %02X %s\n"), tmp, debuginfo(0));
 #endif
 
 		if (inputrecord_debug & 2) {
@@ -815,7 +823,7 @@ static uae_u8 ReadCIAA (unsigned int addr)
 			tmp = dongle_cia_read (1, reg, tmp);
 #if DONGLE_DEBUG > 0
 			if (notinrom())
-				write_log ("BFE101 R %02X %s\n", tmp, debuginfo(0));
+				write_log (_T("BFE101 R %02X %s\n"), tmp, debuginfo(0));
 #endif
 		}
 		if (ciaacrb & 2) {
@@ -836,13 +844,13 @@ static uae_u8 ReadCIAA (unsigned int addr)
 	case 2:
 #if DONGLE_DEBUG > 0
 		if (notinrom ())
-			write_log ("BFE201 R %02X %s\n", ciaadra, debuginfo(0));
+			write_log (_T("BFE201 R %02X %s\n"), ciaadra, debuginfo(0));
 #endif
 		return ciaadra;
 	case 3:
 #if DONGLE_DEBUG > 0
 		if (notinrom ())
-			write_log ("BFE301 R %02X %s\n", ciaadrb, debuginfo(0));
+			write_log (_T("BFE301 R %02X %s\n"), ciaadrb, debuginfo(0));
 #endif
 		return ciaadrb;
 	case 4:
@@ -873,8 +881,6 @@ static uae_u8 ReadCIAA (unsigned int addr)
 		}
 		return (uae_u8)(ciaatol >> 16);
 	case 12:
-		if (ciaasdr_unread >= 1)
-			ciaasdr_unread = 2;
 		return ciaasdr;
 	case 13:
 		tmp = ciaaicr_reg;
@@ -897,7 +903,7 @@ static uae_u8 ReadCIAB (unsigned int addr)
 
 #if CIAB_DEBUG_R > 0
 	if ((addr >= 8 && addr <= 10) || CIAB_DEBUG_R > 1)
-		write_log ("R_CIAB: bfd%x00 %08X\n", reg, M68K_GETPC);
+		write_log (_T("R_CIAB: bfd%x00 %08X\n"), reg, M68K_GETPC);
 #endif
 
 	compute_passed_time ();
@@ -925,13 +931,13 @@ static uae_u8 ReadCIAB (unsigned int addr)
 		tmp = dongle_cia_read (1, reg, tmp);
 #if DONGLE_DEBUG > 0
 		if (notinrom ())
-			write_log ("BFD000 R %02X %s\n", tmp, debuginfo(0));
+			write_log (_T("BFD000 R %02X %s\n"), tmp, debuginfo(0));
 #endif
 		return tmp;
 	case 1:
 #if DONGLE_DEBUG > 0
 		if (notinrom ())
-			write_log ("BFD100 R %02X %s\n", ciabprb, debuginfo(0));
+			write_log (_T("BFD100 R %02X %s\n"), ciabprb, debuginfo(0));
 #endif
 		tmp = ciabprb;
 		tmp = dongle_cia_read (1, reg, tmp);
@@ -990,6 +996,7 @@ static uae_u8 ReadCIAB (unsigned int addr)
 		RethinkICRB ();
 		return tmp;
 	case 14:
+		//write_log (_T("CIABCRA READ %d %x\n"), ciabcra, M68K_GETPC);
 		return ciabcra;
 	case 15:
 		return ciabcrb;
@@ -1002,7 +1009,7 @@ static void WriteCIAA (uae_u16 addr, uae_u8 val)
 	int reg = addr & 15;
 
 #if CIAA_DEBUG_W > 0
-	write_log ("W_CIAA: bfe%x01 %02X %08X\n", reg, val, M68K_GETPC);
+	write_log (_T("W_CIAA: bfe%x01 %02X %08X\n"), reg, val, M68K_GETPC);
 #endif
 #ifdef ACTION_REPLAY
 	ar_ciaa[reg] = val;
@@ -1015,7 +1022,7 @@ static void WriteCIAA (uae_u16 addr, uae_u8 val)
 	case 0:
 #if DONGLE_DEBUG > 0
 		if (notinrom ())
-			write_log ("BFE001 W %02X %s\n", val, debuginfo(0));
+			write_log (_T("BFE001 W %02X %s\n"), val, debuginfo(0));
 #endif
 		ciaapra = (ciaapra & ~0xc3) | (val & 0xc3);
 		bfe001_change ();
@@ -1029,7 +1036,7 @@ static void WriteCIAA (uae_u16 addr, uae_u8 val)
 	case 1:
 #if DONGLE_DEBUG > 0
 		if (notinrom ())
-			write_log ("BFE101 W %02X %s\n", val, debuginfo(0));
+			write_log (_T("BFE101 W %02X %s\n"), val, debuginfo(0));
 #endif
 		ciaaprb = val;
 		dongle_cia_write (0, reg, val);
@@ -1050,7 +1057,7 @@ static void WriteCIAA (uae_u16 addr, uae_u8 val)
 	case 2:
 #if DONGLE_DEBUG > 0
 		if (notinrom ())
-			write_log ("BFE201 W %02X %s\n", val, debuginfo(0));
+			write_log (_T("BFE201 W %02X %s\n"), val, debuginfo(0));
 #endif
 		ciaadra = val;
 		dongle_cia_write (0, reg, val);
@@ -1061,7 +1068,7 @@ static void WriteCIAA (uae_u16 addr, uae_u8 val)
 		dongle_cia_write (0, reg, val);
 #if DONGLE_DEBUG > 0
 		if (notinrom ())
-			write_log ("BFE301 W %02X %s\n", val, debuginfo(0));
+			write_log (_T("BFE301 W %02X %s\n"), val, debuginfo(0));
 #endif
 #ifdef ARCADIA
 		if (arcadia_bios)
@@ -1129,11 +1136,6 @@ static void WriteCIAA (uae_u16 addr, uae_u8 val)
 	case 12:
 		CIA_update ();
 		ciaasdr = val;
-		if (ciaacra & 0x40) {
-			kback = 1;
-		} else {
-			ciaasdr_cnt = 0;
-		}
 		if ((ciaacra & 0x41) == 0x41 && ciaasdr_cnt == 0)
 			ciaasdr_cnt = 8 * 2;
 		CIA_calctimers ();
@@ -1146,8 +1148,13 @@ static void WriteCIAA (uae_u16 addr, uae_u8 val)
 		val &= 0x7f; /* bit 7 is unused */
 		if ((val & 1) && !(ciaacra & 1))
 			ciaastarta = CIASTARTCYCLESCRA;
-		if (!(ciaacra & 0x40) && (val & 0x40))
-			kback = 1;
+		if ((val & 0x40) == 0 && (ciaacra & 0x40) != 0) {
+			/* todo: check if low to high or high to low only */
+			kblostsynccnt = 0;
+#if KB_DEBUG
+			write_log (_T("KB_ACK %02x->%02x\n"), ciaacra, val);
+#endif
+		}
 		ciaacra = val;
 		if (ciaacra & 0x10) {
 			ciaacra &= ~0x10;
@@ -1175,7 +1182,7 @@ static void WriteCIAB (uae_u16 addr, uae_u8 val)
 
 #if CIAB_DEBUG_W > 0
 	if ((addr >= 8 && addr <= 10) || CIAB_DEBUG_W > 1)
-		write_log ("W_CIAB: bfd%x00 %02X %08X\n", reg, val, M68K_GETPC);
+		write_log (_T("W_CIAB: bfd%x00 %02X %08X\n"), reg, val, M68K_GETPC);
 #endif
 #ifdef ACTION_REPLAY
 	ar_ciab[reg] = val;
@@ -1184,7 +1191,7 @@ static void WriteCIAB (uae_u16 addr, uae_u8 val)
 	case 0:
 #if DONGLE_DEBUG > 0
 		if (notinrom ())
-			write_log ("BFD000 W %02X %s\n", val, debuginfo(0));
+			write_log (_T("BFD000 W %02X %s\n"), val, debuginfo(0));
 #endif
 		dongle_cia_write (1, reg, val);
 		ciabpra = val;
@@ -1200,7 +1207,7 @@ static void WriteCIAB (uae_u16 addr, uae_u8 val)
 	case 1:
 #if DONGLE_DEBUG > 0
 		if (notinrom ())
-			write_log ("BFD100 W %02X %s\n", val, debuginfo(0));
+			write_log (_T("BFD100 W %02X %s\n"), val, debuginfo(0));
 #endif
 		dongle_cia_write (1, reg, val);
 		ciabprb = val;
@@ -1209,7 +1216,7 @@ static void WriteCIAB (uae_u16 addr, uae_u8 val)
 	case 2:
 #if DONGLE_DEBUG > 0
 		if (notinrom ())
-			write_log ("BFD200 W %02X %s\n", val, debuginfo(0));
+			write_log (_T("BFD200 W %02X %s\n"), val, debuginfo(0));
 #endif
 		dongle_cia_write (1, reg, val);
 		ciabdra = val;
@@ -1221,7 +1228,7 @@ static void WriteCIAB (uae_u16 addr, uae_u8 val)
 	case 3:
 #if DONGLE_DEBUG > 0
 		if (notinrom ())
-			write_log ("BFD300 W %02X %s\n", val, debuginfo(0));
+			write_log (_T("BFD300 W %02X %s\n"), val, debuginfo(0));
 #endif
 		dongle_cia_write (1, reg, val);
 		ciabdrb = val;
@@ -1332,7 +1339,7 @@ void CIA_reset (void)
 		tod_hack_enabled = 312 * 50 * 10;
 #endif
 
-	kback = 1;
+	kblostsynccnt = 0;
 	serbits = 0;
 	oldovl = 1;
 	oldcd32mute = 1;
@@ -1341,8 +1348,6 @@ void CIA_reset (void)
 
 	if (!savestate_state) {
 		kbstate = 0;
-		ciaasdr_unread = 0;
-		sleepyhead = 0;
 		ciaatlatch = ciabtlatch = 0;
 		ciaapra = 0; ciaadra = 0;
 		ciaatod = ciabtod = 0; ciaatodon = ciabtodon = 0;
@@ -1381,13 +1386,13 @@ void CIA_reset (void)
 
 void dumpcia (void)
 {
-	write_log ("A: CRA %02x CRB %02x ICR %02x IM %02x TA %04x (%04x) TB %04x (%04x)\n",
+	write_log (_T("A: CRA %02x CRB %02x ICR %02x IM %02x TA %04x (%04x) TB %04x (%04x)\n"),
 		ciaacra, ciaacrb, ciaaicr, ciaaimask, ciaata, ciaala, ciaatb, ciaalb);
-	write_log ("TOD %06x (%06x) ALARM %06x %c%c CYC=%08X\n",
+	write_log (_T("TOD %06x (%06x) ALARM %06x %c%c CYC=%08X\n"),
 		ciaatod, ciaatol, ciaaalarm, ciaatlatch ? 'L' : ' ', ciaatodon ? ' ' : 'S', get_cycles ());
-	write_log ("B: CRA %02x CRB %02x ICR %02x IM %02x TA %04x (%04x) TB %04x (%04x)\n",
-		ciabcra, ciabcrb, ciaaicr, ciabimask, ciabta, ciabla, ciabtb, ciablb);
-	write_log ("TOD %06x (%06x) ALARM %06x %c%c CLK=%d\n",
+	write_log (_T("B: CRA %02x CRB %02x ICR %02x IM %02x TA %04x (%04x) TB %04x (%04x)\n"),
+		ciabcra, ciabcrb, ciabicr, ciabimask, ciabta, ciabla, ciabtb, ciablb);
+	write_log (_T("TOD %06x (%06x) ALARM %06x %c%c CLK=%d\n"),
 		ciabtod, ciabtol, ciabalarm, ciabtlatch ? 'L' : ' ', ciabtodon ? ' ' : 'S', div10 / CYCLE_UNIT);
 }
 
@@ -1405,16 +1410,16 @@ static void REGPARAM3 cia_bput (uaecptr, uae_u32) REGPARAM;
 addrbank cia_bank = {
 	cia_lget, cia_wget, cia_bget,
 	cia_lput, cia_wput, cia_bput,
-	default_xlate, default_check, NULL, "CIA",
+	default_xlate, default_check, NULL, _T("CIA"),
 	cia_lgeti, cia_wgeti, ABFLAG_IO
 };
 
-// Gayle does not enable CIA /CS lines if both CIAs are selected
-// Non-Gayle based Amigas enable both CIAs in this situation
+// Gayle or Fat Gary does not enable CIA /CS lines if both CIAs are selected
+// Old Gary based Amigas enable both CIAs in this situation
 
-STATIC_INLINE int isgayle (void)
+STATIC_INLINE int issinglecia (void)
 {
-	return (currprefs.cs_ide == IDE_A600A1200 || currprefs.cs_pcmcia);
+	return currprefs.cs_ide || currprefs.cs_pcmcia || currprefs.cs_mbdmac;
 }
 
 static void cia_wait_pre (void)
@@ -1470,7 +1475,7 @@ static uae_u32 REGPARAM2 cia_bget (uaecptr addr)
 	v = 0xff;
 	switch ((addr >> 12) & 3) {
 	case 0:
-		if (!isgayle ())
+		if (!issinglecia ())
 			v = (addr & 1) ? ReadCIAA (r) : ReadCIAB (r);
 		break;
 	case 1:
@@ -1483,7 +1488,7 @@ static uae_u32 REGPARAM2 cia_bget (uaecptr addr)
 		if (currprefs.cpu_model == 68000 && currprefs.cpu_compatible)
 			v = (addr & 1) ? regs.irc : regs.irc >> 8;
 		if (warned > 0) {
-			write_log ("cia_bget: unknown CIA address %x PC=%x\n", addr, M68K_GETPC);
+			write_log (_T("cia_bget: unknown CIA address %x PC=%x\n"), addr, M68K_GETPC);
 			warned--;
 		}
 		break;
@@ -1506,7 +1511,7 @@ static uae_u32 REGPARAM2 cia_wget (uaecptr addr)
 	switch ((addr >> 12) & 3)
 	{
 	case 0:
-		if (!isgayle ())
+		if (!issinglecia ())
 			v = (ReadCIAB (r) << 8) | ReadCIAA (r);
 		break;
 	case 1:
@@ -1519,7 +1524,7 @@ static uae_u32 REGPARAM2 cia_wget (uaecptr addr)
 		if (currprefs.cpu_model == 68000 && currprefs.cpu_compatible)
 			v = regs.irc;
 		if (warned > 0) {
-			write_log ("cia_wget: unknown CIA address %x PC=%x\n", addr, M68K_GETPC);
+			write_log (_T("cia_wget: unknown CIA address %x PC=%x\n"), addr, M68K_GETPC);
 			warned--;
 		}
 		break;
@@ -1557,13 +1562,13 @@ static void REGPARAM2 cia_bput (uaecptr addr, uae_u32 value)
 	special_mem |= S_WRITE;
 #endif
 	cia_wait_pre ();
-	if (!isgayle () || (addr & 0x3000) != 0) {
+	if (!issinglecia () || (addr & 0x3000) != 0) {
 		if ((addr & 0x2000) == 0)
 			WriteCIAB (r, value);
 		if ((addr & 0x1000) == 0)
 			WriteCIAA (r, value);
 		if (((addr & 0x3000) == 0x3000) && warned > 0) {
-			write_log ("cia_bput: unknown CIA address %x %x\n", addr, value);
+			write_log (_T("cia_bput: unknown CIA address %x %x\n"), addr, value);
 			warned--;
 		}
 	}
@@ -1578,13 +1583,13 @@ static void REGPARAM2 cia_wput (uaecptr addr, uae_u32 value)
 	special_mem |= S_WRITE;
 #endif
 	cia_wait_pre ();
-	if (!isgayle () || (addr & 0x3000) != 0) {
+	if (!issinglecia () || (addr & 0x3000) != 0) {
 		if ((addr & 0x2000) == 0)
 			WriteCIAB (r, value >> 8);
 		if ((addr & 0x1000) == 0)
 			WriteCIAA (r, value & 0xff);
 		if (((addr & 0x3000) == 0x3000) && warned > 0) {
-			write_log ("cia_wput: unknown CIA address %x %x\n", addr, value);
+			write_log (_T("cia_wput: unknown CIA address %x %x\n"), addr, value);
 			warned--;
 		}
 	}
@@ -1609,7 +1614,7 @@ static void REGPARAM3 clock_bput (uaecptr, uae_u32) REGPARAM;
 addrbank clock_bank = {
 	clock_lget, clock_wget, clock_bget,
 	clock_lput, clock_wput, clock_bput,
-	default_xlate, default_check, NULL, "Battery backed up clock (none)",
+	default_xlate, default_check, NULL, _T("Battery backed up clock (none)"),
 	dummy_lgeti, dummy_wgeti, ABFLAG_IO
 };
 
@@ -1622,9 +1627,9 @@ static uae_u8 rtc_memory[RF5C01A_RAM_SIZE], rtc_alarm[RF5C01A_RAM_SIZE];
 
 static void write_battclock (void)
 {
-	struct zfile *f = zfile_fopen (currprefs.flashfile, "rb+", ZFD_NORMAL);
+	struct zfile *f = zfile_fopen (currprefs.flashfile, _T("rb+"), ZFD_NORMAL);
 	if (!f) {
-		f = zfile_fopen (currprefs.flashfile, "wb", 0);
+		f = zfile_fopen (currprefs.flashfile, _T("wb"), 0);
 		if (f) {
 			zfile_fwrite (rtc_memory, RF5C01A_RAM_SIZE, 1, f);
 			zfile_fwrite (rtc_alarm, RF5C01A_RAM_SIZE, 1, f);
@@ -1644,12 +1649,12 @@ static void write_battclock (void)
 void rtc_hardreset (void)
 {
 	if (currprefs.cs_rtc == 1) { /* MSM6242B */
-		clock_bank.name = "Battery backed up clock (MSM6242B)";
+		clock_bank.name = _T("Battery backed up clock (MSM6242B)");
 		clock_control_d = 0x1;
 		clock_control_e = 0;
 		clock_control_f = 0x4; /* 24/12 */
 	} else if (currprefs.cs_rtc == 2) { /* RF5C01A */
-		clock_bank.name = "Battery backed up clock (RF5C01A)";
+		clock_bank.name = _T("Battery backed up clock (RF5C01A)");
 		clock_control_d = 0x4; /* Timer EN */
 		clock_control_e = 0;
 		clock_control_f = 0;
@@ -1685,7 +1690,7 @@ static uae_u32 REGPARAM2 clock_bget (uaecptr addr)
 #ifdef JIT
 	special_mem |= S_READ;
 #endif
-	//write_log("R: %x (%x), PC=%08x\n", addr, addr >> 2, M68K_GETPC);
+//	write_log(_T("R: %x (%x), PC=%08x\n"), addr, (addr & 0xff) >> 2, M68K_GETPC);
 #ifdef CDTV
 	if (currprefs.cs_cdtvram && addr >= 0xdc8000)
 		return cdtv_battram_read (addr);
@@ -1766,7 +1771,7 @@ static void REGPARAM2 clock_bput (uaecptr addr, uae_u32 value)
 #ifdef JIT
 	special_mem |= S_WRITE;
 #endif
-	//write_log("W: %x: %x, PC=%08x\n", addr, value & 0xff, M68K_GETPC);
+//	write_log(_T("W: %x (%x): %x, PC=%08x\n"), addr, (addr & 0xff) >> 2, value & 0xff, M68K_GETPC);
 #ifdef CDTV
 	if (currprefs.cs_cdtvram && addr >= 0xdc8000) {
 		cdtv_battram_write (addr, value);
@@ -1842,6 +1847,7 @@ void restore_cia_finish (void)
 	CIA_update ();
 	CIA_calctimers ();
 	compute_passed_time ();
+	eventtab[ev_cia].oldcycles -= div10;
 	//dumpcia ();
 	DISK_select_set (ciabprb);
 }
@@ -1995,12 +2001,15 @@ uae_u8 *save_keyboard (int *len, uae_u8 *dstptr)
 	if (dstptr)
 		dstbak = dst = dstptr;
 	else
-		dstbak = dst = xmalloc (uae_u8, 4 + 4 + 1 + 1 + 1);
+		dstbak = dst = xmalloc (uae_u8, 4 + 4 + 1 + 1 + 1 + 1 + 1 + 2);
 	save_u32 (getcapslockstate () ? 1 : 0);
 	save_u32 (1);
 	save_u8 (kbstate);
-	save_u8 (ciaasdr_unread);
-	save_u8 (sleepyhead);
+	save_u8 (0);
+	save_u8 (0);
+	save_u8 (0);
+	save_u8 (kbcode);
+	save_u16 (kblostsynccnt);
 	*len = dst - dstbak;
 	return dstbak;
 }
@@ -2010,10 +2019,13 @@ uae_u8 *restore_keyboard (uae_u8 *src)
 	setcapslockstate (restore_u32 () & 1);
 	uae_u32 v = restore_u32 ();
 	kbstate = restore_u8 ();
-	ciaasdr_unread = restore_u8 ();
-	sleepyhead = restore_u8 ();
+	restore_u8 ();
+	restore_u8 ();
+	 restore_u8 ();
 	if (!(v & 1))
 		kbstate = 3;
+	kbcode = restore_u8 ();
+	kblostsynccnt = restore_u16 ();
 	return src;
 }
 

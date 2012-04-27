@@ -116,7 +116,7 @@ static bool inprec_rstart (uae_u8 type)
 	lastcycle = get_cycles ();
 	int mvp = current_maxvpos ();
 	if ((type != INPREC_DEBUG && type != INPREC_DEBUG2 && type != INPREC_CIADEBUG) || (0 && vsync_counter >= 49 && vsync_counter <= 51))
-		write_log ("INPREC: %010d/%03d: %d (%d/%d) %08x\n", hsync_counter, current_hpos (), type, hsync_counter % mvp, mvp, lastcycle);
+		write_log (_T("INPREC: %010d/%03d: %d (%d/%d) %08x\n"), hsync_counter, current_hpos (), type, hsync_counter % mvp, mvp, lastcycle);
 	inprec_plast = inprec_p;
 	inprec_ru8 (type);
 	inprec_ru16 (0xffff);
@@ -141,8 +141,8 @@ static void inprec_rend (void)
 static bool inprec_realtime (bool stopstart)
 {
 	if (input_record == INPREC_RECORD_RERECORD)
-		gui_message ("INPREC error");
-	write_log ("INPREC: play -> record\n");
+		gui_message (_T("INPREC error"));
+	write_log (_T("INPREC: play -> record\n"));
 	input_record = INPREC_RECORD_RERECORD;
 	input_play = 0;
 	int offset = inprec_p - inprec_buffer;
@@ -171,7 +171,7 @@ static int inprec_pstart (uae_u8 type)
 	if (savestate_state || hsync_counter > 0xffff0000)
 		return 0;
 	if (p == inprec_buffer + inprec_size) {
-		write_log ("INPREC: STOP\n");
+		write_log (_T("INPREC: STOP\n"));
 		if (input_play == INPREC_PLAY_RERECORD) {
 			input_play = 0;
 			inprec_realtime (true);
@@ -180,8 +180,8 @@ static int inprec_pstart (uae_u8 type)
 		}
 		return 0;
 	} else if (p > inprec_buffer + inprec_size) {
-		write_log ("INPREC: buffer error\n");
-		gui_message ("INPREC error");
+		write_log (_T("INPREC: buffer error\n"));
+		gui_message (_T("INPREC error"));
 	}
 	if (p[0] == INPREC_END) {
 		inprec_close (true);
@@ -202,16 +202,16 @@ static int inprec_pstart (uae_u8 type)
 			break;
 #if 0
 		if (p > lastp) {
-			write_log ("INPREC: Next %010d/%03d, %010d/%03d (%d/%d): %d (%d)\n",
+			write_log (_T("INPREC: Next %010d/%03d, %010d/%03d (%d/%d): %d (%d)\n"),
 				hc2, hpos2, hc, hpos, hc2 - hc, hpos2 - hpos, p[5 + 1], p[5]);
 			lastp = p;
 		}
 #endif
 		hc2_orig = hc2;
 		if (type2 == type && hc > hc2) {
-			write_log ("INPREC: %010d/%03d > %010d/%03d: %d missed!\n", hc, hpos, hc2, hpos2, p[0]);
+			write_log (_T("INPREC: %010d/%03d > %010d/%03d: %d missed!\n"), hc, hpos, hc2, hpos2, p[0]);
 #if ENABLE_DEBUGGER == 0
-			gui_message ("INPREC missed error");
+			gui_message (_T("INPREC missed error"));
 #else
 			activate_debugger ();
 #endif
@@ -227,17 +227,17 @@ static int inprec_pstart (uae_u8 type)
 		}
 		if (type2 == type) {
 			if (type != INPREC_DEBUG && type != INPREC_DEBUG2 && type != INPREC_CIADEBUG && cycles != cycles2)
-				write_log ("INPREC: %010d/%03d: %d (%d/%d) (%d/%d) %08X/%08X\n", hc, hpos, type, hc % mvp, mvp, hc_orig - hc2_orig, hpos - hpos2, cycles, cycles2);
+				write_log (_T("INPREC: %010d/%03d: %d (%d/%d) (%d/%d) %08X/%08X\n"), hc, hpos, type, hc % mvp, mvp, hc_orig - hc2_orig, hpos - hpos2, cycles, cycles2);
 			if (cycles != cycles2 + cycleoffset) {
 				if (warned > 0) {
 					warned--;
 					for (i = 0; i < 7; i++)
-						write_log ("%08x (%08x) ", pcs[i], pcs2[i]);
-					write_log ("\n");
+						write_log (_T("%08x (%08x) "), pcs[i], pcs2[i]);
+					write_log (_T("\n"));
 				}
 				cycleoffset = cycles - cycles2;
 #if ENABLE_DEBUGGER == 0
-				gui_message ("INPREC OFFSET=%d\n", (int)cycleoffset / CYCLE_UNIT);
+				gui_message (_T("INPREC OFFSET=%d\n"), (int)cycleoffset / CYCLE_UNIT);
 #else
 				activate_debugger ();
 #endif
@@ -319,9 +319,9 @@ static int inprec_pstr (TCHAR *dst)
 		len++;
 	}
 	if (tmp[0]) {
-		//TCHAR *d = utf8u (tmp);
-		_tcscpy (dst, tmp);
-		//xfree (d);
+		TCHAR *d = utf8u (tmp);
+		_tcscpy (dst, d);
+		xfree (d);
 	}
 	return len;
 }
@@ -345,9 +345,9 @@ int inprec_open (const TCHAR *fname, const TCHAR *statefilename)
 
 	inprec_close (false);
 	if (fname == NULL)
-		inprec_zf = zfile_fopen_empty (NULL, "inp", false);
+		inprec_zf = zfile_fopen_empty (NULL, _T("inp"), 0);
 	else
-		inprec_zf = zfile_fopen (fname, input_record ? "wb" : "rb", ZFD_NORMAL);
+		inprec_zf = zfile_fopen (fname, input_record ? _T("wb") : _T("rb"), ZFD_NORMAL);
 	if (inprec_zf == NULL)
 		return 0;
 
@@ -398,7 +398,7 @@ int inprec_open (const TCHAR *fname, const TCHAR *statefilename)
 			for (;;) {
 				TCHAR tmp[MAX_DPATH];
 				_tcscpy (tmp, fname);
-				_tcscat (tmp, ".uss");
+				_tcscat (tmp, _T(".uss"));
 				if (zfile_exists (tmp)) {
 					_tcscpy (savestate_fname, tmp);
 					break;
@@ -428,7 +428,7 @@ int inprec_open (const TCHAR *fname, const TCHAR *statefilename)
 					_tcscpy (savestate_fname, tmp);
 					break;
 				}
-				write_log ("Failed to open linked statefile '%s'\n", savestate_fname);
+				write_log (_T("Failed to open linked statefile '%s'\n"), savestate_fname);
 				savestate_fname[0] = 0;
 				savestate_state = 0;
 				break;
@@ -459,7 +459,7 @@ int inprec_open (const TCHAR *fname, const TCHAR *statefilename)
 		if (disk_debug_logging < 1)
 			disk_debug_logging = 1 | 2;
 	}
-	write_log ("inprec initialized '%s', play=%d rec=%d\n", fname ? fname : "<internal>", input_play, input_record);
+	write_log (_T("inprec initialized '%s', play=%d rec=%d\n"), fname ? fname : _T("<internal>"), input_play, input_record);
 	refreshtitle ();
 	return 1;
 }
@@ -486,9 +486,9 @@ bool inprec_prepare_record (const TCHAR *statefilename)
 		} else {
 			_tcscpy (state, changed_prefs.inprecfile);
 		}
-		_tcscat (state, ".uss");
+		_tcscat (state, _T(".uss"));
 		savestate_initsave (state, 1, 1, true); 
-		save_state (state, "input recording test");
+		save_state (state, _T("input recording test"));
 		mode = 2;
 	}
 	input_record = INPREC_RECORD_NORMAL;
@@ -513,13 +513,13 @@ void inprec_close (bool clear)
 	xfree (inprec_buffer);
 	inprec_buffer = NULL;
 	input_play = input_record = 0;
-	write_log ("inprec finished\n");
+	write_log (_T("inprec finished\n"));
 	refreshtitle ();
 }
 
 static void setwriteprotect (const TCHAR *fname, bool readonly)
 {
-	struct stat64 st;
+	struct _stat64 st;
 	int mode, oldmode;
 	if (stat (fname, &st))
 		return;
@@ -538,7 +538,7 @@ void inprec_playdiskchange (void)
 	while (inprec_pstart (INPREC_DISKREMOVE)) {
 		int drv = inprec_pu8 ();
 		inprec_pend ();
-		write_log ("INPREC: disk eject drive %d\n", drv);
+		write_log (_T("INPREC: disk eject drive %d\n"), drv);
 		disk_eject (drv);
 	}
 	while (inprec_pstart (INPREC_DISKINSERT)) {
@@ -554,13 +554,13 @@ void inprec_playdiskchange (void)
 			_tcscpy (tmp, tmp3);
 		}
 		if (!zfile_exists (tmp)) {
-			gui_message ("INPREC: Disk image\n'%s'\nnot found!\n", tmp2);
+			gui_message (_T("INPREC: Disk image\n'%s'\nnot found!\n"), tmp2);
 		}
 		_tcscpy (currprefs.floppyslots[drv].df, tmp);
 		_tcscpy (changed_prefs.floppyslots[drv].df, tmp);
 		setwriteprotect (tmp, wp);
 		disk_insert_force (drv, tmp, wp);
-		write_log ("INPREC: disk insert drive %d '%s'\n", drv, tmp);
+		write_log (_T("INPREC: disk insert drive %d '%s'\n"), drv, tmp);
 		inprec_pend ();
 	}
 }
@@ -598,7 +598,7 @@ void inprec_playdebug_cia (uae_u32 v1, uae_u32 v2, uae_u32 v3)
 		uae_u32 vv2 = inprec_pu32 ();
 		uae_u32 vv3 = inprec_pu32 ();
 		if (vv1 != v1 || vv2 != v2 || vv3 != v3)
-			write_log ("CIA SYNC ERROR %08x,%08x %08x,%08x %08x,%08x\n", vv1, v1, vv2, v2, vv3, v3);
+			write_log (_T("CIA SYNC ERROR %08x,%08x %08x,%08x %08x,%08x\n"), vv1, v1, vv2, v2, vv3, v3);
 		inprec_pend ();
 	}
 #endif
@@ -619,7 +619,6 @@ void inprec_playdebug_cpu (int mode)
 #if INPUTRECORD_DEBUG > 0
 	int err = 0;
 	unsigned int i;
-
 	if (inprec_pstart (INPREC_DEBUG2)) {
 		uae_u32 pc1 = m68k_getpc ();
 		uae_u32 pc2 = inprec_pu32 ();
@@ -628,10 +627,10 @@ void inprec_playdebug_cpu (int mode)
 		if (pc1 != pc2) {
 			if (warned > 0) {
 				warned--;
-				write_log ("SYNC ERROR2 PC %08x != %08x\n", pc1, pc2);
+				write_log (_T("SYNC ERROR2 PC %08x != %08x\n"), pc1, pc2);
 				for (i = 0; i < 15; i++)
-					write_log ("%08x ", pcs[i]);
-				write_log ("\n");
+					write_log (_T("%08x "), pcs[i]);
+				write_log (_T("\n"));
 
 			}
 			err = 1;
@@ -644,10 +643,10 @@ void inprec_playdebug_cpu (int mode)
 		if (v1 != v2) {
 			if (warned > 0) {
 				warned--;
-				write_log ("SYNC ERROR2 %08x != %08x\n", v1, v2);
+				write_log (_T("SYNC ERROR2 %08x != %08x\n"), v1, v2);
 				for (i = 0; i < 15; i++)
-					write_log ("%08x ", pcs[i]);
-				write_log ("\n");
+					write_log (_T("%08x "), pcs[i]);
+				write_log (_T("\n"));
 			}
 			err = 1;
 		}
@@ -655,7 +654,7 @@ void inprec_playdebug_cpu (int mode)
 	} else if (input_play > 0) {
 		if (warned > 0) {
 			warned--;
-			write_log ("SYNC ERROR2 debug event missing!?\n");
+			write_log (_T("SYNC ERROR2 debug event missing!?\n"));
 		}
 	}
 #endif
@@ -681,17 +680,17 @@ void inprec_playdebug (uae_u32 val)
 		uae_u32 seed1 = uaerandgetseed ();
 		uae_u32 seed2 = inprec_pu32 ();
 		if (seed1 != seed2) {
-			write_log ("SYNC ERROR seed %08x != %08x\n", seed1, seed2);
+			write_log (_T("SYNC ERROR seed %08x != %08x\n"), seed1, seed2);
 			err = 1;
 		}
 		uae_u32 val2 = inprec_pu32 ();
 		if (val != val2) {
-			write_log ("SYNC ERROR val %08x != %08x\n", val, val2);
+			write_log (_T("SYNC ERROR val %08x != %08x\n"), val, val2);
 			err = 1;
 		}
 		inprec_pend ();
 	} else if (input_play > 0) {
-		gui_message ("SYNC ERROR debug event missing!?\n");
+		gui_message (_T("SYNC ERROR debug event missing!?\n"));
 	}
 #endif
 }
@@ -725,13 +724,13 @@ void inprec_recorddiskchange (int nr, const TCHAR *fname, bool writeprotected)
 			inprec_ru8 (nr);
 			inprec_ru8 (writeprotected ? 1 : 0);
 			inprec_rstr (fname);
-			write_log ("INPREC: disk insert %d '%s'\n", nr, fname);
+			write_log (_T("INPREC: disk insert %d '%s'\n"), nr, fname);
 			inprec_rend ();
 		}
 	} else {
 		if (inprec_rstart (INPREC_DISKREMOVE)) {
 			inprec_ru8 (nr);
-			write_log ("INPREC: disk eject %d\n", nr);
+			write_log (_T("INPREC: disk eject %d\n"), nr);
 			inprec_rend ();
 		}
 	}
@@ -745,10 +744,10 @@ int inprec_getposition (void)
 	} else if (input_record) {
 		pos = zfile_ftell (inprec_zf);
 	}
-	write_log ("INPREC: getpos=%d cycles=%08X\n", pos, lastcycle);
+	write_log (_T("INPREC: getpos=%d cycles=%08X\n"), pos, lastcycle);
 	if (pos < 0) {
-		write_log ("INPREC: getpos failure\n");
-		gui_message ("INPREC error");
+		write_log (_T("INPREC: getpos failure\n"));
+		gui_message (_T("INPREC error"));
 	}
 	return pos;
 }
@@ -756,13 +755,13 @@ int inprec_getposition (void)
 // normal play to re-record
 void inprec_playtorecord (void)
 {
-	write_log ("INPREC: PLAY to RE-RECORD\n");
+	write_log (_T("INPREC: PLAY to RE-RECORD\n"));
 	replaypos = 0;
 	findlast ();
 	input_play = INPREC_PLAY_RERECORD;
 	input_record = INPREC_RECORD_PLAYING;
 	zfile_fclose (inprec_zf);
-	inprec_zf = zfile_fopen_empty (NULL, "inp", false);
+	inprec_zf = zfile_fopen_empty (NULL, _T("inp"), 0);
 	zfile_fwrite (inprec_buffer, header_end2, 1, inprec_zf);
 	uae_u8 *p = inprec_buffer + header_end2;
 	uae_u8 *end = inprec_buffer + inprec_size;
@@ -781,10 +780,10 @@ void inprec_setposition (int offset, int replaycounter)
 	if (!inprec_buffer)
 		return;
 	replaypos = replaycounter;
-	write_log ("INPREC: setpos=%d\n", offset);
+	write_log (_T("INPREC: setpos=%d\n"), offset);
 	if (offset < header_end || offset > zfile_size (inprec_zf)) {
-		write_log ("INPREC: buffer corruption. offset=%d, size=%d\n", offset, zfile_size (inprec_zf));
-		gui_message ("INPREC error");
+		write_log (_T("INPREC: buffer corruption. offset=%d, size=%d\n"), offset, zfile_size (inprec_zf));
+		gui_message (_T("INPREC error"));
 	}
 	zfile_fseek (inprec_zf, 0, SEEK_SET);
 	xfree (inprec_buffer);
@@ -805,8 +804,8 @@ static void savelog (const TCHAR *path, const TCHAR *file)
 
 	_tcscpy (tmp, path);
 	_tcscat (tmp, file);
-	_tcscat (tmp, ".log.txt");
-	struct zfile *zfd = zfile_fopen (tmp, "wb", 0);
+	_tcscat (tmp, _T(".log.txt"));
+	struct zfile *zfd = zfile_fopen (tmp, _T("wb"), 0);
 	if (zfd) {
 		int loglen;
 		uae_u8 *log;
@@ -821,7 +820,7 @@ static void savelog (const TCHAR *path, const TCHAR *file)
 			zfile_fwrite (log, loglen, 1, zfd);
 		xfree (log);
 		zfile_fclose (zfd);
-		write_log ("log '%s' saved\n", tmp);
+		write_log (_T("log '%s' saved\n"), tmp);
 	}
 }
 
@@ -833,21 +832,21 @@ static int savedisk (const TCHAR *path, const TCHAR *file, uae_u8 *data, uae_u8 
 		TCHAR tmp[MAX_DPATH];
 		TCHAR filename[MAX_DPATH];
 		filename[0] = 0;
-		struct zfile *zf = zfile_fopen (fname, "rb", ZFD_NORMAL);
+		struct zfile *zf = zfile_fopen (fname, _T("rb"), ZFD_NORMAL);
 		if (!zf) {
 			_tcscpy (tmp, path);
 			_tcscat (tmp, fname);
-			zf = zfile_fopen (tmp, "rb", ZFD_NORMAL);
+			zf = zfile_fopen (tmp, _T("rb"), ZFD_NORMAL);
 			if (!zf)
-				write_log ("failed to open '%s'\n", tmp);
+				write_log (_T("failed to open '%s'\n"), tmp);
 		}
 		if (zf) {
 			_tcscpy (tmp, path);
 			_tcscpy (filename, file);
-			_tcscat (filename, ".");
+			_tcscat (filename, _T("."));
 			getfilepart (filename + _tcslen (filename), MAX_DPATH, zfile_getname (zf));
 			_tcscat (tmp, filename);
-			struct zfile *zfd = zfile_fopen (tmp, "wb", 0);
+			struct zfile *zfd = zfile_fopen (tmp, _T("wb"), 0);
 			if (zfd) {
 				int size = zfile_size (zf);
 				uae_u8 *data = zfile_getdata (zf, 0, size);
@@ -877,7 +876,7 @@ void inprec_save (const TCHAR *filename, const TCHAR *statefilename)
 		return;
 	getpathpart (path, sizeof path / sizeof (TCHAR), filename);
 	getfilepart (file, sizeof file / sizeof (TCHAR), filename);
-	struct zfile *zf = zfile_fopen (filename, "wb", 0);
+	struct zfile *zf = zfile_fopen (filename, _T("wb"), 0);
 	if (zf) {
 		TCHAR fn[MAX_DPATH];
 		uae_u8 *data;
@@ -913,9 +912,9 @@ void inprec_save (const TCHAR *filename, const TCHAR *statefilename)
 		xfree (data);
 		zfile_fclose (zf);
 		savelog (path, file);
-		write_log ("inputfile '%s' saved\n", filename);
+		write_log (_T("inputfile '%s' saved\n"), filename);
 	} else {
-		write_log ("failed to open '%s'\n", filename);
+		write_log (_T("failed to open '%s'\n"), filename);
 	}
 }
 
@@ -932,22 +931,22 @@ void inprec_getstatus (TCHAR *title)
 	TCHAR *p;
 	if (!input_record && !input_play)
 		return;
-	_tcscat (title, "[");
+	_tcscat (title, _T("["));
 	if (input_record) {
 		if (input_record != INPREC_RECORD_PLAYING)
-			_tcscat (title, "-REC-");
+			_tcscat (title, _T("-REC-"));
 		else
-			_tcscat (title, "REPLAY");
+			_tcscat (title, _T("REPLAY"));
 	} else if (input_play) {
-		_tcscat (title, "PLAY-");
+		_tcscat (title, _T("PLAY-"));
 	}
-	_tcscat (title, " ");
+	_tcscat (title, _T(" "));
 	p = title + _tcslen (title);
 	int mvp = current_maxvpos ();
-	_stprintf (p, "%03d %02d:%02d:%02d/%02d:%02d:%02d", replaypos,
+	_stprintf (p, _T("%03d %02d:%02d:%02d/%02d:%02d:%02d"), replaypos,
 		lasthsync / (vblank_hz * mvp * 60), ((int)(lasthsync / (vblank_hz * mvp)) % 60), (lasthsync / mvp) % (int)vblank_hz,
 		endhsync / (vblank_hz * mvp * 60), ((int)(endhsync / (vblank_hz * mvp)) % 60), (endhsync / mvp) % (int)vblank_hz);
 	p += _tcslen (p);
-	_tcscat (p, "] ");
+	_tcscat (p, _T("] "));
 
 }

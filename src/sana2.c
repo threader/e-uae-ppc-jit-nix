@@ -31,7 +31,7 @@
 #define TRUE 1
 #define FALSE 0
 
-#define SANA2NAME "uaenet.device"
+#define SANA2NAME _T("uaenet.device")
 
 #define MAX_ASYNC_REQUESTS 200
 #define MAX_OPEN_DEVICES 20
@@ -154,7 +154,7 @@ static uaecptr ROM_netdev_resname = 0,
 
 static TCHAR *getdevname (void)
 {
-	return "uaenet.device";
+	return _T("uaenet.device");
 }
 
 struct asyncreq {
@@ -243,7 +243,7 @@ static struct priv_s2devstruct *getps2devstruct (uaecptr request)
 {
 	int i = get_long (request + 24);
 	if (i < 0 || i >= MAX_OPEN_DEVICES || pdevst[i].inuse == 0) {
-		write_log ("%s: corrupt iorequest %08X %d\n", SANA2NAME, request, i);
+		write_log (_T("%s: corrupt iorequest %08X %d\n"), SANA2NAME, request, i);
 		return 0;
 	}
 	return &pdevst[i];
@@ -268,16 +268,16 @@ static uae_u32 REGPARAM2 dev_close_2 (TrapContext *context)
 	struct s2devstruct *dev;
 
 	if (!pdev) {
-		write_log ("%s close with unknown request %08X!?\n", SANA2NAME, request);
+		write_log (_T("%s close with unknown request %08X!?\n"), SANA2NAME, request);
 		return 0;
 	}
 	dev = gets2devstruct (pdev->unit);
 	if (!dev) {
-		write_log ("%s:%d close with unknown request %08X!?\n", SANA2NAME, pdev->unit, request);
+		write_log (_T("%s:%d close with unknown request %08X!?\n"), SANA2NAME, pdev->unit, request);
 		return 0;
 	}
 	if (log_net)
-		write_log ("%s:%d close, open=%d req=%08X\n", SANA2NAME, pdev->unit, dev->opencnt, request);
+		write_log (_T("%s:%d close, open=%d req=%08X\n"), SANA2NAME, pdev->unit, dev->opencnt, request);
 	put_long (request + 24, 0);
 	dev->opencnt--;
 	pdev->inuse = 0;
@@ -293,7 +293,7 @@ static uae_u32 REGPARAM2 dev_close_2 (TrapContext *context)
 		xfree (dev->sysdata);
 		dev->sysdata = NULL;
 		write_comm_pipe_u32 (&dev->requests, 0, 1);
-		write_log ("%s: opencnt == 0, all instances closed\n", SANA2NAME);
+		write_log (_T("%s: opencnt == 0, all instances closed\n"), SANA2NAME);
 	}
 	put_word (m68k_areg (regs, 6) + 32, get_word (m68k_areg (regs, 6) + 32) - 1);
 	return 0;
@@ -314,7 +314,7 @@ static int openfail (uaecptr ioreq, int error)
 	put_byte (ioreq + 31, error);
 	put_long (ioreq + 32, 0); /* io_device */
 	if (log_net)
-		write_log ("-> failed with error %d\n", error);
+		write_log (_T("-> failed with error %d\n"), error);
 	return (uae_u32)-1;
 }
 
@@ -333,7 +333,7 @@ static int initint (TrapContext *ctx)
 	if (!p)
 		return 0;
 	tmp1 = here ();
-	calltrap (deftrap2 (uaenet_int_handler, TRAPFLAG_EXTRA_STACK, "uaenet_int_handler"));
+	calltrap (deftrap2 (uaenet_int_handler, TRAPFLAG_EXTRA_STACK, _T("uaenet_int_handler")));
 	put_word (p + 8, 0x020a);
 	put_long (p + 10, ROM_netdev_resid);
 	put_long (p + 18, tmp1);
@@ -426,7 +426,7 @@ static int add_async_request (struct s2devstruct *dev, uaecptr request)
 	struct asyncreq *ar, *ar2;
 
 	if (log_net)
-		write_log ("%s:%d async request %x added\n", getdevname(), dev->unit, request);
+		write_log (_T("%s:%d async request %x added\n"), getdevname(), dev->unit, request);
 
 	uae_sem_wait (&async_sem);
 	ar = xcalloc (struct asyncreq, 1);
@@ -459,14 +459,14 @@ static int release_async_request (struct s2devstruct *dev, uaecptr request)
 			uae_sem_post (&async_sem);
 			xfree (ar);
 			if (log_net)
-				write_log ("%s:%d async request %x removed\n", getdevname(), dev->unit, request);
+				write_log (_T("%s:%d async request %x removed\n"), getdevname(), dev->unit, request);
 			return 1;
 		}
 		prevar = ar;
 		ar = ar->next;
 	}
 	uae_sem_post (&async_sem);
-	write_log ("%s:%d async request %x not found for removal!\n", getdevname(), dev->unit, request);
+	write_log (_T("%s:%d async request %x not found for removal!\n"), getdevname(), dev->unit, request);
 	return 0;
 }
 
@@ -482,11 +482,11 @@ static void abort_async (struct s2devstruct *dev, uaecptr request)
 {
 	struct asyncreq *ar = get_async_request (dev, request, 1);
 	if (!ar) {
-		write_log ("%s:%d: abort async but no request %x found!\n", getdevname(), dev->unit, request);
+		write_log (_T("%s:%d: abort async but no request %x found!\n"), getdevname(), dev->unit, request);
 		return;
 	}
 	if (log_net)
-		write_log ("%s:%d asyncronous request=%08X aborted\n", getdevname(), dev->unit, request);
+		write_log (_T("%s:%d asyncronous request=%08X aborted\n"), getdevname(), dev->unit, request);
 	do_abort_async (dev, request);
 }
 
@@ -495,7 +495,7 @@ static void signalasync (struct s2devstruct *dev, struct asyncreq *ar, int actua
 	uaecptr request = ar->request;
 	int command = get_word (request + 28);
 	if (log_net)
-		write_log ("%s:%d CMD=%d async request %x completed\n", getdevname(), dev->unit, command, request);
+		write_log (_T("%s:%d CMD=%d async request %x completed\n"), getdevname(), dev->unit, command, request);
 	put_long (request + 32, actual);
 	put_byte (request + 31, err);
 	ar->ready = 1;
@@ -703,7 +703,7 @@ void uaenet_gotdata (struct s2devstruct *dev, const uae_u8 *d, int len)
 	type = (d[12] << 8) | d[13];
 	s2p = createreadpacket (dev, d, len);
 	if (log_net)
-		write_log ("<-DST:%02X.%02X.%02X.%02X.%02X.%02X SRC:%02X.%02X.%02X.%02X.%02X.%02X E=%04X L=%d P=%p\n",
+		write_log (_T("<-DST:%02X.%02X.%02X.%02X.%02X.%02X SRC:%02X.%02X.%02X.%02X.%02X.%02X E=%04X L=%d P=%p\n"),
 		d[0], d[1], d[2], d[3], d[4], d[5],
 		d[6], d[7], d[8], d[9], d[10], d[11],
 		type, len, s2p);
@@ -777,7 +777,7 @@ static int uaenet_getdata (struct s2devstruct *dev, uae_u8 *d, int *len)
 						*len = ars2p->s2p->len;
 						memcpy (d, ars2p->s2p->data, *len);
 						if (log_net)
-							write_log ("->DST:%02X.%02X.%02X.%02X.%02X.%02X SRC:%02X.%02X.%02X.%02X.%02X.%02X E=%04X S=%d\n",
+							write_log (_T("->DST:%02X.%02X.%02X.%02X.%02X.%02X SRC:%02X.%02X.%02X.%02X.%02X.%02X E=%04X S=%d\n"),
 							d[0], d[1], d[2], d[3], d[4], d[5],
 							d[6], d[7], d[8], d[9], d[10], d[11],
 							packettype, *len);
@@ -989,7 +989,7 @@ static int dev_do_io_2 (struct s2devstruct *dev, uaecptr request, int quick)
 	struct priv_s2devstruct *pdev = getps2devstruct (request);
 
 	if (log_net)
-		write_log ("S2: C=%02d T=%04X S=%02X%02X%02X%02X%02X%02X D=%02X%02X%02X%02X%02X%02X L=%d D=%08X SD=%08X BM=%08X\n",
+		write_log (_T("S2: C=%02d T=%04X S=%02X%02X%02X%02X%02X%02X D=%02X%02X%02X%02X%02X%02X L=%d D=%08X SD=%08X BM=%08X\n"),
 		command, packettype,
 		get_byte (srcaddr + 0), get_byte (srcaddr + 1), get_byte (srcaddr + 2), get_byte (srcaddr + 3), get_byte (srcaddr + 4), get_byte (srcaddr + 5),
 		get_byte (dstaddr + 0), get_byte (dstaddr + 1), get_byte (dstaddr + 2), get_byte (dstaddr + 3), get_byte (dstaddr + 4), get_byte (dstaddr + 5), 
@@ -1043,7 +1043,7 @@ static int dev_do_io_2 (struct s2devstruct *dev, uaecptr request, int quick)
 		dev->flush_timeout_cnt = 0;
 		dev->flush_timeout = FLUSH_TIMEOUT;
 		if (log_net)
-			write_log ("CMD_FLUSH started %08x\n", request);
+			write_log (_T("CMD_FLUSH started %08x\n"), request);
 		uae_sem_wait (&async_sem);
 		flush (pdev);
 		uae_sem_post (&async_sem);
@@ -1223,7 +1223,7 @@ toobig:
 	}
 end:
 	if (log_net && (io_error || wire_error))
-		write_log ("-> %d (%d)\n", io_error, wire_error);
+		write_log (_T("-> %d (%d)\n"), io_error, wire_error);
 	put_long (request + 32, wire_error);
 	put_byte (request + 31, io_error);
 	return async;
@@ -1237,7 +1237,7 @@ static int dev_do_io (struct s2devstruct *dev, uaecptr request, int quick)
 
 	put_byte (request + 31, 0);
 	if (!pdev) {
-		write_log ("%s unknown iorequest %08x\n", getdevname (), request);
+		write_log (_T("%s unknown iorequest %08x\n"), getdevname (), request);
 		return 0;
 	}
 	if (command == NSCMD_DEVICEQUERY) {
@@ -1287,20 +1287,20 @@ static uae_u32 REGPARAM2 dev_beginio (TrapContext *context)
 
 	put_byte (request + 8, NT_MESSAGE);
 	if (!pdev) {
-		write_log ("%s unknown iorequest (1) %08x\n", getdevname (), request);
+		write_log (_T("%s unknown iorequest (1) %08x\n"), getdevname (), request);
 		put_byte (request + 31, 32);
 		return get_byte (request + 31);
 	}
 	dev = gets2devstruct (pdev->unit);
 	if (!dev) {
-		write_log ("%s unknown iorequest (2) %08x\n", getdevname (), request);
+		write_log (_T("%s unknown iorequest (2) %08x\n"), getdevname (), request);
 		put_byte (request + 31, 32);
 		return get_byte (request + 31);
 	}
 	put_byte (request + 31, 0);
 	if ((flags & 1) && dev_canquick (dev, request)) {
 		if (dev_do_io (dev, request, 1))
-			write_log ("%s: command %d bug with IO_QUICK\n", SANA2NAME, command);
+			write_log (_T("%s: command %d bug with IO_QUICK\n"), SANA2NAME, command);
 		return get_byte (request + 31);
 	} else {
 		if (command == CMD_WRITE || command == S2_BROADCAST || command == S2_MULTICAST) {
@@ -1340,7 +1340,7 @@ static void *dev_thread (void *devs)
 {
 	struct s2devstruct *dev = (struct s2devstruct*)devs;
 
-	uae_set_thread_priority (2);
+	uae_set_thread_priority (NULL, 1);
 	dev->thread_running = 1;
 	uae_sem_post (&dev->sync_sem);
 	for (;;) {
@@ -1350,7 +1350,7 @@ static void *dev_thread (void *devs)
 			dev->thread_running = 0;
 			uae_sem_post (&dev->sync_sem);
 			uae_sem_post (&change_sem);
-			write_log ("%s: dev_thread killed\n", getdevname ());
+			write_log (_T("%s: dev_thread killed\n"), getdevname ());
 			return 0;
 		} else if (get_async_request (dev, request, 1)) {
 			uae_ReplyMsg (request);
@@ -1372,7 +1372,7 @@ static uae_u32 REGPARAM2 dev_init_2 (TrapContext *context)
 {
 	uae_u32 base = m68k_dreg (regs,0);
 	if (log_net)
-		write_log ("%s init\n", SANA2NAME);
+		write_log (_T("%s init\n"), SANA2NAME);
 	return base;
 }
 
@@ -1388,18 +1388,18 @@ static uae_u32 REGPARAM2 dev_abortio (TrapContext *context)
 	struct s2devstruct *dev;
 
 	if (!pdev) {
-		write_log ("%s abortio but no request %08x found!\n", getdevname(), request);
+		write_log (_T("%s abortio but no request %08x found!\n"), getdevname(), request);
 		put_byte (request + 31, 32);
 		return get_byte (request + 31);
 	}
 	dev = gets2devstruct (pdev->unit);
 	if (!dev) {
-		write_log ("%s (%d) abortio but no request %08x found!\n", getdevname(), pdev->unit, request);
+		write_log (_T("%s (%d) abortio but no request %08x found!\n"), getdevname(), pdev->unit, request);
 		put_byte (request + 31, 32);
 		return get_byte (request + 31);
 	}
 	if (log_net)
-		write_log ("%s:%d abortio %08x\n", getdevname(), dev->unit, request);
+		write_log (_T("%s:%d abortio %08x\n"), getdevname(), dev->unit, request);
 	abort_async (dev, request);
 	return 0;
 }
@@ -1438,14 +1438,14 @@ static uae_u32 REGPARAM2 uaenet_int_handler (TrapContext *ctx)
 							if (pdev && pdev->tmp == 0) {
 								if (handleread (ctx, pdev, request, p->data, p->len, command)) {
 									if (log_net)
-										write_log ("-> %p Accepted, CMD_READ, REQ=%08X LEN=%d\n", p, request, p->len);
+										write_log (_T("-> %p Accepted, CMD_READ, REQ=%08X LEN=%d\n"), p, request, p->len);
 									write_comm_pipe_u32 (&dev->requests, request, 1);
 									dev->packetsreceived++;
 									gotit = 1;
 									pdev->tmp = 1;
 								} else {
 									if (log_net)
-										write_log ("-> %p PacketFilter() rejected, CMD_READ, REQ=%08X LEN=%d\n", p, request, p->len);
+										write_log (_T("-> %p PacketFilter() rejected, CMD_READ, REQ=%08X LEN=%d\n"), p, request, p->len);
 									pdev->tmp = -1;
 								}
 							}
@@ -1462,7 +1462,7 @@ static uae_u32 REGPARAM2 uaenet_int_handler (TrapContext *ctx)
 							struct priv_s2devstruct *pdev = getps2devstruct (request);
 							if (pdev && pdev->tmp <= 0) {
 								if (log_net)
-									write_log ("-> %p Accepted, S2_READORPHAN, REQ=%08X LEN=%d\n", p, request, p->len);
+									write_log (_T("-> %p Accepted, S2_READORPHAN, REQ=%08X LEN=%d\n"), p, request, p->len);
 								handleread (ctx, pdev, request, p->data, p->len, command);
 								write_comm_pipe_u32 (&dev->requests, request, 1);
 								dev->packetsreceived++;
@@ -1476,7 +1476,7 @@ static uae_u32 REGPARAM2 uaenet_int_handler (TrapContext *ctx)
 				}
 				if (!gotit) {
 					if (log_net)
-						write_log ("-> %p packet dropped, LEN=%d\n", p, p->len);
+						write_log (_T("-> %p packet dropped, LEN=%d\n"), p, p->len);
 					for (j = 0; j < MAX_OPEN_DEVICES; j++) {
 						if (pdevst[j].unit == dev->unit) {
 							if (pdevst[j].tracks[type])
@@ -1525,7 +1525,7 @@ static uae_u32 REGPARAM2 uaenet_int_handler (TrapContext *ctx)
 					/* do not reply CMD_FLUSH until all other requests are gone */
 					if (dev->ar->next == NULL) {
 						if (log_net)
-							write_log ("CMD_FLUSH replied %08x\n", request);
+							write_log (_T("CMD_FLUSH replied %08x\n"), request);
 						write_comm_pipe_u32 (&dev->requests, request, 1);
 						uaenet_vsync_requested--;
 					} else {
@@ -1535,7 +1535,7 @@ static uae_u32 REGPARAM2 uaenet_int_handler (TrapContext *ctx)
 							if (dev->flush_timeout <= 0) {
 								dev->flush_timeout = FLUSH_TIMEOUT;
 								if (dev->flush_timeout_cnt > 1)
-									write_log ("WARNING: %s:%d CMD_FLUSH possibly frozen..\n", getdevname(), pdev->unit);
+									write_log (_T("WARNING: %s:%d CMD_FLUSH possibly frozen..\n"), getdevname(), pdev->unit);
 								dev->flush_timeout_cnt++;
 								flush (pdev);
 							}
@@ -1561,7 +1561,7 @@ static void dev_reset (void)
 	struct s2devstruct *dev;
 	int unitnum = 0;
 
-	write_log ("%s reset\n", getdevname());
+	write_log (_T("%s reset\n"), getdevname());
 	for (i = 0; i < MAX_TOTAL_NET_DEVICES; i++) {
 		dev = &devst[i];
 		if (dev->opencnt) {
@@ -1593,7 +1593,7 @@ uaecptr netdev_startup (uaecptr resaddr)
 	if (!currprefs.sana2)
 		return resaddr;
 	if (log_net)
-		write_log ("netdev_startup(0x%x)\n", resaddr);
+		write_log (_T("netdev_startup(0x%x)\n"), resaddr);
 	/* Build a struct Resident. This will set up and initialize
 	* the uaescsi.device */
 	put_word (resaddr + 0x0, 0x4AFC);
@@ -1617,38 +1617,38 @@ void netdev_install (void)
 	if (!currprefs.sana2)
 		return;
 	if (log_net)
-		write_log ("netdev_install(): 0x%x\n", here ());
+		write_log (_T("netdev_install(): 0x%x\n"), here ());
 
 	uaenet_enumerate_free (td);
 	uaenet_enumerate (&td, NULL);
 
 	ROM_netdev_resname = ds (getdevname());
-	ROM_netdev_resid = ds ("UAE net.device 0.2");
-	timerdevname = ds ("timer.device");
+	ROM_netdev_resid = ds (_T("UAE net.device 0.2"));
+	timerdevname = ds (_T("timer.device"));
 
 	/* initcode */
 	initcode = here ();
-	calltrap (deftrap2 (dev_init, TRAPFLAG_EXTRA_STACK, "uaenet.init")); dw (RTS);
+	calltrap (deftrap2 (dev_init, TRAPFLAG_EXTRA_STACK, _T("uaenet.init"))); dw (RTS);
 
 	/* Open */
 	openfunc = here ();
-	calltrap (deftrap2 (dev_open, TRAPFLAG_EXTRA_STACK, "uaenet.open")); dw (RTS);
+	calltrap (deftrap2 (dev_open, TRAPFLAG_EXTRA_STACK, _T("uaenet.open"))); dw (RTS);
 
 	/* Close */
 	closefunc = here ();
-	calltrap (deftrap2 (dev_close, TRAPFLAG_EXTRA_STACK, "uaenet.close")); dw (RTS);
+	calltrap (deftrap2 (dev_close, TRAPFLAG_EXTRA_STACK, _T("uaenet.close"))); dw (RTS);
 
 	/* Expunge */
 	expungefunc = here ();
-	calltrap (deftrap2 (dev_expunge, TRAPFLAG_EXTRA_STACK, "uaenet.expunge")); dw (RTS);
+	calltrap (deftrap2 (dev_expunge, TRAPFLAG_EXTRA_STACK, _T("uaenet.expunge"))); dw (RTS);
 
 	/* BeginIO */
 	beginiofunc = here ();
-	calltrap (deftrap2 (dev_beginio, TRAPFLAG_EXTRA_STACK, "uaenet.beginio")); dw (RTS);
+	calltrap (deftrap2 (dev_beginio, TRAPFLAG_EXTRA_STACK, _T("uaenet.beginio"))); dw (RTS);
 
 	/* AbortIO */
 	abortiofunc = here ();
-	calltrap (deftrap2 (dev_abortio, TRAPFLAG_EXTRA_STACK, "uaenet.abortio")); dw (RTS);
+	calltrap (deftrap2 (dev_abortio, TRAPFLAG_EXTRA_STACK, _T("uaenet.abortio"))); dw (RTS);
 
 	/* FuncTable */
 	functable = here ();
@@ -1720,7 +1720,7 @@ void netdev_start_threads (void)
 	if (!currprefs.sana2)
 		return;
 	if (log_net)
-		write_log ("netdev_start_threads()\n");
+		write_log (_T("netdev_start_threads()\n"));
 	uae_sem_init (&change_sem, 0, 1);
 	uae_sem_init (&async_sem, 0, 1);
 }

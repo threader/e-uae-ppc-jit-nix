@@ -1218,8 +1218,8 @@ int graphics_init (void)
     current_height = currprefs.gfx_size_win.height;
 
     if (find_best_mode (&current_width, &current_height, bitdepth, fullscreen)) {
-	gfxvidinfo.width  = current_width;
-	gfxvidinfo.height = current_height;
+	gfxvidinfo.width_allocated = current_width;
+	gfxvidinfo.height_allocated = current_height;
 
 	if (graphics_subinit ()) {
 	    success = 1;
@@ -1740,7 +1740,7 @@ int DX_FillResolutions (uae_u16 *ppixel_format)
 	struct PicassoResolution *DisplayModes = md->DisplayModes;
 	md->DisplayModes = xmalloc (struct PicassoResolution, MAX_PICASSO_MODES);
 	md->DisplayModes[0].depth = -1;
-	md->disabled = 1;
+//	md->disabled = 1;
 
 	/* Check list of standard P96 screenmodes */
 	for (i = 0; i < MAX_SCREEN_MODES; i++) {
@@ -1834,8 +1834,8 @@ void gfx_set_picasso_state (int on)
 		graphics_subinit ();
     } else {
 		// Set height, width for Amiga gfx
-		current_width  = gfxvidinfo.width;
-		current_height = gfxvidinfo.height;
+		current_width  = gfxvidinfo.width_allocated;
+		current_height = gfxvidinfo.height_allocated;
 		graphics_subinit ();
 	}
 
@@ -1843,7 +1843,7 @@ void gfx_set_picasso_state (int on)
 		DX_SetPalette (0, 256);
 }
 
-uae_u8 *gfx_lock_picasso (int fullupdate)
+uae_u8 *gfx_lock_picasso (bool fullupdate, bool doclear)
 {
 	DEBUG_LOG ("Function: gfx_lock_picasso\n");
 
@@ -1862,7 +1862,7 @@ uae_u8 *gfx_lock_picasso (int fullupdate)
 #endif /* USE_GL */
 }
 
-void gfx_unlock_picasso (void)
+void gfx_unlock_picasso (bool dorender)
 {
 	DEBUG_LOG ("Function: gfx_unlock_picasso\n");
 
@@ -2065,7 +2065,7 @@ static int get_kb_widget_first (unsigned int kb, int type)
 static int get_kb_widget_type (unsigned int kb, unsigned int num, char *name, uae_u32 *code)
 {
 	// fix me
-	*code = num;
+	//*code = num;
 	return IDEV_WIDGET_KEY;
 }
 
