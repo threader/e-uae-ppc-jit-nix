@@ -1608,6 +1608,19 @@ static bool getvblankpos (int *vp)
 		return true;
 }
 
+static bool getvblankpos2 (int *vp, int *flags)
+{
+	if (!getvblankpos (vp))
+		return false;
+	if (*vp > 100 && flags) {
+		if ((*vp) & 1)
+			*flags |= 2;
+		else
+			*flags |= 1;
+	}
+	return true;
+}
+
 double vblank_calibrate (double approx_vblank, bool waitonly)
 {
   frame_time_t t1, t2;
@@ -1705,16 +1718,18 @@ static bool isthreadedvsync (void)
         return isvsync_chipset () <= -2 || isvsync_rtg () < 0;
 }
 
-static bool waitvblankstate (bool state, int *maxvpos)
+static bool waitvblankstate (bool state, int *maxvpos, int *flags)
 {
         int vp;
+	if (flags)
+		*flags = 0;
         for (;;) {
                 int omax = maxscanline;
-                if (!getvblankpos (&vp))
+                if (!getvblankpos2 (&vp, flags))
                         return false;
                 while (omax != maxscanline) {
                         omax = maxscanline;
-                        if (!getvblankpos (&vp))
+                        if (!getvblankpos2 (&vp, flags))
                                 return false;
                 }
                 if (maxvpos)
@@ -1804,7 +1819,7 @@ bool vsync_busywait_do (int *freetime, bool lace, bool oddeven)
         t = read_processor_time ();
         ti = t - prevtime;
         if (ti > 2 * vblankbasefull || ti < -2 * vblankbasefull) {
-                waitvblankstate (false, NULL);
+                waitvblankstate (false, NULL, NULL);
                 t = read_processor_time ();
                 vblank_prev_time = t;
                 thread_vblank_time = t;

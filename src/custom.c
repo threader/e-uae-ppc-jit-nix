@@ -4976,7 +4976,7 @@ STATIC_INLINE void do_sprites_1 (int num, int cycle, int hpos)
 #endif
 #if SPRITE_DEBUG > 3
 	if (vpos >= SPRITE_DEBUG_MINY && vpos <= SPRITE_DEBUG_MAXY)
-		write_log ("%d:%d:slot%d:%d\n", vpos, hpos, num, cycle);
+		write_log (_T("%d:%d:slot%d:%d\n"), vpos, hpos, num, cycle);
 #endif
 	if (vpos == s->vstart) {
 #if SPRITE_DEBUG > 0
@@ -5970,8 +5970,8 @@ static void hsync_handler_post (bool onvsync)
 	cnt++;
 	if (cnt == 500) {
 		int port_insert_custom (int inputmap_port, int devicetype, DWORD flags, const TCHAR *custom);
-		port_insert_custom (0, 0, 0, L"Left=0xC8 Right=0xD0 Up=0xCB Down=0xCD Fire=0x39");
-		port_insert_custom (1, 0, 0, L"Left=0x48 Right=0x50 Up=0x4B Down=0x4D Fire=0x4C");
+		port_insert_custom (0, 2, 0, L"Fire.autorepeat=0x38 Left=0x4B Right=0x4D Up=0x48 Down=0x50 Fire=0x4C Fire2=0x52'");
+		port_insert_custom (1, 2, 0, L"Left=0x48 Right=0x50 Up=0x4B Down=0x4D Fire=0x4C");
 	} else if (cnt == 1000) {
 		TCHAR out[256];
 		bool port_get_custom (int inputmap_port, TCHAR *out);
@@ -5989,15 +5989,28 @@ static void hsync_handler_post (bool onvsync)
 				is_syncline = 1;
 		}
 	} else {
+			static int linecounter;
 			/* end of scanline, run cpu emulation as long as we still have time */
 			vsyncmintime += vsynctimeperline;
+			linecounter++;
 			is_syncline = 0;
 			if (!vblank_found_chipset) {
-				if ((int)vsyncmaxtime - (int)vsyncmintime > 0 && (int)vsyncwaittime - (int)vsyncmintime > 0) {
+				if ((int)vsyncmaxtime - (int)vsyncmintime > 0) {
+					if ((int)vsyncwaittime - (int)vsyncmintime > 0) {
 					frame_time_t rpt = uae_gethrtime ();
 					/* Extra time left? Do some extra CPU emulation */
 					if ((int)vsyncmintime - (int)rpt > 0) {
+							is_syncline = 1;
+							/* limit extra time */
+							is_syncline_end = rpt + vsynctimeperline;
+							linecounter = 0;
+						}
+					}
+					// extra cpu emulation time if previous 8 lines without extra time.
+					if (!is_syncline && linecounter >= 8) {
 						is_syncline = -1;
+						is_syncline_end = read_processor_time () + vsynctimeperline;
+						linecounter = 0;
 					}
 				}
 			}

@@ -63,7 +63,7 @@
 struct uae_prefs currprefs, changed_prefs;
 int config_changed;
 
-int pissoff_value = 25000;
+int pissoff_value = 20000 * CYCLE_UNIT;
 int pause_emulation;
 char start_path_data[MAX_DPATH];
 bool no_gui = 0, quit_to_gui = 0;
