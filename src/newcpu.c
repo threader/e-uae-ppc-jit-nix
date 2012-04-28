@@ -3523,7 +3523,7 @@ STATIC_INLINE int do_specialties (int cycles)
 				static int sleepcnt, lvpos, zerocnt;
 				if (vpos != lvpos) {
 					lvpos = vpos;
-					frame_time_t rpt = read_processor_time ();
+					frame_time_t rpt = uae_gethrtime ();
 					if ((int)rpt - (int)vsyncmaxtime < 0) {
 					sleepcnt--;
 #if 0

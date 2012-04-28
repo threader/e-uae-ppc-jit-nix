@@ -16,6 +16,9 @@ STATIC_INLINE uae_u32 do_get_mem_long (uae_u32 *a)
 
 STATIC_INLINE uae_u32 do_get_mem_word (uae_u16 *a)
 {
+uae_u8 *b = (uae_u8 *)a;
+return (*b << 8) | (*(b+1));
+
     uae_u32 retval;
 
 #ifdef X86_PPRO_OPT

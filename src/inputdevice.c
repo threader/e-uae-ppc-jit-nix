@@ -3400,7 +3400,7 @@ static void setbuttonstateall (struct uae_input_device *id, struct uae_input_dev
 	if (input_play)
 		return;
 	if (!id->enabled) {
-		frame_time_t t = read_processor_time ();
+		frame_time_t t = uae_gethrtime ();
 		if (state) {
 			switchdevice_timeout = t;
 		} else {
@@ -3922,6 +3922,11 @@ static void setautofireevent (struct uae_input_device *uid, int num, int sub, in
 	unsigned int k;
 	if (!af)
 		return;
+#ifdef RETROPLATFORM
+	// don't override custom AF autofire mappings
+	if (rp_isactive ())
+		return;
+#endif
 	int *afp = af_ports[index];
 	for (k = 0; afp[k] >= 0; k++) {
 		if (afp[k] == uid->eventid[num][sub]) {
@@ -4279,6 +4284,11 @@ static void setautofire (struct uae_input_device *uid, int port, int af)
 
 static void setautofires (struct uae_prefs *prefs, int port, int af)
 {
+#ifdef RETROPLATFORM
+	// don't override custom AF autofire mappings
+	if (rp_isactive ())
+		return;
+#endif
 	unsigned int l;
 	for (l = 0; l < MAX_INPUT_DEVICES; l++) {
 		setautofire (&joysticks[l], port, af);

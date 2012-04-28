@@ -3509,7 +3509,8 @@ static void parse_cpu_specs (struct uae_prefs *p, const TCHAR *spec)
 		return;
 	}
 
-	p->cpu_model = (*spec++) * 10 + 68000;
+	//p->cpu_model = (*spec++) * 10 + 68000;
+	p->cpu_model = atoi(spec) * 10 + 68000;
 	p->address_space_24 = p->cpu_model < 68020;
 	p->cpu_compatible = 0;
 	while (*spec != '\0') {
@@ -4309,8 +4310,8 @@ void default_prefs (struct uae_prefs *p, int type)
 	_tcscpy (p->floppyslots[3].df, _T("df3.adf"));
 
 	configure_rom (p, roms, 0);
-	_tcscpy (p->romfile, "kick.rom");
-	_tcscpy (p->romextfile, _T(""));
+	_tcscpy (p->romfile, _T("kick.rom"));
+	_tcscpy (p->romextfile, _T("kick_ext.rom"));
 	_tcscpy (p->romextfile2, _T(""));
 	p->romextfile2addr = 0;
 	_tcscpy (p->flashfile, _T(""));

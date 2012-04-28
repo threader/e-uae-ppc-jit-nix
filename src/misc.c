@@ -1582,7 +1582,7 @@ static bool getvblankpos (int *vp)
 {
         int sl;
 #if 0
-        frame_time_t t = read_processor_time ();
+        frame_time_t t = uae_gethrtime ();
 #endif
         *vp = -2; 
         if (currprefs.gfx_api) {
@@ -1593,7 +1593,7 @@ static bool getvblankpos (int *vp)
                 //        return false;
         }
 #if 0
-        t = read_processor_time () - t;
+        t = uae_gethrtime () - t;
         write_log (_T("(%d:%d)"), t, sl);
 #endif
         prevvblankpos = sl;
@@ -1658,12 +1658,12 @@ double vblank_calibrate (double approx_vblank, bool waitonly)
         return -1;
       if (!waitvblankstate (true))
         return -1;
-      t1 = read_processor_time ();
+      t1 = uae_gethrtime ();
       if (!waitvblankstate (false))
         return -1;
       if (!waitvblankstate (true))
         return -1;
-      t2 = read_processor_time ();
+      t2 = uae_gethrtime ();
       tval = (double)syncbase / (t2 - t1);
       if (cnt == 0)
         tfirst = tval;
@@ -1816,11 +1816,11 @@ bool vsync_busywait_do (int *freetime, bool lace, bool oddeven)
         else
                 vblankbaselace_chipset = -1;
 
-        t = read_processor_time ();
+        t = uae_gethrtime ();
         ti = t - prevtime;
         if (ti > 2 * vblankbasefull || ti < -2 * vblankbasefull) {
                 waitvblankstate (false, NULL, NULL);
-                t = read_processor_time ();
+                t = uae_gethrtime ();
                 vblank_prev_time = t;
                 thread_vblank_time = t;
                 frame_missed++;
@@ -1871,7 +1871,7 @@ bool vsync_busywait_do (int *freetime, bool lace, bool oddeven)
 	                }
 
 	                if (!doskip) {
-	                        while (!framelost && read_processor_time () - prevtime < vblankbasewait1) {
+	                        while (!framelost && uae_gethrtime () - prevtime < vblankbasewait1) {
 	                                vsync_sleep (false);
 	                        }
 	                        v = vblank_wait ();
@@ -1883,7 +1883,7 @@ bool vsync_busywait_do (int *freetime, bool lace, bool oddeven)
 	        }
 
 	        if (v) {
-	                vblank_prev_time = read_processor_time ();
+	                vblank_prev_time = uae_gethrtime ();
 	                frame_counted++;
 	                return true;
 	        }

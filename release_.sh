@@ -9,6 +9,7 @@ make clean
 
 rm -rf ./df0.adz
 rm -rf ./kick.rom
+rm -rf ./kick_ext.rom
 
 rm -rf ./aclocal.m4
 

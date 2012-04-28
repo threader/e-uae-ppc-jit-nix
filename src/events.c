@@ -51,7 +51,7 @@ void do_cycles_slow (unsigned long cycles_to_add)
 
 		/* Keep only CPU emulation running while waiting for sync point. */
 		if (is_syncline > 0) {
-			int rpt = read_processor_time ();
+			int rpt = uae_gethrtime ();
 			int v = rpt - vsyncmintime;
 			int v2 = rpt - is_syncline_end;
 			if (v > (int)vsynctimebase || v < -((int)vsynctimebase)) {
@@ -63,7 +63,7 @@ void do_cycles_slow (unsigned long cycles_to_add)
 			}
 			is_syncline = 0;
 		} else if (is_syncline < 0) {
-			int rpt = read_processor_time ();
+			int rpt = uae_gethrtime ();
 			int v = rpt - is_syncline_end;
 			if (v < 0 && !vblank_found_chipset) {
 				pissoff = pissoff_value;

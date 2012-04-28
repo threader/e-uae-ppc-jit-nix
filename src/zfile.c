@@ -523,18 +523,30 @@ struct zfile *zfile_gunzip (struct zfile *z)
 	uae_u8 buffer[8192];
 	struct zfile *z2;
 	uae_u8 b;
-
 	_tcscpy (name, z->name);
 	memset (&zs, 0, sizeof (zs));
 	memset (header, 0, sizeof (header));
-	zfile_fread (header, sizeof (header), 1, z);
+	int read;
+	read = zfile_fread (header, sizeof (header), 1, z);
+#if 0
+	if (!read) {
+                write_log("zfile_gunzip: %s failed. couldn't read file.\n", z->name);
+		return NULL;
+	}
+#endif
 	flags = header[3];
-	if (header[0] != 0x1f && header[1] != 0x8b)
+	if (header[0] != 0x1f && header[1] != 0x8b) {
+                write_log("zfile_gunzip: %s failed. not gzipped file.\n", z->name);
 		return NULL;
-	if (flags & 2) /* multipart not supported */
+	}
+	if (flags & 2) { /* multipart not supported */
+                write_log("zfile_gunzip: %s failed. multipart not supported.\n", z->name);
 		return NULL;
-	if (flags & 32) /* encryption not supported */
+	}
+	if (flags & 32) { /* encryption not supported */
+                write_log("zfile_gunzip: %s failed. encryption not supported.\n", z->name);
 		return NULL;
+	}
 	if (flags & 4) { /* skip extra field */
 		zfile_fread (&b, 1, 1, z);
 		size = b;
@@ -1935,7 +1947,7 @@ struct zfile *zfile_fopen_parent (struct zfile *z, const TCHAR *name, uae_u64 of
 	return l;
 }
 
-struct zfile *zfile_fopen_data (const TCHAR *name, uae_u64 size, uae_u8 *data)
+struct zfile *zfile_fopen_data (const TCHAR *name, uae_u64 size, const uae_u8 *data)
 {
 	struct zfile *l;
 
@@ -1947,6 +1959,24 @@ struct zfile *zfile_fopen_data (const TCHAR *name, uae_u64 size, uae_u8 *data)
 	memcpy (l->data, data, size);
 	return l;
 }
+
+uae_u8 *zfile_load_data (const TCHAR *name, const uae_u8 *data,int datalen, int *outlen)
+{
+	struct zfile *zf, *f;
+	int size;
+	uae_u8 *out;
+	
+	zf = zfile_fopen_data (name, datalen, data);
+	f = zfile_gunzip (zf);
+	size = f->datasize;
+	zfile_fseek (f, 0, SEEK_SET);
+	out = xmalloc (uae_u8, size);
+	zfile_fread (out, 1, size, f);
+	zfile_fclose (f);
+	*outlen = size;
+	return out;
+}
+
 
 int zfile_truncate (struct zfile *z, uae_s64 size)
 {
@@ -2027,8 +2057,8 @@ size_t zfile_fread  (void *b, size_t l1, size_t l2, struct zfile *z)
 				l2 = (z->size - z->seek) / l1;
 			else
 				l2 = 0;
-//			if (l2 < 0)
-//				l2 = 0;
+			if (l2 < 0)
+				l2 = 0;
 		}
 		memcpy (b, z->data + z->offset + z->seek, l1 * l2);
 		z->seek += l1 * l2;
@@ -2044,8 +2074,8 @@ size_t zfile_fread  (void *b, size_t l1, size_t l2, struct zfile *z)
 				l2 = (size - v) / l1;
 			else
 				l2 = 0;
-//			if (l2 < 0)
-//				l2 = 0;
+			if (l2 < 0)
+				l2 = 0;
 		}
 		zfile_fseek (z->parent, z->seek + z->offset, SEEK_SET);
 		v = z->seek;

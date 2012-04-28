@@ -1659,7 +1659,7 @@ static bool load_extendedkickstart (const TCHAR *romextfile, int type)
 #endif
 	f = read_rom_name (romextfile);
 	if (!f) {
-		gui_message ("No extended ROM found.");
+		notify_user (NUMSG_NOEXTROM);
 		return false;
 	}
 	zfile_fseek (f, 0, SEEK_END);
@@ -1775,26 +1775,19 @@ static void patch_kick (void)
 		kickstart_fix_checksum (kickmemory, kickmem_size);
 }
 
-extern unsigned char arosrom[];
-extern unsigned int arosrom_len;
+unsigned char arosrom[];
+unsigned int arosrom_len;
 extern int seriallog;
 static bool load_kickstart_replacement (void)
 {
 	struct zfile *f;
 	
 	f = zfile_fopen_data (_T("aros.gz"), arosrom_len, arosrom);
-	if (!f) {
-		write_log ("KS Replacement: AROS open failed\n");
-		return false;
-	}
+/*	if (!f) _f is always 1 /gnostic_
+		return false;*/
 	f = zfile_gunzip (f);
-	if (!f) {
-		write_log ("KS Replacement: AROS gunzip failed\n");
+	if (!f)
 		return false;
-	} else {
-		write_log ("KS Replacement: AROS ok\n");
-	}
-
 	kickmem_mask = 0x80000 - 1;
 	kickmem_size = 0x80000;
 	extendedkickmem_size = 0x80000;
@@ -2069,7 +2062,7 @@ static void add_shmmaps (uae_u32 start, addrbank *what)
 	base = ((uae_u8 *) NATMEM_OFFSET) + start;
 	y->native_address = (uae_u8*)my_shmat (y->id, base, 0);
 	if (y->native_address == (void *) -1) {
-		write_log ("NATMEM: Failure to map id %d existing at %08x (%p):%d ", y->id, start, base, errno);
+		write_log (_T("NATMEM: Failure to map id %d existing at %08x (%p):%d "), y->id, start, base, errno);
 		if (errno == 12) write_log ("(Can't allocate memory)\n");
 		else if (errno == 13) write_log ("(Permission denied)\n");
 		else if (errno == 22) write_log ("(Invalid argument)\n");

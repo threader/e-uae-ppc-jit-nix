@@ -6987,7 +6987,7 @@ static uae_u8 *restore_key (UnitInfo *ui, Unit *u, uae_u8 *src)
 					write_log (_T("*** FS: Open file '%s', couldn't create dummy file!\n"), p);
 			     }
 			} else {
-				write_log (L"*** FS: Too big, ignored\n");
+				write_log (_T("*** FS: Too big, ignored\n"));
 			}
                 } else {
 			k->fd = fs_openfile (u, a, openmode | O_BINARY);

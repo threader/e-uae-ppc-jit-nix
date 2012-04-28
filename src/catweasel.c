@@ -297,13 +297,13 @@ uae_u32	catweasel_do_bget (uaecptr addr)
 #if 0
 	if (handle != INVALID_HANDLE_VALUE) {
 		if (!DeviceIoControl (handle, CW_PEEKREG_FULL, buf1, 1, buf2, 1, &did_read, 0))
-			write_log ("catweasel_do_bget %02x fail err=%d\n", buf1[0], GetLastError ());
+			write_log (_T("catweasel_do_bget %02x fail err=%d\n"), buf1[0], GetLastError ());
 	} else {
 #endif
 		buf2[0] = ioport_read (cwc.iobase + addr);
 #if 0
 	}
-	//write_log ("G %02X %02X %d\n", buf1[0], buf2[0], did_read);
+	//write_log (_T("G %02X %02X %d\n"), buf1[0], buf2[0], did_read);
 #endif
 	return buf2[0];
 }
@@ -321,12 +321,12 @@ void catweasel_do_bput (uaecptr	addr, uae_u32 b)
 #if 0
 	if (handle != INVALID_HANDLE_VALUE) {
 		if (!DeviceIoControl (handle, CW_POKEREG_FULL, buf, 2, 0, 0, &did_read, 0))
-			write_log ("catweasel_do_bput %02x=%02x fail err=%d\n", buf[0], buf[1], GetLastError ());
+			write_log (_T("catweasel_do_bput %02x=%02x fail err=%d\n"), buf[0], buf[1], GetLastError ());
 	} else {
 #endif
 		ioport_write (cwc.iobase + addr, b);
 	}
-	//write_log ("P %02X %02X %d\n", (uae_u8)addr, (uae_u8)b, did_read);
+	//write_log (_T("P %02X %02X %d\n"), (uae_u8)addr, (uae_u8)b, did_read);
 }
 
 #include "core.cw4.cpp"
@@ -375,21 +375,21 @@ static int catweasel4_configure (void)
 	sleep_millis(10);
 
 	if (cw_config_done()) {
-		write_log ("CW: FPGA already configured, skipping core upload\n");
+		write_log (_T("CW: FPGA already configured, skipping core upload\n"));
 		return 1;
 	}
 	cw_resetFPGA();
 	sleep_millis(10);
 	if (cw_config_done()) {
-		write_log ("CW: FPGA failed to reset!\n");
+		write_log (_T("CW: FPGA failed to reset!\n"));
 		return 0;
 	}
-	f = zfile_fopen("core.cw4", "rb", ZFD_NORMAL);
+	f = zfile_fopen(_T("core.cw4"), _T("rb"), ZFD_NORMAL);
 	if (!f) {
-		f = zfile_fopen_data ("core.cw4.gz", core_len, core);
+		f = zfile_fopen_data (_T("core.cw4.gz"), core_len, core);
 		f = zfile_gunzip (f);
 	}
-	write_log ("CW: starting core upload, this will take few seconds\n");
+	write_log (_T("CW: starting core upload, this will take few seconds\n"));
 	t = time(NULL) + 10; // give up if upload takes more than 10s
 	for (;;) {
 		uae_u8 b;
@@ -398,7 +398,7 @@ static int catweasel4_configure (void)
 		ioport_write (cwc.iobase + 3, (b & 1) ? 67 : 65);
 		while (!cw_fpga_ready()) {
 			if (time(NULL) >= t) {
-				write_log ("CW: FPGA core upload got stuck!?\n");
+				write_log (_T("CW: FPGA core upload got stuck!?\n"));
 				cw_resetFPGA();
 				return 0;
 			}
@@ -406,12 +406,12 @@ static int catweasel4_configure (void)
 		ioport_write (cwc.iobase + 192, b);
 	}
 	if (!cw_config_done()) {
-		write_log ("CW: FPGA didn't accept the core!\n");
+		write_log (_T("CW: FPGA didn't accept the core!\n"));
 		cw_resetFPGA();
 		return 0;
 	}
 	sleep_millis(10);
-	write_log ("CW: core uploaded successfully\n");
+	write_log (_T("CW: core uploaded successfully\n"));
 	return 1;
 }
 

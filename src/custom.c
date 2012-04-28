@@ -3511,7 +3511,7 @@ static void DMACON (int hpos, uae_u16 v)
 	changed = dmacon ^ oldcon;
 #if 0
 	if (changed)
-		write_log (L"%04x -> %04x %08x\n", oldcon, dmacon, m68k_getpc ());
+		write_log (_T("%04x -> %04x %08x\n"), oldcon, dmacon, m68k_getpc ());
 #endif
 	oldcop = (oldcon & DMA_COPPER) && (oldcon & DMA_MASTER);
 	newcop = (dmacon & DMA_COPPER) && (dmacon & DMA_MASTER);
@@ -5970,8 +5970,8 @@ static void hsync_handler_post (bool onvsync)
 	cnt++;
 	if (cnt == 500) {
 		int port_insert_custom (int inputmap_port, int devicetype, DWORD flags, const TCHAR *custom);
-		port_insert_custom (0, 2, 0, L"Fire.autorepeat=0x38 Left=0x4B Right=0x4D Up=0x48 Down=0x50 Fire=0x4C Fire2=0x52'");
-		port_insert_custom (1, 2, 0, L"Left=0x48 Right=0x50 Up=0x4B Down=0x4D Fire=0x4C");
+		port_insert_custom (0, 2, 0, _T("Fire.autorepeat=0x38 Left=0x4B Right=0x4D Up=0x48 Down=0x50 Fire=0x4C Fire2=0x52'"));
+		port_insert_custom (1, 2, 0, _T("Left=0x48 Right=0x50 Up=0x4B Down=0x4D Fire=0x4C"));
 	} else if (cnt == 1000) {
 		TCHAR out[256];
 		bool port_get_custom (int inputmap_port, TCHAR *out);
@@ -6009,7 +6009,7 @@ static void hsync_handler_post (bool onvsync)
 					// extra cpu emulation time if previous 8 lines without extra time.
 					if (!is_syncline && linecounter >= 8) {
 						is_syncline = -1;
-						is_syncline_end = read_processor_time () + vsynctimeperline;
+						is_syncline_end = uae_gethrtime () + vsynctimeperline;
 						linecounter = 0;
 					}
 				}

@@ -278,7 +278,7 @@ static bool getsem2 (int unitnum, bool dowait)
 	if (gotit)
 		unitsem_cnt[unitnum]++;
 	if (unitsem_cnt[unitnum] > 1)
-		write_log ("CD: unitsem%d acquire mismatch! cnt=%d\n", unitnum, unitsem_cnt[unitnum]);
+		write_log (_T("CD: unitsem%d acquire mismatch! cnt=%d\n"), unitnum, unitsem_cnt[unitnum]);
 	return gotit;
 }
 static bool getsem (int unitnum)
@@ -442,6 +442,10 @@ int sys_command_isopen (int unitnum)
 
 int sys_command_open (int unitnum)
 {
+	if (openlist[unitnum]) {
+		openlist[unitnum]++;
+		return -1;
+	}
 	waspaused[unitnum] = 0;
 	int v = sys_command_open_internal (unitnum, currprefs.cdslots[unitnum].name[0] ? currprefs.cdslots[unitnum].name : NULL, CD_STANDARD_UNIT_DEFAULT);
 	if (!v)
@@ -454,6 +458,10 @@ int sys_command_open (int unitnum)
 
 void sys_command_close (int unitnum)
 {
+	if (openlist[unitnum] > 1) {
+		openlist[unitnum]--;
+		return;
+	}
 #ifdef RETROPLATFORM
 	rp_cd_device_enable (unitnum, false);
 #endif
@@ -552,6 +560,7 @@ static void check_changes (int unitnum)
 				scsi_do_disk_change (unitnum, 0, &pollmode);
 				if (pollmode)
 					imagechangetime[unitnum] = 8 * 50;
+				filesys_do_disk_change (unitnum, 0);
 			}
 		}
 		write_log (_T("CD: eject (%s) open=%d\n"), pollmode ? _T("slow") : _T("fast"), wasopen[unitnum] ? 1 : 0);
@@ -593,6 +602,7 @@ static void check_changes (int unitnum)
 			gotsem = false;
 		}
 		scsi_do_disk_change (unitnum, 1, &pollmode);
+		filesys_do_disk_change (unitnum, 1);
 	}
 #ifdef RETROPLATFORM
 	rp_cd_image_change (unitnum, currprefs.cdslots[unitnum].name);

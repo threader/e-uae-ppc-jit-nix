@@ -20,6 +20,6 @@
 
 extern void *xmalloc (size_t) MALLOC;
 extern void *xcalloc (size_t, size_t) MALLOC;
-extern void  xfree   (void *ptr);
+extern void  xfree   (const void *p);
 
 #endif /* UAE_MALLOC_H */
