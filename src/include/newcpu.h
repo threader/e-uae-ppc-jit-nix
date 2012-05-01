@@ -62,10 +62,19 @@ struct cputbl {
 //Prototype for the comptbl structure to allow us using it in the function type definition
 struct comptbl;
 
+//CPU history structure for helping the JIT by using the collected
+//information from the interpretive emulation cycles
+typedef struct {
+  uae_u16* location;
+  uaecptr pc;
+  uae_u8  cycles;
+  uae_u8  specmem;
+} cpu_history;
+
 //Compile function for JIT, can be either an address or an instruction compiler
 //First parameter is a pointer to the instruction in memory,
 //second parameter is pointer to the compiling properties for the instruction (struct comptbl)
-typedef void compop_func (uae_u16*, struct comptbl*) REGPARAM;
+typedef void compop_func (const cpu_history*, struct comptbl*) REGPARAM;
 
 //Structure for instruction compiling function parameters
 struct comptbl {
@@ -161,13 +170,6 @@ extern struct regstruct
     uae_u32 panic_pc, panic_addr;
 
 } regs, lastint_regs;
-
-typedef struct {
-  uae_u16* location;
-  uaecptr pc;
-  uae_u8  cycles;
-  uae_u8  specmem;
-} cpu_history;
 
 struct blockinfo_t;
 
@@ -294,6 +296,7 @@ extern void m68k_go (int);
 extern void m68k_dumpstate (void *, uaecptr *);
 extern void m68k_disasm (void *, uaecptr, uaecptr *, int);
 extern void m68k_disasm_ea (void *f, uaecptr addr, uaecptr *nextpc, int cnt, uae_u32 *seaddr, uae_u32 *deaddr);
+void m68k_disasm_str (char* str, uaecptr addr, uaecptr *nextpc, int cnt);
 extern void sm68k_disasm(char *, char *, uaecptr addr, uaecptr *nextpc);
 extern void m68k_reset (void);
 extern int getDivu68kCycles(uae_u32 dividend, uae_u16 divisor);

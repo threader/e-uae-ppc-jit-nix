@@ -21,111 +21,171 @@
 #include "compemu_compiler.h"
 #include "compemu_macroblocks.h"
 
+//Source register (allocated temporary register mapped to PPC register) for the opcode
+//Initialized and released by the addressing mode
+uae_u8 src_reg_mapped;
+
+//Destination register (allocated temporary register mapped to PPC register) for the opcode
+//Initialized and released by the addressing mode
+uae_u8 dest_reg_mapped;
+
+//Input register dependency mask
+//Initialized and released by the addressing mode
+uae_u64 input_dep;
+
+//Output register dependency mask
+//Initialized and released by the addressing mode
+uae_u64 output_dep;
+
+//Source addressing mode register (allocated temporary register) that contains
+//the precalculated memory address for the opcode memory operations
+//Initialized and released by the addressing mode
+int src_mem_addrreg;
+
+//Same as src_mem_addrreg, but mapped to the physical PPC register
+uae_u8 src_mem_addrreg_mapped;
+
+//Destination addressing mode register (allocated temporary register) that contains
+//the precalculated memory address for the opcode memory operations
+//Initialized and released by the addressing mode
+int dest_mem_addrreg;
+
+//Same as dest_mem_addrreg, but mapped to the physical PPC register
+uae_u8 dest_mem_addrreg_mapped;
+
+//Pointer to the next word sized data in memory after the opcode
+//Each addressing mode that needs additional data increments this pointer
+//to the next memory address after the read data
+uae_u16* pc_ptr;
+
+void comp_opcode_init(const cpu_history* history)
+{
+	//The next word after the opcode
+	pc_ptr = history->location + 1;
+
+	//Reset variables
+	input_dep = output_dep = COMP_COMPILER_MACROBLOCK_REG_NONE;
+	src_mem_addrreg = dest_mem_addrreg = PPC_TMP_REG_NOTUSED;
+}
+
 /**
  * Addressing mode compiler functions for source addressing executed before the instruction
  * compiling function is called
  * Parameter:
  *     pc - pointer to the instruction in (mapped) REGPARAM memory
  */
-void comp_addr_pre_regD_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_regD_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	src_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_DATAREG(props->srcreg), 1, 0);
+	input_dep |= COMP_COMPILER_MACROBLOCK_REG_DX(props->srcreg);
 }
-void comp_addr_pre_regA_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_regA_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	src_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->srcreg), 1, 0);
+	input_dep |= COMP_COMPILER_MACROBLOCK_REG_AX(props->srcreg);
 }
-void comp_addr_pre_indA_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_indA_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_pre_indmAL_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_indmAL_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_pre_indmAW_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_indmAW_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_pre_indmAB_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_indmAB_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_pre_indApL_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_indApL_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_pre_indApW_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_indApW_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_pre_indApB_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_indApB_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_pre_indmALk_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_indmALk_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_pre_indmAWk_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_indmAWk_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_pre_indmABk_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_indmABk_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_pre_indApLk_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_indApLk_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_pre_indApWk_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_indApWk_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_pre_indApBk_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_indApBk_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_pre_immedL_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_immedL_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_pre_immedW_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_immedW_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_pre_immedB_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_immedB_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_pre_immedQ_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_immedQ_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	//No need to do anything
 }
-void comp_addr_pre_indAd16_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_indAd16_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	src_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->srcreg), 1, 0);
+
+	src_mem_addrreg = comp_allocate_temp_register(PPC_TMP_REG_ALLOCATED);
+	src_mem_addrreg_mapped = comp_get_gpr_for_temp_register(src_mem_addrreg);
+
+	//Add the offset from the next word after the opcode to the register
+	comp_macroblock_push_add_register_imm(
+			COMP_COMPILER_REGS_ADDRREG(props->srcreg),
+			COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg),
+			src_mem_addrreg_mapped,
+			src_reg_mapped,
+			*(pc_ptr++));
 }
-void comp_addr_pre_indPCd16_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_indPCd16_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_pre_absW_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_absW_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_pre_absL_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_absL_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_pre_indAcp_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_indAcp_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_pre_indPCcp_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_indPCcp_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 
 /**
@@ -134,105 +194,110 @@ void comp_addr_pre_indPCcp_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
  * Parameter:
  *     pc - pointer to the instruction in (mapped) REGPARAM memory
  */
-void comp_addr_post_regD_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_regD_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	//No need to do anything
 }
-void comp_addr_post_regA_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_regA_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	//No need to do anything
 }
-void comp_addr_post_indA_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_indA_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_post_indmAL_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_indmAL_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_post_indmAW_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_indmAW_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_post_indmAB_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_indmAB_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_post_indApL_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_indApL_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_post_indApW_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_indApW_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_post_indApB_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_indApB_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_post_indmALk_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_indmALk_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_post_indmAWk_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_indmAWk_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_post_indmABk_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_indmABk_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_post_indApLk_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_indApLk_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_post_indApWk_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_indApWk_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_post_indApBk_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_indApBk_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_post_immedL_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_immedL_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_post_immedW_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_immedW_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_post_immedB_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_immedB_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_post_immedQ_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_immedQ_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	//No need to do anything
 }
-void comp_addr_post_indAd16_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_indAd16_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	//Release temp register
+	if (src_mem_addrreg != PPC_TMP_REG_NOTUSED)
+	{
+		comp_free_temp_register(src_mem_addrreg);
+		src_mem_addrreg = PPC_TMP_REG_NOTUSED;
+	}
 }
-void comp_addr_post_indPCd16_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_indPCd16_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_post_absW_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_absW_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_post_absL_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_absL_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_post_indAcp_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_indAcp_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_post_indPCcp_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_indPCcp_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 
 /**
@@ -241,105 +306,174 @@ void comp_addr_post_indPCcp_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
  * Parameter:
  *     pc - pointer to the instruction in (mapped) REGPARAM memory
  */
-void comp_addr_pre_regD_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_regD_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	dest_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_DATAREG(props->destreg), 1, 1);
+	output_dep |= COMP_COMPILER_MACROBLOCK_REG_DX(props->destreg);
 }
-void comp_addr_pre_regA_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_regA_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	dest_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->destreg), 1, 1);
+	output_dep |= COMP_COMPILER_MACROBLOCK_REG_AX(props->destreg);
 }
-void comp_addr_pre_indA_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_indA_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_pre_indmAL_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_indmAL_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_pre_indmAW_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_indmAW_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_pre_indmAB_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_indmAB_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_pre_indApL_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_indApL_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	dest_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->destreg), 1, 1);
+	dest_mem_addrreg = comp_allocate_temp_register(PPC_TMP_REG_ALLOCATED);
+	dest_mem_addrreg_mapped = comp_get_gpr_for_temp_register(dest_mem_addrreg);
+
+	//TODO: this useless move instruction could be removed if the registers could be swapped
+	//Move target address register's original value to a temp register
+	comp_macroblock_push_copy_register_long(
+			COMP_COMPILER_MACROBLOCK_REG_AX(props->destreg),
+			COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+			dest_mem_addrreg_mapped,
+			dest_reg_mapped);
+
+	//Increase the address register by the size of the operation
+	comp_macroblock_push_add_register_imm(
+			COMP_COMPILER_MACROBLOCK_REG_AX(props->destreg),
+			COMP_COMPILER_MACROBLOCK_REG_AX(props->destreg),
+			dest_reg_mapped,
+			dest_reg_mapped,
+			4);
 }
-void comp_addr_pre_indApW_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_indApW_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	dest_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->destreg), 1, 1);
+	dest_mem_addrreg = comp_allocate_temp_register(PPC_TMP_REG_ALLOCATED);
+	dest_mem_addrreg_mapped = comp_get_gpr_for_temp_register(dest_mem_addrreg);
+
+	//TODO: this useless move instruction could be removed if the registers could be swapped
+	//Move target address register's original value to a temp register
+	comp_macroblock_push_copy_register_long(
+			COMP_COMPILER_MACROBLOCK_REG_AX(props->destreg),
+			COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+			dest_mem_addrreg_mapped,
+			dest_reg_mapped);
+
+	//Increase the address register by the size of the operation
+	comp_macroblock_push_add_register_imm(
+			COMP_COMPILER_MACROBLOCK_REG_AX(props->destreg),
+			COMP_COMPILER_MACROBLOCK_REG_AX(props->destreg),
+			dest_reg_mapped,
+			dest_reg_mapped,
+			2);
 }
-void comp_addr_pre_indApB_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_indApB_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	dest_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->destreg), 1, 1);
+	dest_mem_addrreg = comp_allocate_temp_register(PPC_TMP_REG_ALLOCATED);
+	dest_mem_addrreg_mapped = comp_get_gpr_for_temp_register(dest_mem_addrreg);
+
+	//TODO: this useless move instruction could be removed if the registers could be swapped
+	//Move target address register's original value to a temp register
+	comp_macroblock_push_copy_register_long(
+			COMP_COMPILER_MACROBLOCK_REG_AX(props->destreg),
+			COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+			dest_mem_addrreg_mapped,
+			dest_reg_mapped);
+
+	//Increase the address register by the size of the operation
+	comp_macroblock_push_add_register_imm(
+			COMP_COMPILER_MACROBLOCK_REG_AX(props->destreg),
+			COMP_COMPILER_MACROBLOCK_REG_AX(props->destreg),
+			dest_reg_mapped,
+			dest_reg_mapped,
+			1);
 }
-void comp_addr_pre_indmALk_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_indmALk_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_pre_indmAWk_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_indmAWk_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_pre_indmABk_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_indmABk_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_pre_indApLk_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_indApLk_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_pre_indApWk_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_indApWk_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_pre_indApBk_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_indApBk_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_pre_immedL_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_immedL_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_pre_immedW_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_immedW_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_pre_immedB_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_immedB_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_pre_immedQ_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_immedQ_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	//Invalid addressing mode
+	write_log("JIT error: invalid addressing mode - immedQ as destination\n");
+	abort();
 }
-void comp_addr_pre_indAd16_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_indAd16_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	dest_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->destreg), 1, 0);
+
+	dest_mem_addrreg = comp_allocate_temp_register(PPC_TMP_REG_ALLOCATED);
+	dest_mem_addrreg_mapped = comp_get_gpr_for_temp_register(dest_mem_addrreg);
+
+	//Add the offset from the next word after the opcode to the register
+	comp_macroblock_push_add_register_imm(
+			COMP_COMPILER_REGS_ADDRREG(props->destreg),
+			COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+			dest_mem_addrreg_mapped,
+			dest_reg_mapped,
+			*(pc_ptr++));
 }
-void comp_addr_pre_indPCd16_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_indPCd16_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_pre_absW_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_absW_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_pre_absL_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_absL_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_pre_indAcp_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_indAcp_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_pre_indPCcp_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_pre_indPCcp_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 
 /**
@@ -348,105 +482,127 @@ void comp_addr_pre_indPCcp_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
  * Parameter:
  *     pc - pointer to the instruction in (mapped) REGPARAM memory
  */
-void comp_addr_post_regD_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_regD_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	//No need to do anything
 }
-void comp_addr_post_regA_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_regA_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_post_indA_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_indA_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_post_indmAL_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_indmAL_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_post_indmAW_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_indmAW_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_post_indmAB_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_indmAB_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_post_indApL_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_indApL_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	//Release temp register
+	if (dest_mem_addrreg != PPC_TMP_REG_NOTUSED)
+	{
+		comp_free_temp_register(dest_mem_addrreg);
+		dest_mem_addrreg = PPC_TMP_REG_NOTUSED;
+	}
 }
-void comp_addr_post_indApW_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_indApW_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	//Release temp register
+	if (dest_mem_addrreg != PPC_TMP_REG_NOTUSED)
+	{
+		comp_free_temp_register(dest_mem_addrreg);
+		dest_mem_addrreg = PPC_TMP_REG_NOTUSED;
+	}
 }
-void comp_addr_post_indApB_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_indApB_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	//Release temp register
+	if (dest_mem_addrreg != PPC_TMP_REG_NOTUSED)
+	{
+		comp_free_temp_register(dest_mem_addrreg);
+		dest_mem_addrreg = PPC_TMP_REG_NOTUSED;
+	}
 }
-void comp_addr_post_indmALk_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_indmALk_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_post_indmAWk_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_indmAWk_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_post_indmABk_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_indmABk_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_post_indApLk_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_indApLk_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_post_indApWk_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_indApWk_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_post_indApBk_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_indApBk_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_post_immedL_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_immedL_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_post_immedW_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_immedW_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_post_immedB_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_immedB_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_post_immedQ_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_immedQ_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	//Invalid addressing mode
+	write_log("JIT error: invalid addressing mode - immedQ as destination\n");
+	abort();
 }
-void comp_addr_post_indAd16_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_indAd16_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	//Release temp register
+	if (dest_mem_addrreg != PPC_TMP_REG_NOTUSED)
+	{
+		comp_free_temp_register(dest_mem_addrreg);
+		dest_mem_addrreg = PPC_TMP_REG_NOTUSED;
+	}
 }
-void comp_addr_post_indPCd16_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_indPCd16_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_post_absW_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_absW_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_post_absL_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_absL_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_post_indAcp_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_indAcp_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_addr_post_indPCcp_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_addr_post_indPCcp_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 
 /**
@@ -455,197 +611,197 @@ void comp_addr_post_indPCcp_dest(uae_u16* pc_p, struct comptbl* props) REGPARAM
  * Parameter:
  *     pc - pointer to the instruction in (mapped) REGPARAM memory
  */
-void comp_cond_pre_CC_cc_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_CC_cc_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_CC_cs_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_CC_cs_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_CC_eq_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_CC_eq_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_CC_ge_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_CC_ge_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_CC_gt_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_CC_gt_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_CC_hi_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_CC_hi_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_CC_le_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_CC_le_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_CC_ls_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_CC_ls_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_CC_lt_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_CC_lt_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_CC_mi_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_CC_mi_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_CC_ne_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_CC_ne_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_CC_pl_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_CC_pl_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_CC_vc_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_CC_vc_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_CC_vs_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_CC_vs_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_CC_t_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_CC_t_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_CC_f_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_CC_f_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_FCC_f_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_FCC_f_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_FCC_eq_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_FCC_eq_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_FCC_ogt_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_FCC_ogt_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_FCC_oge_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_FCC_oge_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_FCC_olt_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_FCC_olt_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_FCC_ole_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_FCC_ole_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_FCC_ogl_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_FCC_ogl_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_FCC_or_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_FCC_or_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_FCC_un_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_FCC_un_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_FCC_ueq_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_FCC_ueq_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_FCC_ugt_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_FCC_ugt_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_FCC_uge_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_FCC_uge_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_FCC_ult_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_FCC_ult_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_FCC_ule_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_FCC_ule_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_FCC_ne_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_FCC_ne_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_FCC_t_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_FCC_t_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_FCC_sf_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_FCC_sf_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_FCC_seq_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_FCC_seq_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_FCC_gt_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_FCC_gt_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_FCC_ge_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_FCC_ge_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_FCC_lt_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_FCC_lt_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_FCC_le_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_FCC_le_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_FCC_gl_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_FCC_gl_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_FCC_gle_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_FCC_gle_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_FCC_ngle_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_FCC_ngle_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_FCC_ngl_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_FCC_ngl_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_FCC_nle_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_FCC_nle_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_FCC_nlt_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_FCC_nlt_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_FCC_nge_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_FCC_nge_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_FCC_ngt_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_FCC_ngt_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_FCC_sne_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_FCC_sne_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_cond_pre_FCC_st_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_cond_pre_FCC_st_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 
 /**
@@ -653,1673 +809,1839 @@ void comp_cond_pre_FCC_st_src(uae_u16* pc_p, struct comptbl* props) REGPARAM
  * Parameter:
  *     pc - pointer to the instruction in (mapped) REGPARAM memory
  */
-void comp_opcode_MOVREG2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
-{
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
-}
-void comp_opcode_MOVREG2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
-{
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
-}
-void comp_opcode_MOVREG2REGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
-{
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
-}
-void comp_opcode_MOVAREG2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
-{
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
-}
-void comp_opcode_MOVAREG2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
-{
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
-}
-void comp_opcode_MOVMEM2MEML(uae_u16* pc_p, struct comptbl* props) REGPARAM
-{
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
-}
-void comp_opcode_MOVMEM2MEMW(uae_u16* pc_p, struct comptbl* props) REGPARAM
-{
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
-}
-void comp_opcode_MOVMEM2MEMB(uae_u16* pc_p, struct comptbl* props) REGPARAM
-{
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
-}
-void comp_opcode_MOVREG2MEML(uae_u16* pc_p, struct comptbl* props) REGPARAM
-{
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
-}
-void comp_opcode_MOVREG2MEMW(uae_u16* pc_p, struct comptbl* props) REGPARAM
-{
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
-}
-void comp_opcode_MOVREG2MEMB(uae_u16* pc_p, struct comptbl* props) REGPARAM
-{
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+void comp_opcode_MOVREG2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
+{
+	comp_macroblock_push_copy_register_long_with_flags(
+			input_dep,
+			output_dep,
+			dest_reg_mapped,
+			src_reg_mapped);
+
+	//Save flags
+	comp_macroblock_move_inst_flags();
+}
+void comp_opcode_MOVREG2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
+{
+	comp_macroblock_push_copy_register_word(
+			input_dep,
+			output_dep,
+			dest_reg_mapped,
+			src_reg_mapped);
+
+	comp_macroblock_push_check_word_register(output_dep, dest_reg_mapped);
+
+	//Save flags
+	comp_macroblock_move_inst_flags();
+}
+void comp_opcode_MOVREG2REGB(const cpu_history* history, struct comptbl* props) REGPARAM
+{
+	comp_macroblock_push_copy_register_byte(
+			input_dep,
+			output_dep,
+			dest_reg_mapped,
+			src_reg_mapped);
+
+	comp_macroblock_push_check_byte_register(output_dep, dest_reg_mapped);
+
+	//Save flags
+	comp_macroblock_move_inst_flags();
+}
+void comp_opcode_MOVAREG2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
+{
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
+}
+void comp_opcode_MOVAREG2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
+{
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
+}
+void comp_opcode_MOVMEM2MEML(const cpu_history* history, struct comptbl* props) REGPARAM
+{
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
+}
+void comp_opcode_MOVMEM2MEMW(const cpu_history* history, struct comptbl* props) REGPARAM
+{
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
+}
+void comp_opcode_MOVMEM2MEMB(const cpu_history* history, struct comptbl* props) REGPARAM
+{
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
+}
+void comp_opcode_MOVREG2MEML(const cpu_history* history, struct comptbl* props) REGPARAM
+{
+	//Pre-test the source register for the flags
+	comp_macroblock_push_check_long_register(input_dep, src_reg_mapped);
+
+	//Save flags
+	comp_macroblock_move_inst_flags();
+
+	if (comp_is_spec_memory_write_long(history->pc, history->specmem))
+	{
+		//Special memory access
+		comp_macroblock_push_save_memory_spec(
+				input_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+				output_dep | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
+				src_reg_mapped,
+				dest_mem_addrreg_mapped,
+				4);
+
+		//The previous will kill all temporary register mappings,
+		//because it calls a GCC function
+		dest_mem_addrreg = PPC_TMP_REG_NOTUSED;
+	}
+	else
+	{
+		//Normal memory access
+
+		//Get memory address into the temp register
+		comp_macroblock_push_map_physical_mem(
+				COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+				COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+				dest_mem_addrreg_mapped,
+				dest_mem_addrreg_mapped);
+
+		//Save long to memory, prevent from optimizing away
+		comp_macroblock_push_save_memory_long(
+				input_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+				output_dep | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
+				src_reg_mapped,
+				dest_mem_addrreg_mapped,
+				0);
+	}
+}
+void comp_opcode_MOVREG2MEMW(const cpu_history* history, struct comptbl* props) REGPARAM
+{
+	//Pre-test the source register for the flags
+	comp_macroblock_push_check_word_register(input_dep, src_reg_mapped);
+
+	//Save flags
+	comp_macroblock_move_inst_flags();
+
+	if (comp_is_spec_memory_write_word(history->pc, history->specmem))
+	{
+		//Special memory access
+		comp_macroblock_push_save_memory_spec(
+				input_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+				output_dep | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
+				src_reg_mapped,
+				dest_mem_addrreg_mapped,
+				2);
+
+		//The previous will kill all temporary register mappings,
+		//because it calls a GCC function
+		dest_mem_addrreg = PPC_TMP_REG_NOTUSED;
+	}
+	else
+	{
+		//Normal memory access
+
+		//Get memory address into the temp register
+		comp_macroblock_push_map_physical_mem(
+				COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+				COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+				dest_mem_addrreg_mapped,
+				dest_mem_addrreg_mapped);
+
+		//Save word to memory, prevent from optimizing away
+		comp_macroblock_push_save_memory_word(
+				input_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+				output_dep | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
+				src_reg_mapped,
+				dest_mem_addrreg_mapped,
+				0);
+	}
+}
+void comp_opcode_MOVREG2MEMB(const cpu_history* history, struct comptbl* props) REGPARAM
+{
+	//Pre-test the source register for the flags
+	comp_macroblock_push_check_byte_register(input_dep, src_reg_mapped);
+
+	//Save flags
+	comp_macroblock_move_inst_flags();
+
+	if (comp_is_spec_memory_write_byte(history->pc, history->specmem))
+	{
+		//Special memory access
+		comp_macroblock_push_save_memory_spec(
+				input_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+				output_dep | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
+				src_reg_mapped,
+				dest_mem_addrreg_mapped,
+				1);
+
+		//The previous will kill all temporary register mappings,
+		//because it calls a GCC function
+		dest_mem_addrreg = PPC_TMP_REG_NOTUSED;
+	}
+	else
+	{
+		//Normal memory access
+
+		//Get memory address into the temp register
+		comp_macroblock_push_map_physical_mem(
+				COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+				COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+				dest_mem_addrreg_mapped,
+				dest_mem_addrreg_mapped);
+
+		//Save byte to memory, prevent from optimizing away
+		comp_macroblock_push_save_memory_byte(
+				input_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+				output_dep | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
+				src_reg_mapped,
+				dest_mem_addrreg_mapped,
+				0);
+	}
 }
-void comp_opcode_MOVMEM2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MOVMEM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MOVMEM2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MOVMEM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MOVMEM2REGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MOVMEM2REGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MOVAMEM2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MOVAMEM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MOVAMEM2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MOVAMEM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MOVIMM2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MOVIMM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MOVIMM2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MOVIMM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MOVIMM2REGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MOVIMM2REGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MOVAIMM2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MOVAIMM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MOVAIMM2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MOVAIMM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MOVEQ(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MOVEQ(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MOVEM2MEML(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MOVEM2MEML(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MOVEM2MEMW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MOVEM2MEMW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MOVEM2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MOVEM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MOVEM2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MOVEM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MOVEM2MEMUL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MOVEM2MEMUL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MOVEM2MEMUW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MOVEM2MEMUW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MOVEM2REGUL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MOVEM2REGUL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MOVEM2REGUW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MOVEM2REGUW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MOVIMM2MEML(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MOVIMM2MEML(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MOVIMM2MEMW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MOVIMM2MEMW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MOVIMM2MEMB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MOVIMM2MEMB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MOV16REG2REGU(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MOV16REG2REGU(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MOV16REG2MEMU(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MOV16REG2MEMU(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MOV16MEM2REGU(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MOV16MEM2REGU(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MOV16REG2MEM(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MOV16REG2MEM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MOV16MEM2REG(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MOV16MEM2REG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_CLRREGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_CLRREGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_CLRREGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_CLRREGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_CLRREGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_CLRREGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_CLRMEML(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_CLRMEML(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_CLRMEMW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_CLRMEMW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_CLRMEMB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_CLRMEMB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_LEAIMML(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_LEAIMML(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_LEAIMMW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_LEAIMMW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_LEAIND(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_LEAIND(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_PEAIMML(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_PEAIMML(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_PEAIMMW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_PEAIMMW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_PEAIND(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_PEAIND(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MOVPREG2MEML(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MOVPREG2MEML(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MOVPREG2MEMW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MOVPREG2MEMW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MOVPMEM2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MOVPMEM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MOVPMEM2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MOVPMEM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_STREGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_STREGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_SFREGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_SFREGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_SCCREGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_SCCREGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_STMEMB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_STMEMB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_SFMEMB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_SFMEMB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_SCCMEMB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_SCCMEMB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MOVCCR2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MOVCCR2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MOVCCR2MEMW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MOVCCR2MEMW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MOVIMM2CCRW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MOVIMM2CCRW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MOVREG2CCRW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MOVREG2CCRW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MOVMEM2CCRW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MOVMEM2CCRW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MOVSR2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MOVSR2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MOVSR2MEMW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MOVSR2MEMW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MOVIMM2SRW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MOVIMM2SRW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MOVREG2SRW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MOVREG2SRW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MOVMEM2SRW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MOVMEM2SRW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MOVUSP2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MOVUSP2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MOVREG2USPL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MOVREG2USPL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MOVCREG2CTRL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MOVCREG2CTRL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MOVCCTR2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MOVCCTR2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_DBCOND(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_DBCOND(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_DBF(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_DBF(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_BCONDB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_BCONDB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_BRAB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_BRAB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_BSRB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_BSRB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_BCONDW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_BCONDW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_BRAW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_BRAW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_BSRW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_BSRW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_BCONDL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_BCONDL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_BRAL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_BRAL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_BSRL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_BSRL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_JMPIMM(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_JMPIMM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_JMPIND(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_JMPIND(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_JSRIMM(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_JSRIMM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_JSRIND(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_JSRIND(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_RTS(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_RTS(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_RTD(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_RTD(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_RTR(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_RTR(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_RTE(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_RTE(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_EORIMM2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_EORIMM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_EORIMM2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_EORIMM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_EORIMM2REGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_EORIMM2REGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_EORIMM2MEML(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_EORIMM2MEML(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_EORIMM2MEMW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_EORIMM2MEMW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_EORIMM2MEMB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_EORIMM2MEMB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_EORREG2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_EORREG2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_EORREG2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_EORREG2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_EORREG2REGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_EORREG2REGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_EORREG2MEML(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_EORREG2MEML(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_EORREG2MEMW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_EORREG2MEMW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_EORREG2MEMB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_EORREG2MEMB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ANDIMM2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ANDIMM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ANDIMM2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ANDIMM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ANDIMM2REGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ANDIMM2REGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ANDIMM2MEML(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ANDIMM2MEML(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ANDIMM2MEMW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ANDIMM2MEMW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ANDIMM2MEMB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ANDIMM2MEMB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ANDREG2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ANDREG2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ANDREG2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ANDREG2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ANDREG2REGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ANDREG2REGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ANDREG2MEML(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ANDREG2MEML(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ANDREG2MEMW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ANDREG2MEMW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ANDREG2MEMB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ANDREG2MEMB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ANDMEM2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ANDMEM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ANDMEM2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ANDMEM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ANDMEM2REGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ANDMEM2REGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ORIMM2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ORIMM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ORIMM2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ORIMM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ORIMM2REGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ORIMM2REGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ORIMM2MEML(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ORIMM2MEML(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ORIMM2MEMW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ORIMM2MEMW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ORIMM2MEMB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ORIMM2MEMB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ORREG2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ORREG2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ORREG2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ORREG2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ORREG2REGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ORREG2REGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ORREG2MEML(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ORREG2MEML(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ORREG2MEMW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ORREG2MEMW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ORREG2MEMB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ORREG2MEMB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ORMEM2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ORMEM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ORMEM2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ORMEM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ORMEM2REGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ORMEM2REGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_NOTREGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_NOTREGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_NOTREGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_NOTREGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_NOTREGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_NOTREGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_NOTMEML(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_NOTMEML(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_NOTMEMW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_NOTMEMW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_NOTMEMB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_NOTMEMB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ANDIMM2CCRB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ANDIMM2CCRB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ORIMM2CCRB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ORIMM2CCRB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_EORIMM2CCRB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_EORIMM2CCRB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ANDIMM2SRW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ANDIMM2SRW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ORIMM2SRW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ORIMM2SRW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_EORIMM2SRW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_EORIMM2SRW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_BTSTIMM2MEM(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_BTSTIMM2MEM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_BTSTREG2MEM(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_BTSTREG2MEM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_BTSTIMM2REG(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_BTSTIMM2REG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_BTSTREG2REG(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_BTSTREG2REG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_BTSTREG2IMM(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_BTSTREG2IMM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_BSETIMM2MEM(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_BSETIMM2MEM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_BSETREG2MEM(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_BSETREG2MEM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_BSETIMM2REG(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_BSETIMM2REG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_BSETREG2REG(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_BSETREG2REG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_BCLRIMM2MEM(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_BCLRIMM2MEM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_BCLRREG2MEM(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_BCLRREG2MEM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_BCLRIMM2REG(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_BCLRIMM2REG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_BCLRREG2REG(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_BCLRREG2REG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_BCHGIMM2MEM(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_BCHGIMM2MEM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_BCHGREG2MEM(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_BCHGREG2MEM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_BCHGIMM2REG(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_BCHGIMM2REG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_BCHGREG2REG(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_BCHGREG2REG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_TAS2MEM(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_TAS2MEM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_TAS2REG(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_TAS2REG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ASLIMM2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ASLIMM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ASLIMM2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ASLIMM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ASLIMM2REGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ASLIMM2REGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ASLREG2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ASLREG2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ASLREG2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ASLREG2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ASLREG2REGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ASLREG2REGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ASLMEMW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ASLMEMW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ASRIMM2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ASRIMM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ASRIMM2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ASRIMM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ASRIMM2REGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ASRIMM2REGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ASRREG2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ASRREG2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ASRREG2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ASRREG2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ASRREG2REGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ASRREG2REGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ASRMEMW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ASRMEMW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_LSLIMM2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_LSLIMM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_LSLIMM2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_LSLIMM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_LSLIMM2REGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_LSLIMM2REGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_LSLREG2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_LSLREG2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_LSLREG2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_LSLREG2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_LSLREG2REGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_LSLREG2REGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_LSLMEMW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_LSLMEMW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_LSRIMM2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_LSRIMM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_LSRIMM2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_LSRIMM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_LSRIMM2REGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_LSRIMM2REGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_LSRREG2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_LSRREG2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_LSRREG2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_LSRREG2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_LSRREG2REGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_LSRREG2REGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_LSRMEMW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_LSRMEMW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ROLIMM2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ROLIMM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ROLIMM2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ROLIMM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ROLIMM2REGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ROLIMM2REGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ROLREG2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ROLREG2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ROLREG2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ROLREG2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ROLREG2REGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ROLREG2REGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ROLMEMW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ROLMEMW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ROXLIMM2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ROXLIMM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ROXLIMM2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ROXLIMM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ROXLIMM2REGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ROXLIMM2REGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ROXLREG2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ROXLREG2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ROXLREG2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ROXLREG2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ROXLREG2REGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ROXLREG2REGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ROXLMEMW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ROXLMEMW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_RORIMM2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_RORIMM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_RORIMM2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_RORIMM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_RORIMM2REGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_RORIMM2REGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_RORREG2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_RORREG2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_RORREG2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_RORREG2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_RORREG2REGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_RORREG2REGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_RORMEMW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_RORMEMW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ROXRIMM2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ROXRIMM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ROXRIMM2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ROXRIMM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ROXRIMM2REGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ROXRIMM2REGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ROXRREG2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ROXRREG2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ROXRREG2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ROXRREG2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ROXRREG2REGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ROXRREG2REGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ROXRMEMW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ROXRMEMW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_CMPMEM2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_CMPMEM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_CMPMEM2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_CMPMEM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_CMPMEM2REGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_CMPMEM2REGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_CMPREG2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_CMPREG2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_CMPREG2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_CMPREG2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_CMPREG2REGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_CMPREG2REGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_CMPMEM2MEML(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_CMPMEM2MEML(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_CMPMEM2MEMW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_CMPMEM2MEMW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_CMPMEM2MEMB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_CMPMEM2MEMB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_CMPAMEM2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_CMPAMEM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_CMPAREG2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_CMPAREG2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_CMPIMM2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_CMPIMM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_CMPAIMM2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_CMPAIMM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_CMPIMM2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_CMPIMM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_CMPIMM2REGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_CMPIMM2REGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_CMPIMM2MEML(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_CMPIMM2MEML(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_CMPIMM2MEMW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_CMPIMM2MEMW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_CMPIMM2MEMB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_CMPIMM2MEMB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_CMP2MEM2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_CMP2MEM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_CMP2MEM2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_CMP2MEM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_CMP2MEM2REGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_CMP2MEM2REGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_CASREG2MEML(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_CASREG2MEML(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_CASREG2MEMW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_CASREG2MEMW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_CASREG2MEMB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_CASREG2MEMB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_CAS2REG2MEML(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_CAS2REG2MEML(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_CAS2REG2MEMW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_CAS2REG2MEMW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_CHKREG2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_CHKREG2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_CHKIMM2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_CHKIMM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_CHKMEM2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_CHKMEM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_CHKREG2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_CHKREG2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_CHKIMM2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_CHKIMM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_CHKMEM2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_CHKMEM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ADDREG2MEML(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ADDREG2MEML(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ADDREG2MEMW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ADDREG2MEMW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ADDREG2MEMB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ADDREG2MEMB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ADDMEM2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ADDMEM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ADDMEM2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ADDMEM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ADDMEM2REGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ADDMEM2REGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ADDREG2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ADDREG2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ADDREG2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ADDREG2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ADDREG2REGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ADDREG2REGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ADDIMM2MEML(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ADDIMM2MEML(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ADDIMM2MEMW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ADDIMM2MEMW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ADDIMM2MEMB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ADDIMM2MEMB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ADDIMM2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ADDIMM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ADDIMM2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ADDIMM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ADDIMM2REGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ADDIMM2REGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ADDQ2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ADDQ2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	//Source register in props is the immediate value
+	uae_u8 immedQ = props->srcreg;
+
+	//Value 0 means value 8
+	if (immedQ == 0) immedQ = 8;
+
+	//Allocate temp reg for the immediate
+	uae_u8 tmpreg = comp_macroblock_allocate_tmp_reg_with_init(immedQ);
+
+	//Compile ADDCO PPC opcode
+	comp_macroblock_push_add_with_flags(
+			COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg) | COMP_COMPILER_MACROBLOCK_REG_DX(props->destreg),
+			COMP_COMPILER_MACROBLOCK_REG_DX(props->destreg) | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
+			dest_reg_mapped,
+			dest_reg_mapped,
+			comp_get_gpr_for_temp_register(tmpreg));
+
+	//Save flags
+	comp_macroblock_update_flags(
+			COMP_COMPILER_MACROBLOCK_REG_FLAG_ALL,
+			COMP_COMPILER_MACROBLOCK_REG_NONE,
+			COMP_COMPILER_MACROBLOCK_REG_NONE);
+
+	comp_macroblock_free_tmp_reg(tmpreg);
 }
-void comp_opcode_ADDQ2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+
+void comp_opcode_ADDQ2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ADDQ2REGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ADDQ2REGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ADDAQ2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ADDAQ2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ADDQ2MEML(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ADDQ2MEML(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ADDQ2MEMW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ADDQ2MEMW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ADDQ2MEMB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ADDQ2MEMB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ADDAMEM2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ADDAMEM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ADDAMEM2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ADDAMEM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ADDAREG2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ADDAREG2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ADDAREG2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ADDAREG2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ADDAIMM2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ADDAIMM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ADDAIMM2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ADDAIMM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ADDXREG2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ADDXREG2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ADDXREG2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ADDXREG2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ADDXREG2REGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ADDXREG2REGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ADDXMEM2MEML(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ADDXMEM2MEML(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ADDXMEM2MEMW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ADDXMEM2MEMW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ADDXMEM2MEMB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ADDXMEM2MEMB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_SUBREG2MEML(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_SUBREG2MEML(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_SUBREG2MEMW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_SUBREG2MEMW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_SUBREG2MEMB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_SUBREG2MEMB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_SUBMEM2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_SUBMEM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_SUBMEM2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_SUBMEM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_SUBMEM2REGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_SUBMEM2REGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_SUBREG2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_SUBREG2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_SUBREG2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_SUBREG2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_SUBREG2REGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_SUBREG2REGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_SUBIMM2MEML(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_SUBIMM2MEML(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_SUBIMM2MEMW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_SUBIMM2MEMW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_SUBIMM2MEMB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_SUBIMM2MEMB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_SUBIMM2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_SUBIMM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_SUBIMM2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_SUBIMM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_SUBIMM2REGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_SUBIMM2REGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_SUBQ2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_SUBQ2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_SUBQ2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_SUBQ2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_SUBQ2REGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_SUBQ2REGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_SUBAQ2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_SUBAQ2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_SUBQ2MEML(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_SUBQ2MEML(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_SUBQ2MEMW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_SUBQ2MEMW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_SUBQ2MEMB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_SUBQ2MEMB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_SUBAMEM2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_SUBAMEM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_SUBAMEM2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_SUBAMEM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_SUBAIMM2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_SUBAIMM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_SUBAIMM2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_SUBAIMM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_SUBAREG2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_SUBAREG2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_SUBAREG2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_SUBAREG2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_SUBXREG2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_SUBXREG2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_SUBXREG2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_SUBXREG2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_SUBXREG2REGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_SUBXREG2REGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_SUBXMEM2MEML(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_SUBXMEM2MEML(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_SUBXMEM2MEMW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_SUBXMEM2MEMW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_SUBXMEM2MEMB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_SUBXMEM2MEMB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MULSIMM2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MULSIMM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MULSREG2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MULSREG2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MULSMEM2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MULSMEM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MULUIMM2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MULUIMM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MULUREG2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MULUREG2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MULUMEM2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MULUMEM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MULIMM2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MULIMM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MULREG2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MULREG2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_MULMEM2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_MULMEM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_DIVSIMM2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_DIVSIMM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_DIVSREG2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_DIVSREG2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_DIVSMEM2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_DIVSMEM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_DIVUIMM2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_DIVUIMM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_DIVUREG2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_DIVUREG2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_DIVUMEM2REGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_DIVUMEM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_DIVIMM2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_DIVIMM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_DIVREG2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_DIVREG2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_DIVMEM2REGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_DIVMEM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_NEGREGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_NEGREGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_NEGREGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_NEGREGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_NEGREGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_NEGREGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_NEGMEML(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_NEGMEML(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_NEGMEMW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_NEGMEMW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_NEGMEMB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_NEGMEMB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_NEGXREGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_NEGXREGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_NEGXREGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_NEGXREGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_NEGXREGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_NEGXREGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_NEGXMEML(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_NEGXMEML(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_NEGXMEMW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_NEGXMEMW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_NEGXMEMB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_NEGXMEMB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ABCDREG2REGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ABCDREG2REGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ABCDMEM2MEMB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ABCDMEM2MEMB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_SBCDREG2REGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_SBCDREG2REGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_SBCDMEM2MEMB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_SBCDMEM2MEMB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_NBCDREGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_NBCDREGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_NBCDMEMB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_NBCDMEMB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_PACKREG2REGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_PACKREG2REGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_PACKMEM2MEMB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_PACKMEM2MEMB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_UNPKREG2REGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_UNPKREG2REGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_UNPKMEM2MEMB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_UNPKMEM2MEMB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_SWAP(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_SWAP(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_EXG(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_EXG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_EXTBW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_EXTBW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_EXTWL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_EXTWL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_EXTBL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_EXTBL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_NOP(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_NOP(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_TSTREGL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_TSTREGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_TSTREGW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_TSTREGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_TSTREGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_TSTREGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_TSTMEML(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_TSTMEML(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_TSTMEMW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_TSTMEMW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_TSTMEMB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_TSTMEMB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_LINKW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_LINKW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_LINKL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_LINKL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_UNLINK(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_UNLINK(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_TRAP(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_TRAP(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_TRAPCC(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_TRAPCC(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_STOP(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_STOP(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_RESET(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_RESET(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_BKPT(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_BKPT(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_ILLEGAL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_ILLEGAL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_BFCHG2REG(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_BFCHG2REG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_BFCHG2MEM(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_BFCHG2MEM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_BFCLR2REG(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_BFCLR2REG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_BFCLR2MEM(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_BFCLR2MEM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_BFEXTS2REG(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_BFEXTS2REG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_BFEXTS2MEM(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_BFEXTS2MEM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_BFEXTU2REG(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_BFEXTU2REG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_BFEXTU2MEM(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_BFEXTU2MEM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_BFFFO2REG(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_BFFFO2REG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_BFFFO2MEM(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_BFFFO2MEM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_BFINS2REG(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_BFINS2REG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_BFINS2MEM(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_BFINS2MEM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_BFSET2REG(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_BFSET2REG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_BFSET2MEM(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_BFSET2MEM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_BFTST2REG(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_BFTST2REG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_BFTST2MEM(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_BFTST2MEM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_FBCONDW(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_FBCONDW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_FBCONDL(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_FBCONDL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_FDBCOND(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_FDBCOND(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_FGENREG(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_FGENREG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_FGENMEM(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_FGENMEM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_FGENMEMUM(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_FGENMEMUM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_FGENMEMUP(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_FGENMEMUP(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_FGENIMM(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_FGENIMM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_FSAVEMEM(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_FSAVEMEM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_FSAVEMEMUM(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_FSAVEMEMUM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_FRESTOREMEM(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_FRESTOREMEM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_FRESTOREMEMUP(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_FRESTOREMEMUP(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_FSCCREGB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_FSCCREGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_FSCCMEMB(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_FSCCMEMB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_FTRAPCC(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_FTRAPCC(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
-void comp_opcode_FNOP(uae_u16* pc_p, struct comptbl* props) REGPARAM
+void comp_opcode_FNOP(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*pc_p); /* TODO: addressing mode */
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 
 /**
  * Unsupported opcode handler: compile a direct call to the interpretive emulator
+ * Parameters:
+ *    cpu_history - execution history item for the instruction
+ *    opcode - unsupported opcode number
  */
-void comp_opcode_unsupported(uae_u16* location, uae_u16 opcode)
+void comp_opcode_unsupported(const const cpu_history* history, uae_u16 opcode)
 {
-	comp_macroblock_push_opcode_unsupported(location, opcode);
+	comp_macroblock_push_opcode_unsupported(history->location, opcode);
 }
 
 /**
@@ -2362,10 +2684,10 @@ STATIC_INLINE void comp_macroblock_free_tmp_reg(uae_u8 reg)
  *
  * Parameters:
  *   flagscheck - flags to check from PPC flags
- *   flagsset - flags to set
  *   flagsclear - flags to clear
+ *   flagsset - flags to set
  */
-STATIC_INLINE void comp_macroblock_update_flags(uae_u16 flagscheck, uae_u16 flagsset, uae_u16 flagsclear)
+STATIC_INLINE void comp_macroblock_update_flags(uae_u16 flagscheck, uae_u16 flagsclear, uae_u16 flagsset)
 {
 	uae_u8 tmpreg;
 	uae_u8 flagtmp;
@@ -2634,4 +2956,14 @@ STATIC_INLINE void comp_macroblock_update_flags(uae_u16 flagscheck, uae_u16 flag
 
 	//We are done, release temporary register
 	comp_macroblock_free_tmp_reg(tmpreg);
+}
+
+/* Saving the flags for a move instruction */
+STATIC_INLINE void comp_macroblock_move_inst_flags()
+{
+	//Save flags: N and Z, clear: V and C
+	comp_macroblock_update_flags(
+			COMP_COMPILER_MACROBLOCK_REG_FLAGN | COMP_COMPILER_MACROBLOCK_REG_FLAGZ,
+			COMP_COMPILER_MACROBLOCK_REG_FLAGV | COMP_COMPILER_MACROBLOCK_REG_FLAGC,
+			COMP_COMPILER_MACROBLOCK_REG_NONE);
 }
