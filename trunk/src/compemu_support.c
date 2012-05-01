@@ -11,7 +11,7 @@
 #include "compemu_macroblocks.h"
 
 /* Number of temporary registers */
-#define PPC_TMP_REGS_COUNT 10
+#define PPC_TMP_REGS_COUNT 11
 
 /* List of temporary registers
  * Note: do not use this array directly, get the register mapping by
@@ -25,7 +25,8 @@ const int PPC_TMP_REGS[PPC_TMP_REGS_COUNT] = {  PPCR_TMP0,
 												PPCR_TMP6,
 												PPCR_TMP7,
 												PPCR_TMP8,
-												PPCR_TMP9 };
+												PPCR_TMP9,
+												PPCR_TMP10 };
 
 /**
  *  List of temporary register usage,
@@ -54,11 +55,6 @@ uae_u8* compiled_code = NULL;
  */
 
 uae_u8* compiled_code_top = NULL;
-
-/**
- * Base register for the M68k interpretive registers array
- */
-int comp_regs_base_reg = PPC_TMP_REG_NOTUSED;
 
 /**
  * Current top of the compiling target
@@ -185,6 +181,7 @@ void check_prefs_changed_comp(void)
 	currprefs.comptrustlong = changed_prefs.comptrustlong;
 	currprefs.comptrustnaddr = changed_prefs.comptrustnaddr;
 	currprefs.compnf = changed_prefs.compnf;
+	currprefs.complog = changed_prefs.complog;
 	currprefs.comp_hardflush = changed_prefs.comp_hardflush;
 	currprefs.comp_constjump = changed_prefs.comp_constjump;
 	currprefs.comp_oldsegv = changed_prefs.comp_oldsegv;
@@ -197,25 +194,26 @@ void check_prefs_changed_comp(void)
 		alloc_cache();
 	}
 
-	if ((!canbang || !currprefs.cachesize) && currprefs.comptrustbyte != 1)
-	{
-		// Set all of these to indirect when canbang == 0
-		// Basically, set the  compforcesettings option...
-		currprefs.comptrustbyte = 1;
-		currprefs.comptrustword = 1;
-		currprefs.comptrustlong = 1;
-		currprefs.comptrustnaddr = 1;
-		currprefs.compforcesettings = 1;
-
-		changed_prefs.comptrustbyte = 1;
-		changed_prefs.comptrustword = 1;
-		changed_prefs.comptrustlong = 1;
-		changed_prefs.comptrustnaddr = 1;
-		changed_prefs.compforcesettings = 1;
-
-		if (currprefs.cachesize) write_log(
-				"JIT: Reverting to \"indirect\" access, because canbang is zero!\n");
-	}
+	//TODO: do we really need the canbang setting? we figure out the memory access on our own and there are the comp_trust settings too
+//	if ((!canbang || !currprefs.cachesize) && currprefs.comptrustbyte != 1)
+//	{
+//		// Set all of these to indirect when canbang == 0
+//		// Basically, set the  compforcesettings option...
+//		currprefs.comptrustbyte = 1;
+//		currprefs.comptrustword = 1;
+//		currprefs.comptrustlong = 1;
+//		currprefs.comptrustnaddr = 1;
+//		currprefs.compforcesettings = 1;
+//
+//		changed_prefs.comptrustbyte = 1;
+//		changed_prefs.comptrustword = 1;
+//		changed_prefs.comptrustlong = 1;
+//		changed_prefs.comptrustnaddr = 1;
+//		changed_prefs.compforcesettings = 1;
+//
+//		if (currprefs.cachesize) write_log(
+//				"JIT: Reverting to \"indirect\" access, because canbang is zero!\n");
+//	}
 }
 
 /**
@@ -254,10 +252,7 @@ void comp_done(void)
 	}
 
 	//Flush all temp registers
-	comp_flush_temp_registers();
-
-	//Release regs base register if it was allocated
-	comp_free_regs_base_register();
+	comp_flush_temp_registers(0);
 
 	comp_compiler_done();
 }
@@ -331,9 +326,6 @@ void compemu_reset(void)
 	/* Clear M68k - PPC temp register mapping */
 	for (i = 0; i < 16; i++)
 		comp_m68k_registers[i].tmpreg = PPC_TMP_REG_NOTUSED;
-
-	/* Clear the base register for the regs array */
-	comp_regs_base_reg = PPC_TMP_REG_NOTUSED;
 }
 
 void build_comp(void)
@@ -447,6 +439,12 @@ void flush_icache(int n)
 
 void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 {
+	const cpu_history * inst_history;
+	char str[200];
+
+	//This flag signs the unsupported opcodes in a row, some initialization/cleanup is skipped if there was multiple unsupported opcode
+	int unsupported_in_a_row = 1;
+
 	write_jit_log("JIT: compile code, pc: %08x, block length: %d, total cycles: %d\n",
 			pc_hist->pc, blocklen, totcycles);
 
@@ -495,52 +493,75 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 
 		write_jit_log("Compiled code start: %08x\n", current_compile_p);
 
+		//Compile prolog (stackframe preparing) to the buffer, saving non-volatile registers
+		comp_ppc_prolog(PPCR_REG_USED_NONVOLATILE);
+
+		//Set up Regs pointer register
+		comp_ppc_liw(PPCR_REGS_BASE, (uae_u32)&regs);
+
 		//Compile verification of 68k PC against the expected PC and call
 		//cache miss function if these were not matching
-		comp_ppc_verify_pc((uae_u8*) pc_hist[0].location, &regs.pc_p);
-
-		//Compile prolog (stackframe preparing) to the buffer
-		comp_ppc_prolog();
-
-		//First block: load flags into the register
-		comp_macroblock_push_load_flags();
+		comp_ppc_verify_pc((uae_u8*) pc_hist[0].location);
 
 		//Loop trough the previously collected instructions
 		for (i = 0; i < blocklen && current_compile_p < max_compile_start; i++)
 		{
-			write_jit_log("Compile: %08x (%08x): ", pc_hist[i].pc, pc_hist[i].location);
 			uaecptr nextpc;
-			//TODO: implement JIT file handler for the disasm output
-			//m68k_disasm(stdout, (uaecptr) pc_hist[i].pc, &nextpc, 1);
+			m68k_disasm_str(str, (uaecptr) pc_hist[i].pc, &nextpc, 1);
+			write_jit_log("Comp: %s", str);
 
-			//Recall special memory access from CPU history
-			special_mem = pc_hist[i].specmem;
-
-			uae_u16* location = pc_hist[i].location;
-			uae_u16 opcode = do_get_mem_word(location);
+			uae_u16 opcode = do_get_mem_word(pc_hist[i].location);
 
 			struct comptbl* props = &compprops[opcode];
+
+			//Get the actual pc history, each handler needs it
+			inst_history = &pc_hist[i];
 
 			//Is this instruction supported? (handler is not NULL)
 			if (props->instr_handler != NULL)
 			{
+				if (unsupported_in_a_row)
+				{
+					//Previous instructions were unsupported:
+					//we have to load the flags into the register
+					comp_macroblock_push_load_flags();
+				}
+
+				unsupported_in_a_row = 0;
+
+				//Init opcode compiling
+				comp_opcode_init(inst_history);
+
 				//Call addressing pre functions, if not null
-				if (compsrc_pre_func[props->src_addr]) compsrc_pre_func[props->src_addr](location, props);
-				if (compdest_pre_func[props->dest_addr]) compdest_pre_func[props->dest_addr](location, props);
+				if (compsrc_pre_func[props->src_addr]) compsrc_pre_func[props->src_addr](inst_history, props);
+				if (compdest_pre_func[props->dest_addr]) compdest_pre_func[props->dest_addr](inst_history, props);
 
 				//Call instruction compiler
-				props->instr_handler(location, props);
+				props->instr_handler(inst_history, props);
 
 				//Call addressing post functions, if not null
-				if (compsrc_post_func[props->src_addr]) compsrc_post_func[props->src_addr](location, props);
-				if (compdest_post_func[props->dest_addr]) compdest_post_func[props->dest_addr](location, props);
+				if (compsrc_post_func[props->src_addr]) compsrc_post_func[props->src_addr](inst_history, props);
+				if (compdest_post_func[props->dest_addr]) compdest_post_func[props->dest_addr](inst_history, props);
 			}
 			else
 			{
 				//Not supported: compile direct call to the interpretive emulator
 				write_jit_log("Unsupported opcode: 0x%04x\n", opcode);
 
-				comp_opcode_unsupported(location, opcode);
+				if (!unsupported_in_a_row)
+				{
+					//Previous instruction was a supported one
+
+					//Save flags
+					comp_macroblock_push_save_flags();
+
+					//Update M68k PC
+					comp_macroblock_push_load_pc(inst_history->location);
+				}
+
+				unsupported_in_a_row = 1;
+
+				comp_opcode_unsupported(inst_history, opcode);
 			}
 		}
 
@@ -556,8 +577,8 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 		//Compile calling the do_cycles function at the end of the block with the pre-calculated cycles
 		comp_ppc_do_cycles(scaled_cycles(totcycles));
 
-		//Return to the caller from the compiled block
-		comp_ppc_return_to_caller();
+		//Return to the caller from the compiled block, restore non-volatile registers
+		comp_ppc_return_to_caller(PPCR_REG_USED_NONVOLATILE);
 
 		//PowerPC cache flush at the end of the compiling
 		ppc_cacheflush(compile_p_at_start, current_compile_p - compile_p_at_start);
@@ -596,41 +617,6 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 }
 
 /**
- * Get the base register for the M68k regs array, allocate a temporary register
- * if it was not done yet and load the base address to that register.
- * Returns the temp register index that is mapped.
- */
-uae_u8 comp_get_regs_base_register()
-{
-	if (comp_regs_base_reg == PPC_TMP_REG_NOTUSED)
-	{
-		//It is not mapped yet, we need to get a temp register
-		comp_regs_base_reg = comp_allocate_temp_register(PPC_TMP_REG_BASEREG);
-
-		//Compile code to load the base pointer to the regs array
-		comp_macroblock_push_load_register_long(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(comp_regs_base_reg),
-				comp_get_gpr_for_temp_register(comp_regs_base_reg),
-				(uae_u32)&regs.regs[0]);
-	}
-
-	return comp_regs_base_reg;
-}
-
-/**
- * Release the temp register for the base register for the M68k regs array,
- * if there was one allocated.
- */
-void comp_free_regs_base_register()
-{
-	if (comp_regs_base_reg != PPC_TMP_REG_NOTUSED)
-	{
-		comp_free_temp_register(comp_regs_base_reg);
-		comp_regs_base_reg = PPC_TMP_REG_NOTUSED;
-	}
-}
-
-/**
  * Allocate a temporary register
  * Parameters:
  *   allocate_for - the M68k register number that was mapped to the temp
@@ -655,6 +641,8 @@ uae_u8 comp_allocate_temp_register(int allocate_for)
 	//Set allocated state for the register
 	used_tmp_regs[i] = allocate_for;
 
+//	write_jit_log("Temp register allocated: %d\n", (int)i);
+
 	return i;
 }
 
@@ -673,6 +661,8 @@ void comp_free_temp_register(uae_u8 temp_reg)
 	}
 
 	used_tmp_regs[temp_reg] = PPC_TMP_REG_NOTUSED;
+
+//	write_jit_log("Temp register free'd: %d\n", (int)temp_reg);
 }
 
 /**
@@ -698,7 +688,7 @@ uae_u8 comp_get_gpr_for_temp_register(uae_u8 tmpreg)
  * Flush all the allocated temporary registers (except base register),
  * reset allocation state.
  */
-void comp_flush_temp_registers()
+void comp_flush_temp_registers(int supresswarning)
 {
 	int i;
 
@@ -708,11 +698,13 @@ void comp_flush_temp_registers()
 		switch (used_tmp_regs[i])
 		{
 		case PPC_TMP_REG_NOTUSED:
-		case PPC_TMP_REG_BASEREG:
 			break;
 		case PPC_TMP_REG_ALLOCATED:
 			//This register is allocated for temporary operations, must be deallocated, but let it slip with a warning
-			write_jit_log("Warning: Temporary register %d allocated but not free'd\n", i);
+			if (!supresswarning)
+			{
+				write_jit_log("Warning: Temporary register %d allocated but not free'd\n", i);
+			}
 			used_tmp_regs[i] = PPC_TMP_REG_NOTUSED;
 			break;
 		default:
@@ -734,7 +726,6 @@ void comp_flush_temp_registers()
 uae_u8 comp_map_temp_register(uae_u8 reg_number, int needs_init, int needs_flush)
 {
 	uae_u8 tmpreg;
-	uae_u8 basereg;
 	uae_u8 ppc_reg;
 	struct m68k_register* reg = &comp_m68k_registers[reg_number];
 
@@ -758,12 +749,11 @@ uae_u8 comp_map_temp_register(uae_u8 reg_number, int needs_init, int needs_flush
 		if (needs_init)
 		{
 			//The register needs initialization from the interpretive M68k register array
-			basereg = comp_get_regs_base_register();
 			comp_macroblock_push_load_memory_long(
-					COMP_COMPILER_MACROBLOCK_REG_TMP(basereg),
+					COMP_COMPILER_MACROBLOCK_REG_NONE,
 					COMP_COMPILER_MACROBLOCK_REG_DX_OR_AX(reg_number),
 					ppc_reg,
-					comp_get_gpr_for_temp_register(basereg),
+					PPCR_REGS_BASE,
 					reg_number * 4);
 		}
 	}
@@ -779,7 +769,6 @@ uae_u8 comp_map_temp_register(uae_u8 reg_number, int needs_init, int needs_flush
 void comp_unmap_temp_register(uae_u8 reg_number)
 {
 	struct m68k_register* reg = &comp_m68k_registers[reg_number];
-	uae_u8 basereg;
 
 	if (reg->tmpreg == PPC_TMP_REG_NOTUSED)
 	{
@@ -790,12 +779,11 @@ void comp_unmap_temp_register(uae_u8 reg_number)
 		if (reg->needs_flush)
 		{
 			//Register must be written back to the regs array
-			basereg = comp_get_regs_base_register();
 			comp_macroblock_push_save_memory_long(
-					COMP_COMPILER_MACROBLOCK_REG_TMP(basereg) | COMP_COMPILER_MACROBLOCK_REG_DX_OR_AX(used_tmp_regs[reg_number]),
+					COMP_COMPILER_MACROBLOCK_REG_DX_OR_AX(used_tmp_regs[reg_number]),
 					COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
 					comp_get_gpr_for_temp_register(reg->tmpreg),
-					comp_get_gpr_for_temp_register(basereg),
+					PPCR_REGS_BASE,
 					reg_number * 4);
 		}
 		used_tmp_regs[reg->tmpreg] = PPC_TMP_REG_NOTUSED;
@@ -986,82 +974,17 @@ static void calc_checksum(blockinfo* bi, uae_u32* c1, uae_u32* c2)
 	}
 }
 
-/** ------------------------------------------------------------------------------
- * Memory access compiling functions
+/**
+ * Figuring out if this read from the address a was special read or a normal one.
+ * Parameters:
+ *   pc - M68k emulated instruction pointer address
+ *   specmem_flags - memory access flags from the previous interpretive emulation iteration
+ *   trust - memory access trust configuration
  */
-
-/* This version assumes that it is writing *real* memory, and *will* fail
- *  if that assumption is wrong! No branches, no second chances, just
- *  straight go-for-it attitude */
-STATIC_INLINE void writemem_real(int address, int source, int offset, int size, int tmp)
-{
-	//TODO: writemem_real
-
-//	int f = tmp;
-//
-//	mov_l_rr(f, address);
-//	shrl_l_ri(f, 16); /* The index into the baseaddr table */
-//	mov_l_rm_indexed(f, (uae_uintptr) baseaddr, f, 4);
-//
-//	if (address == source && size > 1)
-//	{ /* IBrowse does this! */
-//		add_l(f, address); /* f now has the final address */
-//		switch (size)
-//		{
-//		case 2:
-//			gen_bswap_16(source);
-//			mov_w_Rr(f, source, 0);
-//			gen_bswap_16(source);
-//			break;
-//		case 4:
-//			gen_bswap_32(source);
-//			mov_l_Rr(f, source, 0);
-//			gen_bswap_32(source);
-//			break;
-//		}
-//	}
-//	else
-//	{
-//		/* f now holds the offset */
-//		switch (size)
-//		{
-//		case 1:
-//			mov_b_mrr_indexed(address, f, 1, source);
-//			break;
-//		case 2:
-//			gen_bswap_16(source);
-//			mov_w_mrr_indexed(address, f, 1, source);
-//			gen_bswap_16(source);
-//			break;
-//		case 4:
-//			gen_bswap_32(source);
-//			mov_l_mrr_indexed(address, f, 1, source);
-//			gen_bswap_32(source);
-//			break;
-//		}
-//	}
-}
-
-STATIC_INLINE void writemem(int address, int source, int offset, int size, int tmp)
-{
-	//TODO: writemem trough banks
-
-//    int f = tmp;
-//
-//	mov_l_rr(f, address);
-//	shrl_l_ri(f, 16); /* The index into the mem bank table */
-//	mov_l_rm_indexed(f, (uae_uintptr) mem_banks, f, 4);
-//	/* Now f holds a pointer to the actual membank */
-//	mov_l_rR(f, f, offset);
-//	/* Now f holds the address of the b/w/lput function */
-//	call_r_02(f, address, source, 4, size);
-//	forget_about(tmp);
-}
-
-void writebyte(int address, int source, int tmp)
+STATIC_INLINE int comp_is_spec_memory_read(uae_u32 pc, int specmem_flags, int trust)
 {
 	int distrust;
-	switch (currprefs.comptrustbyte)
+	switch (trust)
 	{
 	default:
 	case 0:
@@ -1071,27 +994,59 @@ void writebyte(int address, int source, int tmp)
 		distrust = 1;
 		break;
 	case 2:
-		distrust = ((start_pc & 0xF80000) == 0xF80000);
+		distrust = ((pc & 0xF80000) == 0xF80000);
 		break;
 	case 3:
 		distrust = !have_done_picasso;
 		break;
 	}
 
-	if ((special_mem & SPECIAL_MEM_WRITE) || distrust)
-	{
-		writemem(address, source, 20, 1, tmp);
-	}
-	else
-	{
-		writemem_real(address, source, 20, 1, tmp);
-	}
+	return (specmem_flags & SPECIAL_MEM_READ) || distrust;
 }
 
-void writeword_general(int address, int source, int tmp)
+/**
+ * Figuring out if this byte read from the address a was special read or a normal one.
+ * Parameters:
+ *   pc - M68k emulated instruction pointer address
+ *   specmem_flags - memory access flags from the previous interpretive emulation iteration
+ */
+int comp_is_spec_memory_read_byte(uae_u32 pc, int specmem_flags)
+{
+	return comp_is_spec_memory_read(pc, specmem_flags, currprefs.comptrustbyte);
+}
+
+/**
+ * Figuring out if this word read from the address a was special read or a normal one.
+ * Parameters:
+ *   pc - M68k emulated instruction pointer address
+ *   specmem_flags - memory access flags from the previous interpretive emulation iteration
+ */
+int comp_is_spec_memory_read_word(uae_u32 pc, int specmem_flags)
+{
+	return comp_is_spec_memory_read(pc, specmem_flags, currprefs.comptrustword);
+}
+
+/**
+ * Figuring out if this long read from the address a was special read or a normal one.
+ * Parameters:
+ *   pc - M68k emulated instruction pointer address
+ *   specmem_flags - memory access flags from the previous interpretive emulation iteration
+ */
+int comp_is_spec_memory_read_long(uae_u32 pc, int specmem_flags)
+{
+	return comp_is_spec_memory_read(pc, specmem_flags, currprefs.comptrustlong);
+}
+
+/**
+ * Figuring out if this write to the address a was special write or a normal one.
+ *   pc - M68k emulated instruction pointer address
+ *   specmem_flags - memory access flags from the previous interpretive emulation iteration
+ *   trust - memory access trust configuration
+ */
+STATIC_INLINE int comp_is_spec_memory_write(uae_u32 pc, int specmem_flags, int trust)
 {
 	int distrust;
-	switch (currprefs.comptrustword)
+	switch (trust)
 	{
 	default:
 	case 0:
@@ -1101,182 +1056,44 @@ void writeword_general(int address, int source, int tmp)
 		distrust = 1;
 		break;
 	case 2:
-		distrust = ((start_pc & 0xF80000) == 0xF80000);
+		distrust = ((pc & 0xF80000) == 0xF80000);
 		break;
 	case 3:
 		distrust = !have_done_picasso;
 		break;
 	}
 
-	if ((special_mem & SPECIAL_MEM_WRITE) || distrust)
-	{
-		writemem(address, source, 16, 2, tmp);
-	}
-	else
-	{
-		writemem_real(address, source, 16, 2, tmp);
-	}
+	return (specmem_flags & SPECIAL_MEM_WRITE) || distrust;
 }
 
-void writelong_general(int address, int source, int tmp)
+/**
+ * Figuring out if this byte write to the address a was special write or a normal one.
+ *   pc - M68k emulated instruction pointer address
+ *   specmem_flags - memory access flags from the previous interpretive emulation iteration
+ */
+int comp_is_spec_memory_write_byte(uae_u32 pc, int specmem_flags)
 {
-	int distrust;
-	switch (currprefs.comptrustlong)
-	{
-	default:
-	case 0:
-		distrust = 0;
-		break;
-	case 1:
-		distrust = 1;
-		break;
-	case 2:
-		distrust = ((start_pc & 0xF80000) == 0xF80000);
-		break;
-	case 3:
-		distrust = !have_done_picasso;
-		break;
-	}
-
-	if ((special_mem & SPECIAL_MEM_WRITE) || distrust)
-	{
-		writemem(address, source, 12, 4, tmp);
-	}
-	else
-	{
-		writemem_real(address, source, 12, 4, tmp);
-	}
+	return comp_is_spec_memory_write(pc, specmem_flags, currprefs.comptrustbyte);
 }
 
-/* This version assumes that it is reading *real* memory, and *will* fail
- *  if that assumption is wrong! No branches, no second chances, just
- *  straight go-for-it attitude */
-STATIC_INLINE void readmem_real(int address, int dest, int offset, int size, int tmp)
+/**
+ * Figuring out if this word write to the address a was special write or a normal one.
+ *   pc - M68k emulated instruction pointer address
+ *   specmem_flags - memory access flags from the previous interpretive emulation iteration
+ */
+int comp_is_spec_memory_write_word(uae_u32 pc, int specmem_flags)
 {
-	//TODO: readmem_real
-
-//    int f = tmp;
-//
-//    if (size == 4 && address != dest)
-//	f = dest;
-//
-//    mov_l_rr (f, address);
-//    shrl_l_ri (f, 16);   /* The index into the baseaddr table */
-//    mov_l_rm_indexed (f, (uae_uintptr) baseaddr, f, 4);
-//    /* f now holds the offset */
-//
-//    switch(size) {
-//     case 1: mov_b_rrm_indexed (dest, address, f, 1); break;
-//     case 2: mov_w_rrm_indexed (dest, address, f, 1); gen_bswap_16 (dest); break;
-//     case 4: mov_l_rrm_indexed (dest, address, f, 1); gen_bswap_32 (dest); break;
-//    }
-//    forget_about (tmp);
+	return comp_is_spec_memory_write(pc, specmem_flags, currprefs.comptrustword);
 }
 
-STATIC_INLINE void readmem(int address, int dest, int offset, int size, int tmp)
+/**
+ * Figuring out if this long write to the address a was special write or a normal one.
+ *   pc - M68k emulated instruction pointer address
+ *   specmem_flags - memory access flags from the previous interpretive emulation iteration
+ */
+int comp_is_spec_memory_write_long(uae_u32 pc, int specmem_flags)
 {
-	//TODO: readmem trough banks
-
-//	int f = tmp;
-//
-//    mov_l_rr (f,address);
-//    shrl_l_ri (f,16);   /* The index into the mem bank table */
-//    mov_l_rm_indexed (f, (uae_uintptr) mem_banks, f, 4);
-//    /* Now f holds a pointer to the actual membank */
-//    mov_l_rR (f, f, offset);
-//    /* Now f holds the address of the b/w/lget function */
-//    call_r_11 (dest, f, address, size, 4);
-//    forget_about (tmp);
-}
-
-void readbyte(int address, int dest, int tmp)
-{
-	int distrust;
-	switch (currprefs.comptrustbyte)
-	{
-	default:
-	case 0:
-		distrust = 0;
-		break;
-	case 1:
-		distrust = 1;
-		break;
-	case 2:
-		distrust = ((start_pc & 0xF80000) == 0xF80000);
-		break;
-	case 3:
-		distrust = !have_done_picasso;
-		break;
-	}
-
-	if ((special_mem & SPECIAL_MEM_READ) || distrust)
-	{
-		readmem(address, dest, 8, 1, tmp);
-	}
-	else
-	{
-		readmem_real(address, dest, 8, 1, tmp);
-	}
-}
-
-void readword(int address, int dest, int tmp)
-{
-	int distrust;
-	switch (currprefs.comptrustword)
-	{
-	default:
-	case 0:
-		distrust = 0;
-		break;
-	case 1:
-		distrust = 1;
-		break;
-	case 2:
-		distrust = ((start_pc & 0xF80000) == 0xF80000);
-		break;
-	case 3:
-		distrust = !have_done_picasso;
-		break;
-	}
-
-	if ((special_mem & SPECIAL_MEM_READ) || distrust)
-	{
-		readmem(address, dest, 4, 2, tmp);
-	}
-	else
-	{
-		readmem_real(address, dest, 4, 2, tmp);
-	}
-}
-
-void readlong(int address, int dest, int tmp)
-{
-	int distrust;
-	switch (currprefs.comptrustlong)
-	{
-	default:
-	case 0:
-		distrust = 0;
-		break;
-	case 1:
-		distrust = 1;
-		break;
-	case 2:
-		distrust = ((start_pc & 0xF80000) == 0xF80000);
-		break;
-	case 3:
-		distrust = !have_done_picasso;
-		break;
-	}
-
-	if ((special_mem & SPECIAL_MEM_READ) || distrust)
-	{
-		readmem(address, dest, 0, 4, tmp);
-	}
-	else
-	{
-		readmem_real(address, dest, 0, 4, tmp);
-	}
+	return comp_is_spec_memory_write(pc, specmem_flags, currprefs.comptrustlong);
 }
 
 /**
@@ -1312,6 +1129,20 @@ void comp_ppc_emit_halfwords(uae_u16 halfword_high, uae_u16 halfword_low)
  * Instruction compilers
  */
 
+/* Compiles add instruction
+ * Parameters:
+ * 		regd - target register
+ * 		rega - source register 1
+ * 		regb - source register 2
+ * 		updateflags - compiles the flag updating version if TRUE
+ */
+void comp_ppc_add(int regd, int rega, int regb, int updateflags)
+{
+	// ## add(x) rega, regs, regb
+	comp_ppc_emit_halfwords(0x7c00 | ((regd) << 5) | rega,
+			0x0214 | (regb << 11) | (updateflags ? 1 : 0));
+}
+
 /* Compiles addco instruction
  * Parameters:
  * 		regd - target register
@@ -1338,7 +1169,7 @@ void comp_ppc_addi(int regd, int rega, uae_u16 imm)
 	if (rega == 0)
 	{
 		write_log(
-				"Compiling error: r0 register cannot be used for source register in addi instruction");
+				"JIT compiling error: r0 register cannot be used for source register in addi instruction");
 		abort();
 	}
 
@@ -1550,6 +1381,30 @@ void comp_ppc_cmplw(int regcrfd, int rega, int regb)
 	comp_ppc_emit_halfwords(0x7C00 | regcrfd << 7 | rega, 0x0040 | regb << 11);
 }
 
+/* Compiles extsb instruction
+ * Parameters:
+ * 		rega - target register
+ * 		regs - source register
+ * 		updateflags - compiles the flag updating version if TRUE
+ */
+void comp_ppc_extsb(int rega, int regs, int updateflags)
+{
+	// ## extsb(x) rega, regs
+	comp_ppc_emit_halfwords(0x7C00 | regs << 5 | rega, 0x774 | (updateflags ? 1 : 0));
+}
+
+/* Compiles extsh instruction
+ * Parameters:
+ * 		rega - target register
+ * 		regs - source register
+ * 		updateflags - compiles the flag updating version if TRUE
+ */
+void comp_ppc_extsh(int rega, int regs, int updateflags)
+{
+	// ## extsh(x) rega, regs
+	comp_ppc_emit_halfwords(0x7C00 | regs << 5 | rega, 0x734 | (updateflags ? 1 : 0));
+}
+
 /* Compiles li instruction
  * Parameters:
  * 		rega - target register
@@ -1613,6 +1468,18 @@ void comp_ppc_lwz(int regd, uae_u16 delta, int rega)
 {
 	// ## lwz regd, delta(rega)
 	comp_ppc_emit_halfwords(0x8000 | ((regd) << 5) | rega, delta);
+}
+
+/* Compiles lwzx instruction
+ * Parameters:
+ * 		regd - target register
+ * 		rega - source register
+ * 		regb - index register
+ */
+void comp_ppc_lwzx(int regd, int rega, int regb)
+{
+	// ## lwzx regd, rega, regb
+	comp_ppc_emit_halfwords(0x7c00 | (regd << 5) | rega, 0x002e | (regb << 11));
 }
 
 /* Compiles mcrxr instruction
@@ -1757,6 +1624,18 @@ void comp_ppc_rlwinm(int rega, int regs, int shift, int maskb, int maske, int up
 			(shift << 11) | (maskb << 6) | (maske << 1) | (updateflags ? 1 : 0));
 }
 
+/* Compiles stb instruction
+ * Parameters:
+ * 		regs - source register
+ * 		delta - offset for the source address register
+ * 		rega - source register
+ */
+void comp_ppc_stb(int regs, uae_u16 delta, int rega)
+{
+	// ## stb regs, delta(rega)
+	comp_ppc_emit_halfwords(0x9800 | ((regs) << 5) | rega, delta);
+}
+
 /* Compiles sth instruction
  * Parameters:
  * 		regs - source register
@@ -1767,6 +1646,18 @@ void comp_ppc_sth(int regs, uae_u16 delta, int rega)
 {
 	// ## sth regs, delta(rega)
 	comp_ppc_emit_halfwords(0xb000 | ((regs) << 5) | rega, delta);
+}
+
+/* Compiles sthu instruction
+ * Parameters:
+ * 		regs - source register
+ * 		delta - offset for the source address register
+ * 		rega - source register
+ */
+void comp_ppc_sthu(int regs, uae_u16 delta, int rega)
+{
+	// ## sth regs, delta(rega)
+	comp_ppc_emit_halfwords(0xb400 | ((regs) << 5) | rega, delta);
 }
 
 /* Compiles stw instruction
@@ -1819,12 +1710,22 @@ void comp_ppc_call(int reg, uae_uintptr addr)
 	}
 }
 
+/* Compiles a subroutine call to an address in a register
+ * Parameters:
+ * 		addrreg - target address for the subroutine in a register
+ */
+void comp_ppc_call_reg(int addrreg)
+{
+		comp_ppc_mtlr(addrreg);
+		comp_ppc_blrl();
+}
+
+
 /* Compiles a direct jump to an address
  * Parameters:
- * 		reg - a temporary register (not preserved)
  * 		addr - target address for the jump
  */
-void comp_ppc_jump(int reg, uae_uintptr addr)
+void comp_ppc_jump(uae_uintptr addr)
 {
 	//Calculate the offset to the target from the actual PC address
 	uae_u32 offset = ((uae_u32) addr) - ((uae_u32) current_compile_p);
@@ -1838,31 +1739,67 @@ void comp_ppc_jump(int reg, uae_uintptr addr)
 	else
 	{
 		//No - offset is too large, indirect jump is used
-		comp_ppc_liw(reg, addr);
-		comp_ppc_mtlr(reg);
+		comp_ppc_liw(PPCR_SPECTMP, addr);
+		comp_ppc_mtlr(PPCR_SPECTMP);
 		comp_ppc_blr();
 	}
 }
 
 /* Compiles prolog to the beginnig of the function call (stackframe preparing)
  * Note: emitted code uses PPCR_TMP0 register, it is not restored
+ * Parameters:
+ *   save_regs - save the PPC registers to the stack that are marked with a high
+ *   bit in this longword (e.g. R4 and R6 = (1 << 4) | (1 <<6) = %101000)
  */
-void comp_ppc_prolog()
+void comp_ppc_prolog(uae_u32 save_regs)
 {
+	int i;
+	int regnum = 0;
+
+	//How many registers do we want to save?
+	for(i = 0; i < 32; i++) regnum += (save_regs & (1 << i)) ? 1 : 0;
+
 	comp_ppc_mflr(PPCR_TMP0); //Read LR
 	comp_ppc_stw(PPCR_TMP0, -4, PPCR_SP); //Store in stack frame
 
-	comp_ppc_addi(PPCR_TMP0, PPCR_SP, -16); //Calculate new stack frame
+	comp_ppc_addi(PPCR_TMP0, PPCR_SP, -16 - (regnum * 4)); //Calculate new stack frame
 	comp_ppc_rlwinm(PPCR_TMP0, PPCR_TMP0, 0, 0, 27, FALSE); //Align stack pointer
 	comp_ppc_stw(PPCR_SP, 0, PPCR_TMP0); //Store backchain pointer
 	comp_ppc_mr(PPCR_SP, PPCR_TMP0, FALSE); //Set real stack pointer
+
+	//Save registers
+	regnum = 8;
+	for(i = 0; i < 32; i++)
+	{
+		if (save_regs & (1 << i))
+		{
+			comp_ppc_stw(i, regnum, PPCR_SP);
+			regnum += 4;
+		}
+	}
 }
 
 /* Compiles epilog to the end of the function call (stackframe freeing)
  * Note: emitted code uses PPCR_TMP0 and PPCR_SPECTMP registers, these are not restored
+ * Parameters:
+ *   restore_regs - restore the PPC registers from the stack that are marked with a high
+ *   bit in this longword (e.g. R4 and R6 = (1 << 4) | (1 <<6) = %101000)
  */
-void comp_ppc_epilog()
+void comp_ppc_epilog(uae_u32 restore_regs)
 {
+	int i;
+
+	//Restore registers
+	int regnum = 8;
+	for(i = 0; i < 32; i++)
+	{
+		if (restore_regs & (1 << i))
+		{
+			comp_ppc_lwz(i, regnum, PPCR_SP);
+			regnum += 4;
+		}
+	}
+
 	comp_ppc_lwz(PPCR_TMP0, 0, PPCR_SP); //Read the pointer to the previous stack frame
 	comp_ppc_lwz(PPCR_SPECTMP, 4, PPCR_TMP0); //Read LR from the stackframe
 	comp_ppc_mtlr(PPCR_SPECTMP); //Restore LR
@@ -1879,45 +1816,52 @@ void comp_ppc_do_cycles(int totalcycles)
 	comp_ppc_call(PPCR_SPECTMP, (uae_uintptr) do_cycles_callback);
 }
 
-/* Compiles "return from function" code to the code cache actual position */
-void comp_ppc_return_to_caller()
+/* Compiles "return from function" code to the code cache actual position
+ * Parameters:
+ *   restore_regs - restore the PPC registers from the stack that are marked with a high
+ *   bit in this longword (e.g. R4 and R6 = (1 << 4) | (1 <<6) = %101000)
+ */
+void comp_ppc_return_to_caller(uae_u32 restore_regs)
 {
-	comp_ppc_epilog();
+	comp_ppc_epilog(restore_regs);
 	comp_ppc_blr();
 }
 
  /* Compile verification of 68k PC against the expected PC and call
   * cache miss function if these were not matching
+  *
+  * Note: this function cannot be called after collecting of macroblocks
+  * started. There is no handling of temporary registers properly, because
+  * this instruction block is not scheduled for compiling.
+  * Also this function needs a previously loaded PPCR_REGS_BASE register.
+  *
   * Parameters:
   *      pc_addr_exp - expected 68k PC address (value)
-  *      pc_addr_act - pointer to the memory address that contains the actual 58k PC address
   */
-void comp_ppc_verify_pc(uae_u8* pc_addr_exp, uae_u8** pc_addr_act)
+void comp_ppc_verify_pc(uae_u8* pc_addr_exp)
 {
-	//TODO: simplify access to the actual PC register by using regs variable pointer in a prepopulated native register
-	comp_ppc_liw(PPCR_TMP0, (uae_u32) pc_addr_exp);
-	comp_ppc_liw(PPCR_TMP1, (uae_u32) pc_addr_act);
-	comp_ppc_lwz(PPCR_TMP1, 0, PPCR_TMP1);
-	comp_ppc_cmplw(PPCR_CR_TMP0, PPCR_TMP0, PPCR_TMP1);
+	comp_ppc_liw(PPCR_TMP0, (uae_u32) pc_addr_exp);	//Load original PC address into tempreg1
+	comp_ppc_lwz(PPCR_TMP1, COMP_GET_OFFSET_IN_REGS(pc_p), PPCR_REGS_BASE);	//Load the recent PC into tempreg2 from regs structure
+	comp_ppc_cmplw(PPCR_CR_TMP0, PPCR_TMP0, PPCR_TMP1);	//Compare registers
+	comp_ppc_bc(PPC_B_CR_TMP0_EQ | PPC_B_TAKEN);	//beq+ skip
 
-	//beq+ skip
-	comp_ppc_bc(PPC_B_CR_TMP0_EQ | PPC_B_TAKEN);
+	//PC is not the same as the cached
+	//Dispose stack frame
+	comp_ppc_epilog(PPCR_REG_USED_NONVOLATILE);
 
+	//Load parameter: address of the instruction
 	comp_ppc_liw(PPCR_PARAM1, (uae_u32) pc_addr_exp);
 
-	//PC is not the same as the cached: continue on cache miss function
-	comp_ppc_jump(PPCR_TMP0, (uae_u32) cache_miss);
+	//Continue on cache miss function
+	comp_ppc_jump((uae_u32) cache_miss);
 
 	//skip:
 	comp_ppc_branch_target();
 }
 
 /* Compiles a piece of code to reload the regs.pc_p pointer to the specified address. */
-void comp_ppc_reload_pc_p(uae_u8* new_pc_p, uae_u8** regs_pc_p)
+void comp_ppc_reload_pc_p(uae_u8* new_pc_p)
 {
-	//TODO: simplify access to the actual PC register by using regs variable pointer in a prepopulated native register
-
-	comp_ppc_liw(PPCR_TMP0, (uae_u32) new_pc_p);
-	comp_ppc_liw(PPCR_TMP1, (uae_u32) regs_pc_p);
-	comp_ppc_stw(PPCR_TMP0, 0, PPCR_TMP1);
+	comp_ppc_liw(PPCR_SPECTMP, (uae_u32) new_pc_p);
+	comp_ppc_stw(PPCR_SPECTMP, COMP_GET_OFFSET_IN_REGS(pc_p), PPCR_REGS_BASE);
 }
