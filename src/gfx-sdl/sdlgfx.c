@@ -91,9 +91,9 @@ static int y_size_table[MAX_SCREEN_MODES] = { 200, 240, 256, 400, 350, 480, 512,
 static SDL_Rect screenmode[MAX_SDL_SCREENMODE];
 static int mode_count;
 
-
 static int red_bits, green_bits, blue_bits, alpha_bits;
 static int red_shift, green_shift, blue_shift, alpha_shift;
+static int alpha;
 
 #ifdef PICASSO96
 static int screen_is_picasso;
@@ -107,13 +107,85 @@ static int picasso_maxw = 0, picasso_maxh = 0;
 static int bitdepth, bit_unit;
 static int current_width, current_height;
 
+#define MAX_MAPPINGS 256
+
+#define DID_MOUSE 1
+#define DID_JOYSTICK 2
+#define DID_KEYBOARD 3
+
+#define DIDC_DX 1
+#define DIDC_RAW 2
+#define DIDC_WIN 3
+#define DIDC_CAT 4
+#define DIDC_PARJOY 5
+
+#define AXISTYPE_NORMAL 0
+#define AXISTYPE_POV_X 1
+#define AXISTYPE_POV_Y 2
+#define AXISTYPE_SLIDER 3
+#define AXISTYPE_DIAL 4
+
+struct didata {
+	int type;
+	int acquired;
+	int priority;
+	int superdevice;
+//	GUID iguid;
+//	GUID pguid;
+	TCHAR *name;
+	bool fullname;
+	TCHAR *sortname;
+	TCHAR *configname;
+	int vid, pid, mi;
+
+	int connection;
+//	LPDIRECTINPUTDEVICE8 lpdi;
+//	HANDLE rawinput;
+//	HIDP_CAPS hidcaps;
+//	HIDP_VALUE_CAPS hidvcaps[MAX_MAPPINGS];
+//	PCHAR hidbuffer, hidbufferprev;
+//	PHIDP_PREPARSED_DATA hidpreparseddata;
+	int maxusagelistlength;
+//	PUSAGE_AND_PAGE usagelist, prevusagelist;
+
+	int wininput;
+	int catweasel;
+	int coop;
+
+//	HANDLE parjoy;
+//	PAR_QUERY_INFORMATION oldparjoystatus;
+
+	uae_s16 axles;
+	uae_s16 buttons, buttons_real;
+	uae_s16 axismappings[MAX_MAPPINGS];
+	TCHAR *axisname[MAX_MAPPINGS];
+	uae_s16 axissort[MAX_MAPPINGS];
+	uae_s16 axistype[MAX_MAPPINGS];
+	bool analogstick;
+
+	uae_s16 buttonmappings[MAX_MAPPINGS];
+	TCHAR *buttonname[MAX_MAPPINGS];
+	uae_s16 buttonsort[MAX_MAPPINGS];
+	uae_s16 buttonaxisparent[MAX_MAPPINGS];
+	uae_s16 buttonaxisparentdir[MAX_MAPPINGS];
+
+};
+
+static struct didata di_mouse[MAX_INPUT_DEVICES];
+static struct didata di_keyboard[MAX_INPUT_DEVICES];
+static struct didata di_joystick[MAX_INPUT_DEVICES];
 static int num_mouse, num_keyboard, num_joystick;
 static int dd_inited, mouse_inited, keyboard_inited, joystick_inited;
+
+#define	MAX_KEYCODES 256
+static uae_u8 di_keycodes[MAX_INPUT_DEVICES][MAX_KEYCODES];
+static int keyboard_german;
 
 /* If we have to lock the SDL surface, then we remember the address
  * of its pixel data - and recalculate the row maps only when this
  * address changes */
 static void *old_pixels;
+static uae_u8 scrlinebuf[4096 * 4]; /* this is too large, but let's rather play on the safe side here */
 
 static SDL_Color arSDLColors[256];
 #ifdef PICASSO96
@@ -302,7 +374,7 @@ static int get_color (int r, int g, int b, xcolnr *cnp)
     return 1;
 }
 
-static int init_colors (void)
+static void init_colors (void)
 {
     int i;
 
@@ -325,8 +397,10 @@ static int init_colors (void)
 	red_shift   = maskShift (display->format->Rmask);
 	green_shift = maskShift (display->format->Gmask);
 	blue_shift  = maskShift (display->format->Bmask);
+	alpha_bits = 0;
+	alpha_shift = 0;
 
-	alloc_colors64k (red_bits, green_bits, blue_bits, red_shift, green_shift, blue_shift, 0, 0, 0, 0);
+	alloc_colors64k (red_bits, green_bits, blue_bits, red_shift, green_shift, blue_shift, alpha_bits, alpha_shift, alpha, 0);
     } else {
 	alloc_colors256 (get_color);
 	SDL_SetColors (screen, arSDLColors, 0, 256);
@@ -1052,6 +1126,14 @@ static int graphics_subinit_gl (void)
 #endif
     }
 
+	gfxvidinfo.emergmem = scrlinebuf; // memcpy from system-memory to video-memory
+
+	//xfree (gfxvidinfo.realbufmem);
+	gfxvidinfo.realbufmem = NULL;
+//	gfxvidinfo.bufmem = NULL;
+	gfxvidinfo.bufmem_allocated = NULL;
+	gfxvidinfo.bufmem_lockable = false;
+
     return 1;
 }
 
@@ -1190,8 +1272,9 @@ static int graphics_subinit (void)
 
     inputdevice_release_all_keys ();
     reset_hotkeys ();
+	init_colors ();
 
-    return init_colors ();
+    return 1;
 }
 
 int graphics_init (void)
@@ -1209,7 +1292,7 @@ int graphics_init (void)
     screen_is_picasso = 0;
     screen_was_picasso = 0;
 #endif
-    fullscreen = currprefs.gfx_afullscreen;
+    fullscreen = isfullscreen();
     mousegrab = 0;
 
     fixup_prefs_dimensions (&currprefs);
@@ -1245,10 +1328,10 @@ static void graphics_subshutdown (void)
     display = screen = 0;
     mousehack = 0;
 
-    if (gfxvidinfo.emergmem) {
+/*    if (gfxvidinfo.emergmem) {
 	free (gfxvidinfo.emergmem);
 	gfxvidinfo.emergmem = 0;
-    }
+    }*/
 
 #if 0
 // This breaks catastrophically on some systems. Better work-around needed.
@@ -1288,6 +1371,8 @@ void graphics_notify_state (int state)
 void handle_events (void)
 {
     SDL_Event rEvent;
+	int istest = inputdevice_istest ();
+	int scancode;
 
     while (SDL_PollEvent (&rEvent)) {
 	switch (rEvent.type) {
@@ -1350,18 +1435,12 @@ void handle_events (void)
 */
 			    keycode = rEvent.key.keysym.sym;
 //				write_log ("Event: key: %d to: %d  %s\n", keycode, sdlk2dik (keycode), state ? "down" : "up");
+/*				if (!istest)
+					scancode = keyhack (keycode, state, 0);
+				if (scancode < 0)
+					continue;*/
+				di_keycodes[0][keycode] = state;
 				my_kbd_handler (0, sdlk2dik (keycode), state);
-/*
-				if ((ievent = match_hotkey_sequence (keycode, state))) {
-					DEBUG_LOG ("Hotkey event: %d\n", ievent);
-					handle_hotkey_event (ievent, state);
-				} else {
-					if (currprefs.map_raw_keys) {
-						inputdevice_translatekeycode (0, keycode, state);
-					} else {
-						inputdevice_do_keyboard (keysym2amiga (keycode), state);
-					}
-				}*/
 				break;
 		}
 
@@ -1532,9 +1611,7 @@ int check_prefs_changed_gfx (void)
     } else if (changed_prefs.gfx_lores_mode	== currprefs.gfx_lores_mode
 		&& changed_prefs.gfx_vresolution	== currprefs.gfx_vresolution
 		&& changed_prefs.gfx_xcenter		== currprefs.gfx_xcenter
-		&& changed_prefs.gfx_ycenter		== currprefs.gfx_ycenter
-		&& changed_prefs.gfx_afullscreen	== currprefs.gfx_afullscreen
-		&& changed_prefs.gfx_pfullscreen	== currprefs.gfx_pfullscreen) {
+		&& changed_prefs.gfx_ycenter		== currprefs.gfx_ycenter) {
 		return 0;
     }
 
@@ -1553,8 +1630,6 @@ int check_prefs_changed_gfx (void)
 	currprefs.gfx_vresolution		= changed_prefs.gfx_vresolution;
 	currprefs.gfx_xcenter			= changed_prefs.gfx_xcenter;
 	currprefs.gfx_ycenter			= changed_prefs.gfx_ycenter;
-	currprefs.gfx_afullscreen		= changed_prefs.gfx_afullscreen;
-	currprefs.gfx_pfullscreen		= changed_prefs.gfx_pfullscreen;
 
 #ifdef PICASSO96
 	if (!screen_is_picasso)
@@ -1599,11 +1674,6 @@ void DX_Invalidate (int first, int last)
 		picasso_invalid_lines[first] = 1;
 		first++;
 	}
-}
-
-int DX_BitsPerCannon (void)
-{
-	return 8;
 }
 
 static int palette_update_start = 256;
@@ -1664,112 +1734,12 @@ int DX_Fill (int dstx, int dsty, int width, int height, uae_u32 color, RGBFTYPE 
 	return result;
 }
 
-int DX_Blit (int srcx, int srcy, int dstx, int dsty, int width, int height, BLIT_OPCODE opcode)
-{
-	int result = 0;
-#ifdef USE_GL /* TODO think about optimization for GL */
-	if (!currprefs.use_gl) {
-#endif /* USE_GL */
-		SDL_Rect src_rect  = {srcx, srcy, width, height};
-		SDL_Rect dest_rect = {dstx, dsty, 0, 0};
-
-		DEBUG_LOG ("DX_Blit (sx:%d sy:%d dx:%d dy:%d w:%d h:%d op:%d)\n", srcx, srcy, dstx, dsty, width, height, opcode);
-
-		if (opcode == BLIT_SRC && SDL_BlitSurface (screen, &src_rect, screen, &dest_rect) == 0) {
-			DX_Invalidate (dsty, dsty + height - 1);
-			result = 1;
-		}
-#ifdef USE_GL
-	}
-#endif /* USE_GL */
-	return result;
-}
-
 /*
  * Add a screenmode to the emulated P96 display database
  */
 static void add_p96_mode (int width, int height, int emulate_chunky, int *count)
 {
 	return;
-}
-
-int DX_FillResolutions (uae_u16 *ppixel_format)
-{
-	int i;
-	int count = 0;
-	int emulate_chunky = 0;
-
-	DEBUG_LOG ("Function: DX_FillResolutions\n");
-
-	/* Find supported pixel formats */
-#ifdef USE_GL
-	if (!currprefs.use_gl) {
-#endif /* USE_GL */
-		picasso_vidinfo.rgbformat = get_p96_pixel_format (SDL_GetVideoInfo()->vfmt);
-#ifdef USE_GL
-	} else {
-#if SDL_BYTEORDER == SDL_BIG_ENDIAN
-		if (bit_unit == 16)
-#if defined (__APPLE__)
-			picasso_vidinfo.rgbformat = RGBFB_R5G5B5;
-#else
-			picasso_vidinfo.rgbformat = RGBFB_R5G6B5;
-#endif
-		else
-			picasso_vidinfo.rgbformat = RGBFB_A8R8G8B8;
-#else
-		if (bit_unit == 16)
-#if defined (__APPLE__)
-			picasso_vidinfo.rgbformat = RGBFB_R5G5B5PC;
-#else
-			picasso_vidinfo.rgbformat = RGBFB_R5G6B5PC;
-#endif
-		else
-			picasso_vidinfo.rgbformat = RGBFB_B8G8R8A8;
-#endif
-	}
-#endif /* USE_GL */
-
-	*ppixel_format = 1 << picasso_vidinfo.rgbformat;
-	if (bit_unit == 16 || bit_unit == 32) {
-		*ppixel_format |= RGBFF_CHUNKY;
-		emulate_chunky = 1;
-	}
-
-	struct MultiDisplay *md = getdisplay (&currprefs);
-	struct PicassoResolution *DisplayModes = md->DisplayModes;
-	md->DisplayModes = xmalloc (struct PicassoResolution, MAX_PICASSO_MODES);
-	md->DisplayModes[0].depth = -1;
-//	md->disabled = 1;
-
-	/* Check list of standard P96 screenmodes */
-	for (i = 0; i < MAX_SCREEN_MODES; i++) {
-		if (SDL_VideoModeOK (x_size_table[i], y_size_table[i], bitdepth, SDL_HWSURFACE | SDL_FULLSCREEN)) {
-
-			//add_p96_mode (x_size_table[i], y_size_table[i], emulate_chunky, &count);
-			addmode (md, x_size_table[i], y_size_table[i], bitdepth, 75, 0);
-			write_log ("SDLGFX: Added P96 mode: %dx%dx%d\n", x_size_table[i], y_size_table[i], bitdepth);
-		}
-	}
-
-	/* Check list of supported SDL screenmodes */
-	for (i = 0; i < mode_count; i++) {
-		unsigned int j;
-		int found = 0;
-		for (j = 0; j < MAX_SCREEN_MODES - 1; j++) {
-			if (screenmode[i].w == x_size_table[j] && screenmode[i].h == y_size_table[j]) {
-				found = 1;
-				break;
-			}
-		}
-
-		/* If SDL mode is not a standard P96 mode (and thus already added to the
-		 * list, above) then add it */
-		if (!found)
-			addmode (screenmode[i].w, screenmode[i].h, bitdepth, 75, 0);
-	}
-
-	return count;
 }
 
 static void set_window_for_picasso (void)
@@ -2076,16 +2046,35 @@ static int init_kb (void)
 	//oldusedleds = -1;
 	keyboard_inited = 1;
 
-/*	struct uae_input_device_kbr_default *keymap = 0;
-	inputdevice_setkeytranslation (keymap, kbmaps);
-
-	// See if we support raw keys on this platform
-	if ((keymap = get_default_raw_keymap (get_sdlgfx_type ())) != 0) {
-		inputdevice_setkeytranslation (keymap, kbmaps);
-		have_rawkeys = 1;
+	unsigned int i;
+	for (i = 0; i < num_keyboard; i++) {
+		struct didata *did = &di_keyboard[i];
+	/*	if (did->connection == DIDC_DX) {
+			hr = g_lpdi->CreateDevice (did->iguid, &lpdi, NULL);
+			if (SUCCEEDED (hr)) {
+				hr = lpdi->SetDataFormat (&c_dfDIKeyboard);
+				if (FAILED (hr))
+					write_log (_T("keyboard setdataformat failed, %s\n"), DXError (hr));
+				memset (&dipdw, 0, sizeof (dipdw));
+				dipdw.diph.dwSize = sizeof (DIPROPDWORD);
+				dipdw.diph.dwHeaderSize = sizeof (DIPROPHEADER);
+				dipdw.diph.dwObj = 0;
+				dipdw.diph.dwHow = DIPH_DEVICE;
+				dipdw.dwData = DI_KBBUFFER;
+				hr = lpdi->SetProperty (DIPROP_BUFFERSIZE, &dipdw.diph);
+				if (FAILED (hr))
+					write_log (_T("keyboard setpropertry failed, %s\n"), DXError (hr));
+				lpdi->EnumObjects (EnumObjectsCallback, did, DIDFT_ALL);
+				sortobjects (did);
+				did->lpdi = lpdi;
+			} else
+				write_log (_T("keyboard CreateDevice failed, %s\n"), DXError (hr));
+		}*/
 	}
-	switch_keymaps ();
-*/
+
+	keyboard_german = 0;
+//	if ((LOWORD(GetKeyboardLayout (0)) & 0x3ff) == 7)
+//		keyboard_german = 1;
 	return 1;
 }
 
@@ -2094,6 +2083,14 @@ static void close_kb (void)
 	if (keyboard_inited == 0)
 		return;
 	keyboard_inited = 0;
+
+/*
+	unsigned int i;
+	for (i = 0; i < num_keyboard; i++)
+		di_dev_free (&di_keyboard[i]);
+	superkb = normalkb = rawkb = 0;
+	di_free ();
+*/
 }
 
 static int keyhack (int scancode, int pressed, int num)

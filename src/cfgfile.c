@@ -17,23 +17,25 @@
 #include "options.h"
 #include "uae.h"
 #include "audio.h"
-#include "filesys.h"
+#include "autoconf.h"
 #include "events.h"
 #include "custom.h"
 #include "inputdevice.h"
 #include "gfxfilter.h"
-#include "gfxdep/gfx.h"
-#include "sounddep/sound.h"
 #include "savestate.h"
 #include "memory.h"
 #include "rommgr.h"
 #include "gui.h"
 #include "newcpu.h"
 #include "zfile.h"
+#include "filesys.h"
 #include "fsdb.h"
 #include "disk.h"
 #include "blkdev.h"
 #include "statusline.h"
+#include "debug.h"
+#include "calc.h"
+#include "sounddep/sound.h"
 
 static int config_newfilesystem;
 static struct strlist *temp_lines;
@@ -272,9 +274,7 @@ TCHAR *cfgfile_subst_path (const TCHAR *path, const TCHAR *subst, const TCHAR *f
 
 static TCHAR *cfgfile_get_multipath2 (struct multipath *mp, const TCHAR *path, const TCHAR *file, bool dir)
 {
-        unsigned int i;
-
-	for (i = 0; i < MAX_PATHS; i++) {
+	for (unsigned int i = 0; i < MAX_PATHS; i++) {
 		if (mp->path[i][0] && _tcscmp (mp->path[i], _T(".\\")) != 0 && _tcscmp (mp->path[i], _T("./")) != 0 && (file[0] != '/' && file[0] != '\\' && !_tcschr(file, ':'))) {
 			TCHAR *s = NULL;
 			if (path)
@@ -310,9 +310,7 @@ static TCHAR *cfgfile_get_multipath (struct multipath *mp, const TCHAR *path, co
 
 static TCHAR *cfgfile_put_multipath (struct multipath *mp, const TCHAR *s)
 {
-        unsigned int i;
-
-	for (i = 0; i < MAX_PATHS; i++) {
+	for (unsigned int i = 0; i < MAX_PATHS; i++) {
 		if (mp->path[i][0] && _tcscmp (mp->path[i], _T(".\\")) != 0 && _tcscmp (mp->path[i], _T("./")) != 0) {
 			if (_tcsnicmp (mp->path[i], s, _tcslen (mp->path[i])) == 0) {
 				return my_strdup (s + _tcslen (mp->path[i]));
@@ -589,7 +587,7 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 {
 	struct strlist *sl;
 	TCHAR tmp[MAX_DPATH];
-	int i, j;
+	int i;
 
 	cfgfile_write_str (f, _T("config_description"), p->description);
 	cfgfile_write_bool (f, _T("config_hardware"), type & CONFIG_TYPE_HARDWARE);
@@ -818,10 +816,12 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 	cfgfile_dwrite_bool (f, _T("native_code"), p->native_code);
 
 	cfgfile_write (f, _T("gfx_display"), _T("%d"), p->gfx_apmode[APMODE_NATIVE].gfx_display);
-//	cfgfile_write_str (f, _T("gfx_display_name"), target_get_display_name (p->gfx_apmode[APMODE_NATIVE].gfx_display));
+	cfgfile_write_str (f, _T("gfx_display_friendlyname"), target_get_display_name (p->gfx_apmode[APMODE_NATIVE].gfx_display, true));
+	cfgfile_write_str (f, _T("gfx_display_name"), target_get_display_name (p->gfx_apmode[APMODE_NATIVE].gfx_display, false));
 	if (p->gfx_apmode[APMODE_NATIVE].gfx_display != p->gfx_apmode[APMODE_RTG].gfx_display) {
 		cfgfile_write (f, _T("gfx_display_rtg"), _T("%d"), p->gfx_apmode[APMODE_RTG].gfx_display);
-//		cfgfile_write_str (f, _T("gfx_display_name_rtg"), target_get_display_name (p->gfx_apmode[APMODE_RTG].gfx_display));
+		cfgfile_write_str (f, _T("gfx_display_friendlyname_rtg"), target_get_display_name (p->gfx_apmode[APMODE_RTG].gfx_display, true));
+		cfgfile_write_str (f, _T("gfx_display_name_rtg"), target_get_display_name (p->gfx_apmode[APMODE_RTG].gfx_display, false));
 	}
 	cfgfile_write (f, _T("gfx_framerate"), _T("%d"), p->gfx_framerate);
 	cfgfile_write (f, _T("gfx_width"), _T("%d"), p->gfx_size_win.width); /* compatibility with old versions */
@@ -955,7 +955,7 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 	if (p->chipset_refreshrate > 0)
 		cfgfile_write (f, _T("chipset_refreshrate"), _T("%f"), p->chipset_refreshrate);
 		
-	for (i = 0; i < MAX_CHIPSET_REFRESH_TOTAL; i++) {
+	for (unsigned int i = 0; i < MAX_CHIPSET_REFRESH_TOTAL; i++) {
 		if (p->cr[i].rate <= 0)
 			continue;
 		struct chipset_refresh *cr = &p->cr[i];
@@ -991,7 +991,7 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 		if (cr->commands[0]) {
 			_tcscat (s, _T(","));
 			_tcscat (s, cr->commands);
-			for (j = 0; j < _tcslen (s); j++) {
+			for (unsigned int j = 0; j < _tcslen (s); j++) {
 				if (s[j] == '\n')
 					s[j] = ',';
 			}
@@ -1154,6 +1154,7 @@ int cfgfile_doubleval (const TCHAR *option, const TCHAR *value, const TCHAR *nam
 	return 1;
 }
 
+
 int cfgfile_intval_unsigned (const TCHAR *option, const TCHAR *value, const TCHAR *name, unsigned int *location, int scale)
 {
 	int base = 10;
@@ -1229,13 +1230,11 @@ int cfgfile_path_mp (const TCHAR *option, const TCHAR *value, const TCHAR *name,
 {
 	if (!cfgfile_string (option, value, name, location, maxsz))
 		return 0;
-
-	unsigned int i;
 	//TCHAR *s = target_expand_environment (location);
 	_tcsncpy (location, location, maxsz - 1);
 	location[maxsz - 1] = 0;
 	if (mp) {
-		for (i = 0; i < MAX_PATHS; i++) {
+		for (unsigned int i = 0; i < MAX_PATHS; i++) {
 			if (mp->path[i][0] && _tcscmp (mp->path[i], _T(".\\")) != 0 && _tcscmp (mp->path[i], _T("./")) != 0 && (location[0] != '/' && location[0] != '\\' && !_tcschr(location, ':'))) {
 				TCHAR np[MAX_DPATH];
 				_tcscpy (np, mp->path[i]);
@@ -1631,8 +1630,13 @@ cfgfile_path (option, value, _T("floppy0soundext"), p->floppyslots[0].dfxclickex
 	if (cfgfile_intval (option, value, _T("gfx_display_rtg"), &p->gfx_apmode[APMODE_RTG].gfx_display, 1)) {
 		return 1;
 	}
-/*	if (_tcscmp (option, _T("gfx_display_name")) == 0) {
+	if (_tcscmp (option, _T("gfx_display_friendlyname")) == 0 || _tcscmp (option, _T("gfx_display_name")) == 0) {
 		TCHAR tmp[MAX_DPATH];
+		if (cfgfile_string (option, value, _T("gfx_display_friendlyname"), tmp, sizeof tmp / sizeof (TCHAR))) {
+			int num = target_get_display (tmp);
+			if (num >= 0)
+				p->gfx_apmode[APMODE_RTG].gfx_display = p->gfx_apmode[APMODE_NATIVE].gfx_display = num;
+		}
 		if (cfgfile_string (option, value, _T("gfx_display_name"), tmp, sizeof tmp / sizeof (TCHAR))) {
 			int num = target_get_display (tmp);
 			if (num >= 0)
@@ -1640,15 +1644,20 @@ cfgfile_path (option, value, _T("floppy0soundext"), p->floppyslots[0].dfxclickex
 		}
 		return 1;
 	}
-	if (_tcscmp (option, _T("gfx_display_name_rtg")) == 0) {
+	if (_tcscmp (option, _T("gfx_display_friendlyname_rtg")) == 0 || _tcscmp (option, _T("gfx_display_name_rtg")) == 0) {
 		TCHAR tmp[MAX_DPATH];
+		if (cfgfile_string (option, value, _T("gfx_display_friendlyname_rtg"), tmp, sizeof tmp / sizeof (TCHAR))) {
+			int num = target_get_display (tmp);
+			if (num >= 0)
+				p->gfx_apmode[APMODE_RTG].gfx_display = num;
+		}
 		if (cfgfile_string (option, value, _T("gfx_display_name_rtg"), tmp, sizeof tmp / sizeof (TCHAR))) {
 			int num = target_get_display (tmp);
 			if (num >= 0)
 				p->gfx_apmode[APMODE_RTG].gfx_display = num;
 		}
 		return 1;
-	}*/
+	}
 
 	if (_tcscmp (option, _T("gfx_linemode")) == 0) {
 		int v;
@@ -2076,7 +2085,7 @@ cfgfile_path (option, value, _T("floppy0soundext"), p->floppyslots[0].dfxclickex
 			tmpp++;
 		}
 		if (rate > 0) {
-			for (i = 0; i < MAX_CHIPSET_REFRESH; i++) {
+			for (unsigned int i = 0; i < MAX_CHIPSET_REFRESH; i++) {
 				if (_tcscmp (option, _T("displaydata_pal")) == 0) {
 	          i = CHIPSET_REFRESH_PAL;
 	          p->cr[i].rate = -1;
@@ -2813,8 +2822,7 @@ static void calcformula (struct uae_prefs *prefs, TCHAR *in)
 	if (!configstore)
 		return;
 	cnt1 = cnt2 = 0;
-	unsigned int i;
-	for (i = 1; i < _tcslen (in) - 1; i++) {
+	for (unsigned int i = 1; i < _tcslen (in) - 1; i++) {
 		TCHAR c = _totupper (in[i]);
 		if (c >= 'A' && c <='Z') {
 			TCHAR *start = &in[i];
@@ -3673,7 +3681,7 @@ int parse_cmdline_option (struct uae_prefs *p, TCHAR c, const TCHAR *arg)
 #else
 	p->amiga_screen_type = atoi (arg);
 	if (p->amiga_screen_type < 0 || p->amiga_screen_type > 2) {
-	    write_log ("Bad screen-type selected. Defaulting to public screen.\n");
+	    write_log (_T("Bad screen-type selected. Defaulting to public screen.\n"));
 	    p->amiga_screen_type = 2;
 	}
 #endif
@@ -4311,7 +4319,7 @@ void default_prefs (struct uae_prefs *p, int type)
 
 	configure_rom (p, roms, 0);
 	_tcscpy (p->romfile, _T("kick.rom"));
-	_tcscpy (p->romextfile, _T("kick_ext.rom"));
+	_tcscpy (p->romextfile, _T(""));
 	_tcscpy (p->romextfile2, _T(""));
 	p->romextfile2addr = 0;
 	_tcscpy (p->flashfile, _T(""));
@@ -4397,7 +4405,7 @@ void default_prefs (struct uae_prefs *p, int type)
 
 	  p->cr_selected = -1;
 	  struct chipset_refresh *cr;
-	  for (i = 0; i < MAX_CHIPSET_REFRESH_TOTAL; i++) {
+	  for (unsigned int i = 0; i < MAX_CHIPSET_REFRESH_TOTAL; i++) {
 	    cr = &p->cr[i];
 		cr->index = i;
 	    cr->rate = -1;
@@ -4989,7 +4997,7 @@ static int bip_arcadia (struct uae_prefs *p, int config, int compa, int romcheck
 
 int built_in_prefs (struct uae_prefs *p, int model, int config, int compa, int romcheck)
 {
-	write_log("built in model: %d, config: %d, compa: %d, romchk: %d\n", model, config, compa, romcheck);
+	write_log(_T("built in model: %d, config: %d, compa: %d, romchk: %d\n"), model, config, compa, romcheck);
 
 	int v = 0;
 

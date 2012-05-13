@@ -17,9 +17,9 @@
 #include "getbits.h"
 
 
-INLINE USHORT DecodeChar(void);
-INLINE USHORT DecodePosition(void);
-INLINE void update(USHORT c);
+USHORT DecodeChar(void);
+USHORT DecodePosition(void);
+void update(USHORT c);
 static void reconst(void);
 
 

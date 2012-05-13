@@ -79,7 +79,7 @@ int p96hsync_counter, full_refresh;
 #endif
 static bool flushpixels (void);
 #if P96TRACING_ENABLED
-#define P96TRACE(x) do { write_log ("P96: "); write_log x; } while(0)
+#define P96TRACE(x) do { write_log (_T("P96: ")); write_log x; } while(0)
 #else
 #define P96TRACE(x)
 #endif
@@ -111,12 +111,8 @@ static struct ScreenResolution hicolour = { 640, 480 };
 static struct ScreenResolution truecolour = { 640, 480 };
 static struct ScreenResolution alphacolour = { 640, 480 };
 
-static int mode_count = 0;
-uae_u16 picasso96_pixel_format = RGBFF_CHUNKY;
 uae_u32 p96_rgbx16[65536];
 uae_u32 p96rc[256], p96gc[256], p96bc[256];
-
-struct PicassoResolution DisplayModes[MAX_PICASSO_MODES];
 
 static int cursorwidth, cursorheight, cursorok;
 static uae_u8 *cursordata;
@@ -137,6 +133,26 @@ static uaecptr uaegfx_resname,
 	uaegfx_init,
 	uaegfx_base,
 	uaegfx_rom;
+
+typedef enum {
+	BLIT_FALSE,
+	BLIT_NOR,
+	BLIT_ONLYDST,
+	BLIT_NOTSRC,
+	BLIT_ONLYSRC,
+	BLIT_NOTDST,
+	BLIT_EOR,
+	BLIT_NAND,
+	BLIT_AND,
+	BLIT_NEOR,
+	BLIT_DST,
+	BLIT_NOTONLYSRC,
+	BLIT_SRC,
+	BLIT_NOTONLYDST,
+	BLIT_OR,
+	BLIT_TRUE,
+	BLIT_SWAP = 30
+} BLIT_OPCODE;
 
 #define UAE_RTG_LIBRARY_VERSION 40
 #define UAE_RTG_LIBRARY_REVISION 3994
@@ -624,8 +640,8 @@ static void rtg_show (void)
 }
 static void rtg_clear (void)
 {
-	rtg_clear_flag = 3;
-	}
+	rtg_clear_flag = 4;
+}
 
 static void picasso_handle_vsync2 (void)
 {
@@ -636,7 +652,7 @@ static void picasso_handle_vsync2 (void)
 	bool rendered = false;
 
 	if (vsync < 0) {
-		vsync_busywait_end ();
+		vsync_busywait_end (NULL);
 		vsync_busywait_do (NULL, false, false);
 	}
 
@@ -1786,8 +1802,7 @@ static void picasso96_alloc2 (TrapContext *ctx)
 	if (p96depth (32))
 		depths++;
 
-	unsigned int mon;
-	for (mon = 0; Displays[mon].monitorname; mon++) {
+	for (unsigned int mon = 0; Displays[mon].monitorname; mon++) {
 		struct PicassoResolution *DisplayModes = Displays[mon].DisplayModes;
 	i = 0;
 	while (DisplayModes[i].depth >= 0) {
@@ -1802,7 +1817,7 @@ static void picasso96_alloc2 (TrapContext *ctx)
 	}
 
 	cnt = 0;
-	for (mon = 0; Displays[mon].monitorname; mon++) {
+	for (unsigned int mon = 0; Displays[mon].monitorname; mon++) {
 		struct PicassoResolution *DisplayModes = Displays[mon].DisplayModes;
 		i = 0;
 		while (DisplayModes[i].depth >= 0) {
@@ -2123,8 +2138,7 @@ void picasso_enablescreen (int on)
 
 static void resetpalette(void)
 {
-        unsigned int i;
-	for (i = 0; i < 256; i++)
+	for (unsigned int i = 0; i < 256; i++)
 		picasso96_state.CLUT[i].Pad = 0xff;
 }
 
@@ -3898,7 +3912,6 @@ void InitPicasso96 (void)
 			| ((i & 2) ? 0x0100 : 0)
 			| ((i & 1) ? 0x01 : 0));
 	}
-	mode_count = DX_FillResolutions (&picasso96_pixel_format);
 }
 
 #endif
@@ -3915,8 +3928,7 @@ static uae_u32 REGPARAM2 picasso_SetInterrupt (TrapContext *ctx)
 static uaecptr uaegfx_vblankname, uaegfx_portsname;
 static void initvblankABI (uaecptr base, uaecptr ABI)
 {
-	unsigned int i;
-	for (i = 0; i < 22; i++)
+	for (unsigned int i = 0; i < 22; i++)
 		put_byte (ABI + PSSO_BoardInfo_HardInterrupt + i, get_byte (base + CARD_PORTSIRQ + i));
 	ABI_interrupt = ABI;
 }

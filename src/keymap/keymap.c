@@ -297,12 +297,199 @@ static int *kbmaps[] = {
 	kb_xa1, kb_xa2, kb_arcadia, kb_arcadiaxa, kb_cdtv
 };
 
-/*
- * Build a default key translation table using the
- * specified host keymap.
- */
+static int specialpressed (void)
+{
+	return input_getqualifiers () & ID_FLAG_QUALIFIER_SPECIAL;
+}
+static int shiftpressed (void)
+{
+	return input_getqualifiers () & ID_FLAG_QUALIFIER_SHIFT;
+}
+static int altpressed (void)
+{
+	return input_getqualifiers () & ID_FLAG_QUALIFIER_ALT;
+}
+static int ctrlpressed (void)
+{
+	return input_getqualifiers () & ID_FLAG_QUALIFIER_CONTROL;
+}
+
+static int capslockstate;
+static int host_capslockstate, host_numlockstate, host_scrolllockstate;
+
+/*int getcapslockstate (void)
+{
+	return capslockstate;
+}
+void setcapslockstate (int state)
+{
+	capslockstate = state;
+}*/
+
+int getcapslock (void)
+{
+	int capstable[7];
+
+	// this returns bogus state if caps change when in exclusive mode..
+	host_capslockstate = 0; //GetKeyState (VK_CAPITAL) & 1;
+	host_numlockstate = 0; //GetKeyState (VK_NUMLOCK) & 1;
+	host_scrolllockstate = 0; //GetKeyState (VK_SCROLL) & 1;
+	capstable[0] = DIK_CAPITAL;
+	capstable[1] = host_capslockstate;
+	capstable[2] = DIK_NUMLOCK;
+	capstable[3] = host_numlockstate;
+	capstable[4] = DIK_SCROLL;
+	capstable[5] = host_scrolllockstate;
+	capstable[6] = 0;
+	capslockstate = inputdevice_synccapslock (capslockstate, capstable);
+	return capslockstate;
+}
+
+void clearallkeys (void)
+{
+	inputdevice_updateconfig (&currprefs);
+}
+
+static const int np[] = {
+	DIK_NUMPAD0, 0, DIK_NUMPADPERIOD, 0, DIK_NUMPAD1, 1, DIK_NUMPAD2, 2,
+	DIK_NUMPAD3, 3, DIK_NUMPAD4, 4, DIK_NUMPAD5, 5, DIK_NUMPAD6, 6, DIK_NUMPAD7, 7,
+	DIK_NUMPAD8, 8, DIK_NUMPAD9, 9, -1 };
+
+void my_kbd_handler (int keyboard, int scancode, int newstate)
+{
+        int code = 0;
+        int scancode_new;
+        int defaultguikey;
+        bool amode = currprefs.input_keyboard_type == 0;
+        bool special = false;
+        static int swapperdrive = 0;
+
+#ifdef WIN32
+        if (amode && scancode == DIK_F11 && currprefs.win32_ctrl_F11_is_quit && ctrlpressed ())
+                code = AKS_QUIT;
+#endif
+
+                scancode_new = scancode;
+        if (!specialpressed () && inputdevice_iskeymapped (keyboard, scancode))
+                scancode = 0;
+
+#ifdef WIN32
+        // GUI must be always available
+        if (scancode_new == DIK_F12 && currprefs.win32_guikey < 0)
+                scancode = scancode_new;
+        if (scancode_new == currprefs.win32_guikey && scancode_new != DIK_F12)
+                scancode = scancode_new;
+#endif
+        
+//      write_log ("KBDHANDLER_1: kbd = %d, scancode= %d (0x%02x), state= %d, sc_new= %d\n", keyboard, scancode, scancode, newstate, scancode_new);
+        
+        if (newstate == 0 && code == 0 && amode) {
+        
+                switch (scancode)
+                {
+                case DIK_1:
+                case DIK_2:
+                case DIK_3:
+                case DIK_4:
+                case DIK_5:
+                case DIK_6:
+                case DIK_7:
+                case DIK_8:
+                case DIK_9:
+                case DIK_0:
+                        if (specialpressed ()) {
+                                int num = scancode - DIK_1;
+                                if (shiftpressed ())
+                                        num += 10;
+                                if (ctrlpressed ()) {
+                                       swapperdrive = num;
+                                        if (swapperdrive > 3)
+                                                swapperdrive = 0;
+                                } else {
+                                        int i;
+                                        for (i = 0; i < 4; i++) {
+                                                if (!_tcscmp (currprefs.floppyslots[i].df, currprefs.dfxlist[num]))
+                                                        changed_prefs.floppyslots[i].df[0] = 0;
+                                        }
+                                        _tcscpy (changed_prefs.floppyslots[swapperdrive].df, currprefs.dfxlist[num]);
+                                        config_changed = 1;
+                                }
+                                                                special = true;
+                        }
+                        break;
+                case DIK_NUMPAD0:
+                case DIK_NUMPAD1:
+                case DIK_NUMPAD2:
+                case DIK_NUMPAD3:
+                case DIK_NUMPAD4:
+                case DIK_NUMPAD5:
+                case DIK_NUMPAD6:
+                case DIK_NUMPAD7:
+                case DIK_NUMPAD8:
+                case DIK_NUMPAD9:
+                case DIK_NUMPADPERIOD:
+                        if (specialpressed ()) {
+                                int i = 0, v = -1;
+                                while (np[i] >= 0) {
+                                        v = np[i + 1];
+                                        if (np[i] == scancode)
+                                                break;
+                                        i += 2;
+                                }
+                                if (v >= 0)
+                                        code = AKS_STATESAVEQUICK + v * 2 + ((shiftpressed () || ctrlpressed ()) ? 0 : 1);
+                        }
+                        break;
+                }
+        }
+
+        if (code) {
+                inputdevice_add_inputcode (code, 1);
+                return;
+        }
+
+        scancode = scancode_new;
+        if (!specialpressed () && newstate) {
+                if (scancode == DIK_CAPITAL) {
+                        host_capslockstate = host_capslockstate ? 0 : 1;
+                        capslockstate = host_capslockstate;
+                }
+                if (scancode == DIK_NUMLOCK) {
+                        host_numlockstate = host_numlockstate ? 0 : 1;
+                        capslockstate = host_numlockstate;
+                }
+                if (scancode == DIK_SCROLL) {
+                        host_scrolllockstate = host_scrolllockstate ? 0 : 1;
+                        capslockstate = host_scrolllockstate;
+                }
+        }
+                if (special) {
+                        inputdevice_checkqualifierkeycode (keyboard, scancode, newstate);
+                        return;
+                }
+
+//        write_log ("KBDHANDLER_2: kbd2= %d, scancode= %d (0x%02x), state= %d\n", keyboard, scancode, scancode, newstate);
+
+        inputdevice_translatekeycode (keyboard, scancode, newstate);
+}
+
 void keyboard_settrans (void)
 {
 	inputdevice_setkeytranslation (keytrans, kbmaps);
 }
+
+/*int target_checkcapslock (int scancode, int *state)
+{
+	if (scancode != DIK_CAPITAL && scancode != DIK_NUMLOCK && scancode != DIK_SCROLL)
+		return 0;
+	if (*state == 0)
+		return -1;
+	if (scancode == DIK_CAPITAL)
+		*state = host_capslockstate;
+	if (scancode == DIK_NUMLOCK)
+		*state = host_numlockstate;
+	if (scancode == DIK_SCROLL)
+		*state = host_scrolllockstate;
+	return 1;
+}*/
 

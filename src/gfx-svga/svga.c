@@ -768,11 +768,6 @@ void DX_Invalidate (int first, int last)
     } while (first <= last);
 }
 
-int DX_BitsPerCannon (void)
-{
-    return 8;
-}
-
 void DX_SetPalette(int start, int count)
 {
     if (!screen_is_picasso || picasso_vidinfo.pixbytes != 1)
@@ -784,45 +779,6 @@ void DX_SetPalette(int start, int count)
 		       picasso96_state.CLUT[start].Blue * 63 / 255);
 	start++;
     }
-}
-
-int DX_FillResolutions (uae_u16 *ppixel_format)
-{
-    int i, count = 0;
-    uae_u16 format = 0;
-
-    for (i = 0; i < MAX_SCREEN_MODES; i++) {
-	int mode = vga_mode_table[i][0];
-	if (mode != -1) {
-	    DisplayModes[count].res.width = x_size_table[i];
-	    DisplayModes[count].res.height = y_size_table[i];
-	    DisplayModes[count].depth = 1;
-	    DisplayModes[count].refresh[0] = 75;
-	    count++;
-	    format |= RGBFF_CHUNKY;
-	}
-	mode = vga_mode_table[i][2];
-	if (mode != -1) {
-	    DisplayModes[count].res.width = x_size_table[i];
-	    DisplayModes[count].res.height = y_size_table[i];
-	    DisplayModes[count].depth = 2;
-	    DisplayModes[count].refresh[0] = 75;
-	    count++;
-	    format |= RGBFF_R5G6B5PC;
-	}
-	mode = vga_mode_table[i][5];
-	if (mode != -1) {
-	    DisplayModes[count].res.width = x_size_table[i];
-	    DisplayModes[count].res.height = y_size_table[i];
-	    DisplayModes[count].depth = 4;
-	    DisplayModes[count].refresh[0] = 75;
-	    count++;
-	    format |= RGBFF_B8G8R8A8;
-	}
-    }
-
-    *ppixel_format = format;
-    return count;
 }
 
 static void set_window_for_picasso (void)

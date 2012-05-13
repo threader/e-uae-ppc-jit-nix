@@ -35,6 +35,7 @@
 #include "cpummu.h"
 #include "rommgr.h"
 #include "inputrecord.h"
+#include "calc.h"
 
 int debugger_active;
 static uaecptr skipaddr_start, skipaddr_end;
@@ -1692,8 +1693,7 @@ uae_u8 *save_debug_memwatch (int *len, uae_u8 *dstptr)
 	int total;
 
 	total = 0;
-	unsigned int i;
-	for (i = 0; i < MEMWATCH_TOTAL; i++) {
+	for (unsigned int i = 0; i < MEMWATCH_TOTAL; i++) {
 		if (mwnodes[i].size > 0)
 			total++;
 	}
@@ -1706,7 +1706,7 @@ uae_u8 *save_debug_memwatch (int *len, uae_u8 *dstptr)
 		dstbak = dst = xmalloc (uae_u8, 1000);
 	save_u32 (1);
 	save_u8 (total);
-	for (i = 0; i < MEMWATCH_TOTAL; i++) {
+	for (unsigned int i = 0; i < MEMWATCH_TOTAL; i++) {
 		struct memwatch_node *m = &mwnodes[i];
 		if (m->size <= 0)
 			continue;
@@ -1733,8 +1733,7 @@ uae_u8 *restore_debug_memwatch (uae_u8 *src)
 	if (restore_u32 () != 1)
 		return src;
 	int total = restore_u8 ();
-	unsigned int i;
-	for (i = 0; i < total; i++) {
+	for (unsigned int i = 0; i < total; i++) {
 		restore_store_pos ();
 		int idx = restore_u8 ();
 		struct memwatch_node *m = &mwnodes[idx];
@@ -1755,8 +1754,7 @@ uae_u8 *restore_debug_memwatch (uae_u8 *src)
 
 void restore_debug_memwatch_finish (void)
 {
-	unsigned int i;
-	for (i = 0; i < MEMWATCH_TOTAL; i++) {
+	for (unsigned int i = 0; i < MEMWATCH_TOTAL; i++) {
 		struct memwatch_node *m = &mwnodes[i];
 		if (m->size) {
 			if (!memwatch_enabled)
@@ -2470,7 +2468,7 @@ static void print_task_info (uaecptr node)
 	int process = get_byte (node + 8) == 13 ? 1 : 0;
 
 	console_out_f (_T("%08X: "), node);
-	s = ((char*)get_real_address (get_long (node + 10)));
+	s = au ((char*)get_real_address (get_long (node + 10)));
 	console_out_f (process ? _T(" PROCESS '%s'\n") : _T(" TASK    '%s'\n"), s);
 	xfree (s);
 	if (process) {
@@ -2549,7 +2547,6 @@ static TCHAR *getfrombstr(uaecptr pp)
 
 static void show_exec_lists (TCHAR t)
 {
-	unsigned int i, j;
 	uaecptr execbase = get_long (4);
 	uaecptr list = 0, node;
 
@@ -2582,14 +2579,14 @@ static void show_exec_lists (TCHAR t)
 		static const int it[] = {  1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0 };
 		static const int it2[] = { 1, 1, 1, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5, 6, 6, 7 };
 		list = execbase + 84;
-		for (i = 0; i < 16; i++) {
+		for (unsigned int i = 0; i < 16; i++) {
 			console_out_f (_T("%2d %d: %08x\n"), i + 1, it2[i], list);
 			if (it[i]) {
 				console_out_f (_T("  [H] %08x\n"), get_long (list));
 				node = get_long (list + 8);
 				if (node) {
 					uae_u8 *addr = get_real_address (get_long (node + 10));
-					TCHAR *name = addr ? ((char*)addr) : "<null>";
+					TCHAR *name = addr ? au ((char*)addr) : au("<null>");
 					console_out_f (_T("      %08x (C=%08X D=%08X) '%s'\n"), node, get_long (list + 4), get_long (list), name);
 					xfree (name);
 				}
@@ -2599,18 +2596,18 @@ static void show_exec_lists (TCHAR t)
 				node = get_long (node);
 				while (get_long (node)) {
 					uae_u8 *addr = get_real_address (get_long (node + 10));
-					TCHAR *name = addr ? ((char*)addr) : "<null>";
+					TCHAR *name = addr ? au ((char*)addr) : au("<null>");
 					console_out_f (_T("  [S] %08x (C=%08x D=%08X) '%s'\n"), node, get_long (node + 18), get_long (node + 14), name);
 					if (i == 4 - 1 || i == 14 - 1) {
 						if (!_tcsicmp (name, _T("cia-a")) || !_tcsicmp (name, _T("cia-b"))) {
 							static const TCHAR *ciai[] = { _T("A"), _T("B"), _T("ALRM"), _T("SP"), _T("FLG") };
 							uaecptr cia = node + 22;
-							for (j = 0; j < 5; j++) {
+							for (unsigned int j = 0; j < 5; j++) {
 								uaecptr ciap = get_long (cia);
 								console_out_f (_T("        %5s: %08x"), ciai[j], ciap);
 								if (ciap) {
 									uae_u8 *addr2 = get_real_address (get_long (ciap + 10));
-									TCHAR *name2 = addr ? ((char*)addr2) : "<null>";
+									TCHAR *name2 = addr ? au ((char*)addr2) : au("<null>");
 									console_out_f (_T(" (C=%08x D=%08X) '%s'"), get_long (ciap + 18), get_long (ciap + 14), name2);
 									xfree (name2);
 								}
@@ -2647,7 +2644,9 @@ static void show_exec_lists (TCHAR t)
 		return;
 	node = get_long (list);
 	while (get_long (node)) {
-		console_out_f (_T("%08x %s\n"), node, ((char*)get_real_address (get_long (node + 10))));
+		TCHAR *name = au ((char*)get_real_address (get_long (node + 10)));
+		console_out_f (_T("%08x %s\n"), node, name);
+		xfree (name);
 		node = get_long (node);
 	}
 }

@@ -354,7 +354,7 @@ STATIC_INLINE void big_to_small_state(bigstate* b, smallstate* s)
 			count++;
 		}
 	}
-	write_log ("JIT: count=%d\n",count);
+	write_log (_T("JIT: count=%d\n"),count);
 	for (i=0;i<N_REGS;i++) {  // FIXME --- don't do dirty yet
 		s->nat[i].dirtysize=0;
 	}
@@ -394,7 +394,7 @@ STATIC_INLINE blockinfo* get_blockinfo_addr_new(void* addr, int setstate)
 		}
 	}
 	if (!bi) {
-		jit_abort ("JIT: Looking for blockinfo, can't find free one\n");
+		jit_abort (_T("JIT: Looking for blockinfo, can't find free one\n"));
 	}
 
 #if USE_MATCHSTATE

@@ -232,7 +232,6 @@ struct uae_prefs {
 	int sound_mixed_stereo_delay;
 	int sound_freq;
 	int sound_maxbsiz;
-	int sound_latency;
 	int sound_interpol;
 	int sound_filter;
 	int sound_filter_type;
@@ -262,8 +261,6 @@ struct uae_prefs {
 	int cachesize;
 	bool avoid_cmov;
 
-	int gfx_display;
-	TCHAR gfx_display_name[256];
 	int gfx_framerate, gfx_autoframerate;
 	struct wh gfx_size_win;
 	struct wh gfx_size_fs;
@@ -274,21 +271,16 @@ struct uae_prefs {
 	int gfx_autoresolution_minv, gfx_autoresolution_minh;
 	bool gfx_scandoubler;
 	struct apmode gfx_apmode[2];
-	int gfx_refreshrate;
-	int gfx_avsync, gfx_pvsync;
-	int gfx_avsyncmode, gfx_pvsyncmode;
 	int gfx_resolution;
 	int gfx_vresolution;
 	int gfx_lores_mode;
 	int gfx_scanlines;
-	int gfx_afullscreen, gfx_pfullscreen;
 	int gfx_xcenter, gfx_ycenter;
 	int gfx_xcenter_pos, gfx_ycenter_pos;
 	int gfx_xcenter_size, gfx_ycenter_size;
 	int gfx_max_horizontal, gfx_max_vertical;
 	int gfx_saturation, gfx_luminance, gfx_contrast, gfx_gamma;
 	bool gfx_blackerthanblack;
-	int gfx_backbuffers;
 	int gfx_api;
 	int color_mode;
 
@@ -445,7 +437,6 @@ struct uae_prefs {
 	bool clipboard_sharing;
 	bool native_code;
 
-	struct uaedev_mount_info *mountinfo;
 	int mountitems;
 	struct uaedev_config_info mountconfig[MOUNT_CONFIG_SIZE];
 
@@ -604,11 +595,13 @@ extern TCHAR *cfgfile_subst_path (const TCHAR *path, const TCHAR *subst, const T
 
 extern TCHAR *target_expand_environment (const TCHAR *path);
 extern int target_parse_option (struct uae_prefs *, const TCHAR *option, const TCHAR *value);
-/*extern void target_save_options (struct zfile*, struct uae_prefs *);
+//extern void target_save_options (struct zfile*, struct uae_prefs *);
 extern void target_default_options (struct uae_prefs *, int type);
 extern void target_fixup_options (struct uae_prefs *);
-extern int target_cfgfile_load (struct uae_prefs *, const TCHAR *filename, int type, int isdefault);
-extern void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type);
+//extern int target_cfgfile_load (struct uae_prefs *, const TCHAR *filename, int type, int isdefault);
+//extern void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type);
+extern int target_get_display (const TCHAR*);
+extern const TCHAR *target_get_display_name (int, bool);
 
 extern int cfgfile_load (struct uae_prefs *p, const TCHAR *filename, int *type, int ignorelink, int userconfig);
 extern int cfgfile_save (struct uae_prefs *p, const TCHAR *filename, int);
@@ -617,7 +610,6 @@ extern void cfgfile_parse_lines (struct uae_prefs *p, const TCHAR *, int);
 extern int cfgfile_parse_option (struct uae_prefs *p, TCHAR *option, TCHAR *value, int);
 extern int cfgfile_get_description (const TCHAR *filename, TCHAR *description, TCHAR *hostlink, TCHAR *hardwarelink, int *type);
 extern void cfgfile_show_usage (void);
-*/
 extern uae_u32 cfgfile_uaelib (int mode, uae_u32 name, uae_u32 dst, uae_u32 maxlen);
 extern uae_u32 cfgfile_uaelib_modify (uae_u32 mode, uae_u32 parms, uae_u32 size, uae_u32 out, uae_u32 outsize);
 extern uae_u32 cfgfile_modify (uae_u32 index, TCHAR *parms, uae_u32 size, TCHAR *out, uae_u32 outsize);

@@ -1280,11 +1280,6 @@ void DX_Invalidate (int first, int last)
     }
 }
 
-int DX_BitsPerCannon (void)
-{
-    return 8;
-}
-
 static int palette_update_start=256;
 static int palette_update_end=0;
 
@@ -1368,70 +1363,6 @@ int DX_Blit (int srcx, int srcy, int dstx, int dsty, int width, int height, BLIT
 
 static int x_size_table[MAX_SCREEN_MODES] = { 320, 320, 320, 320, 640, 640, 640, 800, 1024, 1152, 1280, 1280 };
 static int y_size_table[MAX_SCREEN_MODES] = { 200, 240, 256, 400, 350, 480, 512, 600, 768,  864,  960,  1024 };
-
-int DX_FillResolutions (uae_u16 *ppixel_format)
-{
-    Screen *scr = ScreenOfDisplay (display, screen);
-    int i, count = 0;
-    int w = WidthOfScreen (scr);
-    int h = HeightOfScreen (scr);
-    int emulate_chunky = 0;
-
-    if (ImageByteOrder (display) == LSBFirst) {
-    picasso_vidinfo.rgbformat = (bit_unit == 8 ? RGBFB_CHUNKY
-				 : bitdepth == 15 && bit_unit == 16 ? RGBFB_R5G5B5PC
-				 : bitdepth == 16 && bit_unit == 16 ? RGBFB_R5G6B5PC
-				 : bit_unit == 24 ? RGBFB_B8G8R8
-				 : bit_unit == 32 ? RGBFB_B8G8R8A8
-				 : RGBFB_NONE);
-    } else {
-    picasso_vidinfo.rgbformat = (bit_unit == 8 ? RGBFB_CHUNKY
-				 : bitdepth == 15 && bit_unit == 16 ? RGBFB_R5G5B5
-				 : bitdepth == 16 && bit_unit == 16 ? RGBFB_R5G6B5
-				 : bit_unit == 24 ? RGBFB_R8G8B8
-				 : bit_unit == 32 ? RGBFB_A8R8G8B8
-				 : RGBFB_NONE);
-    }
-
-    *ppixel_format = 1 << picasso_vidinfo.rgbformat;
-    if (visualInfo.VI_CLASS == TrueColor && (bit_unit == 16 || bit_unit == 32))
-	*ppixel_format |= RGBFF_CHUNKY, emulate_chunky = 1;
-
-#if defined USE_DGA_EXTENSION && defined USE_VIDMODE_EXTENSION
-    if (dgaavail && vidmodeavail) {
-	for (i = 0; i < vidmodecount && count < MAX_PICASSO_MODES; i++) {
-	    int j;
-	    for (j = 0; j <= emulate_chunky && count < MAX_PICASSO_MODES; j++) {
-		DisplayModes[count].res.width = allmodes[i]->hdisplay;
-		DisplayModes[count].res.height = allmodes[i]->vdisplay;
-		DisplayModes[count].depth = j == 1 ? 1 : bit_unit >> 3;
-		DisplayModes[count].refresh[0] = 75;
-		count++;
-	    }
-	}
-    } else
-#endif
-    {
-	for (i = 0; i < MAX_SCREEN_MODES && count < MAX_PICASSO_MODES; i++) {
-	    int j;
-	    for (j = 0; j <= emulate_chunky && count < MAX_PICASSO_MODES; j++) {
-		if (x_size_table[i] <= w && y_size_table[i] <= h) {
-		    if (x_size_table[i] > picasso_maxw)
-			picasso_maxw = x_size_table[i];
-		    if (y_size_table[i] > picasso_maxh)
-			picasso_maxh = y_size_table[i];
-		    DisplayModes[count].res.width = x_size_table[i];
-		    DisplayModes[count].res.height = y_size_table[i];
-		    DisplayModes[count].depth = j == 1 ? 1 : bit_unit >> 3;
-		    DisplayModes[count].refresh[0] = 75;
-		    count++;
-		}
-	    }
-	}
-    }
-
-    return count;
-}
 
 static void set_window_for_picasso (void)
 {

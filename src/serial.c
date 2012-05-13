@@ -94,7 +94,7 @@ void SERPER (uae_u16 w)
     if (!currprefs.use_serial)
 		return;
 
-#ifdef POSIX_SERIAL
+#if defined POSIX_SERIAL
     if (serper == w)  /* don't set baudrate if it's already ok */
 		return;
     serper = w;

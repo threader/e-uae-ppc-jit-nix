@@ -122,10 +122,6 @@ int DX_Fill (int dstx, int dsty, int width, int height, uae_u32 color, RGBFTYPE 
 }
 #endif
 
-int DX_FillResolutions (uae_u16 *ppixel_format)
-{
-}
-
 void gfx_set_picasso_state (int on)
 {
 }

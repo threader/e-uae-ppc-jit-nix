@@ -261,7 +261,6 @@ TCHAR *restore_path_func (uae_u8 **dstp, int type)
 	TCHAR *s;
 	TCHAR *out = NULL;
 	TCHAR tmp[MAX_DPATH], tmp2[MAX_DPATH];
-	unsigned int i;
 
 	s = restore_string_func (dstp);
 	if (s[0] == 0)
@@ -275,7 +274,7 @@ TCHAR *restore_path_func (uae_u8 **dstp, int type)
 		xfree (s);
 		return my_strdup (tmp);
 	}
-	for (i = 0; i < MAX_PATHS; i++) {
+	for (unsigned int i = 0; i < MAX_PATHS; i++) {
 		newpath = NULL;
 		if (type == SAVESTATE_PATH_FLOPPY)
 			newpath = currprefs.path_floppy.path[i];

@@ -17,20 +17,20 @@ struct zdirectory;
 struct fs_dirhandle
 {
 	int fstype;
-	union {
+//	union {
 		struct zdirectory *zd;
 		struct my_opendir_s *od;
 		struct cd_opendir_s *isod;
-	};
+//	};
 };
 struct fs_filehandle
 {
 	int fstype;
-	union {
+//	union {
 		struct zfile *zf;
 		struct my_openfile_s *of;
 		struct cd_openfile_s *isof;
-	};
+//	};
 };
 
 typedef int (*zfile_callback)(struct zfile*, void*);
@@ -69,7 +69,7 @@ extern TCHAR *zfile_getname (struct zfile *f);
 extern TCHAR *zfile_getfilename (struct zfile *f);
 extern uae_u32 zfile_crc32 (struct zfile *f);
 extern struct zfile *zfile_dup (struct zfile *f);
-extern struct zfile *zfile_gunzip (struct zfile *z);
+//extern struct zfile *zfile_gunzip (struct zfile *z);
 extern int zfile_is_diskimage (const TCHAR *name);
 extern int iszip (struct zfile *z);
 extern int zfile_convertimage (const TCHAR *src, const TCHAR *dst);

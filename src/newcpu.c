@@ -33,12 +33,12 @@
 #include "gayle.h"
 #include "cia.h"
 #include "inputrecord.h"
-#include "sleep.h"
 
-#define f_out fprintf
-#define console_out printf
+#define f_out write_log
+#define console_out write_log
 #ifdef JIT
 #include "compemu.h"
+#include <signal.h>
 #else
 /* Need to have these somewhere */
 static void build_comp (void) {}
@@ -186,7 +186,7 @@ static struct cputracestruct cputrace;
 #if CPUTRACE_DEBUG
 static void validate_trace (void)
 {
-	for (int i = 0; i < cputrace.memoryoffset; i++) {
+	for (unsigned int i = 0; i < cputrace.memoryoffset; i++) {
 		struct cputracememory *ctm = &cputrace.ctm[i];
 		if (ctm->data == 0xdeadf00d) {
 			write_log (_T("unfinished write operation %d %08x\n"), i, ctm->addr);
@@ -296,9 +296,8 @@ static bool check_trace (void)
 
 static bool get_trace (uaecptr addr, int accessmode, int size, uae_u32 *data)
 {
-	unsigned int i;
 	int mode = accessmode | (size << 4);
-	for (i = 0; i < cputrace.memoryoffset; i++) {
+	for (unsigned int i = 0; i < cputrace.memoryoffset; i++) {
 		struct cputracememory *ctm = &cputrace.ctm[i];
 		if (ctm->addr == addr && ctm->mode == mode) {
 			ctm->mode = 0;
@@ -3289,12 +3288,12 @@ void mmu_op30 (uaecptr pc, uae_u32 opcode, uae_u16 extra, uaecptr extraa)
 
 void mmu_op (uae_u32 opcode, uae_u32 extra)
 {
-	if (currprefs.cpu_model) {
 #ifdef MMU
+	if (currprefs.cpu_model) {
 		mmu_op_real (opcode, extra);
 		return;
-#endif
 	}
+#endif
 #if MMUOP_DEBUG > 1
 	write_log (_T("mmu_op %04X PC=%08X\n"), opcode, m68k_getpc ());
 #endif
@@ -4846,7 +4845,7 @@ void m68k_dumpstate (void *f, uaecptr *nextpc)
 
 uae_u8 *restore_cpu (uae_u8 *src)
 {
-	unsigned int i, j, flags, model;
+	int i, flags, model;
 	uae_u32 l;
 
 	currprefs.cpu_model = changed_prefs.cpu_model = model = restore_u32 ();
@@ -4916,7 +4915,7 @@ uae_u8 *restore_cpu (uae_u8 *src)
 	set_cpu_caches ();
 	if (flags & 0x40000000) {
 		if (model == 68020) {
-			for (i = 0; i < CACHELINES020; i++) {
+			for (unsigned int i = 0; i < CACHELINES020; i++) {
 				caches020[i].data = restore_u32 ();
 				caches020[i].tag = restore_u32 ();
 				caches020[i].valid = restore_u8 () != 0;
@@ -4924,18 +4923,18 @@ uae_u8 *restore_cpu (uae_u8 *src)
 			regs.prefetch020addr = restore_u32 ();
 			regs.cacheholdingaddr020 = restore_u32 ();
 			regs.cacheholdingdata020 = restore_u32 ();
-			for (i = 0; i < CPU_PIPELINE_MAX; i++)
+			for (unsigned int i = 0; i < CPU_PIPELINE_MAX; i++)
 				regs.prefetch020[i] = restore_u16 ();
 		} else if (model == 68030) {
-			for (i = 0; i < CACHELINES030; i++) {
-				for (j = 0; j < 4; j++) {
+			for (unsigned int i = 0; i < CACHELINES030; i++) {
+				for (unsigned int j = 0; j < 4; j++) {
 					icaches030[i].data[j] = restore_u32 ();
 					icaches030[i].valid[j] = restore_u8 () != 0;
 				}
 				icaches030[i].tag = restore_u32 ();
 			}
-			for (i = 0; i < CACHELINES030; i++) {
-				for (j = 0; j < 4; j++) {
+			for (unsigned int i = 0; i < CACHELINES030; i++) {
+				for (unsigned int j = 0; j < 4; j++) {
 					dcaches030[i].data[j] = restore_u32 ();
 					dcaches030[i].valid[j] = restore_u8 () != 0;
 				}
@@ -4969,7 +4968,6 @@ void restore_cpu_finish (void)
 
 uae_u8 *save_cpu_trace (int *len, uae_u8 *dstptr)
 {
-	unsigned int i;
 	uae_u8 *dstbak, *dst;
 
 	if (cputrace.state <= 0)
@@ -4982,7 +4980,7 @@ uae_u8 *save_cpu_trace (int *len, uae_u8 *dstptr)
 
 	save_u32 (2 | 4);
 	save_u16 (cputrace.opcode);
-	for (i = 0; i < 16; i++)
+	for (unsigned int i = 0; i < 16; i++)
 		save_u32 (cputrace.regs[i]);
 	save_u32 (cputrace.pc);
 	save_u16 (cputrace.irc);
@@ -5003,7 +5001,7 @@ uae_u8 *save_cpu_trace (int *len, uae_u8 *dstptr)
 		cputrace.pc, cputrace.startcycles,
 		cputrace.cyclecounter, cputrace.cyclecounter_pre, cputrace.cyclecounter_post,
 		cputrace.readcounter, cputrace.writecounter, cputrace.memoryoffset);
-	for (i = 0; i < cputrace.memoryoffset; i++) {
+	for (unsigned int i = 0; i < cputrace.memoryoffset; i++) {
 		save_u32 (cputrace.ctm[i].addr);
 		save_u32 (cputrace.ctm[i].data);
 		save_u32 (cputrace.ctm[i].mode);
@@ -5012,7 +5010,7 @@ uae_u8 *save_cpu_trace (int *len, uae_u8 *dstptr)
 	save_u32 (cputrace.startcycles);
 
 	if (currprefs.cpu_model == 68020) {
-		for (i = 0; i < CACHELINES020; i++) {
+		for (unsigned int i = 0; i < CACHELINES020; i++) {
 			save_u32 (cputrace.caches020[i].data);
 			save_u32 (cputrace.caches020[i].tag);
 			save_u8 (cputrace.caches020[i].valid ? 1 : 0);
@@ -5020,7 +5018,7 @@ uae_u8 *save_cpu_trace (int *len, uae_u8 *dstptr)
 		save_u32 (cputrace.prefetch020addr);
 		save_u32 (cputrace.cacheholdingaddr020);
 		save_u32 (cputrace.cacheholdingdata020);
-		for (i = 0; i < CPU_PIPELINE_MAX; i++)
+		for (unsigned int i = 0; i < CPU_PIPELINE_MAX; i++)
 			save_u16 (cputrace.prefetch020[i]);
 	}
 
@@ -5037,8 +5035,7 @@ uae_u8 *restore_cpu_trace (uae_u8 *src)
 	if (!(v & 2))
 		return src;
 	cputrace.opcode = restore_u16 ();
-	unsigned int i;
-	for (i = 0; i < 16; i++)
+	for (unsigned int i = 0; i < 16; i++)
 		cputrace.regs[i] = restore_u32 ();
 	cputrace.pc = restore_u32 ();
 	cputrace.irc = restore_u16 ();
@@ -5055,7 +5052,7 @@ uae_u8 *restore_cpu_trace (uae_u8 *src)
 	cputrace.readcounter = restore_u32 ();
 	cputrace.writecounter = restore_u32 ();
 	cputrace.memoryoffset = restore_u32 ();
-	for (i = 0; i < cputrace.memoryoffset; i++) {
+	for (unsigned int i = 0; i < cputrace.memoryoffset; i++) {
 		cputrace.ctm[i].addr = restore_u32 ();
 		cputrace.ctm[i].data = restore_u32 ();
 		cputrace.ctm[i].mode = restore_u32 ();
@@ -5064,7 +5061,7 @@ uae_u8 *restore_cpu_trace (uae_u8 *src)
 
 	if (v & 4) {
 		if (currprefs.cpu_model == 68020) {
-			for (i = 0; i < CACHELINES020; i++) {
+			for (unsigned int i = 0; i < CACHELINES020; i++) {
 				cputrace.caches020[i].data = restore_u32 ();
 				cputrace.caches020[i].tag = restore_u32 ();
 				cputrace.caches020[i].valid = restore_u8 () != 0;
@@ -5072,7 +5069,7 @@ uae_u8 *restore_cpu_trace (uae_u8 *src)
 			cputrace.prefetch020addr = restore_u32 ();
 			cputrace.cacheholdingaddr020 = restore_u32 ();
 			cputrace.cacheholdingdata020 = restore_u32 ();
-			for (i = 0; i < CPU_PIPELINE_MAX; i++)
+			for (unsigned int i = 0; i < CPU_PIPELINE_MAX; i++)
 				cputrace.prefetch020[i] = restore_u16 ();
 		}
 	}
@@ -5148,7 +5145,7 @@ uae_u8 *save_cpu_extra (int *len, uae_u8 *dstptr)
 uae_u8 *save_cpu (int *len, uae_u8 *dstptr)
 {
 	uae_u8 *dstbak, *dst;
-	unsigned int model, i, j, khz;
+	int model, i, khz;
 
 	if (dstptr)
 		dstbak = dst = dstptr;
@@ -5207,7 +5204,7 @@ uae_u8 *save_cpu (int *len, uae_u8 *dstptr)
 	save_u32 (khz); // clock rate in KHz: -1 = fastest possible
 	save_u32 (0); // spare
 	if (model == 68020) {
-		for (i = 0; i < CACHELINES020; i++) {
+		for (unsigned int i = 0; i < CACHELINES020; i++) {
 			save_u32 (caches020[i].data);
 			save_u32 (caches020[i].tag);
 			save_u8 (caches020[i].valid ? 1 : 0);
@@ -5215,18 +5212,18 @@ uae_u8 *save_cpu (int *len, uae_u8 *dstptr)
 		save_u32 (regs.prefetch020addr);
 		save_u32 (regs.cacheholdingaddr020);
 		save_u32 (regs.cacheholdingdata020);
-		for (i = 0; i < CPU_PIPELINE_MAX; i++)
+		for (unsigned int i = 0; i < CPU_PIPELINE_MAX; i++)
 			save_u16 (regs.prefetch020[i]);
 	} else if (model == 68030) {
-		for (i = 0; i < CACHELINES030; i++) {
-			for (j = 0; j < 4; j++) {
+		for (unsigned int i = 0; i < CACHELINES030; i++) {
+			for (unsigned int j = 0; j < 4; j++) {
 				save_u32 (icaches030[i].data[j]);
 				save_u8 (icaches030[i].valid[j] ? 1 : 0);
 			}
 			save_u32 (icaches030[i].tag);
 		}
-		for (i = 0; i < CACHELINES030; i++) {
-			for (j = 0; j < 4; j++) {
+		for (unsigned int i = 0; i < CACHELINES030; i++) {
+			for (unsigned int j = 0; j < 4; j++) {
 				save_u32 (dcaches030[i].data[j]);
 				save_u8 (dcaches030[i].valid[j] ? 1 : 0);
 			}
@@ -5850,9 +5847,8 @@ void flush_dcache (uaecptr addr, int size)
 {
 	if (!currprefs.cpu_cycle_exact)
 		return;
-	unsigned int i;
 	if (currprefs.cpu_model >= 68030) {
-		for (i = 0; i < CACHELINES030; i++) {
+		for (unsigned int i = 0; i < CACHELINES030; i++) {
 			dcaches030[i].valid[0] = 0;
 			dcaches030[i].valid[1] = 0;
 			dcaches030[i].valid[2] = 0;

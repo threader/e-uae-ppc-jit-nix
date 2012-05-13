@@ -17,7 +17,7 @@
 #include "uae_types.h"
 #include "writelog.h"
 
-static FILE *logfile;
+static FILE *logfile = 0;
 
 /*
  * By default write-log and friends access the stderr stream.

@@ -98,7 +98,7 @@ int setup_sound (void)
 		spec.format = AUDIO_S16SYS;
 		spec.channels = currprefs.sound_stereo ? 2 : 1;
 		spec.callback = dummy_callback;
-		spec.samples  = spec.freq * currprefs.sound_latency / 1000;
+		spec.samples  = 0; //spec.freq; //* currprefs.sound_latency / 1000;
 		spec.callback = sound_callback;
 		spec.userdata = 0;
 
@@ -124,7 +124,7 @@ static int open_sound (void)
 	spec.freq = currprefs.sound_freq;
 	spec.format = AUDIO_S16SYS;
 	spec.channels = currprefs.sound_stereo ? 2 : 1;
-	spec.samples  = spec.freq * currprefs.sound_latency / 1000;
+	spec.samples  = 0; //spec.freq; //* currprefs.sound_latency / 1000;
 	spec.callback = sound_callback;
 	spec.userdata = 0;
 

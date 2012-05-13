@@ -1506,7 +1506,7 @@ static TCHAR *get_joliet_filename(struct iso_directory_record * de, struct inode
 		;
 	} else {
 		out = xmalloc (TCHAR, len + 1);
-		for (int i = 0; i < len; i++)
+		for (unsigned int i = 0; i < len; i++)
 			out[i] = isonum_722 (de->name + i * 2);
 		out[len] = 0;
 	}
@@ -2020,7 +2020,7 @@ static int isofs_name_translate(struct iso_directory_record *de, char *newn, str
 {
 	char * old = de->name;
 	int len = de->name_len[0];
-	int i;
+	unsigned int i;
 
 	for (i = 0; i < len; i++) {
 		unsigned char c = old[i];

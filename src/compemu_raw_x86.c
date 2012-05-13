@@ -2162,7 +2162,7 @@ static void vec(int x, struct sigcontext sc)
 					default: abort();
 					}
 				}
-				write_log ("JIT: Handled one access!\n");
+				write_log (_T("JIT: Handled one access!\n"));
 				fflush(stdout);
 				segvcount++;
 				sc.CONTEXT_MEMBER(eip) += len;
@@ -2506,8 +2506,10 @@ static void raw_init_cpu(void)
 		align_jumps = x86_alignments[c->x86_processor].align_jump;
 	}
 	{ 
+		TCHAR *s = au (c->x86_vendor_id);
 		write_log (_T("CPUID level=%d, Family=%d, Model=%d, Mask=%d, Vendor=%s [%d]\n"),
-			c->cpuid_level, c->x86, c->x86_model, c->x86_mask, c->x86_vendor_id, c->x86_vendor);
+			c->cpuid_level, c->x86, c->x86_model, c->x86_mask, s, c->x86_vendor);
+		xfree (s);
 	}
 }
 

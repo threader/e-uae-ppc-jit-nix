@@ -25,26 +25,6 @@
 #define COMP 2
 #define INVERS 4
 
-typedef enum {
-	BLIT_FALSE,
-	BLIT_NOR,
-	BLIT_ONLYDST,
-	BLIT_NOTSRC,
-	BLIT_ONLYSRC,
-	BLIT_NOTDST,
-	BLIT_EOR,
-	BLIT_NAND,
-	BLIT_AND,
-	BLIT_NEOR,
-	BLIT_DST,
-	BLIT_NOTONLYSRC,
-	BLIT_SRC,
-	BLIT_NOTONLYDST,
-	BLIT_OR,
-	BLIT_TRUE,
-	BLIT_SWAP = 30
-} BLIT_OPCODE;
-
 #define NOSIGNAL 0xFFFFFFFF
 
 /************************************************************************/

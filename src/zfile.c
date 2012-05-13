@@ -153,6 +153,13 @@ static struct zcache *zcache_put (const TCHAR *name, struct zdiskimage *data)
 	return zc;
 }
 
+static void checkarchiveparent (struct zfile *z)
+{
+	// unpack completely if opened in PEEK mode
+	if (z->archiveparent)
+		archive_unpackzfile (z);
+}
+
 static struct zfile *zfile_create (struct zfile *prev)
 {
 	struct zfile *z;
@@ -211,6 +218,10 @@ void zfile_fclose (struct zfile *f)
 		f->parent->opencnt--;
 		if (f->parent->opencnt <= 0)
 			zfile_fclose (f->parent);
+	}
+	if (f->archiveparent) {
+		zfile_fclose (f->archiveparent);
+		f->archiveparent = NULL;
 	}
 	struct zfile *pl = NULL;
 	struct zfile *nxt;
@@ -512,7 +523,7 @@ end:
 	return z;
 }
 
-struct zfile *zfile_gunzip (struct zfile *z)
+struct zfile *zfile_gunzip (struct zfile *z, int *retcode)
 {
 	uae_u8 header[2 + 1 + 1 + 4 + 1 + 1];
 	z_stream zs;
@@ -523,6 +534,9 @@ struct zfile *zfile_gunzip (struct zfile *z)
 	uae_u8 buffer[8192];
 	struct zfile *z2;
 	uae_u8 b;
+
+	if (checkwrite (z, retcode))
+		return NULL;
 	_tcscpy (name, z->name);
 	memset (&zs, 0, sizeof (zs));
 	memset (header, 0, sizeof (header));
@@ -1348,17 +1362,17 @@ struct zfile *zuncompress (struct znode *parent, struct zfile *z, int dodefault,
 //				if (strcasecmp (ext, _T("zip")) == 0)
 //					return unzip (z);
 				if (strcasecmp (ext, _T("gz")) == 0)
-					return zfile_gunzip (z);
+					return zfile_gunzip (z, retcode);
 				if (strcasecmp (ext, _T("adz")) == 0)
-					return zfile_gunzip (z);
+					return zfile_gunzip (z, retcode);
 				if (strcasecmp (ext, _T("roz")) == 0)
-					return zfile_gunzip (z);
+					return zfile_gunzip (z, retcode);
 				if (strcasecmp (ext, _T("hdz")) == 0)
-					return zfile_gunzip (z);
+					return zfile_gunzip (z, retcode);
 				if (strcasecmp (ext, _T("wrp")) == 0)
 					return wrp (z);
 //				if (strcasecmp (ext, _T("xz")) == 0)
-//					return xz (z);
+//					return xz (z, retcode);
 			}
 			if (strcasecmp (ext, _T("dms")) == 0)
 				return dms (z, index, retcode);
@@ -1388,7 +1402,7 @@ struct zfile *zuncompress (struct znode *parent, struct zfile *z, int dodefault,
 	if (mask & ZFD_UNPACK) {
 		if (index == 0) {
 			if (header[0] == 0x1f && header[1] == 0x8b)
-				return zfile_gunzip (z);
+				return zfile_gunzip (z, retcode);
 //			if (header[0] == 'P' && header[1] == 'K')
 //				return unzip (z);
 			if (header[0] == 'P' && header[1] == 'K' && header[2] == 'D')
@@ -1903,7 +1917,7 @@ struct zfile *zfile_fopen_empty (struct zfile *prev, const TCHAR *name, uae_u64 
 {
 	struct zfile *l;
 	l = zfile_create (prev);
-	l->name = name ? my_strdup (name) : _T("");
+	l->name = my_strdup (name ? name : _T(""));
 	if (size) {
 		l->data = xcalloc (uae_u8, size);
 		if (!l->data)  {
@@ -1967,7 +1981,7 @@ uae_u8 *zfile_load_data (const TCHAR *name, const uae_u8 *data,int datalen, int 
 	uae_u8 *out;
 	
 	zf = zfile_fopen_data (name, datalen, data);
-	f = zfile_gunzip (zf);
+	f = zfile_gunzip (zf, NULL);
 	size = f->datasize;
 	zfile_fseek (f, 0, SEEK_SET);
 	out = xmalloc (uae_u8, size);
@@ -2048,8 +2062,11 @@ size_t zfile_fread  (void *b, size_t l1, size_t l2, struct zfile *z)
 		return z->zfileread (b, l1, l2, z);
 	if (z->data) {
 		if (z->datasize < z->size && z->seek + l1 * l2 > z->datasize) {
+			if (z->archiveparent) {
+				archive_unpackzfile (z);
+				return zfile_fread (b, l1, l2, z);
+			}
 			write_log (_T("zfile_fread(%s) attempted to read past PEEK_BYTES\n"), z->name);
-
 			return 0;
 		}
 		if (z->seek + l1 * l2 > z->size) {
@@ -2088,6 +2105,8 @@ size_t zfile_fread  (void *b, size_t l1, size_t l2, struct zfile *z)
 
 size_t zfile_fwrite (void *b, size_t l1, size_t l2, struct zfile *z)
 {
+	if (z->archiveparent)
+		return 0;
 	if (z->zfilewrite)
 		return z->zfilewrite (b, l1, l2, z);
 	if (z->parent && z->useparent)
@@ -2120,13 +2139,16 @@ size_t zfile_fwrite (void *b, size_t l1, size_t l2, struct zfile *z)
 
 size_t zfile_fputs (struct zfile *z, TCHAR *s)
 {
+	char *s2 = ua (s);
 	size_t t;
-	t = zfile_fwrite (s, strlen (s), 1, z);
+	t = zfile_fwrite (s2, strlen (s2), 1, z);
+	xfree (s2);
 	return t;
 }
 
 char *zfile_fgetsa (char *s, int size, struct zfile *z)
 {
+	checkarchiveparent (z);
 	if (z->data) {
 		char *os = s;
 		int i;
@@ -2152,6 +2174,7 @@ char *zfile_fgetsa (char *s, int size, struct zfile *z)
 
 TCHAR *zfile_fgets (TCHAR *s, int size, struct zfile *z)
 {
+	checkarchiveparent (z);
 	if (z->data) {
 		char s2[MAX_DPATH];
 		char *p = s2;
@@ -2197,6 +2220,7 @@ int zfile_putc (int c, struct zfile *z)
 
 int zfile_getc (struct zfile *z)
 {
+	checkarchiveparent (z);
 	int out = -1;
 	if (z->data) {
 		if (z->seek < z->size) {
@@ -2942,8 +2966,13 @@ void zfile_closedir_archive (struct zdirectory *zd)
 }
 int zfile_readdir_archive_fullpath (struct zdirectory *zd, TCHAR *out, bool fullpath)
 {
+        return 0;
 	if (out)
 		out[0] = 0;
+	if (!zd->n || (zd->filenames != NULL && zd->offset >= zd->cnt))
+		return 0;
+	if (zd->filenames == NULL) {
+	}
 	return 1;
 }
 int zfile_readdir_archive (struct zdirectory *zd, TCHAR *out)

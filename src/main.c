@@ -8,7 +8,6 @@
  * Copyright 2006-2007 Richard Drummond
  * Copyright 2010 Mustafa Tufan
  */
-
 #include "sysconfig.h"
 #include "sysdeps.h"
 #include <assert.h>
@@ -16,7 +15,9 @@
 #include "options.h"
 #include "threaddep/thread.h"
 #include "uae.h"
+#include "gensound.h"
 #include "audio.h"
+#include "sounddep/sound.h"
 #include "events.h"
 #include "memory.h"
 #include "custom.h"
@@ -52,10 +53,11 @@
 #include "gfxfilter.h"
 #include "uaeresource.h"
 #include "dongle.h"
-#include "sleep.h"
+#include "sampler.h"
 #include "consolehook.h"
-#include "version.h"
-
+#ifdef RETROPLATFORM
+#include "rp.h"
+#endif
 #ifdef USE_SDL
 #include "SDL.h"
 #endif
@@ -63,7 +65,7 @@
 struct uae_prefs currprefs, changed_prefs;
 int config_changed;
 
-int pissoff_value = 20000 * CYCLE_UNIT;
+int pissoff_value = 15000 * CYCLE_UNIT;
 int pause_emulation;
 char start_path_data[MAX_DPATH];
 bool no_gui = 0, quit_to_gui = 0;
@@ -82,7 +84,7 @@ static int oldhcounter;
 
 static void hr (void)
 {
-	write_log ("------------------------------------------------------------------------------------\n");
+	write_log (_T("------------------------------------------------------------------------------------\n"));
 }
 
 static void show_version (void)
@@ -190,21 +192,20 @@ void fixup_prefs_dimensions (struct uae_prefs *prefs)
 	if (prefs->gfx_apmode[1].gfx_vsync)
 		prefs->gfx_apmode[1].gfx_vsyncmode = 1;
 
-        unsigned int i;
-	for (i = 0; i < 2; i++) {
+	for (unsigned int i = 0; i < 2; i++) {
 		struct apmode *ap = &prefs->gfx_apmode[i];
 		ap->gfx_vflip = 0;
 		if (ap->gfx_vsync) {
 			if (ap->gfx_vsyncmode) {
 				// low latency vsync: no flip only if no-buffer
 				if (ap->gfx_backbuffers >= 1)
-					ap->gfx_vflip = -1;
+					ap->gfx_vflip = 1;
 				if (!i && ap->gfx_backbuffers == 2)
 					ap->gfx_vflip = 1;
 			} else {
 				// legacy vsync: always wait for flip
 				ap->gfx_vflip = -1;
-				if (ap->gfx_backbuffers < 1)
+				if (prefs->gfx_api && ap->gfx_backbuffers < 1)
 					ap->gfx_backbuffers = 1;
 			}
 		} else {
@@ -856,7 +857,9 @@ void do_leave_program (void)
 #ifdef BSDSOCKET
 	bsdlib_reset ();
 #endif
-//	device_func_reset (); //blkdev
+#ifdef SCSIEMU
+//	device_func_reset ();
+#endif
 	savestate_free ();
 	memory_cleanup ();
 	cfgfile_addcfgparam (0);
@@ -904,7 +907,7 @@ static int real_main2 (int argc, TCHAR **argv)
 	}
 
 	if (! graphics_setup ()) {
-		write_log ("Graphics Setup Failed\n");
+		write_log (_T("Graphics Setup Failed\n"));
 		exit (1);
 	}
 
@@ -920,7 +923,7 @@ static int real_main2 (int argc, TCHAR **argv)
 	uae_inithrtimer ();
 
 	if (!machdep_init ()) {
-		write_log ("Machine Init Failed.\n");
+		write_log (_T("Machine Init Failed.\n"));
 		restart_program = 0;
 		return -1;
 	}
@@ -1065,11 +1068,28 @@ void real_main (int argc, TCHAR **argv)
 	default_config = 1;
 
 // -------- FIXME
+/*                write_log (_T("Enumerating display devices.. \n"));
+                enumeratedisplays ();
+                write_log (_T("Sorting devices and modes..\n"));
+                sortdisplays ();
+                write_log (_T("Display buffer mode = %d\n"), ddforceram);
+                enumerate_sound_devices ();
+                for (unsigned int i = 0; i < 2 && sound_devices[i]; i++) {
+                        int type = sound_devices[i]->type;
+                }
+                write_log (_T("Enumerating recording devices:\n"));
+                for (unsigned int i = 0; i < 2 && record_devices[i]; i++) {
+                        int type = record_devices[i]->type;
+                }*/
+                write_log (_T("done\n"));
+
 	keyboard_settrans ();
 #ifdef CATWEASEL
 	catweasel_init ();
 #endif
-
+#ifdef PARALLEL_PORT
+	paraport_mask = paraport_init ();
+#endif
 	while (restart_program) {
 		int ret;
 		changed_prefs = currprefs;

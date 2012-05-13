@@ -30,8 +30,8 @@ USHORT dms_heavy_text_loc;
 
 static USHORT read_tree_c(void);
 static USHORT read_tree_p(void);
-INLINE USHORT decode_c(void);
-INLINE USHORT decode_p(void);
+USHORT decode_c(void);
+USHORT decode_p(void);
 
 
 

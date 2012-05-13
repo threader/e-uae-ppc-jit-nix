@@ -5,7 +5,7 @@
  * which desparately needs to be tidied up
  *
  * Copyright 2004 Richard Drummond
- * Copyright 2010-2011 Mustafa TUFAN
+ * Copyright 2010-2012 Mustafa TUFAN
  */
 
 #include "sysconfig.h"
@@ -83,7 +83,12 @@ int is_tablet (void)
 }
 
 //win32gfx.cpp
+int screen_is_picasso = 0;
+struct uae_filter *usedfilter;
+uae_u32 redc[3 * 256], grec[3 * 256], bluc[3 * 256];
+
 volatile bool vblank_found_chipset = false;
+static struct remembered_vsync *vsyncmemory;
 
 static int wasfullwindow_a, wasfullwindow_p;
 static int vblankbasewait1, vblankbasewait2, vblankbasewait3, vblankbasefull;
@@ -97,6 +102,8 @@ static bool vblankthread_oddeven;
 #define VBLANKTH_ACTIVE_WAIT 3
 #define VBLANKTH_ACTIVE 4
 #define VBLANKTH_ACTIVE_START 5
+#define VBLANKTH_ACTIVE_SKIPFRAME 6
+#define VBLANKTH_ACTIVE_SKIPFRAME2 7
 
 static volatile bool vblank_found;
 static volatile int flipthread_mode;
@@ -109,11 +116,15 @@ static double remembered_vblank;
 static volatile int vblankthread_mode, vblankthread_counter;
 static int vblankbasewait, vblankbasefull;
 static volatile frame_time_t vblank_prev_time, thread_vblank_time;
+static volatile int vblank_found_flipdelay;
 
 static int frame_missed, frame_counted, frame_errors;
 static int frame_usage, frame_usage_avg, frame_usage_total;
 extern int log_vsync;
 static bool dooddevenskip;
+static volatile bool vblank_skipeveryother;
+static int vblank_flip_delay;
+static volatile bool vblank_first_time;
 
 void getgfxoffset (int *dxp, int *dyp, int *mxp, int *myp)
 {
@@ -536,6 +547,75 @@ int get_guid_target (uae_u8 *out)
 }
 
 // win32gfx
+// win32gfx
+#define MAX_DISPLAYS 10
+struct MultiDisplay Displays[MAX_DISPLAYS];
+
+static struct MultiDisplay *getdisplay2 (struct uae_prefs *p, int index)
+{
+        write_log ("Multimonitor detection disabled\n");
+        Displays[0].primary = 1;
+    	Displays[0].monitorname = "Display";
+
+	int max;
+	int display = index < 0 ? p->gfx_apmode[screen_is_picasso ? APMODE_RTG : APMODE_NATIVE].gfx_display - 1 : index;
+
+	max = 0;
+	while (Displays[max].monitorname)
+		max++;
+	if (max == 0) {
+		gui_message (_T("no display adapters! Exiting"));
+		exit (0);
+	}
+	if (index >= 0 && display >= max)
+		return NULL;
+	if (display >= max)
+		display = 0;
+	if (display < 0)
+		display = 0;
+	return &Displays[display];
+}
+
+struct MultiDisplay *getdisplay (struct uae_prefs *p)
+{
+        return getdisplay2 (p, -1);
+}
+
+int target_get_display (const TCHAR *name)
+{
+	int oldfound = -1;
+	int found = -1;
+	unsigned int i;
+	for (i = 0; Displays[i].monitorname; i++) {
+		struct MultiDisplay *md = &Displays[i];
+		if (!_tcscmp (md->adapterid, name))
+			found = i + 1;
+		if (!_tcscmp (md->adaptername, name))
+			found = i + 1;
+		if (!_tcscmp (md->monitorname, name))
+			found = i + 1;
+		if (!_tcscmp (md->monitorid, name))
+			found = i + 1;
+		if (found >= 0) {
+			if (oldfound != found)
+				return -1;
+			oldfound = found;
+		}
+	}
+	return -1;
+}
+const TCHAR *target_get_display_name (int num, bool friendlyname)
+{
+	if (num <= 0)
+		return NULL;
+	struct MultiDisplay *md = getdisplay2 (NULL, num - 1);
+	if (!md)
+		return NULL;
+	if (friendlyname)
+		return md->monitorname;
+	return md->monitorid;
+}
+
 void machdep_free (void)
 {
 }
@@ -631,10 +711,6 @@ int target_cfgfile_load (struct uae_prefs *p, char *filename, int type, int isde
 }
 
 // win32gfx
-int screen_is_picasso = 0;
-struct uae_filter *usedfilter;
-uae_u32 redc[3 * 256], grec[3 * 256], bluc[3 * 256];
-
 static int isfullscreen_2 (struct uae_prefs *p)
 {
     int idx = screen_is_picasso ? 1 : 0;
@@ -997,314 +1073,6 @@ FILE *my_opentext (const TCHAR *name)
         return _tfopen (name, "r");
 }
 
-// keyboard_win32
-
-//extern int ispressed (int key);
-#define MAX_KEYCODES 256
-static uae_u8 di_keycodes[MAX_INPUT_DEVICES][MAX_KEYCODES];
-
-int ispressed (int key)
-{
-        unsigned int i;
-        for (i = 0; i < MAX_INPUT_DEVICES; i++) {
-                if (di_keycodes[i][key])
-                        return 1;
-        }
-        return 0;
-}
-
-static int specialkeycode (void)
-{
-        return 0; //currprefs.win32_specialkey;
-}
-static int specialpressed (void)
-{
-        return ispressed (specialkeycode ());
-}
-
-static int shiftpressed (void)
-{
-        return ispressed (DIK_LSHIFT) || ispressed (DIK_RSHIFT);
-}
-
-static int altpressed (void)
-{
-        return ispressed (DIK_LMENU) || ispressed (DIK_RMENU);
-}
-
-static int ctrlpressed (void)
-{
-        return ispressed (DIK_LCONTROL) || ispressed (DIK_RCONTROL);
-}
-
-static int capslockstate;
-static int host_capslockstate, host_numlockstate, host_scrolllockstate;
-
-int getcapslock (void)
-{
-        int capstable[7];
-
-        // this returns bogus state if caps change when in exclusive mode..
-	host_capslockstate = 1; //GetKeyState (VK_CAPITAL) & 1;
-        host_numlockstate = 0; //GetKeyState (VK_NUMLOCK) & 1;
-        host_scrolllockstate = 0; //GetKeyState (VK_SCROLL) & 1;
-        capstable[0] = DIK_CAPITAL;
-        capstable[1] = host_capslockstate;
-        capstable[2] = DIK_NUMLOCK;
-        capstable[3] = host_numlockstate;
-        capstable[4] = DIK_SCROLL;
-        capstable[5] = host_scrolllockstate;
-        capstable[6] = 0;
-        capslockstate = inputdevice_synccapslock (capslockstate, capstable);
-        return capslockstate;
-}
-
-void clearallkeys (void)
-{
-        inputdevice_updateconfig (&currprefs);
-}
-
-static int np[] = {
-        DIK_NUMPAD0, 0, DIK_NUMPADPERIOD, 0, DIK_NUMPAD1, 1, DIK_NUMPAD2, 2,
-        DIK_NUMPAD3, 3, DIK_NUMPAD4, 4, DIK_NUMPAD5, 5, DIK_NUMPAD6, 6, DIK_NUMPAD7, 7,
-        DIK_NUMPAD8, 8, DIK_NUMPAD9, 9, -1 };
-
-void my_kbd_handler (int keyboard, int scancode, int newstate)
-{
-	int code = 0;
-	int scancode_new;
-	static int swapperdrive = 0;
-
-	if (scancode == specialkeycode ())
-		return;
-
-#ifdef WIN32
-        if (scancode == DIK_F11 && currprefs.win32_ctrl_F11_is_quit && ctrlpressed ())
-                code = AKS_QUIT;
-#endif
-
-	scancode_new = scancode;
-        if (!specialpressed () && inputdevice_iskeymapped (keyboard, scancode))
-                scancode = 0;
-
-#ifdef WIN32
-        // GUI must be always available
-        if (scancode_new == DIK_F12 && currprefs.win32_guikey < 0)
-                scancode = scancode_new;
-        if (scancode_new == currprefs.win32_guikey && scancode_new != DIK_F12)
-                scancode = scancode_new;
-#endif
-
-	//write_log ("kbd= %d, sc_new= %d, scancode= %d (0x%02x), state= %d\n", keyboard, scancode_new, scancode, scancode, newstate);
-
-	if (newstate == 0 && code == 0) {
-		switch (scancode)
-		{
-                        case DIK_SYSRQ:
-                        screenshot (specialpressed () ? 1 : 0, 1);
-                        break;
-		}
-	}
-
-        if (newstate && code == 0) {
-                if (scancode == DIK_F12 /*|| scancode == currprefs.win32_guikey*/) {
-                        if (ctrlpressed ()) {
-                                code = AKS_TOGGLEDEFAULTSCREEN;
-                        } else if (shiftpressed () || specialpressed ()) {
-                                if (isfullscreen() <= 0) {
-                                        //disablecapture ();
-                                        code = AKS_ENTERDEBUGGER;
-                                }
-                        } else {
-                                code = AKS_ENTERGUI;
-                        }
-                }
-
-                switch (scancode)
-                {
-                case DIK_F1:
-                case DIK_F2:
-                case DIK_F3:
-                case DIK_F4:
-                        if (specialpressed ()) {
-                                if (ctrlpressed ()) {
-                                } else {
-                                        if (shiftpressed ())
-                                                code = AKS_EFLOPPY0 + (scancode - DIK_F1);
-                                        else
-                                                code = AKS_FLOPPY0 + (scancode - DIK_F1);
-                                }
-                        }
-                        break;
-                case DIK_F5:
-                        if (specialpressed ()) {
-                                if (shiftpressed ())
-                                        code = AKS_STATESAVEDIALOG;
-                                else
-                                        code = AKS_STATERESTOREDIALOG;
-                        }
-                        break;
-                case DIK_1:
-                case DIK_2:
-                case DIK_3:
-                case DIK_4:
-                case DIK_5:
-                case DIK_6:
-                case DIK_7:
-                case DIK_8:
-                case DIK_9:
-                case DIK_0:
-                        if (specialpressed ()) {
-                                int num = scancode - DIK_1;
-                                if (shiftpressed ())
-                                        num += 10;
-                                if (ctrlpressed ()) {
-                                       swapperdrive = num;
-                                        if (swapperdrive > 3)
-                                                swapperdrive = 0;
-                                } else {
-                                        int i;
-                                        for (i = 0; i < 4; i++) {
-                                                if (!_tcscmp (currprefs.floppyslots[i].df, currprefs.dfxlist[num]))
-                                                        changed_prefs.floppyslots[i].df[0] = 0;
-                                        }
-                                        _tcscpy (changed_prefs.floppyslots[swapperdrive].df, currprefs.dfxlist[num]);
-                                        config_changed = 1;
-                                }
-                        }
-                        break;
-                case DIK_NUMPAD0:
-                case DIK_NUMPAD1:
-                case DIK_NUMPAD2:
-                case DIK_NUMPAD3:
-                case DIK_NUMPAD4:
-                case DIK_NUMPAD5:
-                case DIK_NUMPAD6:
-                case DIK_NUMPAD7:
-                case DIK_NUMPAD8:
-                case DIK_NUMPAD9:
-                case DIK_NUMPADPERIOD:
-                        if (specialpressed ()) {
-                                int i = 0, v = -1;
-                                while (np[i] >= 0) {
-                                        v = np[i + 1];
-                                        if (np[i] == scancode)
-                                                break;
-                                        i += 2;
-                                }
-                                if (v >= 0)
-                                        code = AKS_STATESAVEQUICK + v * 2 + ((shiftpressed () || ctrlpressed ()) ? 0 : 1);
-                        }
-                        break;
-                case DIK_PAUSE:
-                        if (specialpressed ()) {
-                                if (shiftpressed ())
-                                        code = AKS_IRQ7;
-                                else
-                                        code = AKS_WARP;
-                        } else {
-                                code = AKS_PAUSE;
-                        }
-                        break;
-                case DIK_SCROLL:
-                        code = AKS_INHIBITSCREEN;
-                        break;
-                case DIK_NUMPADMINUS:
-                        if (specialpressed ()) {
-                                if (shiftpressed ())
-                                        code = AKS_DECREASEREFRESHRATE;
-                                else if (ctrlpressed ())
-                                        code = AKS_MVOLDOWN;
-                                else
-                                        code = AKS_VOLDOWN;
-                        }
-                        break;
-                case DIK_NUMPADPLUS:
-                        if (specialpressed ()) {
-                                if (shiftpressed ())
-                                        code = AKS_INCREASEREFRESHRATE;
-                                else if (ctrlpressed ())
-                                        code = AKS_MVOLUP;
-                                else
-                                        code = AKS_VOLUP;
-                        }
-                        break;
-                case DIK_NUMPADSTAR:
-                        if (specialpressed ()) {
-                                if (ctrlpressed ())
-                                        code = AKS_MVOLMUTE;
-                                else
-                                        code = AKS_VOLMUTE;
-                        }
-                        break;
-                case DIK_NUMPADSLASH:
-                        if (specialpressed ())
-                                code = AKS_STATEREWIND;
-                        break;
-                }
-        }
-
-        if (code) {
-                inputdevice_add_inputcode (code, 1);
-                return;
-        }
-
-        scancode = scancode_new;
-        if (!specialpressed () && newstate) {
-                if (scancode == DIK_CAPITAL) {
-                        host_capslockstate = host_capslockstate ? 0 : 1;
-                        capslockstate = host_capslockstate;
-                }
-                if (scancode == DIK_NUMLOCK) {
-                        host_numlockstate = host_numlockstate ? 0 : 1;
-                        capslockstate = host_numlockstate;
-                }
-                if (scancode == DIK_SCROLL) {
-                        host_scrolllockstate = host_scrolllockstate ? 0 : 1;
-                        capslockstate = host_scrolllockstate;
-                }
-        }
-        if (specialpressed ())
-                return;
-
-//        write_log ("kbd2 = %d, scancode = %d (0x%02x), state = %d\n", keyboard, scancode, scancode, newstate);
-
-        inputdevice_translatekeycode (keyboard, scancode, newstate);
-}
-
-// win32gfx
-#define MAX_DISPLAYS 10
-struct MultiDisplay Displays[MAX_DISPLAYS];
-
-static struct MultiDisplay *getdisplay2 (struct uae_prefs *p, int index)
-{
-        write_log ("Multimonitor detection disabled\n");
-        Displays[0].primary = 1;
-    	Displays[0].monitorname = "Display";
-
-	int max;
-	int display = index < 0 ? p->gfx_apmode[screen_is_picasso ? APMODE_RTG : APMODE_NATIVE].gfx_display - 1 : index;
-
-	max = 0;
-	while (Displays[max].monitorname)
-		max++;
-	if (max == 0) {
-		gui_message (_T("no display adapters! Exiting"));
-		exit (0);
-	}
-	if (index >= 0 && display >= max)
-		return NULL;
-	if (display >= max)
-		display = 0;
-	if (display < 0)
-		display = 0;
-	return &Displays[display];
-}
-
-struct MultiDisplay *getdisplay (struct uae_prefs *p)
-{
-        return getdisplay2 (p, -1);
-}
 /*
 struct MultiDisplay *getdisplay (struct uae_prefs *p)
 {
@@ -1560,7 +1328,7 @@ bool show_screen_maybe (bool show)
         return false;
 }
 
-bool render_screen (void)
+bool render_screen (bool immediate)
 {
 	bool v = false;
 	render_ok = false;
@@ -1623,83 +1391,183 @@ static bool getvblankpos2 (int *vp, int *flags)
 
 double vblank_calibrate (double approx_vblank, bool waitonly)
 {
-  frame_time_t t1, t2;
-  double tsum, tsum2, tval, tfirst;
-  int maxcnt, maxtotal, total, cnt, tcnt2;
-  
-  if (remembered_vblank > 0)
-    return remembered_vblank;
-  if (waitonly) {
-    vblankbasefull = syncbase / approx_vblank;
-    vblankbasewait = (syncbase / approx_vblank) * 3 / 4;
-    remembered_vblank = -1;
-    return -1;
-  }
-/*
-  th = GetCurrentThread ();
-  int oldpri = GetThreadPriority (th);
-  SetThreadPriority (th, THREAD_PRIORITY_HIGHEST);
-  dummythread_die = -1;
-  dummy_counter = 0;
-  _beginthread (&dummythread, 0, 0);
-  sleep_millis (100);
- maxtotal = 10;
- maxcnt = maxtotal;
-  tsum2 = 0;
-  tcnt2 = 0;
-  for (maxcnt = 0; maxcnt < maxtotal; maxcnt++) {
-    total = 10;
-    tsum = 0;
-    cnt = total;
-    for (cnt = 0; cnt < total; cnt++) {
-      if (!waitvblankstate (true))
-        return -1;
-      if (!waitvblankstate (false))
-        return -1;
-      if (!waitvblankstate (true))
-        return -1;
-      t1 = uae_gethrtime ();
-      if (!waitvblankstate (false))
-        return -1;
-      if (!waitvblankstate (true))
-        return -1;
-      t2 = uae_gethrtime ();
-      tval = (double)syncbase / (t2 - t1);
-      if (cnt == 0)
-        tfirst = tval;
-      if (abs (tval - tfirst) > 1) {
-        write_log ("very unstable vsync! %.6f vs %.6f, retrying..\n", tval, tfirst);
-        break;
-      }
-      tsum2 += tval;
-      tcnt2++;
-      if (abs (tval - tfirst) > 0.1) {
-        write_log ("unstable vsync! %.6f vs %.6f\n", tval, tfirst);
-        break;
-      }
-      tsum += tval;
-    }
-    if (cnt >= total)
-      break;
-  }
-  dummythread_die = 0;
-  SetThreadPriority (th, oldpri);
-  if (maxcnt >= maxtotal) {
-    tsum = tsum2 / tcnt2;
-    write_log ("unstable vsync reporting, using average value\n");
-  } else {
-    tsum /= total;
-  }
-  if (tsum >= 85)
-    tsum /= 2;
-  vblankbasefull = (syncbase / tsum);
-  vblankbasewait = (syncbase / tsum) * 3 / 4;
-  write_log ("VSync calibration: %.6fHz\n", tsum);
-  remembered_vblank = tsum;
-  return tsum;
-*/
- return -1;
+	frame_time_t t1, t2;
+	double tsum, tsum2, tval, tfirst, div;
+	int maxcnt, maxtotal, total, cnt, tcnt2;
+//	HANDLE th;
+	int maxvpos, mult;
+	int width, height, depth, rate, mode;
+	struct remembered_vsync *rv;
+	double rval = -1;
+	struct apmode *ap = picasso_on ? &currprefs.gfx_apmode[1] : &currprefs.gfx_apmode[0];
+	bool remembered = false;
+	bool lace = false;
 
+	if (picasso_on) {
+		width = picasso96_state.Width;
+		height = picasso96_state.Height;
+		depth = picasso96_state.BytesPerPixel;
+	} else {
+		width = currentmode->native_width;
+		height = currentmode->native_height;
+		depth = (currentmode->native_depth + 7) / 8;
+	}
+
+	rate = ap->gfx_refreshrate;
+	mode = isfullscreen ();
+	rv = vsyncmemory;
+/*	while (rv) {
+		if (rv->width == width && rv->height == height && rv->depth == depth && rv->rate == rate && rv->mode == mode && rv->rtg == picasso_on) {
+			approx_vblank = rv->remembered_rate2;
+			tsum = rval = rv->remembered_rate;
+			maxscanline = rv->maxscanline;
+			minscanline = rv->minscanline;
+			maxvpos = rv->maxvpos;
+			lace = rv->lace;
+			waitonly = true;
+			remembered = true;
+			goto skip;
+		}
+		rv = rv->next;
+	}
+	
+	th = GetCurrentThread ();
+	int oldpri = GetThreadPriority (th);
+	SetThreadPriority (th, THREAD_PRIORITY_HIGHEST);
+	if (vblankthread_mode <= VBLANKTH_KILL) {
+		unsigned th;
+		vblankthread_mode = VBLANKTH_CALIBRATE;
+		_beginthreadex (NULL, 0, vblankthread, 0, 0, &th);
+		flipthread_mode = 1;
+		flipevent_mode = 0;
+		flipevent = CreateEvent (NULL, FALSE, FALSE, NULL);
+		flipevent2 = CreateEvent (NULL, FALSE, FALSE, NULL);
+		vblankwaitevent = CreateEvent (NULL, FALSE, FALSE, NULL);
+		_beginthreadex (NULL, 0, flipthread, 0, 0, &th);
+	} else {
+		changevblankthreadmode (VBLANKTH_CALIBRATE);
+	}
+	sleep_millis (100);
+
+	maxtotal = 10;
+	maxcnt = maxtotal;
+	maxscanline = 0;
+	minscanline = -1;
+	tsum2 = 0;
+	tcnt2 = 0;
+	for (maxcnt = 0; maxcnt < maxtotal; maxcnt++) {
+		total = 5;
+		tsum = 0;
+		cnt = total;
+		for (cnt = 0; cnt < total; cnt++) {
+			int maxvpos1, maxvpos2;
+			int flags1, flags2;
+			if (!waitvblankstate (true, NULL, NULL))
+				goto fail;
+			if (!waitvblankstate (false, NULL, NULL))
+				goto fail;
+			if (!waitvblankstate (true, NULL, NULL))
+				goto fail;
+			t1 = read_processor_time ();
+			if (!waitvblankstate (false, NULL, NULL))
+				goto fail;
+			maxscanline = 0;
+			if (!waitvblankstate (true, &maxvpos1, &flags1))
+				goto fail;
+			if (!waitvblankstate (false, NULL, NULL))
+				goto fail;
+			maxscanline = 0;
+			if (!waitvblankstate (true, &maxvpos2, &flags2))
+				goto fail;
+			t2 = read_processor_time ();
+			maxvpos = maxvpos1 > maxvpos2 ? maxvpos1 : maxvpos2;
+			// count two fields: works with interlaced modes too.
+			tval = (double)syncbase * 2.0 / (t2 - t1);
+			if (cnt == 0)
+				tfirst = tval;
+			if (abs (tval - tfirst) > 1) {
+				write_log (_T("Very unstable vsync! %.6f vs %.6f, retrying..\n"), tval, tfirst);
+				break;
+			}
+			tsum2 += tval;
+			tcnt2++;
+			if (abs (tval - tfirst) > 0.1) {
+				write_log (_T("Unstable vsync! %.6f vs %.6f\n"), tval, tfirst);
+				break;
+			}
+			tsum += tval;
+			if ((flags1 > 0 && flags1 < 3) && (flags2 > 0 && flags2 < 3) && (flags1 != flags2)) {
+				lace = true;
+			}
+		}
+		if (cnt >= total)
+			break;
+	}
+	changevblankthreadmode (VBLANKTH_IDLE);
+	SetThreadPriority (th, oldpri);
+	if (maxcnt >= maxtotal) {
+		tsum = tsum2 / tcnt2;
+		write_log (_T("Unstable vsync reporting, using average value\n"));
+	} else {
+		tsum /= total;
+	}
+
+	if (waitonly)
+		tsum = approx_vblank;
+skip:
+
+	vblank_skipeveryother = false;
+	getvsyncrate (tsum, &mult);
+	if (mult < 0) {
+		div = 2.0;
+		vblank_skipeveryother = true;
+	} else if (mult > 0) {
+		div = 0.5;
+	} else {
+		div = 1.0;
+	}
+	tsum2 = tsum / div;
+
+	vblankbasefull = (syncbase / tsum2);
+	vblankbasewait1 = (syncbase / tsum2) * 70 / 100;
+	vblankbasewait2 = (syncbase / tsum2) * 55 / 100;
+	vblankbasewait3 = (syncbase / tsum2) * 99 / 100 - syncbase / (250 * (vblank_skipeveryother ? 1 : 2)); // at least 2ms before vblank
+	vblankbaselace = lace;
+	write_log (_T("VSync %s: %.6fHz/%.1f=%.6fHz. MinV=%d MaxV=%d%s Units=%d %.1f%%\n"),
+		waitonly ? _T("remembered") : _T("calibrated"), tsum, div, tsum2,
+		minscanline, maxvpos, lace ? _T("i") : _T(""), vblankbasefull,
+		vblankbasewait3 * 100 / (syncbase / tsum2));
+	remembered_vblank = tsum;
+	vblank_prev_time = read_processor_time ();
+	
+	if (!remembered) {
+		rv = xcalloc (struct remembered_vsync, 1);
+		rv->width = width;
+		rv->height = height;
+		rv->depth = depth;
+		rv->rate = rate;
+		rv->mode = isfullscreen ();
+		rv->rtg = picasso_on;
+		rv->remembered_rate = tsum;
+		rv->remembered_rate2 = tsum2;
+		rv->maxscanline = maxscanline;
+		rv->minscanline = minscanline;
+		rv->maxvpos = maxvpos;
+		rv->lace = lace;
+		if (vsyncmemory == NULL) {
+			vsyncmemory = rv;
+		} else {
+			rv->next = vsyncmemory;
+			vsyncmemory = rv;
+		}
+	}
+	
+	vblank_reset (tsum);
+	return tsum;
+fail:*/
+	write_log (_T("VSync calibration failed\n"));
+	ap->gfx_vsync = 0;
+	return -1;
 }
 
 static bool vblanklaceskip (void)
@@ -1711,11 +1579,6 @@ static bool vblanklaceskip (void)
                 }   
         }
         return false;
-}
-
-static bool isthreadedvsync (void)
-{
-        return isvsync_chipset () <= -2 || isvsync_rtg () < 0;
 }
 
 static bool waitvblankstate (bool state, int *maxvpos, int *flags)
@@ -1744,18 +1607,18 @@ static bool waitvblankstate (bool state, int *maxvpos, int *flags)
         }
 }
 
-static bool vblank_wait (void)
+static int vblank_wait (void)
 {
         int vp;
 
         for (;;) {
                 int opos = prevvblankpos;
                 if (!getvblankpos (&vp))
-                        return false;
-                if (opos > maxscanline / 2 && vp < maxscanline / 3)
-                        return true;
+                        return -2;
+                if (opos > (maxscanline + minscanline) / 2 && vp < (maxscanline + minscanline) / 3)
+                        return vp;
                 if (vp <= 0)
-                        return true;
+                        return vp;
                 vsync_sleep (true);
         }
 }
@@ -1774,31 +1637,48 @@ static void vsync_notvblank (void)
         }
 }
 
-frame_time_t vsync_busywait_end (void)
+static bool isthreadedvsync (void)
 {
-        if (!dooddevenskip) {
-                vsync_notvblank ();
-                while (!vblank_found && vblankthread_mode == VBLANKTH_ACTIVE) {
-                        vsync_sleep (currprefs.m68k_speed < 0);
-                }   
-        }
-        changevblankthreadmode_fast (VBLANKTH_ACTIVE_WAIT);
-        return thread_vblank_time;
+	return isvsync_chipset () <= -2 || isvsync_rtg () < 0;
+}
+
+frame_time_t vsync_busywait_end (int *flipdelay)
+{
+/*	if (isthreadedvsync ()) {
+
+		frame_time_t prev;
+		for (;;) {
+			int v = vblankthread_mode;
+			if (v != VBLANKTH_ACTIVE_START && v != VBLANKTH_ACTIVE_SKIPFRAME && v != VBLANKTH_ACTIVE_SKIPFRAME2)
+				break;
+			sleep_millis_main (1);
+		}
+		prev = vblank_prev_time;
+		if (!dooddevenskip) {
+		      int delay = 10;
+		      frame_time_t t = read_processor_time ();
+		      while (delay-- > 0) {
+		        if (WaitForSingleObject (vblankwaitevent, 10) != WAIT_TIMEOUT)
+		          break;
+			}
+			idletime += read_processor_time () - t;
+		}
+		if (flipdelay)
+			*flipdelay = vblank_found_flipdelay;
+		changevblankthreadmode_fast (VBLANKTH_ACTIVE_WAIT);
+		return prev + vblankbasefull;
+	} else {
+		if (flipdelay)
+			*flipdelay = vblank_flip_delay;
+		return vblank_prev_time;
+	}*/
 }
 
 void vsync_busywait_start (void)
 {
-#if 0
-        struct apmode *ap = picasso_on ? &currprefs.gfx_apmode[1] : &currprefs.gfx_apmode[0];
-        if (!dooddevenskip) {
-                vsync_notvblank ();
-                if (ap->gfx_vflip > 0) {
-                        doflipevent ();
-                }
-        }
-#endif
+        if (vblankthread_mode != VBLANKTH_ACTIVE_WAIT)
+                write_log (L"low latency vsync state mismatch %d\n", vblankthread_mode);
         changevblankthreadmode_fast (VBLANKTH_ACTIVE_START);
-        vblank_prev_time = thread_vblank_time;
 }
 
 bool vsync_busywait_do (int *freetime, bool lace, bool oddeven)
@@ -1808,6 +1688,7 @@ bool vsync_busywait_do (int *freetime, bool lace, bool oddeven)
         int ti;  
         frame_time_t t;
         frame_time_t prevtime = vblank_prev_time;
+        struct apmode *ap = picasso_on ? &currprefs.gfx_apmode[1] : &currprefs.gfx_apmode[0];
 
         dooddevenskip = false;
 
@@ -1827,7 +1708,7 @@ bool vsync_busywait_do (int *freetime, bool lace, bool oddeven)
                 return true;
         }
 
-        if (log_vsync) {
+        if (0 || log_vsync) {
                 write_log (_T("F:%8d M:%8d E:%8d %3d%% (%3d%%) %10d\r"), frame_counted, frame_missed, frame_errors, frame_usage, frame_usage_avg, (t - vblank_prev_time) - vblankbasefull);
         }
 
@@ -1859,6 +1740,7 @@ bool vsync_busywait_do (int *freetime, bool lace, bool oddeven)
 	        } else {
 	                bool doskip = false;
 
+                        vblank_flip_delay = 0;
 	                if (!framelost && t - prevtime > vblankbasefull) {
 	                        framelost = true;
 	                        frame_missed++;
@@ -1871,19 +1753,43 @@ bool vsync_busywait_do (int *freetime, bool lace, bool oddeven)
 	                }
 
 	                if (!doskip) {
+	                        int vp;
 	                        while (!framelost && uae_gethrtime () - prevtime < vblankbasewait1) {
 	                                vsync_sleep (false);
 	                        }
-	                        v = vblank_wait ();
+	                        prevvblankpos = 0;
+                                vp = vblank_wait ();
+      if (vp >= -1) {
+        vblank_prev_time = uae_gethrtime ();
+        if (ap->gfx_vflip == 0) {
+          show_screen ();
+          vblank_flip_delay = (uae_gethrtime () - vblank_prev_time) / (vblank_skipeveryother ? 2 : 1);
+          if (vblank_flip_delay < 0)
+            vblank_flip_delay = 0;
+          else if (vblank_flip_delay > vblankbasefull * 2 / 3)
+            vblank_flip_delay = vblankbasefull * 2 / 3;
+        }
+        for (;;) {
+          if (!getvblankpos (&vp))
+            break;
+          if (vp > 0)
+            break;
+          sleep_millis (1);
+        }
+        if (ap->gfx_vflip != 0) {
+          show_screen ();
+        }
+        vblank_prev_time -= (vblankbasefull * vp / maxscanline) / (vblank_skipeveryother ? 2 : 1 );
+        v = true;
+      }
 	                } else {
 	                        v = true;
+	                        vblank_prev_time = uae_gethrtime ();
 	                }
 	                framelost = false;
-
 	        }
 
 	        if (v) {
-	                vblank_prev_time = uae_gethrtime ();
 	                frame_counted++;
 	                return true;
 	        }
