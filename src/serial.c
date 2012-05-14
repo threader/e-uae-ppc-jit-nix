@@ -57,9 +57,6 @@ void serial_dtr_off (void);
 void serial_flush_buffer (void);
 static int serial_read (char *buffer);
 
-int serial_readstatus (void);
-uae_u16 serial_writestatus (int, int);
-
 uae_u16 SERDATR (void);
 
 int  SERDATS (void);
@@ -299,7 +296,7 @@ void serial_flush_buffer (void)
     }
 }
 
-int serial_readstatus(void)
+uae_u8 serial_readstatus(void)
 {
     int status = 0;
 
@@ -339,7 +336,7 @@ int serial_readstatus(void)
     return status;
     }
 
-uae_u16 serial_writestatus (int old, int nw)
+uae_u8 serial_writestatus (int old, int nw)
 {
     if ((old & 0x80) == 0x80 && (nw & 0x80) == 0x00)
 	    serial_dtr_on();

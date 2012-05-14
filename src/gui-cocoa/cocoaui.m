@@ -1889,7 +1889,7 @@ void gui_flicker_led (int led, int unitnum, int status)
         }
 }
 
-void gui_fps (int fps, int idle)
+void gui_fps (int fps, int idle, int color)
 {
 	gui_data.fps  = 0; //LATER: fps
 	gui_data.idle = 0; //LATER: idle

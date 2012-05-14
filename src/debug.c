@@ -189,6 +189,13 @@ static int debug_out (const TCHAR *format, ...)
 	return 1;
 }
 
+
+static bool isoperator(TCHAR **cp)
+{
+	TCHAR c = **cp;
+	return c == '+' || c == '-' || c == '/' || c == '*' || c == '(' || c == ')';
+}
+
 static void ignore_ws (TCHAR **c)
 {
 	while (**c && _istspace(**c))

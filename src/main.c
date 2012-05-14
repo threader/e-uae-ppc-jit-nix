@@ -1069,7 +1069,7 @@ void real_main (int argc, TCHAR **argv)
 
 // -------- FIXME
 /*                write_log (_T("Enumerating display devices.. \n"));
-                enumeratedisplays ();
+                g ();
                 write_log (_T("Sorting devices and modes..\n"));
                 sortdisplays ();
                 write_log (_T("Display buffer mode = %d\n"), ddforceram);

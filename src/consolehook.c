@@ -68,6 +68,7 @@ static void *console_thread (void *v)
 		record_key_direct ((0x10 << 1) | 0);
 		record_key_direct ((0x10 << 1) | 1);
 	}
+	return NULL;
 }
 
 int consolehook_activate (void)

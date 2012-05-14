@@ -109,7 +109,7 @@ static volatile bool vblank_found;
 static volatile int flipthread_mode;
 volatile bool vblank_found_chipset;
 volatile bool vblank_found_rtg;
-static int flipevent, flipevent2;
+static int flipevent, flipevent2, vblankwaitevent;
 static volatile int flipevent_mode;
 
 static double remembered_vblank;
@@ -186,37 +186,38 @@ int vsync_switchmode (int hz)
             return true;
     }
 }
-
+///////////////////////////////////////////////////
 // serial_win32
+///////////////////////////////////////////////////
 void serial_check_irq (void)
 {
-        if (data_in_serdatr)
-                INTREQ_0 (0x8000 | 0x0800);
+	if (data_in_serdatr)
+		INTREQ_0 (0x8000 | 0x0800);
 }
 
 void serial_uartbreak (int v)
 {
 #ifdef SERIAL_PORT
-        serialuartbreak (v);
+	serialuartbreak (v);
 #endif
 }
 
 void serial_hsynchandler (void)
 {
 #ifdef AHI
-        extern void hsyncstuff(void);
-        hsyncstuff();
+	extern void hsyncstuff(void);
+	hsyncstuff();
 #endif
 /*
-        if (serial_period_hsyncs == 0)
-                return;
-        serial_period_hsync_counter++;
-        if (serial_period_hsyncs == 1 || (serial_period_hsync_counter % (serial_period_hsyncs - 1)) == 0) {
-                checkreceive_serial (0);
-                checkreceive_enet (0);
-        }
-        if ((serial_period_hsync_counter % serial_period_hsyncs) == 0)
-                checksend (0);
+	if (serial_period_hsyncs == 0)
+		return;
+	serial_period_hsync_counter++;
+	if (serial_period_hsyncs == 1 || (serial_period_hsync_counter % (serial_period_hsyncs - 1)) == 0) {
+		checkreceive_serial (0);
+		checkreceive_enet (0);
+	}
+	if ((serial_period_hsync_counter % serial_period_hsyncs) == 0)
+		checksend (0);
 */
 }
 
@@ -226,141 +227,19 @@ int log_vsync;
 
 void sleep_millis_main (int ms)
 {
-        uae_msleep (ms);
+	uae_msleep (ms);
 }
-
-/*
-static int drvsampleres[] = {
-        IDR_DRIVE_CLICK_A500_1, DS_CLICK,
-        IDR_DRIVE_SPIN_A500_1, DS_SPIN,
-        IDR_DRIVE_SPINND_A500_1, DS_SPINND,
-        IDR_DRIVE_STARTUP_A500_1, DS_START,
-        IDR_DRIVE_SNATCH_A500_1, DS_SNATCH,
-        -1
-};
-*/
 
 // driveclick_win32
-int driveclick_loadresource (struct drvsample *sp, int drivetype)
-{
-/*
-        int i, ok;
-
-        ok = 1;
-        for (i = 0; drvsampleres[i] >= 0; i += 2) {
-                struct drvsample *s = sp + drvsampleres[i + 1];
-                HRSRC res = FindResource (NULL, MAKEINTRESOURCE (drvsampleres[i + 0]), "WAVE");
-                if (res != 0) {
-                        HANDLE h = LoadResource (NULL, res);
-                        int len = SizeofResource (NULL, res);
-                        uae_u8 *p = LockResource (h);
-                        s->p = decodewav (p, &len);
-                        s->len = len;
-                } else {
-                        ok = 0;
-                }
-        }
-        return ok;
-*/
-	return 0;
-}
-
-void driveclick_fdrawcmd_close(int drive)
-{
-/*
-        if (h[drive] != INVALID_HANDLE_VALUE)
-                CloseHandle(h[drive]);
-        h[drive] = INVALID_HANDLE_VALUE;
-        motors[drive] = 0;
-*/
-}
-
-static int driveclick_fdrawcmd_open_2(int drive)
-{
-/*
-        TCHAR s[32];
-
-        driveclick_fdrawcmd_close(drive);
-        _stprintf (s, "\\\\.\\fdraw%d", drive);
-        h[drive] = CreateFile(s, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
-        if (h[drive] == INVALID_HANDLE_VALUE)
-                return 0;
-        return 1;
-*/
-	return 0;
-}
-
-int driveclick_fdrawcmd_open(int drive)
-{
-/*
-        if (!driveclick_fdrawcmd_open_2(drive))
-                return 0;
-        driveclick_fdrawcmd_init(drive);
-        return 1;
-*/
-                return 0;
-}
-
-void driveclick_fdrawcmd_detect(void)
-{
-/*
-        static int detected;
-        if (detected)
-                return;
-        detected = 1;
-        if (driveclick_fdrawcmd_open_2(0))
-                driveclick_pcdrivemask |= 1;
-        driveclick_fdrawcmd_close(0);
-        if (driveclick_fdrawcmd_open_2(1))
-                driveclick_pcdrivemask |= 2;
-        driveclick_fdrawcmd_close(1);
-*/
-}
-
-void driveclick_fdrawcmd_seek(int drive, int cyl)
-{
-//        write_comm_pipe_int (dc_pipe, (drive << 8) | cyl, 1);
-}
-void driveclick_fdrawcmd_motor (int drive, int running)
-{
-//        write_comm_pipe_int (dc_pipe, 0x8000 | (drive << 8) | (running ? 1 : 0), 1);
-}
-
-void driveclick_fdrawcmd_vsync(void)
-{
-/*
-        int i;
-        for (i = 0; i < 2; i++) {
-                if (motors[i] > 0) {
-                        motors[i]--;
-                        if (motors[i] == 0)
-                                CmdMotor(h[i], 0);
-                }
-        }
-*/
-}
-
-static int driveclick_fdrawcmd_init(int drive)
-{
-/*
-        static int thread_ok;
-
-        if (h[drive] == INVALID_HANDLE_VALUE)
-                return 0;
-        motors[drive] = 0;
-        SetDataRate(h[drive], 3);
-        CmdSpecify(h[drive], 0xd, 0xf, 0x1, 0);
-        SetMotorDelay(h[drive], 0);
-        CmdMotor(h[drive], 0);
-        if (thread_ok)
-                return 1;
-        thread_ok = 1;
-        init_comm_pipe (dc_pipe, DC_PIPE_SIZE, 3);
-        uae_start_thread ("DriveClick", driveclick_thread, NULL, NULL);
-        return 1;
-*/
-	return 1;
-}
+int driveclick_loadresource (struct drvsample *sp, int drivetype) { return 0; }
+void driveclick_fdrawcmd_close(int drive){}
+static int driveclick_fdrawcmd_open_2(int drive){ return 0; }
+int driveclick_fdrawcmd_open(int drive){ return 0; }
+void driveclick_fdrawcmd_detect(void){}
+void driveclick_fdrawcmd_seek(int drive, int cyl){}
+void driveclick_fdrawcmd_motor (int drive, int running){}
+void driveclick_fdrawcmd_vsync(void){}
+static int driveclick_fdrawcmd_init(int drive){ return 1; }
 
 // win32
 uae_u32 emulib_target_getcpurate (uae_u32 v, uae_u32 *low)
@@ -437,12 +316,12 @@ void setmouseactive (int active)
 // unicode
 char *au_fs_copy (char *dst, int maxlen, const char *src)
 {
-        unsigned int i;
+	unsigned int i;
 
-        for (i = 0; src[i] && i < maxlen - 1; i++)
-                dst[i] = src[i];
-        dst[i] = 0;
-        return dst;
+	for (i = 0; src[i] && i < maxlen - 1; i++)
+		dst[i] = src[i];
+	dst[i] = 0;
+	return dst;
 }
 
 // fsdb_mywin32
@@ -455,32 +334,32 @@ int my_existsfile (const char *name)
 		if (!S_ISDIR(sonuc.st_mode))
 			return 1;
 	}
-        return 0;
+	return 0;
 }
 
 int my_existsdir (const char *name)
 {
-		struct stat sonuc;
+	struct stat sonuc;
 
-		if (lstat (name, &sonuc) == -1) {
-			return 0;
-		} else {
-			if (S_ISDIR(sonuc.st_mode))
-				return 1;
-		}
-        return 0;
+	if (lstat (name, &sonuc) == -1) {
+		return 0;
+	} else {
+		if (S_ISDIR(sonuc.st_mode))
+			return 1;
+	}
+	return 0;
 }
 
 int my_getvolumeinfo (const char *root)
 {
-		struct stat sonuc;
-        int ret = 0;
+	struct stat sonuc;
+	int ret = 0;
 
-        if (lstat (root, &sonuc) == -1)
-                return -1;
-        if (!S_ISDIR(sonuc.st_mode))
-                return -1;
-        return ret;
+	if (lstat (root, &sonuc) == -1)
+		return -1;
+	if (!S_ISDIR(sonuc.st_mode))
+		return -1;
+	return ret;
 }
 
 // clipboard
@@ -546,83 +425,13 @@ int get_guid_target (uae_u8 *out)
 	return 1;
 }
 
-// win32gfx
-// win32gfx
-#define MAX_DISPLAYS 10
-struct MultiDisplay Displays[MAX_DISPLAYS];
-
-static struct MultiDisplay *getdisplay2 (struct uae_prefs *p, int index)
-{
-        write_log ("Multimonitor detection disabled\n");
-        Displays[0].primary = 1;
-    	Displays[0].monitorname = "Display";
-
-	int max;
-	int display = index < 0 ? p->gfx_apmode[screen_is_picasso ? APMODE_RTG : APMODE_NATIVE].gfx_display - 1 : index;
-
-	max = 0;
-	while (Displays[max].monitorname)
-		max++;
-	if (max == 0) {
-		gui_message (_T("no display adapters! Exiting"));
-		exit (0);
-	}
-	if (index >= 0 && display >= max)
-		return NULL;
-	if (display >= max)
-		display = 0;
-	if (display < 0)
-		display = 0;
-	return &Displays[display];
-}
-
-struct MultiDisplay *getdisplay (struct uae_prefs *p)
-{
-        return getdisplay2 (p, -1);
-}
-
-int target_get_display (const TCHAR *name)
-{
-	int oldfound = -1;
-	int found = -1;
-	unsigned int i;
-	for (i = 0; Displays[i].monitorname; i++) {
-		struct MultiDisplay *md = &Displays[i];
-		if (!_tcscmp (md->adapterid, name))
-			found = i + 1;
-		if (!_tcscmp (md->adaptername, name))
-			found = i + 1;
-		if (!_tcscmp (md->monitorname, name))
-			found = i + 1;
-		if (!_tcscmp (md->monitorid, name))
-			found = i + 1;
-		if (found >= 0) {
-			if (oldfound != found)
-				return -1;
-			oldfound = found;
-		}
-	}
-	return -1;
-}
-const TCHAR *target_get_display_name (int num, bool friendlyname)
-{
-	if (num <= 0)
-		return NULL;
-	struct MultiDisplay *md = getdisplay2 (NULL, num - 1);
-	if (!md)
-		return NULL;
-	if (friendlyname)
-		return md->monitorname;
-	return md->monitorid;
-}
-
 void machdep_free (void)
 {
 }
 
 void target_run (void)
 {
-        //shellexecute (currprefs.win32_commandpathstart);
+	//shellexecute (currprefs.win32_commandpathstart);
 }
 
 // dinput
@@ -647,9 +456,9 @@ char *ua_fs (const char *s, int defchar)
 
 char *ua_copy (char *dst, int maxlen, const char *src)
 {
-        dst[0] = 0;
-		strncpy (dst, src, maxlen);
-        return dst;
+	dst[0] = 0;
+	strncpy (dst, src, maxlen);
+	return dst;
 }
 
 // win32gui
@@ -710,76 +519,65 @@ int target_cfgfile_load (struct uae_prefs *p, char *filename, int type, int isde
 	return v;
 }
 
-// win32gfx
-static int isfullscreen_2 (struct uae_prefs *p)
-{
-    int idx = screen_is_picasso ? 1 : 0;
-    return p->gfx_apmode[idx].gfx_fullscreen == GFX_FULLSCREEN ? 1 : (p->gfx_apmode[idx].gfx_fullscreen == GFX_FULLWINDOW ? -1 : 0);
-}
-int isfullscreen (void)
-{
-        return isfullscreen_2 (&currprefs);
-}
-
 // win32
 uae_u8 *save_log (int bootlog, int *len)
 {
-        FILE *f;
-        uae_u8 *dst = NULL;
-        int size;
+	FILE *f;
+	uae_u8 *dst = NULL;
+	int size;
 
-        if (!logging_started)
-                return NULL;
-        f = fopen (bootlog ? LOG_BOOT : LOG_NORMAL, "rb");
+	if (!logging_started)
+		return NULL;
+	f = fopen (bootlog ? LOG_BOOT : LOG_NORMAL, "rb");
 	if (!f)
 		return NULL;
-        fseek (f, 0, SEEK_END);
-        size = ftell (f);
-        fseek (f, 0, SEEK_SET);
-        if (size > 30000)
-                size = 30000;
-        if (size > 0) {
-                dst = xcalloc (uae_u8, size + 1);
-                if (dst)
-                        fread (dst, 1, size, f);
-                fclose (f);
-                *len = size + 1;
-        }
-        return dst;
+	fseek (f, 0, SEEK_END);
+	size = ftell (f);
+	fseek (f, 0, SEEK_SET);
+	if (size > 30000)
+		size = 30000;
+	if (size > 0) {
+		dst = xcalloc (uae_u8, size + 1);
+		if (dst)
+			fread (dst, 1, size, f);
+		fclose (f);
+		*len = size + 1;
+	}
+	return dst;
 }
 
 void stripslashes (TCHAR *p)
 {
-        while (_tcslen (p) > 0 && (p[_tcslen (p) - 1] == '\\' || p[_tcslen (p) - 1] == '/'))
-                p[_tcslen (p) - 1] = 0;
+	while (_tcslen (p) > 0 && (p[_tcslen (p) - 1] == '\\' || p[_tcslen (p) - 1] == '/'))
+		p[_tcslen (p) - 1] = 0;
 }
 
 void fixtrailing (TCHAR *p)
 {
-        if (_tcslen(p) == 0)
-                return;
-        if (p[_tcslen(p) - 1] == '/' || p[_tcslen(p) - 1] == '\\')
-                return;
-        _tcscat(p, "\\");
+	if (_tcslen(p) == 0)
+		return;
+	if (p[_tcslen(p) - 1] == '/' || p[_tcslen(p) - 1] == '\\')
+		return;
+	_tcscat(p, "\\");
 }
 
 void getpathpart (TCHAR *outpath, int size, const TCHAR *inpath)
 {
-        _tcscpy (outpath, inpath);
-        TCHAR *p = _tcsrchr (outpath, '\\');
-        if (p)
-                p[0] = 0;
-        fixtrailing (outpath);
+	_tcscpy (outpath, inpath);
+	TCHAR *p = _tcsrchr (outpath, '\\');
+	if (p)
+		p[0] = 0;
+	fixtrailing (outpath);
 }
 
 void getfilepart (TCHAR *out, int size, const TCHAR *path)
 {
-        out[0] = 0;
-        const TCHAR *p = _tcsrchr (path, '\\');
-        if (p)
-                _tcscpy (out, p + 1);
-        else
-                _tcscpy (out, path);
+	out[0] = 0;
+	const TCHAR *p = _tcsrchr (path, '\\');
+	if (p)
+		_tcscpy (out, p + 1);
+	else
+		_tcscpy (out, path);
 }
 
 void refreshtitle (void)
@@ -792,24 +590,24 @@ void refreshtitle (void)
 #define MAX_ROM_PATHS 10
 int scan_roms (int show)
 {
-        TCHAR path[MAX_DPATH];
-        static int recursive;
-        int id, i, ret, keys, cnt;
-        TCHAR *paths[MAX_ROM_PATHS];
+	TCHAR path[MAX_DPATH];
+	static int recursive;
+	int id, i, ret, keys, cnt;
+	TCHAR *paths[MAX_ROM_PATHS];
 
-        if (recursive)
-                return 0;
-        recursive++;
+	if (recursive)
+		return 0;
+	recursive++;
 
 //FIXME:
-        cnt = 0;
-        ret = 0;
-        for (i = 0; i < MAX_ROM_PATHS; i++)
-                paths[i] = NULL;
+	cnt = 0;
+	ret = 0;
+	for (i = 0; i < MAX_ROM_PATHS; i++)
+		paths[i] = NULL;
 
 end:
-        recursive--;
-        return ret;
+	recursive--;
+	return ret;
 }
 
 // dinput
@@ -955,33 +753,33 @@ void fetch_saveimagepath (TCHAR *out, int size, int dir)
 }
 void fetch_configurationpath (TCHAR *out, int size)
 {
-        fetch_path ("ConfigurationPath", out, size);
+	fetch_path ("ConfigurationPath", out, size);
 }
 void fetch_screenshotpath (TCHAR *out, int size)
 {
-        fetch_path ("ScreenshotPath", out, size);
+	fetch_path ("ScreenshotPath", out, size);
 }
 void fetch_ripperpath (TCHAR *out, int size)
 {
-        fetch_path ("RipperPath", out, size);
+	fetch_path ("RipperPath", out, size);
 }
 void fetch_statefilepath (TCHAR *out, int size)
 {
-        fetch_path ("StatefilePath", out, size);
+	fetch_path ("StatefilePath", out, size);
 }
 void fetch_inputfilepath (TCHAR *out, int size)
 {
-        fetch_path ("InputPath", out, size);
+	fetch_path ("InputPath", out, size);
 }
 void fetch_datapath (TCHAR *out, int size)
 {
-        fetch_path (NULL, out, size);
+	fetch_path (NULL, out, size);
 }
 // convert path to absolute or relative
 void fullpath (TCHAR *path, int size)
 {
-        if (path[0] == 0 || (path[0] == '\\' && path[1] == '\\') || path[0] == ':')
-                return;
+	if (path[0] == 0 || (path[0] == '\\' && path[1] == '\\') || path[0] == ':')
+		return;
         /* <drive letter>: is supposed to mean same as <drive letter>:\ */
 }
 
@@ -993,9 +791,9 @@ TCHAR *au (const char *s)
 //
 TCHAR *au_copy (TCHAR *dst, int maxlen, const char *src)
 {
-        dst[0] = 0;
+	dst[0] = 0;
 	memcpy (dst, src, maxlen);
-        return dst;
+	return dst;
 }
 
 // writelog
@@ -1006,34 +804,34 @@ static int debugger_type = -1;
 
 static void openconsole (void)
 {
-        if (realconsole) {
-                if (debugger_type == 2) {
-                        //open_debug_window ();
-                        consoleopen = 1;
-                } else {
-                        //close_debug_window ();
-                        consoleopen = -1;
-                }
-                return;
-        }
+	if (realconsole) {
+		if (debugger_type == 2) {
+			//open_debug_window ();
+			consoleopen = 1;
+		} else {
+			//close_debug_window ();
+			consoleopen = -1;
+		}
+		return;
+	}
 }
 
 void close_console (void)
 {
-        if (realconsole)
-                return;
+	if (realconsole)
+		return;
 }
 
 void debugger_change (int mode)
 {
-        if (mode < 0)
-                debugger_type = debugger_type == 2 ? 1 : 2;
-        else
-                debugger_type = mode;
-        if (debugger_type != 1 && debugger_type != 2)
-                debugger_type = 2;
-//        regsetint (NULL, "DebuggerType", debugger_type);
-        openconsole ();
+	if (mode < 0)
+		debugger_type = debugger_type == 2 ? 1 : 2;
+	else
+		debugger_type = mode;
+	if (debugger_type != 1 && debugger_type != 2)
+		debugger_type = 2;
+//	  regsetint (NULL, "DebuggerType", debugger_type);
+	openconsole ();
 }
 
 // unicode
@@ -1055,112 +853,22 @@ char *utf8u (const char *s)
 // fsdb_mywin32
 FILE *my_opentext (const TCHAR *name)
 {
-        FILE *f;
-        uae_u8 tmp[4];
-        int v;
+	FILE *f;
+	uae_u8 tmp[4];
+	int v;
 
-        f = _tfopen (name, "rb");
-        if (!f)
-                return NULL;
-        v = fread (tmp, 1, 4, f);
-        fclose (f);
-        if (v == 4) {
-                if (tmp[0] == 0xef && tmp[1] == 0xbb && tmp[2] == 0xbf)
-                        return _tfopen (name, "r, ccs=UTF-8");
-                if (tmp[0] == 0xff && tmp[1] == 0xfe)
-                        return _tfopen (name, "r, ccs=UTF-16LE");
-        }
-        return _tfopen (name, "r");
-}
-
-/*
-struct MultiDisplay *getdisplay (struct uae_prefs *p)
-{
-        int i;
-        int display = p->gfx_display;
-
-        write_log ("Multimonitor detection disabled\n");
-        Displays[0].primary = 1;
-        Displays[0].name = "Display";
-        Displays[0].disabled = 0;
-
-        i = 0;
-        while (Displays[i].name) {
-                struct MultiDisplay *md = &Displays[i];
-                if (p->gfx_display_name[0] && !_tcscmp (md->name, p->gfx_display_name))
-                        return md;
-                if (p->gfx_display_name[0] && !_tcscmp (md->name2, p->gfx_display_name))
-                        return md;
-                i++;
-        }
-
-        if (i == 0) {
-                write_log ("no display adapters! Exiting");
-                exit (0);
-        }
-        if (display >= i)
-                display = 0;
-        return &Displays[display];
-}
-*/
-void addmode (struct MultiDisplay *md, int w, int h, int d, int freq, int rawmode)
-{
-        int ct;
-        int i, j;
-		bool lace = false;
-
-        ct = 0;
-        if (d == 8)
-                ct = RGBMASK_8BIT;
-        if (d == 15)
-                ct = RGBMASK_15BIT;
-        if (d == 16)
-                ct = RGBMASK_16BIT;
-        if (d == 24)
-                ct = RGBMASK_24BIT;
-        if (d == 32)
-                ct = RGBMASK_32BIT;
-        if (ct == 0)
-                return;
-
-        d /= 8;
-        i = 0;
-        while (md->DisplayModes[i].depth >= 0) {
-                if (md->DisplayModes[i].depth == d && md->DisplayModes[i].res.width == w && md->DisplayModes[i].res.height == h) {
-                        for (j = 0; j < MAX_REFRESH_RATES; j++) {
-                                if (md->DisplayModes[i].refresh[j] == 0 || md->DisplayModes[i].refresh[j] == freq)
-                                        break;
-                        }
-                        if (j < MAX_REFRESH_RATES) {
-                                md->DisplayModes[i].refresh[j] = freq;
-                                md->DisplayModes[i].refreshtype[j] = rawmode;
-                                md->DisplayModes[i].refresh[j + 1] = 0;
-                                return;
-                        }
-                }
-                i++;
-        }
-
-        i = 0;
-        while (md->DisplayModes[i].depth >= 0)
-                i++;
-
-        if (i >= MAX_PICASSO_MODES - 1)
-                return;
-//        md->DisplayModes[i].rawmode = rawmode;
- //       md->DisplayModes[i].lace = lace;
-        md->DisplayModes[i].res.width = w;
-        md->DisplayModes[i].res.height = h;
-        md->DisplayModes[i].depth = d;
-        md->DisplayModes[i].refresh[0] = freq;
-        md->DisplayModes[i].refreshtype[0] = rawmode;
-        md->DisplayModes[i].refresh[1] = 0;
-        md->DisplayModes[i].colormodes = ct;
-        md->DisplayModes[i + 1].depth = -1;
-        _stprintf (md->DisplayModes[i].name, _T("%dx%d%s, %d-bit"),
-                md->DisplayModes[i].res.width, md->DisplayModes[i].res.height,
-                lace ? _T("i") : _T(""),
-                md->DisplayModes[i].depth * 8);
+	f = _tfopen (name, "rb");
+	if (!f)
+		return NULL;
+	v = fread (tmp, 1, 4, f);
+	fclose (f);
+	if (v == 4) {
+		if (tmp[0] == 0xef && tmp[1] == 0xbb && tmp[2] == 0xbf)
+			return _tfopen (name, "r, ccs=UTF-8");
+		if (tmp[0] == 0xff && tmp[1] == 0xfe)
+			return _tfopen (name, "r, ccs=UTF-16LE");
+	}
+	return _tfopen (name, "r");
 }
 
 // dxwrap
@@ -1190,58 +898,219 @@ void update_debug_info(void)
 {
 }
 
-//win32gfx.cpp
+///////////////////////////////////////////////////
+// win32gfx.cpp
+///////////////////////////////////////////////////
+#define MAX_DISPLAYS 10
+struct MultiDisplay Displays[MAX_DISPLAYS];
+
+static struct MultiDisplay *getdisplay2 (struct uae_prefs *p, int index)
+{
+	write_log ("Multimonitor detection disabled\n");
+	Displays[0].primary = 1;
+	Displays[0].monitorname = "Display";
+
+	int max;
+	int display = index < 0 ? p->gfx_apmode[screen_is_picasso ? APMODE_RTG : APMODE_NATIVE].gfx_display - 1 : index;
+
+	max = 0;
+	while (Displays[max].monitorname)
+		max++;
+	if (max == 0) {
+		gui_message (_T("no display adapters! Exiting"));
+		exit (0);
+	}
+	if (index >= 0 && display >= max)
+		return NULL;
+	if (display >= max)
+		display = 0;
+	if (display < 0)
+		display = 0;
+	return &Displays[display];
+}
+
+struct MultiDisplay *getdisplay (struct uae_prefs *p)
+{
+	return getdisplay2 (p, -1);
+}
+
+int target_get_display (const TCHAR *name)
+{
+	int oldfound = -1;
+	int found = -1;
+	unsigned int i;
+	for (i = 0; Displays[i].monitorname; i++) {
+		struct MultiDisplay *md = &Displays[i];
+		if (!_tcscmp (md->adapterid, name))
+			found = i + 1;
+		if (!_tcscmp (md->adaptername, name))
+			found = i + 1;
+		if (!_tcscmp (md->monitorname, name))
+			found = i + 1;
+		if (!_tcscmp (md->monitorid, name))
+			found = i + 1;
+		if (found >= 0) {
+			if (oldfound != found)
+				return -1;
+			oldfound = found;
+		}
+	}
+	return -1;
+}
+const TCHAR *target_get_display_name (int num, bool friendlyname)
+{
+	if (num <= 0)
+		return NULL;
+	struct MultiDisplay *md = getdisplay2 (NULL, num - 1);
+	if (!md)
+		return NULL;
+	if (friendlyname)
+		return md->monitorname;
+	return md->monitorid;
+}
+
+static int isfullscreen_2 (struct uae_prefs *p)
+{
+    int idx = screen_is_picasso ? 1 : 0;
+    return p->gfx_apmode[idx].gfx_fullscreen == GFX_FULLSCREEN ? 1 : (p->gfx_apmode[idx].gfx_fullscreen == GFX_FULLWINDOW ? -1 : 0);
+}
+
+int isfullscreen (void)
+{
+	return isfullscreen_2 (&currprefs);
+}
+
+void addmode (struct MultiDisplay *md, int w, int h, int d, int freq, int rawmode)
+{
+	int ct;
+	int i, j;
+//	int w = dm->dmPelsWidth;
+//	int h = dm->dmPelsHeight;
+//	int d = dm->dmBitsPerPel;
+	bool lace = false;
+
+/*	int freq = 0;
+	if (dm->dmFields & DM_DISPLAYFREQUENCY) {
+		freq = dm->dmDisplayFrequency;
+		if (freq < 10)
+			freq = 0;
+	}
+	if (dm->dmFields & DM_DISPLAYFLAGS) {
+		lace = (dm->dmDisplayFlags & DM_INTERLACED) != 0;
+	}*/
+
+	ct = 0;
+	if (d == 8)
+		ct = RGBMASK_8BIT;
+	if (d == 15)
+		ct = RGBMASK_15BIT;
+	if (d == 16)
+		ct = RGBMASK_16BIT;
+	if (d == 24)
+		ct = RGBMASK_24BIT;
+	if (d == 32)
+		ct = RGBMASK_32BIT;
+	if (ct == 0)
+		return;
+	d /= 8;
+	i = 0;
+	while (md->DisplayModes[i].depth >= 0) {
+		if (md->DisplayModes[i].depth == d && md->DisplayModes[i].res.width == w && md->DisplayModes[i].res.height == h) {
+			for (j = 0; j < MAX_REFRESH_RATES; j++) {
+				if (md->DisplayModes[i].refresh[j] == 0 || md->DisplayModes[i].refresh[j] == freq)
+					break;
+			}
+			if (j < MAX_REFRESH_RATES) {
+				md->DisplayModes[i].refresh[j] = freq;
+				md->DisplayModes[i].refreshtype[j] = rawmode;
+				md->DisplayModes[i].refresh[j + 1] = 0;
+				return;
+			}
+		}
+		i++;
+	}
+	i = 0;
+	while (md->DisplayModes[i].depth >= 0)
+		i++;
+	if (i >= MAX_PICASSO_MODES - 1)
+		return;
+//	md->DisplayModes[i].rawmode = rawmode;
+//	md->DisplayModes[i].lace = lace;
+	md->DisplayModes[i].res.width = w;
+	md->DisplayModes[i].res.height = h;
+	md->DisplayModes[i].depth = d;
+	md->DisplayModes[i].refresh[0] = freq;
+	md->DisplayModes[i].refreshtype[0] = rawmode;
+	md->DisplayModes[i].refresh[1] = 0;
+	md->DisplayModes[i].colormodes = ct;
+	md->DisplayModes[i + 1].depth = -1;
+	_stprintf (md->DisplayModes[i].name, _T("%dx%d%s, %d-bit"),
+		md->DisplayModes[i].res.width, md->DisplayModes[i].res.height,
+		lace ? _T("i") : _T(""),
+		md->DisplayModes[i].depth * 8);
+}
+
 void updatedisplayarea (void)
 {
-	return;
 /*
-        if (!screen_is_initialized)
-                return;
-        if (dx_islost ())
-                return;   
-        if (picasso_on)
-                return;
+	if (!screen_is_initialized)
+		return;
+	if (dx_islost ())
+		return;
+	if (picasso_on)
+		return;
 #if defined (GFXFILTER)
-        if (currentmode->flags & DM_D3D) {
-#if defined (D3D) 
-                D3D_refresh ();
+	if (currentmode->flags & DM_D3D) {
+#if defined (D3D)
+		D3D_refresh ();
 #endif
-        } else
+	} else
 #endif
-                if (currentmode->flags & DM_DDRAW) {
+		if (currentmode->flags & DM_DDRAW) {
 #if defined (GFXFILTER)
-                        if (currentmode->flags & DM_SWSCALE)
-                                S2X_refresh ();
+			if (currentmode->flags & DM_SWSCALE)
+				S2X_refresh ();
 #endif
-                        DirectDraw_Flip (0);
-                }   
+			DirectDraw_Flip (0);
+		} 
 */
 }
 
 
 bool target_graphics_buffer_update (void)
 {
-        int w, h;  
-/*        if (screen_is_picasso) {
-                w = picasso_vidinfo.width;
-                h = picasso_vidinfo.height;
-        } else {   
-                struct vidbuffer *vb = gfxvidinfo.drawbuffer.tempbufferinuse ? &gfxvidinfo.tempbuffer : &gfxvidinfo.drawbuffer;
-                gfxvidinfo.outbuffer = vb;
-                w = vb->outwidth;
-                h = vb->outheight;
-        }
+/*
+	int w, h;
+	
+	if (screen_is_picasso) {
+		w = picasso96_state.Width > picasso_vidinfo.width ? picasso96_state.Width : picasso_vidinfo.width;
+		h = picasso96_state.Height > picasso_vidinfo.height ? picasso96_state.Height : picasso_vidinfo.height;
+	} else {
+		struct vidbuffer *vb = gfxvidinfo.drawbuffer.tempbufferinuse ? &gfxvidinfo.tempbuffer : &gfxvidinfo.drawbuffer;
+		gfxvidinfo.outbuffer = vb;
+		w = vb->outwidth;
+		h = vb->outheight;
+	}
+	
+	if (oldtex_w == w && oldtex_h == h && oldtex_rtg == screen_is_picasso)
+		return true;
+	oldtex_w = w;
+	oldtex_h = h;
+	oldtex_rtg = screen_is_picasso;
 
-        write_log (_T("Buffer size (%d*%d)\n"), w, h);
+	write_log (_T("Buffer size (%d*%d) %s\n"), w, h, screen_is_picasso ? _T("RTG") : _T("Native"));
 
-        if (currentmode->flags & DM_D3D) {
-                D3D_alloctexture (w, h);
-        }
-        S2X_free ();
-        if (currentmode->flags & DM_SWSCALE) {
-                S2X_init (currentmode->native_width, currentmode->native_height, currentmode->native_depth);
-        }*/
-        return true;
+	S2X_free ();
+	if (currentmode->flags & DM_D3D) {
+		D3D_alloctexture (w, h);
+	} else {
+		DirectDraw_ClearSurface (NULL);
+	}
+	if (currentmode->flags & DM_SWSCALE) {
+		S2X_init (currentmode->native_width, currentmode->native_height, currentmode->native_depth);
+	}
+*/
+	return true;
 }
 
 static bool render_ok;
@@ -1250,130 +1119,130 @@ int vsync_busy_wait_mode;
 
 static void vsync_sleep (bool preferbusy)
 {
-        struct apmode *ap = picasso_on ? &currprefs.gfx_apmode[1] : &currprefs.gfx_apmode[0];
-        bool dowait;
+	struct apmode *ap = picasso_on ? &currprefs.gfx_apmode[1] : &currprefs.gfx_apmode[0];
+	bool dowait;
 
-        if (vsync_busy_wait_mode == 0) {
-                dowait = ap->gfx_vflip || !preferbusy;
-        } else if (vsync_busy_wait_mode < 0) {
-                dowait = true;
-        } else {
-                dowait = false;
-        }
-        if (dowait && currprefs.m68k_speed >= 0)
-                sleep_millis_main (1);
+	if (vsync_busy_wait_mode == 0) {
+		dowait = ap->gfx_vflip || !preferbusy;
+		//dowait = !preferbusy;
+	} else if (vsync_busy_wait_mode < 0) {
+		dowait = true;
+	} else {
+		dowait = false;
+	}
+	if (dowait && (currprefs.m68k_speed >= 0 || currprefs.m68k_speed_throttle < 0))
+		sleep_millis_main (1);
 }
 
 static void changevblankthreadmode_do (int newmode, bool fast)
 { 
-        int t = vblankthread_counter;
-        vblank_found = false;
-        vblank_found_chipset = false;
-        vblank_found_rtg = false;
-        if (vblankthread_mode <= 0 || vblankthread_mode == newmode)
-                return; 
-        vblankthread_mode = newmode;
-        if (newmode == VBLANKTH_KILL) {
-                flipthread_mode = 0;
-                //SetEvent (flipevent);
-                while (flipthread_mode == 0)
-                        sleep_millis_main (1);
-                //CloseHandle (flipevent);
-                //CloseHandle (flipevent2);
-                flipevent = NULL;
-                flipevent2 = NULL;
-        }
-        if (!fast) {
-                while (t == vblankthread_counter && vblankthread_mode > 0);
-        }
+	int t = vblankthread_counter;
+	vblank_found = false;
+	vblank_found_chipset = false;
+	vblank_found_rtg = false;
+	if (vblankthread_mode <= 0 || vblankthread_mode == newmode)
+		return;
+	vblankthread_mode = newmode;
+	if (newmode == VBLANKTH_KILL) {
+		flipthread_mode = 0;
+//		SetEvent (flipevent);
+		while (flipthread_mode == 0)
+			sleep_millis_main (1);
+//		CloseHandle (flipevent);
+//		CloseHandle (flipevent2);
+//		CloseHandle (vblankwaitevent);
+		flipevent = NULL;
+		flipevent2 = NULL;
+		vblankwaitevent = NULL;
+	}
+	if (!fast) {
+		while (t == vblankthread_counter && vblankthread_mode > 0);
+	}
 }
          
 static void changevblankthreadmode (int newmode)
 {
-        changevblankthreadmode_do (newmode, false);
+	changevblankthreadmode_do (newmode, false);
 }
 static void changevblankthreadmode_fast (int newmode)                         
 {
-        changevblankthreadmode_do (newmode, true);
+	changevblankthreadmode_do (newmode, true);
 }
 
 static void waitflipevent (void)
 {
-/*        while (flipevent_mode) {
-                if (WaitForSingleObject (flipevent2, 10) == WAIT_ABANDONED)
-                        break;
-        }*/
+/*	while (flipevent_mode) {
+		if (WaitForSingleObject (flipevent2, 10) == WAIT_ABANDONED)
+			break;
+	}*/
 }
 static void doflipevent (void)
 {
-        if (flipevent == NULL)
-                return;
-        waitflipevent ();
-        flipevent_mode = 1;
-//        SetEvent (flipevent);
+	if (flipevent == NULL)
+		return;
+	waitflipevent ();
+	flipevent_mode = 1;
+//	SetEvent (flipevent);
 }
 
 bool show_screen_maybe (bool show)
 {
-        struct apmode *ap = picasso_on ? &currprefs.gfx_apmode[1] : &currprefs.gfx_apmode[0];
-        if (!ap->gfx_vflip || ap->gfx_vsyncmode == 0 || !ap->gfx_vsync) {
-                if (show)
-                        show_screen ();
-                return false;
-        }
-        if (ap->gfx_vflip < 0) {
-                doflipevent ();
-                return true;
-        }
-        return false;
+	struct apmode *ap = picasso_on ? &currprefs.gfx_apmode[1] : &currprefs.gfx_apmode[0];
+	if (!ap->gfx_vflip || ap->gfx_vsyncmode == 0 || !ap->gfx_vsync) {
+		if (show)
+			show_screen ();
+		return false;
+	}
+#if 0
+	if (ap->gfx_vflip < 0) {
+		doflipevent ();
+		return true;
+	}
+#endif
+	return false;
 }
 
 bool render_screen (bool immediate)
 {
-	bool v = false;
 	render_ok = false;
-//
-	render_ok = v;
 	return render_ok;
 }
 
 void show_screen (void)
 {
-	if (!render_ok)
-		return;
-	//
+	render_ok = false;
 }
 
 static int maxscanline, minscanline, prevvblankpos;
 
 static bool getvblankpos (int *vp)
 {
-        int sl;
+	int sl;
 #if 0
-        frame_time_t t = uae_gethrtime ();
+	frame_time_t t = read_processor_time ();
 #endif
-        *vp = -2; 
-        if (currprefs.gfx_api) {
-                //if (!D3D_getvblankpos (&sl))
-                //        return false;
-        } else {  
-                //if (!DD_getvblankpos (&sl))
-                //        return false;
-        }
+	*vp = -2;
+/*	if (currprefs.gfx_api) {
+		if (!D3D_getvblankpos (&sl))
+			return false;
+	} else {
+		if (!DD_getvblankpos (&sl))
+			return false;
+	}*/
 #if 0
-        t = uae_gethrtime () - t;
-        write_log (_T("(%d:%d)"), t, sl);
-#endif
-        prevvblankpos = sl;
-        if (sl > maxscanline)
-                maxscanline = sl;
-        if (sl > 0) { 
-                vblankthread_oddeven = (sl & 1) != 0;
-                if (sl < minscanline || minscanline < 0)
-                        minscanline = sl;
-        }
-        *vp = sl;
-		return true;
+	t = read_processor_time () - t;
+	write_log (_T("(%d:%d)"), t, sl);
+#endif	
+	prevvblankpos = sl;
+	if (sl > maxscanline)
+		maxscanline = sl;
+	if (sl > 0) {
+		vblankthread_oddeven = (sl & 1) != 0;
+		if (sl < minscanline || minscanline < 0)
+			minscanline = sl;
+	}
+	*vp = sl;
+	return true;
 }
 
 static bool getvblankpos2 (int *vp, int *flags)
@@ -1415,8 +1284,21 @@ double vblank_calibrate (double approx_vblank, bool waitonly)
 
 	rate = ap->gfx_refreshrate;
 	mode = isfullscreen ();
+
+/*	
+	// clear remembered modes if restarting and start thread again.
+	if (vblankthread_mode <= 0) {
+		rv = vsyncmemory;
+		while (rv) {
+			struct remembered_vsync *rvo = rv->next;
+			xfree (rv);
+			rv = rvo;
+		}
+		vsyncmemory = NULL;
+	}
+
 	rv = vsyncmemory;
-/*	while (rv) {
+	while (rv) {
 		if (rv->width == width && rv->height == height && rv->depth == depth && rv->rate == rate && rv->mode == mode && rv->rtg == picasso_on) {
 			approx_vblank = rv->remembered_rate2;
 			tsum = rval = rv->remembered_rate;
@@ -1503,14 +1385,39 @@ double vblank_calibrate (double approx_vblank, bool waitonly)
 		if (cnt >= total)
 			break;
 	}
+
 	changevblankthreadmode (VBLANKTH_IDLE);
-	SetThreadPriority (th, oldpri);
-	if (maxcnt >= maxtotal) {
-		tsum = tsum2 / tcnt2;
-		write_log (_T("Unstable vsync reporting, using average value\n"));
-	} else {
-		tsum /= total;
+
+if (maxcnt >= maxtotal) {
+	tsum = tsum2 / tcnt2;
+	write_log (_T("Unstable vsync reporting, using average value\n"));
+} else {
+	tsum /= total;
+}
+
+	if (ap->gfx_vflip == 0) {
+		int vsdetect = 0;
+		int detectcnt = 6;
+		for (cnt = 0; cnt < detectcnt; cnt++) {
+			render_screen (true);
+			show_screen ();
+			sleep_millis (1);
+			frame_time_t t = read_processor_time () + 1 * (syncbase / tsum);
+			for (int cnt2 = 0; cnt2 < 4; cnt2++) {
+				render_ok = true;
+				show_screen ();
+			}
+			int diff = (int)read_processor_time () - (int)t;
+			if (diff >= 0)
+				vsdetect++;
+			}
+		if (vsdetect >= detectcnt / 2) {
+			write_log (L"Forced vsync detected, switching to double buffered\n");
+			changed_prefs.gfx_apmode[0].gfx_backbuffers = 1;
+		}
 	}
+
+	SetThreadPriority (th, oldpri);
 
 	if (waitonly)
 		tsum = approx_vblank;
@@ -1572,69 +1479,55 @@ fail:*/
 
 static bool vblanklaceskip (void)
 {
-        if (vblankbaselace_chipset >= 0 && vblankbaselace) {
-                if ((vblankbaselace_chipset && !vblankthread_oddeven) || (!vblankbaselace_chipset && vblankthread_oddeven)) {
-                        write_log (_T("Interlaced frame type mismatch %d<>%d\n"), vblankbaselace_chipset, vblankthread_oddeven);
-                        return true;
-                }   
-        }
-        return false;
+	if (vblankbaselace_chipset >= 0 && vblankbaselace) {
+		if ((vblankbaselace_chipset && !vblankthread_oddeven) || (!vblankbaselace_chipset && vblankthread_oddeven)) {
+			write_log (_T("Interlaced frame type mismatch %d<>%d\n"), vblankbaselace_chipset, vblankthread_oddeven);
+			return true;
+		}
+	}
+	return false;
 }
 
 static bool waitvblankstate (bool state, int *maxvpos, int *flags)
 {
-        int vp;
+	int vp;
 	if (flags)
 		*flags = 0;
-        for (;;) {
-                int omax = maxscanline;
-                if (!getvblankpos2 (&vp, flags))
-                        return false;
-                while (omax != maxscanline) {
-                        omax = maxscanline;
-                        if (!getvblankpos2 (&vp, flags))
-                                return false;
-                }
-                if (maxvpos)
-                        *maxvpos = maxscanline;
-                if (vp < 0) {
-                        if (state)
-                                return true;
-                } else {
-                        if (!state)
-                                return true;
-                }
-        }
+	for (;;) {
+		int omax = maxscanline;
+		if (!getvblankpos2 (&vp, flags))
+			return false;
+		while (omax != maxscanline) {
+			omax = maxscanline;
+			if (!getvblankpos2 (&vp, flags))
+				return false;
+		}
+		if (maxvpos)
+			*maxvpos = maxscanline;
+		if (vp < 0) {
+			if (state)
+				return true;
+		} else {
+			if (!state)
+				return true;
+		}
+	}
 }
 
 static int vblank_wait (void)
 {
-        int vp;
+	int vp;
 
-        for (;;) {
-                int opos = prevvblankpos;
-                if (!getvblankpos (&vp))
-                        return -2;
-                if (opos > (maxscanline + minscanline) / 2 && vp < (maxscanline + minscanline) / 3)
-                        return vp;
-                if (vp <= 0)
-                        return vp;
-                vsync_sleep (true);
-        }
-}
-
-static void vsync_notvblank (void)
-{
-        for (;;) { 
-                int vp;
-                if (!getvblankpos (&vp))
-                        return;
-                if (vp > 0) {
-                        //write_log (_T("%d "), vpos);
-                        break;
-                }
-                vsync_sleep (true);
-        }
+	for (;;) {
+		int opos = prevvblankpos;
+		if (!getvblankpos (&vp))
+			return -2;
+		if (opos > (maxscanline + minscanline) / 2 && vp < (maxscanline + minscanline) / 3)
+			return vp;
+		if (vp <= 0)
+			return vp;
+		vsync_sleep (true);
+	}
 }
 
 static bool isthreadedvsync (void)
@@ -1644,220 +1537,196 @@ static bool isthreadedvsync (void)
 
 frame_time_t vsync_busywait_end (int *flipdelay)
 {
-/*	if (isthreadedvsync ()) {
-
+/*
+	if (isthreadedvsync ()) {
 		frame_time_t prev;
-		for (;;) {
-			int v = vblankthread_mode;
-			if (v != VBLANKTH_ACTIVE_START && v != VBLANKTH_ACTIVE_SKIPFRAME && v != VBLANKTH_ACTIVE_SKIPFRAME2)
-				break;
-			sleep_millis_main (1);
-		}
-		prev = vblank_prev_time;
-		if (!dooddevenskip) {
-		      int delay = 10;
-		      frame_time_t t = read_processor_time ();
-		      while (delay-- > 0) {
-		        if (WaitForSingleObject (vblankwaitevent, 10) != WAIT_TIMEOUT)
-		          break;
+
+		if (!currprefs.turbo_emulation) {
+			for (;;) {
+				int v = vblankthread_mode;
+				if (v != VBLANKTH_ACTIVE_START && v != VBLANKTH_ACTIVE_SKIPFRAME && v != VBLANKTH_ACTIVE_SKIPFRAME2)
+					break;
+				sleep_millis_main (1);
 			}
-			idletime += read_processor_time () - t;
+			prev = vblank_prev_time;
+			if (!dooddevenskip) {
+				int delay = 10;
+				frame_time_t t = read_processor_time ();
+				while (delay-- > 0) {
+					if (WaitForSingleObject (vblankwaitevent, 10) != WAIT_TIMEOUT)
+						break;
+				}
+				idletime += read_processor_time () - t;
+			}
+			if (flipdelay)
+				*flipdelay = vblank_found_flipdelay;
+		} else {
+			show_screen ();
+			prev = read_processor_time ();
 		}
-		if (flipdelay)
-			*flipdelay = vblank_found_flipdelay;
 		changevblankthreadmode_fast (VBLANKTH_ACTIVE_WAIT);
 		return prev + vblankbasefull;
 	} else {
 		if (flipdelay)
 			*flipdelay = vblank_flip_delay;
 		return vblank_prev_time;
-	}*/
+	}
+*/
 }
 
 void vsync_busywait_start (void)
 {
-        if (vblankthread_mode != VBLANKTH_ACTIVE_WAIT)
-                write_log (L"low latency vsync state mismatch %d\n", vblankthread_mode);
-        changevblankthreadmode_fast (VBLANKTH_ACTIVE_START);
+	if (vblankthread_mode < 0)
+		write_log (_T("low latency threaded mode but thread is not running!?\n"));
+	else if (vblankthread_mode != VBLANKTH_ACTIVE_WAIT)
+		write_log (_T("low latency vsync state mismatch %d\n"), vblankthread_mode);
+	changevblankthreadmode_fast (VBLANKTH_ACTIVE_START);
 }
 
 bool vsync_busywait_do (int *freetime, bool lace, bool oddeven)
 {
-        bool v;
-        static bool framelost;
-        int ti;  
-        frame_time_t t;
-        frame_time_t prevtime = vblank_prev_time;
-        struct apmode *ap = picasso_on ? &currprefs.gfx_apmode[1] : &currprefs.gfx_apmode[0];
+	bool v;
+	static bool framelost;
+	int ti;
+	frame_time_t t;
+	frame_time_t prevtime = vblank_prev_time;
+	struct apmode *ap = picasso_on ? &currprefs.gfx_apmode[1] : &currprefs.gfx_apmode[0];
 
-        dooddevenskip = false;
+	dooddevenskip = false;
 
-        if (lace) 
-                vblankbaselace_chipset = oddeven;
-        else
-                vblankbaselace_chipset = -1;
+	if (lace)
+		vblankbaselace_chipset = oddeven;
+	else
+		vblankbaselace_chipset = -1;
 
-        t = uae_gethrtime ();
-        ti = t - prevtime;
-        if (ti > 2 * vblankbasefull || ti < -2 * vblankbasefull) {
-                waitvblankstate (false, NULL, NULL);
-                t = uae_gethrtime ();
-                vblank_prev_time = t;
-                thread_vblank_time = t;
-                frame_missed++;
-                return true;
-        }
+	t = read_processor_time ();
+	ti = t - prevtime;
+	if (ti > 2 * vblankbasefull || ti < -2 * vblankbasefull) {
+		changevblankthreadmode_fast (VBLANKTH_ACTIVE_WAIT);
+		waitvblankstate (false, NULL, NULL);
+		vblank_prev_time = t;
+		thread_vblank_time = t;
+		frame_missed++;
+		return true;
+	}
 
-        if (0 || log_vsync) {
-                write_log (_T("F:%8d M:%8d E:%8d %3d%% (%3d%%) %10d\r"), frame_counted, frame_missed, frame_errors, frame_usage, frame_usage_avg, (t - vblank_prev_time) - vblankbasefull);
-        }
+	if (log_vsync & 1) {
+		write_log (_T("F:%8d M:%8d E:%8d %3d%% (%3d%%) %10d\r"), frame_counted, frame_missed, frame_errors, frame_usage, frame_usage_avg, (t - vblank_prev_time) - vblankbasefull);
+	}
 
-        if (freetime)
-                *freetime = 0;
-        if (currprefs.turbo_emulation) {
-                frame_missed++;
-                return true;
-        }
+	if (freetime)
+		*freetime = 0;
 
-        frame_usage = (t - prevtime) * 100 / vblankbasefull;
-        if (frame_usage > 99)
-                frame_usage = 99;
-        else if (frame_usage < 0)
-                frame_usage = 0;
-        frame_usage_total += frame_usage;
-        if (freetime)
-                *freetime = frame_usage;
-        if (frame_counted)
-                frame_usage_avg = frame_usage_total / frame_counted;
+	frame_usage = (t - prevtime) * 100 / vblankbasefull;
+	if (frame_usage > 99)
+		frame_usage = 99;
+	else if (frame_usage < 0)
+		frame_usage = 0;
+	frame_usage_total += frame_usage;
+	if (freetime)
+		*freetime = frame_usage;
+	if (frame_counted)
+		frame_usage_avg = frame_usage_total / frame_counted;
 
-        v = false;
+	v = false;
 
-        if (isthreadedvsync ()) {
+	if (isthreadedvsync ()) {
 
-	                framelost = false;
-	                v = true;
+		framelost = false;
+		v = true;
 
-	        } else {
-	                bool doskip = false;
+	} else {
+		bool doskip = false;
 
-                        vblank_flip_delay = 0;
-	                if (!framelost && t - prevtime > vblankbasefull) {
-	                        framelost = true;
-	                        frame_missed++;
-	                        return true;
-	                }
+		vblank_flip_delay = 0;
+		if (!framelost && t - prevtime > vblankbasefull) {
+			framelost = true;
+			frame_missed++;
+			return true;
+		}
+		
+		if (vblanklaceskip ()) {
+			doskip = true;
+			dooddevenskip = true;
+		}
 
-	                if (vblanklaceskip ()) {
-	                        doskip = true;
-	                        dooddevenskip = true;
-	                }
+		if (currprefs.turbo_emulation) {
+			show_screen ();
+			vblank_prev_time = read_processor_time ();
+			return true;
+		}
 
-	                if (!doskip) {
-	                        int vp;
-	                        while (!framelost && uae_gethrtime () - prevtime < vblankbasewait1) {
-	                                vsync_sleep (false);
-	                        }
-	                        prevvblankpos = 0;
-                                vp = vblank_wait ();
-      if (vp >= -1) {
-        vblank_prev_time = uae_gethrtime ();
-        if (ap->gfx_vflip == 0) {
-          show_screen ();
-          vblank_flip_delay = (uae_gethrtime () - vblank_prev_time) / (vblank_skipeveryother ? 2 : 1);
-          if (vblank_flip_delay < 0)
-            vblank_flip_delay = 0;
-          else if (vblank_flip_delay > vblankbasefull * 2 / 3)
-            vblank_flip_delay = vblankbasefull * 2 / 3;
-        }
-        for (;;) {
-          if (!getvblankpos (&vp))
-            break;
-          if (vp > 0)
-            break;
-          sleep_millis (1);
-        }
-        if (ap->gfx_vflip != 0) {
-          show_screen ();
-        }
-        vblank_prev_time -= (vblankbasefull * vp / maxscanline) / (vblank_skipeveryother ? 2 : 1 );
-        v = true;
-      }
-	                } else {
-	                        v = true;
-	                        vblank_prev_time = uae_gethrtime ();
-	                }
-	                framelost = false;
-	        }
+		if (!doskip) {
+			int vp;
+			while (!framelost && read_processor_time () - prevtime < vblankbasewait1) {
+				vsync_sleep (false);
+			}
+			prevvblankpos = 0;
+			vp = vblank_wait ();
+			if (vp >= -1) {
+				vblank_prev_time = read_processor_time ();
+				if (ap->gfx_vflip == 0) {
+					show_screen ();
+					vblank_flip_delay = (read_processor_time () - vblank_prev_time) / (vblank_skipeveryother ? 2 : 1);
+					if (vblank_flip_delay < 0)
+						vblank_flip_delay = 0;
+					else if (vblank_flip_delay > vblankbasefull * 2 / 3)
+						vblank_flip_delay = vblankbasefull * 2 / 3;
+				}
+				for (;;) {
+					if (!getvblankpos (&vp))
+						break;
+					if (vp > 0)
+						break;
+					sleep_millis (1);
+				}
+				if (ap->gfx_vflip != 0) {
+					show_screen ();
+				}
+				vblank_prev_time -= (vblankbasefull * vp / maxscanline) / (vblank_skipeveryother ? 2 : 1 );
+				v = true;
+			}
+		} else {
+			v = true;
+			vblank_prev_time = read_processor_time ();
+		}
+		framelost = false;
+	}
 
-	        if (v) {
-	                frame_counted++;
-	                return true;
-	        }
-	        frame_errors++;
-	        return false;
-}
-
-bool vsync_busywait (void)
-{
-  bool v;
-  static frame_time_t prevtime;
-  static bool framelost;
-
-  if (currprefs.turbo_emulation)
-    return true;
-
-  if (!framelost && uae_gethrtime () - prevtime > vblankbasefull) {
-    framelost = true;
-    prevtime = uae_gethrtime ();
-    return true;
-  }
-  if (framelost) {
-    framelost = false;
-    prevtime = uae_gethrtime ();
-    return true;
-  }
-
-  while (uae_gethrtime () - prevtime < vblankbasewait)
-    uae_msleep (1);
-  v = false;
-/*
-  if (currprefs.gfx_api) {
-    v = D3D_vblank_busywait ();
-  } else {
-    v = DirectDraw_vblank_busywait ();
-  }
-*/
-  if (v) {
-    prevtime = uae_gethrtime ();
-    return true;
-  }
-  return false;
+	if (v) {
+		frame_counted++;
+		return true;
+	}
+	frame_errors++;
+	return false;
 }
 
 double getcurrentvblankrate (void)
 {
-        if (remembered_vblank)
-                return remembered_vblank;
+	if (remembered_vblank)
+		return remembered_vblank;
 /*
-        if (currprefs.gfx_api)
-                return D3D_getrefreshrate ();
-        else
-                return DirectDraw_CurrentRefreshRate ();
+	if (currprefs.gfx_api)
+		return D3D_getrefreshrate ();
+	else
+		return DirectDraw_CurrentRefreshRate ();
 */
 	return 50;
 }
 
+///////////////////////////////////////////////////
 // parser.c
-
+///////////////////////////////////////////////////
 void serialuartbreak (int v)
 {
-        if (/*hCom == INVALID_HANDLE_VALUE ||*/ !currprefs.use_serial)
-                return;
+	if (/*hCom == INVALID_HANDLE_VALUE ||*/ !currprefs.use_serial)
+		return;
 
-/*        if (v)
-                EscapeCommFunction (hCom, SETBREAK);
-        else
-                EscapeCommFunction (hCom, CLRBREAK);
+/*
+	if (v)
+		EscapeCommFunction (hCom, SETBREAK);
+	else
+		EscapeCommFunction (hCom, CLRBREAK);
 */
 }
 

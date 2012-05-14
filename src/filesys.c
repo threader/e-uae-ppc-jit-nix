@@ -84,6 +84,8 @@
 #define TRACE2(x)
 #endif
 
+static void get_time (time_t t, long* days, long* mins, long* ticks);
+
 static uae_sem_t test_sem;
 
 int bootrom_header, bootrom_items;
@@ -728,9 +730,8 @@ static void initialize_mountinfo (void)
 #ifdef SCSI
 #if USE_CDFS == 2
 	if (currprefs.scsi /*&& currprefs.win32_automount_cddrives*/ && USE_CDFS) {
-	       unsigned int i;
 		uae_u32 mask = scsi_get_cd_drive_mask ();
-		for (i = 0; i < 32; i++) {
+		for (unsigned int i = 0; i < 32; i++) {
 			if (mask & (1 << i)) {
 				TCHAR cdname[30];
 				_stprintf (cdname, _T("CD%d"), i);
@@ -761,7 +762,7 @@ int sprintf_filesys_unit (TCHAR *buffer, int num)
 		uip[num].rootdir, uip[num].readonly ? "ro" : "");
 	else
 		_stprintf (buffer, _T("(DH%d:) Hardfile, \"%s\", size %d Mbytes"), num,
-		uip[num].rootdir, uip[num].hf.virtsize / (1024 * 1024));
+		uip[num].rootdir, (int)(uip[num].hf.virtsize / (1024 * 1024)));
 	return 0;
 }
 
@@ -808,7 +809,7 @@ struct hardfiledata *get_hardfile_data (int nr)
 #define dp64_Arg5 56
 
 /* result codes */
-#define DOS_TRUE ((unsigned long)-1L)
+#define DOS_TRUE ((uae_u32)-1L)
 #define DOS_FALSE (0L)
 
 #define MAXFILESIZE32 (0x7fffffff)
@@ -2271,12 +2272,14 @@ static Notify *new_notify (Unit *unit, TCHAR *name)
 	return n;
 }
 
+#if 0
 static void free_notify_item (Notify *n)
 {
 	xfree (n->fullname);
 	xfree (n->partname);
 	xfree (n);
 }
+#endif
 
 static void free_notify (Unit *unit, int hash, Notify *n)
 {
@@ -2657,6 +2660,7 @@ static Key *new_key (Unit *unit)
 	return k;
 }
 
+#if TRACING_ENABLED
 static void
 	dumplock (Unit *unit, uaecptr lock)
 {
@@ -2678,6 +2682,7 @@ static void
 	}
 	TRACE((_T(" }\n")));
 }
+#endif
 
 static a_inode *find_aino (Unit *unit, uaecptr lock, const TCHAR *name, int *err)
 {
@@ -3713,7 +3718,7 @@ static int action_examine_all (Unit *unit, dpacket packet)
 	uaecptr control = GET_PCK_ARG5 (packet);
 
 	ExAllKey *eak = NULL;
-	a_inode *base;
+	a_inode *base = NULL;
 	struct fs_dirhandle *d;
 	int ok, i;
 	uaecptr exp;
@@ -5912,7 +5917,9 @@ static uae_u32 REGPARAM2 filesys_init_storeinfo (TrapContext *context)
 	{
 	case 1:
 		mountertask = m68k_areg (regs, 1);
+#ifdef PICASSO96
 		picasso96_alloc (context);
+#endif
 		break;
 	case 2:
 		ret = automountunit;
@@ -6701,7 +6708,7 @@ void filesys_install_code (void)
 #endif
 }
 
-#if USE_CDFS
+#if USE_CDFS == 1
 #include "cdrom-handler.c"
 #endif
 

@@ -744,7 +744,9 @@ void savestate_restore_finish (void)
 #ifdef CDTV
 	restore_cdtv_finish ();
 #endif
+#ifdef PICASSO96
 	restore_p96_finish ();
+#endif
 #ifdef A2065
 	restore_a2065_finish ();
 #endif

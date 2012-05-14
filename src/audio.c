@@ -43,7 +43,7 @@
 
 #include <math.h>
 
-#define MAX_EV ~0ul
+#define MAX_EV ~0u
 #define DEBUG_AUDIO 0
 #define DEBUG_CHANNEL_MASK 15
 #define TEST_AUDIO 0
@@ -58,10 +58,12 @@ STATIC_INLINE bool isaudio (void)
 	return currprefs.produce_sound != 0;
 }
 
+#if DEBUG_AUDIO > 0
 static bool debugchannel (int ch)
 {
 	return ((1 << ch) & DEBUG_CHANNEL_MASK) != 0;
 }
+#endif
 
 STATIC_INLINE bool usehacks1 (void)
 {
@@ -1137,9 +1139,8 @@ STATIC_INLINE int is_audio_active (void)
 
 uae_u16 audio_dmal (void)
 {
-	unsigned int nr;
 	uae_u16 dmal = 0;
-	for (nr = 0; nr < 4; nr++) {
+	for (unsigned int nr = 0; nr < 4; nr++) {
 		struct audio_channel_data *cdp = audio_channel + nr;
 		if (cdp->dr)
 			dmal |= 1 << (nr * 2);
@@ -1492,9 +1493,8 @@ static void audio_state_channel (int nr, bool perfin)
 
 void audio_state_machine (void)
 {
-	unsigned int nr;
 	update_audio ();
-	for (nr = 0; nr < 4; nr++) {
+	for (unsigned int nr = 0; nr < 4; nr++) {
 		struct audio_channel_data *cdp = audio_channel + nr;
 		audio_state_channel2 (nr, false);
 		cdp->dat_written = 0;
@@ -1600,7 +1600,6 @@ void check_prefs_changed_audio (void)
 
 void set_audio (void)
 {
-	int old_mixed_on = mixed_on;
 	int old_mixed_size = mixed_stereo_size;
 	int sep, delay;
 	int ch;
@@ -1733,7 +1732,9 @@ void set_audio (void)
 void update_audio (void)
 {
 	unsigned long int n_cycles = 0;
+#if SOUNDSTUFF > 1
 	static int samplecounter;
+#endif
 
 	if (!isaudio ())
 		goto end;

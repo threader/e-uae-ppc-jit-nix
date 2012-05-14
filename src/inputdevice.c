@@ -84,7 +84,7 @@ int inputdevice_logging = 0;
 
 #define JOYMOUSE_CDTV 8
 
-#define DEFEVENT(A, B, C, D, E, F) {#A, B, C, D, E, F },
+#define DEFEVENT(A, B, C, D, E, F) {_T(#A), B, C, D, E, F },
 static struct inputevent events[] = {
 	{0, 0, AM_K,0,0,0},
 #include "inputevents.def"

@@ -4037,7 +4037,6 @@ int disk_prevnext (int drive, int dir)
 	return 1;
 }
 
-
 int getdebug(void)
 {
 	return floppy[0].mfmpos;

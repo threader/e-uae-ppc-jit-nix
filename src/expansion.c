@@ -1318,7 +1318,9 @@ static void allocate_expamem (void)
 	z3fastmem2_bank.baseaddr = z3fastmem2;
 	z3chipmem_bank.baseaddr = z3chipmem;
 	fastmem_bank.baseaddr = fastmemory;
+#ifdef PICASSO96
 	gfxmem_bank.baseaddr = gfxmemory;
+#endif
 
 #ifdef SAVESTATE
 	if (savestate_state == STATE_RESTORE) {

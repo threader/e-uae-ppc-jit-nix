@@ -182,7 +182,7 @@ static const TCHAR *maxhoriz[] = { _T("lores"), _T("hires"), _T("superhires"), 0
 static const TCHAR *maxvert[] = { _T("nointerlace"), _T("interlace"), 0 };
 static const TCHAR *abspointers[] = { _T("none"), _T("mousehack"), _T("tablet"), 0 };
 static const TCHAR *magiccursors[] = { _T("both"), _T("native"), _T("host"), 0 };
-static const TCHAR *autoscale[] = { _T("none"), _T("auto"), _T("standard"), _T("max"), _T("scale"), _T("resize"), _T("center"), _T("manual"), _T("integer"), 0 };
+static const TCHAR *autoscale[] = { _T("none"), _T("auto"), _T("standard"), _T("max"), _T("scale"), _T("resize"), _T("center"), _T("manual"), _T("integer"), _T("integer_auto"), 0 };
 static const TCHAR *joyportmodes[] = { _T(""), _T("mouse"), _T("djoy"), _T("gamepad"), _T("ajoy"), _T("cdtvjoy"), _T("cd32joy"), _T("lightpen"), 0 };
 static const TCHAR *joyaf[] = { _T("none"), _T("normal"), _T("toggle"), 0 };
 static const TCHAR *epsonprinter[] = { _T("none"), _T("ascii"), _T("epson_matrix_9pin"), _T("epson_matrix_24pin"), _T("epson_matrix_48pin"), 0 };
@@ -4733,17 +4733,6 @@ static int bip_cdtv (struct uae_prefs *p, int config, int compa, int romcheck)
 {
 	int roms[4];
 
-	roms[0] = 6;
-	roms[1] = 32;
-	roms[2] = -1;
-	if (!configure_rom (p, roms, romcheck))
-		return 0;
-	roms[0] = 20;
-	roms[1] = 21;
-	roms[2] = 22;
-	roms[3] = -1;
-	if (!configure_rom (p, roms, romcheck))
-		return 0;
 	p->bogomem_size = 0;
 	p->chipmem_size = 0x100000;
 	p->chipset_mask = CSMASK_ECS_AGNUS;
@@ -4761,6 +4750,17 @@ static int bip_cdtv (struct uae_prefs *p, int config, int compa, int romcheck)
 	built_in_chipset_prefs (p);
 	fetch_datapath (p->flashfile, sizeof (p->flashfile) / sizeof (TCHAR));
 	_tcscat (p->flashfile, _T("cdtv.nvr"));
+	roms[0] = 6;
+	roms[1] = 32;
+	roms[2] = -1;
+	if (!configure_rom (p, roms, romcheck))
+		return 0;
+	roms[0] = 20;
+	roms[1] = 21;
+	roms[2] = 22;
+	roms[3] = -1;
+	if (!configure_rom (p, roms, romcheck))
+		return 0;
 	return 1;
 }
 
@@ -4769,6 +4769,15 @@ static int bip_cd32 (struct uae_prefs *p, int config, int compa, int romcheck)
 	int roms[2];
 
 	buildin_default_prefs_68020 (p);
+	p->cs_cd32c2p = p->cs_cd32cd = p->cs_cd32nvram = 1;
+	p->nr_floppies = 0;
+	p->floppyslots[0].dfxtype = DRV_NONE;
+	p->floppyslots[1].dfxtype = DRV_NONE;
+	set_68020_compa (p, compa, 1);
+	p->cs_compatible = CP_CD32;
+	built_in_chipset_prefs (p);
+	fetch_datapath (p->flashfile, sizeof (p->flashfile) / sizeof (TCHAR));
+	_tcscat (p->flashfile, _T("cd32.nvr"));
 	roms[0] = 64;
 	roms[1] = -1;
 	if (!configure_rom (p, roms, 0)) {
@@ -4785,15 +4794,6 @@ static int bip_cd32 (struct uae_prefs *p, int config, int compa, int romcheck)
 		if (!configure_rom (p, roms, romcheck))
 			return 0;
 	}
-	p->cs_cd32c2p = p->cs_cd32cd = p->cs_cd32nvram = 1;
-	p->nr_floppies = 0;
-	p->floppyslots[0].dfxtype = DRV_NONE;
-	p->floppyslots[1].dfxtype = DRV_NONE;
-	set_68020_compa (p, compa, 1);
-	p->cs_compatible = CP_CD32;
-	built_in_chipset_prefs (p);
-	fetch_datapath (p->flashfile, sizeof (p->flashfile) / sizeof (TCHAR));
-	_tcscat (p->flashfile, _T("cd32.nvr"));
 	return 1;
 }
 

@@ -189,13 +189,13 @@ static void dummylog (int rw, uaecptr addr, int size, uae_u32 val, int ins)
 	if (MAX_ILG >= 0)
 		illegal_count++;
 	if (ins) {
-		write_log (_T("WARNING: Illegal opcode %cget at %08lx PC=%x\n"),
+		write_log (_T("WARNING: Illegal opcode %cget at %08x PC=%x\n"),
 			size == 2 ? 'w' : 'l', addr, M68K_GETPC);
 	} else if (rw) {
-		write_log (_T("Illegal %cput at %08lx=%08lx PC=%x\n"),
+		write_log (_T("Illegal %cput at %08x=%08x PC=%x\n"),
 			size == 1 ? 'b' : size == 2 ? 'w' : 'l', addr, val, M68K_GETPC);
 	} else {
-		write_log (_T("Illegal %cget at %08lx PC=%x\n"),
+		write_log (_T("Illegal %cget at %08x PC=%x\n"),
 			size == 1 ? 'b' : size == 2 ? 'w' : 'l', addr, M68K_GETPC);
 	}
 }
@@ -990,7 +990,7 @@ void REGPARAM2 kickmem_lput (uaecptr addr, uae_u32 b)
 		} else
 			a1000_handle_kickstart (0);
 	} else if (currprefs.illegal_mem)
-		write_log (_T("Illegal kickmem lput at %08lx\n"), addr);
+		write_log (_T("Illegal kickmem lput at %08x\n"), addr);
 }
 
 void REGPARAM2 kickmem_wput (uaecptr addr, uae_u32 b)
@@ -1008,7 +1008,7 @@ void REGPARAM2 kickmem_wput (uaecptr addr, uae_u32 b)
 		} else
 			a1000_handle_kickstart (0);
 	} else if (currprefs.illegal_mem)
-		write_log (_T("Illegal kickmem wput at %08lx\n"), addr);
+		write_log (_T("Illegal kickmem wput at %08x\n"), addr);
 }
 
 void REGPARAM2 kickmem_bput (uaecptr addr, uae_u32 b)
@@ -1024,7 +1024,7 @@ void REGPARAM2 kickmem_bput (uaecptr addr, uae_u32 b)
 		} else
 			a1000_handle_kickstart (0);
 	} else if (currprefs.illegal_mem)
-		write_log (_T("Illegal kickmem bput at %08lx\n"), addr);
+		write_log (_T("Illegal kickmem bput at %08x\n"), addr);
 }
 
 void REGPARAM2 kickmem2_lput (uaecptr addr, uae_u32 l)
@@ -1185,7 +1185,7 @@ static void REGPARAM2 extendedkickmem2_lput (uaecptr addr, uae_u32 b)
 	special_mem |= S_WRITE;
 #endif
 	if (currprefs.illegal_mem)
-		write_log (_T("Illegal extendedkickmem2 lput at %08lx\n"), addr);
+		write_log (_T("Illegal extendedkickmem2 lput at %08x\n"), addr);
 }
 static void REGPARAM2 extendedkickmem2_wput (uaecptr addr, uae_u32 b)
 {
@@ -1193,7 +1193,7 @@ static void REGPARAM2 extendedkickmem2_wput (uaecptr addr, uae_u32 b)
 	special_mem |= S_WRITE;
 #endif
 	if (currprefs.illegal_mem)
-		write_log (_T("Illegal extendedkickmem2 wput at %08lx\n"), addr);
+		write_log (_T("Illegal extendedkickmem2 wput at %08x\n"), addr);
 }
 static void REGPARAM2 extendedkickmem2_bput (uaecptr addr, uae_u32 b)
 {
@@ -1201,7 +1201,7 @@ static void REGPARAM2 extendedkickmem2_bput (uaecptr addr, uae_u32 b)
 	special_mem |= S_WRITE;
 #endif
 	if (currprefs.illegal_mem)
-		write_log (_T("Illegal extendedkickmem2 lput at %08lx\n"), addr);
+		write_log (_T("Illegal extendedkickmem2 lput at %08x\n"), addr);
 }
 static int REGPARAM2 extendedkickmem2_check (uaecptr addr, uae_u32 size)
 {
@@ -2273,6 +2273,7 @@ static void allocate_memory (void)
 		}
 		need_hardreset = 1;
 	}
+#ifdef CDTV
 	if (allocated_cardmem != currprefs.cs_cdtvcard * 1024) {
 		if (cardmemory)
 			mapped_free (cardmemory);
@@ -2287,10 +2288,9 @@ static void allocate_memory (void)
 				allocated_cardmem = 0;
 			}
 		}
-#ifdef CDTV
 		cdtv_loadcardmem(cardmemory, allocated_cardmem);
-#endif
 	}
+#endif
 	if (allocated_custmem1 != currprefs.custom_memory_sizes[0]) {
 		if (custmem1)
 			mapped_free (custmem1);
@@ -2625,8 +2625,12 @@ void memory_reset (void)
 		map_banks (&akiko_bank, AKIKO_BASE >> 16, 1, 0);
 		map_banks (&gayle2_bank, 0xDD, 2, 0);
 	}
+#endif
+#ifdef CDTV
 	if (currprefs.cs_cdtvcd)
 		cdtv_check_banks ();
+#endif
+#ifdef A2091
 	if (currprefs.cs_mbdmac == 1)
 		a3000scsi_reset ();
 #endif
@@ -2635,8 +2639,10 @@ void memory_reset (void)
 		map_banks (&a3000lmem_bank, a3000lmem_start >> 16, allocated_a3000lmem >> 16, 0);
 	if (a3000hmemory != 0)
 		map_banks (&a3000hmem_bank, a3000hmem_start >> 16, allocated_a3000hmem >> 16, 0);
+#ifdef CDTV
 	if (cardmemory != 0)
 		map_banks (&cardmem_bank, cardmem_start >> 16, allocated_cardmem >> 16, 0);
+#endif
 
 	// Map primary Kickstart at 0xF80000 - 0xFFFFFF.
 	map_banks (&kickmem_bank, 0xF8, 8, 0);
@@ -2790,12 +2796,12 @@ void memory_cleanup (void)
 		xfree (a1000_bootrom);
 	if (chipmemory)
 		mapped_free (chipmemory);
-	if (cardmemory) {
 #ifdef CDTV
+	if (cardmemory) {
 		cdtv_savecardmem (cardmemory, allocated_cardmem);
-#endif
 		mapped_free (cardmemory);
 	}
+#endif
 	if (custmem1)
 		mapped_free (custmem1);
 	if (custmem2)

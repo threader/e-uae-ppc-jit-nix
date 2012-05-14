@@ -883,6 +883,7 @@ static addrbank arram_bank = {
 	arram_lget, arram_wget, ABFLAG_RAM
 };
 
+
 static void action_replay_map_banks (void)
 {
 	if(!armemory_rom)

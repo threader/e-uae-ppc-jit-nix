@@ -137,8 +137,7 @@ static FLAC__StreamDecoderWriteStatus flac_write_callback (const FLAC__StreamDec
 	struct cdtoc *t = (struct cdtoc*)client_data;
 	uae_u16 *p = (uae_u16*)(t->data + t->writeoffset);
 	int size = 4;
-	unsigned int i;
-	for (i = 0; i < frame->header.blocksize && t->writeoffset < t->filesize - size; i++, t->writeoffset += size) {
+	for (unsigned int i = 0; i < frame->header.blocksize && t->writeoffset < t->filesize - size; i++, t->writeoffset += size) {
 		*p++ = (FLAC__int16)buffer[0][i];
 		*p++ = (FLAC__int16)buffer[1][i];
 	}
@@ -240,12 +239,11 @@ static int cdda_openwav (void)
 
 static void sub_to_interleaved (const uae_u8 *s, uae_u8 *d)
 {
-	unsigned int i, j;
-	for (i = 0; i < 8 * 12; i ++) {
+	for (unsigned int i = 0; i < 8 * 12; i ++) {
 		int dmask = 0x80;
 		int smask = 1 << (7 - (i & 7));
 		(*d) = 0;
-		for (j = 0; j < 8; j++) {
+		for (unsigned int j = 0; j < 8; j++) {
 			(*d) |= (s[(i / 8) + j * 12] & smask) ? dmask : 0;
 			dmask >>= 1;
 		}
@@ -254,12 +252,11 @@ static void sub_to_interleaved (const uae_u8 *s, uae_u8 *d)
 }
 static void sub_to_deinterleaved (const uae_u8 *s, uae_u8 *d)
 {
-	unsigned int i, j;
-	for (i = 0; i < 8 * 12; i ++) {
+	for (unsigned int i = 0; i < 8 * 12; i ++) {
 		int dmask = 0x80;
 		int smask = 1 << (7 - (i / 12));
 		(*d) = 0;
-		for (j = 0; j < 8; j++) {
+		for (unsigned int j = 0; j < 8; j++) {
 			(*d) |= (s[(i % 12) * 8 + j] & smask) ? dmask : 0;
 			dmask >>= 1;
 		}
@@ -389,7 +386,6 @@ static void *cdda_play_func (void *v)
 	int idleframes;
 	bool foundsub;
 	struct cdunit *cdu = (struct cdunit*)v;
-	unsigned int i;
 
 	while (cdu->cdda_play == 0)
 		Sleep (10);
@@ -447,7 +443,7 @@ static void *cdda_play_func (void *v)
 						uae_u8 subbuf[SUB_CHANNEL_SIZE];
 						getsub_deinterleaved (subbuf, cdu, t, sector);
 						if (seenindex) {
-							for (i = 2 * SUB_ENTRY_SIZE; i < SUB_CHANNEL_SIZE; i++) {
+							for (unsigned int i = 2 * SUB_ENTRY_SIZE; i < SUB_CHANNEL_SIZE; i++) {
 								if (subbuf[i]) { // non-zero R-W subchannels
 									int diff = cdda_pos - sector + 2;
 									write_log (_T("-> CD+G start pos fudge -> %d (%d)\n"), sector, -diff);
@@ -711,7 +707,6 @@ static int command_rawread (int unitnum, uae_u8 *data, int sector, int size, int
 	if (!t || t->handle == NULL)
 		goto end;
 
-	unsigned int i;
 	cdda_stop (cdu);
 	if (sectorsize > 0) {
 		if (sectorsize == 2352 && t->size == 2048) {
@@ -781,7 +776,7 @@ static int command_rawread (int unitnum, uae_u8 *data, int sector, int size, int
 				ret = -1;
 				goto end;
 			}
-			for (i = 0; i < size; i++) {
+			for (unsigned int i = 0; i < size; i++) {
 				zfile_fseek (t->handle, t->offset + sector * t->size, SEEK_SET);
 				zfile_fread (data, t->size, 1, t->handle);
 				uae_u8 *p = data + t->size;
@@ -1050,11 +1045,10 @@ static int parsemds (struct cdunit *cdu, struct zfile *zmds, const TCHAR *img)
 		goto end;
 	}
 
-	unsigned int i;
 	MDS_SessionBlock *sb = (MDS_SessionBlock*)(mds + head->sessions_blocks_offset);
 	cdu->tracks = sb->last_track - sb->first_track + 1;
-	for (i = 0; i < sb->num_all_blocks; i++) {
-		MDS_TrackBlock *tb = (MDS_TrackBlock*)(mds + sb->tracks_blocks_offset + i * sizeof MDS_TrackBlock);
+	for (unsigned int i = 0; i < sb->num_all_blocks; i++) {
+		MDS_TrackBlock *tb = (MDS_TrackBlock*)(mds + sb->tracks_blocks_offset + i * sizeof (MDS_TrackBlock));
 		int point = tb->point;
 		int tracknum = -1;
 		if (point == 0xa2)
@@ -1374,7 +1368,7 @@ static int parsecue (struct cdunit *cdu, struct zfile *zcue, const TCHAR *img)
 						s2 = _tcsrchr (tmp, '/');
 					if (s2) {
 						s2[0] = 0;
-						_tcscat (tmp, _T("\\"));
+						_tcscat (tmp, FSDB_DIR_SEPARATOR_S);
 						_tcscat (tmp, fname);
 						ztrack = zfile_fopen (tmp, _T("rb"), ZFD_ARCHIVE | ZFD_DELAYEDOPEN);
 					}
@@ -1685,8 +1679,7 @@ static void close_bus (void)
 		write_log (_T("IMAGE close_bus() when already closed!\n"));
 		return;
 	}
-	unsigned int i;
-	for (i = 0; i < MAX_TOTAL_SCSI_DEVICES; i++) {
+	for (unsigned int i = 0; i < MAX_TOTAL_SCSI_DEVICES; i++) {
 		struct cdunit *cdu = &cdunits[i];
 		if (cdu->open)
 			close_device (i);

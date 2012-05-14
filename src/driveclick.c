@@ -146,6 +146,7 @@ void driveclick_init (void)
 			drvs[i][DS_CLICK].indexes[j] = 0;
 			drvs[i][DS_CLICK].lengths[j] = 0;
 		}
+fs->dfxclick = -1;
 		if (fs->dfxclick) {
 			if (fs->dfxclick > 0) {
 				v = 0;
