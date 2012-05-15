@@ -87,6 +87,11 @@ uae_u8* compiled_branch_instruction;
 uae_u8* compiled_branch_target;
 
 /**
+ * Actually compiled m68k instruction location
+ */
+uae_u16* compiled_m68k_location;
+
+/**
  * Reference to the kickstart memory start address
  */
 extern uae_u8* kickmemory;
@@ -182,6 +187,7 @@ void check_prefs_changed_comp(void)
 	currprefs.comptrustnaddr = changed_prefs.comptrustnaddr;
 	currprefs.compnf = changed_prefs.compnf;
 	currprefs.complog = changed_prefs.complog;
+	currprefs.complogcompiled = changed_prefs.complogcompiled;
 	currprefs.comp_hardflush = changed_prefs.comp_hardflush;
 	currprefs.comp_constjump = changed_prefs.comp_constjump;
 	currprefs.comp_oldsegv = changed_prefs.comp_oldsegv;
@@ -326,6 +332,9 @@ void compemu_reset(void)
 	/* Clear M68k - PPC temp register mapping */
 	for (i = 0; i < 16; i++)
 		comp_m68k_registers[i].tmpreg = PPC_TMP_REG_NOTUSED;
+
+	//Reset actually compiled M68k instruction pointer
+	compiled_m68k_location = NULL;
 }
 
 void build_comp(void)
@@ -437,6 +446,14 @@ void flush_icache(int n)
 	//	active = NULL;
 }
 
+/**
+ * Returns a pointer to the address of the currently compiled M68k instruction
+ */
+uae_u16* comp_current_m68k_location()
+{
+	return compiled_m68k_location;
+}
+
 void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 {
 	const cpu_history * inst_history;
@@ -510,6 +527,9 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 			m68k_disasm_str(str, (uaecptr) pc_hist[i].pc, &nextpc, 1);
 			write_jit_log("Comp: %s", str);
 
+			//Set actually compiled M68k instruction pointer
+			compiled_m68k_location = (uae_u16*) pc_hist[i].pc;
+
 			uae_u16 opcode = do_get_mem_word(pc_hist[i].location);
 
 			struct comptbl* props = &compprops[opcode];
@@ -565,6 +585,9 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 			}
 		}
 
+		//Reset actually compiled M68k instruction pointer
+		compiled_m68k_location = NULL;
+
 		//Last block: save flags back to memory from register
 		comp_macroblock_push_save_flags();
 
@@ -573,6 +596,9 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 
 		//Generate the PPC code from the macroblocks
 		comp_compiler_generate_code();
+
+		//Dump compiled code to the console
+		comp_compiler_debug_dump_compiled();
 
 		//Compile calling the do_cycles function at the end of the block with the pre-calculated cycles
 		comp_ppc_do_cycles(scaled_cycles(totcycles));
@@ -1111,6 +1137,12 @@ void comp_not_implemented(uae_u16 opcode)
  * current_compile_p register. This register will also be updated with the size
  * of the compiled code.
  */
+
+/* Returns the actual top address of the compiled code buffer */
+void* comp_ppc_buffer_top()
+{
+	return current_compile_p;
+}
 
 /* Pushes a word to the code cache and updates the pointer */
 void comp_ppc_emit_word(uae_u32 word)

@@ -20,4 +20,8 @@ extern void activate_debugger (void);
 extern void record_copper (uaecptr addr, unsigned int hpos, unsigned int vpos);
 extern void record_copper_reset (void);
 
+#ifdef JIT
+extern void disassemble_compiled(void* startaddress, void* endaddress);
+#endif
+
 #endif
