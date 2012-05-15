@@ -571,8 +571,3 @@ void comp_opcode_FNOP(const cpu_history* history, struct comptbl* props) REGPARA
 //Support compiling functions
 void comp_opcode_init(const cpu_history* history);
 void comp_opcode_unsupported(const const cpu_history* history, uae_u16 opcode);
-STATIC_INLINE uae_u8 comp_macroblock_allocate_tmp_reg(void);
-STATIC_INLINE uae_u8 comp_macroblock_allocate_tmp_reg_with_init(uae_u32 immed);
-STATIC_INLINE void comp_macroblock_free_tmp_reg(uae_u8 reg);
-STATIC_INLINE void comp_macroblock_update_flags(uae_u16 flagscheck, uae_u16 flagsclear, uae_u16 flagsset);
-STATIC_INLINE void comp_macroblock_move_inst_flags(void);
