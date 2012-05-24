@@ -33,7 +33,6 @@
 #include "inputdevice.h"
 #include "xwin.h"
 #include "picasso96.h"
-#include "version.h"
 
 #include <gtk/gtk.h>
 #include <gdk/gdk.h>
@@ -332,7 +331,7 @@ static void set_mem_state (void)
 
 #ifdef PICASSO96
     t = 0;
-    t2 = currprefs.gfxmem_size;
+    t2 = currprefs.rtgmem_size;
     while (t < 6 && t2 >= 0x100000)
 	t++, t2 >>= 1;
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (p96size_widget[t]), 1);
@@ -731,7 +730,7 @@ static void z3size_changed (void)
 static void p96size_changed (void)
 {
     int t = find_current_toggle (p96size_widget, 7);
-    changed_prefs.gfxmem_size = (0x80000 << t) & ~0x80000;
+    changed_prefs.rtgmem_size = (0x80000 << t) & ~0x80000;
 }
 #endif
 
@@ -2219,7 +2218,7 @@ static void *gtk_gui_thread (void *dummy)
     return 0;
 }
 
-void gui_fps (int fps, int idle)
+void gui_fps (int fps, int idle, int color)
 {
     gui_data.fps  = fps;
     gui_data.idle = idle;

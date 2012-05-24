@@ -28,6 +28,8 @@
 #define FALSE 0
 #ifdef BSDSOCKET
 
+int log_bsd;
+
 #ifdef WIN32
 # include <winsock2.h>
 #endif

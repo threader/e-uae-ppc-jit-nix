@@ -18,6 +18,8 @@
 
 double getvsyncrate (double hz, int *mult)
 {
+	struct apmode *ap = picasso_on ? &currprefs.gfx_apmode[1] : &currprefs.gfx_apmode[0];
+
 	if (hz < 0)
 		return 0;
 	if (hz > 85) {
@@ -25,7 +27,10 @@ double getvsyncrate (double hz, int *mult)
 		return hz / 2;
 	}
 	if (hz < 35 && hz > 0) {
-		*mult = 1;
+		if (ap->gfx_interlaced)
+			*mult = 0;
+		else
+			*mult = 1;
 		return hz * 2;
 	}
 	*mult = 0;
@@ -50,7 +55,7 @@ static uae_u8 dither[4][4] =
 unsigned int doMask (int p, int bits, int shift)
 {
 	/* scale to 0..255, shift to align msb with mask, and apply mask */
-	unsigned int val;
+	uae_u32 val;
 
 	if (flashscreen)
 		p ^= 0xff;

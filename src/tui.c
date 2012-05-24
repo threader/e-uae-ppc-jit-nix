@@ -24,7 +24,6 @@
 #include "gui.h"
 #include "memory.h"
 #include "audio.h"
-#include "version.h"
 
 #define MAX_MENU_HEIGHT 15
 #define OPTION_COLUMN 3

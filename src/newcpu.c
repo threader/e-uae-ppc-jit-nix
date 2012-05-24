@@ -1125,7 +1125,7 @@ static void update_68k_cycles (void)
 	currprefs.cpu_clock_multiplier = changed_prefs.cpu_clock_multiplier;
 	currprefs.cpu_frequency = changed_prefs.cpu_frequency;
 
-	baseclock = currprefs.ntscmode ? 28636360 : 28375160;
+	baseclock = (currprefs.ntscmode ? CHIPSET_CLOCK_NTSC : CHIPSET_CLOCK_PAL) * 8;
 	cpucycleunit = CYCLE_UNIT / 2;
 	if (currprefs.cpu_clock_multiplier) {
 		if (currprefs.cpu_clock_multiplier >= 256) {
@@ -4029,6 +4029,7 @@ STATIC_INLINE void docodece020 (uae_u32 opcode)
 static void m68k_run_2ce (void)
 {
 	struct regstruct *r = &regs;
+	uae_u16 opcode;
 
 	if (cpu_tracer < 0) {
 		memcpy (&r->regs, &cputrace.regs, 16 * sizeof (uae_u32));
@@ -4067,7 +4068,7 @@ static void m68k_run_2ce (void)
 
 	for (;;) {
 		r->instruction_pc = m68k_getpc ();
-		uae_u16 opcode = get_word_ce020_prefetch (0);
+		opcode = get_word_ce020_prefetch (0);
 
 		if (cpu_tracer) {
 

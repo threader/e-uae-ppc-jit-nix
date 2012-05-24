@@ -148,7 +148,6 @@ noinst_HEADERS = \
 	include/uae_malloc.h \
 	include/uae_string.h \
 	include/uae_types.h \
-	include/version.h                               \
 	include/writelog.h \
 	include/xwin.h		include/zfile.h		include/diskutil.h \
 	targets/t-amiga.h	targets/t-beos.h        \
@@ -177,10 +176,9 @@ EXTRA_uae_SOURCES = \
 	fpp.c compemu_fpp.c compemu_raw_x86.c compemu_support.c \
 	debug.c identify.c filesys.c filesys_bootrom.c fsdb.c fsdb_unix.c fsusage.c genblitter.c \
 	gencpu.c gengenblitter.c gencomp.c genlinetoscr.c hardfile.c \
-	hardfile_unix.c scsi-none.c scsiemul.c svgancui.c tui.c \
-	blkdev-libscg.c filesys_unix.c amax.c \
-	akiko.c cd32_fmv.c ar.c blkdev.c blitops.c scsi.c \
-	writelog.c
+	hardfile_unix.c scsi-none.c scsiemul.c svgancui.c tui.c filesys_unix.c amax.c \
+	akiko.c cd32_fmv.c ar.c blkdev.c blkdev_cdimage.c blkdev-libscg.c \
+	blitops.c scsi.c writelog.c
 
 uae_DEPENDENCIES = \
 	@MACHDEP@/libmachdep.a		\

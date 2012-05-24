@@ -62,6 +62,8 @@
 #include "SDL.h"
 #endif
 
+long int version = 256 * 65536L * UAEMAJOR + 65536L * UAEMINOR + UAESUBREV;
+
 struct uae_prefs currprefs, changed_prefs;
 int config_changed;
 
@@ -1069,7 +1071,7 @@ void real_main (int argc, TCHAR **argv)
 
 // -------- FIXME
 /*                write_log (_T("Enumerating display devices.. \n"));
-                g ();
+                enumerate_displays ();
                 write_log (_T("Sorting devices and modes..\n"));
                 sortdisplays ();
                 write_log (_T("Display buffer mode = %d\n"), ddforceram);

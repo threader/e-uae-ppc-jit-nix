@@ -56,7 +56,6 @@
 #include "xwin.h"
 #include "drawing.h"
 #include "debug.h"
-#include "version.h"
 
 #include <ctype.h>
 

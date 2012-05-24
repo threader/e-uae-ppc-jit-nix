@@ -18,7 +18,6 @@
 #include "newcpu.h"
 #include "autoconf.h"
 #include "traps.h"
-#include "version.h"
 
 /* Commonly used autoconfig strings */
 

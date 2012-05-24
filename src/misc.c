@@ -69,6 +69,9 @@ static struct winuae_currentmode *currentmode = &currentmodestruct;
 static int serial_period_hsyncs, serial_period_hsync_counter;
 static int data_in_serdatr; /* new data received */
 
+// win32
+int log_vsync, debug_vsync_min_delay, debug_vsync_forced_delay;
+
 // serial
 unsigned int seriallog = 0;
 
@@ -132,6 +135,11 @@ void getgfxoffset (int *dxp, int *dyp, int *mxp, int *myp)
 	*dyp = 0;
 	*mxp = 0;
 	*myp = 0;
+}
+
+bool vsync_isdone (void)
+{
+        return vblank_found_chipset || dooddevenskip;
 }
 
 int vsync_switchmode (int hz)

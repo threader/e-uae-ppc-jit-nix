@@ -62,7 +62,6 @@
 #include "audio.h"
 #include "filesys.h"
 #include "inputrecord.h"
-#include "version.h"
 
 #ifndef _WIN32
 #define console_out printf

@@ -91,7 +91,6 @@
 #include "gui.h"
 #include "debug.h"
 #include "hotkeys.h"
-#include "version.h"
 
 #define BitMap Picasso96BitMap  /* Argh! */
 #include "picasso96.h"
