@@ -651,6 +651,8 @@ static struct znode *addfile (struct zvolume *zv, struct zfile *zf, const TCHAR 
 	struct zfile *z;
 
 	z = zfile_fopen_empty (zf, path, size);
+	if (!z)
+		return NULL;
 	zfile_fwrite (data, size, 1, z);
 	memset (&zai, 0, sizeof zai);
 	zai.name = my_strdup (path);
@@ -1292,7 +1294,7 @@ static TCHAR *tochar (uae_u8 *s, int len)
 	for (i = 0; i < len; i++) {
 		uae_char c = *s++;
 		if (c >= 0 && c <= 9) {
-			tmp[j++] = '\\';
+			tmp[j++] = FSDB_DIR_SEPARATOR;
 			tmp[j++] = '0' + c;
 		} else if (c < ' ' || c > 'z') {
 			tmp[j++] = '.';
@@ -1371,7 +1373,7 @@ struct zvolume *archive_directory_rdb (struct zfile *z)
 		zai.flags = -1;
 		zn = zvolume_addfile_abs (zv, &zai);
 		zn->offset = partblock;
-		zn->offset2 = blocksize; // örp?
+		zn->offset2 = blocksize; // abuse of offset2..
 	}
 
 	zfile_fseek (z, 0, SEEK_SET);

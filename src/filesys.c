@@ -6056,6 +6056,26 @@ static TCHAR *device_dupfix (uaecptr expbase, TCHAR *devname)
 	return strdup (newname);
 }
 
+static const TCHAR *dostypes (uae_u32 dostype)
+{
+	static TCHAR dt[32];
+	int j;
+
+	j = 0;
+	for (int i = 0; i < 4; i++) {
+		uae_u8 c = dostype >> ((3 - i) * 8);
+		if (c >= ' ' && c <= 'z') {
+			dt[j++] = c;
+		} else {
+			dt[j++] = '\\';
+			_stprintf (&dt[j], _T("%d"), c);
+			j += _tcslen (&dt[j]);
+		}
+	}
+	dt[j] = 0;
+	return dt;
+}
+
 static void dump_partinfo (struct hardfiledata *hfd, uae_u8 *pp)
 {
 	TCHAR *s;
@@ -6079,7 +6099,7 @@ static void dump_partinfo (struct hardfiledata *hfd, uae_u8 *pp)
 	lowcyl = rl (pp + 36);
 	highcyl = rl (pp + 40);
 
-	write_log (_T("RDB: '%s' dostype=%08X\n"), s, dostype);
+	write_log (_T("RDB: '%s' dostype=%08X (%s)\n"), s, dostype, dostypes (dostype));
 	write_log (_T("BlockSize: %d, Surfaces: %d, SectorsPerBlock %d\n"),
 		blocksize, surfaces, spb);
 	write_log (_T("SectorsPerTrack: %d, Reserved: %d, LowCyl %d, HighCyl %d, Size %dM\n"),
@@ -6089,14 +6109,14 @@ static void dump_partinfo (struct hardfiledata *hfd, uae_u8 *pp)
 
 	block = lowcyl * surfaces * spt;
 	if (hdf_read (hfd, buf, (uae_u64)blocksize * block, sizeof buf)) {
-		write_log (_T("First block %d dostype: %08X\n"), block, rl (buf));
+		write_log (_T("First block %d dostype: %08X (%s)\n"), block, rl (buf), dostypes (rl (buf)));
 	} else {
 		write_log (_T("First block %d read failed!\n"), block);
 	}
 	xfree (s);
 
 	if ((uae_u64)highcyl * spt * surfaces * blocksize > hfd->virtsize) {
-		write_log (_T("RDB: WARNING: end of partition > size of disk! (%I64u > %I64u)\n"),
+		write_log (_T("RDB: WARNING: end of partition > size of disk! (%llu > %llu)\n"),
 			(uae_u64)highcyl * spt * surfaces * blocksize, hfd->virtsize);
 	}
 
@@ -6105,12 +6125,11 @@ static void dump_partinfo (struct hardfiledata *hfd, uae_u8 *pp)
 
 static void dump_rdb (UnitInfo *uip, struct hardfiledata *hfd, uae_u8 *bufrdb, uae_u8 *buf, int readblocksize)
 {
-        unsigned int i;
 	write_log (_T("RDB: HostID: %08x Flags: %08x\n"),
 		rl (bufrdb + 3 * 4), rl (bufrdb + 5 * 4));
 	write_log (_T("RDB: BL: %d BH: %d LC: %d HC: %d CB: %d HB: %d\n"),
 		rl (bufrdb + 128), rl (bufrdb + 132), rl (bufrdb + 136), rl (bufrdb + 140), rl (bufrdb + 144), rl (bufrdb + 152));
-	for (i = 0; i < 100; i++) {
+	for (unsigned int i = 0; i < 100; i++) {
 		int partblock;
 		if (i == 0)
 			partblock = rl (bufrdb + 28);
@@ -6131,7 +6150,7 @@ static void dump_rdb (UnitInfo *uip, struct hardfiledata *hfd, uae_u8 *bufrdb, u
 		}
 		dump_partinfo (hfd, buf);
 	}
-	for (i = 0; i < 100; i++) {
+	for (unsigned int i = 0; i < 100; i++) {
 		int fileblock;
 		if (i == 0)
 			fileblock = rl (bufrdb + 32);
@@ -6153,11 +6172,11 @@ static void dump_rdb (UnitInfo *uip, struct hardfiledata *hfd, uae_u8 *bufrdb, u
 		uae_u32 dostype = rl (buf + 32);
 		int version = (buf[36] << 8) | buf[37];
 		int revision = (buf[38] << 8) | buf[39];
-		write_log (_T("LSEG: %08x (%d.%d)\n"), dostype, version, revision);
+		write_log (_T("LSEG: %08x (%s) %d.%d\n"), dostype, dostypes (dostype), version, revision);
 	}
 }
 
-#define rdbmnt write_log (_T("Mounting uaehf.device %d (%d) (size=%I64u):\n"), unit_no, partnum, hfd->virtsize);
+#define rdbmnt write_log (_T("Mounting uaehf.device %d (%d) (size=%llu):\n"), unit_no, partnum, hfd->virtsize);
 
 static int rdb_mount (UnitInfo *uip, int unit_no, int partnum, uaecptr parmpacket)
 {
@@ -6188,7 +6207,7 @@ static int rdb_mount (UnitInfo *uip, int unit_no, int partnum, uaecptr parmpacke
 	}
 	if (lastblock * hfd->blocksize > hfd->virtsize) {
 		rdbmnt
-		write_log (_T("failed, too small (%d*%d > %I64u)\n"), lastblock, hfd->blocksize, hfd->virtsize);
+		write_log (_T("failed, too small (%d*%d > %llu)\n"), lastblock, hfd->blocksize, hfd->virtsize);
 		return -2;
 	}
 	for (rdblock = 0; rdblock < lastblock; rdblock++) {
@@ -6236,7 +6255,7 @@ static int rdb_mount (UnitInfo *uip, int unit_no, int partnum, uaecptr parmpacke
 
 	if (showdebug) {
 		if ((uae_u64)hfd->cylinders * hfd->sectors * hfd->heads * blocksize > hfd->virtsize)
-			write_log (_T("RDB: WARNING: RDSK header disk size > disk size! (%I64u > %I64u)\n"),
+			write_log (_T("RDB: WARNING: RDSK header disk size > disk size! (%llu > %llu)\n"),
 				(uae_u64)hfd->cylinders * hfd->sectors * hfd->heads * blocksize, hfd->virtsize);
 		write_log (_T("RDSK dump start\n"));
 		write_log (_T("RDSK at %d, C=%d S=%d H=%d\n"),
@@ -6319,7 +6338,7 @@ static int rdb_mount (UnitInfo *uip, int unit_no, int partnum, uaecptr parmpacke
 	for (;;) {
 		if (fileblock == -1) {
 			if (!fsnode)
-				write_log (_T("RDB: FS %08X not in FileSystem.resource or in RDB\n"), dostype);
+				write_log (_T("RDB: FS %08X (%s) not in FileSystem.resource or in RDB\n"), dostype, dostypes (dostype));
 			goto error;
 		}
 		if (!legalrdbblock (uip, fileblock)) {
@@ -6340,9 +6359,9 @@ static int rdb_mount (UnitInfo *uip, int unit_no, int partnum, uaecptr parmpacke
 	newversion = (buf[36] << 8) | buf[37];
 	newrevision = (buf[38] << 8) | buf[39];
 
-	write_log (_T("RDB: RDB filesystem %08X version %d.%d\n"), dostype, newversion, newrevision);
+	write_log (_T("RDB: RDB filesystem %08X (%s) version %d.%d\n"), dostype, dostypes (dostype), newversion, newrevision);
 	if (fsnode) {
-		write_log (_T("RDB: %08X in FileSystem.resource version %d.%d\n"), dostype, oldversion, oldrevision);
+		write_log (_T("RDB: %08X (%s) in FileSystem.resource version %d.%d\n"), dostype, dostypes (dostype), oldversion, oldrevision);
 	}
 	if (newversion * 65536 + newrevision <= oldversion * 65536 + oldrevision && oldversion >= 0) {
 		write_log (_T("RDB: FS in FileSystem.resource is newer or same, ignoring RDB filesystem\n"));
@@ -6436,13 +6455,13 @@ static int dofakefilesys (UnitInfo *uip, uaecptr parmpacket)
 		_tcscpy (tmp + i, _T("FastFileSystem"));
 	}
 	if (tmp[0] == 0) {
-		write_log (_T("RDB: no filesystem for dostype 0x%08X\n"), dostype);
+		write_log (_T("RDB: no filesystem for dostype 0x%08X (%s)\n"), dostype, dostypes (dostype));
 		if ((dostype & 0xffffff00) == 0x444f5300)
 			return FILESYS_HARDFILE;
 		write_log (_T("RDB: mounted without filesys\n"));
 		return FILESYS_HARDFILE;
 	}
-	write_log (_T("RDB: fakefilesys, trying to load '%s', dostype 0x%08X\n"), tmp, dostype);
+	write_log (_T("RDB: fakefilesys, trying to load '%s', dostype 0x%08X (%s)\n"), tmp, dostype, dostypes (dostype));
 	zf = zfile_fopen (tmp, _T("rb"), ZFD_NORMAL);
 	if (!zf) {
 		write_log (_T("RDB: filesys not found\n"));
@@ -6463,7 +6482,7 @@ static int dofakefilesys (UnitInfo *uip, uaecptr parmpacket)
 	uip->rdb_filesyssize = size;
 	put_long (parmpacket + PP_FSSIZE, uip->rdb_filesyssize);
 	addfakefilesys (parmpacket, dostype);
-	write_log (_T("HDF: faked RDB filesystem %08X loaded\n"), dostype);
+	write_log (_T("HDF: faked RDB filesystem %08X (%s) loaded\n"), dostype, dostypes (dostype));
 	return FILESYS_HARDFILE;
 }
 
@@ -6966,7 +6985,7 @@ static uae_u8 *restore_key (UnitInfo *ui, Unit *u, uae_u8 *src)
 	openmode = ((k->dosmode & A_FIBF_READ) == 0 ? O_WRONLY
 		: (k->dosmode & A_FIBF_WRITE) == 0 ? O_RDONLY
 		: O_RDWR);
-	write_log (_T("FS: open file '%s' ('%s'), pos=%d\n"), p, pn, k->file_pos);
+	write_log (_T("FS: open file '%s' ('%s'), pos=%llu\n"), p, pn, k->file_pos);
 	a = get_aino (u, &u->rootnode, p, &err);
 	if (!a)
 		write_log (_T("*** FS: Open file aino creation failed '%s'\n"), p);
@@ -7006,9 +7025,9 @@ static uae_u8 *restore_key (UnitInfo *ui, Unit *u, uae_u8 *src)
 			uae_s64 s;
 			s = fs_lseek64 (k->fd, 0, SEEK_END);
 			if (s != savedsize)
-				write_log (_T("FS: restored file '%s' size changed! orig=%I64d, now=%I64d!!\n"), p, savedsize, s);
+				write_log (_T("FS: restored file '%s' size changed! orig=%llu, now=%lld!!\n"), p, savedsize, s);
 			if (k->file_pos > s) {
-				write_log (_T("FS: restored filepos larger than size of file '%s'!! %I64d > %d\n"), p, k->file_pos, s);
+				write_log (_T("FS: restored filepos larger than size of file '%s'!! %llu > %lld\n"), p, k->file_pos, s);
 				k->file_pos = s;
 			}
 			fs_lseek64 (k->fd, k->file_pos, SEEK_SET);
@@ -7130,7 +7149,7 @@ static int recurse_aino (UnitInfo *ui, a_inode *a, int cnt, uae_u8 **dstp)
 		if (a->elock || a->shlock || a->uniq == 0) {
 			if (dst) {
 				TCHAR *fn = NULL;
-				write_log (_T("uniq=%d %I64d s=%d e=%d d=%d '%s' '%s'\n"), a->uniq, a->uniq_external, a->shlock, a->elock, a->dir, a->aname, a->nname);
+				write_log (_T("uniq=%d %lld s=%d e=%d d=%d '%s' '%s'\n"), a->uniq, a->uniq_external, a->shlock, a->elock, a->dir, a->aname, a->nname);
 				if (a->aname) {
 				fn = getfullaname(a);
 					write_log (_T("->'%s'\n"), fn);
@@ -7174,7 +7193,7 @@ static uae_u8 *save_key (uae_u8 *dst, Key *k)
 	save_string (fn);
 	save_u64 (k->file_pos);
 	save_u64 (size);
-	write_log (_T("'%s' uniq=%d size=%I64d seekpos=%I64d mode=%d dosmode=%d\n"),
+	write_log (_T("'%s' uniq=%d size=%lld seekpos=%lld mode=%d dosmode=%d\n"),
 		fn, k->uniq, size, k->file_pos, k->createmode, k->dosmode);
 	xfree (fn);
 	return dst;

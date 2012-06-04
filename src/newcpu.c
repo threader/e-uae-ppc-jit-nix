@@ -3714,6 +3714,7 @@ static void m68k_run_1_ce (void)
 static void m68k_run_1_ce (void)
 {
 	struct regstruct *r = &regs;
+	uae_u16 opcode;
 
 	if (cpu_tracer < 0) {
 		memcpy (&r->regs, &cputrace.regs, 16 * sizeof (uae_u32));
@@ -3745,7 +3746,7 @@ static void m68k_run_1_ce (void)
 	set_cpu_tracer (false);
 
 	for (;;) {
-		uae_u16 opcode = r->ir;
+		opcode = r->ir;
 
 #if DEBUG_CD32CDTVIO
 		out_cd32io (m68k_getpc ());
@@ -4030,6 +4031,7 @@ static void m68k_run_2ce (void)
 {
 	struct regstruct *r = &regs;
 	uae_u16 opcode;
+	bool exit = false;
 
 	if (cpu_tracer < 0) {
 		memcpy (&r->regs, &cputrace.regs, 16 * sizeof (uae_u32));
@@ -4114,7 +4116,7 @@ static void m68k_run_2ce (void)
 cont:
 		if (r->spcflags || time_for_interrupt ()) {
 			if (do_specialties (0))
-				return;
+				exit = true;
 		}
 
 		regs.ce020tmpcycles -= cpucycleunit;
@@ -4123,6 +4125,9 @@ cont:
 			regs.ce020tmpcycles = CYCLE_UNIT * MAX68020CYCLES;;
 		}
 		regs.ipl = regs.ipl_pin;
+
+		if (exit)
+			return;
 	}
 }
 

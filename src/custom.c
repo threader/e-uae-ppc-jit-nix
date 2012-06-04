@@ -5298,6 +5298,7 @@ static bool framewait (void)
 		static struct mavg_data ma_legacy;
 		static frame_time_t vsync_time;
 		int t;
+
 		curr_time = uae_gethrtime ();
 		vsyncwaittime = vsyncmaxtime = curr_time + vsynctimebase;
 		if (!frame_rendered && !picasso_on)
@@ -5339,7 +5340,7 @@ static bool framewait (void)
 		}
 
 		frame_shown = true;
-		return status != 0;
+		return 1;
 
 	} else if (vs < 0) {
 
@@ -5435,10 +5436,11 @@ static bool framewait (void)
 			status = vsync_busywait_do (&freetime, (bplcon0 & 4) != 0 && !lof_changed && !lof_changing, lof_store != 0);
 			vsync_busywait_start ();
 
+			now = uae_gethrtime ();
+
 			if (extraframewait && !currprefs.turbo_emulation)
 				uae_msleep (extraframewait);
 
-			now = uae_gethrtime ();
 			adjust = (int)now - (int)curr_time;
 			int adjustx = adjust;
 			if (adjust < 0)
@@ -5486,7 +5488,13 @@ static bool framewait (void)
 		return status != 0;
 	}
 	
+	status = 1;
+
 	int clockadjust = 0;
+	int vstb = vsynctimebase;
+
+	if (currprefs.m68k_speed < 0) {
+
 #if 0
 	static uae_u32 prevtick;
 	static int frametickcnt;
@@ -5499,21 +5507,19 @@ static bool framewait (void)
 		tickdiff = 0;
 		prevtick = tick;
 		frametickcnt = 0;
-		write_log (_T("!\n"));
+			write_log (_T("Clock sync reset!\n"));
 	} else {
 		frametickcnt++;
 	}
 	int diff = (framems - tickdiff) / 1;
-	if (diff < -5000)
-		diff = -5000;
-	else if (diff > 5000)
-		diff = 5000;
-	clockadjust = -vsynctimebase * diff / 1000;
-	clockadjust *= 100;
-	write_log (_T("%d:%d:%d\n"), framems - tickdiff, diff, clockadjust);
+		if (diff < -100)
+			diff = -100;
+		else if (diff > 100)
+			diff = 100;
+		clockadjust = -vsynctimebase * diff / 10000;
+		//write_log (_T("%05d:%05d:%05d\n"), framems - tickdiff, diff, clockadjust);
 #endif
-	if (currprefs.m68k_speed < 0) {
-	
+
 		if (!frame_rendered && !picasso_on)
 			frame_rendered = render_screen (false);
 
@@ -5532,11 +5538,11 @@ static bool framewait (void)
 
 		int max;
 		int adjust = 0;
-		if ((int)curr_time - (int)vsyncwaittime > 0 && (int)curr_time - (int)vsyncwaittime < vsynctimebase / 2)
+		if ((int)curr_time - (int)vsyncwaittime > 0 && (int)curr_time - (int)vsyncwaittime < vstb / 2)
 			adjust += curr_time - vsyncwaittime;
 		adjust += clockadjust;
-		max = vsynctimebase * (1000 + currprefs.m68k_speed_throttle) / 1000 - adjust;
-		vsyncwaittime = curr_time + vsynctimebase - adjust;
+		max = vstb * (1000 + currprefs.m68k_speed_throttle) / 1000 - adjust;
+		vsyncwaittime = curr_time + vstb - adjust;
 		vsyncmintime = curr_time;
 		
 		if (max < 0) {
@@ -5548,7 +5554,7 @@ static bool framewait (void)
 		vsyncmaxtime = curr_time + max;
 	
 		if (0)
-			write_log (_T("%06d:%06d/%06d\n"), adjust, vsynctimeperline, vsynctimebase);
+			write_log (_T("%06d:%06d/%06d\n"), adjust, vsynctimeperline, vstb);
 	
 	} else {
 
@@ -5572,17 +5578,18 @@ static bool framewait (void)
         	idletime += uae_gethrtime () - start;
 	        curr_time = uae_gethrtime ();
         	vsyncmintime = curr_time;
-		vsyncmaxtime = vsyncwaittime = curr_time + vsynctimebase;
+		vsyncmaxtime = vsyncwaittime = curr_time + vstb;
 		if (frame_rendered) {
                 	show_screen ();
 			t += uae_gethrtime () - curr_time;
 		}
 		t += frameskipt_avg;
-		vsynctimeperline = (vsynctimebase - t) / 3;
+		vsynctimeperline = (vstb - t) / 3;
 		if (vsynctimeperline < 0)
 			vsynctimeperline = 0;
-		else if (vsynctimeperline > vsynctimebase / 3)
-			vsynctimeperline = vsynctimebase / 3;
+		else if (vsynctimeperline > vstb / 3)
+			vsynctimeperline = vstb / 3;
+		
 		frame_shown = true;
 
 	}
@@ -5649,6 +5656,7 @@ static void vsync_handler_pre (void)
 	if (isvsync_rtg () >= 0)
 		rtg_vsync ();
 #endif
+
 	audio_vsync ();
 #ifdef SCSIEMU
 	blkdev_vsync ();

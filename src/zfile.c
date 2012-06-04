@@ -513,7 +513,7 @@ static struct zfile *vhd (struct zfile *z)
 	z->dataseek = 1;
 	z->userdata = zvhd;
 	z->zfileread = vhd_fread;
-	write_log (_T("%s is VHD %s image, virtual size=%dK\n"),
+	write_log (_T("%s is VHD %s image, virtual size=%lldK\n"),
 		zfile_getname (z),
 		zvhd->vhd_type == 2 ? _T("fixed") : _T("dynamic"),
 		zvhd->virtsize / 1024);
@@ -542,12 +542,6 @@ struct zfile *zfile_gunzip (struct zfile *z, int *retcode)
 	memset (header, 0, sizeof (header));
 	int read;
 	read = zfile_fread (header, sizeof (header), 1, z);
-#if 0
-	if (!read) {
-                write_log("zfile_gunzip: %s failed. couldn't read file.\n", z->name);
-		return NULL;
-	}
-#endif
 	flags = header[3];
 	if (header[0] != 0x1f && header[1] != 0x8b) {
                 write_log("zfile_gunzip: %s failed. not gzipped file.\n", z->name);
@@ -2112,7 +2106,7 @@ size_t zfile_fwrite (void *b, size_t l1, size_t l2, struct zfile *z)
 	if (z->parent && z->useparent)
 		return 0;
 	if (z->data) {
-		int off = z->seek + l1 * l2;
+		uae_s64 off = z->seek + l1 * l2;
 		if (z->allocsize == 0) {
 			write_log (_T("zfile_fwrite(data,%s) but allocsize=0!\n"), z->name);
 			return 0;
