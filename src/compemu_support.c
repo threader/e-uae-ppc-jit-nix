@@ -15,7 +15,9 @@
 
 /* List of temporary registers
  * Note: do not use this array directly, get the register mapping by
- * calling function comp_get_gpr_for_temp_register(). */
+ * calling function comp_get_gpr_for_temp_register().
+ * Make sure that the first register is always R3, this allows
+ * some internal optimizations on returned values from GCC function calls. */
 const int PPC_TMP_REGS[PPC_TMP_REGS_COUNT] = {  PPCR_TMP0,
 												PPCR_TMP1,
 												PPCR_TMP2,
@@ -1053,7 +1055,7 @@ int comp_is_spec_memory_read_word(uae_u32 pc, int specmem_flags)
 }
 
 /**
- * Figuring out if this long read from the address a was special read or a normal one.
+ * Figuring out if this long read from the address was special read or normal one.
  * Parameters:
  *   pc - M68k emulated instruction pointer address
  *   specmem_flags - memory access flags from the previous interpretive emulation iteration
@@ -1064,7 +1066,7 @@ int comp_is_spec_memory_read_long(uae_u32 pc, int specmem_flags)
 }
 
 /**
- * Figuring out if this write to the address a was special write or a normal one.
+ * Figuring out if this write to the address was special write or normal one.
  *   pc - M68k emulated instruction pointer address
  *   specmem_flags - memory access flags from the previous interpretive emulation iteration
  *   trust - memory access trust configuration
@@ -1093,7 +1095,7 @@ STATIC_INLINE int comp_is_spec_memory_write(uae_u32 pc, int specmem_flags, int t
 }
 
 /**
- * Figuring out if this byte write to the address a was special write or a normal one.
+ * Figuring out if this byte write to the address was special write or normal one.
  *   pc - M68k emulated instruction pointer address
  *   specmem_flags - memory access flags from the previous interpretive emulation iteration
  */
@@ -1103,7 +1105,7 @@ int comp_is_spec_memory_write_byte(uae_u32 pc, int specmem_flags)
 }
 
 /**
- * Figuring out if this word write to the address a was special write or a normal one.
+ * Figuring out if this word write to the address was special write or normal one.
  *   pc - M68k emulated instruction pointer address
  *   specmem_flags - memory access flags from the previous interpretive emulation iteration
  */
@@ -1113,7 +1115,7 @@ int comp_is_spec_memory_write_word(uae_u32 pc, int specmem_flags)
 }
 
 /**
- * Figuring out if this long write to the address a was special write or a normal one.
+ * Figuring out if this long write to the address was special write or normal one.
  *   pc - M68k emulated instruction pointer address
  *   specmem_flags - memory access flags from the previous interpretive emulation iteration
  */
@@ -1435,6 +1437,42 @@ void comp_ppc_extsh(int rega, int regs, int updateflags)
 {
 	// ## extsh(x) rega, regs
 	comp_ppc_emit_halfwords(0x7C00 | regs << 5 | rega, 0x734 | (updateflags ? 1 : 0));
+}
+
+/* Compiles lbz instruction
+ * Parameters:
+ * 		regd - target register
+ * 		delta - offset for the source address register
+ * 		rega - source register
+ */
+void comp_ppc_lbz(int regd, uae_u16 delta, int rega)
+{
+	// ## lbz regd, delta(rega)
+	comp_ppc_emit_halfwords(0x8800 | ((regd) << 5) | rega, delta);
+}
+
+/* Compiles lha instruction
+ * Parameters:
+ * 		regd - target register
+ * 		delta - offset for the source address register
+ * 		rega - source register
+ */
+void comp_ppc_lha(int regd, uae_u16 delta, int rega)
+{
+	// ## lha regd, delta(rega)
+	comp_ppc_emit_halfwords(0xA800 | ((regd) << 5) | rega, delta);
+}
+
+/* Compiles lhz instruction
+ * Parameters:
+ * 		regd - target register
+ * 		delta - offset for the source address register
+ * 		rega - source register
+ */
+void comp_ppc_lhz(int regd, uae_u16 delta, int rega)
+{
+	// ## lhz regd, delta(rega)
+	comp_ppc_emit_halfwords(0xA000 | ((regd) << 5) | rega, delta);
 }
 
 /* Compiles li instruction
@@ -1778,7 +1816,8 @@ void comp_ppc_jump(uae_uintptr addr)
 }
 
 /* Compiles prolog to the beginnig of the function call (stackframe preparing)
- * Note: emitted code uses PPCR_TMP0 register, it is not restored
+ * Note: emitted code uses PPCR_TMP0 register, it is not restored. Three additional
+ * longwords are available in the stack frame for storing registers temporarily.
  * Parameters:
  *   save_regs - save the PPC registers to the stack that are marked with a high
  *   bit in this longword (e.g. R4 and R6 = (1 << 4) | (1 <<6) = %101000)
@@ -1786,7 +1825,7 @@ void comp_ppc_jump(uae_uintptr addr)
 void comp_ppc_prolog(uae_u32 save_regs)
 {
 	int i;
-	int regnum = 0;
+	int regnum = COMP_STACKFRAME_ALLOCATED_SLOTS;	//Additional free longword for temporary register storage
 
 	//How many registers do we want to save?
 	for(i = 0; i < 32; i++) regnum += (save_regs & (1 << i)) ? 1 : 0;

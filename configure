@@ -11812,7 +11812,7 @@ if [ "x$WANT_DEBUGGER" != "xno" ]; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
   UAE_DEFINES="$UAE_DEFINES -DDEBUGGER"
-  DEBUGOBJS="debug.o identify.o"
+  DEBUGOBJS="debug.o ppc_disasm.o identify.o"
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }

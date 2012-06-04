@@ -45,7 +45,12 @@ int macroblock_ptr;
  * Prototypes of the internal macroblock implementation functions
  */
 void comp_macroblock_impl_load_register_long(union comp_compiler_mb_union* mb);
+void comp_macroblock_impl_load_register_word_extended(union comp_compiler_mb_union* mb);
+void comp_macroblock_impl_load_memory_spec(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_load_memory_long(union comp_compiler_mb_union* mb);
+void comp_macroblock_impl_load_memory_word(union comp_compiler_mb_union* mb);
+void comp_macroblock_impl_load_memory_word_extended(union comp_compiler_mb_union* mb);
+void comp_macroblock_impl_load_memory_byte(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_map_physical_mem(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_save_memory_spec(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_save_memory_long(union comp_compiler_mb_union* mb);
@@ -53,12 +58,14 @@ void comp_macroblock_impl_save_memory_word(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_save_memory_word_update(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_save_memory_byte(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_add_with_flags(union comp_compiler_mb_union* mb);
+void comp_macroblock_impl_add(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_add_register_imm(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_copy_register_long_with_flags(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_copy_register_long(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_opcode_unsupported(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_or_low_register_imm(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_or_high_register_imm(union comp_compiler_mb_union* mb);
+void comp_macroblock_impl_or_register_register(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_and_register_imm(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_and_registers(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_copy_nzcv_flags_to_register(union comp_compiler_mb_union* mb);
@@ -66,10 +73,18 @@ void comp_macroblock_impl_copy_nz_flags_to_register(union comp_compiler_mb_union
 void comp_macroblock_impl_copy_cv_flags_to_register(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_check_byte_register(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_check_word_register(union comp_compiler_mb_union* mb);
+void comp_macroblock_impl_copy_register_word_extended(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_rotate_and_copy_bits(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_rotate_and_mask_bits(union comp_compiler_mb_union* mb);
+void comp_macroblock_impl_save_reg_stack(union comp_compiler_mb_union* mb);
+void comp_macroblock_impl_load_reg_stack(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_stop(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_nop(union comp_compiler_mb_union* mb);
+
+/**
+ * Prototypes for local helper functions
+ */
+void helper_access_memory_spec(union comp_compiler_mb_union* mb, int iswrite);
 
 /**
  * Initialization of the code compiler
@@ -349,6 +364,28 @@ void comp_macroblock_impl_add_with_flags(union comp_compiler_mb_union* mb)
 }
 
 /**
+ * Macroblock: Adds two registers then copies the result into a third without flag update.
+ */
+void comp_macroblock_push_add(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg1, uae_u8 input_reg2)
+{
+	comp_mb_init(mb,
+				comp_macroblock_impl_add,
+				regsin, regsout);
+	mb->three_regs_opcode.output_reg = output_reg;
+	mb->three_regs_opcode.input_reg1 = input_reg1;
+	mb->three_regs_opcode.input_reg2 = input_reg2;
+}
+
+void comp_macroblock_impl_add(union comp_compiler_mb_union* mb)
+{
+	comp_ppc_add(
+			mb->three_regs_opcode.output_reg,
+			mb->three_regs_opcode.input_reg1,
+			mb->three_regs_opcode.input_reg2,
+			0);
+}
+
+/**
  * Macroblock: Copies a long date from a register into another register and updates NZ flags in PPC flag registers
  */
 void comp_macroblock_push_copy_register_long_with_flags(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg)
@@ -368,6 +405,9 @@ void comp_macroblock_impl_copy_register_long_with_flags(union comp_compiler_mb_u
 
 /**
  * Macroblock: Copies a register into another register without flag update
+ * Note: this function is guaranteed not to allocate a temp register,
+ * it is safe to use it for copying a previously not mapped register into a
+ * mapped temporary register.
  */
 void comp_macroblock_push_copy_register_long(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg)
 {
@@ -410,7 +450,7 @@ void comp_macroblock_push_copy_register_byte(uae_u64 regsin, uae_u64 regsout, ua
 }
 
 /**
- * Macroblock: Loads an immediate value into a temporary register
+ * Macroblock: Loads an immediate longword value into a temporary register
  */
 void comp_macroblock_push_load_register_long(uae_u64 regsout, uae_u8 output_reg, uae_u32 imm)
 {
@@ -425,6 +465,25 @@ void comp_macroblock_push_load_register_long(uae_u64 regsout, uae_u8 output_reg,
 void comp_macroblock_impl_load_register_long(union comp_compiler_mb_union* mb)
 {
 	comp_ppc_liw(mb->load_register.output_reg, mb->load_register.immediate);
+}
+
+/**
+ * Macroblock: Loads an immediate word value into a temporary register
+ * sign extended to longword
+ */
+void comp_macroblock_push_load_register_word_extended(uae_u64 regsout, uae_u8 output_reg, uae_u16 imm)
+{
+	comp_mb_init(mb,
+				comp_macroblock_impl_load_register_word_extended,
+				COMP_COMPILER_MACROBLOCK_REG_NONE,
+				regsout);
+	mb->load_register.immediate = imm;
+	mb->load_register.output_reg = output_reg;
+}
+
+void comp_macroblock_impl_load_register_word_extended(union comp_compiler_mb_union* mb)
+{
+	comp_ppc_li(mb->load_register.output_reg, (uae_u16)mb->load_register.immediate);
 }
 
 /**
@@ -443,6 +502,61 @@ void comp_macroblock_push_load_memory_long(uae_u64 regsin, uae_u64 regsout, uae_
 void comp_macroblock_impl_load_memory_long(union comp_compiler_mb_union* mb)
 {
 	comp_ppc_lwz(mb->access_memory.output_reg, mb->access_memory.offset, mb->access_memory.base_reg);
+}
+
+/**
+ * Macroblock: Loads a word data from memory into a temporary register
+ */
+void comp_macroblock_push_load_memory_word(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u32 base_reg, uae_u32 offset)
+{
+	comp_mb_init(mb,
+				comp_macroblock_impl_load_memory_word,
+				regsin, regsout);
+	mb->access_memory.offset = offset;
+	mb->access_memory.output_reg = output_reg;
+	mb->access_memory.base_reg = base_reg;
+}
+
+void comp_macroblock_impl_load_memory_word(union comp_compiler_mb_union* mb)
+{
+	comp_ppc_lhz(mb->access_memory.output_reg, mb->access_memory.offset, mb->access_memory.base_reg);
+}
+
+/**
+ * Macroblock: Loads a word data from memory into a temporary register,
+ * data is sign-extended to longword
+ */
+void comp_macroblock_push_load_memory_word_extended(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u32 base_reg, uae_u32 offset)
+{
+	comp_mb_init(mb,
+				comp_macroblock_impl_load_memory_word_extended,
+				regsin, regsout);
+	mb->access_memory.offset = offset;
+	mb->access_memory.output_reg = output_reg;
+	mb->access_memory.base_reg = base_reg;
+}
+
+void comp_macroblock_impl_load_memory_word_extended(union comp_compiler_mb_union* mb)
+{
+	comp_ppc_lha(mb->access_memory.output_reg, mb->access_memory.offset, mb->access_memory.base_reg);
+}
+
+/**
+ * Macroblock: Loads a byte data from memory into a temporary register
+ */
+void comp_macroblock_push_load_memory_byte(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u32 base_reg, uae_u32 offset)
+{
+	comp_mb_init(mb,
+				comp_macroblock_impl_load_memory_byte,
+				regsin, regsout);
+	mb->access_memory.offset = offset;
+	mb->access_memory.output_reg = output_reg;
+	mb->access_memory.base_reg = base_reg;
+}
+
+void comp_macroblock_impl_load_memory_byte(union comp_compiler_mb_union* mb)
+{
+	comp_ppc_lbz(mb->access_memory.output_reg, mb->access_memory.offset, mb->access_memory.base_reg);
 }
 
 /**
@@ -564,7 +678,7 @@ void comp_macroblock_impl_map_physical_mem(union comp_compiler_mb_union* mb)
 void comp_macroblock_push_save_memory_spec(uae_u64 regsin, uae_u64 regsout, uae_u8 source_reg, uae_u8 dest_mem_reg, uae_u8 size)
 {
 	//Before the call write back the M68k registers and clear the temp register mapping
-	//Warning is supressed, we are in the middle of some instruction compiling.
+	//Warning is suppressed, we are in the middle of some instruction compiling.
 	//probably there are temporary registers, but we cannot do anything about it
 	comp_flush_temp_registers(1);
 
@@ -578,6 +692,43 @@ void comp_macroblock_push_save_memory_spec(uae_u64 regsin, uae_u64 regsout, uae_
 
 void comp_macroblock_impl_save_memory_spec(union comp_compiler_mb_union* mb)
 {
+	helper_access_memory_spec(mb, 1);
+}
+
+/**
+ * Macroblock: Reads a value into a specified register from emulated memory
+ * using the special memory bank handlers.
+ * Note: this function purges all temporary registers, because it calls
+ * an external function.
+ */
+void comp_macroblock_push_load_memory_spec(uae_u64 regsin, uae_u64 regsout, uae_u8 src_mem_reg, uae_u8 dest_reg, uae_u8 size)
+{
+	//Before the call write back the M68k registers and clear the temp register mapping
+	//Warning is suppressed, we are in the middle of some instruction compiling.
+	//probably there are temporary registers, but we cannot do anything about it
+	comp_flush_temp_registers(1);
+
+	comp_mb_init(mb,
+				comp_macroblock_impl_load_memory_spec,
+				regsin, regsout);
+	mb->access_memory_size.base_reg = src_mem_reg;
+	mb->access_memory_size.output_reg = dest_reg;	//Copy the result into this register
+	mb->access_memory_size.size = size;
+}
+
+void comp_macroblock_impl_load_memory_spec(union comp_compiler_mb_union* mb)
+{
+	helper_access_memory_spec(mb, 0);
+}
+
+/**
+ * Helper function for compiling special memory access
+ * Parameters:
+ *    mb - pointer to the actual macroblock descriptor
+ *    iswrite - if TRUE then it is a write operation otherwise it is read
+ */
+void helper_access_memory_spec(union comp_compiler_mb_union* mb, int iswrite)
+{
 	uae_u8 srcreg = mb->access_memory_size.output_reg;
 	uae_u8 basereg = mb->access_memory_size.base_reg;
 	addrbank refaddrstruct;		//We don't really use this, only for calculating the offsets in the structure
@@ -589,8 +740,8 @@ void comp_macroblock_impl_save_memory_spec(union comp_compiler_mb_union* mb)
 	//while moving registers.
 
 	//Move the output value to R4, but avoid
-	//any conflicts with the target address register
-	if (srcreg != PPCR_PARAM2)
+	//any conflicts with the target address register (only if it is write access)
+	if ((srcreg != PPCR_PARAM2) && (iswrite))
 	{
 		//Source register is not R4, we need to move the value
 		if (basereg != PPCR_PARAM2)
@@ -615,7 +766,7 @@ void comp_macroblock_impl_save_memory_spec(union comp_compiler_mb_union* mb)
 
 	//At this point the registers are:
 	//R3 = address
-	//R4 = value
+	//R4 = value (if it is write access)
 
 	//Get 64k page index into R0: R0 = (inreg >> 14) & 0x3fffc;
 	comp_ppc_rlwinm(PPCR_SPECTMP, PPCR_PARAM1, 18, 14, 29, 0);
@@ -633,15 +784,30 @@ void comp_macroblock_impl_save_memory_spec(union comp_compiler_mb_union* mb)
 	{
 	case 1:
 		//Byte
-		handleroffset = ((void*)&refaddrstruct.bput) - ((void*)&refaddrstruct);
+		if (iswrite)
+		{
+			handleroffset = ((void*)&refaddrstruct.bput) - ((void*)&refaddrstruct);
+		} else {
+			handleroffset = ((void*)&refaddrstruct.bget) - ((void*)&refaddrstruct);
+		}
 		break;
 	case 2:
 		//Word
-		handleroffset = ((void*)&refaddrstruct.wput) - ((void*)&refaddrstruct);
+		if (iswrite)
+		{
+			handleroffset = ((void*)&refaddrstruct.wput) - ((void*)&refaddrstruct);
+		} else {
+			handleroffset = ((void*)&refaddrstruct.wget) - ((void*)&refaddrstruct);
+		}
 		break;
 	case 4:
 		//Long
-		handleroffset = ((void*)&refaddrstruct.lput) - ((void*)&refaddrstruct);
+		if (iswrite)
+		{
+			handleroffset = ((void*)&refaddrstruct.lput) - ((void*)&refaddrstruct);
+		} else {
+			handleroffset = ((void*)&refaddrstruct.lget) - ((void*)&refaddrstruct);
+		}
 		break;
 	default:
 		write_log("JIT error: unknown memory write size: %d\n", mb->access_memory_size.size);
@@ -653,8 +819,14 @@ void comp_macroblock_impl_save_memory_spec(union comp_compiler_mb_union* mb)
 
 	//Call handler
 	comp_ppc_call_reg(PPCR_TMP2);
-}
 
+	//If it was read access then the result is returned in R3,
+	//copy to the specified register if it was not there already
+	if ((!iswrite) && (srcreg != PPCR_PARAM1))
+	{
+		comp_ppc_mr(srcreg, PPCR_PARAM1, 0);
+	}
+}
 
 /**
  * Macroblock: OR a 16 bit immediate to the lower half word of a register and put it into a new register
@@ -696,6 +868,29 @@ void comp_macroblock_impl_or_high_register_imm(union comp_compiler_mb_union* mb)
 			mb->two_regs_imm_opcode.output_reg,
 			mb->two_regs_imm_opcode.input_reg,
 			mb->two_regs_imm_opcode.immediate);
+}
+
+/**
+ * Macroblock: OR a register to another register
+ */
+void comp_macroblock_push_or_register_register(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg1, uae_u8 input_reg2, char updateflags)
+{
+	comp_mb_init(mb,
+				comp_macroblock_impl_or_register_register,
+				regsin, regsout);
+	mb->three_regs_opcode_flags.output_reg = output_reg;
+	mb->three_regs_opcode_flags.input_reg1 = input_reg1;
+	mb->three_regs_opcode_flags.input_reg2 = input_reg2;
+	mb->three_regs_opcode_flags.updateflags = updateflags;
+}
+
+void comp_macroblock_impl_or_register_register(union comp_compiler_mb_union* mb)
+{
+	comp_ppc_or(
+			mb->three_regs_opcode_flags.output_reg,
+			mb->three_regs_opcode_flags.input_reg1,
+			mb->three_regs_opcode_flags.input_reg2,
+			mb->three_regs_opcode_flags.updateflags);
 }
 
 /**
@@ -855,6 +1050,25 @@ void comp_macroblock_impl_check_word_register(union comp_compiler_mb_union* mb)
 }
 
 /**
+ * Macroblock: Sign-extend lower word content of the specified register
+ * into another register.
+ */
+void comp_macroblock_push_copy_register_word_extended(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg)
+{
+	comp_mb_init(mb,
+				comp_macroblock_impl_copy_register_word_extended,
+				regsin,
+				regsout);
+	mb->two_regs_opcode.input_reg = input_reg;
+	mb->two_regs_opcode.output_reg = output_reg;
+}
+
+void comp_macroblock_impl_copy_register_word_extended(union comp_compiler_mb_union* mb)
+{
+	comp_ppc_extsh(mb->two_regs_opcode.output_reg, mb->two_regs_opcode.input_reg, 0);
+}
+
+/**
  * Macroblock: Check byte-sized register value and set the PPC N and Z flag according
  * to the content of the register half word.
  */
@@ -970,4 +1184,68 @@ void comp_macroblock_push_nop()
 void comp_macroblock_impl_nop(union comp_compiler_mb_union* mb)
 {
 	comp_ppc_nop();
+}
+
+/**
+ * Macroblock: save the specified register into the specified slot in the stack frame
+ * Slot specifies the target longword in stack frame (see COMP_STACKFRAME_ALLOCATED_SLOTS).
+ * Note: there is no checking for the allocation of the slots, make sure you know
+ * which one is in use.
+ */
+void comp_macroblock_push_save_reg_stack(uae_u64 regsin, uae_u8 input_reg, unsigned int slot)
+{
+	if (slot > COMP_STACKFRAME_ALLOCATED_SLOTS - 1)
+	{
+		//Oops, the specified slot is not available
+		write_log("Error: slot #%d is not available in JIT stack frame\n", slot);
+		abort();
+	}
+
+	//Registers are not required for input to avoid any interfere with the optimization
+	comp_mb_init(mb,
+				comp_macroblock_impl_save_reg_stack,
+				regsin,
+				COMP_COMPILER_MACROBLOCK_REG_NONE);
+	mb->reg_in_stackframe.slot = slot;
+	mb->reg_in_stackframe.reg = input_reg;
+}
+
+void comp_macroblock_impl_save_reg_stack(union comp_compiler_mb_union* mb)
+{
+	comp_ppc_stw(
+			mb->reg_in_stackframe.reg,
+			-4 - (mb->reg_in_stackframe.slot * 4),
+			PPCR_SP);
+}
+
+/**
+ * Macroblock: load the specified register from the specified slot in the stack frame
+ * Slot specifies the target longword in stack frame (see COMP_STACKFRAME_ALLOCATED_SLOTS).
+ * Note: there is no checking for the allocation of the slots, make sure you know
+ * which one is in use.
+ */
+void comp_macroblock_push_load_reg_stack(uae_u64 regsout, uae_u8 output_reg, unsigned int slot)
+{
+	if (slot > COMP_STACKFRAME_ALLOCATED_SLOTS - 1)
+	{
+		//Oops, the specified slot is not available
+		write_log("Error: slot #%d is not available in JIT stack frame\n", slot);
+		abort();
+	}
+
+	//Registers are not required for input to avoid any interfere with the optimization
+	comp_mb_init(mb,
+				comp_macroblock_impl_load_reg_stack,
+				COMP_COMPILER_MACROBLOCK_REG_NONE,
+				regsout);
+	mb->reg_in_stackframe.slot = slot;
+	mb->reg_in_stackframe.reg = output_reg;
+}
+
+void comp_macroblock_impl_load_reg_stack(union comp_compiler_mb_union* mb)
+{
+	comp_ppc_lwz(
+			mb->reg_in_stackframe.reg,
+			-4 - (mb->reg_in_stackframe.slot * 4),
+			PPCR_SP);
 }
