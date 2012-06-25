@@ -6038,7 +6038,7 @@ static void hsync_handler_pre (bool onvsync)
 		hardware_line_completed (next_lineno);
 		if (doflickerfix () && interlace_seen > 0)
 			hsync_scandoubler ();
-		notice_resolution_seen (GET_RES_AGNUS (bplcon0), interlace_seen > 0);
+		notice_resolution_seen (GET_RES_AGNUS (bplcon0), interlace_seen != 0);
 	}
 
 #ifdef A2065
@@ -6259,14 +6259,16 @@ static void hsync_handler_post (bool onvsync)
 			}
 		}
 	} else {
-		if (!vsync_isdone () && !currprefs.turbo_emulation && (vpos + 1 < maxvpos + lof_store && (vpos == maxvpos_nom * 1 / 3 || vpos == maxvpos_nom * 2 / 3))) {
-			frame_time_t rpt = uae_gethrtime ();
+		if (vpos + 1 < maxvpos + lof_store && (vpos == maxvpos_nom * 1 / 3 || vpos == maxvpos_nom * 2 / 3)) {
 			vsyncmintime += vsynctimeperline;
-			// sleep if more than 2ms "free" time
-			while (!vsync_isdone () && (int)vsyncmintime - (int)(rpt + vsynctimebase / 10) > 0 && (int)vsyncmintime - (int)rpt < vsynctimebase) {
-				uae_msleep (1);
-				rpt = uae_gethrtime ();
-				//write_log (_T("*"));
+			if (!vsync_isdone () && !currprefs.turbo_emulation) {
+				frame_time_t rpt = uae_gethrtime ();
+				// sleep if more than 2ms "free" time
+				while (!vsync_isdone () && (int)vsyncmintime - (int)(rpt + vsynctimebase / 10) > 0 && (int)vsyncmintime - (int)rpt < vsynctimebase) {
+				    uae_msleep (1);
+				    rpt = uae_gethrtime ();
+				    //write_log (_T("*"));
+				}
 			}
 		}
 	}
@@ -6382,7 +6384,7 @@ static void hsync_handler_post (bool onvsync)
 		/* fastest possible + last line and no vflip wait: render the frame as early as possible */
 	if (is_last_line () && isvsync_chipset () <= -2 && !vsync_rendered && currprefs.gfx_apmode[0].gfx_vflip == 0) {
 		frame_time_t start, end;
-		start = read_processor_time ();
+		start = uae_gethrtime ();
 		vsync_rendered = true;
 		vsync_handle_redraw (lof_store, lof_changed, bplcon0, bplcon3);
 		if (vblank_hz_state) {

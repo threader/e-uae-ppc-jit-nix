@@ -578,6 +578,7 @@ static void resetwarning_check (void)
 			write_log (_T("KB: reset warning forced reset. Phase=%d\n"), resetwarning_phase);
 			resetwarning_phase = -1;
 			kblostsynccnt = 0;
+			send_internalevent (INTERNALEVENT_KBRESET);
 			uae_reset (0);
 		}
 	}
@@ -600,6 +601,7 @@ static void resetwarning_check (void)
 			write_log (_T("KB: reset warning end by software. reset.\n"));
 			resetwarning_phase = -1;
 			kblostsynccnt = 0;
+			send_internalevent (INTERNALEVENT_KBRESET);
 			uae_reset (0);
 		}
 	}

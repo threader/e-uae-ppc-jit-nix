@@ -113,7 +113,6 @@ static int cdscsidevicetype[MAX_TOTAL_SCSI_DEVICES];
 
 #include "od-win32/win32.h"
 
-extern struct device_functions devicefunc_win32_aspi;
 extern struct device_functions devicefunc_win32_spti;
 extern struct device_functions devicefunc_win32_ioctl;
 extern struct device_functions devicefunc_cdimage;

@@ -3030,11 +3030,11 @@ generate_one_opcode (int rp, int noflags)
 	    if (noflags) {
 		fprintf (stblfile, "{ op_%lx_%d_comp_nf, %ld, 0x%08x }, /* %s */\n", opcode, postfix, opcode, flags, lookuptab[i].name);
 		fprintf (headerfile, "extern compop_func op_%lx_%d_comp_nf;\n", opcode, postfix);
-		printf ("unsigned long REGPARAM2 op_%lx_%d_comp_nf(uae_u32 opcode) /* %s */\n{\n", opcode, postfix, lookuptab[i].name);
+		printf ("uae_u32 REGPARAM2 op_%lx_%d_comp_nf(uae_u32 opcode) /* %s */\n{\n", opcode, postfix, lookuptab[i].name);
 	    } else {
 		fprintf (stblfile, "{ op_%lx_%d_comp_ff, %ld, 0x%08x }, /* %s */\n", opcode, postfix, opcode, flags, lookuptab[i].name);
 		fprintf (headerfile, "extern compop_func op_%lx_%d_comp_ff;\n", opcode, postfix);
-		printf ("unsigned long REGPARAM2 op_%lx_%d_comp_ff(uae_u32 opcode) /* %s */\n{\n", opcode, postfix, lookuptab[i].name);
+		printf ("uae_u32 REGPARAM2 op_%lx_%d_comp_ff(uae_u32 opcode) /* %s */\n{\n", opcode, postfix, lookuptab[i].name);
 	    }
 	    com_flush();
 	}

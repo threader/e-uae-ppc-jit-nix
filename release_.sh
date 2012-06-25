@@ -108,6 +108,7 @@ rm -rf src/cpuemu_11.c
 rm -rf src/cpuemu_12.c
 rm -rf src/cpuemu_20.c
 rm -rf src/cpuemu_21.c
+rm -rf src/cpuemu_22.c
 rm -rf src/cpuemu_31.c
 # jit
 rm -rf src/compemu.cpp

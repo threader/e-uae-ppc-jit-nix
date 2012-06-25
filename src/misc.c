@@ -1248,7 +1248,7 @@ static bool getvblankpos (int *vp)
 {
 	int sl;
 #if 0
-	frame_time_t t = read_processor_time ();
+	frame_time_t t = uae_gethrtime ();
 #endif
 	*vp = -2;
 /*	if (currprefs.gfx_api) {
@@ -1259,7 +1259,7 @@ static bool getvblankpos (int *vp)
 			return false;
 	}*/
 #if 0
-	t = read_processor_time () - t;
+	t = uae_gethrtime () - t;
 	write_log (_T("(%d:%d)"), t, sl);
 #endif	
 	prevvblankpos = sl;
@@ -1380,7 +1380,7 @@ double vblank_calibrate (double approx_vblank, bool waitonly)
 				goto fail;
 			if (!waitvblankstate (true, NULL, NULL))
 				goto fail;
-			t1 = read_processor_time ();
+			t1 = uae_gethrtime ();
 			if (!waitvblankstate (false, NULL, NULL))
 				goto fail;
 			maxscanline = 0;
@@ -1391,7 +1391,7 @@ double vblank_calibrate (double approx_vblank, bool waitonly)
 			maxscanline = 0;
 			if (!waitvblankstate (true, &maxvpos2, &flags2))
 				goto fail;
-			t2 = read_processor_time ();
+			t2 = uae_gethrtime ();
 			maxvpos = maxvpos1 > maxvpos2 ? maxvpos1 : maxvpos2;
 			// count two fields: works with interlaced modes too.
 			tval = (double)syncbase * 2.0 / (t2 - t1);
@@ -1433,12 +1433,12 @@ double vblank_calibrate (double approx_vblank, bool waitonly)
 			render_screen (true);
 			show_screen ();
 			sleep_millis (1);
-			frame_time_t t = read_processor_time () + 1 * (syncbase / tsum);
+			frame_time_t t = uae_gethrtime () + 1 * (syncbase / tsum);
 			for (int cnt2 = 0; cnt2 < 4; cnt2++) {
 				render_ok = true;
 				show_screen ();
 			}
-			int diff = (int)read_processor_time () - (int)t;
+			int diff = (int)uae_gethrtime () - (int)t;
 			if (diff >= 0)
 				vsdetect++;
 		}
@@ -1487,7 +1487,7 @@ skip:
 	}
 
 	remembered_vblank = tsum;
-	vblank_prev_time = read_processor_time ();
+	vblank_prev_time = uae_gethrtime ();
 	
 	if (!remembered) {
 		rv = xcalloc (struct remembered_vsync, 1);
@@ -1583,18 +1583,18 @@ frame_time_t vsync_busywait_end (int *flipdelay)
 			prev = vblank_prev_time;
 			if (!dooddevenskip) {
 				int delay = 10;
-				frame_time_t t = read_processor_time ();
+				frame_time_t t = uae_gethrtime ();
 				while (delay-- > 0) {
 					if (WaitForSingleObject (vblankwaitevent, 10) != WAIT_TIMEOUT)
 						break;
 				}
-				idletime += read_processor_time () - t;
+				idletime += uae_gethrtime () - t;
 			}
 			if (flipdelay)
 				*flipdelay = vblank_found_flipdelay;
 		} else {
 			show_screen ();
-			prev = read_processor_time ();
+			prev = uae_gethrtime ();
 		}
 		changevblankthreadmode_fast (VBLANKTH_ACTIVE_WAIT);
 		return prev + vblankbasefull;
@@ -1630,7 +1630,7 @@ bool vsync_busywait_do (int *freetime, bool lace, bool oddeven)
 	else
 		vblankbaselace_chipset = -1;
 
-	t = read_processor_time ();
+	t = uae_gethrtime ();
 	ti = t - prevtime;
 	if (ti > 2 * vblankbasefull || ti < -2 * vblankbasefull) {
 		changevblankthreadmode_fast (VBLANKTH_ACTIVE_WAIT);
@@ -1674,7 +1674,7 @@ bool vsync_busywait_do (int *freetime, bool lace, bool oddeven)
 
 		if (vblanklaceskip_check ()) {
 
-			vblank_prev_time = read_processor_time () + vblankbasewait1;
+			vblank_prev_time = uae_gethrtime () + vblankbasewait1;
 			dooddevenskip = true;
 			framelost = false;
 			v = -1;
@@ -1682,22 +1682,22 @@ bool vsync_busywait_do (int *freetime, bool lace, bool oddeven)
 		} else if (currprefs.turbo_emulation) {
 
 			show_screen ();
-			vblank_prev_time = read_processor_time ();
+			vblank_prev_time = uae_gethrtime ();
 			framelost = true;
 			v = -1;
 
 		} else {
 
-			while (!framelost && read_processor_time () - prevtime < vblankbasewait1) {
+			while (!framelost && uae_gethrtime () - prevtime < vblankbasewait1) {
 				vsync_sleep (false);
 			}
 
 			vp = vblank_wait ();
 			if (vp >= -1) {
-				vblank_prev_time = read_processor_time ();
+				vblank_prev_time = uae_gethrtime ();
 				if (ap->gfx_vflip == 0) {
 					show_screen ();
-					vblank_flip_delay = (read_processor_time () - vblank_prev_time) / (vblank_skipeveryother ? 2 : 1);
+					vblank_flip_delay = (uae_gethrtime () - vblank_prev_time) / (vblank_skipeveryother ? 2 : 1);
 					if (vblank_flip_delay < 0)
 						vblank_flip_delay = 0;
 					else if (vblank_flip_delay > vblankbasefull * 2 / 3)

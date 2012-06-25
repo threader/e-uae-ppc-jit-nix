@@ -858,7 +858,7 @@ UAE_DEFINES="$UAE_DEFINES -DCPUEMU_0"
 CPUOBJS='cpuemu_0.$(OBJEXT)'
 
 dnl
-dnl CPUEMU_11: 68000+prefetch
+dnl CPUEMU_11: 68000 prefetch
 dnl
 if [[ "x$WANT_COMPATIBLE" != "xno" ]]; then
   UAE_DEFINES="$UAE_DEFINES -DCPUEMU_11"
@@ -866,13 +866,14 @@ if [[ "x$WANT_COMPATIBLE" != "xno" ]]; then
 fi
 
 dnl
-dnl CPUEMU_12: 68000 CE cpu+blit
-dnl CPUEMU_20: 68020+ CE + blit
-dnl CPUEMU_21: 68030 (040/060) "cycle-exact" + blitter
+dnl CPUEMU_12: 68000 CE cpu+blitter
+dnl CPUEMU_20: 68020 prefetch
+dnl CPUEMU_21: 68020 CE + blitter
+dnl CPUEMU_22: 68030 (040/060) CE + blitter
 dnl
 if [[ "x$WANT_CYCLEEXACT" != "xno" ]]; then
-  UAE_DEFINES="$UAE_DEFINES -DCPUEMU_12 -DCPUEMU_20 -DCPUEMU_21"
-  CPUOBJS="$CPUOBJS cpuemu_12.\$(OBJEXT) cpuemu_20.\$(OBJEXT) cpuemu_21.\$(OBJEXT)"
+  UAE_DEFINES="$UAE_DEFINES -DCPUEMU_12 -DCPUEMU_20 -DCPUEMU_21 -DCPUEMU_22"
+  CPUOBJS="$CPUOBJS cpuemu_12.\$(OBJEXT) cpuemu_20.\$(OBJEXT) cpuemu_21.\$(OBJEXT) cpuemu_22.\$(OBJEXT)"
 fi
 
 dnl

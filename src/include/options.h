@@ -31,7 +31,7 @@ struct strlist {
 #define MAX_TOTAL_SCSI_DEVICES 8
 
 /* maximum number native input devices supported (single type) */
-#define MAX_INPUT_DEVICES 8
+#define MAX_INPUT_DEVICES 16
 /* maximum number of native input device's buttons and axles supported */
 #define MAX_INPUT_DEVICE_EVENTS 256
 /* 4 different customization settings */
@@ -49,6 +49,8 @@ struct strlist {
 
 #define FILTER_SOUND_TYPE_A500 0
 #define FILTER_SOUND_TYPE_A1200 1
+
+#define INTERNALEVENT_COUNT 1
 
 struct uae_input_device {
 	TCHAR *name;
@@ -469,6 +471,7 @@ struct uae_prefs {
 	bool win32_middle_mouse;
 	bool win32_logfile;
 	bool win32_notaskbarbutton;
+	bool win32_nonotificationicon;
 	bool win32_alwaysontop;
 	bool win32_powersavedisabled;
 	bool win32_minimize_inactive;
@@ -551,6 +554,7 @@ struct uae_prefs {
 	struct uae_input_device joystick_settings[MAX_INPUT_SETTINGS][MAX_INPUT_DEVICES];
 	struct uae_input_device mouse_settings[MAX_INPUT_SETTINGS][MAX_INPUT_DEVICES];
 	struct uae_input_device keyboard_settings[MAX_INPUT_SETTINGS][MAX_INPUT_DEVICES];
+	struct uae_input_device internalevent_settings[MAX_INPUT_SETTINGS][INTERNALEVENT_COUNT];
 	TCHAR input_config_name[GAMEPORT_INPUT_SETTINGS][256];
 	int dongle;
 	int input_contact_bounce;
