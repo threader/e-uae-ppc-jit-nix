@@ -1971,11 +1971,11 @@ static void make_hd_widgets (GtkWidget *dvbox)
 static void make_about_widgets (GtkWidget *dvbox)
 {
     GtkWidget *thing;
-
+//fixme
 #if GTK_MAJOR_VERSION >= 2
-    const char title[] = "<span font_desc=\"Sans 24\">" UAE_VERSION_STRING " </span>";
+    const char title[] = "<span font_desc=\"Sans 24\">2.4.2</span>";
 #else
-    const char title[] = UAE_VERSION_STRING;
+    const char title[] = "2.4.2";
 #endif
 
     add_empty_vbox (dvbox);

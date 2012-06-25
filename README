@@ -1,4 +1,4 @@
-PUAE 2.4.1 beta series
+PUAE 2.4.2 beta series
 ---------------------------------------------------
 PUAE tries to continue where E-UAE left off..
 PUAE versioning is based on the merged WinUAE version..
@@ -24,13 +24,18 @@ I don't supply binaries for any OS
 but you can find compiled versions on net
 (e.g. chiark creates dmg and posts here http://www.binarydevotion.com)
 
+You should also check FS-UAE: http://fengestad.no/wp/fs-uae
+                  and WinUAE: http://www.winuae.net
+
 
 PUAE Ports
 ---------------------------------------------------
-Pandora: http://apps.openpandora.org/cgi-bin/viewapp.pl?/Emulator/puae.inf
-XBOX360: http://lantus360.com
-Android: http://droidpuae.blogspot.com
-PS3 ?  : http://metaneutrons.blogspot.com/2011/07/porting-puae-to-playstation-3.html
+Pandora    : http://apps.openpandora.org/cgi-bin/viewapp.pl?/Emulator/puae.inf
+XBOX360    : http://lantus360.com
+Android    : http://droidpuae.blogspot.com
+           : https://github.com/pelya/commandergenius/tree/sdl_android/project/jni/application/puae
+PS3 ?      : http://metaneutrons.blogspot.com/2011/07/porting-puae-to-playstation-3.html
+Raspbery PI: http://www.valvers.com/raspberry-pi#toc-amiga-emulation-puae
 
 
 Using PUAE
