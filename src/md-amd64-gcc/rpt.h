@@ -32,7 +32,8 @@ STATIC_INLINE uae_s64 read_processor_time (void)
     {
 	extern frame_time_t linux_get_tsc_freq (void);
 	extern void         compute_vsynctime (void);
-	extern frame_time_t syncbaseo;
+//	extern frame_time_t syncbaseo;
+	extern int syncbase;
 
 	static frame_time_t next_tsc_synctime;
 	static frame_time_t prev_syncbase;
@@ -41,11 +42,11 @@ STATIC_INLINE uae_s64 read_processor_time (void)
 	    uae_s64 new_tsc_freq = linux_get_tsc_freq ();
 
 	    if (new_tsc_freq > 0) {
-		syncbaseo = new_tsc_freq;
-		next_tsc_synctime = tsc + (syncbaseo / TSC_SYNC_FREQUENCY);
+		syncbase = new_tsc_freq;
+		next_tsc_synctime = tsc + (syncbase / TSC_SYNC_FREQUENCY);
 
-		if (syncbaseo != prev_syncbase) {
-		    prev_syncbase = syncbaseo;
+		if (syncbase != prev_syncbase) {
+		    prev_syncbase = syncbase;
 		    compute_vsynctime ();
 		}
 	    }
