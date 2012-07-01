@@ -7,3 +7,4 @@ Files in this directory:
 
 iamalive.asm - a very basic test that shows some colors when the machine starts
 mandel_hw.asm - a Mandelbrot set calculator for speed testing
+mandel_though_hw.kick - a Mandelbrot set calculator for speed testing, needs more processing power than the other one
