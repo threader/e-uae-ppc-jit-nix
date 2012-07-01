@@ -40,12 +40,20 @@ int used_tmp_regs[PPC_TMP_REGS_COUNT];
 
 /* Structure for the M68k register mapping to the temporary registers */
 struct m68k_register {
-	int tmpreg;			//Mapped temporary register number or PPC_TMP_REG_NOTUSED
-	int needs_flush;	//0 - no need to flush this register, 1 - compile code for writing back the register out to the interpretive regs structure
+	int tmpreg;		//Mapped temporary register number or PPC_TMP_REG_NOTUSED
+	char needs_flush;	//0 - no need to flush this register, 1 - compile code for writing back the register out to the interpretive regs structure
+	char locked;		//0 - this register is mapped but not used in the recent instruction, 1 - this register is locked, cannot be flushed automatically
 };
 
 /* M68k register mapping to the temp registers */
 struct m68k_register comp_m68k_registers[16];
+
+/* Last automatically unmapped temporary register pointer.
+ * To avoid unmapping the same register every time we keep track of the
+ * last unmapped register and continue searching for an available register
+ * when the next one is needed.
+ */
+int last_unmapped_register;
 
 /**
  * Compiled code cache memory start address
@@ -333,7 +341,13 @@ void compemu_reset(void)
 
 	/* Clear M68k - PPC temp register mapping */
 	for (i = 0; i < 16; i++)
+	{
 		comp_m68k_registers[i].tmpreg = PPC_TMP_REG_NOTUSED;
+		comp_m68k_registers[i].locked = 0;
+	}
+
+	//Reset the unmapped register round-robin counter
+	last_unmapped_register = -1;
 
 	//Reset actually compiled M68k instruction pointer
 	compiled_m68k_location = NULL;
@@ -564,6 +578,9 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 				//Call addressing post functions, if not null
 				if (compsrc_post_func[props->src_addr]) compsrc_post_func[props->src_addr](inst_history, props);
 				if (compdest_post_func[props->dest_addr]) compdest_post_func[props->dest_addr](inst_history, props);
+
+				//Unlock all the mapped temporary registers
+				comp_unlock_all_temp_registers();
 			}
 			else
 			{
@@ -645,6 +662,57 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 }
 
 /**
+ * Find an unlocked temp register for unmapping.
+ * The best choice for the to be unmapped register is one that needs
+ * no flushing. If that was not available then one that needs flushing.
+ *
+ * Although it is theoretically impossible, but if there is no unlocked
+ * register then the emulation stops with an error.
+ */
+STATIC_INLINE int comp_find_unlocked_temp_register(void)
+{
+	int i;
+	struct m68k_register* reg;
+	int found = -1;
+
+	//Round-robin searching of the next unmappable register
+	for(i = last_unmapped_register + 1; i != last_unmapped_register; i++)
+	{
+		//Round-robin: turns around at the end of the array
+		if (i == PPC_TMP_REGS_COUNT) i = 0;
+
+		//If the register mapping is not negative then it is mapped to an emulated register
+		if (used_tmp_regs[i] > -1)
+		{
+			reg = &comp_m68k_registers[used_tmp_regs[i]];
+			if (!reg->locked)
+			{
+				if (!reg->needs_flush)
+				{
+					//Needs no flushing - best choice
+					found = i;
+					break;
+				}
+
+				//It needs flushing, let's remember that we can use this
+				if (found == -1) found = i;
+			}
+		}
+	}
+
+	if (found == -1)
+	{
+		//This must not happen: all temporary registers are mapped and locked
+		write_log("Error: JIT compiler ran out of temporary registers\n");
+		abort();
+	}
+
+	last_unmapped_register = found;
+
+	return found;
+}
+
+/**
  * Allocate a temporary register
  * Parameters:
  *   allocate_for - the M68k register number that was mapped to the temp
@@ -661,9 +729,11 @@ uae_u8 comp_allocate_temp_register(int allocate_for)
 
 	if (i == PPC_TMP_REGS_COUNT)
 	{
-		//TODO: free up the oldest register
-		write_log("Error: JIT compiler ran out of free temporary registers\n");
-		abort();
+		//All registers are allocated: find an unlocked register for unmapping
+		i = comp_find_unlocked_temp_register();
+
+		//Unmap the register and reuse the temporary register
+		comp_unmap_temp_register(used_tmp_regs[i]);
 	}
 
 	//Set allocated state for the register
@@ -786,6 +856,9 @@ uae_u8 comp_map_temp_register(uae_u8 reg_number, int needs_init, int needs_flush
 		}
 	}
 
+	//Lock the register for this instruction
+	reg->locked = 1;
+
 	return ppc_reg;
 }
 
@@ -816,7 +889,22 @@ void comp_unmap_temp_register(uae_u8 reg_number)
 		}
 		used_tmp_regs[reg->tmpreg] = PPC_TMP_REG_NOTUSED;
 		reg->tmpreg = PPC_TMP_REG_NOTUSED;
+		reg->locked = 0;
 	}
+}
+
+/**
+ * Unlocks all mapped temporary registers.
+ * This function is called at the end of an instruction to unlock all
+ * the locked mapped temporary registers and let the system unmap one
+ * when it runs out of free temp registers.
+ */
+void comp_unlock_all_temp_registers()
+{
+	int i;
+
+	for(i = 0; i < 16; i++)
+		comp_m68k_registers[i].locked = 0;
 }
 
 /**
@@ -1177,6 +1265,20 @@ void comp_ppc_add(int regd, int rega, int regb, int updateflags)
 			0x0214 | (regb << 11) | (updateflags ? 1 : 0));
 }
 
+/* Compiles addc instruction
+ * Parameters:
+ * 		regd - target register
+ * 		rega - source register 1
+ * 		regb - source register 2
+ * 		updateflags - compiles the flag updating version if TRUE
+ */
+void comp_ppc_addc(int regd, int rega, int regb, int updateflags)
+{
+	// ## addc(x) rega, regs, regb
+	comp_ppc_emit_halfwords(0x7c00 | ((regd) << 5) | rega,
+			0x0014 | (regb << 11) | (updateflags ? 1 : 0));
+}
+
 /* Compiles addco instruction
  * Parameters:
  * 		regd - target register
@@ -1415,6 +1517,18 @@ void comp_ppc_cmplw(int regcrfd, int rega, int regb)
 	comp_ppc_emit_halfwords(0x7C00 | regcrfd << 7 | rega, 0x0040 | regb << 11);
 }
 
+/* Compiles cntlwz instruction
+ * Parameters:
+ * 		rega - target register
+ * 		regs - source register
+ * 		updateflags - compiles the flag updating version if TRUE
+ */
+void comp_ppc_cntlwz(int rega, int regs, int updateflags)
+{
+	// ## cntlwz(x) rega, regs
+	comp_ppc_emit_halfwords(0x7C00 | regs << 5 | rega, 0x0034 | (updateflags ? 1 : 0));
+}
+
 /* Compiles extsb instruction
  * Parameters:
  * 		rega - target register
@@ -1614,6 +1728,20 @@ void comp_ppc_mr(int rega, int regs, int updateflags)
 	comp_ppc_or(rega, regs, regs, updateflags);
 }
 
+/* Compiles mullwo instruction
+ * Parameters:
+ * 		regd - target register
+ * 		rega - source register 1
+ * 		regb - source register 2
+ * 		updateflags - compiles the flag updating version if TRUE
+ */
+void comp_ppc_mullwo(int regd, int rega, int regb, int updateflags)
+{
+	// ## mullwo(x) regd, rega, regb
+	comp_ppc_emit_halfwords(0x7c00 | ((regd) << 5) | rega,
+			0x05d6 | (regb << 11) | (updateflags ? 1 : 0));
+}
+
 /* Compiles nop instruction
  * Parameters:
  * 		none
@@ -1622,6 +1750,20 @@ void comp_ppc_nop()
 {
 	// ## nop = ori r0,r0,0
 	comp_ppc_ori(0, 0, 0);
+}
+
+/* Compiles nor instruction
+ * Parameters:
+ * 		rega - target register
+ * 		regs - source register 1
+ * 		regb - source register 2
+ * 		updateflags - compiles the flag updating version if TRUE
+ */
+void comp_ppc_nor(int rega, int regs, int regb, int updateflags)
+{
+	// ## nor(x) rega, regs, regb
+	comp_ppc_emit_halfwords(0x7c00 | ((regs) << 5) | rega,
+			0x00f8 | (regb << 11) | (updateflags ? 1 : 0));
 }
 
 /* Compiles or instruction
@@ -1694,6 +1836,20 @@ void comp_ppc_rlwinm(int rega, int regs, int shift, int maskb, int maske, int up
 			(shift << 11) | (maskb << 6) | (maske << 1) | (updateflags ? 1 : 0));
 }
 
+/* Compiles srawi instruction
+ * Parameters:
+ * 		rega - target register
+ * 		regs - source register
+ * 		shift - shift amount
+ * 		updateflags - compiles the flag updating version if TRUE
+ */
+void comp_ppc_srawi(int rega, int regs, int shift, int updateflags)
+{
+	// ## srawi(x) rega, regs, shift
+	comp_ppc_emit_halfwords(0x7C00 | ((regs) << 5) | rega,
+			0x0670 | (shift << 11) | (updateflags ? 1 : 0));
+}
+
 /* Compiles stb instruction
  * Parameters:
  * 		regs - source register
@@ -1742,6 +1898,34 @@ void comp_ppc_stw(int regs, uae_u16 delta, int rega)
 	comp_ppc_emit_halfwords(0x9000 | ((regs) << 5) | rega, delta);
 }
 
+/* Compiles subfco instruction
+ * Parameters:
+ * 		regd - target register
+ * 		rega - source register 1
+ * 		regb - source register 2
+ * 		updateflags - compiles the flag updating version if TRUE
+ */
+void comp_ppc_subfco(int regd, int rega, int regb, int updateflags)
+{
+	// ## subfco(x) regd, rega, regb
+	comp_ppc_emit_halfwords(0x7c00 | ((regd) << 5) | rega,
+			0x0410 | (regb << 11) | (updateflags ? 1 : 0));
+}
+
+/* Compiles subfe instruction
+ * Parameters:
+ * 		regd - target register
+ * 		rega - source register 1
+ * 		regb - source register 2
+ * 		updateflags - compiles the flag updating version if TRUE
+ */
+void comp_ppc_subfe(int regd, int rega, int regb, int updateflags)
+{
+	// ## subfe(x) regd, rega, regb
+	comp_ppc_emit_halfwords(0x7c00 | ((regd) << 5) | rega,
+			0x0110 | (regb << 11) | (updateflags ? 1 : 0));
+}
+
  /* Compiles trap instruction
   * Parameters:
   * 		none
@@ -1751,6 +1935,45 @@ void comp_ppc_trap()
  	// ## trap
  	comp_ppc_emit_word(0x7fe00008);
  }
+
+/* Compiles xor instruction
+ * Parameters:
+ * 		rega - target register
+ * 		regs - source register 1
+ * 		regb - source register 2
+ * 		updateflags - compiles the flag updating version if TRUE
+ */
+void comp_ppc_xor(int rega, int regs, int regb, int updateflags)
+{
+	// ## xor(x) rega, regs, regb
+	comp_ppc_emit_halfwords(0x7c00 | ((regs) << 5) | rega,
+			0x0278 | (regb << 11) | (updateflags ? 1 : 0));
+}
+
+/* Compiles xori instruction
+ * Parameters:
+ * 		rega - target register
+ * 		regs - source register
+ * 		imm - immediate to be or'ed to the register
+ */
+void comp_ppc_xori(int rega, int regs, uae_u16 imm)
+{
+	// ## xori rega, regs, imm
+	comp_ppc_emit_halfwords(0x6800 | ((regs) << 5) | rega, imm);
+}
+
+/* Compiles xoris instruction
+ * Parameters:
+ * 		rega - target register
+ * 		regs - source register
+ * 		imm - immediate to be or'ed to the register
+ */
+void comp_ppc_xoris(int rega, int regs, uae_u16 imm)
+{
+	// ## xoris rega, regs, imm
+	comp_ppc_emit_halfwords(0x6c00 | ((regs) << 5) | rega, imm);
+}
+
 
 /** ------------------------------------------------------------------------------
  * More complex code chunks
