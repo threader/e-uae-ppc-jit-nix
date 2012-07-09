@@ -23,6 +23,12 @@
 #include <exec/system.h>
 #endif
 
+#ifdef __MORPHOS__
+//We need the memory handling functions for MorphOS
+#include <proto/exec.h>
+#include <exec/system.h>
+#endif
+
 /*
  * Allocate executable memory for JIT cache
  */
