@@ -47,6 +47,9 @@ Compiling PUAE
 ---------------------------------------------------
 See the docs/compiling.txt
 
+i use xcode 4.3.3, sdl 1.2.15, macosx 10.7.4
+(build_macos_cocoa)
+
 
 Bug Reports
 ---------------------------------------------------

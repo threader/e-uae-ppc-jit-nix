@@ -1096,15 +1096,15 @@ static void build_cpufunctbl (void)
 
 void fill_prefetch (void)
 {
-#ifdef MMU
-	if (currprefs.mmu_model)
+	if (currprefs.cpu_model >= 68020)
 		return;
-#endif
 	regs.ir = x_get_word (m68k_getpc ());
 	regs.irc = x_get_word (m68k_getpc () + 2);
 }
 static void fill_prefetch_quick (void)
 {
+	if (currprefs.cpu_model >= 68020)
+		return;
 	regs.ir = get_word (m68k_getpc ());
 	regs.irc = get_word (m68k_getpc () + 2);
 }
@@ -3395,7 +3395,7 @@ void doint (void)
 }
 
 #define sleep_resolution 1000 / 1
-#define IDLETIME (currprefs.cpu_idle * sleep_resolution / 700)
+#define IDLETIME (currprefs.cpu_idle * sleep_resolution / 1000)
 
 STATIC_INLINE int do_specialties (int cycles)
 {
@@ -4395,7 +4395,9 @@ void m68k_go (int may_quit)
 				currprefs.cpu_model >= 68020 && currprefs.cpu_cycle_exact ? m68k_run_2ce :
 				currprefs.cpu_compatible ? m68k_run_2p : m68k_run_2;
 		}
+		protect_roms (true);
 		run_func ();
+		protect_roms (false);
 	}
 	in_m68k_go--;
 }
@@ -5128,7 +5130,7 @@ uae_u8 *restore_cpu_extra (uae_u8 *src)
 	currprefs.cpu_frequency = changed_prefs.cpu_frequency = restore_u32 ();
 	currprefs.cpu_clock_multiplier = changed_prefs.cpu_clock_multiplier = restore_u32 ();
 #ifdef JIT
-	currprefs.cachesize = changed_prefs.cachesize = (flags & 8) ? 8192 : 0;
+	//currprefs.cachesize = changed_prefs.cachesize = (flags & 8) ? 8192 : 0;
 #endif
 
 	currprefs.m68k_speed = changed_prefs.m68k_speed = 0;

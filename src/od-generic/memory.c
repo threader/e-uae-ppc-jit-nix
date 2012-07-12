@@ -616,6 +616,24 @@ STATIC_INLINE key_t find_shmkey (key_t key)
 	return result;
 }
 
+void protect_roms (bool protect)
+{
+	struct shmid_ds *shm;
+	
+	if (!currprefs.cachesize || currprefs.comptrustbyte || currprefs.comptrustword || currprefs.comptrustlong)
+		return;
+	for (int i = 0; i < MAX_SHMID; i++) {
+		long old;
+		shm = &shmids[i];
+/*		if (shm->mode != PAGE_READONLY)
+			continue;
+		if (!VirtualProtect (shm->attached, shm->rosize, protect ? PAGE_READONLY : PAGE_READWRITE, &old)) {
+			write_log (_T("VirtualProtect %08X - %08X %x (%dk) failed %d\n"),
+				(uae_u8*)shm->attached - natmem_offset, (uae_u8*)shm->attached - natmem_offset + shm->size,
+				shm->size, shm->size >> 10, errno);
+		}*/
+	}
+}
 
 int my_shmdt (const void *shmaddr)
 {

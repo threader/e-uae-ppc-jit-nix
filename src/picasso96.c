@@ -37,8 +37,6 @@
 #include "sysconfig.h"
 #include "sysdeps.h"
 
-int p96hack_vpos, p96hack_vpos2, p96refresh_active;
-
 #if defined(PICASSO96)
 #define FALSE 0
 #define TRUE 1
@@ -57,8 +55,11 @@ int p96hack_vpos, p96hack_vpos2, p96refresh_active;
 #include "traps.h"
 #include "misc.h"
 
-#define NOBLITTER 0
-#define NOBLITTER_BLIT 0
+int debug_rtg_blitter = 3;
+
+#define NOBLITTER (0 || !(debug_rtg_blitter & 1))
+#define NOBLITTER_BLIT (0 || !(debug_rtg_blitter & 2))
+
 #define USE_HARDWARESPRITE 1
 #define P96TRACING_ENABLED 0
 #define P96SPRTRACING_ENABLED 0
@@ -68,6 +69,7 @@ static int picasso96_BT = BT_uaegfx;
 static int picasso96_GCT = GCT_Unknown;
 static int picasso96_PCT = PCT_Unknown;
 
+int p96refresh_active;
 bool have_done_picasso = 1; /* For the JIT compiler */
 static int p96syncrate;
 int p96hsync_counter, full_refresh;
@@ -102,9 +104,9 @@ static struct PicassoResolution *newmodes;
 
 static int picasso_convert, host_mode;
 
-/* These are the maximum resolutions... They are filled in by GetSupportedResolutions()
- * have to fill this in, otherwise problems occur on the Amiga side P96 s/w which expects
- * data here. */
+/* These are the maximum resolutions... They are filled in by GetSupportedResolutions() */
+/* have to fill this in, otherwise problems occur on the Amiga side P96 s/w which expects
+/* data here. */
 static struct ScreenResolution planar = { 320, 240 };
 static struct ScreenResolution chunky = { 640, 480 };
 static struct ScreenResolution hicolour = { 640, 480 };
@@ -616,7 +618,7 @@ static int doskip (void)
 
 void picasso_trigger_vblank (void)
 {
-	if (!ABI_interrupt || !uaegfx_base || !interrupt_enabled || currprefs.win32_rtgvblankrate < -1)
+	if (!ABI_interrupt || !uaegfx_base || !interrupt_enabled || !currprefs.rtg_hardwareinterrupt)
 		return;
 	put_long (uaegfx_base + CARD_IRQPTR, ABI_interrupt + PSSO_BoardInfo_SoftInterrupt);
 	put_byte (uaegfx_base + CARD_IRQFLAG, 1);
@@ -1778,8 +1780,6 @@ static void picasso96_alloc2 (TrapContext *ctx)
 {
 	int i, j, size, cnt;
 	int misscnt, depths;
-	struct MultiDisplay *md = getdisplay (&currprefs);
-	struct PicassoResolution *DisplayModes = md->DisplayModes;
 
 	xfree (newmodes);
 	newmodes = NULL;
@@ -1918,7 +1918,7 @@ void picasso96_alloc (TrapContext *ctx)
 	picasso96_alloc2 (ctx);
 }
 
-static uaecptr inituaegfxfuncs (uaecptr start, uaecptr ABI);
+static void inituaegfxfuncs (uaecptr start, uaecptr ABI);
 static void inituaegfx (uaecptr ABI)
 {
 	uae_u32 flags;
@@ -1968,15 +1968,15 @@ static void inituaegfx (uaecptr ABI)
 		hwsprite = 0;
 		write_log (_T("P96: Hardware sprite support disabled\n"));
 	}
-	if (currprefs.win32_rtgvblankrate >= -1 && !uaegfx_old)
+	if (currprefs.rtg_hardwareinterrupt && !uaegfx_old)
 		flags |= BIF_VBLANKINTERRUPT;
 	if (!(flags & BIF_INDISPLAYCHAIN)) {
 		write_log (_T("P96: BIF_INDISPLAYCHAIN force-enabled!\n"));
 		flags |= BIF_INDISPLAYCHAIN;
 	}
 	put_long (ABI + PSSO_BoardInfo_Flags, flags);
-//	if (debug_rtg_blitter != 3)
-//		write_log (_T("P96: Blitter mode = %x!\n"), debug_rtg_blitter);
+	if (debug_rtg_blitter != 3)
+		write_log (_T("P96: Blitter mode = %x!\n"), debug_rtg_blitter);
 
 	put_word (ABI + PSSO_BoardInfo_MaxHorResolution + 0, planar.width);
 	put_word (ABI + PSSO_BoardInfo_MaxHorResolution + 2, chunky.width);
@@ -3669,11 +3669,7 @@ static void copyall (uae_u8 *src, uae_u8 *dst, int pwidth, int pheight)
 static bool flushpixels (void)
 {
 	int i;
-#ifdef JIT
 	uae_u8 *src = p96ram_start + natmem_offset;
-#else
-	uae_u8 *src = p96ram_start;
-#endif
 	int off = picasso96_state.XYOffset - gfxmem_start;
 	uae_u8 *src_start;
 	uae_u8 *src_end;
@@ -3786,7 +3782,7 @@ static bool flushpixels (void)
 		break;
 	}
 
-	if (!currprefs.gfx_api && (currprefs.leds_on_screen & STATUSLINE_RTG)) {
+	if (currprefs.leds_on_screen & STATUSLINE_RTG) {
 		if (dst == NULL) {
 			dst = gfx_lock_picasso (false, false);
 			if (dst)
@@ -4012,13 +4008,10 @@ static uae_u32 REGPARAM2 picasso_SetMemoryMode(TrapContext *ctx)
 	if (ABI) \
 	put_long (ABI + func, start);
 
-static uaecptr inituaegfxfuncs (uaecptr start, uaecptr ABI)
+static void inituaegfxfuncs (uaecptr start, uaecptr ABI)
 {
-	uaecptr old = here ();
-	uaecptr ptr;
-
 	if (uaegfx_old)
-		return 0;
+		return;
 	org (start);
 
 	dw (RTS);
@@ -4172,11 +4165,8 @@ static uaecptr inituaegfxfuncs (uaecptr start, uaecptr ABI)
 
 	write_log (_T("uaegfx.card magic code: %08X-%08X ABI=%08X\n"), start, here (), ABI);
 
-	if (ABI && currprefs.win32_rtgvblankrate >= -1)
+	if (ABI && currprefs.rtg_hardwareinterrupt)
 		initvblankABI (uaegfx_base, ABI);
-	ptr = here ();
-	org (old);
-	return ptr;
 }
 
 void picasso_reset (void)
@@ -4187,13 +4177,14 @@ void picasso_reset (void)
 	interrupt_enabled = 0;
 	reserved_gfxmem = 0;
 	resetpalette();
+	InitPicasso96 ();
 }
 
-void uaegfx_install_code (void)
+void uaegfx_install_code (uaecptr start)
 {
-	uaecptr start = here ();
 	uaegfx_rom = start;
-	org (inituaegfxfuncs (start, 0));
+	org (start);
+	inituaegfxfuncs (start, 0);
 }
 
 #define UAEGFX_VERSION 3
@@ -4279,7 +4270,7 @@ static uaecptr uaegfx_card_install (TrapContext *ctx, uae_u32 extrasize)
 	put_long (uaegfx_base + CARD_RESLIST, uaegfx_base + CARD_SIZEOF);
 	put_long (uaegfx_base + CARD_RESLISTSIZE, extrasize);
 
-	if (currprefs.win32_rtgvblankrate >= -1)
+	if (currprefs.rtg_hardwareinterrupt)
 		initvblankirq (ctx, uaegfx_base);
 
 	write_log (_T("uaegfx.card %d.%d init @%08X\n"), UAEGFX_VERSION, UAEGFX_REVISION, uaegfx_base);

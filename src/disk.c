@@ -1167,6 +1167,9 @@ static void rand_shifter (void)
 
 static void set_steplimit (drive *drv)
 {
+	// emulate step limit only if cycle-exact or approximate CPU speed
+	if (currprefs.m68k_speed != 0)
+		return;
 	drv->steplimit = 10;
 	drv->steplimitcycle = get_cycles ();
 }
@@ -1924,7 +1927,11 @@ static int drive_write_pcdos (drive *drv)
 	secbuf[3] = 0xfb;
 
 	while (secwritten < drvsec) {
+		int mfmcount;
+
+		mfmcount = 0;
 		while (getmfmword (mbuf, shift) != 0x4489) {
+			mfmcount++;
 			if (mbuf >= mend)
 				return 1;
 			shift++;
@@ -1932,12 +1939,20 @@ static int drive_write_pcdos (drive *drv)
 				shift = 0;
 				mbuf++;
 			}
+			if (sector >= 0 && mfmcount / 16 >= 43)
+				sector = -1;
 		}
+
+		mfmcount = 0;
 		while (getmfmword (mbuf, shift) == 0x4489) {
+			mfmcount++;
 			if (mbuf >= mend)
 				return 1;
 			mbuf++;
 		}
+		if (mfmcount < 3) // ignore if less than 3 sync markers
+			continue;
+
 		mark = mfmdecode(&mbuf, shift);
 		if (mark == 0xfe) {
 			uae_u8 tmp[8];
@@ -1951,6 +1966,11 @@ static int drive_write_pcdos (drive *drv)
 
 			tmp[0] = 0xa1; tmp[1] = 0xa1; tmp[2] = 0xa1; tmp[3] = mark;
 			tmp[4] = cyl; tmp[5] = head; tmp[6] = sector; tmp[7] = size;
+
+			// skip 28 bytes
+			for (i = 0; i < 28; i++)
+				mfmdecode (&mbuf, shift);
+
 			if (get_crc16 (tmp, 8) != crc || cyl != drv->cyl || head != side || size != 2 || sector < 1 || sector > drv->num_secs) {
 				write_log (_T("PCDOS: track %d, corrupted sector header\n"), drv->cyl * 2 + side);
 				return 1;
@@ -1958,7 +1978,7 @@ static int drive_write_pcdos (drive *drv)
 			sector--;
 			continue;
 		}
-		if (mark != 0xfb) {
+		if (mark != 0xfb && mark != 0xfa) {
 			write_log (_T("PCDOS: track %d: unknown address mark %02X\n"), drv->cyl * 2 + side, mark);
 			continue;
 		}

@@ -1774,3 +1774,20 @@ void doflashscreen (void)
 */
 }
 
+// posix
+uae_u32 getlocaltime (void)
+{
+/*
+        SYSTEMTIME st;
+        FILETIME ft;
+        ULARGE_INTEGER t;
+
+        GetLocalTime (&st);
+        SystemTimeToFileTime (&st, &ft);
+        t.LowPart = ft.dwLowDateTime;
+        t.HighPart = ft.dwHighDateTime;
+        t.QuadPart -= 11644473600000 * 10000;
+        return (uae_u32)(t.QuadPart / 10000000);
+*/
+}
+

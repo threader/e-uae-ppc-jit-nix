@@ -936,6 +936,7 @@ static void a1000_handle_kickstart (int mode)
 {
 	if (!a1000_bootrom)
 		return;
+	protect_roms (false);
 	if (mode == 0) {
 		a1000_kickstart_mode = 0;
 		memcpy (kickmemory, kickmemory + 262144, 262144);
@@ -1530,6 +1531,7 @@ void a3000_fakekick (int map)
 {
 	static uae_u8 *kickstore;
 
+	protect_roms (false);
 	if (map) {
 		uae_u8 *fkickmemory = a3000lmemory + allocated_a3000lmem - fkickmem_size;
 		if (fkickmemory[2] == 0x4e && fkickmemory[3] == 0xf9 && fkickmemory[4] == 0x00) {
@@ -1563,6 +1565,7 @@ void a3000_fakekick (int map)
 		xfree (kickstore);
 		kickstore = NULL;
 	}
+	protect_roms (true);
 }
 
 static uae_char *kickstring = "exec.library";
@@ -1941,7 +1944,7 @@ err:
 
 #ifndef NATMEM_OFFSET
 
-uae_u8 *mapped_malloc (size_t s, TCHAR *file)
+uae_u8 *mapped_malloc (size_t s, const TCHAR *file)
 {
 	return xmalloc (uae_u8, s);
 }
