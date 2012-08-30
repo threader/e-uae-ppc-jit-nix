@@ -53,6 +53,7 @@ STATIC_INLINE void helper_addr_indmAk_dest(struct comptbl* props, uae_u8 size);
 STATIC_INLINE void helper_addr_indApk_dest(struct comptbl* props, uae_u8 size);
 STATIC_INLINE void helper_MOVREG2MEM(const cpu_history* history, uae_u8 size);
 STATIC_INLINE void helper_MOVMEM2REG(const cpu_history* history, struct comptbl* props, uae_u8 size, int dataregmode);
+STATIC_INLINE void helper_MOVEM2MEMU(const cpu_history* history, struct comptbl* props, uae_u8 size);
 STATIC_INLINE void helper_MOVMEM2MEM(const cpu_history* history, struct comptbl* props, uae_u8 size);
 STATIC_INLINE void helper_MOVIMM2REG(uae_u8 size);
 STATIC_INLINE void helper_ORREG2REG(uae_u8 size);
@@ -272,7 +273,7 @@ void comp_addr_pre_indAd16_src(const cpu_history* history, struct comptbl* props
 
 	//Add the offset from the next word after the opcode to the register
 	comp_macroblock_push_add_register_imm(
-			COMP_COMPILER_REGS_ADDRREG(props->srcreg),
+			COMP_COMPILER_MACROBLOCK_REG_AX(props->srcreg),
 			COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg),
 			src_mem_addrreg_mapped,
 			src_reg_mapped,
@@ -520,7 +521,7 @@ void comp_addr_pre_indAd16_dest(const cpu_history* history, struct comptbl* prop
 
 	//Add the offset from the next word after the opcode to the register
 	comp_macroblock_push_add_register_imm(
-			COMP_COMPILER_REGS_ADDRREG(props->destreg),
+			COMP_COMPILER_MACROBLOCK_REG_AX(props->destreg),
 			COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
 			dest_mem_addrreg_mapped,
 			dest_reg_mapped,
@@ -1029,11 +1030,11 @@ void comp_opcode_MOVEM2REGW(const cpu_history* history, struct comptbl* props) R
 }
 void comp_opcode_MOVEM2MEMUL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
+	helper_MOVEM2MEMU(history, props, 4);
 }
 void comp_opcode_MOVEM2MEMUW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
+	helper_MOVEM2MEMU(history, props, 2);
 }
 void comp_opcode_MOVEM2REGUL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
@@ -3352,8 +3353,8 @@ STATIC_INLINE void helper_allocate_2_ax_src_mem_regs_copy(struct comptbl* props,
 STATIC_INLINE void helper_add_imm_to_src_ax(struct comptbl* props, uae_u16 immediate)
 {
 	comp_macroblock_push_add_register_imm(
-			COMP_COMPILER_REGS_ADDRREG(props->srcreg),
-			COMP_COMPILER_REGS_ADDRREG(props->srcreg),
+			COMP_COMPILER_MACROBLOCK_REG_AX(props->srcreg),
+			COMP_COMPILER_MACROBLOCK_REG_AX(props->srcreg),
 			src_reg_mapped,
 			src_reg_mapped,
 			immediate);
@@ -3447,8 +3448,8 @@ STATIC_INLINE void helper_allocate_2_ax_dest_mem_regs_copy(struct comptbl* props
 STATIC_INLINE void helper_add_imm_to_dest_ax(struct comptbl* props, uae_u16 immediate)
 {
 	comp_macroblock_push_add_register_imm(
-			COMP_COMPILER_REGS_ADDRREG(props->destreg),
-			COMP_COMPILER_REGS_ADDRREG(props->destreg),
+			COMP_COMPILER_MACROBLOCK_REG_AX(props->destreg),
+			COMP_COMPILER_MACROBLOCK_REG_AX(props->destreg),
 			dest_reg_mapped,
 			dest_reg_mapped,
 			immediate);
@@ -3813,7 +3814,7 @@ STATIC_INLINE void helper_MOVMEM2MEM(const cpu_history* history, struct comptbl*
 	{
 		//Store the destination register in the stackframe temporarily
 		comp_macroblock_push_save_reg_stack(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+				COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg) | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
 				dest_mem_addrreg_mapped,
 				0);
 
@@ -3977,6 +3978,176 @@ STATIC_INLINE void helper_MOVMEM2MEM(const cpu_history* history, struct comptbl*
 	if (tmpreg != PPC_TMP_REG_NOTUSED)
 	{
 		comp_free_temp_register(tmpreg);
+	}
+}
+
+/**
+ * Implementation of all MOVEM2MEMU instruction
+ * Parameters:
+ *    history - pointer to cpu execution history
+ *    size - size of the operation: word (2) or long (4)
+ */
+STATIC_INLINE void helper_MOVEM2MEMU(const cpu_history* history, struct comptbl* props, uae_u8 size)
+{
+	int spec, i, offset, selected_reg;
+	uae_u8 tempaddr_reg;
+	uae_u8 tempaddr_reg_mapped;
+
+	//Read the extended word
+	unsigned short extword  = *((unsigned short*)pc_ptr);
+
+	//Special memory determination by operation size
+	switch (size)
+	{
+	case 4:
+		spec = comp_is_spec_memory_write_long(history->pc, history->specmem);
+		break;
+	case 2:
+		spec = comp_is_spec_memory_write_word(history->pc, history->specmem);
+		break;
+	default:
+		write_log("Error: wrong operation size for MOVEM2MEMU\n");
+		abort();
+	}
+
+	if (spec)
+	{
+		//Save non-volatile register #0 to the stack
+		comp_macroblock_push_save_reg_stack(
+				COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
+				PPCR_TMP_NONVOL0, 0);
+
+		//Copy destination address register to the non-volatile register
+		comp_macroblock_push_copy_register_long(
+				COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
+				COMP_COMPILER_MACROBLOCK_REG_NONE,
+				PPCR_TMP_NONVOL0,
+				dest_reg_mapped);
+
+		//Flush temp registers back to the store
+		comp_flush_temp_registers(1);
+
+		//Check specified registers in the extension word
+		for(i = 0; i < 16; i++)
+		{
+			if ((extword & (1 << i)) != 0)
+			{
+				//Decrease address register by the size of the operation
+				comp_macroblock_push_add_register_imm(
+						COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
+						COMP_COMPILER_MACROBLOCK_REG_NONE,
+						PPCR_TMP_NONVOL0,
+						PPCR_TMP_NONVOL0,
+						-size);
+
+				//Read register content from store to the second argument register (to avoid copying)
+				//For this MOVEM instruction the registers are stored in reversed order in the extension word
+				comp_macroblock_push_load_memory_long(
+						COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
+						COMP_COMPILER_MACROBLOCK_REG_NONE,
+						PPCR_PARAM2,
+						PPCR_REGS_BASE,
+						(15 - i) * 4);
+
+				//Store register content in memory using special memory access
+				comp_macroblock_push_save_memory_spec(
+						COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
+						COMP_COMPILER_MACROBLOCK_REG_NONE,
+						PPCR_PARAM2,
+						PPCR_TMP_NONVOL0,
+						size);
+			}
+		}
+
+		//Keep modified address register content, but it must be reallocated
+		dest_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->destreg), 0, 1);
+
+		//Copy modified address to the allocated address register
+		comp_macroblock_push_copy_register_long(
+				COMP_COMPILER_MACROBLOCK_REG_NONE,
+				COMP_COMPILER_MACROBLOCK_REG_AX(props->destreg),
+				dest_reg_mapped,
+				PPCR_TMP_NONVOL0);
+
+		//Restore non-volatile register
+		comp_macroblock_push_load_reg_stack(
+				COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
+				PPCR_TMP_NONVOL0, 0);
+	}
+	else
+	{
+		//Normal memory access
+		tempaddr_reg = helper_allocate_tmp_reg();
+		tempaddr_reg_mapped = comp_get_gpr_for_temp_register(tempaddr_reg);
+
+		//Get memory address into the temp register
+		comp_macroblock_push_map_physical_mem(
+				output_dep,
+				COMP_COMPILER_MACROBLOCK_REG_TMP(tempaddr_reg),
+				tempaddr_reg_mapped,
+				dest_reg_mapped);
+
+		//Check specified registers in the extension word
+		offset = 0;
+		for(i = 0; i < 16; i++)
+		{
+			if ((extword & (1 << i)) != 0)
+			{
+				//Step to the next address
+				offset -= size;
+
+				//Get the temp register if it was mapped already
+				selected_reg = comp_get_mapped_temp_register(
+						i < 8 ? COMP_COMPILER_REGS_ADDRREG(i) :
+								COMP_COMPILER_REGS_DATAREG(i - 8));
+
+				if (selected_reg == PPC_TMP_REG_NOTUSED)
+				{
+					//Not mapped yet, let's read it directly from the register store
+					//Read register content from store to R0
+					//For this MOVEM instruction the registers are stored in reversed order in the extension word
+					comp_macroblock_push_load_memory_long(
+							COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
+							COMP_COMPILER_MACROBLOCK_REG_NONE,
+							PPCR_SPECTMP,
+							PPCR_REGS_BASE,
+							(15 - i) * 4);
+
+					selected_reg = PPCR_SPECTMP;
+				}
+
+				//Save long to memory, prevent from optimizing away
+				switch (size)
+				{
+				case 4:
+					comp_macroblock_push_save_memory_long(
+							COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
+							COMP_COMPILER_MACROBLOCK_REG_NONE,
+							selected_reg,
+							tempaddr_reg_mapped,
+							offset);
+					break;
+				case 2:
+					comp_macroblock_push_save_memory_word(
+							COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
+							COMP_COMPILER_MACROBLOCK_REG_NONE,
+							selected_reg,
+							tempaddr_reg_mapped,
+							offset);
+					break;
+				}
+			}
+		}
+
+		//Update register by the calculated offset
+		comp_macroblock_push_add_register_imm(
+				output_dep,
+				output_dep,
+				dest_reg_mapped,
+				dest_reg_mapped,
+				offset);
+
+		comp_free_temp_register(tempaddr_reg);
 	}
 }
 
