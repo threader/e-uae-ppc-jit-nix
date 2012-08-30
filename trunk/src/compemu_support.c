@@ -201,7 +201,7 @@ void check_prefs_changed_comp(void)
 	currprefs.comptrustword = changed_prefs.comptrustword;
 	currprefs.comptrustlong = changed_prefs.comptrustlong;
 	currprefs.comptrustnaddr = changed_prefs.comptrustnaddr;
-	currprefs.compnf = changed_prefs.compnf;
+	currprefs.compoptim = changed_prefs.compoptim;
 	currprefs.complog = changed_prefs.complog;
 	currprefs.complogcompiled = changed_prefs.complogcompiled;
 	currprefs.comp_hardflush = changed_prefs.comp_hardflush;
@@ -869,6 +869,24 @@ uae_u8 comp_map_temp_register(uae_u8 reg_number, int needs_init, int needs_flush
 }
 
 /**
+ * Returns the mapped temporary register for a M68k register if available
+ * Parameters:
+ *   reg_number - number of the M68k register for the mapping
+ * Returns the mapped physical PPC register number, or PPC_TMP_REG_NOTUSED if it was not mapped yet.
+ */
+int comp_get_mapped_temp_register(uae_u8 reg_number)
+{
+	struct m68k_register* reg = &comp_m68k_registers[reg_number];
+
+	if (reg->tmpreg == PPC_TMP_REG_NOTUSED)
+	{
+		return PPC_TMP_REG_NOTUSED;
+	} else {
+		return comp_get_gpr_for_temp_register(reg->tmpreg);
+	}
+}
+
+/**
  * Free up mapping of a temp register to a M68k register
  * Parameters:
  *    reg_number - M68k register number that is mapped
@@ -887,7 +905,7 @@ void comp_unmap_temp_register(uae_u8 reg_number)
 		{
 			//Register must be written back to the regs array
 			comp_macroblock_push_save_memory_long(
-					COMP_COMPILER_MACROBLOCK_REG_DX_OR_AX(used_tmp_regs[reg_number]),
+					COMP_COMPILER_MACROBLOCK_REG_DX_OR_AX(reg_number),
 					COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
 					comp_get_gpr_for_temp_register(reg->tmpreg),
 					PPCR_REGS_BASE,
@@ -911,6 +929,40 @@ void comp_unlock_all_temp_registers()
 
 	for(i = 0; i < 16; i++)
 		comp_m68k_registers[i].locked = 0;
+}
+
+/**
+ * Dumps the register usage flags from a 64 bit integer into a string buffer.
+ * Parameters:
+ *    regs - input, output or carry flag collection for the register usage
+ *    str - string buffer for the output
+ *    dump_control - enable/disable dumping the control flags in front of the register flags
+ */
+void comp_dump_reg_usage(uae_u64 regs, char* str, char dump_control)
+{
+	int i, j = 0;
+
+	//Dump control flags if enabled
+	if (dump_control)
+	{
+		for(i = 63; i > COMP_COMPILER_MACROBLOCK_CONTROL_FLAGS_START - 1; i--) str[j++] = regs & (1UL << i) ? '1' : '0';
+		str[j++] = ' ';
+	}
+
+	//Dump temporary regs
+	for(i = COMP_COMPILER_MACROBLOCK_TMP_REGS_START + PPC_TMP_REGS_COUNT; i > COMP_COMPILER_MACROBLOCK_TMP_REGS_START - 1; i--) str[j++] = regs & (1UL << i) ? '1' : '0';
+	str[j++] = ' ';
+
+	//Dump normal regs
+	for(i = COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGS_START - 1; i > COMP_COMPILER_MACROBLOCK_ADDR_REGS_START - 1; i--) str[j++] = regs & (1UL << i) ? '1' : '0';
+	str[j++] = ' ';
+	for(i = COMP_COMPILER_MACROBLOCK_ADDR_REGS_START - 1; i > COMP_COMPILER_MACROBLOCK_REGS_START - 1; i--) str[j++] = regs & (1UL << i) ? '1' : '0';
+	str[j++] = ' ';
+
+	//Dump flags
+	for(i = COMP_COMPILER_MACROBLOCK_REGS_START - 1; i > - 1; i--) str[j++] = regs & (1UL << i) ? '1' : '0';
+
+	str[j] = '\0';
 }
 
 /**
