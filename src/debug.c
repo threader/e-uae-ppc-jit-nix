@@ -1715,6 +1715,7 @@ void disassemble_compiled(void* startaddress, void* endaddress)
 	struct DisasmPara_PPC params;
 	char opcode[10];
 	char operands[24];
+	ppc_word* newaddress;
 
 	params.opcode = opcode;
 	params.operands = operands;
@@ -1722,9 +1723,10 @@ void disassemble_compiled(void* startaddress, void* endaddress)
 	for(;startaddress < endaddress;)
 	{
 		params.instr = params.iaddr = (ppc_word *)startaddress;
-		startaddress = PPC_Disassemble(&params);
 
+		newaddress = PPC_Disassemble(&params);
 		write_jit_log("Dism: %08x: %s %s\n", startaddress, params.opcode, params.operands);
+		startaddress = newaddress;
 	}
 }
 #endif
