@@ -1725,7 +1725,7 @@ void disassemble_compiled(void* startaddress, void* endaddress)
 		params.instr = params.iaddr = (ppc_word *)startaddress;
 
 		newaddress = PPC_Disassemble(&params);
-		write_jit_log("Dism: %08x: %s %s\n", startaddress, params.opcode, params.operands);
+		write_jit_log("Dism: %08x: %08x %s %s\n", startaddress, *(int*)startaddress, params.opcode, params.operands);
 		startaddress = newaddress;
 	}
 }
