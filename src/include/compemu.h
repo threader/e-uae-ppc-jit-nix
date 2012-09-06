@@ -72,9 +72,17 @@ typedef struct blockinfo_t
  *    CR2-4 (NOTE: actually, CR2 is used by the interpretive)
  */
 
+#ifdef __APPLE__
+#warning Assuming Darwin PowerPC ABI
+#else
+#warning Assuming SysV PowerPC ABI
+#endif
+
 #define	PPCR_SPECTMP	0	// r0 - special temporary register, cannot be used for every operation
 #define	PPCR_SP			1	// r1 - stack pointer
+#ifndef __APPLE__
 #define	PPCR_RTOC		2	// r2 - rtoc register, must be preserved
+#endif
 
 /* PowerPC function call parameter registers
  * Please note: the parameter registers are reused as temporary registers */
@@ -93,30 +101,49 @@ typedef struct blockinfo_t
 #define PPCR_TMP7	10	// r10
 #define PPCR_TMP8	11	// r11
 #define PPCR_TMP9	12	// r12
+#ifndef __APPLE__
 #define PPCR_TMP10	13	// r13
+#else
+#define PPCR_TMP10	2	// r2
+#endif
 
 /* Regs structure base pointer register
  * Note: A non-volatile register was chosen to avoid the reloading of
  * this register when an external function is called. */
+#ifndef __APPLE__
 #define PPCR_REGS_BASE	14	// r14
+#else
+#define PPCR_REGS_BASE	13	// r13
+#endif
 
 /* M68k flags register: while the flags are emulated those are stored
  * in this register, the layout is detailed in PPCR_FLAG_* constants.
  * IMPORTANT: the state of the other bits are not defined, at every usage of
  * the flags the other bits must be masked out. */
+#ifndef __APPLE__
 #define PPCR_FLAGS	15	// r15
+#else
+#define PPCR_FLAGS	14	// r14
+#endif
 
 /* Non-volatile registers, values are preserved while the execution leaves
  * the translated code.
  * IMPORTANT: these registers are not saved automatically in the prolog/epilog
- * functions for the translated code chunk. Call comp_ppc_save_nonvolatile()
- * with the number of the register before and comp_ppc_restore_nonvolatile()
- * after using it, but before the translated code chunk finishes (epilog function
- * destroys the stack frame where these are stored).
+ * functions for the translated code chunk. Save these registers using
+ * comp_macroblock_push_save_reg_stack() function before use and restore
+ * by calling comp_macroblock_push_load_reg_stack() before the execution leaves
+ * the compiled block.
  */
+#ifndef __APPLE__
 #define PPCR_TMP_NONVOL0	16	// r16
 #define PPCR_TMP_NONVOL1	17	// r17
+#else
+#define PPCR_TMP_NONVOL0	15	// r15
+#define PPCR_TMP_NONVOL1	16	// r16
+#endif
 
+/* Temporary CR registers
+ */
 #define PPCR_CR_TMP0	0	//CR0
 #define PPCR_CR_TMP1	1	//CR1
 #define PPCR_CR_TMP2	2	//CR2 - NOTE: this supposed to be preserved, but the interpretive emulator is using it already
@@ -263,6 +290,7 @@ void comp_ppc_stb(int regs, uae_u16 delta, int rega);
 void comp_ppc_sth(int regs, uae_u16 delta, int rega);
 void comp_ppc_sthu(int regs, uae_u16 delta, int rega);
 void comp_ppc_stw(int regs, uae_u16 delta, int rega);
+void comp_ppc_stwu(int regs, uae_u16 delta, int rega);
 void comp_ppc_subfco(int regd, int rega, int regb, int updateflags);
 void comp_ppc_subfe(int regd, int rega, int regb, int updateflags);
 void comp_ppc_xor(int rega, int regs, int regb, int updateflags);
@@ -283,6 +311,14 @@ void comp_ppc_return_to_caller(uae_u32 restore_regs);
 void comp_ppc_do_cycles(int totalcycles);
 void comp_ppc_verify_pc(uae_u8* pc_addr_exp);
 void comp_ppc_reload_pc_p(uae_u8* new_pc_p);
+#endif
+
+/* I wonder why we don't have these defined globally. */
+#ifndef FALSE
+#define FALSE 0
+#endif
+#ifndef TRUE
+#define TRUE 1
 #endif
 
 /* Some more function protos */
