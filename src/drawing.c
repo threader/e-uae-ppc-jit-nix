@@ -85,7 +85,6 @@ static int linedbl, linedbld;
 int interlace_seen = 0;
 #define AUTO_LORES_FRAMES 10
 static int can_use_lores = 0, frame_res, frame_res_lace, last_max_ypos;
-static uae_u16 bplcon0_store, bplcon3_store;
 
 /* Lookup tables for dual playfields.  The dblpf_*1 versions are for the case
    that playfield 1 has the priority, dbplpf_*2 are used if playfield 2 has
@@ -220,7 +219,7 @@ static int bplres;
 static int plf1pri, plf2pri, bplxor;
 static uae_u32 plf_sprite_mask;
 static int sbasecol[2] = { 16, 16 };
-static bool brdsprt, brdblank, brdblank_changed;
+static bool brdsprt, brdblank;
 static int hposblank;
 
 bool picasso_requested_on;
@@ -339,7 +338,7 @@ extern int lof_store;
 #define MAX_DISPLAY_W 362
 #define MAX_DISPLAY_H 283
 
-static int gclow, gcloh, gclox, gcloy;
+static int gclow, gcloh, gclox, gcloy, gclorealh;
 
 void get_custom_topedge (int *x, int *y)
 {
@@ -355,6 +354,7 @@ void get_custom_topedge (int *x, int *y)
 static void reset_custom_limits (void)
 {
 	gclow = gcloh = gclox = gcloy = 0;
+	gclorealh = -1;
 }
 
 void set_custom_limits (int w, int h, int dx, int dy)
@@ -383,7 +383,7 @@ void set_custom_limits (int w, int h, int dx, int dy)
 		notice_screen_contents_lost ();
 }
 
-int get_custom_limits (int *pw, int *ph, int *pdx, int *pdy)
+int get_custom_limits (int *pw, int *ph, int *pdx, int *pdy, int *prealh)
 {
 	int w, h, dx, dy, y1, y2, dbl1, dbl2;
 	int ret = 0;
@@ -398,6 +398,7 @@ int get_custom_limits (int *pw, int *ph, int *pdx, int *pdy)
 		*ph = gfxvidinfo.outheight;
 		*pdx = 0;
 		*pdy = 0;
+		*prealh = -1;
 		return 1;
 	}
 
@@ -405,6 +406,7 @@ int get_custom_limits (int *pw, int *ph, int *pdx, int *pdy)
 	*ph = gcloh;
 	*pdx = gclox;
 	*pdy = gcloy;
+	*prealh = gclorealh;
 
 	if (gclow > 0 && gcloh > 0)
 		ret = -1;
@@ -479,6 +481,15 @@ int get_custom_limits (int *pw, int *ph, int *pdx, int *pdy)
 	if (dx < 0)
 		dx = 0;
 
+	*prealh = -1;
+	if (!programmedmode && first_planes_vpos) {
+		int th = (maxvpos - minfirstline) * 95 / 100;
+		if (th > h) {
+			th = xshift (th, dbl1);
+			*prealh = th;
+		}
+	}
+
 	dy = xshift (dy, dbl2);
 	h = xshift (h, dbl1);
 
@@ -520,6 +531,7 @@ int get_custom_limits (int *pw, int *ph, int *pdx, int *pdy)
 	gcloh = h;
 	gclox = dx;
 	gcloy = dy;
+	gclorealh = *prealh;
 	*pw = w;
 	*ph = h;
 	*pdx = dx;
@@ -765,7 +777,7 @@ STATIC_INLINE xcolnr getbgc (bool blank)
 		return xcolors[0x880];
 	return xcolors[0xf0f];
 #endif
-	return (blank || brdblank || hposblank) ? 0 : colors_for_drawing.acolors[0];
+	return (blank || hposblank || colors_for_drawing.borderblank) ? 0 : colors_for_drawing.acolors[0];
 }
 
 STATIC_INLINE void fill_line_16 (uae_u8 *buf, int start, int stop, bool blank)
@@ -1977,16 +1989,6 @@ static bool isham (uae_u16 bplcon0)
 	return 0;
 }
 
-static void isbrdblank (void)
-{
-#ifdef ECS_DENISE
-	bool brdblank_2 = (currprefs.chipset_mask & CSMASK_ECS_DENISE) && (bplcon0_store & 1) && (bplcon3_store & 0x20);
-	if (brdblank_2 != brdblank)
-		brdblank_changed = true;
-	brdblank = brdblank_2;
-#endif
-}
-
 static void pfield_expand_dp_bplconx (int regno, int v)
 {
 	if (regno == 0xffff) {
@@ -2001,8 +2003,6 @@ static void pfield_expand_dp_bplconx (int regno, int v)
 		dp_for_drawing->bplres = GET_RES_DENISE (v);
 		dp_for_drawing->nr_planes = GET_PLANES (v);
 		dp_for_drawing->ham_seen = isham (v);
-		bplcon0_store = v;
-		isbrdblank ();
 		break;
 	case 0x104:
 		dp_for_drawing->bplcon2 = v;
@@ -2010,8 +2010,6 @@ static void pfield_expand_dp_bplconx (int regno, int v)
 #ifdef ECS_DENISE
 	case 0x106:
 		dp_for_drawing->bplcon3 = v;
-		bplcon3_store = v;
-		isbrdblank ();
 		break;
 #endif
 #ifdef AGA
@@ -2038,6 +2036,7 @@ static void adjust_drawing_colors (int ctable, int need_full)
 		} else {
 			memcpy (colors_for_drawing.acolors, curr_color_tables[ctable].acolors,
 				sizeof colors_for_drawing.acolors);
+			colors_for_drawing.borderblank = curr_color_tables[ctable].borderblank;
 			color_match_type = color_match_acolors;
 		}
 		drawing_color_matches = ctable;
@@ -2095,8 +2094,12 @@ static void do_color_changes (line_draw_func worker_border, line_draw_func worke
 		if (regno >= 0x1000) {
 			pfield_expand_dp_bplconx (regno, value);
 		} else if (regno >= 0) {
+			if (regno == 0 && (value & COLOR_CHANGE_BRDBLANK)) {
+				colors_for_drawing.borderblank = (value & 1) != 0;
+			} else {
 			color_reg_set (&colors_for_drawing, regno, value);
 			colors_for_drawing.acolors[regno] = getxcolor (value);
+		}
 		}
 		if (lastpos >= endpos)
 			break;
@@ -2242,7 +2245,7 @@ static void pfield_draw_line (int lineno, int gfx_ypos, int follow_ypos)
 			dosprites = 1;
 			pfield_expand_dp_bplcon ();
 			pfield_init_linetoscr ();
-			memset (pixdata.apixels + MAX_PIXELS_PER_LINE, brdblank ? 0 : colors_for_drawing.acolors[0], MAX_PIXELS_PER_LINE);
+			memset (pixdata.apixels + MAX_PIXELS_PER_LINE, colors_for_drawing.borderblank ? 0 : colors_for_drawing.acolors[0], MAX_PIXELS_PER_LINE);
 		}
 #endif
 
@@ -2297,7 +2300,8 @@ static void pfield_draw_line (int lineno, int gfx_ypos, int follow_ypos)
 	} else {
 
 		int tmp = hposblank;
-		hposblank = brdblank;
+		//hposblank = brdblank;
+		hposblank = colors_for_drawing.borderblank;
 		fill_line ();
 		do_flush_line (gfx_ypos);
 		hposblank = tmp;
@@ -2392,13 +2396,10 @@ static void center_image (void)
 		frame_redraw_necessary |= (interlace_seen > 0 && linedbl) ? 2 : 1;
 
 	max_diwstop = 0;
-	min_diwstart = 10000;
+	min_diwstart = MAX_STOP;
 
 	gfxvidinfo.xoffset = (DISPLAY_LEFT_SHIFT << RES_MAX) + (visible_left_border << (RES_MAX - currprefs.gfx_resolution));
 	gfxvidinfo.yoffset = thisframe_y_adjust << VRES_MAX;
-
-	visible_left_start = visible_left_border;
-	visible_right_stop = visible_left_start + gfxvidinfo.inwidth;;
 }
 
 #define FRAMES_UNTIL_RES_SWITCH 1
@@ -2655,12 +2656,16 @@ static void lightpen_update (void)
 	for (i = 0; i < LIGHTPEN_HEIGHT; i++) {
 		int line = lightpen_y + i - LIGHTPEN_HEIGHT / 2;
 		if (line >= 0 || line < max_ypos_thisframe) {
-			draw_lightpen_cursor(lightpen_x, i, line, lightpen_cx > 0);
+			if (lightpen_active > 0)
+				draw_lightpen_cursor (lightpen_x, i, line, lightpen_cx > 0);
 			flush_line (line);
 		}
 	}
 	lightpen_y1 = lightpen_y - LIGHTPEN_HEIGHT / 2 - 1 + min_ypos_for_screen;
 	lightpen_y2 = lightpen_y1 + LIGHTPEN_HEIGHT + 2;
+
+	if (lightpen_active < 0)
+		lightpen_active = 0;
 }
 
 void finish_drawing_frame (void)
@@ -2695,7 +2700,7 @@ void finish_drawing_frame (void)
 		hposblank = 0;
 		pfield_draw_line (line, where2, amiga2aspect_line_map[i1 + 1]);
 	}
-
+#if 0
 	/* clear possible old garbage at the bottom if emulated area become smaller */
 	for (i = last_max_ypos; i < gfxvidinfo.outheight; i++) {
 		int i1 = i + min_ypos_for_screen;
@@ -2707,7 +2712,7 @@ void finish_drawing_frame (void)
 		if (where2 < 0)
 			continue;
 
-		hposblank = i > last_max_ypos ;// + AMIGA_HEIGHT_EXTRA;
+		hposblank = i > last_max_ypos || i >= max_ypos_thisframe;
 
 		xlinebuffer = gfxvidinfo.linemem;
 		if (xlinebuffer == 0)
@@ -2718,7 +2723,7 @@ void finish_drawing_frame (void)
 			linestate[line] = LINE_UNDECIDED;
 		do_flush_line (where2);
 	}
-
+#endif
 	if (currprefs.leds_on_screen) {
 		int slx, sly;
 		statusline_getpos (&slx, &sly, gfxvidinfo.outwidth, gfxvidinfo.outheight);
@@ -2738,8 +2743,8 @@ void finish_drawing_frame (void)
 	}
 #endif
 
-	if (lightpen_x > 0 || lightpen_y > 0)
-		lightpen_update ();
+//	if (lightpen_active)
+//		lightpen_update ();
 
 /*	if (currprefs.monitoremu && gfxvidinfo.tempbuffer.bufmem_allocated) {
 		static bool specialon;
@@ -2769,16 +2774,6 @@ void finish_drawing_frame (void)
 
 	if (!didflush)
 		do_flush_screen (first_drawn_line, last_drawn_line);
-
-#ifdef ECS_DENISE
-	if (brdblank_changed) {
-		last_max_ypos = max_ypos_thisframe;
-		for (i = sizeof linestate / sizeof *linestate; i--;)
-			linestate[i] = LINE_UNDECIDED;
-		notice_screen_contents_lost ();
-		brdblank_changed = false;
-	}
-#endif
 }
 
 void hardware_line_completed (int lineno)
@@ -2898,14 +2893,10 @@ void vsync_handle_redraw (int long_frame, int lof_changed, uae_u16 bplcon0p, uae
 			flush_screen (0, 0); /* vsync mode */
 	}
 
-	/* check borderblank here because bplcon0 or especially bplcon3 may only be written once outside of displayable area */
-	bplcon0_store = bplcon0p;
-	bplcon3_store = bplcon3p;
-	isbrdblank ();
-
 	gui_flicker_led (-1, 0, 0);
 #ifdef AVIOUTPUT
-	frame_drawn ();
+	if (!picasso_on)
+		frame_drawn ();
 #endif
 }
 

@@ -8,8 +8,8 @@
  */
 
 #define UAEMAJOR 2
-#define UAEMINOR 4
-#define UAESUBREV 2
+#define UAEMINOR 5
+#define UAESUBREV 0
 
 typedef enum { KBD_LANG_US, KBD_LANG_DK, KBD_LANG_DE, KBD_LANG_SE, KBD_LANG_FR, KBD_LANG_IT, KBD_LANG_ES, KBD_LANG_FI, KBD_LANG_TR } KbdLang;
 
@@ -57,7 +57,7 @@ struct uae_input_device {
 	TCHAR *configname;
 	uae_s16 eventid[MAX_INPUT_DEVICE_EVENTS][MAX_INPUT_SUB_EVENT_ALL];
 	TCHAR *custom[MAX_INPUT_DEVICE_EVENTS][MAX_INPUT_SUB_EVENT_ALL];
-	uae_u32 flags[MAX_INPUT_DEVICE_EVENTS][MAX_INPUT_SUB_EVENT_ALL];
+	uae_u64 flags[MAX_INPUT_DEVICE_EVENTS][MAX_INPUT_SUB_EVENT_ALL];
 	uae_s8 port[MAX_INPUT_DEVICE_EVENTS][MAX_INPUT_SUB_EVENT_ALL];
 	uae_s16 extra[MAX_INPUT_DEVICE_EVENTS];
 	uae_s8 enabled;
@@ -245,6 +245,10 @@ struct uae_prefs {
 	bool sound_stereo_swap_ahi;
 	bool sound_auto;
 
+	int sampler_freq;
+	int sampler_buffer;
+	bool sampler_stereo;
+
 #ifdef JIT
 	int comptrustbyte;
 	int comptrustword;
@@ -306,9 +310,10 @@ struct uae_prefs {
 	int gfx_filter_saturation, gfx_filter_luminance, gfx_filter_contrast, gfx_filter_gamma;
 	int gfx_filter_keep_aspect, gfx_filter_aspect;
 	int gfx_filter_autoscale;
+	int gfx_filter_keep_autoscale_aspect;
 
 	bool immediate_blits;
-	bool waiting_blits;
+	int waiting_blits;
 	unsigned int chipset_mask;
 	bool ntscmode;
 	bool genlock;
@@ -335,10 +340,12 @@ struct uae_prefs {
 	int floppy_write_length;
 	int floppy_random_bits_min;
 	int floppy_random_bits_max;
+	bool floppy_auto_ext2;
 	bool tod_hack;
 	uae_u32 maprom;
 	int turbo_emulation;
 	bool headless;
+	int filesys_limit;
 
 	int cs_compatible;
 	int cs_ciaatod;
@@ -403,7 +410,7 @@ struct uae_prefs {
 	struct multipath path_cd;
 
 	int m68k_speed;
-	int m68k_speed_throttle;
+	double m68k_speed_throttle;
 	int cpu_model;
 	int mmu_model;
 	int cpu060_revision;
@@ -430,6 +437,7 @@ struct uae_prefs {
 	uae_u32 mbresmem_high_size;
 	uae_u32 rtgmem_size;
 	bool rtg_hardwareinterrupt;
+	bool rtg_hardwaresprite;
 	int rtgmem_type;
 	uae_u32 custom_memory_addrs[MAX_CUSTOM_MEMORY_ADDRS];
 	uae_u32 custom_memory_sizes[MAX_CUSTOM_MEMORY_ADDRS];
@@ -477,6 +485,8 @@ struct uae_prefs {
 	bool win32_powersavedisabled;
 	bool win32_minimize_inactive;
 	int win32_statusbar;
+	bool win32_start_minimized;
+	bool win32_start_uncaptured;
 
 	int win32_active_capture_priority;
 	bool win32_active_nocapture_pause;
@@ -513,6 +523,7 @@ struct uae_prefs {
 	TCHAR win32_parjoyport0[MAX_DPATH];
 	TCHAR win32_parjoyport1[MAX_DPATH];
 	TCHAR win32_guipage[32];
+	bool win32_filesystem_mangle_reserved_names;
 #endif
 	int win32_rtgvblankrate;
 

@@ -958,6 +958,14 @@ static uae_u32 REGPARAM2 op_illg_1 (uae_u32 opcode)
 	op_illg (opcode);
 	return 4;
 }
+static uae_u32 REGPARAM2 op_unimpl_1 (uae_u32 opcode)
+{
+	if ((opcode & 0xf000) == 0xf000 || currprefs.cpu_model < 68060)
+		op_illg (opcode);
+	else
+		op_unimpl ();
+	return 4;
+}
 
 static void build_cpufunctbl (void)
 {
@@ -1046,12 +1054,24 @@ static void build_cpufunctbl (void)
 				cpufunctbl[tbl[i].opcode] = tbl[i].handler;
 		}
 	}
+
 	opcnt = 0;
 	for (opcode = 0; opcode < 65536; opcode++) {
 		cpuop_func *f;
 
 		if (table68k[opcode].mnemo == i_ILLG)
 			continue;
+
+		/* unimplemented opcode? */
+		if (table68k[opcode].unimpclev > 0 && lvl >= table68k[opcode].unimpclev) {
+			if (currprefs.cpu_compatible && currprefs.cpu_model == 68060) {
+				cpufunctbl[opcode] = op_unimpl_1;
+			} else {
+				cpufunctbl[opcode] = op_illg_1;
+			}
+			continue;
+		}
+
 		if (currprefs.fpu_model && currprefs.cpu_model < 68020) {
 			/* more hack fpu to 68000/68010 mode */
 			if (table68k[opcode].clev > lvl && (opcode & 0xfe00) != 0xf200)
@@ -1117,9 +1137,9 @@ static void update_68k_cycles (void)
 	cycles_mult = 0;
 	if (currprefs.m68k_speed >= 0 && !currprefs.cpu_cycle_exact) {
 		if (currprefs.m68k_speed_throttle < 0) {
-			cycles_mult = CYCLES_DIV * 1000 / (1000 + currprefs.m68k_speed_throttle);
+			cycles_mult = (unsigned long)(CYCLES_DIV * 1000 / (1000 + currprefs.m68k_speed_throttle));
 		} else if (currprefs.m68k_speed_throttle > 0) {
-			cycles_mult = CYCLES_DIV * 1000 / (1000 + currprefs.m68k_speed_throttle);
+			cycles_mult = (unsigned long)(CYCLES_DIV * 1000 / (1000 + currprefs.m68k_speed_throttle));
 	}
 	}
 	if (currprefs.m68k_speed == 0 && currprefs.cpu_model >= 68020) {
@@ -2776,11 +2796,15 @@ STATIC_INLINE int div_unsigned (uae_u32 src_hi, uae_u32 src_lo, uae_u32 div, uae
 
 void m68k_divl (uae_u32 opcode, uae_u32 src, uae_u16 extra)
 {
-#if defined (uae_s64)
+	if ((extra & 0x400) && currprefs.cpu_compatible && currprefs.cpu_model == 68060) {
+		op_unimpl ();
+		return;
+	}
 	if (src == 0) {
 		Exception (5);
 		return;
 	}
+#if defined (uae_s64)
 	if (extra & 0x800) {
 		/* signed variant */
 		uae_s64 a = (uae_s64)(uae_s32)m68k_dreg (regs, (extra >> 12) & 7);
@@ -2832,10 +2856,6 @@ void m68k_divl (uae_u32 opcode, uae_u32 src, uae_u16 extra)
 		}
 	}
 #else
-	if (src == 0) {
-		Exception (5);
-		return;
-	}
 	if (extra & 0x800) {
 		/* signed variant */
 		uae_s32 lo = (uae_s32)m68k_dreg (regs, (extra >> 12) & 7);
@@ -2915,6 +2935,10 @@ STATIC_INLINE void mul_unsigned (uae_u32 src1, uae_u32 src2, uae_u32 *dst_hi, ua
 
 void m68k_mull (uae_u32 opcode, uae_u32 src, uae_u16 extra)
 {
+	if ((extra & 0x400) && currprefs.cpu_compatible && currprefs.cpu_model == 68060) {
+		op_unimpl ();
+		return;
+	}
 #if defined (uae_s64)
 	if (extra & 0x800) {
 		/* signed variant */
@@ -3087,6 +3111,11 @@ void m68k_reset (int hardreset)
 	regs.ce020tmpcycles = MAX68020CYCLES;
 	regs.ce020memcycles = 0;
 	fill_prefetch_quick ();
+}
+
+void REGPARAM2 op_unimpl (void)
+{
+	Exception (61);
 }
 
 uae_u32 REGPARAM2 op_illg (uae_u32 opcode)
@@ -3280,11 +3309,6 @@ static void mmu_op30_pflush (uaecptr pc, uae_u32 opcode, uae_u16 next, uaecptr e
 
 void mmu_op30 (uaecptr pc, uae_u32 opcode, uae_u16 extra, uaecptr extraa)
 {
-	if (currprefs.cpu_model != 68030) {
-		m68k_setpc (pc);
-		op_illg (opcode);
-		return;
-	}
 	if (extra & 0x8000)
 		mmu_op30_ptest (pc, opcode, extra, extraa);
 	else if (extra & 0x2000)
@@ -4311,7 +4335,7 @@ void m68k_go (int may_quit)
 			custom_reset (hardreset);
 			m68k_reset (hardreset);
 			if (hardreset) {
-				memory_hardreset ();
+				memory_clear ();
 				write_log (_T("hardreset, memory cleared\n"));
 			}
 #ifdef SAVESTATE
@@ -4535,13 +4559,22 @@ void m68k_disasm_2 (TCHAR *buf, int bufsize, uaecptr addr, uaecptr *nextpc, int 
 		struct mnemolookup *lookup;
 		struct instr *dp;
 		int oldpc;
+		int m68kpc_illg = 0;
+		bool illegal = false;
 
 		oldpc = m68kpc_offset;
 		opcode = get_iword_1 (m68kpc_offset);
-		if (cpufunctbl[opcode] == op_illg_1) {
-			opcode = 0x4AFC;
+		if (cpufunctbl[opcode] == op_illg_1 || cpufunctbl[opcode] == op_unimpl_1) {
+			m68kpc_illg = m68kpc_offset + 2;
+			illegal = true;
 		}
+
 		dp = table68k + opcode;
+		if (dp->mnemo == i_ILLG) {
+			illegal = false;
+			opcode = 0x4AFC;
+			dp = table68k + opcode;
+		}
 		for (lookup = lookuptab;lookup->mnemo != dp->mnemo; lookup++)
 			;
 
@@ -4613,7 +4646,11 @@ void m68k_disasm_2 (TCHAR *buf, int bufsize, uaecptr addr, uaecptr *nextpc, int 
 		while (i++ < 5)
 			buf = buf_out (buf, &bufsize, _T("     "));
 
+		if (illegal)
+			buf = buf_out (buf, &bufsize, _T("[ "));
 		buf = buf_out (buf, &bufsize, instrname);
+		if (illegal)
+			buf = buf_out (buf, &bufsize, _T(" ]"));
 
 		if (ccpt != 0) {
 			if (deaddr)
@@ -4628,6 +4665,9 @@ void m68k_disasm_2 (TCHAR *buf, int bufsize, uaecptr addr, uaecptr *nextpc, int 
 			buf = buf_out (buf, &bufsize, _T(" == $%08lX"), newpc);
 		}
 		buf = buf_out (buf, &bufsize, _T("\n"));
+
+		if (illegal)
+			m68kpc_offset =  m68kpc_illg;
 	}
 	if (nextpc)
 		*nextpc = m68k_getpc () + m68kpc_offset;
@@ -4836,7 +4876,8 @@ void m68k_dumpstate (void *f, uaecptr *nextpc)
 				f_out (f, _T("\n"));
 		}
 		fpsr = get_fpsr ();
-		f_out (f, _T("N=%d Z=%d I=%d NAN=%d\n"),
+		f_out (f, _T("FPSR: %04X FPCR: %08x FPIAR: %08x N=%d Z=%d I=%d NAN=%d\n"),
+			fpsr, regs.fpcr, regs.fpiar,
 			(fpsr & 0x8000000) != 0,
 			(fpsr & 0x4000000) != 0,
 			(fpsr & 0x2000000) != 0,

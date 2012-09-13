@@ -41,7 +41,7 @@ static uae_u8 play_qcode[MAX_TOTAL_SCSI_DEVICES][SUBQ_SIZE];
 static TCHAR newimagefiles[MAX_TOTAL_SCSI_DEVICES][256];
 static int imagechangetime[MAX_TOTAL_SCSI_DEVICES];
 static bool cdimagefileinuse[MAX_TOTAL_SCSI_DEVICES];
-static bool wasopen[MAX_TOTAL_SCSI_DEVICES];
+static int wasopen[MAX_TOTAL_SCSI_DEVICES];
 
 /* convert minutes, seconds and frames -> logical sector number */
 int msf2lsn (int msf)
@@ -537,6 +537,7 @@ static void check_changes (int unitnum)
 		changed = true;
 
 	if (changed) {
+		bool wasimage = currprefs.cdslots[unitnum].name[0] != 0;
 		if (unitsem[unitnum])
 			gotsem = getsem2 (unitnum, true);
 		cdimagefileinuse[unitnum] = changed_prefs.cdslots[unitnum].inuse;
@@ -547,14 +548,19 @@ static void check_changes (int unitnum)
 		imagechangetime[unitnum] = 3 * 50;
 		struct device_info di;
 		device_func[unitnum]->info (unitnum, &di, 0);
-		wasopen[unitnum] = di.open;
+		if (wasopen[unitnum] >= 0)
+			wasopen[unitnum] = di.open ? 1 : 0;
 		if (wasopen[unitnum]) {
 			device_func[unitnum]->closedev (unitnum);
+			wasopen[unitnum] = -1;
 			if (currprefs.scsi)  {
 				scsi_do_disk_change (unitnum, 0, &pollmode);
 				if (pollmode)
 					imagechangetime[unitnum] = 8 * 50;
-				filesys_do_disk_change (unitnum, 0);
+				if (filesys_do_disk_change (unitnum, 0)) {
+					imagechangetime[unitnum] = newimagefiles[unitnum][0] ? 3 * 50 : 0;
+					pollmode = 0;
+				}
 			}
 		}
 		write_log (_T("CD: eject (%s) open=%d\n"), pollmode ? _T("slow") : _T("fast"), wasopen[unitnum] ? 1 : 0);
@@ -584,6 +590,7 @@ static void check_changes (int unitnum)
 			write_log (_T("-> device open failed\n"));
                 	wasopen[unitnum] = 0;
 		} else {
+			wasopen[unitnum] = 1;
 			write_log (_T("-> device reopened\n"));
 		}
 	}

@@ -522,6 +522,7 @@ void restore_state (const TCHAR *filename)
 	savestate_file = f;
 	restore_header (chunk);
 	xfree (chunk);
+	restore_cia_start ();
 	changed_prefs.bogomem_size = 0;
 	changed_prefs.chipmem_size = 0;
 	changed_prefs.fastmem_size = 0;
@@ -1025,7 +1026,7 @@ static int save_state_internal (struct zfile *f, const TCHAR *description, int c
 	/* move this if you want to use CONF or LOG hunks when restoring state */
 	zfile_fwrite (endhunk, 1, 8, f);
 
-	dst = save_configuration (&len);
+	dst = save_configuration (&len, false);
 	if (dst) {
 		save_chunk (f, dst, len, _T("CONF"), comp);
 		xfree(dst);

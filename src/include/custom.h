@@ -130,14 +130,17 @@ extern bool programmedmode;
 #define DMA_MASTER    0x0200
 #define DMA_BLITPRI   0x0400
 
-#define CYCLE_REFRESH	0x01
-#define CYCLE_STROBE	0x02
-#define CYCLE_MISC		0x04
-#define CYCLE_SPRITE	0x08
-#define CYCLE_COPPER	0x10
-#define CYCLE_BLITTER	0x20
-#define CYCLE_CPU		0x40
-#define CYCLE_CPUNASTY	0x80
+#define CYCLE_REFRESH	1
+#define CYCLE_STROBE	2
+#define CYCLE_MISC		3
+#define CYCLE_SPRITE	4
+#define CYCLE_COPPER	5
+#define CYCLE_BLITTER	6
+#define CYCLE_CPU		7
+#define CYCLE_CPUNASTY	8
+#define CYCLE_COPPER_SPECIAL 0x10
+
+#define CYCLE_MASK 0x0f
 
 extern unsigned long frametime, timeframes;
 extern uae_u16 htotal, vtotal, beamcon0;
@@ -204,7 +207,7 @@ STATIC_INLINE int GET_PLANES(uae_u16 bplcon0)
 
 extern void fpscounter_reset (void);
 extern unsigned long idletime;
-extern int lightpen_x, lightpen_y, lightpen_cx, lightpen_cy;
+extern int lightpen_x, lightpen_y, lightpen_cx, lightpen_cy, lightpen_active;
 
 struct customhack {
 	uae_u16 v;
@@ -213,6 +216,7 @@ struct customhack {
 void customhack_put (struct customhack *ch, uae_u16 v, int hpos);
 uae_u16 customhack_get (struct customhack *ch, int hpos);
 extern void alloc_cycle_ext (int, int);
+extern void alloc_cycle_blitter (int hpos, uaecptr *ptr, int);
 extern bool ispal (void);
 extern int current_maxvpos (void);
 extern struct chipset_refresh *get_chipset_refresh (void);

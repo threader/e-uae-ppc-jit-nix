@@ -84,6 +84,8 @@
 #define TRACE2(x)
 #endif
 
+#define RTAREA_HEARTBEAT 0xFFFC
+
 static void get_time (time_t t, long* days, long* mins, long* ticks);
 
 static uae_sem_t test_sem;
@@ -1271,11 +1273,22 @@ int filesys_eject (int nr)
 	return 1;
 }
 
+static uae_u32 heartbeat;
+static int heartbeat_count;
+static int heartbeat_task;
+
 // This uses filesystem process to reduce resource usage
 void setsystime (void)
 {
 	if (!currprefs.tod_hack)
 		return;
+	heartbeat = get_long (rtarea_base + RTAREA_HEARTBEAT);
+	heartbeat_task = 1;
+	heartbeat_count = 10;
+}
+
+static void setsystime_vblank (void)
+{
 	Unit *u;
 	for (u = units; u; u = u->next) {
 		if (is_virtual (u->unit)) {
@@ -1384,7 +1397,7 @@ static uae_u32 filesys_media_change_reply (TrapContext *ctx, int mode)
 			// insert
 			uae_u32 ctime = 0;
 			bool emptydrive = false;
-			struct uaedev_config_info *uci;
+			struct uaedev_config_info *uci = NULL;
 
 			clear_exkeys (u);
 			uci = &currprefs.mountconfig[nr];
@@ -2551,14 +2564,16 @@ static void
 	int ret, err = ERROR_NO_FREE_STORE;
 	int blocksize, nr;
 	uae_u32 dostype;
+	bool fs = false;
 
-	blocksize = 1204;
+	blocksize = 512;
 	/* not FFS because it is not understood by WB1.x C:Info */
 	dostype = DISK_TYPE_DOS;
 	nr = unit->unit;
 	if (unit->volflags & MYVOLUMEINFO_ARCHIVE) {
 		ret = zfile_fs_usage_archive (unit->ui.rootdir, 0, &fsu);
-#ifdef SCSI		
+		fs = true;
+#ifdef SCSI
 	} else if (unit->volflags & MYVOLUMEINFO_CDFS) {
 		struct isofs_info ii;
 		ret = isofs_mediainfo (unit->ui.cdfs_superblock, &ii) ? 0 : 1;
@@ -2566,11 +2581,12 @@ static void
 		fsu.fsu_bavail = 0;
 		blocksize = ii.blocksize;
 		nr = unit->unit - cd_unit_offset;
-#endif		
+#endif
 	} else {
 		ret = get_fs_usage (unit->ui.rootdir, 0, &fsu);
 		if (ret)
 			err = dos_errno ();
+		fs = true;
 	}
 	if (ret != 0) {
 		PUT_PCK_RES1 (packet, DOS_FALSE);
@@ -4155,6 +4171,7 @@ static void do_find (Unit *unit, dpacket packet, int mode, int create, int fallb
 		aino->shlock++;
 	}
 	de_recycle_aino (unit, aino);
+
 	PUT_PCK_RES1 (packet, DOS_TRUE);
 }
 
@@ -5235,6 +5252,7 @@ static void action_change_file_position64 (Unit *unit, dpacket packet)
 		PUT_PCK64_RES2 (packet, 0);
 		k->file_pos = cur;
 	}
+	TRACE((_T("= oldpos %lld newpos %lld\n"), cur, k->file_pos));
 
 }
 
@@ -5249,7 +5267,7 @@ static void action_get_file_position64 (Unit *unit, dpacket packet)
 		PUT_PCK64_RES2 (packet, ERROR_INVALID_LOCK);
 		return;
 	}
-	TRACE((_T("ACTION_GET_FILE_POSITION64(%s)\n"), k->aino->nname));
+	TRACE((_T("ACTION_GET_FILE_POSITION64(%s)=%lld\n"), k->aino->nname, k->file_pos));
 	PUT_PCK64_RES1 (packet, k->file_pos);
 	PUT_PCK64_RES2 (packet, 0);
 }
@@ -5268,7 +5286,7 @@ static void action_change_file_size64 (Unit *unit, dpacket packet)
 	if (mode < 0)
 		whence = SEEK_SET;
 
-	TRACE((_T("ACTION_CHANGE_FILE_SIZE64(0x%lx, %I64d, 0x%x)\n"), GET_PCK64_ARG1 (packet), offset, mode));
+	TRACE((_T("ACTION_CHANGE_FILE_SIZE64(0x%lx, %lld, 0x%x)\n"), GET_PCK64_ARG1 (packet), offset, mode));
 
 	k = lookup_key (unit, GET_PCK64_ARG1 (packet));
 	if (k == 0) {
@@ -5319,8 +5337,8 @@ static void action_get_file_size64 (Unit *unit, dpacket packet)
 		PUT_PCK64_RES2 (packet, ERROR_INVALID_LOCK);
 		return;
 	}
-	TRACE((_T("ACTION_GET_FILE_SIZE64(%s)\n"), k->aino->nname));
 	old = fs_lseek64 (k->fd, 0, SEEK_CUR);
+	TRACE((_T("ACTION_GET_FILE_SIZE64(%s)=%lld\n"), k->aino->nname, filesize));
 	if (old >= 0) {
 		filesize = fs_lseek64 (k->fd, 0, SEEK_END);
 		if (filesize >= 0) {
@@ -5674,7 +5692,7 @@ static void init_filesys_diagentry (void)
 	do_put_mem_long ((uae_u32 *)(filesysory + 0x2104), filesys_configdev);
 	do_put_mem_long ((uae_u32 *)(filesysory + 0x2108), EXPANSION_doslibname);
 	do_put_mem_word ((uae_u16 *)(filesysory + 0x210e), nr_units ());
-#ifdef SCSI	
+#ifdef SCSI
 	if (currprefs.scsi && /*currprefs.win32_automount_cddrives &&*/ USE_CDFS == 1)
 		do_put_mem_word ((uae_u16 *)(filesysory + 0x210c),  scsi_get_cd_drive_mask ());
 	else
@@ -6568,7 +6586,7 @@ static uae_u32 REGPARAM2 filesys_dev_storeinfo (TrapContext *context)
 		put_long (parmpacket + 80, DISK_TYPE_DOS); /* DOS\0 */
 		if (type == FILESYS_VIRTUAL) {
 			put_long (parmpacket + 4, fsdevname);
-			put_long (parmpacket + 20, 1024 >> 2); /* longwords per block */
+			put_long (parmpacket + 20, 512 >> 2); /* longwords per block */
 			put_long (parmpacket + 28, 15); /* heads */
 			put_long (parmpacket + 32, 1); /* sectors per block */
 			put_long (parmpacket + 36, 127); /* sectors per track */
@@ -6602,7 +6620,7 @@ static uae_u32 REGPARAM2 mousehack_done (TrapContext *context)
 		uaecptr diminfo = m68k_areg (regs, 2);
 		uaecptr dispinfo = m68k_areg (regs, 3);
 		uaecptr vp = m68k_areg (regs, 4);
-		input_mousehack_status (mode, diminfo, dispinfo, vp, m68k_dreg (regs, 2));
+		return input_mousehack_status (mode, diminfo, dispinfo, vp, m68k_dreg (regs, 2));
 	} else if (mode == 10) {
 		;//amiga_clipboard_die ();
 	} else if (mode == 11) {
@@ -6625,6 +6643,8 @@ static uae_u32 REGPARAM2 mousehack_done (TrapContext *context)
 		if (consolehook_activate ())
 			v |= 2;*/
 		return v;
+	} else if (mode == 18) {
+		return rtarea_base + RTAREA_HEARTBEAT;
 	} else if (mode == 101) {
 		consolehook_ret (m68k_areg (regs, 1), m68k_areg (regs, 2));
 	} else if (mode == 102) {
@@ -6640,6 +6660,13 @@ void filesys_vsync (void)
 {
 	Unit *u;
 
+	if (heartbeat == get_long (rtarea_base + RTAREA_HEARTBEAT)) {
+		if (heartbeat_count > 0)
+			heartbeat_count--;
+		return;
+	}
+	heartbeat = get_long (rtarea_base + RTAREA_HEARTBEAT);
+
 	for (u = units; u; u = u->next) {
 		if (u->reinsertdelay > 0) {
 			u->reinsertdelay--;
@@ -6652,6 +6679,14 @@ void filesys_vsync (void)
 			}
 		}
 		record_timeout (u);
+	}
+
+	if (heartbeat_count <= 0)
+		return;
+
+	if (heartbeat_task & 1) {
+		setsystime_vblank ();
+		heartbeat_task &= ~1;
 	}
 }
 
@@ -6681,6 +6716,11 @@ void filesys_install (void)
 	dw(0x4ED0); /* JMP (a0) - jump to code that inits Residents */
 
 	loop = here ();
+
+	org (rtarea_base + RTAREA_HEARTBEAT);
+	dl (0);
+	heartbeat = 0;
+	heartbeat_task = 0;
 
 	org (rtarea_base + 0xFF18);
 	calltrap (deftrap2 (filesys_dev_bootfilesys, 0, _T("filesys_dev_bootfilesys")));

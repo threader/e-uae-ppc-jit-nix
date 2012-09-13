@@ -181,15 +181,15 @@ struct inputdevice_functions inputdevicefunc_joystick = {
 /*
  * Set default inputdevice config for SDL joysticks
  */
-int input_get_default_joystick (struct uae_input_device *uid, int i, int port, int af, int mode)
+int input_get_default_joystick (struct uae_input_device *uid, int num, int port, int af, int mode, bool gp)
 {
 	int h,v;
 	unsigned int j;
 	struct didata *did;
 	SDL_Joystick *joy;
-	joy = joys[i].joy;
+	joy = joys[num].joy;
 
-	if (i >= get_joystick_num ())
+	if (num >= get_joystick_num ())
 		return 0;
 
 	if (mode == JSEM_MODE_MOUSE_CDTV) {
@@ -202,46 +202,46 @@ int input_get_default_joystick (struct uae_input_device *uid, int i, int port, i
 		h = port ? INPUTEVENT_JOY2_HORIZ : INPUTEVENT_JOY1_HORIZ;;
 		v = port ? INPUTEVENT_JOY2_VERT : INPUTEVENT_JOY1_VERT;
 	}
-	setid (uid, i, ID_AXIS_OFFSET + 0, 0, port, h);
-	setid (uid, i, ID_AXIS_OFFSET + 1, 0, port, v);
+	setid (uid, num, ID_AXIS_OFFSET + 0, 0, port, h);
+	setid (uid, num, ID_AXIS_OFFSET + 1, 0, port, v);
 
 	if (port >= 2) {
-		setid_af (uid, i, ID_BUTTON_OFFSET + 0, 0, port, port == 3 ? INPUTEVENT_PAR_JOY2_FIRE_BUTTON : INPUTEVENT_PAR_JOY1_FIRE_BUTTON, af);
+		setid_af (uid, num, ID_BUTTON_OFFSET + 0, 0, port, port == 3 ? INPUTEVENT_PAR_JOY2_FIRE_BUTTON : INPUTEVENT_PAR_JOY1_FIRE_BUTTON, af);
 	} else {
-		setid_af (uid, i, ID_BUTTON_OFFSET + 0, 0, port, port ? INPUTEVENT_JOY2_FIRE_BUTTON : INPUTEVENT_JOY1_FIRE_BUTTON, af);
+		setid_af (uid, num, ID_BUTTON_OFFSET + 0, 0, port, port ? INPUTEVENT_JOY2_FIRE_BUTTON : INPUTEVENT_JOY1_FIRE_BUTTON, af);
 		if (SDL_JoystickNumButtons(joy) > 0)
-			setid (uid, i, ID_BUTTON_OFFSET + 1, 0, port, port ? INPUTEVENT_JOY2_2ND_BUTTON : INPUTEVENT_JOY1_2ND_BUTTON);
+			setid (uid, num, ID_BUTTON_OFFSET + 1, 0, port, port ? INPUTEVENT_JOY2_2ND_BUTTON : INPUTEVENT_JOY1_2ND_BUTTON);
 		if (SDL_JoystickNumButtons(joy) > 1)
-			setid (uid, i, ID_BUTTON_OFFSET + 2, 0, port, port ? INPUTEVENT_JOY2_3RD_BUTTON : INPUTEVENT_JOY1_3RD_BUTTON);
+			setid (uid, num, ID_BUTTON_OFFSET + 2, 0, port, port ? INPUTEVENT_JOY2_3RD_BUTTON : INPUTEVENT_JOY1_3RD_BUTTON);
 	}
 
 /*	for (j = 2; j < MAX_MAPPINGS - 1; j++) {
 		int am = did->axismappings[j];
 		if (am == DIJOFS_POV(0) || am == DIJOFS_POV(1) || am == DIJOFS_POV(2) || am == DIJOFS_POV(3)) {
-			setid (uid, i, ID_AXIS_OFFSET + j + 0, 0, port, h);
-			setid (uid, i, ID_AXIS_OFFSET + j + 1, 0, port, v);
+			setid (uid, num, ID_AXIS_OFFSET + j + 0, 0, port, h);
+			setid (uid, num, ID_AXIS_OFFSET + j + 1, 0, port, v);
 			j++;
 		}
 	}*/
 	if (mode == JSEM_MODE_JOYSTICK_CD32) {
-		setid_af (uid, i, ID_BUTTON_OFFSET + 0, 0, port, port ? INPUTEVENT_JOY2_CD32_RED : INPUTEVENT_JOY1_CD32_RED, af);
-		setid_af (uid, i, ID_BUTTON_OFFSET + 0, 1, port, port ? INPUTEVENT_JOY2_FIRE_BUTTON : INPUTEVENT_JOY1_FIRE_BUTTON, af);
+		setid_af (uid, num, ID_BUTTON_OFFSET + 0, 0, port, port ? INPUTEVENT_JOY2_CD32_RED : INPUTEVENT_JOY1_CD32_RED, af);
+		setid_af (uid, num, ID_BUTTON_OFFSET + 0, 1, port, port ? INPUTEVENT_JOY2_FIRE_BUTTON : INPUTEVENT_JOY1_FIRE_BUTTON, af);
 		if (SDL_JoystickNumButtons(joy) > 0) {
-			setid (uid, i, ID_BUTTON_OFFSET + 1, 0, port, port ? INPUTEVENT_JOY2_CD32_BLUE : INPUTEVENT_JOY1_CD32_BLUE);
-			setid (uid, i, ID_BUTTON_OFFSET + 1, 1, port,  port ? INPUTEVENT_JOY2_2ND_BUTTON : INPUTEVENT_JOY1_2ND_BUTTON);
+			setid (uid, num, ID_BUTTON_OFFSET + 1, 0, port, port ? INPUTEVENT_JOY2_CD32_BLUE : INPUTEVENT_JOY1_CD32_BLUE);
+			setid (uid, num, ID_BUTTON_OFFSET + 1, 1, port,  port ? INPUTEVENT_JOY2_2ND_BUTTON : INPUTEVENT_JOY1_2ND_BUTTON);
 		}
 		if (SDL_JoystickNumButtons(joy) > 1)
-			setid (uid, i, ID_BUTTON_OFFSET + 2, 0, port, port ? INPUTEVENT_JOY2_CD32_GREEN : INPUTEVENT_JOY1_CD32_GREEN);
+			setid (uid, num, ID_BUTTON_OFFSET + 2, 0, port, port ? INPUTEVENT_JOY2_CD32_GREEN : INPUTEVENT_JOY1_CD32_GREEN);
 		if (SDL_JoystickNumButtons(joy) > 2)
-			setid (uid, i, ID_BUTTON_OFFSET + 3, 0, port, port ? INPUTEVENT_JOY2_CD32_YELLOW : INPUTEVENT_JOY1_CD32_YELLOW);
+			setid (uid, num, ID_BUTTON_OFFSET + 3, 0, port, port ? INPUTEVENT_JOY2_CD32_YELLOW : INPUTEVENT_JOY1_CD32_YELLOW);
 		if (SDL_JoystickNumButtons(joy) > 3)
-			setid (uid, i, ID_BUTTON_OFFSET + 4, 0, port, port ? INPUTEVENT_JOY2_CD32_RWD : INPUTEVENT_JOY1_CD32_RWD);
+			setid (uid, num, ID_BUTTON_OFFSET + 4, 0, port, port ? INPUTEVENT_JOY2_CD32_RWD : INPUTEVENT_JOY1_CD32_RWD);
 		if (SDL_JoystickNumButtons(joy) > 4)
-			setid (uid, i, ID_BUTTON_OFFSET + 5, 0, port, port ? INPUTEVENT_JOY2_CD32_FFW : INPUTEVENT_JOY1_CD32_FFW);
+			setid (uid, num, ID_BUTTON_OFFSET + 5, 0, port, port ? INPUTEVENT_JOY2_CD32_FFW : INPUTEVENT_JOY1_CD32_FFW);
 		if (SDL_JoystickNumButtons(joy) > 5)
-			setid (uid, i, ID_BUTTON_OFFSET + 6, 0, port, port ? INPUTEVENT_JOY2_CD32_PLAY :  INPUTEVENT_JOY1_CD32_PLAY);
+			setid (uid, num, ID_BUTTON_OFFSET + 6, 0, port, port ? INPUTEVENT_JOY2_CD32_PLAY :  INPUTEVENT_JOY1_CD32_PLAY);
 	}
-	if (i == 0)
+	if (num == 0)
 		return 1;
 	return 0;
 }

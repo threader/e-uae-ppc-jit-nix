@@ -12,9 +12,10 @@ extern void do_leave_program (void);
 extern void start_program (void);
 extern void leave_program (void);
 extern void real_main (int, TCHAR **);
+extern void virtualdevice_init (void);
 extern void usage (void);
-
 extern void sleep_millis (int ms);
+extern void sleep_millis_main (int ms);
 extern void sleep_millis_busy (int ms);
 extern int sleep_resolution;
 
@@ -32,6 +33,7 @@ extern void fixtrailing (TCHAR *p);
 extern void fullpath (TCHAR *path, int size);
 extern void getpathpart (TCHAR *outpath, int size, const TCHAR *inpath);
 extern void getfilepart (TCHAR *out, int size, const TCHAR *path);
+extern uae_u32 getlocaltime (void);
 
 extern int quit_program;
 extern bool console_emulation;

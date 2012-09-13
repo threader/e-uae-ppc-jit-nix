@@ -514,7 +514,7 @@ static void do_tod_hack (int dotod)
 	if (rate <= 0)
 		return;
 	if (rate != oldrate || ciaatod != tod_hack_tod_last) {
-		if (ciaatod != 0)
+		//if (ciaatod != 0)
 			//write_log (_T("TOD HACK reset %d,%d %d,%d\n"), rate, oldrate, ciaatod, tod_hack_tod_last);
 		tod_hack_reset ();
 		oldrate = rate;
@@ -1330,6 +1330,11 @@ static void WriteCIAB (uae_u16 addr, uae_u8 val)
 	}
 }
 
+void cia_set_overlay (bool overlay)
+{
+	oldovl = overlay;
+}
+
 void CIA_reset (void)
 {
 #ifdef TOD_HACK
@@ -1342,12 +1347,12 @@ void CIA_reset (void)
 
 	kblostsynccnt = 0;
 	serbits = 0;
-	oldovl = 1;
 	oldcd32mute = 1;
 	oldled = true;
 	resetwarning_phase = resetwarning_timer = 0;
 
 	if (!savestate_state) {
+		oldovl = true;
 		kbstate = 0;
 		ciaatlatch = ciabtlatch = 0;
 		ciaapra = 0; ciaadra = 0;
@@ -1370,10 +1375,12 @@ void CIA_reset (void)
 		serial_dtr_off (); /* Drop DTR at reset */
 #endif
 	if (savestate_state) {
+		if (currprefs.cs_ciaoverlay) {
+			oldovl = true;
+		}
 		bfe001_change ();
 		if (!currprefs.cs_ciaoverlay) {
-			map_overlay (1);
-			oldovl = false;
+			map_overlay (oldovl ? 0 : 1);
 		}
 	}
 #ifdef CD32
@@ -1673,6 +1680,11 @@ void rtc_hardreset (void)
 	}
 }
 
+static uae_u8 tobcd (int val)
+{
+	return (val / 10) * 16 + (val % 10);
+}
+
 static uae_u32 REGPARAM2 clock_lget (uaecptr addr)
 {
 	return (clock_wget (addr) << 16) | clock_wget (addr + 2);
@@ -1720,7 +1732,7 @@ static uae_u32 REGPARAM2 clock_bget (uaecptr addr)
 		case 0x8: return (ct->tm_mon + 1) % 10;
 		case 0x9: return (ct->tm_mon + 1) / 10;
 		case 0xA: return ct->tm_year % 10;
-		case 0xB: return ct->tm_year / 10;
+		case 0xB: return tobcd (ct->tm_year / 10);
 		case 0xC: return ct->tm_wday;
 		case 0xD: return clock_control_d;
 		case 0xE: return clock_control_e;
@@ -1747,7 +1759,7 @@ static uae_u32 REGPARAM2 clock_bget (uaecptr addr)
 		case 0x9: return (ct->tm_mon+1) % 10;
 		case 0xA: return (ct->tm_mon+1) / 10;
 		case 0xB: return ct->tm_year % 10;
-		case 0xC: return ct->tm_year / 10;
+		case 0xC: return tobcd (ct->tm_year / 10);
 		case 0xD: return clock_control_d;
 			/* E and F = write-only */
 		}
@@ -1840,6 +1852,14 @@ static void save_cia_prepare (void)
 	CIA_update_check ();
 	CIA_calctimers ();
 	compute_passed_time ();
+}
+
+void restore_cia_start (void)
+{
+	/* Fixes very old statefiles without keyboard state */
+	kbstate = 3;
+	setcapslockstate (0);
+	kblostsynccnt = 0;
 }
 
 void restore_cia_finish (void)
@@ -2023,10 +2043,12 @@ uae_u8 *restore_keyboard (uae_u8 *src)
 	restore_u8 ();
 	restore_u8 ();
 	 restore_u8 ();
-	if (!(v & 1))
-		kbstate = 3;
 	kbcode = restore_u8 ();
 	kblostsynccnt = restore_u16 ();
+	if (!(v & 1)) {
+		kbstate = 3;
+		kblostsynccnt = 0;
+	}
 	return src;
 }
 

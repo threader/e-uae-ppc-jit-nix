@@ -2097,7 +2097,7 @@ size_t zfile_fread  (void *b, size_t l1, size_t l2, struct zfile *z)
 	return fread (b, l1, l2, z->f);
 }
 
-size_t zfile_fwrite (void *b, size_t l1, size_t l2, struct zfile *z)
+size_t zfile_fwrite (const void *b, size_t l1, size_t l2, struct zfile *z)
 {
 	if (z->archiveparent)
 		return 0;
@@ -2131,7 +2131,7 @@ size_t zfile_fwrite (void *b, size_t l1, size_t l2, struct zfile *z)
 	return fwrite (b, l1, l2, z->f);
 }
 
-size_t zfile_fputs (struct zfile *z, TCHAR *s)
+size_t zfile_fputs (struct zfile *z, const TCHAR *s)
 {
 	char *s2 = ua (s);
 	size_t t;
@@ -2612,7 +2612,7 @@ static struct zvolume *zfile_fopen_archive_data (struct znode *parent, struct zf
 
 static struct znode *get_znode (struct zvolume *zv, const TCHAR *ppath, int);
 
-static void zfile_fopen_archive_recurse2 (struct zvolume *zv, struct znode *zn)
+static void zfile_fopen_archive_recurse2 (struct zvolume *zv, struct znode *zn, int flags)
 {
 	struct zvolume *zvnew;
 	struct znode *zndir;
@@ -2639,7 +2639,7 @@ static void zfile_fopen_archive_recurse2 (struct zvolume *zv, struct znode *zn)
 	}
 }
 
-static int zfile_fopen_archive_recurse (struct zvolume *zv)
+static int zfile_fopen_archive_recurse (struct zvolume *zv, int flags)
 {
 	struct znode *zn;
 	int i, added;
@@ -2653,7 +2653,7 @@ static int zfile_fopen_archive_recurse (struct zvolume *zv)
 		if (ext && !zn->vchild && zn->type == ZNODE_FILE) {
 			for (i = 0; !done && archive_extensions[i]; i++) {
 				if (!strcasecmp (ext + 1, archive_extensions[i])) {
-					zfile_fopen_archive_recurse2 (zv, zn);
+					zfile_fopen_archive_recurse2 (zv, zn, flags);
 					done = 1;
 				}
 			}
@@ -2661,7 +2661,7 @@ static int zfile_fopen_archive_recurse (struct zvolume *zv)
 /*		if (!done) {
 			z = archive_getzfile (zn, zv->method, 0);
 			if (z && iszip (z))
-				zfile_fopen_archive_recurse2 (zv, zn);
+				zfile_fopen_archive_recurse2 (zv, zn, flags);
 		}*/
 		zn = zn->next;
 	}
@@ -2685,7 +2685,7 @@ static struct zvolume *prepare_recursive_volume (struct zvolume *zv, const TCHAR
 #if 1
 /*		zvnew = archive_directory_plain (zf);
 		if (zvnew) {
-        		zfile_fopen_archive_recurse (zvnew);
+        		zfile_fopen_archive_recurse (zvnew, flags);
         		done = 1;
                 }
 */
@@ -2719,7 +2719,7 @@ static struct zvolume *prepare_recursive_volume (struct zvolume *zv, const TCHAR
 #endif
 	} else if (zvnew) {
 		zvnew->parent = zv->parent;
-		zfile_fopen_archive_recurse (zvnew);
+		zfile_fopen_archive_recurse (zvnew, flags);
 		done = 1;
 	}
 	if (!done)

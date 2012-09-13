@@ -267,6 +267,8 @@ void fixup_cpu (struct uae_prefs *p)
 
 	if (p->immediate_blits && p->blitter_cycle_exact)
 		p->immediate_blits = false;
+	if (p->immediate_blits && p->waiting_blits)
+		p->waiting_blits = 0;
 }
 
 
@@ -530,8 +532,10 @@ void fixup_prefs (struct uae_prefs *p)
 		p->m68k_speed = 0;
 	}
 #endif
-		if (p->maprom && !p->address_space_24)
+	if (p->maprom && !p->address_space_24)
 		p->maprom = 0x0f000000;
+	if ((p->maprom & 0xff000000) && p->address_space_24)
+		p->maprom = 0x00e00000;
 	if (p->tod_hack && p->cs_ciaatod == 0)
 		p->cs_ciaatod = p->ntscmode ? 2 : 1;
 #ifdef SCSIEMU
@@ -771,6 +775,7 @@ void reset_all_systems (void)
 	filesys_prepare_reset ();
 	filesys_reset ();
 #endif
+	init_shm ();
 	memory_reset ();
 #if defined (BSDSOCKET)
 	bsdlib_reset ();
@@ -817,7 +822,10 @@ void do_start_program (void)
 	inputdevice_updateconfig (&currprefs);
 	if (quit_program >= 0)
 		quit_program = 2;
-	m68k_go (1);
+
+	{
+		m68k_go (1);
+	}
 }
 
 void do_leave_program (void)
@@ -864,6 +872,7 @@ void do_leave_program (void)
 #endif
 	savestate_free ();
 	memory_cleanup ();
+	free_shm ();
 	cfgfile_addcfgparam (0);
 	machdep_free ();
 }
@@ -878,6 +887,36 @@ void start_program (void)
 void leave_program (void)
 {
 	do_leave_program ();
+}
+
+
+void virtualdevice_init (void)
+{
+#ifdef AUTOCONFIG
+	/* Install resident module to get 8MB chipmem, if requested */
+	rtarea_setup ();
+#endif
+#ifdef FILESYS
+	rtarea_init ();
+	uaeres_install ();
+	hardfile_install ();
+#endif
+#ifdef SCSIEMU
+	scsi_reset ();
+	scsidev_install ();
+#endif
+#ifdef SANA2
+	netdev_install ();
+#endif
+#ifdef UAESERIAL
+	uaeserialdev_install ();
+#endif
+#ifdef AUTOCONFIG
+	expansion_init ();
+#endif
+#ifdef FILESYS
+	filesys_install ();
+#endif
 }
 
 #if (defined (_WIN32) || defined (_WIN64)) && !defined (NO_WIN32_EXCEPTION_HANDLER)
@@ -964,9 +1003,15 @@ static int real_main2 (int argc, TCHAR **argv)
 	init_shm ();
 #endif
 
+#ifdef PICASSO96
+	picasso_reset ();
+#endif
+
+#if 0
 #ifdef JIT
 	if (!(currprefs.cpu_model >= 68020 && currprefs.address_space_24 == 0 && currprefs.cachesize))
 		canbang = 0;
+#endif
 #endif
 
 	fixup_prefs (&currprefs);
@@ -978,36 +1023,12 @@ static int real_main2 (int argc, TCHAR **argv)
 	/* force sound settings change */
 	currprefs.produce_sound = 0;
 
-#ifdef AUTOCONFIG
-	/* Install resident module to get 8MB chipmem, if requested */
-	rtarea_setup ();
-#endif
-#ifdef FILESYS
-	rtarea_init ();
-	uaeres_install ();
-	hardfile_install ();
-#endif
 	savestate_init ();
-#ifdef SCSIEMU
-	scsi_reset ();
-	scsidev_install ();
-#endif
-#ifdef SANA2
-	netdev_install ();
-#endif
-#ifdef UAESERIAL
-	uaeserialdev_install ();
-#endif
 	keybuf_init (); /* Must come after init_joystick */
 
-#ifdef AUTOCONFIG
-	expansion_init ();
-#endif
-#ifdef FILESYS
-	filesys_install ();
-#endif
 	target_startup_sequence (&currprefs);
-	memory_init ();
+
+	memory_hardreset (2);
 	memory_reset ();
 
 #ifdef AUTOCONFIG

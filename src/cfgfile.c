@@ -201,6 +201,7 @@ static const TCHAR *cdmodes[] = { _T("disabled"), _T(""), _T("image"), _T("ioctl
 static const TCHAR *cdconmodes[] = { _T(""), _T("uae"), _T("ide"), _T("scsi"), _T("cdtv"), _T("cd32"), 0 };
 static const TCHAR *specialmonitors[] = { _T("none"), _T("autodetect"), _T("a2024"), _T("graffiti"), 0 };
 static const TCHAR *rtgtype[] = { _T("ZorroII"), _T("ZorroIII"), 0 };
+static const TCHAR *waitblits[] = { _T("disabled"), _T("automatic"), _T("noidleonly"), _T("always"), 0 };
 
 static const TCHAR *obsolete[] = {
 	_T("accuracy"), _T("gfx_opengl"), _T("gfx_32bit_blits"), _T("32bit_blits"),
@@ -597,7 +598,8 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 	cfgfile_write (f, _T("config_version"), _T("%d.%d.%d"), UAEMAJOR, UAEMINOR, UAESUBREV);
 	cfgfile_write_str (f, _T("config_hardware_path"), p->config_hardware_path);
 	cfgfile_write_str (f, _T("config_host_path"), p->config_host_path);
-	cfgfile_write_str (f, _T("config_window_title"), p->config_window_title);
+	if (p->config_window_title[0])
+		cfgfile_write_str (f, _T("config_window_title"), p->config_window_title);
 
 	for (sl = p->all_lines; sl; sl = sl->next) {
 		if (sl->unknown) {
@@ -737,6 +739,9 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 	cfgfile_write_bool (f, _T("sound_auto"), p->sound_auto);
 	cfgfile_write_bool (f, _T("sound_stereo_swap_paula"), p->sound_stereo_swap_paula);
 	cfgfile_write_bool (f, _T("sound_stereo_swap_ahi"), p->sound_stereo_swap_ahi);
+	cfgfile_dwrite (f, _T("sampler_frequency"), _T("%d"), p->sampler_freq);
+	cfgfile_dwrite (f, _T("sampler_buffer"), _T("%d"), p->sampler_buffer);
+	cfgfile_dwrite_bool (f, _T("sampler_stereo"), p->sampler_stereo);
 
 	cfgfile_write_str (f, _T("comp_trustbyte"), compmode[p->comptrustbyte]);
 	cfgfile_write_str (f, _T("comp_trustword"), compmode[p->comptrustword]);
@@ -818,11 +823,10 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 	cfgfile_write (f, _T("gfx_display"), _T("%d"), p->gfx_apmode[APMODE_NATIVE].gfx_display);
 	cfgfile_write_str (f, _T("gfx_display_friendlyname"), target_get_display_name (p->gfx_apmode[APMODE_NATIVE].gfx_display, true));
 	cfgfile_write_str (f, _T("gfx_display_name"), target_get_display_name (p->gfx_apmode[APMODE_NATIVE].gfx_display, false));
-	if (p->gfx_apmode[APMODE_NATIVE].gfx_display != p->gfx_apmode[APMODE_RTG].gfx_display) {
-		cfgfile_write (f, _T("gfx_display_rtg"), _T("%d"), p->gfx_apmode[APMODE_RTG].gfx_display);
-		cfgfile_write_str (f, _T("gfx_display_friendlyname_rtg"), target_get_display_name (p->gfx_apmode[APMODE_RTG].gfx_display, true));
-		cfgfile_write_str (f, _T("gfx_display_name_rtg"), target_get_display_name (p->gfx_apmode[APMODE_RTG].gfx_display, false));
-	}
+	cfgfile_write (f, _T("gfx_display_rtg"), _T("%d"), p->gfx_apmode[APMODE_RTG].gfx_display);
+	cfgfile_write_str (f, _T("gfx_display_friendlyname_rtg"), target_get_display_name (p->gfx_apmode[APMODE_RTG].gfx_display, true));
+	cfgfile_write_str (f, _T("gfx_display_name_rtg"), target_get_display_name (p->gfx_apmode[APMODE_RTG].gfx_display, false));
+
 	cfgfile_write (f, _T("gfx_framerate"), _T("%d"), p->gfx_framerate);
 	cfgfile_write (f, _T("gfx_width"), _T("%d"), p->gfx_size_win.width); /* compatibility with old versions */
 	cfgfile_write (f, _T("gfx_height"), _T("%d"), p->gfx_size_win.height); /* compatibility with old versions */
@@ -840,8 +844,8 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 
 	cfgfile_write (f, _T("gfx_backbuffers"), _T("%d"), p->gfx_apmode[0].gfx_backbuffers);
 	cfgfile_write (f, _T("gfx_backbuffers_rtg"), _T("%d"), p->gfx_apmode[1].gfx_backbuffers);
-	if (p->gfx_apmode[0].gfx_interlaced)
-		cfgfile_write_bool (f, _T("gfx_interlace"), p->gfx_apmode[0].gfx_interlaced);
+	if (p->gfx_apmode[APMODE_NATIVE].gfx_interlaced)
+		cfgfile_write_bool (f, _T("gfx_interlace"), p->gfx_apmode[APMODE_NATIVE].gfx_interlaced);
 	cfgfile_write_str (f, _T("gfx_vsync"), vsyncmodes[p->gfx_apmode[0].gfx_vsync]);
 	cfgfile_write_str (f, _T("gfx_vsyncmode"), vsyncmodes2[p->gfx_apmode[0].gfx_vsyncmode]);
 	cfgfile_write_str (f, _T("gfx_vsync_picasso"), vsyncmodes[p->gfx_apmode[1].gfx_vsync]);
@@ -892,6 +896,7 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 	cfgfile_dwrite (f, _T("gfx_filter_blur"), _T("%d"), p->gfx_filter_blur);
 	cfgfile_dwrite (f, _T("gfx_filter_noise"), _T("%d"), p->gfx_filter_noise);
 	cfgfile_dwrite_bool (f, _T("gfx_filter_bilinear"), p->gfx_filter_bilinear != 0);
+	cfgfile_dwrite (f, _T("gfx_filter_keep_autoscale_aspect"), _T("%d"), p->gfx_filter_keep_autoscale_aspect);
 	cfgfile_dwrite_str (f, _T("gfx_filter_keep_aspect"), aspects[p->gfx_filter_keep_aspect]);
 	cfgfile_dwrite_str (f, _T("gfx_filter_autoscale"), autoscale[p->gfx_filter_autoscale]);
 	cfgfile_dwrite (f, _T("gfx_filter_aspect_ratio"), _T("%d:%d"),
@@ -929,7 +934,7 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 #endif
 
 	cfgfile_write_bool (f, _T("immediate_blits"), p->immediate_blits);
-	cfgfile_write_bool (f, _T("waiting_blits"), p->waiting_blits);
+	cfgfile_dwrite_str (f, _T("waiting_blits"), waitblits[p->waiting_blits]);
 	cfgfile_write_bool (f, _T("ntsc"), p->ntscmode);
 	cfgfile_write_bool (f, _T("genlock"), p->genlock);
 	cfgfile_dwrite_str (f, _T("monitoremu"), specialmonitors[p->monitoremu]);
@@ -1046,6 +1051,8 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 	cfgfile_write (f, _T("bogomem_size"), _T("%d"), p->bogomem_size / 0x40000);
 	cfgfile_write (f, _T("gfxcard_size"), _T("%d"), p->rtgmem_size / 0x100000);
 	cfgfile_write_str (f, _T("gfxcard_type"), rtgtype[p->rtgmem_type]);
+	cfgfile_write_bool (f, _T("gfxcard_hardware_vblank"), p->rtg_hardwareinterrupt);
+	cfgfile_write_bool (f, _T("gfxcard_hardware_sprite"), p->rtg_hardwaresprite);
 	cfgfile_write (f, _T("chipmem_size"), _T("%d"), p->chipmem_size == 0x20000 ? -1 : (p->chipmem_size == 0x40000 ? 0 : p->chipmem_size / 0x80000));
 	cfgfile_dwrite (f, _T("megachipmem_size"), _T("%d"), p->z3chipmem_size / 0x100000);
 
@@ -1054,7 +1061,7 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 	} else {
 		cfgfile_write_str (f, _T("cpu_speed"), p->m68k_speed < 0 ? _T("max") : _T("real"));
 	}
-	cfgfile_write (f, _T("cpu_throttle"), _T("%d"), p->m68k_speed_throttle);
+	cfgfile_write (f, _T("cpu_throttle"), _T("%.1f"), p->m68k_speed_throttle);
 
 	/* do not reorder start */
 	write_compatibility_cpu(f, p);
@@ -1110,6 +1117,7 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 	write_filesys_config (p, f);
 	if (p->filesys_no_uaefsdb)
 		cfgfile_write_bool (f, _T("filesys_no_fsdb"), p->filesys_no_uaefsdb);
+	cfgfile_dwrite (f, _T("filesys_max_size"), _T("%d"), p->filesys_limit);
 #endif
 	write_inputdevice_config (p, f);
 }
@@ -1200,9 +1208,14 @@ int cfgfile_strval (const TCHAR *option, const TCHAR *value, const TCHAR *name, 
 	if (val == -1) {
 		if (more)
 			return 0;
-
+		if (!strcasecmp (value, _T("yes")) || !strcasecmp (value, _T("true"))) {
+			val = 1;
+		} else if  (!strcasecmp (value, _T("no")) || !strcasecmp (value, _T("false"))) {
+			val = 0;
+		} else {
 		write_log (_T("Unknown value ('%s') for option '%s'.\n"), value, option);
 		return -1;
+	}
 	}
 	*location = val;
 	return 1;
@@ -1507,6 +1520,8 @@ static int cfgfile_parse_host (struct uae_prefs *p, TCHAR *option, TCHAR *value)
 		|| cfgfile_intval (option, value, _T("sound_volume_cd"), &p->sound_volume_cd, 1)
 		|| cfgfile_intval (option, value, _T("sound_stereo_separation"), &p->sound_stereo_separation, 1)
 		|| cfgfile_intval (option, value, _T("sound_stereo_mixing_delay"), &p->sound_mixed_stereo_delay, 1)
+		|| cfgfile_intval (option, value, _T("sampler_frequency"), &p->sampler_freq, 1)
+		|| cfgfile_intval (option, value, _T("sampler_buffer"), &p->sampler_buffer, 1)
 
 		|| cfgfile_intval (option, value, _T("gfx_framerate"), &p->gfx_framerate, 1)
 		|| cfgfile_intval (option, value, _T("gfx_width_windowed"), &p->gfx_size_win.width, 1)
@@ -1521,6 +1536,7 @@ static int cfgfile_parse_host (struct uae_prefs *p, TCHAR *option, TCHAR *value)
 		|| cfgfile_intval (option, value, _T("gfx_backbuffers"), &p->gfx_apmode[APMODE_NATIVE].gfx_backbuffers, 1)
 		|| cfgfile_intval (option, value, _T("gfx_backbuffers_rtg"), &p->gfx_apmode[APMODE_RTG].gfx_backbuffers, 1)
 		|| cfgfile_yesno (option, value, _T("gfx_interlace"), &p->gfx_apmode[APMODE_NATIVE].gfx_interlaced)
+		|| cfgfile_yesno (option, value, _T("gfx_interlace_rtg"), &p->gfx_apmode[APMODE_RTG].gfx_interlaced)
 
 		|| cfgfile_intval (option, value, _T("gfx_center_horizontal_position"), &p->gfx_xcenter_pos, 1)
 		|| cfgfile_intval (option, value, _T("gfx_center_vertical_position"), &p->gfx_ycenter_pos, 1)
@@ -1547,7 +1563,9 @@ static int cfgfile_parse_host (struct uae_prefs *p, TCHAR *option, TCHAR *value)
 		|| cfgfile_intval (option, value, _T("gfx_luminance"), &p->gfx_luminance, 1)
 		|| cfgfile_intval (option, value, _T("gfx_contrast"), &p->gfx_contrast, 1)
 		|| cfgfile_intval (option, value, _T("gfx_gamma"), &p->gfx_gamma, 1)
+		|| cfgfile_intval (option, value, _T("gfx_filter_keep_autoscale_aspect"), &p->gfx_filter_keep_autoscale_aspect, 1)
 		|| cfgfile_string (option, value, _T("gfx_filter_mask"), p->gfx_filtermask, sizeof p->gfx_filtermask / sizeof (TCHAR))
+		|| cfgfile_intval (option, value, _T("filesys_max_size"), &p->filesys_limit, 1)
 
 #endif
 #ifdef DRIVESOUND
@@ -1575,6 +1593,7 @@ cfgfile_path (option, value, _T("floppy0soundext"), p->floppyslots[0].dfxclickex
 		return 1;
 
 	if (cfgfile_yesno (option, value, _T("use_debugger"), &p->start_debugger)
+		|| cfgfile_yesno (option, value, _T("sampler_stereo"), &p->sampler_stereo)
 		|| cfgfile_yesno (option, value, _T("sound_auto"), &p->sound_auto)
 		|| cfgfile_yesno (option, value, _T("sound_stereo_swap_paula"), &p->sound_stereo_swap_paula)
 		|| cfgfile_yesno (option, value, _T("sound_stereo_swap_ahi"), &p->sound_stereo_swap_ahi)
@@ -1706,14 +1725,14 @@ cfgfile_path (option, value, _T("floppy0soundext"), p->floppyslots[0].dfxclickex
 		while (s) {
 			if (!_tcschr (s, ':'))
 				break;
-			p->osd_pos.x = _tstof (s) * 10.0;
+			p->osd_pos.x =  (int)(_tstof (s) * 10.0);
 			s = _tcschr (s, ':');
 			if (!s)
 				break;
 			if (s[-1] == '%')
 				p->osd_pos.x += 30000;
 			s++;
-			p->osd_pos.y = _tstof (s) * 10.0;
+			p->osd_pos.y = (int)(_tstof (s) * 10.0);
 			s += _tcslen (s);
 			if (s[-1] == '%')
 				p->osd_pos.y += 30000;
@@ -2279,6 +2298,26 @@ static void parse_addmem (struct uae_prefs *p, TCHAR *buf, int num)
 	p->custom_memory_sizes[num] = size;
 }
 
+static int get_filesys_controller (const TCHAR *hdc)
+{
+	int hdcv = HD_CONTROLLER_UAE;
+	if(_tcslen (hdc) >= 4 && !_tcsncmp (hdc, _T("ide"), 3)) {
+		hdcv = hdc[3] - '0' + HD_CONTROLLER_IDE0;
+		if (hdcv < HD_CONTROLLER_IDE0 || hdcv > HD_CONTROLLER_IDE3)
+			hdcv = 0;
+	}
+	if(_tcslen (hdc) >= 5 && !_tcsncmp (hdc, _T("scsi"), 4)) {
+		hdcv = hdc[4] - '0' + HD_CONTROLLER_SCSI0;
+		if (hdcv < HD_CONTROLLER_SCSI0 || hdcv > HD_CONTROLLER_SCSI6)
+			hdcv = 0;
+	}
+	if (_tcslen (hdc) >= 6 && !_tcsncmp (hdc, _T("scsram"), 6))
+		hdcv = HD_CONTROLLER_PCMCIA_SRAM;
+	if (_tcslen (hdc) >= 5 && !_tcsncmp (hdc, _T("scide"), 6))
+		hdcv = HD_CONTROLLER_PCMCIA_IDE;
+	return hdcv;
+}
+
 static int cfgfile_parse_newfilesys (struct uae_prefs *p, int nr, bool hdf, TCHAR *value)
 {
 	int secs, heads, reserved, bs, bp, hdcv;
@@ -2342,21 +2381,7 @@ static int cfgfile_parse_newfilesys (struct uae_prefs *p, int nr, bool hdf, TCHA
 			tmpp = _tcschr (tmpp, ',');
 			if (tmpp != 0) {
 				*tmpp++ = 0;
-				hdc = tmpp;
-				if(_tcslen (hdc) >= 4 && !_tcsncmp (hdc, _T("ide"), 3)) {
-					hdcv = hdc[3] - '0' + HD_CONTROLLER_IDE0;
-					if (hdcv < HD_CONTROLLER_IDE0 || hdcv > HD_CONTROLLER_IDE3)
-						hdcv = 0;
-				}
-				if(_tcslen (hdc) >= 5 && !_tcsncmp (hdc, _T("scsi"), 4)) {
-					hdcv = hdc[4] - '0' + HD_CONTROLLER_SCSI0;
-					if (hdcv < HD_CONTROLLER_SCSI0 || hdcv > HD_CONTROLLER_SCSI6)
-						hdcv = 0;
-				}
-				if (_tcslen (hdc) >= 6 && !_tcsncmp (hdc, _T("scsram"), 6))
-					hdcv = HD_CONTROLLER_PCMCIA_SRAM;
-				if (_tcslen (hdc) >= 5 && !_tcsncmp (hdc, _T("scide"), 6))
-					hdcv = HD_CONTROLLER_PCMCIA_IDE;
+				hdcv = get_filesys_controller (tmpp);	
 			}
 		}
 	}
@@ -2405,6 +2430,26 @@ static int cfgfile_parse_filesys (struct uae_prefs *p, const TCHAR *option, TCHA
 #endif
 			}
 			return 1;
+		} else if (!_tcsncmp (option, tmp, _tcslen (tmp)) && option[_tcslen (tmp)] == '_') {
+			struct uaedev_config_info *uci = &currprefs.mountconfig[i];
+			if (uci->devname) {
+				const TCHAR *s = &option[_tcslen (tmp) + 1];
+				if (!_tcscmp (s, _T("bootpri"))) {
+					getintval (&value, &uci->bootpri, 0);
+				} else if (!_tcscmp (s, _T("read-only"))) {
+					cfgfile_yesno (NULL, value, NULL, &uci->readonly);
+				} else if (!_tcscmp (s, _T("volumename"))) {
+					_tcscpy (uci->volname, value);
+				} else if (!_tcscmp (s, _T("devicename"))) {
+					_tcscpy (uci->devname, value);
+				} else if (!_tcscmp (s, _T("root"))) {
+					_tcscpy (uci->rootdir, value);
+				} else if (!_tcscmp (s, _T("filesys"))) {
+					_tcscpy (uci->filesys, value);
+				} else if (!_tcscmp (s, _T("controller"))) {
+					uci->controller = get_filesys_controller (value);
+				}
+			}
 		}
 	}
 
@@ -2519,7 +2564,6 @@ static int cfgfile_parse_hardware (struct uae_prefs *p, const TCHAR *option, TCH
 		return 1;
 
 	if (cfgfile_yesno (option, value, _T("immediate_blits"), &p->immediate_blits)
-		|| cfgfile_yesno (option, value, _T("waiting_blits"), &p->waiting_blits)
 		|| cfgfile_yesno (option, value, _T("cd32cd"), &p->cs_cd32cd)
 		|| cfgfile_yesno (option, value, _T("cd32c2p"), &p->cs_cd32c2p)
 		|| cfgfile_yesno (option, value, _T("cd32nvram"), &p->cs_cd32nvram)
@@ -2539,6 +2583,8 @@ static int cfgfile_parse_hardware (struct uae_prefs *p, const TCHAR *option, TCH
 		|| cfgfile_yesno (option, value, _T("ics_agnus"), &p->cs_dipagnus)
 		|| cfgfile_yesno (option, value, _T("agnus_bltbusybug"), &p->cs_agnusbltbusybug)
 		|| cfgfile_yesno (option, value, _T("fastmem_autoconfig"), &p->fastmem_autoconfig)
+		|| cfgfile_yesno (option, value, _T("gfxcard_hardware_vblank"), &p->rtg_hardwareinterrupt)
+		|| cfgfile_yesno (option, value, _T("gfxcard_hardware_sprite"), &p->rtg_hardwaresprite)
 
 		|| cfgfile_yesno (option, value, _T("kickshifter"), &p->kickshifter)
 		|| cfgfile_yesno (option, value, _T("ntsc"), &p->ntscmode)
@@ -2568,6 +2614,7 @@ static int cfgfile_parse_hardware (struct uae_prefs *p, const TCHAR *option, TCH
 #endif
 		|| cfgfile_yesno (option, value, _T("rtg_nocustom"), &p->picasso96_nocustom)
 		|| cfgfile_yesno (option, value, _T("floppy_write_protected"), &p->floppy_read_only)
+		|| cfgfile_yesno (option, value, _T("floppy_auto_extended_adf"), &p->floppy_auto_ext2)
 		|| cfgfile_yesno (option, value, _T("uaeserial"), &p->uaeserial))
 		return 1;
 
@@ -2633,6 +2680,7 @@ static int cfgfile_parse_hardware (struct uae_prefs *p, const TCHAR *option, TCH
 	|| cfgfile_strval (option, value, _T("collision_level"), &p->collision_level, collmode, 0)
 	|| cfgfile_strval (option, value, _T("parallel_matrix_emulation"), &p->parallel_matrix_emulation, epsonprinter, 0)
 	|| cfgfile_strval (option, value, _T("monitoremu"), &p->monitoremu, specialmonitors, 0)
+		|| cfgfile_strval (option, value, _T("waiting_blits"), &p->waiting_blits, waitblits, 0)
 	|| cfgfile_strboolval (option, value, _T("comp_flushmode"), &p->comp_hardflush, flushmode, 0))
 	return 1;
 
@@ -2746,21 +2794,21 @@ static int cfgfile_parse_hardware (struct uae_prefs *p, const TCHAR *option, TCH
 		return 1;
 	}
 
-	if (p->config_version < (21 << 16)) {
-		if (cfgfile_strval (option, value, _T("cpu_speed"), &p->m68k_speed, speedmode, 1)
 			/* Broken earlier versions used to write this out as a string.  */
-			|| cfgfile_strval (option, value, _T("finegraincpu_speed"), &p->m68k_speed, speedmode, 1))
-		{
+	if (cfgfile_strval (option, value, _T("finegraincpu_speed"), &p->m68k_speed, speedmode, 1)) {
 			p->m68k_speed--;
 			return 1;
 		}
-	}
 
+	if (cfgfile_strval (option, value, _T("cpu_speed"), &p->m68k_speed, speedmode, 1)) {
+		p->m68k_speed--;
+		return 1;
+	}
 	if (cfgfile_intval (option, value, _T("cpu_speed"), &p->m68k_speed, 1)) {
 		p->m68k_speed *= CYCLE_UNIT;
 		return 1;
 	}
-	if (cfgfile_intval (option, value, _T("cpu_throttle"), &p->m68k_speed_throttle, 1)) {
+	if (cfgfile_doubleval (option, value, _T("cpu_throttle"), &p->m68k_speed_throttle)) {
 		return 1;
 	}
 	if (cfgfile_intval (option, value, _T("finegrain_cpu_speed"), &p->m68k_speed, 1)) {
@@ -3091,7 +3139,7 @@ static int getconfigstoreline (const TCHAR *option, TCHAR *value)
 
 static bool createconfigstore (struct uae_prefs *p)
 {
-	uae_u8 zero = 0;
+	uae_u8 zeros[4] = { 0 };
 	zfile_fclose (configstore);
 	configstore = zfile_fopen_empty (NULL, _T("configstore"), 50000);
 	if (!configstore)
@@ -3100,7 +3148,7 @@ static bool createconfigstore (struct uae_prefs *p)
 	uaeconfig++;
 	cfgfile_save_options (configstore, p, 0);
 	uaeconfig--;
-	cfg_write (&zero, configstore);
+	zfile_fwrite (zeros, 1, sizeof zeros, configstore);
 	zfile_fseek (configstore, 0, SEEK_SET);
 	return true;
 }
@@ -3837,6 +3885,11 @@ int cmdlineparser (const TCHAR *s, TCHAR *outp[], int max)
 
 #define UAELIB_MAX_PARSE 100
 
+static bool cfgfile_parse_uaelib_option (struct uae_prefs *p, TCHAR *option, TCHAR *value, int type)
+{
+	return false;
+}
+
 uae_u32 cfgfile_modify (uae_u32 index, TCHAR *parms, uae_u32 size, TCHAR *out, uae_u32 outsize)
 {
 	TCHAR *p;
@@ -3959,10 +4012,12 @@ uae_u32 cfgfile_modify (uae_u32 index, TCHAR *parms, uae_u32 size, TCHAR *out, u
 			if (!_tcsicmp (argc[i], _T("dbg"))) {
 				debug_parser (argc[i + 1], out, outsize);
 			} else if (!inputdevice_uaelib (argc[i], argc[i + 1])) {
+				if (!cfgfile_parse_uaelib_option (&changed_prefs, argc[i], argc[i + 1], 0)) {
 				if (!cfgfile_parse_option (&changed_prefs, argc[i], argc[i + 1], 0)) {
 					err = 5;
 					break;
 				}
+			}
 			}
 			set_special (SPCFLAG_BRK);
 			i++;
@@ -4072,25 +4127,26 @@ uae_u8 *restore_configuration (uae_u8 *src)
 	return src;
 }
 
-uae_u8 *save_configuration (int *len)
+uae_u8 *save_configuration (int *len, bool fullconfig)
 {
-	int tmpsize = 30000;
+	int tmpsize = 100000;
 	uae_u8 *dstbak, *dst, *p;
 	int index = -1;
 
-	dstbak = dst = xmalloc (uae_u8, tmpsize);
+	dstbak = dst = xcalloc (uae_u8, tmpsize);
 	p = dst;
 	for (;;) {
-		TCHAR tmpout[256];
+		TCHAR tmpout[1000];
 		int ret;
 		tmpout[0] = 0;
 		ret = cfgfile_modify (index, _T("*"), 1, tmpout, sizeof (tmpout) / sizeof (TCHAR));
 		index++;
 		if (_tcslen (tmpout) > 0) {
 			char *out;
-			if (!_tcsncmp (tmpout, _T("input."), 6))
+			if (!fullconfig && !_tcsncmp (tmpout, _T("input."), 6))
 				continue;
-			out = ua (tmpout);
+			write_log (_T("'%s'\n"), tmpout);
+			out = uutf8 (tmpout);
 			strcpy ((char*)p, out);
 			xfree (out);
 			strcat ((char*)p, "\n");
@@ -4154,6 +4210,11 @@ void default_prefs (struct uae_prefs *p, int type)
 	p->ghostscript_parameters[0] = 0;
 	p->uae_hide = 0;
 
+	p->mountitems = 0;
+	for (i = 0; i < MOUNT_CONFIG_SIZE; i++) {
+		p->mountconfig[i].configoffset = -1;
+	}
+
 	memset (&p->jports[0], 0, sizeof (struct jport));
 	memset (&p->jports[1], 0, sizeof (struct jport));
 	memset (&p->jports[2], 0, sizeof (struct jport));
@@ -4174,6 +4235,9 @@ void default_prefs (struct uae_prefs *p, int type)
 	p->sound_filter = FILTER_SOUND_EMUL;
 	p->sound_filter_type = 0;
 	p->sound_auto = 1;
+	p->sampler_stereo = false;
+	p->sampler_buffer = 0;
+	p->sampler_freq = 0;
 
 #ifdef JIT
 #ifdef NATMEM_OFFSET
@@ -4309,6 +4373,7 @@ void default_prefs (struct uae_prefs *p, int type)
 	p->gfx_filter_scanlineratio = (1 << 4) | 1;
 	p->gfx_filter_keep_aspect = 0;
 	p->gfx_filter_autoscale = AUTOSCALE_STATIC_AUTO;
+	p->gfx_filter_keep_autoscale_aspect = false;
 	p->gfx_filteroverlay_overscan = 0;
 #endif
 
@@ -4350,6 +4415,7 @@ void default_prefs (struct uae_prefs *p, int type)
 	p->chipset_mask = CSMASK_ECS_AGNUS;
 	p->genlock = 0;
 	p->ntscmode = 0;
+	p->filesys_limit = 0;
 
 	p->fastmem_size = 0x00000000;
 	p->fastmem2_size = 0x00000000;
@@ -4558,7 +4624,9 @@ static void buildin_default_prefs (struct uae_prefs *p)
 
 static void set_68020_compa (struct uae_prefs *p, int compa, int cd32)
 {
-	if (compa == 0) {
+	switch (compa)
+	{
+	case 0:
 		p->blitter_cycle_exact = 1;
 		p->m68k_speed = 0;
 #ifdef JIT
@@ -4567,20 +4635,30 @@ static void set_68020_compa (struct uae_prefs *p, int compa, int cd32)
 			p->cpu_clock_multiplier = 4 << 8;
 		}
 #endif
-	}
-	if (compa > 1) {
+	break;
+	case 1:
+		p->cpu_compatible = true;
+		p->m68k_speed = 0;
+		break;
+	case 2:
+		p->cpu_compatible = 0;
+		p->m68k_speed = -1;
+		p->address_space_24 = 0;
+		break;
+	case 3:
 		p->cpu_compatible = 0;
 		p->address_space_24 = 0;
 #ifdef JIT
 		p->cachesize = 8192;
 #endif
+		break;
 	}
 }
 
 /* 0: cycle-exact
 * 1: more compatible
 * 2: no more compatible, no 100% sound
-* 3: no more compatible, immediate blits, no 100% sound
+* 3: no more compatible, waiting blits, no 100% sound
 */
 
 static void set_68000_compa (struct uae_prefs *p, int compa)
@@ -4597,7 +4675,6 @@ static void set_68000_compa (struct uae_prefs *p, int compa)
 		p->cpu_compatible = 0;
 		break;
 	case 3:
-		p->immediate_blits = 1;
 		p->produce_sound = 2;
 		p->cpu_compatible = 0;
 		break;
@@ -4615,7 +4692,6 @@ static int bip_a3000 (struct uae_prefs *p, int config, int compa, int romcheck)
 	else
 		roms[0] = 59;
 	roms[1] = -1;
-	p->immediate_blits = 1;
 	p->bogomem_size = 0;
 	p->chipmem_size = 0x200000;
 	p->cpu_model = 68030;
@@ -4646,7 +4722,7 @@ static int bip_a4000 (struct uae_prefs *p, int config, int compa, int romcheck)
 	roms[2] = 13;
 	roms[3] = 12;
 	roms[4] = -1;
-	p->immediate_blits = 1;
+
 	p->bogomem_size = 0;
 	p->chipmem_size = 0x200000;
 	p->mbresmem_low_size = 8 * 1024 * 1024;
@@ -4680,7 +4756,7 @@ static int bip_a4000t (struct uae_prefs *p, int config, int compa, int romcheck)
 	roms[1] = 31;
 	roms[2] = 13;
 	roms[3] = -1;
-	p->immediate_blits = 1;
+
 	p->bogomem_size = 0;
 	p->chipmem_size = 0x200000;
 	p->mbresmem_low_size = 8 * 1024 * 1024;
@@ -5041,6 +5117,8 @@ int built_in_prefs (struct uae_prefs *p, int model, int config, int compa, int r
 		v = bip_super (p, config, compa, romcheck);
 		break;
 	}
+	if ((p->cpu_model >= 68020 || !p->cpu_cycle_exact) && !p->immediate_blits)
+		p->waiting_blits = 1;
 	return v;
 }
 
@@ -5178,7 +5256,7 @@ void config_check_vsync (void)
 //		if (config_changed == 1)
 //			write_log (_T("* configuration check trigger\n"));
 		config_changed++;
-		if (config_changed > 10)
+		if (config_changed >= 3)
 			config_changed = 0;
 	}
 }

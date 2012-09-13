@@ -11,6 +11,7 @@
 #include "sysdeps.h"
 
 #include "options.h"
+#include "autoconf.h"
 #ifndef ANDROID
 #include <sys/sysctl.h>
 #endif
@@ -19,7 +20,7 @@
 #ifdef JIT
 
 #define BARRIER 32
-#define MAXZ3MEM 0x7F000000
+#define MAXZ3MEM32 0x7F000000
 #define MAXZ3MEM64 0xF0000000
 #define MAX_SHMID 256
 
@@ -27,6 +28,12 @@
 #define IPC_RMID    0x02
 #define IPC_CREAT   0x04
 #define IPC_STAT    0x08
+
+#define MEM_RESERVE 0
+#define MEM_COMMIT 0
+#define MEM_DECOMMIT 0
+#define MEM_WRITE_WATCH 0
+#define PAGE_READWRITE 0
 
 #if !defined(__FreeBSD__)
 typedef int key_t;
@@ -36,11 +43,13 @@ typedef int key_t;
 struct shmid_ds {
     key_t  key;
     size_t size;
+	size_t rosize;
     void   *addr;
     char  name[MAX_PATH];
     void   *attached;
     int    mode;
     void   *natmembase; /* if != NULL then shmem is shared from natmem */
+	bool fake;
 };
 
 static struct shmid_ds shmids[MAX_SHMID];
@@ -48,15 +57,20 @@ uae_u8 *natmem_offset, *natmem_offset_end;
 static uae_u8 *p96mem_offset;
 static int p96mem_size;
 static uae_u8 *memwatchtable;
-static uae_u64 size64;
 int maxmem;
 static int memwatchok = 0;
+uae_u32 natmem_size;
 
 #include <sys/mman.h>
 
 /*
  * Allocate executable memory for JIT cache
  */
+void cache_free (uae_u8 *cache)
+{
+	free (cache);
+}
+
 uae_u8 *cache_alloc (int size)
 {
 	void *cache;
@@ -65,18 +79,13 @@ uae_u8 *cache_alloc (int size)
 
 	if ((cache = valloc (size))) {
 		if (mprotect (cache, size, PROT_READ|PROT_WRITE|PROT_EXEC)) {
-			write_log ("MProtect Cache of %d failed. ERR=%d\n", size, errno);
+			write_log (_T("MProtect Cache of %d failed. ERR=%d\n"), size, errno);
 		}
 	} else {
-		write_log ("Cache_Alloc of %d failed. ERR=%d\n", size, errno);
+		write_log (_T("Cache_Alloc of %d failed. ERR=%d\n"), size, errno);
 	}
 
 	return cache;
-}
-
-void cache_free (uae_u8 *cache)
-{
-	free (cache);
 }
 
 #ifdef NATMEM_OFFSET
@@ -111,7 +120,18 @@ static uae_u32 lowmem (void)
 	return change;
 }
 
-void preinit_shm (void)
+static uae_u64 size64;
+
+static void clear_shm (void)
+{
+	shm_start = NULL;
+	for (unsigned int i = 0; i < MAX_SHMID; i++) {
+		memset (&shmids[i], 0, sizeof (struct shmid_ds));
+		shmids[i].key = -1;
+	}
+}
+
+bool preinit_shm (void)
 {
 	int i;
 	uae_u64 total64;
@@ -128,7 +148,7 @@ void preinit_shm (void)
 #ifdef __x86_64__
 	max_allowed_mman = 2048;
 #else
-	max_allowed_mman = 1536;
+	max_allowed_mman = 512;
 #endif
 
 #ifdef __APPLE__
@@ -146,39 +166,65 @@ void preinit_shm (void)
 	total64 = (uae_u64)sysconf (_SC_PHYS_PAGES) * (uae_u64)getpagesize();
 #endif
 	size64 = total64;
-	if (maxmem < 0)
-		size64 = MAXZ3MEM;
-	else if (maxmem > 0)
-		size64 = maxmem * 1024 * 1024;
 #ifdef __x86_64__
 	if (size64 > MAXZ3MEM64)
 		size64 = MAXZ3MEM64;
 #else
-	if (size64 > MAXZ3MEM)
-		size64 = MAXZ3MEM;
+	if (size64 > MAXZ3MEM32)
+		size64 = MAXZ3MEM32;
 #endif
+	if (maxmem < 0)
+		size64 = MAXZ3MEM64;
+	else if (maxmem > 0)
+		size64 = maxmem * 1024 * 1024;
 	if (size64 < 8 * 1024 * 1024)
 		size64 = 8 * 1024 * 1024;
 	if (max_allowed_mman * 1024 * 1024 > size64)
 		max_allowed_mman = size64 / (1024 * 1024);
-	max_z3fastmem = max_allowed_mman * 1024 * 1024;
-	if (max_z3fastmem < 512 * 1024 * 1024)
-		max_z3fastmem = 512 * 1024 * 1024;
 
-	shm_start = 0;
-	for (i = 0; i < MAX_SHMID; i++) {
-		shmids[i].attached = 0;
-		shmids[i].key = -1;
-		shmids[i].size = 0;
-		shmids[i].addr = NULL;
-		shmids[i].name[0] = 0;
+	natmem_size = max_allowed_mman * 1024 * 1024;
+	if (natmem_size < 256 * 1024 * 1024)
+		natmem_size = 256 * 1024 * 1024;
+
+	write_log (_T("Total physical RAM %lluM. Attempting to reserve: %uM.\n"), totalphys64 >> 20, natmem_size >> 20);
+	natmem_offset = 0;
+	if (natmem_size <= 640 * 1024 * 1024) {
+		uae_u32 p = 0x78000000 - natmem_size;
+		for (;;) {
+			natmem_offset = (uae_u8*)valloc (natmem_size);
+			if (natmem_offset)
+				break;
+			p -= 256 * 1024 * 1024;
+			if (p <= 256 * 1024 * 1024)
+				break;
+		}
 	}
+	if (!natmem_offset) {
+		for (;;) {
+			natmem_offset = (uae_u8*)valloc (natmem_size);
+			if (natmem_offset)
+				break;
+			natmem_size -= 128 * 1024 * 1024;
+			if (!natmem_size) {
+				write_log (_T("Can't allocate 256M of virtual address space!?\n"));
+				return false;
+			}
+		}
+	}
+	max_z3fastmem = natmem_size;
+	write_log (_T("Reserved: 0x%p-0x%p (%08x %dM)\n"),
+		natmem_offset, (uae_u8*)natmem_offset + natmem_size,
+		natmem_size, natmem_size >> 20);
 
-	write_log ("Max Z3FastRAM %dM. Total physical RAM %uM\n", max_z3fastmem >> 20, totalphys64 >> 20);
+	clear_shm ();
+
+//	write_log (_T("Max Z3FastRAM %dM. Total physical RAM %uM\n"), max_z3fastmem >> 20, totalphys64 >> 20);
+
 	canbang = 1;
+	return true;
 }
 
-static void resetmem (void)
+static void resetmem (bool decommit)
 {
 	int i;
 
@@ -193,6 +239,10 @@ static void resetmem (void)
 		if (!s->attached)
 			continue;
 		if (!s->natmembase)
+			continue;
+		if (s->fake)
+			continue;
+		if (!decommit && ((uae_u8*)s->attached - (uae_u8*)s->natmembase) >= 0x10000000)
 			continue;
 		shmaddr = natmem_offset + ((uae_u8*)s->attached - (uae_u8*)s->natmembase);
 		result = valloc (/*shmaddr,*/ size);
@@ -212,39 +262,48 @@ static ULONG getz2rtgaddr (void)
 	return start + 2 * 1024 * 1024;
 }
 
-int init_shm (void)
+static uae_u8 *va (uae_u32 offset, uae_u32 len, long alloc, long protect)
+{
+	uae_u8 *addr;
+
+	addr = (uae_u8*)valloc (len);
+	if (addr) {
+		write_log (_T("VA(%p - %p, %4uM, %s)\n"),
+			natmem_offset + offset, natmem_offset + offset + len, len >> 20, (alloc & MEM_WRITE_WATCH) ? _T("WATCH") : _T("RESERVED"));
+		return addr;
+	}
+	write_log (_T("VA(%p - %p, %4uM, %s) failed %d\n"),
+		natmem_offset + offset, natmem_offset + offset + len, len >> 20, (alloc & MEM_WRITE_WATCH) ? _T("WATCH") : _T("RESERVED"), errno);
+	return NULL;
+}
+
+static int doinit_shm (void)
 {
 	uae_u32 size, totalsize, z3size, natmemsize;
 	uae_u32 rtgbarrier, z3chipbarrier, rtgextra;
 	int rounds = 0;
-	ULONG z3rtgmem_size = currprefs.rtgmem_type ? currprefs.rtgmem_size : 0;
+	ULONG z3rtgmem_size = changed_prefs.rtgmem_type ? changed_prefs.rtgmem_size : 0;
 
-restart:
 	for (;;) {
 		int lowround = 0;
 		uae_u8 *blah = NULL;
 		if (rounds > 0)
-			write_log ("NATMEM: retrying %d..\n", rounds);
+			write_log (_T("NATMEM: retrying %d..\n"), rounds);
 		rounds++;
-		if (natmem_offset)
-			free (natmem_offset);
-		natmem_offset = NULL;
-		natmem_offset_end = NULL;
-		canbang = 0;
 
 		z3size = 0;
 		size = 0x1000000;
 		rtgextra = 0;
 		z3chipbarrier = 0;
 		rtgbarrier = getpagesize();
-		if (currprefs.cpu_model >= 68020)
+		if (changed_prefs.cpu_model >= 68020)
 			size = 0x10000000;
-		if (currprefs.z3fastmem_size || currprefs.z3fastmem2_size || currprefs.z3chipmem_size) {
-			z3size = currprefs.z3fastmem_size + currprefs.z3fastmem2_size + currprefs.z3chipmem_size + (currprefs.z3fastmem_start - 0x10000000);
+		if (changed_prefs.z3fastmem_size || changed_prefs.z3fastmem2_size || changed_prefs.z3chipmem_size) {
+			z3size = changed_prefs.z3fastmem_size + changed_prefs.z3fastmem2_size + changed_prefs.z3chipmem_size + (changed_prefs.z3fastmem_start - 0x10000000);
 			if (z3rtgmem_size) {
-				rtgbarrier = 16 * 1024 * 1024 - ((currprefs.z3fastmem_size + currprefs.z3fastmem2_size) & 0x00ffffff);
+				rtgbarrier = 16 * 1024 * 1024 - ((changed_prefs.z3fastmem_size + changed_prefs.z3fastmem2_size) & 0x00ffffff);
 			}
-			if (currprefs.z3chipmem_size && (currprefs.z3fastmem_size || currprefs.z3fastmem2_size))
+			if (changed_prefs.z3chipmem_size && (changed_prefs.z3fastmem_size || changed_prefs.z3fastmem2_size))
 				z3chipbarrier = 16 * 1024 * 1024;
 		} else {
 			rtgbarrier = 0;
@@ -254,11 +313,11 @@ restart:
 			int change = lowmem ();
 			if (!change)
 				return 0;
-			write_log ("NATMEM: %d, %dM > %dM = %dM\n", ++lowround, totalsize >> 20, size64 >> 20, (totalsize - change) >> 20);
+			write_log (_T("NATMEM: %d, %dM > %dM = %dM\n"), ++lowround, totalsize >> 20, size64 >> 20, (totalsize - change) >> 20);
 			totalsize -= change;
 		}
 		if ((rounds > 1 && totalsize < 0x10000000) || rounds > 20) {
-			write_log ("NATMEM: No special area could be allocated (3)!\n");
+			write_log (_T("NATMEM: No special area could be allocated (3)!\n"));
 			return 0;
 		}
 		natmemsize = size + z3size;
@@ -269,88 +328,102 @@ restart:
 			rtgbarrier = 0;
 			rtgextra = 0;
 		}
-		size = natmemsize + rtgbarrier + z3chipbarrier + z3rtgmem_size + rtgextra + 16 * getpagesize();
-		blah = (uae_u8*)valloc (size);
-		if (blah) {
-			mprotect (blah, size, PROT_READ|PROT_WRITE|PROT_EXEC);
-			natmem_offset = blah;
+		if (natmemsize + rtgbarrier + z3chipbarrier + z3rtgmem_size + rtgextra + 16 * getpagesize() <= natmem_size)
 			break;
-		}
-		write_log ("NATMEM: %dM area failed to allocate, err=%d (Z3=%dM,RTG=%dM)\n",
-			natmemsize >> 20, errno, (currprefs.z3fastmem_size + currprefs.z3fastmem2_size + currprefs.z3chipmem_size) >> 20, currprefs.rtgmem_size >> 20);
+		write_log (_T("NATMEM: %dM area failed to allocate, err=%d (Z3=%dM,RTG=%dM)\n"),
+			natmemsize >> 20, errno, (changed_prefs.z3fastmem_size + changed_prefs.z3fastmem2_size + changed_prefs.z3chipmem_size) >> 20, z3rtgmem_size >> 20);
 		if (!lowmem ()) {
-			write_log ("NATMEM: No special area could be allocated (2)!\n");
+			write_log (_T("NATMEM: No special area could be allocated (2)!\n"));
 			return 0;
 		}
 	}
+
+#if VAMODE == 1
+
+	p96mem_offset = NULL;
 	p96mem_size = z3rtgmem_size;
-	if (currprefs.rtgmem_size && currprefs.rtgmem_type) {
+	if (changed_prefs.rtgmem_size && changed_prefs.rtgmem_type) {
+		p96mem_offset = natmem_offset + natmemsize + rtgbarrier + z3chipbarrier;
+	} else if (changed_prefs.rtgmem_size && !changed_prefs.rtgmem_type) {
+		p96mem_offset = natmem_offset + getz2rtgaddr ();
+	}
+
+#else
+
+	if (p96mem_offset)
+		free (p96mem_offset);
+	p96mem_offset = NULL;
+	p96mem_size = z3rtgmem_size;
+	if (changed_prefs.rtgmem_size && changed_prefs.rtgmem_type) {
+		uae_u32 s, l;
 		free (natmem_offset);
-		size = natmemsize + rtgbarrier + z3chipbarrier;
-		if (!(natmem_offset = valloc (size))) {
-			write_log ("VirtualAlloc() part 2 error %d. RTG disabled.\n", errno);
-			currprefs.rtgmem_size = changed_prefs.rtgmem_size = 0;
-			rtgbarrier = getpagesize();
-			rtgextra = 0;
-			goto restart;
-		} else {
-			mprotect (natmem_offset, size, PROT_READ|PROT_WRITE|PROT_EXEC);
-		}	
-		size = p96mem_size + rtgextra;
-		p96mem_offset = (uae_u8*)valloc (size);
+
+		s = 0;
+		l = natmemsize + rtgbarrier + z3chipbarrier;
+		if (!va (s, l, MEM_RESERVE, PAGE_READWRITE))
+			return 0;
+
+		s = natmemsize + rtgbarrier + z3chipbarrier;
+		l = p96mem_size + rtgextra;
+		p96mem_offset = va (s, l, MEM_RESERVE | MEM_WRITE_WATCH, PAGE_READWRITE);
 		if (!p96mem_offset) {
 			currprefs.rtgmem_size = changed_prefs.rtgmem_size = 0;
 			z3rtgmem_size = 0;
-			write_log ("NATMEM: failed to allocate special Picasso96 GFX RAM, err=%d\n", errno);
-		} else {
-			mprotect (p96mem_offset, size, PROT_READ|PROT_WRITE|PROT_EXEC);
+			write_log (_T("NATMEM: failed to allocate special Picasso96 GFX RAM, err=%d\n"), errno);
 		}
-	} else if (currprefs.rtgmem_size && !currprefs.rtgmem_type) {
-		// This so annoying..
+
+#if 0
+		s = natmemsize + rtgbarrier + z3chipbarrier + p96mem_size + rtgextra + 4096;
+		l = natmem_size - s - 4096;
+		if (natmem_size > l) {
+			if (!va (s, l, 	MEM_RESERVE, PAGE_READWRITE))
+				return 0;
+		}
+#endif
+
+	} else if (changed_prefs.rtgmem_size && !changed_prefs.rtgmem_type) {
+
+		uae_u32 s, l;
 		free (natmem_offset);
 		// Chip + Z2Fast
-		size = 2 * 1024 * 1024 + currprefs.fastmem_size;
-		if (!(natmem_offset = valloc (size))) {
-			write_log (_T("VirtualAlloc() part 2 error %d. RTG disabled.\n"), errno);
+		s = 0;
+		l = 2 * 1024 * 1024 + changed_prefs.fastmem_size;
+		if (!va (s, l, MEM_RESERVE, PAGE_READWRITE)) {
 			currprefs.rtgmem_size = changed_prefs.rtgmem_size = 0;
-			rtgbarrier = getpagesize();
-			rtgextra = 0;
-			goto restart;
-		} else {
-			mprotect (natmem_offset, size, PROT_READ|PROT_WRITE|PROT_EXEC);
 		}
 		// After RTG
-		size = natmemsize + rtgbarrier + z3chipbarrier - (2 * 1024 * 1024 + 8 * 1024 * 1024) + getpagesize();
-		if (!(natmem_offset = valloc (size))) {
-			write_log (_T("VirtualAlloc() part 2 error %d. RTG disabled.\n"), errno);
+		s = 2 * 1024 * 1024 + 8 * 1024 * 1024;
+		l = natmem_size - (2 * 1024 * 1024 + 8 * 1024 * 1024) + getpagesize();
+		if (!va (s, l, MEM_RESERVE, PAGE_READWRITE)) {
 			currprefs.rtgmem_size = changed_prefs.rtgmem_size = 0;
-			rtgbarrier = getpagesize();
-			rtgextra = 0;
-			goto restart;
-		} else {
-			mprotect (natmem_offset, size, PROT_READ|PROT_WRITE|PROT_EXEC);
 		}
 		// RTG
-		size = 10 * 1024 * 1024 - getz2rtgaddr ();
-		p96mem_offset = (uae_u8*)valloc (size);
+		s = getz2rtgaddr ();
+		l = 10 * 1024 * 1024 - getz2rtgaddr ();
+		p96mem_offset = va (s, l, MEM_RESERVE | MEM_WRITE_WATCH, PAGE_READWRITE);
 		if (!p96mem_offset) {
 			currprefs.rtgmem_size = changed_prefs.rtgmem_size = 0;
-			write_log (_T("NATMEM: failed to allocate special Picasso96 GFX RAM, err=%d\n"), errno);
-		} else {
-			mprotect (p96mem_offset, size, PROT_READ|PROT_WRITE|PROT_EXEC);
+		}
+
+	} else {
+
+		free (natmem_offset);
+		if (!valloc (natmem_size)) {
+			write_log (_T("NATMEM: No special area could be reallocated! (1) err=%d\n"), errno);
+			return 0;
 		}
 	}
-
+#endif
 	if (!natmem_offset) {
-		write_log ("NATMEM: No special area could be allocated! (1) err=%d\n", errno);
+		write_log (_T("NATMEM: No special area could be allocated! err=%d\n"), errno);
 	} else {
-		write_log ("NATMEM: Our special area: %p-%p (%08x %dM)\n",
+		write_log (_T("NATMEM: Our special area: 0x%p-0x%p (%08x %dM)\n"),
 			natmem_offset, (uae_u8*)natmem_offset + natmemsize,
 			natmemsize, natmemsize >> 20);
-		if (currprefs.rtgmem_size)
-			write_log ("NATMEM: P96 special area: %p-%p (%08x %dM)\n",
-			p96mem_offset, (uae_u8*)p96mem_offset + currprefs.rtgmem_size,
-			currprefs.rtgmem_size, currprefs.rtgmem_size >> 20);
+		if (changed_prefs.rtgmem_size)
+			write_log (_T("NATMEM: P96 special area: 0x%p-0x%p (%08x %dM)\n"),
+			p96mem_offset, (uae_u8*)p96mem_offset + changed_prefs.rtgmem_size,
+			changed_prefs.rtgmem_size, changed_prefs.rtgmem_size >> 20);
 		canbang = 1;
 		if (p96mem_size)
 			natmem_offset_end = p96mem_offset + p96mem_size;
@@ -358,9 +431,43 @@ restart:
 			natmem_offset_end = natmem_offset + natmemsize;
 	}
 
-	resetmem ();
-
 	return canbang;
+}
+
+bool init_shm (void)
+{
+	static uae_u32 oz3fastmem_size, oz3fastmem2_size;
+	static uae_u32 oz3chipmem_size;
+	static uae_u32 ortgmem_size;
+	static int ortgmem_type;
+
+	if (
+		oz3fastmem_size == changed_prefs.z3fastmem_size &&
+		oz3fastmem2_size == changed_prefs.z3fastmem2_size &&
+		oz3chipmem_size == changed_prefs.z3chipmem_size &&
+		ortgmem_size == changed_prefs.rtgmem_size &&
+		ortgmem_type == changed_prefs.rtgmem_type)
+		return false;
+
+	oz3fastmem_size = changed_prefs.z3fastmem_size;
+	oz3fastmem2_size = changed_prefs.z3fastmem2_size;
+	oz3chipmem_size = changed_prefs.z3chipmem_size;;
+	ortgmem_size = changed_prefs.rtgmem_size;
+	ortgmem_type = changed_prefs.rtgmem_type;
+
+	doinit_shm ();
+
+	resetmem (false);
+	clear_shm ();
+
+	memory_hardreset (2);
+	return true;
+}
+
+void free_shm (void)
+{
+	resetmem (true);
+	clear_shm ();
 }
 
 void mapped_free (uae_u8 *mem)
@@ -399,200 +506,6 @@ void mapped_free (uae_u8 *mem)
 	}
 }
 
-#define TRUE 1
-#define FALSE 0
-void *my_shmat (int shmid, void *shmaddr, int shmflg)
-{
-	void *result = (void *)-1;
-	unsigned int got = FALSE;
-	int p96special = FALSE;
-
-//#ifdef NATMEM_OFFSET
-	unsigned int size = shmids[shmid].size;
-
-	if (shmids[shmid].attached)
-		return shmids[shmid].attached;
-
-	if ((uae_u8*)shmaddr < natmem_offset) {
-		if(!_tcscmp (shmids[shmid].name, "chip")) {
-			shmaddr=natmem_offset;
-			got = TRUE;
-			if (getz2endaddr () <= 2 * 1024 * 1024 || currprefs.chipmem_size < 2 * 1024 * 1024)
-				size += BARRIER;
-		}
-		if(!_tcscmp (shmids[shmid].name, "kick")) {
-			shmaddr=natmem_offset + 0xf80000;
-			got = TRUE;
-			size += BARRIER;
-		}
-		if(!_tcscmp (shmids[shmid].name, "rom_a8")) {
-			shmaddr=natmem_offset + 0xa80000;
-			got = TRUE;
-		}
-		if(!_tcscmp (shmids[shmid].name, "rom_e0")) {
-			shmaddr=natmem_offset + 0xe00000;
-			got = TRUE;
-		}
-		if(!_tcscmp (shmids[shmid].name, "rom_f0")) {
-			shmaddr=natmem_offset + 0xf00000;
-			got = TRUE;
-		}
-		if(!_tcscmp (shmids[shmid].name, "rtarea")) {
-			shmaddr=natmem_offset + rtarea_base;
-			got = TRUE;
-		}
-		if(!_tcscmp (shmids[shmid].name, "fast")) {
-			shmaddr=natmem_offset + 0x200000;
-			got = TRUE;
-			if (!(currprefs.rtgmem_size && !currprefs.rtgmem_type))
-				size += BARRIER;
-		}
-		if(!_tcscmp (shmids[shmid].name, "z2_gfx")) {
-			ULONG start = getz2rtgaddr ();
-			got = TRUE;
-			p96special = TRUE;
-			shmaddr = natmem_offset + start;
-			p96ram_start = start;
-			if (start + currprefs.rtgmem_size < 10 * 1024 * 1024)
-				size += BARRIER;
-		}
-		if(!_tcscmp (shmids[shmid].name, "ramsey_low")) {
-			shmaddr=natmem_offset + a3000lmem_start;
-			got = TRUE;
-		}
-		if(!_tcscmp (shmids[shmid].name, "ramsey_high")) {
-			shmaddr=natmem_offset + a3000hmem_start;
-			got = TRUE;
-		}
-		if(!_tcscmp (shmids[shmid].name, "z3")) {
-			shmaddr=natmem_offset + z3fastmem_start;
-			if (!currprefs.z3fastmem2_size)
-				size += BARRIER;
-			got = TRUE;
-		}
-		if(!_tcscmp (shmids[shmid].name, "z3_2")) {
-			shmaddr=natmem_offset + z3fastmem_start + currprefs.z3fastmem_size;
-			size += BARRIER;
-			got = TRUE;
-		}
-		if(!_tcscmp (shmids[shmid].name, "z3_chip")) {
-			shmaddr=natmem_offset + z3chipmem_start;
-			size += BARRIER;
-			got = TRUE;
-		}
-		if(!_tcscmp (shmids[shmid].name, "gfx")) {
-			got = TRUE;
-			p96special = TRUE;
-			p96ram_start = p96mem_offset - natmem_offset;
-			shmaddr = natmem_offset + p96ram_start;
-			size += BARRIER;
-		}
-		if(!_tcscmp (shmids[shmid].name, "bogo")) {
-			shmaddr=natmem_offset+0x00C00000;
-			got = TRUE;
-			if (currprefs.bogomem_size <= 0x100000)
-				size += BARRIER;
-		}
-		if(!_tcscmp (shmids[shmid].name, "filesys")) {
-			static uae_u8 *filesysptr;
-			if (filesysptr == NULL)
-				filesysptr = xcalloc (uae_u8, size);
-			result = filesysptr;
-			shmids[shmid].attached = result;
-			shmids[shmid].natmembase = NULL;
-			return result;
-		}
-		if(!_tcscmp (shmids[shmid].name, "custmem1")) {
-			shmaddr=natmem_offset + currprefs.custom_memory_addrs[0];
-			got = TRUE;
-		}
-		if(!_tcscmp (shmids[shmid].name, "custmem2")) {
-			shmaddr=natmem_offset + currprefs.custom_memory_addrs[1];
-			got = TRUE;
-		}
-
-		if(!_tcscmp (shmids[shmid].name, "hrtmem")) {
-			shmaddr=natmem_offset + 0x00a10000;
-			got = TRUE;
-		}
-		if(!_tcscmp (shmids[shmid].name, "arhrtmon")) {
-			shmaddr=natmem_offset + 0x00800000;
-			size += BARRIER;
-			got = TRUE;
-		}
-		if(!_tcscmp (shmids[shmid].name, "xpower_e2")) {
-			shmaddr=natmem_offset + 0x00e20000;
-			size += BARRIER;
-			got = TRUE;
-		}
-		if(!_tcscmp (shmids[shmid].name, "xpower_f2")) {
-			shmaddr=natmem_offset + 0x00f20000;
-			size += BARRIER;
-			got = TRUE;
-		}
-		if(!_tcscmp (shmids[shmid].name, "nordic_f0")) {
-			shmaddr=natmem_offset + 0x00f00000;
-			size += BARRIER;
-			got = TRUE;
-		}
-		if(!_tcscmp (shmids[shmid].name, "nordic_f4")) {
-			shmaddr=natmem_offset + 0x00f40000;
-			size += BARRIER;
-			got = TRUE;
-		}
-		if(!_tcscmp (shmids[shmid].name, "nordic_f6")) {
-			shmaddr=natmem_offset + 0x00f60000;
-			size += BARRIER;
-			got = TRUE;
-		}
-		if(!_tcscmp(shmids[shmid].name, "superiv_b0")) {
-			shmaddr=natmem_offset + 0x00b00000;
-			size += BARRIER;
-			got = TRUE;
-		}
-		if(!_tcscmp (shmids[shmid].name, "superiv_d0")) {
-			shmaddr=natmem_offset + 0x00d00000;
-			size += BARRIER;
-			got = TRUE;
-		}
-		if(!_tcscmp (shmids[shmid].name, "superiv_e0")) {
-			shmaddr=natmem_offset + 0x00e00000;
-			size += BARRIER;
-			got = TRUE;
-		}
-	}
-//#endif
-
-	if (shmids[shmid].key == shmid && shmids[shmid].size) {
-		shmids[shmid].mode = 0;
-
-		// we have natmem -> we can share the memory from there
-		if ( ((shmaddr >= natmem_offset) && ((shmaddr + size) <= natmem_offset_end)) || ((p96mem_offset != NULL) && p96special) ) {
-			shmids[shmid].natmembase = natmem_offset;
-			shmids[shmid].attached = shmaddr;
-			write_log ("SHMAddr: %08x = %08p - %08p   %s from NATMEM %s\n", (uae_u8*)shmaddr-natmem_offset, shmaddr, natmem_offset, shmids[shmid].name, got ? "identified":"unknown");
-			result = shmaddr;
-		} else {
-			// not natmem was allocated -> allocate own chunk here
-			shmids[shmid].natmembase = NULL;
-			result = valloc (size);
-			if (result == NULL) {
-				result = (void*)-1;
-				write_log (_T("VirtualAlloc %08X - %08X %x (%dk) failed %d\n"),
-					(uae_u8*)shmaddr - natmem_offset, (uae_u8*)shmaddr - natmem_offset + size,
-					size, size >> 10, errno);
-			} else {
-				shmids[shmid].attached = result;
-				write_log (_T("VirtualAlloc %08X - %08X %x (%dk) ok (%08X)%s\n"),
-					(uae_u8*)shmaddr - natmem_offset, (uae_u8*)shmaddr - natmem_offset + size,
-					size, size >> 10, shmaddr, p96special ? _T(" P96") : _T(""));
-			}
-		}
-	}
-
-	return result;
-}
-
 static key_t get_next_shmkey (void)
 {
 	key_t result = -1;
@@ -612,6 +525,176 @@ STATIC_INLINE key_t find_shmkey (key_t key)
 	int result = -1;
 	if(shmids[key].key == key) {
 		result = key;
+	}
+	return result;
+}
+
+#define TRUE 1
+#define FALSE 0
+void *my_shmat (int shmid, void *shmaddr, int shmflg)
+{
+	void *result = (void *)-1;
+	unsigned int got = FALSE, readonly = FALSE;
+	int p96special = FALSE;
+
+//#ifdef NATMEM_OFFSET
+	unsigned int size = shmids[shmid].size;
+	unsigned int readonlysize = size;
+
+	if (shmids[shmid].attached)
+		return shmids[shmid].attached;
+
+	if ((uae_u8*)shmaddr < natmem_offset) {
+		if(!_tcscmp (shmids[shmid].name, _T("chip"))) {
+			shmaddr=natmem_offset;
+			got = TRUE;
+			if (getz2endaddr () <= 2 * 1024 * 1024 || currprefs.chipmem_size < 2 * 1024 * 1024)
+				size += BARRIER;
+		} else if(!_tcscmp (shmids[shmid].name, _T("kick"))) {
+			shmaddr=natmem_offset + 0xf80000;
+			got = TRUE;
+			size += BARRIER;
+			readonly = TRUE;
+		} else if(!_tcscmp (shmids[shmid].name, _T("rom_a8"))) {
+			shmaddr=natmem_offset + 0xa80000;
+			got = TRUE;
+			readonly = TRUE;
+		} else if(!_tcscmp (shmids[shmid].name, _T("rom_e0"))) {
+			shmaddr=natmem_offset + 0xe00000;
+			got = TRUE;
+			readonly = TRUE;
+		} else if(!_tcscmp (shmids[shmid].name, _T("rom_f0"))) {
+			shmaddr=natmem_offset + 0xf00000;
+			got = TRUE;
+			readonly = TRUE;
+		} else if(!_tcscmp (shmids[shmid].name, _T("rtarea"))) {
+			shmaddr=natmem_offset + rtarea_base;
+			got = TRUE;
+			readonly = TRUE;
+			readonlysize = RTAREA_TRAPS;
+		} else if(!_tcscmp (shmids[shmid].name, _T("fast"))) {
+			shmaddr=natmem_offset + 0x200000;
+			got = TRUE;
+			if (!(currprefs.rtgmem_size && !currprefs.rtgmem_type))
+				size += BARRIER;
+		} else if(!_tcscmp (shmids[shmid].name, _T("z2_gfx"))) {
+			ULONG start = getz2rtgaddr ();
+			got = TRUE;
+			p96special = TRUE;
+			shmaddr = natmem_offset + start;
+			p96ram_start = start;
+			if (start + currprefs.rtgmem_size < 10 * 1024 * 1024)
+				size += BARRIER;
+		} else if(!_tcscmp (shmids[shmid].name, _T("ramsey_low"))) {
+			shmaddr=natmem_offset + a3000lmem_start;
+			got = TRUE;
+		} else if(!_tcscmp (shmids[shmid].name, _T("ramsey_high"))) {
+			shmaddr=natmem_offset + a3000hmem_start;
+			got = TRUE;
+		} else if(!_tcscmp (shmids[shmid].name, _T("z3"))) {
+			shmaddr=natmem_offset + z3fastmem_start;
+			if (!currprefs.z3fastmem2_size)
+				size += BARRIER;
+			got = TRUE;
+		} else if(!_tcscmp (shmids[shmid].name, _T("z3_2"))) {
+			shmaddr=natmem_offset + z3fastmem_start + currprefs.z3fastmem_size;
+			size += BARRIER;
+			got = TRUE;
+		} else if(!_tcscmp (shmids[shmid].name, _T("z3_chip"))) {
+			shmaddr=natmem_offset + z3chipmem_start;
+			size += BARRIER;
+			got = TRUE;
+		} else if(!_tcscmp (shmids[shmid].name, _T("z3_gfx"))) {
+			got = TRUE;
+			p96special = TRUE;
+			p96ram_start = p96mem_offset - natmem_offset;
+			shmaddr = natmem_offset + p96ram_start;
+			size += BARRIER;
+		} else if(!_tcscmp (shmids[shmid].name, _T("bogo"))) {
+			shmaddr=natmem_offset+0x00C00000;
+			got = TRUE;
+			if (currprefs.bogomem_size <= 0x100000)
+				size += BARRIER;
+		} else if(!_tcscmp (shmids[shmid].name, _T("filesys"))) {
+			static uae_u8 *filesysptr;
+			if (filesysptr == NULL)
+				filesysptr = xcalloc (uae_u8, size);
+			result = filesysptr;
+			shmids[shmid].attached = result;
+			shmids[shmid].fake = true;
+			return result;
+		} else if(!_tcscmp (shmids[shmid].name, _T("custmem1"))) {
+			shmaddr=natmem_offset + currprefs.custom_memory_addrs[0];
+			got = TRUE;
+		} else if(!_tcscmp (shmids[shmid].name, _T("custmem2"))) {
+			shmaddr=natmem_offset + currprefs.custom_memory_addrs[1];
+			got = TRUE;
+		} else if(!_tcscmp (shmids[shmid].name, _T("hrtmem"))) {
+			shmaddr=natmem_offset + 0x00a10000;
+			got = TRUE;
+		} else if(!_tcscmp (shmids[shmid].name, _T("arhrtmon"))) {
+			shmaddr=natmem_offset + 0x00800000;
+			size += BARRIER;
+			got = TRUE;
+		} else if(!_tcscmp (shmids[shmid].name, _T("xpower_e2"))) {
+			shmaddr=natmem_offset + 0x00e20000;
+			size += BARRIER;
+			got = TRUE;
+		} else if(!_tcscmp (shmids[shmid].name, _T("xpower_f2"))) {
+			shmaddr=natmem_offset + 0x00f20000;
+			size += BARRIER;
+			got = TRUE;
+		} else if(!_tcscmp (shmids[shmid].name, _T("nordic_f0"))) {
+			shmaddr=natmem_offset + 0x00f00000;
+			size += BARRIER;
+			got = TRUE;
+		} else if(!_tcscmp (shmids[shmid].name, _T("nordic_f4"))) {
+			shmaddr=natmem_offset + 0x00f40000;
+			size += BARRIER;
+			got = TRUE;
+		} else if(!_tcscmp (shmids[shmid].name, _T("nordic_f6"))) {
+			shmaddr=natmem_offset + 0x00f60000;
+			size += BARRIER;
+			got = TRUE;
+		} else if(!_tcscmp(shmids[shmid].name, _T("superiv_b0"))) {
+			shmaddr=natmem_offset + 0x00b00000;
+			size += BARRIER;
+			got = TRUE;
+		} else if(!_tcscmp (shmids[shmid].name, _T("superiv_d0"))) {
+			shmaddr=natmem_offset + 0x00d00000;
+			size += BARRIER;
+			got = TRUE;
+		} else if(!_tcscmp (shmids[shmid].name, _T("superiv_e0"))) {
+			shmaddr=natmem_offset + 0x00e00000;
+			size += BARRIER;
+			got = TRUE;
+		}
+	}
+//#endif
+
+	if (shmids[shmid].key == shmid && shmids[shmid].size) {
+		//DWORD protect = readonly ? PAGE_READONLY : PAGE_READWRITE;
+		unsigned int protect = 0;
+		shmids[shmid].mode = protect;
+		shmids[shmid].rosize = readonlysize;
+		shmids[shmid].natmembase = natmem_offset;
+		if (shmaddr)
+			free (shmaddr);
+		result = valloc (size);
+		if (result == NULL)
+			free (shmaddr);
+		result = valloc (size);
+		if (result == NULL) {
+			result = (void*)-1;
+			write_log (_T("VA %08X - %08X %x (%dk) failed %d\n"),
+				(uae_u8*)shmaddr - natmem_offset, (uae_u8*)shmaddr - natmem_offset + size,
+				size, size >> 10, errno);
+		} else {
+			shmids[shmid].attached = result;
+			write_log (_T("VA %08X - %08X %x (%dk) ok (%08X)%s\n"),
+				(uae_u8*)shmaddr - natmem_offset, (uae_u8*)shmaddr - natmem_offset + size,
+				size, size >> 10, shmaddr, p96special ? _T(" P96") : _T(""));
+		}
 	}
 	return result;
 }

@@ -222,7 +222,7 @@ void expamem_next (void)
 	map_banks (&expamem_bank, 0xE8, 1, 0);
 	++ecard;
 	if (ecard < cardno) {
-		expamem_bank.name = card_name[ecard] ? card_name[ecard] : _T("None");
+		expamem_bank.name = card_name[ecard] ? card_name[ecard] : (TCHAR*) _T("None");
 		(*card_init[ecard]) ();
 	} else {
 		expamem_init_clear2 ();
@@ -301,7 +301,7 @@ static void REGPARAM2 expamem_wput (uaecptr addr, uae_u32 value)
 		switch (addr & 0xff) {
 		case 0x44:
 			if (expamem_type() == zorroIII) {
-				uae_u32 p1, p2;
+				uae_u32 p1, p2 = 0;
 				// +Bernd Roesch & Toni Wilen
 				p1 = get_word (regs.regs[11] + 0x20);
 				if (expamem[0] & add_memory) {
@@ -1000,7 +1000,7 @@ static void expamem_map_filesys (void)
 	write_log (_T("Filesystem: mapped memory @$%lx.\n"), filesys_start);
 	/* 68k code needs to know this. */
 	a = here ();
-	org (rtarea_base + 0xFFFC);
+	org (rtarea_base + RTAREA_FSBOARD);
 	dl (filesys_start + 0x2000);
 	org (a);
 }
@@ -1213,6 +1213,35 @@ void free_fastmemory (void)
 	fastmemory = 0;
 }
 
+static bool mapped_malloc_dynamic (uae_u32 *currpsize, uae_u32 *changedpsize, uae_u8 **memory, uae_u32 *allocated, uae_u32 *mask, int max, const TCHAR *name)
+{
+	int alloc = *currpsize;
+
+	*allocated = 0;
+	*memory = NULL;
+	*mask = 0;
+
+	if (!alloc)
+		return false;
+
+	while (alloc >= max * 1024 * 1024) {
+		uae_u8 *mem = mapped_malloc (alloc, name);
+		if (mem) {
+			*memory = mem;
+			*currpsize = alloc;
+			*changedpsize = alloc;
+			*mask = alloc - 1;
+			*allocated = alloc;
+			return true;
+		}
+		write_log (_T("Out of memory for %s, %d bytes.\n"), name, alloc);
+		alloc /= 2;
+	}
+
+	return false;
+}
+
+
 static void allocate_expamem (void)
 {
 	currprefs.fastmem_size = changed_prefs.fastmem_size;
@@ -1220,6 +1249,7 @@ static void allocate_expamem (void)
 	currprefs.z3fastmem_size = changed_prefs.z3fastmem_size;
 	currprefs.z3fastmem2_size = changed_prefs.z3fastmem2_size;
 	currprefs.rtgmem_size = changed_prefs.rtgmem_size;
+	currprefs.rtgmem_type = changed_prefs.rtgmem_type;
 	currprefs.z3chipmem_size = changed_prefs.z3chipmem_size;
 
 	z3chipmem_start = currprefs.z3fastmem_start;
@@ -1240,24 +1270,13 @@ static void allocate_expamem (void)
 				allocated_fastmem = 0;
 			}
 		}
-		memory_hardreset ();
+		memory_hardreset (1);
 	}
 	if (allocated_z3fastmem != currprefs.z3fastmem_size) {
 		if (z3fastmem)
 			mapped_free (z3fastmem);
-		z3fastmem = 0;
-
-		allocated_z3fastmem = currprefs.z3fastmem_size;
-		z3fastmem_mask = allocated_z3fastmem - 1;
-
-		if (allocated_z3fastmem) {
-			z3fastmem = mapped_malloc (allocated_z3fastmem, _T("z3"));
-			if (z3fastmem == 0) {
-				write_log (_T("Out of memory for 32 bit fast memory.\n"));
-				allocated_z3fastmem = 0;
-			}
-		}
-		memory_hardreset ();
+		mapped_malloc_dynamic (&currprefs.z3fastmem_size, &changed_prefs.z3fastmem_size, &z3fastmem, &allocated_z3fastmem, &z3fastmem_mask, 1, _T("z3"));
+		memory_hardreset (1);
 	}
 	if (allocated_z3fastmem2 != currprefs.z3fastmem2_size) {
 		if (z3fastmem2)
@@ -1274,43 +1293,21 @@ static void allocate_expamem (void)
 				allocated_z3fastmem2 = 0;
 			}
 		}
-		memory_hardreset ();
+		memory_hardreset (1);
 	}
 	if (allocated_z3chipmem != currprefs.z3chipmem_size) {
 		if (z3chipmem)
 			mapped_free (z3chipmem);
-		z3chipmem = 0;
-
-		allocated_z3chipmem = currprefs.z3chipmem_size;
-		z3chipmem_mask = allocated_z3chipmem - 1;
-
-		if (allocated_z3chipmem) {
-			z3chipmem = mapped_malloc (allocated_z3chipmem, _T("z3_chip"));
-			if (z3chipmem == 0) {
-				write_log (_T("Out of memory for 32 bit chip memory.\n"));
-				allocated_z3chipmem = 0;
-			}
-		}
-		memory_hardreset ();
+		mapped_malloc_dynamic (&currprefs.z3chipmem_size, &changed_prefs.z3chipmem_size, &z3chipmem, &allocated_z3chipmem, &z3chipmem_mask, 16, _T("z3_chip"));
+		memory_hardreset (1);
 	}
 
 #ifdef PICASSO96
 	if (allocated_gfxmem != currprefs.rtgmem_size) {
 		if (gfxmemory)
 			mapped_free (gfxmemory);
-		gfxmemory = 0;
-
-		allocated_gfxmem = currprefs.rtgmem_size;
-		gfxmem_mask = allocated_gfxmem - 1;
-
-		if (allocated_gfxmem) {
-			gfxmemory = mapped_malloc (allocated_gfxmem, currprefs.rtgmem_type ? _T("z3_gfx") : _T("z2_gfx"));
-			if (gfxmemory == 0) {
-				write_log (_T("Out of memory for graphics card memory\n"));
-				allocated_gfxmem = 0;
-			}
-		}
-		memory_hardreset ();
+		mapped_malloc_dynamic (&currprefs.rtgmem_size, &changed_prefs.rtgmem_size, &gfxmemory, &allocated_gfxmem, &gfxmem_mask, 1, currprefs.rtgmem_type ? _T("z3_gfx") : _T("z2_gfx"));
+		memory_hardreset (1);
 	}
 #endif
 
@@ -1586,6 +1583,8 @@ void expamem_reset (void)
 
 void expansion_init (void)
 {
+	if (savestate_state != STATE_RESTORE) {
+
 	allocated_fastmem = 0;
 	fastmem_mask = fastmem_start = 0;
 	fastmemory = 0;
@@ -1601,11 +1600,6 @@ void expansion_init (void)
 	catweasel_mask = catweasel_start = 0;
 #endif
 
-#ifdef FILESYS
-	filesys_start = 0;
-	filesysory = 0;
-#endif
-
 	allocated_z3fastmem = 0;
 	z3fastmem_mask = z3fastmem_start = 0;
 	z3fastmem = 0;
@@ -1615,6 +1609,12 @@ void expansion_init (void)
 	allocated_z3chipmem = 0;
 	z3chipmem_mask = z3chipmem_start = 0;
 	z3chipmem = 0;
+	}
+
+#ifdef FILESYS
+	filesys_start = 0;
+	filesysory = 0;
+#endif
 
 	allocate_expamem ();
 

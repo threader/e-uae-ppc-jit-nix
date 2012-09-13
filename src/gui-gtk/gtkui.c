@@ -1973,9 +1973,9 @@ static void make_about_widgets (GtkWidget *dvbox)
     GtkWidget *thing;
 //fixme
 #if GTK_MAJOR_VERSION >= 2
-    const char title[] = "<span font_desc=\"Sans 24\">2.4.2</span>";
+    const char title[] = "<span font_desc=\"Sans 24\">2.5.0</span>";
 #else
-    const char title[] = "2.4.2";
+    const char title[] = "2.5.0";
 #endif
 
     add_empty_vbox (dvbox);

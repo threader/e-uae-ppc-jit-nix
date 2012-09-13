@@ -132,7 +132,8 @@ static TCHAR help[] = {
 	"  Cl                    List currently found trainer addresses.\n"
 	"  D[idxzs <[max diff]>] Deep trainer. i=new value must be larger, d=smaller,\n"
 	"                        x = must be same, z = must be different, s = restart.\n"
-	"  W <address> <value[.x]> Write into Amiga memory.\n"
+	"  W <address> <values[.x] separated by space> Write into Amiga memory.\n"
+	"  W <address> 'string' Write into Amiga memory.\n"
 	"  w <num> <address> <length> <R/W/I/F/C> [<value>[.x]] (read/write/opcode/freeze/mustchange).\n"
 	"                        Add/remove memory watchpoints.\n"
 	"  wd [<0-1>]            Enable illegal access logger. 1 = enable break.\n"
@@ -154,7 +155,7 @@ static TCHAR help[] = {
 	"  dm                    Dump current address space map.\n"
 	"  v <vpos> [<hpos>]     Show DMA data (accurate only in cycle-exact mode).\n"
 	"                        v [-1 to -4] = enable visual DMA debugger.\n"
-	"  ?<value>              Hex/Bin/Dec converter.\n"
+	"  ?<value>              Hex ($ and 0x)/Bin (%)/Dec (!) converter.\n"
 #ifdef _WIN32
 	"  x                     Close debugger.\n"
 	"  xx                    Switch between console and GUI debugger.\n"
@@ -189,6 +190,19 @@ static int debug_out (const TCHAR *format, ...)
 	return 1;
 }
 
+static bool iscancel (int counter)
+{
+	static int cnt;
+
+	cnt++;
+	if (cnt < counter)
+		return false;
+	cnt = 0;
+	if (!console_isch ())
+		return false;
+	console_getch ();
+	return true;
+}
 
 static bool isoperator(TCHAR **cp)
 {
@@ -200,6 +214,31 @@ static void ignore_ws (TCHAR **c)
 {
 	while (**c && _istspace(**c))
 		(*c)++;
+}
+static TCHAR peekchar (TCHAR **c)
+{
+	return **c;
+}
+static TCHAR readchar (TCHAR **c)
+{
+	TCHAR cc = **c;
+	(*c)++;
+	return cc;
+}
+static TCHAR next_char (TCHAR **c)
+{
+	ignore_ws (c);
+	return *(*c)++;
+}
+static TCHAR peek_next_char (TCHAR **c)
+{
+	TCHAR *pc = *c;
+	return pc[1];
+}
+static int more_params (TCHAR **c)
+{
+	ignore_ws (c);
+	return (**c) != 0;
 }
 
 static uae_u32 readint (TCHAR **c);
@@ -400,24 +439,6 @@ static uae_u32 readbin (TCHAR **c)
 	if (checkvaltype (c, &val))
 		return val;
 	return readbinx (c);
-}
-
-static TCHAR next_char (TCHAR **c)
-{
-	ignore_ws (c);
-	return *(*c)++;
-}
-
-static TCHAR peek_next_char (TCHAR **c)
-{
-	TCHAR *pc = *c;
-	return pc[1];
-}
-
-static int more_params (TCHAR **c)
-{
-	ignore_ws (c);
-	return (**c) != 0;
 }
 
 static int next_string (TCHAR **c, TCHAR *out, int max, int forceupper)

@@ -1180,7 +1180,7 @@ static int drive_empty (drive * drv)
 	if (drv->catweasel)
 		return catweasel_disk_changed (drv->catweasel) == 0;
 #endif
-	return drv->diskfile == 0;
+	return drv->diskfile == 0 && drv->dskchange_time >= 0;
 }
 
 static void drive_step (drive * drv, int step_direction)
@@ -2154,13 +2154,15 @@ static void floppy_get_rootblock (uae_u8 *dst, int block, const TCHAR *disk_name
 
 /* type: 0=regular, 1=ext2adf */
 /* adftype: 0=DD,1=HD,2=DD PC,3=HD PC,4=525SD */
-void disk_creatediskfile (const TCHAR *name, int type, drive_type adftype, const TCHAR *disk_name, bool ffs, bool bootable)
+bool disk_creatediskfile (const TCHAR *name, int type, drive_type adftype, const TCHAR *disk_name, bool ffs, bool bootable, struct zfile *copyfrom)
 {
 	int size = 32768;
 	struct zfile *f;
 	int i, l, file_size, tracks, track_len, sectors;
 	uae_u8 *chunk = NULL;
 	int ddhd = 1;
+	bool ok = false;
+	uae_u64 pos;
 
 	if (type == 1)
 		tracks = 2 * 83;
@@ -2201,6 +2203,7 @@ void disk_creatediskfile (const TCHAR *name, int type, drive_type adftype, const
 				}
 				zfile_fwrite (chunk, cylsize, 1, f);
 			}
+			ok = true;
 		} else {
 			uae_u8 root[4];
 			uae_u8 rawtrack[3 * 4], dostrack[3 * 4];
@@ -2220,7 +2223,7 @@ void disk_creatediskfile (const TCHAR *name, int type, drive_type adftype, const
 			for (i = 0; i < tracks; i++) {
 				uae_u8 tmp[3 * 4];
 				memcpy (tmp, rawtrack, sizeof rawtrack);
-				if (dodos)
+				if (dodos || copyfrom)
 					memcpy (tmp, dostrack, sizeof dostrack);
 				zfile_fwrite (tmp, sizeof tmp, 1, f);
 			}
@@ -2234,13 +2237,14 @@ void disk_creatediskfile (const TCHAR *name, int type, drive_type adftype, const
 				}
 				zfile_fwrite (chunk, l, 1, f);
 			}
+			ok = true;
 		}
 	}
 	xfree (chunk);
 	zfile_fclose (f);
 	if (f)
 		DISK_history_add (name, -1, HISTORY_FLOPPY, 1);
-
+	return ok;
 }
 
 int disk_getwriteprotect (struct uae_prefs *p, const TCHAR *name)
@@ -2308,7 +2312,7 @@ int disk_setwriteprotect (struct uae_prefs *p, int num, const TCHAR *name, bool 
 	name2 = DISK_get_saveimagepath (name);
 
 	if (needwritefile && zf2 == 0)
-		disk_creatediskfile (name2, 1, drvtype, NULL, false, false);
+		disk_creatediskfile (name2, 1, drvtype, NULL, false, false, NULL);
 	zfile_fclose (zf2);
 	if (writeprotected && iswritefileempty (p, name)) {
 		for (i = 0; i < MAX_FLOPPY_DRIVES; i++) {
@@ -3751,6 +3755,8 @@ uae_u8 *restore_disk (int num,uae_u8 *src)
 					drive_insert (floppy + num, &currprefs, num, changed_prefs.floppyslots[num].df, false);
 					if (drive_empty (floppy + num))
 						drv->dskchange = true;
+				} else {
+					drv->dskchange_time = -1;
 				}
 			}
 		}

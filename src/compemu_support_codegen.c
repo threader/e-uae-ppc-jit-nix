@@ -1698,8 +1698,7 @@ static __inline__ void remove_all_offsets(void)
 static inline void flush_reg_count(void)
 {
 #if RECORD_REGISTER_USAGE
-    unsigned int r;
-    for (r = 0; r < 16; r++)
+    for (unsigned int r = 0; r < 16; r++)
 	if (reg_count_local[r])
 	    ADDQim(reg_count_local[r], ((uintptr)reg_count) + (8 * r), X86_NOREG, X86_NOREG, 1);
 #endif
@@ -5702,13 +5701,12 @@ static uint8 *do_alloc_code(uint32 size, int depth)
 	*/
 	static uint8 * code_base = NULL;
 	if (code_base == NULL) {
-		unsigned int attempts;
 		uintptr page_size = getpagesize();
 		uintptr boundaries = CODE_ALLOC_BOUNDARIES;
 		if (boundaries < page_size)
 			boundaries = page_size;
 		code_base = (uint8 *)sbrk(0);
-		for (attempts = 0; attempts < CODE_ALLOC_MAX_ATTEMPTS; attempts++) {
+		for (unsigned int attempts = 0; attempts < CODE_ALLOC_MAX_ATTEMPTS; attempts++) {
 			if (vm_acquire_fixed(code_base, size) == 0) {
 				uint8 *code = code_base;
 				code_base += size;
@@ -6206,10 +6204,9 @@ static bool merge_blacklist()
 				p += 4;
 			}
 
-			int opcode;
 			if (*p == 0 || *p == ',' || *p == ';') {
 				write_log("<JIT compiler> : blacklist opcodes : %04x-%04x\n", opcode1, opcode2);
-				for (opcode = opcode1; opcode <= opcode2; opcode++)
+				for (int opcode = opcode1; opcode <= opcode2; opcode++)
 					reset_compop(cft_map(opcode));
 
 				if (*p == ',' || *p++ == ';')
