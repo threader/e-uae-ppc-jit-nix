@@ -1474,7 +1474,7 @@ static void fdi2_decode (FDI *fdi, unsigned long totalavg, uae_u32 *avgp, uae_u3
 			if (i >= pulses)
 				i = 0;
 			indx = idx[i];
-			if (uaerand() <= (indx * RAND_MAX) / maxidx) {
+			if (uaerand() <= (indx * UAE_RAND_MAX) / maxidx) {
 				pulse += avgp[i] - ref_pulse;
 				if (indx >= maxidx)
 					ref_pulse = 0;
@@ -1625,23 +1625,23 @@ static void fdi2_decode (FDI *fdi, unsigned long totalavg, uae_u32 *avgp, uae_u3
 				if (min_pulse < ref_pulse)
 					min_pulse = ref_pulse;
 				randval = uaerand();
-				if (randval < (RAND_MAX / 2)) {
-					if (randval > (RAND_MAX / 4)) {
-						if (randval <= (3 * RAND_MAX / 8))
-							randval = (2 * randval) - (RAND_MAX /4);
+				if (randval < (UAE_RAND_MAX / 2)) {
+					if (randval > (UAE_RAND_MAX / 4)) {
+						if (randval <= (3 * UAE_RAND_MAX / 8))
+							randval = (2 * randval) - (UAE_RAND_MAX  /4);
 						else
-							randval = (4 * randval) - RAND_MAX;
+							randval = (4 * randval) - UAE_RAND_MAX;
 					}
-					jitter = 0 - (randval * (avg_pulse - min_pulse)) / RAND_MAX;
+					jitter = 0 - (randval * (avg_pulse - min_pulse)) / UAE_RAND_MAX;
 				} else {
-					randval -= RAND_MAX / 2;
-					if (randval > (RAND_MAX / 4)) {
-						if (randval <= (3 * RAND_MAX / 8))
-							randval = (2 * randval) - (RAND_MAX /4);
+					randval -= UAE_RAND_MAX / 2;
+					if (randval > (UAE_RAND_MAX / 4)) {
+						if (randval <= (3 * UAE_RAND_MAX / 8))
+							randval = (2 * randval) - (UAE_RAND_MAX /4);
 						else
-							randval = (4 * randval) - RAND_MAX;
+							randval = (4 * randval) - UAE_RAND_MAX;
 					}
-					jitter = (randval * (max_pulse - avg_pulse)) / RAND_MAX;
+					jitter = (randval * (max_pulse - avg_pulse)) / UAE_RAND_MAX;
 				}
 				avg_pulse += jitter;
 				if ((avg_pulse < min_pulse) || (avg_pulse > max_pulse)) {
@@ -1655,28 +1655,28 @@ static void fdi2_decode (FDI *fdi, unsigned long totalavg, uae_u32 *avgp, uae_u3
 				ref_pulse = 0;
 				if (i == eodat)
 					outstep++;
-			} else if (uaerand() <= ((idx[i] * RAND_MAX) / maxidx)) {
+			} else if (uaerand() <= ((idx[i] * UAE_RAND_MAX) / maxidx)) {
 				avg_pulse = avgp[i];
 				min_pulse = minp[i];
 				max_pulse = maxp[i];
 				randval = uaerand();
-				if (randval < (RAND_MAX / 2)) {
-					if (randval > (RAND_MAX / 4)) {
-						if (randval <= (3 * RAND_MAX / 8))
-							randval = (2 * randval) - (RAND_MAX /4);
+				if (randval < (UAE_RAND_MAX / 2)) {
+					if (randval > (UAE_RAND_MAX / 4)) {
+						if (randval <= (3 * UAE_RAND_MAX / 8))
+							randval = (2 * randval) - (UAE_RAND_MAX /4);
 						else
-							randval = (4 * randval) - RAND_MAX;
+							randval = (4 * randval) - UAE_RAND_MAX;
 					}
-					avg_pulse -= (randval * (avg_pulse - min_pulse)) / RAND_MAX;
+					avg_pulse -= (randval * (avg_pulse - min_pulse)) / UAE_RAND_MAX;
 				} else {
-					randval -= RAND_MAX / 2;
-					if (randval > (RAND_MAX / 4)) {
-						if (randval <= (3 * RAND_MAX / 8))
-							randval = (2 * randval) - (RAND_MAX /4);
+					randval -= UAE_RAND_MAX / 2;
+					if (randval > (UAE_RAND_MAX / 4)) {
+						if (randval <= (3 * UAE_RAND_MAX / 8))
+							randval = (2 * randval) - (UAE_RAND_MAX /4);
 						else
-							randval = (4 * randval) - RAND_MAX;
+							randval = (4 * randval) - UAE_RAND_MAX;
 					}
-					avg_pulse += (randval * (max_pulse - avg_pulse)) / RAND_MAX;
+					avg_pulse += (randval * (max_pulse - avg_pulse)) / UAE_RAND_MAX;
 				}
 				if ((avg_pulse > ref_pulse) && (avg_pulse < (avgp[nexti] - jitter))) {
 					pulse += avg_pulse - ref_pulse;
@@ -1766,7 +1766,6 @@ static void fdi2_decode (FDI *fdi, unsigned long totalavg, uae_u32 *avgp, uae_u3
 
 		/* after one pass to correctly initialize the average bitrate, outputs the bits */
 		if (outstep == 1) {
-			unsigned int j;
 			for (j = real_size; j > 1; j--)
 				addbit (d, 0);
 			addbit (d, 1);
@@ -2194,7 +2193,6 @@ int fdi2raw_loadtrack (FDI *fdi, uae_u16 *mfmbuf, uae_u16 *tracktiming, int trac
 		return 0;
 
 	if (outlen > 0) {
-		unsigned int i;
 		if (cache->lowlevel)
 			return fdi2raw_loadrevolution_2 (fdi, mfmbuf, tracktiming, track, tracklength, indexoffsetp, multirev, mfm);
 		*tracklength = fdi->out;

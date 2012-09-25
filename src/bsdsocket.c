@@ -24,8 +24,6 @@
 #include "bsdsocket.h"
 #include "native2amiga.h"
 
-#define TRUE 1
-#define FALSE 0
 #ifdef BSDSOCKET
 
 int log_bsd;

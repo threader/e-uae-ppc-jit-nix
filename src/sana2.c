@@ -28,9 +28,6 @@
 #include "uaenet.h"
 #include "execio.h"
 
-#define TRUE 1
-#define FALSE 0
-
 #define SANA2NAME _T("uaenet.device")
 
 #define MAX_ASYNC_REQUESTS 200

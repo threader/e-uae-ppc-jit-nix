@@ -11,8 +11,6 @@
 #define ENABLE_DEBUGGER 0
 
 #define HEADERSIZE 12
-#define TRUE 1
-#define FALSE 0
 
 #include "sysconfig.h"
 #include "sysdeps.h"

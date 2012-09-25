@@ -60,7 +60,7 @@ extern int bootrom_header, bootrom_items;
 // 32 = vsync
 
 int inputdevice_logging = 0;
-
+extern int tablet_log;
 
 #define ID_FLAG_CANRELEASE 0x1000
 #define ID_FLAG_TOGGLED 0x2000
@@ -1367,6 +1367,19 @@ void inputdevice_tablet (int x, int y, int z, int pressure, uae_u32 buttonbits, 
 
 	if (!memcmp (tmp, p + MH_START, MH_END - MH_START))
 		return;
+
+	if (tablet_log & 1) {
+		static int obuttonbits, oinproximity;
+		if (inproximity != oinproximity || buttonbits != obuttonbits) {
+			obuttonbits = buttonbits;
+			oinproximity = inproximity;
+			write_log (_T("TABLET: B=%08x P=%d\n"), buttonbits, inproximity);
+		}
+	}
+	if (tablet_log & 2) {
+		write_log (_T("TABLET: X=%d Y=%d Z=%d AX=%d AY=%d AZ=%d\n"), x, y, z, ax, ay, az);
+	}
+
 	p[MH_E] = 0xc0 | 2;
 	p[MH_CNT]++;
 }

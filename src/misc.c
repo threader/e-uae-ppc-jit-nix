@@ -33,9 +33,6 @@
 #include "hrtimer.h"
 #include "sleep.h"
 
-#define TRUE 1
-#define FALSE 0
-
 static int logging_started;
 #define LOG_BOOT "puae_bootlog.txt"
 #define LOG_NORMAL "puae_log.txt"
@@ -79,6 +76,7 @@ unsigned int seriallog = 0;
 int rawkeyboard = -1;
 static bool rawinput_enabled_mouse, rawinput_enabled_keyboard;
 int no_rawinput;
+int tablet_log = 0;
 
 int is_tablet (void)
 {

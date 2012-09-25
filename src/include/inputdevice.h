@@ -34,18 +34,18 @@
 #define IDTYPE_MAX 4
 
 struct inputdevice_functions {
-	int		(*init)				(void);
-	void	(*close)			(void);
-	int		(*acquire)			(int,int);
+	int	(*init)			(void);
+	void	(*close)		(void);
+	int	(*acquire)		(int,int);
 	void	(*unacquire)		(int);
-	void	(*read)				(void);
-	int		(*get_num)			(void);
+	void	(*read)			(void);
+	int	(*get_num)		(void);
 	TCHAR*	(*get_friendlyname)	(int);
 	TCHAR*	(*get_uniquename)	(int);
-	int		(*get_widget_num)	(int);
-	int		(*get_widget_type)	(int,int,TCHAR*,uae_u32*);
-	int		(*get_widget_first)	(int,int);
-	int		(*get_flags)		(int);
+	int	(*get_widget_num)	(int);
+	int	(*get_widget_type)	(int,int,TCHAR*,uae_u32*);
+	int	(*get_widget_first)	(int,int);
+	int	(*get_flags)		(int);
 };
 extern struct inputdevice_functions inputdevicefunc_joystick;
 extern struct inputdevice_functions inputdevicefunc_mouse;

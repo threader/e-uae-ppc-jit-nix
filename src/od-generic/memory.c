@@ -529,8 +529,6 @@ STATIC_INLINE key_t find_shmkey (key_t key)
 	return result;
 }
 
-#define TRUE 1
-#define FALSE 0
 void *my_shmat (int shmid, void *shmaddr, int shmflg)
 {
 	void *result = (void *)-1;

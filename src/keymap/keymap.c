@@ -365,25 +365,26 @@ void my_kbd_handler (int keyboard, int scancode, int newstate)
         static int swapperdrive = 0;
 
 #ifdef WIN32
-        if (amode && scancode == DIK_F11 && currprefs.win32_ctrl_F11_is_quit && ctrlpressed ())
-                code = AKS_QUIT;
+		if (amode && scancode == DIK_F11 && currprefs.win32_ctrl_F11_is_quit && ctrlpressed ())
+			code = AKS_QUIT;
 #endif
 
-                scancode_new = scancode;
-        if (!specialpressed () && inputdevice_iskeymapped (keyboard, scancode))
-                scancode = 0;
+		scancode_new = scancode;
+		if (!specialpressed () && inputdevice_iskeymapped (keyboard, scancode))
+			scancode = 0;
 
+		defaultguikey = amode ? DIK_F12 : DIK_NUMLOCK;
 #ifdef WIN32
         // GUI must be always available
-        if (scancode_new == DIK_F12 && currprefs.win32_guikey < 0)
+        if (scancode_new == defaultguikey && currprefs.win32_guikey < 0)
                 scancode = scancode_new;
-        if (scancode_new == currprefs.win32_guikey && scancode_new != DIK_F12)
+        if (scancode_new == currprefs.win32_guikey && scancode_new != defaultguikey)
                 scancode = scancode_new;
 #endif
+
+//	write_log ("KBDHANDLER_1: kbd = %d, scancode= %d (0x%02x), state= %d, sc_new= %d\n", keyboard, scancode, scancode, newstate, scancode_new);
         
-//      write_log ("KBDHANDLER_1: kbd = %d, scancode= %d (0x%02x), state= %d, sc_new= %d\n", keyboard, scancode, scancode, newstate, scancode_new);
-        
-        if (newstate == 0 && code == 0 && amode) {
+        if (newstate && code == 0 && amode) {
         
                 switch (scancode)
                 {
@@ -463,12 +464,13 @@ void my_kbd_handler (int keyboard, int scancode, int newstate)
                         capslockstate = host_scrolllockstate;
                 }
         }
-                if (special) {
-                        inputdevice_checkqualifierkeycode (keyboard, scancode, newstate);
-                        return;
-                }
 
-//        write_log ("KBDHANDLER_2: kbd2= %d, scancode= %d (0x%02x), state= %d\n", keyboard, scancode, scancode, newstate);
+		if (special) {
+			inputdevice_checkqualifierkeycode (keyboard, scancode, newstate);
+			return;
+		}
+
+//	write_log ("KBDHANDLER_2: kbd2= %d, scancode= %d (0x%02x), state= %d\n", keyboard, scancode, scancode, newstate);
 
         inputdevice_translatekeycode (keyboard, scancode, newstate);
 }

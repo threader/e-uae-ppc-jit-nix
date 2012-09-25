@@ -65,8 +65,6 @@
 //#define my_strdup strdup
 #define _stat64 stat
 
-#define TRUE 1
-#define FALSE 0
 //FIXME: ---end
 
 #define TRACING_ENABLED 0

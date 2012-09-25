@@ -2034,8 +2034,10 @@ static int get_kb_widget_first (unsigned int kb, int type)
 
 static int get_kb_widget_type (unsigned int kb, unsigned int num, char *name, uae_u32 *code)
 {
-	// fix me
-	//*code = num;
+	if (name)
+		_tcscpy (name, di_keyboard[kb].buttonname[num]);
+	if (code)
+		*code = di_keyboard[kb].buttonmappings[num];
 	return IDEV_WIDGET_KEY;
 }
 
@@ -2075,6 +2077,20 @@ static int init_kb (void)
 	keyboard_german = 0;
 //	if ((LOWORD(GetKeyboardLayout (0)) & 0x3ff) == 7)
 //		keyboard_german = 1;
+
+	struct didata *did = &di_keyboard[0];
+	for (int k = 0; k < 254; k++) {
+		TCHAR tmp[100];
+		tmp[0] = 0;
+//			if (rawkeyboardlabels[k] != NULL && rawkeyboardlabels[k][0])
+//				_tcscpy (tmp, rawkeyboardlabels[k]);
+		if (!tmp[0])
+			_stprintf (tmp, _T("KEY_%02X"), k + 1);
+		did->buttonname[k] = my_strdup (tmp);
+		did->buttonmappings[k] = k + 1;
+		did->buttonsort[k] = k + 1;
+	}
+
 	return 1;
 }
 
@@ -2088,9 +2104,9 @@ static void close_kb (void)
 	unsigned int i;
 	for (i = 0; i < num_keyboard; i++)
 		di_dev_free (&di_keyboard[i]);
-	superkb = normalkb = rawkb = 0;
 	di_free ();
 */
+//	superkb = normalkb = rawkb = 0;
 }
 
 static int keyhack (int scancode, int pressed, int num)

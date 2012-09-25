@@ -85,6 +85,7 @@ static int linedbl, linedbld;
 int interlace_seen = 0;
 #define AUTO_LORES_FRAMES 10
 static int can_use_lores = 0, frame_res, frame_res_lace, last_max_ypos;
+static bool center_reset;
 
 /* Lookup tables for dual playfields.  The dblpf_*1 versions are for the case
    that playfield 1 has the priority, dbplpf_*2 are used if playfield 2 has
@@ -542,6 +543,7 @@ int get_custom_limits (int *pw, int *ph, int *pdx, int *pdy, int *prealh)
 		plffirstline_total, plflastline_total,
 		first_planes_vpos, last_planes_vpos, minfirstline);
 #endif
+	center_reset = true;
 	return 1;
 }
 
@@ -575,8 +577,8 @@ void get_custom_mouse_limits (int *pw, int *ph, int *pdx, int *pdy, int dbl)
 
 	delay1 = (firstword_bplcon1 & 0x0f) | ((firstword_bplcon1 & 0x0c00) >> 6);
 	delay2 = ((firstword_bplcon1 >> 4) & 0x0f) | (((firstword_bplcon1 >> 4) & 0x0c00) >> 6);
-	if (delay1 == delay2)
-		;//dx += delay1;
+//	if (delay1 == delay2)
+//		dx += delay1;
 
 	dx = xshift (dx, res_shift);
 
@@ -2328,7 +2330,7 @@ static void center_image (void)
 		/* Would the old value be good enough? If so, leave it as it is if we want to
 		* be clever. */
 		if (currprefs.gfx_xcenter == 2) {
-			if (visible_left_border < prev_x_adjust && prev_x_adjust < min_diwstart && min_diwstart - visible_left_border <= 32)
+			if (center_reset || (visible_left_border < prev_x_adjust && prev_x_adjust < min_diwstart && min_diwstart - visible_left_border <= 32))
 				visible_left_border = prev_x_adjust;
 		}
 	} else if (gfxvidinfo.extrawidth) {
@@ -2368,14 +2370,14 @@ static void center_image (void)
 		/* Would the old value be good enough? If so, leave it as it is if we want to
 		 * be clever. */
 		if (currprefs.gfx_ycenter == 2) {
-			if (thisframe_y_adjust != prev_y_adjust
+			if (center_reset || (thisframe_y_adjust != prev_y_adjust
 				&& prev_y_adjust <= thisframe_first_drawn_line
-				&& prev_y_adjust + max_drawn_amiga_line > thisframe_last_drawn_line)
+				&& prev_y_adjust + max_drawn_amiga_line > thisframe_last_drawn_line))
 				thisframe_y_adjust = prev_y_adjust;
 		}
 	}
 
-		/* Make sure the value makes sense */
+	/* Make sure the value makes sense */
 	if (thisframe_y_adjust + max_drawn_amiga_line > maxvpos_nom)
 		thisframe_y_adjust = maxvpos_nom - max_drawn_amiga_line;
 	if (thisframe_y_adjust < minfirstline)
@@ -2400,6 +2402,7 @@ static void center_image (void)
 
 	gfxvidinfo.xoffset = (DISPLAY_LEFT_SHIFT << RES_MAX) + (visible_left_border << (RES_MAX - currprefs.gfx_resolution));
 	gfxvidinfo.yoffset = thisframe_y_adjust << VRES_MAX;
+	center_reset = false;
 }
 
 #define FRAMES_UNTIL_RES_SWITCH 1
@@ -3040,6 +3043,8 @@ void reset_drawing (void)
 
 //	clearbuffer (&gfxvidinfo.drawbuffer);
 //	clearbuffer (&gfxvidinfo.tempbuffer);
+
+	center_reset = true;
 }
 
 void drawing_init (void)

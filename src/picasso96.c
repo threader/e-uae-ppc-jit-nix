@@ -38,8 +38,6 @@
 #include "sysdeps.h"
 
 #if defined(PICASSO96)
-#define FALSE 0
-#define TRUE 1
 
 #include "gfxdep/gfx.h"
 #include "options.h"
