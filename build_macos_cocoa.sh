@@ -9,7 +9,7 @@ cd32=" --enable-cd32 "
 a600=" --enable-gayle "
 scsi=" --enable-scsi-device --enable-ncr --enable-a2091 "
 other=" --with-caps --enable-amax --enable-gccopt --enable-serial-port "
-debug=" --enable-profiling "
+debug=""
 #
 #
 ./bootstrap.sh

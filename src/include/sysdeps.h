@@ -15,6 +15,10 @@
   * Copyright 1996, 1997 Bernd Schmidt
   */
 
+#define TRUE 1
+#define FALSE 0
+#define UAE_RAND_MAX RAND_MAX
+
 #define ECS_DENISE
 
 #ifdef JIT

@@ -335,7 +335,7 @@ uae_u8 serial_readstatus(uae_u8 ignored)
     }
 #endif
     return status;
-    }
+}
 
 uae_u8 serial_writestatus (uae_u8 old, uae_u8 nw)
 {
@@ -361,7 +361,9 @@ void serial_open(void)
     if ((sd = open (currprefs.sername, O_RDWR|O_NONBLOCK|O_BINARY, 0)) < 0) {
 		write_log (_T("Error: Could not open Device %s\n"), currprefs.sername);
 		return;
-    }
+    } else {
+		write_log (_T("Serial device %s opened.\n"), currprefs.sername);
+	}
 
     serdev = 1;
 
