@@ -412,7 +412,7 @@ static void abort_async (struct devstruct *dev, uaecptr request, int errcode, in
 	while (i < MAX_ASYNC_REQUESTS) {
 		if (dev->d_request[i] == request && dev->d_request_type[i] == ASYNC_REQUEST_TEMP) {
 			/* ASYNC_REQUEST_TEMP = request is processing */
-			uae_msleep (10);
+			sleep_millis (10);
 			i = 0;
 			continue;
 		}
@@ -940,6 +940,8 @@ static uae_u32 REGPARAM2 dev_beginio (TrapContext *context)
 	canquick = dev_canquick (dev, request);
 	if (((flags & 1) && canquick) || (canquick < 0)) {
 		dev_do_io (dev, request);
+		if (!(flags & 1))
+			uae_ReplyMsg (request);
 		return get_byte (request + 31);
 	} else {
 		add_async_request (dev, request, ASYNC_REQUEST_TEMP, 0);

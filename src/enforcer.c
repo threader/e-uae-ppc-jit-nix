@@ -28,6 +28,8 @@
 #define console_out(...) do {;} while (0)
 #endif
 
+//#if defined(AHI)
+
 #if defined(JIT)
 #define special_mem_r special_mem |= S_READ
 #define special_mem_w special_mem |= S_WRITE
@@ -171,9 +173,9 @@ static int enforcer_decode_hunk_and_offset (TCHAR *buf, uae_u32 pc)
 					if (name) {
 						native_name = au ((char*)amiga2native(name,100));
 						if (!native_name)
-							native_name = strdup (_T("Unknown"));
+							native_name = my_strdup (_T("Unknown"));
 					} else {
-						native_name = strdup (_T("Unknown"));
+						native_name = my_strdup (_T("Unknown"));
 					}
 					_stprintf (buf, _T("----> %08lx - \"%s\" Hunk %04lx Offset %08lx\n"), pc, native_name, hunk, offset);
 					xfree (native_name);
@@ -374,8 +376,8 @@ static void enforcer_display_hit (const TCHAR *addressmode, uae_u32 pc, uaecptr 
 
 	console_out (enforcer_buf);
 	write_log (enforcer_buf);
-	uae_msleep (5);
-	//doflashscreen ();
+	sleep_millis (5);
+	doflashscreen ();
 
 end:
 	xfree (native_task_name);
@@ -658,3 +660,4 @@ int enforcer_disable (void)
 }
 
 #endif
+//#endif

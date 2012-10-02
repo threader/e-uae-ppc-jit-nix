@@ -162,7 +162,7 @@ int main (int argc, char **argv)
 {
     directory *root;
     FILE *inf;
-	int ret;
+    int ret;
 
     if (argc < 2 || argc > 3) {
 		write_log ("Usage: readdisk <file> [<destdir>]\n");
@@ -174,7 +174,7 @@ int main (int argc, char **argv)
 		exit (20);
     }
     ret = fread (filemem, 1, 901120, inf);
-	if (ret == 0)
+    if (ret == 0)
 		write_log ("Couldn't read enough");
 
     if (strncmp ((const char *) filemem, "DOS\0", 4) == 0

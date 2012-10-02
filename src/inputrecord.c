@@ -521,9 +521,9 @@ static void setwriteprotect (const TCHAR *fname, bool readonly)
 	if (stat (fname, &st))
 		return;
 	oldmode = mode = st.st_mode;
-	mode &= ~0x04;
+	mode &= ~FILEFLAG_WRITE;
 	if (!readonly)
-		mode |= 0x04;
+		mode |= FILEFLAG_WRITE;
 	if (mode != oldmode)
 		chmod (fname, mode);
 }

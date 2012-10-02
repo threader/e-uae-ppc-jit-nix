@@ -66,21 +66,31 @@ static struct zvolume *getzvolume (struct znode *parent, struct zfile *zf, unsig
 
 	switch (id)
 	{
+#ifdef A_ZIP
 	case ArchiveFormatZIP:
 		zv = archive_directory_zip (zf);
 		break;
+#endif
+#ifdef A_7Z
 //	case ArchiveFormat7Zip:
 //		zv = archive_directory_7z (zf);
 //		break;
+#endif
+#ifdef A_RAR
 //	case ArchiveFormatRAR:
 //		zv = archive_directory_rar (zf);
 //		break;
+#endif
+#ifdef A_LHA
 //	case ArchiveFormatLHA:
 //		zv = archive_directory_lha (zf);
 //		break;
+#endif
+#ifdef A_LZX
 //	case ArchiveFormatLZX:
 //		zv = archive_directory_lzx (zf);
 //		break;
+#endif
 	case ArchiveFormatPLAIN:
 		zv = archive_directory_plain (zf);
 		break;
@@ -97,8 +107,10 @@ static struct zvolume *getzvolume (struct znode *parent, struct zfile *zf, unsig
 		zv = archive_directory_fat (zf);
 		break;
 	}
-//	if (!zv)
-//		zv = archive_directory_arcacc (zf, id);
+#ifdef ARCHIVEACCESS
+	if (!zv)
+		zv = archive_directory_arcacc (zf, id);
+#endif
 	return zv;
 }
 
@@ -351,6 +363,7 @@ struct zfile *archive_access_tar (struct znode *zn)
 }
 
 /* ZIP */
+#ifdef A_ZIP
 
 static void archive_close_zip (void *handle)
 {
@@ -492,6 +505,7 @@ static struct zfile *archive_unpack_zip (struct zfile *zf)
 {
 	return archive_do_zip (NULL, zf, 0);
 }
+#endif
 
 /* ArchiveAccess */
 
@@ -1704,17 +1718,25 @@ void archive_access_close (void *handle, unsigned int id)
 {
 	switch (id)
 	{
+#ifdef A_ZIP
 	case ArchiveFormatZIP:
 		archive_close_zip (handle);
 		break;
+#endif
+#ifdef A_7Z
 //	case ArchiveFormat7Zip:
 //		archive_close_7z (handle);
 //		break;
+#endif
+#ifdef A_RAR
 //	case ArchiveFormatRAR:
 //		archive_close_rar (handle);
 //		break;
+#endif
+#ifdef A_LHA
 	case ArchiveFormatLHA:
 		break;
+#endif
 	case ArchiveFormatADF:
 		archive_close_adf (handle);
 		break;
@@ -1739,9 +1761,11 @@ struct zfile *archive_unpackzfile (struct zfile *zf)
 	zf->datasize = zf->size;
 	switch (zf->archiveid)
 	{
+#ifdef A_ZIP
 	case ArchiveFormatZIP:
 		zout = archive_unpack_zip (zf);
 		break;
+#endif
 	}
 	zfile_fclose (zf->archiveparent);
 	zf->archiveparent = NULL;
@@ -1755,21 +1779,31 @@ struct zfile *archive_getzfile (struct znode *zn, unsigned int id, int flags)
 
 	switch (id)
 	{
+#ifdef A_ZIP
 	case ArchiveFormatZIP:
 		zf = archive_access_zip (zn, flags);
 		break;
+#endif
+#ifdef A_7Z
 //	case ArchiveFormat7Zip:
 //		zf = archive_access_7z (zn);
 //		break;
+#endif
+#ifdef A_RAR
 //	case ArchiveFormatRAR:
 //		zf = archive_access_rar (zn);
 //		break;
+#endif
+#ifdef A_LHA
 //	case ArchiveFormatLHA:
 //		zf = archive_access_lha (zn);
 //		break;
+#endif
+#ifdef A_LZX
 //	case ArchiveFormatLZX:
 //		zf = archive_access_lzx (zn);
 //		break;
+#endif
 	case ArchiveFormatPLAIN:
 		zf = archive_access_plain (zn);
 		break;

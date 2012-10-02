@@ -125,7 +125,6 @@ static struct device_functions *devicetable[] = {
 #ifdef _WIN32
 	&devicefunc_win32_ioctl,
 	&devicefunc_win32_spti,
-	&devicefunc_win32_aspi,
 #endif
 	NULL
 };
@@ -165,9 +164,6 @@ static void install_driver (int flags)
 #ifdef _WIN32
 				}
 #endif
-				break;
-				case SCSI_UNIT_ASPI:
-				device_func[i] = devicetable[SCSI_UNIT_ASPI];
 				break;
 			}
 		}
@@ -220,17 +216,6 @@ void blkdev_fix_prefs (struct uae_prefs *p)
 			p->cdslots[i].inuse = true;
 	}
 
-	// blkdev_win32_aspi.cpp does not support multi units
-#ifdef _WIN32
-	if (currprefs.win32_uaescsimode >= UAESCSI_ASPI_FIRST) {
-		for (unsigned int i = 0; i < MAX_TOTAL_SCSI_DEVICES; i++) {
-			if (cdscsidevicetype[i] != SCSI_UNIT_DISABLED)
-				cdscsidevicetype[i] = SCSI_UNIT_ASPI;
-		}
-		return;
-	}
-#endif
-
 	for (unsigned int i = 0; i < MAX_TOTAL_SCSI_DEVICES; i++) {
 		if (cdscsidevicetype[i] != SCSI_UNIT_DEFAULT)
 			continue;
@@ -250,8 +235,6 @@ void blkdev_fix_prefs (struct uae_prefs *p)
 #ifdef _WIN32
 			if (currprefs.win32_uaescsimode == UAESCSI_CDEMU)
 				cdscsidevicetype[i] = SCSI_UNIT_IOCTL;
-			else if (currprefs.win32_uaescsimode >= UAESCSI_ASPI_FIRST)
-				cdscsidevicetype[i] = SCSI_UNIT_ASPI;
 			else
 #endif
 				cdscsidevicetype[i] = SCSI_UNIT_SPTI;
@@ -514,6 +497,13 @@ void blkdev_exitgui (void)
 		}
 		waspaused[i] = 0;
 	}
+}
+
+void check_prefs_changed_cd (void)
+{
+	if (!config_changed)
+		return;
+	currprefs.sound_volume_cd = changed_prefs.sound_volume_cd;
 }
 
 static void check_changes (int unitnum)
@@ -1871,8 +1861,10 @@ uae_u8 *restore_cd (int num, uae_u8 *src)
 	int type = restore_u32 ();
 	restore_u32 ();
 	if (flags & 4) {
-		_tcscpy (changed_prefs.cdslots[num].name, s);
-		_tcscpy (currprefs.cdslots[num].name, s);
+		if (currprefs.cdslots[num].name[0] == 0 || zfile_exists (s)) {
+			_tcscpy (changed_prefs.cdslots[num].name, s);
+			_tcscpy (currprefs.cdslots[num].name, s);
+		}
 		changed_prefs.cdslots[num].type = currprefs.cdslots[num].type = type;
 	}
 	if (flags & 8) {

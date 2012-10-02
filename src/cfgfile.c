@@ -344,7 +344,7 @@ static bool isdefault (const TCHAR *s)
 	return false;
 }
 
-static size_t cfg_write (void *b, struct zfile *z)
+static size_t cfg_write (const void *b, struct zfile *z)
 {
 	size_t v;
 	if (unicode_config) {
@@ -1272,12 +1272,10 @@ int cfgfile_path (const TCHAR *option, const TCHAR *value, const TCHAR *name, TC
 
 int cfgfile_multipath (const TCHAR *option, const TCHAR *value, const TCHAR *name, struct multipath *mp)
 {
-	unsigned int i;
-
 	TCHAR tmploc[MAX_DPATH];
 	if (!cfgfile_string (option, value, name, tmploc, 256))
 		return 0;
-	for (i = 0; i < MAX_PATHS; i++) {
+	for (unsigned int i = 0; i < MAX_PATHS; i++) {
 		if (mp->path[i][0] == 0 || (i == 0 && (!_tcscmp (mp->path[i], _T(".\\")) || !_tcscmp (mp->path[i], _T("./"))))) {
 			//TCHAR *s = target_expand_environment (tmploc);
 			_tcsncpy (mp->path[i], tmploc, 256 - 1);
@@ -4575,7 +4573,7 @@ static void buildin_default_prefs (struct uae_prefs *p)
 #endif
 	p->socket_emu = 0;
 	p->sound_volume = 0;
-	p->sound_volume_cd = -1;
+	p->sound_volume_cd = 0;
 	p->clipboard_sharing = false;
 
 	p->chipmem_size = 0x00080000;

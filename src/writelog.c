@@ -34,11 +34,11 @@ void set_logfile (const char *logfile_name)
 	if (newfile)
 	    logfile = newfile;
     } else {
-		if (logfile) {
-		    fclose (logfile);
+	if (logfile) {
+	    fclose (logfile);
 
-		    logfile = 0;
-		}
+	    logfile = 0;
+	}
     }
 }
 
@@ -93,7 +93,7 @@ void jit_abort (const char *fmt, ...)
 
 void flush_log (void)
 {
-    fflush (logfile ? logfile : stderr);
+	fflush (logfile ? logfile : stderr);
 }
 
 // Write Debug Log
@@ -107,13 +107,13 @@ static int console_buffer_size;
 
 char *setconsolemode (char *buffer, int maxlen)
 {
-        char *ret = NULL;
-        if (buffer) {
-                console_buffer = buffer;
-                console_buffer_size = maxlen;
-        } else {
-                ret = console_buffer;
-                console_buffer = NULL;
-        }
-        return ret;
+	char *ret = NULL;
+	if (buffer) {
+		console_buffer = buffer;
+		console_buffer_size = maxlen;
+	} else {
+		ret = console_buffer;
+		console_buffer = NULL;
+	}
+	return ret;
 }

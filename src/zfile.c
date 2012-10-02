@@ -1005,6 +1005,7 @@ end:
 }
 #endif
 
+#ifdef A_LZX
 static struct zfile *dsq (struct zfile *z, int lzx)
 {
 	struct zfile *zi = NULL;
@@ -1095,12 +1096,15 @@ static struct zfile *dsq (struct zfile *z, int lzx)
 		zfile_fclose (zi);
 	return z;
 }
+#endif
 
+#ifdef A_WRP
 static struct zfile *wrp (struct zfile *z)
 {
 	//return unwarp (z);
 	return z;
 }
+#endif
 
 static struct zfile *bunzip (const char *decompress, struct zfile *z)
 {
@@ -1112,6 +1116,7 @@ static struct zfile *lha (struct zfile *z)
 	return z;
 }
 
+#ifdef A_DMS
 static struct zfile *dms (struct zfile *z, int index, int *retcode)
 {
 	int ret;
@@ -1182,6 +1187,7 @@ end:
 		zfile_fclose (zextra[i]);
 	return zo;
 }
+#endif
 
 const TCHAR *uae_ignoreextensions[] =
 { _T(".gif"), _T(".jpg"), _T(".png"), _T(".xml"), _T(".pdf"), _T(".txt"), 0 };
@@ -1353,8 +1359,6 @@ struct zfile *zuncompress (struct znode *parent, struct zfile *z, int dodefault,
 		}*/
 		if (mask & ZFD_UNPACK) {
 			if (index == 0) {
-//				if (strcasecmp (ext, _T("zip")) == 0)
-//					return unzip (z);
 				if (strcasecmp (ext, _T("gz")) == 0)
 					return zfile_gunzip (z, retcode);
 				if (strcasecmp (ext, _T("adz")) == 0)
@@ -1363,13 +1367,19 @@ struct zfile *zuncompress (struct znode *parent, struct zfile *z, int dodefault,
 					return zfile_gunzip (z, retcode);
 				if (strcasecmp (ext, _T("hdz")) == 0)
 					return zfile_gunzip (z, retcode);
+#ifdef A_WRP
 				if (strcasecmp (ext, _T("wrp")) == 0)
 					return wrp (z);
+#endif
+#ifdef A_7Z
 //				if (strcasecmp (ext, _T("xz")) == 0)
 //					return xz (z, retcode);
+#endif
 			}
+#ifdef A_DMS
 			if (strcasecmp (ext, _T("dms")) == 0)
 				return dms (z, index, retcode);
+#endif
 		}
 		if (mask & ZFD_RAWDISK) {
 #ifdef CAPS
@@ -1381,8 +1391,14 @@ struct zfile *zuncompress (struct znode *parent, struct zfile *z, int dodefault,
 			if (mask & (ZFD_RAWDISK_PC | ZFD_RAWDISK_AMIGA))
 				return NULL;
 		}
-		if (strcasecmp (ext, "lha") == 0 || strcasecmp (ext, "lzh") == 0)
-			return lha (z);
+#if defined(ARCHIVEACCESS)
+		if (index == 0) {
+			for (i = 0; plugins_7z_x[i]; i++) {
+				if ((plugins_7z_t[i] & mask) && strcasecmp (ext, plugins_7z[i]) == 0)
+					return archive_access_arcacc_select (z, plugins_7z_t[i], retcode);
+			}
+		}
+#endif
 	}
 	memset (header, 0, sizeof (header));
 	zfile_fseek (z, 0, SEEK_SET);
@@ -1397,15 +1413,19 @@ struct zfile *zuncompress (struct znode *parent, struct zfile *z, int dodefault,
 		if (index == 0) {
 			if (header[0] == 0x1f && header[1] == 0x8b)
 				return zfile_gunzip (z, retcode);
-//			if (header[0] == 'P' && header[1] == 'K')
-//				return unzip (z);
+#ifdef A_LZX
 			if (header[0] == 'P' && header[1] == 'K' && header[2] == 'D')
 				return dsq (z, 0);
+#endif
+#ifdef A_7Z
 //			if (header[0] == 0xfd && header[1] == 0x37 && header[2] == 0x7a && header[3] == 0x58 && header[4] == 0x5a && header[5] == 0)
 //				return xz (z);
+#endif
 		}
+#ifdef A_DMS
 		if (header[0] == 'D' && header[1] == 'M' && header[2] == 'S' && header[3] == '!')
 			return dms (z, index, retcode);
+#endif
 	}
 	if (mask & ZFD_RAWDISK) {
 #ifdef CAPS
@@ -1440,8 +1460,10 @@ struct zfile *zuncompress (struct znode *parent, struct zfile *z, int dodefault,
 
 /*	if (ext) {
 		if (mask & ZFD_UNPACK) {
+#ifdef A_LZX
 			if (strcasecmp (ext, _T("dsq")) == 0)
 				return dsq (z, 1);
+#endif
 		}
 		if (mask & ZFD_ADF) {
 			if (strcasecmp (ext, _T("adf")) == 0 && !memcmp (header, "DOS", 3))
@@ -2549,18 +2571,30 @@ static struct zvolume *zfile_fopen_archive_ext (struct znode *parent, struct zfi
 	if (ext != NULL) {
 		ext++;
 		if (flags & ZFD_ARCHIVE) {
-/*			if (strcasecmp (ext, _T("lha")) == 0 || strcasecmp (ext, _T("lzh")) == 0)
+/*
+#ifdef A_LHA
+			if (strcasecmp (ext, _T("lha")) == 0 || strcasecmp (ext, _T("lzh")) == 0)
 				zv = archive_directory_lha (zf);
+#endif
+#ifdef A_ZIP
 			if (strcasecmp (ext, _T("zip")) == 0)
 				zv = archive_directory_zip (zf);
+#endif
+#ifdef A_7Z
 			if (strcasecmp (ext, _T("7z")) == 0)
 				zv = archive_directory_7z (zf);
+#endif
+#ifdef A_LZX
 			if (strcasecmp (ext, _T("lzx")) == 0)
 				zv = archive_directory_lzx (zf);
+#endif
+#ifdef A_RAR
 			if (strcasecmp (ext, _T("rar")) == 0)
 				zv = archive_directory_rar (zf);
+#endif
 			if (strcasecmp (ext, _T("tar")) == 0)
-				zv = archive_directory_tar (zf);*/
+				zv = archive_directory_tar (zf);
+*/
 		}
 		if (flags & ZFD_ADF) {
 /*			if (strcasecmp (ext, _T("adf")) == 0 && !memcmp (header, "DOS", 3))
@@ -2588,14 +2622,24 @@ static struct zvolume *zfile_fopen_archive_data (struct znode *parent, struct zf
 	zfile_fread (header, sizeof (header), 1, zf);
 	zfile_fseek (zf, 0, SEEK_SET);
 	if (flags & ZFD_ARCHIVE) {
-/*		if (header[0] == 'P' && header[1] == 'K')
+/*
+#ifdef A_ZIP
+		if (header[0] == 'P' && header[1] == 'K')
 			zv = archive_directory_zip (zf);
+#endif
+#ifdef A_RAR
 		if (header[0] == 'R' && header[1] == 'a' && header[2] == 'r' && header[3] == '!')
 			zv = archive_directory_rar (zf);
+#endif
+#ifdef A_LZX
 		if (header[0] == 'L' && header[1] == 'Z' && header[2] == 'X')
 			zv = archive_directory_lzx (zf);
+#endif
+#ifdef A_LHA
 		if (header[2] == '-' && header[3] == 'l' && header[4] == 'h' && header[6] == '-')
-			zv = archive_directory_lha (zf);*/
+			zv = archive_directory_lha (zf);
+#endif
+*/
 	}
 	if (flags & ZFD_ADF) {
 /*		if (header[0] == 'D' && header[1] == 'O' && header[2] == 'S' && (header[3] >= 0 && header[3] <= 7))

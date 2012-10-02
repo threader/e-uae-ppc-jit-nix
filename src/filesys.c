@@ -276,6 +276,12 @@ static void close_filesys_unit (UnitInfo *uip)
 	uip->cd_open = 0;
 }
 
+static struct uaedev_config_info *getuci (struct uaedev_config_info *uci, int nr)
+{
+	return &uci[nr];
+}
+
+
 static UnitInfo *getuip (struct uae_prefs *p, int index)
 {
 	if (index < 0)
@@ -639,7 +645,7 @@ int kill_filesys_unitconfig (struct uae_prefs *p, int nr)
 
 	if (nr < 0)
 		return 0;
-	uci = &p->mountconfig[nr];
+	uci = getuci (p->mountconfig, nr);
 	hardfile_do_disk_change (uci, 0);
 	if (uci->configoffset >= 0 && uci->controller == 0)
 		filesys_media_change (uci->rootdir, 0, uci);
@@ -656,8 +662,8 @@ int move_filesys_unitconfig (struct uae_prefs *p, int nr, int to)
 {
 	struct uaedev_config_info *uci1, *uci2, tmpuci;
 
-	uci1 = &p->mountconfig[nr];
-	uci2 = &p->mountconfig[to];
+	uci1 = getuci (p->mountconfig, nr);
+	uci2 = getuci (p->mountconfig, to);
 	if (nr == to)
 		return 0;
 	memcpy (&tmpuci, uci1, sizeof (struct uaedev_config_info));
@@ -667,33 +673,69 @@ int move_filesys_unitconfig (struct uae_prefs *p, int nr, int to)
 }
 
 
-static void filesys_addexternals (void);
+void filesys_addexternals (void) {}
+
+static void allocuci (struct uae_prefs *p, int nr, int idx)
+{
+	struct uaedev_config_info *uci = &p->mountconfig[nr];
+	if (idx >= 0) {
+		UnitInfo *ui;
+		uci->configoffset = idx;
+		ui = &mountinfo.ui[idx];
+		ui->configureddrive = 1;
+	} else {
+		uci->configoffset = -1;
+	}
+}
 
 static void initialize_mountinfo (void)
 {
 	int nr;
-	struct uaedev_config_info *uci;
 	UnitInfo *uip = &mountinfo.ui[0];
 
 	cd_unit_offset = MAX_FILESYSTEM_UNITS;
 
 	for (nr = 0; nr < currprefs.mountitems; nr++) {
-		uci = &currprefs.mountconfig[nr];
+		struct uaedev_config_info *uci = &currprefs.mountconfig[nr];
 		if (uci->controller == HD_CONTROLLER_UAE) {
 			int idx = set_filesys_unit_1 (-1, uci->devname, uci->ishdf ? NULL : uci->volname, uci->rootdir,
 				uci->readonly, uci->sectors, uci->surfaces, uci->reserved,
 				uci->blocksize, uci->bootpri, uci->donotmount, uci->autoboot, uci->filesys, 0, MYVOLUMEINFO_REUSABLE);
-			if (idx >= 0) {
-				UnitInfo *ui;
-				uci->configoffset = idx;
-				ui = &mountinfo.ui[idx];
-				ui->configureddrive = 1;
+			allocuci (&currprefs, nr, idx);
+		}
+	}
+	filesys_addexternals ();
+	nr = nr_units ();
+	cd_unit_offset = nr;
+	cd_unit_number = 0;
+#if USE_CDFS == 2
+#ifdef SCSI
+	if (currprefs.scsi /*&& currprefs.win32_automount_cddrives*/ && USE_CDFS) {
+		uae_u32 mask = scsi_get_cd_drive_mask ();
+		for (int i = 0; i < 32; i++) {
+			if (mask & (1 << i)) {
+				TCHAR cdname[30];
+				_stprintf (cdname, _T("CD%d"), i);
+				cd_unit_number++;
+				int idx = set_filesys_unit_1 (i + cd_unit_offset, cdname, NULL, _T("/"), true, 1, 1, 0, 2048, 0, false, false, NULL, 0, 0);
+				allocuci (&currprefs, nr, idx);
+				nr++;
 			}
-		} else if (uci->controller <= HD_CONTROLLER_IDE3) {
+		}
+	}
+#endif
+#endif
+
+	for (nr = 0; nr < currprefs.mountitems; nr++) {
+		struct uaedev_config_info *uci = &currprefs.mountconfig[nr];
+		if (uci->controller == HD_CONTROLLER_UAE)
+			continue;
+		if (uci->controller <= HD_CONTROLLER_IDE3) {
 #ifdef GAYLE
 			gayle_add_ide_unit (uci->controller - HD_CONTROLLER_IDE0, uci->rootdir, uci->blocksize, uci->readonly,
 				uci->devname, uci->sectors, uci->surfaces, uci->reserved,
 				uci->bootpri, uci->filesys);
+			allocuci (&currprefs, nr, -1);
 #endif
 		} else if (uci->controller <= HD_CONTROLLER_SCSI6) {
 			if (currprefs.cs_mbdmac) {
@@ -701,55 +743,35 @@ static void initialize_mountinfo (void)
 				a3000_add_scsi_unit (uci->controller - HD_CONTROLLER_SCSI0, uci->rootdir, uci->blocksize, uci->readonly,
 					uci->devname, uci->sectors, uci->surfaces, uci->reserved,
 					uci->bootpri, uci->filesys);
+				allocuci (&currprefs, nr, -1);
 #endif
 			} else if (currprefs.cs_a2091) {
 #ifdef A2091
 				a2091_add_scsi_unit (uci->controller - HD_CONTROLLER_SCSI0, uci->rootdir, uci->blocksize, uci->readonly,
 					uci->devname, uci->sectors, uci->surfaces, uci->reserved,
 					uci->bootpri, uci->filesys);
+				allocuci (&currprefs, nr, -1);
 #endif
 			} else if (currprefs.cs_cdtvscsi) {
 #ifdef CDTV
 				cdtv_add_scsi_unit (uci->controller - HD_CONTROLLER_SCSI0, uci->rootdir, uci->blocksize, uci->readonly,
 					uci->devname, uci->sectors, uci->surfaces, uci->reserved,
 					uci->bootpri, uci->filesys);
+				allocuci (&currprefs, nr, -1);
 #endif
 			}
 		} else if (uci->controller == HD_CONTROLLER_PCMCIA_SRAM) {
 #ifdef GAYLE
 			gayle_add_pcmcia_sram_unit (uci->rootdir, uci->readonly);
+			allocuci (&currprefs, nr, -1);
 		} else if (uci->controller == HD_CONTROLLER_PCMCIA_IDE) {
 			gayle_add_pcmcia_ide_unit (uci->rootdir, uci->readonly);
+			allocuci (&currprefs, nr, -1);
 		}
 #endif
 	}
-	//filesys_addexternals ();
-	cd_unit_offset = nr_units ();
-	cd_unit_number = 0;
 
-#ifdef SCSI
-#if USE_CDFS == 2
-	if (currprefs.scsi /*&& currprefs.win32_automount_cddrives*/ && USE_CDFS) {
-		uae_u32 mask = scsi_get_cd_drive_mask ();
-		for (unsigned int i = 0; i < 32; i++) {
-			if (mask & (1 << i)) {
-				TCHAR cdname[30];
-				_stprintf (cdname, _T("CD%d"), i);
-				cd_unit_number++;
-				int idx = set_filesys_unit_1 (i + cd_unit_offset, cdname, NULL, _T("/"), true, 1, 1, 0, 2048, 0, false, false, NULL, 0, 0);
-				if (idx >= 0) {
-					UnitInfo *ui;
-					uci = &currprefs.mountconfig[nr];
-					uci->configoffset = idx;
-					ui = &mountinfo.ui[idx];
-					ui->configureddrive = 1;
-					nr++;
-				}
-			}
-		}
-	}
-#endif
-#endif
+
 }
 
 
@@ -1124,8 +1146,12 @@ static void fs_closedir (struct fs_dirhandle *fsd)
 {
 	if (!fsd)
 		return;
-
-	my_closedir (fsd->od);
+	if (fsd->fstype  == FS_ARCHIVE)
+		zfile_closedir_archive (fsd->zd);
+	else if (fsd->fstype == FS_DIRECTORY)
+		my_closedir (fsd->od);
+//	else if (fsd->fstype == FS_CDFS)
+//		isofs_closedir (fsd->isod);
 	xfree (fsd);
 }
 static struct fs_filehandle *fs_openfile (Unit *unit, const TCHAR *name, char *flags)
@@ -1139,31 +1165,71 @@ end:
 	xfree (fsf);
 	return NULL;
 }
-static void fs_closefile (struct fs_filehandle *fd)
+static void fs_closefile (struct fs_filehandle *fsf)
 {
-	if (!fd)
+	if (!fsf)
 		return;
-
-		my_close (fd->of);
+	if (fsf->fstype == FS_ARCHIVE) {
+		zfile_close_archive (fsf->zf);
+	} else if (fsf->fstype == FS_DIRECTORY) {
+		my_close (fsf->of);
+	} /*else if (fsf->fstype == FS_CDFS) {
+		isofs_closefile (fsf->isof);
+	}*/
+	xfree (fsf);
 }
 static unsigned int fs_read (struct fs_filehandle *fsf, void *b, unsigned int size)
 {
-	return fread (b, 1, size, fsf->of);
+	if (fsf->fstype == FS_ARCHIVE)
+		return zfile_read_archive (fsf->zf, b, size);
+	else if (fsf->fstype == FS_DIRECTORY)
+		return fread (b, 1, size, fsf->of);
+/*	else if (fsf->fstype == FS_CDFS)
+		return isofs_read (fsf->isof, b, size);*/
+	return 0;
 }
 static unsigned int fs_write (struct fs_filehandle *fsf, void *b, unsigned int size)
 {
-
-	return fwrite (b, 1, size, fsf->of);
+	if (fsf->fstype == FS_DIRECTORY)
+		return fwrite (b, 1, size, fsf->of);
+	return 0;
 }
 
+/* return value = old position. -1 = error. */
 static uae_u64 fs_lseek64 (struct fs_filehandle *fsf, uae_s64 offset, int whence)
 {
-
-	return my_lseek (fsf->of, offset, whence);
+	if (fsf->fstype == FS_ARCHIVE)
+		return zfile_lseek_archive (fsf->zf, offset, whence);
+	else if (fsf->fstype == FS_DIRECTORY)
+		return my_lseek (fsf->of, offset, whence);
+/*	else if (fsf->fstype == FS_CDFS)
+		return isofs_lseek (fsf->isof, offset, whence);*/
+	return -1;
 }
 static uae_u32 fs_lseek (struct fs_filehandle *fsf, uae_s32 offset, int whence)
 {
 	return (uae_u32)my_lseek (fsf->of, (uae_s32)offset, whence);
+}
+static uae_u64 fs_fsize64 (struct fs_filehandle *fsf)
+{
+	if (fsf->fstype == FS_ARCHIVE) 
+		return zfile_fsize_archive (fsf->zf);
+	else if (fsf->fstype == FS_DIRECTORY) {
+//		return my_fsize (fsf->of);
+		uae_s64 cur, filesize;
+
+		cur = fs_lseek64 (fsf->of, 0, SEEK_CUR);
+		filesize = fs_lseek64 (fsf->of, 0, SEEK_END);
+		fs_lseek64 (fsf->of, cur, SEEK_SET);
+		return filesize;
+	}
+//	else if (fsf->fstype == FS_CDFS)
+//		return isofs_fsize (fsf->isof);
+	return -1;
+}
+static uae_u32 fs_fsize (struct fs_filehandle *fsf)
+{
+	return (uae_u32)fs_fsize64 (fsf);
 }
 
 static void set_highcyl (UnitInfo *ui, uae_u32 blocks)
@@ -1289,7 +1355,7 @@ static void setsystime_vblank (void)
 {
 	Unit *u;
 	for (u = units; u; u = u->next) {
-		if (is_virtual (u->unit)) {
+		if (is_virtual (u->unit) && filesys_isvolume (u)) {
 			put_byte (u->volume + 173 - 32, 1);
 			uae_Signal (get_long (u->volume + 176 - 32), 1 << 13);
 			break;
@@ -1398,7 +1464,6 @@ static uae_u32 filesys_media_change_reply (TrapContext *ctx, int mode)
 			struct uaedev_config_info *uci = NULL;
 
 			clear_exkeys (u);
-			uci = &currprefs.mountconfig[nr];
 			xfree (u->ui.rootdir);
 			ui->rootdir = u->ui.rootdir = my_strdup (u->mount_rootdir);
 			flush_cache (u, -1);
@@ -1439,6 +1504,7 @@ static uae_u32 filesys_media_change_reply (TrapContext *ctx, int mode)
 #ifdef RETROPLATFORM
 				rp_harddrive_image_change (nr, u->mount_readonly, u->mount_rootdir);
 #endif
+				uci = getuci (currprefs.mountconfig, nr);
 			}
 			if (u->ui.unknown_media) {
 				write_log (_T("FILESYS: inserted unreadable volume NR=%d RO=%d\n"), nr, u->mount_readonly);
@@ -1447,14 +1513,19 @@ static uae_u32 filesys_media_change_reply (TrapContext *ctx, int mode)
 				set_volume_name (u, ctime);
 				if (u->mount_flags >= 0)
 					ui->volflags = u->volflags = u->ui.volflags = u->mount_flags;
-				_tcscpy (uci->volname, ui->volname);
-				_tcscpy (uci->rootdir, u->mount_rootdir);
-				if (u->mount_flags >= 0)
-					uci->readonly = ui->readonly = u->ui.readonly = u->mount_readonly;
+				if (uci != NULL) {
+					_tcscpy (uci->volname, ui->volname);
+					_tcscpy (uci->rootdir, u->mount_rootdir);
+				}
+				if (u->mount_flags >= 0) {
+					ui->readonly = u->ui.readonly = u->mount_readonly;
+					if (uci != NULL)
+						uci->readonly = u->mount_readonly;
+				}
 				put_byte (u->volume + 44, 0);
 				put_byte (u->volume + 172 - 32, 1);
 			}
-		
+
 			xfree (u->mount_volume);
 			xfree (u->mount_rootdir);
 			u->mount_rootdir = NULL;
@@ -2595,6 +2666,7 @@ static void
 	put_long (info + 4, nr); /* unit number */
 	put_long (info + 8, unit->ui.readonly || unit->ui.locked ? 80 : 82); /* state  */
 	put_long (info + 20, blocksize); /* bytesperblock */
+	put_long (info + 32, 0); /* inuse */
 	if (disk_info && unit->ui.unknown_media) {
 		put_long (info + 12, 0);
 		put_long (info + 16, 0);
@@ -2606,12 +2678,19 @@ static void
 		put_long (info + 24, -1); /* ID_NO_DISK_PRESENT */
 		put_long (info + 28, 0);
 	} else {
+		if (fs && currprefs.filesys_limit) {
+			if (fsu.fsu_blocks > (uae_u64)currprefs.filesys_limit * 1024 / blocksize) {
+				uae_u32 oldblocks = fsu.fsu_blocks;
+				fsu.fsu_blocks = (uae_u32)((uae_u64)currprefs.filesys_limit * 1024 / blocksize);
+				fsu.fsu_bavail = (uae_u32)((uae_u64)fsu.fsu_bavail * fsu.fsu_blocks / oldblocks);
+			}
+		}
 		put_long (info + 12, fsu.fsu_blocks ); /* numblocks */
 		put_long (info + 16, fsu.fsu_blocks - fsu.fsu_bavail); /* inuse */
 		put_long (info + 24, dostype); /* disk type */
 		put_long (info + 28, unit->volume >> 2); /* volume node */
+		put_long (info + 32, (get_long (unit->volume + 28) || unit->keys) ? -1 : 0); /* inuse */
 	}
-	put_long (info + 32, 0); /* inuse */
 	PUT_PCK_RES1 (packet, DOS_TRUE);
 }
 
@@ -3274,7 +3353,7 @@ static void
 	 put_long (info + 140, fib.fib_Date.ds_Tick);
 #else
 	put_long (info + 116, fsdb_can ? aino->amigaos_mode : fsdb_mode_supported (aino));
-	put_long (info + 124, statbuf.st_size > MAXFILESIZE32 ? MAXFILESIZE32 : statbuf.st_size);
+	put_long (info + 124, statbuf.st_size > MAXFILESIZE32 ? MAXFILESIZE32 : (uae_u32)statbuf.st_size);
 #ifdef HAVE_ST_BLOCKS
 	put_long (info + 128, statbuf.st_blocks);
 #else
@@ -3885,11 +3964,11 @@ static uae_u32 REGPARAM2 fsmisc_helper (TrapContext *context)
 	switch (mode)
 	{
 	case 0:
-	return exall_helpder (context);
+		return exall_helpder (context);
 	case 1:
-	return filesys_media_change_reply (context, 0);
+		return filesys_media_change_reply (context, 0);
 	case 2:
-	return filesys_media_change_reply (context, 1);
+		return filesys_media_change_reply (context, 1);
 	case 3:
 		t = getlocaltime ();
 		uae_u32 secs = (uae_u32)t - (8 * 365 + 2) * 24 * 60 * 60;
@@ -4320,36 +4399,32 @@ static void
 	gui_flicker_led (LED_HD, unit->unit, 1);
 
 	if (size == 0) {
-		actual = 0;
 		PUT_PCK_RES1 (packet, 0);
 		PUT_PCK_RES2 (packet, 0);
-	} else if (valid_address (addr, size)) {
-		uae_u8 *realpt = get_real_address (addr);
-		actual = fs_read (k->fd, realpt, size);
+	} else if (!valid_address (addr, size)) {
+		/* check if filesize < size */
+		uae_s64 filesize, cur;
 
-		if (actual == 0) {
+		filesize = fs_fsize64 (k->fd);
+		cur = k->file_pos;
+		if (size > filesize - cur)
+			size = filesize - cur;
+
+		if (size == 0) {
 			PUT_PCK_RES1 (packet, 0);
 			PUT_PCK_RES2 (packet, 0);
-		} else if (actual < 0) {
-			PUT_PCK_RES1 (packet, 0);
-			PUT_PCK_RES2 (packet, dos_errno ());
-		} else {
-			PUT_PCK_RES1 (packet, actual);
-			k->file_pos += actual;
-		}
-		flush_dcache (addr, size);
-	} else {
-		uae_u8 *buf;
-		off_t old, filesize;
-
+		} else if (!valid_address (addr, size)) {
+			/* it really crosses memory boundary */
+			uae_u8 *buf;
+			
 			write_log (_T("unixfs warning: Bad pointer passed for read: %08x, size %d\n"), addr, size);
-		/* ugh this is inefficient but easy */
+			/* ugh this is inefficient but easy */
 
-		old = fs_lseek (k->fd, 0, SEEK_CUR);
-		filesize = fs_lseek (k->fd, 0, SEEK_END);
-		fs_lseek (k->fd, old, SEEK_SET);
-		if (size > filesize)
-			size = filesize;
+			if (fs_lseek64 (k->fd, k->file_pos, SEEK_SET) < 0) {
+				PUT_PCK_RES1 (packet, 0);
+				PUT_PCK_RES2 (packet, dos_errno ());
+				return;
+			}
 
 		buf = xmalloc (uae_u8, size);
 		if (!buf) {
@@ -4374,6 +4449,32 @@ static void
 			flush_dcache (addr, size);
 			size = 0;
 	}
+	}
+	if (size) {
+		/* normal fast read */
+		uae_u8 *realpt = get_real_address (addr);
+
+		if (fs_lseek64 (k->fd, k->file_pos, SEEK_SET) < 0) {
+			PUT_PCK_RES1 (packet, 0);
+			PUT_PCK_RES2 (packet, dos_errno ());
+			return;
+		}
+
+		actual = fs_read (k->fd, realpt, size);
+
+		if (actual == 0) {
+			PUT_PCK_RES1 (packet, 0);
+			PUT_PCK_RES2 (packet, 0);
+		} else if (actual < 0) {
+			PUT_PCK_RES1 (packet, 0);
+			PUT_PCK_RES2 (packet, dos_errno ());
+		} else {
+			PUT_PCK_RES1 (packet, actual);
+			k->file_pos += actual;
+		}
+		flush_dcache (addr, size);
+	}
+
 	TRACE((_T("=%d\n"), actual));
 }
 
@@ -4472,13 +4573,11 @@ static void
 	if (mode < 0)
 		whence = SEEK_SET;
 
-	cur = fs_lseek (k->fd, 0, SEEK_CUR);
+	cur = k->file_pos;
 	TRACE((_T("ACTION_SEEK(%s,%d,%d)=%d\n"), k->aino->nname, pos, mode, cur));
 	gui_flicker_led (LED_HD, unit->unit, 1);
 
-	filesize = fs_lseek64 (k->fd, 0, SEEK_END);
-	fs_lseek (k->fd, cur, SEEK_SET);
-
+	filesize = fs_fsize64 (k->fd);
 	if (whence == SEEK_CUR)
 		temppos = cur + pos;
 	if (whence == SEEK_SET)
@@ -4840,7 +4939,8 @@ static void
 	}
 
 	/* Write one then truncate: that should give the right size in all cases.  */
-	offset = fs_lseek (k->fd, offset, whence);
+	fs_lseek (k->fd, offset, whence);
+	offset = fs_lseek (k->fd, 0, SEEK_CUR);
 	fs_write (k->fd, /* whatever */(uae_u8*)&k1, 1);
 	if (k->file_pos > offset)
 		k->file_pos = offset;
@@ -5218,14 +5318,13 @@ static void action_change_file_position64 (Unit *unit, dpacket packet)
 	if (mode < 0)
 		whence = SEEK_SET;
 
-	TRACE((_T("ACTION_CHANGE_FILE_POSITION64(%s,%I64d,%d)\n"), k->aino->nname, pos, mode));
+	TRACE((_T("ACTION_CHANGE_FILE_POSITION64(%s,%lld,%d)\n"), k->aino->nname, pos, mode));
 	gui_flicker_led (LED_HD, unit->unit, 1);
 
-	cur = fs_lseek64 (k->fd, 0, SEEK_CUR);
+	cur = k->file_pos;
 	{
 		uae_s64 temppos;
-		uae_s64 filesize = fs_lseek64 (k->fd, 0, SEEK_END);
-		fs_lseek64 (k->fd, cur, SEEK_SET);
+		uae_s64 filesize = fs_fsize64 (k->fd);
 
 		if (whence == SEEK_CUR)
 			temppos = cur + pos;
@@ -5248,7 +5347,7 @@ static void action_change_file_position64 (Unit *unit, dpacket packet)
 	} else {
 		PUT_PCK64_RES1 (packet, TRUE);
 		PUT_PCK64_RES2 (packet, 0);
-		k->file_pos = cur;
+		k->file_pos = fs_lseek64 (k->fd, 0, SEEK_CUR);
 	}
 	TRACE((_T("= oldpos %lld newpos %lld\n"), cur, k->file_pos));
 
@@ -5306,11 +5405,11 @@ static void action_change_file_size64 (Unit *unit, dpacket packet)
 
 	/* Write one then truncate: that should give the right size in all cases.  */
 	fs_lseek (k->fd, offset, whence);
-	offset = fs_lseek (k->fd, offset, whence);
+	offset = fs_lseek64 (k->fd, offset, whence);
 	fs_write (k->fd, /* whatever */(uae_u8*)&k1, 1);
 	if (k->file_pos > offset)
 		k->file_pos = offset;
-	fs_lseek (k->fd, k->file_pos, SEEK_SET);
+	fs_lseek64 (k->fd, k->file_pos, SEEK_SET);
 
 	if (my_truncate (k->aino->nname, offset) == -1) {
 		PUT_PCK64_RES1 (packet, DOS_FALSE);
@@ -5326,7 +5425,7 @@ static void action_change_file_size64 (Unit *unit, dpacket packet)
 static void action_get_file_size64 (Unit *unit, dpacket packet)
 {
 	Key *k = lookup_key (unit, GET_PCK64_ARG1 (packet));
-	uae_s64 old, filesize;
+	uae_s64 filesize;
 
 	PUT_PCK64_RES0 (packet, DP64_INIT);
 
@@ -5335,16 +5434,12 @@ static void action_get_file_size64 (Unit *unit, dpacket packet)
 		PUT_PCK64_RES2 (packet, ERROR_INVALID_LOCK);
 		return;
 	}
-	old = fs_lseek64 (k->fd, 0, SEEK_CUR);
+	filesize = fs_fsize64 (k->fd);
 	TRACE((_T("ACTION_GET_FILE_SIZE64(%s)=%lld\n"), k->aino->nname, filesize));
-	if (old >= 0) {
-		filesize = fs_lseek64 (k->fd, 0, SEEK_END);
-		if (filesize >= 0) {
-			fs_lseek64 (k->fd, old, SEEK_SET);
-			PUT_PCK64_RES1 (packet, filesize);
-			PUT_PCK64_RES2 (packet, 0);
-			return;
-		}
+	if (filesize >= 0) {
+		PUT_PCK64_RES1 (packet, filesize);
+		PUT_PCK64_RES2 (packet, 0);
+		return;
 	}
 	PUT_PCK64_RES1 (packet, DOS_FALSE);
 	PUT_PCK64_RES2 (packet, ERROR_SEEK_ERROR);
