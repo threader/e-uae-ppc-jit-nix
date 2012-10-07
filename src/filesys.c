@@ -6651,9 +6651,10 @@ static uae_u32 REGPARAM2 filesys_dev_storeinfo (TrapContext *context)
 	int no = m68k_dreg (regs, 6) & 0x7fffffff;
 	int unit_no = no & 65535;
 	int sub_no = no >> 16;
-	int type = is_hardfile (unit_no);
 	uaecptr parmpacket = m68k_areg (regs, 0);
 
+	gui_flicker_led (LED_HD, unit_no, -1);
+	int type = is_hardfile (unit_no);
 	if (type == FILESYS_HARDFILE_RDB || type == FILESYS_HARDDRIVE) {
 		/* RDB hardfile */
 		uip[unit_no].devno = unit_no;
@@ -6749,16 +6750,20 @@ static uae_u32 REGPARAM2 mousehack_done (TrapContext *context)
 	return 1;
 }
 
+extern void cia_heartbeat (void);
 void filesys_vsync (void)
 {
 	Unit *u;
 
+	if (!uae_boot_rom)
+		return;
 	if (heartbeat == get_long (rtarea_base + RTAREA_HEARTBEAT)) {
 		if (heartbeat_count > 0)
 			heartbeat_count--;
 		return;
 	}
 	heartbeat = get_long (rtarea_base + RTAREA_HEARTBEAT);
+	cia_heartbeat ();
 
 	for (u = units; u; u = u->next) {
 		if (u->reinsertdelay > 0) {

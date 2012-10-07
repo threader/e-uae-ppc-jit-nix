@@ -291,6 +291,7 @@ struct uae_prefs {
 	bool gfx_blackerthanblack;
 	int gfx_api;
 	int color_mode;
+	int gfx_extrawidth;
 
 	int gfx_filter;
 	TCHAR gfx_filtershader[MAX_DPATH];
@@ -385,6 +386,7 @@ struct uae_prefs {
 	TCHAR romextfile2[MAX_DPATH];
 	TCHAR romextident[256];
 	TCHAR flashfile[MAX_DPATH];
+	TCHAR rtcfile[MAX_DPATH];
 #ifdef ACTION_REPLAY
 	TCHAR cartfile[MAX_DPATH];
 	TCHAR cartident[256];
@@ -524,6 +526,7 @@ struct uae_prefs {
 	TCHAR win32_parjoyport0[MAX_DPATH];
 	TCHAR win32_parjoyport1[MAX_DPATH];
 	TCHAR win32_guipage[32];
+	TCHAR win32_guiactivepage[32];
 	bool win32_filesystem_mangle_reserved_names;
 #endif
 	int win32_rtgvblankrate;

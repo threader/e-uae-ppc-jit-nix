@@ -538,6 +538,8 @@ void fixup_prefs (struct uae_prefs *p)
 		p->maprom = 0x00e00000;
 	if (p->tod_hack && p->cs_ciaatod == 0)
 		p->cs_ciaatod = p->ntscmode ? 2 : 1;
+
+	built_in_chipset_prefs (p);
 #ifdef SCSIEMU
 	blkdev_fix_prefs (p);
 #endif
@@ -582,6 +584,7 @@ void uae_restart (int opengui, TCHAR *cfgfile)
 	default_config = 0;
 	if (cfgfile)
 		_tcscpy (restart_config, cfgfile);
+	target_restart ();
 }
 
 #ifndef DONT_PARSE_CMDLINE
@@ -998,6 +1001,10 @@ static int real_main2 (int argc, TCHAR **argv)
 			return 1;
 		}
 	}
+
+	memset (&gui_data, 0, sizeof gui_data);
+	gui_data.cd = -1;
+	gui_data.hd = -1;
 
 #ifdef NATMEM_OFFSET
 	init_shm ();

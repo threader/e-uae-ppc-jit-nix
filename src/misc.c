@@ -236,6 +236,10 @@ void sleep_millis_main (int ms)
 	uae_msleep (ms);
 }
 
+void target_restart (void)
+{
+}
+
 // driveclick_win32
 int driveclick_loadresource (struct drvsample *sp, int drivetype) { return 0; }
 void driveclick_fdrawcmd_close(int drive){}
