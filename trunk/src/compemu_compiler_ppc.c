@@ -1230,10 +1230,19 @@ void comp_macroblock_push_copy_nzcv_flags_to_register(uae_u64 regsout, uae_u8 ou
 
 void comp_macroblock_impl_copy_nzcv_flags_to_register(union comp_compiler_mb_union* mb)
 {
+#ifdef _ARCH_PWR4
+	//Copy CR0 to the output register (N, Z)
+	comp_ppc_mfocrf(PPCR_CR_TMP0, mb->one_reg_opcode.reg);
+	//Copy XER to PPCR_SPECTMP
+	comp_ppc_mfxer(PPCR_SPECTMP);
+	//Insert the XER bits into the output register (C, V)
+	comp_ppc_rlwimi(mb->one_reg_opcode.reg, PPCR_SPECTMP, 24, 8, 11, FALSE);
+#else
 	//Copy XER to CR2
 	comp_ppc_mcrxr(PPCR_CR_TMP2);
 	//Copy CR2 to the output register
 	comp_ppc_mfcr(mb->one_reg_opcode.reg);
+#endif
 }
 
 /**
@@ -1251,7 +1260,11 @@ void comp_macroblock_push_copy_nz_flags_to_register(uae_u64 regsout, uae_u8 outp
 
 void comp_macroblock_impl_copy_nz_flags_to_register(union comp_compiler_mb_union* mb)
 {
+#ifdef _ARCH_PWR4
+	comp_ppc_mfocrf(PPCR_CR_TMP0, mb->one_reg_opcode.reg);
+#else
 	comp_ppc_mfcr(mb->one_reg_opcode.reg);
+#endif
 }
 
 /**

@@ -272,10 +272,15 @@ void comp_ppc_lwz(int regd, uae_u16 delta, int rega);
 void comp_ppc_lwzx(int regd, int rega, int regb);
 void comp_ppc_mcrxr(int crreg);
 void comp_ppc_mfcr(int reg);
+#ifdef _ARCH_PWR4
+void comp_ppc_mfocrf(int crreg, int reg);
+#endif
 void comp_ppc_mflr(int reg);
 void comp_ppc_mfxer(int reg);
 void comp_ppc_mr(int rega, int regs, int updateflags);
+void comp_ppc_mtcrf(int crreg, int regf);
 void comp_ppc_mtlr(int reg);
+void comp_ppc_mtxer(int reg);
 void comp_ppc_mullwo(int regd, int rega, int regb, int updateflags);
 void comp_ppc_nop(void);
 void comp_ppc_nor(int rega, int regs, int regb, int updateflags);

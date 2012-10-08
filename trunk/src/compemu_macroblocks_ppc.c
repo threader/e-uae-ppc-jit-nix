@@ -242,23 +242,24 @@ void comp_addr_pre_indApBk_src(const cpu_history* history, struct comptbl* props
 }
 void comp_addr_pre_immedL_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Source register in props is the immediate value,
+	//The next longword after the instruction is the immediate value,
 	//load it with sign extension
 	src_immediate = *((signed int*)pc_ptr);
 	pc_ptr += 2;
 }
 void comp_addr_pre_immedW_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Source register in props is the immediate value,
+	//The next word after the instruction is the immediate value,
 	//load it with sign extension
 	src_immediate = *((signed short*)pc_ptr);
 	pc_ptr++;
 }
 void comp_addr_pre_immedB_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Source register in props is the immediate value,
+	//The next byte after the instruction is the immediate value,
 	//load it with sign extension
 	src_immediate = *(((signed char*)pc_ptr + 1));
+	//Step a whole word, because the instruction pointer cannot point to odd address
 	pc_ptr++;
 }
 void comp_addr_pre_immedQ_src(const cpu_history* history, struct comptbl* props) REGPARAM
@@ -281,15 +282,48 @@ void comp_addr_pre_indAd16_src(const cpu_history* history, struct comptbl* props
 }
 void comp_addr_pre_indPCd16_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
+	//The next word after the instruction is the word offset,
+	//load it with sign extension and add it to the current PC
+	//(also taking account the previous steps for the PC)
+	uae_u32 address = ((uae_u32)history->pc) + ((uae_u32)pc_ptr - (uae_u32)history->location) + *((signed short*)pc_ptr);
+	pc_ptr++;
+
+	src_mem_addrreg = helper_allocate_tmp_reg();
+	src_mem_addrreg_mapped = comp_get_gpr_for_temp_register(src_mem_addrreg);
+
+	comp_macroblock_push_load_register_long(
+			COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg),
+			src_mem_addrreg_mapped,
+			address);
 }
 void comp_addr_pre_absW_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
+	//The next word after the instruction is the address value,
+	//load it without sign extension
+	uae_u16 address = *pc_ptr;
+	pc_ptr++;
+
+	src_mem_addrreg = helper_allocate_tmp_reg();
+	src_mem_addrreg_mapped = comp_get_gpr_for_temp_register(src_mem_addrreg);
+
+	comp_macroblock_push_load_register_long(
+			COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg),
+			src_mem_addrreg_mapped,
+			address);
 }
 void comp_addr_pre_absL_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
+	//The next longword after the instruction is the address value, load it
+	uae_u32 address = *((uae_u32*)pc_ptr);
+	pc_ptr += 2;
+
+	src_mem_addrreg = helper_allocate_tmp_reg();
+	src_mem_addrreg_mapped = comp_get_gpr_for_temp_register(src_mem_addrreg);
+
+	comp_macroblock_push_load_register_long(
+			COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg),
+			src_mem_addrreg_mapped,
+			address);
 }
 void comp_addr_pre_indAcp_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
@@ -392,15 +426,18 @@ void comp_addr_post_indAd16_src(const cpu_history* history, struct comptbl* prop
 }
 void comp_addr_post_indPCd16_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
+	//Release temp register
+	helper_free_src_mem_addr_temp_reg();
 }
 void comp_addr_post_absW_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
+	//Release temp register
+	helper_free_src_mem_addr_temp_reg();
 }
 void comp_addr_post_absL_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
+	//Release temp register
+	helper_free_src_mem_addr_temp_reg();
 }
 void comp_addr_post_indAcp_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
@@ -529,15 +566,48 @@ void comp_addr_pre_indAd16_dest(const cpu_history* history, struct comptbl* prop
 }
 void comp_addr_pre_indPCd16_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
+	//The next word after the instruction is the word offset,
+	//load it with sign extension and add it to the current PC
+	//(also taking account the previous steps for the PC)
+	uae_u32 address = ((uae_u32)history->pc) + ((uae_u32)pc_ptr - (uae_u32)history->location) + *((signed short*)pc_ptr);
+	pc_ptr++;
+
+	dest_mem_addrreg = helper_allocate_tmp_reg();
+	dest_mem_addrreg_mapped = comp_get_gpr_for_temp_register(dest_mem_addrreg);
+
+	comp_macroblock_push_load_register_long(
+			COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+			dest_mem_addrreg_mapped,
+			address);
 }
 void comp_addr_pre_absW_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
+	//The next word after the instruction is the address value,
+	//load it without sign extension
+	uae_u16 address = *pc_ptr;
+	pc_ptr++;
+
+	dest_mem_addrreg = helper_allocate_tmp_reg();
+	dest_mem_addrreg_mapped = comp_get_gpr_for_temp_register(dest_mem_addrreg);
+
+	comp_macroblock_push_load_register_long(
+			COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+			dest_mem_addrreg_mapped,
+			address);
 }
 void comp_addr_pre_absL_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
+	//The next longword after the instruction is the address value, load it
+	uae_u32 address = *((uae_u32*)pc_ptr);
+	pc_ptr += 2;
+
+	dest_mem_addrreg = helper_allocate_tmp_reg();
+	dest_mem_addrreg_mapped = comp_get_gpr_for_temp_register(dest_mem_addrreg);
+
+	comp_macroblock_push_load_register_long(
+			COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+			dest_mem_addrreg_mapped,
+			address);
 }
 void comp_addr_pre_indAcp_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
@@ -649,15 +719,18 @@ void comp_addr_post_indAd16_dest(const cpu_history* history, struct comptbl* pro
 }
 void comp_addr_post_indPCd16_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
+	//Release temp register
+	helper_free_dest_mem_addr_temp_reg();
 }
 void comp_addr_post_absW_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
+	//Release temp register
+	helper_free_dest_mem_addr_temp_reg();
 }
 void comp_addr_post_absL_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
+	//Release temp register
+	helper_free_dest_mem_addr_temp_reg();
 }
 void comp_addr_post_indAcp_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
@@ -3464,6 +3537,8 @@ STATIC_INLINE void helper_add_imm_to_dest_ax(struct comptbl* props, uae_u16 imme
 STATIC_INLINE void helper_MOVREG2MEM(const cpu_history* history, uae_u8 size)
 {
 	int spec;
+	int tmpregaddr;
+	int tmpregaddr_mapped;
 
 	//Special memory determination by operation size
 	switch (size)
@@ -3492,7 +3567,7 @@ STATIC_INLINE void helper_MOVREG2MEM(const cpu_history* history, uae_u8 size)
 	{
 		//Special memory access
 		comp_macroblock_push_save_memory_spec(
-				input_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+				input_dep | (dest_mem_addrreg == PPC_TMP_REG_NOTUSED ? 0 : COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg)),
 				output_dep | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
 				src_reg_mapped,
 				dest_mem_addrreg_mapped,
@@ -3505,12 +3580,14 @@ STATIC_INLINE void helper_MOVREG2MEM(const cpu_history* history, uae_u8 size)
 	else
 	{
 		//Normal memory access
+		tmpregaddr = helper_allocate_tmp_reg();
+		tmpregaddr_mapped = comp_get_gpr_for_temp_register(tmpregaddr);
 
 		//Get memory address into the temp register
 		comp_macroblock_push_map_physical_mem(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
-				dest_mem_addrreg_mapped,
+				dest_mem_addrreg == PPC_TMP_REG_NOTUSED ? output_dep : COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+				COMP_COMPILER_MACROBLOCK_REG_TMP(tmpregaddr),
+				tmpregaddr_mapped,
 				dest_mem_addrreg_mapped);
 
 		//Save long to memory, prevent from optimizing away
@@ -3518,29 +3595,31 @@ STATIC_INLINE void helper_MOVREG2MEM(const cpu_history* history, uae_u8 size)
 		{
 		case 4:
 			comp_macroblock_push_save_memory_long(
-					input_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+					input_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(tmpregaddr),
 					output_dep | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
 					src_reg_mapped,
-					dest_mem_addrreg_mapped,
+					tmpregaddr_mapped,
 					0);
 			break;
 		case 2:
 			comp_macroblock_push_save_memory_word(
-					input_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+					input_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(tmpregaddr),
 					output_dep | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
 					src_reg_mapped,
-					dest_mem_addrreg_mapped,
+					tmpregaddr_mapped,
 					0);
 			break;
 		case 1:
 			comp_macroblock_push_save_memory_byte(
-					input_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+					input_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(tmpregaddr),
 					output_dep | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
 					src_reg_mapped,
-					dest_mem_addrreg_mapped,
+					tmpregaddr_mapped,
 					0);
 			break;
 		}
+
+		comp_free_temp_register(tmpregaddr);
 	}
 }
 
@@ -3608,6 +3687,8 @@ STATIC_INLINE void helper_MOVMEM2REG(const cpu_history* history, struct comptbl*
 	int spec;
 	int tmpreg;
 	int tmpreg_mapped;
+	int tmpregaddr;
+	int tmpregaddr_mapped;
 
 	//Special memory determination by operation size
 	switch (size)
@@ -3630,7 +3711,7 @@ STATIC_INLINE void helper_MOVMEM2REG(const cpu_history* history, struct comptbl*
 	{
 		//Special memory access, result returned in R0
 		comp_macroblock_push_load_memory_spec(
-				input_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg),
+				input_dep | (src_mem_addrreg == PPC_TMP_REG_NOTUSED ? 0 : COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg)),
 				output_dep | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
 				src_mem_addrreg_mapped,
 				PPCR_SPECTMP,
@@ -3689,11 +3770,14 @@ STATIC_INLINE void helper_MOVMEM2REG(const cpu_history* history, struct comptbl*
 	{
 		//Normal memory access
 
+		tmpregaddr = helper_allocate_tmp_reg();
+		tmpregaddr_mapped = comp_get_gpr_for_temp_register(tmpregaddr);
+
 		//Get memory address into the temp register
 		comp_macroblock_push_map_physical_mem(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg),
-				src_mem_addrreg_mapped,
+				src_mem_addrreg == PPC_TMP_REG_NOTUSED ? input_dep : COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg),
+				COMP_COMPILER_MACROBLOCK_REG_TMP(tmpregaddr),
+				tmpregaddr_mapped,
 				src_mem_addrreg_mapped);
 
 		//Save long to memory, prevent from optimizing away
@@ -3701,10 +3785,10 @@ STATIC_INLINE void helper_MOVMEM2REG(const cpu_history* history, struct comptbl*
 		{
 		case 4:
 			comp_macroblock_push_load_memory_long(
-					input_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg),
+					input_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(tmpregaddr),
 					output_dep,
 					dest_reg_mapped,
-					src_mem_addrreg_mapped,
+					tmpregaddr_mapped,
 					0);
 			break;
 		case 2:
@@ -3715,10 +3799,10 @@ STATIC_INLINE void helper_MOVMEM2REG(const cpu_history* history, struct comptbl*
 				tmpreg_mapped = comp_get_gpr_for_temp_register(tmpreg);
 
 				comp_macroblock_push_load_memory_word(
-						input_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg),
+						input_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(tmpregaddr),
 						COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
 						tmpreg_mapped,
-						src_mem_addrreg_mapped,
+						tmpregaddr_mapped,
 						0);
 				comp_macroblock_push_copy_register_word(
 						output_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
@@ -3730,10 +3814,10 @@ STATIC_INLINE void helper_MOVMEM2REG(const cpu_history* history, struct comptbl*
 			} else {
 				//Result is loaded with sign-extension into address register
 				comp_macroblock_push_load_memory_word_extended(
-						input_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg),
+						input_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(tmpregaddr),
 						output_dep,
 						dest_reg_mapped,
-						src_mem_addrreg_mapped,
+						tmpregaddr_mapped,
 						0);
 			}
 			break;
@@ -3741,10 +3825,10 @@ STATIC_INLINE void helper_MOVMEM2REG(const cpu_history* history, struct comptbl*
 			tmpreg = helper_allocate_tmp_reg();
 			tmpreg_mapped = comp_get_gpr_for_temp_register(tmpreg);
 			comp_macroblock_push_load_memory_byte(
-					input_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg),
+					input_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(tmpregaddr),
 					COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
 					tmpreg_mapped,
-					src_mem_addrreg_mapped,
+					tmpregaddr_mapped,
 					0);
 			comp_macroblock_push_copy_register_byte(
 					output_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
@@ -3754,6 +3838,8 @@ STATIC_INLINE void helper_MOVMEM2REG(const cpu_history* history, struct comptbl*
 			comp_free_temp_register(tmpreg);
 			break;
 		}
+
+		comp_free_temp_register(tmpregaddr);
 	}
 
 	//Check result for flags by operation size
@@ -3789,6 +3875,8 @@ STATIC_INLINE void helper_MOVMEM2MEM(const cpu_history* history, struct comptbl*
 	int specread, specwrite;
 	int tmpreg;
 	int tmpreg_mapped;
+	int tmpregaddr = PPC_TMP_REG_NOTUSED;
+	int tmpregaddr_mapped = 0;
 
 	//Special memory determination by operation size
 	switch (size)
@@ -3814,13 +3902,13 @@ STATIC_INLINE void helper_MOVMEM2MEM(const cpu_history* history, struct comptbl*
 	{
 		//Store the destination register in the stackframe temporarily
 		comp_macroblock_push_save_reg_stack(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg) | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
+				(dest_mem_addrreg == PPC_TMP_REG_NOTUSED ? output_dep : COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg)) | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
 				dest_mem_addrreg_mapped,
 				0);
 
 		//Special memory access, result returned in R4
 		comp_macroblock_push_load_memory_spec(
-				input_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg),
+				src_mem_addrreg == PPC_TMP_REG_NOTUSED ? input_dep : COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg),
 				output_dep | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
 				src_mem_addrreg_mapped,
 				PPCR_PARAM2,
@@ -3864,12 +3952,14 @@ STATIC_INLINE void helper_MOVMEM2MEM(const cpu_history* history, struct comptbl*
 		//Normal memory access
 		tmpreg = helper_allocate_tmp_reg();
 		tmpreg_mapped = comp_get_gpr_for_temp_register(tmpreg);
+		tmpregaddr = helper_allocate_tmp_reg();
+		tmpregaddr_mapped = comp_get_gpr_for_temp_register(tmpregaddr);
 
 		//Get memory address into the temp register
 		comp_macroblock_push_map_physical_mem(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg),
-				src_mem_addrreg_mapped,
+				src_mem_addrreg == PPC_TMP_REG_NOTUSED ? input_dep : COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg),
+				COMP_COMPILER_MACROBLOCK_REG_TMP(tmpregaddr),
+				tmpregaddr_mapped,
 				src_mem_addrreg_mapped);
 
 		//Save long to memory, prevent from optimizing away
@@ -3877,26 +3967,26 @@ STATIC_INLINE void helper_MOVMEM2MEM(const cpu_history* history, struct comptbl*
 		{
 		case 4:
 			comp_macroblock_push_load_memory_long(
-					input_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg),
+					COMP_COMPILER_MACROBLOCK_REG_TMP(tmpregaddr),
 					output_dep | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
 					tmpreg_mapped,
-					src_mem_addrreg_mapped,
+					tmpregaddr_mapped,
 					0);
 			break;
 		case 2:
 			comp_macroblock_push_load_memory_word(
-					input_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg),
+					COMP_COMPILER_MACROBLOCK_REG_TMP(tmpregaddr),
 					output_dep | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
 					tmpreg_mapped,
-					src_mem_addrreg_mapped,
+					tmpregaddr_mapped,
 					0);
 			break;
 		case 1:
 			comp_macroblock_push_load_memory_byte(
-					input_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg),
+					COMP_COMPILER_MACROBLOCK_REG_TMP(tmpregaddr),
 					output_dep | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
 					tmpreg_mapped,
-					src_mem_addrreg_mapped,
+					tmpregaddr_mapped,
 					0);
 			break;
 		}
@@ -3923,7 +4013,7 @@ STATIC_INLINE void helper_MOVMEM2MEM(const cpu_history* history, struct comptbl*
 	{
 		//Special memory access
 		comp_macroblock_push_save_memory_spec(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+				COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg) | (dest_mem_addrreg  == PPC_TMP_REG_NOTUSED ? output_dep : COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg)),
 				output_dep | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
 				tmpreg_mapped,
 				dest_mem_addrreg_mapped,
@@ -3933,16 +4023,24 @@ STATIC_INLINE void helper_MOVMEM2MEM(const cpu_history* history, struct comptbl*
 		//because it calls a GCC function
 		dest_mem_addrreg = PPC_TMP_REG_NOTUSED;
 		tmpreg = PPC_TMP_REG_NOTUSED;
+		tmpregaddr = PPC_TMP_REG_NOTUSED;
 	}
 	else
 	{
 		//Normal memory access
 
+		if (tmpregaddr == PPC_TMP_REG_NOTUSED)
+		{
+			//(Re)allocate address calculation temporary register
+			tmpregaddr = helper_allocate_tmp_reg();
+			tmpregaddr_mapped = comp_get_gpr_for_temp_register(tmpregaddr);
+		}
+
 		//Get memory address into the temp register
 		comp_macroblock_push_map_physical_mem(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
-				dest_mem_addrreg_mapped,
+				dest_mem_addrreg == PPC_TMP_REG_NOTUSED ? output_dep : COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+				COMP_COMPILER_MACROBLOCK_REG_TMP(tmpregaddr),
+				tmpregaddr_mapped,
 				dest_mem_addrreg_mapped);
 
 		//Save long to memory, prevent from optimizing away
@@ -3950,26 +4048,26 @@ STATIC_INLINE void helper_MOVMEM2MEM(const cpu_history* history, struct comptbl*
 		{
 		case 4:
 			comp_macroblock_push_save_memory_long(
-					COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+					COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(tmpregaddr),
 					output_dep | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
 					tmpreg_mapped,
-					dest_mem_addrreg_mapped,
+					tmpregaddr_mapped,
 					0);
 			break;
 		case 2:
 			comp_macroblock_push_save_memory_word(
-					COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+					COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(tmpregaddr),
 					output_dep | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
 					tmpreg_mapped,
-					dest_mem_addrreg_mapped,
+					tmpregaddr_mapped,
 					0);
 			break;
 		case 1:
 			comp_macroblock_push_save_memory_byte(
-					COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+					COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(tmpregaddr),
 					output_dep | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
 					tmpreg_mapped,
-					dest_mem_addrreg_mapped,
+					tmpregaddr_mapped,
 					0);
 			break;
 		}
@@ -3978,6 +4076,11 @@ STATIC_INLINE void helper_MOVMEM2MEM(const cpu_history* history, struct comptbl*
 	if (tmpreg != PPC_TMP_REG_NOTUSED)
 	{
 		comp_free_temp_register(tmpreg);
+	}
+
+	if (tmpregaddr != PPC_TMP_REG_NOTUSED)
+	{
+		comp_free_temp_register(tmpregaddr);
 	}
 }
 
