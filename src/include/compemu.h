@@ -316,6 +316,8 @@ void comp_ppc_return_to_caller(uae_u32 restore_regs);
 void comp_ppc_do_cycles(int totalcycles);
 void comp_ppc_verify_pc(uae_u8* pc_addr_exp);
 void comp_ppc_reload_pc_p(uae_u8* new_pc_p);
+uae_u32 comp_ppc_save_temp_regs(uae_u32 exceptions);
+void comp_ppc_restore_temp_regs(uae_u32 saved_regs);
 #endif
 
 /* I wonder why we don't have these defined globally. */
