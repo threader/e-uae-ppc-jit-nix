@@ -2312,6 +2312,98 @@ void comp_ppc_restore_from_slot(int reg, int slot)
 	comp_ppc_lwz(reg, nonvolatile_regs_in_stackframe + (slot * 4), PPCR_SP);
 }
 
+/* Saves allocated temporary registers to the stack.
+ * Parameters:
+ *    exceptions - registers that must be skipped while saving marked with a high
+ *                 bit in this longword (e.g. R4 and R6 = (1 << 4) | (1 <<6) = %101000)
+ * Returns:
+ *    A longword with the saved registers: the register that was saved is marked with high bit.
+ *
+ * Note: this function generates macroblocks, must be called from the macroblock
+ * collection phase.
+ */
+uae_u32 comp_ppc_save_temp_regs(uae_u32 exceptions)
+{
+	uae_u32 saved_regs = 0;
+	int i, count = 0;
+
+	for(i = 0; i < PPC_TMP_REGS_COUNT; i++)
+	{
+		uae_u32 reg = 1 << PPC_TMP_REGS[i];
+
+		//If the register is allocated and not on the exceptions list
+		if ((used_tmp_regs[i] != PPC_TMP_REG_NOTUSED) && ((exceptions & reg) == 0))
+		{
+			//Then save it
+			saved_regs |= reg;
+			count++;
+		}
+	}
+
+	//Adjust stack pointer: allocate the space for the registers
+	comp_macroblock_push_add_register_imm(
+			COMP_COMPILER_MACROBLOCK_REG_NONE,
+			COMP_COMPILER_MACROBLOCK_REG_NONE | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
+			PPCR_SP,
+			PPCR_SP,
+			-count * 4);
+
+	//Walk through the list of registers again and save the marked ones
+	count = 0;
+	for(i = 0; i < PPC_TMP_REGS_COUNT; i++)
+	{
+		int reg = PPC_TMP_REGS[i];
+		if ((saved_regs & (1 << reg)) != 0)
+		{
+			comp_macroblock_push_save_memory_long(
+					COMP_COMPILER_MACROBLOCK_REG_NONE,
+					COMP_COMPILER_MACROBLOCK_REG_NONE | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
+					reg,
+					PPCR_SP,
+					count * 4);
+			count++;
+		}
+	}
+
+	return saved_regs;
+}
+
+/* Restore saved temporary registers
+ * Parameters:
+ *    saved_regs - the returned longword from the matching comp_ppc_save_temp_regs().
+ *
+ * Note: this function generates macroblocks, must be called from the macroblock
+ * collection phase.
+ */
+void comp_ppc_restore_temp_regs(uae_u32 saved_regs)
+{
+	int i, count = 0;
+
+	//Walk through the list of registers and restore the marked ones
+	for(i = 0; i < PPC_TMP_REGS_COUNT; i++)
+	{
+		int reg = PPC_TMP_REGS[i];
+		if ((saved_regs & (1 << reg)) != 0)
+		{
+			comp_macroblock_push_load_memory_long(
+					COMP_COMPILER_MACROBLOCK_REG_NONE,
+					COMP_COMPILER_MACROBLOCK_REG_NONE | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
+					reg,
+					PPCR_SP,
+					count * 4);
+			count++;
+		}
+	}
+
+	//Adjust stack pointer: free up the space
+	comp_macroblock_push_add_register_imm(
+			COMP_COMPILER_MACROBLOCK_REG_NONE,
+			COMP_COMPILER_MACROBLOCK_REG_NONE | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
+			PPCR_SP,
+			PPCR_SP,
+			count * 4);
+}
+
 /* Compiles a static do_cycles function call with the specified number of CPU cycles
  * Parameters:
  *      totalcycles - precalculated cycles for the executed chunk of compiled code
