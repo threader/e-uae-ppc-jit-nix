@@ -1222,7 +1222,7 @@ int addscsi (int ch, const TCHAR *path, int blocksize, int readonly,
 	freescsi (scsis[ch]);
 	scsis[ch] = NULL;
 	hfd = xcalloc (struct hd_hardfiledata, 1);
-	if (!hdf_hd_open (hfd, path, blocksize, readonly, devname, sectors, surfaces, reserved, bootpri, filesys))
+	if (!hdf_hd_open (hfd, path, blocksize, readonly, devname, 0, sectors, surfaces, reserved, bootpri, filesys, 0, 0, 0))
 		return 0;
 	hfd->ansi_version = scsi_level;
 	scsis[ch] = scsi_alloc (ch, hfd);
@@ -1364,16 +1364,15 @@ void a2091_init (void)
 		rd = rl->rd; 
 		z = read_rom (&rd);
 		if (z) {
-			unsigned int i;
 			int slotsize = 65536;
-			write_log (_T("A590/A2091 BOOT ROM %d.%d "), rd->ver, rd->rev);
+			write_log (_T("A590/A2091 BOOT ROM %d.%d\n"), rd->ver, rd->rev);
 			rom_size = rd->size;
 			rom = xmalloc (uae_u8, slotsize);
 			if (rl->rd->id == 56)
 				rombankswitcher = 1;
 			zfile_fread (rom, rom_size, 1, z);
 			zfile_fclose (z);
-			for (i = 1; i < slotsize / rom_size; i++)
+			for (unsigned int i = 1; i < slotsize / rom_size; i++)
 				memcpy (rom + i * rom_size, rom, rom_size);
 			rom_mask = rom_size - 1;
 		}

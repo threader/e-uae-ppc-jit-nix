@@ -556,10 +556,9 @@ static void chip_init (void)
 {
 	uae_u32 iaddr = ((csr[2] & 0xff) << 16) | csr[1];
 	uae_u8 *p = boardram + (iaddr & RAM_MASK);
-	unsigned int i;
 
 	write_log (_T("A2065: Initialization block2:\n"));
-	for (i = 0; i < 24; i++)
+	for (unsigned int i = 0; i < 24; i++)
 		write_log (_T(".%02X"), p[i]);
 	write_log (_T("\n"));
 
@@ -911,19 +910,16 @@ uae_u8 *save_a2065 (int *len, uae_u8 *dstptr)
 		dstbak = dst = (uae_u8*)malloc (16);
 	save_u32 (0);
 	save_u8 (configured);
-        unsigned int i;
-
-	for (i = 0; i < 6; i++)
+	for (unsigned int i = 0; i < 6; i++)
 		save_u8 (realmac[i]);
 	*len = dst - dstbak;
 	return dstbak;
 }
 uae_u8 *restore_a2065 (uae_u8 *src)
 {
-        unsigned int i;
 	restore_u32 ();
 	configured = restore_u8 ();
-	for (i = 0; i < 6; i++)
+	for (unsigned int i = 0; i < 6; i++)
 		realmac[i] = restore_u8 ();
 	return src;
 }

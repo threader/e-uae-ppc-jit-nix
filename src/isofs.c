@@ -2159,7 +2159,7 @@ static struct inode *isofs_find_entry(struct inode *dir, char *tmpname, TCHAR *t
 		match = 0;
 		if (dlen > 0 && (!sbi->s_hide || (!(de->flags[-sbi->s_high_sierra] & 1))) && (sbi->s_showassoc || (!(de->flags[-sbi->s_high_sierra] & 4)))) {
 			if (jname)
-				match = _tcsicmp(jname, nameu);
+				match = _tcsicmp(jname, nameu) == 0;
 			else
 				match = isofs_cmp(name, dpnt, dlen) == 0;
 		}
@@ -2494,13 +2494,13 @@ void isofss_fill_file_attrs(void *sbp, uae_u64 parent, int *dir, int *flags, TCH
 		*comment = my_strdup(inode->i_comment);
 }
 
-void isofs_stat(void *sbp, uae_u64 uniq, struct _stat64 *statbuf)
+bool isofs_stat(void *sbp, uae_u64 uniq, struct _stat64 *statbuf)
 {
 	struct super_block *sb = (struct super_block*)sbp;
 	struct inode *inode = find_inode(sb, uniq);
 
 	if (!inode)
-		return;
+		return false;
 
 	statbuf->st_mode = FILEFLAG_READ;
 	statbuf->st_mtime = inode->i_mtime.tv_sec;
@@ -2509,6 +2509,7 @@ void isofs_stat(void *sbp, uae_u64 uniq, struct _stat64 *statbuf)
 	} else {
 		statbuf->st_size = inode->i_size;
 	}
+	return true;
 }
 
 bool isofs_exists(void *sbp, uae_u64 parent, const TCHAR *name, uae_u64 *uniq)

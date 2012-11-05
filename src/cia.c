@@ -599,7 +599,7 @@ static void resetwarning_check (void)
 			resetwarning_phase = -1;
 			kblostsynccnt = 0;
 			send_internalevent (INTERNALEVENT_KBRESET);
-			uae_reset (0);
+			uae_reset (0, 1);
 		}
 	}
 	if (resetwarning_phase == 1) {
@@ -622,7 +622,7 @@ static void resetwarning_check (void)
 			resetwarning_phase = -1;
 			kblostsynccnt = 0;
 			send_internalevent (INTERNALEVENT_KBRESET);
-			uae_reset (0);
+			uae_reset (0, 1);
 		}
 	}
 }
@@ -966,6 +966,9 @@ static uae_u8 ReadCIAB (unsigned int addr)
 #endif
 		return tmp;
 	case 1:
+#ifdef ACTION_REPLAY
+		action_replay_ciaread ();
+#endif
 #if DONGLE_DEBUG > 0
 		if (notinrom ())
 			write_log (_T("BFD100 R %02X %s\n"), ciabprb, debuginfo(0));
@@ -1563,7 +1566,7 @@ static uae_u32 REGPARAM2 cia_wget (uaecptr addr)
 #endif
 
 	if (!isgaylenocia (addr))
-		return 0xffffffff;
+		return v;
 
 	cia_wait_pre ();
 	switch ((addr >> 12) & 3)

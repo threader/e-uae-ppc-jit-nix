@@ -229,7 +229,7 @@ static int get_fpu_version (void)
 
 #define fp_round_to_minus_infinity(x) fp_floor(x)
 #define fp_round_to_plus_infinity(x) fp_ceil(x)
-#define fp_round_to_zero(x) ((int)(x))
+#define fp_round_to_zero(x)	((x) >= 0.0 ? floor(x) : ceil(x))
 #define fp_round_to_nearest(x) ((int)((x) + 0.5))
 
 STATIC_INLINE tointtype toint (fptype src, fptype minval, fptype maxval)

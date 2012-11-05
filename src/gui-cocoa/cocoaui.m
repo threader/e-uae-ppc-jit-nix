@@ -1496,7 +1496,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 
 - (void)resetAmiga:(id)sender
 {
-	uae_reset([((NSMenuItem *)sender) tag]);
+	uae_reset([((NSMenuItem *)sender) tag], 0);
 }
 
 - (void)pauseAmiga:(id)sender

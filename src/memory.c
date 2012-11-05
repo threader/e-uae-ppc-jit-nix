@@ -1267,7 +1267,7 @@ uae_u8 *REGPARAM2 default_xlate (uaecptr a)
 			}
 			be_cnt++;
 			if (be_cnt > 1000) {
-				uae_reset (0);
+				uae_reset (0, 0);
 				be_cnt = 0;
 			} else {
 				regs.panic = 1;
@@ -2344,7 +2344,9 @@ static void allocate_memory (void)
 #ifdef SAVESTATE
 	if (savestate_state == STATE_RESTORE) {
 		if (bootrom_filepos) {
+			protect_roms (false);
 			restore_ram (bootrom_filepos, rtarea);
+			protect_roms (true);
 		}
 		restore_ram (chip_filepos, chipmemory);
 		if (allocated_bogomem > 0)

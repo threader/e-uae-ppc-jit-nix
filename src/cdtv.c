@@ -519,7 +519,7 @@ static void cdrom_command_thread (uae_u8 b)
 		if (cdrom_command_cnt_in == 7) {
 			cdrom_command_accepted (0, s, &cdrom_command_cnt_in);
 			cd_finished = 1;
-			uae_msleep (500);
+			sleep_millis (500);
 			activate_stch = 1;
 		}
 		break;
@@ -640,7 +640,7 @@ static void dma_do_thread (void)
 	int cnt;
 
 	while (dma_finished)
-		uae_msleep (2);
+		sleep_millis (2);
 
 	if (!cdtv_sectorsize)
 		return;
@@ -1673,7 +1673,7 @@ void cdtv_free (void)
 		cdaudiostop ();
 		write_comm_pipe_u32 (&requests, 0xffff, 1);
 		while (thread_alive > 0)
-			uae_msleep (10);
+			sleep_millis (10);
 		uae_sem_destroy (&sub_sem);
 	}
 	thread_alive = 0;
@@ -1730,7 +1730,7 @@ void cdtv_init (void)
 		init_comm_pipe (&requests, 100, 1);
 		uae_start_thread (_T("cdtv"), dev_thread, NULL, NULL);
 		while (!thread_alive)
-			uae_msleep(10);
+			sleep_millis (10);
 		uae_sem_init (&sub_sem, 0, 1);
 	}
 	write_comm_pipe_u32 (&requests, 0x0104, 1);
