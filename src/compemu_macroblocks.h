@@ -570,4 +570,4 @@ void comp_opcode_FNOP(const cpu_history* history, struct comptbl* props) REGPARA
 
 //Support compiling functions
 void comp_opcode_init(const cpu_history* history);
-void comp_opcode_unsupported(const const cpu_history* history, uae_u16 opcode);
+void comp_opcode_unsupported(uae_u16 opcode);

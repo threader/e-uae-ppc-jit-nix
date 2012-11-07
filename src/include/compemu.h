@@ -153,7 +153,7 @@ typedef struct blockinfo_t
 #define PPC_B_CR_TMP0_LT	0x0180	//0b0110000000
 #define PPC_B_CR_TMP0_GT	0x0181	//0b0110000001
 #define PPC_B_CR_TMP0_EQ	0x0182	//0b0110000010
-#define PPC_B_CR_TMP0_NE	0x0080 	//0b0010000000
+#define PPC_B_CR_TMP0_NE	0x0082 	//0b0010000010
 
 //These two constants for hinting the branch if it was more likely taken or not
 #define PPC_B_TAKEN			0x0020	//0b0000100000
@@ -192,6 +192,13 @@ typedef struct blockinfo_t
 #define FLAGBIT_C	21
 #define FLAGBIT_X	21
 
+//Bit numbers for the flags in the PPCR_FLAGS register (reversed for PPC)
+#define PPC_FLAGBIT_N	(31 - FLAGBIT_N)
+#define PPC_FLAGBIT_Z	(31 - FLAGBIT_Z)
+#define PPC_FLAGBIT_V	(31 - FLAGBIT_V)
+#define PPC_FLAGBIT_C	(31 - FLAGBIT_C)
+#define PPC_FLAGBIT_X	(31 - (FLAGBIT_X - 16))
+
 /* Convert PPC register number to bit number in a longword
  * This macro can be used to mark registers for Prolog/Epilog compiling */
 #define PPCR_REG_BIT(x) (1 << (x))
@@ -220,6 +227,7 @@ STATIC_INLINE void compile_return_block(void);
 STATIC_INLINE void reset_lists(void);
 static void calc_checksum(blockinfo* bi, uae_u32* c1, uae_u32* c2);
 static void cache_miss(void);
+int check_for_cache_miss(void);
 
 unsigned long execute_normal_callback(uae_u32 ignored1, struct regstruct *ignored2);
 unsigned long exec_nostats_callback(uae_u32 ignored1, struct regstruct *ignored2);

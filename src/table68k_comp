@@ -222,9 +222,9 @@ MOVEM2REGUW  0   0100 1100 1001 1sss   0 0     regA    none
 
 ;*** Move immediate to mem
 ;move.z #y,dx
-MOVIMM2MEML  0   0010 dddD DDSS Ssss   0 0     immedL    indA,indApL,indmAL,indAd16,indAcp,absW,absL
-MOVIMM2MEMW  0   0011 dddD DDSS Ssss   0 0     immedW    indA,indApW,indmAW,indAd16,indAcp,absW,absL
-MOVIMM2MEMB  0   0001 dddD DDSS Ssss   0 0     immedB    indA,indApB,indmAB,indAd16,indAcp,absW,absL
+MOVIMM2MEML  1   0010 dddD DDSS Ssss   0 0     immedL    indA,indApL,indmAL,indAd16,indAcp,absW,absL
+MOVIMM2MEMW  1   0011 dddD DDSS Ssss   0 0     immedW    indA,indApW,indmAW,indAd16,indAcp,absW,absL
+MOVIMM2MEMB  1   0001 dddD DDSS Ssss   0 0     immedB    indA,indApB,indmAB,indAd16,indAcp,absW,absL
 
 ;*** Move16
 MOV16REG2REGU 0   1111 0110 0010 0sss   0 0    regA    none
@@ -234,26 +234,26 @@ MOV16REG2MEM  0   1111 0110 0001 0sss   0 0    regA    immedL
 MOV16MEM2REG  0   1111 0110 0001 1ddd   0 0    immedL  regA
 
 ;*** Clear
-CLRREGL      0   0100 0010 10DD Dddd   0 0     none    regD
-CLRREGW      0   0100 0010 01DD Dddd   0 0     none    regD
-CLRREGB      0   0100 0010 00DD Dddd   0 0     none    regD
+CLRREGL      1   0100 0010 10DD Dddd   0 0     none    regD
+CLRREGW      1   0100 0010 01DD Dddd   0 0     none    regD
+CLRREGB      1   0100 0010 00DD Dddd   0 0     none    regD
 
-CLRMEML      0   0100 0010 10DD Dddd   0 0     none    indA,indApL,indmAL,indAd16,indAcp,absW,absL
-CLRMEMW      0   0100 0010 01DD Dddd   0 0     none    indA,indApW,indmAW,indAd16,indAcp,absW,absL
-CLRMEMB      0   0100 0010 00DD Dddd   0 0     none    indA,indApB,indmAB,indAd16,indAcp,absW,absL
+CLRMEML      1   0100 0010 10DD Dddd   0 0     none    indA,indApL,indmAL,indAd16,indAcp,absW,absL
+CLRMEMW      1   0100 0010 01DD Dddd   0 0     none    indA,indApW,indmAW,indAd16,indAcp,absW,absL
+CLRMEMB      1   0100 0010 00DD Dddd   0 0     none    indA,indApB,indmAB,indAd16,indAcp,absW,absL
 
 ;*** Load Effective Address
-LEAIMML      0   0100 ddd1 1111 1001   0 0     immedL    regA
+LEAIMML      1   0100 ddd1 1111 1001   0 0     immedL    regA
 
 ;Address registers are always longword-sized, doesn't matter what is the specified size,
 ;immediate word sized data will be sign-extended to longword
-LEAIMMW      0   0100 ddd1 1111 1000   0 0     immedW    regA
-LEAIND       0   0100 ddd1 11SS Ssss   0 0     indA,indPCd16,indAd16,indAcp,indPCcp    regA
+LEAIMMW      1   0100 ddd1 1111 1000   0 0     immedW    regA
+LEAIND       1   0100 ddd1 11SS Ssss   0 0     indA,indPCd16,indAd16,indAcp,indPCcp    regA
 
 ;*** Push effective address
-PEAIMML      0   0100 1000 0111 1001   0 0     immedL    none
-PEAIMMW      0   0100 1000 0111 1000   0 0     immedW    none
-PEAIND       0   0100 1000 01SS Ssss   0 0     indA,indPCd16,indAd16,indAcp,indPCcp    none
+PEAIMML      1   0100 1000 0111 1001   0 0     immedL    none
+PEAIMMW      1   0100 1000 0111 1000   0 0     immedW    none
+PEAIND       1   0100 1000 01SS Ssss   0 0     indA,indPCd16,indAd16,indAcp,indPCcp    none
 
 ;*** Move Peripherials
 MOVPREG2MEML 0   0000 sss1 1100 1ddd   0 0     regD    indAd16
@@ -264,39 +264,13 @@ MOVPMEM2REGW 0   0000 ddd1 0000 1sss   0 0     indAd16    regD
 ;---------------------------------------------------------------------
 ;*** Special data moving instructions
 ;*** Set Conditional
-STREGB       0   0101 0000 11DD Dddd   0 0     none    regD
-SFREGB       0   0101 0001 11DD Dddd   0 0     none    regD
-SCCREGB      0   0101 Ssss 11DD Dddd   0 0     CC_cc   regD
-SCCREGB      0   0101 Ssss 11DD Dddd   0 0     CC_cs   regD
-SCCREGB      0   0101 Ssss 11DD Dddd   0 0     CC_eq   regD
-SCCREGB      0   0101 Ssss 11DD Dddd   0 0     CC_ge   regD
-SCCREGB      0   0101 Ssss 11DD Dddd   0 0     CC_gt   regD
-SCCREGB      0   0101 Ssss 11DD Dddd   0 0     CC_hi   regD
-SCCREGB      0   0101 Ssss 11DD Dddd   0 0     CC_le   regD
-SCCREGB      0   0101 Ssss 11DD Dddd   0 0     CC_ls   regD
-SCCREGB      0   0101 Ssss 11DD Dddd   0 0     CC_lt   regD
-SCCREGB      0   0101 Ssss 11DD Dddd   0 0     CC_mi   regD
-SCCREGB      0   0101 Ssss 11DD Dddd   0 0     CC_ne   regD
-SCCREGB      0   0101 Ssss 11DD Dddd   0 0     CC_pl   regD
-SCCREGB      0   0101 Ssss 11DD Dddd   0 0     CC_vc   regD
-SCCREGB      0   0101 Ssss 11DD Dddd   0 0     CC_vs   regD
+STREGB       1   0101 0000 11DD Dddd   0 0     none    regD
+SFREGB       1   0101 0001 11DD Dddd   0 0     none    regD
+SCCREGB      1   0101 Ssss 11DD Dddd   0 0     CC_cc,CC_cs,CC_eq,CC_ge,CC_gt,CC_hi,CC_le,CC_ls,CC_lt,CC_mi,CC_ne,CC_pl,CC_vc,CC_vs   regD
 
-STMEMB       0   0101 0000 11DD Dddd   0 0     none    indA,indApB,indmAB,indAd16,indAcp,absW,absL
-SFMEMB       0   0101 0001 11DD Dddd   0 0     none    indA,indApB,indmAB,indAd16,indAcp,absW,absL
-SCCMEMB      0   0101 Ssss 11DD Dddd   0 0     CC_cc   indA,indApB,indmAB,indAd16,indAcp,absW,absL
-SCCMEMB      0   0101 Ssss 11DD Dddd   0 0     CC_cs   indA,indApB,indmAB,indAd16,indAcp,absW,absL
-SCCMEMB      0   0101 Ssss 11DD Dddd   0 0     CC_eq   indA,indApB,indmAB,indAd16,indAcp,absW,absL
-SCCMEMB      0   0101 Ssss 11DD Dddd   0 0     CC_ge   indA,indApB,indmAB,indAd16,indAcp,absW,absL
-SCCMEMB      0   0101 Ssss 11DD Dddd   0 0     CC_gt   indA,indApB,indmAB,indAd16,indAcp,absW,absL
-SCCMEMB      0   0101 Ssss 11DD Dddd   0 0     CC_hi   indA,indApB,indmAB,indAd16,indAcp,absW,absL
-SCCMEMB      0   0101 Ssss 11DD Dddd   0 0     CC_le   indA,indApB,indmAB,indAd16,indAcp,absW,absL
-SCCMEMB      0   0101 Ssss 11DD Dddd   0 0     CC_ls   indA,indApB,indmAB,indAd16,indAcp,absW,absL
-SCCMEMB      0   0101 Ssss 11DD Dddd   0 0     CC_lt   indA,indApB,indmAB,indAd16,indAcp,absW,absL
-SCCMEMB      0   0101 Ssss 11DD Dddd   0 0     CC_mi   indA,indApB,indmAB,indAd16,indAcp,absW,absL
-SCCMEMB      0   0101 Ssss 11DD Dddd   0 0     CC_ne   indA,indApB,indmAB,indAd16,indAcp,absW,absL
-SCCMEMB      0   0101 Ssss 11DD Dddd   0 0     CC_pl   indA,indApB,indmAB,indAd16,indAcp,absW,absL
-SCCMEMB      0   0101 Ssss 11DD Dddd   0 0     CC_vc   indA,indApB,indmAB,indAd16,indAcp,absW,absL
-SCCMEMB      0   0101 Ssss 11DD Dddd   0 0     CC_vs   indA,indApB,indmAB,indAd16,indAcp,absW,absL
+STMEMB       1   0101 0000 11DD Dddd   0 0     none    indA,indApB,indmAB,indAd16,indAcp,absW,absL
+SFMEMB       1   0101 0001 11DD Dddd   0 0     none    indA,indApB,indmAB,indAd16,indAcp,absW,absL
+SCCMEMB      1   0101 Ssss 11DD Dddd   0 0     CC_cc,CC_cs,CC_eq,CC_ge,CC_gt,CC_hi,CC_le,CC_ls,CC_lt,CC_mi,CC_ne,CC_pl,CC_vc,CC_vs   indA,indApB,indmAB,indAd16,indAcp,absW,absL
 
 ;*** Condition Code Register moving
 MOVCCR2REGW  0   0100 0010 11DD Dddd   0 0     none    regD
@@ -854,55 +828,13 @@ UNLINK       0   0100 1110 0101 1sss   0 0     regA    none
 TRAP         0   0100 1110 0100 ssss   1 0     immedQ    none
 
 ;without data
-TRAPCC       0   0101 Ssss 1111 1100   1 0     CC_cc    none
-TRAPCC       0   0101 Ssss 1111 1100   1 0     CC_cs    none
-TRAPCC       0   0101 Ssss 1111 1100   1 0     CC_eq    none
-TRAPCC       0   0101 Ssss 1111 1100   1 0     CC_ge    none
-TRAPCC       0   0101 Ssss 1111 1100   1 0     CC_gt    none
-TRAPCC       0   0101 Ssss 1111 1100   1 0     CC_hi    none
-TRAPCC       0   0101 Ssss 1111 1100   1 0     CC_le    none
-TRAPCC       0   0101 Ssss 1111 1100   1 0     CC_ls    none
-TRAPCC       0   0101 Ssss 1111 1100   1 0     CC_lt    none
-TRAPCC       0   0101 Ssss 1111 1100   1 0     CC_mi    none
-TRAPCC       0   0101 Ssss 1111 1100   1 0     CC_ne    none
-TRAPCC       0   0101 Ssss 1111 1100   1 0     CC_pl    none
-TRAPCC       0   0101 Ssss 1111 1100   1 0     CC_vc    none
-TRAPCC       0   0101 Ssss 1111 1100   1 0     CC_vs    none
-TRAPCC       0   0101 Ssss 1111 1100   1 0     CC_f     none
+TRAPCC       0   0101 Ssss 1111 1100   1 0     CC_cc,CC_cs,CC_eq,CC_ge,CC_gt,CC_hi,CC_le,CC_ls,CC_lt,CC_mi,CC_ne,CC_pl,CC_vc,CC_vs    none
 
 ;with word sized data
-TRAPCC       0   0101 Ssss 1111 1010   1 0     CC_cc    none
-TRAPCC       0   0101 Ssss 1111 1010   1 0     CC_cs    none
-TRAPCC       0   0101 Ssss 1111 1010   1 0     CC_eq    none
-TRAPCC       0   0101 Ssss 1111 1010   1 0     CC_ge    none
-TRAPCC       0   0101 Ssss 1111 1010   1 0     CC_gt    none
-TRAPCC       0   0101 Ssss 1111 1010   1 0     CC_hi    none
-TRAPCC       0   0101 Ssss 1111 1010   1 0     CC_le    none
-TRAPCC       0   0101 Ssss 1111 1010   1 0     CC_ls    none
-TRAPCC       0   0101 Ssss 1111 1010   1 0     CC_lt    none
-TRAPCC       0   0101 Ssss 1111 1010   1 0     CC_mi    none
-TRAPCC       0   0101 Ssss 1111 1010   1 0     CC_ne    none
-TRAPCC       0   0101 Ssss 1111 1010   1 0     CC_pl    none
-TRAPCC       0   0101 Ssss 1111 1010   1 0     CC_vc    none
-TRAPCC       0   0101 Ssss 1111 1010   1 0     CC_vs    none
-TRAPCC       0   0101 Ssss 1111 1010   1 0     CC_f     none
+TRAPCC       0   0101 Ssss 1111 1010   1 0     CC_cc,CC_cs,CC_eq,CC_ge,CC_gt,CC_hi,CC_le,CC_ls,CC_lt,CC_mi,CC_ne,CC_pl,CC_vc,CC_vs    none
 
 ;with long sized data
-TRAPCC       0   0101 Ssss 1111 1011   1 0     CC_cc    none
-TRAPCC       0   0101 Ssss 1111 1011   1 0     CC_cs    none
-TRAPCC       0   0101 Ssss 1111 1011   1 0     CC_eq    none
-TRAPCC       0   0101 Ssss 1111 1011   1 0     CC_ge    none
-TRAPCC       0   0101 Ssss 1111 1011   1 0     CC_gt    none
-TRAPCC       0   0101 Ssss 1111 1011   1 0     CC_hi    none
-TRAPCC       0   0101 Ssss 1111 1011   1 0     CC_le    none
-TRAPCC       0   0101 Ssss 1111 1011   1 0     CC_ls    none
-TRAPCC       0   0101 Ssss 1111 1011   1 0     CC_lt    none
-TRAPCC       0   0101 Ssss 1111 1011   1 0     CC_mi    none
-TRAPCC       0   0101 Ssss 1111 1011   1 0     CC_ne    none
-TRAPCC       0   0101 Ssss 1111 1011   1 0     CC_pl    none
-TRAPCC       0   0101 Ssss 1111 1011   1 0     CC_vc    none
-TRAPCC       0   0101 Ssss 1111 1011   1 0     CC_vs    none
-TRAPCC       0   0101 Ssss 1111 1011   1 0     CC_f     none
+TRAPCC       0   0101 Ssss 1111 1011   1 0     CC_cc,CC_cs,CC_eq,CC_ge,CC_gt,CC_hi,CC_le,CC_ls,CC_lt,CC_mi,CC_ne,CC_pl,CC_vc,CC_vs    none
 
 ;*** TRAPV
 TRAPCC       0   0100 1110 0111 0110   1 0     CC_vs    none
