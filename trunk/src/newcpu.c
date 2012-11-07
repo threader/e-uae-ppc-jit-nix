@@ -1835,6 +1835,9 @@ void execute_normal(void)
 	int total_cycles;
 	uae_u16 opcode;
 
+    if (check_for_cache_miss())
+	return;
+
 	total_cycles = 0;
 	blocklen = 0;
 

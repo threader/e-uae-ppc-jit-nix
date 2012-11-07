@@ -92,6 +92,7 @@ void comp_macroblock_impl_arithmetic_shift_right_register(union comp_compiler_mb
 void comp_macroblock_impl_arithmetic_left_shift_extract_v_flag(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_save_reg_stack(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_load_reg_stack(union comp_compiler_mb_union* mb);
+void comp_macroblock_impl_set_byte_from_z_flag(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_stop(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_nop(union comp_compiler_mb_union* mb);
 
@@ -278,10 +279,9 @@ void comp_compiler_debug_dump_compiled()
  * Note: this function purges all temporary registers, because it calls
  * an external function.
  * Parameters:
- *    location - location of the instruction in memory
  *    opcode - unsupported opcode number
  */
-void comp_macroblock_push_opcode_unsupported(uae_u16* location, uae_u16 opcode)
+void comp_macroblock_push_opcode_unsupported(uae_u16 opcode)
 {
 	//Before the call write back the M68k registers and clear the temp register mapping
 	comp_flush_temp_registers(FALSE);
@@ -1041,7 +1041,7 @@ void comp_macroblock_push_and_high_register_imm(uae_u64 regsin, uae_u64 regsout,
 
 void comp_macroblock_impl_and_high_register_imm(union comp_compiler_mb_union* mb)
 {
-	comp_ppc_andi(
+	comp_ppc_andis(
 			mb->two_regs_imm_opcode.output_reg,
 			mb->two_regs_imm_opcode.input_reg,
 			mb->two_regs_imm_opcode.immediate);
@@ -1645,3 +1645,35 @@ void comp_macroblock_impl_load_reg_stack(union comp_compiler_mb_union* mb)
 	comp_ppc_restore_from_slot(mb->reg_in_stackframe.reg, mb->reg_in_stackframe.slot);
 }
 
+void comp_macroblock_push_set_byte_from_z_flag(uae_u64 regsout, uae_u8 output_reg, int negate)
+{
+	comp_mb_init(mb,
+				comp_macroblock_impl_set_byte_from_z_flag,
+				COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
+				regsout);
+	mb->set_byte_from_z_flag.negate = negate;
+	mb->set_byte_from_z_flag.output_reg = output_reg;
+}
+
+void comp_macroblock_impl_set_byte_from_z_flag(union comp_compiler_mb_union* mb)
+{
+	int output_reg = mb->set_byte_from_z_flag.output_reg;
+
+	//Condition is evaluated into the CRF0 Z flag by the source address mode handler.
+
+	//Set byte to 0 (false) by default
+	comp_ppc_rlwinm(output_reg, output_reg, 0, 0, 23, FALSE);
+
+	//Branch accordingly to the previously calculated flag.
+	//If Z flag was set then the condition was evaluated to FALSE.
+	//Check negate option and invert the branch instruction if it was set.
+	comp_ppc_bc(
+			(mb->set_byte_from_z_flag.negate ?
+					PPC_B_CR_TMP0_NE : PPC_B_CR_TMP0_EQ) | PPC_B_TAKEN);
+
+	//Set byte to 0xff (true)
+	comp_ppc_ori(output_reg, output_reg, 0xff);
+
+	//Branch target reached, set it
+	comp_ppc_branch_target();
+}

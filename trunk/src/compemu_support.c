@@ -606,7 +606,7 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 
 				unsupported_in_a_row = TRUE;
 
-				comp_opcode_unsupported(inst_history, opcode);
+				comp_opcode_unsupported(opcode);
 			}
 		}
 
@@ -1118,6 +1118,20 @@ static void cache_miss(void)
 	}
 	raise_in_cl_list(bi);
 	return;
+}
+
+int check_for_cache_miss(void)
+{
+    blockinfo* bi=get_blockinfo_addr(regs.pc_p);
+
+    if (bi) {
+	int cl=cacheline(regs.pc_p);
+	if (bi!=cache_tags[cl+1].bi) {
+	    raise_in_cl_list(bi);
+	    return 1;
+	}
+    }
+    return 0;
 }
 
 static void calc_checksum(blockinfo* bi, uae_u32* c1, uae_u32* c2)
@@ -2446,9 +2460,6 @@ void comp_ppc_verify_pc(uae_u8* pc_addr_exp)
 	//PC is not the same as the cached
 	//Dispose stack frame
 	comp_ppc_epilog(PPCR_REG_USED_NONVOLATILE);
-
-	//Load parameter: address of the instruction
-	comp_ppc_liw(PPCR_PARAM1, (uae_u32) pc_addr_exp);
 
 	//Continue on cache miss function
 	comp_ppc_jump((uae_u32) cache_miss);
