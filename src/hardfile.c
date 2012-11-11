@@ -149,7 +149,7 @@ static void getchs2 (struct hardfiledata *hfd, int *cyl, int *cylsec, int *head,
 	*head = heads;
 }
 
-static void getchs (struct hardfiledata *hfd, int *cyl, int *cylsec, int *head, int *tracksec)
+static void getchsx (struct hardfiledata *hfd, int *cyl, int *cylsec, int *head, int *tracksec)
 {
 	getchs2 (hfd, cyl, cylsec, head, tracksec);
 	hf_log (_T("CHS: %08X-%08X %d %d %d %d %d\n"),
@@ -243,19 +243,31 @@ void getchsgeometry_hdf (struct hardfiledata *hfd, uae_u64 size, int *pcyl, int 
 	getchsgeometry2 (size, pcyl, phead, psectorspertrack, 2);
 }
 
-static void getchshd (struct hardfiledata *hfd, int *pcyl, int *phead, int *psectorspertrack)
+void getchspgeometry (uae_u64 total, int *pcyl, int *phead, int *psectorspertrack, bool idegeometry)
 {
-	uae_u64 total = hfd->virtsize / 512;
+	uae_u64 blocks = total / 512;
 
-	if (total > 16515072) {
+	if (blocks > 16515072) {
 		/* >8G, CHS=16383/16/63 */
 		*pcyl = 16383;
 		*phead = 16;
 		*psectorspertrack = 63;
 		return;
 	}
-	getchsgeometry (hfd->virtsize, pcyl, phead, psectorspertrack);
+	if (idegeometry) {
+		*phead = 16;
+		*psectorspertrack = 63;
+		*pcyl = blocks / ((*psectorspertrack) * (*phead));
+		return;
+	}
+	getchsgeometry (total, pcyl, phead, psectorspertrack);
 }
+
+static void getchshd (struct hardfiledata *hfd, int *pcyl, int *phead, int *psectorspertrack)
+{
+	getchspgeometry (hfd->virtsize, pcyl, phead, psectorspertrack, false);
+}
+
 
 static void pl (uae_u8 *p, int off, uae_u32 v)
 {
@@ -1185,7 +1197,7 @@ int scsi_emulate (struct hardfiledata *hfd, struct hd_hardfiledata *hdhfd, uae_u
 				tracksec = hdhfd->secspertrack;
 				cylsec = 0;
 			} else {
-				getchs (hfd, &cyl, &cylsec, &head, &tracksec);
+				getchsx (hfd, &cyl, &cylsec, &head, &tracksec);
 			}
 			//write_log (_T("MODE SENSE PC=%d CODE=%d DBD=%d\n"), pc, pcode, dbd);
 			p = r;
@@ -1251,7 +1263,7 @@ int scsi_emulate (struct hardfiledata *hfd, struct hd_hardfiledata *hdhfd, uae_u
 				tracksec = hdhfd->secspertrack;
 				cylsec = 0;
 			} else {
-				getchs (hfd, &cyl, &cylsec, &head, &tracksec);
+				getchsx (hfd, &cyl, &cylsec, &head, &tracksec);
 			}
 			if (pmi == 0 && lba != 0)
 				goto errreq;
@@ -1787,7 +1799,7 @@ no_disk:
 	case CMD_GETNUMTRACKS:
 		{
 			int cyl, cylsec, head, tracksec;
-			getchs (hfd, &cyl, &cylsec, &head, &tracksec);
+			getchsx (hfd, &cyl, &cylsec, &head, &tracksec);
 			actual = cyl * head;
 			break;
 		}
@@ -1796,7 +1808,7 @@ no_disk:
 		{
 			int cyl, cylsec, head, tracksec;
 			uae_u64 size;
-			getchs (hfd, &cyl, &cylsec, &head, &tracksec);
+			getchsx (hfd, &cyl, &cylsec, &head, &tracksec);
 			put_long (dataptr + 0, hfd->blocksize);
 			size = hfd->virtsize / hfd->blocksize;
 			if (size > 0x00ffffffff)

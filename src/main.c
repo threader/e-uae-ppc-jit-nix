@@ -560,9 +560,11 @@ void uae_reset (int hardreset, int keyboardreset)
 	currprefs.quitstatefile[0] = changed_prefs.quitstatefile[0] = 0;
 
 	if (quit_program == 0) {
-		quit_program = -2;
+		quit_program = -UAE_RESET;
+		if (keyboardreset)
+			quit_program = -UAE_RESET_KEYBOARD;
 		if (hardreset)
-			quit_program = -3;
+			quit_program = -UAE_RESET_HARD;
 	}
 
 }
@@ -570,13 +572,13 @@ void uae_reset (int hardreset, int keyboardreset)
 void uae_quit (void)
 {
 	deactivate_debugger ();
-	if (quit_program != -1)
-		quit_program = -1;
+	if (quit_program != -UAE_QUIT)
+		quit_program = -UAE_QUIT;
 	target_quit ();
 }
 
 /* 0 = normal, 1 = nogui, -1 = disable nogui */
-void uae_restart (int opengui, TCHAR *cfgfile)
+void uae_restart (int opengui, const TCHAR *cfgfile)
 {
 	uae_quit ();
 	restart_program = opengui > 0 ? 1 : (opengui == 0 ? 2 : 3);
@@ -758,9 +760,9 @@ static void parse_cmdline_and_init_file (int argc, TCHAR **argv)
 	if (! target_cfgfile_load (&currprefs, optionsfile, 0, default_config)) {
 		write_log (_T("failed to load config '%s'\n"), optionsfile);
 #ifdef OPTIONS_IN_HOME
-	/* sam: if not found in $HOME then look in current directory */
-	_tcscpy (optionsfile, restart_config);
-        target_cfgfile_load (&currprefs, optionsfile, 0);
+		/* sam: if not found in $HOME then look in current directory */
+		_tcscpy (optionsfile, restart_config);
+		target_cfgfile_load (&currprefs, optionsfile, 0, default_config);
 #endif
 	}
 	fixup_prefs (&currprefs);
@@ -827,7 +829,7 @@ void reset_all_systems (void)
 extern unsigned int pause_uae;
 void do_start_program (void)
 {
-	if (quit_program == -1)
+	if (quit_program == -UAE_QUIT)
 		return;
 #ifdef JIT
 	if (!canbang && candirect < 0)
@@ -838,7 +840,7 @@ void do_start_program (void)
 	/* Do a reset on startup. Whether this is elegant is debatable. */
 	inputdevice_updateconfig (&currprefs);
 	if (quit_program >= 0)
-		quit_program = 2;
+		quit_program = UAE_RESET;
 
 	{
 		m68k_go (1);
@@ -970,7 +972,7 @@ static int real_main2 (int argc, TCHAR **argv)
 	}
 
 #ifdef NATMEM_OFFSET
-	preinit_shm ();
+	//preinit_shm ();
 #endif
 
 	if (restart_config[0])
