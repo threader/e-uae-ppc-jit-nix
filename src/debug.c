@@ -298,29 +298,37 @@ static int readregx (TCHAR **c, uae_u32 *valp)
 	return 1;
 }
 
-static uae_u32 readbinx (TCHAR **c)
+static bool readbinx (TCHAR **c, uae_u32 *valp)
 {
 	uae_u32 val = 0;
+	bool first = true;
 
 	ignore_ws (c);
 	for (;;) {
 		TCHAR nc = **c;
-		if (nc != '1' && nc != '0')
+		if (nc != '1' && nc != '0') {
+			if (first)
+				return false;
 			break;
+		}
+		first = false;
 		(*c)++;
 		val <<= 1;
 		if (nc == '1')
 			val |= 1;
 	}
-	return val;
+	*valp = val;
+	return true;
 }
 
-static uae_u32 readhexx (TCHAR **c)
+static bool readhexx (TCHAR **c, uae_u32 *valp)
 {
 	uae_u32 val = 0;
 	TCHAR nc;
 
 	ignore_ws (c);
+	if (!isxdigit (peekchar (c)))
+		return false;
 	while (isxdigit (nc = **c)) {
 		(*c)++;
 		val *= 16;
@@ -331,10 +339,11 @@ static uae_u32 readhexx (TCHAR **c)
 			val += nc - 'A' + 10;
 		}
 	}
-	return val;
+	*valp = val;
+	return true;
 }
 
-static uae_u32 readintx (TCHAR **c)
+static bool readintx (TCHAR **c, uae_u32 *valp)
 {
 	uae_u32 val = 0;
 	TCHAR nc;
@@ -343,16 +352,19 @@ static uae_u32 readintx (TCHAR **c)
 	ignore_ws (c);
 	if (**c == '-')
 		negative = 1, (*c)++;
+	if (!isdigit (peekchar (c)))
+		return false;
 	while (isdigit (nc = **c)) {
 		(*c)++;
 		val *= 10;
 		val += nc - '0';
 	}
-	return val * (negative ? -1 : 1);
+	*valp = val * (negative ? -1 : 1);
+	return true;
 }
 
 
-static int checkvaltype (TCHAR **c, uae_u32 *val)
+static int checkvaltype2 (TCHAR **c, uae_u32 *val, TCHAR def)
 {
 	TCHAR nc;
 
@@ -360,37 +372,38 @@ static int checkvaltype (TCHAR **c, uae_u32 *val)
 	nc = _totupper (**c);
 	if (nc == '!') {
 		(*c)++;
-		*val = readintx (c);
-		return 1;
+		return readintx (c, val) ? 1 : 0;
 	}
 	if (nc == '$') {
 		(*c)++;
-		*val = readhexx (c);
-		return 1;
+		return  readhexx (c, val) ? 1 : 0;
 	}
 	if (nc == '0' && _totupper ((*c)[1]) == 'X') {
 		(*c)+= 2;
-		*val = readhexx (c);
-		return 1;
+		return  readhexx (c, val) ? 1 : 0;
 	}
 	if (nc == '%') {
 		(*c)++;
-		*val = readbinx (c);
-		return 1;
+		return readbinx (c, val) ? 1: 0;
 	}
 	if (nc >= 'A' && nc <= 'Z' && nc != 'A' && nc != 'D') {
 		if (readregx (c, val))
 			return 1;
+	}
+	if (def == '!') {
+		return readintx (c, val) ? -1 : 0;
+		return -1;
+	} else if (def == '$') {
+		return readhexx (c, val) ? -1 : 0;
+	} else if (def == '%') {
+		return readbinx (c, val) ? -1 : 0;
 	}
 	return 0;
 }
 
 static int readsize (int val, TCHAR **c)
 {
-	if ((*c)[0] == '.') {
-		(*c)++;
-		TCHAR cc = _totupper ((*c)[0]);
-		(*c)++;
+	TCHAR cc = _totupper (readchar(c));
 		if (cc == 'B')
 			return 1;
 		if (cc == 'W')
@@ -399,46 +412,97 @@ static int readsize (int val, TCHAR **c)
 			return 3;
 		if (cc == 'L')
 			return 4;
+	return 0;
+}
+
+static int checkvaltype (TCHAR **cp, uae_u32 *val, int *size, TCHAR def)
+{
+	TCHAR form[256], *p;
+	bool gotop = false;
+	double out;
+
+	form[0] = 0;
+	*size = 0;
+	p = form;
+	for (;;) {
+		uae_u32 v;
+		if (!checkvaltype2 (cp, &v, def))
+			return 0;
+		*val = v;
+		// stupid but works!
+		_stprintf(p, _T("%u"), v);
+		p += _tcslen (p);
+		if (peekchar (cp) == '.') {
+			readchar (cp);
+			*size = readsize (v, cp);
+		}
+		if (!isoperator (cp))
+			break;
+		gotop = true;
+		*p++= readchar (cp);
+		*p = 0;
 	}
-	if (val > 255 || val < -127)
-		return 2;
-	if (val > 65535 || val < -32767)
-		return 4;
+	if (!gotop) {
+		if (*size == 0) {
+			uae_s32 v = (uae_s32)(*val);
+			if (v > 255 || v < -127) {
+				*size = 2;
+			} else if (v > 65535 || v < -32767) {
+				*size = 4;
+			} else {
+				*size = 1;
+			}
+	}
 	return 1;
+}
+	if (calc (form, &out)) {
+		*val = (uae_u32)out;
+		if (*size == 0) {
+			uae_s32 v = (uae_s32)(*val);
+			if (v > 255 || v < -127) {
+				*size = 2;
+			} else if (v > 65535 || v < -32767) {
+				*size = 4;
+			} else {
+				*size = 1;
+			}
+		}
+		return 1;
+	}
+	return 0;
+}
+
+
+static uae_u32 readnum (TCHAR **c, int *size, TCHAR def)
+{
+	uae_u32 val;
+	if (checkvaltype (c, &val, size, def))
+		return val;
+	return 0;
 }
 
 static uae_u32 readint (TCHAR **c)
 {
-	uae_u32 val;
-	if (checkvaltype (c, &val))
-		return val;
-	return readintx (c);
+	int size;
+	return readnum (c, &size, '!');
 }
 static uae_u32 readhex (TCHAR **c)
 {
-	uae_u32 val;
-	if (checkvaltype (c, &val))
-		return val;
-	return readhexx (c);
-}
-static uae_u32 readint_s (TCHAR **c, int *size)
-{
-	uae_u32 val = readint (c);
-	*size = readsize (val, c);
-	return val;
-}
-static uae_u32 readhex_s (TCHAR **c, int *size)
-{
-	uae_u32 val = readhex (c);
-	*size = readsize (val, c);
-	return val;
+	int size;
+	return readnum (c, &size, '$');
 }
 static uae_u32 readbin (TCHAR **c)
 {
-	uae_u32 val;
-	if (checkvaltype (c, &val))
-		return val;
-	return readbinx (c);
+	int size;
+	return readnum (c, &size, '%');
+}
+static uae_u32 readint_2 (TCHAR **c, int *size)
+{
+	return readnum (c, size, '!');
+}
+static uae_u32 readhex_2 (TCHAR **c, int *size)
+{
+	return readnum (c, size, '$');
 }
 
 static int next_string (TCHAR **c, TCHAR *out, int max, int forceupper)
@@ -492,8 +556,12 @@ int notinrom (void)
 
 static uae_u32 lastaddr (void)
 {
+	if (currprefs.z3fastmem2_size)
+		return z3fastmem2_start + currprefs.z3fastmem2_size;
 	if (currprefs.z3fastmem_size)
 		return z3fastmem_start + currprefs.z3fastmem_size;
+	if (currprefs.z3chipmem_size)
+		return z3chipmem_start + currprefs.z3chipmem_size;
 	if (currprefs.mbresmem_high_size)
 		return a3000hmem_start + currprefs.mbresmem_high_size;
 	if (currprefs.mbresmem_low_size)
@@ -514,9 +582,29 @@ static uaecptr nextaddr2 (uaecptr addr, int *next)
 		*next = -1;
 		return 0xffffffff;
 	}
-	prev = currprefs.z3fastmem_start;
-	size = currprefs.z3fastmem_size;
+	prev = currprefs.z3fastmem_start + currprefs.z3fastmem_size;
+	size = currprefs.z3fastmem2_size;
 
+	if (currprefs.z3fastmem_size) {
+		prevx = prev;
+		sizex = size;
+		size = currprefs.z3fastmem_size;
+		prev = z3fastmem_start;
+		if (addr == prev + size) {
+			*next = prevx + sizex;
+			return prevx;
+		}
+	}
+	if (currprefs.z3chipmem_size) {
+		prevx = prev;
+		sizex = size;
+		size = currprefs.z3chipmem_size;
+		prev = z3chipmem_start;
+		if (addr == prev + size) {
+			*next = prevx + sizex;
+			return prevx;
+		}
+	}
 	if (currprefs.mbresmem_high_size) {
 		sizex = size;
 		prevx = prev;
@@ -571,6 +659,7 @@ static uaecptr nextaddr2 (uaecptr addr, int *next)
 
 static uaecptr nextaddr (uaecptr addr, uaecptr last, uaecptr *end)
 {
+	static uaecptr old;
 	uaecptr paddr = addr;
 	int next;
 	if (last && 0) {
@@ -588,6 +677,11 @@ static uaecptr nextaddr (uaecptr addr, uaecptr last, uaecptr *end)
 	addr = nextaddr2 (addr + 1, &next);
 	if (end)
 		*end = next;
+	if (old != next) {
+		if (addr != 0xffffffff)
+			console_out_f (_T("Scanning.. %08x - %08x (%s)\n"), addr & 0xffffff00, next, get_mem_bank (addr).name);
+		old = next;
+	}
 #if 0
 	if (next && addr != 0xffffffff) {
 		uaecptr xa = addr;
@@ -624,7 +718,7 @@ uaecptr dumpmem2 (uaecptr addr, TCHAR *out, int osize)
 	for (i = 0; i < cols; i++) {
 		uae_u8 b1, b2;
 		b1 = b2 = 0;
-		if (safe_addr(addr, 2)) {
+		if (safe_addr (addr, 1)) {
 			b1 = get_byte (addr + 0);
 			b2 = get_byte (addr + 1);
 			_stprintf (out + 9 + i * 5, _T("%02X%02X "), b1, b2);
@@ -1023,6 +1117,8 @@ static void decode_dma_record (int hpos, int vpos, int toggle, bool logfile)
 				l3[cl2++] = 'p';
 			if (dr->evt & DMA_EVENT_COPPERWAKE)
 				l3[cl2++] = 'W';
+			if (dr->evt & DMA_EVENT_COPPERWANTED)
+				l3[cl2++] = 'c';
 			if (dr->evt & DMA_EVENT_CPUIRQ)
 				l3[cl2++] = 'I';
 			if (dr->evt & DMA_EVENT_INTREQ)
@@ -1381,6 +1477,10 @@ static void deepcheatsearch (TCHAR **c)
 				break;
 			addrcnt += 2;
 		}
+		if  (iscancel (65536)) {
+			console_out_f (_T("Aborted at %08X\n"), addr);
+			break;
+		}
 	}
 
 	console_out_f (_T("%d addresses found\n"), cnt);
@@ -1437,7 +1537,7 @@ static void cheatsearch (TCHAR **c)
 		return;
 	}
 	if (first)
-		val = readint_s (c, &size);
+		val = readint_2 (c, &size);
 	else
 		val = readint (c);
 
@@ -1481,6 +1581,10 @@ static void cheatsearch (TCHAR **c)
 			}
 		}
 		memcnt++;
+		if  (iscancel (65536)) {
+			console_out_f (_T("Aborted at %08X\n"), addr);
+			break;
+		}
 	}
 	if (!first) {
 		while (prevmemcnt < memcnt) {
@@ -1750,6 +1854,8 @@ uae_u8 *save_debug_memwatch (int *len, uae_u8 *dstptr)
 		save_u32 (m->modval);
 		save_u32 (m->val_mask);
 		save_u32 (m->val_size);
+		save_u32 (m->val);
+		save_u32 (m->pc);
 		save_store_size ();
 	}
 	*len = dst - dstbak;
@@ -1775,6 +1881,8 @@ uae_u8 *restore_debug_memwatch (uae_u8 *src)
 		m->modval = restore_u32 ();
 		m->val_mask = restore_u32 ();
 		m->val_size = restore_u32 ();
+		m->val = restore_u32 ();
+		m->pc = restore_u32 ();
 		restore_store_size ();
 	}
 	return src;
@@ -2351,7 +2459,7 @@ static void memwatch (TCHAR **c)
 				} else if (_totupper (**c) == 'C') {
 					mwn->mustchange = 1;
 				} else {
-					mwn->val = readhex_s (c, &mwn->val_size);
+					mwn->val = readhex_2 (c, &mwn->val_size);
 					mwn->val_enabled = 1;
 				}
 			}
@@ -2371,20 +2479,49 @@ static void writeintomem (TCHAR **c)
 
 	ignore_ws(c);
 	addr = readhex (c);
-	ignore_ws(c);
-	val = readhex_s (c, &len);
 
-	if (len == 4) {
-		put_long (addr, val);
-		cc = 'L';
-	} else if (len == 2) {
-		put_word (addr, val);
-		cc = 'W';
+	ignore_ws (c);
+	if (!more_params (c))
+		return;
+	cc = peekchar (c);
+	if (cc == '\'' || cc == '\"') {
+		next_char (c);
+		while (more_params (c)) {
+			TCHAR str[2];
+			char *astr;
+			cc = next_char (c);
+			if (cc == '\'' || cc == '\"')
+				break;
+			str[0] = cc;
+			str[1] = 0;
+			astr = ua (str);
+			put_byte (addr, astr[0]);
+			xfree (astr);
+			addr++;
+		}
 	} else {
-		put_byte (addr, val);
-		cc = 'B';
+		for (;;) {
+			ignore_ws (c);
+			if (!more_params (c))
+				break;
+			val = readhex_2 (c, &len);
+		
+			if (len == 4) {
+				put_long (addr, val);
+				cc = 'L';
+			} else if (len == 2) {
+				put_word (addr, val);
+				cc = 'W';
+			} else if (len == 1) {
+				put_byte (addr, val);
+				cc = 'B';
+			} else {
+				break;
+			}
+			console_out_f (_T("Wrote %X (%u) at %08X.%c\n"), val, val, addr, cc);
+			addr += len;
+		}
 	}
-	console_out_f (_T("Wrote %X (%u) at %08X.%c\n"), val, val, addr, cc);
 }
 
 static uae_u8 *dump_xlate (uae_u32 addr)
@@ -2922,6 +3059,10 @@ static void searchmem (TCHAR **cc)
 				break;
 			}
 		}
+		if  (iscancel (65536)) {
+			console_out_f (_T("Aborted at %08X\n"), addr);
+			break;
+		}
 	}
 	if (!got)
 		console_out (_T("nothing found"));
@@ -3212,6 +3353,10 @@ static void find_ea (TCHAR **inptr)
 					console_out_f (_T("Too many hits. End addr = %08X\n"), addr);
 					break;
 				}
+			}
+			if  (iscancel (65536)) {
+				console_out_f (_T("Aborted at %08X\n"), addr);
+				break;
 			}
 		}
 	}
@@ -3685,7 +3830,7 @@ void debug (void)
 			int bp = 0;
 
 			pc = munge24 (m68k_getpc ());
-			opcode = (currprefs.cpu_compatible || currprefs.cpu_cycle_exact) ? regs.ir : get_word (pc);
+			opcode = currprefs.cpu_model < 68020 && (currprefs.cpu_compatible || currprefs.cpu_cycle_exact) ? regs.ir : get_word (pc);
 
 			for (i = 0; i < BREAKPOINT_TOTAL; i++) {
 				if (!bpnodes[i].enabled)
@@ -3774,6 +3919,7 @@ void debug (void)
 
 	inputdevice_unacquire ();
 	pause_sound ();
+	setmouseactive (0);
 	do_skip = 0;
 	skipaddr_start = 0xffffffff;
 	skipaddr_end = 0xffffffff;

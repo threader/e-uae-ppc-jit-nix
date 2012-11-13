@@ -2242,6 +2242,11 @@ bool disk_creatediskfile (const TCHAR *name, int type, drive_type adftype, const
 		tracks /= 2;
 	}
 
+	if (copyfrom) {
+		pos = zfile_ftell (copyfrom);
+		zfile_fseek (copyfrom, 0, SEEK_SET);
+	}
+
 	f = zfile_fopen (name, _T("wb"), 0);
 	chunk = xmalloc (uae_u8, size);
 	if (f && chunk) {
@@ -2287,11 +2292,15 @@ bool disk_creatediskfile (const TCHAR *name, int type, drive_type adftype, const
 			}
 			for (i = 0; i < tracks; i++) {
 				memset (chunk, 0, size);
-				if (dodos) {
-					if (i == 0)
-						floppy_get_bootblock (chunk, ffs, bootable);
-					else if (i == 80)
-						floppy_get_rootblock (chunk, 80 * 11 * ddhd, disk_name, adftype);
+				if (copyfrom) {
+					zfile_fread (chunk, 11 * ddhd, 512, copyfrom);
+				} else {
+					if (dodos) {
+						if (i == 0)
+							floppy_get_bootblock (chunk, ffs, bootable);
+						else if (i == 80)
+							floppy_get_rootblock (chunk, 80 * 11 * ddhd, disk_name, adftype);
+					}
 				}
 				zfile_fwrite (chunk, l, 1, f);
 			}
@@ -2300,6 +2309,8 @@ bool disk_creatediskfile (const TCHAR *name, int type, drive_type adftype, const
 	}
 	xfree (chunk);
 	zfile_fclose (f);
+	if (copyfrom)
+		zfile_fseek (copyfrom, pos, SEEK_SET);
 	if (f)
 		DISK_history_add (name, -1, HISTORY_FLOPPY, 1);
 	return ok;

@@ -832,6 +832,16 @@ void close_console (void)
 		return;
 }
 
+bool console_isch (void)
+{
+	return false;
+}
+
+TCHAR console_getch (void)
+{
+        return 0;
+}
+
 void debugger_change (int mode)
 {
 	if (mode < 0)

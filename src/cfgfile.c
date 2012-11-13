@@ -2696,18 +2696,17 @@ static int cfgfile_parse_hardware (struct uae_prefs *p, const TCHAR *option, TCH
 	return 1;
 #endif
 
-	if (cfgfile_strval (option, value, _T("chipset_compatible"), &p->cs_compatible, cscompa, 0)
-	|| cfgfile_strval (option, value, _T("rtc"), &p->cs_rtc, rtctype, 0)
-	|| cfgfile_strval (option, value, _T("ciaatod"), &p->cs_ciaatod, ciaatodmode, 0)
-	|| cfgfile_strval (option, value, _T("ide"), &p->cs_ide, idemode, 0)
-	|| cfgfile_strval (option, value, _T("scsi"), &p->scsi, scsimode, 0)
-	|| cfgfile_strval (option, value, _T("collision_level"), &p->collision_level, collmode, 0)
-	|| cfgfile_strval (option, value, _T("parallel_matrix_emulation"), &p->parallel_matrix_emulation, epsonprinter, 0)
-	|| cfgfile_strval (option, value, _T("monitoremu"), &p->monitoremu, specialmonitors, 0)
-	|| cfgfile_strval (option, value, _T("waiting_blits"), &p->waiting_blits, waitblits, 0)
-	|| cfgfile_strval (option, value, _T("floppy_auto_extended_adf"), &p->floppy_auto_ext2, autoext2, 0)
-	|| cfgfile_strboolval (option, value, _T("comp_flushmode"), &p->comp_hardflush, flushmode, 0))
-	return 1;
+	if (cfgfile_strval (option, value, _T("rtc"), &p->cs_rtc, rtctype, 0)
+		|| cfgfile_strval (option, value, _T("ciaatod"), &p->cs_ciaatod, ciaatodmode, 0)
+		|| cfgfile_strval (option, value, _T("ide"), &p->cs_ide, idemode, 0)
+		|| cfgfile_strval (option, value, _T("scsi"), &p->scsi, scsimode, 0)
+		|| cfgfile_strval (option, value, _T("collision_level"), &p->collision_level, collmode, 0)
+		|| cfgfile_strval (option, value, _T("parallel_matrix_emulation"), &p->parallel_matrix_emulation, epsonprinter, 0)
+		|| cfgfile_strval (option, value, _T("monitoremu"), &p->monitoremu, specialmonitors, 0)
+		|| cfgfile_strval (option, value, _T("waiting_blits"), &p->waiting_blits, waitblits, 0)
+		|| cfgfile_strval (option, value, _T("floppy_auto_extended_adf"), &p->floppy_auto_ext2, autoext2, 0)
+		|| cfgfile_strboolval (option, value, _T("comp_flushmode"), &p->comp_hardflush, flushmode, 0))
+		return 1;
 
 	if (cfgfile_path_mp (option, value, _T("kickstart_rom_file"), p->romfile, sizeof p->romfile / sizeof (TCHAR), &p->path_rom)
 		|| cfgfile_path_mp (option, value, _T("kickstart_ext_rom_file"), p->romextfile, sizeof p->romextfile / sizeof (TCHAR), &p->path_rom)

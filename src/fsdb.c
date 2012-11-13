@@ -76,6 +76,8 @@ static FILE *get_fsdb (a_inode *dir, const TCHAR *mode)
 	TCHAR *n;
 	FILE *f;
 
+	if (!dir->nname)
+		return NULL;
 	n = build_nname (dir->nname, FSDB_FILE);
 	f = _tfopen (n, mode);
 	xfree (n);
@@ -84,6 +86,8 @@ static FILE *get_fsdb (a_inode *dir, const TCHAR *mode)
 
 static void kill_fsdb (a_inode *dir)
 {
+	if (!dir->nname)
+		return;
 	TCHAR *n = build_nname (dir->nname, FSDB_FILE);
 	_wunlink (n);
 	xfree (n);
@@ -116,6 +120,8 @@ void fsdb_clean_dir (a_inode *dir)
 	FILE *f;
 	off_t pos1 = 0, pos2;
 
+	if (!dir->nname)
+		return;
 	n = build_nname (dir->nname, FSDB_FILE);
 	f = _tfopen (n, _T("r+b"));
 	if (f == 0) {
@@ -141,7 +147,7 @@ void fsdb_clean_dir (a_inode *dir)
 	xfree (n);
 }
 
-static a_inode *aino_from_buf (a_inode *base, char *buf, long off)
+static a_inode *aino_from_buf (a_inode *base, uae_u8 *buf, long off)
 {
 	uae_u32 mode;
 	a_inode *aino = xcalloc (a_inode, 1);

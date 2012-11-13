@@ -2794,9 +2794,9 @@ void memory_reset (void)
 	}
 #endif
 #endif
-	if (mem_hardreset)
+	if (mem_hardreset) {
 		memory_clear ();
-
+	}
 	write_log (_T("memory init end\n"));
 }
 

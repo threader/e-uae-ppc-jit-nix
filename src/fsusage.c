@@ -93,8 +93,11 @@ int get_fs_usage (const char *path, const char *disk, struct fs_usage *fsp)
 #include <proto/exec.h>
 #include <proto/dos.h>
 
-int get_fs_usage (const char *path, const char *disk, struct fs_usage *fsp)
+int get_fs_usage (const TCHAR *path, const TCHAR *disk, struct fs_usage *fsp)
 {
+//	TCHAR buf2[MAX_DPATH];
+//	ULARGE_INTEGER FreeBytesAvailable, TotalNumberOfBytes, TotalNumberOfFreeBytes;
+
     struct InfoData *info = (struct InfoData *)AllocVec(sizeof *info, MEMF_ANY);
     int result = -1;
 
@@ -134,13 +137,8 @@ int get_fs_usage (const char *path, const char *disk, struct fs_usage *fsp)
     if (device >0) {
 	fs_info info;
 	if (fs_stat_dev (device, &info) == 0) {
-	    fsp->fsu_blocks = adjust_blocks (info.total_blocks,
-					     info.block_size,
-					     512);
-	    fsp->fsu_bfree = fsp->fsu_bavail =
-			      adjust_blocks (info.free_blocks,
-					     info.block_size,
-					     512);
+	    fsp->fsu_blocks = adjust_blocks (info.total_blocks, info.block_size, 512);
+	    fsp->fsu_bfree = fsp->fsu_bavail = adjust_blocks (info.free_blocks, info.block_size, 512);
 	    fsp->fsu_files = info.total_nodes;
 	    fsp->fsu_ffree = info.free_nodes;
 
@@ -199,11 +197,7 @@ int get_fs_usage (const char *path, const char *disk, struct fs_usage *fsp)
    Return the actual number of bytes read, zero for EOF, or negative
    for an error.  */
 
-int
-	safe_read (desc, ptr, len)
-	int desc;
-	TCHAR *ptr;
-	int len;
+int safe_read (int desc, TCHAR *ptr, int len)
 {
 	int n_chars;
 
@@ -230,11 +224,7 @@ int
    Return 0 if successful, -1 if not.  When returning -1, ensure that
    ERRNO is either a system error value, or zero if DISK is NULL
    on a system that requires a non-NULL value.  */
-int
-	get_fs_usage (path, disk, fsp)
-	const TCHAR *path;
-	const TCHAR *disk;
-	struct fs_usage *fsp;
+int get_fs_usage (const TCHAR *path, const TCHAR *disk, struct fs_usage *fsp)
 {
 #ifdef STAT_STATFS3_OSF1
 # define CONVERT_BLOCKS(B) adjust_blocks ((B), fsd.f_fsize, 512)

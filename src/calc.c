@@ -443,8 +443,7 @@ bool calc(const TCHAR *input, double *outval)
 
 bool iscalcformula (const TCHAR *formula)
 {
-        unsigned int i;
-	for (i = 0; i < _tcslen (formula); i++) {
+	for (unsigned int i = 0; i < _tcslen (formula); i++) {
 		TCHAR c = formula[i];
 		if (is_operator (c))
 			return true;
