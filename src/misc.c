@@ -1803,3 +1803,16 @@ uae_u32 getlocaltime (void)
 */
 }
 
+#ifndef HAVE_ISINF
+int isinf (double x)
+{
+        const int nClass = _fpclass (x);
+        int result;
+        if (nClass == _FPCLASS_NINF || nClass == _FPCLASS_PINF)
+                result = 1;
+        else
+                result = 0;
+        return result;
+}
+#endif
+

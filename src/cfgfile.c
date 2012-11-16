@@ -749,6 +749,7 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 	cfgfile_dwrite (f, _T("sampler_buffer"), _T("%d"), p->sampler_buffer);
 	cfgfile_dwrite_bool (f, _T("sampler_stereo"), p->sampler_stereo);
 
+#ifdef JIT
 	cfgfile_write_str (f, _T("comp_trustbyte"), compmode[p->comptrustbyte]);
 	cfgfile_write_str (f, _T("comp_trustword"), compmode[p->comptrustword]);
 	cfgfile_write_str (f, _T("comp_trustlong"), compmode[p->comptrustlong]);
@@ -762,6 +763,7 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 	cfgfile_write_bool (f, _T("fpu_strict"), p->fpu_strict);
 	cfgfile_write_bool (f, _T("comp_midopt"), p->comp_midopt);
 	cfgfile_write_bool (f, _T("comp_lowopt"), p->comp_lowopt);
+#endif
 	cfgfile_write_bool (f, _T("avoid_cmov"), p->avoid_cmov);
 	cfgfile_write (f, _T("cachesize"), _T("%d"), p->cachesize);
 
@@ -2704,8 +2706,7 @@ static int cfgfile_parse_hardware (struct uae_prefs *p, const TCHAR *option, TCH
 		|| cfgfile_strval (option, value, _T("parallel_matrix_emulation"), &p->parallel_matrix_emulation, epsonprinter, 0)
 		|| cfgfile_strval (option, value, _T("monitoremu"), &p->monitoremu, specialmonitors, 0)
 		|| cfgfile_strval (option, value, _T("waiting_blits"), &p->waiting_blits, waitblits, 0)
-		|| cfgfile_strval (option, value, _T("floppy_auto_extended_adf"), &p->floppy_auto_ext2, autoext2, 0)
-		|| cfgfile_strboolval (option, value, _T("comp_flushmode"), &p->comp_hardflush, flushmode, 0))
+		|| cfgfile_strval (option, value, _T("floppy_auto_extended_adf"), &p->floppy_auto_ext2, autoext2, 0))
 		return 1;
 
 	if (cfgfile_path_mp (option, value, _T("kickstart_rom_file"), p->romfile, sizeof p->romfile / sizeof (TCHAR), &p->path_rom)

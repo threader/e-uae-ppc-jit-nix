@@ -16,7 +16,7 @@ int gui_init (void)
 {
 }
 
-void gui_fps (int fps, int idle)
+void gui_fps (int fps, int idle, int color)
 {
     gui_data.fps  = fps;
     gui_data.idle = idle;
