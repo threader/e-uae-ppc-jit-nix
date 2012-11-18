@@ -45,6 +45,7 @@
 
 #define MAX_EV ~0u
 #define DEBUG_AUDIO 0
+#define DEBUG_AUDIO_HACK 0
 #define DEBUG_CHANNEL_MASK 15
 #define TEST_AUDIO 0
 
@@ -58,7 +59,7 @@ STATIC_INLINE bool isaudio (void)
 	return currprefs.produce_sound != 0;
 }
 
-#if DEBUG_AUDIO > 0
+#if DEBUG_AUDIO > 0 || DEBUG_AUDIO_HACK > 0
 static bool debugchannel (int ch)
 {
 	return ((1 << ch) & DEBUG_CHANNEL_MASK) != 0;
@@ -328,9 +329,7 @@ STATIC_INLINE int FINISH_DATA (int data, int bits)
 		data >>=  bits - 16;
 	} else {
 		int shift = 16 - bits;
-		int right = data & ((1 << shift) - 1);
 		data <<= shift;
-		data |= right;
 	}
 	return data;
 }
@@ -1310,7 +1309,7 @@ static void audio_state_channel2 (int nr, bool perfin)
 	if ((cdp->state == 2 || cdp->state == 3) && usehacks1 () && !chan_ena && old_dma) {
 		// DMA switched off, state=2/3 and "too fast CPU": kill DMA instantly
 		// or CPU timed DMA wait routines in common tracker players will lose notes
-#if DEBUG_AUDIO > 0
+#if DEBUG_AUDIO_HACK > 0
 		if (debugchannel (nr))
 			write_log (_T("%d: INSTADMAOFF\n"), nr, M68K_GETPC);
 #endif
@@ -1907,13 +1906,17 @@ void AUDxLCH (int nr, uae_u16 v)
 	if (usehacks1 () && ((cdp->ptx_tofetch && cdp->state == 1) || cdp->ptx_written)) {
 		cdp->ptx = cdp->lc;
 		cdp->ptx_written = true;
+#if DEBUG_AUDIO_HACK > 0
+		if (debugchannel (nr))
+			write_log (_T("AUD%dLCH HACK: %04X %08X (%d) (%d %d %08x)\n"), nr, v, M68K_GETPC, cdp->state, cdp->dsr, cdp->ptx_written, cdp->ptx);
+#endif
 	} else {
 	cdp->lc = (cdp->lc & 0xffff) | ((uae_u32)v << 16);
-	}
 #if DEBUG_AUDIO > 0
 	if (debugchannel (nr))
 		write_log (_T("AUD%dLCH: %04X %08X (%d) (%d %d %08x)\n"), nr, v, M68K_GETPC, cdp->state, cdp->dsr, cdp->ptx_written, cdp->ptx);
 #endif
+	}
 }
 
 void AUDxLCL (int nr, uae_u16 v)
@@ -1924,13 +1927,17 @@ void AUDxLCL (int nr, uae_u16 v)
 	if (usehacks1 () && ((cdp->ptx_tofetch && cdp->state == 1) || cdp->ptx_written)) {
 		cdp->ptx = cdp->lc;
 		cdp->ptx_written = true;
+#if DEBUG_AUDIO_HACK > 0
+		if (debugchannel (nr))
+			write_log (_T("AUD%dLCL HACK: %04X %08X (%d) (%d %d %08x)\n"), nr, v, M68K_GETPC, cdp->state, cdp->dsr, cdp->ptx_written, cdp->ptx);
+#endif
 	} else {
         	cdp->lc = (cdp->lc & ~0xffff) | (v & 0xFFFE);
-	}
 #if DEBUG_AUDIO > 0
 	if (debugchannel (nr))
 		write_log (_T("AUD%dLCL: %04X %08X (%d) (%d %d %08x)\n"), nr, v, M68K_GETPC, cdp->state, cdp->dsr, cdp->ptx_written, cdp->ptx);
 #endif
+	}
 }
 
 void AUDxPER (int nr, uae_u16 v)
@@ -1949,8 +1956,10 @@ void AUDxPER (int nr, uae_u16 v)
 		/* smaller values would cause extremely high cpu usage */
 		per = PERIOD_MIN * CYCLE_UNIT;
 	}
-	if (per < PERIOD_MIN_NONCE * CYCLE_UNIT && !currprefs.cpu_cycle_exact && (cdp->dmaenstore || cdp->state == 0)) {
-		/* DMAL emulation and low period can cause very very high cpu usage on slow performance PCs */
+	if (per < PERIOD_MIN_NONCE * CYCLE_UNIT && !currprefs.cpu_cycle_exact && cdp->dmaenstore) {
+		/* DMAL emulation and low period can cause very very high cpu usage on slow performance PCs
+		 * Only do this hack if audio DMA is active.
+		 */
 		per = PERIOD_MIN_NONCE * CYCLE_UNIT;
 	}
 
