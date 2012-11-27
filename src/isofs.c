@@ -1501,10 +1501,17 @@ static TCHAR *get_joliet_filename(struct iso_directory_record * de, struct inode
 	utf8 = ISOFS_SB(inode->i_sb)->s_utf8;
 	//nls = ISOFS_SB(inode->i_sb)->s_nls_iocharset;
 
-	len = de->name_len[0] / 2;
 	if (utf8) {
-		;
+		/* probably never used */
+		len = de->name_len[0];
+		uae_char *o = xmalloc (uae_char, len + 1);
+		for (int i = 0; i < len; i++)
+			o[i] = de->name[i];
+		o[len] = 0;
+		out = utf8u (o);
+		xfree (o);
 	} else {
+		len = de->name_len[0] / 2;
 		out = xmalloc (TCHAR, len + 1);
 		for (unsigned int i = 0; i < len; i++)
 			out[i] = isonum_722 (de->name + i * 2);
@@ -1513,7 +1520,7 @@ static TCHAR *get_joliet_filename(struct iso_directory_record * de, struct inode
 
 	if ((len > 2) && (out[len-2] == ';') && (out[len-1] == '1')) {
 		len -= 2;
-		out[len + 1] = 0;
+		out[len] = 0;
 	}
 
 	/*
@@ -1521,8 +1528,8 @@ static TCHAR *get_joliet_filename(struct iso_directory_record * de, struct inode
 	 * so neither do we
 	 */
 	while (len >= 2 && (out[len-1] == '.')) {
-		out[len] = 0;
 		len--;
+		out[len] = 0;
 	}
 
 	return out;
