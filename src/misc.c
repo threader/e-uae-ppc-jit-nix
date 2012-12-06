@@ -13,7 +13,7 @@
 
 #include "misc.h"
 #include "options.h"
-#include "memory.h"
+#include "memory_uae.h"
 #include "custom.h"
 #include "newcpu.h"
 #include "events.h"
@@ -1803,6 +1803,7 @@ uae_u32 getlocaltime (void)
 */
 }
 
+/*
 #ifndef HAVE_ISINF
 int isinf (double x)
 {
@@ -1815,4 +1816,4 @@ int isinf (double x)
         return result;
 }
 #endif
-
+*/

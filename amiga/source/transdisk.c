@@ -13,7 +13,7 @@
 
 #include <exec/devices.h>
 #include <exec/io.h>
-#include <exec/memory.h>
+#include <exec/memory_uae.h>
 #include <devices/trackdisk.h>
 
 #include <clib/alib_protos.h>

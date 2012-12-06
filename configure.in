@@ -579,7 +579,7 @@ WANT_FDI=yes
 WANT_ENFORCER=dunno
 WANT_CATWEASEL=no
 WANT_SERIAL=no
-
+WANT_ANDROID=no
 MATHLIB=-lm
 
 dnl
@@ -716,6 +716,10 @@ AC_ARG_WITH(curses,
 AC_ARG_WITH(cocoa-gui,
   AS_HELP_STRING([--with-cocoa-gui], [Use Cocoa for GUI on OS X]),
   [WANT_COCOA_UI=$withval], [])
+
+AC_ARG_WITH(want_android,
+  AS_HELP_STRING([--want-android], [Force Android Build]),
+  [WANT_ANDROID=$withval], [])
 
 AC_ARG_WITH(libscg-prefix,
   AS_HELP_STRING([--with-libscg-prefix], [Absolute path to where libscg is installed (optional)]),
@@ -2047,6 +2051,7 @@ AM_CONDITIONAL(TARGET_BEOS,  test x$OSDEP = xod-beos)
 AM_CONDITIONAL(TARGET_WIN32, test x$OSDEP = xod-win32)
 AM_CONDITIONAL(TARGET_LINUX, test x$OSDEP = xod-linux)
 AM_CONDITIONAL(BUILD_MACOSX_BUNDLE, test x$OSDEP = xod-macosx)
+AM_CONDITIONAL(ANDROID, test x$WANT_ANDROID = xyes)
 AM_CONDITIONAL(IS_QT, test x$WANT_QT = xyes)
 AM_CONDITIONAL(SDL_UI, test x$WANT_SDL_UI = xyes)
 

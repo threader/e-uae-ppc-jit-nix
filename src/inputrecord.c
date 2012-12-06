@@ -26,7 +26,7 @@
 #include "disk.h"
 
 #if INPUTRECORD_DEBUG > 0
-#include "memory.h"
+#include "memory_uae.h"
 #include "newcpu.h"
 #endif
 

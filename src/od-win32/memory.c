@@ -9,7 +9,7 @@
 #include "sysconfig.h"
 #include "sysdeps.h"
 
-#include "memory.h"
+#include "memory_uae.h"
 
 #ifdef JIT
 

@@ -28,7 +28,7 @@
 #include <exec/interrupts.h>
 #include <exec/nodes.h>
 #include <exec/io.h>
-#include <exec/memory.h>
+#include <exec/memory_uae.h>
 #include <intuition/intuitionbase.h>
 #include <intuition/preferences.h>
 #include <devices/input.h>

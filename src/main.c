@@ -19,7 +19,7 @@
 #include "audio.h"
 #include "sounddep/sound.h"
 #include "events.h"
-#include "memory.h"
+#include "memory_uae.h"
 #include "custom.h"
 #include "serial.h"
 #include "newcpu.h"
@@ -794,7 +794,9 @@ void reset_all_systems (void)
 	filesys_prepare_reset ();
 	filesys_reset ();
 #endif
+#ifdef NATMEM_OFFSET
 	init_shm ();
+#endif
 	memory_reset ();
 #if defined (BSDSOCKET)
 	bsdlib_reset ();
@@ -891,7 +893,9 @@ void do_leave_program (void)
 #endif
 	savestate_free ();
 	memory_cleanup ();
+#ifdef NATMEM_OFFSET
 	free_shm ();
+#endif
 	cfgfile_addcfgparam (0);
 	machdep_free ();
 }

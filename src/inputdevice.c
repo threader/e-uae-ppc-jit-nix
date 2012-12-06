@@ -29,7 +29,7 @@
 #include "custom.h"
 #include "xwin.h"
 #include "drawing.h"
-#include "memory.h"
+#include "memory_uae.h"
 #include "events.h"
 #include "newcpu.h"
 #include "uae.h"
@@ -1748,7 +1748,9 @@ static int getvelocity (int num, int subnum, int pct)
 	return v;
 }
 
-static void mouseupdate (int pct, int vsync)
+#define MOUSEXY_MAX 1024
+
+static void mouseupdate (int pct, bool vsync)
 {
 	int v, i;
 	int max = 120;
@@ -1801,10 +1803,26 @@ static void mouseupdate (int pct, int vsync)
 			v = getvelocity (i, 0, pct);
 			mxd += v;
 			mouse_x[i] += v;
+			if (mouse_x[i] < 0) {
+				mouse_x[i] += MOUSEXY_MAX;
+				mouse_frame_x[i] = mouse_x[i] - v;
+			}
+			if (mouse_x[i] >= MOUSEXY_MAX) {
+				mouse_x[i] -= MOUSEXY_MAX;
+				mouse_frame_x[i] = mouse_x[i] - v;
+			}
 
 			v = getvelocity (i, 1, pct);
 			myd += v;
 			mouse_y[i] += v;
+			if (mouse_y[i] < 0) {
+				mouse_y[i] += MOUSEXY_MAX;
+				mouse_frame_y[i] = mouse_y[i] - v;
+			}
+			if (mouse_y[i] >= MOUSEXY_MAX) {
+				mouse_y[i] -= MOUSEXY_MAX;
+				mouse_frame_y[i] = mouse_y[i] - v;
+			}
 
 			v = getvelocity (i, 2, pct);
 			if (v > 0)
@@ -1814,10 +1832,14 @@ static void mouseupdate (int pct, int vsync)
 			if (!mouse_deltanoreset[i][2])
 				mouse_delta[i][2] = 0;
 
-			if (mouse_frame_x[i] - mouse_x[i] > max)
+			if (mouse_frame_x[i] - mouse_x[i] > max) {
 				mouse_x[i] = mouse_frame_x[i] - max;
-			if (mouse_frame_x[i] - mouse_x[i] < -max)
+				mouse_x[i] &= MOUSEXY_MAX - 1;
+			}
+			if (mouse_frame_x[i] - mouse_x[i] < -max) {
 				mouse_x[i] = mouse_frame_x[i] + max;
+				mouse_x[i] &= MOUSEXY_MAX - 1;
+			}
 
 			if (mouse_frame_y[i] - mouse_y[i] > max)
 				mouse_y[i] = mouse_frame_y[i] - max;
@@ -1844,9 +1866,9 @@ static void readinput (void)
 	diff = totalvpos - input_vpos;
 	if (diff > 0) {
 		if (diff < 10) {
-			mouseupdate (0, 0);
+			mouseupdate (0, false);
 		} else {
-			mouseupdate (diff * 1000 / current_maxvpos (), 0);
+			mouseupdate (diff * 1000 / current_maxvpos (), false);
 		}
 	}
 	input_vpos = totalvpos;
@@ -3207,7 +3229,7 @@ void inputdevice_vsync (void)
 		write_log (_T("*\n"));
 
 	input_frame++;
-	mouseupdate (0, 1);
+	mouseupdate (0, true);
 
 	if (!input_record) {
 		inputdevice_read ();
@@ -5143,6 +5165,9 @@ void inputdevice_devicechange (struct uae_prefs *prefs)
 		inputdevice_copyconfig (&changed_prefs, &currprefs);
 	if (acc)
 		inputdevice_acquire (true);
+#ifdef RETROPLATFORM
+	rp_enumdevices ();
+#endif
 	config_changed = 1;
 }
 

@@ -19,7 +19,7 @@
 #include "options.h"
 #include "threaddep/thread.h"
 #include "uae.h"
-#include "memory.h"
+#include "memory_uae.h"
 #include "keyboard.h"
 #include "xwin.h"
 #include "custom.h"

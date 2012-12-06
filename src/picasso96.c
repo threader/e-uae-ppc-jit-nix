@@ -42,7 +42,7 @@
 #include "gfxdep/gfx.h"
 #include "options.h"
 #include "uae.h"
-#include "memory.h"
+#include "memory_uae.h"
 #include "custom.h"
 #include "savestate.h"
 #include "autoconf.h"
@@ -3676,7 +3676,11 @@ static void copyall (uae_u8 *src, uae_u8 *dst, int pwidth, int pheight, int srcb
 static bool flushpixels (void)
 {
 	int i;
+#ifdef NATMEM_OFFSET
 	uae_u8 *src = p96ram_start + natmem_offset;
+#else
+	uae_u8 *src = p96ram_start;
+#endif
 	int off = picasso96_state.XYOffset - gfxmem_start;
 	uae_u8 *src_start;
 	uae_u8 *src_end;

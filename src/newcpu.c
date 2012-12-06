@@ -18,7 +18,7 @@
 #include "options.h"
 #include "events.h"
 #include "uae.h"
-#include "memory.h"
+#include "memory_uae.h"
 #include "custom.h"
 #include "newcpu.h"
 #include "cpummu.h"
@@ -4531,7 +4531,9 @@ void m68k_go (int may_quit)
 		set_x_funcs ();
 		if (startup) {
 			custom_prepare ();
+#ifdef NATMEM_OFFSET
 			protect_roms (true);
+#endif
 		}
 		startup = 0;
 		if (mmu_enabled && !currprefs.cachesize) {
@@ -4548,7 +4550,9 @@ void m68k_go (int may_quit)
 		}
 		run_func ();
 	}
+#ifdef NATMEM_OFFSET
 	protect_roms (false);
+#endif
 	in_m68k_go--;
 }
 

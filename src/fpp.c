@@ -16,7 +16,7 @@
 #include "sysdeps.h"
 
 #include "options.h"
-#include "memory.h"
+#include "memory_uae.h"
 #include "custom.h"
 #include "events.h"
 #include "newcpu.h"
@@ -275,7 +275,7 @@ STATIC_INLINE tointtype toint (fptype src, fptype minval, fptype maxval)
 }
 
 #ifndef HAVE_ISINF
-extern int isinf (double x);
+//extern int isinf (double x);
 #endif
 
 uae_u32 get_fpsr (void)

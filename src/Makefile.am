@@ -1,7 +1,10 @@
 AM_CFLAGS = @UAE_CFLAGS@
 AM_CPPFLAGS = @UAE_CPPFLAGS@
 AM_CPPFLAGS += -I$(top_srcdir)/src/include -I$(top_builddir)/src -I$(top_srcdir)/src -I$(top_srcdir)
-LIBS = -L/usr/lib -lpthread -lstdc++
+LIBS = -L/usr/lib -lstdc++
+if !ANDROID
+LIBS += -lpthread
+endif
 if IS_QT
 QT_INCPATH = $(shell qmake -query QT_INSTALL_HEADERS)
 QT_INSPATH = $(shell qmake -query QT_INSTALL_DATA)
@@ -133,7 +136,7 @@ noinst_HEADERS = \
 	include/hrtimer.h	include/identify.h	\
 	include/inputdevice.h	include/joystick.h	\
 	include/keyboard.h	include/keybuf.h	\
-	include/memory.h	\
+	include/memory_uae.h	\
 	include/native2amiga.h	include/newcpu.h	\
 	include/noflags.h	include/options.h	\
 	include/osemu.h		include/picasso96.h	\

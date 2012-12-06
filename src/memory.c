@@ -13,7 +13,7 @@
 
 #include "options.h"
 #include "uae.h"
-#include "memory.h"
+#include "memory_uae.h"
 #include "rommgr.h"
 #include "ersatz.h"
 #include "zfile.h"
@@ -937,7 +937,9 @@ static void a1000_handle_kickstart (int mode)
 {
 	if (!a1000_bootrom)
 		return;
+#ifdef NATMEM_OFFSET
 	protect_roms (false);
+#endif
 	if (mode == 0) {
 		a1000_kickstart_mode = 0;
 		memcpy (kickmemory, kickmemory + 262144, 262144);
@@ -1531,7 +1533,9 @@ void a3000_fakekick (int map)
 {
 	static uae_u8 *kickstore;
 
+#ifdef NATMEM_OFFSET
 	protect_roms (false);
+#endif
 	if (map) {
 		uae_u8 *fkickmemory = a3000lmemory + allocated_a3000lmem - fkickmem_size;
 		if (fkickmemory[2] == 0x4e && fkickmemory[3] == 0xf9 && fkickmemory[4] == 0x00) {
@@ -1565,7 +1569,9 @@ void a3000_fakekick (int map)
 		xfree (kickstore);
 		kickstore = NULL;
 	}
+#ifdef NATMEM_OFFSET
 	protect_roms (true);
+#endif
 }
 
 static uae_char *kickstring = "exec.library";
@@ -1798,8 +1804,8 @@ static bool load_kickstart_replacement (void)
 	struct zfile *f;
 	
 	f = zfile_fopen_data (_T("aros.gz"), arosrom_len, arosrom);
-/*	if (!f) _f is always 1 /gnostic_
-		return false;*/
+	if (!f)
+		return false;
 	f = zfile_gunzip (f);
 	if (!f)
 		return false;
@@ -2245,24 +2251,26 @@ static void allocate_memory (void)
 	}
 
 	if (allocated_bogomem != currprefs.bogomem_size) {
-		if (bogomemory_allocated)
-			mapped_free (bogomemory);
-		bogomemory = 0;
-		bogomemory_allocated = 0;
+		if (!(allocated_bogomem == 0x200000 && currprefs.bogomem_size == 0x180000)) {
+			if (bogomemory_allocated)
+				mapped_free (bogomemory);
+			bogomemory = 0;
+			bogomemory_allocated = 0;
 
-		allocated_bogomem = currprefs.bogomem_size;
-		if (allocated_bogomem >= 0x180000)
-			allocated_bogomem = 0x200000;
-		bogomem_mask = allocated_bogomem - 1;
+			allocated_bogomem = currprefs.bogomem_size;
+			if (allocated_bogomem >= 0x180000)
+				allocated_bogomem = 0x200000;
+			bogomem_mask = allocated_bogomem - 1;
 
-		if (allocated_bogomem) {
-			bogomemory = mapped_malloc (allocated_bogomem, _T("bogo"));
-			if (bogomemory == 0) {
-				write_log (_T("Out of memory for bogomem.\n"));
-				allocated_bogomem = 0;
+			if (allocated_bogomem) {
+				bogomemory = mapped_malloc (allocated_bogomem, _T("bogo"));
+				if (bogomemory == 0) {
+					write_log (_T("Out of memory for bogomem.\n"));
+					allocated_bogomem = 0;
+				}
 			}
+			need_hardreset = true;
 		}
-		need_hardreset = true;
 	}
 	if (allocated_a3000lmem != currprefs.mbresmem_low_size) {
 		if (a3000lmemory)
@@ -2344,9 +2352,13 @@ static void allocate_memory (void)
 #ifdef SAVESTATE
 	if (savestate_state == STATE_RESTORE) {
 		if (bootrom_filepos) {
+#ifdef NATMEM_OFFSET
 			protect_roms (false);
+#endif
 			restore_ram (bootrom_filepos, rtarea);
+#ifdef NATMEM_OFFSET
 			protect_roms (true);
+#endif
 		}
 		restore_ram (chip_filepos, chipmemory);
 		if (allocated_bogomem > 0)
@@ -2546,7 +2558,9 @@ void memory_reset (void)
 		|| _tcscmp (currprefs.romfile, changed_prefs.romfile) != 0
 		|| _tcscmp (currprefs.romextfile, changed_prefs.romextfile) != 0)
 	{
+#ifdef NATMEM_OFFSET
 		protect_roms (false);
+#endif
 		write_log (_T("ROM loader.. (%s)\n"), currprefs.romfile);
 		kickstart_rom = 1;
 		a1000_handle_kickstart (0);
@@ -2606,7 +2620,9 @@ void memory_reset (void)
 		}
 		patch_kick ();
 		write_log (_T("ROM loader end\n"));
+#ifdef NATMEM_OFFSET
 		protect_roms (true);
+#endif
 	}
 
 	if ((cloanto_rom || extendedkickmem_size) && currprefs.maprom && currprefs.maprom < 0x01000000) {

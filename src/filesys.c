@@ -28,7 +28,7 @@
 #include "threaddep/thread.h"
 #include "options.h"
 #include "uae.h"
-#include "memory.h"
+#include "memory_uae.h"
 #include "custom.h"
 #include "events.h"
 #include "newcpu.h"
@@ -776,11 +776,13 @@ static void initialize_mountinfo (void)
 #ifdef GAYLE
 			gayle_add_pcmcia_sram_unit (uci->rootdir, uci->readonly);
 			allocuci (&currprefs, nr, -1);
+#endif
 		} else if (uci->controller == HD_CONTROLLER_PCMCIA_IDE) {
+#ifdef GAYLE
 			gayle_add_pcmcia_ide_unit (uci->rootdir, uci->readonly);
 			allocuci (&currprefs, nr, -1);
-		}
 #endif
+		}
 	}
 
 

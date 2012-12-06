@@ -6,4 +6,4 @@ noinst_LIBRARIES = libosdep.a
 
 libosdep_a_SOURCES = main.c memory.c parser.c
 
-noinst_HEADERS = memory.h hrtimer.h
+noinst_HEADERS = memory_uae.h hrtimer.h

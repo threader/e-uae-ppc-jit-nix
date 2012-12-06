@@ -14,7 +14,7 @@
 #include "gensound.h"
 #include "sounddep/sound.h"
 
-#include <exec/memory.h>
+#include <exec/memory_uae.h>
 #include <graphics/gfxbase.h>
 
 struct MsgPort    *AHImp    = NULL;

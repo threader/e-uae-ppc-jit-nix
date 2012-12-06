@@ -16,7 +16,7 @@
 /****************************************************************************/
 
 #include <exec/execbase.h>
-#include <exec/memory.h>
+#include <exec/memory_uae.h>
 #include <exec/devices.h>
 #include <exec/io.h>
 

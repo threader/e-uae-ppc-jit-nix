@@ -89,7 +89,7 @@ int get_fs_usage (const char *path, const char *disk, struct fs_usage *fsp)
 #if defined TARGET_AMIGAOS
 
 #include <dos/dos.h>
-#include <exec/memory.h>
+#include <exec/memory_uae.h>
 #include <proto/exec.h>
 #include <proto/dos.h>
 

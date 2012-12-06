@@ -22,7 +22,7 @@
 #include "xwin.h"
 #include "tui.h"
 #include "gui.h"
-#include "memory.h"
+#include "memory_uae.h"
 #include "audio.h"
 
 #define MAX_MENU_HEIGHT 15

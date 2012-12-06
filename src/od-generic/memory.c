@@ -15,7 +15,7 @@
 #ifndef ANDROID
 #include <sys/sysctl.h>
 #endif
-#include "include/memory.h"
+#include "include/memory_uae.h"
 
 #ifdef JIT
 

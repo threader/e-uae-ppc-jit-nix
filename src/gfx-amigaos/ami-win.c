@@ -33,7 +33,7 @@
 /****************************************************************************/
 
 #include <exec/execbase.h>
-#include <exec/memory.h>
+#include <exec/memory_uae.h>
 
 #include <dos/dos.h>
 #include <dos/dosextens.h>

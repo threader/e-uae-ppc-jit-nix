@@ -19,7 +19,7 @@
 #include <process.h>
 
 #include "options.h"
-#include "include/memory.h"
+#include "include/memory_uae.h"
 #include "custom.h"
 #include "events.h"
 #include "newcpu.h"
