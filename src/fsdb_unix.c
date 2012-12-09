@@ -84,6 +84,11 @@ int fsdb_fill_file_attrs (a_inode *base, a_inode *aino)
     aino->amigaos_mode = ((S_IXUSR & statbuf.st_mode ? 0 : A_FIBF_EXECUTE)
 			  | (S_IWUSR & statbuf.st_mode ? 0 : A_FIBF_WRITE)
 			  | (S_IRUSR & statbuf.st_mode ? 0 : A_FIBF_READ));
+#ifdef ANDROID
+    // Always give execute & read permission
+    aino->amigaos_mode &= ~A_FIBF_EXECUTE;
+    aino->amigaos_mode &= ~A_FIBF_READ;
+#endif
     return 1;
 }
 
