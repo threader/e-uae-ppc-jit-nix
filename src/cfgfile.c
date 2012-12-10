@@ -2483,8 +2483,7 @@ empty_fs:
 #ifdef FILESYS
 	add_filesys_config (p, nr, dname, aname, str, ro, cyls, secs, heads, reserved, bs, bp, fs, hdcv, 0, pcyls, pheads, psecs);
 #endif
-	if (str)
-		xfree (str);
+//	xfree (str);
 	return 1;
 
 invalid_fs:
