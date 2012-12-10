@@ -34,7 +34,7 @@ Pandora    : http://apps.openpandora.org/cgi-bin/viewapp.pl?/Emulator/puae.inf
 XBOX360    : http://lantus360.com
 Android    : http://droidpuae.blogspot.com
            : https://github.com/pelya/commandergenius/tree/sdl_android/project/jni/application/puae
-PS3 ?      : http://metaneutrons.blogspot.com/2011/07/porting-puae-to-playstation-3.html
+PS3        : http://metaneutrons.blogspot.com/2011/07/porting-puae-to-playstation-3.html
 Raspbery PI: http://www.valvers.com/raspberry-pi#toc-amiga-emulation-puae
 
 
@@ -47,7 +47,9 @@ Compiling PUAE
 ---------------------------------------------------
 See the docs/compiling.txt
 
-i use xcode 4.3.3, sdl 1.2.15, macosx 10.7.4
+i use 
+imac,        xcode 4.3.3, sdl 1.2.15, macosx 10.7.5
+macbook pro, xcode 4.5.2, sdl 1.2.15, macosx 10.8.2
 (build_macos_cocoa)
 
 

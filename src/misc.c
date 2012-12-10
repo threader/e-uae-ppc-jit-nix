@@ -5,7 +5,7 @@
  * which desparately needs to be tidied up
  *
  * Copyright 2004 Richard Drummond
- * Copyright 2010-2012 Mustafa TUFAN
+ * Copyright 2010-2013 Mustafa TUFAN
  */
 
 #include "sysconfig.h"
