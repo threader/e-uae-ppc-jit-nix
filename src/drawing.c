@@ -222,6 +222,7 @@ static uae_u32 plf_sprite_mask;
 static int sbasecol[2] = { 16, 16 };
 static bool brdsprt, brdblank;
 static int hposblank;
+static bool specialmonitoron;
 
 bool picasso_requested_on;
 bool picasso_on;
@@ -3020,7 +3021,7 @@ bool notice_interlace_seen (bool lace)
 
 void reset_decision_table (void)
 {
-	for (unsigned int i = sizeof linestate / sizeof *linestate; i--; )
+	for (int i = sizeof linestate / sizeof *linestate; i--; )
 		linestate[i] = LINE_UNDECIDED;
 }
 
@@ -3056,6 +3057,7 @@ void reset_drawing (void)
 //	clearbuffer (&gfxvidinfo.tempbuffer);
 
 	center_reset = true;
+	specialmonitoron = false;
 }
 
 void drawing_init (void)

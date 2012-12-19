@@ -1757,7 +1757,7 @@ static uae_u32 getmfmlong (uae_u16 *mbuf, int shift)
 static void check_valid_mfm (uae_u16 *mbuf, int words, int sector)
 {
 	int prevbit = 0;
-	for (unsigned int i = 0; i < words * 8; i++) {
+	for (int i = 0; i < words * 8; i++) {
 		int wordoffset = i / 8;
 		uae_u16 w = mbuf[wordoffset];
 		uae_u16 wp = mbuf[wordoffset - 1];
@@ -2328,7 +2328,7 @@ static void diskfile_readonly (const TCHAR *name, bool readonly)
 	struct stat st;
 	int mode, oldmode;
 
-	if (stat (name, &st))
+	if (!stat (name, &st))
 		return;
 	oldmode = mode = st.st_mode;
 //    mode &= ~FILEFLAG_WRITE;
@@ -2511,7 +2511,7 @@ static void DISK_check_change (void)
 {
 	if (currprefs.floppy_speed != changed_prefs.floppy_speed)
 		currprefs.floppy_speed = changed_prefs.floppy_speed;
-	for (unsigned int i = 0; i < MAX_FLOPPY_DRIVES; i++) {
+	for (int i = 0; i < MAX_FLOPPY_DRIVES; i++) {
 		drive *drv = floppy + i;
 		if (currprefs.floppyslots[i].dfxtype != changed_prefs.floppyslots[i].dfxtype) {
 			currprefs.floppyslots[i].dfxtype = changed_prefs.floppyslots[i].dfxtype;
@@ -2526,7 +2526,7 @@ static void DISK_check_change (void)
 void DISK_vsync (void)
 {
 	DISK_check_change ();
-	for (unsigned int i = 0; i < MAX_FLOPPY_DRIVES; i++) {
+	for (int i = 0; i < MAX_FLOPPY_DRIVES; i++) {
 		drive *drv = floppy + i;
 		if (drv->dskchange_time == 0 && _tcscmp (currprefs.floppyslots[i].df, changed_prefs.floppyslots[i].df))
 			disk_insert (i, changed_prefs.floppyslots[i].df);
@@ -2841,7 +2841,7 @@ void DISK_handler (uae_u32 data)
 
 static void disk_doupdate_write (drive * drv, int floppybits)
 {
-	unsigned int dr;
+	int dr;
 	int drives[4];
 
 	for (dr = 0; dr < MAX_FLOPPY_DRIVES; dr++) {
@@ -2935,7 +2935,7 @@ static void disk_doupdate_predict (int startcycle)
 	int finaleventcycle = maxhpos << 8;
 	int finaleventflag = 0;
 
-	for (unsigned int dr = 0; dr < MAX_FLOPPY_DRIVES; dr++) {
+	for (int dr = 0; dr < MAX_FLOPPY_DRIVES; dr++) {
 		drive *drv = &floppy[dr];
 		if (drv->motoroff)
 			continue;
@@ -3204,7 +3204,7 @@ static int linecounter;
 
 void DISK_hsync (void)
 {
-	unsigned int dr;
+	int dr;
 
 	for (dr = 0; dr < MAX_FLOPPY_DRIVES; dr++) {
 		drive *drv = &floppy[dr];
@@ -3224,7 +3224,7 @@ void DISK_hsync (void)
 
 void DISK_update (int tohpos)
 {
-	unsigned int dr;
+	int dr;
 	int cycles;
 	int startcycle = disk_hpos;
 
@@ -3741,7 +3741,7 @@ void DISK_restore_custom (uae_u32 pdskpt, uae_u16 pdsklength, uae_u16 pdskbytr)
 void restore_disk_finish (void)
 {
 	int cnt = 0;
-	for (unsigned int i = 0; i < MAX_FLOPPY_DRIVES; i++) {
+	for (int i = 0; i < MAX_FLOPPY_DRIVES; i++) {
 		if (currprefs.floppyslots[i].dfxtype >= 0)
 			cnt++;
 	}
@@ -3850,7 +3850,7 @@ uae_u8 *restore_disk2 (int num,uae_u8 *src)
 		drv->indexoffset = restore_u32 ();
 		drv->buffered_cyl = drv->cyl;
 		drv->buffered_side = side;
-		for (unsigned int j = 0; j < (drv->tracklen + 15) / 16; j++) {
+		for (int j = 0; j < (drv->tracklen + 15) / 16; j++) {
 			drv->bigmfmbuf[j] = restore_u16 ();
 			if (m & 2)
 				drv->tracktiming[j] = restore_u16 ();
@@ -3909,7 +3909,7 @@ uae_u8 *save_disk2 (int num, int *len, uae_u8 *dstptr)
 	save_u16 (drv->trackspeed);
 	save_u32 (drv->skipoffset);
 	save_u32 (drv->indexoffset);
-	for (unsigned int j = 0; j < (drv->tracklen + 15) / 16; j++) {
+	for (int j = 0; j < (drv->tracklen + 15) / 16; j++) {
 		save_u16 (drv->bigmfmbuf[j]);
 		if (drv->tracktiming[0])
 			save_u16 (drv->tracktiming[j]);
@@ -3928,7 +3928,7 @@ uae_u8 *restore_floppy (uae_u8 *src)
 	dma_enable = restore_u8 ();
 	disk_hpos = restore_u8 () & 0xff;
 	dskdmaen = restore_u8 ();
-	for (unsigned int i = 0; i < 3; i++) {
+	for (int i = 0; i < 3; i++) {
 		fifo[i] = restore_u16 ();
 		fifo_inuse[i] = restore_u8 ();
 		if (dskdmaen == 0)
@@ -3953,7 +3953,7 @@ uae_u8 *save_floppy (int *len, uae_u8 *dstptr)
 	save_u8 (dma_enable);		/* disk sync found */
 	save_u8 (disk_hpos & 0xff);	/* next bit read position */
 	save_u8 (dskdmaen);			/* dma status */
-	for (unsigned int i = 0; i < 3; i++) {
+	for (int i = 0; i < 3; i++) {
 		save_u16 (fifo[i]);
 		save_u8 (fifo_inuse[i]);
 	}

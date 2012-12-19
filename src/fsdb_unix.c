@@ -13,8 +13,29 @@
 
 #include "fsdb.h"
 
+/* these are deadly (but I think allowed on the Amiga): */
 #define NUM_EVILCHARS 7
 static TCHAR evilchars[NUM_EVILCHARS] = { '\\', '*', '?', '\"', '<', '>', '|' };
+
+#define UAEFSDB_BEGINS _T("__uae___")
+#define UAEFSDB_BEGINSX _T("__uae___*")
+#define UAEFSDB_LEN 604
+#define UAEFSDB2_LEN 1632
+
+/* The on-disk format is as follows:
+* Offset 0, 1 byte, valid
+* Offset 1, 4 bytes, mode
+* Offset 5, 257 bytes, aname
+* Offset 262, 257 bytes, nname
+* Offset 519, 81 bytes, comment
+* Offset 600, 4 bytes, Windows-side mode
+*
+* 1.6.0+ Unicode data
+* 
+* Offset  604, 257 * 2 bytes, aname
+* Offset 1118, 257 * 2 bytes, nname
+*        1632
+*/
 
 #define TRACING_ENABLED 0
 #if TRACING_ENABLED
@@ -54,7 +75,7 @@ int dos_errno (void)
 }
 
 /* Return nonzero for any name we can't create on the native filesystem.  */
-int fsdb_name_invalid (const char *n)
+int fsdb_name_invalid_old (const char *n)
 {
     if (strcmp (n, FSDB_FILE) == 0)
 	return 1;
@@ -65,10 +86,92 @@ int fsdb_name_invalid (const char *n)
     return n[1] == '.' && n[2] == '\0';
 }
 
+static int fsdb_name_invalid_2 (const TCHAR *n, int dir)
+{
+        int i;
+        static char s1[MAX_DPATH];
+        static TCHAR s2[MAX_DPATH];
+        TCHAR a = n[0];
+        TCHAR b = (a == '\0' ? a : n[1]);
+        TCHAR c = (b == '\0' ? b : n[2]);
+        TCHAR d = (c == '\0' ? c : n[3]);
+        int l = _tcslen (n), ll;
+
+        /* the reserved fsdb filename */
+        if (_tcscmp (n, FSDB_FILE) == 0)
+                return -1;
+
+        if (dir) {
+                if (n[0] == '.' && l == 1)
+                        return -1;
+                if (n[0] == '.' && n[1] == '.' && l == 2)
+                        return -1;
+        }
+
+        if (a >= 'a' && a <= 'z')
+                a -= 32;
+        if (b >= 'a' && b <= 'z')
+                b -= 32;
+        if (c >= 'a' && c <= 'z')
+                c -= 32;
+
+//        if (currprefs.win32_filesystem_mangle_reserved_names) {
+//                /* reserved dos devices */
+//                ll = 0;
+//                if (a == 'A' && b == 'U' && c == 'X') ll = 3; /* AUX  */
+//                if (a == 'C' && b == 'O' && c == 'N') ll = 3; /* CON  */
+//                if (a == 'P' && b == 'R' && c == 'N') ll = 3; /* PRN  */
+//                if (a == 'N' && b == 'U' && c == 'L') ll = 3; /* NUL  */
+//                if (a == 'L' && b == 'P' && c == 'T'  && (d >= '0' && d <= '9')) ll = 4; /* LPT# */
+//                if (a == 'C' && b == 'O' && c == 'M'  && (d >= '0' && d <= '9')) ll = 4; /* COM# */
+//                /* AUX.anything, CON.anything etc.. are also illegal names */
+//                if (ll && (l == ll || (l > ll && n[ll] == '.')))
+//                        return 1;
+//
+//               /* spaces and periods at the end are a no-no */
+//                i = l - 1;
+//                if (n[i] == '.' || n[i] == ' ')
+//                        return 1;
+//        }
+
+        /* these characters are *never* allowed */
+        for (i = 0; i < NUM_EVILCHARS; i++) {
+                if (_tcschr (n, evilchars[i]) != 0)
+                        return 1;
+        }
+
+        s1[0] = 0;
+        s2[0] = 0;
+        //FIXME: ua_fs_copy (s1, MAX_DPATH, n, -1);
+        strcpy (s1, n);
+        au_fs_copy (s2, MAX_DPATH, s1);
+        if (_tcscmp (s2, n) != 0)
+                return 1;
+
+        return 0; /* the filename passed all checks, now it should be ok */
+}
+
+int fsdb_name_invalid (const TCHAR *n)
+{
+        int v = fsdb_name_invalid_2 (n, 0);
+        if (v <= 0)
+                return v;
+        write_log (_T("FILESYS: '%s' illegal filename\n"), n);
+        return v;
+}
+
+int fsdb_name_invalid_dir (const TCHAR *n)
+{
+        int v = fsdb_name_invalid_2 (n, 1);
+        if (v <= 0)
+                return v;
+        write_log (_T("FILESYS: '%s' illegal filename\n"), n);
+        return v;
+}
+
 int fsdb_exists (const char *nname)
 {
     struct stat statbuf;
-
     return (stat (nname, &statbuf) != -1);
 }
 
@@ -95,7 +198,7 @@ int fsdb_fill_file_attrs (a_inode *base, a_inode *aino)
 int fsdb_set_file_attrs (a_inode *aino)
 {
     struct stat statbuf;
-    int mask = aino->amigaos_mode;
+    int tmpmask = aino->amigaos_mode;
     int mode;
 
     if (stat (aino->nname, &statbuf) == -1)
@@ -104,17 +207,17 @@ int fsdb_set_file_attrs (a_inode *aino)
     mode = statbuf.st_mode;
     /* Unix dirs behave differently than AmigaOS ones.  */
     if (! aino->dir) {
-	if (mask & A_FIBF_READ)
+	if (tmpmask & A_FIBF_READ)
 	    mode &= ~S_IRUSR;
 	else
 	    mode |= S_IRUSR;
 
-	if (mask & A_FIBF_WRITE)
+	if (tmpmask & A_FIBF_WRITE)
 	    mode &= ~S_IWUSR;
 	else
 	    mode |= S_IWUSR;
 
-	if (mask & A_FIBF_EXECUTE)
+	if (tmpmask & A_FIBF_EXECUTE)
 	    mode &= ~S_IXUSR;
 	else
 	    mode |= S_IXUSR;
@@ -122,7 +225,6 @@ int fsdb_set_file_attrs (a_inode *aino)
 	chmod (aino->nname, mode);
     }
 
-    aino->amigaos_mode = mask;
     aino->dirty = 1;
     return 0;
 }
@@ -172,10 +274,10 @@ int fsdb_mode_representable_p (const a_inode *aino, int amigaos_mode)
 char *fsdb_create_unique_nname (a_inode *base, const char *suggestion)
 {
 	TCHAR *c;
-	TCHAR tmp[256] = "__uae___";
+	TCHAR tmp[256] = UAEFSDB_BEGINS;
 	int i;
 
-	strncat (tmp, suggestion, 240);
+	_tcsncat (tmp, suggestion, 240);
 
         /* replace the evil ones... */
         for (i = 0; i < NUM_EVILCHARS; i++)

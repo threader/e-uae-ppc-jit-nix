@@ -82,7 +82,7 @@ static void trap_HandleExtendedTrap (TrapHandler, int has_retval);
 
 uaecptr find_trap (const TCHAR *name)
 {
-	unsigned int i;
+	int i;
 
 	for (i = 0; i < trap_count; i++) {
 		struct Trap *trap = &traps[i];
@@ -109,7 +109,7 @@ unsigned int define_trap (TrapHandler handler_func, int flags, const TCHAR *name
 		abort ();
 		return -1;
 	} else {
-		unsigned int i;
+		int i;
 		unsigned int trap_num;
 		struct Trap *trap;
 		uaecptr addr = here ();

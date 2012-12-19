@@ -2887,7 +2887,7 @@ struct chipset_refresh *get_chipset_refresh (void)
 	if (!(currprefs.chipset_mask & CSMASK_ECS_AGNUS))
 		isntsc = currprefs.ntscmode ? 1 : 0;
 
-	for (unsigned int i = 0; i < MAX_CHIPSET_REFRESH_TOTAL; i++) {
+	for (int i = 0; i < MAX_CHIPSET_REFRESH_TOTAL; i++) {
 		struct chipset_refresh *cr = &currprefs.cr[i];
 		if ((cr->horiz < 0 || cr->horiz == maxhpos) &&
 			(cr->vert < 0 || cr->vert == maxvpos_nom) &&

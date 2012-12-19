@@ -102,7 +102,7 @@ static void io_log (const TCHAR *msg, uaecptr request)
 
 static struct devstruct *getdevstruct (int unit)
 {
-	unsigned int i;
+	int i;
 	for (i = 0; i < MAX_TOTAL_SCSI_DEVICES; i++) {
 		if (unit >= 0 && devst[i].aunit == unit)
 			return &devst[i];
@@ -197,7 +197,7 @@ static uae_u32 REGPARAM2 dev_open_2 (TrapContext *context, int type)
 	uae_u32 flags = m68k_dreg (regs, 1);
 	struct devstruct *dev = getdevstruct (unit);
 	struct priv_devstruct *pdev = 0;
-	unsigned int i;
+	int i;
 
 	if (log_scsi)
 		write_log (_T("opening %s:%d ioreq=%08X\n"), getdevname (type), unit, ioreq);
@@ -693,7 +693,7 @@ static int dev_do_io (struct devstruct *dev, uaecptr request)
 				io_data += 6;
 				io_actual++;
 			}
-			for (unsigned int i = toc.first_track_offset; i < toc.last_track_offset && io_length > 0; i++) {
+			for (int i = toc.first_track_offset; i < toc.last_track_offset && io_length > 0; i++) {
 				if (io_offset == toc.toc[i].point) {
 					int pos = toc.toc[i].paddress;
 					put_byte (io_data, (toc.toc[i].control << 4) | toc.toc[i].adr);
@@ -816,7 +816,7 @@ static int dev_do_io (struct devstruct *dev, uaecptr request)
 		struct cd_toc_head toc;
 		int ok = 0;
 		if (sys_command_cd_toc (dev->di.unitnum, &toc)) {
-			for (unsigned int i = toc.first_track_offset; i < toc.last_track_offset; i++) {
+			for (int i = toc.first_track_offset; i < toc.last_track_offset; i++) {
 				if (i == io_offset && i + io_length <= toc.last_track_offset) {
 					ok = sys_command_cd_play (dev->di.unitnum, toc.toc[i].address, toc.toc[i + io_length].address, 0);
 					break;

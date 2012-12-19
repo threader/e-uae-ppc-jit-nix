@@ -84,14 +84,10 @@ void tolongbcd (uae_u8 *p, int v)
 
 static struct cd_toc *gettoc (struct cd_toc_head *th, int block)
 {
-	for (int i = th->first_track_offset; i < th->last_track_offset; i++) {
+	for (int i = th->first_track_offset + 1; i <= th->last_track_offset; i++) {
 		struct cd_toc *t = &th->toc[i];
-		if (block < t->paddress) {
-			if (i == th->first_track_offset)
-				return t;
-			else
-				return t - 1;
-		}
+		if (block < t->paddress)
+			return t - 1;
 	}
 	return &th->toc[th->last_track_offset];
 }
@@ -133,7 +129,7 @@ static int driver_installed[6];
 
 static void install_driver (int flags)
 {
-	for (unsigned int i = 0; i < MAX_TOTAL_SCSI_DEVICES; i++) {
+	for (int i = 0; i < MAX_TOTAL_SCSI_DEVICES; i++) {
 		scsiemu[i] = false;
 		device_func[i] = NULL;
 	}
@@ -141,7 +137,7 @@ static void install_driver (int flags)
 		device_func[0] = devicetable[flags];
 		scsiemu[0] = true;
 	} else {
-		for (unsigned int i = 0; i < MAX_TOTAL_SCSI_DEVICES; i++) {
+		for (int i = 0; i < MAX_TOTAL_SCSI_DEVICES; i++) {
 			scsiemu[i] = false;
 			device_func[i] = NULL;
 			switch (cdscsidevicetype[i])
@@ -170,9 +166,9 @@ static void install_driver (int flags)
 		}
 	}
 
-	for (unsigned int j = 1; devicetable[j]; j++) {
+	for (int j = 1; devicetable[j]; j++) {
 		if (!driver_installed[j]) {
-			for (unsigned int i = 0; i < MAX_TOTAL_SCSI_DEVICES; i++) {
+			for (int i = 0; i < MAX_TOTAL_SCSI_DEVICES; i++) {
 				if (device_func[i] == devicetable[j]) {
 					int ok = device_func[i]->openbus (0);
 					driver_installed[j] = 1;
@@ -201,7 +197,7 @@ static void install_driver (int flags){}
 
 void blkdev_default_prefs (struct uae_prefs *p)
 {
-	for (unsigned int i = 0; i < MAX_TOTAL_SCSI_DEVICES; i++) {
+	for (int i = 0; i < MAX_TOTAL_SCSI_DEVICES; i++) {
 		p->cdslots[i].name[0] = 0;
 		p->cdslots[i].inuse = false;
 		p->cdslots[i].type = SCSI_UNIT_DEFAULT;
@@ -211,13 +207,13 @@ void blkdev_default_prefs (struct uae_prefs *p)
 
 void blkdev_fix_prefs (struct uae_prefs *p)
 {
-	for (unsigned int i = 0; i < MAX_TOTAL_SCSI_DEVICES; i++) {
+	for (int i = 0; i < MAX_TOTAL_SCSI_DEVICES; i++) {
 		cdscsidevicetype[i] = p->cdslots[i].type;
 		if (p->cdslots[i].inuse == false && p->cdslots[i].name[0] && p->cdslots[i].type != SCSI_UNIT_DISABLED)
 			p->cdslots[i].inuse = true;
 	}
 
-	for (unsigned int i = 0; i < MAX_TOTAL_SCSI_DEVICES; i++) {
+	for (int i = 0; i < MAX_TOTAL_SCSI_DEVICES; i++) {
 		if (cdscsidevicetype[i] != SCSI_UNIT_DEFAULT)
 			continue;
 		if (p->cdslots[i].inuse || p->cdslots[i].name[0]) {
@@ -460,8 +456,8 @@ void blkdev_cd_change (int unitnum, const TCHAR *name)
 
 void device_func_reset (void)
 {
-	for (unsigned int i = 0; i < MAX_TOTAL_SCSI_DEVICES; i++) {
-		wasopen[i] = false;
+	for (int i = 0; i < MAX_TOTAL_SCSI_DEVICES; i++) {
+		wasopen[i] = 0;
 		waspaused[i] = false;
 		imagechangetime[i] = 0;
 		cdimagefileinuse[i] = false;
@@ -478,7 +474,7 @@ int device_func_init (int flags)
 
 void blkdev_entergui (void)
 {
-	for (unsigned int i = 0; i < MAX_TOTAL_SCSI_DEVICES; i++) {
+	for (int i = 0; i < MAX_TOTAL_SCSI_DEVICES; i++) {
 		waspaused[i] = 0;
 		struct device_info di;
 		if (sys_command_info (i, &di, 1)) {
@@ -489,7 +485,7 @@ void blkdev_entergui (void)
 }
 void blkdev_exitgui (void)
 {
-	for (unsigned int i = 0; i < MAX_TOTAL_SCSI_DEVICES; i++) {
+	for (int i = 0; i < MAX_TOTAL_SCSI_DEVICES; i++) {
 		if (waspaused[i]) {
 			struct device_info di;
 			if (sys_command_info (i, &di, 1)) {
@@ -610,7 +606,7 @@ static void check_changes (int unitnum)
 
 void blkdev_vsync (void)
 {
-	for (unsigned int i = 0; i < MAX_TOTAL_SCSI_DEVICES; i++)
+	for (int i = 0; i < MAX_TOTAL_SCSI_DEVICES; i++)
 		check_changes (i);
 }
 
@@ -1081,7 +1077,7 @@ static int addtocentry (uae_u8 **dstp, int *len, int point, int newpoint, int ms
 {
 	uae_u8 *dst = *dstp;
 
-	for (unsigned int i = 0; i < th->points; i++) {
+	for (int i = 0; i < th->points; i++) {
 		struct cd_toc *t = &th->toc[i];
 		if (t->point == point) {
 			if (*len < 8)
@@ -1196,7 +1192,7 @@ static int scsi_emulate (int unitnum, uae_u8 *cmdbuf, int scsi_cmd_len,
 		s = ua (di.revision);
 		memcpy (r + 32, s, strlen (s));
 		xfree (s);
-		for (unsigned int i = 8; i < 36; i++) {
+		for (int i = 8; i < 36; i++) {
 			if (r[i] == 0)
 				r[i] = 32;
 		}
@@ -1454,7 +1450,7 @@ static int scsi_emulate (int unitnum, uae_u8 *cmdbuf, int scsi_cmd_len,
 				goto errreq;
 			if (format == 1) {
 				p[0] = 0;
-				p[1] = 8;
+				p[1] = 2 + 8;
 				p[2] = 1;
 				p[3] = 1;
 				p[4] = 0;
@@ -1492,10 +1488,10 @@ static int scsi_emulate (int unitnum, uae_u8 *cmdbuf, int scsi_cmd_len,
 				}
 				if (!addtocentry (&p2, &maxlen, 0xa2, 0xaa, msf, p, toc))
 					goto errreq;
-				int tlen = p2 - (p + 4);
+				int tlen = p2 - (p + 2);
 				p[0] = tlen >> 8;
 				p[1] = tlen >> 0;
-				scsi_len = tlen + 4;
+				scsi_len = tlen + 2 + 4;
 			}
 		}
 		break;
@@ -1887,7 +1883,7 @@ uae_u8 *save_cd (int num, int *len)
 	save_u32 (0);
 	save_u32 (0);
 	sys_command_cd_qcode (num, play_qcode[num]);
-	for (unsigned int i = 0; i < SUBQ_SIZE; i++)
+	for (int i = 0; i < SUBQ_SIZE; i++)
 		save_u8 (play_qcode[num][i]);
 	save_u32 (play_end_pos[num]);
 	*len = dst - dstbak;
@@ -1914,7 +1910,7 @@ uae_u8 *restore_cd (int num, uae_u8 *src)
 	}
 	if (flags & 8) {
 		restore_u32 ();
-		for (unsigned int i = 0; i < SUBQ_SIZE; i++)
+		for (int i = 0; i < SUBQ_SIZE; i++)
 			play_qcode[num][i] = restore_u8 ();
 		play_end_pos[num] = restore_u32 ();
 	}

@@ -1054,7 +1054,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 	changed_prefs.jports[0].id = [((NSMenuItem*)sender) tag];
 
 	if (changed_prefs.jports[0].id != currprefs.jports[0].id) {
-		inputdevice_updateconfig (&changed_prefs);
+		inputdevice_updateconfig (&changed_prefs, &currprefs);
 		inputdevice_config_change();
 	}
 }
@@ -1065,7 +1065,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 	changed_prefs.jports[1].id = [((NSMenuItem*)sender) tag];
 
 	if (changed_prefs.jports[1].id != currprefs.jports[1].id) {
-		inputdevice_updateconfig (&changed_prefs);
+		inputdevice_updateconfig (&changed_prefs, &currprefs);
 		inputdevice_config_change();
 	}
 }
@@ -1074,7 +1074,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 {
 	changed_prefs.jports[0].id = currprefs.jports[1].id;
 	changed_prefs.jports[1].id = currprefs.jports[0].id;
-	inputdevice_updateconfig (&changed_prefs);
+	inputdevice_updateconfig (&changed_prefs, &currprefs);
 	inputdevice_config_change();
 }
 
@@ -1837,7 +1837,7 @@ void cocoa_gui_early_setup (void)
 int gui_init (void)
 {
 //        read_rom_list ();
-        inputdevice_updateconfig (&changed_prefs);
+        inputdevice_updateconfig (&changed_prefs, &currprefs);
 
 	return 1;
 }

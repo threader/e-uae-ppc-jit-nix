@@ -129,7 +129,37 @@ extern int fsdb_mode_representable_p (const a_inode *, int);
 extern int fsdb_mode_supported (const a_inode *);
 extern TCHAR *fsdb_create_unique_nname (a_inode *base, const TCHAR *);
 
+struct my_opendir_s;
+struct my_openfile_s;
+
+//extern struct my_opendir_s *my_opendir (const TCHAR*, const TCHAR*);
+//extern struct my_opendir_s *my_opendir (const TCHAR*);
+extern void my_closedir (struct my_opendir_s*);
+extern int my_readdir (struct my_opendir_s*, TCHAR*);
+
+extern int my_rmdir (const TCHAR*);
+extern int my_mkdir (const TCHAR*);
+extern int my_unlink (const TCHAR*);
+extern int my_rename (const TCHAR*, const TCHAR*);
+extern int my_setcurrentdir (const TCHAR *curdir, TCHAR *oldcur);
+bool my_isfilehidden (const TCHAR *path);
+void my_setfilehidden (const TCHAR *path, bool hidden);
+
+extern struct my_openfile_s *my_open (const TCHAR*, int);
+extern void my_close (struct my_openfile_s*);
+extern uae_s64 my_lseek (struct my_openfile_s*, uae_s64, int);
+extern uae_s64 my_fsize (struct my_openfile_s*);
+extern int my_read (struct my_openfile_s*, void*, unsigned int);
+extern int my_write (struct my_openfile_s*, void*, unsigned int);
+extern int my_truncate (const TCHAR *name, uae_u64 len);
 extern int dos_errno (void);
+extern int my_existsfile (const TCHAR *name);
+extern int my_existsdir (const TCHAR *name);
+extern FILE *my_opentext (const TCHAR*);
+
+extern bool my_stat (const TCHAR *name, struct mystat *ms);
+extern bool my_utime (const TCHAR *name, struct mytimeval *tv);
+extern bool my_chmod (const TCHAR *name, uae_u32 mode);
 
 #define MYVOLUMEINFO_READONLY 1
 #define MYVOLUMEINFO_STREAMS 2

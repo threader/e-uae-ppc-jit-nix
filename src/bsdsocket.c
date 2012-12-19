@@ -1002,25 +1002,6 @@ static uae_u32 REGPARAM2 bsdsocklib_getprotobynumber (TrapContext *context)
 	return sb->sb_errno ? 0 : sb->protoent;
 }
 
-/* *------ syslog functions */
-/* Syslog(level, format, ap)(d0/a0/a1) */
-static uae_u32 REGPARAM2 bsdsocklib_vsyslog (TrapContext *context)
-{
-	uae_char format_dst[256];
-	TCHAR *s;
-
-	uae_u32 level = m68k_dreg (regs, 0);
-	uaecptr format = m68k_areg (regs, 0);
-	uaecptr params = m68k_areg (regs, 1);
-
-	strcpyah_safe (format_dst, format, sizeof format_dst);
-
-	s = au (format_dst);
-	write_log (_T("SYSLOG: %s\n"), s);
-	xfree (s);
-	return 0;
-}
-
 /* *------ AmiTCP/IP 1.1 extensions */
 /* Dup2Socket(fd1, fd2)(d0/d1) */
 static uae_u32 REGPARAM2 bsdsocklib_Dup2Socket (TrapContext *context)
@@ -1082,6 +1063,26 @@ _T("Function not implemented"), _T("Inappropriate file type or format"), _T("PEr
 static uae_u32 errnotextptrs[sizeof (errortexts) / sizeof (*errortexts)];
 static const uae_u32 number_sys_error = sizeof (errortexts) / sizeof (*errortexts);
 
+/* *------ syslog functions */
+/* Syslog(level, format, ap)(d0/a0/a1) */
+static uae_u32 REGPARAM2 bsdsocklib_vsyslog (TrapContext *context)
+{
+#if 0
+	uae_char format_dst[256];
+	TCHAR *s;
+
+	uae_u32 level = m68k_dreg (regs, 0);
+	uaecptr format = m68k_areg (regs, 0);
+	uaecptr params = m68k_areg (regs, 1);
+
+	strcpyah_safe (format_dst, format, sizeof format_dst);
+
+	s = au (format_dst);
+	write_log (_T("SYSLOG: %s\n"), s);
+	xfree (s);
+#endif
+	return 0;
+}
 
 static const TCHAR *herrortexts[] =
 {_T("No error"), _T("Unknown host"), _T("Host name lookup failure"), _T("Unknown server error"),
@@ -1724,7 +1725,7 @@ void bsdlib_install (void)
 	dl (datatable);
 	dl (*sockfuncvecs);
 
-	write_log (_T("bsdsocked.library installed\n"));
+	write_log (_T("bsdsocket.library installed\n"));
 }
 
 #else /* ! BSDSOCKET */

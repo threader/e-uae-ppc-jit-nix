@@ -194,7 +194,7 @@ void fixup_prefs_dimensions (struct uae_prefs *prefs)
 	if (prefs->gfx_apmode[1].gfx_vsync)
 		prefs->gfx_apmode[1].gfx_vsyncmode = 1;
 
-	for (unsigned int i = 0; i < 2; i++) {
+	for (int i = 0; i < 2; i++) {
 		struct apmode *ap = &prefs->gfx_apmode[i];
 		ap->gfx_vflip = 0;
 		if (ap->gfx_vsync) {
@@ -295,11 +295,11 @@ void fixup_prefs (struct uae_prefs *p)
 		err = 1;
 	}
 	if ((p->rtgmem_size & (p->rtgmem_size - 1)) != 0
-		|| (p->rtgmem_size != 0 && (p->rtgmem_size < 0x100000 || p->rtgmem_size > max_z3fastmem / 2)))
+		|| (p->rtgmem_size != 0 && (p->rtgmem_size < 0x100000 || p->rtgmem_size > max_z3fastmem)))
 	{
-		write_log (_T("Unsupported graphics card memory size %x (%x)!\n"), p->rtgmem_size, max_z3fastmem / 2);
-		if (p->rtgmem_size > max_z3fastmem / 2)
-			p->rtgmem_size = max_z3fastmem / 2;
+		write_log (_T("Unsupported graphics card memory size %x (%x)!\n"), p->rtgmem_size, max_z3fastmem);
+		if (p->rtgmem_size > max_z3fastmem)
+			p->rtgmem_size = max_z3fastmem;
 		else
 			p->rtgmem_size = 0;
 		err = 1;
@@ -768,7 +768,7 @@ static void parse_cmdline_and_init_file (int argc, TCHAR **argv)
 	fixup_prefs (&currprefs);
 
 	parse_cmdline (argc, argv);
-	fixup_prefs (&currprefs); //fixup after cmdline
+//	fixup_prefs (&currprefs); //fixup after cmdline
 }
 
 void reset_all_systems (void)
@@ -840,7 +840,7 @@ void do_start_program (void)
 		candirect = 1;
 #endif
 	/* Do a reset on startup. Whether this is elegant is debatable. */
-	inputdevice_updateconfig (&currprefs);
+	inputdevice_updateconfig (&changed_prefs, &currprefs);
 	if (quit_program >= 0)
 		quit_program = UAE_RESET;
 
@@ -936,9 +936,14 @@ void virtualdevice_init (void)
 #endif
 #ifdef AUTOCONFIG
 	expansion_init ();
+	emulib_install ();
+	uaeexe_install ();
 #endif
 #ifdef FILESYS
 	filesys_install ();
+#endif
+#if defined (BSDSOCKET)
+	bsdlib_install ();
 #endif
 }
 
@@ -1059,11 +1064,6 @@ static int real_main2 (int argc, TCHAR **argv)
 	memory_reset ();
 
 #ifdef AUTOCONFIG
-#if defined (BSDSOCKET)
-	bsdlib_install ();
-#endif
-	emulib_install ();
-	uaeexe_install ();
 	native2amiga_install ();
 #endif
 

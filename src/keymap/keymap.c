@@ -347,7 +347,7 @@ int getcapslock (void)
 
 void clearallkeys (void)
 {
-	inputdevice_updateconfig (&currprefs);
+	inputdevice_updateconfig (&changed_prefs, &currprefs);
 }
 
 static const int np[] = {

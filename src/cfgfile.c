@@ -278,7 +278,7 @@ TCHAR *cfgfile_subst_path (const TCHAR *path, const TCHAR *subst, const TCHAR *f
 
 static TCHAR *cfgfile_get_multipath2 (struct multipath *mp, const TCHAR *path, const TCHAR *file, bool dir)
 {
-	for (unsigned int i = 0; i < MAX_PATHS; i++) {
+	for (int i = 0; i < MAX_PATHS; i++) {
 		if (mp->path[i][0] && _tcscmp (mp->path[i], _T(".\\")) != 0 && _tcscmp (mp->path[i], _T("./")) != 0 && (file[0] != '/' && file[0] != '\\' && !_tcschr(file, ':'))) {
 			TCHAR *s = NULL;
 			if (path)
@@ -314,7 +314,7 @@ static TCHAR *cfgfile_get_multipath (struct multipath *mp, const TCHAR *path, co
 
 static TCHAR *cfgfile_put_multipath (struct multipath *mp, const TCHAR *s)
 {
-	for (unsigned int i = 0; i < MAX_PATHS; i++) {
+	for (int i = 0; i < MAX_PATHS; i++) {
 		if (mp->path[i][0] && _tcscmp (mp->path[i], _T(".\\")) != 0 && _tcscmp (mp->path[i], _T("./")) != 0) {
 			if (_tcsnicmp (mp->path[i], s, _tcslen (mp->path[i])) == 0) {
 				return my_strdup (s + _tcslen (mp->path[i]));
@@ -987,19 +987,19 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 	cfgfile_dwrite (f, _T("keyboard_leds"), _T("numlock:%s,capslock:%s,scrolllock:%s"),
 		kbleds[p->keyboard_leds[0]], kbleds[p->keyboard_leds[1]], kbleds[p->keyboard_leds[2]]);
 	if (p->chipset_mask & CSMASK_AGA)
-		cfgfile_dwrite (f, _T("chipset"),_T("aga"));
+		cfgfile_write (f, _T("chipset"),_T("aga"));
 	else if ((p->chipset_mask & CSMASK_ECS_AGNUS) && (p->chipset_mask & CSMASK_ECS_DENISE))
-		cfgfile_dwrite (f, _T("chipset"),_T("ecs"));
+		cfgfile_write (f, _T("chipset"),_T("ecs"));
 	else if (p->chipset_mask & CSMASK_ECS_AGNUS)
-		cfgfile_dwrite (f, _T("chipset"),_T("ecs_agnus"));
+		cfgfile_write (f, _T("chipset"),_T("ecs_agnus"));
 	else if (p->chipset_mask & CSMASK_ECS_DENISE)
-		cfgfile_dwrite (f, _T("chipset"),_T("ecs_denise"));
+		cfgfile_write (f, _T("chipset"),_T("ecs_denise"));
 	else
-		cfgfile_dwrite (f, _T("chipset"), _T("ocs"));
+		cfgfile_write (f, _T("chipset"), _T("ocs"));
 	if (p->chipset_refreshrate > 0)
 		cfgfile_write (f, _T("chipset_refreshrate"), _T("%f"), p->chipset_refreshrate);
 		
-	for (unsigned int i = 0; i < MAX_CHIPSET_REFRESH_TOTAL; i++) {
+	for (int i = 0; i < MAX_CHIPSET_REFRESH_TOTAL; i++) {
 		if (p->cr[i].rate <= 0)
 			continue;
 		struct chipset_refresh *cr = &p->cr[i];
@@ -1035,7 +1035,7 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 		if (cr->commands[0]) {
 			_tcscat (s, _T(","));
 			_tcscat (s, cr->commands);
-			for (unsigned int j = 0; j < _tcslen (s); j++) {
+			for (int j = 0; j < _tcslen (s); j++) {
 				if (s[j] == '\n')
 					s[j] = ',';
 			}
@@ -1290,7 +1290,7 @@ int cfgfile_path_mp (const TCHAR *option, const TCHAR *value, const TCHAR *name,
 	_tcsncpy (location, location, maxsz - 1);
 	location[maxsz - 1] = 0;
 	if (mp) {
-		for (unsigned int i = 0; i < MAX_PATHS; i++) {
+		for (int i = 0; i < MAX_PATHS; i++) {
 			if (mp->path[i][0] && _tcscmp (mp->path[i], _T(".\\")) != 0 && _tcscmp (mp->path[i], _T("./")) != 0 && (location[0] != '/' && location[0] != '\\' && !_tcschr(location, ':'))) {
 				TCHAR np[MAX_DPATH];
 				_tcscpy (np, mp->path[i]);
@@ -1318,7 +1318,7 @@ int cfgfile_multipath (const TCHAR *option, const TCHAR *value, const TCHAR *nam
 	TCHAR tmploc[MAX_DPATH];
 	if (!cfgfile_string (option, value, name, tmploc, 256))
 		return 0;
-	for (unsigned int i = 0; i < MAX_PATHS; i++) {
+	for (int i = 0; i < MAX_PATHS; i++) {
 		if (mp->path[i][0] == 0 || (i == 0 && (!_tcscmp (mp->path[i], _T(".\\")) || !_tcscmp (mp->path[i], _T("./"))))) {
 			//TCHAR *s = target_expand_environment (tmploc);
 			_tcsncpy (mp->path[i], tmploc, 256 - 1);
@@ -2172,7 +2172,7 @@ cfgfile_path (option, value, _T("floppy0soundext"), p->floppyslots[0].dfxclickex
 			tmpp++;
 		}
 		if (rate > 0) {
-			for (unsigned int i = 0; i < MAX_CHIPSET_REFRESH; i++) {
+			for (int i = 0; i < MAX_CHIPSET_REFRESH; i++) {
 				if (_tcscmp (option, _T("displaydata_pal")) == 0) {
 	          i = CHIPSET_REFRESH_PAL;
 	          p->cr[i].rate = -1;
@@ -2963,7 +2963,7 @@ static void calcformula (struct uae_prefs *prefs, TCHAR *in)
 	if (!configstore)
 		return;
 	cnt1 = cnt2 = 0;
-	for (unsigned int i = 1; i < _tcslen (in) - 1; i++) {
+	for (int i = 1; i < _tcslen (in) - 1; i++) {
 		TCHAR c = _totupper (in[i]);
 		if (c >= 'A' && c <='Z') {
 			TCHAR *start = &in[i];
@@ -4567,34 +4567,34 @@ void default_prefs (struct uae_prefs *p, int type)
 	blkdev_default_prefs (p);
 #endif
 
-	  p->cr_selected = -1;
-	  struct chipset_refresh *cr;
-	  for (unsigned int i = 0; i < MAX_CHIPSET_REFRESH_TOTAL; i++) {
-	    cr = &p->cr[i];
+	p->cr_selected = -1;
+	struct chipset_refresh *cr;
+	for (int i = 0; i < MAX_CHIPSET_REFRESH_TOTAL; i++) {
+		cr = &p->cr[i];
 		cr->index = i;
-	    cr->rate = -1;
-	  }
-	  cr = &p->cr[CHIPSET_REFRESH_PAL];
+		cr->rate = -1;
+	}
+	cr = &p->cr[CHIPSET_REFRESH_PAL];
 	cr->index = CHIPSET_REFRESH_PAL;
-	  cr->horiz = -1;
-	  cr->vert = -1;
-	  cr->lace = -1;
-	  cr->vsync = - 1;
-	  cr->framelength = -1;
-	  cr->rate = 50.0;
-	  cr->ntsc = 0;
-	  cr->locked = false;
+	cr->horiz = -1;
+	cr->vert = -1;
+	cr->lace = -1;
+	cr->vsync = - 1;
+	cr->framelength = -1;
+	cr->rate = 50.0;
+	cr->ntsc = 0;
+	cr->locked = false;
 	_tcscpy (cr->label, _T("PAL"));
-	  cr = &p->cr[CHIPSET_REFRESH_NTSC];
+	cr = &p->cr[CHIPSET_REFRESH_NTSC];
 	cr->index = CHIPSET_REFRESH_NTSC;
-	  cr->horiz = -1;
-	  cr->vert = -1;
-	  cr->lace = -1;
-	  cr->vsync = - 1;
-	  cr->framelength = -1;
-	  cr->rate = 60.0;
-	  cr->ntsc = 1;
-	  cr->locked = false;
+	cr->horiz = -1;
+	cr->vert = -1;
+	cr->lace = -1;
+	cr->vsync = - 1;
+	cr->framelength = -1;
+	cr->rate = 60.0;
+	cr->ntsc = 1;
+	cr->locked = false;
 	_tcscpy (cr->label, _T("NTSC"));
 
 	//target_default_options (p, type);

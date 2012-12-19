@@ -23,6 +23,7 @@ struct fs_dirhandle
 		struct cd_opendir_s *isod;
 //	};
 };
+
 struct fs_filehandle
 {
 	int fstype;

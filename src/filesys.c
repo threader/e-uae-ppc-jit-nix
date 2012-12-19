@@ -56,15 +56,7 @@
 #define my_rmdir rmdir
 #define my_unlink unlink
 #define my_rename rename
-#define my_truncate truncate
-#define my_opendir opendir
-#define my_closedir closedir
-#define my_open fopen
-#define my_close fclose
-#define my_lseek fseek
-//#define my_strdup strdup
 #define _stat64 stat
-
 //FIXME: ---end
 
 #define TRACING_ENABLED 1
@@ -88,8 +80,6 @@ int log_filesys = 0;
 #endif
 
 #define RTAREA_HEARTBEAT 0xFFFC
-
-static void get_time (time_t t, long* days, long* mins, long* ticks);
 
 static uae_sem_t test_sem;
 
@@ -131,7 +121,7 @@ static void aino_test_init (a_inode *aino)
 
 uaecptr filesys_initcode;
 static uae_u32 fsdevname, fshandlername, filesys_configdev;
-static uae_u32 cdfs_devname, cdfs_handlername, cdfs_control;
+static uae_u32 cdfs_devname, cdfs_handlername;
 static int filesys_in_interrupt;
 static uae_u32 mountertask;
 static int automountunit = -1;
@@ -468,11 +458,9 @@ TCHAR *filesys_createvolname (const TCHAR *volname, const TCHAR *rootdir, const 
 static int set_filesys_volume (const TCHAR *rootdir, int *flags, bool *readonly, bool *emptydrive, struct zvolume **zvp)
 {
 	*emptydrive = 0;
-//FIXME: we dont support.. yet.. -mustafa
-//	if (my_existsfile (rootdir)) {
-	if (0) {
+	if (my_existsfile (rootdir)) {
 		struct zvolume *zv;
-		zv = 1; //zfile_fopen_archive (rootdir);
+		zv = zfile_fopen_archive (rootdir);
 		if (!zv) {
 			write_log (_T("'%s' is not a supported archive file\n"), rootdir);
 			return -1;
@@ -519,7 +507,7 @@ static int set_filesys_unit_1 (int nr,
 		}
 	}
 
-	iscd = USE_CDFS == 2 && nr >= cd_unit_offset && nr < cd_unit_offset + cd_unit_number;
+	iscd = nr >= cd_unit_offset && nr < cd_unit_offset + cd_unit_number;
 
 	for (i = 0; i < MAX_FILESYSTEM_UNITS; i++) {
 		if (nr == i || !mountinfo.ui[i].open || mountinfo.ui[i].rootdir == NULL || is_hardfile (i) == FILESYS_CD)
@@ -721,9 +709,8 @@ static void initialize_mountinfo (void)
 	nr = nr_units ();
 	cd_unit_offset = nr;
 	cd_unit_number = 0;
-#if USE_CDFS == 2
 #ifdef SCSI
-	if (currprefs.scsi /*&& currprefs.win32_automount_cddrives*/ && USE_CDFS) {
+	if (currprefs.scsi /*&& currprefs.win32_automount_cddrives*/) {
 		uae_u32 mask = scsi_get_cd_drive_mask ();
 		for (int i = 0; i < 32; i++) {
 			if (mask & (1 << i)) {
@@ -736,7 +723,6 @@ static void initialize_mountinfo (void)
 			}
 		}
 	}
-#endif
 #endif
 	for (nr = 0; nr < currprefs.mountitems; nr++) {
 		struct uaedev_config_info *uci = &currprefs.mountconfig[nr];
@@ -916,7 +902,6 @@ struct hardfiledata *get_hardfile_data (int nr)
 #define DISK_TYPE_DOS 0x444f5300 /* DOS\0 */
 #define DISK_TYPE_DOS_FFS 0x444f5301 /* DOS\1 */
 #define CDFS_DOSTYPE 0x43440000 /* CDxx */
-//#define CDFS_DOSTYPE (USE_CDFS == 2 ? 0x43444653 : 0x43445644)
 
 typedef struct {
 	uae_u32 uniq;
@@ -1070,6 +1055,9 @@ typedef uaecptr dpacket;
 
 static int flush_cache (Unit *unit, int num);
 
+//FIXME:
+#include "filesys_linux.c"
+
 static TCHAR *char1 (uaecptr addr)
 {
 	static uae_char buf[1024];
@@ -1130,6 +1118,105 @@ static TCHAR *bstr_cut (Unit *unit, uaecptr addr)
 	return &p[off];
 }
 
+#if !defined TARGET_AMIGAOS || !defined WORDS_BIGENDIAN
+/* convert time_t to/from AmigaDOS time */
+static const int secs_per_day = 24 * 60 * 60;
+static const int diff = (8 * 365 + 2) * (24 * 60 * 60);
+
+void
+	get_time (time_t t, long* days, long* mins, long* ticks)
+{
+	/* time_t is secs since 1-1-1970 */
+	/* days since 1-1-1978 */
+	/* mins since midnight */
+	/* ticks past minute @ 50Hz */
+
+# if !defined _WIN32 && !defined BEOS && !defined TARGET_AMIGAOS
+    /*
+     * On Unix-like systems, t is in UTC. The Amiga
+     * requires local time, so we have to take account of
+     * this difference if we can. This ain't easy to do in
+     * a portable, thread-safe way.
+     */
+#  if defined HAVE_LOCALTIME_R && defined HAVE_TIMEGM
+    struct tm tm;
+
+    /* Convert t to local time */
+    localtime_r (&t, &tm);
+
+    /* Calculate local time in seconds since the Unix Epoch */
+    t = timegm (&tm);
+#  endif
+# endif
+
+    /* Adjust for difference between Unix and Amiga epochs */
+	t -= diff;
+	if (t < 0)
+		t = 0;
+    /* Calculate Amiga date-stamp */
+	*days = t / secs_per_day;
+	t -= *days * secs_per_day;
+	*mins = t / 60;
+	t -= *mins * 60;
+	*ticks = t * 50;
+}
+
+/*
+ * Convert Amiga date-stamp to host time in seconds since the start
+ * of the Unix epoch
+ */
+static time_t
+	put_time (long days, long mins, long ticks)
+{
+	time_t t;
+
+	if (days < 0)
+		days = 0;
+	if (days > 9900 * 365)
+		days = 9900 * 365; // in future far enough?
+	if (mins < 0 || mins >= 24 * 60)
+		mins = 0;
+	if (ticks < 0 || ticks >= 60 * 50)
+		ticks = 0;
+
+	t = ticks / 50;
+	t += mins * 60;
+	t += ((uae_u64)days) * secs_per_day;
+	t += diff;
+
+# if !defined _WIN32 && !defined BEOS
+    /*
+     * t is still in local time zone. For Unix-like systems
+     * we need a time in UTC, so we have to take account of
+     * the difference if we can. This ain't easy to do in
+     * a portable, thread-safe way.
+     */
+#  if defined HAVE_GMTIME_R && defined HAVE_LOCALTIME_R
+    {
+	struct tm tm;
+	struct tm now_tm;
+	time_t now_t;
+
+	gmtime_r (&t, &tm);
+
+	/*
+	 * tm now contains the desired time in local time zone, not taking account
+	 * of DST. To fix this, we determine if DST is in effect now and stuff that
+	 * into tm.
+	 */
+	now_t = time (0);
+	localtime_r (&now_t, &now_tm);
+	tm.tm_isdst = now_tm.tm_isdst;
+
+	/* Convert time to UTC in seconds since the Unix epoch */
+	t = mktime (&tm);
+    }
+#  endif
+# endif
+	return t;
+}
+#endif
+
 static Unit *units = 0;
 
 static Unit*
@@ -1143,16 +1230,23 @@ static Unit*
 	return u;
 }
 
-static struct fs_dirhandle *fs_opendir (Unit *u, const TCHAR *nname)
+static struct fs_dirhandle *fs_opendir (Unit *u, a_inode *aino)
 {
 	struct fs_dirhandle *fsd = xmalloc (struct fs_dirhandle, 1);
-        {
-		fsd->od = my_opendir (nname);
-		if (!fsd->od)
-			goto end;
-	}
+	fsd->fstype = (u->volflags & MYVOLUMEINFO_ARCHIVE) ? FS_ARCHIVE : ((u->volflags & MYVOLUMEINFO_CDFS) ? FS_CDFS : FS_DIRECTORY);
+	if (fsd->fstype == FS_ARCHIVE) {
+		fsd->zd = zfile_opendir_archive (aino->nname);
+		if (fsd->zd)
 	return fsd;
-end:
+	} else if (fsd->fstype == FS_DIRECTORY) {
+		fsd->od = my_opendir (aino->nname);
+		if (fsd->od)
+			return fsd;
+	} else if (fsd->fstype == FS_CDFS) {
+	/*	fsd->isod = isofs_opendir (u->ui.cdfs_superblock, aino->uniq_external);
+		if (fsd->isod)
+			return fsd;*/
+	}
 	xfree (fsd);
 	return NULL;
 }
@@ -1164,18 +1258,27 @@ static void fs_closedir (struct fs_dirhandle *fsd)
 		zfile_closedir_archive (fsd->zd);
 	else if (fsd->fstype == FS_DIRECTORY)
 		my_closedir (fsd->od);
-//	else if (fsd->fstype == FS_CDFS)
-//		isofs_closedir (fsd->isod);
+/*	else if (fsd->fstype == FS_CDFS)
+		isofs_closedir (fsd->isod);*/
 	xfree (fsd);
 }
-static struct fs_filehandle *fs_openfile (Unit *unit, const TCHAR *name, char *flags)
+static struct fs_filehandle *fs_openfile (Unit *u, a_inode *aino, int flags)
 {
 	struct fs_filehandle *fsf = xmalloc (struct fs_filehandle, 1);
-	fsf->of = my_open (name, flags);
-	if (!fsf->of)
-		goto end;
+	fsf->fstype = (u->volflags & MYVOLUMEINFO_ARCHIVE) ? FS_ARCHIVE : ((u->volflags & MYVOLUMEINFO_CDFS) ? FS_CDFS : FS_DIRECTORY);
+	if (fsf->fstype == FS_ARCHIVE) {
+		fsf->zf = zfile_open_archive (aino->nname, flags);
+		if (fsf->zf)
 	return fsf;
-end:
+	} else if (fsf->fstype == FS_DIRECTORY) {
+		fsf->of = my_open (aino->nname, flags);
+		if (fsf->of)
+			return fsf;
+	} else if (fsf->fstype == FS_CDFS) {
+	/*	fsf->isof = isofs_openfile (u->ui.cdfs_superblock, aino->uniq_external, flags);
+		if (fsf->isof)
+			return fsf;*/
+	}
 	xfree (fsf);
 	return NULL;
 }
@@ -1187,17 +1290,26 @@ static void fs_closefile (struct fs_filehandle *fsf)
 		zfile_close_archive (fsf->zf);
 	} else if (fsf->fstype == FS_DIRECTORY) {
 		my_close (fsf->of);
-	} /*else if (fsf->fstype == FS_CDFS) {
-		isofs_closefile (fsf->isof);
-	}*/
+	} else if (fsf->fstype == FS_CDFS) {
+//		isofs_closefile (fsf->isof);
+	}
 	xfree (fsf);
 }
 static unsigned int fs_read (struct fs_filehandle *fsf, void *b, unsigned int size)
 {
 	if (fsf->fstype == FS_ARCHIVE)
 		return zfile_read_archive (fsf->zf, b, size);
-	else if (fsf->fstype == FS_DIRECTORY)
-		return fread (b, 1, size, fsf->of);
+	else if (fsf->fstype == FS_DIRECTORY) {
+/*char buffer[65];
+int gotten;
+gotten = read(fsf->of->h, buffer, 10);
+buffer[gotten] = '\0';
+write_log("*** %s ***\n",buffer);*/
+//lseek(fsf->of->h, 0, 0);
+
+		return my_read (fsf->of, b, size);
+	}
+		//return fread (b, 1, size, fsf->of);
 /*	else if (fsf->fstype == FS_CDFS)
 		return isofs_read (fsf->isof, b, size);*/
 	return 0;
@@ -1205,7 +1317,8 @@ static unsigned int fs_read (struct fs_filehandle *fsf, void *b, unsigned int si
 static unsigned int fs_write (struct fs_filehandle *fsf, void *b, unsigned int size)
 {
 	if (fsf->fstype == FS_DIRECTORY)
-		return fwrite (b, 1, size, fsf->of);
+		return my_write (fsf->of, b, size);
+//		return fwrite (b, 1, size, fsf->of);
 	return 0;
 }
 
@@ -1222,23 +1335,16 @@ static uae_u64 fs_lseek64 (struct fs_filehandle *fsf, uae_s64 offset, int whence
 }
 static uae_u32 fs_lseek (struct fs_filehandle *fsf, uae_s32 offset, int whence)
 {
-	return (uae_u32)my_lseek (fsf->of, (uae_s32)offset, whence);
+	return (uae_u32)fs_lseek64 (fsf, offset, whence);
 }
 static uae_u64 fs_fsize64 (struct fs_filehandle *fsf)
 {
 	if (fsf->fstype == FS_ARCHIVE) 
 		return zfile_fsize_archive (fsf->zf);
-	else if (fsf->fstype == FS_DIRECTORY) {
-//		return my_fsize (fsf->of);
-		uae_s64 cur, filesize;
-
-		cur = fs_lseek64 (fsf->of, 0, SEEK_CUR);
-		filesize = fs_lseek64 (fsf->of, 0, SEEK_END);
-		fs_lseek64 (fsf->of, cur, SEEK_SET);
-		return filesize;
-	}
-//	else if (fsf->fstype == FS_CDFS)
-//		return isofs_fsize (fsf->isof);
+	else if (fsf->fstype == FS_DIRECTORY)
+		return my_fsize (fsf->of);
+/*	else if (fsf->fstype == FS_CDFS)
+		return isofs_fsize (fsf->isof);*/
 	return -1;
 }
 static uae_u32 fs_fsize (struct fs_filehandle *fsf)
@@ -1490,8 +1596,8 @@ static uae_u32 filesys_media_change_reply (TrapContext *ctx, int mode)
 			flush_cache (u, -1);
 			xfree (u->ui.volname);
 			ui->volname = u->ui.volname = NULL;
-#ifdef SCSI		
 			if (ui->unit_type == UNIT_CDFS) {
+#ifdef SCSI		
 				uae_u64 uniq;
 				ui->cdfs_superblock = u->ui.cdfs_superblock = isofs_mount (ui->cddevno, &uniq);
 				u->rootnode.uniq_external = uniq;
@@ -1512,10 +1618,8 @@ static uae_u32 filesys_media_change_reply (TrapContext *ctx, int mode)
 #endif
 					}
 				}
-
-			} else 
 #endif
-			{
+			} else {
 				if (set_filesys_volume (u->mount_rootdir, &u->mount_flags, &u->mount_readonly, &emptydrive, &u->zarchive) < 0)
 					return 0;
 				if (emptydrive)
@@ -1707,19 +1811,6 @@ static int fsdb_cando (Unit *unit)
 
 static void prepare_for_open (TCHAR *name)
 {
-#if 0
-	struct _stat64 statbuf;
-	int mode;
-
-	if (-1 == stat (name, &statbuf))
-		return;
-
-	mode = statbuf.st_mode;
-	mode |= S_IRUSR;
-	mode |= S_IWUSR;
-	mode |= S_IXUSR;
-	chmod (name, mode);
-#endif
 }
 
 static void de_recycle_aino (Unit *unit, a_inode *aino)
@@ -1746,7 +1837,7 @@ static void dispose_aino (Unit *unit, a_inode **aip, a_inode *aino)
 
 	if (unit->volflags & MYVOLUMEINFO_ARCHIVE) {
 		;
-	} 
+	}
 #ifdef SCSI
 	else if (unit->volflags & MYVOLUMEINFO_CDFS) {
 		isofs_dispose_inode (unit->ui.cdfs_superblock, aino->uniq_external);
@@ -2020,8 +2111,8 @@ static TCHAR *get_nname (Unit *unit, a_inode *base, TCHAR *rel, TCHAR **modified
 	*modified_rel = 0;
 
 	if (unit->volflags & MYVOLUMEINFO_ARCHIVE) {
-		//if (zfile_exists_archive(base->nname, rel))
-		//	return build_nname(base->nname, rel);
+		if (zfile_exists_archive(base->nname, rel))
+			return build_nname(base->nname, rel);
 		return NULL;
 	}
 #ifdef SCSI	
@@ -2046,7 +2137,7 @@ static TCHAR *get_nname (Unit *unit, a_inode *base, TCHAR *rel, TCHAR **modified
 		return 0;
 	/* A file called "." (or whatever else is invalid on this filesystem)
 	* does not exist, as far as the Amiga side is concerned.  */
-	if (fsdb_name_invalid (rel))
+	if (fsdb_name_invalid_dir (rel))
 		return 0;
 
 	/* See if we have a file that has the same name as the aname we are
@@ -2095,7 +2186,7 @@ oh_dear:
 
 static int fill_file_attrs (Unit *u, a_inode *base, a_inode *c)
 {
-/*	if (u->volflags & MYVOLUMEINFO_ARCHIVE) {
+	if (u->volflags & MYVOLUMEINFO_ARCHIVE) {
 		int isdir, flags;
 		TCHAR *comment;
 		zfile_fill_file_attrs_archive (c->nname, &isdir, &flags, &comment);
@@ -2105,9 +2196,8 @@ static int fill_file_attrs (Unit *u, a_inode *base, a_inode *c)
 			c->amigaos_mode = flags;
 		c->comment = comment;
 		return 1;
-	} else*/ 
+	} else if (u->volflags & MYVOLUMEINFO_CDFS) {
 #ifdef SCSI
-	if (u->volflags & MYVOLUMEINFO_CDFS) {
 		int isdir, flags;
 		TCHAR *comment;
 		isofss_fill_file_attrs (u->ui.cdfs_superblock, base->uniq_external, &isdir, &flags, &comment, c->uniq_external);
@@ -2117,9 +2207,8 @@ static int fill_file_attrs (Unit *u, a_inode *base, a_inode *c)
 			c->amigaos_mode = flags;
 		c->comment = comment;
 		return 1;
-	} else 
 #endif
-	{
+	} else {
 		return fsdb_fill_file_attrs (base, c);
 	}
 	return 0;
@@ -2428,7 +2517,7 @@ static void startup_update_unit (Unit *unit, UnitInfo *uinfo)
 	if (!unit)
 		return;
 	xfree (unit->ui.volname);
-//	memcpy (&unit->ui, uinfo, sizeof UnitInfo);
+	memcpy (&unit->ui, uinfo, sizeof (UnitInfo));
 	unit->ui.devname = uinfo->devname;
 	unit->ui.volname = my_strdup (uinfo->volname); /* might free later for rename */
 }
@@ -2495,6 +2584,43 @@ static Unit *startup_create_unit (UnitInfo *uinfo, int num)
 	return unit;
 }
 
+/*
+static bool mount_cd (UnitInfo *uinfo, int nr, struct mytimeval *ctime, uae_u64 *uniq)
+{
+	uinfo->cddevno = nr - cd_unit_offset;
+	if (!sys_command_open (uinfo->cddevno)) {
+		write_log (_T("Failed attempt to open CD unit %d\n"), uinfo->cddevno);
+		return false;
+	}
+#ifdef RETROPLATFORM
+	rp_cd_device_enable (uinfo->cddevno, true);
+#endif
+	uinfo->cdfs_superblock = isofs_mount(uinfo->cddevno, uniq);
+	uinfo->wasisempty = true;
+	struct isofs_info ii;
+	if (isofs_mediainfo (uinfo->cdfs_superblock, &ii)) {
+		xfree (uinfo->volname);
+		if (ii.media) {
+			uinfo->wasisempty = false;
+			if (!ii.unknown_media) {
+				uinfo->volname = my_strdup (ii.volumename);
+				if (ctime) {
+					ctime->tv_sec = ii.creation;
+					ctime->tv_usec = 0;
+				}
+				set_highcyl (uinfo, ii.totalblocks);
+#ifdef RETROPLATFORM
+				rp_cd_image_change (uinfo->cddevno, ii.devname);
+#endif
+			}
+		}
+		uinfo->unknown_media = ii.unknown_media;
+	}
+	uinfo->cd_open = true;
+	return true;
+}
+*/
+
 #ifdef UAE_FILESYS_THREADS
 static void *filesys_thread (void *unit_v);
 #endif
@@ -2516,23 +2642,28 @@ static void filesys_start_thread (UnitInfo *ui, int nr)
 		uae_start_thread (_T("filesys"), filesys_thread, (void *)ui, &ui->tid);
 	}
 #endif
-	if (isrestore ())
+	if (isrestore ()) {
+		/*if (ui->unit_type == UNIT_CDFS) {
+			mount_cd (ui, nr, NULL, &ui->self->rootnode.uniq_external);
+		}*/
 		startup_update_unit (ui->self, ui);
+	}
 }
+
 
 static uae_u32 REGPARAM2 startup_handler (TrapContext *context)
 {
-	/* Just got the startup packet. It's in A4. DosBase is in A2,
+	/* Just got the startup packet. It's in D3. DosBase is in A2,
 	* our allocated volume structure is in A3, A5 is a pointer to
 	* our port. */
 	uaecptr rootnode = get_long (m68k_areg (regs, 2) + 34);
 	uaecptr dos_info = get_long (rootnode + 24) << 2;
 	uaecptr pkt = m68k_dreg (regs, 3);
+	uaecptr arg1 = get_long (pkt + dp_Arg1);
 	uaecptr arg2 = get_long (pkt + dp_Arg2);
+	uaecptr arg3 = get_long (pkt + dp_Arg3);
 	uaecptr devnode;
 	int nr;
-	TCHAR *devname = bstr1 (get_long (pkt + dp_Arg1) << 2);
-	TCHAR *s;
 	Unit *unit;
 	UnitInfo *uinfo;
 	int late = 0;
@@ -2540,10 +2671,10 @@ static uae_u32 REGPARAM2 startup_handler (TrapContext *context)
 	uae_u64 uniq = 0;
 	uae_u32 cdays, ctime = 0;
 
-	/* find UnitInfo with correct device name */
-	s = _tcschr (devname, ':');
-	if (s)
-		*s = '\0';
+	// 1.3:
+	// dp_Arg1 contains crap (Should be name of device)
+	// dp_Arg2 = works as documented
+	// dp_Arg3 = NULL (!?). (Should be DeviceNode)
 
 	for (nr = 0; nr < MAX_FILESYSTEM_UNITS; nr++) {
 		/* Hardfile volume name? */
@@ -2556,47 +2687,30 @@ static uae_u32 REGPARAM2 startup_handler (TrapContext *context)
 	}
 
 	if (nr == MAX_FILESYSTEM_UNITS) {
-		write_log (_T("Failed attempt to mount device '%s'\n"), devname);
+		write_log (_T("Attempt to mount unknown filesystem device\n"));
 		put_long (pkt + dp_Res1, DOS_FALSE);
 		put_long (pkt + dp_Res2, ERROR_DEVICE_NOT_MOUNTED);
 		return 0;
 	}
 	uinfo = mountinfo.ui + nr;
+	//devnode = arg3 << 2;
+	devnode = uinfo->devicenode;
 	cdays = 3800 + nr;
 
-#ifdef SCSI
 	if (uinfo->unit_type == UNIT_CDFS) {
+#ifdef SCSI
 		ed = ef = 0;
-		uinfo->cddevno = i - cd_unit_offset;
-		if (!sys_command_open (uinfo->cddevno)) {
-			write_log (_T("Failed attempt to open CD unit %d\n"), uinfo->cddevno);
+/*		if (!mount_cd (uinfo, nr, &ctime, &uniq)) {
 			put_long (pkt + dp_Res1, DOS_FALSE);
 			put_long (pkt + dp_Res2, ERROR_DEVICE_NOT_MOUNTED);
 			return 0;
-		}
-		uinfo->cdfs_superblock = isofs_mount(uinfo->cddevno, &uniq);
-		uinfo->wasisempty = true;
-		struct isofs_info ii;
-		if (isofs_mediainfo (uinfo->cdfs_superblock, &ii)) {
-			xfree (uinfo->volname);
-			if (ii.media) {
-				uinfo->wasisempty = false;
-				if (!ii.unknown_media) {
-					uinfo->volname = my_strdup (ii.volumename);
-					ctime = ii.creation;
-					set_highcyl (uinfo, ii.totalblocks);
-				}
-			}
-			uinfo->unknown_media = ii.unknown_media;
-		}
-		uinfo->cd_open = true;
-	} else 
+		}*/
 #endif
-	{
+	} else {
 	ed = my_existsdir (uinfo->rootdir);
 	ef = my_existsfile (uinfo->rootdir);
 		if (!uinfo->wasisempty && !ef && !ed) {
-			write_log (_T("Failed attempt to mount device '%s'\n"), devname);
+			write_log (_T("Failed attempt to mount device '%s' (%s)\n"), uinfo->devname, uinfo->rootdir);
 		put_long (pkt + dp_Res1, DOS_FALSE);
 		put_long (pkt + dp_Res2, ERROR_DEVICE_NOT_MOUNTED);
 		return 0;
@@ -2617,7 +2731,6 @@ static uae_u32 REGPARAM2 startup_handler (TrapContext *context)
 		unit->ui.volname, unit->volflags, uinfo->wasisempty, ed, ef, unit->ui.rootdir);
 
 	/* fill in our process in the device node */
-	devnode = get_long (pkt + dp_Arg3) << 2;
 	put_long (devnode + 8, unit->port);
 	unit->dosbase = m68k_areg (regs, 2);
 
@@ -2675,7 +2788,7 @@ static void
 	if (unit->volflags & MYVOLUMEINFO_ARCHIVE) {
 		ret = zfile_fs_usage_archive (unit->ui.rootdir, 0, &fsu);
 		fs = true;
-		media = filesys_isvolume (unit);
+		media = filesys_isvolume (unit) != 0;
 #ifdef SCSI
 	} else if (unit->volflags & MYVOLUMEINFO_CDFS) {
 		struct isofs_info ii;
@@ -2695,7 +2808,7 @@ static void
 		if (ret)
 			err = dos_errno ();
 		fs = true;
-		media = filesys_isvolume (unit);
+		media = filesys_isvolume (unit) != 0;
 	}
 	if (ret != 0) {
 		PUT_PCK_RES1 (packet, DOS_FALSE);
@@ -2798,10 +2911,6 @@ static Key *lookup_key (Unit *unit, uae_u32 uniq)
 			return k;
 	}
 	write_log (_T("Error: couldn't find key %u / %u!\n"), uniq, total);
-
-        /* There isn't much hope we will recover. Unix would kill the process,
-         * AmigaOS gets killed by it. */
-        write_log (_T("Better reset that Amiga - the system is messed up.\n"));
 	return 0;
 }
 
@@ -3154,105 +3263,6 @@ static void
 	}
 	action_dup_lock_2 (unit, packet, k->aino->uniq);
 }
-
-#if !defined TARGET_AMIGAOS || !defined WORDS_BIGENDIAN
-/* convert time_t to/from AmigaDOS time */
-static const int secs_per_day = 24 * 60 * 60;
-static const int diff = (8 * 365 + 2) * (24 * 60 * 60);
-
-void
-	get_time (time_t t, long* days, long* mins, long* ticks)
-{
-	/* time_t is secs since 1-1-1970 */
-	/* days since 1-1-1978 */
-	/* mins since midnight */
-	/* ticks past minute @ 50Hz */
-
-# if !defined _WIN32 && !defined BEOS && !defined TARGET_AMIGAOS
-    /*
-     * On Unix-like systems, t is in UTC. The Amiga
-     * requires local time, so we have to take account of
-     * this difference if we can. This ain't easy to do in
-     * a portable, thread-safe way.
-     */
-#  if defined HAVE_LOCALTIME_R && defined HAVE_TIMEGM
-    struct tm tm;
-
-    /* Convert t to local time */
-    localtime_r (&t, &tm);
-
-    /* Calculate local time in seconds since the Unix Epoch */
-    t = timegm (&tm);
-#  endif
-# endif
-
-    /* Adjust for difference between Unix and Amiga epochs */
-	t -= diff;
-	if (t < 0)
-		t = 0;
-    /* Calculate Amiga date-stamp */
-	*days = t / secs_per_day;
-	t -= *days * secs_per_day;
-	*mins = t / 60;
-	t -= *mins * 60;
-	*ticks = t * 50;
-}
-
-/*
- * Convert Amiga date-stamp to host time in seconds since the start
- * of the Unix epoch
- */
-static time_t
-	put_time (long days, long mins, long ticks)
-{
-	time_t t;
-
-	if (days < 0)
-		days = 0;
-	if (days > 9900 * 365)
-		days = 9900 * 365; // in future far enough?
-	if (mins < 0 || mins >= 24 * 60)
-		mins = 0;
-	if (ticks < 0 || ticks >= 60 * 50)
-		ticks = 0;
-
-	t = ticks / 50;
-	t += mins * 60;
-	t += ((uae_u64)days) * secs_per_day;
-	t += diff;
-
-# if !defined _WIN32 && !defined BEOS
-    /*
-     * t is still in local time zone. For Unix-like systems
-     * we need a time in UTC, so we have to take account of
-     * the difference if we can. This ain't easy to do in
-     * a portable, thread-safe way.
-     */
-#  if defined HAVE_GMTIME_R && defined HAVE_LOCALTIME_R
-    {
-	struct tm tm;
-	struct tm now_tm;
-	time_t now_t;
-
-	gmtime_r (&t, &tm);
-
-	/*
-	 * tm now contains the desired time in local time zone, not taking account
-	 * of DST. To fix this, we determine if DST is in effect now and stuff that
-	 * into tm.
-	 */
-	now_t = time (0);
-	localtime_r (&now_t, &now_tm);
-	tm.tm_isdst = now_tm.tm_isdst;
-
-	/* Convert time to UTC in seconds since the Unix epoch */
-	t = mktime (&tm);
-    }
-#  endif
-# endif
-	return t;
-}
-#endif
 
 static void free_exkey (Unit *unit, ExamineKey *ek)
 {
@@ -3691,11 +3701,11 @@ static int exalldo (uaecptr exalldata, uae_u32 exalldatasize, uae_u32 type, uaec
 	int ret = 0;
 
 	memset (&statbuf, 0, sizeof statbuf);
-/*	if (unit->volflags & MYVOLUMEINFO_ARCHIVE)
+	if (unit->volflags & MYVOLUMEINFO_ARCHIVE)
 		zfile_stat_archive (aino->nname, &statbuf);
 	else if (unit->volflags & MYVOLUMEINFO_CDFS)
-		isofs_stat (unit->ui.cdfs_superblock, aino->uniq_external, &statbuf);
-	else*/
+	;//	isofs_stat (unit->ui.cdfs_superblock, aino->uniq_external, &statbuf);
+	else
 		stat (aino->nname, &statbuf);
 
 	if (aino->parent == 0) {
@@ -3790,7 +3800,7 @@ static int exalldo (uaecptr exalldata, uae_u32 exalldatasize, uae_u32 type, uaec
 	put_long (control + 0, get_long (control + 0) + 1);
 	ret = 1;
 end:
-	//xaind: xfree (x);
+	//fixme: xfree (x);
 	xfree (comment);
 	return ret;
 }
@@ -3812,18 +3822,19 @@ static int action_examine_all_do (Unit *unit, uaecptr lock, ExAllKey *eak, uaecp
 		d = eak->dirhandle;
 		if (!eak->fn) {
 			do {
-/*				if (d->fstype == FS_ARCHIVE)
+				if (d->fstype == FS_ARCHIVE)
+					ok = zfile_readdir_archive (d->zd, fn);
 				else if (d->fstype == FS_DIRECTORY)
-					ok = my_readdir (d->od, fn);
-				else if (d->fstype == FS_CDFS)
-					ok = isofs_readdir (d->isod, fn, &uniq);
-				else*/
 					ok = readdir (d->od);
+				else if (d->fstype == FS_CDFS)
+				;//	ok = isofs_readdir (d->isod, fn, &uniq);
+				else
+					ok = 0;
 			} while (ok && d->fstype  == FS_DIRECTORY && fsdb_name_invalid (ok->d_name));
 			if (!ok)
 				return 0;
 		} else {
-			_tcscpy (ok->d_name, eak->fn);
+			//_tcscpy (ok->d_name, eak->fn);
 			xfree (eak->fn);
 			eak->fn = NULL;
 		}
@@ -3941,7 +3952,7 @@ static int action_examine_all (Unit *unit, dpacket packet)
 #if EXALL_DEBUG > 0
 		write_log("exall: ID=%d '%s'\n", eak->id, base->nname);
 #endif
-		d = fs_opendir (unit, base->nname);
+		d = fs_opendir (unit, base);
 		if (!d)
 			goto fail;
 		eak->dirhandle = d;
@@ -4067,14 +4078,14 @@ static void populate_directory (Unit *unit, a_inode *base)
 	struct fs_dirhandle *d;
 	a_inode *aino;
 
-	d = fs_opendir (unit, base->nname);
+	d = fs_opendir (unit, base);
 	if (!d)
 		return;
 	for (aino = base->child; aino; aino = aino->sibling) {
 		base->locked_children++;
 		unit->total_locked_ainos++;
 	}
-	TRACE2((_T("Populating directory, child %p, locked_children %d\n"),
+	TRACE3((_T("Populating directory, child %p, locked_children %d\n"),
 		base->child, base->locked_children));
 	for (;;) {
 		uae_u64 uniq = 0;
@@ -4085,15 +4096,15 @@ static void populate_directory (Unit *unit, a_inode *base)
 		/* Find next file that belongs to the Amiga fs (skipping things
 		like "..", "." etc.  */
 		do {
-/*			if (d->fstype == FS_ARCHIVE)
+			if (d->fstype == FS_ARCHIVE)
 				ok = zfile_readdir_archive (d->zd, fn);
 			else if (d->fstype == FS_DIRECTORY)
-				ok = my_readdir (d->od, fn);
-			else if (d->fstype == FS_CDFS)
-				ok = isofs_readdir (d->isod, fn, &uniq);
-			else*/
 				ok = readdir (d->od);
-		} while (ok /*&& d->fstype == FS_DIRECTORY*/ && fsdb_name_invalid (ok->d_name));
+			else if (d->fstype == FS_CDFS)
+			;//	ok = isofs_readdir (d->isod, fn, &uniq);
+			else
+				ok = 0;
+		} while (ok && d->fstype == FS_DIRECTORY && fsdb_name_invalid (ok->d_name));
 		if (!ok)
 			break;
 		/* This calls init_child_aino, which will notice that the parent is
@@ -4191,7 +4202,7 @@ static void do_find (Unit *unit, dpacket packet, int mode, int create, int fallb
 	Key *k;
 	struct fs_filehandle *fd;
 	int err;
-	char *openmode;
+	mode_t openmode;
 	int aino_created = 0;
 	int isvirtual = unit->volflags & (MYVOLUMEINFO_ARCHIVE | MYVOLUMEINFO_CDFS);
 
@@ -4267,12 +4278,13 @@ static void do_find (Unit *unit, dpacket packet, int mode, int create, int fallb
 
 	prepare_for_open (aino->nname);
 
-	openmode = ((mode & A_FIBF_READ) == 0 ? "wb" 
-		: (mode & A_FIBF_WRITE) == 0 ? "rb"
-		: "r+b");
-	if (create) openmode = "w+b";
+	openmode = (((mode & A_FIBF_READ) == 0 ? O_WRONLY
+		: (mode & A_FIBF_WRITE) == 0 ? O_RDONLY
+		: O_RDWR)
+		| (create ? O_CREAT : 0)
+		| (create == 2 ? O_TRUNC : 0));
 
-	fd = fs_openfile (unit, aino->nname, openmode);
+	fd = fs_openfile (unit, aino, openmode | O_BINARY);
 	if (fd == NULL) {
 		if (aino_created)
 			delete_aino (unit, aino);
@@ -4317,7 +4329,7 @@ static void
 	a_inode *aino;
 	Key *k;
 	struct fs_filehandle *fd;
-	char *openmode;
+	mode_t openmode;
 	int mode;
 
 	TRACE((_T("ACTION_FH_FROM_LOCK(0x%lx,0x%lx)\n"), fh, lock));
@@ -4337,15 +4349,15 @@ static void
 	prepare_for_open (aino->nname);
 
 	TRACE ((_T("  mode is %d\n"), mode));
-	openmode = (((mode & A_FIBF_READ) ? "wb"
-		: (mode & A_FIBF_WRITE) ? "rb"
-		: "r+b"));
+	openmode = (((mode & A_FIBF_READ) ? O_WRONLY
+		: (mode & A_FIBF_WRITE) ? O_RDONLY
+		: O_RDWR));
 
 	/* the files on CD really can have the write-bit set.  */
 	if (unit->ui.readonly || unit->ui.locked)
-		openmode = "rb";
+		openmode = O_RDONLY;
 
-	fd = fs_openfile (unit, aino->nname, openmode);
+	fd = fs_openfile (unit, aino, openmode | O_BINARY);
 
 	if (fd == NULL) {
 		PUT_PCK_RES1 (packet, DOS_FALSE);
@@ -4405,7 +4417,7 @@ static void updatedirtime (a_inode *a1, int now)
 	if (!a1->parent)
 		return;
 	if (!now) {
-		if (stat (a1->nname, &statbuf) == -1)
+		if (!stat (a1->nname, &statbuf))
 			return;
 		get_time (statbuf.st_mtime, &days, &mins, &ticks);
 		ut.actime = ut.modtime = put_time (days, mins, ticks);
@@ -4505,7 +4517,7 @@ static void
 		xfree (buf);
 			flush_dcache (addr, size);
 			size = 0;
-	}
+		}
 	}
 	if (size) {
 		/* normal fast read */
@@ -5040,16 +5052,17 @@ static void relock_re (Unit *unit, a_inode *a1, a_inode *a2, int failed)
 	for (k1 = unit->keys; k1; k1 = knext) {
 		knext = k1->next;
 		if (k1->aino == a1 && k1->fd) {
-			char *mode = (k1->dosmode & A_FIBF_READ) == 0 ? "wb" : (k1->dosmode & A_FIBF_WRITE) == 0 ? "rb" : "r+b";
+			int mode = (k1->dosmode & A_FIBF_READ) == 0 ? O_WRONLY : (k1->dosmode & A_FIBF_WRITE) == 0 ? O_RDONLY : O_RDWR;
+			mode |= O_BINARY;
 			if (failed) {
 				/* rename still failed, restore fd */
-				k1->fd = fs_openfile (unit, a1->nname, mode);
+				k1->fd = fs_openfile (unit, a1, mode);
 				write_log (_T("restoring old handle '%s' %d\n"), a1->nname, k1->dosmode);
 			} else {
 				/* transfer fd to new name */
 				if (a2) {
 					k1->aino = a2;
-					k1->fd = fs_openfile (unit, a2->nname, mode);
+					k1->fd = fs_openfile (unit, a2, mode);
 					write_log (_T("restoring new handle '%s' %d\n"), a2->nname, k1->dosmode);
 				} else {
 					write_log (_T("no new handle, deleting old lock(s).\n"));
@@ -5555,7 +5568,7 @@ static uae_u32 REGPARAM2 exter_int_helper (TrapContext *context)
 					lockend = get_long (lockend);
 					cnt++;
 				}
-				TRACE2((_T("message_lock: %d %x %x %x\n"), cnt, locks, lockend, m68k_areg (regs, 3)));
+				TRACE3((_T("message_lock: %d %x %x %x\n"), cnt, locks, lockend, m68k_areg (regs, 3)));
 				put_long (lockend, get_long (m68k_areg (regs, 3)));
 				put_long (m68k_areg (regs, 3), locks);
 			}
@@ -5845,14 +5858,7 @@ static void init_filesys_diagentry (void)
 	do_put_mem_long ((uae_u32 *)(filesysory + 0x2104), filesys_configdev);
 	do_put_mem_long ((uae_u32 *)(filesysory + 0x2108), EXPANSION_doslibname);
 	do_put_mem_word ((uae_u16 *)(filesysory + 0x210e), nr_units ());
-#ifdef SCSI
-	if (currprefs.scsi && /*currprefs.win32_automount_cddrives &&*/ USE_CDFS == 1)
-		do_put_mem_word ((uae_u16 *)(filesysory + 0x210c),  scsi_get_cd_drive_mask ());
-	else
 		do_put_mem_word ((uae_u16 *)(filesysory + 0x210c), 0);
-#endif
-	if (USE_CDFS != 2)
-		cd_unit_offset = MAX_FILESYSTEM_UNITS;
 	native2amiga_startup ();
 }
 
@@ -5975,7 +5981,7 @@ static uae_u32 REGPARAM2 filesys_diagentry (TrapContext *context)
 	uaecptr start = resaddr;
 	uaecptr residents, tmp;
 
-	TRACEI ((_T("filesystem: diagentry called\n")));
+	write_log (_T("filesystem: diagentry called: %x\n"), resaddr);
 
 	filesys_configdev = m68k_areg (regs, 3);
 	init_filesys_diagentry ();
@@ -6065,12 +6071,9 @@ static uae_u32 REGPARAM2 filesys_dev_bootfilesys (TrapContext *context)
 	int type;
 
 	if (iscd) {
-#if USE_CDFS == 2
 		if (!get_long (devicenode + 16))
 			put_long (devicenode + 16, cdfs_handlername);
 		return 0;
-#endif
-		type = FILESYS_CD;
 	} else {
 		type = is_hardfile (unit_no);
 	}
@@ -6140,15 +6143,8 @@ static uae_u32 REGPARAM2 filesys_dev_remember (TrapContext *context)
 	uae_u8 *fs;
 
 	uip->devicenode = devicenode;
-	if (iscd && USE_CDFS == 1) {
-		fssize = cdfs_handler_len;
-		fs = cdfs_handler;
-		if (get_long (devicenode + 5 * 4) < 10000)  // stack
-			put_long (devicenode + 5 * 4, 10000);
-	} else {
 		fssize = uip->rdb_filesyssize;
 		fs = uip->rdb_filesysstore;
-	}
 
 	/* copy filesystem loaded from RDB */
 	if (get_long (parmpacket + PP_FSPTR)) {
@@ -6156,13 +6152,11 @@ static uae_u32 REGPARAM2 filesys_dev_remember (TrapContext *context)
 			put_byte (get_long (parmpacket + PP_FSPTR) + i, fs[i]);
 	}
 
-	if (!iscd || USE_CDFS == 2) {
 		xfree (fs);
 		uip->rdb_filesysstore = 0;
 		uip->rdb_filesyssize = 0;
 	if (m68k_dreg (regs, 3) >= 0)
 		uip->startup = get_long (devicenode + 28);
-	}
 
 	return devicenode;
 }
@@ -6242,7 +6236,7 @@ static TCHAR *device_dupfix (uaecptr expbase, TCHAR *devname)
 			modified = 1;
 		}
 	}
-	return strdup (newname);
+	return my_strdup (newname);
 }
 
 static const TCHAR *dostypes (uae_u32 dostype)
@@ -6318,7 +6312,7 @@ static void dump_rdb (UnitInfo *uip, struct hardfiledata *hfd, uae_u8 *bufrdb, u
 		rl (bufrdb + 3 * 4), rl (bufrdb + 5 * 4));
 	write_log (_T("RDB: BL: %d BH: %d LC: %d HC: %d CB: %d HB: %d\n"),
 		rl (bufrdb + 128), rl (bufrdb + 132), rl (bufrdb + 136), rl (bufrdb + 140), rl (bufrdb + 144), rl (bufrdb + 152));
-	for (unsigned int i = 0; i < 100; i++) {
+	for (int i = 0; i < 100; i++) {
 		int partblock;
 		if (i == 0)
 			partblock = rl (bufrdb + 28);
@@ -6339,7 +6333,7 @@ static void dump_rdb (UnitInfo *uip, struct hardfiledata *hfd, uae_u8 *bufrdb, u
 		}
 		dump_partinfo (hfd, buf);
 	}
-	for (unsigned int i = 0; i < 100; i++) {
+	for (int i = 0; i < 100; i++) {
 		int fileblock;
 		if (i == 0)
 			fileblock = rl (bufrdb + 32);
@@ -6684,7 +6678,7 @@ static void get_new_device (int type, uaecptr parmpacket, TCHAR **devname, uaecp
 		int un = unit_no;
 		for (;;) {
 			_stprintf (buffer, type == FILESYS_CD ? _T("CD%d") : _T("DH%d"), un++);
-			if (type == FILESYS_CD && USE_CDFS == 2)
+			if (type == FILESYS_CD)
 				*devname = my_strdup (buffer);
 			if (!device_isdup (expbase, buffer))
 				break;
@@ -6724,16 +6718,12 @@ static uae_u32 REGPARAM2 filesys_dev_storeinfo (TrapContext *context)
 			return -2;
 
 		type = FILESYS_CD;
-		if (USE_CDFS == 2) {
 			get_new_device (type, parmpacket, &uip[unit_no].devname, &uip[unit_no].devname_amiga, cd_unit_no);
 			cdname_amiga = uip[unit_no].devname_amiga;
 			uip[unit_no].devno = unit_no;
 			type = FILESYS_VIRTUAL;
-		} else {
-			get_new_device (type, parmpacket, &cdname, &cdname_amiga, cd_unit_no);
-		}
 		gui_flicker_led (LED_CD, cd_unit_no, -1);
-#ifdef SCSI
+
 		write_log (_T("Mounting uaescsi.device %d: (%d)\n"), cd_unit_no, unit_no);
 		put_long (parmpacket + 0, cdname_amiga);
 		put_long (parmpacket + 4, cdfs_devname);
@@ -6753,35 +6743,14 @@ static uae_u32 REGPARAM2 filesys_dev_storeinfo (TrapContext *context)
 		put_long (parmpacket + 60, 50); /* Number of buffers */
 		put_long (parmpacket + 64, 1); /* Buffer mem type */
 		put_long (parmpacket + 68, 0x7FFFFFFE); /* largest transfer */
-		put_long (parmpacket + 72, 0x7FFFFFFE); /* addrressMask (?) */
+		put_long (parmpacket + 72, 0xFFFFFFFE); /* dma mask */
+#ifdef SCSI
 		put_long (parmpacket + 76, scsi_get_cd_drive_media_mask () & (1 << cd_unit_no) ? -127 : -128); /* bootPri */
+#endif
 		put_long (parmpacket + 80, CDFS_DOSTYPE | (((cd_unit_no / 10) + '0') << 8) | ((cd_unit_no % 10) + '0'));
 		put_long (parmpacket + 84, 0); /* baud */
-		put_long (parmpacket + 88, cdfs_control);
+		put_long (parmpacket + 88, 0); /* control */
 		put_long (parmpacket + 92, 0); /* bootblocks */
-#if USE_CDFS == 1
-		uaecptr fsres = get_long (parmpacket + PP_FSRES);
-		bool cdfs = false;
-		if (fsres) {
-			uaecptr fsnode = get_long (fsres + 18);
-			while (get_long (fsnode)) {
-				if (get_long (fsnode + 14) == CDFS_DOSTYPE) {
-					cdfs = true;
-					break;
-				}
-				fsnode = get_long (fsnode);
-			}
-		} else {
-			write_log (_T("CDFS: FileSystem.resource not found, this shouldn't happen!\n"));
-			cdfs = true;
-		}
-
-		if (!cdfs) {
-			put_long (parmpacket + PP_FSSIZE, cdfs_handler_len);
-			addfakefilesys (parmpacket, CDFS_DOSTYPE);
-		}
-#endif
-#endif
 		return type;
 
 	} else {
@@ -6808,7 +6777,7 @@ static uae_u32 REGPARAM2 filesys_dev_storeinfo (TrapContext *context)
 		put_long (parmpacket + 60, 50); /* Number of buffers */
 		put_long (parmpacket + 64, 1); /* Buffer mem type */
 		put_long (parmpacket + 68, 0x7FFFFFFE); /* largest transfer */
-		put_long (parmpacket + 72, 0x7FFFFFFE); /* addMask (?) */
+		put_long (parmpacket + 72, 0xFFFFFFFE); /* dma mask */
 		put_long (parmpacket + 76, uip[unit_no].bootpri); /* bootPri */
 		put_long (parmpacket + 80, DISK_TYPE_DOS); /* DOS\0 */
 		if (type == FILESYS_VIRTUAL) {
@@ -6925,7 +6894,7 @@ void filesys_install (void)
 {
 	uaecptr loop;
 
-	TRACE ((_T("Installing filesystem\n")));
+	TRACEI ((_T("Installing filesystem\n")));
 
 	uae_sem_init (&singlethread_int_sem, 0, 1);
 	uae_sem_init (&test_sem, 0, 1);
@@ -6935,13 +6904,8 @@ void filesys_install (void)
 
 	fsdevname = ds ("uae.device"); /* does not really exist */
 	fshandlername = ds ("uaefs");
-#if USE_CDFS
 	cdfs_devname = ds ("uaescsi.device");
 	cdfs_handlername = ds ("uaecdfs");
-#if USE_CDFS == 1
-	cdfs_control = ds_bstr_ansi ("ROCKRIDGE JOLIET MAYBELOWERCASE SCANINTERVAL=-1 DE=.1 RE=.2");
-#endif
-#endif
 	ROM_filesys_diagentry = here ();
 	calltrap (deftrap2 (filesys_diagentry, 0, _T("filesys_diagentry")));
 	dw(0x4ED0); /* JMP (a0) - jump to code that inits Residents */
@@ -7010,18 +6974,9 @@ void filesys_install_code (void)
 	EXPANSION_bootcode = a + bootrom_header + bootrom_items * 4 - 4;
 	b = a + bootrom_header + 3 * 4 - 4;
 	filesys_initcode = a + dlg (b) + bootrom_header - 4;
-
-#if USE_CDFS == 1
-	cdfs_handler = zfile_load_data (_T("cdfs.gz"), cdfs_rom, cdfs_rom_len, &cdfs_handler_len);
-#endif
 }
 
-#if USE_CDFS == 1
-#include "cdrom-handler.c"
-#endif
-
 #ifdef SAVESTATE
-
 static uae_u8 *restore_filesys_hardfile (UnitInfo *ui, uae_u8 *src)
 {
 	struct hardfiledata *hfd = &ui->hf;

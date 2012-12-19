@@ -228,7 +228,7 @@ static int inprec_pstart (uae_u8 type)
 			if (cycles != cycles2 + cycleoffset) {
 				if (warned > 0) {
 					warned--;
-					for (unsigned int i = 0; i < 7; i++)
+					for (int i = 0; i < 7; i++)
 						write_log (_T("%08x (%08x) "), pcs[i], pcs2[i]);
 					write_log (_T("\n"));
 				}
@@ -518,7 +518,7 @@ static void setwriteprotect (const TCHAR *fname, bool readonly)
 {
 	struct _stat64 st;
 	int mode, oldmode;
-	if (stat (fname, &st))
+	if (!stat (fname, &st))
 		return;
 	oldmode = mode = st.st_mode;
 	mode &= ~FILEFLAG_WRITE;
@@ -624,7 +624,7 @@ void inprec_playdebug_cpu (int mode)
 			if (warned > 0) {
 				warned--;
 				write_log (_T("SYNC ERROR2 PC %08x != %08x\n"), pc1, pc2);
-				for (unsigned int i = 0; i < 15; i++)
+				for (int i = 0; i < 15; i++)
 					write_log (_T("%08x "), pcs[i]);
 				write_log (_T("\n"));
 
@@ -640,7 +640,7 @@ void inprec_playdebug_cpu (int mode)
 			if (warned > 0) {
 				warned--;
 				write_log (_T("SYNC ERROR2 %08x != %08x\n"), v1, v2);
-				for (unsigned i = 0; i < 15; i++)
+				for (int i = 0; i < 15; i++)
 					write_log (_T("%08x "), pcs[i]);
 				write_log (_T("\n"));
 			}
