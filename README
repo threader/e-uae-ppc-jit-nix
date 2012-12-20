@@ -1,4 +1,4 @@
-PUAE 2.5.0 beta series
+PUAE 2.5.1 beta series
 ---------------------------------------------------
 PUAE tries to continue where E-UAE left off..
 PUAE versioning is based on the merged WinUAE version..
@@ -7,9 +7,7 @@ All is done by:
 	Mustafa 'GnoStiC' TUFAN (mustafa.tufan@gmail.com)
 
 Thanks:
- Steven 'xaind' Saunders (MacOSX fix), 'wuffe' (FreeBSD fix)
- 'internetzel' (PPC fix), Nick 'chiark' Lines (morale support)
-
+Sven Eden (cleanup)
 
 
 
