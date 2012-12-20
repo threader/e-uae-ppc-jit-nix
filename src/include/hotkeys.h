@@ -33,7 +33,9 @@ extern void set_default_hotkeys (struct uae_hotkeyseq *keys);
 
 extern int match_hotkey_sequence (int key, int state);
 
+extern int handle_input_event (int, int, int, int, bool, bool);
+
 static inline void handle_hotkey_event (int event, int state)
 {
-    handle_input_event (event, state, 0, 0);
+    handle_input_event (event, state, 0, 0, false, false);
 }

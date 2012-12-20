@@ -9,7 +9,7 @@
  */
 
 #include "sysconfig.h"
-#include "sysdeps.h"
+#include "include/sysdeps.h"
 
 #include "options.h"
 #include "inputdevice.h"
@@ -19,13 +19,15 @@
 
 #include "sdlgfx.h"
 #include <SDL.h>
+#include "sdlkeys_dik.h"
 
 /*
  * This function knows about all keys that are common
  * between different keyboard languages.
  *
  */
-int kc_dik_decode (int key) {
+static int kc_dik_decode (int key)
+{
     switch (key) {
 	case SDLK_ESCAPE: 	return DIK_ESCAPE;
 //
@@ -144,7 +146,8 @@ int kc_dik_decode (int key) {
  *
  * Number keys are broken
  */
-static int decode_dik_fr (int key) {
+static int decode_dik_fr (int key)
+{
 	switch (key) {
 	case SDLK_a:		return DIK_Q;
 	case SDLK_m:		return DIK_SEMICOLON;
@@ -172,7 +175,8 @@ static int decode_dik_fr (int key) {
 /*
  * Handle keys specific to US keymaps.
  */
-static int decode_dik_us (int key) {
+static int decode_dik_us (int key)
+{
 	switch (key) {
 	case SDLK_a:		return DIK_A;
 	case SDLK_m:		return DIK_M;
@@ -198,7 +202,8 @@ static int decode_dik_us (int key) {
 /*
  * Handle keys specific to German keymaps.
  */
-static int decode_dik_de (int key) {
+static int decode_dik_de (int key)
+{
 	switch (key) {
 	case SDLK_a:		return DIK_A;
 	case SDLK_m:		return DIK_M;
@@ -231,7 +236,8 @@ static int decode_dik_de (int key) {
  * enough keysms for a complete Danish mapping.
  * Missing dead-key support for diaeresis, acute and circumflex
  */
-static int decode_dik_dk (int key) {
+static int decode_dik_dk (int key)
+{
 	switch (key) {
 	case SDLK_a:		return DIK_A;
 	case SDLK_m:		return DIK_M;
@@ -257,7 +263,8 @@ static int decode_dik_dk (int key) {
 /*
  * Handle keys specific to SE keymaps.
  */
-static int decode_dik_se (int key) {
+static int decode_dik_se (int key)
+{
 	switch (key) {
 	case SDLK_a:		return DIK_A;
 	case SDLK_m:		return DIK_M;
@@ -287,7 +294,8 @@ static int decode_dik_se (int key) {
 /*
  * Handle keys specific to Italian keymaps.
  */
-static int decode_dik_it (int key) {
+static int decode_dik_it (int key)
+{
 	switch (key) {
 		case SDLK_a:		return DIK_A;
 		case SDLK_m:		return DIK_M;
@@ -316,7 +324,8 @@ static int decode_dik_it (int key) {
 /*
  * Handle keys specific to Spanish keymaps.
  */
-static int decode_dik_es (int key) {
+static int decode_dik_es (int key)
+{
 	switch (key) {
 		case SDLK_a:		return DIK_A;
 		case SDLK_m:		return DIK_M;
@@ -344,7 +353,8 @@ static int decode_dik_es (int key) {
  * Handle keys specific to FI keymaps.
  */
 
-static int decode_dik_fi (int key) {
+static int decode_dik_fi (int key)
+{
 	switch (key) {
 		case SDLK_a:		return AK_A;
 		case SDLK_m:		return AK_M;
@@ -382,7 +392,8 @@ static int decode_dik_fi (int key) {
 /*
  * Handle keys specific to TR keymaps.
  */
-static int decode_dik_tr (int key) {
+static int decode_dik_tr (int key)
+{
 	switch (key) {
 		case SDLK_a:		return DIK_A;
 		case SDLK_m:		return DIK_M;
@@ -411,7 +422,8 @@ static int decode_dik_tr (int key) {
 /*
 
 */
-int sdlk2dik (int key) {
+int sdlk2dik (int key)
+{
 	int amiga_keycode = kc_dik_decode (key);
 
 	if (amiga_keycode == -1) {

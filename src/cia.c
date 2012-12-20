@@ -46,6 +46,7 @@
 #include "dongle.h"
 #include "inputrecord.h"
 #include "autoconf.h"
+#include "audio.h"
 
 #define CIAA_DEBUG_R 0
 #define CIAA_DEBUG_W 0
@@ -416,11 +417,11 @@ static void CIA_calctimers (void)
 		unsigned long int ciatime = ~0L;
 		if (ciaatimea != -1)
 			ciatime = ciaatimea;
-		if (ciaatimeb != -1 && ciaatimeb < ciatime)
+		if (ciaatimeb != -1 && (unsigned long int)ciaatimeb < ciatime)
 			ciatime = ciaatimeb;
-		if (ciabtimea != -1 && ciabtimea < ciatime)
+		if (ciabtimea != -1 && (unsigned long int)ciabtimea < ciatime)
 			ciatime = ciabtimea;
-		if (ciabtimeb != -1 && ciabtimeb < ciatime)
+		if (ciabtimeb != -1 && (unsigned long int)ciabtimeb < ciatime)
 			ciatime = ciabtimeb;
 		eventtab[ev_cia].evtime = ciatime + get_cycles ();
 	}
@@ -544,8 +545,8 @@ static void do_tod_hack (int dotod)
 		return;
 	gettimeofday (&tv, NULL);
 	t = (uae_u64)tv.tv_sec * 1000000 + tv.tv_usec;
-	if (t - tod_hack_tv >= 1000000 / rate) {
-		tod_hack_tv += 1000000 / rate;
+	if (t - tod_hack_tv >= (uae_u64)(1000000 / rate) ) {
+		tod_hack_tv += (uae_u64)(1000000 / rate);
 		docount = 1;
 	}
 	if (docount) {
@@ -713,7 +714,7 @@ static void led_vsync (void)
 	led_cycles_on = 0;
 	led_cycles_off = 0;
 	if (led_old_brightness != gui_data.powerled_brightness) {
-		gui_data.powerled = gui_data.powerled_brightness > 127;
+		gui_data.powerled = gui_data.powerled_brightness < 0;
 		gui_led (LED_POWER, gui_data.powerled);
 		led_filter_audio ();
 	}

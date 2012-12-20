@@ -15,8 +15,12 @@
   * Copyright 1996, 1997 Bernd Schmidt
   */
 
-#define TRUE 1
+#ifndef FALSE
 #define FALSE 0
+#endif /* FALSE */
+#ifndef TRUE
+#  define TRUE (!FALSE)
+#endif /* TRUE */
 #define UAE_RAND_MAX RAND_MAX
 
 #define ECS_DENISE
@@ -418,9 +422,14 @@ extern void xfree (const void*);
 #define _T
 #define sleep_millis uae_msleep
 #define _istalnum iswalnum
-#define offsetof(type, member)  __builtin_offsetof (type, member)
 #define ULONG unsigned long
 #define _strtoui64 strtoul
-#define _tcscspn wcscspn
+#define _tcscspn(wcs, reject) wcscspn((const wchar_t*)(wcs), (const wchar_t*)(reject))
+#ifndef _stat64
 #define _stat64 stat64
-#endif
+#endif /* _stat64 */
+#ifndef offsetof
+#  define offsetof(type, member)  __builtin_offsetof (type, member)
+#endif /* offsetof */
+
+#endif /* UAE_SYSDEPS_H */

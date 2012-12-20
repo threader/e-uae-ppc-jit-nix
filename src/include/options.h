@@ -15,11 +15,12 @@ typedef enum { KBD_LANG_US, KBD_LANG_DK, KBD_LANG_DE, KBD_LANG_SE, KBD_LANG_FR, 
 
 extern long int version;
 struct uaedev_mount_info;
+struct zfile;
 
 #define MAX_PATHS 8
 
 struct multipath {
-	TCHAR path[MAX_PATHS][256];
+	TCHAR path[MAX_PATHS][PATH_MAX];
 };
 
 struct strlist {
@@ -115,6 +116,9 @@ struct wh {
 };
 
 #define MOUNT_CONFIG_SIZE 30
+#ifndef HAS_UAEDEV_CONFIG_INFO
+# define HAS_UAEDEV_CONFIG_INFO 1
+#endif // HAS_UAEDEV_CONFIG_INFO
 struct uaedev_config_info {
 	TCHAR devname[MAX_DPATH];
 	TCHAR volname[MAX_DPATH];
@@ -189,7 +193,7 @@ struct apmode
 {
 	int gfx_fullscreen;
 	int gfx_display;
-	int gfx_vsync;
+	bool gfx_vsync;
 	// 0 = immediate flip
 	// -1 = wait for flip, before frame ends
 	// 1 = wait for flip, after new frame has started
@@ -200,6 +204,9 @@ struct apmode
 	int gfx_refreshrate;
 };
 
+#ifndef HAS_UAE_PREFS_STRUCT
+# define HAS_UAE_PREFS_STRUCT 1
+#endif // HAS_UAEPREFS_STRUCT
 struct uae_prefs {
 
 	struct strlist *all_lines;
@@ -351,7 +358,7 @@ struct uae_prefs {
 	int floppy_auto_ext2;
 	bool tod_hack;
 	uae_u32 maprom;
-	int turbo_emulation;
+	bool turbo_emulation;
 	bool headless;
 	int filesys_limit;
 
@@ -368,7 +375,7 @@ struct uae_prefs {
 	bool cs_cd32nvram;
 	bool cs_cdtvcd;
 	bool cs_cdtvram;
-	int cs_cdtvcard;
+	bool cs_cdtvcard;
 	int cs_ide;
 	bool cs_pcmcia;
 	bool cs_a1000ram;
@@ -430,10 +437,6 @@ struct uae_prefs {
 	bool picasso96_nocustom;
 	int picasso96_modeflags;
 
-#ifdef HAVE_MACHDEP_TIMER
-    int use_processor_clock;
-#endif
-
 	uae_u32 z3fastmem_size, z3fastmem2_size;
 	uae_u32 z3fastmem_start;
 	uae_u32 z3chipmem_size;
@@ -471,14 +474,14 @@ struct uae_prefs {
 	int dfxclickchannelmask;
 #endif
 
-	int hide_cursor;				/* Whether to hide host WM cursor or not */
+	bool hide_cursor;				/* Whether to hide host WM cursor or not */
 
 	/* Target specific options */
 #ifdef USE_X11_GFX
-	int x11_use_low_bandwidth;
-	int x11_use_mitshm;
+	bool x11_use_low_bandwidth;
+	bool x11_use_mitshm;
 	int x11_use_dgamode;
-	int x11_hide_cursor;
+	bool x11_hide_cursor;
 #endif
 
 #ifdef USE_SVGALIB_GFX
@@ -543,9 +546,9 @@ struct uae_prefs {
 #endif
 
 #if defined USE_SDL_GFX || defined USE_X11_GFX
-	int map_raw_keys;
+	bool map_raw_keys;
 #endif
-	int use_gl;
+	bool use_gl;
 
 #ifdef USE_AMIGA_GFX
 	int  amiga_screen_type;
@@ -587,11 +590,13 @@ struct uae_prefs {
 extern int config_changed;
 extern void config_check_vsync (void);
 
+extern uae_u32 uaerand (void);
+
 /* Contains the filename of .uaerc */
 extern TCHAR optionsfile[];
 extern void save_options (struct zfile *, struct uae_prefs *, int);
-/*
 extern void cfgfile_write (struct zfile *, const TCHAR *option, const TCHAR *format,...);
+/*
 extern void cfgfile_dwrite (struct zfile *, const TCHAR *option, const TCHAR *format,...);
 extern void cfgfile_target_write (struct zfile *, const TCHAR *option, const TCHAR *format,...);
 extern void cfgfile_target_dwrite (struct zfile *, const TCHAR *option, const TCHAR *format,...);
@@ -626,10 +631,11 @@ extern TCHAR *cfgfile_subst_path (const TCHAR *path, const TCHAR *subst, const T
 
 extern TCHAR *target_expand_environment (const TCHAR *path);
 extern int target_parse_option (struct uae_prefs *, const TCHAR *option, const TCHAR *value);
-//extern void target_save_options (struct zfile*, struct uae_prefs *);
+extern void target_save_options (struct zfile*, struct uae_prefs *);
 extern void target_default_options (struct uae_prefs *, int type);
 extern void target_fixup_options (struct uae_prefs *);
-//extern int target_cfgfile_load (struct uae_prefs *, const TCHAR *filename, int type, int isdefault);
+extern int target_cfgfile_load (struct uae_prefs *, const TCHAR *filename, int type, int isdefault);
+extern void target_startup_sequence (struct uae_prefs *p);
 //extern void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type);
 extern int target_get_display (const TCHAR*);
 extern const TCHAR *target_get_display_name (int, bool);

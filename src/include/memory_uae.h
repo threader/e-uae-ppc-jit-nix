@@ -6,6 +6,10 @@
  * Copyright 1995 Bernd Schmidt
  */
 
+#ifndef HAS_UAE_PREFS_STRUCT
+struct uae_prefs;
+#endif // HAS_UAEPREFS_STRUCT
+
 extern void memory_reset (void);
 extern void a1000_reset (void);
 
@@ -311,7 +315,7 @@ extern void REGPARAM3 chipmem_agnus_wput (uaecptr, uae_u32) REGPARAM;
 
 extern uae_u32 chipmem_mask, kickmem_mask;
 extern uae_u8 *kickmemory;
-extern int kickmem_size;
+extern uae_u32 kickmem_size;
 extern addrbank dummy_bank;
 
 /* 68020+ Chip RAM DMA contention emulation */

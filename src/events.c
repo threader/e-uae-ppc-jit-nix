@@ -54,7 +54,7 @@ void do_cycles_slow (unsigned long cycles_to_add)
 		if (is_syncline) {
 			if (!vblank_found_chipset) {
 		if (is_syncline > 0) {
-			int rpt = uae_gethrtime ();
+					int rpt = read_processor_time ();
 			int v = rpt - vsyncmintime;
 			int v2 = rpt - is_syncline_end;
 					if (v > vsynctimebase || v < -vsynctimebase) {
@@ -65,7 +65,7 @@ void do_cycles_slow (unsigned long cycles_to_add)
 				return;
 			}
 		} else if (is_syncline < 0) {
-			int rpt = uae_gethrtime ();
+					int rpt = read_processor_time ();
 			int v = rpt - is_syncline_end;
 			if (v < 0) {
 				pissoff = pissoff_value;

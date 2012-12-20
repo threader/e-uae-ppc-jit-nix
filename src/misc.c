@@ -127,6 +127,41 @@ static volatile bool vblank_skipeveryother;
 static int vblank_flip_delay;
 static volatile bool vblank_first_time;
 
+/* internal prototypes */
+void getgfxoffset (int *dxp, int *dyp, int *mxp, int *myp);
+bool vsync_isdone (void);
+int vsync_switchmode (int hz);
+void serial_check_irq (void);
+void serial_uartbreak (int v);
+void serial_hsynchandler (void);
+uae_u32 emulib_target_getcpurate (uae_u32 v, uae_u32 *low);
+void setmouseactivexy (int x, int y, int dir);
+char *au_fs_copy (char *dst, int maxlen, const char *src);
+int get_guid_target (uae_u8 *out);
+char *ua_fs (const char *s, int defchar);
+char *ua_copy (char *dst, int maxlen, const char *src);
+uae_u8 *save_log (int bootlog, int *len);
+void refreshtitle (void);
+int scan_roms (int show);
+void setid (struct uae_input_device *uid, int i, int slot, int sub, int port, int evt);
+void setid_af (struct uae_input_device *uid, int i, int slot, int sub, int port, int evt, int af);
+void fetch_path (TCHAR *name, TCHAR *out, int size);
+void fetch_saveimagepath (TCHAR *out, int size, int dir);
+void fetch_screenshotpath (TCHAR *out, int size);
+void fetch_ripperpath (TCHAR *out, int size);
+void close_console (void);
+bool console_isch (void);
+TCHAR console_getch (void);
+struct MultiDisplay *getdisplay (struct uae_prefs *p);
+void addmode (struct MultiDisplay *md, int w, int h, int d, int freq, int rawmode);
+void updatedisplayarea (void);
+double vblank_calibrate (double approx_vblank, bool waitonly);
+frame_time_t vsync_busywait_end (int *flipdelay);
+void vsync_busywait_start (void);
+bool vsync_busywait_do (int *freetime, bool lace, bool oddeven);
+void serialuartbreak (int v);
+void doflashscreen (void);
+
 void getgfxoffset (int *dxp, int *dyp, int *mxp, int *myp)
 {
 	*dxp = 0;
@@ -474,7 +509,7 @@ char *ua_copy (char *dst, int maxlen, const char *src)
 // win32gui
 static int qs_override;
 
-int target_cfgfile_load (struct uae_prefs *p, char *filename, int type, int isdefault)
+int target_cfgfile_load (struct uae_prefs *p, const TCHAR *filename, int type, int isdefault)
 {
 	int v, i, type2;
 	int ct, ct2 = 0, size;
@@ -761,30 +796,37 @@ void fetch_saveimagepath (TCHAR *out, int size, int dir)
                 fetch_path ("SaveimagePath", out, size);
 //        }
 }
+
 void fetch_configurationpath (TCHAR *out, int size)
 {
 	fetch_path ("ConfigurationPath", out, size);
 }
+
 void fetch_screenshotpath (TCHAR *out, int size)
 {
 	fetch_path ("ScreenshotPath", out, size);
 }
+
 void fetch_ripperpath (TCHAR *out, int size)
 {
 	fetch_path ("RipperPath", out, size);
 }
+
 void fetch_statefilepath (TCHAR *out, int size)
 {
 	fetch_path ("StatefilePath", out, size);
 }
+
 void fetch_inputfilepath (TCHAR *out, int size)
 {
 	fetch_path ("InputPath", out, size);
 }
+
 void fetch_datapath (TCHAR *out, int size)
 {
 	fetch_path (NULL, out, size);
 }
+
 // convert path to absolute or relative
 void fullpath (TCHAR *path, int size)
 {
@@ -1260,7 +1302,7 @@ static bool getvblankpos (int *vp)
 {
 	int sl;
 #if 0
-	frame_time_t t = uae_gethrtime ();
+	frame_time_t t = read_processor_time ();
 #endif
 	*vp = -2;
 /*	if (currprefs.gfx_api) {
@@ -1271,7 +1313,7 @@ static bool getvblankpos (int *vp)
 			return false;
 	}*/
 #if 0
-	t = uae_gethrtime () - t;
+	t = read_processor_time () - t;
 	write_log (_T("(%d:%d)"), t, sl);
 #endif	
 	prevvblankpos = sl;
@@ -1392,7 +1434,7 @@ double vblank_calibrate (double approx_vblank, bool waitonly)
 				goto fail;
 			if (!waitvblankstate (true, NULL, NULL))
 				goto fail;
-			t1 = uae_gethrtime ();
+			t1 = read_processor_time ();
 			if (!waitvblankstate (false, NULL, NULL))
 				goto fail;
 			maxscanline = 0;
@@ -1403,7 +1445,7 @@ double vblank_calibrate (double approx_vblank, bool waitonly)
 			maxscanline = 0;
 			if (!waitvblankstate (true, &maxvpos2, &flags2))
 				goto fail;
-			t2 = uae_gethrtime ();
+			t2 = read_processor_time ();
 			maxvpos = maxvpos1 > maxvpos2 ? maxvpos1 : maxvpos2;
 			// count two fields: works with interlaced modes too.
 			tval = (double)syncbase * 2.0 / (t2 - t1);
@@ -1445,12 +1487,12 @@ double vblank_calibrate (double approx_vblank, bool waitonly)
 			render_screen (true);
 			show_screen ();
 			sleep_millis (1);
-			frame_time_t t = uae_gethrtime () + 1 * (syncbase / tsum);
+			frame_time_t t = read_processor_time () + 1 * (syncbase / tsum);
 			for (int cnt2 = 0; cnt2 < 4; cnt2++) {
 				render_ok = true;
 				show_screen ();
 			}
-			int diff = (int)uae_gethrtime () - (int)t;
+			int diff = (int)read_processor_time () - (int)t;
 			if (diff >= 0)
 				vsdetect++;
 		}
@@ -1499,7 +1541,7 @@ skip:
 	}
 
 	remembered_vblank = tsum;
-	vblank_prev_time = uae_gethrtime ();
+	vblank_prev_time = read_processor_time ();
 	
 	if (!remembered) {
 		rv = xcalloc (struct remembered_vsync, 1);
@@ -1595,18 +1637,18 @@ frame_time_t vsync_busywait_end (int *flipdelay)
 			prev = vblank_prev_time;
 			if (!dooddevenskip) {
 				int delay = 10;
-				frame_time_t t = uae_gethrtime ();
+				frame_time_t t = read_processor_time ();
 				while (delay-- > 0) {
 					if (WaitForSingleObject (vblankwaitevent, 10) != WAIT_TIMEOUT)
 						break;
 				}
-				idletime += uae_gethrtime () - t;
+				idletime += read_processor_time () - t;
 			}
 			if (flipdelay)
 				*flipdelay = vblank_found_flipdelay;
 		} else {
 			show_screen ();
-			prev = uae_gethrtime ();
+			prev = read_processor_time ();
 		}
 		changevblankthreadmode_fast (VBLANKTH_ACTIVE_WAIT);
 		return prev + vblankbasefull;
@@ -1642,7 +1684,7 @@ bool vsync_busywait_do (int *freetime, bool lace, bool oddeven)
 	else
 		vblankbaselace_chipset = -1;
 
-	t = uae_gethrtime ();
+	t = read_processor_time ();
 	ti = t - prevtime;
 	if (ti > 2 * vblankbasefull || ti < -2 * vblankbasefull) {
 		changevblankthreadmode_fast (VBLANKTH_ACTIVE_WAIT);
@@ -1686,7 +1728,7 @@ bool vsync_busywait_do (int *freetime, bool lace, bool oddeven)
 
 		if (vblanklaceskip_check ()) {
 
-			vblank_prev_time = uae_gethrtime () + vblankbasewait1;
+			vblank_prev_time = read_processor_time () + vblankbasewait1;
 			dooddevenskip = true;
 			framelost = false;
 			v = -1;
@@ -1694,22 +1736,22 @@ bool vsync_busywait_do (int *freetime, bool lace, bool oddeven)
 		} else if (currprefs.turbo_emulation) {
 
 			show_screen ();
-			vblank_prev_time = uae_gethrtime ();
+			vblank_prev_time = read_processor_time ();
 			framelost = true;
 			v = -1;
 
 		} else {
 
-			while (!framelost && uae_gethrtime () - prevtime < vblankbasewait1) {
+			while (!framelost && read_processor_time () - prevtime < vblankbasewait1) {
 				vsync_sleep (false);
 			}
 
 			vp = vblank_wait ();
 			if (vp >= -1) {
-				vblank_prev_time = uae_gethrtime ();
+				vblank_prev_time = read_processor_time ();
 				if (ap->gfx_vflip == 0) {
 					show_screen ();
-					vblank_flip_delay = (uae_gethrtime () - vblank_prev_time) / (vblank_skipeveryother ? 2 : 1);
+					vblank_flip_delay = (read_processor_time () - vblank_prev_time) / (vblank_skipeveryother ? 2 : 1);
 					if (vblank_flip_delay < 0)
 						vblank_flip_delay = 0;
 					else if (vblank_flip_delay > vblankbasefull * 2 / 3)

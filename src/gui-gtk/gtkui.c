@@ -33,10 +33,13 @@
 #include "inputdevice.h"
 #include "xwin.h"
 #include "picasso96.h"
+#include "gcc_warnings.h"
 
+GCC_DIAG_OFF(strict-prototypes)
 #include <gtk/gtk.h>
 #include <gdk/gdk.h>
 #include <gdk/gdkkeysyms.h>
+GCC_DIAG_ON(strict-prototypes)
 
 #include "gui-gtk/cputypepanel.h"
 #include "gui-gtk/cpuspeedpanel.h"
@@ -50,9 +53,10 @@
 #ifdef  GUI_DEBUG
 #define DEBUG_LOG write_log ( "%s: ", __func__); write_log
 #else
-#define DEBUG_LOG(...) do ; while(0)
+#define DEBUG_LOG(...) { }
 #endif
 
+/* internal types */
 static int gui_active;
 
 static int gui_available;
@@ -210,12 +214,31 @@ static uae_sem_t gui_quit_sem;		// For the GUI thread to tell UAE that it's quit
 
 static volatile int quit_gui = 0, quitted_gui = 0;
 
+
+/* internal prototypes */
 static void create_guidlg (void);
 
 static void do_message_box (const gchar *title, const gchar *message, gboolean modal, gboolean wait);
 static void handle_message_box_request (smp_comm_pipe *msg_pipe);
 static GtkWidget *make_message_box (const gchar *title, const gchar *message, int modal, uae_sem_t *sem);
 void on_message_box_quit (GtkWidget *w, gpointer user_data);
+void on_vstat_toggle(GtkWidget *widget, gpointer statusbar);
+
+/* external prototypes */
+extern int get_filesys_unitconfig (struct uae_prefs *, int, struct mountedinfo *);
+extern int set_filesys_unit (int nr,
+	const TCHAR *devname, const TCHAR *volname, const TCHAR *rootdir, bool readonly,
+	int cyls, int secspertrack, int surfaces, int reserved,
+	int blocksize, int bootpri, bool donotmount, bool autoboot,
+	const TCHAR *filesysdir, int hdc, int flags);
+extern int add_filesys_unit (const TCHAR *devname, const TCHAR *volname, const TCHAR *rootdir, bool readonly,
+	int cyls, int secspertrack, int surfaces, int reserved,
+	int blocksize, int bootpri, bool donotmount, bool autoboot,
+	const TCHAR *filesysdir, int hdc, int flags);
+extern int kill_filesys_unitconfig (struct uae_prefs *, int);
+extern void clearallkeys (void);
+
+
 
 static void uae_pause (void)
 {
@@ -455,11 +478,11 @@ static void set_hd_state (void)
 		gtk_clist_clear (GTK_CLIST (hdlist_widget));
 
 		for (i = 0; i < nr; i++) {
-			int     secspertrack, surfaces, reserved, blocksize, bootpri;
-			uae_u64 size;
-			int     cylinders, readonly, flags;
-			char   	*devname, *volname, *rootdir, *filesysdir;
-			int		*ret;
+			int     secspertrack=0, surfaces=0, reserved=0, blocksize=0, bootpri=0;
+			uae_u64 size = 0;
+			int     cylinders=0, readonly=0, flags=0;
+			char   	*devname=NULL, *volname=NULL, *rootdir=NULL, *filesysdir=NULL;
+			int	ret = 0;
 
 			/* We always use currprefs.mountinfo for the GUI.  The filesystem
 			   code makes a private copy which is updated every reset.  */
@@ -490,7 +513,7 @@ static void set_hd_state (void)
 	    sprintf (texts[HDLIST_CYLS],    "%d", cylinders);
 	    sprintf (texts[HDLIST_SECS],    "%d", secspertrack);
 	    sprintf (texts[HDLIST_RSRVD],   "%d", reserved);
-	    sprintf (texts[HDLIST_SIZE],    "%d", size);
+	    sprintf (texts[HDLIST_SIZE],    "%l", size);
 	    sprintf (texts[HDLIST_BLKSIZE], "%d", blocksize);
 
 		if (rootdir)
@@ -637,11 +660,11 @@ static int my_idle (void)
 
 static int leds_callback (void)
 {
-    unsigned int leds; //= gui_ledstate;
-    unsigned int i;
+    unsigned int leds = 0; //= gui_ledstate;
+    unsigned int i = 0;
 
     if (!quit_gui) {
-	for (i = 0; i < 5; i++) {
+	for ( ; i < 5; i++) {
 	    GtkWidget *widget = i ? floppy_widget[i-1] : power_led;
 	    unsigned int mask = 1 << i;
 	    unsigned int on = leds & mask;
@@ -1684,10 +1707,14 @@ static void newdir_ok (void)
     if (strlen (dirdlg_volname) == 0 || strlen (dirdlg_path) == 0) {
 		/* Uh, no messageboxes in gtk?  */
     } else if (hd_change_mode) {
-		set_filesys_unit (selected_hd_row, dirdlg_devname, dirdlg_volname, dirdlg_path, readonly, secspertrack, surfaces, reserved, blocksize, bootpri, donotmount, autoboot, 0, hdc, flags);
+		set_filesys_unit (selected_hd_row, dirdlg_devname, dirdlg_volname, dirdlg_path,
+				readonly, 0, secspertrack, surfaces, reserved, blocksize, bootpri,
+				donotmount, autoboot, (TCHAR*)NULL, hdc, flags);
 		set_hd_state ();
     } else {
-		add_filesys_unit (dirdlg_devname, dirdlg_volname, dirdlg_path, readonly, secspertrack, surfaces, reserved, blocksize, bootpri, donotmount, autoboot, 0, hdc, flags);
+		add_filesys_unit (dirdlg_devname, dirdlg_volname, dirdlg_path, readonly,
+				0, secspertrack, surfaces, reserved, blocksize, bootpri,
+				donotmount, autoboot, (TCHAR*)NULL, hdc, flags);
 		set_hd_state ();
     }
     gtk_widget_destroy (dirdlg);
@@ -1861,10 +1888,10 @@ static void did_newhdf (void)
 
 static void did_hdchange (void)
 {
-    int secspertrack, surfaces, reserved, blocksize, bootpri;
-    uae_u64 size;
-    int cylinders, readonly, flags;
-    char *devname, *volname, *rootdir, *filesysdir;
+    int secspertrack=0, surfaces=0, reserved=0, blocksize=0, bootpri=0;
+    uae_u64 size=0;
+    int cylinders=0, readonly=0, flags=0;
+    char *devname=NULL, *volname=NULL, *rootdir=NULL, *filesysdir=NULL;
     const char *failure;
 
 /*    failure = get_filesys_unit (selected_hd_row,
@@ -1886,7 +1913,7 @@ static void did_hdchange (void)
 }
 static void did_hddel (void)
 {
-    kill_filesys_unitconfig (selected_hd_row);
+    kill_filesys_unitconfig (&currprefs, selected_hd_row);
     set_hd_state ();
 }
 
@@ -2314,7 +2341,7 @@ void gui_handle_events (void)
 			break;
 		    }
 	    case UAECMD_RESET:
-			uae_reset (0);
+			uae_reset (0, 0);
 			break;
 #ifdef DEBUGGER
 	    case UAECMD_DEBUG:
@@ -2422,8 +2449,8 @@ static void gui_shutdown (void)
 static void gui_flicker_led2 (int led, int unitnum, int status)
 {
         static int resetcounter[LED_MAX];
-        uae_u8 old;
-        uae_u8 *p;
+        uae_s8 old;
+        uae_s8 *p;
 
         if (led == LED_HD)
                 p = &gui_data.hd;
@@ -2507,7 +2534,7 @@ void gui_message (const char *format,...)
     if (gui_available)
 		do_message_box (NULL, msg, TRUE, TRUE);
 
-    write_log (msg);
+    write_log ("%s", msg);
 }
 
 /*
@@ -2531,8 +2558,8 @@ static void do_message_box (const gchar *title, const gchar *message, gboolean m
     uae_sem_init (&msg_quit_sem, 0, 0);
 
     write_comm_pipe_int   (&to_gui_pipe, GUICMD_MSGBOX, 0);
-    write_comm_pipe_pvoid (&to_gui_pipe, (const void *) title, 0);
-    write_comm_pipe_pvoid (&to_gui_pipe, (const void *) message, 0);
+    write_comm_pipe_pvoid (&to_gui_pipe, (void *) title, 0);
+    write_comm_pipe_pvoid (&to_gui_pipe, (void *) message, 0);
     write_comm_pipe_int   (&to_gui_pipe, (int) modal, 0);
     write_comm_pipe_pvoid (&to_gui_pipe, wait?&msg_quit_sem:NULL, 1);
 
@@ -2731,4 +2758,3 @@ void gui_gameport_axis_change (int port, int axis, int state, int max)
         }
         guijoychange = true;
 }
-

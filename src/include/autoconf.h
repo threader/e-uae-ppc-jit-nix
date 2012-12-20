@@ -14,10 +14,24 @@
 #define RTAREA_FSBOARD 0xFFEC
 #define RTAREA_INT 0xFFEB
 
+/* forward declarations */
+#ifndef HAS_UAE_PREFS_STRUCT
+struct uae_prefs;
+#endif // HAS_UAE_PREFS_STRUCT
+
+#ifndef HAS_UAEDEV_CONFIG_INFO
+struct uaedev_config_info;
+#endif // HAS_UAEDEV_CONFIG_INFO
+
+struct uaedev_mount_info;
+
+
+/* external prototypes */
 extern uae_u32 addr (int);
 extern void db (uae_u8);
 extern void dw (uae_u16);
 extern void dl (uae_u32);
+extern uae_u32 ds_bstr_ansi (const uae_char *);
 extern uae_u32 ds_ansi (const uae_char*);
 extern uae_u32 ds (const char *);
 extern uae_u8 dbg (uaecptr);

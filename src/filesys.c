@@ -56,6 +56,9 @@
 #define my_rmdir rmdir
 #define my_unlink unlink
 #define my_rename rename
+#ifdef _stat64
+# undef _stat64
+#endif /* _stat64 */
 #define _stat64 stat
 //FIXME: ---end
 
@@ -604,7 +607,7 @@ err:
 	return -1;
 }
 
-static int set_filesys_unit (int nr,
+int set_filesys_unit (int nr,
 	const TCHAR *devname, const TCHAR *volname, const TCHAR *rootdir, bool readonly,
 	int cyls, int secspertrack, int surfaces, int reserved,
 	int blocksize, int bootpri, bool donotmount, bool autoboot,
@@ -618,7 +621,7 @@ static int set_filesys_unit (int nr,
 	return ret;
 }
 
-static int add_filesys_unit (const TCHAR *devname, const TCHAR *volname, const TCHAR *rootdir, bool readonly,
+int add_filesys_unit (const TCHAR *devname, const TCHAR *volname, const TCHAR *rootdir, bool readonly,
 	int cyls, int secspertrack, int surfaces, int reserved,
 	int blocksize, int bootpri, bool donotmount, bool autoboot,
 	const TCHAR *filesysdir, int hdc, int flags)

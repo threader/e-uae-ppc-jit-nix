@@ -33,7 +33,7 @@ DIST_SUBDIRS = \
 	gfx-amigaos gfx-beos gfx-x11 gfx-sdl gfx-curses gfx-svga gfx-cocoa \
 	sd-none sd-alsa sd-amigaos sd-beos sd-sdl sd-solaris sd-uss \
 	jd-none jd-amigainput jd-amigaos jd-beos jd-linuxold jd-sdl \
-	gui-none gui-beos gui-cocoa gui-gtk gui-muirexx \
+	gui-none gui-beos gui-cocoa gui-gtk gui-muirexx gui-sdl \
 	od-generic od-amiga od-beos od-linux od-macosx od-win32 \
 	td-none td-amigaos td-beos td-posix td-sdl td-win32 \
 	keymap caps archivers/dms archivers/zip
@@ -154,7 +154,8 @@ noinst_HEADERS = \
 	include/writelog.h \
 	include/xwin.h		include/zfile.h		include/diskutil.h \
 	targets/t-amiga.h	targets/t-beos.h        \
-	targets/t-unix.h	targets/t-win32.h
+	targets/t-unix.h	targets/t-win32.h	\
+	include/gcc_warnings.h
 
 dist_noinst_SCRIPTS = \
 	filesys.sh install_libscg
@@ -177,7 +178,7 @@ uae_SOURCES = \
 EXTRA_uae_SOURCES = \
 	bsdsocket.c bsdsocket-posix-new.c build68k.c catweasel.c cdrom.c \
 	fpp.c compemu_fpp.c compemu_raw_x86.c compemu_support.c \
-	debug.c identify.c filesys.c filesys_bootrom.c fsdb.c fsdb_unix.c fsusage.c genblitter.c \
+	debug.c identify.c filesys_bootrom.c fsdb.c fsdb_unix.c fsusage.c genblitter.c \
 	gencpu.c gengenblitter.c gencomp.c genlinetoscr.c hardfile.c \
 	hardfile_unix.c scsi-none.c scsiemul.c svgancui.c tui.c filesys_unix.c amax.c \
 	akiko.c cd32_fmv.c ar.c blkdev.c blkdev_cdimage.c blkdev-libscg.c \
@@ -299,6 +300,7 @@ tools/genlinetoscr:
 	$(MAKE) -C tools genlinetoscr
 
 cpudefs.c:	tools/build68k @top_srcdir@/src/table68k
+		sleep 1s
 		./tools/build68k <@top_srcdir@/src/table68k >cpudefs.c
 
 machdep/libmachdep.a:

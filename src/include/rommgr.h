@@ -1,3 +1,6 @@
+#ifndef SRC_INCLUDE_ROMMGR_H_INCLUDED
+#define SRC_INCLUDE_ROMMGR_H_INCLUDED 1
+
 extern int decode_cloanto_rom_do (uae_u8 *mem, int size, int real_size);
 
 #define ROMTYPE_KICK		0x000001
@@ -24,7 +27,10 @@ extern int decode_cloanto_rom_do (uae_u8 *mem, int size, int real_size);
 #define ROMTYPE_CD32		0x200000
 #define ROMTYPE_SCRAMBLED	0x400000
 
+#define ROMTYPE_KICK_SPC (ROMTYPE_KICK | ROMTYPE_SPECIALKICK)
+
 #define ROMTYPE_ALL_KICK (ROMTYPE_KICK | ROMTYPE_KICKCD32 | ROMTYPE_CD32)
+#define ROMTYPE_ALL_CD32 (ROMTYPE_KICKCD32 | ROMTYPE_EXTCD32 | ROMTYPE_CD32)
 #define ROMTYPE_ALL_EXT (ROMTYPE_EXTCD32 | ROMTYPE_EXTCDTV)
 #define ROMTYPE_ALL_CART (ROMTYPE_AR | ROMTYPE_HRTMON | ROMTYPE_NORDIC | ROMTYPE_XPOWER | ROMTYPE_CD32CART)
 
@@ -61,12 +67,12 @@ extern struct romdata *getromdatabycrc (uae_u32 crc32);
 extern struct romdata *getromdatabydata (uae_u8 *rom, int size);
 extern struct romdata *getromdatabyid (int id);
 extern struct romdata *getromdatabyidgroup (int id, int group, int subitem);
-//extern struct romdata *getromdatabyzfile (struct zfile *f);
+extern struct romdata *getromdatabyzfile (struct zfile *f);
 extern struct romlist **getarcadiaroms (void);
 extern struct romdata *getarcadiarombyname (const TCHAR *name);
 extern struct romlist **getromlistbyident (int ver, int rev, int subver, int subrev, const TCHAR *model, int romflags, bool all);
 extern void getromname (const struct romdata*, TCHAR*);
-//extern struct romdata *getromdatabyname (const TCHAR*);
+extern struct romdata *getromdatabyname (const TCHAR*);
 extern struct romlist *getromlistbyids (const int *ids);
 extern void romwarning(const int *ids);
 extern struct romlist *getromlistbyromdata (const struct romdata *rd);
@@ -92,3 +98,4 @@ extern int romlist_count (void);
 extern struct romlist *romlist_getit (void);
 extern int configure_rom (struct uae_prefs *p, const int *rom, int msg);
 
+#endif /* SRC_INCLUDE_ROMMGR_H_INCLUDED */

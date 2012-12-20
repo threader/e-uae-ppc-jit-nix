@@ -1833,7 +1833,7 @@ int hrtmon_load (void)
 		struct zfile *zf;
 		zf = zfile_fopen_data (_T("hrtrom.gz"), hrtrom_len, hrtrom);
 		//	f = zfile_fopen (_T("d:\\amiga\\amiga\\hrtmon\\src\\hrtmon.rom"), _T("rb"), 0);
-		f = zfile_gunzip (zf);
+		f = zfile_gunzip (zf, NULL);
 #else
 		return 0;
 #endif

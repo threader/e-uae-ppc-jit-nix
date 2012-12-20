@@ -168,47 +168,47 @@ static void close_joysticks(void)
 		close (js1);
 }
 
-static unsigned int get_joystick_num (void)
+static int get_joystick_num (void)
 {
     return nr_joysticks;
 }
 
-static int acquire_joy (unsigned int num, int flags)
+static int acquire_joy (int num, int flags)
 {
     return 1;
 }
 
-static void unacquire_joy (unsigned int num)
+static void unacquire_joy (int num)
 {
 }
 
 static void read_joysticks (void)
 {
-    unsigned int i;
-    for (i = 0; i < get_joystick_num(); i++)
+    int i = 0;
+    for ( ; i < get_joystick_num(); i++)
 		read_joy (i);
 }
 
-static const char *get_joystick_friendlyname (unsigned int joy)
+static TCHAR *get_joystick_friendlyname (int joy)
 {
     static char name[100];
     sprintf (name, "%d: %s%d", joy + 1, js_prefix, joy);
     return name;
 }
 
-static const char *get_joystick_uniquename (unsigned int joy)
+static TCHAR *get_joystick_uniquename (int joy)
 {
     static char name[100];
     sprintf (name, "%d%s%d", joy + 1, js_prefix, joy);
     return name;
 }
 
-static unsigned int get_joystick_widget_num (unsigned int joy)
+static int get_joystick_widget_num (int joy)
 {
     return MAX_AXLES + MAX_BUTTONS;
 }
 
-static int get_joystick_widget_type (unsigned int joy, unsigned int num, char *name, uae_u32 *dummy)
+static int get_joystick_widget_type (int joy, int num, TCHAR *name, uae_u32 *dummy)
 {
     if (num >= MAX_AXLES && num < MAX_AXLES+MAX_BUTTONS) {
 	if (name)
@@ -222,7 +222,7 @@ static int get_joystick_widget_type (unsigned int joy, unsigned int num, char *n
     return IDEV_WIDGET_NONE;
 }
 
-static int get_joystick_widget_first (unsigned int joy, int type)
+static int get_joystick_widget_first (int joy, int type)
 {
     switch (type) {
 	case IDEV_WIDGET_BUTTON:
@@ -257,7 +257,7 @@ struct inputdevice_functions inputdevicefunc_joystick = {
 /*
  * Set default inputdevice config for joysticks
  */
-int input_get_default_joystick (struct uae_input_device *uid, int num, int port, int cd32)
+int input_get_default_joystick (struct uae_input_device *uid, int num, int port, int af, int mode, bool gp)
 {
 	unsigned int i;
 

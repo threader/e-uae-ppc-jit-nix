@@ -68,7 +68,7 @@ typedef int bool;
 struct uae_filter
 {
     int type, yuv, intmul;
-    char *name, *cfgname;
+    TCHAR *name, *cfgname;
     int flags;
 };
 

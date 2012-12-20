@@ -447,8 +447,9 @@ uaecptr REGPARAM2 mmu_translate(uaecptr addr, bool super, bool data, bool write)
 
 	l = &atc_l2[super ? 1 : 0][ATC_L2_INDEX(addr)];
 	mmu_fill_atc_l2(addr, super, data, write, l);
-	if (!(data ? l->valid_data : l->valid_inst))
+	if (!(data ? l->valid_data : l->valid_inst)) {
 		THROW(2);
+	}
 
 	return addr + l->phys;
 }

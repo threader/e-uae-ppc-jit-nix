@@ -20,7 +20,7 @@
 #ifdef  HDF_DEBUG
 #define DEBUG_LOG write_log ( "%s: ", __func__); write_log
 #else
-#define DEBUG_LOG(...) do ; while(0)
+#define DEBUG_LOG(...) { }
 #endif
 
 static int usefloppydrives = 0;

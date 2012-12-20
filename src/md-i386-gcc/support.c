@@ -27,7 +27,14 @@ struct flag_struct regflags;
 
 #include <signal.h>
 
+/* internal prototypes */
+void machdep_save_options (struct zfile *, const struct uae_prefs *);
+int machdep_parse_option (struct uae_prefs *, const char *, const char *);
+void machdep_default_options (struct uae_prefs *);
+
 #ifdef __linux__
+frame_time_t linux_get_tsc_freq (void);
+
 /*
  * Extract x86/AMD64 timestamp counter frequency
  * from /proc/cpuinfo.
@@ -157,13 +164,13 @@ static RETSIGTYPE alarmhandler(int foo)
 #endif
 {
     frame_time_t bar;
-    bar = uae_gethrtime ();
+    bar = read_processor_time ();
     if (! first_loop && bar - last_time < best_time)
 	best_time = bar - last_time;
     first_loop = 0;
     if (--loops_to_go > 0) {
 		signal (SIGALRM, alarmhandler);
-		last_time = uae_gethrtime ();
+		last_time = read_processor_time ();
 		set_the_alarm ();
     } else {
 		alarm (0);
@@ -195,7 +202,7 @@ int machdep_inithrtimer (void)
 		write_log ("Testing the RDTSC instruction ... ");
 		signal (SIGILL, illhandler);
 		if (setjmp (catch_test) == 0)
-		    uae_gethrtime ();
+		    read_processor_time ();
 		signal (SIGILL, SIG_DFL);
 		write_log ("done.\n");
 
@@ -231,7 +238,7 @@ int machdep_inithrtimer (void)
 	    sync (); sync (); sync ();
 
 #ifdef USE_ALARM
-	    last_time = uae_gethrtime ();
+	    last_time = read_processor_time ();
 	    set_the_alarm ();
 
 	    while (loops_to_go != 0)
@@ -241,9 +248,9 @@ int machdep_inithrtimer (void)
 	    frame_time_t bar;
 
 	    while (i-- > 0) {
-		last_time = uae_gethrtime ();
+		last_time = read_processor_time ();
 		uae_msleep (TIME_DELAY);
-		bar = uae_gethrtime ();
+		bar = read_processor_time ();
 		if (i != loops_to_go && bar - last_time < best_time)
 		    best_time = bar - last_time;
 	    }
@@ -271,17 +278,17 @@ int machdep_init (void)
 /*
  * Handle processor-specific cfgfile options
  */
-void machdep_save_options (FILE *f, const struct uae_prefs *p)
+void machdep_save_options (struct zfile *f, const struct uae_prefs *p)
 {
-    cfgfile_write (f, MACHDEP_NAME ".use_tsc=%s\n", p->use_processor_clock ? "yes" : "no");
+//    cfgfile_write (f, MACHDEP_NAME ".use_tsc=%s\n", p->use_processor_clock ? "yes" : "no");
 }
 
 int machdep_parse_option (struct uae_prefs *p, const char *option, const char *value)
 {
-    return cfgfile_yesno (option, value, "use_tsc", &p->use_processor_clock);
+//    return cfgfile_yesno (option, value, "use_tsc", &p->use_processor_clock);
 }
 
 void machdep_default_options (struct uae_prefs *p)
 {
-    p->use_processor_clock = 1;
+//    p->use_processor_clock = 1;
 }

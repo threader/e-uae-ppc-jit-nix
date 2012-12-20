@@ -26,7 +26,7 @@
 #ifdef  DEBUG_ME
 #define DEBUG_LOG    write_log
 #else
-#define DEBUG_LOG(...) do { ; } while (0);
+#define DEBUG_LOG(...) { }
 #endif
 
 typedef int BOOL;

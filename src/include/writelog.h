@@ -13,7 +13,7 @@
 #define WRITELOG_H
 
 #if __GNUC__ - 1 > 1 || __GNUC_MINOR__ - 1 > 6
-# define PRINTF_FORMAT __attribute__ ((format (printf, 1, 2)));
+# define PRINTF_FORMAT __attribute__ ((format (printf, 1, 2)))
 #else
 # define PRINTF_FORMAT
 #endif

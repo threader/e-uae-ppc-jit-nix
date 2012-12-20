@@ -329,4 +329,5 @@ struct uaekey_hostmap
 #define DIK_CIRCUMFLEX      DIK_PREVTRACK       /* Japanese keyboard */
 
 struct uae_input_device_kbr_default *uaekey_make_default_kbr (const struct uaekey_hostmap *hostkeys);
+extern void my_kbd_handler (int keyboard, int scancode, int newstate);
 

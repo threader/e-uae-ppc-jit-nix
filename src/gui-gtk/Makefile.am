@@ -11,4 +11,3 @@ libguidep_a_SOURCES = gtkui.c util.c chooserwidget.c cputypepanel.c \
 
 noinst_HEADERS = util.h chooserwidget.h cputypepanel.h cpuspeedpanel.h \
 		 floppyfileentry.h led.h chipsettypepanel.h chipsetspeedpanel.h
-

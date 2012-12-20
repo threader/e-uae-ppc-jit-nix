@@ -13,6 +13,10 @@
 #include "uae.h"
 #include "debug.h"
 
+/* external prototypes */
+extern int scan_roms (int);
+
+
 /*
  * Handle break signal
  */

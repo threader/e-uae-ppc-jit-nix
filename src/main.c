@@ -11,6 +11,7 @@
 #include "sysconfig.h"
 #include "sysdeps.h"
 #include <assert.h>
+#include <wchar.h>
 
 #include "options.h"
 #include "threaddep/thread.h"
@@ -55,6 +56,8 @@
 #include "dongle.h"
 #include "sampler.h"
 #include "consolehook.h"
+#include "misc.h"
+#include "keyboard.h"
 #ifdef RETROPLATFORM
 #include "rp.h"
 #endif
@@ -62,6 +65,13 @@
 #include "SDL.h"
 #endif
 
+/* internal prototypes */
+uae_u32 uaesrand (uae_u32 seed);
+uae_u32 uaerandgetseed (void);
+void my_trim (TCHAR *s);
+TCHAR *my_strdup_trim (const TCHAR *s);
+
+/* internal members */
 long int version = 256 * 65536L * UAEMAJOR + 65536L * UAEMINOR + UAESUBREV;
 
 struct uae_prefs currprefs, changed_prefs;
@@ -81,8 +91,8 @@ TCHAR warning_buffer[256];
 
 TCHAR optionsfile[256];
 
-static uae_u32 randseed;
-static int oldhcounter;
+static unsigned long randseed;
+static unsigned long oldhcounter;
 
 static void hr (void)
 {
@@ -119,6 +129,7 @@ uae_u32 uaesrand (uae_u32 seed)
 	//write_log (_T("seed=%08x\n"), randseed);
 	return randseed;
 }
+
 uae_u32 uaerand (void)
 {
 	if (oldhcounter != hsync_counter) {
@@ -129,6 +140,7 @@ uae_u32 uaerand (void)
 	//write_log (_T("rand=%08x\n"), r);
 	return r;
 }
+
 uae_u32 uaerandgetseed (void)
 {
 	return randseed;
@@ -653,7 +665,7 @@ static TCHAR *parsetext (const TCHAR *s)
 		TCHAR c = *s++;
 		int i;
 		d = my_strdup (s);
-		for (i = 0; i < _tcslen (d); i++) {
+		for (i = 0; i < (int)_tcslen (d); i++) {
 			if (d[i] == c) {
 				d[i] = 0;
 				break;
@@ -989,7 +1001,7 @@ static int real_main2 (int argc, TCHAR **argv)
 	else
 		currprefs = changed_prefs;
 
-	uae_inithrtimer ();
+//	uae_inithrtimer ();
 
 	if (!machdep_init ()) {
 		write_log (_T("Machine Init Failed.\n"));

@@ -8,6 +8,9 @@
 
 #define PERIOD_MAX ULONG_MAX
 
+extern void pause_sound (void);
+extern void resume_sound (void);
+
 extern void aud0_handler (void);
 extern void aud1_handler (void);
 extern void aud2_handler (void);

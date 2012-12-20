@@ -1341,7 +1341,7 @@ void AKIKO_hsync_handler (void)
 				else
 					cdrom_subcodeoffset = 128;
 				// 96 byte subchannel data
-				for (unsigned int i = 0; i < SUB_CHANNEL_SIZE; i++)
+				for (int i = 0; i < SUB_CHANNEL_SIZE; i++)
 					put_byte (subcode_address + cdrom_subcodeoffset + i, subcodebuffer[subcodebufferoffset * SUB_CHANNEL_SIZE + i]);
 				put_long (subcode_address + cdrom_subcodeoffset + SUB_CHANNEL_SIZE, 0xffffffff);
 				subcodebufferinuse[subcodebufferoffset] = 0;

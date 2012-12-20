@@ -24,6 +24,7 @@
 #include "events.h"
 #include "uae.h"
 #include "disk.h"
+#include "misc.h"
 
 #if INPUTRECORD_DEBUG > 0
 #include "memory_uae.h"
@@ -55,11 +56,16 @@ static uae_u32 pcs2[16];
 extern void activate_debugger (void);
 static int warned;
 
+/* external prototypes */
 extern void refreshtitle (void);
+extern uae_u32 uaesrand (uae_u32 seed);
+extern uae_u32 uaerandgetseed (void);
+
+
 
 static void setlasthsync (void)
 {
-	if (lasthsync / current_maxvpos () != hsync_counter / current_maxvpos ()) {
+	if (lasthsync / current_maxvpos () != (int)(hsync_counter / current_maxvpos ()) ) {
 		lasthsync = hsync_counter;
 		refreshtitle ();
 	}
@@ -73,19 +79,21 @@ static void flush (void)
 	}
 }
 
-static void inprec_ru8 (uae_u8 v)
+void inprec_ru8 (uae_u8 v)
 {
 	if (!input_record || !inprec_zf)
 		return;
 	*inprec_p++= v;
 }
-static void inprec_ru16 (uae_u16 v)
+
+void inprec_ru16 (uae_u16 v)
 {
 	if (!input_record || !inprec_zf)
 		return;
 	inprec_ru8 ((uae_u8)(v >> 8));
 	inprec_ru8 ((uae_u8)v);
 }
+
 void inprec_ru32 (uae_u32 v)
 {
 	if (!input_record || !inprec_zf)
@@ -93,6 +101,7 @@ void inprec_ru32 (uae_u32 v)
 	inprec_ru16 ((uae_u16)(v >> 16));
 	inprec_ru16 ((uae_u16)v);
 }
+
 static void inprec_rstr (const TCHAR *src)
 {
 	if (!input_record || !inprec_zf)
@@ -369,7 +378,7 @@ int inprec_open (const TCHAR *fname, const TCHAR *statefilename)
 		zfile_fread (inprec_buffer, inprec_size, 1, inprec_zf);
 		inprec_plastptr = inprec_buffer;
 		id = inprec_pu32();
-		if (id != 'UAE\0') {
+		if (id != 0x55414500 /* 'UAE\0' */ ) {
 			inprec_close (true);
 			return 0;
 		}
@@ -437,7 +446,7 @@ int inprec_open (const TCHAR *fname, const TCHAR *statefilename)
 	} else if (input_record) {
 		seed = uaesrand (seed);
 		inprec_buffer = inprec_p = xmalloc (uae_u8, inprec_size);
-		inprec_ru32 ('UAE\0');
+		inprec_ru32 (0x55414500 /* 'UAE\0' */);
 		inprec_ru8 (2);
 		inprec_ru8 (UAEMAJOR);
 		inprec_ru8 (UAEMINOR);

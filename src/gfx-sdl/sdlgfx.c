@@ -20,10 +20,27 @@
 #include "sysconfig.h"
 #include "sysdeps.h"
 #include "../keymap/keymap.h"
+#include "misc.h"
+#include "sdlkeys_dik.h"
 
 #include <SDL.h>
 #include <SDL_endian.h>
+
+/* internal members */
 unsigned int shading_enabled = 0;
+
+/* internal prototypes */
+void setupExtensions(void);
+void setmaintitle (void);
+int mousehack_allowed (void);
+void DX_Invalidate (int first, int last);
+void DX_SetPalette (int start, int count);
+void DX_SetPalette_vsync(void);
+uae_u8 *gfx_lock_picasso (bool fullupdate, bool doclear);
+void gfx_unlock_picasso (bool dorender);
+int is_vsync (void);
+int WIN32GFX_IsPicassoScreen (void);
+
 #ifdef USE_GL
 #define NO_SDL_GLEXT
 # include <SDL_opengl.h>
@@ -42,16 +59,16 @@ unsigned int shading_enabled = 0;
 #elifdef __APPLE__
   #include <OpenGL/glu.h>
   #include <OpenGL/glext.h>
-  void setupExtensions()
-  { shading_enabled = 1; }; // OS X already has these extensions
+  void setupExtensions(void)
+  { shading_enabled = 1; } // OS X already has these extensions
 #elifdef __X11__
   #include <GL/glx.h>
   #include <GL/glxext.h>
   #define uglGetProcAddress(x) (*glXGetProcAddressARB)((const GLubyte*)(x))
   #define WIN32_OR_X11
 #else
-  void setupExtensions()
-  { shading_enabled = 0; }; // just fail otherwise?
+  void setupExtensions(void)
+  { shading_enabled = 0; } // just fail otherwise?
 #endif
 #endif
 #endif /* USE_GL */
@@ -70,12 +87,22 @@ unsigned int shading_enabled = 0;
 #include "hotkeys.h"
 #include "sdlgfx.h"
 
+/* More internal prototypes that need the above includes first */
+int DX_Fill (int dstx, int dsty, int width, int height, uae_u32 color, RGBFTYPE rgbtype);
+void gfx_default_options (struct uae_prefs *p);
+void gfx_save_options (struct zfile *f, const struct uae_prefs *p);
+int gfx_parse_option (struct uae_prefs *p, const char *option, const char *value);
+
+/* More external prototypes that need the above includes first */
+extern void setid    (struct uae_input_device *uid, int i, int slot, int sub, int port, int evt);
+extern void setid_af (struct uae_input_device *uid, int i, int slot, int sub, int port, int evt, int af);
+
 /* Uncomment for debugging output */
 //#define DEBUG
 #ifdef DEBUG
 #define DEBUG_LOG write_log
 #else
-#define DEBUG_LOG(...) do ; while(0)
+#define DEBUG_LOG(...) { }
 #endif
 
 static SDL_Surface *display;
@@ -208,7 +235,7 @@ unsigned int mouse_capture;
 
 TCHAR config_filename[256] = "";
 
-#ifdef WIN32_OR_X11 && GL_SHADER
+#if defined(WIN32_OR_X11) && defined(GL_SHADER)
 PFNGLCREATEPROGRAMOBJECTARBPROC     glCreateProgramObjectARB = NULL;
 PFNGLDELETEOBJECTARBPROC            glDeleteObjectARB = NULL;
 PFNGLCREATESHADEROBJECTARBPROC      glCreateShaderObjectARB = NULL;
@@ -239,7 +266,7 @@ unsigned int findString(char* in, char* list)
   return 0;
 }
 
-void setupExtensions()
+void setupExtensions(void)
 {
   char* extensionList = (char*)glGetString(GL_EXTENSIONS);
 
@@ -297,7 +324,7 @@ void setupExtensions()
   } else
     shading_enabled = 0;
 }
-#endif
+#endif /* defined(WIN32_OR_X11) && defined(GL_SHADER) */
 
 /*
  * What graphics platform are we running on . . .?
@@ -405,8 +432,6 @@ static void init_colors (void)
 	alloc_colors256 (get_color);
 	SDL_SetColors (screen, arSDLColors, 0, 256);
     }
-
-    return 1;
 }
 
 
@@ -880,11 +905,11 @@ static void sdl_flush_screen_flip (struct vidbuf_description *gfxinfo, int first
 
     SDL_BlitSurface (display,0,screen,0);
 
-    start_time = uae_gethrtime ();
+    start_time = read_processor_time ();
 
     SDL_Flip (screen);
 
-    sleep_time = uae_gethrtime () - start_time;
+    sleep_time = read_processor_time () - start_time;
     idletime += sleep_time;
 }
 
@@ -943,11 +968,11 @@ static void sdl_gl_flush_screen_vsync (struct vidbuf_description *gfxinfo, int f
 
     render_gl_buffer (&glbuffer, 0, display->h - 1);
 
-    start_time = uae_gethrtime ();
+    start_time = read_processor_time ();
 
     SDL_GL_SwapBuffers ();
 
-    sleep_time = uae_gethrtime () - start_time;
+    sleep_time = read_processor_time () - start_time;
     idletime += sleep_time;
 }
 
@@ -1871,7 +1896,7 @@ void toggle_fullscreen (int mode)
 		refresh_necessary = 1;
 
 	DEBUG_LOG ("ToggleFullScreen: %d\n", fullscreen );
-};
+}
 
 void toggle_mousegrab (void)
 {
@@ -1920,37 +1945,37 @@ static void close_mouse (void)
 	return;
 }
 
-static int acquire_mouse (unsigned int num, int flags)
+static int acquire_mouse (int num, int flags)
 {
 	/* SDL supports only one mouse */
 	return 1;
 }
 
-static void unacquire_mouse (unsigned int num)
+static void unacquire_mouse (int num)
 {
 	return;
 }
 
-static unsigned int get_mouse_num (void)
+static int get_mouse_num (void)
 {
 	return 1;
 }
 
-static const char *get_mouse_friendlyname (unsigned int mouse)
+static TCHAR *get_mouse_friendlyname (int mouse)
 {
 	return "Default mouse";
 }
-static const char *get_mouse_uniquename (unsigned int mouse)
+static TCHAR *get_mouse_uniquename (int mouse)
 {
 	return "DEFMOUSE1";
 }
 
-static unsigned int get_mouse_widget_num (unsigned int mouse)
+static int get_mouse_widget_num (int mouse)
 {
 	return MAX_AXES + MAX_BUTTONS;
 }
 
-static int get_mouse_widget_first (unsigned int mouse, int type)
+static int get_mouse_widget_first (int mouse, int type)
 {
 	switch (type) {
 	case IDEV_WIDGET_BUTTON:
@@ -1961,7 +1986,7 @@ static int get_mouse_widget_first (unsigned int mouse, int type)
 	return -1;
 }
 
-static int get_mouse_widget_type (unsigned int mouse, unsigned int num, char *name, uae_u32 *code)
+static int get_mouse_widget_type (int mouse, int num, TCHAR *name, uae_u32 *code)
 {
 	if (num >= MAX_AXES && num < MAX_AXES + MAX_BUTTONS) {
 		if (name)
@@ -2007,32 +2032,32 @@ struct inputdevice_functions inputdevicefunc_mouse = {
 /*
  * Keyboard inputdevice functions
  */
-static unsigned int get_kb_num (void)
+static int get_kb_num (void)
 {
 	/* SDL supports only one keyboard */
 	return 1;
 }
 
-static const char *get_kb_friendlyname (unsigned int kb)
+static TCHAR *get_kb_friendlyname (int kb)
 {
 	return "Default keyboard";
 }
-static const char *get_kb_uniquename (unsigned int kb)
+static TCHAR *get_kb_uniquename (int kb)
 {
 	return "DEFKEYB1";
 }
 
-static unsigned int get_kb_widget_num (unsigned int kb)
+static int get_kb_widget_num (int kb)
 {
 	return 255; // fix me
 }
 
-static int get_kb_widget_first (unsigned int kb, int type)
+static int get_kb_widget_first (int kb, int type)
 {
 	return 0;
 }
 
-static int get_kb_widget_type (unsigned int kb, unsigned int num, char *name, uae_u32 *code)
+static int get_kb_widget_type (int kb, int num, TCHAR *name, uae_u32 *code)
 {
 	if (name)
 		_tcscpy (name, di_keyboard[kb].buttonname[num]);
@@ -2048,8 +2073,8 @@ static int init_kb (void)
 	//oldusedleds = -1;
 	keyboard_inited = 1;
 
-	unsigned int i;
-	for (i = 0; i < num_keyboard; i++) {
+	int i = 0;
+	for ( ; i < num_keyboard; i++) {
 		struct didata *did = &di_keyboard[i];
 	/*	if (did->connection == DIDC_DX) {
 			hr = g_lpdi->CreateDevice (did->iguid, &lpdi, NULL);
@@ -2118,12 +2143,12 @@ static void read_kb (void)
 {
 }
 
-static int acquire_kb (unsigned int num, int flags)
+static int acquire_kb (int num, int flags)
 {
 	return 1;
 }
 
-static void unacquire_kb (unsigned int num)
+static void unacquire_kb (int num)
 {
 }
 
@@ -2169,7 +2194,7 @@ int input_get_default_mouse (struct uae_input_device *uid, int num, int port, in
 	setid (uid, num, ID_AXIS_OFFSET + 0, 0, port, port ? INPUTEVENT_MOUSE2_HORIZ : INPUTEVENT_MOUSE1_HORIZ);
 	setid (uid, num, ID_AXIS_OFFSET + 1, 0, port, port ? INPUTEVENT_MOUSE2_VERT : INPUTEVENT_MOUSE1_VERT);
 	setid (uid, num, ID_AXIS_OFFSET + 2, 0, port, port ? 0 : INPUTEVENT_MOUSE1_WHEEL);
-	setid (uid, num, ID_BUTTON_OFFSET + 0, 0, port, port ? INPUTEVENT_JOY2_FIRE_BUTTON : INPUTEVENT_JOY1_FIRE_BUTTON, af);
+	setid_af (uid, num, ID_BUTTON_OFFSET + 0, 0, port, port ? INPUTEVENT_JOY2_FIRE_BUTTON : INPUTEVENT_JOY1_FIRE_BUTTON, af);
 	setid (uid, num, ID_BUTTON_OFFSET + 1, 0, port, port ? INPUTEVENT_JOY2_2ND_BUTTON : INPUTEVENT_JOY1_2ND_BUTTON);
 	setid (uid, num, ID_BUTTON_OFFSET + 2, 0, port, port ? INPUTEVENT_JOY2_3RD_BUTTON : INPUTEVENT_JOY1_3RD_BUTTON);
 	if (port == 0) { /* map back and forward to ALT+LCUR and ALT+RCUR */
@@ -2203,7 +2228,7 @@ void gfx_default_options (struct uae_prefs *p)
 #endif /* USE_GL */
 }
 
-void gfx_save_options (FILE *f, const struct uae_prefs *p)
+void gfx_save_options (struct zfile *f, const struct uae_prefs *p)
 {
 	cfgfile_write (f, GFX_NAME ".map_raw_keys=%s\n", p->map_raw_keys ? "true" : "false");
 #ifdef USE_GL
@@ -2213,9 +2238,9 @@ void gfx_save_options (FILE *f, const struct uae_prefs *p)
 
 int gfx_parse_option (struct uae_prefs *p, const char *option, const char *value)
 {
-	int result = (cfgfile_yesno (option, value, "map_raw_keys", &p->map_raw_keys));
+	int result = (cfgfile_yesno (option, value, "map_raw_keys", &(p->map_raw_keys)));
 #ifdef USE_GL
-	result = result || (cfgfile_yesno (option, value, "use_gl", &p->use_gl));
+	result = result || (cfgfile_yesno (option, value, "use_gl", &(p->use_gl)));
 #endif /* USE_GL */
 	return result;
 }

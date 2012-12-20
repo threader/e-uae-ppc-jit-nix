@@ -180,6 +180,8 @@ static void REGPARAM3 expamem_lput (uaecptr, uae_u32) REGPARAM;
 static void REGPARAM3 expamem_wput (uaecptr, uae_u32) REGPARAM;
 static void REGPARAM3 expamem_bput (uaecptr, uae_u32) REGPARAM;
 
+void p96memstart (void);
+
 addrbank expamem_bank = {
 	expamem_lget, expamem_wget, expamem_bget,
 	expamem_lput, expamem_wput, expamem_bput,

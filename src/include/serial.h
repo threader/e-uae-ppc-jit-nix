@@ -29,6 +29,7 @@ extern void serial_flush_buffer (void);
 extern void serial_hsynchandler (void);
 extern void serial_check_irq (void);
 
+extern void uaeser_initdata (void *vsd, void *user);
 extern int uaeser_getdatalength (void);
 extern int uaeser_getbytespending (void*);
 extern int uaeser_open (void*, void*, int);

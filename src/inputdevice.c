@@ -3609,7 +3609,7 @@ static void setbuttonstateall (struct uae_input_device *id, struct uae_input_dev
 	if (input_play)
 		return;
 	if (!id->enabled) {
-		frame_time_t t = uae_gethrtime ();
+		frame_time_t t = read_processor_time ();
 		if (state) {
 			switchdevice_timeout = t;
 		} else {

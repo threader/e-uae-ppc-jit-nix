@@ -22,6 +22,12 @@
 #include "keyboard.h"
 #include "hotkeys.h"
 
+/* internal prototypes */
+const char *get_xkb_keycodes (Display *);
+int xkeysym2amiga (KeySym);
+struct uae_hotkeyseq *get_x11_default_hotkeys (void);
+
+
 #ifdef USE_XKB
 # include <X11/XKBlib.h>
 # include <X11/extensions/XKBrules.h>
@@ -429,6 +435,22 @@ static int decode_es (KeySym ks)
     return -1;
 }
 
+/*
+ * Handle keys specific to TR keymaps.
+ */
+static int decode_tr (int keysym)
+{
+    switch (keysym) {
+	case XK_a:		return AK_A;
+	case XK_m:		return AK_M;
+	case XK_q:		return AK_Q;
+	case XK_y:		return AK_Y;
+	case XK_w:		return AK_W;
+	case XK_z:		return AK_Z;
+	default: return -1;
+    }
+}
+
 int xkeysym2amiga (KeySym ks)
 {
     int as = kc_decode (ks);
@@ -449,6 +471,11 @@ int xkeysym2amiga (KeySym ks)
 		as = decode_it (ks); break;
 	    case KBD_LANG_ES:
 		as = decode_es (ks); break;
+			case KBD_LANG_TR:
+			as = decode_tr (ks); break;
+			case KBD_LANG_FI:
+			default:
+			break;
 	}
     }
     return as;

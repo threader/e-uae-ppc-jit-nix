@@ -273,7 +273,7 @@ TCHAR *restore_path_func (uae_u8 **dstp, int type)
 		xfree (s);
 		return my_strdup (tmp);
 	}
-	for (unsigned int i = 0; i < MAX_PATHS; i++) {
+	for (int i = 0; i < MAX_PATHS; i++) {
 		newpath = NULL;
 		if (type == SAVESTATE_PATH_FLOPPY)
 			newpath = currprefs.path_floppy.path[i];

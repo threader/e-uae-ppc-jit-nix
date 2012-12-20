@@ -103,7 +103,7 @@ static struct PicassoResolution *newmodes;
 static int picasso_convert, host_mode;
 
 /* These are the maximum resolutions... They are filled in by GetSupportedResolutions() */
-/* have to fill this in, otherwise problems occur on the Amiga side P96 s/w which expects
+/* have to fill this in, otherwise problems occur on the Amiga side P96 s/w which expects */
 /* data here. */
 static struct ScreenResolution planar = { 320, 240 };
 static struct ScreenResolution chunky = { 640, 480 };
@@ -133,26 +133,6 @@ static uaecptr uaegfx_resname,
 	uaegfx_init,
 	uaegfx_base,
 	uaegfx_rom;
-
-typedef enum {
-	BLIT_FALSE,
-	BLIT_NOR,
-	BLIT_ONLYDST,
-	BLIT_NOTSRC,
-	BLIT_ONLYSRC,
-	BLIT_NOTDST,
-	BLIT_EOR,
-	BLIT_NAND,
-	BLIT_AND,
-	BLIT_NEOR,
-	BLIT_DST,
-	BLIT_NOTONLYSRC,
-	BLIT_SRC,
-	BLIT_NOTONLYDST,
-	BLIT_OR,
-	BLIT_TRUE,
-	BLIT_SWAP = 30
-} BLIT_OPCODE;
 
 #define UAE_RTG_LIBRARY_VERSION 40
 #define UAE_RTG_LIBRARY_REVISION 3994

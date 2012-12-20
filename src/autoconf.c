@@ -18,6 +18,10 @@
 #include "newcpu.h"
 #include "autoconf.h"
 #include "traps.h"
+#include "misc.h"
+#ifdef PICASSO96
+# include "picasso96.h"
+#endif
 
 /* Commonly used autoconfig strings */
 

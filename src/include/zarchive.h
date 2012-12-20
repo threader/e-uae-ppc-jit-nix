@@ -1,3 +1,4 @@
+struct zfile;
 
 typedef uae_s64 (*ZFILEREAD)(void*, uae_u64, uae_u64, struct zfile*);
 typedef uae_s64 (*ZFILEWRITE)(const void*, uae_u64, uae_u64, struct zfile*);
@@ -84,19 +85,24 @@ struct zarchive_info
     time_t t;
 };
 
-#define ArchiveFormat7Zip '7z  '
-#define ArchiveFormatRAR 'rar '
-#define ArchiveFormatZIP 'zip '
-#define ArchiveFormatLHA 'lha '
-#define ArchiveFormatLZX 'lzx '
-#define ArchiveFormatPLAIN '----'
-#define ArchiveFormatDIR 'DIR '
-#define ArchiveFormatAA 'aa  ' // method only
-#define ArchiveFormatADF 'DOS '
-#define ArchiveFormatRDB 'RDSK'
-#define ArchiveFormatMBR 'MBR '
-#define ArchiveFormatFAT 'FAT '
-#define ArchiveFormatTAR 'tar '
+/* Update: Use real integer constants, not multi-char constants.
+ * The latter are a _perfect_ way to break any means of portability.
+ * (And it produces a load of very annoying compiler warnings...)
+ * - Sven
+*/
+#define ArchiveFormat7Zip  0x377a2020 // '7z  '
+#define ArchiveFormatRAR   0x72617220 // 'rar '
+#define ArchiveFormatZIP   0x7a697020 // 'zip '
+#define ArchiveFormatLHA   0x6c686120 // 'lha '
+#define ArchiveFormatLZX   0x6c7a7820 // 'lzx '
+#define ArchiveFormatPLAIN 0x2d2d2d2d // '----'
+#define ArchiveFormatDIR   0x44495220 // 'DIR '
+#define ArchiveFormatAA    0x61612020 // 'aa  ' // method only
+#define ArchiveFormatADF   0x444f5320 // 'DOS '
+#define ArchiveFormatRDB   0x5244534b // 'RDSK'
+#define ArchiveFormatMBR   0x4d425220 // 'MBR '
+#define ArchiveFormatFAT   0x46415420 // 'FAT '
+#define ArchiveFormatTAR   0x74617220 // 'tar '
 
 #define PEEK_BYTES 1024
 #define FILE_PEEK 1

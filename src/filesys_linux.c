@@ -168,7 +168,7 @@ DWORD SetFilePointer(HANDLE hFile, int32_t lDistanceToMove, int32_t *lpDistanceT
 	return (DWORD)currOff;
 }
 
-uae_s64 int my_lseek (struct my_openfile_s *mos, uae_s64 int offset, int whence) {
+uae_s64 my_lseek (struct my_openfile_s *mos, uae_s64 offset, int whence) {
 	off_t result = lseek(mos->h, offset, whence);
 	return result;
     
@@ -351,7 +351,7 @@ int my_truncate (const TCHAR *name, uae_u64 len) {
 	return result;
 }
 
-uae_s64 int my_fsize (struct my_openfile_s *mos) {
+uae_s64 my_fsize (struct my_openfile_s *mos) {
 	uae_s64 cur, filesize;
 
 	cur = lseek (mos->h, 0, SEEK_CUR);

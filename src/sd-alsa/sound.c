@@ -23,8 +23,9 @@
 
 #include <alsa/asoundlib.h>
 
+/* internal types */
 char alsa_device[256];
-int  alsa_verbose;
+bool alsa_verbose;
 
 unsigned int have_sound = 0;
 
@@ -37,6 +38,17 @@ int bytes_per_frame;
 
 static struct sound_data sdpaula;
 static struct sound_data *sdp = &sdpaula;
+
+/* internal prototypes */
+void restart_sound_buffer (void);
+void audio_default_options (struct uae_prefs *);
+void audio_save_options (struct zfile *, const struct uae_prefs *);
+int audio_parse_option (struct uae_prefs *, const char *, const char *);
+void set_volume_sound_device (struct sound_data *, int, int);
+void set_volume (int, int);
+void master_sound_volume (int);
+void sound_mute (int);
+
 
 void close_sound (void)
 {
@@ -141,9 +153,11 @@ static int set_sw_params(snd_pcm_t *pcm,
     if (err < 0)
 		return err;
 
+	/* deprecated. No longer needed? There doesn't seem to be a substitute.
     err = snd_pcm_sw_params_set_xfer_align(pcm, sw_params, 1);
     if (err < 0)
 		return err;
+	*/
 
     err = snd_pcm_sw_params(pcm, sw_params);
     if (err < 0)
@@ -182,9 +196,12 @@ int init_sound (void)
 		goto nosound;
     }
 
+    /* this is no longer configurable ? - Sven
     buffer_time = currprefs.sound_latency * 1000;
     if (buffer_time < 1000 || buffer_time > 500000)
 		buffer_time = 100000;
+	*/
+	buffer_time = 100000;
 
     if ((err = snd_pcm_hw_params_malloc (&hw_params)) < 0) {
 		write_log ("Cannot allocate hardware parameter structure: %s.\n", snd_strerror (err));
@@ -237,8 +254,8 @@ int init_sound (void)
     sound_available = 1;
 
     write_log ("ALSA: Using device '%s'.\n", alsa_device);
-    write_log ("ALSA: Sound configured for %d bits at %d Hz. Buffer length is %u us, period size %d bytes.\n",
-	       dspbits, rate, buffer_time, period_frames * bytes_per_frame);
+    write_log ("ALSA: Sound configured for %d bits at %d Hz. Buffer length is %u us, period size %u bytes.\n",
+	       dspbits, rate, buffer_time, (size_t)(period_frames * bytes_per_frame) );
 
     if (alsa_verbose)
 		snd_pcm_dump (alsa_playback_handle, alsa_out);
@@ -288,10 +305,10 @@ void restart_sound_buffer (void)
 void audio_default_options (struct uae_prefs *p)
 {
     strncpy (alsa_device, "default", 256);
-    alsa_verbose = 0;
+    alsa_verbose = false;
 }
 
-void audio_save_options (FILE *f, const struct uae_prefs *p)
+void audio_save_options (struct zfile *f, const struct uae_prefs *p)
 {
     cfgfile_write (f, "alsa.device=%s\n", alsa_device);
     cfgfile_write (f, "alsa.verbose=%s\n", alsa_verbose ? "true" : "false");

@@ -206,7 +206,7 @@ struct cputracestruct
 	uae_u32 startcycles;
 	int needendcycles;
 	int memoryoffset;
-	int cyclecounter, cyclecounter_pre, cyclecounter_post;
+	unsigned long cyclecounter, cyclecounter_pre, cyclecounter_post;
 	int readcounter, writecounter;
 	struct cputracememory ctm[MAX_CPUTRACESIZE];
 };

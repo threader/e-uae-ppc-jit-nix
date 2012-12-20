@@ -34,6 +34,7 @@
 #include "cia.h"
 #include "inputrecord.h"
 #include "inputdevice.h"
+#include "misc.h"
 
 #define f_out write_log
 #define console_out write_log
@@ -42,8 +43,8 @@
 #include <signal.h>
 #else
 /* Need to have these somewhere */
-static void build_comp (void) {}
-bool check_prefs_changed_comp (void) { return false; }
+STATIC_INLINE void build_comp (void) {}
+STATIC_INLINE bool check_prefs_changed_comp (void) { return false; }
 #endif
 /* For faster JIT cycles handling */
 signed long pissoff = 0;
@@ -606,7 +607,7 @@ static void cputracefunc_x_do_cycles_pre (unsigned long cycles)
 // -1 = rerun whole access
 static void cputracefunc2_x_do_cycles_pre (unsigned long cycles)
 {
-	if (cputrace.cyclecounter_pre == -1) {
+	if (cputrace.cyclecounter_pre == (unsigned long)-1) {
 		cputrace.cyclecounter_pre = 0;
 		check_trace ();
 		check_trace2 ();
@@ -2812,7 +2813,7 @@ void m68k_divl (uae_u32 opcode, uae_u32 src, uae_u16 extra)
 		Exception (5);
 		return;
 	}
-#if defined (uae_s64)
+#if defined (HAS_uae_64)
 	if (extra & 0x800) {
 		/* signed variant */
 		uae_s64 a = (uae_s64)(uae_s32)m68k_dreg (regs, (extra >> 12) & 7);
@@ -2869,7 +2870,7 @@ void m68k_divl (uae_u32 opcode, uae_u32 src, uae_u16 extra)
 		uae_s32 lo = (uae_s32)m68k_dreg (regs, (extra >> 12) & 7);
 		uae_s32 hi = lo < 0 ? -1 : 0;
 		uae_s32 save_high;
-		uae_u32 quot, rem;
+		uae_u32 quot = 0, rem = 0;
 		uae_u32 sign;
 
 		if (extra & 0x400) {
@@ -2947,7 +2948,7 @@ void m68k_mull (uae_u32 opcode, uae_u32 src, uae_u16 extra)
 		op_unimpl ();
 		return;
 	}
-#if defined (uae_s64)
+#if defined (HAS_uae_64)
 	if (extra & 0x800) {
 		/* signed variant */
 		uae_s64 a = (uae_s64)(uae_s32)m68k_dreg (regs, (extra >> 12) & 7);
@@ -3608,7 +3609,7 @@ STATIC_INLINE int do_specialties (int cycles)
 				static int sleepcnt, lvpos, zerocnt;
 				if (vpos != lvpos) {
 					lvpos = vpos;
-					frame_time_t rpt = uae_gethrtime ();
+					frame_time_t rpt = read_processor_time ();
 					if ((int)rpt - (int)vsyncmaxtime < 0) {
 					sleepcnt--;
 #if 0
@@ -4056,7 +4057,7 @@ static void m68k_run_mmu040 (void)
 retry:
 	TRY (prb) {
 		for (;;) {
-			pc = regs.instruction_pc = regs.instruction_pc = m68k_getpc ();
+			pc = regs.instruction_pc = m68k_getpc ();
 #if 0
 			if (regs.regs[8+1] == 0x5b) {
 				static int cnt = 6;
@@ -4890,25 +4891,25 @@ void sm68k_disasm (TCHAR *instrname, TCHAR *instrcode, uaecptr addr, uaecptr *ne
 }
 
 struct cpum2c m2cregs[] = {
-	0, _T("SFC"),
-	1, _T("DFC"),
-	2, _T("CACR"),
-	3, _T("TC"),
-	4, _T("ITT0"),
-	5, _T("ITT1"),
-	6, _T("DTT0"),
-	7, _T("DTT1"),
-	8, _T("BUSC"),
-	0x800, _T("USP"),
-	0x801, _T("VBR"),
-	0x802, _T("CAAR"),
-	0x803, _T("MSP"),
-	0x804, _T("ISP"),
-	0x805, _T("MMUS"),
-	0x806, _T("URP"),
-	0x807, _T("SRP"),
-	0x808, _T("PCR"),
-	-1, NULL
+	{ 0, _T("SFC") },
+	{ 1, _T("DFC") },
+	{ 2, _T("CACR") },
+	{ 3, _T("TC") },
+	{ 4, _T("ITT0") },
+	{ 5, _T("ITT1") },
+	{ 6, _T("DTT0") },
+	{ 7, _T("DTT1") },
+	{ 8, _T("BUSC") },
+	{ 0x800, _T("USP") },
+	{ 0x801, _T("VBR") },
+	{ 0x802, _T("CAAR") },
+	{ 0x803, _T("MSP") },
+	{ 0x804, _T("ISP") },
+	{ 0x805, _T("MMUS") },
+	{ 0x806, _T("URP") },
+	{ 0x807, _T("SRP") },
+	{ 0x808, _T("PCR") },
+	{ -1, NULL }
 };
 
 void val_move2c2 (int regno, uae_u32 val)

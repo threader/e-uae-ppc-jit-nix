@@ -32,6 +32,8 @@
 #include "a2091.h"
 #include "gayle.h"
 #include "debug.h"
+#include "misc.h"
+#include "zfile.h"
 
 extern uae_u8 *natmem_offset, *natmem_offset_end;
 
@@ -51,6 +53,39 @@ static int mem_hardreset;
 #define IPC_RMID    0x02
 #define IPC_CREAT   0x04
 #define IPC_STAT    0x08
+
+/* internal prototypes */
+#ifdef AGA
+uae_u32 REGPARAM2 chipmem_lget_ce2 (uaecptr addr);
+uae_u32 REGPARAM2 chipmem_wget_ce2 (uaecptr addr);
+uae_u32 REGPARAM2 chipmem_bget_ce2 (uaecptr addr);
+void REGPARAM2 chipmem_lput_ce2 (uaecptr addr, uae_u32 l);
+void REGPARAM2 chipmem_wput_ce2 (uaecptr addr, uae_u32 w);
+void REGPARAM2 chipmem_bput_ce2 (uaecptr addr, uae_u32 b);
+#endif
+uae_u32 REGPARAM2 chipmem_lget (uaecptr addr);
+uae_u32 REGPARAM2 chipmem_wget (uaecptr addr);
+uae_u32 REGPARAM2 chipmem_bget (uaecptr addr);
+void REGPARAM2 chipmem_dummy_bput (uaecptr addr, uae_u32 b);
+void REGPARAM2 chipmem_dummy_wput (uaecptr addr, uae_u32 b);
+void REGPARAM2 chipmem_dummy_lput (uaecptr addr, uae_u32 b);
+uae_u32 REGPARAM2 chipmem_agnus_lget (uaecptr addr);
+uae_u32 REGPARAM2 chipmem_agnus_bget (uaecptr addr);
+void REGPARAM2 chipmem_agnus_lput (uaecptr addr, uae_u32 l);
+void REGPARAM2 chipmem_agnus_bput (uaecptr addr, uae_u32 b);
+static uae_u32 REGPARAM3 kickmem_lget (uaecptr) REGPARAM;
+static uae_u32 REGPARAM3 kickmem_wget (uaecptr) REGPARAM;
+static uae_u32 REGPARAM3 kickmem_bget (uaecptr) REGPARAM;
+static void REGPARAM3 kickmem_lput (uaecptr, uae_u32) REGPARAM;
+static void REGPARAM3 kickmem_wput (uaecptr, uae_u32) REGPARAM;
+static void REGPARAM3 kickmem_bput (uaecptr, uae_u32) REGPARAM;
+static int REGPARAM3 kickmem_check (uaecptr addr, uae_u32 size) REGPARAM;
+void REGPARAM2 kickmem2_lput (uaecptr addr, uae_u32 l);
+void REGPARAM2 kickmem2_wput (uaecptr addr, uae_u32 w);
+void REGPARAM2 kickmem2_bput (uaecptr addr, uae_u32 b);
+static uae_u8 *REGPARAM3 kickmem_xlate (uaecptr addr) REGPARAM;
+void memcpyha (uaecptr dst, const uae_u8 *src, int size);
+
 
 static bool isdirectjit (void)
 {
@@ -154,7 +189,7 @@ __inline__ void byteput (uaecptr addr, uae_u32 b)
 int addr_valid (const TCHAR *txt, uaecptr addr, uae_u32 len)
 {
 	addrbank *ab = &get_mem_bank(addr);
-	if (ab == 0 || !(ab->flags & (ABFLAG_RAM | ABFLAG_ROM)) || addr < 0x100 || len < 0 || len > 16777215 || !valid_address (addr, len)) {
+	if (ab == 0 || !(ab->flags & (ABFLAG_RAM | ABFLAG_ROM)) || addr < 0x100 || len > 16777215 || !valid_address (addr, len)) {
 		write_log (_T("corrupt %s pointer %x (%d) detected!\n"), txt, addr, len);
 		return 0;
 	}
@@ -474,24 +509,28 @@ static uae_u32 chipmem_dummy (void)
 	/* not really right but something random that has more ones than zeros.. */
 	return 0xffff & ~((1 << (uaerand () & 31)) | (1 << (uaerand () & 31)));
 }
+
 void REGPARAM2 chipmem_dummy_bput (uaecptr addr, uae_u32 b)
 {
 #ifdef JIT
 	special_mem |= S_WRITE;
 #endif
 }
+
 void REGPARAM2 chipmem_dummy_wput (uaecptr addr, uae_u32 b)
 {
 #ifdef JIT
 	special_mem |= S_WRITE;
 #endif
 }
+
 void REGPARAM2 chipmem_dummy_lput (uaecptr addr, uae_u32 b)
 {
 #ifdef JIT
 	special_mem |= S_WRITE;
 #endif
 }
+
 static uae_u32 REGPARAM2 chipmem_dummy_bget (uaecptr addr)
 {
 #ifdef JIT
@@ -499,6 +538,7 @@ static uae_u32 REGPARAM2 chipmem_dummy_bget (uaecptr addr)
 #endif
 	return chipmem_dummy ();
 }
+
 static uae_u32 REGPARAM2 chipmem_dummy_wget (uaecptr addr)
 {
 #ifdef JIT
@@ -506,6 +546,7 @@ static uae_u32 REGPARAM2 chipmem_dummy_wget (uaecptr addr)
 #endif
 	return chipmem_dummy ();
 }
+
 static uae_u32 REGPARAM2 chipmem_dummy_lget (uaecptr addr)
 {
 #ifdef JIT
@@ -922,7 +963,7 @@ static uae_u8 *REGPARAM2 a3000hmem_xlate (uaecptr addr)
 
 uae_u8 *kickmemory;
 uae_u16 kickstart_version;
-int kickmem_size;
+uae_u32 kickmem_size;
 
 /*
  * A1000 kickstart RAM handling
@@ -958,14 +999,6 @@ void a1000_reset (void)
 	a1000_handle_kickstart (1);
 }
 
-static uae_u32 REGPARAM3 kickmem_lget (uaecptr) REGPARAM;
-static uae_u32 REGPARAM3 kickmem_wget (uaecptr) REGPARAM;
-static uae_u32 REGPARAM3 kickmem_bget (uaecptr) REGPARAM;
-static void REGPARAM3 kickmem_lput (uaecptr, uae_u32) REGPARAM;
-static void REGPARAM3 kickmem_wput (uaecptr, uae_u32) REGPARAM;
-static void REGPARAM3 kickmem_bput (uaecptr, uae_u32) REGPARAM;
-static int REGPARAM3 kickmem_check (uaecptr addr, uae_u32 size) REGPARAM;
-static uae_u8 *REGPARAM3 kickmem_xlate (uaecptr addr) REGPARAM;
 
 uae_u32 REGPARAM2 kickmem_lget (uaecptr addr)
 {
@@ -1087,7 +1120,7 @@ uae_u8 *REGPARAM2 kickmem_xlate (uaecptr addr)
 /* CD32/CDTV extended kick memory */
 
 uae_u8 *extendedkickmemory, *extendedkickmemory2;
-static int extendedkickmem_size, extendedkickmem2_size;
+static uae_u32 extendedkickmem_size, extendedkickmem2_size;
 static uae_u32 extendedkickmem_start, extendedkickmem2_start;
 static int extendedkickmem_type;
 
@@ -1796,17 +1829,17 @@ static void patch_kick (void)
 		kickstart_fix_checksum (kickmemory, kickmem_size);
 }
 
-unsigned char arosrom[];
-unsigned int arosrom_len;
 extern int seriallog;
 static bool load_kickstart_replacement (void)
 {
-	struct zfile *f;
+	struct zfile *f = NULL;
+	unsigned char arosrom[1] = { 0x0 };
+	unsigned int arosrom_len = 1;
 	
 	f = zfile_fopen_data (_T("aros.gz"), arosrom_len, arosrom);
 	if (!f)
 		return false;
-	f = zfile_gunzip (f);
+	f = zfile_gunzip (f, NULL);
 	if (!f)
 		return false;
 	kickmem_mask = 0x80000 - 1;
@@ -2218,7 +2251,7 @@ static void allocate_memory (void)
 	}
 
 	if (allocated_chipmem != currprefs.chipmem_size) {
-		int memsize;
+		uae_u32 memsize = 0;
 		if (chipmemory)
 			mapped_free (chipmemory);
 		chipmemory = 0;
@@ -2639,7 +2672,7 @@ void memory_reset (void)
 
 	/* map "nothing" to 0x200000 - 0x9FFFFF (0xBEFFFF if Gayle or Fat Gary) */
 	bnk = allocated_chipmem >> 16;
-	if (bnk < 0x20 + (currprefs.fastmem_size >> 16))
+	if ((uae_u32)bnk < 0x20 + (currprefs.fastmem_size >> 16))
 		bnk = 0x20 + (currprefs.fastmem_size >> 16);
 	bnk_end = gayleorfatgary ? 0xBF : 0xA0;
 	map_banks (&dummy_bank, bnk, bnk_end - bnk, 0);
@@ -3183,11 +3216,13 @@ void memcpyha_safe (uaecptr dst, const uae_u8 *src, int size)
 	while (size--)
 		put_byte (dst++, *src++);
 }
+
 void memcpyha (uaecptr dst, const uae_u8 *src, int size)
 {
 	while (size--)
 		put_byte (dst++, *src++);
 }
+
 void memcpyah_safe (uae_u8 *dst, uaecptr src, int size)
 {
 	if (!addr_valid (_T("memcpyah"), src, size))
@@ -3195,11 +3230,13 @@ void memcpyah_safe (uae_u8 *dst, uaecptr src, int size)
 	while (size--)
 		*dst++ = get_byte (src++);
 }
+
 void memcpyah (uae_u8 *dst, uaecptr src, int size)
 {
 	while (size--)
 		*dst++ = get_byte (src++);
 }
+
 uae_char *strcpyah_safe (uae_char *dst, uaecptr src, int maxsize)
 {
 	uae_char *res = dst;
@@ -3217,6 +3254,7 @@ uae_char *strcpyah_safe (uae_char *dst, uaecptr src, int maxsize)
 	} while (b);
 	return res;
 }
+
 uaecptr strcpyha_safe (uaecptr dst, const uae_char *src)
 {
 	uaecptr res = dst;

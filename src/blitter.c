@@ -192,7 +192,7 @@ static const int blit_cycle_diagram_finalld[] =
 
 static int get_cycle_diagram_type (const int *diag)
 {
-	for (unsigned int i = 0; i < 16; i++) {
+	for (int i = 0; i < 16; i++) {
 		if (diag == &blit_cycle_diagram[i][0])
 			return i;
 		if (diag == &blit_cycle_diagram_fill[i][0])
@@ -208,7 +208,7 @@ static int get_cycle_diagram_type (const int *diag)
 }
 static const int *set_cycle_diagram_type (uae_u8 diag)
 {
-	if (diag >= 0x00 && diag <= 0x0f)
+	if (diag <= 0x0f)
 		return &blit_cycle_diagram[diag][0];
 	if (diag >= 0x40 && diag <= 0x4f)
 		return &blit_cycle_diagram_fill[diag][0];
@@ -814,7 +814,7 @@ void blitter_handler (uae_u32 data)
 		/* "free" blitter in immediate mode if it has been "stuck" ~3 frames
 		* fixes some JIT game incompatibilities
 		*/
-		write_log (_T("Blitter force-unstuck!\n"));
+		debugtest (DEBUGTEST_BLITTER, _T("force-unstuck!\n"));
 	}
 	blitter_stuck = 0;
 	if (blit_slowdown > 0 && !currprefs.immediate_blits) {
@@ -1185,7 +1185,7 @@ static void blit_bltset (int con)
 
 	if (blitline) {
 		if (blt_info.hblitsize != 2)
-			write_log (_T("weird blt_info.hblitsize in linemode: %d vsize=%d\n"),
+			debugtest (DEBUGTEST_BLITTER, _T("weird blt_info.hblitsize in linemode: %d vsize=%d\n"),
 				blt_info.hblitsize, blt_info.vblitsize);
 		blit_diag = blit_cycle_diagram_line;
 	} else {
@@ -1193,16 +1193,16 @@ static void blit_bltset (int con)
 			blitfc = !!(bltcon1 & 0x4);
 			blitife = !!(bltcon1 & 0x8);
 			if ((bltcon1 & 0x18) == 0x18) {
-				write_log (_T("weird fill mode\n"));
+				debugtest (DEBUGTEST_BLITTER, _T("weird fill mode\n"));
 				blitife = 0;
 			}
 		}
 		if (blitfill && !blitdesc)
-			write_log (_T("fill without desc\n"));
+			debugtest (DEBUGTEST_BLITTER, _T("fill without desc\n"));
 		blit_diag = blitfill &&  blit_cycle_diagram_fill[blit_ch][0] ? blit_cycle_diagram_fill[blit_ch] : blit_cycle_diagram[blit_ch];
 	}
 	if ((bltcon1 & 0x80) && (currprefs.chipset_mask & CSMASK_ECS_AGNUS))
-		write_log (_T("ECS BLTCON1 DOFF-bit set\n"));
+		debugtest (DEBUGTEST_BLITTER, _T("ECS BLTCON1 DOFF-bit set\n"));
 
 	// on the fly switching fillmode from extra cycle to non-extra: blitter freezes
 	// non-extra cycle to extra cycle: does not freeze but cycle diagram goes weird,
@@ -1497,7 +1497,7 @@ void maybe_blit (int hpos, int hack)
 
 	if (warned && dmaen (DMA_BLITTER) && blt_info.got_cycle) {
 		warned--;
-		write_log (_T("program does not wait for blitter tc=%d\n"),
+		debugtest (DEBUGTEST_BLITTER, _T("program does not wait for blitter tc=%d\n"),
 			blit_cyclecounter);
 #ifdef BLITTER_DEBUG
 		warned = 0;
@@ -1515,7 +1515,7 @@ void maybe_blit (int hpos, int hack)
 		goto end;
 	}
 
-	if (hack == 1 && get_cycles() < blit_firstline_cycles)
+	if (hack == 1 && get_cycles() < (unsigned long)blit_firstline_cycles)
 		goto end;
 
 	blitter_handler (0);

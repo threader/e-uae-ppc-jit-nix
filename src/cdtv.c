@@ -233,7 +233,7 @@ static void subfunc (uae_u8 *data, int cnt)
 	uae_sem_wait (&sub_sem);
 #ifdef CDTV_SUB_DEBUG
 	int total = 0;
-	for (unsigned int i = 0; i < MAX_SUBCODEBUFFER; i++) {
+	for (int i = 0; i < MAX_SUBCODEBUFFER; i++) {
 		if (subcodebufferinuse[i])
 			total++;
 	}
@@ -790,7 +790,7 @@ bool cdtv_front_panel (int button)
 	uae_u8 *sq = cdrom_qcode + 4;
 	int track = frombcd (sq[1]);
 	int pos = 0;
-	for (unsigned int j = 0; j < toc.points; j++) {
+	for (int j = 0; j < toc.points; j++) {
 		int t = toc.toc[j].track;
 		pos = toc.toc[j].paddress;
 		if (t == 1 && track == 1 && button == 2)
@@ -1853,7 +1853,7 @@ uae_u8 *save_cdtv (int *len, uae_u8 *dstptr)
 	save_u32 (last_play_pos);
 	save_u32 (last_play_end);
 	save_u64 (dma_wait);
-	for (unsigned int i = 0; i < sizeof cdrom_command_input; i++)
+	for (int i = 0; i < sizeof cdrom_command_input; i++)
 		save_u8 (cdrom_command_input[i]);
 	save_u8 (cdrom_command_cnt_in);
 	save_u16 (cdtv_sectorsize);
@@ -1904,7 +1904,7 @@ uae_u8 *restore_cdtv (uae_u8 *src)
 	last_play_pos = restore_u32 ();
 	last_play_end = restore_u32 ();
 	dma_wait = restore_u64 ();
-	for (unsigned int i = 0; i < sizeof cdrom_command_input; i++)
+	for (int i = 0; i < sizeof cdrom_command_input; i++)
 		cdrom_command_input[i] = restore_u8 ();
 	cdrom_command_cnt_in = restore_u8 ();
 	cdtv_sectorsize = restore_u16 ();

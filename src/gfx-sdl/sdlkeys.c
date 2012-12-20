@@ -385,6 +385,9 @@ int keysym2amiga (int keysym)
 		amiga_keycode = decode_es (keysym); break;
 	    case KBD_LANG_TR:
 		amiga_keycode = decode_tr (keysym); break;
+		case KBD_LANG_FI:
+	    default:
+			break;
 	}
     }
     return amiga_keycode;

@@ -28,6 +28,11 @@
 
 #define DEBUG_FPP 0
 
+/* internal prototypes */
+uae_u32 get_fpsr (void);
+void fpp_setexcept (uae_u16 mask);
+
+
 STATIC_INLINE int isinrom (void)
 {
 	return (munge24 (m68k_getpc ()) & 0xFFF80000) == 0xF80000 && !currprefs.mmu_model;
@@ -155,7 +160,7 @@ static uae_u16 x87_cw_tab[] = {
 #endif
 }
 
-#if defined(uae_s64) /* Close enough for government work? */
+#if defined(HAS_uae_64) /* Close enough for government work? */
 typedef uae_s64 tointtype;
 #else
 typedef uae_s32 tointtype;

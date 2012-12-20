@@ -222,8 +222,8 @@ int main(int argc, char **argv)
 	if (nextch != ':')
 	    abort();
 
-	fgets(opcstr, 250, tablef);
-	getnextch();
+	if (fgets(opcstr, 250, tablef))
+		getnextch();
 	{
 	    int j;
 	    /* Remove superfluous spaces from the string */

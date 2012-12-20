@@ -387,7 +387,7 @@ static int catweasel4_configure (void)
 	f = zfile_fopen(_T("core.cw4"), _T("rb"), ZFD_NORMAL);
 	if (!f) {
 		f = zfile_fopen_data (_T("core.cw4.gz"), core_len, core);
-		f = zfile_gunzip (f);
+		f = zfile_gunzip (f, NULL);
 	}
 	write_log (_T("CW: starting core upload, this will take few seconds\n"));
 	t = time(NULL) + 10; // give up if upload takes more than 10s

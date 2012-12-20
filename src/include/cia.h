@@ -28,3 +28,5 @@ extern int parallel_direct_write_status (uae_u8, uae_u8);
 extern int parallel_direct_read_status (uae_u8*);
 
 extern void rtc_hardreset (void);
+
+extern void cia_heartbeat (void);

@@ -23,7 +23,7 @@ extern "C" {
 #ifdef DEBUG
 #define DEBUG_LOG write_log
 #else
-#define DEBUG_LOG(x...) { do ; while(0); }
+#define DEBUG_LOG(...) { }
 #endif
 
 extern "C" {

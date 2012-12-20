@@ -4,7 +4,7 @@
  * SCSI layer back-end for AmigaOS hosts
  *
  * Copyright 2005-2006 Richard Drummond
- *           2005 Sigbjørn Skjæret (68k/MorphOS device-scanning)
+ *           2005 Sigbjï¿¸rn Skjï¿¦ret (68k/MorphOS device-scanning)
  */
 
 #include "sysconfig.h"
@@ -26,7 +26,7 @@
 #ifdef  DEBUG_ME
 #define DEBUG_LOG    write_log
 #else
-#define DEBUG_LOG(...) do { ; } while (0);
+#define DEBUG_LOG(...) { }
 #endif
 
 #define MAX_DRIVES	16

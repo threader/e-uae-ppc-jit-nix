@@ -1,3 +1,6 @@
+#ifndef SRC_INCLUDE_ZFILE_H_INCLUDED
+#define SRC_INCLUDE_ZFILE_H_INCLUDED 1
+
  /*
   * UAE - The Un*x Amiga Emulator
   *
@@ -72,6 +75,7 @@ extern TCHAR *zfile_getfilename (struct zfile *f);
 extern uae_u32 zfile_crc32 (struct zfile *f);
 extern struct zfile *zfile_dup (struct zfile *f);
 //extern struct zfile *zfile_gunzip (struct zfile *z);
+extern struct zfile *zfile_gunzip (struct zfile *z, int *retcode);
 extern int zfile_is_diskimage (const TCHAR *name);
 extern int iszip (struct zfile *z);
 extern int zfile_convertimage (const TCHAR *src, const TCHAR *dst);
@@ -132,3 +136,7 @@ extern void zfile_close_archive (struct zfile *d);
 extern struct zfile *zfile_open_archive (const TCHAR *path, int flags);
 extern int zfile_exists_archive (const TCHAR *path, const TCHAR *rel);
 extern bool zfile_needwrite (struct zfile*);
+extern struct zfile *zfile_fopen_data (const TCHAR *name, uae_u64 size, const uae_u8 *data);
+
+
+#endif /* SRC_INCLUDE_ZFILE_H_INCLUDED */

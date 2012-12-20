@@ -96,9 +96,8 @@ read_counts (void)
     memset (counts, 0, 65536 * sizeof *counts);
 
     file = fopen ("frequent.68k", "r");
-    if (file)
+    if (file && fscanf (file, "Total: %lu\n", &total))
     {
-	fscanf (file, "Total: %lu\n", &total);
 	while (fscanf (file, "%lx: %lu %s\n", &opcode, &count, name) == 3)
 	{
 	    opcode_next_clev[nr] = 5;
@@ -1488,7 +1487,7 @@ gen_opcode (unsigned long int opcode)
 	    comprintf("\tand_l_ri(s,31);\n");
 
 	{
-	    char* op;
+	    char* op = NULL;
 	    int need_write=1;
 
 	    switch(curi->mnemo) {
@@ -3125,9 +3124,9 @@ main (int argc, char **argv)
 		"");
 	
 	stblfile = fopen ("compstbl.c", "wb");
-    freopen ("compemu.c", "wb", stdout);
+    if (freopen ("compemu.c", "wb", stdout))
+		generate_includes (stdout, 1);
 
-    generate_includes (stdout, 1);
     generate_includes (stblfile, 1);
 
     printf("#include \"compemu.h\"\n");

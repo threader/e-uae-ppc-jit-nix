@@ -42,7 +42,7 @@ STATIC_INLINE int uae_start_thread (char *name, void *(*f) (void *), void *arg, 
 		result = 0;
 		write_log ("Thread '%s' failed to start!?\n", name ? name : "<unknown>");
 	} else {
-		write_log ("Thread '%s' started (%d)\n", name, *tid);
+		write_log ("Thread '%s' started (%u)\n", name, (size_t)(*tid) );
 	}
 
 	return result;

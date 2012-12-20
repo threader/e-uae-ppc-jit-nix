@@ -11,7 +11,7 @@
 
 #include "machdep/rpt.h"
 #include "osdep/hrtimer.h"
-
+/*
 STATIC_INLINE frame_time_t uae_gethrtime (void)
 {
 #ifdef HAVE_MACHDEP_TIMER
@@ -41,5 +41,5 @@ STATIC_INLINE void uae_inithrtimer (void)
 #endif
        osdep_inithrtimer ();
 }
-
+*/
 #endif

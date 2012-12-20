@@ -28,6 +28,16 @@
 static int flag;
 static unsigned int cycles;
 
+/* internal prototypes */
+void dongle_reset (void);
+uae_u8 dongle_cia_read (int cia, int reg, uae_u8 val);
+void dongle_cia_write (int cia, int reg, uae_u8 val);
+void dongle_joytest (uae_u16 val);
+uae_u16 dongle_joydat (int port, uae_u16 val);
+void dongle_potgo (uae_u16 val);
+uae_u16 dongle_potgor (uae_u16 val);
+int dongle_analogjoy (int joy, int axis);
+
 /*
 Robocop 3
 - set firebutton as output

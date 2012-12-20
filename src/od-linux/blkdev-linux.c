@@ -27,7 +27,7 @@
 extern int log_scsi;
 # define DEBUG_LOG    if (log_scsi) write_log
 #else
-# define DEBUG_LOG(...) do { ; } while (0);
+# define DEBUG_LOG(...) { }
 #endif
 
 struct scsidevdata {

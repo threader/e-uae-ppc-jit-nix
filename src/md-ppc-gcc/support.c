@@ -208,15 +208,15 @@ int machdep_init (void)
  */
 void machdep_save_options (FILE *f, const struct uae_prefs *p)
 {
-    cfgfile_write (f, MACHDEP_NAME ".use_tbc=%s\n", p->use_processor_clock ? "yes" : "no");
+//    cfgfile_write (f, MACHDEP_NAME ".use_tbc=%s\n", p->use_processor_clock ? "yes" : "no");
 }
 
 int machdep_parse_option (struct uae_prefs *p, const char *option, const char *value)
 {
-    return cfgfile_yesno (option, value, "use_tbc", &p->use_processor_clock);
+//    return cfgfile_yesno (option, value, "use_tbc", &p->use_processor_clock);
 }
 
 void machdep_default_options (struct uae_prefs *p)
 {
-    p->use_processor_clock = 1;
+//    p->use_processor_clock = 1;
 }

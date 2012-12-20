@@ -6,4 +6,4 @@ noinst_LIBRARIES = libgfxdep.a
 
 libgfxdep_a_SOURCES = sdlgfx.c sdlkeys.c sdlkeys_dik.c rawkeys.c
 
-noinst_HEADERS = gfx.h sdlgfx.h
+noinst_HEADERS = gfx.h sdlgfx.h sdlkeys_dik.h

@@ -17,19 +17,24 @@
 
 #define MAX_MAPPINGS 256
 
+/* external prototypes */
+extern void setid    (struct uae_input_device *uid, int i, int slot, int sub, int port, int evt);
+extern void setid_af (struct uae_input_device *uid, int i, int slot, int sub, int port, int evt, int af);
+
+/* internal members */
 static unsigned int nr_joysticks;
 static int initialized;
 
 struct joyinfo {
     SDL_Joystick *joy;
-    unsigned int axles;
-    unsigned int buttons;
+    int axles;
+    int buttons;
 };
 
 static struct joyinfo joys[MAX_INPUT_DEVICES];
 
 
-static void read_joy (unsigned int nr)
+static void read_joy (int nr)
 {
     unsigned int num, i, axes, axis;
     SDL_Joystick *joy;
@@ -52,17 +57,17 @@ static void read_joy (unsigned int nr)
     }
 }
 
-static unsigned int get_joystick_num (void)
+static  int get_joystick_num (void)
 {
     return nr_joysticks;
 }
 
-static unsigned int get_joystick_widget_num (unsigned int joy)
+static  int get_joystick_widget_num (int joy)
 {
     return joys[joy].axles + joys[joy].buttons;
 }
 
-static int get_joystick_widget_type (unsigned int joy, unsigned int num, char *name, uae_u32 *code)
+static int get_joystick_widget_type (int joy, int num, TCHAR *name, uae_u32 *code)
 {
     if (num >= joys[joy].axles && num < joys[joy].axles + joys[joy].buttons) {
 		if (name)
@@ -76,7 +81,7 @@ static int get_joystick_widget_type (unsigned int joy, unsigned int num, char *n
     return IDEV_WIDGET_NONE;
 }
 
-static int get_joystick_widget_first (unsigned int joy, int type)
+static int get_joystick_widget_first (int joy, int type)
 {
     switch (type) {
 	case IDEV_WIDGET_BUTTON:
@@ -87,22 +92,22 @@ static int get_joystick_widget_first (unsigned int joy, int type)
     return -1;
 }
 
-static const char *get_joystick_friendlyname (unsigned int joy)
+static TCHAR *get_joystick_friendlyname (int joy)
 {
-    return SDL_JoystickName (joy);
+    return (TCHAR*)SDL_JoystickName (joy);
 }
 
-static const char *get_joystick_uniquename (unsigned int joy)
+static TCHAR *get_joystick_uniquename (int joy)
 {
-    return SDL_JoystickName (joy);
+    return (TCHAR*)SDL_JoystickName (joy);
 }
 
 static void read_joystick (void)
 {
     if (get_joystick_num ()) {
-		unsigned int i;
+		int i = 0;
 		SDL_JoystickUpdate ();
-		for (i = 0; i < get_joystick_num (); i++)
+		for ( ; i < get_joystick_num (); i++)
 		    read_joy (i);
     }
 }
@@ -113,7 +118,7 @@ static int init_joystick (void)
 
     if (!initialized) {
 		if (SDL_InitSubSystem (SDL_INIT_JOYSTICK) == 0) {
-		    unsigned int i;
+		    int i = 0;
 
 		    nr_joysticks = SDL_NumJoysticks ();
 		    write_log ("Found %d joystick(s)\n", nr_joysticks);
@@ -121,7 +126,7 @@ static int init_joystick (void)
 		    if (nr_joysticks > MAX_INPUT_DEVICES)
 				nr_joysticks = MAX_INPUT_DEVICES;
 
-		    for (i = 0; i < get_joystick_num (); i++) {
+		    for ( ; i < get_joystick_num (); i++) {
 				joys[i].joy     = SDL_JoystickOpen (i);
 				joys[i].axles   = SDL_JoystickNumAxes (joys[i].joy);
 				joys[i].buttons = SDL_JoystickNumButtons (joys[i].joy);
@@ -149,12 +154,12 @@ static void close_joystick (void)
 	}
 }
 
-static int acquire_joystick (unsigned int num, int flags)
+static int acquire_joystick (int num, int flags)
 {
 	return num < get_joystick_num ();
 }
 
-static void unacquire_joystick (unsigned int num)
+static void unacquire_joystick (int num)
 {
 }
 

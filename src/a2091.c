@@ -1372,7 +1372,7 @@ void a2091_init (void)
 				rombankswitcher = 1;
 			zfile_fread (rom, rom_size, 1, z);
 			zfile_fclose (z);
-			for (unsigned int i = 1; i < slotsize / rom_size; i++)
+			for (int i = 1; i < slotsize / rom_size; i++)
 				memcpy (rom + i * rom_size, rom, rom_size);
 			rom_mask = rom_size - 1;
 		}

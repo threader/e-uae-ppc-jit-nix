@@ -160,6 +160,8 @@ extern int input_get_default_joystick (struct uae_input_device *uid, int num, in
 extern int input_get_default_joystick_analog (struct uae_input_device *uid, int num, int port, int af, bool gp);
 extern int input_get_default_keyboard (int num);
 
+extern void inputdevice_release_all_keys (void);
+
 #define DEFEVENT(A, B, C, D, E, F) INPUTEVENT_ ## A,
 enum inputevents {
 INPUTEVENT_ZERO,
@@ -231,7 +233,7 @@ extern void inputdevice_vsync (void);
 extern void inputdevice_hsync (void);
 extern void inputdevice_reset (void);
 
-//extern void write_inputdevice_config (struct uae_prefs *p, struct zfile *f);
+extern void write_inputdevice_config (struct uae_prefs *p, struct zfile *f);
 extern void read_inputdevice_config (struct uae_prefs *p, const TCHAR *option, TCHAR *value);
 extern void reset_inputdevice_config (struct uae_prefs *pr);
 extern int inputdevice_joyport_config (struct uae_prefs *p, const TCHAR *value, int portnum, int mode, int type);

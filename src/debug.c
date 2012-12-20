@@ -37,6 +37,7 @@
 #include "inputrecord.h"
 #include "calc.h"
 
+/* internal members */
 int debugger_active;
 static uaecptr skipaddr_start, skipaddr_end;
 static int skipaddr_doskip;
@@ -3151,7 +3152,7 @@ static void debug_sprite (TCHAR **inptr)
 	int ypos, ypos_ecs;
 	int ypose, ypose_ecs;
 	int attach;
-	uae_u64 w1, w2, ww1, ww2;
+	uae_u64 w1=0, w2=0, ww1=0, ww2=0;
 	int size = 1, width;
 	int ecs, sh10;
 	int y, i;
@@ -3863,7 +3864,13 @@ void debug (void)
 							seglist = BPTR2APTR(get_long (activetask + 128));
 							seglist = BPTR2APTR(get_long (seglist + 12));
 						}
-						if (activetask == processptr || (processname && (!strcasecmp (name, processname) || (command && command[0] && !strncasecmp (command + 1, processname, command[0]) && processname[command[0]] == 0)))) {
+						if (activetask == processptr
+							|| (processname
+								&& (!strcasecmp (name, processname)
+									|| (command
+										&& command[0]
+										&& !strncasecmp (command + 1, processname, command[0])
+										&& processname[(int)command[0]] == 0)))) {
 							while (seglist) {
 								uae_u32 size = get_long (seglist - 4) - 4;
 								if (pc >= (seglist + 4) && pc < (seglist + size)) {

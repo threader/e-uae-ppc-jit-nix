@@ -96,8 +96,7 @@ static void read_counts (void)
 
 	count = 0;
 	file = fopen ("frequent.68k", "r");
-	if (file) {
-		fscanf (file, "Total: %lu\n", &total);
+	if (file && (1 == fscanf (file, "Total: %lu\n", &total))) {
 		while (fscanf (file, "%lx: %lu %s\n", &opcode, &count, name) == 3) {
 			opcode_next_clev[nr] = 5;
 			opcode_last_postfix[nr] = -1;
@@ -300,7 +299,7 @@ static const char *gen_nextiword (int flags)
 	} else {
 		if (using_prefetch) {
 			if (flags & GF_NOREFILL) {
-				sprintf (buffer, "regs.irc", r);
+				sprintf (buffer, "%s", "regs.irc");
 			} else {
 				sprintf (buffer, "%s (%d)", prefetch_word, r + 2);
 				count_read++;
@@ -334,7 +333,7 @@ static const char *gen_nextibyte (int flags)
 		insn_n_cycles += 4;
 		if (using_prefetch) {
 			if (flags & GF_NOREFILL) {
-				sprintf (buffer, "(uae_u8)regs.irc", r);
+				sprintf (buffer, "%s", "(uae_u8)regs.irc");
 			} else {
 				sprintf (buffer, "(uae_u8)%s (%d)", prefetch_word, r + 2);
 				insn_n_cycles += 4;
@@ -810,9 +809,28 @@ static void genamode_fixup (amodes mode, char *reg, wordsizes size, char *name, 
 		if (!movem) {
 			switch (mode)
 			{
+			case Dreg:
+			case Areg:
+			case Aind:
 			case Aipi:
+				break;
 			case Apdi:
-				printf ("\tmmufixup[0].reg = -1;\n", fixupcnt);
+				printf("%s", "\tmmufixup[0].reg = -1;\n");
+				break;
+			case Ad16:
+			case Ad8r:
+			case absw:
+			case absl:
+			case PC16:
+			case PC8r:
+			case imm:
+			case imm0:
+			case imm1:
+			case imm2:
+			case immi:
+			case am_unknown:
+			case am_illg:
+			default:
 				break;
 			}
 		}
@@ -1160,7 +1178,8 @@ static void genflags_normal (flagtypes type, wordsizes size, char *value, char *
 {
 	char vstr[100], sstr[100], dstr[100];
 	char usstr[100], udstr[100];
-	char unsstr[100], undstr[100];
+	char unsstr[100];
+	char undstr[100], undsstr[100]; /* undsstr is the src partner for undstr */
 
 	switch (size) {
 	case sz_byte:
@@ -1195,6 +1214,7 @@ static void genflags_normal (flagtypes type, wordsizes size, char *value, char *
 	strcat (usstr, src);
 	strcat (usstr, "))");
 
+/* WAS:
 	strcpy (undstr, unsstr);
 	strcat (unsstr, "-");
 	strcat (undstr, "~");
@@ -1202,6 +1222,42 @@ static void genflags_normal (flagtypes type, wordsizes size, char *value, char *
 	strcat (undstr, "))");
 	strcat (unsstr, src);
 	strcat (unsstr, "))");
+*/
+	strcat (unsstr, "-");
+	strcat (unsstr, src);
+	strcat (unsstr, "))");
+
+	/* update: to get rid of the "comparison of promoted ~unsigned with unsigned" warning,
+	   which is rather bad as it indicates that the test will fail although it shouldn't,
+	   the comparison with ~ is always done using 32bit unsigned.
+	   - Sven
+	   For further reference see http://gcc.gnu.org/bugzilla/show_bug.cgi?id=38341 -
+	   Comment #1 By Richard Biener.
+	   The important part is:
+	   " Warn if two unsigned values are being compared in a size larger
+         than their original size, and one (and only one) is the result of
+         a `~' operator.  This comparison will ***always fail***. "
+	   According to Richard Biener the original line
+	   SET_CFLG(((uae_u8)(~dst)) < ((uae_u8)(src))) would translate into
+	   SET_CFLG(((int)(uae_u8)(~(int)dst)) < ((int)(uae_u8)(src))) which can
+	   not work, because the implicit promotion to int, followed by a ~ sets
+	   the three most significant bytes of dst to 0xff. The comparison will
+	   always fail. On a first glance this might be of no importance, because
+	   those three bytes are truncated by the next cast. But, the compiler
+	   *might* optimize those out, resulting in:
+	   SET_CFLG((~(int)dst) < (int)(src)) - No doubt that this is wrong.
+	   - Of course I might be wrong here, and the rest of the cpuemu code has
+	     been engineered around the fact that this comparison is never true.
+	     This would mean that I have introduced a whole horde of new "bugs".
+	     We'll see.
+	 */
+	strcpy (undstr,  "((uae_u32)(");
+	strcpy (undsstr, undstr);
+	strcat (undstr,  "~");
+	strcat (undstr,  dst);
+	strcat (undsstr, src);
+	strcat (undstr,  "))");
+	strcat (undsstr, "))");
 
 	switch (type) {
 	case flag_logical_noclobber:
@@ -1228,6 +1284,7 @@ static void genflags_normal (flagtypes type, wordsizes size, char *value, char *
 	switch (type) {
 	case flag_logical_noclobber:
 	case flag_logical:
+	case flag_z:
 	case flag_zn:
 		break;
 
@@ -1271,7 +1328,7 @@ static void genflags_normal (flagtypes type, wordsizes size, char *value, char *
 	case flag_add:
 		printf ("\tSET_ZFLG (%s == 0);\n", vstr);
 		printf ("\tSET_VFLG ((flgs ^ flgn) & (flgo ^ flgn));\n");
-		printf ("\tSET_CFLG (%s < %s);\n", undstr, usstr);
+		printf ("\tSET_CFLG (%s < %s);\n", undstr, undsstr);
 		duplicate_carry (0);
 		printf ("\tSET_NFLG (flgn != 0);\n");
 		break;
@@ -2204,7 +2261,7 @@ static void gen_opcode (unsigned long int opcode)
 		    pop_braces (old_brace_level);
 		    printf ("\tregs.sr = newsr; MakeFromSR ();\n");
 		    printf ("\tif (newpc & 1) {\n");
-		    printf ("\t\texception3i (0x%04X, newpc);\n", opcode);
+		    printf ("\t\texception3i (0x%04lX, newpc);\n", opcode);
 			printf ("\t\tgoto %s;\n", endlabelstr);
 			printf ("\t}\n");
 		    printf ("\t\tm68k_setpc (newpc);\n");
@@ -2225,12 +2282,12 @@ static void gen_opcode (unsigned long int opcode)
 			genamode (curi->smode, "srcreg", curi->size, "offs", 1, 0, 0);
 			printf ("\tm68k_areg (regs, 7) += offs;\n");
 			printf ("\tif (pc & 1) {\n");
-			printf ("\t\texception3i (0x%04X, pc);\n", opcode);
+			printf ("\t\texception3i (0x%04lX, pc);\n", opcode);
 			printf ("\t\tgoto %s;\n", endlabelstr);
 			printf ("\t}\n");
 		}
 	    printf ("\tif (pc & 1) {\n");
-	    printf ("\t\texception3i (0x%04X, pc);\n", opcode);
+	    printf ("\t\texception3i (0x%04lX, pc);\n", opcode);
 		printf ("\t\tgoto %s;\n", endlabelstr);
 		printf ("\t}\n");
 		setpc ("pc");
@@ -2288,7 +2345,7 @@ static void gen_opcode (unsigned long int opcode)
 	    printf ("\tif (m68k_getpc () & 1) {\n");
 		printf ("\t\tuaecptr faultpc = m68k_getpc ();\n");
 		printf ("\t\tm68k_setpc (pc);\n");
-		printf ("\t\texception3i (0x%04X, faultpc);\n", opcode);
+		printf ("\t\texception3i (0x%04lX, faultpc);\n", opcode);
 		printf ("\t}\n");
 		count_read += 2;
 		m68k_pc_offset = 0;
@@ -2316,7 +2373,7 @@ static void gen_opcode (unsigned long int opcode)
 		printf ("\tif (m68k_getpc () & 1) {\n");
 		printf ("\t\tuaecptr faultpc = m68k_getpc ();\n");
 		printf ("\t\tm68k_setpc (oldpc);\n");
-		printf ("\t\texception3i (0x%04X, faultpc);\n", opcode);
+		printf ("\t\texception3i (0x%04lX, faultpc);\n", opcode);
 		printf ("\t}\n");
 		m68k_pc_offset = 0;
 		fill_prefetch_full ();
@@ -3318,7 +3375,7 @@ static void gen_opcode (unsigned long int opcode)
 			start_brace ();
 			printf ("\tuae_u32 bdata[2];\n");
 			printf ("\tuae_s32 offset = extra & 0x800 ? m68k_dreg(regs, (extra >> 6) & 7) : (extra >> 6) & 0x1f;\n");
-			printf ("\tint width = (((extra & 0x20 ? m68k_dreg(regs, extra & 7) : extra) -1) & 0x1f) +1;\n");
+			printf ("\tint width = (((extra & 0x20 ? m68k_dreg(regs, extra & 7) : (uae_u32)extra) -1) & 0x1f) +1;\n");
 			if (curi->dmode == Dreg) {
 				printf ("\tuae_u32 tmp = m68k_dreg(regs, dstreg);\n");
 				printf ("\toffset &= 0x1f;\n");
@@ -3730,7 +3787,7 @@ static void generate_one_opcode (int rp, char *extra)
 
 	if (opcode_next_clev[rp] != cpu_level) {
 		if (generate_stbl)
-			fprintf (stblfile, "{ %sCPUFUNC(op_%04x_%d%s), %d }, /* %s */\n",
+			fprintf (stblfile, "{ %sCPUFUNC(op_%04lx_%d%s), %ld }, /* %s */\n",
 			(using_ce || using_ce020) ? "(cpuop_func*)" : "",
 			opcode, opcode_last_postfix[rp],
 			extra, opcode, lookuptab[idx].name);
@@ -3834,7 +3891,7 @@ static void generate_one_opcode (int rp, char *extra)
 	if (generate_stbl) {
 		if (i68000)
 			fprintf (stblfile, "#ifndef CPUEMU_68000_ONLY\n");
-		fprintf (stblfile, "{ %sCPUFUNC(op_%04x_%d%s), %d }, /* %s */\n",
+		fprintf (stblfile, "{ %sCPUFUNC(op_%04lx_%d%s), %ld }, /* %s */\n",
 			(using_ce || using_ce020) ? "(cpuop_func*)" : "",
 			opcode, postfix, extra, opcode, lookuptab[idx].name);
 		if (i68000)
@@ -3897,8 +3954,8 @@ static void generate_cpu (int id, int mode)
 			fprintf (stblfile, "#ifdef CPUEMU_%d%s\n", postfix, extraup);
 		postfix2 = postfix;
 		sprintf (fname, "cpuemu_%d%s.c", postfix, extra);
-		freopen (fname, "wb", stdout);
-		generate_includes (stdout);
+		if (freopen (fname, "wb", stdout))
+			generate_includes (stdout);
 	}
 
 	using_mmu = 0;

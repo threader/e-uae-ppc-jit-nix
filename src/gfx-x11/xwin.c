@@ -52,7 +52,7 @@
 #define VidMode_MINMINOR 0
 #endif
 
-#include <X11/extensions/xf86dga.h>
+#include <X11/extensions/Xxf86dga.h>
 #define DGA_MINMAJOR 0
 #define DGA_MINMINOR 0
 
@@ -76,6 +76,32 @@
     XPutImage (display, mywin, mygc, (IMG), (SRCX), (SRCY), (DSTX), (DSTY), (WIDTH), (HEIGHT))
 #endif
 
+
+/* internal prototypes */
+int mousehack_allowed (void);
+void setmaintitle(void);
+
+#ifdef PICASSO96
+void DX_Invalidate (int, int);
+void DX_SetPalette (int, int);
+void DX_SetPalette_vsync(void);
+int DX_Fill (int, int, int, int, uae_u32, RGBFTYPE);
+int DX_Blit (int, int, int, int, int, int, BLIT_OPCODE);
+uae_u8 *gfx_lock_picasso (int);
+void gfx_unlock_picasso (void);
+#endif /* PICASSO96 */
+
+int is_vsync (void);
+void gfx_save_options (FILE *, const struct uae_prefs *);
+int gfx_parse_option (struct uae_prefs *, const char *, const char *);
+void gfx_default_options (struct uae_prefs *);
+
+
+/* external prototypes */
+extern void inputdevice_release_all_keys (void);
+
+
+/* internal types */
 struct disp_info {
     XImage *ximg;
     char *image_mem;
@@ -320,7 +346,7 @@ static void enter_dga_mode (void)
     switch_to_best_mode ();
 
     gfxvidinfo.rowbytes = fb_width*gfxvidinfo.pixbytes;
-    gfxvidinfo.bufmem = fb_addr;
+    gfxvidinfo.bufmem = (unsigned char*)fb_addr;
     gfxvidinfo.linemem = 0;
     gfxvidinfo.emergmem = malloc (gfxvidinfo.rowbytes);
     gfxvidinfo.maxblocklines = MAXBLOCKLINES_MAX;
@@ -360,7 +386,7 @@ static void x11_flush_screen (struct vidbuf_description *gfxinfo, int first_line
 }
 
 /*
- * Template for flush_line() buffer method in low-bandwith mode
+ * Template for flush_line() buffer method in low-bandwidth mode
  *
  * In low-bandwidth mode, we don't flush the complete line. For each line we try
  * to find the smallest line segment that contains modified pixels and flush only
@@ -372,7 +398,7 @@ static void x11_flush_screen (struct vidbuf_description *gfxinfo, int first_line
     char    *src;								\
     char    *dst;								\
     int      xs   = 0;								\
-    int      xe   = gfxinfo->width - 1;						\
+    int      xe   = gfxinfo->inwidth - 1;					\
     int      len;								\
     pixtype *newp = (pixtype *)gfxinfo->linemem;				\
     pixtype *oldp = (pixtype *)((uae_u8 *)ami_dinfo.image_mem +			\
@@ -429,9 +455,9 @@ static void x11_flush_line_lbw_32bit_mitshm (struct vidbuf_description *gfxinfo,
 static void x11_flush_line_dither (struct vidbuf_description *gfxinfo, int line_no)
 {
     DitherLine ((uae_u8 *)ami_dinfo.image_mem + ami_dinfo.ximg->bytes_per_line * line_no,
-		(uae_u16 *)gfxinfo->linemem, 0, line_no, gfxinfo->width, bit_unit);
+		(uae_u16 *)gfxinfo->linemem, 0, line_no, gfxinfo->inwidth, bit_unit);
 
-    DO_PUTIMAGE (ami_dinfo.ximg, 0, line_no, 0, line_no, gfxinfo->width, 1);
+    DO_PUTIMAGE (ami_dinfo.ximg, 0, line_no, 0, line_no, gfxinfo->inwidth, 1);
 }
 
 /*
@@ -441,7 +467,7 @@ static void x11_flush_line_dither (struct vidbuf_description *gfxinfo, int line_
 static void x11_flush_line_dither_dga (struct vidbuf_description *gfxinfo, int line_no)
 {
     DitherLine ((unsigned char *)(fb_addr + fb_width * line_no),
-		(uae_u16 *)gfxinfo->linemem, 0, line_no, gfxinfo->width, bit_unit);
+		(uae_u16 *)gfxinfo->linemem, 0, line_no, gfxinfo->inwidth, bit_unit);
 
 }
 #endif
@@ -455,7 +481,7 @@ static void x11_flush_block (struct vidbuf_description *gfxinfo, int first_line,
 	       ami_dinfo.ximg,
 	       0, first_line,
 	       0, first_line,
-	       gfxinfo->width,
+	       gfxinfo->inwidth,
 	       last_line - first_line + 1);
 }
 
@@ -468,7 +494,7 @@ static void x11_flush_block_mitshm (struct vidbuf_description *gfxinfo, int firs
 		  ami_dinfo.ximg,
 		  0, first_line,
 		  0, first_line,
-		  gfxinfo->width,
+		  gfxinfo->inwidth,
 		  last_line - first_line + 1,
 		  0);
 }
@@ -743,7 +769,8 @@ static void graphics_subinit (void)
     XWMHints *hints;
     unsigned long valuemask;
 
-    dgamode = screen_is_picasso ? currprefs.gfx_pfullscreen : currprefs.gfx_afullscreen;
+    dgamode = currprefs.gfx_apmode[screen_is_picasso ? APMODE_RTG : APMODE_NATIVE].gfx_fullscreen;
+//    dgamode = screen_is_picasso ? currprefs.gfx_pfullscreen : currprefs.gfx_afullscreen;
     dgamode = dgamode && dgaavail;
 
     wattr.background_pixel = /*black.pixel*/0;
@@ -907,8 +934,8 @@ int graphics_init (void)
 
     fixup_prefs_dimensions (&currprefs);
 
-    gfxvidinfo.width = currprefs.gfx_size_win.width;
-    gfxvidinfo.height = currprefs.gfx_size_win.height;
+    gfxvidinfo.inwidth = currprefs.gfx_size_win.width;
+    gfxvidinfo.inheight = currprefs.gfx_size_win.height;
     current_width = currprefs.gfx_size_win.width;
     current_height = currprefs.gfx_size_win.height;
 
@@ -1224,8 +1251,8 @@ int check_prefs_changed_gfx (void)
 	&& changed_prefs.gfx_vresolution == currprefs.gfx_vresolution
 	&& changed_prefs.gfx_xcenter == currprefs.gfx_xcenter
 	&& changed_prefs.gfx_ycenter == currprefs.gfx_ycenter
-	&& changed_prefs.gfx_afullscreen == currprefs.gfx_afullscreen
-	&& changed_prefs.gfx_pfullscreen == currprefs.gfx_pfullscreen)
+	&& changed_prefs.gfx_apmode[APMODE_RTG].gfx_fullscreen == currprefs.gfx_apmode[APMODE_RTG].gfx_fullscreen
+	&& changed_prefs.gfx_apmode[APMODE_NATIVE].gfx_fullscreen == currprefs.gfx_apmode[APMODE_NATIVE].gfx_fullscreen)
 	return 0;
 
     graphics_subshutdown ();
@@ -1234,8 +1261,8 @@ int check_prefs_changed_gfx (void)
     currprefs.gfx_vresolution = changed_prefs.gfx_vresolution;
     currprefs.gfx_xcenter = changed_prefs.gfx_xcenter;
     currprefs.gfx_ycenter = changed_prefs.gfx_ycenter;
-    currprefs.gfx_afullscreen = changed_prefs.gfx_afullscreen;
-    currprefs.gfx_pfullscreen = changed_prefs.gfx_pfullscreen;
+    currprefs.gfx_apmode[APMODE_NATIVE].gfx_fullscreen = changed_prefs.gfx_apmode[APMODE_NATIVE].gfx_fullscreen;
+    currprefs.gfx_apmode[APMODE_RTG].gfx_fullscreen = changed_prefs.gfx_apmode[APMODE_RTG].gfx_fullscreen;
 
     graphics_subinit ();
 
@@ -1259,7 +1286,6 @@ int mousehack_allowed (void)
 {
     return mousehack;
 }
-
 
 #ifdef PICASSO96
 
@@ -1407,8 +1433,8 @@ void gfx_set_picasso_state (int on)
 	current_height = picasso_vidinfo.height;
 	graphics_subinit ();
     } else {
-	current_width = gfxvidinfo.width;
-	current_height = gfxvidinfo.height;
+	current_width = gfxvidinfo.outwidth;
+	current_height = gfxvidinfo.outheight;
 	graphics_subinit ();
 	reset_drawing ();
     }
@@ -1420,7 +1446,7 @@ uae_u8 *gfx_lock_picasso (int fullupdate)
 {
 #ifdef USE_DGA_EXTENSION
     if (dgamode)
-	return fb_addr;
+		return (uae_u8 *)fb_addr;
     else
 #endif
 	return (uae_u8 *)pic_dinfo.ximg->data;
@@ -1468,7 +1494,9 @@ int is_vsync (void)
 void toggle_fullscreen (int mode)
 {
 #ifdef USE_DGA_EXTENSION
-    changed_prefs.gfx_afullscreen = changed_prefs.gfx_pfullscreen = !dgamode;
+    changed_prefs.gfx_apmode[APMODE_NATIVE].gfx_fullscreen
+		= changed_prefs.gfx_apmode[APMODE_RTG].gfx_fullscreen
+		= !dgamode;
 #endif
 }
 
@@ -1500,32 +1528,37 @@ static void close_mouse (void)
    return;
 }
 
-static int acquire_mouse (unsigned int num, int flags)
+static int acquire_mouse (int num, int flags)
 {
    return 1;
 }
 
-static void unacquire_mouse (unsigned int num)
+static void unacquire_mouse (int num)
 {
    return;
 }
 
-static unsigned int get_mouse_num (void)
+static int get_mouse_num (void)
 {
     return 1;
 }
 
-static const char *get_mouse_name (unsigned int mouse)
+static TCHAR *get_mouse_friendlyname (int mouse)
 {
     return "Default mouse";
 }
 
-static unsigned int get_mouse_widget_num (unsigned int mouse)
+static TCHAR *get_mouse_uniquename (int mouse)
+{
+	return "DEFMOUSE1";
+}
+
+static int get_mouse_widget_num (int mouse)
 {
     return MAX_AXES + MAX_BUTTONS;
 }
 
-static int get_mouse_widget_first (unsigned int mouse, int type)
+static int get_mouse_widget_first (int mouse, int type)
 {
     switch (type) {
 	case IDEV_WIDGET_BUTTON:
@@ -1536,7 +1569,7 @@ static int get_mouse_widget_first (unsigned int mouse, int type)
     return -1;
 }
 
-static int get_mouse_widget_type (unsigned int mouse, unsigned int num, char *name, uae_u32 *code)
+static int get_mouse_widget_type (int mouse, int num, TCHAR *name, uae_u32 *code)
 {
     if (num >= MAX_AXES && num < MAX_AXES + MAX_BUTTONS) {
 	if (name)
@@ -1571,7 +1604,8 @@ struct inputdevice_functions inputdevicefunc_mouse = {
     unacquire_mouse,
     read_mouse,
     get_mouse_num,
-    get_mouse_name,
+    get_mouse_friendlyname,
+    get_mouse_uniquename,
     get_mouse_widget_num,
     get_mouse_widget_type,
     get_mouse_widget_first,
@@ -1581,32 +1615,32 @@ struct inputdevice_functions inputdevicefunc_mouse = {
 /*
  * Keyboard inputdevice functions
  */
-static unsigned int get_kb_num (void)
+static int get_kb_num (void)
 {
     return 1;
 }
 
-static const char *get_kb_friendlyname (unsigned int kb)
+static TCHAR *get_kb_friendlyname (int kb)
 {
     return "Default keyboard";
 }
 
-static const char *get_kb_uniquename (unsigned int kb)
+static TCHAR *get_kb_uniquename (int kb)
 {
     return "DEFKEYB1";
 }
 
-static unsigned int get_kb_widget_num (unsigned int kb)
+static int get_kb_widget_num (int kb)
 {
     return 255; // fix me
 }
 
-static int get_kb_widget_first (unsigned int kb, int type)
+static int get_kb_widget_first ( int kb, int type)
 {
     return 0;
 }
 
-static int get_kb_widget_type (unsigned int kb, unsigned int num, char *name, uae_u32 *code)
+static int get_kb_widget_type (int kb, int num, TCHAR *name, uae_u32 *code)
 {
     // fix me
     *code = num;
@@ -1646,19 +1680,19 @@ static void close_kb (void)
 {
 }
 
-static int acquire_kb (unsigned int num, int flags)
+static int acquire_kb (int num, int flags)
 {
     return 1;
 }
 
-static void unacquire_kb (unsigned int num)
+static void unacquire_kb (int num)
 {
 }
 
 /*
  * Default inputdevice config for X11 mouse
  */
-int input_get_default_mouse (struct uae_input_device *uid, int num, int port, int af)
+int input_get_default_mouse (struct uae_input_device *uid, int num, int port, int af, bool gp)
 {
     /* Supports only one mouse */
     uid[0].eventid[ID_AXIS_OFFSET + 0][0]   = INPUTEVENT_MOUSE1_HORIZ;
@@ -1743,4 +1777,9 @@ void gfx_default_options (struct uae_prefs *p)
     p->x11_use_low_bandwidth = 0;
     p->x11_use_mitshm        = 1;
     p->map_raw_keys          = rawkeys_available;
+}
+
+void setmaintitle (void)
+{
+	/* not implemented yet */
 }

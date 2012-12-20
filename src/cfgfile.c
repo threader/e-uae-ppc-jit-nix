@@ -13,6 +13,7 @@
 #include "sysdeps.h"
 
 #include <ctype.h>
+#include <wctype.h>
 
 #include "options.h"
 #include "uae.h"
@@ -36,6 +37,7 @@
 #include "debug.h"
 #include "calc.h"
 #include "sounddep/sound.h"
+#include "misc.h"
 
 static int config_newfilesystem;
 static struct strlist *temp_lines;
@@ -218,6 +220,36 @@ static const TCHAR *obsolete[] = {
 	NULL
 };
 
+/* internal prototypes */
+void cfgfile_dwrite (struct zfile *, const TCHAR *option, const TCHAR *format,...);
+void cfgfile_target_write (struct zfile *, const TCHAR *option, const TCHAR *format,...);
+void cfgfile_target_dwrite (struct zfile *, const TCHAR *option, const TCHAR *format,...);
+void cfgfile_write_bool (struct zfile *f, const TCHAR *option, bool b);
+void cfgfile_dwrite_bool (struct zfile *f,const  TCHAR *option, bool b);
+void cfgfile_target_write_bool (struct zfile *f, const TCHAR *option, bool b);
+void cfgfile_target_dwrite_bool (struct zfile *f, const TCHAR *option, bool b);
+void cfgfile_write_str (struct zfile *f, const TCHAR *option, const TCHAR *value);
+void cfgfile_dwrite_str (struct zfile *f, const TCHAR *option, const TCHAR *value);
+void cfgfile_target_write_str (struct zfile *f, const TCHAR *option, const TCHAR *value);
+void cfgfile_target_dwrite_str (struct zfile *f, const TCHAR *option, const TCHAR *value);
+void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type);
+int cfgfile_yesno2 (const TCHAR *option, const TCHAR *value, const TCHAR *name, int *location);
+int cfgfile_doubleval (const TCHAR *option, const TCHAR *value, const TCHAR *name, double *location);
+int cfgfile_intval_unsigned (const TCHAR *option, const TCHAR *value, const TCHAR *name, unsigned int *location, int scale);
+int cfgfile_strboolval (const TCHAR *option, const TCHAR *value, const TCHAR *name, bool *location, const TCHAR *table[], int more);
+int cfgfile_path_mp (const TCHAR *option, const TCHAR *value, const TCHAR *name, TCHAR *location, int maxsz, struct multipath *mp);
+int cfgfile_path (const TCHAR *option, const TCHAR *value, const TCHAR *name, TCHAR *location, int maxsz);
+int cfgfile_multipath (const TCHAR *option, const TCHAR *value, const TCHAR *name, struct multipath *mp);
+int cfgfile_rom (const TCHAR *option, const TCHAR *value, const TCHAR *name, TCHAR *location, int maxsz);
+
+/* external prototypes */
+extern int machdep_parse_option (struct uae_prefs *, const char *, const char *);
+extern int gfx_parse_option (struct uae_prefs *, const char *, const char *);
+extern int audio_parse_option (struct uae_prefs *, const char *, const char *);
+extern void machdep_default_options (struct uae_prefs *);
+extern void gfx_default_options (struct uae_prefs *);
+extern void audio_default_options (struct uae_prefs *);
+
 #define UNEXPANDED _T("$(FILE_PATH)")
 
 
@@ -263,17 +295,19 @@ TCHAR *cfgfile_subst_path (const TCHAR *path, const TCHAR *subst, const TCHAR *f
 	TCHAR *s = cfgfile_subst_path2 (path, subst, file);
 	if (s)
 		return s;
-/*
-	s = target_expand_environment (file);
+	return my_strdup(file);
+	// No matter what cfgfile_subst_path2() returns, the returned value is
+	// malloc'd. So free it!
+
+/*	s = target_expand_environment (file);
 	if (s) {
 		TCHAR tmp[MAX_DPATH];
 		_tcscpy (tmp, s);
 		xfree (s);
 		fullpath (tmp, sizeof tmp / sizeof (TCHAR));
 		s = my_strdup (tmp);
-	}*/
-	return file;
-	return s;
+	}
+	return s; */
 }
 
 static TCHAR *cfgfile_get_multipath2 (struct multipath *mp, const TCHAR *path, const TCHAR *file, bool dir)
@@ -830,7 +864,7 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 		}
 	}
 	if (p->dongle) {
-		if (p->dongle + 1 >= sizeof (dongles) / sizeof (TCHAR*))
+		if (p->dongle + 1 >= (int)(sizeof (dongles) / sizeof (TCHAR*)) )
 			cfgfile_write (f, _T("dongle"), _T("%d"), p->dongle);
 		else
 			cfgfile_write_str (f, _T("dongle"), dongles[p->dongle]);
@@ -1092,7 +1126,7 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 	cfgfile_write_str (f, _T("gfxcard_type"), rtgtype[p->rtgmem_type]);
 	cfgfile_write_bool (f, _T("gfxcard_hardware_vblank"), p->rtg_hardwareinterrupt);
 	cfgfile_write_bool (f, _T("gfxcard_hardware_sprite"), p->rtg_hardwaresprite);
-	cfgfile_write (f, _T("chipmem_size"), _T("%d"), p->chipmem_size == 0x20000 ? -1 : (p->chipmem_size == 0x40000 ? 0 : p->chipmem_size / 0x80000));
+	cfgfile_write (f, _T("chipmem_size"), _T("%d"), p->chipmem_size == 0x20000 ? -1 : (int)(p->chipmem_size == 0x40000 ? 0 : p->chipmem_size / 0x80000));
 	cfgfile_dwrite (f, _T("megachipmem_size"), _T("%d"), p->z3chipmem_size / 0x100000);
 	if (p->custom_memory_sizes[0])
 		cfgfile_write (f, _T("addmem1"), _T("0x%x,0x%x"), p->custom_memory_addrs[0], p->custom_memory_sizes[0]);
@@ -1308,6 +1342,7 @@ int cfgfile_path_mp (const TCHAR *option, const TCHAR *value, const TCHAR *name,
 
 	return 1;
 }
+
 int cfgfile_path (const TCHAR *option, const TCHAR *value, const TCHAR *name, TCHAR *location, int maxsz)
 {
 	return cfgfile_path_mp (option, value, name, location, maxsz, NULL);
@@ -1732,12 +1767,12 @@ cfgfile_path (option, value, _T("floppy0soundext"), p->floppyslots[0].dfxclickex
 		return 1;
 	}
 	if (_tcscmp (option, _T("gfx_vsync")) == 0) {
-		if (cfgfile_strval (option, value, _T("gfx_vsync"), &p->gfx_apmode[APMODE_NATIVE].gfx_vsync, vsyncmodes, 0) >= 0)
+		if (cfgfile_strboolval (option, value, _T("gfx_vsync"), &p->gfx_apmode[APMODE_NATIVE].gfx_vsync, vsyncmodes, 0) >= 0)
 			return 1;
 		return cfgfile_yesno (option, value, _T("gfx_vsync"), &p->gfx_apmode[APMODE_NATIVE].gfx_vsync);
 	}
 	if (_tcscmp (option, _T("gfx_vsync_picasso")) == 0) {
-		if (cfgfile_strval (option, value, _T("gfx_vsync_picasso"), &p->gfx_apmode[APMODE_RTG].gfx_vsync, vsyncmodes, 0) >= 0)
+		if (cfgfile_strboolval (option, value, _T("gfx_vsync_picasso"), &p->gfx_apmode[APMODE_RTG].gfx_vsync, vsyncmodes, 0) >= 0)
 			return 1;
 		return cfgfile_yesno (option, value, _T("gfx_vsync_picasso"), &p->gfx_apmode[APMODE_RTG].gfx_vsync);
 	}
@@ -2709,20 +2744,20 @@ static int cfgfile_parse_hardware (struct uae_prefs *p, const TCHAR *option, TCH
 		|| cfgfile_intval (option, value, _T("serial_stopbits"), &p->serial_stopbits, 1)
 		|| cfgfile_intval (option, value, _T("cpu060_revision"), &p->cpu060_revision, 1)
 		|| cfgfile_intval (option, value, _T("fpu_revision"), &p->fpu_revision, 1)
-		|| cfgfile_intval (option, value, _T("cdtvramcard"), &p->cs_cdtvcard, 1)
+		|| cfgfile_yesno  (option, value, _T("cdtvramcard"), &p->cs_cdtvcard)
 		|| cfgfile_intval (option, value, _T("fatgary"), &p->cs_fatgaryrev, 1)
 		|| cfgfile_intval (option, value, _T("ramsey"), &p->cs_ramseyrev, 1)
 		|| cfgfile_doubleval (option, value, _T("chipset_refreshrate"), &p->chipset_refreshrate)
-		|| cfgfile_intval (option, value, _T("fastmem_size"), &p->fastmem_size, 0x100000)
-		|| cfgfile_intval (option, value, _T("fastmem2_size"), &p->fastmem2_size, 0x100000)
-		|| cfgfile_intval (option, value, _T("a3000mem_size"), &p->mbresmem_low_size, 0x100000)
-		|| cfgfile_intval (option, value, _T("mbresmem_size"), &p->mbresmem_high_size, 0x100000)
-		|| cfgfile_intval (option, value, _T("z3mem_size"), &p->z3fastmem_size, 0x100000)
-		|| cfgfile_intval (option, value, _T("z3mem2_size"), &p->z3fastmem2_size, 0x100000)
-		|| cfgfile_intval (option, value, _T("megachipmem_size"), &p->z3chipmem_size, 0x100000)
-		|| cfgfile_intval (option, value, _T("z3mem_start"), &p->z3fastmem_start, 1)
-		|| cfgfile_intval (option, value, _T("bogomem_size"), &p->bogomem_size, 0x40000)
-		|| cfgfile_intval (option, value, _T("gfxcard_size"), &p->rtgmem_size, 0x100000)
+		|| cfgfile_intval (option, value, _T("fastmem_size"), (int*)&p->fastmem_size, 0x100000)
+		|| cfgfile_intval (option, value, _T("fastmem2_size"), (int*)&p->fastmem2_size, 0x100000)
+		|| cfgfile_intval (option, value, _T("a3000mem_size"), (int*)&p->mbresmem_low_size, 0x100000)
+		|| cfgfile_intval (option, value, _T("mbresmem_size"), (int*)&p->mbresmem_high_size, 0x100000)
+		|| cfgfile_intval (option, value, _T("z3mem_size"), (int*)&p->z3fastmem_size, 0x100000)
+		|| cfgfile_intval (option, value, _T("z3mem2_size"), (int*)&p->z3fastmem2_size, 0x100000)
+		|| cfgfile_intval (option, value, _T("megachipmem_size"), (int*)&p->z3chipmem_size, 0x100000)
+		|| cfgfile_intval (option, value, _T("z3mem_start"), (int*)&p->z3fastmem_start, 1)
+		|| cfgfile_intval (option, value, _T("bogomem_size"), (int*)&p->bogomem_size, 0x40000)
+		|| cfgfile_intval (option, value, _T("gfxcard_size"), (int*)&p->rtgmem_size, 0x100000)
 		|| cfgfile_strval (option, value, _T("gfxcard_type"), &p->rtgmem_type, rtgtype, 0)
 		|| cfgfile_intval (option, value, _T("rtg_modes"), &p->picasso96_modeflags, 1)
 		|| cfgfile_intval (option, value, _T("floppy_speed"), &p->floppy_speed, 1)
@@ -2734,11 +2769,11 @@ static int cfgfile_parse_hardware (struct uae_prefs *p, const TCHAR *option, TCH
 		|| cfgfile_intval (option, value, _T("floppy1type"), &p->floppyslots[1].dfxtype, 1)
 		|| cfgfile_intval (option, value, _T("floppy2type"), &p->floppyslots[2].dfxtype, 1)
 		|| cfgfile_intval (option, value, _T("floppy3type"), &p->floppyslots[3].dfxtype, 1)
-		|| cfgfile_intval (option, value, _T("maprom"), &p->maprom, 1)
+		|| cfgfile_intval (option, value, _T("maprom"), (int*)&p->maprom, 1)
 		|| cfgfile_intval (option, value, _T("parallel_autoflush"), &p->parallel_autoflush_time, 1)
 		|| cfgfile_intval (option, value, _T("uae_hide"), &p->uae_hide, 1)
 		|| cfgfile_intval (option, value, _T("cpu_frequency"), &p->cpu_frequency, 1)
-		|| cfgfile_intval (option, value, _T("kickstart_ext_rom_file2addr"), &p->romextfile2addr, 1)
+		|| cfgfile_intval (option, value, _T("kickstart_ext_rom_file2addr"), (int*)&p->romextfile2addr, 1)
 		|| cfgfile_intval (option, value, _T("catweasel"), &p->catweasel, 1))
 	return 1;
 
@@ -3377,6 +3412,8 @@ int cfgfile_load (struct uae_prefs *p, const TCHAR *filename, int *type, int ign
 	int type2;
 	static int recursive;
 
+	memset(tmp, 0, MAX_DPATH * sizeof(TCHAR));
+
 	if (recursive > 1)
 		return 0;
 	recursive++;
@@ -3389,15 +3426,18 @@ int cfgfile_load (struct uae_prefs *p, const TCHAR *filename, int *type, int ign
 
 
 	if (!ignorelink) {
+		size_t rest_len = 0;
 		if (p->config_hardware_path[0]) {
-			fetch_configurationpath (tmp, sizeof (tmp) / sizeof (TCHAR));
-			_tcsncat (tmp, p->config_hardware_path, sizeof (tmp) / sizeof (TCHAR));
+			fetch_configurationpath (tmp, MAX_DPATH - 1);
+			rest_len = MAX_DPATH - 1 - _tcslen(tmp);
+			_tcsncat (tmp, p->config_hardware_path, rest_len );
 			type2 = CONFIG_TYPE_HARDWARE;
 			cfgfile_load (p, tmp, &type2, 1, 0);
 		}
 		if (p->config_host_path[0]) {
-			fetch_configurationpath (tmp, sizeof (tmp) / sizeof (TCHAR));
-			_tcsncat (tmp, p->config_host_path, sizeof (tmp) / sizeof (TCHAR));
+			fetch_configurationpath (tmp, MAX_DPATH - 1);
+			rest_len = MAX_DPATH - 1 - _tcslen(tmp);
+			_tcsncat (tmp, p->config_host_path, rest_len );
 			type2 = CONFIG_TYPE_HOST;
 			cfgfile_load (p, tmp, &type2, 1, 0);
 		}
@@ -3468,10 +3508,10 @@ int cfgfile_configuration_change (int v)
 
 void cfgfile_show_usage (void)
 {
-	int i;
+	size_t i = 0;
 	write_log (_T("UAE Configuration Help:\n"));
 	write_log (_T("=======================\n"));
-	for (i = 0; i < sizeof opttable / sizeof *opttable; i++)
+	for (; i < sizeof opttable / sizeof *opttable; i++)
 		write_log (_T("%s: %s\n"), opttable[i].config_label, opttable[i].config_help);
 }
 
@@ -3987,8 +4027,8 @@ uae_u32 cfgfile_modify (uae_u32 index, TCHAR *parms, uae_u32 size, TCHAR *out, u
 {
 	TCHAR *p;
 	TCHAR *argc[UAELIB_MAX_PARSE];
-	int argv, i;
 	uae_u32 err;
+	size_t argv = 0, i = 0, j = 0;
 	TCHAR zero = 0;
 	static TCHAR *configsearch;
 	static int configsearchfound;
@@ -4004,9 +4044,8 @@ uae_u32 cfgfile_modify (uae_u32 index, TCHAR *parms, uae_u32 size, TCHAR *out, u
 		}
 		if (configsearch) {
 			TCHAR tmp[CONFIG_BLEN];
-			int j = 0;
 			TCHAR *in = configsearch;
-			int inlen = _tcslen (configsearch);
+			size_t inlen = _tcslen (configsearch);
 			int joker = 0;
 
 			if (in[inlen - 1] == '*') {
@@ -4126,7 +4165,7 @@ end:
 uae_u32 cfgfile_uaelib_modify (uae_u32 index, uae_u32 parms, uae_u32 size, uae_u32 out, uae_u32 outsize)
 {
 	uae_char *p, *parms_p = NULL, *parms_out = NULL;
-	int i, ret;
+	uae_u32 i, ret;
 	TCHAR *out_p = NULL, *parms_in = NULL;
 
 	if (out)
@@ -4179,7 +4218,7 @@ end:
 uae_u32 cfgfile_uaelib (int mode, uae_u32 name, uae_u32 dst, uae_u32 maxlen)
 {
 	TCHAR tmp[CONFIG_BLEN];
-	int i;
+	size_t i;
 	struct strlist *sl;
 
 	if (mode)
@@ -4244,7 +4283,7 @@ uae_u8 *save_configuration (int *len, bool fullconfig)
 			xfree (out);
 			strcat ((char*)p, "\n");
 			p += strlen ((char*)p);
-			if (p - dstbak >= tmpsize - sizeof (tmpout))
+			if ((size_t)(p - dstbak) >= (size_t)(tmpsize - sizeof (tmpout)) )
 				break;
 		}
 		if (ret >= 0)

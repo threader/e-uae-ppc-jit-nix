@@ -17,6 +17,7 @@
 #include "custom.h"
 #include "newcpu.h"
 #include "cia.h"
+#include "gcc_warnings.h"
 
 #undef POSIX_SERIAL
 /* Some more or less good way to determine whether we can safely compile in
@@ -58,6 +59,9 @@ void serial_dtr_off (void);
 
 void serial_flush_buffer (void);
 static int serial_read (char *buffer);
+
+uae_u8 serial_readstatus(uae_u8 ignored);
+uae_u8 serial_writestatus (uae_u8 old, uae_u8 nw);
 
 uae_u16 SERDATR (void);
 
@@ -286,7 +290,14 @@ void serial_flush_buffer (void)
     if (serdev == 1) {
 		if (outlast) {
 		    if (sd != 0) {
+				/* There is absolutely nothing we can do about a write failure,
+				 * but the warning (-Wunused-result) is irritating, so deactivate
+				 * it just here.
+				*/
+//#pragma GCC diagnostic ignored "-Wunused"
+//				GCC_DIAG_OFF(unused-result)
 				write (sd, outbuf, outlast);
+//				GCC_DIAG_ON(unused-result)
 		    }
 		}
 		outlast = 0;

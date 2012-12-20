@@ -56,6 +56,26 @@ typedef enum {
 	BT_MaxBoardTypes
 } BTYPE;
 
+typedef enum {
+	BLIT_FALSE,
+	BLIT_NOR,
+	BLIT_ONLYDST,
+	BLIT_NOTSRC,
+	BLIT_ONLYSRC,
+	BLIT_NOTDST,
+	BLIT_EOR,
+	BLIT_NAND,
+	BLIT_AND,
+	BLIT_NEOR,
+	BLIT_DST,
+	BLIT_NOTONLYSRC,
+	BLIT_SRC,
+	BLIT_NOTONLYDST,
+	BLIT_OR,
+	BLIT_TRUE,
+	BLIT_SWAP = 30
+} BLIT_OPCODE;
+
 struct ScreenResolution
 {
 	uae_u32 width;  /* in pixels */
@@ -716,6 +736,7 @@ extern void picasso_trigger_vblank (void);
 extern void picasso_reset (void);
 extern int picasso_setwincursor (void);
 extern int picasso_palette (void);
+extern void uaegfx_install_code (uaecptr start);
 
 extern uae_u8 *gfxmemory;
 
