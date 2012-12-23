@@ -6130,7 +6130,7 @@ static void events_dmal_hsync (void)
 		return;
 	dmal_hpos = 0;
 	if (currprefs.cpu_cycle_exact) {
-		for (unsigned int i = 0; i < 6 + 8; i += 2) {
+		for (int i = 0; i < 6 + 8; i += 2) {
 			if (dmal & (3 << i)) {
 				alloc_cycle_ext (i + 7, CYCLE_MISC);
 			}

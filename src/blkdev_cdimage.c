@@ -20,6 +20,7 @@
 #include "fsdb.h"
 #include "threaddep/thread.h"
 #include "scsidev.h"
+#ifdef BLKDEV_CDIMAGE
 #include <mp3decoder.h>
 #include <memory_uae.h>
 #ifdef RETROPLATFORM
@@ -1724,3 +1725,14 @@ struct device_functions devicefunc_cdimage = {
 	command_toc, command_read, command_rawread, 0,
 	0, ismedia
 };
+#else
+struct device_functions devicefunc_cdimage = {
+	_T("IMAGE"),
+	0, 0, 0, 0, 0,
+	0, 0, 0,
+	0, 0, 0, 0, 0,
+	0, 0, 0, 0,
+	0, 0
+};
+#endif
+

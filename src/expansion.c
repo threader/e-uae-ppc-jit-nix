@@ -1236,7 +1236,7 @@ static bool mapped_malloc_dynamic (uae_u32 *currpsize, uae_u32 *changedpsize, ua
 			*allocated = alloc;
 			return true;
 		}
-		write_log (_T("Out of memory for %s, %d bytes.\n"), name, alloc);
+		write_log (_T("Out of memory for %s, %d bytes, %d MB. Will try %d bytes\n"), name, alloc, alloc/0x100000, alloc/2);
 		alloc /= 2;
 	}
 
@@ -1595,7 +1595,7 @@ void expansion_init (void)
 	allocated_gfxmem = 0;
 	gfxmem_mask = gfxmem_start = 0;
 	gfxmemory = 0;
-	p96memstart();
+//	p96memstart();
 #endif
 
 #ifdef CATWEASEL

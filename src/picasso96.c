@@ -157,7 +157,7 @@ static void checkrtglibrary(void)
 			uae_u16 rev = get_word (v + 22);
 			if (ver * 10000 + rev < UAE_RTG_LIBRARY_VERSION * 10000 + UAE_RTG_LIBRARY_REVISION) {
 				TCHAR msg[2000];
-				sprintf(msg, "The installed LIBS:Picasso96/rtg.library (%d.%d) should be updated.\nA newer version is included in the ""Amiga Programs"" directory\n of the WinUAE distribution archive.\n\nNewer library version fixes graphics problems and increases performance.", ver, rev);
+				sprintf(msg, "The installed LIBS:Picasso96/rtg.library (%d.%d) should be updated.\nA newer version is included in the ""amiga/programs"" directory\n of the PUAE distribution archive.\n\nNewer library version fixes graphics problems and increases performance.", ver, rev);
 				gui_message(msg);
 			} else {
 				write_log (_T("P96: rtg.library %d.%d detected\n"), ver, rev);

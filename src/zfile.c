@@ -7,7 +7,6 @@
  *     2002-2007 Toni Wilen
  */
 
-#define ZLIB_WINAPI
 #define RECURSIVE_ARCHIVES 1
 //#define ZFILE_DEBUG
 #define FSDB_DIR_SEPARATOR_S "\\"

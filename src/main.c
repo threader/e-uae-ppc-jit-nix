@@ -948,14 +948,14 @@ void virtualdevice_init (void)
 #endif
 #ifdef AUTOCONFIG
 	expansion_init ();
-	emulib_install ();
-	uaeexe_install ();
+//	emulib_install ();
+//	uaeexe_install ();
 #endif
 #ifdef FILESYS
 	filesys_install ();
 #endif
 #if defined (BSDSOCKET)
-	bsdlib_install ();
+//	bsdlib_install ();
 #endif
 }
 
@@ -991,10 +991,6 @@ static int real_main2 (int argc, TCHAR **argv)
 		write_log (_T("Graphics Setup Failed\n"));
 		exit (1);
 	}
-
-#ifdef NATMEM_OFFSET
-	//preinit_shm ();
-#endif
 
 	if (restart_config[0])
 		parse_cmdline_and_init_file (argc, argv);
@@ -1129,21 +1125,9 @@ void real_main (int argc, TCHAR **argv)
 	_tcscat (restart_config, OPTIONSFILENAME);
 	default_config = 1;
 
-// -------- FIXME
-/*                write_log (_T("Enumerating display devices.. \n"));
-                enumerate_displays ();
-                write_log (_T("Sorting devices and modes..\n"));
-                sortdisplays ();
-                write_log (_T("Display buffer mode = %d\n"), ddforceram);
-                enumerate_sound_devices ();
-                for (unsigned int i = 0; i < 2 && sound_devices[i]; i++) {
-                        int type = sound_devices[i]->type;
-                }
-                write_log (_T("Enumerating recording devices:\n"));
-                for (unsigned int i = 0; i < 2 && record_devices[i]; i++) {
-                        int type = record_devices[i]->type;
-                }*/
-                write_log (_T("done\n"));
+#ifdef NATMEM_OFFSET
+	preinit_shm ();
+#endif
 
 	keyboard_settrans ();
 #ifdef CATWEASEL

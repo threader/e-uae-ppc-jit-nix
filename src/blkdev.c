@@ -112,9 +112,10 @@ static int cdscsidevicetype[MAX_TOTAL_SCSI_DEVICES];
 
 extern struct device_functions devicefunc_win32_spti;
 extern struct device_functions devicefunc_win32_ioctl;
-extern struct device_functions devicefunc_cdimage;
 
 #endif
+
+extern struct device_functions devicefunc_cdimage;
 
 static struct device_functions *devicetable[] = {
 	NULL,
@@ -180,7 +181,7 @@ static void install_driver (int flags)
 	}
 
 }
-#else 
+/*#else 
 	#ifdef TARGET_AMIGAOS
 extern struct device_functions devicefunc_scsi_amiga;
 static void install_driver (int flags){}
@@ -193,7 +194,7 @@ extern struct device_functions devicefunc_scsi_libscg;
 static void install_driver (int flags){}
 		#endif
 	#endif
-#endif
+#endif*/
 
 void blkdev_default_prefs (struct uae_prefs *p)
 {

@@ -1822,7 +1822,7 @@ void akiko_reset (void)
 		cdaudiostop ();
 		akiko_thread_running = 0;
 		while(akiko_thread_running == 0)
-			Sleep (10);
+			sleep_millis (10);
 		akiko_thread_running = 0;
 	}
 	akiko_cdrom_free ();

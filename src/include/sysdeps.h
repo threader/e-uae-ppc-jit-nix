@@ -432,4 +432,9 @@ extern void xfree (const void*);
 #  define offsetof(type, member)  __builtin_offsetof (type, member)
 #endif /* offsetof */
 
+typedef int HANDLE;
+typedef unsigned int DWORD;
+typedef long long LONGLONG;
+typedef int64_t off64_t;
+
 #endif /* UAE_SYSDEPS_H */

@@ -6,11 +6,7 @@
  * Copyright 2012-2013 Mustafa 'GnoStiC' Tufan
  */
 
-typedef int HANDLE;
-typedef unsigned int DWORD;
-typedef long long LONGLONG;
 typedef int BOOL;
-typedef int64_t off64_t;
 
 #define INVALID_HANDLE_VALUE		((HANDLE)~0U)
 #define INVALID_FILE_ATTRIBUTES		((DWORD) -1)
@@ -232,9 +228,9 @@ HANDLE CreateFile(const TCHAR *lpFileName, DWORD dwDesiredAccess, DWORD dwShareM
 	if (fd == -1 && errno == ENOENT) {
 		write_log("FS: error %d opening file <%s>, flags:%x, mode:%x.\n", errno, lpFileName, flags, mode);
 		return INVALID_HANDLE_VALUE;
-	} else {
+	}/* else {
 		write_log ("FS: '%s' open successful\n", lpFileName);
-	}
+	}*/
 
 	// turn of nonblocking reads/writes
 	fcntl(fd, F_GETFL, &flags);

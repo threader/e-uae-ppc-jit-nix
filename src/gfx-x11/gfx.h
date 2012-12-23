@@ -8,4 +8,5 @@
 
 #define GFX_NAME "x11"
 #define USE_X11_GFX
+#define PICASSO96
 #define PICASSO96_SUPPORTED

@@ -11,6 +11,7 @@
 #include "sysdeps.h"
 
 #include "options.h"
+#include "gui.h"
 #include "audio.h"
 #include "gensound.h"
 #include "sounddep/sound.h"
@@ -28,10 +29,13 @@
 int sound_fd;
 unsigned int have_sound = 0;
 static unsigned long formats;
+static int statuscnt;
 
 uae_u16 paula_sndbuffer[44100];
 uae_u16 *paula_sndbufpt;
 int paula_sndbufsize;
+static struct sound_data sdpaula;
+static struct sound_data *sdp = &sdpaula;
 
 static int exact_log2 (int v)
 {
@@ -139,7 +143,7 @@ int init_sound (void)
 		return 0;
     }
 
-    bufsize = rate * currprefs.sound_latency * (dspbits / 8) * (currprefs.sound_stereo ? 2 : 1) / 1000;
+    bufsize = rate * (dspbits / 8) * (currprefs.sound_stereo ? 2 : 1) / 1000;
 
     tmp = 0x00040000 + exact_log2 (bufsize);
     ioctl (sound_fd, SNDCTL_DSP_SETFRAGMENT, &tmp);
@@ -174,6 +178,69 @@ void pause_sound (void)
 
 void resume_sound (void)
 {
+}
+
+void set_volume_sound_device (struct sound_data *sd, int volume, int mute)
+{
+}
+
+void set_volume (int volume, int mute)
+{
+        set_volume_sound_device (sdp, volume, mute);
+        config_changed = 1;
+}
+
+static int setget_master_volume_linux (int setvolume, int *volume, int *mute)
+{
+        unsigned int ok = 0;
+
+        if (setvolume) {
+                ;//set
+        } else {
+                ;//get
+        }
+
+        return ok;
+}
+
+static int set_master_volume (int volume, int mute)
+{
+        return setget_master_volume_linux (1, &volume, &mute);
+}
+
+static int get_master_volume (int *volume, int *mute)
+{
+        *volume = 0;
+        *mute = 0;
+        return setget_master_volume_linux (0, volume, mute);
+}
+
+void master_sound_volume (int dir)
+{
+        int vol, mute, r;
+
+        r = get_master_volume (&vol, &mute);
+        if (!r)
+                return;
+        if (dir == 0)
+                mute = mute ? 0 : 1;
+        vol += dir * (65536 / 10);
+        if (vol < 0)
+                vol = 0;
+        if (vol > 65535)
+                vol = 65535;
+        set_master_volume (vol, mute);
+        config_changed = 1;
+}
+
+void sound_mute (int newmute)
+{
+        if (newmute < 0)
+                sdp->mute = sdp->mute ? 0 : 1;
+        else
+                sdp->mute = newmute;
+        set_volume (currprefs.sound_volume, sdp->mute);
+        config_changed = 1;
 }
 
 void sound_volume (int dir)

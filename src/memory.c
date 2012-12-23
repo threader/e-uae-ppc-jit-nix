@@ -49,10 +49,10 @@ int special_mem;
 #endif
 static int mem_hardreset;
 
-#define IPC_PRIVATE 0x01
-#define IPC_RMID    0x02
-#define IPC_CREAT   0x04
-#define IPC_STAT    0x08
+#define IPC_PRIVATE 1
+#define IPC_RMID    2
+#define IPC_CREAT   4
+#define IPC_STAT    8
 
 /* internal prototypes */
 #ifdef AGA
@@ -131,12 +131,6 @@ uae_u32 allocated_a3000hmem;
 uae_u32 allocated_cardmem;
 uae_u8 ce_banktype[65536];
 uae_u8 ce_cachable[65536];
-
-#if defined(__x86_64__)
-uae_u32 max_z3fastmem = 2048UL * 1024 * 1024;
-#else
-uae_u32 max_z3fastmem = 512 * 1024 * 1024;
-#endif
 
 static size_t bootrom_filepos, chip_filepos, bogo_filepos, rom_filepos, a3000lmem_filepos, a3000hmem_filepos;
 
@@ -1592,8 +1586,7 @@ void a3000_fakekick (int map)
 	} else {
 		if (a3000_f0) {
 			map_banks (&dummy_bank, 0xf0, 1, 1);
-			if (extendedkickmemory)
-				mapped_free (extendedkickmemory);
+			mapped_free (extendedkickmemory);
 			extendedkickmemory = NULL;
 			a3000_f0 = 0;
 		}
@@ -1637,6 +1630,7 @@ static int read_kickstart (struct zfile *f, uae_u8 *mem, int size, int dochecksu
 		cr = 1;
 	}
 
+	write_log("memset 0x%08X : %d \n", mem, size);
 	memset (mem, 0, size);
 	for (i = 0; i < 8; i++)
 		mem[size - 16 + i * 2 + 1] = 0x18 + i;
@@ -1829,12 +1823,12 @@ static void patch_kick (void)
 		kickstart_fix_checksum (kickmemory, kickmem_size);
 }
 
+extern unsigned char arosrom[];
+extern unsigned int arosrom_len;
 extern int seriallog;
 static bool load_kickstart_replacement (void)
 {
 	struct zfile *f = NULL;
-	unsigned char arosrom[1] = { 0x0 };
-	unsigned int arosrom_len = 1;
 	
 	f = zfile_fopen_data (_T("aros.gz"), arosrom_len, arosrom);
 	if (!f)
@@ -1894,21 +1888,8 @@ static int load_kickstart (void)
 		}
 	}
 	addkeydir (currprefs.romfile);
-	if (f == NULL) { /* still no luck */
-#if defined(AMIGA)||defined(__POS__)
-#define USE_UAE_ERSATZ "USE_UAE_ERSATZ"
-		if( !getenv(USE_UAE_ERSATZ))
-		{
-			write_log ("Using current ROM. (create ENV:%s to "
-				"use uae's ROM replacement)\n",USE_UAE_ERSATZ);
-			memcpy(kickmemory,(char*)0x1000000-kickmem_size,kickmem_size);
-			kickstart_checksum (kickmemory, kickmem_size);
-			goto chk_sum;
-		}
-#else
+	if (f == NULL) /* still no luck */
 		goto err;
-#endif
-	}
 
 	if (f != NULL) {
 		int filesize, size, maxsize;
@@ -2166,7 +2147,7 @@ uae_u8 *mapped_malloc (size_t s, const TCHAR *file)
 		return xcalloc (uae_u8, s + 4);
 	}
 
-	id = my_shmget (IPC_PRIVATE, s, 0x1ff, file);
+	id = my_shmget (1, s, 0x1ff, file);
 	if (id == -1) {
 		// Failed to allocate new shared mem segment, so turn
 		// off direct memory access and fall back on regular malloc()
@@ -2604,8 +2585,7 @@ void memory_reset (void)
 		memcpy (currprefs.romfile, changed_prefs.romfile, sizeof currprefs.romfile);
 		memcpy (currprefs.romextfile, changed_prefs.romextfile, sizeof currprefs.romextfile);
 		need_hardreset = true;
-		if (extendedkickmemory)
-			mapped_free (extendedkickmemory);
+		mapped_free (extendedkickmemory);
 		extendedkickmemory = 0;
 		extendedkickmem_size = 0;
 		extendedkickmemory2 = 0;
@@ -2893,7 +2873,7 @@ void memory_cleanup (void)
 		mapped_free (a3000lmemory);
 	if (a3000hmemory)
 		mapped_free (a3000hmemory);
-	if (bogomemory_allocated)
+	if (bogomemory)
 		mapped_free (bogomemory);
 	if (kickmemory)
 		mapped_free (kickmemory);

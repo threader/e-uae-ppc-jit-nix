@@ -738,8 +738,6 @@ extern int picasso_setwincursor (void);
 extern int picasso_palette (void);
 extern void uaegfx_install_code (uaecptr start);
 
-extern uae_u8 *gfxmemory;
-
 /* This structure describes the UAE-side framebuffer for the Picasso
  * screen.  */
 struct picasso_vidbuf_description {

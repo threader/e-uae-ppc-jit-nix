@@ -18,6 +18,9 @@ struct uaedev_mount_info;
 struct zfile;
 
 #define MAX_PATHS 8
+#ifndef PATH_MAX
+#define PATH_MAX 256
+#endif
 
 struct multipath {
 	TCHAR path[MAX_PATHS][PATH_MAX];
