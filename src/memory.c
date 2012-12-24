@@ -1630,7 +1630,6 @@ static int read_kickstart (struct zfile *f, uae_u8 *mem, int size, int dochecksu
 		cr = 1;
 	}
 
-	write_log("memset 0x%08X : %d \n", mem, size);
 	memset (mem, 0, size);
 	for (i = 0; i < 8; i++)
 		mem[size - 16 + i * 2 + 1] = 0x18 + i;

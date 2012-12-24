@@ -18,6 +18,8 @@
 #endif
 #include "include/memory_uae.h"
 
+uae_u32 max_z3fastmem;
+
 #if defined(NATMEM_OFFSET)
 #define MEMORY_DEBUG 0
 
@@ -30,8 +32,6 @@ static int os_64bit = 0;
 
 #define VAMODE 1
 
-uae_u32 max_z3fastmem;
-
 /* JIT can access few bytes outside of memory block if it executes code at the very end of memory block */
 #define BARRIER 32
 
@@ -42,20 +42,20 @@ uae_u32 max_z3fastmem;
 typedef void * LPVOID;
 typedef size_t SIZE_T;
 
-#define IPC_PRIVATE 0x01
-#define IPC_RMID    0x02
-#define IPC_CREAT   0x04
-#define IPC_STAT    0x08
+#define IPC_PRIVATE	0x01
+#define IPC_RMID	0x02
+#define IPC_CREAT	0x04
+#define IPC_STAT	0x08
 
-#define PAGE_READWRITE 0
-#define PAGE_READONLY     0x02
-#define PAGE_EXECUTE_READWRITE 0x40
+#define PAGE_READWRITE			0x00
+#define PAGE_READONLY			0x02
+#define PAGE_EXECUTE_READWRITE	0x40
 
-#define MEM_COMMIT 0x00001000
-#define MEM_RESERVE 0x00002000
+#define MEM_COMMIT		0x00001000
+#define MEM_RESERVE		0x00002000
 #define MEM_DECOMMIT	0x00004000
 #define MEM_RELEASE		0x00008000
-#define MEM_WRITE_WATCH 0x00200000
+#define MEM_WRITE_WATCH	0x00200000
 
 #if !defined(__FreeBSD__)
 typedef int key_t;
@@ -67,12 +67,12 @@ struct shmid_ds {
 	size_t size;
 	size_t rosize;
 	void   *addr;
-	char  name[MAX_PATH];
+	char   name[MAX_PATH];
 	void   *attached;
 	int    mode;
 	void   *natmembase; /* if != NULL then shmem is shared from natmem */
-	bool fake;
-	int maprom;
+	bool   fake;
+	int    maprom;
 };
 
 typedef struct {
