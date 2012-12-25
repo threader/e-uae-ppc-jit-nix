@@ -1,5 +1,4 @@
 #include <SDL.h>
-#include "gp2x.h"
 #include "volumecontrol.h"
 
 

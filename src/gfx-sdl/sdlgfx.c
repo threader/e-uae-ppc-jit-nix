@@ -105,8 +105,8 @@ extern void setid_af (struct uae_input_device *uid, int i, int slot, int sub, in
 #define DEBUG_LOG(...) { }
 #endif
 
-static SDL_Surface *display;
-static SDL_Surface *screen;
+SDL_Surface *display = NULL;
+SDL_Surface *screen = NULL;
 
 /* Standard P96 screen modes */
 #define MAX_SCREEN_MODES 12
@@ -623,7 +623,7 @@ struct gl_buffer_t
     uae_u32  pitch;
 };
 
-static struct gl_buffer_t glbuffer;
+struct gl_buffer_t glbuffer;
 static int have_texture_rectangles;
 static int have_apple_client_storage;
 static int have_apple_texture_range;
@@ -757,12 +757,12 @@ static int alloc_gl_buffer (struct gl_buffer_t *buffer, int width, int height, i
 
 
 
-STATIC_INLINE void flush_gl_buffer (const struct gl_buffer_t *buffer, int first_line, int last_line)
+void flush_gl_buffer (const struct gl_buffer_t *buffer, int first_line, int last_line)
 {
     glTexSubImage2D (buffer->target, 0, 0, first_line, buffer->texture_width, last_line - first_line + 1, buffer->format, buffer->type, buffer->pixels + buffer->pitch * first_line);
 }
 
-STATIC_INLINE void render_gl_buffer (const struct gl_buffer_t *buffer, int first_line, int last_line)
+void render_gl_buffer (const struct gl_buffer_t *buffer, int first_line, int last_line)
 {
     float tx0, ty0, tx1, ty1; //source buffer coords
     float wx0, wy0, wx1, wy1; //destination text coords

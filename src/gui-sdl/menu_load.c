@@ -5,7 +5,7 @@
 #include "SDL.h"
 #include "SDL_image.h"
 #include "SDL_ttf.h"
-#include "gp2x.h"
+#include "button_mappings.h"
 #include <dirent.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,7 +13,11 @@
 
 extern void write_text(int x, int y, char* txt);
 extern void blit_image(SDL_Surface* img, int x, int y);
-extern SDL_Surface* display;
+extern SDL_Surface *display;
+#ifdef USE_GL
+extern struct gl_buffer_t glbuffer;
+extern void render_gl_buffer (const struct gl_buffer_t *buffer, int first_line, int last_line);
+#endif
 extern SDL_Surface* tmpSDLScreen;
 extern SDL_Surface* pMenu_Surface;
 extern SDL_Color text_color;
@@ -27,7 +31,7 @@ extern char msg_status[];
 int dirz (int parametre) {
 	SDL_Event event;
 	int getdir = 1;
-    	pMenu_Surface = SDL_LoadBMP("images/menu_load.bmp");
+    	pMenu_Surface = SDL_LoadBMP("guidep/images/menu_load.bmp");
 	int loadloopdone = 0;
 	int num_of_files = 0;
 	int seciliolan = 0;
@@ -48,7 +52,7 @@ int dirz (int parametre) {
 			if (ep == NULL) {
 				break;
 			} else {
-				//if ((!strcmp(ep->d_name,".")) || (!strcmp(ep->d_name,"..")) || (!strcmp(ep->d_name,"uae2x.gpe"))) {
+				//if ((!strcmp(ep->d_name,".")) || (!strcmp(ep->d_name,"..")) || (!strcmp(ep->d_name,"uae"))) {
 
 					struct stat sstat;
 					char *tmp=(char *)calloc(1,256);
@@ -82,11 +86,11 @@ int dirz (int parametre) {
 			}
 			if (event.type == SDL_JOYBUTTONDOWN) {
              			switch (event.jbutton.button) {
-					case GP2X_BUTTON_UP: seciliolan -= 1; break;
-					case GP2X_BUTTON_DOWN: seciliolan += 1; break;
-					case GP2X_BUTTON_A: ka = 1; break;
-					case GP2X_BUTTON_B: kb = 1; break;
-					case GP2X_BUTTON_SELECT: loadloopdone = 1; break;
+					case PLATFORM_BUTTON_UP: seciliolan -= 1; break;
+					case PLATFORM_BUTTON_DOWN: seciliolan += 1; break;
+					case PLATFORM_BUTTON_A: ka = 1; break;
+					case PLATFORM_BUTTON_B: kb = 1; break;
+					case PLATFORM_BUTTON_SELECT: loadloopdone = 1; break;
 				}
 			}
       			if (event.type == SDL_KEYDOWN) {
@@ -106,7 +110,7 @@ int dirz (int parametre) {
 				strcpy(tmp,launchDir);
 				strcat(tmp,"/roms/");
 				strcat(tmp,filez[seciliolan]);
-				strcpy(currprefs.df[1],tmp);
+				strcpy(currprefs.floppyslots[1].df,tmp);
 				free(tmp);
 
 				loadloopdone = 1;
@@ -119,7 +123,7 @@ int dirz (int parametre) {
 				strcpy(tmp,launchDir);
 				strcat(tmp,"/disks/");
 				strcat(tmp,filez[seciliolan]);
-				strcpy(currprefs.df[0],tmp);
+				strcpy(currprefs.floppyslots[0].df,tmp);
 				free(tmp);
 
 				loadloopdone = 1;
@@ -160,12 +164,19 @@ int dirz (int parametre) {
 		write_text (25,3,msg);
 		write_text (15,228,msg_status);
 
-		SDL_BlitSurface (tmpSDLScreen,NULL,display,NULL);
-		SDL_Flip(display);
+		SDL_BlitSurface (tmpSDLScreen, NULL, display, NULL);
+#ifdef USE_GL
+		flush_gl_buffer (&glbuffer, 0, display->h - 1);
+		render_gl_buffer (&glbuffer, 0, display->h - 1);
+        glFlush ();
+        SDL_GL_SwapBuffers ();
+#else
+		SDL_Flip (display);
+#endif
 	} //while done
 
 	free(filez);
-    	pMenu_Surface = SDL_LoadBMP("images/menu.bmp");
+    	pMenu_Surface = SDL_LoadBMP("guidep/images/menu.bmp");
 
 	return 0;
 }

@@ -171,7 +171,14 @@ int tweakz (int parametre) {
 		write_text (25,3,msg);
 		write_text (15,228,msg_status);
 		SDL_BlitSurface (tmpSDLScreen,NULL,display,NULL);
-		SDL_Flip(display);
+#ifdef USE_GL
+		flush_gl_buffer (&glbuffer, 0, display->h - 1);
+		render_gl_buffer (&glbuffer, 0, display->h - 1);
+        glFlush ();
+        SDL_GL_SwapBuffers ();
+#else
+		SDL_Flip (display);
+#endif
 	} //while done
 
     	pMenu_Surface = SDL_LoadBMP("images/menu.bmp");

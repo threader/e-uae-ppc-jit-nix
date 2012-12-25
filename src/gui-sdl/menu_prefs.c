@@ -3,12 +3,16 @@
 
 #include "options.h"
 #include "SDL.h"
-#include "gp2x.h"
+#include "button_mappings.h"
 #include <stdlib.h>
 
 extern void write_text(int x, int y, char* txt);
 extern void blit_image(SDL_Surface* img, int x, int y);
-extern SDL_Surface* display;
+extern SDL_Surface *display;
+#ifdef USE_GL
+extern struct gl_buffer_t glbuffer;
+extern void render_gl_buffer (const struct gl_buffer_t *buffer, int first_line, int last_line);
+#endif
 extern SDL_Surface* tmpSDLScreen;
 extern SDL_Surface* pMenu_Surface;
 extern SDL_Color text_color;
@@ -18,7 +22,7 @@ extern char msg_status[50];
 int prefz (int parametre) {
 	SDL_Event event;
 
-    	pMenu_Surface = SDL_LoadBMP("images/menu_tweak.bmp");
+	pMenu_Surface = SDL_LoadBMP("guidep/images/menu_tweak.bmp");
 	int prefsloopdone = 0;
 	int kup = 0;
 	int kdown = 0;
@@ -30,14 +34,14 @@ int prefz (int parametre) {
 	int w;
 
 	char* prefs[]	= {	"CPU",
-				"CPU Speed",
-				"Chipset",
-				"Chip",
-				"Fast",
-				"Bogo",
-				"Sound",
-				"Frame Skip",
-				"Floppy Speed"	};
+						"CPU Speed",
+						"Chipset",
+						"Chip",
+						"Fast",
+						"Bogo",
+						"Sound",
+						"Frame Skip",
+						"Floppy Speed" };
 
 	char* p_cpu[]	= {"68000", "68010", "68020", "68020/68881", "68ec020", "68ec020/68881"};	//5
 	char* p_speed[]	= {"max","real"};								//20
@@ -48,10 +52,10 @@ int prefz (int parametre) {
 	char* p_floppy[]= {"0","100","200","300"};							//3
 	int defaults[]	= {0,0,0,0,0,0,0,0};
 
-	defaults[0] = currprefs.cpu_level;
+	defaults[0] = currprefs.cpu_model;
 	if (currprefs.address_space_24 != 0) {
-		if (currprefs.cpu_level == 2) { defaults[0] = 4; }
-		if (currprefs.cpu_level == 3) { defaults[0] = 5; }
+		if (currprefs.cpu_model == 2) { defaults[0] = 4; }
+		if (currprefs.cpu_model == 3) { defaults[0] = 5; }
 	}
 	defaults[1] = currprefs.m68k_speed;
 	defaults[2] = currprefs.chipset_mask;
@@ -72,12 +76,12 @@ int prefz (int parametre) {
 			}
 			if (event.type == SDL_JOYBUTTONDOWN) {
              			switch (event.jbutton.button) {
-					case GP2X_BUTTON_UP: seciliolan--; break;
-					case GP2X_BUTTON_DOWN: seciliolan++; break;
-					case GP2X_BUTTON_LEFT: kleft = 1; break;
-					case GP2X_BUTTON_RIGHT: kright = 1; break;
-					case GP2X_BUTTON_SELECT: prefsloopdone = 1; break;
-					case GP2X_BUTTON_B: prefsloopdone = 1; break;
+					case PLATFORM_BUTTON_UP: seciliolan--; break;
+					case PLATFORM_BUTTON_DOWN: seciliolan++; break;
+					case PLATFORM_BUTTON_LEFT: kleft = 1; break;
+					case PLATFORM_BUTTON_RIGHT: kright = 1; break;
+					case PLATFORM_BUTTON_SELECT: prefsloopdone = 1; break;
+					case PLATFORM_BUTTON_B: prefsloopdone = 1; break;
 				}
 			}
       			if (event.type == SDL_KEYDOWN) {
@@ -144,7 +148,7 @@ int prefz (int parametre) {
 		if (seciliolan < 0) { seciliolan = 8; }
 		if (seciliolan > 8) { seciliolan = 0; }
 	// background
-		SDL_BlitSurface (pMenu_Surface,NULL,tmpSDLScreen,NULL);
+		SDL_BlitSurface (pMenu_Surface, NULL, tmpSDLScreen, NULL);
 
 	// texts
 		int sira = 0;
@@ -157,11 +161,11 @@ int prefz (int parametre) {
 
 			if (q == 0) {	write_text (130, skipper+25+(sira*10), p_cpu[defaults[q]]); }
 			if (q == 1) {
-				if (deger > 0) {
+//				if (deger > 0) {
 					sprintf(tmp,"%d",defaults[q]-1);
-				} else {
-					sprintf(tmp,"%d",p_speed[defaults[q]]);
-				}
+//				} else {
+//					sprintf(tmp,"%d",p_speed[defaults[q]]);
+//				}
 				write_text (130, skipper+25+(sira*10), tmp); 
 			}
 			if (q == 2) {	write_text (130, skipper+25+(sira*10), p_chip[defaults[q]]); }
@@ -181,14 +185,21 @@ int prefz (int parametre) {
 
 		write_text (25,6,msg); //
 		write_text (25,240,msg_status); //
-		SDL_BlitSurface (tmpSDLScreen,NULL,display,NULL);
-		SDL_Flip(display);
+		SDL_BlitSurface (tmpSDLScreen, NULL, display, NULL);
+#ifdef USE_GL
+		flush_gl_buffer (&glbuffer, 0, display->h - 1);
+		render_gl_buffer (&glbuffer, 0, display->h - 1);
+        glFlush ();
+        SDL_GL_SwapBuffers ();
+#else
+		SDL_Flip (display);
+#endif
 	} //while done
 /*
 	if (defaults[0] == 4) { }
 	if (defaults[0] == 5) { }
 	defaults[1]--;
 */
-    	pMenu_Surface = SDL_LoadBMP("images/menu.bmp");
+    	pMenu_Surface = SDL_LoadBMP("guidep/images/menu.bmp");
 	return 0;
 }

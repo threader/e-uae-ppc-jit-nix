@@ -4,7 +4,7 @@
 #
 # this is the main script to build (and test) PUAE
 #
-base=" --with-sdl --with-sdl-gl --with-sdl-gfx --with-sdl-sound --enable-drvsnd "
+base=" --with-sdl --with-sdl-gl --with-sdl-gfx --with-sdl-sound --enable-drvsnd --with-sdl-gui "
 wiqt=" "
 cd32=" --enable-cd32 "
 a600=" --enable-gayle "

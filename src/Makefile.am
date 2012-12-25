@@ -87,16 +87,19 @@ all-local: $(bundle)
 $(bundle): uae$(EXEEXT) od-macosx/Info.plist od-macosx/puae.icns od-macosx/Credits.rtf
 		rm -rf $(bundle)
 		mkdir -p $(bundle_contents)/MacOS
+		mkdir -p $(bundle_contents)/MacOS/uae_data
 		mkdir -p $(bundle_contents)/Resources
 		mkdir -p $(bundle_contents)/Frameworks
 		$(INSTALL_DATA) od-macosx/Info.plist $(bundle_contents)
 		$(INSTALL_PROGRAM) uae$(EXEEXT) $(bundle_contents)/MacOS/
 		cp -R /Library/Frameworks/SDL.framework $(bundle_contents)/Frameworks
+		cp -R $(top_srcdir)/uae_data $(bundle_contents)/MacOS
 if SDL_UI
+		mkdir -p $(bundle_contents)/MacOS/guidep
 		cp -R /Library/Frameworks/SDL_image.framework $(bundle_contents)/Frameworks
 		cp -R /Library/Frameworks/SDL_ttf.framework $(bundle_contents)/Frameworks
-		cp -R $(srcdir)/gui-sdl/fonts $(bundle_contents)/MacOS
-		cp -R $(srcdir)/gui-sdl/images $(bundle_contents)/MacOS
+		cp -R $(srcdir)/gui-sdl/fonts $(bundle_contents)/MacOS/guidep
+		cp -R $(srcdir)/gui-sdl/images $(bundle_contents)/MacOS/guidep
 endif
 		$(INSTALL_DATA) od-macosx/puae.icns $(bundle_contents)/Resources/
 		$(INSTALL_DATA) od-macosx/Credits.rtf $(bundle_contents)/Resources/

@@ -1297,9 +1297,9 @@ dnl
       GUI_NAME="SDL"
       GUI_CFLAGS="$SDL_CFLAGS"
       if [[ "x$WANT_SDLGL" = "xyes" ]]; then
-        GUI_CFLAGS="${GUI_CFLAGS} -DUSE_GL"
+        GUI_CFLAGS="${GUI_CFLAGS} -DUSE_GL -DSDL_UI"
         if [[ "x$OSDEP" = "xod-macosx" ]]; then
-          GUI_LIBS="${GUI_LIBS} -framework OpenGL"
+          GUI_LIBS="${GUI_LIBS} -framework OpenGL -framework SDL_ttf -framework SDL_image"
         else
           GUI_LIBS="${GUI_LIBS} -lGL -lGLU"
         fi
