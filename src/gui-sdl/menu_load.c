@@ -23,6 +23,11 @@ extern SDL_Surface* pMenu_Surface;
 extern SDL_Color text_color;
 
 #define MAX_FILES 1024
+#define TITLE_X 52
+#define TITLE_Y 9
+#define STATUS_X 30 
+#define STATUS_Y 460
+
 extern char launchDir[];
 extern char yol[];
 extern char msg[];
@@ -31,25 +36,38 @@ extern char msg_status[];
 int dirz (int parametre) {
 	SDL_Event event;
 	int getdir = 1;
-    	pMenu_Surface = SDL_LoadBMP("guidep/images/menu_load.bmp");
 	int loadloopdone = 0;
 	int num_of_files = 0;
-	int seciliolan = 0;
+	int selected_item = 0;
 	int q;
 	int bas = 0;
 	int ka = 0;
 	int kb = 0;
-	char **filez	= (char **)malloc(MAX_FILES*sizeof(char *));
-
+	char **filez = (char **)malloc(MAX_FILES*sizeof(char *));
 	int i;
 	int paging = 18;
-	DIR *d=opendir(yol);
+
+	pMenu_Surface = SDL_LoadBMP("guidep/images/menu_load.bmp");
+	if (pMenu_Surface == NULL) {
+		write_log ("SDLUI: Failed to load menu image\n");
+		abort();
+	}
+	DIR *d;
+	d = opendir(yol);
 	struct dirent *ep;
 
-	if (d != NULL) {
-		for(i=0;i<MAX_FILES;i++) {
+	if (d == NULL) {
+		write_log ("SDL_UI: opendir %s failed, trying current path\n", yol);
+		strcpy(yol, "./");
+		d = opendir(yol);
+	}
+	if (d == NULL) {
+		write_log ("SDL_UI: opendir %s failed\n", yol);
+	} else {
+		for(i=0; i<MAX_FILES; i++) {
 			ep = readdir(d);
 			if (ep == NULL) {
+				write_log ("SDL_UI: readdir %s failed\n", yol);
 				break;
 			} else {
 				//if ((!strcmp(ep->d_name,".")) || (!strcmp(ep->d_name,"..")) || (!strcmp(ep->d_name,"uae"))) {
@@ -85,31 +103,32 @@ int dirz (int parametre) {
 				loadloopdone = 1;
 			}
 			if (event.type == SDL_JOYBUTTONDOWN) {
-             			switch (event.jbutton.button) {
-					case PLATFORM_BUTTON_UP: seciliolan -= 1; break;
-					case PLATFORM_BUTTON_DOWN: seciliolan += 1; break;
+				switch (event.jbutton.button) {
+					case PLATFORM_BUTTON_UP: selected_item -= 1; break;
+					case PLATFORM_BUTTON_DOWN: selected_item += 1; break;
 					case PLATFORM_BUTTON_A: ka = 1; break;
 					case PLATFORM_BUTTON_B: kb = 1; break;
 					case PLATFORM_BUTTON_SELECT: loadloopdone = 1; break;
 				}
 			}
-      			if (event.type == SDL_KEYDOWN) {
-    				switch (event.key.keysym.sym) {
+			if (event.type == SDL_KEYDOWN) {
+				switch (event.key.keysym.sym) {
 					case SDLK_ESCAPE:	loadloopdone = 1; break;
-				 	case SDLK_UP:		seciliolan -= 1; break;
-					case SDLK_DOWN:		seciliolan += 1; break;
+				 	case SDLK_UP:		selected_item -= 1; break;
+					case SDLK_DOWN:		selected_item += 1; break;
 					case SDLK_a:		ka = 1; break;
 					case SDLK_b:		kb = 1; break;
 					default: break;
 				}
 			}
 		}
+
 		if (ka == 1) {	//df1
 			if (parametre == 0) {
 				char *tmp=(char *)calloc(1,256);
 				strcpy(tmp,launchDir);
 				strcat(tmp,"/roms/");
-				strcat(tmp,filez[seciliolan]);
+				strcat(tmp,filez[selected_item]);
 				strcpy(currprefs.floppyslots[1].df,tmp);
 				free(tmp);
 
@@ -122,7 +141,7 @@ int dirz (int parametre) {
 				char *tmp=(char *)calloc(1,256);
 				strcpy(tmp,launchDir);
 				strcat(tmp,"/disks/");
-				strcat(tmp,filez[seciliolan]);
+				strcat(tmp,filez[selected_item]);
 				strcpy(currprefs.floppyslots[0].df,tmp);
 				free(tmp);
 
@@ -131,7 +150,7 @@ int dirz (int parametre) {
 				char *tmp=(char *)calloc(1,256);
 				strcpy(tmp,launchDir);
 				strcat(tmp,"/roms/");
-				strcat(tmp,filez[seciliolan]);
+				strcat(tmp,filez[selected_item]);
 				strcpy(currprefs.romfile,tmp);
 				free(tmp);
 
@@ -139,10 +158,10 @@ int dirz (int parametre) {
 			}
 			kb = 0;		
 		}
-		if (seciliolan < 0) { seciliolan = 0; }
-		if (seciliolan >= num_of_files) { seciliolan = num_of_files-1; }
-		if (seciliolan > (bas + paging -1)) { bas += 1; }
-		if (seciliolan < bas) { bas -= 1; }
+		if (selected_item < 0) { selected_item = 0; }
+		if (selected_item >= num_of_files) { selected_item = num_of_files-1; }
+		if (selected_item > (bas + paging -1)) { bas += 1; }
+		if (selected_item < bas) { bas -= 1; }
 		if ((bas+paging) > num_of_files) { bas = (num_of_files - paging); }
 
 	// background
@@ -150,19 +169,23 @@ int dirz (int parametre) {
 
 	// texts
 		int sira = 0;
-		for (q=bas; q<(bas+paging); q++) {
-			if (seciliolan == q) {
-				text_color.r = 255; text_color.g = 100; text_color.b = 100;
+		for (q=bas; q < (bas + paging); q++) {
+			if (selected_item == q) {
+				text_color.r = 255;
+				text_color.g = 100;
+				text_color.b = 100;
 			}
-			write_text (10,25+(sira*10),filez[q]); //
-			if (seciliolan == q) {
-				text_color.r = 0; text_color.g = 0; text_color.b = 0;
+			write_text (20, 50 + (sira * 20),filez[q]); //
+			if (selected_item == q) {
+				text_color.r = 0;
+				text_color.g = 0;
+				text_color.b = 0;
 			}
 			sira++;
 		}
 
-		write_text (25,3,msg);
-		write_text (15,228,msg_status);
+		write_text (TITLE_X, TITLE_Y, msg);
+		write_text (STATUS_X, STATUS_Y, msg_status);
 
 		SDL_BlitSurface (tmpSDLScreen, NULL, display, NULL);
 #ifdef USE_GL
@@ -176,7 +199,7 @@ int dirz (int parametre) {
 	} //while done
 
 	free(filez);
-    	pMenu_Surface = SDL_LoadBMP("guidep/images/menu.bmp");
+    pMenu_Surface = SDL_LoadBMP("guidep/images/menu.bmp");
 
 	return 0;
 }

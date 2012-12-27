@@ -31,6 +31,7 @@
 #include "gui.h"
 #include "xwin.h"
 #include "debug.h"
+#include "misc.h"
 #ifdef AVIOUTPUT
 #include "avioutput.h"
 #endif
@@ -104,7 +105,7 @@ struct audio_channel_data {
 	uaecptr lc, pt;
 	int current_sample, last_sample;
 	int state;
-	int per;
+	unsigned long per;
 	int vol;
 	int len, wlen;
 	uae_u16 dat, dat2;
@@ -774,7 +775,7 @@ STATIC_INLINE void make6ch (uae_s32 d0, uae_s32 d1, uae_s32 d2, uae_s32 d3)
 	PUT_SOUND_WORD (sum);
 }
 
-void sample16ss_handler (void)
+static void sample16ss_handler (void)
 {
 	uae_u32 data0 = audio_channel[0].current_sample;
 	uae_u32 data1 = audio_channel[1].current_sample;
@@ -807,7 +808,7 @@ void sample16ss_handler (void)
 /* This interpolator examines sample points when Paula switches the output
 * voltage and computes the average of Paula's output */
 
-void sample16ss_anti_handler (void)
+static void sample16ss_anti_handler (void)
 {
 	int data0, data1, data2, data3;
 	int datas[4];
@@ -842,7 +843,7 @@ static void sample16si_anti_handler (void)
 	check_sound_buffers ();
 }
 
-void sample16ss_sinc_handler (void)
+static void sample16ss_sinc_handler (void)
 {
 	int data0, data1, data2, data3;
 	int datas[4];

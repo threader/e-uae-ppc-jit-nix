@@ -13,10 +13,10 @@ void uaeserialdev_start_threads (void);
 
 extern int log_uaeserial;
 
+#ifdef _WIN32
 struct uaeserialdata
 {
-#ifdef _WIN32
     void *handle;
     void *writeevent;
-#endif
 };
+#endif

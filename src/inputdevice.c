@@ -18,10 +18,12 @@
 
 //#define DONGLE_DEBUG
 
+#include <ctype.h>
+
 #include "sysconfig.h"
 #include "sysdeps.h"
 
-#include "options.h"
+#include "cfgfile.h"
 #include "keyboard.h"
 #include "inputdevice.h"
 #include "inputrecord.h"
@@ -50,8 +52,12 @@
 #endif
 #include "dongle.h"
 #include "cdtv.h"
+#include "misc.h"
 
 extern int bootrom_header, bootrom_items;
+extern void master_sound_volume (int);
+extern void sound_mute (int);
+extern void sound_volume (int dir);
 
 // 01 = host events
 // 02 = joystick
@@ -141,7 +147,7 @@ static struct teststore testmode_data[TESTMODE_MAX];
 static struct teststore testmode_wait[TESTMODE_MAX];
 
 static int bouncy;
-static signed long bouncy_cycles;
+static unsigned long bouncy_cycles;
 
 static int handle_input_event (int nr, int state, int max, int autofire, bool canstoprecord, bool playbackevent);
 
@@ -1044,7 +1050,7 @@ void read_inputdevice_config (struct uae_prefs *pr, const TCHAR *option, TCHAR *
 				int flags2 = 0;
 				if (p[-1] == '.')
 					flags2 = getnum (&p) & ID_FLAG_SAVE_MASK_CONFIG;
-				if (p[-1] == '.' && (p[0] >= 'A' && p[0] <= 'Z') || (p[0] >= 'a' && p[0] <= 'z'))
+				if (p[-1] == '.' && ( (p[0] >= 'A' && p[0] <= 'Z') || (p[0] >= 'a' && p[0] <= 'z') ) )
 					flags |= getqual (&p);
 				TCHAR *custom2 = NULL;
 				struct inputevent *ie2 = readevent (p2, &custom2);
@@ -1084,7 +1090,7 @@ static uaecptr get_base (const uae_char *name)
 	if (!b || !b->check (v, 400) || b->flags != ABFLAG_RAM)
 		return 0;
 	v += 378; // liblist
-	while (v = get_long (v)) {
+	while ( (v = get_long (v)) ) {
 		uae_u32 v2;
 		uae_u8 *p;
 		b = &get_mem_bank (v);
@@ -1372,7 +1378,8 @@ void inputdevice_tablet (int x, int y, int z, int pressure, uae_u32 buttonbits, 
 		return;
 
 	if (tablet_log & 1) {
-		static int obuttonbits, oinproximity;
+		static uae_u32 obuttonbits = 0;
+		static int oinproximity = 0;
 		if (inproximity != oinproximity || buttonbits != obuttonbits) {
 			obuttonbits = buttonbits;
 			oinproximity = inproximity;
@@ -2273,7 +2280,7 @@ static uae_u16 handle_joystick_potgor (uae_u16 potgor)
 
 static int inputdelay;
 
-void inputdevice_read (void)
+static void inputdevice_read (void)
 {
 	//do {
 	//	handle_msgpump ();
@@ -2285,7 +2292,7 @@ void inputdevice_read (void)
 
 static int handle_custom_event (const TCHAR *custom)
 {
-	TCHAR *p, *buf, *nextp;
+	TCHAR *p = NULL, *buf = NULL, *nextp = NULL;
 
 	if (custom == NULL)
 		return 0;
@@ -4898,7 +4905,7 @@ static void matchdevices (struct inputdevice_functions *inf, struct uae_input_de
 				} else if (p1 && p2 && p1 - bname == p2 - bname2) {
 					*p1 = 0;
 					*p2 = 0;
-					if (bname && !_tcscmp (bname2, bname))
+					if (!_tcscmp (bname2, bname))
 						matched = true;
 				}
 				if (matched) {
@@ -5049,16 +5056,16 @@ static void resetinput (void)
 }
 
 
-void inputdevice_updateconfig_internal (const struct uae_prefs *srcprrefs, struct uae_prefs *dstprefs)
+void inputdevice_updateconfig_internal (const struct uae_prefs *srcprefs, struct uae_prefs *dstprefs)
 {
 	int i;
 
 	keyboard_default = keyboard_default_table[currprefs.input_keyboard_type];
 
-	copyjport (srcprrefs, dstprefs, 0);
-	copyjport (srcprrefs, dstprefs, 1);
-	copyjport (srcprrefs, dstprefs, 2);
-	copyjport (srcprrefs, dstprefs, 3);
+	copyjport (srcprefs, dstprefs, 0);
+	copyjport (srcprefs, dstprefs, 1);
+	copyjport (srcprefs, dstprefs, 2);
+	copyjport (srcprefs, dstprefs, 3);
 
 	resetinput ();
 

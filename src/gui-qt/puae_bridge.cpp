@@ -20,6 +20,7 @@ extern "C" {
 #include "options.h"
 #include "writelog.h"
 extern struct uae_prefs workprefs;
+extern struct uae_prefs currprefs;
 extern void romlist_clear (void);
 extern int load_keyring (struct uae_prefs *p, const char *path);
 extern int scan_roms (int);

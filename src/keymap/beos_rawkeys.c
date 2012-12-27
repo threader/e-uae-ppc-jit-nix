@@ -7,8 +7,6 @@
  * Copyright 2004 Richard Drummond
  */
 
-#ifdef __BEOS__
-
 #include "sysconfig.h"
 #include "sysdeps.h"
 
@@ -16,6 +14,8 @@
 #include "inputdevice.h"
 #include "keymap.h"
 #include "keymap_common.h"
+
+#ifdef __BEOS__
 
 /*
  * BeOS raw key codes

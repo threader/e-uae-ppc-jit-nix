@@ -6,6 +6,8 @@
  * (c) 1996 Bernd Schmidt, Ed Hanway, Samuel Devulder
  */
 
+#include <math.h>
+
 #include "sysconfig.h"
 #include "sysdeps.h"
 #include "options.h"
@@ -142,7 +144,10 @@ static float video_gamma (float value, float gamma, float bri, float con)
 	return ret;
 }
 
-static uae_u32 gamma[256 * 3];
+/* Update: renamed gamma to gfx_gamma, because math-finite.h
+ * already defines the global value "gamma". - Sven
+*/
+static uae_u32 gfx_gamma[256 * 3];
 static int lf, hf;
 
 static void video_calc_gammatable (void)
@@ -168,7 +173,7 @@ static void video_calc_gammatable (void)
 		if (currprefs.gfx_luminance == 0 && currprefs.gfx_contrast == 0 && currprefs.gfx_gamma == 0)
 			vi = i & 0xff;
 
-		gamma[i] = vi;
+		gfx_gamma[i] = vi;
 	}
 }
 
@@ -328,9 +333,9 @@ void alloc_colors_rgb (int rw, int gw, int bw, int rs, int gs, int bs, int aw, i
 		}
 		j += 256;
 
-		rc[i] = doColor (gamma[j], rw, rs) | doAlpha (alpha, aw, as);
-		gc[i] = doColor (gamma[j], gw, gs) | doAlpha (alpha, aw, as);
-		bc[i] = doColor (gamma[j], bw, bs) | doAlpha (alpha, aw, as);
+		rc[i] = doColor (gfx_gamma[j], rw, rs) | doAlpha (alpha, aw, as);
+		gc[i] = doColor (gfx_gamma[j], gw, gs) | doAlpha (alpha, aw, as);
+		bc[i] = doColor (gfx_gamma[j], bw, bs) | doAlpha (alpha, aw, as);
 		if (byte_swap) {
 			if (bpp <= 16) {
 				rc[i] = bswap_16 (rc[i]);
@@ -363,9 +368,9 @@ void alloc_colors64k (int rw, int gw, int bw, int rs, int gs, int bs, int aw, in
 		int r = ((i >> 8) << 4) | (i >> 8);
 		int g = (((i >> 4) & 0xf) << 4) | ((i >> 4) & 0x0f);
 		int b = ((i & 0xf) << 4) | (i & 0x0f);
-		r = gamma[r + j];
-		g = gamma[g + j];
-		b = gamma[b + j];
+		r = gfx_gamma[r + j];
+		g = gfx_gamma[g + j];
+		b = gfx_gamma[b + j];
 		xcolors[i] = doMask(r, rw, rs) | doMask(g, gw, gs) | doMask(b, bw, bs) | doAlpha (alpha, aw, as);
 		if (byte_swap) {
 			if (bpp <= 16)
@@ -398,9 +403,9 @@ void alloc_colors64k (int rw, int gw, int bw, int rs, int gs, int bs, int aw, in
 		/* create internal 5:6:5 color tables */
 		for (i = 0; i < 256; i++) {
 			j = i + 256;
-			xredcolors[i] = doColor (gamma[j], 5, 11);
-			xgreencolors[i] = doColor (gamma[j], 6, 5);
-			xbluecolors[i] = doColor (gamma[j], 5, 0);
+			xredcolors[i] = doColor (gfx_gamma[j], 5, 11);
+			xgreencolors[i] = doColor (gfx_gamma[j], 6, 5);
+			xbluecolors[i] = doColor (gfx_gamma[j], 5, 0);
 			if (bpp <= 16) {
 				/* Fill upper 16 bits of each colour value with
 				* a copy of the colour. */
@@ -413,9 +418,9 @@ void alloc_colors64k (int rw, int gw, int bw, int rs, int gs, int bs, int aw, in
 			int r = ((i >> 8) << 4) | (i >> 8);
 			int g = (((i >> 4) & 0xf) << 4) | ((i >> 4) & 0x0f);
 			int b = ((i & 0xf) << 4) | (i & 0x0f);
-			r = gamma[r + 256];
-			g = gamma[g + 256];
-			b = gamma[b + 256];
+			r = gfx_gamma[r + 256];
+			g = gfx_gamma[g + 256];
+			b = gfx_gamma[b + 256];
 			xcolors[i] = doMask(r, 5, 11) | doMask(g, 6, 5) | doMask(b, 5, 0);
 			if (byte_swap) {
 				if (bpp <= 16)
@@ -434,11 +439,11 @@ void alloc_colors64k (int rw, int gw, int bw, int rs, int gs, int bs, int aw, in
 		for (i = 0; i < 65536; i++) {
 			uae_u32 r, g, b;
 			r = (((i >> 11) & 31) << 3) | lowbits (i, 11, 3);
-			r = gamma[r + 256];
+			r = gfx_gamma[r + 256];
 			g = (((i >>  5) & 63) << 2) | lowbits (i,  5, 2);
-			g = gamma[g + 256];
+			g = gfx_gamma[g + 256];
 			b = (((i >>  0) & 31) << 3) | lowbits (i,  0, 3);
-			b = gamma[b + 256];
+			b = gfx_gamma[b + 256];
 			tyhrgb[i] = get_yh (r, g, b) * 256 * 256;
 			tylrgb[i] = get_yl (r, g, b) * 256 * 256;
 			tcbrgb[i] = ((uae_s8)get_cb (r, g, b)) * 256;

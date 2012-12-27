@@ -10,7 +10,7 @@
 #include "sysconfig.h"
 #include "sysdeps.h"
 
-#include "options.h"
+#include "cfgfile.h"
 #include "sleep.h"
 #include "machdep/rpt.h"
 #include "machdep/m68k.h"
@@ -286,6 +286,7 @@ void machdep_save_options (struct zfile *f, const struct uae_prefs *p)
 int machdep_parse_option (struct uae_prefs *p, const char *option, const char *value)
 {
 //    return cfgfile_yesno (option, value, "use_tsc", &p->use_processor_clock);
+	return 0;
 }
 
 void machdep_default_options (struct uae_prefs *p)

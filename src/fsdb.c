@@ -45,6 +45,8 @@ TCHAR *nname_begin (TCHAR *nname)
 }
 
 #ifndef _WIN32
+#include "filesys_linux.c"
+
 /* Find the name REL in directory DIRNAME.  If we find a file that
  * has exactly the same name, return REL.  If we find a file that
  * has the same name when compared case-insensitively, return a
@@ -56,7 +58,7 @@ TCHAR *fsdb_search_dir (const TCHAR *dirname, TCHAR *rel)
 	struct dirent *de;
 	TCHAR fn[MAX_DPATH];
 
-	DIR *dir = my_opendir (dirname, "*.*");
+	DIR *dir = my_opendir (dirname);
 	/* This really shouldn't happen...  */
 	if (! dir)
 		return 0;

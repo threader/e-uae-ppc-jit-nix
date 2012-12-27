@@ -16,7 +16,7 @@
 #include "sysconfig.h"
 #include "sysdeps.h"
 
-#include "options.h"
+#include "cfgfile.h"
 #include "gensound.h"
 #include "sounddep/sound.h"
 #include "driveclick.h"
@@ -40,7 +40,6 @@ static struct sound_data sdpaula;
 static struct sound_data *sdp = &sdpaula;
 
 /* internal prototypes */
-void restart_sound_buffer (void);
 void audio_default_options (struct uae_prefs *);
 void audio_save_options (struct zfile *, const struct uae_prefs *);
 int audio_parse_option (struct uae_prefs *, const char *, const char *);
@@ -254,8 +253,8 @@ int init_sound (void)
     sound_available = 1;
 
     write_log ("ALSA: Using device '%s'.\n", alsa_device);
-    write_log ("ALSA: Sound configured for %d bits at %d Hz. Buffer length is %u us, period size %u bytes.\n",
-	       dspbits, rate, buffer_time, (size_t)(period_frames * bytes_per_frame) );
+    write_log ("ALSA: Sound configured for %d bits at %d Hz. Buffer length is %u us, period size %lu bytes.\n",
+	       dspbits, rate, buffer_time, (unsigned long)(period_frames * bytes_per_frame) );
 
     if (alsa_verbose)
 		snd_pcm_dump (alsa_playback_handle, alsa_out);

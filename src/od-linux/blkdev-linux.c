@@ -8,7 +8,6 @@
   *
   */
 
-#ifdef SCSIEMU_LINUX_IOCTL
 
 #include "sysconfig.h"
 #include "sysdeps.h"
@@ -18,6 +17,8 @@
 #include "blkdev.h"
 #include "scsidev.h"
 #include "gui.h"
+
+#ifdef SCSIEMU_LINUX_IOCTL
 
 #include <linux/cdrom.h>
 #include <sys/ioctl.h>
@@ -430,5 +431,4 @@ struct device_functions devicefunc_scsi_linux_ioctl = {
     0, /* open_device_func  opendevthread; */
     0 /* close_device_func closedevthread; */
 };
-
 #endif

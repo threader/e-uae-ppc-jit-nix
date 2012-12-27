@@ -2,9 +2,11 @@
 #include <SDL.h>
 #include "SDL_ttf.h"
 
-#define iconsizex 50
-#define iconsizey 60
+#define iconsizex 100
+#define iconsizey 120
 #define bosluk 10
+#define TITLE_X 52
+#define TITLE_Y 9
 
 extern SDL_Surface *display;
 #ifdef USE_GL
@@ -14,7 +16,7 @@ extern void render_gl_buffer (const struct gl_buffer_t *buffer, int first_line, 
 
 void write_text(int x, int y, char* txt);
 void blit_image(SDL_Surface* img, int x, int y);
-void secilimi (int ix, int iy, int mx, int my, SDL_Surface* img, int hangi);
+void selected_hilite (int ix, int iy, int mx, int my, SDL_Surface* img, int hangi);
 
 enum { menu_sel_foo, menu_sel_expansion, menu_sel_prefs, menu_sel_keymaps, menu_sel_floppy, menu_sel_reset, menu_sel_storage, menu_sel_run, menu_sel_exit, menu_sel_tweaks };
 

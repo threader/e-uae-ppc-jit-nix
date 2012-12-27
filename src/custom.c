@@ -15,7 +15,7 @@
 #include <assert.h>
 #include <math.h>
 
-#include "options.h"
+#include "cfgfile.h"
 #include "uae.h"
 #include "gensound.h"
 #include "audio.h"

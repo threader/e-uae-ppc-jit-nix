@@ -1,8 +1,13 @@
+#pragma once
+#ifndef SRC_INCLUDE_ZARCHIVE_H_INCLUDED
+#define SRC_INCLUDE_ZARCHIVE_H_INCLUDED 1
+
 struct zfile;
 
 typedef uae_s64 (*ZFILEREAD)(void*, uae_u64, uae_u64, struct zfile*);
 typedef uae_s64 (*ZFILEWRITE)(const void*, uae_u64, uae_u64, struct zfile*);
 typedef uae_s64 (*ZFILESEEK)(struct zfile*, uae_s64, int);
+typedef int (*zfile_callback)(struct zfile*, void*);
 
 struct zfile {
     TCHAR *name;
@@ -147,3 +152,5 @@ extern struct zfile *archive_getzfile (struct znode *zn, unsigned int id, int fl
 extern struct zfile *archive_unpackzfile (struct zfile *zf);
 
 extern struct zfile *decompress_zfd (struct zfile*);
+
+#endif /* SRC_INCLUDE_ZARCHIVE_H_INCLUDED */

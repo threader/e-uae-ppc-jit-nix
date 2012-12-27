@@ -1178,7 +1178,7 @@ static void genflags_normal (flagtypes type, wordsizes size, char *value, char *
 {
 	char vstr[100], sstr[100], dstr[100];
 	char usstr[100], udstr[100];
-	char unsstr[100];
+	//char unsstr[100];
 	char undstr[100], undsstr[100]; /* undsstr is the src partner for undstr */
 
 	switch (size) {
@@ -1197,7 +1197,7 @@ static void genflags_normal (flagtypes type, wordsizes size, char *value, char *
 	default:
 		abort ();
 	}
-	strcpy (unsstr, usstr);
+	//strcpy (unsstr, usstr);
 
 	strcpy (sstr, vstr);
 	strcpy (dstr, vstr);
@@ -1223,14 +1223,13 @@ static void genflags_normal (flagtypes type, wordsizes size, char *value, char *
 	strcat (unsstr, src);
 	strcat (unsstr, "))");
 */
-	strcat (unsstr, "-");
-	strcat (unsstr, src);
-	strcat (unsstr, "))");
 
 	/* update: to get rid of the "comparison of promoted ~unsigned with unsigned" warning,
 	   which is rather bad as it indicates that the test will fail although it shouldn't,
 	   the comparison with ~ is always done using 32bit unsigned.
 	   - Sven
+
+	Reference:
 	   For further reference see http://gcc.gnu.org/bugzilla/show_bug.cgi?id=38341 -
 	   Comment #1 By Richard Biener.
 	   The important part is:

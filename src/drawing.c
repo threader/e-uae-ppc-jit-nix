@@ -50,7 +50,15 @@
 #include "inputdevice.h"
 #include "debug.h"
 
-extern bool emulate_specialmonitors(struct vidbuffer*, struct vidbuffer*);
+/* internal prototypes */
+void get_custom_mouse_limits (int *pw, int *ph, int *pdx, int *pdy, int dbl);
+void init_aspect_maps (void);
+void finish_drawing_frame (void);
+void check_picasso (void);
+void reset_decision_table (void);
+
+
+// extern bool emulate_specialmonitors(struct vidbuffer*, struct vidbuffer*);
 
 extern int sprite_buffer_res;
 int lores_factor, lores_shift;

@@ -74,7 +74,6 @@ static struct zcache *cache_get (const TCHAR *name)
 }
 
 /* internal prototypes */
-struct zfile *zuncompress (struct znode *parent, struct zfile *z, int dodefault, int mask, int *retcode, int index);
 struct zvolume *zvolume_alloc_nofile (const TCHAR *name, unsigned int id, void *handle, const TCHAR *volumename);
 struct zvolume *zfile_fopen_directory (const TCHAR *dirname);
 struct zvolume *zfile_fopen_archive_flags (const TCHAR *filename, int flags);

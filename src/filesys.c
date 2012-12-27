@@ -46,6 +46,9 @@
 #include "consolehook.h"
 #include "blkdev.h"
 #include "isofs_api.h"
+#ifdef PICASSO96
+# include "picasso96.h"
+#endif
 
 //FIXME: ---start
 #ifdef TARGET_AMIGAOS
@@ -83,6 +86,8 @@ int log_filesys = 0;
 #endif
 
 #define RTAREA_HEARTBEAT 0xFFFC
+
+static void get_time (time_t t, long* days, long* mins, long* ticks);
 
 static uae_sem_t test_sem;
 
@@ -1057,9 +1062,6 @@ typedef uaecptr dpacket;
 #define GET_PCK64_ARG5(p) ( (((uae_s64)(get_long ((p) + dp64_Arg5))) << 32) | (((uae_s64)(get_long ((p) + dp64_Arg5 + 4))) << 0) )
 
 static int flush_cache (Unit *unit, int num);
-
-//FIXME:
-#include "filesys_linux.c"
 
 static TCHAR *char1 (uaecptr addr)
 {
@@ -6104,7 +6106,6 @@ static uae_u32 REGPARAM2 filesys_dev_bootfilesys (TrapContext *context)
 	return 0;
 }
 
-extern void picasso96_alloc (TrapContext*);
 static uae_u32 REGPARAM2 filesys_init_storeinfo (TrapContext *context)
 {
 	int ret = -1;

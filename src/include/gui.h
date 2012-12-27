@@ -76,7 +76,7 @@ extern void gui_update_gfx (void);
 #define NUMSG_KSROMREADERROR "Error while reading system ROM."
 #define NUMSG_NOEXTROM      "No extended ROM found."
 #define NUMSG_MODRIP_NOTFOUND "No music modules or packed data found."
-#define NUMSG_MODRIP_FINISHED "Scan finished."
+#define NUMSG_MODRIP_FINISHED "Scan finished.\n"
 #define NUMSG_MODRIP_SAVE   "Module/packed data found\n%s\nStart address %08.8X, Size %d bytes\nWould you like to save it?"
 #define NUMSG_KS68020       "The selected system ROM requires a 68020 with 32-bit addressing or 68030 or higher CPU."
 #define NUMSG_ROMNEED       "One of the following system ROMs is required:\n\n%s\n\nCheck the System ROM path in the Paths panel and click Rescan ROMs."
@@ -86,7 +86,7 @@ extern void gui_update_gfx (void);
 #define NUMSG_KS68EC020     "The selected system ROM requires a 68020 with 24-bit addressing or higher CPU."
 #define NUMSG_KICKREP       "You need to have a floppy disk (image file) in DF0: to use the system ROM replacement."
 #define NUMSG_KICKREPNO     "The floppy disk (image file) in DF0: is not compatible with the system ROM replacement functionality."
-#define NUMSG_NOROM         "Could not load system ROM, trying system ROM replacement."
+#define NUMSG_NOROM         "Could not load system ROM, trying system ROM replacement.\n"
 #define NUMSG_EXPROMNEED    "One of the following expansion boot ROMs is required:\n\n%s\n\nCheck the System ROM path in the Paths panel and click Rescan ROMs."
 #define NUMSG_KS68030       "The selected system ROM requires a 68030 CPU."
 

@@ -20,8 +20,10 @@
 #include "archivers/dms/pfile.h"
 #include "crc32.h"
 #include "zarchive.h"
+#include "zfile.h"
 #include "disk.h"
 #include "fsdb.h"
+#include "misc.h"
 
 #include <zlib.h>
 
@@ -33,7 +35,6 @@
 #define unpack_log write_log
 #undef unpack_log
 #define unpack_log
-
 
 static time_t fromdostime (uae_u32 dd)
 {
@@ -740,9 +741,10 @@ struct zvolume *archive_directory_plain (struct zfile *z)
 	}
 	return zv;
 }
-struct zfile *archive_access_plain (struct znode *zn)
+
+static struct zfile *archive_access_plain (struct znode *zn)
 {
-	struct zfile *z;
+	struct zfile *z = NULL;
 
 	if (zn->offset) {
 		struct zfile *zf;
@@ -872,7 +874,7 @@ static void recurseadf (struct znode *zn, int root, TCHAR *name)
 				return;
 			if (gl (adf, 0) != 2)
 				break;
-			if (gl (adf, 1 * 4) != block)
+			if (gl (adf, 1 * 4) != (uae_u32)block)
 				break;
 			secondary = gl (adf, bs - 1 * 4);
 			if (secondary != -3 && secondary != 2)
@@ -1023,7 +1025,7 @@ struct zvolume *archive_directory_adf (struct znode *parent, struct zfile *z)
 		goto fail;
 	adf->dostype = gl (adf, 0);
 
-	if ((adf->dostype & 0xffffff00) == 'DOS\0') {
+	if ((adf->dostype & 0xffffff00) == 0x444f5300 /* 'DOS' */) {
 		int bs = adf->blocksize;
 		int res;
 
@@ -1075,7 +1077,7 @@ struct zvolume *archive_directory_adf (struct znode *parent, struct zfile *z)
 		name[0] = 0;
 		recurseadf (&zv->root, adf->rootblock, name);
 
-	} else if ((adf->dostype & 0xffffff00) == 'SFS\0') {
+	} else if ((adf->dostype & 0xffffff00) == 0x53465300 /* 'SFS' */) {
 
 		uae_u16 version, sfs2;
 
@@ -1088,14 +1090,14 @@ struct zvolume *archive_directory_adf (struct znode *parent, struct zfile *z)
 				adf->rootblock = gl (adf, 104);
 				if (!adf_read_block (adf, adf->rootblock))
 					break;
-				if (gl (adf, 0) != 'OBJC')
+				if (gl (adf, 0) != 0x4f424a43 /* 'OBJC' */)
 					break;
 				if (sfs_checksum (adf->block, adf->blocksize, sfs2))
 					break;
 				adf->rootblock = gl (adf, 40);
 				if (!adf_read_block (adf, adf->rootblock))
 					break;
-				if (gl (adf, 0) != 'OBJC')
+				if (gl (adf, 0) != 0x4f424a43 /* 'OBJC' */)
 					break;
 				if (sfs_checksum (adf->block, adf->blocksize, sfs2))
 					break;
@@ -1162,7 +1164,7 @@ static int sfsfindblock (struct adfhandle *adf, int btree, int theblock, struct 
 				blocks = glx (p + 12);
 			else
 				blocks = gwx (p + 12);
-			if (key == theblock) {
+			if (key == (uae_u32)theblock) {
 				struct sfsblock *sb;
 				if (*sfsblockcnt >= *sfsmaxblockcnt) {
 					*sfsmaxblockcnt += 100;
@@ -1191,7 +1193,7 @@ static int sfsfindblock (struct adfhandle *adf, int btree, int theblock, struct 
 }
 
 
-struct zfile *archive_access_adf (struct znode *zn)
+static struct zfile *archive_access_adf (struct znode *zn)
 {
 	struct zfile *z = NULL;
 	int root, ffs;
@@ -1206,7 +1208,7 @@ struct zfile *archive_access_adf (struct znode *zn)
 	if (!z)
 		return NULL;
 
-	if ((adf->dostype & 0xffffff00) == 'DOS\0') {
+	if ((adf->dostype & 0xffffff00) == 0x444f5300 /* 'DOS' */) {
 
 		ffs = adf->dostype & 1;
 		root = zn->offset;
@@ -1232,7 +1234,7 @@ struct zfile *archive_access_adf (struct znode *zn)
 				break;
 			root = gl (adf, bs - 2 * 4);
 		}
-	} else if ((adf->dostype & 0xffffff00) == 'SFS\0') {
+	} else if ((adf->dostype & 0xffffff00) == 0x53465300 /* 'SFS' */) {
 
 		struct sfsblock *sfsblocks;
 		int sfsblockcnt, sfsmaxblockcnt, i;
@@ -1404,7 +1406,7 @@ struct zvolume *archive_directory_rdb (struct zfile *z)
 	return zv;
 }
 
-struct zfile *archive_access_rdb (struct znode *zn)
+static struct zfile *archive_access_rdb (struct znode *zn)
 {
 	struct zfile *z = zn->volume->archive;
 	struct zfile *zf;
@@ -1669,7 +1671,7 @@ struct zvolume *archive_directory_fat (struct zfile *z)
 	return zv;
 }
 
-struct zfile *archive_access_fat (struct znode *zn)
+static struct zfile *archive_access_fat (struct znode *zn)
 {
 	uae_u8 buf[512] = { 0 };
 	int fatbits = 12;
@@ -1746,7 +1748,7 @@ void archive_access_close (void *handle, unsigned int id)
 	}
 }
 
-struct zfile *archive_access_dir (struct znode *zn)
+static struct zfile *archive_access_dir (struct znode *zn)
 {
 	return zfile_fopen (zn->fullname, _T("rb"), 0);
 }

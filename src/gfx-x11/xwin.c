@@ -81,17 +81,17 @@
 int mousehack_allowed (void);
 void setmaintitle(void);
 
-#ifdef PICASSO96
-void DX_Invalidate (int, int);
-void DX_SetPalette (int, int);
-void DX_SetPalette_vsync(void);
-int DX_Fill (int, int, int, int, uae_u32, RGBFTYPE);
-int DX_Blit (int, int, int, int, int, int, BLIT_OPCODE);
-uae_u8 *gfx_lock_picasso (int);
-void gfx_unlock_picasso (void);
-#endif /* PICASSO96 */
-
 int is_vsync (void);
+void gfx_save_options (FILE *, const struct uae_prefs *);
+int gfx_parse_option (struct uae_prefs *, const char *, const char *);
+void gfx_default_options (struct uae_prefs *);
+
+
+/* external prototypes */
+extern void inputdevice_release_all_keys (void);
+
+
+/* internal types */
 void gfx_save_options (FILE *, const struct uae_prefs *);
 int gfx_parse_option (struct uae_prefs *, const char *, const char *);
 void gfx_default_options (struct uae_prefs *);
@@ -1442,7 +1442,7 @@ void gfx_set_picasso_state (int on)
 	DX_SetPalette_real (0, 256);
 }
 
-uae_u8 *gfx_lock_picasso (int fullupdate)
+uae_u8 *gfx_lock_picasso (bool fullupdate, bool doclear)
 {
 #ifdef USE_DGA_EXTENSION
     if (dgamode)
@@ -1452,7 +1452,7 @@ uae_u8 *gfx_lock_picasso (int fullupdate)
 	return (uae_u8 *)pic_dinfo.ximg->data;
 }
 
-void gfx_unlock_picasso (void)
+void gfx_unlock_picasso (bool dorender)
 {
 }
 #endif

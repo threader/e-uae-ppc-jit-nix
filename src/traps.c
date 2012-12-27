@@ -82,9 +82,9 @@ static void trap_HandleExtendedTrap (TrapHandler, int has_retval);
 
 uaecptr find_trap (const TCHAR *name)
 {
-	int i;
+	int i = 0;
 
-	for (i = 0; i < trap_count; i++) {
+	for ( ; i < trap_count; i++) {
 		struct Trap *trap = &traps[i];
 		if ((trap->flags & TRAPFLAG_UAERES) && trap->name && !_tcscmp (trap->name, name))
 			return trap->addr;
@@ -109,12 +109,12 @@ unsigned int define_trap (TrapHandler handler_func, int flags, const TCHAR *name
 		abort ();
 		return -1;
 	} else {
-		int i;
+		int i = 0;
 		unsigned int trap_num;
 		struct Trap *trap;
 		uaecptr addr = here ();
 
-		for (i = 0; i < trap_count; i++) {
+		for ( ; i < trap_count; i++) {
 			if (addr == traps[i].addr)
 				return i;
 		}

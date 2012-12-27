@@ -15,7 +15,7 @@
 #include <ctype.h>
 #include <wctype.h>
 
-#include "options.h"
+#include "cfgfile.h"
 #include "uae.h"
 #include "audio.h"
 #include "autoconf.h"
@@ -28,7 +28,6 @@
 #include "rommgr.h"
 #include "gui.h"
 #include "newcpu.h"
-#include "zfile.h"
 #include "filesys.h"
 #include "fsdb.h"
 #include "disk.h"
@@ -220,14 +219,14 @@ static const TCHAR *obsolete[] = {
 	NULL
 };
 
-/* internal prototypes */
-void cfgfile_dwrite (struct zfile *, const TCHAR *option, const TCHAR *format,...);
-void cfgfile_target_write (struct zfile *, const TCHAR *option, const TCHAR *format,...);
-void cfgfile_target_dwrite (struct zfile *, const TCHAR *option, const TCHAR *format,...);
-void cfgfile_write_bool (struct zfile *f, const TCHAR *option, bool b);
-void cfgfile_dwrite_bool (struct zfile *f,const  TCHAR *option, bool b);
-void cfgfile_target_write_bool (struct zfile *f, const TCHAR *option, bool b);
-void cfgfile_target_dwrite_bool (struct zfile *f, const TCHAR *option, bool b);
+/* external prototypes */
+extern int machdep_parse_option (struct uae_prefs *, const char *, const char *);
+extern int gfx_parse_option (struct uae_prefs *, const char *, const char *);
+extern int audio_parse_option (struct uae_prefs *, const char *, const char *);
+extern void machdep_default_options (struct uae_prefs *);
+extern void gfx_default_options (struct uae_prefs *);
+extern void audio_default_options (struct uae_prefs *);
+
 void cfgfile_write_str (struct zfile *f, const TCHAR *option, const TCHAR *value);
 void cfgfile_dwrite_str (struct zfile *f, const TCHAR *option, const TCHAR *value);
 void cfgfile_target_write_str (struct zfile *f, const TCHAR *option, const TCHAR *value);

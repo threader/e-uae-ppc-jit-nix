@@ -87,6 +87,39 @@ static uae_u8 *REGPARAM3 kickmem_xlate (uaecptr addr) REGPARAM;
 void memcpyha (uaecptr dst, const uae_u8 *src, int size);
 
 
+/* internal prototypes */
+#ifdef AGA
+uae_u32 REGPARAM2 chipmem_lget_ce2 (uaecptr addr);
+uae_u32 REGPARAM2 chipmem_wget_ce2 (uaecptr addr);
+uae_u32 REGPARAM2 chipmem_bget_ce2 (uaecptr addr);
+void REGPARAM2 chipmem_lput_ce2 (uaecptr addr, uae_u32 l);
+void REGPARAM2 chipmem_wput_ce2 (uaecptr addr, uae_u32 w);
+void REGPARAM2 chipmem_bput_ce2 (uaecptr addr, uae_u32 b);
+#endif
+uae_u32 REGPARAM2 chipmem_lget (uaecptr addr);
+uae_u32 REGPARAM2 chipmem_wget (uaecptr addr);
+uae_u32 REGPARAM2 chipmem_bget (uaecptr addr);
+void REGPARAM2 chipmem_dummy_bput (uaecptr addr, uae_u32 b);
+void REGPARAM2 chipmem_dummy_wput (uaecptr addr, uae_u32 b);
+void REGPARAM2 chipmem_dummy_lput (uaecptr addr, uae_u32 b);
+uae_u32 REGPARAM2 chipmem_agnus_lget (uaecptr addr);
+uae_u32 REGPARAM2 chipmem_agnus_bget (uaecptr addr);
+void REGPARAM2 chipmem_agnus_lput (uaecptr addr, uae_u32 l);
+void REGPARAM2 chipmem_agnus_bput (uaecptr addr, uae_u32 b);
+static uae_u32 REGPARAM3 kickmem_lget (uaecptr) REGPARAM;
+static uae_u32 REGPARAM3 kickmem_wget (uaecptr) REGPARAM;
+static uae_u32 REGPARAM3 kickmem_bget (uaecptr) REGPARAM;
+static void REGPARAM3 kickmem_lput (uaecptr, uae_u32) REGPARAM;
+static void REGPARAM3 kickmem_wput (uaecptr, uae_u32) REGPARAM;
+static void REGPARAM3 kickmem_bput (uaecptr, uae_u32) REGPARAM;
+static int REGPARAM3 kickmem_check (uaecptr addr, uae_u32 size) REGPARAM;
+void REGPARAM2 kickmem2_lput (uaecptr addr, uae_u32 l);
+void REGPARAM2 kickmem2_wput (uaecptr addr, uae_u32 w);
+void REGPARAM2 kickmem2_bput (uaecptr addr, uae_u32 b);
+static uae_u8 *REGPARAM3 kickmem_xlate (uaecptr addr) REGPARAM;
+void memcpyha (uaecptr dst, const uae_u8 *src, int size);
+
+
 static bool isdirectjit (void)
 {
 #ifdef JIT

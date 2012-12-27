@@ -214,6 +214,7 @@ void machdep_save_options (FILE *f, const struct uae_prefs *p)
 int machdep_parse_option (struct uae_prefs *p, const char *option, const char *value)
 {
 //    return cfgfile_yesno (option, value, "use_tbc", &p->use_processor_clock);
+	return 0;
 }
 
 void machdep_default_options (struct uae_prefs *p)

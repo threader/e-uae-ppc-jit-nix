@@ -53,6 +53,8 @@ int disk_debug_track = -1;
 #ifdef RETROPLATFORM
 #include "rp.h"
 #endif
+#include "misc.h"
+#include "inputrecord.h"
 #include <ctype.h>
 
 #undef CATWEASEL
@@ -252,10 +254,10 @@ static void disk_checksum (uae_u8 *p, uae_u8 *c)
 static int dirhash (const uae_char *name)
 {
 	unsigned long hash;
-	int i;
+	uae_u32 i = 0;
 
 	hash = strlen (name);
-	for(i = 0; i < strlen (name); i++) {
+	for( ; i < strlen (name); i++) {
 		hash = hash * 13;
 		hash = hash + toupper (name[i]);
 		hash = hash & 0x7ff;
@@ -584,6 +586,13 @@ static void drive_image_free (drive *drv)
 		fdi2raw_header_free (drv->fdi);
 		drv->fdi = 0;
 #endif
+		break;
+	case ADF_NONE:
+	case ADF_NORMAL:
+	case ADF_EXT1:
+	case ADF_EXT2:
+	case ADF_CATWEASEL:
+	case ADF_PCDOS:
 		break;
 	}
 	drv->filetype = ADF_NONE;
@@ -976,7 +985,7 @@ static int drive_insert (drive * drv, struct uae_prefs *p, int dnum, const TCHAR
 		drv->filetype = ADF_IPF;
 #endif
 #ifdef FDI2RAW
-	} else if (drv->fdi = fdi2raw_header (drv->diskfile)) {
+	} else if ( (drv->fdi = fdi2raw_header (drv->diskfile)) ) {
 
 		drv->wrprot = 1;
 		drv->num_tracks = fdi2raw_get_last_track (drv->fdi);
@@ -1845,7 +1854,7 @@ static int decode_buffer (uae_u16 *mbuf, int cyl, int drvsec, int ddhd, int file
 				return 3;
 			continue;
 		}
-		if (((id & 0x00ff0000) >> 16) != cyl * 2 + side) {
+		if (((id & 0x00ff0000) >> 16) != (uae_u32)(cyl * 2 + side) ) {
 			write_log (_T("Disk decode: mismatched track (%d <> %d) on sector %d header\n"), (id & 0x00ff0000) >> 16, cyl * 2 + side, trackoffs);
 			if (filetype == ADF_EXT2)
 				return 3;
@@ -2145,6 +2154,10 @@ static void drive_write_data (drive * drv)
 		ret = drive_write_pcdos (drv);
 		if (ret)
 			write_log (_T("not a PC formatted track %d (error %d)\n"), drv->cyl * 2 + side, ret);
+		break;
+	case ADF_NONE:
+	case ADF_FDI:
+	case ADF_CATWEASEL:
 		break;
 	}
 	drv->tracktiming[0] = 0;
@@ -2809,6 +2822,13 @@ static void fetchnextrevolution (drive *drv)
 #ifdef FDI2RAW
 		fdi2raw_loadrevolution (drv->fdi, drv->bigmfmbuf, drv->tracktiming, drv->cyl * 2 + side, &drv->tracklen, 1);
 #endif
+		break;
+	case ADF_NONE:
+	case ADF_NORMAL:
+	case ADF_EXT1:
+	case ADF_EXT2:
+	case ADF_CATWEASEL:
+	case ADF_PCDOS:
 		break;
 	}
 }
@@ -3991,7 +4011,8 @@ int disk_prevnext_name (TCHAR *imgp, int dir)
 	wrapped = 0;
 retry:
 	_tcscpy (imgl, img);
-	tolower (imgl);
+	for (i = 0; i < (int)_tcslen(imgl); ++i)
+		imgl[i] = tolower (imgl[i]);
 	gotone = 0;
 	ret = 0;
 	ps = imgl;

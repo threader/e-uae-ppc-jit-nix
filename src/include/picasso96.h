@@ -727,6 +727,8 @@ extern uae_u16 picasso96_pixel_format;
 extern unsigned int timer_id;
 #endif
 
+#include "traps.h"
+
 extern void picasso_enablescreen (int on);
 extern void picasso_refresh (void);
 extern void init_hz_p96 (void);
@@ -737,6 +739,13 @@ extern void picasso_reset (void);
 extern int picasso_setwincursor (void);
 extern int picasso_palette (void);
 extern void uaegfx_install_code (uaecptr start);
+extern int createwindowscursor (uaecptr, int, int, int, int, int);
+extern int DX_Fill (int, int, int, int, uae_u32, RGBFTYPE);
+extern void DX_Invalidate (int, int);
+extern void DX_SetPalette (int, int);
+extern void DX_SetPalette_vsync(void);
+extern void picasso96_alloc (TrapContext *);
+extern uae_u32 picasso_demux (uae_u32 arg, TrapContext *context);
 
 /* This structure describes the UAE-side framebuffer for the Picasso
  * screen.  */
@@ -755,8 +764,8 @@ extern void gfx_set_picasso_modeinfo (uae_u32 w, uae_u32 h, uae_u32 d, RGBFTYPE 
 extern void gfx_set_picasso_colors (RGBFTYPE rgbfmt);
 extern void gfx_set_picasso_baseaddr (uaecptr);
 extern void gfx_set_picasso_state (int on);
-//extern uae_u8 *gfx_lock_picasso (bool, bool);
-//extern void gfx_unlock_picasso (bool);
+extern uae_u8 *gfx_lock_picasso (bool, bool);
+extern void gfx_unlock_picasso (bool);
 extern void picasso_clip_mouse (int *, int *);
 
 extern int picasso_is_special;

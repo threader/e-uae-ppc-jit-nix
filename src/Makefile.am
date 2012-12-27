@@ -117,7 +117,7 @@ noinst_HEADERS = \
 	include/blitter.h	include/blkdev.h	\
 	include/bsdsocket.h 	include/caps.h		\
 	include/catweasel.h     \
-	include/cia.h		                        \
+	include/cia.h		include/cfgfile.h        \
 	include/commpipe.h	include/compemu.h	\
 	include/cpu_prefetch.h  include/custom.h	\
 	include/custom_private.h                        \

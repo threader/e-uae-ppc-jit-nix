@@ -19,6 +19,8 @@ extern int paula_sndbufsize;
 extern snd_pcm_t *alsa_playback_handle;
 extern int bytes_per_frame;
 
+extern void restart_sound_buffer (void);
+
 struct sound_data
 {
         int waiting_for_buffer;

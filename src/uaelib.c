@@ -14,7 +14,7 @@
 #include <assert.h>
 #include <string.h>
 
-#include "options.h"
+#include "cfgfile.h"
 #include "uae.h"
 #include "memory_uae.h"
 #include "custom.h"
@@ -28,6 +28,10 @@
 #include "picasso96.h"
 #include "filesys.h"
 #include "misc.h"
+
+#ifdef JIT
+extern void unprotect_maprom (void);
+#endif
 
 /*
  * Returns UAE Version
@@ -348,7 +352,8 @@ static int native_dos_op (uae_u32 mode, uae_u32 p1, uae_u32 p2, uae_u32 p3)
 {
 	TCHAR tmp[MAX_DPATH];
 	char *s;
-	int v, i;
+	int v;
+	uae_u32 i = 0;
 
 	if (mode)
 		return -1;
@@ -359,15 +364,13 @@ static int native_dos_op (uae_u32 mode, uae_u32 p1, uae_u32 p2, uae_u32 p3)
 	if (v)
 		return v;
 	s = ua (tmp);
-	for (i = 0; i <= strlen (s) && i < p3 - 1; i++) {
+	for ( ; (i <= strlen (s)) && (i < (p3 - 1)); i++) {
 		put_byte (p2 + i, s[i]);
 		put_byte (p2 + i + 1, 0);
 	}
 	xfree (s);
 	return 0;
 }
-
-extern uae_u32 picasso_demux (uae_u32 arg, TrapContext *context);
 
 static uae_u32 REGPARAM2 uaelib_demux2 (TrapContext *context)
 {
@@ -411,10 +414,12 @@ static uae_u32 REGPARAM2 uaelib_demux2 (TrapContext *context)
 	case 80:
 		if (!currprefs.maprom)
 			return 0xffffffff;
+#ifdef JIT
 		/* Disable possible ROM protection */
 #ifdef NATMEM_OFFSET
 		unprotect_maprom ();
-#endif
+#endif /* NATMEM_OFFSET */
+#endif /* JIT */
 		return currprefs.maprom;
 	case 81: return cfgfile_uaelib (ARG1, ARG2, ARG3, ARG4);
 	case 82: return cfgfile_uaelib_modify (ARG1, ARG2, ARG3, ARG4, ARG5);

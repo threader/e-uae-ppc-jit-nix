@@ -13,7 +13,7 @@
 #include <assert.h>
 #include <wchar.h>
 
-#include "options.h"
+#include "cfgfile.h"
 #include "threaddep/thread.h"
 #include "uae.h"
 #include "gensound.h"
@@ -30,7 +30,6 @@
 #include "inputdevice.h"
 #include "keybuf.h"
 #include "gui.h"
-#include "zfile.h"
 #include "autoconf.h"
 #include "traps.h"
 #include "osemu.h"

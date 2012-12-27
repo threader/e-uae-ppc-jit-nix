@@ -1,3 +1,8 @@
+#pragma once
+#ifndef SRC_INCLUDE_FILESYS_H_INCLUDED
+#define SRC_INCLUDE_FILESYS_H_INCLUDED 1
+
+
  /*
   * UAE - The Un*x Amiga Emulator
   *
@@ -7,6 +12,7 @@
   */
 
 struct hardfilehandle;
+struct mountedinfo;
 
 #define MAX_HDF_CACHE_BLOCKS 128
 struct hdf_cache
@@ -111,6 +117,7 @@ extern struct uaedev_mount_info options_mountinfo;
 
 extern struct hardfiledata *get_hardfile_data (int nr);
 #define FILESYS_MAX_BLOCKSIZE 2048
+
 extern int hdf_open (struct hardfiledata *hfd, const TCHAR *name);
 extern int hdf_dup (struct hardfiledata *dhfd, const struct hardfiledata *shfd);
 extern void hdf_close (struct hardfiledata *hfd);
@@ -142,4 +149,8 @@ extern int hdf_resize_target (struct hardfiledata *hfd, uae_u64 newsize);
 extern void getchsgeometry (uae_u64 size, int *pcyl, int *phead, int *psectorspertrack);
 extern void getchsgeometry_hdf (struct hardfiledata *hfd, uae_u64 size, int *pcyl, int *phead, int *psectorspertrack);
 extern void getchspgeometry (uae_u64 total, int *pcyl, int *phead, int *psectorspertrack, bool idegeometry);
+extern int get_filesys_unitconfig (struct uae_prefs *, int, struct mountedinfo *);
 
+
+
+#endif // SRC_INCLUDE_FILESYS_H_INCLUDED

@@ -7,7 +7,6 @@
  * Copyright 2004 Richard Drummond
  */
 
-#if defined __APPLE__
 
 #include "sysconfig.h"
 #include "sysdeps.h"
@@ -16,6 +15,8 @@
 #include "inputdevice.h"
 #include "keymap.h"
 #include "keymap_common.h"
+
+#if defined __APPLE__
 
 /*
  * MacOS raw key codes

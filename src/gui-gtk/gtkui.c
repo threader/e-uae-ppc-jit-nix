@@ -513,7 +513,7 @@ static void set_hd_state (void)
 	    sprintf (texts[HDLIST_CYLS],    "%d", cylinders);
 	    sprintf (texts[HDLIST_SECS],    "%d", secspertrack);
 	    sprintf (texts[HDLIST_RSRVD],   "%d", reserved);
-	    sprintf (texts[HDLIST_SIZE],    "%l", size);
+	    sprintf (texts[HDLIST_SIZE],    "%lu", size);
 	    sprintf (texts[HDLIST_BLKSIZE], "%d", blocksize);
 
 		if (rootdir)

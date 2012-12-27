@@ -17,7 +17,7 @@ typedef long           uae_s32;
 #define STATIC_INLINE static __inline__
 
 extern "C" {
-extern void inputdevice_updateconfig (struct uae_prefs *prefs);
+extern void inputdevice_updateconfig (const struct uae_prefs *srcprefs, struct uae_prefs *dstprefs);
 }
 extern void read_rom_list (void);
 

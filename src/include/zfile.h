@@ -1,3 +1,4 @@
+#pragma once
 #ifndef SRC_INCLUDE_ZFILE_H_INCLUDED
 #define SRC_INCLUDE_ZFILE_H_INCLUDED 1
 
@@ -9,7 +10,7 @@
   * (c) 1996 Samuel Devulder
   */
 
-struct zfile;
+#include "zarchive.h"
 struct zvolume;
 struct zdirectory;
 
@@ -36,8 +37,6 @@ struct fs_filehandle
 		struct cd_openfile_s *isof;
 //	};
 };
-
-typedef int (*zfile_callback)(struct zfile*, void*);
 
 extern struct zfile *zfile_fopen (const TCHAR *, const TCHAR *, int mask);
 extern struct zfile *zfile_fopen2 (const TCHAR *, const TCHAR *);
@@ -79,7 +78,7 @@ extern struct zfile *zfile_gunzip (struct zfile *z, int *retcode);
 extern int zfile_is_diskimage (const TCHAR *name);
 extern int iszip (struct zfile *z);
 extern int zfile_convertimage (const TCHAR *src, const TCHAR *dst);
-//extern struct zfile *zuncompress (struct znode *parent, struct zfile *z, int dodefault, int mask, int *retcode, int index);
+extern struct zfile *zuncompress (struct znode *parent, struct zfile *z, int dodefault, int mask, int *retcode, int index);
 extern void zfile_seterror (const TCHAR *format, ...);
 extern TCHAR *zfile_geterror (void);
 extern int zfile_truncate (struct zfile *z, uae_s64 size);

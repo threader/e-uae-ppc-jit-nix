@@ -50,8 +50,8 @@
 #include "xwin.h"
 #include "picasso96.h"
 #include "uae_endian.h"
-#include "traps.h"
 #include "misc.h"
+#include "gcc_warnings.h"
 
 int debug_rtg_blitter = 3;
 
@@ -100,7 +100,8 @@ struct picasso96_state_struct picasso96_state;
 struct picasso_vidbuf_description picasso_vidinfo;
 static struct PicassoResolution *newmodes;
 
-static int picasso_convert, host_mode;
+static int picasso_convert;
+static RGBFTYPE host_mode;
 
 /* These are the maximum resolutions... They are filled in by GetSupportedResolutions() */
 /* have to fill this in, otherwise problems occur on the Amiga side P96 s/w which expects */
@@ -756,7 +757,7 @@ typedef enum {
 
 	/* DEST = RGBFB_CLUT,8 */
 	RGBFB_CLUT_8
-};
+} E_RGBFB;
 
 static uae_u32 setspriteimage (uaecptr bi);
 static void recursor (void)
@@ -861,7 +862,7 @@ static int getconvert (int rgbformat, int pixbytes)
 
 static void setconvert (void)
 {
-	static int ohost_mode, orgbformat;
+	static RGBFTYPE ohost_mode, orgbformat;
 
 	picasso_convert = getconvert (picasso96_state.RGBFormat, picasso_vidinfo.pixbytes);
 //	if (currprefs.gfx_api) {
@@ -921,7 +922,7 @@ void picasso_refresh (void)
 			// Let's put a black-border around the case where we've got a sub-screen...
 			if (!picasso96_state.BigAssBitmap) {
 				if (picasso96_state.XOffset || picasso96_state.YOffset)
-					DX_Fill (0, 0, picasso96_state.Width, picasso96_state.Height, 0);
+					DX_Fill (0, 0, picasso96_state.Width, picasso96_state.Height, 0, picasso96_state.RGBFormat);
 			}
 		} else {
 			width = picasso96_state.Width;
@@ -1025,7 +1026,8 @@ void picasso_refresh (void)
 #define BLT_FUNC(s,d) *d = (*s) | (*d)
 #include "p96_blit.c"
 #define BLT_NAME BLIT_TRUE_24
-#define BLT_FUNC(s,d) *d = 0xffffffff
+//#define BLT_FUNC(s,d) *d = 0xffffffff
+#define BLT_FUNC(s,d) *d = 0xff
 #include "p96_blit.c"
 #define BLT_NAME BLIT_SWAP_24
 #define BLT_FUNC(s,d) tmp = *d ; *d = *s; *s = tmp;
@@ -1076,7 +1078,8 @@ void picasso_refresh (void)
 #define BLT_FUNC(s,d) *d = (*s) | (*d)
 #include "p96_blit.c"
 #define BLT_NAME BLIT_TRUE_16
-#define BLT_FUNC(s,d) *d = 0xffffffff
+//#define BLT_FUNC(s,d) *d = 0xffffffff
+#define BLT_FUNC(s,d) *d = 0xffff
 #include "p96_blit.c"
 #define BLT_NAME BLIT_SWAP_16
 #define BLT_FUNC(s,d) tmp = *d ; *d = *s; *s = tmp;
@@ -1127,7 +1130,8 @@ void picasso_refresh (void)
 #define BLT_FUNC(s,d) *d = (*s) | (*d)
 #include "p96_blit.c"
 #define BLT_NAME BLIT_TRUE_8
-#define BLT_FUNC(s,d) *d = 0xffffffff
+//#define BLT_FUNC(s,d) *d = 0xffffffff
+#define BLT_FUNC(s,d) *d = 0xff
 #include "p96_blit.c"
 #define BLT_NAME BLIT_SWAP_8
 #define BLT_FUNC(s,d) tmp = *d ; *d = *s; *s = tmp;
@@ -1198,6 +1202,8 @@ static int do_blitrect_frame_buffer (struct RenderInfo *ri, struct
 			case BLIT_OR: BLIT_OR_32 (PARMS); break;
 			case BLIT_TRUE: BLIT_TRUE_32 (PARMS); break;
 			case BLIT_SWAP: BLIT_SWAP_32 (PARMS); break;
+			case BLIT_DST:
+			case BLIT_SRC: break;
 			}
 		} else if (Bpp == 3) {
 
@@ -1219,6 +1225,8 @@ static int do_blitrect_frame_buffer (struct RenderInfo *ri, struct
 			case BLIT_OR: BLIT_OR_24 (PARMS); break;
 			case BLIT_TRUE: BLIT_TRUE_24 (PARMS); break;
 			case BLIT_SWAP: BLIT_SWAP_24 (PARMS); break;
+			case BLIT_DST:
+			case BLIT_SRC: break;
 			}
 
 		} else if (Bpp == 2) {
@@ -1241,6 +1249,8 @@ static int do_blitrect_frame_buffer (struct RenderInfo *ri, struct
 			case BLIT_OR: BLIT_OR_16 (PARMS); break;
 			case BLIT_TRUE: BLIT_TRUE_16 (PARMS); break;
 			case BLIT_SWAP: BLIT_SWAP_16 (PARMS); break;
+			case BLIT_DST:
+			case BLIT_SRC: break;
 			}
 
 		} else if (Bpp == 1) {
@@ -1263,6 +1273,8 @@ static int do_blitrect_frame_buffer (struct RenderInfo *ri, struct
 			case BLIT_OR: BLIT_OR_8 (PARMS); break;
 			case BLIT_TRUE: BLIT_TRUE_8 (PARMS); break;
 			case BLIT_SWAP: BLIT_SWAP_8 (PARMS); break;
+			case BLIT_DST:
+			case BLIT_SRC: break;
 			}
 
 		}
@@ -1366,6 +1378,7 @@ STATIC_INLINE void putmousepixel (uae_u8 *d, int bpp, int idx)
 #define CURSORMAXHEIGHT 64
 int createwindowscursor (uaecptr src, int w, int h, int hiressprite, int doubledsprite, int chipset)
 {
+	return 0;
 }
 
 static uae_u32 setspriteimage (uaecptr bi)
@@ -1604,68 +1617,68 @@ static struct modeids mi[] =
 {
 	/* "original" modes */
 
-	320, 200, 0,
-	320, 240, 1,
-	640, 400, 2,
-	640, 480, 3,
-	800, 600, 4,
-	1024, 768, 5,
-	1152, 864, 6,
-	1280,1024, 7,
-	1600,1280, 8,
-	320, 256, 9,
-	640, 512,10,
+	{ 320, 200, 0 },
+	{ 320, 240, 1 },
+	{ 640, 400, 2 },
+	{ 640, 480, 3 },
+	{ 800, 600, 4 },
+	{ 1024, 768, 5 },
+	{ 1152, 864, 6 },
+	{ 1280, 1024, 7 },
+	{ 1600, 1280, 8 },
+	{ 320, 256, 9 },
+	{ 640, 512, 10 },
 
 	/* new modes */
 
-	704, 480, 129,
-	704, 576, 130,
-	720, 480, 131,
-	720, 576, 132,
-	768, 483, 133,
-	768, 576, 134,
-	800, 480, 135,
-	848, 480, 136,
-	854, 480, 137,
-	948, 576, 138,
-	1024, 576, 139,
-	1152, 768, 140,
-	1152, 864, 141,
-	1280, 720, 142,
-	1280, 768, 143,
-	1280, 800, 144,
-	1280, 854, 145,
-	1280, 960, 146,
-	1366, 768, 147,
-	1440, 900, 148,
-	1440, 960, 149,
-	1600,1200, 150,
-	1680,1050, 151,
-	1920,1080, 152,
-	1920,1200, 153,
-	2048,1152, 154,
-	2048,1536, 155,
-	2560,1600, 156,
-	2560,2048, 157,
-	400, 300, 158,
-	512, 384, 159,
-	640, 432, 160,
-	1360, 768, 161,
-	1360,1024, 162,
-	1400,1050, 163,
-	1792,1344, 164,
-	1800,1440, 165,
-	1856,1392, 166,
-	1920,1440, 167,
-	480, 360, 168,
-	640, 350, 169,
-	1600, 900, 170,
-	960, 600, 171,
-	1088, 612, 172,
-	1152, 648, 173,
-	1776,1000, 174,
-	2560,1440, 175,
-	-1,-1,0
+	{ 704, 480, 129 },
+	{ 704, 576, 130 },
+	{ 720, 480, 131 },
+	{ 720, 576, 132 },
+	{ 768, 483, 133 },
+	{ 768, 576, 134 },
+	{ 800, 480, 135 },
+	{ 848, 480, 136 },
+	{ 854, 480, 137 },
+	{ 948, 576, 138 },
+	{ 1024, 576, 139 },
+	{ 1152, 768, 140 },
+	{ 1152, 864, 141 },
+	{ 1280, 720, 142 },
+	{ 1280, 768, 143 },
+	{ 1280, 800, 144 },
+	{ 1280, 854, 145 },
+	{ 1280, 960, 146 },
+	{ 1366, 768, 147 },
+	{ 1440, 900, 148 },
+	{ 1440, 960, 149 },
+	{ 1600, 1200, 150 },
+	{ 1680, 1050, 151 },
+	{ 1920, 1080, 152 },
+	{ 1920, 1200, 153 },
+	{ 2048, 1152, 154 },
+	{ 2048, 1536, 155 },
+	{ 2560, 1600, 156 },
+	{ 2560, 2048, 157 },
+	{ 400, 300, 158 },
+	{ 512, 384, 159 },
+	{ 640, 432, 160 },
+	{ 1360, 768, 161 },
+	{ 1360, 1024, 162 },
+	{ 1400, 1050, 163 },
+	{ 1792, 1344, 164 },
+	{ 1800, 1440, 165 },
+	{ 1856, 1392, 166 },
+	{ 1920, 1440, 167 },
+	{ 480, 360, 168 },
+	{ 640, 350, 169 },
+	{ 1600, 900, 170 },
+	{ 960, 600, 171 },
+	{ 1088, 612, 172 },
+	{ 1152, 648, 173 },
+	{ 1776, 1000, 174 },
+	{ 2560, 1440, 175 },
+	{ -1,-1,0 }
 };
 
 static int AssignModeID (int w, int h, int *unkcnt)
@@ -1693,7 +1706,7 @@ static void CopyLibResolutionStructureU2A (struct LibResolution *libres, uaecptr
 
 	for (i = 0; i < PSSO_LibResolution_sizeof; i++)
 		put_byte (amigamemptr + i, 0);
-	for (i = 0; i < strlen (libres->P96ID); i++)
+	for (i = 0; i < (int)strlen(libres->P96ID); i++)
 		put_byte (amigamemptr + PSSO_LibResolution_P96ID + i, libres->P96ID[i]);
 	put_long (amigamemptr + PSSO_LibResolution_DisplayID, libres->DisplayID);
 	put_word (amigamemptr + PSSO_LibResolution_Width, libres->Width);
@@ -1792,7 +1805,8 @@ static void picasso96_alloc2 (TrapContext *ctx)
 	i = 0;
 	while (DisplayModes[i].depth >= 0) {
 			for (j = 0; missmodes[j * 2] >= 0; j++) {
-				if (DisplayModes[i].res.width == missmodes[j * 2 + 0] && DisplayModes[i].res.height == missmodes[j * 2 + 1]) {
+				if ( (DisplayModes[i].res.width  == (uae_u32)missmodes[j * 2 + 0])
+				  && (DisplayModes[i].res.height == (uae_u32)missmodes[j * 2 + 1]) ) {
 					missmodes[j * 2 + 0] = 0;
 					missmodes[j * 2 + 1] = 0;
 				}
@@ -2001,7 +2015,7 @@ static void addmode (uaecptr AmigaBoardInfo, uaecptr *amem, struct LibResolution
 	for (depth = 8; depth <= 32; depth++) {
 		if (!p96depth (depth))
 			continue;
-		if(allocated_gfxmem >= w * h * (depth + 7) / 8) {
+		if(allocated_gfxmem >= (uae_u32)(w * h * (depth + 7) / 8) ) {
 			FillBoardInfo (*amem, res, w, h, depth);
 			*amem += PSSO_ModeInfo_sizeof;
 		}
@@ -2032,7 +2046,7 @@ static uae_u32 REGPARAM2 picasso_InitCard (TrapContext *ctx)
 	i = 0;
 	unkcnt = cnt = 0;
 	while (newmodes[i].depth >= 0) {
-		struct LibResolution res = { 0 };
+		struct LibResolution res = { {0}, {0}, 0, 0, 0, 0, {0}, 0 };
 		TCHAR *s;
 		j = i;
 		addmode (AmigaBoardInfo, &amem, &res, newmodes[i].res.width, newmodes[i].res.height, NULL, 0, &unkcnt);
@@ -2351,7 +2365,14 @@ static void do_xor8 (uae_u8 *p, int w, uae_u32 v)
 		p++;
 		w--;
 	}
-	uae_u64 vv = v | (v << 32);
+	/* Update: If you left-shift a 32bit value by 32 bit, you will
+	 * get a 0. An implicit cast to a 64 bit value does not help,
+	 * because the value is already zero when the cast extends the
+	 * bit count. Cast explicitly first and you are on the safe
+	 * side. (And it is far more portable.) - Sven
+	 * was: uae_u64 vv = v | (v << 32);
+	*/
+	uae_u64 vv = (uae_u64)v | ((uae_u64)v << 32);
 	while (w >= 2 * 8) {
 		*((uae_u64*)p) ^= vv;
 		p += 8;
@@ -2641,7 +2662,7 @@ static uae_u32 REGPARAM2 picasso_BlitRect (TrapContext *ctx)
 	if (NOBLITTER_BLIT)
 		return 0;
 	P96TRACE((_T("BlitRect(%d, %d, %d, %d, %d, %d, 0x%x)\n"), srcx, srcy, dstx, dsty, width, height, Mask));
-	result = BlitRect (renderinfo, (uaecptr)NULL, srcx, srcy, dstx, dsty, width, height, Mask, BLIT_SRC);
+	result = BlitRect (renderinfo, (uaecptr)0, srcx, srcy, dstx, dsty, width, height, Mask, BLIT_SRC);
 	return result;
 }
 
@@ -3657,9 +3678,9 @@ static bool flushpixels (void)
 {
 	int i;
 #ifdef NATMEM_OFFSET
-	uae_u8 *src = p96ram_start + natmem_offset;
+	uae_u8 *src = (uae_u8*)(p96ram_start + natmem_offset);
 #else
-	uae_u8 *src = p96ram_start;
+	uae_u8 *src = (uae_u8*)(p96ram_start);
 #endif
 	int off = picasso96_state.XYOffset - gfxmem_start;
 	uae_u8 *src_start;
@@ -3700,7 +3721,7 @@ static bool flushpixels (void)
 		if (full_refresh < 0) {
 			gwwcnt = (src_end - src_start) / gwwpagesize + 1;
 			full_refresh = 1;
-			for (i = 0; i < gwwcnt; i++)
+			for (i = 0; (ULONG)i < gwwcnt; i++)
 				gwwbuf[i] = src_start + i * gwwpagesize;
 		} else {
 			ULONG ps;
@@ -3712,7 +3733,7 @@ static bool flushpixels (void)
 		if (gwwcnt == 0)
 			break;
 
-		dofull = gwwcnt >= ((src_end - src_start) / gwwpagesize) * 80 / 100;
+		dofull = gwwcnt >= (ULONG)(((src_end - src_start) / gwwpagesize) * 80 / 100);
 
 		dst = gfx_lock_picasso (dofull, rtg_clear_flag != 0);
 		if (rtg_clear_flag)
@@ -3742,7 +3763,7 @@ static bool flushpixels (void)
 			break;
 		}
 
-		for (i = 0; i < gwwcnt; i++) {
+		for (i = 0; (ULONG)i < gwwcnt; i++) {
 			uae_u8 *p = (uae_u8*)gwwbuf[i];
 
 			if (p >= src_start && p < src_end) {
@@ -3800,6 +3821,12 @@ static bool flushpixels (void)
 				miny = picasso_vidinfo.height - TD_TOTAL_HEIGHT;
 		}
 	}
+	/* Update: The following block can be restructured and the rule
+	 * ~(a ^ b) = ~a v ~b can be applied to make the if statement
+	 * more effective. Erasing an inactive branch further means, that
+	 * we do not rely anymore on the compiler to detect and optimize
+	 * away the dead end.
+	 * - Sven
 	if (maxy >= 0) {
 		if (doskip () && p96skipmode == 4) {
 			;
@@ -3807,6 +3834,10 @@ static bool flushpixels (void)
 			DX_Invalidate (0, miny, pwidth, maxy - miny);
 		}
 	}
+	 * result of the transformation (with corrected call to DX_Invalidate) :
+	*/
+	if ((maxy >= 0) && (!doskip() || (p96skipmode != 4)))
+		DX_Invalidate(miny, maxy - miny);
 
 	if (lock)
 		gfx_unlock_picasso (true);
@@ -4221,7 +4252,7 @@ static uaecptr uaegfx_card_install (TrapContext *ctx, uae_u32 extrasize)
 	uaecptr exec = get_long (4);
 
 	if (uaegfx_old || !gfxmem_start)
-		return NULL;
+		return (uaecptr)0;
 
 	uaegfx_resid = ds (_T("UAE Graphics Card 3.3"));
 	uaegfx_vblankname = ds (_T("UAE Graphics Card VBLANK"));

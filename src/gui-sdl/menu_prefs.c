@@ -18,17 +18,25 @@ extern SDL_Surface* pMenu_Surface;
 extern SDL_Color text_color;
 extern char msg[50];
 extern char msg_status[50];
+#define TITLE_X 52
+#define TITLE_Y 9
+#define STATUS_X 30 
+#define STATUS_Y 460
 
 int prefz (int parametre) {
 	SDL_Event event;
 
 	pMenu_Surface = SDL_LoadBMP("guidep/images/menu_tweak.bmp");
+	if (pMenu_Surface == NULL) {
+		write_log ("SDLUI: Failed to load menu image\n");
+		abort();
+	}
 	int prefsloopdone = 0;
 	int kup = 0;
 	int kdown = 0;
 	int kleft = 0;
 	int kright = 0;
-	int seciliolan = 0;
+	int selected_item = 0;
 	int deger;
 	int q;
 	int w;
@@ -57,7 +65,8 @@ int prefz (int parametre) {
 		if (currprefs.cpu_model == 2) { defaults[0] = 4; }
 		if (currprefs.cpu_model == 3) { defaults[0] = 5; }
 	}
-	defaults[1] = currprefs.m68k_speed;
+	defaults[1] = 0;
+//	defaults[1] = currprefs.m68k_speed;
 	defaults[2] = currprefs.chipset_mask;
 	defaults[3] = currprefs.chipmem_size;
 	defaults[4] = currprefs.fastmem_size;
@@ -75,20 +84,20 @@ int prefz (int parametre) {
 				prefsloopdone = 1;
 			}
 			if (event.type == SDL_JOYBUTTONDOWN) {
-             			switch (event.jbutton.button) {
-					case PLATFORM_BUTTON_UP: seciliolan--; break;
-					case PLATFORM_BUTTON_DOWN: seciliolan++; break;
+				switch (event.jbutton.button) {
+					case PLATFORM_BUTTON_UP: selected_item--; break;
+					case PLATFORM_BUTTON_DOWN: selected_item++; break;
 					case PLATFORM_BUTTON_LEFT: kleft = 1; break;
 					case PLATFORM_BUTTON_RIGHT: kright = 1; break;
 					case PLATFORM_BUTTON_SELECT: prefsloopdone = 1; break;
 					case PLATFORM_BUTTON_B: prefsloopdone = 1; break;
 				}
 			}
-      			if (event.type == SDL_KEYDOWN) {
-    				switch (event.key.keysym.sym) {
+			if (event.type == SDL_KEYDOWN) {
+				switch (event.key.keysym.sym) {
 					case SDLK_ESCAPE:	prefsloopdone = 1; break;
-				 	case SDLK_UP:		seciliolan--; break;
-					case SDLK_DOWN:		seciliolan++; break;
+				 	case SDLK_UP:		selected_item--; break;
+					case SDLK_DOWN:		selected_item++; break;
 					case SDLK_LEFT:		kleft = 1; break;
 					case SDLK_RIGHT:	kright = 1; break;
 					case SDLK_b:		prefsloopdone = 1; break;
@@ -96,95 +105,110 @@ int prefz (int parametre) {
 				}
 			}
 		}
+
 		if (kleft == 1) {
-			defaults[seciliolan]--;
+			defaults[selected_item]--;
 			kleft = 0;
 
-			if (seciliolan == 1) { 
+			if (selected_item == 1) { 
 				//cpu_speed_change = 1; 
 			}
-			if (seciliolan == 6) { 
+			if (selected_item == 6) { 
 				//snd_change = 1; 
 			}
-			if (seciliolan == 7) { 
+			if (selected_item == 7) { 
 				//gfx_frameskip_change = 1; 
 			}
 		}
+
 		if (kright == 1) {
-			defaults[seciliolan]++;
+			defaults[selected_item]++;
 			kright = 0;
 
-			if (seciliolan == 1) { 
+			if (selected_item == 1) { 
 				//cpu_speed_change = 1; 
 			}
-			if (seciliolan == 6) { 
+			if (selected_item == 6) { 
 				//snd_change = 1; 
 			}
-			if (seciliolan == 7) { 
+			if (selected_item == 7) { 
 				//gfx_frameskip_change = 1; 
 			}
 		}
 
 		if (defaults[0] < 0) defaults[0] = 5;	//cpu
-		if (defaults[1] < -1) defaults[1] = 20; //speed
+		if (defaults[1] < 0) defaults[1] = 1; //speed
 		if (defaults[2] < 0) defaults[2] = 4;	//chipset
-		if (defaults[3] < 0) defaults[3] = 2;	//chip
-		if (defaults[4] < 0) defaults[4] = 2;	//slow
-		if (defaults[5] < 0) defaults[5] = 2;	//fast
+		if (defaults[3] < 0) defaults[3] = 3;	//chip
+		if (defaults[4] < 0) defaults[4] = 3;	//slow
+		if (defaults[5] < 0) defaults[5] = 3;	//fast
 		if (defaults[6] < 0) defaults[6] = 3;	//sound
 		if (defaults[7] < 0) defaults[7] = 3;	//frameskip
 		if (defaults[8] < 0) defaults[8] = 3;	//floppy
 
 		if (defaults[0] > 5) defaults[0] = 0;	//cpu
-		if (defaults[1] > 20) defaults[1] = -1;	//speed
+		if (defaults[1] > 1) defaults[1] = 0;	//speed
 		if (defaults[2] > 4) defaults[2] = 0;	//chipset
-		if (defaults[3] > 2) defaults[3] = 0;	//chip
-		if (defaults[4] > 2) defaults[4] = 0;	//slow
-		if (defaults[5] > 2) defaults[5] = 0;	//fast
+		if (defaults[3] > 3) defaults[3] = 0;	//chip
+		if (defaults[4] > 3) defaults[4] = 0;	//slow
+		if (defaults[5] > 3) defaults[5] = 0;	//fast
 		if (defaults[6] > 3) defaults[6] = 0;	//sound
 		if (defaults[7] > 3) defaults[7] = 0;	//frameskip
 		if (defaults[8] > 3) defaults[8] = 0;	//floppy
 
-		if (seciliolan < 0) { seciliolan = 8; }
-		if (seciliolan > 8) { seciliolan = 0; }
+		if (selected_item < 0) { selected_item = 8; }
+		if (selected_item > 8) { selected_item = 0; }
 	// background
 		SDL_BlitSurface (pMenu_Surface, NULL, tmpSDLScreen, NULL);
 
+#define OPTIONS_Y 200
 	// texts
 		int sira = 0;
-		int skipper = 0;
+		int pos = 0;
 		for (q=0; q<9; q++) {
-			if (seciliolan == q) {
-				text_color.r = 150; text_color.g = 50; text_color.b = 50;
+			if (selected_item == q) {
+				text_color.r = 150;
+				text_color.g = 50;
+				text_color.b = 50;
 			}
-			write_text (10,skipper+25+(sira*10),prefs[q]); //
 
-			if (q == 0) {	write_text (130, skipper+25+(sira*10), p_cpu[defaults[q]]); }
-			if (q == 1) {
-//				if (deger > 0) {
-					sprintf(tmp,"%d",defaults[q]-1);
-//				} else {
-//					sprintf(tmp,"%d",p_speed[defaults[q]]);
-//				}
-				write_text (130, skipper+25+(sira*10), tmp); 
+			pos = 50 + (sira * 20);
+			write_text (20, pos, prefs[q]); //
+
+			if (q == 0) {
+				write_text (OPTIONS_Y, pos, p_cpu[defaults[q]]);
 			}
-			if (q == 2) {	write_text (130, skipper+25+(sira*10), p_chip[defaults[q]]); }
+			if (q == 1) {
+				sprintf(tmp, "%d", p_speed[defaults[q]]);
+				write_text (OPTIONS_Y, pos, tmp); 
+			}
+			if (q == 2) {
+				write_text (OPTIONS_Y, pos, p_chip[defaults[q]]);
+			}
 			if (q > 2 && q < 6) {
 				if (defaults[q] == 0) { deger = 0; }
 				if (defaults[q] == 1) { deger = 512; }
 				if (defaults[q] == 2) { deger = 1024; }
+				if (defaults[q] == 3) { deger = 2048; }
 
 				sprintf(tmp,"%d",deger);
-				write_text (130, skipper+25+(sira*10), tmp);
+				write_text (OPTIONS_Y, pos, tmp);
 			}
-			if (q == 6) {	write_text (130, skipper+25+(sira*10), p_sound[defaults[q]]); }
-			if (q == 7) {	write_text (130, skipper+25+(sira*10), p_frame[defaults[q]]); }
-			text_color.r = 0; text_color.g = 0; text_color.b = 0;
+			if (q == 6) {
+				write_text (OPTIONS_Y, pos, p_sound[defaults[q]]);
+			}
+			if (q == 7) {
+				write_text (OPTIONS_Y, pos, p_frame[defaults[q]]);
+			}
+			text_color.r = 0;
+			text_color.g = 0;
+			text_color.b = 0;
 			sira++;
 		}
 
-		write_text (25,6,msg); //
-		write_text (25,240,msg_status); //
+		write_text (TITLE_X, TITLE_Y, msg);
+		write_text (STATUS_X, STATUS_Y, msg_status);
+
 		SDL_BlitSurface (tmpSDLScreen, NULL, display, NULL);
 #ifdef USE_GL
 		flush_gl_buffer (&glbuffer, 0, display->h - 1);
@@ -200,6 +224,6 @@ int prefz (int parametre) {
 	if (defaults[0] == 5) { }
 	defaults[1]--;
 */
-    	pMenu_Surface = SDL_LoadBMP("guidep/images/menu.bmp");
+    pMenu_Surface = SDL_LoadBMP("guidep/images/menu.bmp");
 	return 0;
 }

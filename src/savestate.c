@@ -56,12 +56,15 @@
 #include "autoconf.h"
 #include "custom.h"
 #include "newcpu.h"
+#include "filesys.h"
 #include "savestate.h"
 #include "uae.h"
 #include "gui.h"
 #include "audio.h"
 #include "filesys.h"
 #include "inputrecord.h"
+#include "disk.h"
+#include "misc.h"
 
 #ifndef _WIN32
 #define console_out printf
@@ -713,7 +716,7 @@ void restore_state (const TCHAR *filename)
 		if (end == NULL)
 			write_log (_T("Chunk '%s', size %d bytes was not accepted!\n"),
 			name, len);
-		else if (totallen != end - chunk)
+		else if (totallen != (size_t)(end - chunk) )
 			write_log (_T("Chunk '%s' total size %d bytes but read %d bytes!\n"),
 			name, totallen, end - chunk);
 		xfree (chunk);
@@ -1199,7 +1202,8 @@ void savestate_listrewind (void)
 
 void savestate_rewind (void)
 {
-	int len, i, dummy;
+	uae_u32 len;
+	int i, dummy;
 	uae_u8 *p, *p2;
 	struct staterecord *st;
 	int pos;
@@ -1684,7 +1688,7 @@ retry2:
 		input_record++;
 		for (i = 0; i < 4; i++) {
 			bool wp = true;
-			DISK_validate_filename (currprefs.floppyslots[i].df, false, &wp, NULL, NULL);
+			DISK_validate_filename (&currprefs, currprefs.floppyslots[i].df, false, &wp, NULL, NULL);
 			inprec_recorddiskchange (i, currprefs.floppyslots[i].df, wp);
 		}
 		input_record--;

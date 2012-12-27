@@ -33,9 +33,9 @@ unsigned int shading_enabled = 0;
 void setupExtensions(void);
 void setmaintitle (void);
 int mousehack_allowed (void);
-void DX_Invalidate (int first, int last);
-void DX_SetPalette (int start, int count);
-void DX_SetPalette_vsync(void);
+int is_vsync (void);
+int WIN32GFX_IsPicassoScreen (void);
+
 uae_u8 *gfx_lock_picasso (bool fullupdate, bool doclear);
 void gfx_unlock_picasso (bool dorender);
 int is_vsync (void);
@@ -73,7 +73,7 @@ int WIN32GFX_IsPicassoScreen (void);
 #endif
 #endif /* USE_GL */
 
-#include "options.h"
+#include "cfgfile.h"
 #include "uae.h"
 #include "xwin.h"
 #include "custom.h"
@@ -88,7 +88,6 @@ int WIN32GFX_IsPicassoScreen (void);
 #include "sdlgfx.h"
 
 /* More internal prototypes that need the above includes first */
-int DX_Fill (int dstx, int dsty, int width, int height, uae_u32 color, RGBFTYPE rgbtype);
 void gfx_default_options (struct uae_prefs *p);
 void gfx_save_options (struct zfile *f, const struct uae_prefs *p);
 int gfx_parse_option (struct uae_prefs *p, const char *option, const char *value);

@@ -7,7 +7,6 @@
  */
 
 #include "sysconfig.h"
-#define _T
 #include <stdlib.h>
 #include "uae_string.h"
 #include "uae_types.h"
@@ -17,6 +16,9 @@
 
 #include "readcpu.h"
 
+#ifndef _T
+# define _T
+#endif // _T
 /*
  * You can specify numbers from 0 to 5 here. It is possible that higher
  * numbers will make the CPU emulation slightly faster, but if the setting

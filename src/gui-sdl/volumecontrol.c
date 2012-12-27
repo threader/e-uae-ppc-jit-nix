@@ -1,23 +1,18 @@
 #include <SDL.h>
 #include "volumecontrol.h"
 
-
 extern SDL_Surface *prSDLScreen;
 
 static SDL_Surface *ksur;
 
 //int show_volumecontrol = 0;
 
-int volumecontrol_init(void)
-{
-	// don't know if we'll ever need anything here.
-
+int volumecontrol_init(void) {
 	return 0;
 }
 	
-
-void volumecontrol_redraw(void)
-{
+// OSD volume
+void volumecontrol_redraw(void) {
 /*
 	SDL_Rect r;
 	SDL_Surface* surface;

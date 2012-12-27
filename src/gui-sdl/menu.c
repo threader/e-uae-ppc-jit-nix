@@ -19,7 +19,7 @@
 #define VIDEO_FLAGS SDL_HWSURFACE
 SDL_Surface* tmpSDLScreen = NULL;
 
-int seciliolan = 0;
+int selected_item = 0;
 char yol[256];
 char msg[50];
 char msg_status[50];
@@ -52,14 +52,14 @@ int gui_init (void) {
 	SDL_ShowCursor(SDL_DISABLE);
   	TTF_Init();
 
-	amiga_font = TTF_OpenFont("guidep/fonts/amiga4ever_pro2.ttf", 8);
+	amiga_font = TTF_OpenFont("guidep/fonts/amiga4ever_pro2.ttf", 16);
 	if (!amiga_font) {
 	    printf("SDLUI: TTF_OpenFont failed: %s\n", TTF_GetError());
 		abort();
 	}
-	text_color.r = 0;
-	text_color.g = 0;
-	text_color.b = 0;
+	text_color.r = 50;
+	text_color.g = 50;
+	text_color.b = 50;
 
 	pMenu_Surface	= SDL_LoadBMP("guidep/images/menu.bmp");
 	if (pMenu_Surface == NULL) {
@@ -71,7 +71,7 @@ int gui_init (void) {
 		write_log ("SDLUI: Failed to load mouse pointer image\n");
 		abort();
 	}
-	SDL_SetColorKey(pMouse_Pointer, SDL_SRCCOLORKEY, SDL_MapRGB(pMouse_Pointer->format, 85, 170,153));
+	SDL_SetColorKey(pMouse_Pointer, SDL_SRCCOLORKEY, SDL_MapRGB(pMouse_Pointer->format, 75, 155, 135));
 
 	icon_expansion		= SDL_LoadBMP("guidep/images/icon-expansion.bmp");
 	if (icon_expansion == NULL) {
@@ -163,7 +163,8 @@ void gui_display (int shortcut){
 	int iconpos_x = 0;
 	int iconpos_y = 0;
 
-	getcwd(launchDir, 256);
+	getcwd (launchDir, 256);
+	strcpy (yol, launchDir);
 	write_log ("SDLUI: current dir: %s\n", launchDir);
 
 	while (!mainloopdone) {
@@ -201,9 +202,9 @@ void gui_display (int shortcut){
 				mouse_y += event.motion.yrel;
 			}
 			if (event.type == SDL_MOUSEBUTTONDOWN) {
-				if (seciliolan == 0) {
+				if (selected_item == 0) {
 					if (mouse_x >= 0 && mouse_x <= 20) {
-                                		if (mouse_y >= 0 && mouse_y <= 20) {
+						if (mouse_y >= 0 && mouse_y <= 20) {
 							mainloopdone = 1;
 						}
 					}
@@ -213,43 +214,43 @@ void gui_display (int shortcut){
 			}
 		}
 		if (ksel == 1) {
-			if (seciliolan == menu_sel_expansion) {
-				sprintf(msg,"%s","Select KickStart ROM");
-				sprintf(msg_status,"%s"," ");
-				sprintf(yol,"%s/roms",launchDir);
+			if (selected_item == menu_sel_expansion) {
+				sprintf (msg, "%s", "Select KickStart ROM");
+				sprintf (msg_status, "%s", "EXIT: Back/ESC");
+				sprintf (yol, "%s/roms", launchDir);
 				dirz(1);
 			}
-			if (seciliolan == menu_sel_floppy) {
-				sprintf(msg,"%s","Select Disk Image");
-				sprintf(msg_status,"%s","DF0: B  DF1: A");
-				sprintf(yol,"%s/disks",launchDir);
+			if (selected_item == menu_sel_floppy) {
+				sprintf (msg, "%s", "Select Disk Image");
+				sprintf (msg_status, "%s", "DF0: B  DF1: A");
+				sprintf (yol, "%s/disks", launchDir);
 				dirz(0);
 			}
-			if (seciliolan == menu_sel_prefs) {
-				sprintf(msg,"%s"," ");
-				sprintf(msg_status,"%s"," ");
+			if (selected_item == menu_sel_prefs) {
+				sprintf (msg, "%s", "Emulation Configuration");
+				sprintf (msg_status, "%s", "EXIT: Back/ESC");
 				prefz(0);
 			}
-			if (seciliolan == menu_sel_reset) {
+			if (selected_item == menu_sel_reset) {
 				//reset amiga
 				menu_exitcode = 2;
 				mainloopdone = 1;
 			}
-			if (seciliolan == menu_sel_keymaps) {
+			if (selected_item == menu_sel_keymaps) {
 			}
-/*			if (seciliolan == menu_sel_tweaks) {
+/*			if (selected_item == menu_sel_tweaks) {
 				sprintf(msg,"%s","Tweaks");
 				sprintf(msg_status,"%s","L/R = -/+  B: Apply");
 				tweakz(0);
 			}*/
-			if (seciliolan == menu_sel_storage) {
+			if (selected_item == menu_sel_storage) {
 
 			}
-			if (seciliolan == menu_sel_run) {
+			if (selected_item == menu_sel_run) {
 				menu_exitcode = 1;
 				mainloopdone = 1;
 			}
-			if (seciliolan == menu_sel_exit) {
+			if (selected_item == menu_sel_exit) {
 				SDL_Quit();
 				exit(0);
 			}
@@ -260,46 +261,46 @@ void gui_display (int shortcut){
 
 	// icons
         	iconpos_x = 10;
-	        iconpos_y = 23;
+	        iconpos_y = 33;
 
-        	secilimi (iconpos_x, iconpos_y, mouse_x, mouse_y, icon_floppy, menu_sel_floppy);
+        	selected_hilite (iconpos_x, iconpos_y, mouse_x, mouse_y, icon_floppy, menu_sel_floppy);
 	        blit_image (icon_floppy, iconpos_x, iconpos_y);
 
 	        iconpos_x += iconsizex + bosluk;
-        	secilimi (iconpos_x, iconpos_y, mouse_x, mouse_y, icon_preferences, menu_sel_prefs);
+        	selected_hilite (iconpos_x, iconpos_y, mouse_x, mouse_y, icon_preferences, menu_sel_prefs);
 	        blit_image (icon_preferences, iconpos_x, iconpos_y);
 
 //	        iconpos_x += iconsizex + bosluk;
-//        	secilimi (iconpos_x, iconpos_y, mouse_x, mouse_y, icon_tweaks, menu_sel_tweaks);
+//        	selected_hilite (iconpos_x, iconpos_y, mouse_x, mouse_y, icon_tweaks, menu_sel_tweaks);
 //	        blit_image (icon_tweaks, iconpos_x, iconpos_y);
 
         	iconpos_x += iconsizex + bosluk;
-	        secilimi (iconpos_x, iconpos_y, mouse_x, mouse_y, icon_keymaps, menu_sel_keymaps);
+	        selected_hilite (iconpos_x, iconpos_y, mouse_x, mouse_y, icon_keymaps, menu_sel_keymaps);
         	blit_image (icon_keymaps, iconpos_x, iconpos_y);
 
 	        iconpos_x += iconsizex + bosluk;
-	        secilimi (iconpos_x, iconpos_y, mouse_x, mouse_y, icon_expansion, menu_sel_expansion);
+	        selected_hilite (iconpos_x, iconpos_y, mouse_x, mouse_y, icon_expansion, menu_sel_expansion);
         	blit_image (icon_expansion, iconpos_x, iconpos_y);
 
         	iconpos_x = 10;
-	        iconpos_y = 93;
+	        iconpos_y = iconpos_y + iconsizey + bosluk;
 
-        	secilimi (iconpos_x,iconpos_y,mouse_x,mouse_y,icon_storage, menu_sel_storage);
+        	selected_hilite (iconpos_x,iconpos_y,mouse_x,mouse_y,icon_storage, menu_sel_storage);
 	        blit_image (icon_storage, iconpos_x, iconpos_y);
 
 	        iconpos_x += iconsizex + bosluk;
-	        secilimi (iconpos_x,iconpos_y,mouse_x,mouse_y, icon_reset, menu_sel_reset);
+	        selected_hilite (iconpos_x,iconpos_y,mouse_x,mouse_y, icon_reset, menu_sel_reset);
         	blit_image (icon_reset, iconpos_x, iconpos_y);
 
 	        iconpos_x += iconsizex + bosluk;
-        	secilimi (iconpos_x,iconpos_y,mouse_x,mouse_y, icon_run, menu_sel_run);
+        	selected_hilite (iconpos_x,iconpos_y,mouse_x,mouse_y, icon_run, menu_sel_run);
 	        blit_image (icon_run, iconpos_x, iconpos_y);
 
         	iconpos_x += iconsizex + bosluk;
-	        secilimi (iconpos_x,iconpos_y,mouse_x,mouse_y, icon_exit, menu_sel_exit);
+	        selected_hilite (iconpos_x,iconpos_y,mouse_x,mouse_y, icon_exit, menu_sel_exit);
         	blit_image (icon_exit, iconpos_x, iconpos_y);
 	// texts
-		write_text (26, 3, "PUAE //GnoStiC");
+		write_text (TITLE_X, TITLE_Y, "PUAE //GnoStiC");
 
 	// mouse pointer ------------------------------
 		if (kleft == 1) {
@@ -319,10 +320,13 @@ void gui_display (int shortcut){
 	                mouse_y += (iconsizey + bosluk);
 		}
 
+#define _MENU_X 640
+#define _MENU_Y 480
+
 		if (mouse_x < 1) { mouse_x = 1; }
 		if (mouse_y < 1) { mouse_y = 1; }
-		if (mouse_x > 320) { mouse_x = 320; }
-		if (mouse_y > 240) { mouse_y = 240; }
+		if (mouse_x > _MENU_X) { mouse_x = _MENU_X; }
+		if (mouse_y > _MENU_Y) { mouse_y = _MENU_Y; }
 		rect.x = mouse_x;
 		rect.y = mouse_y;
 		//rect.w = pMouse_Pointer->w;
@@ -363,7 +367,7 @@ void blit_image (SDL_Surface* img, int x, int y) {
    	SDL_BlitSurface(img, 0, tmpSDLScreen, &dest);
 }
 
-void secilimi (int ix, int iy, int mx, int my, SDL_Surface* img, int hangi) {
+void selected_hilite (int ix, int iy, int mx, int my, SDL_Surface* img, int hangi) {
         int secili = 0;
         if (mx >= ix && mx <= ix + iconsizex) {
                 if (my >= iy && my <= iy + iconsizey) {
@@ -372,7 +376,7 @@ void secilimi (int ix, int iy, int mx, int my, SDL_Surface* img, int hangi) {
         }
         if (secili == 1) {
             SDL_SetAlpha(img, SDL_SRCALPHA, 100);
-            seciliolan = hangi;
+            selected_item = hangi;
         } else {
             SDL_SetAlpha(img, SDL_SRCALPHA, 255);
 	}
