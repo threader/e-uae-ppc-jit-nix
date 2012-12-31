@@ -246,7 +246,6 @@ int init_sound (void)
 
     obtainedfreq = currprefs.sound_freq;
 
-    init_sound_table16 ();
     sample_handler = currprefs.sound_stereo ? sample16s_handler : sample16_handler;
 
     have_sound = 1;

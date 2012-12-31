@@ -118,7 +118,6 @@ int init_sound (void)
 	sample_handler = sample16s_handler;
     else
 	sample_handler = sample16_handler;
-    init_sound_table16 ();
 
     sound_available = 1;
     obtainedfreq = currprefs.sound_freq;

@@ -284,7 +284,14 @@ genamode (amodes mode, char *reg, wordsizes size, char *name, int getv, int move
 	if (getv == 1 || getv==2) {
 	    /* We generate the variable even for getv==2, so we can use
 	       it as a destination for MOVE */
-	    comprintf ("\tint %s=%s;\n",name,reg);
+/*		if (strcmp(reg, 'dstreg') == 0) {
+			if (strcmp(name, 'data') == 0) {
+			    comprintf ("\tunsigned int %s=%s;\n",name,reg);
+			} else
+			    comprintf ("\tint %s=%s;\n",name,reg);
+		} else */{
+		    comprintf ("\tint %s=%s;\n",name,reg);
+		}
 	}
 	return;
 

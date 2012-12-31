@@ -29,9 +29,3 @@ extern void switch_audio_interpol (void);
 
 extern void sample16_handler (void);
 extern void sample16s_handler (void);
-
-#ifdef MULTIPLICATION_PROFITABLE
-STATIC_INLINE void init_sound_table16 (void) { }
-#else
-extern void init_sound_table16 (void);
-#endif

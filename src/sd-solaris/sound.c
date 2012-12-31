@@ -81,7 +81,6 @@ int init_sound (void)
 	return 0;
     }
 
-    init_sound_table16 ();
     sample_handler = sample16_handler;
 
     paula_sndbufpt = paula_sndbuffer;

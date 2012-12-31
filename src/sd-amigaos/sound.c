@@ -133,7 +133,6 @@ int init_sound (void)
     bufidx    = 0;
     paula_sndbuffer = paula_sndbufpt = (uae_u16*) buffers[bufidx];
 
-    init_sound_table16 ();
     sample_handler = currprefs.sound_stereo ? sample16s_handler : sample16_handler;
 
     have_sound = 1;

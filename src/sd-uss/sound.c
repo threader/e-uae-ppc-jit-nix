@@ -153,7 +153,6 @@ int init_sound (void)
 
     if (!(formats & AFMT_S16_NE))
 		return 0;
-    init_sound_table16 ();
     sample_handler = currprefs.sound_stereo ? sample16s_handler : sample16_handler;
 
     sound_available = 1;

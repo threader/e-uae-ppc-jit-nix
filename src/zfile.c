@@ -80,7 +80,7 @@ struct zvolume *zfile_fopen_archive_flags (const TCHAR *filename, int flags);
 struct zdirectory *zfile_opendir_archive_flags (const TCHAR *path, int flags);
 int zfile_readdir_archive_fullpath (struct zdirectory *zd, TCHAR *out, bool fullpath);
 int zfile_fs_usage_archive (const TCHAR *path, const TCHAR *disk, struct fs_usage *fsp);
-int zfile_stat_archive (const TCHAR *path, struct _stat64 *s);
+int zfile_stat_archive (const TCHAR *path, struct mystat *s);
 
 
 static void zcache_flush (void)
@@ -1260,7 +1260,7 @@ int iszip (struct zfile *z)
 	TCHAR *ext = _tcsrchr (name, '.');
 	uae_u8 header[32];
 	int i;
-	int mask = ZFD_NORMAL;//z->zfdmask;
+	int mask = ZFD_NORMAL;
 
 	if (!ext)
 		return 0;
@@ -1605,11 +1605,7 @@ static struct zfile *zfile_fopen_2 (const TCHAR *name, const TCHAR *mode, int ma
 		}
 		l->zfdmask = mask;
 	} else {
-#if defined(__FreeBSD__)
-		struct stat st;
-#else
-		struct stat64 st;
-#endif
+		struct mystat st;
 		l = zfile_create (NULL);
 		l->mode = my_strdup (mode);
 		l->name = my_strdup (name);
@@ -1624,8 +1620,8 @@ static struct zfile *zfile_fopen_2 (const TCHAR *name, const TCHAR *mode, int ma
 			zfile_fclose (l);
 			return 0;
 		}
-		if (stat (l->name, &st) != -1)
-			l->size = st.st_size;
+		if (my_stat (l->name, &st))
+			l->size = st.size;
 		l->f = f;
 	}
 	return l;
@@ -2312,12 +2308,12 @@ int zfile_zuncompress (void *dst, int dstsize, struct zfile *src, int srcsize)
 		if (zs.avail_in == 0) {
 			left = (srcsize > incnt) ? srcsize - incnt : 0;
 			if (left > 0) {
-			if (left > sizeof (inbuf))
-				left = sizeof (inbuf);
-			zs.next_in = inbuf;
-			zs.avail_in = zfile_fread (inbuf, 1, left, src);
-			incnt += left;
-		}
+				if (left > sizeof (inbuf))
+					left = sizeof (inbuf);
+				zs.next_in = inbuf;
+				zs.avail_in = zfile_fread (inbuf, 1, left, src);
+				incnt += left;
+			}
 		}
 		v = inflate (&zs, 0);
 	}
@@ -2598,7 +2594,6 @@ static struct zvolume *zfile_fopen_archive_ext (struct znode *parent, struct zfi
 	if (ext != NULL) {
 		ext++;
 		if (flags & ZFD_ARCHIVE) {
-/*
 #ifdef A_LHA
 			if (strcasecmp (ext, _T("lha")) == 0 || strcasecmp (ext, _T("lzh")) == 0)
 				zv = archive_directory_lha (zf);
@@ -2621,19 +2616,18 @@ static struct zvolume *zfile_fopen_archive_ext (struct znode *parent, struct zfi
 #endif
 			if (strcasecmp (ext, _T("tar")) == 0)
 				zv = archive_directory_tar (zf);
-*/
 		}
 		if (flags & ZFD_ADF) {
-/*			if (strcasecmp (ext, _T("adf")) == 0 && !memcmp (header, "DOS", 3))
-				zv = archive_directory_adf (parent, zf);*/
+			if (strcasecmp (ext, _T("adf")) == 0 && !memcmp (header, "DOS", 3))
+				zv = archive_directory_adf (parent, zf);
 		}
 		if (flags & ZFD_HD) {
-/*			if (strcasecmp (ext, _T("hdf")) == 0)  {
+			if (strcasecmp (ext, _T("hdf")) == 0)  {
 				if (!memcmp (header, "RDSK", 4))
 					zv = archive_directory_rdb (zf);
 				else
 					zv = archive_directory_adf (parent, zf);
-			}*/
+			}
 		}
 	}
 	return zv;
@@ -2649,7 +2643,6 @@ static struct zvolume *zfile_fopen_archive_data (struct znode *parent, struct zf
 	zfile_fread (header, sizeof (header), 1, zf);
 	zfile_fseek (zf, 0, SEEK_SET);
 	if (flags & ZFD_ARCHIVE) {
-/*
 #ifdef A_ZIP
 		if (header[0] == 'P' && header[1] == 'K')
 			zv = archive_directory_zip (zf);
@@ -2666,17 +2659,16 @@ static struct zvolume *zfile_fopen_archive_data (struct znode *parent, struct zf
 		if (header[2] == '-' && header[3] == 'l' && header[4] == 'h' && header[6] == '-')
 			zv = archive_directory_lha (zf);
 #endif
-*/
 	}
 	if (flags & ZFD_ADF) {
-/*		if (header[0] == 'D' && header[1] == 'O' && header[2] == 'S' && (header[3] >= 0 && header[3] <= 7))
-			zv = archive_directory_adf (parent, zf);*/
+		if (header[0] == 'D' && header[1] == 'O' && header[2] == 'S' && (header[3] >= 0 && header[3] <= 7))
+			zv = archive_directory_adf (parent, zf);
 	}
 	if (flags & ZFD_HD) {
-/*		if (header[0] == 'R' && header[1] == 'D' && header[2] == 'S' && header[3] == 'K')
+		if (header[0] == 'R' && header[1] == 'D' && header[2] == 'S' && header[3] == 'K')
 			zv = archive_directory_rdb (zf);
 		if (isfat (header))
-			zv = archive_directory_fat (zf);*/
+			zv = archive_directory_fat (zf);
 	}
 	return zv;
 }
@@ -2696,7 +2688,8 @@ static void zfile_fopen_archive_recurse2 (struct zvolume *zv, struct znode *zn, 
 		zvnew = zvolume_alloc_empty (zv, tmp);
 		zvnew->parentz = zn;
 		zai.name = tmp;
-		zai.t = zn->mtime;
+		zai.tv.tv_sec = zn->mtime.tv_sec;
+		zai.tv.tv_usec = zn->mtime.tv_usec;
 		zai.comment = zv->volumename;
 		if (zn->flags < 0)
 			zai.flags = zn->flags;
@@ -2729,11 +2722,11 @@ static int zfile_fopen_archive_recurse (struct zvolume *zv, int flags)
 				}
 			}
 		}
-/*		if (!done) {
+		if (!done) {
 			z = archive_getzfile (zn, zv->method, 0);
 			if (z && iszip (z))
 				zfile_fopen_archive_recurse2 (zv, zn, flags);
-		}*/
+		}
 		zn = zn->next;
 	}
 	return 0;
@@ -2754,12 +2747,11 @@ static struct zvolume *prepare_recursive_volume (struct zvolume *zv, const TCHAR
 	zvnew = zfile_fopen_archive_ext (zv->parentz, zf, flags);
 	if (!zvnew && !(flags & ZFD_NORECURSE)) {
 #if 1
-/*		zvnew = archive_directory_plain (zf);
+		zvnew = archive_directory_plain (zf);
 		if (zvnew) {
         		zfile_fopen_archive_recurse (zvnew, flags);
         		done = 1;
                 }
-*/
 #else
 		int rc;
 		int index;
@@ -2877,12 +2869,12 @@ struct znode *znode_adddir (struct znode *parent, const TCHAR *name, struct zarc
 	recurparent (path, parent, 0);
 	_tcscat (path, FSDB_DIR_SEPARATOR_S);
 	_tcscat (path, name);
-	/* zn = get_znode (parent->volume, path, 0);
+	zn = get_znode (parent->volume, path, 0);
 	if (zn)
 		return zn;
-	*/
 	zn = znode_alloc_child (parent, name);
-	zn->mtime = zai->t;
+	zn->mtime.tv_sec = zai->tv.tv_sec;
+	zn->mtime.tv_usec = zai->tv.tv_usec;
 	zn->type = ZNODE_DIR;
 	if (zai->comment)
 		zn->comment = my_strdup (zai->comment);
@@ -2940,7 +2932,8 @@ struct znode *zvolume_addfile_abs (struct zvolume *zv, struct zarchive_info *zai
 		zn = znode_alloc_child (zn2, p2);
 		zn->size = zai->size;
 		zn->type = ZNODE_FILE;
-		zn->mtime = zai->t;
+		zn->mtime.tv_sec = zai->tv.tv_sec;
+		zn->mtime.tv_usec = zai->tv.tv_usec;
 		if (zai->comment)
 			zn->comment = my_strdup (zai->comment);
 		zn->flags = zai->flags;
@@ -2991,7 +2984,7 @@ void zfile_fclose_archive (struct zvolume *zv)
 			xfree (zn);
 		zn = zn2;
 	}
-	//archive_access_close (zv->handle, zv->id);
+	archive_access_close (zv->handle, zv->id);
 	if (zvolume_list == zv) {
 		zvolume_list = zvolume_list->next;
 	} else {
@@ -3020,9 +3013,38 @@ struct zdirectory {
 
 struct zdirectory *zfile_opendir_archive_flags (const TCHAR *path, int flags)
 {
+	struct zvolume *zv = get_zvolume (path);
+	bool created = false;
+	if (zv == NULL) {
+		zv = zfile_fopen_archive_flags (path, flags);
+		created = true;
+	}
+	struct znode *zn = get_znode (zv, path, TRUE);
+	struct zdirectory *zd;
+	if (!zn || (!zn->child && !zn->vchild)) {
+		if (created)
+			zfile_fclose_archive (zv);
 	return NULL;
+	}
+	zd = xcalloc (struct zdirectory, 1);
+	if (created)
+		zd->zv = zv;
+	if (zn->child) {
+		zd->n = zn->child;
+	} else {
+		if (zn->vchild->archive == NULL) {
+			struct zvolume *zvnew = prepare_recursive_volume (zn->vchild, path, flags);
+			if (zvnew) {
+				zn->vchild = zvnew;
+				zvnew->parentz = zn;
+			}
+		}
+		zd->n = zn->vchild->root.next;
+	}
+	zd->parentpath = my_strdup (path);
+	zd->first = zd->n;
+	return zd;
 }
-
 struct zdirectory *zfile_opendir_archive (const TCHAR *path)
 {
 	return zfile_opendir_archive_flags (path, ZFD_ALL | ZFD_NORECURSE);
@@ -3040,13 +3062,44 @@ void zfile_closedir_archive (struct zdirectory *zd)
 
 int zfile_readdir_archive_fullpath (struct zdirectory *zd, TCHAR *out, bool fullpath)
 {
-        return 0;
 	if (out)
 		out[0] = 0;
 	if (!zd->n || (zd->filenames != NULL && zd->offset >= zd->cnt))
 		return 0;
 	if (zd->filenames == NULL) {
+		struct znode *n = zd->first;
+		int cnt = 0, len = 0;
+		while (n) {
+			cnt++;
+			n = n->sibling;
+		}
+		n = zd->first;
+		uae_u8 *buf = xmalloc (uae_u8, cnt * sizeof (TCHAR*));
+		zd->filenames = (TCHAR**)buf;
+		buf += cnt * sizeof (TCHAR*);
+		for (int i = 0; i < cnt; i++) {
+			zd->filenames[i] = n->name;
+			n = n->sibling;
+		}
+		for (int i = 0; i < cnt; i++) {
+			for (int j = i + 1; j < cnt; j++) {
+				if (_tcscmp (zd->filenames[i], zd->filenames[j]) > 0) {
+					TCHAR *tmp = zd->filenames[i];
+					zd->filenames[i] = zd->filenames[j];
+					zd->filenames[j] = tmp;
+				}
+			}
 	}
+		zd->cnt = cnt;
+	}
+	if (out == NULL)
+		return zd->cnt;
+	if (fullpath) {
+		_tcscpy (out, zd->parentpath);
+		_tcscat (out, FSDB_DIR_SEPARATOR_S);
+	}
+	_tcscat (out, zd->filenames[zd->offset]);
+	zd->offset++;
 	return 1;
 }
 
@@ -3063,16 +3116,47 @@ void zfile_resetdir_archive (struct zdirectory *zd)
 
 int zfile_fill_file_attrs_archive (const TCHAR *path, int *isdir, int *flags, TCHAR **comment)
 {
+	struct zvolume *zv = get_zvolume (path);
+	struct znode *zn = get_znode (zv, path, TRUE);
+
+	*isdir = 0;
+	*flags = 0;
+	if (comment)
+		*comment = 0;
+	if (!zn)
+		return 0;
+	if (zn->type == ZNODE_DIR)
+		*isdir = 1;
+	else if (zn->type == ZNODE_VDIR)
+		*isdir = -1;
+	*flags = zn->flags;
+	if (zn->comment && comment)
+		*comment = my_strdup (zn->comment);
 	return 1;
 }
 
 int zfile_fs_usage_archive (const TCHAR *path, const TCHAR *disk, struct fs_usage *fsp)
 {
+	struct zvolume *zv = get_zvolume (path);
+
+	if (!zv)
+		return -1;
+	fsp->fsu_blocks = zv->blocks;
+	fsp->fsu_bavail = 0;
 	return 0;
 }
 
-int zfile_stat_archive (const TCHAR *path, struct _stat64 *s)
+int zfile_stat_archive (const TCHAR *path, struct mystat *s)
 {
+	struct zvolume *zv = get_zvolume (path);
+	struct znode *zn = get_znode (zv, path, TRUE);
+
+	memset (s, 0, sizeof (struct mystat));
+	if (!zn)
+		return 0;
+	s->size = zn->size;
+	s->mtime.tv_sec = zn->mtime.tv_sec;
+	s->mtime.tv_usec = zn->mtime.tv_usec;
 	return 1;
 }
 

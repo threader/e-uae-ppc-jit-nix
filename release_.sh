@@ -53,6 +53,7 @@ rm -rf src/gui-gtk/Makefile.in
 rm -rf src/gui-muirexx/Makefile.in
 rm -rf src/gui-none/Makefile.in
 rm -rf src/gui-qt/Makefile.in
+rm -rf src/gui-sdl/Makefile.in
 rm -rf src/jd-amigainput/Makefile.in
 rm -rf src/jd-amigaos/Makefile.in
 rm -rf src/jd-beos/Makefile.in

@@ -1,5 +1,5 @@
 # ===========================================================================
-#            http://autoconf-archive.cryp.to/ax_gcc_archflag.html
+#      http://www.gnu.org/software/autoconf-archive/ax_gcc_archflag.html
 # ===========================================================================
 #
 # SYNOPSIS
@@ -11,7 +11,7 @@
 #   This macro tries to guess the "native" arch corresponding to the target
 #   architecture for use with gcc's -march=arch or -mtune=arch flags. If
 #   found, the cache variable $ax_cv_gcc_archflag is set to this flag and
-#   ACTION-SUCCESS is executed; otherwise $ax_cv_gcc_archflag is is set to
+#   ACTION-SUCCESS is executed; otherwise $ax_cv_gcc_archflag is set to
 #   "unknown" and ACTION-FAILURE is executed. The default ACTION-SUCCESS is
 #   to add $ax_cv_gcc_archflag to the end of $CFLAGS.
 #
@@ -27,20 +27,17 @@
 #   When cross-compiling, or if $CC is not gcc, then ACTION-FAILURE is
 #   called unless the user specified --with-gcc-arch manually.
 #
-#   Requires macros: AX_CHECK_COMPILER_FLAGS, AX_GCC_X86_CPUID
+#   Requires macros: AX_CHECK_COMPILE_FLAG, AX_GCC_X86_CPUID
 #
 #   (The main emphasis here is on recent CPUs, on the principle that doing
 #   high-performance computing on old hardware is uncommon.)
 #
-# LAST MODIFICATION
-#
-#   2012-12-11
-#
-# COPYLEFT
+# LICENSE
 #
 #   Copyright (c) 2008 Steven G. Johnson <stevenj@alum.mit.edu>
 #   Copyright (c) 2008 Matteo Frigo
-#   Copyright (c) 2008 Mustafa Tufan (mustafa.tufan@gmail.com)
+#   Copyright (c) 2011 Mustafa 'GnoStiC' Tufan
+#   Copyright (c) 2012 Tsukasa Oi
 #
 #   This program is free software: you can redistribute it and/or modify it
 #   under the terms of the GNU General Public License as published by the
@@ -64,15 +61,17 @@
 #   all other use of the material that constitutes the Autoconf Macro.
 #
 #   This special exception to the GPL applies to versions of the Autoconf
-#   Macro released by the Autoconf Macro Archive. When you make and
-#   distribute a modified version of the Autoconf Macro, you may extend this
-#   special exception to the GPL to apply to your modified version as well.
+#   Macro released by the Autoconf Archive. When you make and distribute a
+#   modified version of the Autoconf Macro, you may extend this special
+#   exception to the GPL to apply to your modified version as well.
+
+#serial 11
 
 AC_DEFUN([AX_GCC_ARCHFLAG],
 [AC_REQUIRE([AC_PROG_CC])
 AC_REQUIRE([AC_CANONICAL_HOST])
 
-AC_ARG_WITH(gcc-arch, [AC_HELP_STRING([--with-gcc-arch=<arch>], [use architecture <arch> for gcc -march/-mtune, instead of guessing])],
+AC_ARG_WITH(gcc-arch, [AS_HELP_STRING([--with-gcc-arch=<arch>], [use architecture <arch> for gcc -march/-mtune, instead of guessing])],
 	ax_gcc_arch=$withval, ax_gcc_arch=yes)
 
 AC_MSG_CHECKING([for gcc architecture flag])
@@ -87,59 +86,69 @@ if test "x$ax_gcc_arch" = xyes; then
 ax_gcc_arch=""
 if test "$cross_compiling" = no; then
 case $host_cpu in
-  i[[3456]]86*|x86_64*) # use cpuid codes, in part from x86info-1.7 by D. Jones
-    # Update: Since gcc-4 (and nobody in their right mind would still use
-    # something lower than gcc-4.1) these tests lead to nothing and can
-    # be substituted by a simple "-march=native".
-    # But the original tests have to be used as spare anyway.
+  i[[3456]]86*|x86_64*) # use cpuid codes
      AX_GCC_X86_CPUID(0)
      AX_GCC_X86_CPUID(1)
+echo ----------------------
+echo $ax_cv_gcc_x86_cpuid_0
+echo ----------------------
+echo $ax_cv_gcc_x86_cpuid_1
+echo ----------------------
      case $ax_cv_gcc_x86_cpuid_0 in
        *:756e6547:*:*) # Intel
           case $ax_cv_gcc_x86_cpuid_1 in
-	    106??:*:*:*) ax_gcc_arch="native core2 nocona prescott" ;;
-	    *5[[48]]?:*:*:*) ax_gcc_arch="native pentium-mmx pentium" ;;
-	    *5??:*:*:*) ax_gcc_arch="native pentium" ;;
-	    *6[[3456]]?:*:*:*) ax_gcc_arch="native pentium2 pentiumpro" ;;
-	    *6a?:*[[01]]:*:*) ax_gcc_arch="native pentium2 pentiumpro" ;;
-	    *6a?:*[[234]]:*:*) ax_gcc_arch="native pentium3 pentiumpro" ;;
-	    *6[[9d]]?:*:*:*) ax_gcc_arch="native pentium-m pentium3 pentiumpro" ;;
-	    *6[[78b]]?:*:*:*) ax_gcc_arch="native pentium3 pentiumpro" ;;
-	    *6??:*:*:*) ax_gcc_arch="native pentiumpro" ;;
-            *f3[[347]]:*:*:*|*f4[1347]:*:*:*)
+	    *5[[48]]?:*:*:*) ax_gcc_arch="pentium-mmx pentium" ;;
+	    *5??:*:*:*) ax_gcc_arch=pentium ;;
+	    *0?6[[3456]]?:*:*:*) ax_gcc_arch="pentium2 pentiumpro" ;;
+	    *0?6a?:*[[01]]:*:*) ax_gcc_arch="pentium2 pentiumpro" ;;
+	    *0?6a?:*[[234]]:*:*) ax_gcc_arch="pentium3 pentiumpro" ;;
+	    *0?6[[9de]]?:*:*:*) ax_gcc_arch="pentium-m pentium3 pentiumpro" ;;
+	    *0?6[[78b]]?:*:*:*) ax_gcc_arch="pentium3 pentiumpro" ;;
+	    *0?6f?:*:*:*|*1?66?:*:*:*) ax_gcc_arch="core2 pentium-m pentium3 pentiumpro" ;;
+	    *1?6[[7d]]?:*:*:*) ax_gcc_arch="penryn core2 pentium-m pentium3 pentiumpro" ;;
+	    *1?6[[aef]]?:*:*:*|*2?6[[5cef]]?:*:*:*) ax_gcc_arch="corei7 core2 pentium-m pentium3 pentiumpro" ;;
+	    *1?6c?:*:*:*|*[[23]]?66?:*:*:*) ax_gcc_arch="atom core2 pentium-m pentium3 pentiumpro" ;;
+	    *2?6[[ad]]?:*:*:*) ax_gcc_arch="corei7-avx corei7 native core2 pentium-m pentium3 pentiumpro" ;;
+	    306a?:*:*:*) ax_gcc_arch="corei7-avx corei7 native core2" ;;
+	    *0?6??:*:*:*) ax_gcc_arch=pentiumpro ;;
+	    *6??:*:*:*) ax_gcc_arch="core2 pentiumpro" ;;
+	    ?000?f3[[347]]:*:*:*|?000?f4[1347]:*:*:*|?000?f6?:*:*:*)
 		case $host_cpu in
-                  x86_64*) ax_gcc_arch="native nocona pentium4 pentiumpro" ;;
-                  *) ax_gcc_arch="native prescott pentium4 pentiumpro" ;;
+	          x86_64*) ax_gcc_arch="nocona pentium4 pentiumpro" ;;
+	          *) ax_gcc_arch="prescott pentium4 pentiumpro" ;;
                 esac ;;
-            *f??:*:*:*) ax_gcc_arch="native pentium4 pentiumpro";;
+	    ?000?f??:*:*:*) ax_gcc_arch="pentium4 pentiumpro";;
           esac ;;
        *:68747541:*:*) # AMD
           case $ax_cv_gcc_x86_cpuid_1 in
-	    *5[[67]]?:*:*:*) ax_gcc_arch="native k6" ;;
-	    *5[[8d]]?:*:*:*) ax_gcc_arch="native k6-2 k6" ;;
-	    *5[[9]]?:*:*:*) ax_gcc_arch="native k6-3 k6" ;;
-	    *60?:*:*:*) ax_gcc_arch="native k7" ;;
-	    *6[[12]]?:*:*:*) ax_gcc_arch="native athlon k7" ;;
-	    *6[[34]]?:*:*:*) ax_gcc_arch="native athlon-tbird k7" ;;
-	    *67?:*:*:*) ax_gcc_arch="native athlon-4 athlon k7" ;;
+	    *5[[67]]?:*:*:*) ax_gcc_arch=k6 ;;
+	    *5[[8d]]?:*:*:*) ax_gcc_arch="k6-2 k6" ;;
+	    *5[[9]]?:*:*:*) ax_gcc_arch="k6-3 k6" ;;
+	    *60?:*:*:*) ax_gcc_arch=k7 ;;
+	    *6[[12]]?:*:*:*) ax_gcc_arch="athlon k7" ;;
+	    *6[[34]]?:*:*:*) ax_gcc_arch="athlon-tbird k7" ;;
+	    *67?:*:*:*) ax_gcc_arch="athlon-4 athlon k7" ;;
 	    *6[[68a]]?:*:*:*)
 	       AX_GCC_X86_CPUID(0x80000006) # L2 cache size
 	       case $ax_cv_gcc_x86_cpuid_0x80000006 in
                  *:*:*[[1-9a-f]]??????:*) # (L2 = ecx >> 16) >= 256
-			ax_gcc_arch="native athlon-xp athlon-4 athlon k7" ;;
-                 *) ax_gcc_arch="native athlon-4 athlon k7" ;;
+			ax_gcc_arch="athlon-xp athlon-4 athlon k7" ;;
+                 *) ax_gcc_arch="athlon-4 athlon k7" ;;
 	       esac ;;
-	    *f[[4cef8b]]?:*:*:*) ax_gcc_arch="native athlon64 k8" ;;
-	    *f5?:*:*:*) ax_gcc_arch="native opteron k8" ;;
-	    *f7?:*:*:*) ax_gcc_arch="native athlon-fx opteron k8" ;;
-	    *f??:*:*:*) ax_gcc_arch="native k8" ;;
+	    ?00??f[[4cef8b]]?:*:*:*) ax_gcc_arch="athlon64 k8" ;;
+	    ?00??f5?:*:*:*) ax_gcc_arch="opteron k8" ;;
+	    ?00??f7?:*:*:*) ax_gcc_arch="athlon-fx opteron k8" ;;
+	    ?00??f??:*:*:*) ax_gcc_arch="k8" ;;
+	    ?05??f??:*:*:*) ax_gcc_arch="btver1 amdfam10 k8" ;;
+	    ?06??f??:*:*:*) ax_gcc_arch="bdver1 amdfam10 k8" ;;
+	    *f??:*:*:*) ax_gcc_arch="amdfam10 k8" ;;
           esac ;;
 	*:746e6543:*:*) # IDT
 	   case $ax_cv_gcc_x86_cpuid_1 in
-	     *54?:*:*:*) ax_gcc_arch="native winchip-c6" ;;
-	     *58?:*:*:*) ax_gcc_arch="native winchip2" ;;
-	     *6[[78]]?:*:*:*) ax_gcc_arch="native c3" ;;
-	     *69?:*:*:*) ax_gcc_arch="native c3-2 c3" ;;
+	     *54?:*:*:*) ax_gcc_arch=winchip-c6 ;;
+	     *58?:*:*:*) ax_gcc_arch=winchip2 ;;
+	     *6[[78]]?:*:*:*) ax_gcc_arch=c3 ;;
+	     *69?:*:*:*) ax_gcc_arch="c3-2 c3" ;;
 	   esac ;;
      esac
      if test x"$ax_gcc_arch" = x; then # fallback
@@ -206,7 +215,7 @@ for arch in $ax_gcc_arch; do
     flags="-march=$arch -mcpu=$arch -m$arch"
   fi
   for flag in $flags; do
-    AX_CHECK_COMPILER_FLAGS($flag, [ax_cv_gcc_archflag=$flag; break])
+    AX_CHECK_COMPILE_FLAG($flag, [ax_cv_gcc_archflag=$flag; break])
   done
   test "x$ax_cv_gcc_archflag" = xunknown || break
 done

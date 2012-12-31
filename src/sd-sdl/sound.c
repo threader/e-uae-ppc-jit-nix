@@ -134,7 +134,6 @@ static int open_sound (void)
 		return 0;
 	}
 
-	init_sound_table16 ();
 	sample_handler = currprefs.sound_stereo ? sample16s_handler : sample16_handler;
 
 	obtainedfreq = currprefs.sound_freq;

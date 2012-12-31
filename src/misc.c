@@ -32,6 +32,8 @@
 #include "debug.h"
 #include "hrtimer.h"
 #include "sleep.h"
+#include "zfile.h"
+#include <sys/timeb.h>
 
 static int logging_started;
 #define LOG_BOOT "puae_bootlog.txt"
@@ -370,6 +372,65 @@ char *au_fs_copy (char *dst, int maxlen, const char *src)
 }
 
 // fsdb_mywin32
+bool my_stat (const TCHAR *name, struct mystat *statbuf)
+{
+	struct _stat64 st;
+	uae_s64 foo_size;
+
+	if (stat (name, &st) != -1) {
+		foo_size = st.st_size;
+		statbuf->size = foo_size;
+		
+		if (st.st_mode & (S_IWGRP | S_IWOTH)) {
+			statbuf->mode = FILEFLAG_READ | FILEFLAG_WRITE;
+		} else {
+			statbuf->mode = FILEFLAG_READ;
+		}
+
+//S_IFREG: regular file
+		if ((st.st_mode & S_IFMT) == S_IFDIR) {
+			statbuf->mode |= FILEFLAG_DIR;
+		}
+
+//		statbuf->mode = st->st_mode;
+//	        uae_u64 t = (*(uae_s64 *)&st->st_mtime-((uae_s64)(369*365+89)*(uae_s64)(24*60*60)*(uae_s64)10000000));
+//        	statbuf->mtime.tv_sec = t / 10000000;
+//	        statbuf->mtime.tv_usec = (t / 10) % 1000000;
+	        return true;
+	}
+	return false;
+}
+
+static int setfiletime (const TCHAR *name, int days, int minute, int tick, int tolocal)
+{
+//FIXME
+	return 0;
+}
+
+bool my_utime (const TCHAR *name, struct mytimeval *tv)
+{
+        int result = -1, tolocal;
+        int days, mins, ticks;
+        struct mytimeval tv2;
+
+        if (!tv) {
+                struct timeb time;
+                ftime (&time);
+                tv2.tv_sec = time.time;
+                tv2.tv_usec = time.millitm * 1000;
+                tolocal = 0;
+        } else {
+                tv2.tv_sec = tv->tv_sec;
+                tv2.tv_usec = tv->tv_usec;
+                tolocal = 1;
+        }
+        timeval_to_amiga (&tv2, &days, &mins, &ticks);
+        if (setfiletime (name, days, mins, ticks, tolocal))
+                return true;
+
+        return false;
+}
+
 int my_existsfile (const char *name)
 {
 	struct stat sonuc;

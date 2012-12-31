@@ -525,11 +525,11 @@ void inprec_close (bool clear)
 
 static void setwriteprotect (const TCHAR *fname, bool readonly)
 {
-	struct _stat64 st;
+	struct mystat st;
 	int mode, oldmode;
-	if (!stat (fname, &st))
+	if (!my_stat (fname, &st))
 		return;
-	oldmode = mode = st.st_mode;
+	oldmode = mode = st.mode;
 	mode &= ~FILEFLAG_WRITE;
 	if (!readonly)
 		mode |= FILEFLAG_WRITE;

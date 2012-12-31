@@ -46,6 +46,8 @@
 #include "consolehook.h"
 #include "blkdev.h"
 #include "isofs_api.h"
+#include "inputdevice.h"
+#include "clipboard.h"
 #ifdef PICASSO96
 # include "picasso96.h"
 #endif
@@ -59,10 +61,6 @@
 #define my_rmdir rmdir
 #define my_unlink unlink
 #define my_rename rename
-#ifdef _stat64
-# undef _stat64
-#endif /* _stat64 */
-#define _stat64 stat
 //FIXME: ---end
 
 #define TRACING_ENABLED 1
@@ -86,8 +84,6 @@ int log_filesys = 0;
 #endif
 
 #define RTAREA_HEARTBEAT 0xFFFC
-
-static void get_time (time_t t, long* days, long* mins, long* ticks);
 
 static uae_sem_t test_sem;
 
@@ -1123,57 +1119,31 @@ static TCHAR *bstr_cut (Unit *unit, uaecptr addr)
 	return &p[off];
 }
 
-#if !defined TARGET_AMIGAOS || !defined WORDS_BIGENDIAN
 /* convert time_t to/from AmigaDOS time */
-static const int secs_per_day = 24 * 60 * 60;
-static const int diff = (8 * 365 + 2) * (24 * 60 * 60);
+static const uae_s64 msecs_per_day = 24 * 60 * 60 * 1000;
+static const uae_s64 diff = ((8 * 365 + 2) * (24 * 60 * 60)) * (uae_u64)1000;
 
-void
-	get_time (time_t t, long* days, long* mins, long* ticks)
+void timeval_to_amiga (struct mytimeval *tv, int *days, int *mins, int *ticks)
 {
-	/* time_t is secs since 1-1-1970 */
+	/* tv.tv_sec is secs since 1-1-1970 */
 	/* days since 1-1-1978 */
 	/* mins since midnight */
 	/* ticks past minute @ 50Hz */
 
-# if !defined _WIN32 && !defined BEOS && !defined TARGET_AMIGAOS
-    /*
-     * On Unix-like systems, t is in UTC. The Amiga
-     * requires local time, so we have to take account of
-     * this difference if we can. This ain't easy to do in
-     * a portable, thread-safe way.
-     */
-#  if defined HAVE_LOCALTIME_R && defined HAVE_TIMEGM
-    struct tm tm;
-
-    /* Convert t to local time */
-    localtime_r (&t, &tm);
-
-    /* Calculate local time in seconds since the Unix Epoch */
-    t = timegm (&tm);
-#  endif
-# endif
-
-    /* Adjust for difference between Unix and Amiga epochs */
+	uae_s64 t = tv->tv_sec * 1000 + tv->tv_usec / 1000;
 	t -= diff;
 	if (t < 0)
 		t = 0;
-    /* Calculate Amiga date-stamp */
-	*days = t / secs_per_day;
-	t -= *days * secs_per_day;
-	*mins = t / 60;
-	t -= *mins * 60;
-	*ticks = t * 50;
+	*days = t / msecs_per_day;
+	t -= *days * msecs_per_day;
+	*mins = t / (60 * 1000);
+	t -= *mins * (60 * 1000);
+	*ticks = t / (1000 / 50);
 }
 
-/*
- * Convert Amiga date-stamp to host time in seconds since the start
- * of the Unix epoch
- */
-static time_t
-	put_time (long days, long mins, long ticks)
+void amiga_to_timeval (struct mytimeval *tv, int days, int mins, int ticks)
 {
-	time_t t;
+	uae_s64 t;
 
 	if (days < 0)
 		days = 0;
@@ -1184,43 +1154,14 @@ static time_t
 	if (ticks < 0 || ticks >= 60 * 50)
 		ticks = 0;
 
-	t = ticks / 50;
-	t += mins * 60;
-	t += ((uae_u64)days) * secs_per_day;
+	t = ticks * 20;
+	t += mins * (60 * 1000);
+	t += ((uae_u64)days) * msecs_per_day;
 	t += diff;
 
-# if !defined _WIN32 && !defined BEOS
-    /*
-     * t is still in local time zone. For Unix-like systems
-     * we need a time in UTC, so we have to take account of
-     * the difference if we can. This ain't easy to do in
-     * a portable, thread-safe way.
-     */
-#  if defined HAVE_GMTIME_R && defined HAVE_LOCALTIME_R
-    {
-	struct tm tm;
-	struct tm now_tm;
-	time_t now_t;
-
-	gmtime_r (&t, &tm);
-
-	/*
-	 * tm now contains the desired time in local time zone, not taking account
-	 * of DST. To fix this, we determine if DST is in effect now and stuff that
-	 * into tm.
-	 */
-	now_t = time (0);
-	localtime_r (&now_t, &now_tm);
-	tm.tm_isdst = now_tm.tm_isdst;
-
-	/* Convert time to UTC in seconds since the Unix epoch */
-	t = mktime (&tm);
-    }
-#  endif
-# endif
-	return t;
+	tv->tv_sec = t / 1000;
+	tv->tv_usec = (t % 1000) * 1000;
 }
-#endif
 
 static Unit *units = 0;
 
@@ -1242,13 +1183,13 @@ static struct fs_dirhandle *fs_opendir (Unit *u, a_inode *aino)
 	if (fsd->fstype == FS_ARCHIVE) {
 		fsd->zd = zfile_opendir_archive (aino->nname);
 		if (fsd->zd)
-	return fsd;
+			return fsd;
 	} else if (fsd->fstype == FS_DIRECTORY) {
 		fsd->od = my_opendir (aino->nname);
 		if (fsd->od)
 			return fsd;
-	} else if (fsd->fstype == FS_CDFS) {
-	/*	fsd->isod = isofs_opendir (u->ui.cdfs_superblock, aino->uniq_external);
+	/*} else if (fsd->fstype == FS_CDFS) {
+		fsd->isod = isofs_opendir (u->ui.cdfs_superblock, aino->uniq_external);
 		if (fsd->isod)
 			return fsd;*/
 	}
@@ -1295,8 +1236,8 @@ static void fs_closefile (struct fs_filehandle *fsf)
 		zfile_close_archive (fsf->zf);
 	} else if (fsf->fstype == FS_DIRECTORY) {
 		my_close (fsf->of);
-	} else if (fsf->fstype == FS_CDFS) {
-//		isofs_closefile (fsf->isof);
+	/*} else if (fsf->fstype == FS_CDFS) {
+		isofs_closefile (fsf->isof);*/
 	}
 	xfree (fsf);
 }
@@ -1304,17 +1245,8 @@ static unsigned int fs_read (struct fs_filehandle *fsf, void *b, unsigned int si
 {
 	if (fsf->fstype == FS_ARCHIVE)
 		return zfile_read_archive (fsf->zf, b, size);
-	else if (fsf->fstype == FS_DIRECTORY) {
-/*char buffer[65];
-int gotten;
-gotten = read(fsf->of->h, buffer, 10);
-buffer[gotten] = '\0';
-write_log("*** %s ***\n",buffer);*/
-//lseek(fsf->of->h, 0, 0);
-
+	else if (fsf->fstype == FS_DIRECTORY)
 		return my_read (fsf->of, b, size);
-	}
-		//return fread (b, 1, size, fsf->of);
 /*	else if (fsf->fstype == FS_CDFS)
 		return isofs_read (fsf->isof, b, size);*/
 	return 0;
@@ -1323,7 +1255,6 @@ static unsigned int fs_write (struct fs_filehandle *fsf, void *b, unsigned int s
 {
 	if (fsf->fstype == FS_DIRECTORY)
 		return my_write (fsf->of, b, size);
-//		return fwrite (b, 1, size, fsf->of);
 	return 0;
 }
 
@@ -1364,7 +1295,7 @@ static void set_highcyl (UnitInfo *ui, uae_u32 blocks)
 	put_long (env + 10 * 4, blocks);
 }
 
-static void set_volume_name (Unit *unit, uae_u32 ctime)
+static void set_volume_name (Unit *unit, struct mytimeval *tv)
 {
 	int namelen;
 	int i;
@@ -1376,9 +1307,9 @@ static void set_volume_name (Unit *unit, uae_u32 ctime)
 	for (i = 0; i < namelen; i++)
 		put_byte (unit->volume + 45 + i, s[i]);
 	put_byte (unit->volume + 45 + namelen, 0);
-	if (ctime) {
-		long days, mins, ticks;
-		get_time (ctime, &days, &mins, &ticks);
+	if (tv && (tv->tv_sec || tv->tv_usec)) {
+		int days, mins, ticks;
+		timeval_to_amiga (tv, &days, &mins, &ticks);
 		put_long (unit->volume + 16, days);
 		put_long (unit->volume + 20, mins);
 		put_long (unit->volume + 24, ticks);
@@ -1591,7 +1522,7 @@ static uae_u32 filesys_media_change_reply (TrapContext *ctx, int mode)
 	} else if (u->mount_changed > 0) {
 		if (mode == 0) {
 			// insert
-			uae_u32 ctime = 0;
+			struct mytimeval ctime = { 0 };
 			bool emptydrive = false;
 			struct uaedev_config_info *uci = NULL;
 
@@ -1616,7 +1547,8 @@ static uae_u32 filesys_media_change_reply (TrapContext *ctx, int mode)
 					u->ui.unknown_media = ii.unknown_media;
 					if (!ii.unknown_media) {
 						u->ui.volname = ui->volname = my_strdup (ii.volumename);
-						ctime = ii.creation;
+						ctime.tv_sec = ii.creation;
+						ctime.tv_usec = 0;
 						set_highcyl (ui, ii.blocks);
 #ifdef RETROPLATFORM
 						rp_cd_image_change (ui->cddevno, ii.devname);
@@ -1640,7 +1572,7 @@ static uae_u32 filesys_media_change_reply (TrapContext *ctx, int mode)
 				write_log (_T("FILESYS: inserted unreadable volume NR=%d RO=%d\n"), nr, u->mount_readonly);
 			} else {
 				write_log (_T("FILESYS: inserted volume NR=%d RO=%d '%s' ('%s')\n"), nr, u->mount_readonly, ui->volname, u->mount_rootdir);
-				set_volume_name (u, ctime);
+				set_volume_name (u, &ctime);
 				if (u->mount_flags >= 0)
 					ui->volflags = u->volflags = u->ui.volflags = u->mount_flags;
 				if (uci != NULL) {
@@ -2672,9 +2604,10 @@ static uae_u32 REGPARAM2 startup_handler (TrapContext *context)
 	Unit *unit;
 	UnitInfo *uinfo;
 	int late = 0;
-	int ed, ef;
+	int ed = 0, ef = 0;
 	uae_u64 uniq = 0;
-	uae_u32 cdays, ctime = 0;
+	uae_u32 cdays;
+	struct mytimeval ctime = { 0 };
 
 	// 1.3:
 	// dp_Arg1 contains crap (Should be name of device)
@@ -2764,7 +2697,7 @@ static uae_u32 REGPARAM2 startup_handler (TrapContext *context)
 	if (!uinfo->wasisempty && !uinfo->unknown_media) {
 		int isvirtual = unit->volflags & (MYVOLUMEINFO_ARCHIVE | MYVOLUMEINFO_CDFS);
 		/* Set volume if non-empty */
-		set_volume_name (unit, ctime);
+		set_volume_name (unit, &ctime);
 		if (!isvirtual)
 			fsdb_clean_dir (&unit->rootnode);
 	}
@@ -3361,8 +3294,8 @@ static void move_exkeys (Unit *unit, a_inode *from, a_inode *to)
 static void
 	get_fileinfo (Unit *unit, dpacket packet, uaecptr info, a_inode *aino)
 {
-	struct _stat64 statbuf;
-	long days, mins, ticks;
+	struct mystat statbuf;
+	int days, mins, ticks;
 	int i, n, entrytype, blocksize;
 	int fsdb_can = fsdb_cando (unit);
 	TCHAR *xs;
@@ -3371,12 +3304,12 @@ static void
 
 	memset (&statbuf, 0, sizeof statbuf);
 	/* No error checks - this had better work. */
-/*	if (unit->volflags & MYVOLUMEINFO_ARCHIVE)
+	if (unit->volflags & MYVOLUMEINFO_ARCHIVE)
 		ok = zfile_stat_archive (aino->nname, &statbuf) != 0;
-	else if (unit->volflags & MYVOLUMEINFO_CDFS)
-		ok = isofs_stat (unit->ui.cdfs_superblock, aino->uniq_external, &statbuf);
-	else*/
-		stat (aino->nname, &statbuf);
+/*	else if (unit->volflags & MYVOLUMEINFO_CDFS)
+		ok = isofs_stat (unit->ui.cdfs_superblock, aino->uniq_external, &statbuf);*/
+	else
+		my_stat (aino->nname, &statbuf);
 
 	if (!ok) {
 		PUT_PCK_RES1 (packet, DOS_FALSE);
@@ -3410,33 +3343,18 @@ static void
 	while (i < 108)
 		put_byte (info + i, 0), i++;
 
-#if defined TARGET_AMIGAOS && defined WORDS_BIGENDIAN
-	 BPTR lock;
-	struct FileInfoBlock fib __attribute__((aligned(4)));
-
-	 if ((lock = Lock (aino->nname, SHARED_LOCK))) {
-	     Examine (lock, &fib);
-	     UnLock (lock);
-	 }
-	 put_long (info + 124, fib.fib_Size);
-	 put_long (info + 128, fib.fib_NumBlocks);
-	 put_long (info + 132, fib.fib_Date.ds_Days);
-	 put_long (info + 136, fib.fib_Date.ds_Minute);
-	 put_long (info + 140, fib.fib_Date.ds_Tick);
-#else
 	put_long (info + 116, fsdb_can ? aino->amigaos_mode : fsdb_mode_supported (aino));
-	put_long (info + 124, statbuf.st_size > MAXFILESIZE32 ? MAXFILESIZE32 : (uae_u32)statbuf.st_size);
-#ifdef HAVE_ST_BLOCKS
+	put_long (info + 124, statbuf.size > MAXFILESIZE32 ? MAXFILESIZE32 : (uae_u32)statbuf.size);
+#if 0 //HAVE_ST_BLOCKS
 	put_long (info + 128, statbuf.st_blocks);
 #else
 	blocksize = (unit->volflags & MYVOLUMEINFO_CDFS) ? 2048 : 512;
-	put_long (info + 128, (statbuf.st_size + blocksize - 1) / blocksize);
+	put_long (info + 128, (statbuf.size + blocksize - 1) / blocksize);
 #endif
-	get_time (statbuf.st_mtime, &days, &mins, &ticks);
+	timeval_to_amiga (&statbuf.mtime, &days, &mins, &ticks);
 	put_long (info + 132, days);
 	put_long (info + 136, mins);
 	put_long (info + 140, ticks);
-#endif
 	if (aino->comment == 0 || !fsdb_can)
 		put_long (info + 144, 0);
 	else {
@@ -3698,8 +3616,8 @@ static int exalldo (uaecptr exalldata, uae_u32 exalldatasize, uae_u32 type, uaec
 	int entrytype;
 	TCHAR *xs = NULL, *commentx = NULL;
 	uae_u32 flags = 15;
-	long days, mins, ticks;
-	struct _stat64 statbuf;
+	int days, mins, ticks;
+	struct mystat statbuf;
 	int fsdb_can = fsdb_cando (unit);
 	uae_u16 uid = 0, gid = 0;
 	char *x = NULL, *comment = NULL;
@@ -3708,10 +3626,10 @@ static int exalldo (uaecptr exalldata, uae_u32 exalldatasize, uae_u32 type, uaec
 	memset (&statbuf, 0, sizeof statbuf);
 	if (unit->volflags & MYVOLUMEINFO_ARCHIVE)
 		zfile_stat_archive (aino->nname, &statbuf);
-	else if (unit->volflags & MYVOLUMEINFO_CDFS)
-	;//	isofs_stat (unit->ui.cdfs_superblock, aino->uniq_external, &statbuf);
+/*	else if (unit->volflags & MYVOLUMEINFO_CDFS)
+		isofs_stat (unit->ui.cdfs_superblock, aino->uniq_external, &statbuf);*/
 	else
-		stat (aino->nname, &statbuf);
+		my_stat (aino->nname, &statbuf);
 
 	if (aino->parent == 0) {
 		entrytype = 2;
@@ -3738,7 +3656,7 @@ static int exalldo (uaecptr exalldata, uae_u32 exalldatasize, uae_u32 type, uaec
 		size2 += 4;
 	}
 	if (type >= 5) {
-		get_time (statbuf.st_mtime, &days, &mins, &ticks);
+		timeval_to_amiga (&statbuf.mtime, &days, &mins, &ticks);
 		size2 += 12;
 	}
 	if (type >= 6) {
@@ -3782,7 +3700,7 @@ static int exalldo (uaecptr exalldata, uae_u32 exalldatasize, uae_u32 type, uaec
 	if (type >= 2)
 		put_long (exp + 8, entrytype);
 	if (type >= 3)
-		put_long (exp + 12, statbuf.st_size > MAXFILESIZE32 ? MAXFILESIZE32 : statbuf.st_size);
+		put_long (exp + 12, statbuf.size > MAXFILESIZE32 ? MAXFILESIZE32 : statbuf.size);
 	if (type >= 4)
 		put_long (exp + 16, flags);
 	if (type >= 5) {
@@ -3813,7 +3731,7 @@ end:
 static int action_examine_all_do (Unit *unit, uaecptr lock, ExAllKey *eak, uaecptr exalldata, uae_u32 exalldatasize, uae_u32 type, uaecptr control)
 {
 	a_inode *aino, *base = NULL;
-        struct dirent *ok;
+        struct dirent *ok = NULL;
 	uae_u32 err;
 	struct fs_dirhandle *d;
 	TCHAR fn[MAX_DPATH];
@@ -3831,8 +3749,8 @@ static int action_examine_all_do (Unit *unit, uaecptr lock, ExAllKey *eak, uaecp
 					ok = zfile_readdir_archive (d->zd, fn);
 				else if (d->fstype == FS_DIRECTORY)
 					ok = readdir (d->od);
-				else if (d->fstype == FS_CDFS)
-				;//	ok = isofs_readdir (d->isod, fn, &uniq);
+				/*else if (d->fstype == FS_CDFS)
+					ok = isofs_readdir (d->isod, fn, &uniq);*/
 				else
 					ok = 0;
 			} while (ok && d->fstype  == FS_DIRECTORY && fsdb_name_invalid (ok->d_name));
@@ -3849,7 +3767,7 @@ static int action_examine_all_do (Unit *unit, uaecptr lock, ExAllKey *eak, uaecp
 		eak->id = unit->exallid++;
 		put_long (control + 4, eak->id);
 		if (!exalldo (exalldata, exalldatasize, type, control, unit, aino)) {
-			eak->fn = my_strdup (fn); /* no space in exallstruct, save current entry */
+			eak->fn = my_strdup (ok->d_name); /* no space in exallstruct, save current entry */
 			break;
 		}
 	}
@@ -4095,7 +4013,7 @@ static void populate_directory (Unit *unit, a_inode *base)
 	for (;;) {
 		uae_u64 uniq = 0;
 		TCHAR fn[MAX_DPATH];
-		struct dirent *ok;
+		struct dirent *ok = NULL;
 		uae_u32 err;
 
 		/* Find next file that belongs to the Amiga fs (skipping things
@@ -4414,23 +4332,17 @@ static void
 /* change file/dir's parent dir modification time */
 static void updatedirtime (a_inode *a1, int now)
 {
-#if !defined TARGET_AMIGAOS || !defined WORDS_BIGENDIAN
-	struct _stat64 statbuf;
-	struct utimbuf ut;
-	long days, mins, ticks;
+	struct mystat statbuf;
 
 	if (!a1->parent)
 		return;
 	if (!now) {
-		if (!stat (a1->nname, &statbuf))
+		if (!my_stat (a1->nname, &statbuf))
 			return;
-		get_time (statbuf.st_mtime, &days, &mins, &ticks);
-		ut.actime = ut.modtime = put_time (days, mins, ticks);
-		utime (a1->parent->nname, &ut);
+		my_utime (a1->parent->nname, &statbuf.mtime);
 	} else {
-		utime (a1->parent->nname, NULL);
+		my_utime (a1->parent->nname, NULL);
 	}
-#endif
 }
 
 static void
@@ -4560,7 +4472,7 @@ static void
 	uae_u32 size = GET_PCK_ARG3 (packet);
 	uae_u32 actual;
 	uae_u8 *buf;
-	int i;
+	uae_u32 i;
 
 	if (k == 0) {
 		PUT_PCK_RES1 (packet, DOS_FALSE);
@@ -4634,7 +4546,7 @@ static void
 	uae_s64 res;
 	uae_s64 cur;
 	int whence = SEEK_CUR;
-	uae_s64 temppos, filesize;
+	uae_s64 temppos = 0, filesize = 0;
 
 	if (k == 0) {
 		PUT_PCK_RES1 (packet, -1);
@@ -5150,7 +5062,7 @@ static void
 	uaecptr name = GET_PCK_ARG3 (packet) << 2;
 	uaecptr date = GET_PCK_ARG4 (packet);
 	a_inode *a;
-	struct utimbuf ut;
+	struct mytimeval tv;
 	int err;
 
 	TRACE((_T("ACTION_SET_DATE(0x%lx,\"%s\")\n"), lock, bstr (unit, name)));
@@ -5161,16 +5073,11 @@ static void
 		return;
 	}
 
-#if defined TARGET_AMIGAOS && defined WORDS_BIGENDIAN
-	if (err == 0 && SetFileDate (a->nname, (struct DateStamp *) date) == DOSFALSE)
-		err = IoErr ();
-#else
-	ut.actime = ut.modtime = put_time (get_long (date), get_long (date + 4),
-		get_long (date + 8));
+	amiga_to_timeval (&tv, get_long (date), get_long (date + 4), get_long (date + 8));
 	a = find_aino (unit, lock, bstr (unit, name), &err);
-	if (err == 0 && utime (a->nname, &ut) == -1)
+	write_log (_T("%llu.%u (%d,%d,%d) %s\n"), tv.tv_sec, tv.tv_usec, get_long (date), get_long (date + 4), get_long (date + 8), a->nname);
+	if (err == 0 && !my_utime (a->nname, &tv))
 		err = dos_errno ();
-#endif
 	if (err != 0) {
 		PUT_PCK_RES1 (packet, DOS_FALSE);
 		PUT_PCK_RES2 (packet, err);
@@ -5398,7 +5305,7 @@ static void action_change_file_position64 (Unit *unit, dpacket packet)
 
 	cur = k->file_pos;
 	{
-		uae_s64 temppos;
+		uae_s64 temppos = 0;
 		uae_s64 filesize = fs_fsize64 (k->fd);
 
 		if (whence == SEEK_CUR)
@@ -6169,7 +6076,7 @@ static int legalrdbblock (UnitInfo *uip, int block)
 {
 	if (block <= 0)
 		return 0;
-	if (block >= uip->hf.virtsize / uip->hf.blocksize)
+	if ((uae_u64)block >= uip->hf.virtsize / uip->hf.blocksize)
 		return 0;
 	return 1;
 }
@@ -6179,7 +6086,7 @@ static uae_u32 rl (uae_u8 *p)
 	return (p[0] << 24) | (p[1] << 16) | (p[2] << 8) | (p[3]);
 }
 
-int rdb_checksum (uae_char *id, uae_u8 *p, int block)
+static int rdb_checksum (uae_char *id, uae_u8 *p, int block)
 {
 	uae_u32 sum = 0;
 	int i, blocksize;
@@ -6323,7 +6230,7 @@ static void dump_rdb (UnitInfo *uip, struct hardfiledata *hfd, uae_u8 *bufrdb, u
 			partblock = rl (bufrdb + 28);
 		else
 			partblock = rl (buf + 4 * 4);
-		if (partblock == 0xffffffff)
+		if ((uae_u32)partblock == 0xffffffff)
 			break;
 		write_log (_T("RDB: PART block %d:\n"), partblock);
 		if (!legalrdbblock (uip, partblock)) {
@@ -6344,7 +6251,7 @@ static void dump_rdb (UnitInfo *uip, struct hardfiledata *hfd, uae_u8 *bufrdb, u
 			fileblock = rl (bufrdb + 32);
 		else
 			fileblock = rl (buf + 4 * 4);
-		if (fileblock == 0xffffffff)
+		if ((uae_u32)fileblock == 0xffffffff)
 			break;
 		write_log (_T("RDB: LSEG block %d:\n"), fileblock);
 		if (!legalrdbblock (uip, fileblock)) {
@@ -6393,7 +6300,7 @@ static int rdb_mount (UnitInfo *uip, int unit_no, int partnum, uaecptr parmpacke
 		write_log (_T("failed, blocksize == 0\n"));
 		return -1;
 	}
-	if (lastblock * hfd->blocksize > hfd->virtsize) {
+	if ((lastblock > 0) && (((uae_u64)lastblock * hfd->blocksize) > hfd->virtsize) ) {
 		rdbmnt
 		write_log (_T("failed, too small (%d*%d > %llu)\n"), lastblock, hfd->blocksize, hfd->virtsize);
 		return -2;
@@ -6593,7 +6500,7 @@ error:
 	return err;
 }
 
-void addfakefilesys (uaecptr parmpacket, uae_u32 dostype)
+static void addfakefilesys (uaecptr parmpacket, uae_u32 dostype)
 {
 	int i;
 
@@ -7114,13 +7021,13 @@ static a_inode *restore_filesys_get_base (Unit *u, TCHAR *npath)
 
 static TCHAR *makenativepath (UnitInfo *ui, TCHAR *apath)
 {
-	int i;
+	uae_u32 i = 0;
 	TCHAR *pn;
 	/* create native path. FIXME: handle 'illegal' characters */
 	pn = xcalloc (TCHAR, _tcslen (apath) + 1 + _tcslen (ui->rootdir) + 1);
 	_stprintf (pn, _T("%s/%s"), ui->rootdir, apath);
 	if (FSDB_DIR_SEPARATOR != '/') {
-		for (i = 0; i < _tcslen (pn); i++) {
+		for ( ; i < _tcslen (pn); i++) {
 			if (pn[i] == '/')
 				pn[i] = FSDB_DIR_SEPARATOR;
 		}

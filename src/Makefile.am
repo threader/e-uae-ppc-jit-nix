@@ -72,10 +72,11 @@ if TARGET_BIGENDIAN
 genlinetoscr_args = -b
 endif
 
+uae_extraLDFLAGS=-fwhole-program
 
 uae$(EXEEXT):	$(uae_OBJECTS) $(uae_DEPENDENCIES)
 		@rm -f uae$(EXEEXT)
-		$(LINK) $(uae_LDFLAGS) $(uae_OBJECTS) $(uae_LDADD) $(LIBS)
+		$(LINK) $(uae_LDFLAGS) $(uae_extraLDFLAGS) $(uae_OBJECTS) $(uae_LDADD) $(LIBS)
 
 if TARGET_BEOS
 		xres -o $@ @UAE_RSRCFILE@

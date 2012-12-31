@@ -10,9 +10,15 @@
   * (c) 1996 Samuel Devulder
   */
 
-#include "zarchive.h"
+struct mytimeval
+{
+	uae_s64 tv_sec;
+	uae_s32 tv_usec;
+};
+
 struct zvolume;
 struct zdirectory;
+#include "zarchive.h"
 
 #define FS_DIRECTORY 0
 #define FS_ARCHIVE 1
@@ -73,7 +79,6 @@ extern TCHAR *zfile_getname (struct zfile *f);
 extern TCHAR *zfile_getfilename (struct zfile *f);
 extern uae_u32 zfile_crc32 (struct zfile *f);
 extern struct zfile *zfile_dup (struct zfile *f);
-//extern struct zfile *zfile_gunzip (struct zfile *z);
 extern struct zfile *zfile_gunzip (struct zfile *z, int *retcode);
 extern int zfile_is_diskimage (const TCHAR *name);
 extern int iszip (struct zfile *z);
@@ -137,5 +142,14 @@ extern int zfile_exists_archive (const TCHAR *path, const TCHAR *rel);
 extern bool zfile_needwrite (struct zfile*);
 extern struct zfile *zfile_fopen_data (const TCHAR *name, uae_u64 size, const uae_u8 *data);
 
+struct mystat
+{
+	uae_s64 size;
+	uae_u32 mode;
+	struct mytimeval mtime;
+};
+
+extern void timeval_to_amiga (struct mytimeval *tv, int* days, int* mins, int* ticks);
+extern void amiga_to_timeval (struct mytimeval *tv, int days, int mins, int ticks);
 
 #endif /* SRC_INCLUDE_ZFILE_H_INCLUDED */

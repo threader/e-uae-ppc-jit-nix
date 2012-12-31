@@ -1,4 +1,4 @@
-/* src/sysconfig.h.in.  Generated from configure.in by autoheader.  */
+/* src/sysconfig.h.in.  Generated from configure.ac by autoheader.  */
 
 /* Define if building universal (internal helper macro) */
 #undef AC_APPLE_UNIVERSAL_BUILD
@@ -11,6 +11,12 @@
 
 /* Define to 1 if you have the `alarm' function. */
 #undef HAVE_ALARM
+
+/* CPU supports AVX1 */
+#undef HAVE_AVX
+
+/* CPU supports AVX2 */
+#undef HAVE_AVX2
 
 /* Define to 1 if you have the 'bswap_16' function. */
 #undef HAVE_BSWAP_16
@@ -122,11 +128,17 @@
 /* CPU supports SSE3 */
 #undef HAVE_SSE3
 
+/* CPU supports SSE4A */
+#undef HAVE_SSE4A
+
 /* CPU supports SSE4_1 */
 #undef HAVE_SSE4_1
 
 /* CPU supports SSE4_2 */
 #undef HAVE_SSE4_2
+
+/* CPU supports SSE5 */
+#undef HAVE_SSE5
 
 /* CPU supports SSSE3 */
 #undef HAVE_SSSE3
@@ -281,9 +293,6 @@
 
 /* Define to 1 if the system has the type `_Bool'. */
 #undef HAVE__BOOL
-
-/* Define to 1 if your CPU profitably supports multiplication. */
-#undef MULTIPLICATION_PROFITABLE
 
 /* Name of package */
 #undef PACKAGE
