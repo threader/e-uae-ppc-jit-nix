@@ -865,11 +865,11 @@ static void setconvert (void)
 	static RGBFTYPE ohost_mode, orgbformat;
 
 	picasso_convert = getconvert (picasso96_state.RGBFormat, picasso_vidinfo.pixbytes);
-//	if (currprefs.gfx_api) {
+	if (currprefs.gfx_api) {
 		host_mode = picasso_vidinfo.pixbytes == 4 ? RGBFB_B8G8R8A8 : RGBFB_B5G6R5PC;
-//	} else {
-//		host_mode = DirectDraw_GetSurfacePixelFormat (NULL);
-//	}
+	} else {
+		host_mode = picasso_vidinfo.rgbformat; //DirectDraw_GetSurfacePixelFormat (NULL);
+	}
 	if (picasso_vidinfo.pixbytes == 4)
 		alloc_colors_rgb (8, 8, 8, 16, 8, 0, 0, 0, 0, 0, p96rc, p96gc, p96bc);
 	else
@@ -3680,7 +3680,7 @@ static bool flushpixels (void)
 #ifdef NATMEM_OFFSET
 	uae_u8 *src = (uae_u8*)(p96ram_start + natmem_offset);
 #else
-	uae_u8 *src = (uae_u8*)(p96ram_start);
+	uae_u8 *src = (uae_u8*)(p96ram_start); //gfxmemory
 #endif
 	int off = picasso96_state.XYOffset - gfxmem_start;
 	uae_u8 *src_start;
@@ -3696,7 +3696,7 @@ static bool flushpixels (void)
 	src_start = src + (off & ~gwwpagemask);
 	src_end = src + ((off + picasso96_state.BytesPerRow * pheight + gwwpagesize - 1) & ~gwwpagemask);
 #if 0
-	write_log (_T("%dx%d %dx%d %dx%d (%dx%d)\n"), picasso96_state.Width, picasso96_state.Width,
+	write_log (_T("%dx%d %dx%d %dx%d (%dx%d)\n"), picasso96_state.Width, picasso96_state.Height,
 		picasso96_state.VirtualWidth, picasso96_state.VirtualHeight,
 		picasso_vidinfo.width, picasso_vidinfo.height,
 		pwidth, pheight);

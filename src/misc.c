@@ -33,7 +33,6 @@
 #include "hrtimer.h"
 #include "sleep.h"
 #include "zfile.h"
-#include <sys/timeb.h>
 
 static int logging_started;
 #define LOG_BOOT "puae_bootlog.txt"
@@ -369,103 +368,6 @@ char *au_fs_copy (char *dst, int maxlen, const char *src)
 		dst[i] = src[i];
 	dst[i] = 0;
 	return dst;
-}
-
-// fsdb_mywin32
-bool my_stat (const TCHAR *name, struct mystat *statbuf)
-{
-	struct _stat64 st;
-	uae_s64 foo_size;
-
-	if (stat (name, &st) != -1) {
-		foo_size = st.st_size;
-		statbuf->size = foo_size;
-		
-		if (st.st_mode & (S_IWGRP | S_IWOTH)) {
-			statbuf->mode = FILEFLAG_READ | FILEFLAG_WRITE;
-		} else {
-			statbuf->mode = FILEFLAG_READ;
-		}
-
-//S_IFREG: regular file
-		if ((st.st_mode & S_IFMT) == S_IFDIR) {
-			statbuf->mode |= FILEFLAG_DIR;
-		}
-
-//		statbuf->mode = st->st_mode;
-//	        uae_u64 t = (*(uae_s64 *)&st->st_mtime-((uae_s64)(369*365+89)*(uae_s64)(24*60*60)*(uae_s64)10000000));
-//        	statbuf->mtime.tv_sec = t / 10000000;
-//	        statbuf->mtime.tv_usec = (t / 10) % 1000000;
-	        return true;
-	}
-	return false;
-}
-
-static int setfiletime (const TCHAR *name, int days, int minute, int tick, int tolocal)
-{
-//FIXME
-	return 0;
-}
-
-bool my_utime (const TCHAR *name, struct mytimeval *tv)
-{
-        int result = -1, tolocal;
-        int days, mins, ticks;
-        struct mytimeval tv2;
-
-        if (!tv) {
-                struct timeb time;
-                ftime (&time);
-                tv2.tv_sec = time.time;
-                tv2.tv_usec = time.millitm * 1000;
-                tolocal = 0;
-        } else {
-                tv2.tv_sec = tv->tv_sec;
-                tv2.tv_usec = tv->tv_usec;
-                tolocal = 1;
-        }
-        timeval_to_amiga (&tv2, &days, &mins, &ticks);
-        if (setfiletime (name, days, mins, ticks, tolocal))
-                return true;
-
-        return false;
-}
-
-int my_existsfile (const char *name)
-{
-	struct stat sonuc;
-	if (lstat (name, &sonuc) == -1) {
-		return 0;
-	} else {
-		if (!S_ISDIR(sonuc.st_mode))
-			return 1;
-	}
-	return 0;
-}
-
-int my_existsdir (const char *name)
-{
-	struct stat sonuc;
-
-	if (lstat (name, &sonuc) == -1) {
-		return 0;
-	} else {
-		if (S_ISDIR(sonuc.st_mode))
-			return 1;
-	}
-	return 0;
-}
-
-int my_getvolumeinfo (const char *root)
-{
-	struct stat sonuc;
-	int ret = 0;
-
-	if (lstat (root, &sonuc) == -1)
-		return -1;
-	if (!S_ISDIR(sonuc.st_mode))
-		return -1;
-	return ret;
 }
 
 // clipboard
@@ -971,27 +873,6 @@ char *uutf8 (const char *s)
 char *utf8u (const char *s)
 {
 	return strdup(s);
-}
-
-// fsdb_mywin32
-FILE *my_opentext (const TCHAR *name)
-{
-	FILE *f;
-	uae_u8 tmp[4];
-	int v;
-
-	f = _tfopen (name, "rb");
-	if (!f)
-		return NULL;
-	v = fread (tmp, 1, 4, f);
-	fclose (f);
-	if (v == 4) {
-		if (tmp[0] == 0xef && tmp[1] == 0xbb && tmp[2] == 0xbf)
-			return _tfopen (name, "r, ccs=UTF-8");
-		if (tmp[0] == 0xff && tmp[1] == 0xfe)
-			return _tfopen (name, "r, ccs=UTF-16LE");
-	}
-	return _tfopen (name, "r");
 }
 
 // dxwrap

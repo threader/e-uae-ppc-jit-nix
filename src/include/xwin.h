@@ -122,8 +122,6 @@ extern bool isnativevidbuf (void);
 
 extern struct vidbuf_description gfxvidinfo;
 
-
-
 STATIC_INLINE void flush_line (int line_no)
 {
     gfxvidinfo.flush_line (&gfxvidinfo, line_no);
@@ -166,8 +164,6 @@ extern int  is_fullscreen         (void);
 extern void toggle_fullscreen     (int mode);
 extern void toggle_mousegrab      (void);
 
-
 /* For ports using tui.c, this should be built by graphics_setup(). */
 extern struct bstring *video_mode_menu;
 extern void vidmode_menu_selected(int);
-

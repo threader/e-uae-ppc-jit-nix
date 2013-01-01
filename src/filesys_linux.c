@@ -6,34 +6,37 @@
  * Copyright 2012-2013 Mustafa 'GnoStiC' Tufan
  */
 
+#include <sys/timeb.h>
+#include "zfile.h"
+
 typedef int BOOL;
 
 #define INVALID_HANDLE_VALUE		((HANDLE)~0U)
 #define INVALID_FILE_ATTRIBUTES		((DWORD) -1)
-#define ERROR_ACCESS_DENIED			5
+#define ERROR_ACCESS_DENIED		5
 #define INVALID_SET_FILE_POINTER	((DWORD)-1)
-#define NO_ERROR					0
+#define NO_ERROR			0
 
-#define FILE_BEGIN		0
+#define FILE_BEGIN	0
 #define FILE_CURRENT	1
-#define FILE_END		2
+#define FILE_END	2
 
-#define FILE_FLAG_WRITE_THROUGH			0x80000000
-#define FILE_FLAG_OVERLAPPED			0x40000000
-#define FILE_FLAG_NO_BUFFERING			0x20000000
-#define FILE_FLAG_RANDOM_ACCESS			0x10000000
-#define FILE_FLAG_SEQUENTIAL_SCAN		0x08000000
-#define FILE_FLAG_DELETE_ON_CLOSE		0x04000000
-#define FILE_FLAG_BACKUP_SEMANTICS		0x02000000
-#define FILE_FLAG_POSIX_SEMANTICS		0x01000000
+#define FILE_FLAG_WRITE_THROUGH		0x80000000
+#define FILE_FLAG_OVERLAPPED		0x40000000
+#define FILE_FLAG_NO_BUFFERING		0x20000000
+#define FILE_FLAG_RANDOM_ACCESS		0x10000000
+#define FILE_FLAG_SEQUENTIAL_SCAN	0x08000000
+#define FILE_FLAG_DELETE_ON_CLOSE	0x04000000
+#define FILE_FLAG_BACKUP_SEMANTICS	0x02000000
+#define FILE_FLAG_POSIX_SEMANTICS	0x01000000
 #define FILE_FLAG_OPEN_REPARSE_POINT	0x00200000
-#define FILE_FLAG_OPEN_NO_RECALL		0x00100000
+#define FILE_FLAG_OPEN_NO_RECALL	0x00100000
 #define FILE_FLAG_FIRST_PIPE_INSTANCE	0x00080000
 
-#define CREATE_NEW			1
+#define CREATE_NEW		1
 #define CREATE_ALWAYS		2
 #define OPEN_EXISTING		3
-#define OPEN_ALWAYS			4
+#define OPEN_ALWAYS		4
 #define TRUNCATE_EXISTING	5
 
 #define FILE_ATTRIBUTE_NORMAL		0x00000080
@@ -71,6 +74,123 @@ typedef struct {
 DWORD GetLastError()
 {
 	return errno;
+}
+
+// fsdb_mywin32
+bool my_stat (const TCHAR *name, struct mystat *statbuf)
+{
+	struct _stat64 st;
+	uae_s64 foo_size;
+
+	if (stat (name, &st) != -1) {
+		foo_size = st.st_size;
+		statbuf->size = foo_size;
+
+		if (st.st_mode & (S_IWGRP | S_IWOTH)) {
+			statbuf->mode = FILEFLAG_READ | FILEFLAG_WRITE;
+		} else {
+			statbuf->mode = FILEFLAG_READ;
+		}
+
+//S_IFREG: regular file
+		if ((st.st_mode & S_IFMT) == S_IFDIR) {
+			statbuf->mode |= FILEFLAG_DIR;
+		}
+
+/*		statbuf->mode = st->st_mode;
+		uae_u64 t = (*(uae_s64 *)&st->st_mtime-((uae_s64)(369*365+89)*(uae_s64)(24*60*60)*(uae_s64)10000000));
+		statbuf->mtime.tv_sec = t / 10000000;
+		statbuf->mtime.tv_usec = (t / 10) % 1000000;
+		return true;*/
+	}
+	return false;
+}
+
+static int setfiletime (const TCHAR *name, int days, int minute, int tick, int tolocal)
+{
+//FIXME
+	return 0;
+}
+
+bool my_utime (const TCHAR *name, struct mytimeval *tv)
+{
+        int result = -1, tolocal;
+        int days, mins, ticks;
+        struct mytimeval tv2;
+
+        if (!tv) {
+                struct timeb time;
+                ftime (&time);
+                tv2.tv_sec = time.time;
+                tv2.tv_usec = time.millitm * 1000;
+                tolocal = 0;
+        } else {
+                tv2.tv_sec = tv->tv_sec;
+                tv2.tv_usec = tv->tv_usec;
+                tolocal = 1;
+        }
+        timeval_to_amiga (&tv2, &days, &mins, &ticks);
+        if (setfiletime (name, days, mins, ticks, tolocal))
+                return true;
+
+        return false;
+}
+
+int my_existsfile (const char *name)
+{
+        struct stat sonuc;
+        if (lstat (name, &sonuc) == -1) {
+                return 0;
+        } else {
+                if (!S_ISDIR(sonuc.st_mode))
+                        return 1;
+        }
+        return 0;
+}
+
+int my_existsdir (const char *name)
+{
+        struct stat sonuc;
+
+        if (lstat (name, &sonuc) == -1) {
+                return 0;
+        } else {
+                if (S_ISDIR(sonuc.st_mode))
+                        return 1;
+        }
+        return 0;
+}
+
+int my_getvolumeinfo (const char *root)
+{
+        struct stat sonuc;
+        int ret = 0;
+
+        if (lstat (root, &sonuc) == -1)
+                return -1;
+        if (!S_ISDIR(sonuc.st_mode))
+                return -1;
+        return ret;
+}
+
+FILE *my_opentext (const TCHAR *name)
+{
+        FILE *f;
+        uae_u8 tmp[4];
+        int v;
+
+        f = _tfopen (name, "rb");
+        if (!f)
+                return NULL;
+        v = fread (tmp, 1, 4, f);
+        fclose (f);
+        if (v == 4) {
+                if (tmp[0] == 0xef && tmp[1] == 0xbb && tmp[2] == 0xbf)
+                        return _tfopen (name, "r, ccs=UTF-8");
+                if (tmp[0] == 0xff && tmp[1] == 0xfe)
+                        return _tfopen (name, "r, ccs=UTF-16LE");
+        }
+        return _tfopen (name, "r");
 }
 
 struct my_opendir_s *my_opendir (const TCHAR *name)
@@ -118,6 +238,132 @@ int my_readdir (struct my_opendir_s *mod, TCHAR *name) {
 */
 	return readdir(mod);
 	return 1;
+}
+
+static int recycle (const TCHAR *name)
+{
+/*        DWORD dirattr = GetFileAttributesSafe (name);
+        bool isdir = dirattr != INVALID_FILE_ATTRIBUTES && (dirattr & FILE_ATTRIBUTE_DIRECTORY);
+        const TCHAR *namep;
+        TCHAR path[MAX_DPATH];
+
+        if (currprefs.win32_filesystem_mangle_reserved_names == false) {
+                _tcscpy (path, PATHPREFIX);
+                _tcscat (path, name);
+                namep = path;
+        } else {
+                namep = name;
+        }
+
+        if (currprefs.win32_norecyclebin || isdir || currprefs.win32_filesystem_mangle_reserved_names == false) {
+                if (isdir)
+                        return RemoveDirectory (namep) ? 0 : -1;
+                else
+                        return DeleteFile (namep) ? 0 : -1;
+        } else {
+                SHFILEOPSTRUCT fos;
+                HANDLE h;
+
+                h = CreateFile (namep, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
+                        OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+                if (h != INVALID_HANDLE_VALUE) {
+                        LARGE_INTEGER size;
+                        if (GetFileSizeEx (h, &size)) {
+                                if (size.QuadPart == 0) {
+                                        CloseHandle (h);
+                                        return DeleteFile (namep) ? 0 : -1;
+                                }
+                        }
+                        CloseHandle (h);
+                }
+
+                // name must be terminated by \0\0
+                TCHAR *p = xcalloc (TCHAR, _tcslen (namep) + 2);
+                int v;
+
+                _tcscpy (p, namep);
+                memset (&fos, 0, sizeof (fos));
+                fos.wFunc = FO_DELETE;
+                fos.pFrom = p;
+                fos.fFlags = FOF_ALLOWUNDO | FOF_NOCONFIRMATION | FOF_NOERRORUI | FOF_NORECURSION | FOF_SILENT;
+                v = SHFileOperation (&fos);
+                xfree (p);
+                switch (v)
+                {
+                case 0xb7: //DE_ERROR_MAX
+                case 0x7c: //DE_INVALIDFILES
+                case 0x402: // "unknown error"
+                        v = ERROR_FILE_NOT_FOUND;
+                        break;
+                case 0x75: //DE_OPCANCELLED:
+                case 0x10000: //ERRORONDEST:
+                case 0x78: //DE_ACCESSDENIEDSRC:
+                case 0x74: //DE_ROOTDIR:
+                        v = ERROR_ACCESS_DENIED;
+                        break;
+                }
+                SetLastError (v);
+                return v ? -1 : 0;
+        }*/
+	return 0;
+}
+
+int my_rmdir (const TCHAR *name)
+{
+        struct my_opendir_s *od;
+        int cnt;
+        TCHAR tname[MAX_DPATH];
+
+        /* SHFileOperation() ignores FOF_NORECURSION when deleting directories.. */
+        od = my_opendir (name);
+        if (!od) {
+//                SetLastError (ERROR_FILE_NOT_FOUND);
+                return -1;
+        }
+        cnt = 0;
+        while (my_readdir (od, tname)) {
+                if (!_tcscmp (tname, _T(".")) || !_tcscmp (tname, _T("..")))
+                        continue;
+                cnt++;
+                break;
+        }
+        my_closedir (od);
+        if (cnt > 0) {
+//                SetLastError (ERROR_CURRENT_DIRECTORY);
+                return -1;
+        }
+
+//	return recycle (name);
+	return rmdir (name);
+}
+
+/* "move to Recycle Bin" (if enabled) -version of DeleteFile() */
+int my_unlink (const TCHAR *name)
+{
+//	return recycle (name);
+	return unlink (name);
+}
+
+int my_rename (const TCHAR *oldname, const TCHAR *newname)
+{
+	/*
+        const TCHAR *onamep, *nnamep;
+        TCHAR opath[MAX_DPATH], npath[MAX_DPATH];
+
+        if (currprefs.win32_filesystem_mangle_reserved_names == false) {
+                _tcscpy (opath, PATHPREFIX);
+                _tcscat (opath, oldname);
+                onamep = opath;
+                _tcscpy (npath, PATHPREFIX);
+                _tcscat (npath, newname);
+                nnamep = npath;
+        } else {
+                onamep = oldname;
+                nnamep = newname;
+        }
+        return MoveFile (onamep, nnamep) == 0 ? -1 : 0;
+	*/
+	return rename(oldname, newname);
 }
 
 bool CloseHandle(HANDLE hObject) {
@@ -216,7 +462,7 @@ HANDLE CreateFile(const TCHAR *lpFileName, DWORD dwDesiredAccess, DWORD dwShareM
 	}
 
 	int fd = 0;
-//	mode = S_IREAD | S_IWRITE;
+	mode = S_IREAD | S_IWRITE;
 
 	if (dwFlagsAndAttributes & FILE_FLAG_NO_BUFFERING)
 		flags |= O_SYNC;
@@ -296,12 +542,12 @@ struct my_openfile_s *my_open (const TCHAR *name, int flags) {
 	mos->h = h;
 err:
 //	write_log (_T("open '%s' | flags: %d | FS: %x | ERR: %s\n"), namep, flags, mos ? mos->h : 0, strerror(errno));
-/*char buffer[65];
-int gotten;
-gotten = read(mos->h, buffer, 10);
-buffer[gotten] = '\0';
-write_log("*** %s ***\n",buffer);
-lseek(mos->h, 0, SEEK_SET);*/
+/*	char buffer[65];
+	int gotten;
+	gotten = read(mos->h, buffer, 10);
+	buffer[gotten] = '\0';
+	write_log("*** %s ***\n",buffer);
+	lseek(mos->h, 0, SEEK_SET); */
 	return mos;
 }
 
@@ -374,4 +620,3 @@ int my_write (struct my_openfile_s *mos, void *b, unsigned int size) {
 
 	return written;
 }
-

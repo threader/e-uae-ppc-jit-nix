@@ -3454,8 +3454,8 @@ void cfgfile_backup (const TCHAR *path)
 	fetch_configurationpath (dpath, sizeof (dpath) / sizeof (TCHAR));
 	_tcscat (dpath, _T("configuration.backup"));
 	//bool hidden = my_isfilehidden (dpath);
-	//my_unlink (dpath);
-	//my_rename (path, dpath);
+	my_unlink (dpath);
+	my_rename (path, dpath);
 	//if (hidden)
 		//my_setfilehidden (dpath, hidden);
 }
@@ -3768,17 +3768,17 @@ int parse_cmdline_option (struct uae_prefs *p, TCHAR c, const TCHAR *arg)
 	case 'J': parse_joy_spec (p, arg); break;
 
 #if defined USE_X11_GFX
-    case 'L': p->x11_use_low_bandwidth = 1; break;
-    case 'T': p->x11_use_mitshm = 1; break;
+	case 'L': p->x11_use_low_bandwidth = 1; break;
+	case 'T': p->x11_use_mitshm = 1; break;
 #elif defined USE_AMIGA_GFX
-    case 'T': p->amiga_use_grey = 1; break;
-    case 'x': p->amiga_use_dither = 0; break;
+	case 'T': p->amiga_use_grey = 1; break;
+	case 'x': p->amiga_use_dither = 0; break;
 #elif defined USE_CURSES_GFX
-    case 'x': p->curses_reverse_video = 1; break;
+	case 'x': p->curses_reverse_video = 1; break;
 #endif
 	case 'w': p->m68k_speed = _tstoi (arg); break;
 
-		/* case 'g': p->use_gfxlib = 1; break; */
+	/* case 'g': p->use_gfxlib = 1; break; */
 	case 'G': p->start_gui = 0; break;
 #ifdef DEBUGGER
 	case 'D': p->start_debugger = 1; break;

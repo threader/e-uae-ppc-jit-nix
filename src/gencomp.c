@@ -3132,7 +3132,7 @@ main (int argc, char **argv)
 	
 	stblfile = fopen ("compstbl.c", "wb");
     if (freopen ("compemu.c", "wb", stdout))
-		generate_includes (stdout, 1);
+	generate_includes (stdout, 1);
 
     generate_includes (stblfile, 1);
 

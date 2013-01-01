@@ -52,16 +52,10 @@
 # include "picasso96.h"
 #endif
 
-//FIXME: ---start
 #ifdef TARGET_AMIGAOS
 #include <dos/dos.h>
 #include <proto/dos.h>
 #endif
-
-#define my_rmdir rmdir
-#define my_unlink unlink
-#define my_rename rename
-//FIXME: ---end
 
 #define TRACING_ENABLED 1
 int log_filesys = 0;

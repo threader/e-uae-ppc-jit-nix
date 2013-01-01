@@ -1645,7 +1645,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 		break;
 #ifdef MMU
 	case 12:
-//		changed_prefs.mmu_model = 68040;
+		changed_prefs.mmu_model = 68040;
 		break;
 #endif
 	}
