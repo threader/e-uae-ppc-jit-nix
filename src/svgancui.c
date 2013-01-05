@@ -40,7 +40,7 @@ void tui_setup(void)
     for (i = 0; i < 10; i++)
 	winstack[i] = NULL;
     /* From the ncurses manpage... */
-    initscr (); start_color (); cbreak(); noecho(); nonl (); intrflush (stdscr, FALSE); keypad (stdscr, TRUE);
+    initscr (); start_color (); cbreak(); noecho(); nonl (); intrflush (stdscr, false); keypad (stdscr, true);
     currwin = stdscr;
     if (has_colors ()) {
 	init_pair (1, COLOR_WHITE, COLOR_BLUE);

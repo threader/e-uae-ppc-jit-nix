@@ -80,7 +80,6 @@ struct zvolume *zfile_fopen_archive_flags (const TCHAR *filename, int flags);
 struct zdirectory *zfile_opendir_archive_flags (const TCHAR *path, int flags);
 int zfile_readdir_archive_fullpath (struct zdirectory *zd, TCHAR *out, bool fullpath);
 int zfile_fs_usage_archive (const TCHAR *path, const TCHAR *disk, struct fs_usage *fsp);
-int zfile_stat_archive (const TCHAR *path, struct mystat *s);
 
 
 static void zcache_flush (void)
@@ -2661,7 +2660,7 @@ static struct zvolume *zfile_fopen_archive_data (struct znode *parent, struct zf
 #endif
 	}
 	if (flags & ZFD_ADF) {
-		if (header[0] == 'D' && header[1] == 'O' && header[2] == 'S' && (header[3] >= 0 && header[3] <= 7))
+		if (header[0] == 'D' && header[1] == 'O' && header[2] == 'S' && header[3] <= 7)
 			zv = archive_directory_adf (parent, zf);
 	}
 	if (flags & ZFD_HD) {
@@ -3019,7 +3018,7 @@ struct zdirectory *zfile_opendir_archive_flags (const TCHAR *path, int flags)
 		zv = zfile_fopen_archive_flags (path, flags);
 		created = true;
 	}
-	struct znode *zn = get_znode (zv, path, TRUE);
+	struct znode *zn = get_znode (zv, path, true);
 	struct zdirectory *zd;
 	if (!zn || (!zn->child && !zn->vchild)) {
 		if (created)
@@ -3117,7 +3116,7 @@ void zfile_resetdir_archive (struct zdirectory *zd)
 int zfile_fill_file_attrs_archive (const TCHAR *path, int *isdir, int *flags, TCHAR **comment)
 {
 	struct zvolume *zv = get_zvolume (path);
-	struct znode *zn = get_znode (zv, path, TRUE);
+	struct znode *zn = get_znode (zv, path, true);
 
 	*isdir = 0;
 	*flags = 0;
@@ -3149,7 +3148,7 @@ int zfile_fs_usage_archive (const TCHAR *path, const TCHAR *disk, struct fs_usag
 int zfile_stat_archive (const TCHAR *path, struct mystat *s)
 {
 	struct zvolume *zv = get_zvolume (path);
-	struct znode *zn = get_znode (zv, path, TRUE);
+	struct znode *zn = get_znode (zv, path, true);
 
 	memset (s, 0, sizeof (struct mystat));
 	if (!zn)

@@ -71,6 +71,25 @@ int WIN32GFX_IsPicassoScreen (void);
   { shading_enabled = 0; } // just fail otherwise?
 #endif
 #endif
+
+struct gl_buffer_t
+{
+    GLuint   texture;
+    GLsizei  texture_width;
+    GLsizei  texture_height;
+
+    GLenum   target;
+    GLenum   format;
+    GLenum   type;
+
+    uae_u8  *pixels;
+    uae_u32  width;
+    uae_u32  pitch;
+};
+
+void flush_gl_buffer (const struct gl_buffer_t *buffer, int first_line, int last_line);
+void render_gl_buffer (const struct gl_buffer_t *buffer, int first_line, int last_line);
+
 #endif /* USE_GL */
 
 #include "cfgfile.h"
@@ -607,21 +626,6 @@ static long find_screen_modes (struct SDL_PixelFormat *vfmt, SDL_Rect *mode_list
  **       to a new module shareable by all graphics drivers.
  **/
 
-struct gl_buffer_t
-{
-    GLuint   texture;
-    GLsizei  texture_width;
-    GLsizei  texture_height;
-
-    GLenum   target;
-    GLenum   format;
-    GLenum   type;
-
-    uae_u8  *pixels;
-    uae_u32  width;
-    uae_u32  pitch;
-};
-
 struct gl_buffer_t glbuffer;
 static int have_texture_rectangles;
 static int have_apple_client_storage;
@@ -753,8 +757,6 @@ static int alloc_gl_buffer (struct gl_buffer_t *buffer, int width, int height, i
     else
 		return 1;
 }
-
-
 
 void flush_gl_buffer (const struct gl_buffer_t *buffer, int first_line, int last_line)
 {
@@ -1648,12 +1650,14 @@ int check_prefs_changed_gfx (void)
 
 	currprefs.gfx_size_win.width	= changed_prefs.gfx_size_win.width;
 	currprefs.gfx_size_win.height	= changed_prefs.gfx_size_win.height;
-	currprefs.gfx_size_fs.width		= changed_prefs.gfx_size_fs.width;
+	currprefs.gfx_size_fs.width	= changed_prefs.gfx_size_fs.width;
 	currprefs.gfx_size_fs.height	= changed_prefs.gfx_size_fs.height;
-	currprefs.gfx_lores_mode		= changed_prefs.gfx_lores_mode;
-	currprefs.gfx_vresolution		= changed_prefs.gfx_vresolution;
-	currprefs.gfx_xcenter			= changed_prefs.gfx_xcenter;
-	currprefs.gfx_ycenter			= changed_prefs.gfx_ycenter;
+	currprefs.gfx_lores_mode	= changed_prefs.gfx_lores_mode;
+	currprefs.gfx_vresolution	= changed_prefs.gfx_vresolution;
+	currprefs.gfx_xcenter		= changed_prefs.gfx_xcenter;
+	currprefs.gfx_ycenter		= changed_prefs.gfx_ycenter;
+	currprefs.monitoremu		= changed_prefs.monitoremu;
+	currprefs.leds_on_screen	= changed_prefs.leds_on_screen;
 
 #ifdef PICASSO96
 	if (!screen_is_picasso)

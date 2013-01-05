@@ -1,3 +1,4 @@
+#pragma once
 #ifndef SRC_MISC_H_INCLUDED
 #define SRC_MISC_H_INCLUDED 1
 
@@ -37,5 +38,10 @@ void fetch_ripperpath (TCHAR *out, int size);
 uae_u32 emulib_target_getcpurate (uae_u32 v, uae_u32 *low);
 void fetch_saveimagepath (TCHAR *out, int size, int dir);
 char *ua_copy (char *dst, int maxlen, const char *src);
+char *au_fs_copy (char *dst, int maxlen, const char *src);
+char *ua_fs (const char *s, int defchar);
+void close_console (void);
+bool console_isch (void);
+TCHAR console_getch (void);
 
 #endif /* SRC_MISC_H_INCLUDED */

@@ -9,7 +9,6 @@
  *
  */
 
-#ifdef CDTV
 //#define ROMHACK
 //#define ROMHACK2
 //#define CDTV_SUB_DEBUG
@@ -34,6 +33,8 @@
 #include "uae.h"
 #include "sleep.h"
 #include "savestate.h"
+
+#ifdef CDTV
 
 /* DMAC CNTR bits. */
 #define CNTR_TCEN               (1<<7)

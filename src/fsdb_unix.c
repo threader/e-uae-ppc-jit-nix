@@ -12,13 +12,14 @@
 #include "sysdeps.h"
 
 #include "fsdb.h"
+#include "misc.h"
 
 /* these are deadly (but I think allowed on the Amiga): */
 #define NUM_EVILCHARS 7
 static TCHAR evilchars[NUM_EVILCHARS] = { '\\', '*', '?', '\"', '<', '>', '|' };
 
-#define UAEFSDB_BEGINS _T("__uae___")
-#define UAEFSDB_BEGINSX _T("__uae___*")
+#define UAEFSDB_BEGINS "__uae___"
+#define UAEFSDB_BEGINSX "__uae___*"
 #define UAEFSDB_LEN 604
 #define UAEFSDB2_LEN 1632
 
@@ -72,18 +73,6 @@ int dos_errno (void)
 	TRACE (("FSDB: Unimplemented error: %s\n", strerror (e)));
 	return ERROR_NOT_IMPLEMENTED;
     }
-}
-
-/* Return nonzero for any name we can't create on the native filesystem.  */
-int fsdb_name_invalid_old (const char *n)
-{
-    if (strcmp (n, FSDB_FILE) == 0)
-	return 1;
-    if (n[0] != '.')
-	return 0;
-    if (n[1] == '\0')
-	return 1;
-    return n[1] == '.' && n[2] == '\0';
 }
 
 static int fsdb_name_invalid_2 (const TCHAR *n, int dir)

@@ -141,6 +141,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 - (void)changeCPU:(id)sender;
 - (void)changeCPUSpeed:(id)sender;
 - (void)changeFPU:(id)sender;
+- (void)changeMonitoremu:(id)sender;
 - (void)changeBlitter:(id)sender;
 - (void)changeCollision:(id)sender;
 @end
@@ -206,7 +207,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 	
 	[self createMenuItemInMenu:vAmigaMenu withTitle:@"Reset" action:@selector(resetAmiga:) tag:0];
 	[self createMenuItemInMenu:vAmigaMenu withTitle:@"Hard Reset" action:@selector(resetAmiga:) tag:1];
-//	[self createMenuItemInMenu:vAmigaMenu withTitle:@"Pause" action:@selector(pauseAmiga:) tag:0];
+	[self createMenuItemInMenu:vAmigaMenu withTitle:@"Leds on Screen" action:@selector(LedsOnScreen:) tag:2];
 	
 #ifdef ACTION_REPLAY
 	[self createMenuItemInMenu:vAmigaMenu withTitle:@"Action Replay Freeze" action:@selector(actionReplayFreeze:) tag:0];
@@ -486,6 +487,16 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 		[systemMenu addItem:menuItem];
 		[menuItem release];
 
+		NSMenu *monitoremuMenu = [[NSMenu alloc] initWithTitle:@"Monitor"];
+			[self createMenuItemInMenu:monitoremuMenu withTitle:@"-" action:@selector(changeMonitoremu:) tag:0];
+			[self createMenuItemInMenu:monitoremuMenu withTitle:@"default" action:@selector(changeMonitoremu:) tag:1];
+			[self createMenuItemInMenu:monitoremuMenu withTitle:@"A2024" action:@selector(changeMonitoremu:) tag:2];
+			[self createMenuItemInMenu:monitoremuMenu withTitle:@"Graffiti" action:@selector(changeMonitoremu:) tag:3];
+		menuItem = [[NSMenuItem alloc] initWithTitle:@"Monitor" action:nil keyEquivalent:@""];
+		[menuItem setSubmenu:monitoremuMenu];
+		[systemMenu addItem:menuItem];
+		[menuItem release];
+
 		NSMenu *blitterMenu = [[NSMenu alloc] initWithTitle:@"Blitter"];
 			[self createMenuItemInMenu:blitterMenu withTitle:@"Immediate Blits" action:@selector(changeBlitter:) tag:0];
 			[self createMenuItemInMenu:blitterMenu withTitle:@"Cycle-exact Blitter" action:@selector(changeBlitter:) tag:1];
@@ -661,11 +672,18 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 	NSMenuItem *menuItem = (NSMenuItem *)item;
 	BOOL canSetHidden = [menuItem respondsToSelector:@selector(setHidden:)];
 	
-    SEL menuAction = [menuItem action];
-    int tag = [menuItem tag];
+	SEL menuAction = [menuItem action];
+	int tag = [menuItem tag];
 
-    // Disabled drives can't have disks inserted or ejected
-    if ((menuAction == @selector(insertDisk:)) || (menuAction == @selector(ejectDisk:))) {
+	if (menuAction == @selector(LedsOnScreen:)) {
+		if (tag == 2) {
+			if (changed_prefs.leds_on_screen) [menuItem setState:NSOnState];
+			else [menuItem setState:NSOffState];
+		}
+	}
+
+	// Disabled drives can't have disks inserted or ejected
+	if ((menuAction == @selector(insertDisk:)) || (menuAction == @selector(ejectDisk:))) {
 		if (gui_data.drive_disabled[tag]) {
 			//if (canSetHidden) [menuItem setHidden:YES];
 			return NO;
@@ -674,7 +692,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 		}
 	}
         
-    // Eject DFx should be disabled if there's no disk in DFx
+	// Eject DFx should be disabled if there's no disk in DFx
 	if (menuAction == @selector(ejectDisk:)) {
 		if (disk_empty(tag)) {
 			[menuItem setTitle:[NSString stringWithFormat:@"DF%d",tag]];
@@ -687,23 +705,23 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 		return YES;
 	}
 
-    // The current settings for the joystick/mouse ports should be indicated
-    if (menuAction == @selector(changePort0:)) {
-        if (currprefs.jports[0].id == tag) [menuItem setState:NSOnState];
-        else [menuItem setState:NSOffState];
+	// The current settings for the joystick/mouse ports should be indicated
+	if (menuAction == @selector(changePort0:)) {
+		if (currprefs.jports[0].id == tag) [menuItem setState:NSOnState];
+		else [menuItem setState:NSOffState];
 
-        // and joystick options should be unavailable if there are no joysticks
-        if (((tag == JSEM_JOYS) || (tag == (JSEM_JOYS+1)))) {
+		// and joystick options should be unavailable if there are no joysticks
+		if (((tag == JSEM_JOYS) || (tag == (JSEM_JOYS+1)))) {
 			if ((tag - JSEM_JOYS) >= inputdevice_get_device_total (IDTYPE_JOYSTICK))
 				return NO;
 		}
 
-        // and we should not allow both ports to be set to the same setting
-        if ((tag != JSEM_END) && (currprefs.jports[1].id == tag))
-            return NO;
+		// and we should not allow both ports to be set to the same setting
+		if ((tag != JSEM_END) && (currprefs.jports[1].id == tag))
+			return NO;
 
-        return YES;
-    }
+		return YES;
+	}
 
 	// Repeat the above for Port 1
 	if (menuAction == @selector(changePort1:)) {
@@ -944,6 +962,11 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 		return YES;
 	}
 	
+	if (menuAction == @selector(changeMonitoremu:)) {
+		if (changed_prefs.monitoremu == tag) [menuItem setState:NSOnState];
+		else [menuItem setState:NSOffState];
+	}
+
 	if (menuAction == @selector(changeBlitter:)) {
 		if (tag == 0) {
 			if (changed_prefs.immediate_blits) [menuItem setState:NSOnState];
@@ -1494,6 +1517,14 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 	//uae_reset(0);
 }
 
+// leds_on_screen
+- (void)LedsOnScreen:(id)sender
+{
+	changed_prefs.leds_on_screen = !changed_prefs.leds_on_screen;
+	config_changed = 1;
+	check_prefs_changed_gfx ();
+}
+
 - (void)resetAmiga:(id)sender
 {
 	uae_reset([((NSMenuItem *)sender) tag], 0);
@@ -1579,6 +1610,13 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 {
 	changed_prefs.cs_compatible = [((NSMenuItem*)sender) tag];
 	built_in_chipset_prefs (&changed_prefs);
+}
+
+// monitor emu
+- (void)changeMonitoremu:(id)sender
+{
+	changed_prefs.monitoremu = [((NSMenuItem*)sender) tag];
+	config_changed = 1;
 }
 
 // blitter

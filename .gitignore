@@ -104,3 +104,6 @@ src/tools/genlinetoscr
 src/make_hdf
 src/readdisk
 src/uae
+moc_*.cpp
+ui_puae_*.h
+src/gui-qt/*.pro.user.*

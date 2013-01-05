@@ -802,7 +802,7 @@ STATIC_INLINE xcolnr getbgc (bool blank)
 STATIC_INLINE void fill_line_16 (uae_u8 *buf, int start, int stop, bool blank)
 {
 	uae_u16 *b = (uae_u16 *)buf;
-	unsigned int i;
+	int i;
 	unsigned int rem = 0;
 	xcolnr col = getbgc (blank);
 	if (((long)&b[start]) & 1)
@@ -824,7 +824,7 @@ STATIC_INLINE void fill_line_16 (uae_u8 *buf, int start, int stop, bool blank)
 STATIC_INLINE void fill_line_32 (uae_u8 *buf, int start, int stop, bool blank)
 {
 	uae_u32 *b = (uae_u32 *)buf;
-	unsigned int i;
+	int i;
 	xcolnr col = getbgc (blank);
 	for (i = start; i < stop; i++)
 		b[i] = col;

@@ -1698,7 +1698,8 @@ void sockabort (SB)
 {
     int chr = 1;
     DEBUG_LOG ("Sock abort!!\n");
-    write (sb->sockabort[1], &chr, sizeof (chr));
+    if (!write (sb->sockabort[1], &chr, sizeof (chr)))
+		sb->sockabort[1] = 1; // Use the crowbar...
 }
 
 void locksigqueue (void)

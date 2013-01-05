@@ -46,8 +46,11 @@
 #include "consolehook.h"
 #include "blkdev.h"
 #include "isofs_api.h"
+#include "misc.h"
+#include "uaeresource.h"
 #include "inputdevice.h"
 #include "clipboard.h"
+#include "bsdsocket.h"
 #ifdef PICASSO96
 # include "picasso96.h"
 #endif
@@ -359,10 +362,10 @@ static void stripsemicolon (TCHAR *s)
 }
 static void stripspace (TCHAR *s)
 {
-	int i;
+	int i = 0;
 	if (!s)
 		return;
-	for (i = 0; i < _tcslen (s); i++) {
+	for ( ; i < _tcslen (s); i++) {
 		if (s[i] == ' ')
 			s[i] = '_';
 	}
@@ -371,7 +374,7 @@ static void striplength (TCHAR *s, int len)
 {
 	if (!s)
 		return;
-	if (_tcslen (s) <= len)
+	if ((int)_tcslen (s) <= len)
 		return;
 	s[len] = 0;
 }
@@ -418,7 +421,7 @@ TCHAR *filesys_createvolname (const TCHAR *volname, const TCHAR *rootdir, const 
 		for (i = _tcslen (p) - 1; i >= 0; i--) {
 			TCHAR c = p[i];
 			if (c == ':' || c == '/' || c == '\\') {
-				if (i == _tcslen (p) - 1)
+				if (i == (int)_tcslen (p) - 1)
 					continue;
 				if (!_tcscmp (p + i, _T(":\\"))) {
 					xfree (p);
@@ -563,7 +566,7 @@ static int set_filesys_unit_1 (int nr,
 					write_log (_T("Hardfile %s bad hardfile geometry\n"), ui->hf.device_name);
 					goto err;
 			}
-			if (ui->hf.blocksize > ui->hf.virtsize || ui->hf.virtsize == 0) {
+			if ( ((uae_u64)ui->hf.blocksize > ui->hf.virtsize) || !ui->hf.virtsize) {
 				write_log (_T("Hardfile %s too small\n"), ui->hf.device_name);
 				goto err;
 			}
@@ -925,7 +928,7 @@ typedef struct key {
 	a_inode *aino;
 	uae_u32 uniq;
 	struct fs_filehandle *fd;
-	uae_u64 file_pos;
+	off_t file_pos;
 	int dosmode;
 	int createmode;
 	int notifyactive;
@@ -984,7 +987,7 @@ typedef struct _unit {
 
 	/* ExAll */
 	ExAllKey exalls[EXALLKEYS];
-	int exallid;
+	uae_u32 exallid;
 
 	/* Keys */
 	struct key *keys;
@@ -1006,7 +1009,7 @@ typedef struct _unit {
 	/* increase when media is changed.
 	 * used to detect if cached aino is valid
 	 */
-	int mountcount;
+	unsigned int mountcount;
 	int mount_changed;
 	struct zvolume *zarchive;
 	void *cdfs_superblock;
@@ -1694,6 +1697,7 @@ int filesys_media_change (const TCHAR *rootdir, int inserted, struct uaedev_conf
 	return 0;
 }
 
+#if 0
 int hardfile_remount (int nr)
 {
 	/* this does work but every media reinsert duplicates the device.. */
@@ -1705,7 +1709,7 @@ int hardfile_remount (int nr)
 #endif
 	return 1;
 }
-
+#endif
 
 bool filesys_do_disk_change (int cdunitnum, bool insert)
 {
@@ -2281,8 +2285,10 @@ static a_inode *lookup_child_aino (Unit *unit, a_inode *base, TCHAR *rel, int *e
 
 	while (c != 0) {
 		int l1 = _tcslen (c->aname);
-		if (l0 <= l1 && same_aname (rel, c->aname + l1 - l0)
-			&& (l0 == l1 || c->aname[l1-l0-1] == '/') && c->mountcount == unit->mountcount)
+		if ((l0 <= l1)
+			&& same_aname (rel, c->aname + l1 - l0)
+			&& ( (l0 == l1) || (c->aname[l1-l0-1] == '/') )
+			&& c->mountcount == unit->mountcount)
 			break;
 		c = c->sibling;
 	}
@@ -3579,10 +3585,17 @@ static void action_free_record (Unit *unit, dpacket packet)
 #define EXALL_DEBUG 0
 #define EXALL_END 0xde1111ad
 
-static ExAllKey *getexall (Unit *unit, uaecptr control, int id)
+static ExAllKey *getexall (Unit *unit, uaecptr control, uae_u32 id)
 {
 	int i;
-	if (id < 0) {
+	/* Update
+	 * was : if (id < 0) {
+	 * But the id is used as an uae_u32 everywhere.
+	 * However, action_examine_all() uses -1 as an id if
+	 * it has none.
+	 * - Sven
+	 */
+	 if ((uae_u32)-1 == id) {
 		for (i = 0; i < EXALLKEYS; i++) {
 			if (unit->exalls[i].id == 0) {
 				unit->exallid++;
@@ -3606,11 +3619,11 @@ static int exalldo (uaecptr exalldata, uae_u32 exalldatasize, uae_u32 type, uaec
 {
 	uaecptr exp = exalldata;
 	int i;
-	int size, size2;
+	uae_u32 size, size2;
 	int entrytype;
 	TCHAR *xs = NULL, *commentx = NULL;
 	uae_u32 flags = 15;
-	int days, mins, ticks;
+	int days = 0, mins = 0, ticks = 0;
 	struct mystat statbuf;
 	int fsdb_can = fsdb_cando (unit);
 	uae_u16 uid = 0, gid = 0;
@@ -3686,7 +3699,7 @@ static int exalldo (uaecptr exalldata, uae_u32 exalldatasize, uae_u32 type, uaec
 	put_long (exp, exp + size + size2); /* ed_Next */
 	if (type >= 1) {
 		put_long (exp + 4, exp + size2);
-		for (i = 0; i <= strlen (x); i++) {
+		for (i = 0; i <= (int)strlen (x); i++) {
 			put_byte (exp + size2, x[i]);
 			size2++;
 		}
@@ -3705,7 +3718,7 @@ static int exalldo (uaecptr exalldata, uae_u32 exalldatasize, uae_u32 type, uaec
 	if (type >= 6) {
 		put_long (exp + 32, exp + size2);
 		put_byte (exp + size2, strlen (comment));
-		for (i = 0; i <= strlen (comment); i++) {
+		for (i = 0; i <= (int)strlen (comment); i++) {
 			put_byte (exp + size2, comment[i]);
 			size2++;
 		}
@@ -3717,8 +3730,10 @@ static int exalldo (uaecptr exalldata, uae_u32 exalldatasize, uae_u32 type, uaec
 	put_long (control + 0, get_long (control + 0) + 1);
 	ret = 1;
 end:
-	//fixme: xfree (x);
-	xfree (comment);
+	if (x)
+		xfree (x);
+	if (comment)
+		xfree (comment);
 	return ret;
 }
 
@@ -3740,9 +3755,9 @@ static int action_examine_all_do (Unit *unit, uaecptr lock, ExAllKey *eak, uaecp
 		if (!eak->fn) {
 			do {
 				if (d->fstype == FS_ARCHIVE)
-					ok = zfile_readdir_archive (d->zd, fn);
+					/*fixme*/ ok = zfile_readdir_archive (d->zd, fn);
 				else if (d->fstype == FS_DIRECTORY)
-					ok = readdir (d->od);
+					ok = readdir (d->od->h);
 				/*else if (d->fstype == FS_CDFS)
 					ok = isofs_readdir (d->isod, fn, &uniq);*/
 				else
@@ -4014,9 +4029,9 @@ static void populate_directory (Unit *unit, a_inode *base)
 		like "..", "." etc.  */
 		do {
 			if (d->fstype == FS_ARCHIVE)
-				ok = zfile_readdir_archive (d->zd, fn);
+				/*fixme*/ok = zfile_readdir_archive (d->zd, fn);
 			else if (d->fstype == FS_DIRECTORY)
-				ok = readdir (d->od);
+				ok = readdir (d->od->h);
 			else if (d->fstype == FS_CDFS)
 			;//	ok = isofs_readdir (d->isod, fn, &uniq);
 			else
@@ -4400,7 +4415,7 @@ static void
 			write_log (_T("unixfs warning: Bad pointer passed for read: %08x, size %d\n"), addr, size);
 			/* ugh this is inefficient but easy */
 
-			if (fs_lseek64 (k->fd, k->file_pos, SEEK_SET) < 0) {
+			if ((uae_u64)-1 == fs_lseek64 (k->fd, k->file_pos, SEEK_SET)) {
 				PUT_PCK_RES1 (packet, 0);
 				PUT_PCK_RES2 (packet, dos_errno ());
 				return;
@@ -4415,15 +4430,15 @@ static void
 
 		actual = fs_read (k->fd, buf, size);
 
-		if (actual < 0) {
-			PUT_PCK_RES1 (packet, 0);
-			PUT_PCK_RES2 (packet, dos_errno ());
-		} else {
-			int i;
+		if ((uae_u32)-1 != actual) {
+			uae_u32 i = 0;
 			PUT_PCK_RES1 (packet, actual);
-			for (i = 0; i < actual; i++)
+			for ( ; i < actual; i++)
 				put_byte (addr + i, buf[i]);
 			k->file_pos += actual;
+		} else {
+			PUT_PCK_RES1 (packet, 0);
+			PUT_PCK_RES2 (packet, dos_errno ());
 		}
 		xfree (buf);
 			flush_dcache (addr, size);
@@ -4434,7 +4449,7 @@ static void
 		/* normal fast read */
 		uae_u8 *realpt = get_real_address (addr);
 
-		if (fs_lseek64 (k->fd, k->file_pos, SEEK_SET) < 0) {
+		if ((uae_u64)-1 == fs_lseek64 (k->fd, k->file_pos, SEEK_SET)) {
 			PUT_PCK_RES1 (packet, 0);
 			PUT_PCK_RES2 (packet, dos_errno ());
 			return;
@@ -4445,7 +4460,7 @@ static void
 		if (actual == 0) {
 			PUT_PCK_RES1 (packet, 0);
 			PUT_PCK_RES2 (packet, 0);
-		} else if (actual < 0) {
+		} else if ((uae_u32)-1 == actual) {
 			PUT_PCK_RES1 (packet, 0);
 			PUT_PCK_RES2 (packet, dos_errno ());
 		} else {
@@ -4490,7 +4505,7 @@ static void
 	} else if (valid_address (addr, size)) {
 		uae_u8 *realpt = get_real_address (addr);
 
-		if (fs_lseek64 (k->fd, k->file_pos, SEEK_SET) < 0) {
+		if ((uae_u64)-1 == fs_lseek64 (k->fd, k->file_pos, SEEK_SET)) {
 			PUT_PCK_RES1 (packet, 0);
 			PUT_PCK_RES2 (packet, dos_errno ());
 			return;
@@ -4501,7 +4516,7 @@ static void
 		write_log (_T("unixfs warning: Bad pointer passed for write: %08x, size %d\n"), addr, size);
 		/* ugh this is inefficient but easy */
 
-		if (fs_lseek64 (k->fd, k->file_pos, SEEK_SET) < 0) {
+		if ((uae_u64)-1 == fs_lseek64 (k->fd, k->file_pos, SEEK_SET)) {
 			PUT_PCK_RES1 (packet, 0);
 			PUT_PCK_RES2 (packet, dos_errno ());
 			return;
@@ -4525,7 +4540,7 @@ static void
 	PUT_PCK_RES1 (packet, actual);
 	if (actual != size)
 		PUT_PCK_RES2 (packet, dos_errno ());
-	if (actual >= 0)
+	if ((uae_u32)-1 != actual)
 		k->file_pos += actual;
 
 	k->notifyactive = 1;
@@ -5263,7 +5278,7 @@ static void
 		}
 	} else {
 		if (unit->ui.locked) {
-			if (unit->lockkey == GET_PCK_ARG2 (packet) || unit->lockkey == 0) {
+			if (unit->lockkey == (uae_u32)GET_PCK_ARG2 (packet) || unit->lockkey == 0) {
 				unit->ui.locked = false;
 			} else {
 				PUT_PCK_RES1 (packet, DOS_FALSE);
@@ -5321,7 +5336,7 @@ static void action_change_file_position64 (Unit *unit, dpacket packet)
 		PUT_PCK64_RES1 (packet, DOS_FALSE);
 		PUT_PCK64_RES2 (packet, ERROR_SEEK_ERROR);
 	} else {
-		PUT_PCK64_RES1 (packet, TRUE);
+		PUT_PCK64_RES1 (packet, true);
 		PUT_PCK64_RES2 (packet, 0);
 		k->file_pos = fs_lseek64 (k->fd, 0, SEEK_CUR);
 	}
@@ -6057,11 +6072,12 @@ static uae_u32 REGPARAM2 filesys_dev_remember (TrapContext *context)
 			put_byte (get_long (parmpacket + PP_FSPTR) + i, fs[i]);
 	}
 
-		xfree (fs);
-		uip->rdb_filesysstore = 0;
-		uip->rdb_filesyssize = 0;
-	if (m68k_dreg (regs, 3) >= 0)
-		uip->startup = get_long (devicenode + 28);
+	xfree (fs);
+	uip->rdb_filesysstore = 0;
+	uip->rdb_filesyssize = 0;
+	// struct regstruct.regs is unsigned
+	// was: if (m68k_dreg (regs, 3) >= 0)
+	uip->startup = get_long (devicenode + 28);
 
 	return devicenode;
 }
@@ -6070,7 +6086,7 @@ static int legalrdbblock (UnitInfo *uip, int block)
 {
 	if (block <= 0)
 		return 0;
-	if ((uae_u64)block >= uip->hf.virtsize / uip->hf.blocksize)
+	if ((uae_u64)block >= (uip->hf.virtsize / uip->hf.blocksize) )
 		return 0;
 	return 1;
 }
@@ -7107,13 +7123,13 @@ static uae_u8 *restore_aino (UnitInfo *ui, Unit *u, uae_u8 *src)
 
 static uae_u8 *restore_key (UnitInfo *ui, Unit *u, uae_u8 *src)
 {
-	int uniq;
 	TCHAR *p, *pn;
 	mode_t openmode;
 	int err;
 	int missing;
 	a_inode *a;
 	Key *k;
+	uae_u32 uniq;
 	uae_u64 savedsize, size, pos;
 
 	missing = 0;
@@ -7174,7 +7190,7 @@ static uae_u8 *restore_key (UnitInfo *ui, Unit *u, uae_u8 *src)
 		} else {
 			uae_s64 s;
 			s = fs_fsize64 (k->fd);
-			if (s != savedsize)
+			if (s != (uae_s64)savedsize)
 				write_log (_T("FS: restored file '%s' size changed! orig=%llu, now=%lld!!\n"), p, savedsize, s);
 			if (k->file_pos > s) {
 				write_log (_T("FS: restored filepos larger than size of file '%s'!! %llu > %lld\n"), p, k->file_pos, s);

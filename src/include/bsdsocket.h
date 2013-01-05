@@ -1,3 +1,7 @@
+#pragma once
+#ifndef SRC_INCLUDE_BSDSOCKET_H_INCLUDED
+#define SRC_INCLUDE_BSDSOCKET_H_INCLUDED 1
+
  /*
   * UAE - The Un*x Amiga Emulator
   *
@@ -155,8 +159,7 @@ extern void sigsockettasks (void);
 extern void locksigqueue (void);
 extern void unlocksigqueue (void);
 
-#define BOOL int
-extern BOOL checksd(SB, int sd);
+extern bool checksd(SB, int sd);
 extern void setsd(SB, int , SOCKET_TYPE);
 extern int getsd (SB, SOCKET_TYPE);
 extern SOCKET_TYPE getsock (SB, int);
@@ -211,3 +214,7 @@ extern uae_u32 host_gethostname (uae_u32, uae_u32);
 extern uaecptr bsdlib_startup (uaecptr);
 extern void bsdlib_install (void);
 extern void bsdlib_reset (void);
+
+extern void bsdsock_fake_int_handler(void);
+
+#endif // SRC_INCLUDE_BSDSOCKET_H_INCLUDED

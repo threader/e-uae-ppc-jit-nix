@@ -2245,7 +2245,7 @@ static void do_sprite_collisions (void)
 				if (bplcon0 & 0x400)
 					match = 1;
 				for (l = k; match && l < planes; l += 2) {
-					int t = 0;
+					unsigned int t = 0;
 					if (l < thisline_decision.nr_planes) {
 						uae_u32 *ldata = (uae_u32 *)(line_data[next_lineno] + 2 * l * MAX_WORDS_PER_LINE);
 						uae_u32 word = ldata[offs >> 5];

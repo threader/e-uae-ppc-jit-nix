@@ -13,6 +13,8 @@
 
 struct hardfilehandle;
 struct mountedinfo;
+struct uaedev_config_info;
+struct uae_prefs;
 
 #define MAX_HDF_CACHE_BLOCKS 128
 struct hdf_cache
@@ -149,8 +151,22 @@ extern int hdf_resize_target (struct hardfiledata *hfd, uae_u64 newsize);
 extern void getchsgeometry (uae_u64 size, int *pcyl, int *phead, int *psectorspertrack);
 extern void getchsgeometry_hdf (struct hardfiledata *hfd, uae_u64 size, int *pcyl, int *phead, int *psectorspertrack);
 extern void getchspgeometry (uae_u64 total, int *pcyl, int *phead, int *psectorspertrack, bool idegeometry);
-extern int get_filesys_unitconfig (struct uae_prefs *, int, struct mountedinfo *);
 
+int get_filesys_unitconfig (struct uae_prefs *, int, struct mountedinfo *);
+int set_filesys_unit (int nr,
+	const TCHAR *devname, const TCHAR *volname, const TCHAR *rootdir, bool readonly,
+	int cyls, int secspertrack, int surfaces, int reserved,
+	int blocksize, int bootpri, bool donotmount, bool autoboot,
+	const TCHAR *filesysdir, int hdc, int flags);
+int add_filesys_unit (const TCHAR *devname, const TCHAR *volname, const TCHAR *rootdir, bool readonly,
+	int cyls, int secspertrack, int surfaces, int reserved,
+	int blocksize, int bootpri, bool donotmount, bool autoboot,
+	const TCHAR *filesysdir, int hdc, int flags);
+int kill_filesys_unitconfig (struct uae_prefs *, int);
+int move_filesys_unitconfig (struct uae_prefs *p, int nr, int to);
+void filesys_addexternals (void);
+void free_mountinfo (void);
 
+void setsystime (void);
 
 #endif // SRC_INCLUDE_FILESYS_H_INCLUDED

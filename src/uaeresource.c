@@ -16,6 +16,7 @@
 #include "autoconf.h"
 #include "execlib.h"
 #include "uaeresource.h"
+#include "misc.h"
 
 #if 0
 

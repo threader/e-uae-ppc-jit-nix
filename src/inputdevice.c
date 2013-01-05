@@ -47,6 +47,7 @@
 #include "zfile.h"
 #include "cia.h"
 #include "autoconf.h"
+#include "filesys.h"
 #ifdef RETROPLATFORM
 #include "rp.h"
 #endif

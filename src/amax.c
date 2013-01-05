@@ -1,4 +1,3 @@
-#ifdef AMAX
 
 #include "sysconfig.h"
 #include "sysdeps.h"
@@ -9,6 +8,8 @@
 #include "custom.h"
 #include "memory_uae.h"
 #include "newcpu.h"
+
+#ifdef AMAX
 
 static int data_scramble[8] = { 3, 2, 4, 5, 7, 6, 0, 1 };
 static int addr_scramble[16] = { 14, 12, 2, 10, 15, 13, 1, 0, 7, 6, 5, 4, 8, 9, 11, 3 };

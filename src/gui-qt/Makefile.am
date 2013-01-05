@@ -1,5 +1,6 @@
 QT_INCPATH = $(shell qmake -query QT_INSTALL_HEADERS)
 QT_INSPATH = $(shell qmake -query QT_INSTALL_DATA)
+QT_LIBPATH = $(shell qmake -query QT_INSTALL_LIBS)
 MOC = $(shell which moc)
 UIC = $(shell which uic)
 RCC = $(shell which rcc)
@@ -15,14 +16,16 @@ MY_INCLUDES += -I/Library/Frameworks/QtCore.framework/Versions/4/Headers
 MY_INCLUDES += -I/Library/Frameworks/QtGui.framework/Versions/4/Headers
 endif
 DEFINES = -DQT_NO_DEBUG -DQT_GUI_LIB -DQT_CORE_LIB -DQT_SHARED
-LIBS = -L/usr/lib -lQtGui -lQtCore -lpthread 
+LIBS = -L$(QT_LIBPATH) -lQtGui -lQtCore -L/usr/lib -lpthread
 ##QMAKE_CFLAGS = $(QMAKE_CFLAGS) ) -m32
 ##QMAKE_CXXFLAGS = $(QMAKE_CXXFLAGS) -m32
 
 AM_CPPFLAGS = @UAE_CPPFLAGS@
 AM_CPPFLAGS += -I$(top_srcdir)/src/include -I$(top_builddir)/src -I$(top_srcdir)/src
+AM_CPPFLAGS += -I$(QT_INCPATH) -I$(QT_INCPATH)/QtCore -I$(QT_INCPATH)/QtGui
 AM_CFLAGS = @UAE_CFLAGS@
 AM_CFLAGS += @QT_CFLAGS@
+AM_CXXFLAGS  = @UAE_CXXFLAGS@
 AR_FLAGS = $(LIBS)
 
 noinst_LIBRARIES = libguidep.a

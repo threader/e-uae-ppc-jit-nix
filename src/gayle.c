@@ -6,16 +6,16 @@
  * (c) 2006 - 2011 Toni Wilen
  */
 
+#include "sysconfig.h"
+#include "sysdeps.h"
+
+#include "options.h"
+
 #ifdef GAYLE
 #define GAYLE_LOG 0
 #define IDE_LOG 0
 #define MBRES_LOG 0
 #define PCMCIA_LOG 0
-
-#include "sysconfig.h"
-#include "sysdeps.h"
-
-#include "options.h"
 
 #include "memory_uae.h"
 #include "custom.h"

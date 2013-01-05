@@ -1,3 +1,7 @@
+#pragma once
+#ifndef SRC_INCLUDE_FSDB_H_INCLUDED
+#define SRC_INCLUDE_FSDB_H_INCLUDED 1
+
  /*
   * UAE - The Un*x Amiga Emulator
   *
@@ -101,6 +105,36 @@ typedef struct a_inode_struct {
 #endif
 } a_inode;
 
+struct mytimeval
+{
+	uae_s64 tv_sec;
+	uae_s32 tv_usec;
+};
+
+struct mystat
+{
+	uae_s64 size;
+	uae_u32 mode;
+	struct mytimeval mtime;
+};
+
+#ifdef __WIN32__
+struct my_opendir_s {
+	HANDLE h;
+	WIN32_FIND_DATA fd;
+	int first;
+};
+#else
+struct my_opendir_s {
+	DIR *h;
+	int first;
+};
+#endif
+
+struct my_openfile_s {
+	HANDLE h;
+};
+
 extern TCHAR *nname_begin (TCHAR *);
 
 extern TCHAR *build_nname (const TCHAR *d, const TCHAR *n);
@@ -132,8 +166,7 @@ extern TCHAR *fsdb_create_unique_nname (a_inode *base, const TCHAR *);
 struct my_opendir_s;
 struct my_openfile_s;
 
-//extern struct my_opendir_s *my_opendir (const TCHAR*, const TCHAR*);
-//extern struct my_opendir_s *my_opendir (const TCHAR*);
+extern struct my_opendir_s *my_opendir (const TCHAR*);
 extern void my_closedir (struct my_opendir_s*);
 extern int my_readdir (struct my_opendir_s*, TCHAR*);
 
@@ -157,8 +190,8 @@ extern int my_existsfile (const TCHAR *name);
 extern int my_existsdir (const TCHAR *name);
 extern FILE *my_opentext (const TCHAR*);
 
-//extern bool my_stat (const TCHAR *name, struct mystat *ms);
-//extern bool my_utime (const TCHAR *name, struct mytimeval *tv);
+extern bool my_stat (const TCHAR *name, struct mystat *statbuf);
+extern bool my_utime (const TCHAR *name, struct mytimeval *tv);
 extern bool my_chmod (const TCHAR *name, uae_u32 mode);
 
 #define MYVOLUMEINFO_READONLY 1
@@ -168,3 +201,5 @@ extern bool my_chmod (const TCHAR *name, uae_u32 mode);
 #define MYVOLUMEINFO_CDFS 16
 
 extern int my_getvolumeinfo (const TCHAR *root);
+
+#endif // SRC_INCLUDE_FSDB_H_INCLUDED

@@ -845,11 +845,17 @@ bool puae_MainWindow::scan_rom_hook (const char *name, int line)
 	return false;
 }
 
+//fixme:
 int puae_MainWindow::addrom (struct romdata *rd, const char *name)
 {
 	char tmp1[MAX_DPATH], tmp2[MAX_DPATH];
 
-	printf (tmp1, "ROM_%03d", rd->id);
+	if (rd) {
+		snprintf (tmp1, MAX_DPATH, "ROM_%03d", rd->id);
+		// And then?
+		return 1;
+	}
+	return 0;
 }
 
 int puae_MainWindow::scan_rom (const char *path, bool deepscan)
@@ -881,7 +887,7 @@ int puae_MainWindow::scan_rom (const char *path, bool deepscan)
 void puae_MainWindow::display_fromselect (int val, int *fs, int *vsync, int p96)
 {
 	int ofs = *fs;
-	if (val == NULL)
+	if (!val)
 		return;
 	*fs = 0;
 	*vsync = 0;
@@ -1049,7 +1055,7 @@ void puae_MainWindow::values_to_memorydlg()
 	ui->IDC_Z3CHIPRAM->setText(memsize_names[msi_z3chip[mem_size]]);
 
     mem_size = 0;
-    switch (workprefs.gfxmem_size) {
+    switch (workprefs.rtgmem_size) {
     case 0x00000000: mem_size = 0; break;
     case 0x00100000: mem_size = 1; break;
     case 0x00200000: mem_size = 2; break;
@@ -1175,7 +1181,7 @@ void puae_MainWindow::updatez3 (unsigned int *size1p, unsigned int *size2p)
         }
         if (i < 20)
                 return;
-        if (s1 == (1 << i)) {
+        if (s1 == (1U << i)) {
                 *size1p = s1;
                 return;
         }
@@ -1199,12 +1205,12 @@ void puae_MainWindow::enable_for_memorydlg ()
 {
     int z3 = ! workprefs.address_space_24;
     int fast = workprefs.chipmem_size <= 0x200000;
-    int rtg = workprefs.gfxmem_size; //&& full_property_sheet;
-    int rtg2 = workprefs.gfxmem_size;
+    int rtg = workprefs.rtgmem_size; //&& full_property_sheet;
+    int rtg2 = workprefs.rtgmem_size;
 
 #ifndef AUTOCONFIG
-    z3 = FALSE;
-    fast = FALSE;
+    z3 = false;
+    fast = false;
 #endif
 
     ui->IDC_Z3FASTRAM->setEnabled(z3);
@@ -1276,7 +1282,7 @@ void puae_MainWindow::values_to_chipsetdlg ()
 
 void puae_MainWindow::values_from_chipsetdlg ()
 {
-        bool success = FALSE;
+        bool success = false;
         int nn;
         bool n;
 
@@ -1488,7 +1494,7 @@ void puae_MainWindow::values_from_chipsetdlg2 ()
 
 void puae_MainWindow::enable_for_chipsetdlg2 ()
 {
-        int e = workprefs.cs_compatible ? FALSE : TRUE;
+        int e = workprefs.cs_compatible ? false : true;
 
         ui->IDC_CS_FATGARY->setEnabled(e);
         ui->IDC_CS_RAMSEY->setEnabled(e);
@@ -1505,7 +1511,7 @@ void puae_MainWindow::enable_for_chipsetdlg2 ()
         ui->IDC_CS_A2091->setEnabled(e);
         ui->IDC_CS_A4091->setEnabled(e);
 //        ShowWindow (GetDlgItem(hDlg, IDC_CS_SCSIMODE), SW_HIDE);
-//        ui->IDC_CS_SCSIMODE, FALSE);
+//        ui->IDC_CS_SCSIMODE, false);
         ui->IDC_CS_CDTVSCSI->setEnabled(e);
         ui->IDC_CS_PCMCIA->setEnabled(e);
         ui->IDC_CS_SLOWISFAST->setEnabled(e);
@@ -1535,33 +1541,33 @@ void puae_MainWindow::enable_for_chipsetdlg2 ()
 
 void puae_MainWindow::enable_for_chipsetdlg ()
 {
-        int enable = workprefs.cpu_cycle_exact ? FALSE : TRUE;
+        int enable = workprefs.cpu_cycle_exact ? false : true;
         
 #if !defined (CPUEMU_12)
-        ui->IDC_CYCLEEXACT->setEnabled(FALSE);
+        ui->IDC_CYCLEEXACT->setEnabled(false);
 #endif
 //        ui->IDC_FASTCOPPER->setEnabled(enable);
 //        ui->IDC_GENLOCK->setEnabled(full_property_sheet);
         ui->IDC_BLITIMM->setEnabled(enable);
-        if (enable == FALSE) {
+        if (enable == false) {
                 workprefs.immediate_blits = 0;
-//		ui->IDC_FASTCOPPER->setEnabled(FALSE);
-		ui->IDC_BLITIMM->setEnabled(FALSE);
+//		ui->IDC_FASTCOPPER->setEnabled(false);
+		ui->IDC_BLITIMM->setEnabled(false);
         }
-        ui->IDC_CS_EXT->setEnabled(workprefs.cs_compatible ? TRUE : FALSE);
+        ui->IDC_CS_EXT->setEnabled(workprefs.cs_compatible ? true : false);
 }
 
 void puae_MainWindow::enable_for_displaydlg ()
 {
         int rtg = ! workprefs.address_space_24;
 #ifndef PICASSO96
-        rtg = FALSE;
+        rtg = false;
 #endif
         ui->IDC_SCREENMODE_RTG->setEnabled(rtg);
-        ui->IDC_XCENTER->setEnabled(TRUE);
-        ui->IDC_YCENTER->setEnabled(TRUE);
-        ui->IDC_LM_SCANLINES->setEnabled(TRUE);
-        ui->IDC_FRAMERATE2->setEnabled(!workprefs.gfx_avsync);
+        ui->IDC_XCENTER->setEnabled(true);
+        ui->IDC_YCENTER->setEnabled(true);
+        ui->IDC_LM_SCANLINES->setEnabled(true);
+        ui->IDC_FRAMERATE2->setEnabled(!workprefs.gfx_framerate);
         ui->IDC_FRAMERATE->setEnabled(!workprefs.cpu_cycle_exact);
         ui->IDC_LORES->setEnabled(!workprefs.gfx_autoresolution);
         ui->IDC_LM_NORMAL->setEnabled(!workprefs.gfx_autoresolution);
@@ -1571,8 +1577,8 @@ void puae_MainWindow::enable_for_displaydlg ()
 
 void puae_MainWindow::enable_for_cpudlg ()
 {
-        bool enable = FALSE, jitenable = FALSE;
-        bool cpu_based_enable = FALSE;
+        bool enable = false, jitenable = false;
+        bool cpu_based_enable = false;
         bool fpu;
 
         /* These four items only get enabled when adjustable CPU style is enabled */
@@ -1581,20 +1587,20 @@ void puae_MainWindow::enable_for_cpudlg ()
         ui->IDC_CS_HOST->setEnabled(!workprefs.cpu_cycle_exact);
         ui->IDC_CS_68000->setEnabled(!workprefs.cpu_cycle_exact);
         ui->IDC_CS_ADJUSTABLE->setEnabled(!workprefs.cpu_cycle_exact);
-        ui->IDC_CPUIDLE->setEnabled(workprefs.m68k_speed != 0 ? TRUE : FALSE);
+        ui->IDC_CPUIDLE->setEnabled(workprefs.m68k_speed != 0 ? true : false);
 #if !defined(CPUEMU_0) || defined(CPUEMU_68000_ONLY)
-        ui->IDC_CPU1->setEnabled(FALSE);
-        ui->IDC_CPU2->setEnabled(FALSE);
-        ui->IDC_CPU3->setEnabled(FALSE);
-        ui->IDC_CPU4->setEnabled(FALSE);
-        ui->IDC_CPU5->setEnabled(FALSE);
+        ui->IDC_CPU1->setEnabled(false);
+        ui->IDC_CPU2->setEnabled(false);
+        ui->IDC_CPU3->setEnabled(false);
+        ui->IDC_CPU4->setEnabled(false);
+        ui->IDC_CPU5->setEnabled(false);
 #endif
 
         cpu_based_enable = workprefs.cpu_model >= 68020 && workprefs.address_space_24 == 0;
 
         jitenable = cpu_based_enable;
 #ifndef JIT
-        jitenable = FALSE;
+        jitenable = false;
 #endif
         enable = jitenable && workprefs.cachesize;
 
@@ -1612,9 +1618,9 @@ void puae_MainWindow::enable_for_cpudlg ()
         ui->IDC_CPU_FREQUENCY->setEnabled(workprefs.cpu_cycle_exact);
         ui->IDC_CPU_FREQUENCY2->setEnabled(workprefs.cpu_cycle_exact && !workprefs.cpu_clock_multiplier);
 
-        fpu = TRUE;
+        fpu = true;
         if (workprefs.cpu_model > 68030 || workprefs.cpu_compatible || workprefs.cpu_cycle_exact)
-                fpu = FALSE;
+                fpu = false;
         ui->IDC_FPU1->setEnabled(fpu);
         ui->IDC_FPU2->setEnabled(fpu);
         ui->IDC_FPU3->setEnabled(workprefs.cpu_model >= 68040);
@@ -1691,7 +1697,7 @@ void puae_MainWindow::values_to_cpudlg ()
 		break;
 	}
 #endif
-//        SendDlgItemMessage (hDlg, IDC_CACHE, TBM_SETPOS, TRUE, workprefs.cachesize / 1024);
+//        SendDlgItemMessage (hDlg, IDC_CACHE, TBM_SETPOS, true, workprefs.cachesize / 1024);
         printf (cache, "%d MB", workprefs.cachesize / 1024 );
 //        ui->IDC_CACHETEXT->setText(cache);
 #ifdef JIT
@@ -1860,7 +1866,7 @@ void puae_MainWindow::values_to_kickstartdlg () {
 }
 
 void puae_MainWindow::values_from_displaydlg () {
-	bool success = FALSE;
+	bool success = false;
 	int i, j;
 	int gfx_width = workprefs.gfx_size_win.width;
 	int gfx_height = workprefs.gfx_size_win.height;
@@ -1886,12 +1892,12 @@ void puae_MainWindow::enable_for_sounddlg () {
 
 	numdevs = enumerate_sound_devices ();
 	if (numdevs == 0)
-		ui->IDC_SOUNDCARDLIST->setEnabled(FALSE);
+		ui->IDC_SOUNDCARDLIST->setEnabled(false);
 	else
 		ui->IDC_SOUNDCARDLIST->setEnabled(workprefs.produce_sound);
 
 //	ui->IDC_FREQUENCY->setEnabled(workprefs.produce_sound);
-	ui->IDC_SOUNDFREQ->setEnabled(workprefs.produce_sound ? TRUE : FALSE);
+	ui->IDC_SOUNDFREQ->setEnabled(workprefs.produce_sound ? true : false);
 	ui->IDC_SOUNDSTEREO->setEnabled(workprefs.produce_sound);
 	ui->IDC_SOUNDINTERPOLATION->setEnabled(workprefs.produce_sound);
 	ui->IDC_SOUNDVOLUME->setEnabled(workprefs.produce_sound);
@@ -1937,19 +1943,19 @@ void puae_MainWindow::values_from_sounddlg () {
 	workprefs.sound_auto =  ui->IDC_SOUND_AUTO->isChecked();
 
 	idx = ui->IDC_SOUNDSTEREO->currentIndex();
-	if (idx != NULL)
+	if (idx)
 		workprefs.sound_stereo = idx;
 	workprefs.sound_stereo_separation = 0;
 	workprefs.sound_mixed_stereo_delay = 0;
 	if (workprefs.sound_stereo > 0) {
 		idx = ui->IDC_SOUNDSTEREOSEP->currentIndex();
-		if (idx != NULL) {
+		if (idx) {
 			if (idx > 0)
 				workprefs.sound_mixed_stereo_delay = -1;
 			workprefs.sound_stereo_separation = 10 - idx;
 		}
 		idx = ui->IDC_SOUNDSTEREOMIX->currentIndex();
-		if (idx != NULL && idx > 0)
+		if (idx > 0)
 			workprefs.sound_mixed_stereo_delay = idx;
 	}
 
@@ -2085,21 +2091,21 @@ void puae_MainWindow::values_to_expansiondlg () {
 void puae_MainWindow::enable_for_miscdlg () {
 /*
 	if (!full_property_sheet) {
-		ui->IDC_JULIAN->setEnabled(TRUE);
-		ui->IDC_CTRLF11->setEnabled(TRUE);
-		ui->IDC_SHOWGUI->setEnabled(FALSE);
-		ui->IDC_NOSPEED->setEnabled(TRUE);
-		ui->IDC_NOSPEEDPAUSE->setEnabled(TRUE);
-		ui->IDC_NOSOUND->setEnabled(TRUE);
-		ui->IDC_DOSAVESTATE->setEnabled(TRUE);
-		ui->IDC_SCSIMODE->setEnabled(FALSE);
-		ui->IDC_CLOCKSYNC->setEnabled(FALSE);
-		ui->IDC_CLIPBOARDSHARE->setEnabled(FALSE);
+		ui->IDC_JULIAN->setEnabled(true);
+		ui->IDC_CTRLF11->setEnabled(true);
+		ui->IDC_SHOWGUI->setEnabled(false);
+		ui->IDC_NOSPEED->setEnabled(true);
+		ui->IDC_NOSPEEDPAUSE->setEnabled(true);
+		ui->IDC_NOSOUND->setEnabled(true);
+		ui->IDC_DOSAVESTATE->setEnabled(true);
+		ui->IDC_SCSIMODE->setEnabled(false);
+		ui->IDC_CLOCKSYNC->setEnabled(false);
+		ui->IDC_CLIPBOARDSHARE->setEnabled(false);
 	} else {
 #if !defined (SCSIEMU)
-		EnableWindow (GetDlgItem(hDlg, IDC_SCSIMODE, TRUE);
+		EnableWindow (GetDlgItem(hDlg, IDC_SCSIMODE, true);
 #endif
-		ui->IDC_DOSAVESTATE->setEnabled(FALSE);
+		ui->IDC_DOSAVESTATE->setEnabled(false);
 	}
 	ui->IDC_ASSOCIATELIST->setEnabled(!rp_isactive ());
 	ui->IDC_ASSOCIATE_ON->setEnabled(!rp_isactive ());
@@ -2145,13 +2151,13 @@ void puae_MainWindow::values_from_gameportsdlg () {
 void puae_MainWindow::enable_for_inputdlg () {
 /*
 	bool v = workprefs.input_selected_setting != GAMEPORT_INPUT_SETTINGS;
-	ui->IDC_INPUTLIST->setEnabled(TRUE);
+	ui->IDC_INPUTLIST->setEnabled(true);
 	ui->IDC_INPUTAMIGA->setEnabled(v);
-	ui->IDC_INPUTAMIGACNT->setEnabled(TRUE);
-	ui->IDC_INPUTDEADZONE->setEnabled(TRUE);
-	ui->IDC_INPUTAUTOFIRERATE->setEnabled(TRUE);
-	ui->IDC_INPUTSPEEDA->setEnabled(TRUE);
-	ui->IDC_INPUTSPEEDD->setEnabled(TRUE);
+	ui->IDC_INPUTAMIGACNT->setEnabled(true);
+	ui->IDC_INPUTDEADZONE->setEnabled(true);
+	ui->IDC_INPUTAUTOFIRERATE->setEnabled(true);
+	ui->IDC_INPUTSPEEDA->setEnabled(true);
+	ui->IDC_INPUTSPEEDD->setEnabled(true);
 	ui->IDC_INPUTCOPY->setEnabled(v);
 	ui->IDC_INPUTCOPYFROM->setEnabled(v);
 	ui->IDC_INPUTSWAP->setEnabled(v);
@@ -2184,19 +2190,19 @@ void puae_MainWindow::enable_for_portsdlg () {
 	int v;
 	int isprinter, issampler;
 
-	ui->IDC_SWAP->setEnabled(TRUE);
+	ui->IDC_SWAP->setEnabled(true);
 #if !defined (SERIAL_PORT)
 /*
-	ui->IDC_MIDIOUTLIST->setEnabled(FALSE);
-	ui->IDC_MIDIINLIST->setEnabled(FALSE);
-	ui->IDC_SHARED->setEnabled(FALSE);
-	ui->IDC_SER_CTSRTS->setEnabled(FALSE);
-	ui->IDC_SERIAL_DIRECT->setEnabled(FALSE);
-	ui->IDC_SERIAL->setEnabled(FALSE);
-	ui->IDC_UAESERIAL->setEnabled(FALSE);
+	ui->IDC_MIDIOUTLIST->setEnabled(false);
+	ui->IDC_MIDIINLIST->setEnabled(false);
+	ui->IDC_SHARED->setEnabled(false);
+	ui->IDC_SER_CTSRTS->setEnabled(false);
+	ui->IDC_SERIAL_DIRECT->setEnabled(false);
+	ui->IDC_SERIAL->setEnabled(false);
+	ui->IDC_UAESERIAL->setEnabled(false);
 */
 #else
-	v = workprefs.use_serial ? TRUE : FALSE;
+	v = workprefs.use_serial ? true : false;
 	ui->IDC_SER_SHARED->setEnabled(v);
 	ui->IDC_SER_CTSRTS->setEnabled(v);
 	ui->IDC_SER_DIRECT->setEnabled(v);
@@ -2218,9 +2224,9 @@ void puae_MainWindow::enable_for_portsdlg () {
 	ui->IDC_SAMPLERLIST->setEnabled (issampler);
 	ui->IDC_PRINTERAUTOFLUSH->setEnabled (isprinter);
 	ui->IDC_PRINTERTYPELIST->setEnabled (isprinter);
-	ui->IDC_FLUSHPRINTER->setEnabled (isprinteropen () && isprinter ? TRUE : FALSE);
-	ui->IDC_PSPRINTER->setEnabled (full_property_sheet && ghostscript_available && isprinter ? TRUE : FALSE);
-	ui->IDC_PSPRINTERDETECT->setEnabled (full_property_sheet && isprinter ? TRUE : FALSE);
+	ui->IDC_FLUSHPRINTER->setEnabled (isprinteropen () && isprinter ? true : false);
+	ui->IDC_PSPRINTER->setEnabled (full_property_sheet && ghostscript_available && isprinter ? true : false);
+	ui->IDC_PSPRINTERDETECT->setEnabled (full_property_sheet && isprinter ? true : false);
 	ui->IDC_PS_PARAMS->setEnabled (full_property_sheet && ghostscript_available && isprinter);
 */
 }

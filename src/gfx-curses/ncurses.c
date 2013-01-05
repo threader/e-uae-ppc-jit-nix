@@ -283,9 +283,9 @@ static void curses_init (void)
     write_log ("curses_init: %d pairs available\n", COLOR_PAIRS);
 
     cbreak(); noecho();
-    nonl (); intrflush(stdscr, FALSE); keypad(stdscr, TRUE);
-    nodelay(stdscr, TRUE);
-    leaveok(stdscr, TRUE);
+    nonl (); intrflush(stdscr, false); keypad(stdscr, true);
+    nodelay(stdscr, true);
+    leaveok(stdscr, true);
 
     attron (A_NORMAL | COLOR_PAIR (0));
     bkgd(' '|COLOR_PAIR(0));
@@ -307,8 +307,8 @@ static void curses_exit(void)
     mousemask(0, NULL);
 #endif
 
-    nocbreak(); echo(); nl(); intrflush(stdscr, TRUE);
-    keypad(stdscr, FALSE); nodelay(stdscr, FALSE); leaveok(stdscr, FALSE);
+    nocbreak(); echo(); nl(); intrflush(stdscr, true);
+    keypad(stdscr, false); nodelay(stdscr, false); leaveok(stdscr, false);
     endwin();
     curses_on = 0;
 }
@@ -570,7 +570,7 @@ void handle_events (void)
     if(!curses_on) return;
 
     while((ch = getch())!=ERR) {
-	if(ch == 12) {clearok(stdscr,TRUE);refresh();}
+	if(ch == 12) {clearok(stdscr,true);refresh();}
 #ifdef NCURSES_MOUSE_VERSION
 	if(ch == KEY_MOUSE) {
 	    MEVENT ev;

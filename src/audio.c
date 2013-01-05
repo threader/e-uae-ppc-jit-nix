@@ -205,7 +205,7 @@ void audio_sampleripper (int mode)
 	struct ripped_sample *rs = ripped_samples;
 	int cnt = 1;
 	TCHAR path[MAX_DPATH], name[MAX_DPATH], filename[MAX_DPATH];
-	TCHAR underline[] = _T("_");
+	TCHAR underline[] = "_";
 	TCHAR extension[4];
 	struct zfile *wavfile;
 

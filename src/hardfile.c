@@ -28,36 +28,21 @@
 #include "execio.h"
 #include "zfile.h"
 #include "sleep.h"
+#include "misc.h"
 
 #undef DEBUGME
-#define hf_log
-#define hf_log2
-#define scsi_log
-#define hf_log3
-
 //#define DEBUGME
+
 #ifdef DEBUGME
-#undef hf_log
 #define hf_log write_log
-#undef hf_log2
 #define hf_log2 write_log
-#undef hf_log3
 #define hf_log3 write_log
-#undef scsi_log
 #define scsi_log write_log
 #else
-# ifdef __GCC__
-#  define hf_log(x...)    do { ; } while (0)
-#  define hf_log2(x...)  do { ; } while (0)
-#  define hf_log3(x...)  do { ; } while (0)
-#  define scsi_log(x...) do { ; } while (0)
-# else
-/* C99 vararg macros */
-#  define hf_log(x,...)    do { ; } while (0)
-#  define hf_log2(x,...)  do { ; } while (0)
-#  define hf_log3(x,...)  do { ; } while (0)
-#  define scsi_log(x,...) do { ; } while (0)
-# endif
+# define hf_log(...)  { }
+# define hf_log2(...)  { }
+# define hf_log3(...)  { }
+# define scsi_log(...) { }
 #endif
 
 #define MAX_ASYNC_REQUESTS 50
@@ -522,7 +507,7 @@ int hdf_open (struct hardfiledata *hfd, const TCHAR *pname)
 		hfd->vhd_bamsize = (((hfd->virtsize + hfd->vhd_blocksize - 1) / hfd->vhd_blocksize) * 4 + 511) & ~511;
 		size = hfd->vhd_bamoffset + hfd->vhd_bamsize;
 		hfd->vhd_header = xmalloc (uae_u8, size);
-		if (hdf_read_target (hfd, hfd->vhd_header, 0, size) != size)
+		if ((uae_u32)hdf_read_target (hfd, hfd->vhd_header, 0, size) != size)
 			goto end;
 		hfd->vhd_sectormap = xmalloc (uae_u8, 512);
 		hfd->vhd_sectormapblock = -1;
@@ -643,7 +628,7 @@ static int vhd_write_enlarge (struct hardfiledata *hfd, uae_u32 bamoffset)
 	p[2] = block >>  8;
 	p[3] = block >>  0;
 	// write to disk
-	if (hdf_write_target (hfd, hfd->vhd_header + hfd->vhd_bamoffset, hfd->vhd_bamoffset, hfd->vhd_bamsize) != hfd->vhd_bamsize) {
+	if ((uae_u32)hdf_write_target (hfd, hfd->vhd_header + hfd->vhd_bamoffset, hfd->vhd_bamoffset, hfd->vhd_bamsize) != hfd->vhd_bamsize) {
 		write_log (_T("vhd_enlarge: bam write error\n"));
 		return 0;
 	}
@@ -1446,7 +1431,7 @@ static int handle_scsi (uaecptr request, struct hardfiledata *hfd)
 	if (reply_len > 0) {
 		scsi_log (_T("RD:"));
 		i = 0;
-		while (i < reply_len) {
+		while (i < (uae_u32)reply_len) {
 			if (i < 24)
 				scsi_log (_T("%02X%c"), reply[i], i < reply_len - 1 ? '.' : ' ');
 			put_byte (scsi_data + i, reply[i]);
@@ -1456,7 +1441,7 @@ static int handle_scsi (uaecptr request, struct hardfiledata *hfd)
 	}
 	i = 0;
 	if (scsi_sense) {
-		while (i < sense_len && i < scsi_sense_len) {
+		while (i < (uae_u32)sense_len && i < (uae_u32)scsi_sense_len) {
 			put_byte (scsi_sense + i, sense[i]);
 			i++;
 		}

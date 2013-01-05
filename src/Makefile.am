@@ -1,6 +1,8 @@
 AM_CFLAGS = @UAE_CFLAGS@
 AM_CPPFLAGS = @UAE_CPPFLAGS@
 AM_CPPFLAGS += -I$(top_srcdir)/src/include -I$(top_builddir)/src -I$(top_srcdir)/src -I$(top_srcdir)
+AM_CXXFLAGS  = @UAE_CXXFLAGS@
+
 LIBS = -L/usr/lib -lstdc++
 if !ANDROID
 LIBS += -lpthread
@@ -19,7 +21,7 @@ AM_CPPFLAGS += -I$(QT_INSLIBS)/QtCore.framework/Versions/4/Headers
 AM_CPPFLAGS += -I$(QT_INSLIBS)/QtGui.framework/Versions/4/Headers
 LIBS += -F$(QT_INSLIBS) -L$(QT_INSLIBS) -framework QtGui -framework QtCore 
 else
-LIBS += -lQtGui -lQtCore
+LIBS += -L$(QT_INSLIBS) -lQtGui -lQtCore
 endif
 DEFINES = -DQT_NO_DEBUG -DQT_GUI_LIB -DQT_CORE_LIB -DQT_SHARED
 endif
@@ -177,14 +179,14 @@ uae_SOURCES = \
 	native2amiga.c disk.c crc32.c savestate.c arcadia.c cdtv.c cd32_fmv.c \
 	uaeexe.c uaelib.c uaeresource.c uaeserial.c fdi2raw.c hotkeys.c amax.c \
 	ar.c driveclick.c enforcer.c misc.c uaenet.c a2065.c gayle.c ncr_scsi.c \
-	missing.c readcpu.c hrtmon.rom.c events.c calc.c aros.rom.c
+	missing.c readcpu.c hrtmon.rom.c events.c calc.c aros.rom.c specialmonitors.c
 
 EXTRA_uae_SOURCES = \
 	bsdsocket.c bsdsocket-posix-new.c build68k.c catweasel.c cdrom.c \
 	fpp.c compemu_fpp.c compemu_raw_x86.c compemu_support.c \
 	debug.c identify.c filesys_bootrom.c fsdb.c fsdb_unix.c fsusage.c genblitter.c \
 	gencpu.c gengenblitter.c gencomp.c genlinetoscr.c hardfile.c \
-	hardfile_unix.c scsi-none.c scsiemul.c svgancui.c tui.c filesys_unix.c amax.c \
+	hardfile_unix.c scsi-none.c scsiemul.c svgancui.c tui.c amax.c \
 	akiko.c cd32_fmv.c ar.c blkdev.c blkdev_cdimage.c blkdev-libscg.c \
 	blitops.c scsi.c writelog.c
 

@@ -41,7 +41,7 @@ int uae_sem_get_value (uae_sem_t *sem);
  * Threading using AmigaOS processes
  */
 typedef struct Task *uae_thread_id;
-#define BAD_THREAD NULL
+#define BAD_THREAD 0
 
 extern int uae_start_thread (char *name, void *(*f) (void *), void *arg, uae_thread_id *foo);
 

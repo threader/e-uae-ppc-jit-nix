@@ -7,7 +7,6 @@
  * Copyright 2004      Richard Drummond
  */
 
-#ifdef ENFORCER
 #include <stdlib.h>
 
 #include "sysconfig.h"
@@ -21,6 +20,9 @@
 #include "xwin.h"
 #include "enforcer.h"
 #include "sleep.h"
+#include "misc.h"
+
+#ifdef ENFORCER
 
 #ifndef _WIN32
 #define console_out printf
@@ -384,7 +386,7 @@ end:
 	enforcer_hit = 0;
 }
 
-uae_u32 REGPARAM2 chipmem_lget2 (uaecptr addr)
+static uae_u32 REGPARAM2 chipmem_lget2 (uaecptr addr)
 {
 	uae_u32 *m;
 
@@ -401,7 +403,7 @@ uae_u32 REGPARAM2 chipmem_lget2 (uaecptr addr)
 	return do_get_mem_long (m);
 }
 
-uae_u32 REGPARAM2 chipmem_wget2(uaecptr addr)
+static uae_u32 REGPARAM2 chipmem_wget2(uaecptr addr)
 {
 	uae_u16 *m;
 
@@ -418,7 +420,7 @@ uae_u32 REGPARAM2 chipmem_wget2(uaecptr addr)
 	return do_get_mem_word (m);
 }
 
-uae_u32 REGPARAM2 chipmem_bget2 (uaecptr addr)
+static uae_u32 REGPARAM2 chipmem_bget2 (uaecptr addr)
 {
 	addr -= chipmem_start & chipmem_mask;
 	addr &= chipmem_mask;
@@ -433,7 +435,7 @@ uae_u32 REGPARAM2 chipmem_bget2 (uaecptr addr)
 	return chipmemory[addr];
 }
 
-void REGPARAM2 chipmem_lput2 (uaecptr addr, uae_u32 l)
+static void REGPARAM2 chipmem_lput2 (uaecptr addr, uae_u32 l)
 {
 	uae_u32 *m;
 
@@ -453,7 +455,7 @@ void REGPARAM2 chipmem_lput2 (uaecptr addr, uae_u32 l)
 	do_put_mem_long (m, l);
 }
 
-void REGPARAM2 chipmem_wput2 (uaecptr addr, uae_u32 w)
+static void REGPARAM2 chipmem_wput2 (uaecptr addr, uae_u32 w)
 {
 	uae_u16 *m;
 
@@ -472,7 +474,7 @@ void REGPARAM2 chipmem_wput2 (uaecptr addr, uae_u32 w)
 	do_put_mem_word (m, w);
 }
 
-void REGPARAM2 chipmem_bput2 (uaecptr addr, uae_u32 b)
+static void REGPARAM2 chipmem_bput2 (uaecptr addr, uae_u32 b)
 {
 	addr -= chipmem_start & chipmem_mask;
 	addr &= chipmem_mask;
@@ -488,21 +490,21 @@ void REGPARAM2 chipmem_bput2 (uaecptr addr, uae_u32 b)
 	chipmemory[addr] = b;
 }
 
-int REGPARAM2 chipmem_check2 (uaecptr addr, uae_u32 size)
+static int REGPARAM2 chipmem_check2 (uaecptr addr, uae_u32 size)
 {
 	addr -= chipmem_start & chipmem_mask;
 	addr &= chipmem_mask;
 	return (addr + size) <= allocated_chipmem;
 }
 
-uae_u8 * REGPARAM2 chipmem_xlate2 (uaecptr addr)
+static uae_u8 * REGPARAM2 chipmem_xlate2 (uaecptr addr)
 {
 	addr -= chipmem_start & chipmem_mask;
 	addr &= chipmem_mask;
 	return chipmemory + addr;
 }
 
-uae_u32 REGPARAM2 dummy_lget2 (uaecptr addr)
+static uae_u32 REGPARAM2 dummy_lget2 (uaecptr addr)
 {
 	special_mem_r;
 	enforcer_display_hit (_T("LONG READ from"),(uae_u32)(regs.pc_p - NMEM_OFFSET), addr);
@@ -517,7 +519,7 @@ uae_u32 REGPARAM2 dummy_lget2 (uaecptr addr)
 static int warned_JIT_0xF10000 = 0;
 #endif
 
-uae_u32 REGPARAM2 dummy_wget2 (uaecptr addr)
+static uae_u32 REGPARAM2 dummy_wget2 (uaecptr addr)
 {
 	special_mem_r;
 
@@ -538,7 +540,7 @@ uae_u32 REGPARAM2 dummy_wget2 (uaecptr addr)
 	return 0xbadf;
 }
 
-uae_u32	REGPARAM2 dummy_bget2 (uaecptr addr)
+static uae_u32	REGPARAM2 dummy_bget2 (uaecptr addr)
 {
 	special_mem_r;
 	enforcer_display_hit (_T("BYTE READ from"),(uae_u32)(regs.pc_p - NMEM_OFFSET),addr);
@@ -549,7 +551,7 @@ uae_u32	REGPARAM2 dummy_bget2 (uaecptr addr)
 	return 0xbadedeef;
 }
 
-void REGPARAM2 dummy_lput2 (uaecptr addr, uae_u32 l)
+static void REGPARAM2 dummy_lput2 (uaecptr addr, uae_u32 l)
 {
 	special_mem_w;
 	enforcer_display_hit (_T("LONG WRITE to"),(uae_u32)(regs.pc_p - NMEM_OFFSET),addr);
@@ -559,7 +561,7 @@ void REGPARAM2 dummy_lput2 (uaecptr addr, uae_u32 l)
 	}
 }
 
-void REGPARAM2 dummy_wput2 (uaecptr addr, uae_u32 w)
+static void REGPARAM2 dummy_wput2 (uaecptr addr, uae_u32 w)
 {
 	special_mem_w;
 	enforcer_display_hit (_T("WORD WRITE to"),(uae_u32)(regs.pc_p - NMEM_OFFSET),addr);
@@ -569,7 +571,7 @@ void REGPARAM2 dummy_wput2 (uaecptr addr, uae_u32 w)
 	}
 }
 
-void REGPARAM2 dummy_bput2 (uaecptr addr, uae_u32 b)
+static void REGPARAM2 dummy_bput2 (uaecptr addr, uae_u32 b)
 {
 	special_mem_w;
 	enforcer_display_hit (_T("BYTE WRITE to"),(uae_u32)(regs.pc_p - NMEM_OFFSET),addr);
@@ -579,7 +581,7 @@ void REGPARAM2 dummy_bput2 (uaecptr addr, uae_u32 b)
 	}
 }
 
-int REGPARAM2 dummy_check2 (uaecptr addr, uae_u32 size)
+static int REGPARAM2 dummy_check2 (uaecptr addr, uae_u32 size)
 {
 	special_mem_r;
 	enforcer_display_hit (_T("CHECK from "),(uae_u32)(regs.pc_p - NMEM_OFFSET),addr);

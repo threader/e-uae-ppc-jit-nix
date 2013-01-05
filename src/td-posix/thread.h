@@ -84,14 +84,14 @@ STATIC_INLINE int uae_sem_getvalue (uae_sem_t *sem, int *sval)
 #include "commpipe.h"
 
 typedef pthread_t uae_thread_id;
-#define BAD_THREAD -1
+#define BAD_THREAD 0
 
 STATIC_INLINE int uae_start_thread (char *name, void *(*f) (void *), void *arg, uae_thread_id *foo)
 {
 	int result;
 	result = pthread_create (foo, 0, f, arg);
 
-	return result;
+	return 0 == result;
 }
 
 STATIC_INLINE int uae_wait_thread (uae_thread_id thread)

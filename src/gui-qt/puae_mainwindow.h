@@ -168,18 +168,4 @@ private slots:
     void on_IDC_CACHE_valueChanged(int value);
 };
 
-#define TCHAR char
-
-typedef unsigned char  uae_u8;
-typedef signed char    uae_s8;
-
-typedef unsigned int   uae_u16;
-typedef int            uae_s16;
-
-typedef unsigned long  uae_u32;
-typedef long           uae_s32;
-
-#define MAX_DPATH	512
-#define STATIC_INLINE static __inline__
-
 #endif // PUAE_MAINWINDOW_H

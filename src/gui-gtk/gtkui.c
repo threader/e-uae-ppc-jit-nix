@@ -225,17 +225,6 @@ void on_message_box_quit (GtkWidget *w, gpointer user_data);
 void on_vstat_toggle(GtkWidget *widget, gpointer statusbar);
 
 /* external prototypes */
-extern int get_filesys_unitconfig (struct uae_prefs *, int, struct mountedinfo *);
-extern int set_filesys_unit (int nr,
-	const TCHAR *devname, const TCHAR *volname, const TCHAR *rootdir, bool readonly,
-	int cyls, int secspertrack, int surfaces, int reserved,
-	int blocksize, int bootpri, bool donotmount, bool autoboot,
-	const TCHAR *filesysdir, int hdc, int flags);
-extern int add_filesys_unit (const TCHAR *devname, const TCHAR *volname, const TCHAR *rootdir, bool readonly,
-	int cyls, int secspertrack, int surfaces, int reserved,
-	int blocksize, int bootpri, bool donotmount, bool autoboot,
-	const TCHAR *filesysdir, int hdc, int flags);
-extern int kill_filesys_unitconfig (struct uae_prefs *, int);
 extern void clearallkeys (void);
 
 
@@ -524,8 +513,8 @@ static void set_hd_state (void)
 		gtk_clist_append (GTK_CLIST (hdlist_widget), tptrs);
     }
     gtk_clist_thaw (GTK_CLIST (hdlist_widget));
-    gtk_widget_set_sensitive (hdchange_button, FALSE);
-    gtk_widget_set_sensitive (hddel_button, FALSE);
+    gtk_widget_set_sensitive (hdchange_button, false);
+    gtk_widget_set_sensitive (hddel_button, false);
     DEBUG_LOG ("set_hd_state done\n");
 }
 #endif
@@ -853,7 +842,7 @@ static void on_quit_clicked (void)
 
 static void on_pause_clicked (GtkWidget *widget, gpointer data)
 {
-    DEBUG_LOG ("Called with %d\n", GTK_TOGGLE_BUTTON (widget)->active == TRUE );
+    DEBUG_LOG ("Called with %d\n", GTK_TOGGLE_BUTTON (widget)->active == true );
 
     if (!quit_gui) {
 		write_comm_pipe_int (&from_gui_pipe, GTK_TOGGLE_BUTTON (widget)->active ? UAECMD_PAUSE : UAECMD_RESUME, 1);
@@ -965,36 +954,36 @@ static void did_romchange (GtkWidget *w, gpointer data)
 
 static void add_empty_vbox (GtkWidget *tobox)
 {
-    GtkWidget *thing = gtk_vbox_new (FALSE, 0);
+    GtkWidget *thing = gtk_vbox_new (false, 0);
     gtk_widget_show (thing);
-    gtk_box_pack_start (GTK_BOX (tobox), thing, TRUE, TRUE, 0);
+    gtk_box_pack_start (GTK_BOX (tobox), thing, true, true, 0);
 }
 
 static void add_empty_hbox (GtkWidget *tobox)
 {
-    GtkWidget *thing = gtk_hbox_new (FALSE, 0);
+    GtkWidget *thing = gtk_hbox_new (false, 0);
     gtk_widget_show (thing);
-    gtk_box_pack_start (GTK_BOX (tobox), thing, TRUE, TRUE, 0);
+    gtk_box_pack_start (GTK_BOX (tobox), thing, true, true, 0);
 }
 
 static void add_centered_to_vbox (GtkWidget *vbox, GtkWidget *w)
 {
-    GtkWidget *hbox = gtk_hbox_new (TRUE, 0);
+    GtkWidget *hbox = gtk_hbox_new (true, 0);
     gtk_widget_show (hbox);
-    gtk_box_pack_start (GTK_BOX (hbox), w, TRUE, FALSE, 0);
-    gtk_box_pack_start (GTK_BOX (vbox), hbox, FALSE, TRUE, 0);
+    gtk_box_pack_start (GTK_BOX (hbox), w, true, false, 0);
+    gtk_box_pack_start (GTK_BOX (vbox), hbox, false, true, 0);
 }
 
 static GtkWidget *make_labelled_widget (const char *str, GtkWidget *thing)
 {
     GtkWidget *label = gtk_label_new (str);
-    GtkWidget *hbox2 = gtk_hbox_new (FALSE, 4);
+    GtkWidget *hbox2 = gtk_hbox_new (false, 4);
 
     gtk_widget_show (label);
     gtk_widget_show (thing);
 
-    gtk_box_pack_start (GTK_BOX (hbox2), label, FALSE, TRUE, 0);
-    gtk_box_pack_start (GTK_BOX (hbox2), thing, FALSE, TRUE, 0);
+    gtk_box_pack_start (GTK_BOX (hbox2), label, false, true, 0);
+    gtk_box_pack_start (GTK_BOX (hbox2), thing, false, true, 0);
 
     return hbox2;
 }
@@ -1033,7 +1022,7 @@ static GtkWidget *make_radio_group_box (const char *title, const char **labels,
     GtkWidget *frame, *newbox;
 
     frame = gtk_frame_new (title);
-    newbox = (horiz ? gtk_hbox_new : gtk_vbox_new) (FALSE, 4);
+    newbox = (horiz ? gtk_hbox_new : gtk_vbox_new) (false, 4);
     gtk_widget_show (newbox);
     gtk_container_set_border_width (GTK_CONTAINER (newbox), 4);
     gtk_container_add (GTK_CONTAINER (frame), newbox);
@@ -1050,13 +1039,13 @@ static GtkWidget *make_radio_group_box_1 (const char *title, const char **labels
     GSList *group = 0;
 
     frame = gtk_frame_new (title);
-    column = (horiz ? gtk_vbox_new : gtk_hbox_new) (FALSE, 4);
+    column = (horiz ? gtk_vbox_new : gtk_hbox_new) (false, 4);
     gtk_container_add (GTK_CONTAINER (frame), column);
     gtk_widget_show (column);
 
     while (*labels) {
 	int count;
-	newbox = (horiz ? gtk_hbox_new : gtk_vbox_new) (FALSE, 4);
+	newbox = (horiz ? gtk_hbox_new : gtk_vbox_new) (false, 4);
 	gtk_widget_show (newbox);
 	gtk_container_set_border_width (GTK_CONTAINER (newbox), 4);
 	gtk_container_add (GTK_CONTAINER (column), newbox);
@@ -1072,11 +1061,11 @@ static GtkWidget *make_radio_group_box_1 (const char *title, const char **labels
 static GtkWidget *make_file_container (const char *title, GtkWidget *vbox)
 {
     GtkWidget *thing = gtk_frame_new (title);
-    GtkWidget *buttonbox = gtk_hbox_new (FALSE, 4);
+    GtkWidget *buttonbox = gtk_hbox_new (false, 4);
 
     gtk_container_set_border_width (GTK_CONTAINER (buttonbox), 4);
     gtk_container_add (GTK_CONTAINER (thing), buttonbox);
-    gtk_box_pack_start (GTK_BOX (vbox), thing, FALSE, TRUE, 0);
+    gtk_box_pack_start (GTK_BOX (vbox), thing, false, true, 0);
     gtk_widget_show (buttonbox);
     gtk_widget_show (thing);
 
@@ -1089,14 +1078,14 @@ static GtkWidget *make_file_widget (GtkWidget *buttonbox)
     GtkWidget *subframe = gtk_frame_new (NULL);
 
     gtk_frame_set_shadow_type (GTK_FRAME (subframe), GTK_SHADOW_ETCHED_OUT);
-    gtk_box_pack_start (GTK_BOX (buttonbox), subframe, TRUE, TRUE, 0);
+    gtk_box_pack_start (GTK_BOX (buttonbox), subframe, true, true, 0);
     gtk_widget_show (subframe);
-    subthing = gtk_vbox_new (FALSE, 0);
+    subthing = gtk_vbox_new (false, 0);
     gtk_widget_show (subthing);
     gtk_container_add (GTK_CONTAINER (subframe), subthing);
     thing = gtk_label_new ("");
     gtk_widget_show (thing);
-    gtk_box_pack_start (GTK_BOX (subthing), thing, TRUE, TRUE, 0);
+    gtk_box_pack_start (GTK_BOX (subthing), thing, true, true, 0);
 
     return thing;
 }
@@ -1110,7 +1099,7 @@ static void make_floppy_disks (GtkWidget *vbox)
     add_empty_vbox (vbox);
     GtkWidget *frame = make_radio_group_box ("Floppy Drive Speed", drv_speed_labels, drvspeed_widget, 1, drvspeed_changed);
     gtk_widget_show (frame);
-    gtk_box_pack_start (GTK_BOX (vbox), frame, FALSE, TRUE, 0);
+    gtk_box_pack_start (GTK_BOX (vbox), frame, false, true, 0);
 
     add_empty_vbox (vbox);
     for (i = 0; i < 4; i++) {
@@ -1122,7 +1111,7 @@ static void make_floppy_disks (GtkWidget *vbox)
 	floppyfileentry_set_drivename (FLOPPYFILEENTRY (floppy_widget[i]), buf);
 	floppyfileentry_set_label (FLOPPYFILEENTRY (floppy_widget[i]), buf);
 	floppyfileentry_set_currentdir (FLOPPYFILEENTRY (floppy_widget[i]), currprefs.path_floppy.path[i]);
-	gtk_box_pack_start (GTK_BOX (vbox), floppy_widget[i], FALSE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (vbox), floppy_widget[i], false, true, 0);
 	gtk_widget_show (floppy_widget[i]);
 	gtk_signal_connect (GTK_OBJECT (floppy_widget[i]), "disc-changed", (GtkSignalFunc) disc_changed, GINT_TO_POINTER (i));
     }
@@ -1181,7 +1170,7 @@ static void did_sstate_save (GtkWidget *w, gpointer data)
 
 static void make_ss_widgets (GtkWidget *vbox)
 {
-	GtkWidget *hbox = gtk_hbox_new (FALSE, 10);
+	GtkWidget *hbox = gtk_hbox_new (false, 10);
 
 	add_empty_vbox (vbox);
 
@@ -1193,11 +1182,11 @@ static void make_ss_widgets (GtkWidget *vbox)
 	/* Current file display */
 	sstate_text_widget = make_file_widget (buttonbox);
 
-	gtk_box_pack_start (GTK_BOX (buttonbox), thing, FALSE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (buttonbox), thing, false, true, 0);
 	gtk_widget_show (thing);
-	gtk_box_pack_start (GTK_BOX (buttonbox), thing_load, FALSE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (buttonbox), thing_load, false, true, 0);
 	gtk_widget_show (thing_load);
-	gtk_box_pack_start (GTK_BOX (buttonbox), thing_save, FALSE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (buttonbox), thing_save, false, true, 0);
 	gtk_widget_show (thing_save);
 
 	sstate_change_widget = thing;
@@ -1219,14 +1208,14 @@ static void leds_on_screen_changed (void)
 
 static void make_misc_widgets (GtkWidget *vbox)
 {
-	GtkWidget *hbox = gtk_hbox_new (FALSE, 10);
+	GtkWidget *hbox = gtk_hbox_new (false, 10);
 
 	add_empty_vbox (vbox);
 
 	leds_on_screen_widget = gtk_check_button_new_with_label ("Status Line");
 	gtk_signal_connect (GTK_OBJECT (leds_on_screen_widget), "clicked", (GtkSignalFunc) leds_on_screen_changed, 0);
 	gtk_widget_show (leds_on_screen_widget);
-	gtk_box_pack_start (GTK_BOX (hbox), leds_on_screen_widget, FALSE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (hbox), leds_on_screen_widget, false, true, 0);
 
     gtk_widget_show (hbox);
     add_centered_to_vbox (vbox, hbox);
@@ -1292,7 +1281,7 @@ static void make_cpu_widgets (GtkWidget *vbox)
     add_table_padding (table, 0, 0);
     add_table_padding (table, 4, 4);
     add_table_padding (table, 1, 2);
-    gtk_box_pack_start (GTK_BOX (vbox), table, TRUE, TRUE, 0);
+    gtk_box_pack_start (GTK_BOX (vbox), table, true, true, 0);
 
     ctpanel = cputypepanel_new();
     gtk_table_attach (GTK_TABLE (table), ctpanel, 1, 4, 1, 2,
@@ -1358,7 +1347,7 @@ static void make_chipset_widgets (GtkWidget *vbox)
     add_table_padding (table, 0, 0);
     add_table_padding (table, 4, 4);
     add_table_padding (table, 1, 2);
-    gtk_box_pack_start (GTK_BOX (vbox), table, TRUE, TRUE, 0);
+    gtk_box_pack_start (GTK_BOX (vbox), table, true, true, 0);
 
     chipsettype_panel = chipsettypepanel_new ();
     gtk_table_attach (GTK_TABLE (table), chipsettype_panel, 1, 4, 1, 2,
@@ -1387,7 +1376,7 @@ static void make_cpu_widgets2 (GtkWidget *vbox)
 		"None", "68881", "68882", "CPU Internal", NULL
 	};
 
-	GtkWidget *hbox = gtk_hbox_new (FALSE, 10);
+	GtkWidget *hbox = gtk_hbox_new (false, 10);
 	GtkWidget *frame, *newbox, *newbox2;
 	add_empty_vbox (vbox);
 
@@ -1398,32 +1387,32 @@ static void make_cpu_widgets2 (GtkWidget *vbox)
 	//cpu emulation
 	newbox = make_radio_group_box ("CPU", cpu_labels, cpu_widget, 0, cpu_changed);
 	gtk_widget_show (newbox);
-	gtk_box_pack_start (GTK_BOX (hbox), newbox, FALSE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (hbox), newbox, false, true, 0);
 
 	newbox2 = gtk_check_button_new_with_label ("24-bit addressing");
 	gtk_widget_show (newbox2);
-	gtk_box_pack_start (GTK_BOX (newbox), newbox2, FALSE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (newbox), newbox2, false, true, 0);
 
 	newbox2 = gtk_check_button_new_with_label ("More compatible");
 	gtk_widget_show (newbox2);
-	gtk_box_pack_start (GTK_BOX (newbox), newbox2, FALSE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (newbox), newbox2, false, true, 0);
 
 	newbox = gtk_check_button_new_with_label ("JIT");
 	gtk_widget_show (newbox);
-	gtk_box_pack_start (GTK_BOX (hbox), newbox, FALSE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (hbox), newbox, false, true, 0);
 
 	newbox = gtk_check_button_new_with_label ("68040 MMU");
 	gtk_widget_show (newbox);
-	gtk_box_pack_start (GTK_BOX (hbox), newbox, FALSE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (hbox), newbox, false, true, 0);
 
 	//fpu mode
 	newbox = make_radio_group_box ("FPU", fpu_labels, fpu_widget, 0, fpu_changed);
 	gtk_widget_show (newbox);
-	gtk_box_pack_start (GTK_BOX (hbox), newbox, FALSE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (hbox), newbox, false, true, 0);
 
 	newbox = gtk_check_button_new_with_label ("More compatible");
 	gtk_widget_show (newbox);
-	gtk_box_pack_start (GTK_BOX (hbox), newbox, FALSE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (hbox), newbox, false, true, 0);
 }
 
 static void make_sound_widgets (GtkWidget *vbox)
@@ -1438,7 +1427,7 @@ static void make_sound_widgets (GtkWidget *vbox)
 	"Mono", "Stereo", "Mixed", NULL
 	};
 
-	GtkWidget *hbox = gtk_hbox_new (FALSE, 10);
+	GtkWidget *hbox = gtk_hbox_new (false, 10);
 	GtkWidget *frame, *newbox;
 	add_empty_vbox (vbox);
 
@@ -1451,30 +1440,30 @@ static void make_sound_widgets (GtkWidget *vbox)
 	gtk_widget_set_sensitive (sound_widget[2], sound_available);
 	gtk_widget_set_sensitive (sound_widget[3], sound_available);
 	gtk_widget_show (newbox);
-	gtk_box_pack_start (GTK_BOX (hbox), newbox, FALSE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (hbox), newbox, false, true, 0);
 
 	//channel mode
     newbox = make_radio_group_box ("Channels", snd_ch_labels, sound_ch_widget, 0, sound_changed);
     gtk_widget_set_sensitive (newbox, sound_available);
     gtk_widget_show (newbox);
-    gtk_box_pack_start (GTK_BOX (hbox), newbox, FALSE, TRUE, 0);
+    gtk_box_pack_start (GTK_BOX (hbox), newbox, false, true, 0);
 
 	//interpolation
     newbox = make_radio_group_box ("Interpolation", snd_in_labels, sound_in_widget, 0, sound_changed);
     gtk_widget_set_sensitive (newbox, sound_available);
     gtk_widget_show (newbox);
-    gtk_box_pack_start (GTK_BOX (hbox), newbox, FALSE, TRUE, 0);
+    gtk_box_pack_start (GTK_BOX (hbox), newbox, false, true, 0);
 
 	//audio filter
     newbox = make_radio_group_box ("Audio Filter", snd_fl_labels, sound_fl_widget, 0, sound_changed);
     gtk_widget_set_sensitive (newbox, sound_available);
     gtk_widget_show (newbox);
-    gtk_box_pack_start (GTK_BOX (hbox), newbox, FALSE, TRUE, 0);
+    gtk_box_pack_start (GTK_BOX (hbox), newbox, false, true, 0);
 }
 
 static void make_mem_widgets (GtkWidget *vbox)
 {
-    GtkWidget *hbox = gtk_hbox_new (FALSE, 10);
+    GtkWidget *hbox = gtk_hbox_new (false, 10);
     GtkWidget *label, *frame;
 
     static const char *chiplabels[] = {
@@ -1504,7 +1493,7 @@ static void make_mem_widgets (GtkWidget *vbox)
 	/* Current file display */
 	rom_text_widget = make_file_widget (buttonbox);
 
-	gtk_box_pack_start (GTK_BOX (buttonbox), thing, FALSE, TRUE, 0);
+	gtk_box_pack_start (GTK_BOX (buttonbox), thing, false, true, 0);
 	gtk_widget_show (thing);
 	rom_change_widget = thing;
 	gtk_signal_connect (GTK_OBJECT (thing), "clicked", (GtkSignalFunc) did_romchange, 0);
@@ -1517,24 +1506,24 @@ static void make_mem_widgets (GtkWidget *vbox)
 
     frame = make_radio_group_box ("Chip Mem", chiplabels, chipsize_widget, 0, chipsize_changed);
     gtk_widget_show (frame);
-    gtk_box_pack_start (GTK_BOX (hbox), frame, FALSE, TRUE, 0);
+    gtk_box_pack_start (GTK_BOX (hbox), frame, false, true, 0);
 
     frame = make_radio_group_box ("Slow Mem", bogolabels, bogosize_widget, 0, bogosize_changed);
     gtk_widget_show (frame);
-    gtk_box_pack_start (GTK_BOX (hbox), frame, FALSE, TRUE, 0);
+    gtk_box_pack_start (GTK_BOX (hbox), frame, false, true, 0);
 
     frame = make_radio_group_box ("Fast Mem", fastlabels, fastsize_widget, 0, fastsize_changed);
     gtk_widget_show (frame);
-    gtk_box_pack_start (GTK_BOX (hbox), frame, FALSE, TRUE, 0);
+    gtk_box_pack_start (GTK_BOX (hbox), frame, false, true, 0);
 
     frame = make_radio_group_box_1 ("Z3 Mem", z3labels, z3size_widget, 0, z3size_changed, 5);
     gtk_widget_show (frame);
-    gtk_box_pack_start (GTK_BOX (hbox), frame, FALSE, TRUE, 0);
+    gtk_box_pack_start (GTK_BOX (hbox), frame, false, true, 0);
 
 #ifdef PICASSO96
     frame = make_radio_group_box_1 ("P96 RAM", p96labels, p96size_widget, 0, p96size_changed, 4);
     gtk_widget_show (frame);
-    gtk_box_pack_start (GTK_BOX (hbox), frame, FALSE, TRUE, 0);
+    gtk_box_pack_start (GTK_BOX (hbox), frame, false, true, 0);
 #endif
 
     memorypanel = hbox;
@@ -1632,7 +1621,7 @@ static void make_joy_widgets (GtkWidget *dvbox)
 {
     int i;
     int joy_count = inputdevice_get_device_total (IDTYPE_JOYSTICK);
-    GtkWidget *hbox = gtk_hbox_new (FALSE, 12);
+    GtkWidget *hbox = gtk_hbox_new (false, 12);
 
     static const char *joylabels[] = {
 		"None",
@@ -1660,7 +1649,7 @@ static void make_joy_widgets (GtkWidget *dvbox)
 		sprintf (buffer, "Port %d", i);
 		frame = make_radio_group_box (buffer, joylabels, joy_widget[i], 0, joy_changed);
 		gtk_widget_show (frame);
-		gtk_box_pack_start (GTK_BOX (hbox), frame, FALSE, TRUE, 0);
+		gtk_box_pack_start (GTK_BOX (hbox), frame, false, true, 0);
 
 		if (joy_count < 2)
 		    gtk_widget_set_sensitive (joy_widget[i][2], 0);
@@ -1735,7 +1724,7 @@ static void did_dirdlg_select (GtkObject *o, gpointer entry )
     assert( GTK_IS_ENTRY(entry) );
     path_selector = gtk_file_selection_new ("Select a folder to mount");
     gtk_file_selection_set_filename (GTK_FILE_SELECTION (path_selector), gtk_entry_get_text (GTK_ENTRY (entry)));
-    gtk_window_set_modal (GTK_WINDOW (path_selector), TRUE);
+    gtk_window_set_modal (GTK_WINDOW (path_selector), true);
 
     gtk_signal_connect (GTK_OBJECT (GTK_FILE_SELECTION(path_selector)->ok_button),
 					  "clicked", GTK_SIGNAL_FUNC (did_dirdlg_done_select),
@@ -1775,47 +1764,47 @@ static void create_dirdlg (const char *title)
 
     gtk_window_set_title (GTK_WINDOW (dirdlg), title);
     gtk_window_set_position (GTK_WINDOW (dirdlg), GTK_WIN_POS_MOUSE);
-    gtk_window_set_modal (GTK_WINDOW (dirdlg), TRUE);
+    gtk_window_set_modal (GTK_WINDOW (dirdlg), true);
     gtk_widget_show (dirdlg);
 
     dialog_vbox = GTK_DIALOG (dirdlg)->vbox;
     gtk_widget_show (dialog_vbox);
 
-    vbox = gtk_vbox_new (FALSE, 0);
+    vbox = gtk_vbox_new (false, 0);
     gtk_widget_show (vbox);
-    gtk_box_pack_start (GTK_BOX (dialog_vbox), vbox, TRUE, FALSE, 0);
+    gtk_box_pack_start (GTK_BOX (dialog_vbox), vbox, true, false, 0);
 
     frame = gtk_frame_new ("Mount host folder");
     gtk_widget_show (frame);
-    gtk_box_pack_start (GTK_BOX (vbox), frame, FALSE, FALSE, 0);
+    gtk_box_pack_start (GTK_BOX (vbox), frame, false, false, 0);
     gtk_container_set_border_width (GTK_CONTAINER (frame), 8);
 
-    hbox = gtk_hbox_new (FALSE, 4);
+    hbox = gtk_hbox_new (false, 4);
     gtk_widget_show (hbox);
     gtk_container_add (GTK_CONTAINER (frame), hbox);
     gtk_container_set_border_width (GTK_CONTAINER (hbox), 8);
 
     label  = gtk_label_new ("Path");
-    gtk_box_pack_start (GTK_BOX (hbox), label, FALSE, FALSE, 0);
+    gtk_box_pack_start (GTK_BOX (hbox), label, false, false, 0);
     gtk_widget_show (label);
 
     thing = gtk_entry_new_with_max_length (255);
     gtk_signal_connect (GTK_OBJECT (thing), "changed", (GtkSignalFunc) dirdlg_on_change, (gpointer) NULL);
-    gtk_box_pack_start (GTK_BOX (hbox), thing, TRUE, TRUE, 0);
+    gtk_box_pack_start (GTK_BOX (hbox), thing, true, true, 0);
     gtk_widget_show (thing);
     path_entry = thing;
 
     button = gtk_button_new_with_label ("Select...");
     gtk_signal_connect (GTK_OBJECT (button), "clicked", (GtkSignalFunc) did_dirdlg_select, (gpointer) path_entry);
-    gtk_box_pack_start (GTK_BOX (hbox), button, FALSE, FALSE, 0);
+    gtk_box_pack_start (GTK_BOX (hbox), button, false, false, 0);
     gtk_widget_show (button);
 
     frame = gtk_frame_new ("As Amiga disk");
     gtk_widget_show (frame);
-    gtk_box_pack_start (GTK_BOX (vbox), frame, FALSE, FALSE, 0);
+    gtk_box_pack_start (GTK_BOX (vbox), frame, false, false, 0);
     gtk_container_set_border_width (GTK_CONTAINER (frame), 8);
 
-    table = gtk_table_new (3, 4, FALSE);
+    table = gtk_table_new (3, 4, false);
     gtk_widget_show (table);
     gtk_container_add (GTK_CONTAINER (frame), table);
     gtk_container_set_border_width (GTK_CONTAINER (table), 8);
@@ -1858,20 +1847,20 @@ static void create_dirdlg (const char *title)
 
     hbox = gtk_hbutton_box_new();
     gtk_button_box_set_layout (GTK_BUTTON_BOX (hbox), GTK_BUTTONBOX_END);
-    gtk_box_pack_start (GTK_BOX (dialog_hbox), hbox, TRUE, TRUE, 0);
+    gtk_box_pack_start (GTK_BOX (dialog_hbox), hbox, true, true, 0);
     gtk_widget_show (hbox);
 
     button = gtk_button_new_with_label ("OK");
-    gtk_widget_set_sensitive (GTK_WIDGET (button), FALSE);
+    gtk_widget_set_sensitive (GTK_WIDGET (button), false);
     gtk_signal_connect (GTK_OBJECT (button), "clicked", GTK_SIGNAL_FUNC(newdir_ok), NULL);
-    gtk_box_pack_start (GTK_BOX (hbox), button, TRUE, TRUE, 0);
+    gtk_box_pack_start (GTK_BOX (hbox), button, true, true, 0);
     gtk_widget_show (button);
     dirdlg_ok = button;
 
     button = gtk_button_new_with_label ("Cancel");
     gtk_signal_connect_object (GTK_OBJECT (button), "clicked", GTK_SIGNAL_FUNC (gtk_widget_destroy), GTK_OBJECT (dirdlg));
     GTK_WIDGET_SET_FLAGS (button, GTK_CAN_DEFAULT);
-    gtk_box_pack_start (GTK_BOX (hbox), button, TRUE, TRUE, 0);
+    gtk_box_pack_start (GTK_BOX (hbox), button, true, true, 0);
     gtk_widget_grab_default (button);
     gtk_widget_show (button);
 }
@@ -1921,15 +1910,15 @@ static void hdselect (GtkWidget *widget, gint row, gint column, GdkEventButton *
 		      gpointer user_data)
 {
     selected_hd_row = row;
-    gtk_widget_set_sensitive (hdchange_button, TRUE);
-    gtk_widget_set_sensitive (hddel_button, TRUE);
+    gtk_widget_set_sensitive (hdchange_button, true);
+    gtk_widget_set_sensitive (hddel_button, true);
 }
 
 static void hdunselect (GtkWidget *widget, gint row, gint column, GdkEventButton *bevent,
 			gpointer user_data)
 {
-    gtk_widget_set_sensitive (hdchange_button, FALSE);
-    gtk_widget_set_sensitive (hddel_button, FALSE);
+    gtk_widget_set_sensitive (hdchange_button, false);
+    gtk_widget_set_sensitive (hddel_button, false);
 }
 #endif // FILESYS
 
@@ -1938,7 +1927,7 @@ static GtkWidget *make_buttons (const char *label, GtkWidget *box, void (*sigfun
     GtkWidget *thing = create (label);
     gtk_widget_show (thing);
     gtk_signal_connect (GTK_OBJECT (thing), "clicked", (GtkSignalFunc) sigfunc, NULL);
-    gtk_box_pack_start (GTK_BOX (box), thing, TRUE, TRUE, 0);
+    gtk_box_pack_start (GTK_BOX (box), thing, true, true, 0);
 
     return thing;
 }
@@ -1955,16 +1944,16 @@ static void make_hd_widgets (GtkWidget *dvbox)
 
     frame = gtk_frame_new (NULL);
     gtk_widget_show (frame);
-    gtk_box_pack_start (GTK_BOX (dvbox), frame, TRUE, TRUE, 0);
+    gtk_box_pack_start (GTK_BOX (dvbox), frame, true, true, 0);
     gtk_container_set_border_width (GTK_CONTAINER (frame), 8);
 
-    vbox = gtk_vbox_new (FALSE, 0);
+    vbox = gtk_vbox_new (false, 0);
     gtk_widget_show (vbox);
     gtk_container_add (GTK_CONTAINER (frame), vbox);
 
     scrollbox = gtk_scrolled_window_new (NULL, NULL);
     gtk_widget_show (scrollbox);
-    gtk_box_pack_start (GTK_BOX (vbox), scrollbox, TRUE, TRUE, 0);
+    gtk_box_pack_start (GTK_BOX (vbox), scrollbox, true, true, 0);
     gtk_container_set_border_width (GTK_CONTAINER (scrollbox), 8);
     gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrollbox), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 
@@ -1980,7 +1969,7 @@ static void make_hd_widgets (GtkWidget *dvbox)
     /* The buttons */
     buttonbox = gtk_hbutton_box_new ();
     gtk_widget_show (buttonbox);
-    gtk_box_pack_start (GTK_BOX (vbox), buttonbox, FALSE, FALSE, 0);
+    gtk_box_pack_start (GTK_BOX (vbox), buttonbox, false, false, 0);
     gtk_container_set_border_width (GTK_CONTAINER (buttonbox), 8);
     gtk_button_box_set_layout (GTK_BUTTON_BOX (buttonbox), GTK_BUTTONBOX_SPREAD);
 
@@ -2040,7 +2029,7 @@ static gint did_guidlg_delete (GtkWidget* window, GdkEventAny* e, gpointer data)
     if (!quit_gui)
 	write_comm_pipe_int (&from_gui_pipe, UAECMD_QUIT, 1);
     gui_window = 0;
-    return FALSE;
+    return false;
 }
 
 static void on_menu_saveconfig (void)
@@ -2097,14 +2086,14 @@ static void create_guidlg (void)
     gtk_window_set_title (GTK_WINDOW (gui_window), PACKAGE_NAME " control");
     gtk_signal_connect (GTK_OBJECT(gui_window), "delete_event", GTK_SIGNAL_FUNC(did_guidlg_delete), NULL);
 
-    vbox = gtk_vbox_new (FALSE, 5);
+    vbox = gtk_vbox_new (false, 5);
     gtk_container_add (GTK_CONTAINER (gui_window), vbox);
     gtk_container_set_border_width (GTK_CONTAINER (gui_window), 10);
 
     /* Quick and dirty menu bar */
     menubar = gtk_menu_bar_new();
     gtk_widget_show (menubar);
-    gtk_box_pack_start (GTK_BOX (vbox), menubar, FALSE, FALSE, 0);
+    gtk_box_pack_start (GTK_BOX (vbox), menubar, false, false, 0);
 
     menuitem = gtk_menu_item_new_with_mnemonic ("_File");
     gtk_widget_show (menuitem);
@@ -2121,7 +2110,7 @@ static void create_guidlg (void)
     vstatusbar = gtk_check_menu_item_new_with_label("View Statusbar");
     gtk_widget_show (vstatusbar);
     gtk_container_add (GTK_CONTAINER (menuitem_menu), vstatusbar);
-    gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(vstatusbar), TRUE);
+    gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(vstatusbar), true);
 
     thing = gtk_separator_menu_item_new ();
     gtk_widget_show (thing);
@@ -2133,14 +2122,14 @@ static void create_guidlg (void)
     gtk_signal_connect (GTK_OBJECT(thing), "activate", GTK_SIGNAL_FUNC(on_quit_clicked), NULL);
 
     /* First line - buttons and power LED */
-    hbox = gtk_hbox_new (FALSE, 10);
+    hbox = gtk_hbox_new (false, 10);
     gtk_widget_show (hbox);
-    gtk_box_pack_start (GTK_BOX (vbox), hbox, FALSE, TRUE, 0);
+    gtk_box_pack_start (GTK_BOX (vbox), hbox, false, true, 0);
 
     /* The buttons */
-    buttonbox = gtk_hbox_new (TRUE, 6);
+    buttonbox = gtk_hbox_new (true, 6);
     gtk_widget_show (buttonbox);
-    gtk_box_pack_start (GTK_BOX (hbox), buttonbox, TRUE, TRUE, 0);
+    gtk_box_pack_start (GTK_BOX (hbox), buttonbox, true, true, 0);
     start_uae_widget = make_button  ("Start", buttonbox, on_start_clicked);
     stop_uae_widget  = make_button  ("Stop",  buttonbox, on_stop_clicked);
     pause_uae_widget = make_buttons ("Pause", buttonbox, (void (*) (void))on_pause_clicked, gtk_toggle_button_new_with_label);
@@ -2153,31 +2142,31 @@ static void create_guidlg (void)
     /* The LED */
     power_led = led_new();
     gtk_widget_show(power_led);
-    thing = gtk_vbox_new(FALSE, 4);
+    thing = gtk_vbox_new(false, 4);
     add_empty_hbox(thing);
     gtk_container_add(GTK_CONTAINER(thing), power_led);
     add_empty_hbox(thing);
     thing = make_labelled_widget ("Power:", thing);
     gtk_widget_show (thing);
-    gtk_box_pack_start (GTK_BOX (hbox), thing, FALSE, TRUE, 0);
+    gtk_box_pack_start (GTK_BOX (hbox), thing, false, true, 0);
 
     /* More buttons */
-    buttonbox = gtk_hbox_new (TRUE, 4);
+    buttonbox = gtk_hbox_new (true, 4);
     gtk_widget_show (buttonbox);
-    gtk_box_pack_start (GTK_BOX (vbox), buttonbox, FALSE, FALSE, 0);
+    gtk_box_pack_start (GTK_BOX (vbox), buttonbox, false, false, 0);
 
     /* Place a separator below those buttons.  */
     thing = gtk_hseparator_new ();
-    gtk_box_pack_start (GTK_BOX (vbox), thing, FALSE, TRUE, 0);
+    gtk_box_pack_start (GTK_BOX (vbox), thing, false, true, 0);
     gtk_widget_show (thing);
 
     /* Now the notebook */
     notebook = gtk_notebook_new ();
-    gtk_box_pack_start (GTK_BOX (vbox), notebook, TRUE, TRUE, 0);
+    gtk_box_pack_start (GTK_BOX (vbox), notebook, true, true, 0);
     gtk_widget_show (notebook);
 
     for (i = 0; i < sizeof pages / sizeof (struct _pages); i++) {
-		thing = gtk_vbox_new (FALSE, 4);
+		thing = gtk_vbox_new (false, 4);
 		gtk_widget_show (thing);
 		gtk_container_set_border_width (GTK_CONTAINER (thing), 10);
 		pages[i].createfunc (thing);
@@ -2189,7 +2178,7 @@ static void create_guidlg (void)
 
     /* Statusbar for FPS etc */
     statusbar = gtk_statusbar_new();
-    gtk_box_pack_end(GTK_BOX(vbox), statusbar, FALSE, TRUE, 1);
+    gtk_box_pack_end(GTK_BOX(vbox), statusbar, false, true, 1);
     gtk_widget_show(statusbar);
     g_signal_connect(G_OBJECT(vstatusbar), "activate", G_CALLBACK(on_vstat_toggle), statusbar);
 
@@ -2518,7 +2507,7 @@ void gui_display (int shortcut)
 	inputdevice_copyconfig (&changed_prefs, &currprefs);
 	inputdevice_config_change_test ();
 	clearallkeys ();
-	inputdevice_acquire (TRUE);
+	inputdevice_acquire (true);
 	setmouseactive (1);
 }
 
@@ -2532,7 +2521,7 @@ void gui_message (const char *format,...)
     va_end (parms);
 
     if (gui_available)
-		do_message_box (NULL, msg, TRUE, TRUE);
+		do_message_box (NULL, msg, true, true);
 
     write_log ("%s", msg);
 }
@@ -2630,22 +2619,22 @@ static GtkWidget *make_message_box (const gchar *title, const gchar *message, in
     gtk_window_set_modal (GTK_WINDOW (dialog), modal);
     gtk_window_set_position (GTK_WINDOW (dialog), GTK_WIN_POS_MOUSE);
 
-    vbox = gtk_vbox_new (FALSE, 0);
+    vbox = gtk_vbox_new (false, 0);
     gtk_widget_show (vbox);
     gtk_container_add (GTK_CONTAINER (dialog), vbox);
 
     label = gtk_label_new (message);
     gtk_widget_show (label);
-    gtk_box_pack_start (GTK_BOX (vbox), label, TRUE, TRUE, 0);
-    gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
+    gtk_box_pack_start (GTK_BOX (vbox), label, true, true, 0);
+    gtk_label_set_line_wrap (GTK_LABEL (label), true);
 
     hseparator = gtk_hseparator_new ();
     gtk_widget_show (hseparator);
-    gtk_box_pack_start (GTK_BOX (vbox), hseparator, FALSE, FALSE, 8);
+    gtk_box_pack_start (GTK_BOX (vbox), hseparator, false, false, 8);
 
     hbuttonbox = gtk_hbutton_box_new ();
     gtk_widget_show (hbuttonbox);
-    gtk_box_pack_start (GTK_BOX (vbox), hbuttonbox, FALSE, FALSE, 0);
+    gtk_box_pack_start (GTK_BOX (vbox), hbuttonbox, false, false, 0);
     gtk_button_box_set_layout (GTK_BUTTON_BOX (hbuttonbox), GTK_BUTTONBOX_END);
     gtk_button_box_set_spacing (GTK_BUTTON_BOX (hbuttonbox), 4);
 

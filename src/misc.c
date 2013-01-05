@@ -12,7 +12,7 @@
 #include "sysdeps.h"
 
 #include "misc.h"
-#include "options.h"
+#include "cfgfile.h"
 #include "memory_uae.h"
 #include "custom.h"
 #include "newcpu.h"
@@ -136,9 +136,7 @@ void serial_check_irq (void);
 void serial_uartbreak (int v);
 void serial_hsynchandler (void);
 void setmouseactivexy (int x, int y, int dir);
-char *au_fs_copy (char *dst, int maxlen, const char *src);
 int get_guid_target (uae_u8 *out);
-char *ua_fs (const char *s, int defchar);
 uae_u8 *save_log (int bootlog, int *len);
 void refreshtitle (void);
 int scan_roms (int show);
@@ -146,11 +144,8 @@ void setid (struct uae_input_device *uid, int i, int slot, int sub, int port, in
 void setid_af (struct uae_input_device *uid, int i, int slot, int sub, int port, int evt, int af);
 void fetch_path (TCHAR *name, TCHAR *out, int size);
 void fetch_screenshotpath (TCHAR *out, int size);
-void close_console (void);
-bool console_isch (void);
-TCHAR console_getch (void);
 struct MultiDisplay *getdisplay (struct uae_prefs *p);
-void addmode (struct MultiDisplay *md, int w, int h, int d, int freq, int rawmode);
+void addmode (struct MultiDisplay *md, uae_u32 w, uae_u32 h, int d, int freq, int rawmode);
 void updatedisplayarea (void);
 double vblank_calibrate (double approx_vblank, bool waitonly);
 frame_time_t vsync_busywait_end (int *flipdelay);
@@ -162,6 +157,17 @@ void doflashscreen (void);
 bool vsync_busywait_do (int *freetime, bool lace, bool oddeven);
 void serialuartbreak (int v);
 void doflashscreen (void);
+
+bool vsync_busywait_do (int *freetime, bool lace, bool oddeven);
+void serialuartbreak (int v);
+void doflashscreen (void);
+
+
+/* external prototypes */
+extern void setmaintitle(void);
+extern int isvsync_chipset (void);
+extern int isvsync_rtg (void);
+
 
 void getgfxoffset (int *dxp, int *dyp, int *mxp, int *myp)
 {
@@ -429,7 +435,7 @@ int get_guid_target (uae_u8 *out)
 	out[5] = Data2 >>  0;
 	out[6] = Data3 >>  8;
 	out[7] = Data3 >>  0;
-	memcpy (out + 8, Data4, 8);
+	memcpy (out + 8, (void*)(size_t)Data4, 8);
 	return 1;
 }
 
@@ -546,10 +552,15 @@ uae_u8 *save_log (int bootlog, int *len)
 		size = 30000;
 	if (size > 0) {
 		dst = xcalloc (uae_u8, size + 1);
+		if (dst && fread (dst, 1, size, f))
+			*len = size + 1;
+		else {
 		if (dst)
-			fread (dst, 1, size, f);
+				xfree(dst);
+			*len = 0;
+			dst  = NULL;
+		}
 		fclose (f);
-		*len = size + 1;
 	}
 	return dst;
 }
@@ -984,7 +995,7 @@ int isfullscreen (void)
 	return isfullscreen_2 (&currprefs);
 }
 
-void addmode (struct MultiDisplay *md, int w, int h, int d, int freq, int rawmode)
+void addmode (struct MultiDisplay *md, uae_u32 w, uae_u32 h, int d, int freq, int rawmode)
 {
 	int ct;
 	int i, j;
@@ -1176,9 +1187,9 @@ static void changevblankthreadmode_do (int newmode, bool fast)
 //		CloseHandle (flipevent);
 //		CloseHandle (flipevent2);
 //		CloseHandle (vblankwaitevent);
-		flipevent = NULL;
-		flipevent2 = NULL;
-		vblankwaitevent = NULL;
+		flipevent = 0;
+		flipevent2 = 0;
+		vblankwaitevent = 0;
 	}
 	if (!fast) {
 		while (t == vblankthread_counter && vblankthread_mode > 0);
@@ -1203,7 +1214,7 @@ static void waitflipevent (void)
 }
 static void doflipevent (void)
 {
-	if (flipevent == NULL)
+	if (!flipevent)
 		return;
 	waitflipevent ();
 	flipevent_mode = 1;
@@ -1242,7 +1253,7 @@ static int maxscanline, minscanline, prevvblankpos;
 
 static bool getvblankpos (int *vp)
 {
-	int sl;
+	int sl = 0;
 #if 0
 	frame_time_t t = read_processor_time ();
 #endif
@@ -1600,6 +1611,7 @@ frame_time_t vsync_busywait_end (int *flipdelay)
 		return vblank_prev_time;
 	}
 */
+	return 0;
 }
 
 void vsync_busywait_start (void)
@@ -1785,6 +1797,7 @@ uae_u32 getlocaltime (void)
         t.QuadPart -= 11644473600000 * 10000;
         return (uae_u32)(t.QuadPart / 10000000);
 */
+	return 0;
 }
 
 /*

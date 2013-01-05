@@ -150,7 +150,6 @@ AC_MSG_RESULT( $QT_INSTALL_HEADERS )
 AC_MSG_CHECKING(QT LIBS via qmake)
 QT_INSTALL_LIBS=`$QMAKE -query QT_INSTALL_LIBS 2>&1`
 AC_MSG_RESULT( $QT_INSTALL_LIBS )
-
 fi
 
 dnl
@@ -870,6 +869,7 @@ if [[ "x$DO_PROFILING" = "xyes" ]]; then
 fi
 
 UAE_CFLAGS="$OPTIMIZE_CFLAGS $DEBUG_CFLAGS $WARNING_CFLAGS"
+UAE_CXXFLAGS="$UAE_CFLAGS"
 
 
 dnl -----------------------------------------------
@@ -1281,7 +1281,10 @@ dnl
  if [[ "x$WANT_SDL_UI" = "xyes" ]]; then
   if [[ "x$HAVE_SDL" = "xyes" ]]; then
       GUI_DEP=gui-sdl
-      GUI_LIBS="$SDL_LIBS -framework SDL_ttf -framework SDL_image"
+      GUI_LIBS="$SDL_LIBS"
+      if [[ "x$OSDEP" = "xod-macosx" ]]; then
+        GUI_LIBS="${GUI_LIBS} -framework SDL_ttf -framework SDL_image"
+      fi
       GUI_NAME="SDL"
       GUI_CFLAGS="$SDL_CFLAGS -DSDL_UI"
       if [[ "x$WANT_SDLGL" = "xyes" ]]; then
@@ -2071,7 +2074,9 @@ AC_MSG_NOTICE([================================================================]
 
 UAE_LIBS="$GUI_LIBS $GFX_LIBS $SND_LIBS $JOY_LIBS $UAE_LIBS"
 UAE_CPPFLAGS="$UAE_CPPFLAGS $UAE_DEFINES $GFX_CPPFLAGS"
-UAE_CFLAGS="$OPTIMIZED_FLAGS $UAE_CFLAGS $GUI_CFLAGS $GFX_CFLAGS $SND_CFLAGS $JOY_CFLAGS -std=c99"
+UAE_CFLAGS="$OPTIMIZED_FLAGS $UAE_CFLAGS $GUI_CFLAGS $GFX_CFLAGS $SND_CFLAGS $JOY_CFLAGS"
+UAE_CXXFLAGS="$UAE_CXXFLAGS $UAE_CFLAGS -std=c++11"
+UAE_CFLAGS="$UAE_CFLAGS -std=c99"
 
 AC_CONFIG_LINKS(src/target.h:src/targets/$TARGETDEP)
 AC_CONFIG_LINKS(src/machdep:src/$MACHDEP)
@@ -2149,6 +2154,7 @@ AM_CONDITIONAL(SDL_UI, test x$WANT_SDL_UI = xyes)
 
 AC_SUBST(UAE_CFLAGS)
 AC_SUBST(UAE_CPPFLAGS)
+AC_SUBST(UAE_CXXFLAGS)
 AC_SUBST(UAE_LIBS)
 
 AC_SUBST(ac_cv_c_inline)

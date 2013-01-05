@@ -23,6 +23,7 @@
 #include "threaddep/thread.h"
 #include "bsdsocket.h"
 #include "native2amiga.h"
+#include "misc.h"
 
 #ifdef BSDSOCKET
 
@@ -72,7 +73,7 @@ uae_u32 addstr (uae_u32 * dst, const TCHAR *src)
 	xfree (s);
 	return res;
 }
-uae_u32 addstr_ansi (uae_u32 * dst, const uae_char *src)
+static uae_u32 addstr_ansi (uae_u32 * dst, const uae_char *src)
 {
 	uae_u32 res = *dst;
 	int len;
@@ -150,7 +151,7 @@ void bsdsocklib_setherrno (SB, int sb_herrno)
 	}
 }
 
-BOOL checksd(SB, int sd)
+bool checksd(SB, int sd)
 {
 	int iCounter;
 	SOCKET s;
@@ -161,17 +162,17 @@ BOOL checksd(SB, int sd)
 			if (iCounter != sd) {
 				if (getsock(sb,iCounter) == s) {
 					releasesock(sb,sd);
-					return TRUE;
+					return true;
 				}
 			}
 		}
 		for (iCounter  = 0; iCounter < SOCKPOOLSIZE; iCounter++) {
 			if (s == sockdata->sockpoolsocks[iCounter])
-				return TRUE;
+				return true;
 		}
 	}
 	BSDTRACE((_T("checksd FALSE s 0x%x sd %d\n"),s,sd));
-	return FALSE;
+	return false;
 }
 
 void setsd(SB, int sd, SOCKET_TYPE s)

@@ -36,6 +36,7 @@
 #include "rommgr.h"
 #include "inputrecord.h"
 #include "calc.h"
+#include "misc.h"
 
 /* internal members */
 int debugger_active;
@@ -258,7 +259,7 @@ static int readregx (TCHAR **c, uae_u32 *valp)
 	i = 0;
 	while (p[i]) {
 		tmp[i] = _totupper (p[i]);
-		if (i >= sizeof (tmp) / sizeof (TCHAR) - 1)
+		if (i >= (int)( (sizeof (tmp) / sizeof (TCHAR)) - 1) )
 			break;
 		i++;
 	}
@@ -574,7 +575,7 @@ static uae_u32 lastaddr (void)
 	return currprefs.chipmem_size;
 }
 
-static uaecptr nextaddr2 (uaecptr addr, int *next)
+static uaecptr nextaddr2 (uaecptr addr, uaecptr *next)
 {
 	uaecptr prev, prevx;
 	int size, sizex;
@@ -649,7 +650,7 @@ static uaecptr nextaddr2 (uaecptr addr, int *next)
 	sizex = size;
 	prevx = prev;
 	size = currprefs.chipmem_size;
-	if (addr == size) {
+	if (addr == (uaecptr)size) {
 		*next = prevx + sizex;
 		return prevx;
 	}
@@ -661,8 +662,7 @@ static uaecptr nextaddr2 (uaecptr addr, int *next)
 static uaecptr nextaddr (uaecptr addr, uaecptr last, uaecptr *end)
 {
 	static uaecptr old;
-	uaecptr paddr = addr;
-	int next;
+	uaecptr paddr = addr, next = 0;
 	if (last && 0) {
 		if (addr >= last)
 			return 0xffffffff;
@@ -694,7 +694,7 @@ static uaecptr nextaddr (uaecptr addr, uaecptr last, uaecptr *end)
 	return addr;
 }
 
-int safe_addr(uaecptr addr, int size)
+static int safe_addr(uaecptr addr, int size)
 {
 	addrbank *ab = &get_mem_bank (addr);
 	if (!ab)
@@ -1201,7 +1201,7 @@ static void decode_copper_insn (FILE* file, unsigned long insn, unsigned long ad
 	struct cop_rec *cr = NULL;
 	uae_u32 insn_type = insn & 0x00010001;
 	TCHAR here = ' ';
-	TCHAR record[] = _T("          ");
+	TCHAR record[] = "          ";
 
 	if ((cr = find_copper_records (addr))) {
 		_stprintf (record, _T(" [%03x %03x]"), cr->vpos, cr->hpos);
@@ -1230,7 +1230,7 @@ static void decode_copper_insn (FILE* file, unsigned long insn, unsigned long ad
 	case 0x00000000:
 	case 0x00000001: /* MOVE insn */
 		{
-			int addr = (insn >> 16) & 0x1fe;
+			uaecptr addr = (insn >> 16) & 0x1fe;
 			int i = 0;
 			while (custd[i].name) {
 				if (custd[i].adr == addr + 0xdff000)
@@ -1369,7 +1369,7 @@ static void deepcheatsearch (TCHAR **c)
 	static int memsize, memsize2;
 	uae_u8 *p1, *p2;
 	uaecptr addr, end;
-	int i, wasmodified, nonmodified;
+	int wasmodified, nonmodified;
 	static int size;
 	static int inconly, deconly, maxdiff;
 	int addrcnt, cnt;
@@ -1411,7 +1411,8 @@ static void deepcheatsearch (TCHAR **c)
 		p1 = memtmp;
 		addr = 0xffffffff;
 		while ((addr = nextaddr (addr, 0, &end)) != 0xffffffff) {
-			for (i = addr; i < end; i++)
+			uaecptr i = addr;
+			for ( ; i < end; i++)
 				*p1++ = get_byte (i);
 			addr = end - 1;
 		}
@@ -1780,7 +1781,7 @@ static void smc_detector (uaecptr addr, int rwi, int size, uae_u32 *valp)
 
 	if (!smc_table)
 		return;
-	if (addr >= smc_size)
+	if (addr >= (uaecptr)smc_size)
 		return;
 	if (rwi == 2) {
 		for (i = 0; i < size; i++) {
@@ -1795,7 +1796,7 @@ static void smc_detector (uaecptr addr, int rwi, int size, uae_u32 *valp)
 		return;
 	hitaddr = addr;
 	hitcnt = 0;
-	while (addr < smc_size && smc_table[addr].addr != 0xffffffff) {
+	while (addr < (uaecptr)smc_size && smc_table[addr].addr != 0xffffffff) {
 		smc_table[addr++].addr = 0xffffffff;
 		hitcnt++;
 	}
@@ -1867,8 +1868,9 @@ uae_u8 *restore_debug_memwatch (uae_u8 *src)
 {
 	if (restore_u32 () != 1)
 		return src;
-	int total = restore_u8 ();
-	for (unsigned int i = 0; i < total; i++) {
+	uae_u8 total = restore_u8 ();
+	uae_u8 curr  = 0;
+	for ( ; curr < total; curr++) {
 		restore_store_pos ();
 		int idx = restore_u8 ();
 		struct memwatch_node *m = &mwnodes[idx];
@@ -2177,12 +2179,14 @@ uae_u16 debug_wgetpeekdma (uaecptr addr, uae_u32 v)
 	return vv;
 }
 
+#if 0
 void debug_putlpeek (uaecptr addr, uae_u32 v)
 {
 	if (!memwatch_enabled)
 		return;
 	memwatch_func (addr, 2, 4, &v);
 }
+#endif
 void debug_wputpeek (uaecptr addr, uae_u32 v)
 {
 	if (!memwatch_enabled)
@@ -2683,7 +2687,7 @@ static uaecptr get_base (const uae_char *name)
 	if (!b || !b->check (v, 400) || b->flags != ABFLAG_RAM)
 		return 0;
 	v += 378; // liblist
-	while (v = get_long (v)) {
+	while ( (v = get_long (v)) ) {
 		uae_u32 v2;
 		uae_u8 *p;
 		b = &get_mem_bank (v);
@@ -2916,8 +2920,10 @@ int instruction_breakpoint (TCHAR **c)
 static int process_breakpoint(TCHAR **c)
 {
 	processptr = 0;
-	xfree (processname);
-	processname = NULL;
+	if (processname) {
+		xfree (processname);
+		processname = NULL;
+	}
 	if (!more_params (c))
 		return 0;
 	if (**c == '\"') {
@@ -3291,7 +3297,7 @@ static void debug_sprite (TCHAR **inptr)
 static void disk_debug (TCHAR **inptr)
 {
 	TCHAR parm[10];
-	int i;
+	uae_u32 i = 0;
 
 	if (**inptr == 'd') {
 		(*inptr)++;
@@ -3305,7 +3311,7 @@ static void disk_debug (TCHAR **inptr)
 	ignore_ws (inptr);
 	if (!next_string (inptr, parm, sizeof (parm) / sizeof (TCHAR), 1))
 		goto end;
-	for (i = 0; i < _tcslen(parm); i++) {
+	for ( ; i < _tcslen(parm); i++) {
 		if (parm[i] == 'R')
 			disk_debug_mode |= DISK_DEBUG_DMA_READ;
 		if (parm[i] == 'W')
@@ -3385,7 +3391,7 @@ static void m68k_modify (TCHAR **inptr)
 	if (c1 == 'A' && c2 < 8)
 		regs.regs[8 + c2] = v;
 	else if (c1 == 'D' && c2 < 8)
-		regs.regs[c2] = v;
+		regs.regs[(int)c2] = v;
 	else if (c1 == 'P' && c2 == 0)
 		regs.irc = v;
 	else if (c1 == 'P' && c2 == 1)
@@ -3769,7 +3775,11 @@ static void debug_1 (void)
 		console_out (_T(">"));
 		console_flush ();
 		debug_linecounter = 0;
+#if defined(_WIN32)
 		v = console_get (input, MAX_LINEWIDTH);
+#else
+		v = _tcslen(console_get (input, MAX_LINEWIDTH));
+#endif // _WIN32
 		if (v < 0)
 			return;
 		if (v == 0)

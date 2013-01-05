@@ -195,7 +195,6 @@
 *
 */
 
-#ifdef ACTION_REPLAY
 #include "sysconfig.h"
 #include "sysdeps.h"
 
@@ -210,6 +209,9 @@
 #include "savestate.h"
 #include "crc32.h"
 #include "akiko.h"
+#include "misc.h"
+
+#ifdef ACTION_REPLAY
 
 #define DEBUG
 #ifdef DEBUG
@@ -494,7 +496,7 @@ static void copytoamiga (uaecptr dst, uae_u8 *src, int len)
 }
 
 int action_replay_flag = ACTION_REPLAY_INACTIVE;
-static int ar_rom_file_size;
+static uae_u32 ar_rom_file_size;
 
 /* Use this for relocating AR? */
 static int ar_rom_location;
@@ -1213,17 +1215,17 @@ static uae_u8 ar3patch2[] = {0x00,0xfc,0x01,0x44};
 
 static void action_replay_patch (void)
 {
-	int off1,off2;
+	uae_u32 off1 = 0, off2 = 0;
 	uae_u8 *kickmem = kickmemory;
 
 	if (armodel != 3 || !kickmem || !armemory_rom)
 		return;
-	if (!memcmp (kickmem, kickmem + 262144, 262144)) off1 = 262144; else off1 = 0;
+	if (!memcmp (kickmem, kickmem + 262144, 262144)) off1 = 262144;
 	for (;;) {
 		if (!memcmp (kickmem + off1, ar3patch1, sizeof (ar3patch1)) || off1 == 524288 - sizeof (ar3patch1)) break;
 		off1++;
 	}
-	off2 = 0;
+
 	for(;;) {
 		if (!memcmp (armemory_rom + off2, ar3patch2, sizeof(ar3patch2)) || off2 == ar_rom_file_size - sizeof (ar3patch2)) break;
 		off2++;
@@ -1750,13 +1752,6 @@ void action_replay_cleanup()
 	hrtmem2_end = 0;
 }
 
-#ifndef FALSE
-#define FALSE 0
-#endif
-#ifndef TRUE
-#define TRUE 1
-#endif
-
 int hrtmon_lang = 0;
 
 static void hrtmon_configure(void)
@@ -1769,8 +1764,8 @@ static void hrtmon_configure(void)
 	cfg->aga = (currprefs.chipset_mask & CSMASK_AGA) ? 1 : 0;
 	cfg->cd32 = currprefs.cs_cd32cd ? 1 : 0;
 	cfg->screenmode = currprefs.ntscmode;
-	cfg->novbr = TRUE;
-	cfg->hexmode = TRUE;
+	cfg->novbr = true;
+	cfg->hexmode = true;
 	cfg->entered = 0;
 	cfg->keyboard = hrtmon_lang;
 	do_put_mem_long (&cfg->max_chip, currprefs.chipmem_size);

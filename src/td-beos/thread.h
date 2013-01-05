@@ -32,7 +32,7 @@ STATIC_INLINE int uae_sem_init (uae_sem_t *PSEM, int DUMMY, int INIT)
 
 typedef thread_id uae_thread_id;
 
-#define BAD_THREAD -1
+#define BAD_THREAD 0
 
 
 STATIC_INLINE int uae_start_thread (char *name, void *(*f) (void *), void *arg, uae_thread_id *thread)

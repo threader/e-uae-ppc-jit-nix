@@ -63,7 +63,11 @@ typedef unsigned int      uae_uintptr;
 #ifdef HAVE_STDINT_H
 # undef uae_s64
 # undef uae_u64
+# if defined(__cplusplus)
+#   include <cstdint>
+# else
 # include <stdint.h>
+# endif // __cplusplus
   typedef uint8_t uae_u8;
   typedef  int8_t uae_s8;
   typedef uint16_t uae_u16;

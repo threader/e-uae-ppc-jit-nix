@@ -27,6 +27,7 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <ctype.h>
  
 #define STACK_SIZE 32
 #define MAX_VALUES 32
@@ -294,7 +295,7 @@ static bool execution_order(const TCHAR *input, double *outval)
     const TCHAR *strpos = input, *strend = input + _tcslen(input);
     TCHAR c, res[4];
     unsigned int sl = 0, rn = 0;
-	struct calcstack stack[STACK_SIZE] = { 0 }, *sc, *sc2;
+	struct calcstack stack[STACK_SIZE] = { {0, .0} }, *sc, *sc2;
 	double val = 0;
 	int i;
 	bool ok = false;

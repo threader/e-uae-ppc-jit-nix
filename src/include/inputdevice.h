@@ -262,8 +262,6 @@ extern void inputdevice_tablet_strobe (void);
 
 extern uae_u64 input_getqualifiers (void);
 
-extern void setsystime (void);
-
 #define JSEM_MODE_DEFAULT 0
 #define JSEM_MODE_MOUSE 1
 #define JSEM_MODE_JOYSTICK 2

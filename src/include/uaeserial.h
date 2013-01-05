@@ -1,3 +1,7 @@
+#pragma once
+#ifndef SRC_INCLUDE_UAESERIAL_H_INCLUDED
+#define SRC_INCLUDE_UAESERIAL_H_INCLUDED 1
+
  /*
   * UAE - The Un*x Amiga Emulator
   *
@@ -20,3 +24,5 @@ struct uaeserialdata
     void *writeevent;
 };
 #endif
+
+#endif // SRC_INCLUDE_UAESERIAL_H_INCLUDED

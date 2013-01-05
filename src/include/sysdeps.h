@@ -15,12 +15,35 @@
   * Copyright 1996, 1997 Bernd Schmidt
   */
 
-#ifndef FALSE
-#define FALSE 0
-#endif /* FALSE */
-#ifndef TRUE
-#  define TRUE (!FALSE)
-#endif /* TRUE */
+#if defined(__cplusplus)
+#include <cstddef>
+#include <cstdbool>
+#else
+#include <stddef.h>
+/* Note: stdbool.h has a __cplusplus section, but as it is stated in
+ * GNU gcc stdbool.h:
+ * "Supporting <stdbool.h> in C++ is a GCC extension."
+ */
+#if defined(HAVE_STDBOOL_H)
+#    include <stdbool.h>
+#  else
+#    ifndef HAVE__BOOL
+#      define _Bool signed char
+#    endif
+#    define bool _Bool
+#    define false 0
+#    define true 1
+#    define __bool_true_false_are_defined 1
+#  endif // HAVE_STDBOOL_H
+#endif // __cplusplus
+
+//#ifndef FALSE
+//#  define FALSE 0
+//#endif /* FALSE */
+//#ifndef true
+//#  define true (!FALSE)
+//#endif /* true */
+
 #define UAE_RAND_MAX RAND_MAX
 
 #define ECS_DENISE
@@ -35,11 +58,19 @@
 #include <devices/timer.h>
 #endif
 
+#if defined(__cplusplus)
+#include <cstdio>
+#include <cstdlib>
+#include <cerrno>
+#include <cassert>
+#include <climits>
+#else
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <assert.h>
 #include <limits.h>
+#endif // __cplusplus
 
 #ifndef __STDC__
 #ifndef _MSC_VER
@@ -47,7 +78,11 @@
 #endif
 #endif
 
+#if defined(__cplusplus)
+#include <cstdarg>
+#else
 #include <stdarg.h>
+#endif // __cplusplus
 
 #ifdef HAVE_SYS_TYPES_H
 #include <sys/types.h>
@@ -79,12 +114,20 @@
 
 #if TIME_WITH_SYS_TIME
 # include <sys/time.h>
+#  if defined(__cplusplus)
+#    include <ctime>
+#  else
 # include <time.h>
+#  endif // __cplusplus
 #else
 # if HAVE_SYS_TIME_H
 #  include <sys/time.h>
 # else
+#    if defined(__cplusplus)
+#      include <ctime>
+#    else
 #  include <time.h>
+#    endif // __cplusplus
 # endif
 #endif
 
@@ -107,9 +150,6 @@
 # include <sys/utime.h>
 #endif
 
-#include <errno.h>
-#include <assert.h>
-
 #if EEXIST == ENOTEMPTY
 #define BROKEN_OS_PROBABLY_AIX
 #endif
@@ -127,20 +167,17 @@ struct utimbuf
 #endif
 
 #include "uae_types.h"
-
 #include "uae_malloc.h"
-
 #include "writelog.h"
 
 #ifdef __GNUC__
 /* While we're here, make abort more useful.  */
 #ifndef __MORPHOS__
 /* This fails to compile on Morphos - not sure why yet */
-#define abort() \
-  do { \
-    write_log ("Internal error; file %s, line %d\n", __FILE__, __LINE__); \
-    exit (0); \
-} while (0)
+#    define abort() { \
+			write_log ("Internal error; file %s, line %d\n", __FILE__, __LINE__); \
+			exit (0); \
+		} // no need for a do-while!
 #else
 #define abort() exit(0)
 #endif
@@ -171,37 +208,32 @@ struct utimbuf
 #define FILEFLAG_SCRIPT  0x20
 #define FILEFLAG_PURE    0x40
 
+#  if defined(__cplusplus)
+extern "C" {
+#  endif
+
 #if defined _WIN32
-
 #if defined __WATCOMC__
-
 #define O_NDELAY 0
 #include <direct.h>
 #define dirent direct
 #define mkdir(a,b) mkdir(a)
 #define strcasecmp stricmp
-
 #elif defined __MINGW32__
-
 #define O_NDELAY 0
 #define mkdir(a,b) mkdir(a)
-
 #elif defined _MSC_VER
-
 #ifdef HAVE_GETTIMEOFDAY
 #include <winsock.h> // for 'struct timeval' definition
 extern void gettimeofday( struct timeval *tv, void *blah );
 #endif
-
 #define O_NDELAY 0
-
 #ifdef REGPARAM2
 #undef REGPARAM2
 #endif
 #define REGPARAM2 __fastcall
 #define REGPARAM3 __fastcall
 #define REGPARAM
-
 #include <io.h>
 #define O_BINARY _O_BINARY
 #define O_WRONLY _O_WRONLY
@@ -222,7 +254,6 @@ struct direct
 #include <sys/utime.h>
 #define utimbuf __utimbuf64
 #define USE_ZFILE
-
 #undef S_ISDIR
 #undef S_IWUSR
 #undef S_IRUSR
@@ -234,11 +265,9 @@ struct direct
 #define S_IXUSR FILEFLAG_EXECUTE
 
 #endif
-
 #endif /* _WIN32 */
 
 #ifdef DONT_HAVE_POSIX
-
 #define access posixemu_access
 extern int posixemu_access (const char *, int);
 #define open posixemu_open
@@ -281,11 +310,9 @@ extern void closedir (DIR *);
  * is that you probably don't have POSIX errnos if you don't have the above
  * functions. */
 extern long dos_errno (void);
-
 #endif
 
 #ifdef DONT_HAVE_STDIO
-
 extern FILE *stdioemu_fopen (const char *, const char *);
 #define fopen(a,b) stdioemu_fopen(a, b)
 extern int stdioemu_fseek (FILE *, int, int);
@@ -298,16 +325,13 @@ extern int stdioemu_ftell (FILE *);
 #define ftell(a) stdioemu_ftell(a)
 extern int stdioemu_fclose (FILE *);
 #define fclose(a) stdioemu_fclose(a)
-
 #endif
 
 #ifdef DONT_HAVE_MALLOC
-
 #define malloc(a) mallocemu_malloc(a)
 extern void *mallocemu_malloc (int size);
 #define free(a) mallocemu_free(a)
 extern void mallocemu_free (void *ptr);
-
 #endif
 
 #ifdef X86_ASSEMBLY
@@ -329,6 +353,10 @@ extern void f_out (void *, const char *, ...);
 extern void gui_message (const char *,...);
 extern int gui_message_multibutton (int flags, const char *format,...);
 #define write_log_err write_log
+
+#if defined(__cplusplus)
+}
+#endif
 
 #ifndef O_BINARY
 #define O_BINARY 0
@@ -358,26 +386,21 @@ extern int gui_message_multibutton (int flags, const char *format,...);
 #endif
 
 #ifndef __cplusplus
-
 #define xmalloc(T, N) malloc(sizeof (T) * (N))
 #define xcalloc(T, N) calloc(sizeof (T), N)
 #define xfree(T) free(T)
 #define xrealloc(T, TP, N) realloc(TP, sizeof (T) * (N))
-
 #if 0
 extern void *xmalloc (size_t);
 extern void *xcalloc (size_t, size_t);
 extern void xfree (const void*);
-#endif
-
+#  endif /* 0 */
 #else
-
 #define xmalloc(T, N) static_cast<T*>(malloc (sizeof (T) * (N)))
 #define xcalloc(T, N) static_cast<T*>(calloc (sizeof (T), N))
 #define xrealloc(T, TP, N) static_cast<T*>(realloc (TP, sizeof (T) * (N)))
 #define xfree(T) free(T)
-
-#endif
+#endif /* ! __cplusplus */
 
 #define DBLEQU(f, i) (abs ((f) - (i)) < 0.000001)
 
@@ -413,9 +436,6 @@ extern void xfree (const void*);
 #define _tcstok strtok
 #define _wunlink unlink
 #define _tfopen fopen
-#define bool _Bool
-#define true 1
-#define false 0
 #define _vsntprintf vsnprintf
 #define max(a,b) ((a) > (b) ? (a) : (b))
 #define _tcstod strtod
@@ -425,9 +445,11 @@ extern void xfree (const void*);
 #define ULONG unsigned long
 #define _strtoui64 strtoul
 #define _tcscspn(wcs, reject) wcscspn((const wchar_t*)(wcs), (const wchar_t*)(reject))
+
 #ifndef _stat64
 #define _stat64 stat64
 #endif /* _stat64 */
+
 #ifndef offsetof
 #  define offsetof(type, member)  __builtin_offsetof (type, member)
 #endif /* offsetof */
@@ -436,5 +458,7 @@ typedef int HANDLE;
 typedef unsigned int DWORD;
 typedef long long LONGLONG;
 typedef int64_t off64_t;
+
+DWORD GetLastError(void);
 
 #endif /* UAE_SYSDEPS_H */

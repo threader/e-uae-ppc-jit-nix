@@ -1,3 +1,7 @@
+#pragma once
+#ifndef SRC_INCLUDE_SANA2_H_INCLUDED
+#define SRC_INCLUDE_SANA2_H_INCLUDED 1
+
  /*
   * UAE - The Un*x Amiga Emulator
   *
@@ -12,3 +16,5 @@ void netdev_reset (void);
 void netdev_start_threads (void);
 
 extern int log_net;
+
+#endif // SRC_INCLUDE_SANA2_H_INCLUDED

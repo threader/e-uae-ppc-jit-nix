@@ -1,3 +1,7 @@
+#pragma once
+#ifndef SRC_INCLUDE_SCSIDEV_H_INCLUDED
+#define SRC_INCLUDE_SCSIDEV_H_INCLUDED 1
+
  /*
   * UAE - The Un*x Amiga Emulator
   *
@@ -28,3 +32,5 @@ extern int log_scsi;
 #define UAESCSI_NEROASPI 4
 #define UAESCSI_FROGASPI 5
 #endif
+
+#endif // SRC_INCLUDE_SCSIDEV_H_INCLUDED

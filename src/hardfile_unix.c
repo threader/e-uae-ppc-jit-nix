@@ -79,22 +79,22 @@ static void rdbdump (FILE *h, uae_u64 offset, uae_u8 *buf, int blocksize)
 	if (!f)
 		return;
 	for (i = 0; i <= blocks; i++) {
-		long outlen;
 		if (fseek (h, (long)offset, SEEK_SET) != 0)
 			break;
-	   	outlen = fread (buf, 1, blocksize, h);
-		fwrite (buf, 1, blocksize, f);
-		offset += blocksize;
+	   	if (0 == fread  (buf, 1, blocksize, h))
+			break;
+		if (0 == fwrite (buf, 1, blocksize, f))
+			break;
 	}
 	fclose (f);
 	cnt++;
 }
 
-static int ismounted (int hd)
+//fixme: this does nothing at the moment and
+//       is used in safetycheck() only.
+static int ismounted (FILE *hd)
 {
-	int mounted;
-	//mounted = 1;
-	return mounted;
+	return 0;
 }
 
 #define CA "Commodore\0Amiga\0"
@@ -380,13 +380,11 @@ static int hdf_seek (struct hardfiledata *hfd, uae_u64 offset)
 
 static void poscheck (struct hardfiledata *hfd, int len)
 {
-	int ret, err;
-	uae_u64 pos;
+	uae_u64 pos = 0;
 
 	if (hfd->handle_valid == HDF_HANDLE_LINUX) {
-		ret = fseek (hfd->handle->h, 0, SEEK_CUR);
-		if (ret) {
-			gui_message ("hd: poscheck failed. seek failure, error %d", err);
+		if (fseek (hfd->handle->h, 0, SEEK_CUR)) {
+			gui_message ("hd: poscheck failed. seek failure, error %d", errno);
 			abort ();
 		}
 		pos = ftell (hfd->handle->h);
@@ -488,7 +486,7 @@ int hdf_read_target (struct hardfiledata *hfd, void *buffer, uae_u64 offset, int
 	offset -= hfd->virtual_size;
 	while (len > 0) {
 		unsigned int maxlen;
-		size_t ret;
+		size_t ret = 0;
 		if (hfd->physsize < CACHE_SIZE) {
 		    hfd->cache_valid = 0;
 		    hdf_seek (hfd, offset);

@@ -18,8 +18,14 @@
 # define MALLOC
 #endif
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
 extern void *xmalloc (size_t) MALLOC;
 extern void *xcalloc (size_t, size_t) MALLOC;
 extern void  xfree   (const void *p);
+#if defined(__cplusplus)
+}
+#endif
 
 #endif /* UAE_MALLOC_H */

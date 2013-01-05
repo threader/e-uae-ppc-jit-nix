@@ -766,8 +766,8 @@ int mprotect (void *addr, size_t len, int prot)
 void *my_shmat (int shmid, void *shmaddr, int shmflg)
 {
 	void *result = (void *)-1;
-	BOOL got = FALSE, readonly = FALSE, maprom = FALSE;
-	int p96special = FALSE;
+	bool got = false, readonly = false, maprom = false;
+	int p96special = false;
 
 #ifdef NATMEM_OFFSET
 	unsigned int size = shmids[shmid].size;
@@ -779,75 +779,75 @@ void *my_shmat (int shmid, void *shmaddr, int shmflg)
 	if ((uae_u8*)shmaddr < natmem_offset) {
 		if(!_tcscmp (shmids[shmid].name, _T("chip"))) {
 			shmaddr=natmem_offset;
-			got = TRUE;
+			got = true;
 			if (getz2endaddr () <= 2 * 1024 * 1024 || currprefs.chipmem_size < 2 * 1024 * 1024)
 				size += BARRIER;
 		} else if(!_tcscmp (shmids[shmid].name, _T("kick"))) {
 			shmaddr=natmem_offset + 0xf80000;
-			got = TRUE;
+			got = true;
 			size += BARRIER;
-			readonly = TRUE;
-			maprom = TRUE;
+			readonly = true;
+			maprom = true;
 		} else if(!_tcscmp (shmids[shmid].name, _T("rom_a8"))) {
 			shmaddr=natmem_offset + 0xa80000;
-			got = TRUE;
-			readonly = TRUE;
-			maprom = TRUE;
+			got = true;
+			readonly = true;
+			maprom = true;
 		} else if(!_tcscmp (shmids[shmid].name, _T("rom_e0"))) {
 			shmaddr=natmem_offset + 0xe00000;
-			got = TRUE;
-			readonly = TRUE;
-			maprom = TRUE;
+			got = true;
+			readonly = true;
+			maprom = true;
 		} else if(!_tcscmp (shmids[shmid].name, _T("rom_f0"))) {
 			shmaddr=natmem_offset + 0xf00000;
-			got = TRUE;
-			readonly = TRUE;
+			got = true;
+			readonly = true;
 		} else if(!_tcscmp (shmids[shmid].name, _T("rtarea"))) {
 			shmaddr=natmem_offset + rtarea_base;
-			got = TRUE;
-			readonly = TRUE;
+			got = true;
+			readonly = true;
 			readonlysize = RTAREA_TRAPS;
 		} else if(!_tcscmp (shmids[shmid].name, _T("fast"))) {
 			shmaddr=natmem_offset + 0x200000;
-			got = TRUE;
+			got = true;
 			if (!(currprefs.rtgmem_size && !currprefs.rtgmem_type))
 				size += BARRIER;
 		} else if(!_tcscmp (shmids[shmid].name, _T("z2_gfx"))) {
 			ULONG start = getz2rtgaddr ();
-			got = TRUE;
-			p96special = TRUE;
+			got = true;
+			p96special = true;
 			shmaddr = natmem_offset + start;
 			p96ram_start = start;
 			if (start + currprefs.rtgmem_size < 10 * 1024 * 1024)
 				size += BARRIER;
 		} else if(!_tcscmp (shmids[shmid].name, _T("ramsey_low"))) {
 			shmaddr=natmem_offset + a3000lmem_start;
-			got = TRUE;
+			got = true;
 		} else if(!_tcscmp (shmids[shmid].name, _T("ramsey_high"))) {
 			shmaddr=natmem_offset + a3000hmem_start;
-			got = TRUE;
+			got = true;
 		} else if(!_tcscmp (shmids[shmid].name, _T("z3"))) {
 			shmaddr=natmem_offset + z3fastmem_start;
 			if (!currprefs.z3fastmem2_size)
 				size += BARRIER;
-			got = TRUE;
+			got = true;
 		} else if(!_tcscmp (shmids[shmid].name, _T("z3_2"))) {
 			shmaddr=natmem_offset + z3fastmem_start + currprefs.z3fastmem_size;
 			size += BARRIER;
-			got = TRUE;
+			got = true;
 		} else if(!_tcscmp (shmids[shmid].name, _T("z3_chip"))) {
 			shmaddr=natmem_offset + z3chipmem_start;
 			size += BARRIER;
-			got = TRUE;
+			got = true;
 		} else if(!_tcscmp (shmids[shmid].name, _T("z3_gfx"))) {
-			got = TRUE;
-			p96special = TRUE;
+			got = true;
+			p96special = true;
 			p96ram_start = p96mem_offset - natmem_offset;
 			shmaddr = natmem_offset + p96ram_start;
 			size += BARRIER;
 		} else if(!_tcscmp (shmids[shmid].name, _T("bogo"))) {
 			shmaddr=natmem_offset+0x00C00000;
-			got = TRUE;
+			got = true;
 			if (currprefs.bogomem_size <= 0x100000)
 				size += BARRIER;
 		} else if(!_tcscmp (shmids[shmid].name, _T("filesys"))) {
@@ -860,49 +860,49 @@ void *my_shmat (int shmid, void *shmaddr, int shmflg)
 			return result;
 		} else if(!_tcscmp (shmids[shmid].name, _T("custmem1"))) {
 			shmaddr=natmem_offset + currprefs.custom_memory_addrs[0];
-			got = TRUE;
+			got = true;
 		} else if(!_tcscmp (shmids[shmid].name, _T("custmem2"))) {
 			shmaddr=natmem_offset + currprefs.custom_memory_addrs[1];
-			got = TRUE;
+			got = true;
 		} else if(!_tcscmp (shmids[shmid].name, _T("hrtmem"))) {
 			shmaddr=natmem_offset + 0x00a10000;
-			got = TRUE;
+			got = true;
 		} else if(!_tcscmp (shmids[shmid].name, _T("arhrtmon"))) {
 			shmaddr=natmem_offset + 0x00800000;
 			size += BARRIER;
-			got = TRUE;
+			got = true;
 		} else if(!_tcscmp (shmids[shmid].name, _T("xpower_e2"))) {
 			shmaddr=natmem_offset + 0x00e20000;
 			size += BARRIER;
-			got = TRUE;
+			got = true;
 		} else if(!_tcscmp (shmids[shmid].name, _T("xpower_f2"))) {
 			shmaddr=natmem_offset + 0x00f20000;
 			size += BARRIER;
-			got = TRUE;
+			got = true;
 		} else if(!_tcscmp (shmids[shmid].name, _T("nordic_f0"))) {
 			shmaddr=natmem_offset + 0x00f00000;
 			size += BARRIER;
-			got = TRUE;
+			got = true;
 		} else if(!_tcscmp (shmids[shmid].name, _T("nordic_f4"))) {
 			shmaddr=natmem_offset + 0x00f40000;
 			size += BARRIER;
-			got = TRUE;
+			got = true;
 		} else if(!_tcscmp (shmids[shmid].name, _T("nordic_f6"))) {
 			shmaddr=natmem_offset + 0x00f60000;
 			size += BARRIER;
-			got = TRUE;
+			got = true;
 		} else if(!_tcscmp(shmids[shmid].name, _T("superiv_b0"))) {
 			shmaddr=natmem_offset + 0x00b00000;
 			size += BARRIER;
-			got = TRUE;
+			got = true;
 		} else if(!_tcscmp (shmids[shmid].name, _T("superiv_d0"))) {
 			shmaddr=natmem_offset + 0x00d00000;
 			size += BARRIER;
-			got = TRUE;
+			got = true;
 		} else if(!_tcscmp (shmids[shmid].name, _T("superiv_e0"))) {
 			shmaddr=natmem_offset + 0x00e00000;
 			size += BARRIER;
-			got = TRUE;
+			got = true;
 		}
 	}
 #endif

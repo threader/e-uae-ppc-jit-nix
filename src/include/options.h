@@ -1,3 +1,7 @@
+#pragma once
+#ifndef SRC_INCLUDE_OPTIONS_H_INCLUDED
+#define SRC_INCLUDE_OPTIONS_H_INCLUDED 1
+
 /*
  * UAE - The Un*x Amiga Emulator
  *
@@ -10,6 +14,8 @@
 #define UAEMAJOR 2
 #define UAEMINOR 5
 #define UAESUBREV 1
+
+#include "uae_types.h"
 
 typedef enum { KBD_LANG_US, KBD_LANG_DK, KBD_LANG_DE, KBD_LANG_SE, KBD_LANG_FR, KBD_LANG_IT, KBD_LANG_ES, KBD_LANG_FI, KBD_LANG_TR } KbdLang;
 
@@ -739,3 +745,5 @@ STATIC_INLINE void fuzzy_memset_le32_1 (void *p, uae_u32 c, int offset, int len)
 #if defined TARGET_AMIGAOS && defined(__GNUC__)
 #include "od-amiga/amiga-kludges.h"
 #endif
+
+#endif // SRC_INCLUDE_OPTIONS_H_INCLUDED

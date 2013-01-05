@@ -15,28 +15,28 @@ extern unsigned int bplcon0;
 
 static uae_u8 graffiti_palette[256 * 4];
 
-STATIC_INLINE bool FR(struct vidbuffer *src, uae_u8 *dataline)
+STATIC_INLINE bool FR(struct vidbuf_description *src, uae_u8 *dataline)
 {
 	if (src->pixbytes == 4)
 		return (dataline[2] & 0x80) != 0;
 	else
 		return ((dataline[1] >> 7) & 1) != 0;
 }
-STATIC_INLINE bool FG(struct vidbuffer *src, uae_u8 *dataline)
+STATIC_INLINE bool FG(struct vidbuf_description *src, uae_u8 *dataline)
 {
 	if (src->pixbytes == 4)
 		return (dataline[1] & 0x80) != 0;
 	else
 		return ((dataline[1] >> 2) & 1) != 0;
 }
-STATIC_INLINE bool FB(struct vidbuffer *src, uae_u8 *dataline)
+STATIC_INLINE bool FB(struct vidbuf_description *src, uae_u8 *dataline)
 {
 	if (src->pixbytes == 4)
 		return (dataline[0] & 0x80) != 0;
 	else
 		return ((dataline[0] >> 4) & 1) != 0;
 }
-STATIC_INLINE bool FI(struct vidbuffer *src, uae_u8 *dataline)
+STATIC_INLINE bool FI(struct vidbuf_description *src, uae_u8 *dataline)
 {
 	if (src->pixbytes == 4)
 		return (dataline[0] & 0x10) != 0;
@@ -45,7 +45,7 @@ STATIC_INLINE bool FI(struct vidbuffer *src, uae_u8 *dataline)
 }
 
 
-STATIC_INLINE void PRGB(struct vidbuffer *dst, uae_u8 *dataline, uae_u8 r, uae_u8 g, uae_u8 b)
+STATIC_INLINE void PRGB(struct vidbuf_description *dst, uae_u8 *dataline, uae_u8 r, uae_u8 g, uae_u8 b)
 {
 	if (dst->pixbytes == 4) {
 		dataline[0] = b;
@@ -59,7 +59,7 @@ STATIC_INLINE void PRGB(struct vidbuffer *dst, uae_u8 *dataline, uae_u8 r, uae_u
 	}
 }
 
-static void clearmonitor(struct vidbuffer *dst)
+static void clearmonitor(struct vidbuf_description *dst)
 {
 	uae_u8 *p = dst->bufmem;
 	for (int y = 0; y < dst->height_allocated; y++) {
@@ -68,7 +68,7 @@ static void clearmonitor(struct vidbuffer *dst)
 	}
 }
 
-static bool graffiti(struct vidbuffer *src, struct vidbuffer *dst)
+static bool graffiti(struct vidbuf_description *src, struct vidbuf_description *dst)
 {
 	int y, x;
 	int ystart, yend, isntsc;
@@ -234,7 +234,7 @@ static bool graffiti(struct vidbuffer *src, struct vidbuffer *dst)
 
 /* A2024 information comes from US patent 4851826 */
 
-static bool a2024(struct vidbuffer *src, struct vidbuffer *dst)
+static bool a2024(struct vidbuf_description *src, struct vidbuf_description *dst)
 {
 	int y;
 	uae_u8 *srcbuf, *dstbuf;
@@ -423,7 +423,7 @@ static bool a2024(struct vidbuffer *src, struct vidbuffer *dst)
 	return true;
 }
 
-static bool emulate_specialmonitors2(struct vidbuffer *src, struct vidbuffer *dst)
+static bool emulate_specialmonitors2(struct vidbuf_description *src, struct vidbuf_description *dst)
 {
 	if (currprefs.monitoremu == MONITOREMU_AUTO) {
 		automatic = true;
@@ -442,7 +442,7 @@ static bool emulate_specialmonitors2(struct vidbuffer *src, struct vidbuffer *ds
 }
 
 
-bool emulate_specialmonitors(struct vidbuffer *src, struct vidbuffer *dst)
+bool emulate_specialmonitors(struct vidbuf_description *src, struct vidbuf_description *dst)
 {
 	if (!emulate_specialmonitors2(src, dst)) {
 		if (monitor) {

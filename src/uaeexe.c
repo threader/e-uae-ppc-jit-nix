@@ -15,6 +15,7 @@
 #include "autoconf.h"
 #include "traps.h"
 #include "uaeexe.h"
+#include "misc.h"
 
 static struct uae_xcmd *first = NULL;
 static struct uae_xcmd *last  = NULL;

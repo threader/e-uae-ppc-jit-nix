@@ -7,11 +7,12 @@
  *           2010 Mustafa TUFAN
  */
 
-#ifdef A2065
 
 #include "sysconfig.h"
 
 #include <stdio.h>
+
+#ifdef A2065
 
 #define HAVE_REMOTE
 #define WPCAP
@@ -143,7 +144,7 @@ int uaenet_open (void *vsd, struct netdriverdata *tc, void *user, uaenet_gotfunc
 	}
 	sd->tc = tc;
 	sd->user = user;
-	sd->evttw = CreateEvent (NULL, FALSE, FALSE, NULL);
+	sd->evttw = CreateEvent (NULL, false, false, NULL);
 
 	if (!sd->evttw)
 		goto end;
@@ -324,7 +325,7 @@ struct netdriverdata *uaenet_enumerate (struct netdriverdata **out, const TCHAR 
 		if (OidData) {
 			OidData->Length = 6;
 			OidData->Oid = OID_802_3_CURRENT_ADDRESS;
-			if (PacketRequest (lpAdapter, FALSE, OidData)) {
+			if (PacketRequest (lpAdapter, false, OidData)) {
 				memcpy (tc->mac, OidData->Data, 6);
 				if (!done)
 					write_log ("- MAC %02X:%02X:%02X:%02X:%02X:%02X (%d)\n",

@@ -4,6 +4,7 @@
  * Copyright 2003-2004 Richard Drummond
  */
 
+#include "sysdeps.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -65,9 +66,9 @@ static void chooserwidget_init (ChooserWidget *chooser)
 {
     GtkCombo *combo = GTK_COMBO (chooser);
 
-    gtk_combo_set_use_arrows( combo, FALSE);
-    gtk_combo_set_value_in_list ( combo, TRUE, FALSE);
-    gtk_entry_set_editable (GTK_ENTRY (combo->entry), FALSE);
+    gtk_combo_set_use_arrows( combo, false);
+    gtk_combo_set_value_in_list ( combo, true, false);
+    gtk_entry_set_editable (GTK_ENTRY (combo->entry), false);
 
     gtk_signal_connect (GTK_OBJECT (combo->popwin), "hide",
 			GTK_SIGNAL_FUNC (on_choice_changed),

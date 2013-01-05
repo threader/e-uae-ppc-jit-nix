@@ -93,6 +93,12 @@ TCHAR optionsfile[256];
 static unsigned long randseed;
 static unsigned long oldhcounter;
 
+// Prototype in sysdeps.h
+DWORD GetLastError(void)
+{
+	return errno;
+}
+
 static void hr (void)
 {
 	write_log (_T("------------------------------------------------------------------------------------\n"));

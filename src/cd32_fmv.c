@@ -64,9 +64,9 @@
 
 static int fmv_mask;
 static uae_u8 *rom;
-static int rom_size = 262144;
+static uae_u32 rom_size = 262144;
 static uaecptr fmv_start = 0x00200000;
-static int fmv_size = 1048576;
+static uae_u32 fmv_size = 1048576;
 
 static uae_u16 l64111regs[32];
 static uae_u16 l64111intmask1, l64111intmask2, l64111intstatus1, l64111intstatus2;

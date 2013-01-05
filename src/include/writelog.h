@@ -18,6 +18,9 @@
 # define PRINTF_FORMAT
 #endif
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
 extern void write_log   (const char *, ...) PRINTF_FORMAT;
 extern void flush_log   (void);
 extern void set_logfile (const char *logfile_name);
@@ -25,5 +28,8 @@ extern void uae_reset (int, int);
 extern void jit_abort (const char *fmt, ...);
 extern void write_dlog (const char *format, ...);
 extern char *setconsolemode (char *buffer, int maxlen);
+#if defined(__cplusplus)
+}
+#endif
 
 #endif /* WRITELOG_H */

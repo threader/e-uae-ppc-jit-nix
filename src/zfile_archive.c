@@ -19,7 +19,6 @@
 #include "archivers/zip/unzip.h"
 #include "archivers/dms/pfile.h"
 #include "crc32.h"
-#include "zarchive.h"
 #include "zfile.h"
 #include "disk.h"
 #include "fsdb.h"
@@ -876,7 +875,14 @@ static void recurseadf (struct znode *zn, int root, TCHAR *name)
 			if (gl (adf, 1 * 4) != (uae_u32)block)
 				break;
 			secondary = gl (adf, bs - 1 * 4);
-			if (secondary != -3 && secondary != 2)
+			/* Note: secondary is unsigned, and gl() returns unsigned.
+			 * It can _NEVER_ be lower than 0.
+			 * But as gl() is just producing a bitmask, it might
+			 * be meant as a representation?
+			 * Please confirm or correct this before editing.
+			 * - Sven
+			*/
+			if (secondary != (uae_u32)-3 && secondary != 2)
 				break;
 			memset (&zai, 0, sizeof zai);
 			fname = getBSTR (adf->block + bs - 20 * 4);
@@ -889,12 +895,12 @@ static void recurseadf (struct znode *zn, int root, TCHAR *name)
 			}
 			_tcscat (name2, fname);
 			zai.name = name2;
-			if (size < 0 || size > 0x7fffffff)
+			if (size > 0x7fffffff)
 				size = 0;
 			zai.size = size;
 			zai.flags = gl (adf, bs - 48 * 4);
 			amiga_to_timeval (&zai.tv, gl (adf, bs - 23 * 4), gl (adf, bs - 22 * 4),gl (adf, bs - 21 * 4));
-			if (secondary == -3) {
+			if (secondary == (uae_u32)-3) {
 				struct znode *znnew = zvolume_addfile_abs (zv, &zai);
 				znnew->offset = block;
 			} else {

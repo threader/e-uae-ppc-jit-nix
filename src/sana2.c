@@ -1129,7 +1129,7 @@ static int dev_do_io_2 (struct s2devstruct *dev, uaecptr request, int quick)
 			io_error = S2ERR_BAD_STATE;
 			wire_error = S2WERR_IS_CONFIGURED;
 		} else {
-			dev->configured = TRUE;
+			dev->configured = true;
 		}
 		break;
 

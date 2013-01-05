@@ -88,7 +88,7 @@ static void chipsettypepanel_init (ChipsetTypePanel *panel)
 	GTKUTIL_TABLE_END
     );
 
-    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (panel->frequency_widget[0]), TRUE);
+    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (panel->frequency_widget[0]), true);
 
     gtk_signal_connect (GTK_OBJECT (panel->chipsettype_widget), "selection-changed",
 			GTK_SIGNAL_FUNC (on_chipsettype_changed),
@@ -154,7 +154,7 @@ void chipsettypepanel_set_chipset_mask (ChipsetTypePanel *panel, guint chipset_m
 
 void chipsettypepanel_set_ntscmode (ChipsetTypePanel *panel, guint ntscmode)
 {
-   int buttonno = ntscmode == FALSE ? 1 : 0;
+   int buttonno = ntscmode == false ? 1 : 0;
 
-   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (panel->frequency_widget[buttonno]), TRUE);
+   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (panel->frequency_widget[buttonno]), true);
 }

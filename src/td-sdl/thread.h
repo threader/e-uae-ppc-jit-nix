@@ -29,7 +29,7 @@ STATIC_INLINE int uae_sem_init(uae_sem_t *PSEM, int DUMMY, int INIT)
 
 typedef SDL_Thread *uae_thread_id;
 
-#define BAD_THREAD NULL
+#define BAD_THREAD 0
 
 #define uae_set_thread_priority(pri)
 

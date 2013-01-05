@@ -7,9 +7,10 @@
  *
  */
 
-#ifdef A2065
 #include "sysconfig.h"
 #include "sysdeps.h"
+
+#ifdef A2065
 
 #include "options.h"
 #include "memory_uae.h"

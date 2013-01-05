@@ -11,6 +11,7 @@
 extern SDL_Surface *display;
 #ifdef USE_GL
 extern struct gl_buffer_t glbuffer;
+extern void flush_gl_buffer (const struct gl_buffer_t *buffer, int first_line, int last_line);
 extern void render_gl_buffer (const struct gl_buffer_t *buffer, int first_line, int last_line);
 #endif
 

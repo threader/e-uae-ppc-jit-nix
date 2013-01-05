@@ -267,7 +267,7 @@ static uae_u32 REGPARAM2 dev_open (TrapContext *context)
 	if (get_word (ioreq + 0x12) < IOSTDREQ_SIZE)
 		return openfail (ioreq, IOERR_BADLENGTH);
 	for (i = 0; i < MAX_TOTAL_DEVICES; i++) {
-		if (devst[i].open && devst[i].unit == unit && devst[i].exclusive)
+		if (devst[i].open && devst[i].unit == (int)unit && devst[i].exclusive)
 			return openfail (ioreq, IOERR_UNITBUSY);
 	}
 	for (i = 0; i < MAX_TOTAL_DEVICES; i++) {

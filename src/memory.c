@@ -2905,7 +2905,7 @@ void memory_cleanup (void)
 		mapped_free (a3000lmemory);
 	if (a3000hmemory)
 		mapped_free (a3000hmemory);
-	if (bogomemory)
+	if (bogomemory && bogomemory_allocated)
 		mapped_free (bogomemory);
 	if (kickmemory)
 		mapped_free (kickmemory);
@@ -2925,6 +2925,7 @@ void memory_cleanup (void)
 		mapped_free (custmem2);
 
 	bogomemory = 0;
+	bogomemory_allocated = 0;
 	kickmemory = 0;
 	a3000lmemory = a3000hmemory = 0;
 	a1000_bootrom = 0;

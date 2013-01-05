@@ -140,7 +140,7 @@ static uaecptr uaegfx_resname,
 static void checkrtglibrary(void)
 {
 	uae_u32 v;
-	static int checked = FALSE;
+	static int checked = false;
 
 	if (checked)
 		return;
@@ -163,7 +163,7 @@ static void checkrtglibrary(void)
 			} else {
 				write_log (_T("P96: rtg.library %d.%d detected\n"), ver, rev);
 			}
-			checked = TRUE;
+			checked = true;
 		}
 	}
 }
@@ -554,7 +554,7 @@ static void setupcursor (void)
 
 static void disablemouse (void)
 {
-	cursorok = FALSE;
+	cursorok = false;
 	cursordeactivate = 0;
 	if (!hwsprite)
 		return;
@@ -762,7 +762,7 @@ typedef enum {
 static uae_u32 setspriteimage (uaecptr bi);
 static void recursor (void)
 {
-	cursorok = FALSE;
+	cursorok = false;
 	setspriteimage (boardinfo);
 }
 
@@ -1460,7 +1460,7 @@ static uae_u32 setspriteimage (uaecptr bi)
 
 	setupcursor ();
 	ret = 1;
-	cursorok = TRUE;
+	cursorok = true;
 	P96TRACE_SPR ((_T("hardware sprite created\n")));
 end:
 	return ret;
@@ -3678,9 +3678,9 @@ static bool flushpixels (void)
 {
 	int i;
 #ifdef NATMEM_OFFSET
-	uae_u8 *src = (uae_u8*)(p96ram_start + natmem_offset);
+	uae_u8 *src = (uae_u8*)((size_t)p96ram_start + natmem_offset);
 #else
-	uae_u8 *src = (uae_u8*)(p96ram_start); //gfxmemory
+	uae_u8 *src = (uae_u8*)((size_t)p96ram_start); //gfxmemory
 #endif
 	int off = picasso96_state.XYOffset - gfxmem_start;
 	uae_u8 *src_start;

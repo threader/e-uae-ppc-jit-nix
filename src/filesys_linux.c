@@ -55,26 +55,11 @@ typedef int BOOL;
 #define FILE_SHARE_WRITE	0x00000002
 #define FILE_SHARE_DELETE	0x00000004
 
-struct my_opendir_s {
-//	HANDLE h;
-//	WIN32_FIND_DATA fd;
-//	int first;
-};
-
-struct my_openfile_s {
-	HANDLE h;
-};
-
 typedef struct {
 	DWORD LowPart;
 	int32_t HighPart;
 	LONGLONG QuadPart;
 } LARGE_INTEGER;
-
-DWORD GetLastError()
-{
-	return errno;
-}
 
 // fsdb_mywin32
 bool my_stat (const TCHAR *name, struct mystat *statbuf)
@@ -564,7 +549,7 @@ BOOL SetEndOfFile(HANDLE hFile) {
 
 int my_truncate (const TCHAR *name, uae_u64 len) {
 	HANDLE hFile;
-	BOOL bResult = FALSE;
+	bool bResult = false;
 	int result = -1;
 	const TCHAR *namep;
 	TCHAR path[MAX_DPATH];
@@ -583,7 +568,7 @@ int my_truncate (const TCHAR *name, uae_u64 len) {
 		if (li.LowPart == INVALID_SET_FILE_POINTER && GetLastError () != NO_ERROR) {
 			write_log (_T("FS: truncate seek failure for %s to pos %d\n"), namep, len);
 		} else {
-			if (SetEndOfFile (hFile) == TRUE)
+			if (SetEndOfFile (hFile) == true)
 				result = 0;
 		}
 		CloseHandle (hFile);

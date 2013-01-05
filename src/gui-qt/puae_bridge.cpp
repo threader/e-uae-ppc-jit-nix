@@ -136,7 +136,7 @@ int gui_init (void)
 	int ret;
 	
 	read_rom_list ();
-	inputdevice_updateconfig (&workprefs);
+	inputdevice_updateconfig (&workprefs, &currprefs);
  
         for (;;) {
                 ret = GetSettings (1);
@@ -167,11 +167,9 @@ void gui_display (int shortcut)
 	int foo;
 
 	if (shortcut == -1) {
-	int argc;
-	char *argv[0];
-	argc = NULL;
-	*argv = NULL;
-		QApplication myApp(argc,argv);
+		int local_argc = 0;
+		char **local_argv = NULL;
+		QApplication myApp(local_argc, local_argv);
 		puae_MainWindow w;
 
 		w.show();
@@ -237,8 +235,8 @@ void gui_led (int led, int on)
 static void gui_flicker_led2 (int led, int unitnum, int status)
 {
         static int resetcounter[LED_MAX];
-        uae_u8 old;
-        uae_u8 *p;
+        uae_s8 old;
+        uae_s8 *p;
 
         if (led == LED_HD)
                 p = &gui_data.hd;

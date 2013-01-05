@@ -2690,6 +2690,7 @@ static int cfgfile_parse_hardware (struct uae_prefs *p, const TCHAR *option, TCH
 		|| cfgfile_yesno (option, value, _T("cd32nvram"), &p->cs_cd32nvram)
 		|| cfgfile_yesno (option, value, _T("cdtvcd"), &p->cs_cdtvcd)
 		|| cfgfile_yesno (option, value, _T("cdtvram"), &p->cs_cdtvram)
+		|| cfgfile_yesno (option, value, _T("cdtvramcard"), &p->cs_cdtvcard)
 		|| cfgfile_yesno (option, value, _T("a1000ram"), &p->cs_a1000ram)
 		|| cfgfile_yesno (option, value, _T("pcmcia"), &p->cs_pcmcia)
 		|| cfgfile_yesno (option, value, _T("scsi_cdtv"), &p->cs_cdtvscsi)
@@ -2743,7 +2744,6 @@ static int cfgfile_parse_hardware (struct uae_prefs *p, const TCHAR *option, TCH
 		|| cfgfile_intval (option, value, _T("serial_stopbits"), &p->serial_stopbits, 1)
 		|| cfgfile_intval (option, value, _T("cpu060_revision"), &p->cpu060_revision, 1)
 		|| cfgfile_intval (option, value, _T("fpu_revision"), &p->fpu_revision, 1)
-		|| cfgfile_intval (option, value, _T("cdtvramcard"), &p->cs_cdtvcard, 1)
 		|| cfgfile_intval (option, value, _T("fatgary"), &p->cs_fatgaryrev, 1)
 		|| cfgfile_intval (option, value, _T("ramsey"), &p->cs_ramseyrev, 1)
 		|| cfgfile_doubleval (option, value, _T("chipset_refreshrate"), &p->chipset_refreshrate)
@@ -3735,7 +3735,7 @@ static void cmdpath (TCHAR *dst, const TCHAR *src, int maxsz)
 int parse_cmdline_option (struct uae_prefs *p, TCHAR c, const TCHAR *arg)
 {
 	struct strlist *u = xcalloc (struct strlist, 1);
-	const TCHAR arg_required[] = _T("0123rKpImWSAJwNCZUFcblOdHRv");
+	const TCHAR arg_required[] = "0123rKpImWSAJwNCZUFcblOdHRv";
 
 	if (_tcschr (arg_required, c) && ! arg) {
 		write_log (_T("Missing argument for option `-%c'!\n"), c);

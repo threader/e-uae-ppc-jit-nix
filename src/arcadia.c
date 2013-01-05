@@ -8,7 +8,6 @@
  *
  */
 
-#ifdef ARCADIA
 #include "sysconfig.h"
 #include "sysdeps.h"
 
@@ -38,6 +37,8 @@
 * - ar_xeon
 *
 */
+
+#ifdef ARCADIA
 
 static void multigame (int);
 

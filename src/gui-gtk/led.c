@@ -7,6 +7,7 @@
   * Copyright 2006 Richard Drummond
   */
 
+#include "sysdeps.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -82,7 +83,7 @@ static gint led_expose (GtkWidget *w, GdkEventExpose *event)
 {
     if (w && GTK_WIDGET_DRAWABLE (w)) {
 	Led *theled = LED (w);
-	gdk_draw_rectangle (w->window, theled->gc, TRUE, 0, 0,
+	gdk_draw_rectangle (w->window, theled->gc, true, 0, 0,
 			    w->allocation.width, w->allocation.height);
     }
     return 0;

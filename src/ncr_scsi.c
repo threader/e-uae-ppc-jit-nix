@@ -6,14 +6,15 @@
  * (c) 2007 Toni Wilen
  */
 
-#ifdef NCR
-#define NCR_LOG 1
-#define NCR_DEBUG 1
-
 #include "sysconfig.h"
 #include "sysdeps.h"
 
 #include "options.h"
+
+#ifdef NCR
+#define NCR_LOG 1
+#define NCR_DEBUG 1
+
 #include "uae.h"
 #include "memory_uae.h"
 #include "rommgr.h"

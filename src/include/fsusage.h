@@ -1,3 +1,7 @@
+#pragma once
+#ifndef SRC_INCLUDE_FSUSAGE_H_INCLUDED
+#define SRC_INCLUDE_FSUSAGE_H_INCLUDED 1
+
 /* fsusage.h -- declarations for filesystem space usage info
    Copyright (C) 1991, 1992 Free Software Foundation, Inc.
 
@@ -34,3 +38,6 @@ struct fs_usage
 #endif  /* Not __P.  */
 
 int get_fs_usage __P ((const TCHAR *path, const TCHAR *disk, struct fs_usage *fsp));
+
+
+#endif // SRC_INCLUDE_FSUSAGE_H_INCLUDED
