@@ -604,8 +604,8 @@ extern uae_u32 uaerand (void);
 /* Contains the filename of .uaerc */
 extern TCHAR optionsfile[];
 extern void save_options (struct zfile *, struct uae_prefs *, int);
+
 extern void cfgfile_write (struct zfile *, const TCHAR *option, const TCHAR *format,...);
-/*
 extern void cfgfile_dwrite (struct zfile *, const TCHAR *option, const TCHAR *format,...);
 extern void cfgfile_target_write (struct zfile *, const TCHAR *option, const TCHAR *format,...);
 extern void cfgfile_target_dwrite (struct zfile *, const TCHAR *option, const TCHAR *format,...);
@@ -619,7 +619,7 @@ extern void cfgfile_write_str (struct zfile *f, const TCHAR *option, const TCHAR
 extern void cfgfile_dwrite_str (struct zfile *f, const TCHAR *option, const TCHAR *value);
 extern void cfgfile_target_write_str (struct zfile *f, const TCHAR *option, const TCHAR *value);
 extern void cfgfile_target_dwrite_str (struct zfile *f, const TCHAR *option, const TCHAR *value);
-*/
+
 extern void cfgfile_backup (const TCHAR *path);
 extern struct uaedev_config_info *add_filesys_config (struct uae_prefs *p, int index,
 	const TCHAR *devname, const TCHAR *volname, const TCHAR *rootdir, bool readonly,
@@ -632,16 +632,37 @@ extern void discard_prefs (struct uae_prefs *, int);
 
 int parse_cmdline_option (struct uae_prefs *, TCHAR, const TCHAR *);
 
+extern int cfgfile_yesno (const TCHAR *option, const TCHAR *value, const TCHAR *name, bool *location);
+extern int cfgfile_intval (const TCHAR *option, const TCHAR *value, const TCHAR *name, int *location, int scale);
+extern int cfgfile_strval (const TCHAR *option, const TCHAR *value, const TCHAR *name, int *location, const TCHAR *table[], int more);
+extern int cfgfile_string (const TCHAR *option, const TCHAR *value, const TCHAR *name, TCHAR *location, int maxsz);
+extern TCHAR *cfgfile_subst_path (const TCHAR *path, const TCHAR *subst, const TCHAR *file);
+
 extern TCHAR *target_expand_environment (const TCHAR *path);
 extern int target_parse_option (struct uae_prefs *, const TCHAR *option, const TCHAR *value);
 extern void target_save_options (struct zfile*, struct uae_prefs *);
 extern void target_default_options (struct uae_prefs *, int type);
 extern void target_fixup_options (struct uae_prefs *);
 extern int target_cfgfile_load (struct uae_prefs *, const TCHAR *filename, int type, int isdefault);
-extern void target_startup_sequence (struct uae_prefs *p);
+extern void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type);
 extern int target_get_display (const TCHAR*);
 extern const TCHAR *target_get_display_name (int, bool);
 
+extern int cfgfile_load (struct uae_prefs *p, const TCHAR *filename, int *type, int ignorelink, int userconfig);
+extern int cfgfile_save (struct uae_prefs *p, const TCHAR *filename, int);
+extern void cfgfile_parse_line (struct uae_prefs *p, TCHAR *, int);
+extern void cfgfile_parse_lines (struct uae_prefs *p, const TCHAR *, int);
+extern int cfgfile_parse_option (struct uae_prefs *p, TCHAR *option, TCHAR *value, int);
+extern int cfgfile_get_description (const TCHAR *filename, TCHAR *description, TCHAR *hostlink, TCHAR *hardwarelink, int *type);
+extern void cfgfile_show_usage (void);
+extern uae_u32 cfgfile_uaelib (int mode, uae_u32 name, uae_u32 dst, uae_u32 maxlen);
+extern uae_u32 cfgfile_uaelib_modify (uae_u32 mode, uae_u32 parms, uae_u32 size, uae_u32 out, uae_u32 outsize);
+extern uae_u32 cfgfile_modify (uae_u32 index, TCHAR *parms, uae_u32 size, TCHAR *out, uae_u32 outsize);
+extern void cfgfile_addcfgparam (TCHAR *);
+extern int built_in_prefs (struct uae_prefs *p, int model, int config, int compa, int romcheck);
+extern int built_in_chipset_prefs (struct uae_prefs *p);
+extern int cmdlineparser (const TCHAR *s, TCHAR *outp[], int max);
+extern int cfgfile_configuration_change (int);
 extern void fixup_prefs_dimensions (struct uae_prefs *prefs);
 extern void fixup_prefs (struct uae_prefs *prefs);
 extern void fixup_cpu (struct uae_prefs *prefs);

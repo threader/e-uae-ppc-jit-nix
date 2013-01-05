@@ -75,7 +75,7 @@ extern unsigned long foink;
    waste half the entries in this array
    UPDATE: We now use those entries to store the start of the linked
    lists that we maintain for each hash result. */
-cacheline cache_tags[TAGSIZE];
+static cacheline cache_tags[TAGSIZE];
 static int letit=0;
 static blockinfo* hold_bi[MAX_HOLD_BI];
 static blockinfo* active;
@@ -106,7 +106,7 @@ static void flush_icache_hard(uae_u32 ptr, int n);
 
 
 
-bigstate live;
+static bigstate live;
 static smallstate empty_ss;
 static smallstate default_ss;
 static int optlev;

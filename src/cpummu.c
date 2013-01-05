@@ -45,7 +45,7 @@ static void REGPARAM3 mmu_flush_atc_all(bool global) REGPARAM;
 
 mmu_atc_l1_array atc_l1[2];
 mmu_atc_l1_array *current_atc;
-struct mmu_atc_line atc_l2[2][ATC_L2_SIZE];
+static struct mmu_atc_line atc_l2[2][ATC_L2_SIZE];
 
 #ifdef ATC_STATS
 static unsigned int mmu_atc_hits[ATC_L2_SIZE];
@@ -965,7 +965,7 @@ void REGPARAM2 mmu_op_real(uae_u32 opcode, uae_u16 extra)
 		op_illg (opcode);
 }
 
-void REGPARAM2 mmu_flush_atc(uaecptr addr, bool super, bool global)
+static void REGPARAM2 mmu_flush_atc(uaecptr addr, bool super, bool global)
 {
 	struct mmu_atc_line *l;
 	int i, j;
@@ -996,7 +996,7 @@ void REGPARAM2 mmu_flush_atc(uaecptr addr, bool super, bool global)
 	}
 }
 
-void REGPARAM2 mmu_flush_atc_all(bool global)
+static void REGPARAM2 mmu_flush_atc_all(bool global)
 {
 	struct mmu_atc_line *l;
 	unsigned int i;

@@ -1071,8 +1071,6 @@ static int real_main2 (int argc, TCHAR **argv)
 	savestate_init ();
 	keybuf_init (); /* Must come after init_joystick */
 
-	target_startup_sequence (&currprefs);
-
 	memory_hardreset (2);
 	memory_reset ();
 

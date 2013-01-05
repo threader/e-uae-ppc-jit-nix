@@ -3757,7 +3757,7 @@ static int action_examine_all_do (Unit *unit, uaecptr lock, ExAllKey *eak, uaecp
 				if (d->fstype == FS_ARCHIVE)
 					/*fixme*/ ok = zfile_readdir_archive (d->zd, fn);
 				else if (d->fstype == FS_DIRECTORY)
-					ok = readdir (d->od->h);
+					ok = readdir (d->od);
 				/*else if (d->fstype == FS_CDFS)
 					ok = isofs_readdir (d->isod, fn, &uniq);*/
 				else
@@ -3776,7 +3776,7 @@ static int action_examine_all_do (Unit *unit, uaecptr lock, ExAllKey *eak, uaecp
 		eak->id = unit->exallid++;
 		put_long (control + 4, eak->id);
 		if (!exalldo (exalldata, exalldatasize, type, control, unit, aino)) {
-			eak->fn = my_strdup (ok->d_name); /* no space in exallstruct, save current entry */
+			//eak->fn = my_strdup (ok->d_name); /* no space in exallstruct, save current entry */
 			break;
 		}
 	}
@@ -4031,7 +4031,7 @@ static void populate_directory (Unit *unit, a_inode *base)
 			if (d->fstype == FS_ARCHIVE)
 				/*fixme*/ok = zfile_readdir_archive (d->zd, fn);
 			else if (d->fstype == FS_DIRECTORY)
-				ok = readdir (d->od->h);
+				ok = readdir (d->od);
 			else if (d->fstype == FS_CDFS)
 			;//	ok = isofs_readdir (d->isod, fn, &uniq);
 			else

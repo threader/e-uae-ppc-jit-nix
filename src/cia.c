@@ -38,15 +38,14 @@
 #ifdef ARCADIA
 #include "arcadia.h"
 #endif
+#include "audio.h"
 #include "keyboard.h"
 #include "uae.h"
 #include "amax.h"
-#include "ersatz.h"
 #include "sampler.h"
 #include "dongle.h"
 #include "inputrecord.h"
 #include "autoconf.h"
-#include "audio.h"
 
 #define CIAA_DEBUG_R 0
 #define CIAA_DEBUG_W 0

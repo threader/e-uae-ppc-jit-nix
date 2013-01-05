@@ -1698,7 +1698,7 @@ static __inline__ void remove_all_offsets(void)
 static inline void flush_reg_count(void)
 {
 #if RECORD_REGISTER_USAGE
-    for (unsigned int r = 0; r < 16; r++)
+    for (int r = 0; r < 16; r++)
 	if (reg_count_local[r])
 	    ADDQim(reg_count_local[r], ((uintptr)reg_count) + (8 * r), X86_NOREG, X86_NOREG, 1);
 #endif
@@ -5092,7 +5092,7 @@ void compiler_exit(void)
 		popallspace = 0;
 	}
 	
-	unsigned int i;
+	int i;
 #if PROFILE_COMPILE_TIME
 	write_log("### Compile Block statistics\n");
 	write_log("Number of calls to compile_block : %d\n", compile_count);
@@ -5706,7 +5706,7 @@ static uint8 *do_alloc_code(uint32 size, int depth)
 		if (boundaries < page_size)
 			boundaries = page_size;
 		code_base = (uint8 *)sbrk(0);
-		for (unsigned int attempts = 0; attempts < CODE_ALLOC_MAX_ATTEMPTS; attempts++) {
+		for (int attempts = 0; attempts < CODE_ALLOC_MAX_ATTEMPTS; attempts++) {
 			if (vm_acquire_fixed(code_base, size) == 0) {
 				uint8 *code = code_base;
 				code_base += size;
@@ -6160,8 +6160,7 @@ static inline void reset_compop(int opcode)
 static int read_opcode(const char *p)
 {
 	int opcode = 0;
-	unsigned int i;
-	for (i = 0; i < 4; i++) {
+	for (int i = 0; i < 4; i++) {
 		int op = p[i];
 		switch (op) {
 		case '0': case '1': case '2': case '3': case '4':

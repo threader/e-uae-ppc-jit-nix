@@ -65,22 +65,22 @@ extern double getvsyncrate (double hz, int *mult);
      */
 struct vidbuf_description
 {
-    /* Function implemented by graphics driver */
-    void (*flush_line)         (struct vidbuf_description *gfxinfo, int line_no);
-    void (*flush_block)        (struct vidbuf_description *gfxinfo, int first_line, int end_line);
-    void (*flush_screen)       (struct vidbuf_description *gfxinfo, int first_line, int end_line);
-    void (*flush_clear_screen) (struct vidbuf_description *gfxinfo);
-    int  (*lockscr)            (struct vidbuf_description *gfxinfo);
-    void (*unlockscr)          (struct vidbuf_description *gfxinfo);
-        uae_u8 *linemem;
-        uae_u8 *emergmem;
+	/* Function implemented by graphics driver */
+	void (*flush_line)         (struct vidbuf_description *gfxinfo, int line_no);
+	void (*flush_block)        (struct vidbuf_description *gfxinfo, int first_line, int end_line);
+	void (*flush_screen)       (struct vidbuf_description *gfxinfo, int first_line, int end_line);
+	void (*flush_clear_screen) (struct vidbuf_description *gfxinfo);
+	int  (*lockscr)            (struct vidbuf_description *gfxinfo);
+	void (*unlockscr)          (struct vidbuf_description *gfxinfo);
+	uae_u8 *linemem;
+	uae_u8 *emergmem;
 
-        uae_u8 *bufmem, *bufmemend;
-        uae_u8 *realbufmem;
+	uae_u8 *bufmem, *bufmemend;
+	uae_u8 *realbufmem;
 	uae_u8 *bufmem_allocated;
 	bool bufmem_lockable;
-        int rowbytes; /* Bytes per row in the memory pointed at by bufmem. */
-        int pixbytes; /* Bytes per pixel. */
+	int rowbytes; /* Bytes per row in the memory pointed at by bufmem. */
+	int pixbytes; /* Bytes per pixel. */
 	/* size of this buffer */
 	int width_allocated;
 	int height_allocated;
@@ -106,7 +106,7 @@ struct vidbuf_description
 	int inxoffset; /* positive if sync positioning */
 	int inyoffset;
 
-        int maxblocklines; /* Set to 0 if you want calls to flush_line after each drawn line, or the number of
+	int maxblocklines; /* Set to 0 if you want calls to flush_line after each drawn line, or the number of
 			* lines that flush_block wants to/can handle (it isn't really useful to use another
 			* value than maxline here). */
 
@@ -167,3 +167,4 @@ extern void toggle_mousegrab      (void);
 /* For ports using tui.c, this should be built by graphics_setup(). */
 extern struct bstring *video_mode_menu;
 extern void vidmode_menu_selected(int);
+
