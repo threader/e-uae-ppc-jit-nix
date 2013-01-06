@@ -349,9 +349,9 @@ EORREG2REGL  0   1011 sss1 10DD Dddd   0 0     regD    regD
 EORREG2REGW  0   1011 sss1 01DD Dddd   0 0     regD    regD
 EORREG2REGB  0   1011 sss1 00DD Dddd   0 0     regD    regD
 
-EORREG2MEML  1   1011 sss1 10DD Dddd   0 0     regD    indA,indApL,indmAL,indAd16,indAcp,absW,absL
-EORREG2MEMW  1   1011 sss1 01DD Dddd   0 0     regD    indA,indApW,indmAW,indAd16,indAcp,absW,absL
-EORREG2MEMB  1   1011 sss1 00DD Dddd   0 0     regD    indA,indApB,indmAB,indAd16,indAcp,absW,absL
+EORREG2MEML  0   1011 sss1 10DD Dddd   0 0     regD    indA,indApL,indmAL,indAd16,indAcp,absW,absL
+EORREG2MEMW  0   1011 sss1 01DD Dddd   0 0     regD    indA,indApW,indmAW,indAd16,indAcp,absW,absL
+EORREG2MEMB  0   1011 sss1 00DD Dddd   0 0     regD    indA,indApB,indmAB,indAd16,indAcp,absW,absL
 
 ;*** And
 ;ANDI.x #imm,Dy
@@ -422,9 +422,9 @@ ORIMM2CCRB   0   0000 0000 0011 1100   0 0     immedB    none
 EORIMM2CCRB  0   0000 1010 0011 1100   0 0     immedB    none
 
 ;*** Status Register bit logic
-ANDIMM2SRW   0   0000 0010 0111 1100   0 0     immedW    none
-ORIMM2SRW    0   0000 0000 0111 1100   0 0     immedW    none
-EORIMM2SRW   0   0000 1010 0111 1100   0 0     immedW    none
+ANDIMM2SRW   0   0000 0010 0111 1100   1 0     immedW    none
+ORIMM2SRW    0   0000 0000 0111 1100   1 0     immedW    none
+EORIMM2SRW   0   0000 1010 0111 1100   1 0     immedW    none
 
 ;*** Btst
 BTSTIMM2MEM  0   0000 1000 00DD Dddd   0 0     immedW    indA,indApB,indmAB,indAd16,indAcp,indPCcp,absW,absL,indPCd16

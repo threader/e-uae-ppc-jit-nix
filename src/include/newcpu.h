@@ -363,6 +363,7 @@ void newcpu_showstate (void);
 #ifdef JIT
 extern void flush_icache (int n);
 extern void compemu_reset (void);
+extern void compemu_cleanup (void);
 #else
 #define flush_icache(X) do {} while (0)
 #endif

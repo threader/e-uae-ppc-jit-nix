@@ -91,7 +91,7 @@ static const struct cfg_lines opttable[] =
     {"comp_optimize", "Whether to optimize away native code generation where possible" },
     {"comp_fpu", "Whether to provide JIT FPU emulation" },
     {"compforcesettings", "Whether to force the JIT compiler settings" },
-    {"cachesize", "How many MB to use to buffer translated instructions"},
+    {"cachesize", "How many KB memory to use to buffer translated instructions"},
 #endif
     {"parallel_on_demand", "" },
     {"serial_on_demand", "" },
