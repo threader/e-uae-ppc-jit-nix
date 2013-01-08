@@ -416,6 +416,7 @@ dnl
 HAVE_GCC27=no
 HAVE_GCC30=no
 HAVE_GCC40=no
+HAVE_GCC47=no
 HAVE_GLIBC2=no
 
 AC_MSG_CHECKING([for GCC 2.7 or higher])
@@ -442,6 +443,13 @@ if [[ "x$HAVE_GCC30" = "xyes" ]]; then
   #endif
   ], [AC_MSG_RESULT(yes); HAVE_GCC40=yes], AC_MSG_RESULT(no))
 fi
+
+AC_MSG_CHECKING([for GCC 4.7 or higher])
+AC_EGREP_CPP(yes,
+[#if (__GNUC__ > 3 && __GNUC_MINOR__ > 6)
+  yes
+#endif
+], [AC_MSG_RESULT(yes); HAVE_GCC47=yes], AC_MSG_RESULT(no))
 
 if test $ac_cv_prog_gcc = yes; then
   if test $HAVE_GCC27 != yes; then
@@ -2077,7 +2085,12 @@ AC_MSG_NOTICE([================================================================]
 UAE_LIBS="$GUI_LIBS $GFX_LIBS $SND_LIBS $JOY_LIBS $UAE_LIBS"
 UAE_CPPFLAGS="$UAE_CPPFLAGS $UAE_DEFINES $GFX_CPPFLAGS"
 UAE_CFLAGS="$OPTIMIZED_FLAGS $UAE_CFLAGS $GUI_CFLAGS $GFX_CFLAGS $SND_CFLAGS $JOY_CFLAGS"
+if [[ "x$HAVE_GCC47" = "xyes" ]]; then
 UAE_CXXFLAGS="$UAE_CXXFLAGS $UAE_CFLAGS -std=c++11"
+else
+UAE_CXXFLAGS="$UAE_CXXFLAGS $UAE_CFLAGS"
+fi
+
 UAE_CFLAGS="$UAE_CFLAGS -std=c99"
 
 AC_CONFIG_LINKS(src/target.h:src/targets/$TARGETDEP)
