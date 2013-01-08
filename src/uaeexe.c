@@ -98,7 +98,7 @@ static TCHAR *get_cmd (void)
 	first = first->next;
 	if (!first)
 		last = NULL;
-	free (cmd);
+	xfree (cmd);
 	return s;
 }
 

@@ -84,7 +84,7 @@ static GtkWidget  *sstate_text_widget, *sstate_change_widget, *sstate_load_widge
 static GtkWidget *floppy_widget[4];
 static char *new_disk_string[4];
 
-static GtkWidget *power_led;
+static gpointer power_led;
 
 static GtkWidget *ctpanel;
 static GtkWidget *ftpanel;
@@ -876,7 +876,7 @@ static void disc_changed (FloppyFileEntry *ffe, gpointer p)
 
 	uae_sem_wait (&gui_sem);
 	if (new_disk_string[num] != 0)
-	    free (new_disk_string[num]);
+	    xfree (new_disk_string[num]);
 	new_disk_string[num] = strdup (s);
 	uae_sem_post (&gui_sem);
 	write_comm_pipe_int (&from_gui_pipe, UAECMD_INSERTDISK, 0);
@@ -2316,7 +2316,7 @@ void gui_handle_events (void)
 			int n = read_comm_pipe_int_blocking (&from_gui_pipe);
 			uae_sem_wait (&gui_sem);
 			strncpy (changed_prefs.floppyslots[n].df, new_disk_string[n], 255);
-			free (new_disk_string[n]);
+			xfree (new_disk_string[n]);
 			new_disk_string[n] = 0;
 			changed_prefs.floppyslots[n].df[255] = '\0';
 			uae_sem_post (&gui_sem);
@@ -2357,7 +2357,7 @@ void gui_handle_events (void)
 			uae_sem_wait (&gui_sem);
 			strncpy (changed_prefs.romfile, gui_romname, 255);
 			changed_prefs.romfile[255] = '\0';
-			free (gui_romname);
+			xfree (gui_romname);
 			uae_sem_post (&gui_sem);
 			break;
 #ifdef SAVESTATE

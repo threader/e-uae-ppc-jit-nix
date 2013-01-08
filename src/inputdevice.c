@@ -18,10 +18,10 @@
 
 //#define DONGLE_DEBUG
 
-#include <ctype.h>
-
 #include "sysconfig.h"
 #include "sysdeps.h"
+
+#include <ctype.h>
 
 #include "cfgfile.h"
 #include "keyboard.h"
@@ -150,7 +150,7 @@ static struct teststore testmode_wait[TESTMODE_MAX];
 static int bouncy;
 static unsigned long bouncy_cycles;
 
-static int handle_input_event (int nr, int state, int max, int autofire, bool canstoprecord, bool playbackevent);
+int handle_input_event (int nr, int state, int max, int autofire, bool canstoprecord, bool playbackevent);
 
 static struct inputdevice_functions idev[IDTYPE_MAX];
 
@@ -2878,7 +2878,7 @@ static uae_u64 isqual (int evt)
 	return ID_FLAG_QUALIFIER1 << (num * 2);
 }
 
-static int handle_input_event (int nr, int state, int max, int autofire, bool canstopplayback, bool playbackevent)
+int handle_input_event (int nr, int state, int max, int autofire, bool canstopplayback, bool playbackevent)
 {
 	struct inputevent *ie;
 	int joy;
@@ -5488,7 +5488,8 @@ static int get_int_flags (int num)
 {
 	return 0;
 }
-static struct inputdevice_functions inputdevicefunc_internalevent = {
+
+struct inputdevice_functions inputdevicefunc_internalevent = {
 	init_int, close_int, acquire_int, unacquire_int, read_int,
 	get_int_num, get_int_friendlyname, get_int_uniquename,
 	get_int_widget_num, get_int_widget_type,

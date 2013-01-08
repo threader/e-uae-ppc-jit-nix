@@ -727,8 +727,7 @@ void restore_state (const TCHAR *filename)
 error:
 	savestate_state = 0;
 	savestate_file = 0;
-	if (chunk)
-		xfree (chunk);
+	xfree (chunk);
 	if (f)
 		zfile_fclose (f);
 }

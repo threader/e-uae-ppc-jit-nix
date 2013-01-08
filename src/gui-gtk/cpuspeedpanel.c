@@ -4,6 +4,7 @@
  * Copyright 2003-2005 Richard Drummond
  */
 
+#include "sysdeps.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -27,11 +28,12 @@ static void on_adjust_changed   (GtkWidget *w, CpuSpeedPanel *cspanel);
 static void on_idleenabled_toggled (GtkWidget *w, CpuSpeedPanel *cspanel);
 static void on_idlerate_changed (GtkWidget *w, CpuSpeedPanel *cspanel);
 
-guint cpuspeedpanel_get_type ()
+GtkType cpuspeedpanel_get_type ()
 {
-    static guint cpuspeedpanel_type = 0;
+	static bool    hasCpuspeed = false;
+    static GtkType cpuspeedpanel_type;
 
-    if (!cpuspeedpanel_type) {
+    if (!hasCpuspeed) {
 	static const GtkTypeInfo cpuspeedpanel_info = {
 	    (char *) "CpuSpeedPanel",
 	    sizeof (CpuSpeedPanel),
@@ -43,6 +45,7 @@ guint cpuspeedpanel_get_type ()
 	    (GtkClassInitFunc) NULL
 	};
 	cpuspeedpanel_type = gtk_type_unique (gtk_frame_get_type (), &cpuspeedpanel_info);
+		hasCpuspeed = true;
     }
     return cpuspeedpanel_type;
 }

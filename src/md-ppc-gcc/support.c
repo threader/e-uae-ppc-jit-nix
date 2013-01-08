@@ -65,7 +65,7 @@ static uae_u32 find_timebase (const char *path)
 		   close (tbcfd);
 		}
 
-		free (tbc_freq_path);
+		xfree (tbc_freq_path);
 	     }
 	}
 	closedir (dir);

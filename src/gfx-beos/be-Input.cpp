@@ -82,10 +82,7 @@ static int init_kb (void)
 
 static void close_kb (void)
 {
-    if (default_keyboard) {
-	free (default_keyboard);
-	default_keyboard = 0;
-    }
+	xfree (default_keyboard);
 }
 
 static int keyhack (int scancode, int pressed, int num)

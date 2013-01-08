@@ -741,6 +741,7 @@ extern int picasso_palette (void);
 extern void uaegfx_install_code (uaecptr start);
 extern int createwindowscursor (uaecptr, int, int, int, int, int);
 extern int DX_Fill (int, int, int, int, uae_u32, RGBFTYPE);
+extern int DX_Blit (int, int, int, int, int, int, BLIT_OPCODE);
 extern void DX_Invalidate (int, int);
 extern void DX_SetPalette (int, int);
 extern void DX_SetPalette_vsync(void);

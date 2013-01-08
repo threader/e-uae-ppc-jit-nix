@@ -782,7 +782,7 @@ static void dump_custom_regs (int aga)
 		p4[9] = p3[1];
 		p4[10] = p3[10];
 		p4[11] = p3[11];
-		free (p3);
+		xfree (p3);
 	}
 	end = 0;
 	while (custd[end].name)
@@ -801,7 +801,7 @@ static void dump_custom_regs (int aga)
 			addr1, custd[i].name, v1,
 			addr2, custd[j].name, v2);
 	}
-	free (p2);
+	xfree (p2);
 }
 
 static void dump_vectors (uaecptr addr)

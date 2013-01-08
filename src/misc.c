@@ -61,6 +61,17 @@ struct winuae_currentmode {
 	int vsync;
 };
 
+typedef struct {
+  WORD  dmSize;
+  WORD  dmDriverExtra;
+  DWORD dmFields;
+  DWORD dmBitsPerPel;
+  DWORD dmPelsWidth;
+  DWORD dmPelsHeight;
+  DWORD dmDisplayFlags;
+  DWORD dmDisplayFrequency;
+} DEVMODE;
+
 static struct winuae_currentmode currentmodestruct;
 static struct winuae_currentmode *currentmode = &currentmodestruct;
 
@@ -145,7 +156,7 @@ void setid_af (struct uae_input_device *uid, int i, int slot, int sub, int port,
 void fetch_path (TCHAR *name, TCHAR *out, int size);
 void fetch_screenshotpath (TCHAR *out, int size);
 struct MultiDisplay *getdisplay (struct uae_prefs *p);
-void addmode (struct MultiDisplay *md, uae_u32 w, uae_u32 h, int d, int freq, int rawmode);
+void addmode (struct MultiDisplay *md, DEVMODE *dm, int rawmode);
 void updatedisplayarea (void);
 double vblank_calibrate (double approx_vblank, bool waitonly);
 frame_time_t vsync_busywait_end (int *flipdelay);
@@ -189,14 +200,14 @@ int vsync_switchmode (int hz)
 	int w = currentmode->native_width;
 	int h = currentmode->native_height;
 	int d = currentmode->native_depth / 8;
-//        struct MultiDisplay *md = getdisplay (&currprefs);
+        struct MultiDisplay *md = getdisplay (&currprefs);
 	struct PicassoResolution *found;
 	int newh, i, cnt;
 
     newh = h * (currprefs.ntscmode ? 60 : 50) / hz;
 
 	found = NULL;
-/*    for (cnt = 0; cnt <= abs (newh - h) + 1 && !found; cnt++) {
+    for (cnt = 0; cnt <= abs (newh - h) + 1 && !found; cnt++) {
             for (i = 0; md->DisplayModes[i].depth >= 0 && !found; i++) {
                     struct PicassoResolution *r = &md->DisplayModes[i];
                     if (r->res.width == w && (r->res.height == newh + cnt || r->res.height == newh - cnt) && r->depth == d) {
@@ -210,7 +221,7 @@ int vsync_switchmode (int hz)
                             }
                     }
             }
-    }*/
+    }
     if (found == oldmode && hz == oldhz)
             return true;
     oldmode = found;
@@ -995,13 +1006,101 @@ int isfullscreen (void)
 	return isfullscreen_2 (&currprefs);
 }
 
-void addmode (struct MultiDisplay *md, uae_u32 w, uae_u32 h, int d, int freq, int rawmode)
+#define SM_CXSCREEN             0
+#define SM_CYSCREEN             1
+#define SM_CXVIRTUALSCREEN      78
+#define SM_CYVIRTUALSCREEN      79
+#define REFRESH_RATE_RAW 1
+#define REFRESH_RATE_LACE 2
+
+int GetSystemMetrics (int nIndex) {
+switch (nIndex) {
+case SM_CXSCREEN: return 1024;
+case SM_CYSCREEN: return 768;
+case SM_CXVIRTUALSCREEN: return 1024;
+case SM_CYVIRTUALSCREEN: return 768;
+}
+return 0;
+
+}
+
+static int resolution_compare (const void *a, const void *b)
+{
+	struct PicassoResolution *ma = (struct PicassoResolution *)a;
+	struct PicassoResolution *mb = (struct PicassoResolution *)b;
+	if (ma->res.width < mb->res.width)
+		return -1;
+	if (ma->res.width > mb->res.width)
+		return 1;
+	if (ma->res.height < mb->res.height)
+		return -1;
+	if (ma->res.height > mb->res.height)
+		return 1;
+	return ma->depth - mb->depth;
+}
+
+static void sortmodes (struct MultiDisplay *md)
+{
+	int	i, idx = -1;
+	int pw = -1, ph = -1;
+
+	i = 0;
+	while (md->DisplayModes[i].depth >= 0)
+		i++;
+	qsort (md->DisplayModes, i, sizeof (struct PicassoResolution), resolution_compare);
+	for (i = 0; md->DisplayModes[i].depth >= 0; i++) {
+		int j, k;
+		for (j = 0; md->DisplayModes[i].refresh[j]; j++) {
+			for (k = j + 1; md->DisplayModes[i].refresh[k]; k++) {
+				if (md->DisplayModes[i].refresh[j] > md->DisplayModes[i].refresh[k]) {
+					int t = md->DisplayModes[i].refresh[j];
+					md->DisplayModes[i].refresh[j] = md->DisplayModes[i].refresh[k];
+					md->DisplayModes[i].refresh[k] = t;
+					t = md->DisplayModes[i].refreshtype[j];
+					md->DisplayModes[i].refreshtype[j] = md->DisplayModes[i].refreshtype[k];
+					md->DisplayModes[i].refreshtype[k] = t;
+				}
+			}
+		}
+		if (md->DisplayModes[i].res.height != ph || md->DisplayModes[i].res.width != pw) {
+			ph = md->DisplayModes[i].res.height;
+			pw = md->DisplayModes[i].res.width;
+			idx++;
+		}
+		md->DisplayModes[i].residx = idx;
+	}
+}
+
+static void modesList (struct MultiDisplay *md)
+{
+	int i, j;
+
+	i = 0;
+	while (md->DisplayModes[i].depth >= 0) {
+		write_log (_T("%d: %s%s ("), i, md->DisplayModes[i].rawmode ? _T("!") : _T(""), md->DisplayModes[i].name);
+		j = 0;
+		while (md->DisplayModes[i].refresh[j] > 0) {
+			if (j > 0)
+				write_log (_T(","));
+			if (md->DisplayModes[i].refreshtype[j] & REFRESH_RATE_RAW)
+				write_log (_T("!"));
+			write_log (_T("%d"),  md->DisplayModes[i].refresh[j]);
+			if (md->DisplayModes[i].refreshtype[j] & REFRESH_RATE_LACE)
+				write_log (_T("i"));
+			j++;
+		}
+		write_log (_T(")\n"));
+		i++;
+	}
+}
+
+void addmode (struct MultiDisplay *md, DEVMODE *dm, int rawmode)
 {
 	int ct;
 	int i, j;
-//	int w = dm->dmPelsWidth;
-//	int h = dm->dmPelsHeight;
-//	int d = dm->dmBitsPerPel;
+	int w = dm->dmPelsWidth;
+	int h = dm->dmPelsHeight;
+	int d = dm->dmBitsPerPel;
 	bool lace = false;
 
 /*	int freq = 0;
@@ -1013,6 +1112,7 @@ void addmode (struct MultiDisplay *md, uae_u32 w, uae_u32 h, int d, int freq, in
 	if (dm->dmFields & DM_DISPLAYFLAGS) {
 		lace = (dm->dmDisplayFlags & DM_INTERLACED) != 0;
 	}*/
+	int freq = 75;
 
 	ct = 0;
 	if (d == 8)
@@ -1029,6 +1129,7 @@ void addmode (struct MultiDisplay *md, uae_u32 w, uae_u32 h, int d, int freq, in
 		return;
 	d /= 8;
 	i = 0;
+
 	while (md->DisplayModes[i].depth >= 0) {
 		if (md->DisplayModes[i].depth == d && md->DisplayModes[i].res.width == w && md->DisplayModes[i].res.height == h) {
 			for (j = 0; j < MAX_REFRESH_RATES; j++) {
@@ -1063,6 +1164,90 @@ void addmode (struct MultiDisplay *md, uae_u32 w, uae_u32 h, int d, int freq, in
 		md->DisplayModes[i].res.width, md->DisplayModes[i].res.height,
 		lace ? _T("i") : _T(""),
 		md->DisplayModes[i].depth * 8);
+write_log ("Add Mode: %s\n", md->DisplayModes[i].name);
+}
+
+void sortdisplays (void)
+{
+	struct MultiDisplay *md;
+	int i, idx;
+
+	int w = GetSystemMetrics (SM_CXSCREEN);
+	int h = GetSystemMetrics (SM_CYSCREEN);
+	int b = 0;
+//	HDC hdc = GetDC (NULL);
+//	if (hdc) {
+//		b = GetDeviceCaps(hdc, BITSPIXEL) * GetDeviceCaps(hdc, PLANES);
+//		ReleaseDC (NULL, hdc);
+//	}
+	write_log (_T("Desktop: W=%d H=%d B=%d. CXVS=%d CYVS=%d\n"), w, h, b,
+		GetSystemMetrics (SM_CXVIRTUALSCREEN), GetSystemMetrics (SM_CYVIRTUALSCREEN));
+
+	md = Displays;
+	while (md->monitorname) {
+		md->DisplayModes = xmalloc (struct PicassoResolution, MAX_PICASSO_MODES);
+		md->DisplayModes[0].depth = -1;
+
+		write_log (_T("%s '%s' [%s]\n"), md->adaptername, md->adapterid, md->adapterkey);
+		write_log (_T("-: %s [%s]\n"), md->fullname, md->monitorid);
+		for (int mode = 0; mode < 2; mode++) {
+			DEVMODE dm;
+			dm.dmSize = sizeof dm;
+			dm.dmDriverExtra = 0;
+			idx = 0;
+
+//let's hope for the best
+dm.dmPelsWidth = 1280;
+dm.dmPelsHeight = 1024;
+dm.dmBitsPerPel = 32;
+dm.dmDisplayFrequency = 50;
+//dm.dmDisplayFlags =
+//dm.dmPosition = 
+//dm.dmDisplayOrientation = 
+//			while (EnumDisplaySettingsEx (md->adapterid, idx, &dm, mode ? EDS_RAWMODE : 0)) {
+				int found = 0;
+				int idx2 = 0;
+				while (md->DisplayModes[idx2].depth >= 0 && !found) {
+					struct PicassoResolution *pr = &md->DisplayModes[idx2];
+					if (pr->res.width == dm.dmPelsWidth && pr->res.height == dm.dmPelsHeight && pr->depth == dm.dmBitsPerPel / 8) {
+						for (i = 0; pr->refresh[i]; i++) {
+							if (pr->refresh[i] == dm.dmDisplayFrequency) {
+								found = 1;
+								break;
+							}
+						}
+					}
+					idx2++;
+				}
+				if (!found && dm.dmBitsPerPel > 8) {
+					int freq = 0;
+//					if ((dm.dmFields & DM_PELSWIDTH) && (dm.dmFields & DM_PELSHEIGHT) && (dm.dmFields & DM_BITSPERPEL)) {
+						addmode (md, &dm, mode);
+//					}
+				}
+				idx++;
+//			}
+		}
+		sortmodes (md);
+		modesList (md);
+		i = 0;
+		while (md->DisplayModes[i].depth > 0)
+			i++;
+		write_log (_T("%d display modes.\n"), i);
+		md++;
+	}
+}
+
+void enumeratedisplays (void) {
+	struct MultiDisplay *md = Displays;
+
+	md->adaptername = strdup ("DeviceString");
+	md->adapterid = strdup ("DeviceName");
+	md->adapterkey = strdup ("DeviceID");
+	md->monitorname = strdup ("DeviceString");
+	md->monitorid = strdup ("DeviceKey");
+	md->fullname = strdup ("DeviceName");
+	md->primary = true;
 }
 
 void updatedisplayarea (void)

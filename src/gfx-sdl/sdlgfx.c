@@ -498,10 +498,9 @@ static int find_best_mode (int *width, int *height, int depth, int fullscreen)
 
 int picasso_palette (void)
 {
-        int i, changed;
+        int i = 0, changed = 0;
 
-        changed = 0;
-        for (i = 0; i < 256; i++) {
+        for ( ; i < 256; i++) {
                 int r = picasso96_state.CLUT[i].Red;
                 int g = picasso96_state.CLUT[i].Green;
                 int b = picasso96_state.CLUT[i].Blue;
@@ -1354,10 +1353,7 @@ static void graphics_subshutdown (void)
     display = screen = 0;
     mousehack = 0;
 
-/*    if (gfxvidinfo.emergmem) {
-	free (gfxvidinfo.emergmem);
-	gfxvidinfo.emergmem = 0;
-    }*/
+//xfree (gfxvidinfo.emergmem);
 
 #if 0
 // This breaks catastrophically on some systems. Better work-around needed.
@@ -1396,9 +1392,9 @@ void graphics_notify_state (int state)
 
 void handle_events (void)
 {
-    SDL_Event rEvent;
+    SDL_Event rEvent = { SDL_NOEVENT };
 	int istest = inputdevice_istest ();
-	int scancode;
+	int scancode     = 0;
 
     while (SDL_PollEvent (&rEvent)) {
 	switch (rEvent.type) {
@@ -1411,6 +1407,7 @@ void handle_events (void)
 	    case SDL_MOUSEBUTTONUP: {
 			int state = (rEvent.type == SDL_MOUSEBUTTONDOWN);
 			int buttonno = -1;
+
 			DEBUG_LOG ("Event: mouse button %d %s\n", rEvent.button.button, state ? "down" : "up");
 
 			switch (rEvent.button.button) {
@@ -1426,6 +1423,7 @@ void handle_events (void)
 			    setmousebuttonstate (0, buttonno, rEvent.type == SDL_MOUSEBUTTONDOWN ? 1:0);
 				break;
 		    }
+
 	    case SDL_KEYUP:
 	    case SDL_KEYDOWN: {
 			int state = (rEvent.type == SDL_KEYDOWN);
@@ -1449,7 +1447,9 @@ void handle_events (void)
 				break;
 			}
 */
-/*			if (currprefs.map_raw_keys) {
+#if 0
+//fixme
+			if (currprefs.map_raw_keys) {
 			    keycode = rEvent.key.keysym.scancode;
 			    // Hack - OS4 keyup events have bit 7 set.
 #ifdef TARGET_AMIGAOS
@@ -1458,8 +1458,9 @@ void handle_events (void)
 			    modifier_hack (&keycode, &state);
 			} else
 			    keycode = rEvent.key.keysym.sym;
-*/
+#endif
 			    keycode = rEvent.key.keysym.sym;
+
 //				write_log ("Event: key: %d to: %d  %s\n", keycode, sdlk2dik (keycode), state ? "down" : "up");
 /*				if (!istest)
 					scancode = keyhack (keycode, state, 0);
@@ -1497,11 +1498,11 @@ void handle_events (void)
     } /* end while() */
 
 //abant
-		inputdevicefunc_keyboard.read ();
-		inputdevicefunc_mouse.read ();
-		inputdevicefunc_joystick.read ();
-		inputdevice_handle_inputcode ();
-		check_prefs_changed_gfx ();
+	inputdevicefunc_keyboard.read ();
+	inputdevicefunc_mouse.read ();
+	inputdevicefunc_joystick.read ();
+	inputdevice_handle_inputcode ();
+	check_prefs_changed_gfx ();
 
 #ifdef PICASSO96
 # ifdef USE_GL
@@ -1521,8 +1522,7 @@ void handle_events (void)
 	    int urc = 0;
 
 	    if (picasso_vidinfo.height / 2 + 1 > updaterecssize) {
-		if (updaterecs)
-		    free (updaterecs);
+		xfree (updaterecs);
 		updaterecssize = picasso_vidinfo.height / 2 + 1;
 		updaterecs = (SDL_Rect *) calloc (updaterecssize, sizeof (SDL_Rect));
 	    }
@@ -1607,6 +1607,7 @@ void handle_events (void)
 
 static void switch_keymaps (void)
 {
+#if 0
 	if (currprefs.map_raw_keys) {
 		if (have_rawkeys) {
 			set_default_hotkeys (get_default_raw_hotkeys ());
@@ -1620,14 +1621,17 @@ static void switch_keymaps (void)
 		set_default_hotkeys (get_default_cooked_hotkeys ());
 		write_log ("Using cooked keymap\n");
 	}
+#endif
 }
 
 int check_prefs_changed_gfx (void)
 {
+#if 0
 	if (changed_prefs.map_raw_keys != currprefs.map_raw_keys) {
 		switch_keymaps ();
 		currprefs.map_raw_keys = changed_prefs.map_raw_keys;
 	}
+#endif
 
 	if (changed_prefs.gfx_size_win.width		!= currprefs.gfx_size_win.width
 		|| changed_prefs.gfx_size_win.height	!= currprefs.gfx_size_win.height
@@ -1762,12 +1766,10 @@ int DX_Fill (int dstx, int dsty, int width, int height, uae_u32 color, RGBFTYPE 
 	return result;
 }
 
-/*
- * Add a screenmode to the emulated P96 display database
- */
-static void add_p96_mode (int width, int height, int emulate_chunky, int *count)
+int DX_Blit (int srcx, int srcy, int dstx, int dsty, int width, int height, BLIT_OPCODE opcode)
 {
-	return;
+    /* not implemented yet */
+    return 0;
 }
 
 static void set_window_for_picasso (void)
@@ -2222,10 +2224,13 @@ void gfx_default_options (struct uae_prefs *p)
 {
 	int type = get_sdlgfx_type ();
 
+#if 0
+//fixme
 	if (type == SDLGFX_DRIVER_AMIGAOS4 || type == SDLGFX_DRIVER_CYBERGFX || type == SDLGFX_DRIVER_BWINDOW  || type == SDLGFX_DRIVER_QUARTZ)
 		p->map_raw_keys = 1;
 	else
 		p->map_raw_keys = 0;
+#endif
 #ifdef USE_GL
 	p->use_gl = 0;
 #endif /* USE_GL */
@@ -2233,7 +2238,9 @@ void gfx_default_options (struct uae_prefs *p)
 
 void gfx_save_options (struct zfile *f, const struct uae_prefs *p)
 {
+#if 0
 	cfgfile_write (f, GFX_NAME ".map_raw_keys=%s\n", p->map_raw_keys ? "true" : "false");
+#endif
 #ifdef USE_GL
 	cfgfile_write (f, GFX_NAME ".use_gl=%s\n", p->use_gl ? "true" : "false");
 #endif /* USE_GL */
@@ -2241,7 +2248,10 @@ void gfx_save_options (struct zfile *f, const struct uae_prefs *p)
 
 int gfx_parse_option (struct uae_prefs *p, const char *option, const char *value)
 {
+#if 0
 	int result = (cfgfile_yesno (option, value, "map_raw_keys", &(p->map_raw_keys)));
+#endif
+	int result;
 #ifdef USE_GL
 	result = result || (cfgfile_yesno (option, value, "use_gl", &(p->use_gl)));
 #endif /* USE_GL */

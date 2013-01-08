@@ -174,7 +174,7 @@ char *fsdb_create_unique_nname (a_inode *base, const char *suggestion)
 	    write_log ("unique name: %s\n", p);
 	    return p;
 	}
-	free (p);
+	xfree (p);
 
 	/* tmpnam isn't reentrant and I don't really want to hack configure
 	 * right now to see whether tmpnam_r is available...  */

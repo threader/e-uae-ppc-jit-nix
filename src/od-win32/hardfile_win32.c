@@ -540,7 +540,7 @@ Return Value:
     // So we can release the interfaceDetailData buffer
     //
 
-    free (interfaceDetailData);
+    xfree (interfaceDetailData);
     interfaceDetailData = NULL;
 
     if (hDevice == INVALID_HANDLE_VALUE) {
@@ -720,7 +720,7 @@ Return Value:
 	strcat (udi->device_name, "_");
     (*index2)++;
 end:
-    free (interfaceDetailData);
+    xfree (interfaceDetailData);
     if (hDevice != INVALID_HANDLE_VALUE)
 	CloseHandle (hDevice);
     return ret;

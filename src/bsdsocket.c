@@ -356,7 +356,7 @@ static struct socketbase *alloc_socketbase (TrapContext *context)
 
 		if (sb->signal == -1) {
 			write_log (_T("bsdsocket: ERROR: Couldn't allocate signal for task 0x%lx.\n"), sb->ownertask);
-			free (sb);
+			xfree (sb);
 			return NULL;
 		}
 		m68k_dreg (regs, 0) = SCRATCHBUFSIZE;
@@ -425,8 +425,8 @@ static void free_socketbase (TrapContext *context)
 		}
 		host_sbcleanup (sb);
 
-		free (sb->dtable);
-		free (sb->ftable);
+		xfree (sb->dtable);
+		xfree (sb->ftable);
 
 		locksigqueue ();
 
@@ -456,7 +456,7 @@ static void free_socketbase (TrapContext *context)
 
 		unlocksigqueue ();
 
-		free (sb);
+		xfree (sb);
 	}
 }
 
@@ -683,8 +683,8 @@ static uae_u32 bsdsocklib_SetDTableSize (SB, int newSize)
 	if (newdtable == NULL || newftable == NULL /*win32|| newmtable == NULL*/) {
 		sb->resultval = -1;
 		bsdsocklib_seterrno(sb, ENOMEM);
-		free (newdtable);
-		free (newftable);
+		xfree (newdtable);
+		xfree (newftable);
 		return -1;
 	}
 
@@ -694,8 +694,8 @@ static uae_u32 bsdsocklib_SetDTableSize (SB, int newSize)
 		newdtable[i] = -1;
 
 	sb->dtablesize = newSize;
-	free(sb->dtable);
-	free(sb->ftable);
+	xfree(sb->dtable);
+	xfree(sb->ftable);
 	sb->dtable = (SOCKET*)newdtable;
 	sb->ftable = newftable;
 	sb->resultval = 0;
@@ -1589,10 +1589,10 @@ void bsdlib_reset (void)
 		write_log (_T("BSDSOCK: cleanup start socket %x\n"), sb);
 		host_sbcleanup (sb);
 
-		free (sb->dtable);
-		free (sb->ftable);
+		xfree (sb->dtable);
+		xfree (sb->ftable);
 
-		free (sb);
+		xfree (sb);
 	}
 	write_log (_T("BSDSOCK: cleanup end\n"));
 

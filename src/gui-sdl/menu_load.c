@@ -11,12 +11,24 @@
 #include <string.h>
 #include <sys/stat.h>
 
+int dirz (int parameter);
+
 extern void write_text(int x, int y, char* txt);
 extern void blit_image(SDL_Surface* img, int x, int y);
 extern SDL_Surface *display;
 #ifdef USE_GL
+#define NO_SDL_GLEXT
+# include <SDL_opengl.h>
+/* These are not defined in the current version of SDL_opengl.h. */
+# ifndef GL_TEXTURE_STORAGE_HINT_APPLE
+#  define GL_TEXTURE_STORAGE_HINT_APPLE 0x85BC
+#  endif
+# ifndef GL_STORAGE_SHARED_APPLE
+#  define GL_STORAGE_SHARED_APPLE 0x85BF
+# endif
 extern struct gl_buffer_t glbuffer;
 extern void render_gl_buffer (const struct gl_buffer_t *buffer, int first_line, int last_line);
+extern void flush_gl_buffer (const struct gl_buffer_t *buffer, int first_line, int last_line);
 #endif
 extern SDL_Surface* tmpSDLScreen;
 extern SDL_Surface* pMenu_Surface;
@@ -33,7 +45,7 @@ extern char yol[];
 extern char msg[];
 extern char msg_status[];
 
-int dirz (int parametre) {
+int dirz (int parameter) {
 	SDL_Event event;
 	int getdir = 1;
 	int loadloopdone = 0;
@@ -87,7 +99,7 @@ int dirz (int parametre) {
 							num_of_files++;
 					//	}
 					//}
-					free(tmp);
+					xfree(tmp);
 				//}
 			}
 		}
@@ -124,26 +136,26 @@ int dirz (int parametre) {
 		}
 
 		if (ka == 1) {	//df1
-			if (parametre == 0) {
+			if (parameter == 0) {
 				char *tmp=(char *)calloc(1,256);
 				strcpy(tmp,launchDir);
 				strcat(tmp,"/roms/");
 				strcat(tmp,filez[selected_item]);
 				strcpy(currprefs.floppyslots[1].df,tmp);
-				free(tmp);
+				xfree(tmp);
 
 				loadloopdone = 1;
 			}
 			ka = 0;
 		}
 		if (kb == 1) {  //df0;
-			if (parametre == 0) {
+			if (parameter == 0) {
 				char *tmp=(char *)calloc(1,256);
 				strcpy(tmp,launchDir);
 				strcat(tmp,"/disks/");
 				strcat(tmp,filez[selected_item]);
 				strcpy(currprefs.floppyslots[0].df,tmp);
-				free(tmp);
+				xfree(tmp);
 
 				loadloopdone = 1;
 			} else {
@@ -152,7 +164,7 @@ int dirz (int parametre) {
 				strcat(tmp,"/roms/");
 				strcat(tmp,filez[selected_item]);
 				strcpy(currprefs.romfile,tmp);
-				free(tmp);
+				xfree(tmp);
 
 				loadloopdone = 1; 
 			}
@@ -198,7 +210,7 @@ int dirz (int parametre) {
 #endif
 	} //while done
 
-	free(filez);
+	xfree(filez);
     pMenu_Surface = SDL_LoadBMP("guidep/images/menu.bmp");
 
 	return 0;

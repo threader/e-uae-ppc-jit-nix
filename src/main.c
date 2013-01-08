@@ -660,7 +660,7 @@ static void parse_diskswapper (const TCHAR *s)
 			num++;
 		}
 	}
-	free (tmp);
+	xfree (tmp);
 }
 
 static TCHAR *parsetext (const TCHAR *s)
@@ -1131,6 +1131,14 @@ void real_main (int argc, TCHAR **argv)
 #ifdef NATMEM_OFFSET
 	preinit_shm ();
 #endif
+
+	write_log (_T("Enumerating display devices.. \n"));
+	enumeratedisplays ();
+	write_log (_T("Sorting devices and modes..\n"));
+	sortdisplays ();
+//	write_log (_T("Display buffer mode = %d\n"), ddforceram);
+//	enumerate_sound_devices ();
+	write_log (_T("done\n"));
 
 	keyboard_settrans ();
 #ifdef CATWEASEL

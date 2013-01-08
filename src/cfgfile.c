@@ -3243,7 +3243,7 @@ static void subst (TCHAR *p, TCHAR *f, int n)
 	TCHAR *str = cfgfile_subst_path (UNEXPANDED, p, f);
 	_tcsncpy (f, str, n - 1);
 	f[n - 1] = '\0';
-	//FIXME: free (str);
+	xfree (str);
 }
 
 static int getconfigstoreline (const TCHAR *option, TCHAR *value)
@@ -3543,14 +3543,14 @@ static void parse_gfx_specs (struct uae_prefs *p, const TCHAR *spec)
 	p->gfx_apmode[0].gfx_fullscreen = _tcschr (x2, 'a') != 0;
 	p->gfx_apmode[1].gfx_fullscreen = _tcschr (x2, 'p') != 0;
 
-	free (x0);
+	xfree (x0);
 	return;
 
 argh:
 	write_log (_T("Bad display mode specification.\n"));
 	write_log (_T("The format to use is: \"width:height:modifiers\"\n"));
 	write_log (_T("Type \"uae -h\" for detailed help.\n"));
-	free (x0);
+	xfree (x0);
 }
 
 static void parse_sound_spec (struct uae_prefs *p, const TCHAR *spec)
@@ -3590,7 +3590,7 @@ static void parse_sound_spec (struct uae_prefs *p, const TCHAR *spec)
 		p->sound_freq = _tstoi (x3);
 	if (x4)
 		p->sound_maxbsiz = _tstoi (x4);
-	free (x0);
+	xfree (x0);
 }
 
 
@@ -3681,11 +3681,11 @@ static void parse_hardfile_spec (struct uae_prefs *p, const TCHAR *spec)
 #ifdef FILESYS
 	add_filesys_config (p, -1, NULL, NULL, x4, 0, 0, _tstoi (x0), _tstoi (x1), _tstoi (x2), _tstoi (x3), 0, 0, 0, 0, 0, 0, 0);
 #endif
-	free (x0);
+	xfree (x0);
 	return;
 
 argh:
-	free (x0);
+	xfree (x0);
 	write_log (_T("Bad hardfile parameter specified - type \"uae -h\" for help.\n"));
 	return;
 }

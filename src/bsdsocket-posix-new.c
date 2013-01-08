@@ -1022,8 +1022,7 @@ void host_setsockopt (SB, uae_u32 sd, uae_u32 level, uae_u32 optname, uae_u32 op
 		buf = NULL;
     }
     sb->resultval  = setsockopt (s, nativelevel, nativeoptname, buf, optlen);
-    if (buf)
-	    free(buf);
+    xfree(buf);
     SETERRNO;
 
     DEBUG_LOG ("setsockopt: sock %d, level %d, 'name' %d(%d), len %d -> %d, %d\n",
@@ -1569,8 +1568,7 @@ uae_u32 host_getsockopt (SB, uae_u32 sd, uae_u32 level, uae_u32 optname,
 		}
     }
 
-    if (buf != NULL)
-		free(buf);
+    xfree(buf);
     return r;
 }
 

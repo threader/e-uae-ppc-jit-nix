@@ -10,7 +10,10 @@
 #include <stdlib.h>
 #include "uae_string.h"
 #include "uae_types.h"
-#include "uae_malloc.h"
+
+#define NO_MACHDEP 1
+#include "sysdeps.h"
+
 #include "writelog.h"
 #include <ctype.h>
 
@@ -768,8 +771,8 @@ void read_table68k (void)
 {
 	int i;
 
-	free (table68k);
-	table68k = xmalloc (sizeof (struct instr) * 65536);
+	xfree (table68k);
+	table68k = xmalloc (struct instr, 65536);
 	for (i = 0; i < 65536; i++) {
 		table68k[i].mnemo = i_ILLG;
 		table68k[i].handler = -1;

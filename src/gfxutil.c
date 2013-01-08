@@ -584,7 +584,7 @@ void alloc_colors256 (allocfunc_type allocfunc)
 	}
 /*	printf("%d color(s) lost, %d stages won\n",lost, won);*/
     }
-    free (map);
+    xfree (map);
 
     for (i = 0; i < 4096; i++)
 		xcolors[i] = xcolors[i] * 0x01010101;
@@ -658,7 +658,7 @@ void setup_greydither_maxcol (int maxcol, allocfunc_type allocfunc)
 	    }
 	}
     }
-    free (map);
+    xfree (map);
 }
 
 void setup_greydither (int bits, allocfunc_type allocfunc)
@@ -774,8 +774,8 @@ void setup_dither (int bits, allocfunc_type allocfunc)
 	    }
 	}
     }
-    free (redvals);
-    free (map);
+    xfree (redvals);
+    xfree (map);
 }
 
 #if !defined X86_ASSEMBLY

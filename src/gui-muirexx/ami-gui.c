@@ -54,18 +54,12 @@ static char *last_savestate_dir;
 
 static void free_last_floppy_dir (void)
 {
-    if (last_floppy_dir) {
-	free (last_floppy_dir);
-	last_floppy_dir = 0;
-    }
+	xfree (last_floppy_dir);
 }
 
 static void free_last_savestate_dir (void)
 {
-    if (last_savestate_dir) {
-	free (last_savestate_dir);
-	last_savestate_dir = 0;
-    }
+	xfree (last_savestate_dir);
 }
 
 static const char *get_last_floppy_dir (void)
@@ -103,10 +97,7 @@ static const char *get_last_savestate_dir (void)
 
 static void set_last_floppy_dir (const char *path)
 {
-    if (last_floppy_dir) {
-	free (last_floppy_dir);
-	last_floppy_dir = 0;
-    }
+	xfree (last_floppy_dir);
 
     if (path) {
 	unsigned int len = strlen (path);
@@ -120,10 +111,7 @@ static void set_last_floppy_dir (const char *path)
 
 static void set_last_savestate_dir (const char *path)
 {
-    if (last_savestate_dir) {
-	free (last_savestate_dir);
-	last_savestate_dir = 0;
-    }
+	xfree (last_savestate_dir);
 
     if (path) {
 	unsigned int len = strlen (path);

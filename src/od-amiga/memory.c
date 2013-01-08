@@ -21,7 +21,7 @@ void *cache_alloc (int size)
 
 void cache_free (void *cache)
 {
-    free (cache);
+    xfree (cache);
 }
 
 #endif

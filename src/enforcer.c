@@ -7,10 +7,10 @@
  * Copyright 2004      Richard Drummond
  */
 
-#include <stdlib.h>
-
 #include "sysconfig.h"
 #include "sysdeps.h"
+
+#include <stdlib.h>
 
 #include "options.h"
 #include "memory_uae.h"

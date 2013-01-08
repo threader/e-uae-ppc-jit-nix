@@ -27,7 +27,10 @@
 #include <limits.h>
 #include "uae_string.h"
 #include "uae_types.h"
-#include "uae_malloc.h"
+
+#define NO_MACHDEP 1
+#include "sysdeps.h"
+
 #include <ctype.h>
 #include <stdarg.h>
 #include "readcpu.h"
@@ -4031,10 +4034,10 @@ int main (int argc, char **argv)
 	read_table68k ();
 	do_merges ();
 
-	opcode_map = (int *) xmalloc (sizeof (int) * nr_cpuop_funcs);
-	opcode_last_postfix = (int *) xmalloc (sizeof (int) * nr_cpuop_funcs);
-	opcode_next_clev = (int *) xmalloc (sizeof (int) * nr_cpuop_funcs);
-	counts = (unsigned long *) xmalloc (sizeof (unsigned long) * 65536);
+	opcode_map          = xmalloc (int, nr_cpuop_funcs);
+	opcode_last_postfix = xmalloc (int, nr_cpuop_funcs);
+	opcode_next_clev    = xmalloc (int, nr_cpuop_funcs);
+	counts              = xmalloc (unsigned long, 65536);
 	read_counts ();
 
 	/* It would be a lot nicer to put all in one file (we'd also get rid of
@@ -4058,6 +4061,11 @@ int main (int argc, char **argv)
 		generate_cpu (i, 0);
 	}
 
-	free (table68k);
+	xfree (opcode_map);
+	xfree (opcode_last_postfix);
+	xfree (opcode_next_clev);
+	xfree (counts);
+	xfree (table68k);
+
 	return 0;
 }

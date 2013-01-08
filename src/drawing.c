@@ -2693,6 +2693,10 @@ void finish_drawing_frame (void)
 	int i;
 	bool didflush = false;
 
+	// Leave if the screen isn't allocated, yet:
+	if (0 == gfxvidinfo.height_allocated)
+		return;
+
 	if (! lockscr ()) {
 		notice_screen_contents_lost ();
 		return;

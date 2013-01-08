@@ -229,8 +229,8 @@ void finish_sp(struct string_pool *sp, int *v_count, char ***v_vector)
 void free_sp(char **vector)
 {
 	vector--;
-	free(*vector);		/* free string pool */
-	free(vector);
+	xfree(*vector);		/* free string pool */
+	xfree(vector);
 }
 
 

@@ -1284,6 +1284,8 @@ dnl
       GUI_LIBS="$SDL_LIBS"
       if [[ "x$OSDEP" = "xod-macosx" ]]; then
         GUI_LIBS="${GUI_LIBS} -framework SDL_ttf -framework SDL_image"
+      else
+	GUI_LIBS="${GUI_LIBS} -lSDL_ttf -lSDL_image"
       fi
       GUI_NAME="SDL"
       GUI_CFLAGS="$SDL_CFLAGS -DSDL_UI"

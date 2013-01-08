@@ -33,11 +33,12 @@ static void on_chipsettype_changed (GtkWidget *w, ChipsetTypePanel *panel);
 static void on_frequency_changed (GtkWidget *w, ChipsetTypePanel *panel);
 
 
-guint chipsettypepanel_get_type (void)
+GtkType chipsettypepanel_get_type (void)
 {
-    static guint chipsettypepanel_type = 0;
+	static bool    hasChipset = false;
+    static GtkType chipsettypepanel_type;
 
-    if (!chipsettypepanel_type) {
+    if (!hasChipset) {
 	static const GtkTypeInfo chipsettypepanel_info = {
 	    (char *) "ChipsetTypePanel",
 	    sizeof (ChipsetTypePanel),
@@ -49,6 +50,7 @@ guint chipsettypepanel_get_type (void)
 	    (GtkClassInitFunc) NULL
 	};
 	chipsettypepanel_type = gtk_type_unique (gtk_frame_get_type (), &chipsettypepanel_info);
+		hasChipset = true;
     }
     return chipsettypepanel_type;
 }

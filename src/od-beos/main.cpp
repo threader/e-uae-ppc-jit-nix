@@ -37,7 +37,7 @@ void copyArgs(int argc,char **argv);
 void freeCopiedArgs()
 {
 	for(int i = 0;i < argcCopy;i++)
-		free(argvCopy[i]);
+		xfree(argvCopy[i]);
 
 	delete[] argvCopy;
 }

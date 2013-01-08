@@ -21,7 +21,7 @@
 
 #include <ctype.h>
 
-#include "options.h"
+#include "cfgfile.h"
 #include "uae.h"
 #include "memory_uae.h"
 #include "xwin.h"
@@ -726,6 +726,7 @@ int graphics_setup (void)
 
     rawkeys_available = 0;
 
+#if 0
 #ifdef USE_XKB
     keycodes = get_xkb_keycodes (display);
 
@@ -737,6 +738,7 @@ int graphics_setup (void)
 	    write_log ("X11GFX: Keyboard uses xfree86 keycodes\n");
 	}
     }
+#endif
 #endif
 
     return 1;
@@ -794,6 +796,8 @@ static void graphics_subinit (void)
     delete_win = XInternAtom(display, "WM_DELETE_WINDOW", False);
     mywin = XCreateWindow (display, rootwin, 0, 0, current_width, current_height,
 			   0, bitdepth, InputOutput, vis, valuemask, &wattr);
+	gfxvidinfo.width_allocated = current_width;
+	gfxvidinfo.height_allocated = current_height;
     XSetWMProtocols (display, mywin, &delete_win, 1);
     XSync (display, 0);
     XStoreName (display, mywin, PACKAGE_NAME);
@@ -999,10 +1003,8 @@ static void graphics_subshutdown (void)
 	mywin = 0;
     }
 
-    if (gfxvidinfo.linemem != NULL)
-	free (gfxvidinfo.linemem);
-    if (gfxvidinfo.emergmem != NULL)
-	free (gfxvidinfo.emergmem);
+    xfree (gfxvidinfo.linemem);
+    xfree (gfxvidinfo.emergmem);
 
     mousehack = 0;
 }
@@ -1423,7 +1425,7 @@ void gfx_set_picasso_state (int on)
     /* We can get called by drawing_init() when there's
      * no window opened yet... */
     if (mywin == 0)
-	return
+	return;
 
     write_log ("set_picasso_state:%d\n", on);
     graphics_subshutdown ();
@@ -1783,3 +1785,29 @@ void setmaintitle (void)
 {
 	/* not implemented yet */
 }
+
+#if defined PICASSO96
+int picasso_palette (void)
+{
+	int i = 0, changed = 0;
+
+	for ( ; i < 256; i++) {
+		int r = picasso96_state.CLUT[i].Red;
+		int g = picasso96_state.CLUT[i].Green;
+		int b = picasso96_state.CLUT[i].Blue;
+		uae_u32 v = (doMask256 (r, red_bits, red_shift)
+				| doMask256 (g, green_bits, green_shift)
+				| doMask256 (b, blue_bits, blue_shift));
+		if (v !=  picasso_vidinfo.clut[i]) {
+			picasso_vidinfo.clut[i] = v;
+			changed = 1;
+		}
+	}
+	return changed;
+}
+
+void gfx_set_picasso_colors (RGBFTYPE rgbfmt)
+{
+	alloc_colors_picasso (red_bits, green_bits, blue_bits, red_shift, green_shift, blue_shift, rgbfmt);
+}
+#endif // defined

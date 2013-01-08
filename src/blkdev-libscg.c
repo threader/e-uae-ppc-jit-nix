@@ -393,7 +393,7 @@ static int execscsicmd_direct (int unitnum, uaecptr acmd)
     uae_sem_post (&scgp_sem);
 
     if (scsi_datap != scsi_datap_org)
-	free (scsi_datap);
+	xfree (scsi_datap);
 
     return io_error;
 }

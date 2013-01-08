@@ -314,7 +314,7 @@ void host_sbcleanup(SB)
 	shutdown(sb->sockAbort,1);
 	closesocket(sb->sockAbort);
 
-	free(sb->mtable);
+	xfree(sb->mtable);
 }
 
 void host_sbreset(void)

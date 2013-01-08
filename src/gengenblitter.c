@@ -16,10 +16,6 @@
 
 static void nop(int);
 
-#define xmalloc malloc
-#define xfree free
-#define xrealloc realloc
-
 typedef struct tree_n {
     enum tree_op { op_and, op_or, op_xor, op_not, op_a, op_b, op_c, op_d, op_e, op_f } op;
     struct tree_n *left, *right;

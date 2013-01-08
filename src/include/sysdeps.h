@@ -341,7 +341,7 @@ extern void mallocemu_free (void *ptr);
 #endif
 
 #include "target.h"
-#if !defined(RECUR)
+#if !defined(RECUR) && !defined(NO_MACHDEP)
 #include "machdep/machdep.h"
 #include "gfxdep/gfx.h"
 #endif
@@ -386,21 +386,24 @@ extern int gui_message_multibutton (int flags, const char *format,...);
 #endif
 
 #ifndef __cplusplus
-#define xmalloc(T, N) malloc(sizeof (T) * (N))
-#define xcalloc(T, N) calloc(sizeof (T), N)
-#define xfree(T) free(T)
-#define xrealloc(T, TP, N) realloc(TP, sizeof (T) * (N))
-#if 0
-extern void *xmalloc (size_t);
-extern void *xcalloc (size_t, size_t);
-extern void xfree (const void*);
-#  endif /* 0 */
+#define xmalloc(type, num) ((type*)malloc(sizeof (type) * (num)))
+#define xcalloc(type, num) ((type*)calloc(sizeof (type), num))
+#define xrealloc(type, buffer, num) ((type*)realloc(buffer, sizeof (type) * (num)))
 #else
-#define xmalloc(T, N) static_cast<T*>(malloc (sizeof (T) * (N)))
-#define xcalloc(T, N) static_cast<T*>(calloc (sizeof (T), N))
-#define xrealloc(T, TP, N) static_cast<T*>(realloc (TP, sizeof (T) * (N)))
-#define xfree(T) free(T)
+#define xmalloc(type, num) static_cast<type*>(malloc (sizeof (type) * (num)))
+#define xcalloc(type, num) static_cast<type*>(calloc (sizeof (type), num))
+#define xrealloc(type, buffer, num) static_cast<type*>(realloc (buffer, sizeof (type) * (num)))
 #endif /* ! __cplusplus */
+
+#define XFREE_DEBUG 0
+
+#define __xfree(buffer) { free(buffer); buffer = NULL; }
+
+#if XFREE_DEBUG > 0
+#define xfree(buffer) { if (buffer) { __xfree (buffer) } else { fprintf (stderr, "NULL pointer freed at %s:%d %s\n", __FILE__, __LINE__, __FUNCTION__); } }
+#else
+#define xfree(buffer) { if (buffer) { __xfree (buffer) } }
+#endif //xfree_debug
 
 #define DBLEQU(f, i) (abs ((f) - (i)) < 0.000001)
 
@@ -455,7 +458,8 @@ extern void xfree (const void*);
 #endif /* offsetof */
 
 typedef int HANDLE;
-typedef unsigned int DWORD;
+typedef unsigned long DWORD;
+typedef unsigned short WORD;
 typedef long long LONGLONG;
 typedef int64_t off64_t;
 

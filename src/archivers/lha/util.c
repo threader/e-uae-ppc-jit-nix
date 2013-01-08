@@ -161,7 +161,7 @@ rmdir(path)
 		errno = EIO;
 		rtn = -1;
 	}
-	free(cmdname);
+	xfree(cmdname);
 	return (rtn);
 }
 

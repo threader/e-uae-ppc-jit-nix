@@ -168,4 +168,5 @@ private slots:
     void on_IDC_CACHE_valueChanged(int value);
 };
 
+#include "sysdeps.h"
 #endif // PUAE_MAINWINDOW_H

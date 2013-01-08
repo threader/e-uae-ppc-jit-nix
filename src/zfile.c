@@ -187,6 +187,8 @@ static struct zfile *zfile_create (struct zfile *prev)
 
 static void zfile_free (struct zfile *f)
 {
+	if (!f)
+		return;
 	if (f->f)
 		fclose (f->f);
 	if (f->deleteafterclose) {
@@ -1543,12 +1545,17 @@ static struct zfile *zfile_fopen_nozip (const TCHAR *name, const TCHAR *mode)
 
 static struct zfile *openzip (const TCHAR *pname)
 {
-	int i, j;
-	TCHAR v;
+	int i = 0, j = 0;
+	TCHAR v = 0;
 	TCHAR name[MAX_DPATH];
 	TCHAR zippath[MAX_DPATH];
 
-	zippath[0] = 0;
+	if (!pname)
+		return NULL;
+
+	memset(name,    0, sizeof(TCHAR) * MAX_DPATH);
+	memset(zippath, 0, sizeof(TCHAR) * MAX_DPATH);
+
 	_tcscpy (name, pname);
 	i = _tcslen (name) - 2;
 	while (i > 0) {
@@ -1557,7 +1564,9 @@ static struct zfile *openzip (const TCHAR *pname)
 			name[i] = 0;
 			for (j = 0; plugins_7z[j]; j++) {
 				int len = _tcslen (plugins_7z[j]);
-				if (name[i - len - 1] == '.' && !strcasecmp (name + i - len, plugins_7z[j])) {
+				if ((i > len) // otherwise the next check is done on a negative index! - Sven
+				  && (name[i - len - 1] == '.') // and the next check on a negative address.
+				  && !strcasecmp (name + i - len, plugins_7z[j])) {
 					struct zfile *f = zfile_fopen_nozip (name, _T("rb"));
 					if (f) {
 						f->zipname = my_strdup (name + i + 1);
@@ -1570,7 +1579,7 @@ static struct zfile *openzip (const TCHAR *pname)
 		}
 		i--;
 	}
-	return 0;
+	return NULL;
 }
 
 static bool writeneeded (const TCHAR *mode)
@@ -1808,7 +1817,7 @@ static struct zfile *zfile_fopen_internet (const TCHAR *name, const TCHAR *mode,
 end:
 	if (i)
 		InternetCloseHandle (i);
-	free (data);
+	xfree (data);
 	return zf;
 }
 #endif

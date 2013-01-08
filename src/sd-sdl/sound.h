@@ -55,6 +55,11 @@ void set_volume_sound_device (struct sound_data *sd, int volume, int mute);
 int get_offset_sound_device (struct sound_data *sd);
 int blocking_sound_device (struct sound_data *sd);
 
+void audio_default_options (struct uae_prefs *p);
+void audio_save_options (FILE *f, const struct uae_prefs *p);
+int audio_parse_option (struct uae_prefs *p, const char *option, const char *value);
+
+
 #if SOUNDSTUFF > 0
 extern int outputsample, doublesample;
 #endif

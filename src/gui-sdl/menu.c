@@ -16,6 +16,18 @@
 
 #define SDL_UI_DEBUG 1
 
+#ifdef USE_GL
+#define NO_SDL_GLEXT
+# include <SDL_opengl.h>
+/* These are not defined in the current version of SDL_opengl.h. */
+# ifndef GL_TEXTURE_STORAGE_HINT_APPLE
+#  define GL_TEXTURE_STORAGE_HINT_APPLE 0x85BC
+#  endif
+# ifndef GL_STORAGE_SHARED_APPLE
+#  define GL_STORAGE_SHARED_APPLE 0x85BF
+# endif
+#endif /* USE_GL */
+
 #define VIDEO_FLAGS SDL_HWSURFACE
 SDL_Surface* tmpSDLScreen = NULL;
 
@@ -31,6 +43,9 @@ extern int dirz(int parametre);
 extern int prefz(int parametre);
 int soundVolume = 100;
 extern int flashLED;
+
+// --- internal prototypes ---
+void cocoa_gui_early_setup (void);
 
 //
 int gui_init (void) {
@@ -163,9 +178,13 @@ void gui_display (int shortcut){
 	int iconpos_x = 0;
 	int iconpos_y = 0;
 
-	getcwd (launchDir, 256);
-	strcpy (yol, launchDir);
-	write_log ("SDLUI: current dir: %s\n", launchDir);
+	if (getcwd (launchDir, 256)) {
+		strcpy (yol, launchDir);
+		write_log ("SDLUI: current dir: %s\n", launchDir);
+	} else {
+		write_log("getcwd failed with errno %d\n", errno);
+		return;
+	}
 
 	while (!mainloopdone) {
 		while (SDL_PollEvent(&event)) {

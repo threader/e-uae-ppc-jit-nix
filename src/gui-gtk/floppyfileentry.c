@@ -26,11 +26,12 @@ static void floppyfileentry_class_init (FloppyFileEntryClass *class);
 static void on_eject (GtkWidget *w, FloppyFileEntry *ffe);
 static void on_insert (GtkWidget *w, FloppyFileEntry *ffe);
 
-guint floppyfileentry_get_type ()
+GtkType floppyfileentry_get_type ()
 {
-    static guint floppyfileentry_type = 0;
+	static bool    hasFloppy = false;
+    static GtkType floppyfileentry_type;
 
-    if (!floppyfileentry_type) {
+    if (!hasFloppy) {
 	static const GtkTypeInfo floppyfileentry_info = {
 	    (char *) "FloppyFileEntry",
 	    sizeof (FloppyFileEntry),
@@ -42,6 +43,7 @@ guint floppyfileentry_get_type ()
 	    (GtkClassInitFunc) NULL
 	};
 	floppyfileentry_type = gtk_type_unique (gtk_frame_get_type (), &floppyfileentry_info);
+		hasFloppy = true;
     }
     return floppyfileentry_type;
 }

@@ -11,7 +11,6 @@
 #include <stdlib.h>
 #include "uae_string.h"
 #include "uae_types.h"
-#include "uae_malloc.h"
 #include "writelog.h"
 
 #ifndef HAVE_STRDUP
@@ -26,6 +25,7 @@ TCHAR *my_strdup (const TCHAR *s)
 
 #endif
 
+#if 0
 void *xmalloc (size_t n)
 {
 	void *a = malloc (n);
@@ -48,6 +48,7 @@ void *xcalloc (size_t n, size_t size)
 
 void xfree (const void *p)
 {
-
 	free ((void*)p);
 }
+
+#endif // 0

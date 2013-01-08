@@ -170,7 +170,7 @@ int main (int argc, char **argv)
 
     real_main (argc, argv);
 
-    free (start_path);
+    xfree (start_path);
     return 0;
 }
 

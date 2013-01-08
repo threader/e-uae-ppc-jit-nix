@@ -618,7 +618,7 @@ LazyBlockAllocator<T>::~LazyBlockAllocator()
 	while (currentPool) {
 		Pool * deadPool = currentPool;
 		currentPool = currentPool->next;
-		free(deadPool);
+		xfree(deadPool);
 	}
 }
 

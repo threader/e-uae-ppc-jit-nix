@@ -324,7 +324,7 @@ static int execscsicmd_direct_ioctl (int unitnum, uaecptr acmd)
 	}
     }
     if (scsi_datap != scsi_datap_org)
-	free (scsi_datap);
+	xfree (scsi_datap);
     return io_error;
 }
 

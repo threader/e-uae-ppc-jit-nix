@@ -554,8 +554,10 @@ struct uae_prefs {
 	int curses_reverse_video;
 #endif
 
+#if 0
 #if defined USE_SDL_GFX || defined USE_X11_GFX
 	bool map_raw_keys;
+#endif
 #endif
 	bool use_gl;
 

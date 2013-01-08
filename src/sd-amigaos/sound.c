@@ -69,7 +69,7 @@ static void close_AHI (void)
     }
     CloseDevice ((struct IORequest *) AHIio[0]);
     DeleteIORequest ((void*) AHIio[0]);
-    free (AHIio[1]);
+    xfree (AHIio[1]);
     DeleteMsgPort ((void*)AHImp);
     AHIio[0] = NULL;
     AHIio[1] = NULL;

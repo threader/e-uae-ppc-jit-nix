@@ -261,7 +261,7 @@ bool VirtualFree(LPVOID lpAddress, SIZE_T dwSize, DWORD dwFreeType) {
 		if (str->prev) str->prev->next = str->next;
 		if (vm == str) vm = str->prev;
 		write_log ("VirtualFree: failed munmap(0x%08X, %d)\n", (unsigned)str->address, str->mapping_size);
-		free (str);
+		xfree (str);
 		return 0;
 	}
 	write_log ("VirtualFree: ok\n");

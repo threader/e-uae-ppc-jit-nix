@@ -34,11 +34,12 @@ static void on_framerate_changed (GtkWidget *w, ChipsetSpeedPanel *panel);
 static void on_sprite_collisions_changed (GtkWidget *w, ChipsetSpeedPanel *panel);
 static void on_immediate_blits_changed (GtkWidget *w, ChipsetSpeedPanel *panel);
 
-guint chipsetspeedpanel_get_type (void)
+GtkType chipsetspeedpanel_get_type (void)
 {
-    static guint chipsetspeedpanel_type = 0;
+	static bool    hasChipspeed = false;
+    static GtkType chipsetspeedpanel_type;
 
-    if (!chipsetspeedpanel_type) {
+    if (!hasChipspeed) {
 	static const GtkTypeInfo chipsetspeedpanel_info = {
 	    (char *) "ChipsetSpeedPanel",
 	    sizeof (ChipsetSpeedPanel),
@@ -50,6 +51,7 @@ guint chipsetspeedpanel_get_type (void)
 	    (GtkClassInitFunc) NULL
 	};
 	chipsetspeedpanel_type = gtk_type_unique (gtk_frame_get_type (), &chipsetspeedpanel_info);
+		hasChipspeed = true;
     }
     return chipsetspeedpanel_type;
 }

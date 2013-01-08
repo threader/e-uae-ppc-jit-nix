@@ -1724,10 +1724,8 @@ void action_replay_init (int activate)
 /* This only deallocates memory, it is not suitable for unloading roms and continuing */
 void action_replay_cleanup()
 {
-	if (armemory_rom)
-		free (armemory_rom);
-	if (armemory_ram)
-		free (armemory_ram);
+	xfree (armemory_rom);
+	xfree (armemory_ram);
 	if (hrtmemory)
 		mapped_free (hrtmemory);
 	if (hrtmemory2)

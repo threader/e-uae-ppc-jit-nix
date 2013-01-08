@@ -1800,10 +1800,10 @@ static void picasso96_alloc2 (TrapContext *ctx)
 	if (p96depth (32))
 		depths++;
 
-	for (unsigned int mon = 0; Displays[mon].monitorname; mon++) {
+	for (int mon = 0; Displays[mon].monitorname; mon++) {
 		struct PicassoResolution *DisplayModes = Displays[mon].DisplayModes;
-	i = 0;
-	while (DisplayModes[i].depth >= 0) {
+		i = 0;
+		while (DisplayModes[i].depth >= 0) {
 			for (j = 0; missmodes[j * 2] >= 0; j++) {
 				if ( (DisplayModes[i].res.width  == (uae_u32)missmodes[j * 2 + 0])
 				  && (DisplayModes[i].res.height == (uae_u32)missmodes[j * 2 + 1]) ) {
@@ -1811,12 +1811,12 @@ static void picasso96_alloc2 (TrapContext *ctx)
 					missmodes[j * 2 + 1] = 0;
 				}
 			}
-		i++;
-	}
+			i++;
+		}
 	}
 
 	cnt = 0;
-	for (unsigned int mon = 0; Displays[mon].monitorname; mon++) {
+	for (int mon = 0; Displays[mon].monitorname; mon++) {
 		struct PicassoResolution *DisplayModes = Displays[mon].DisplayModes;
 		i = 0;
 		while (DisplayModes[i].depth >= 0) {
@@ -1902,7 +1902,7 @@ static void picasso96_alloc2 (TrapContext *ctx)
 			}
 		}
 	}
-#if 0
+#if P96TRACING_ENABLED
 	ShowSupportedResolutions ();
 #endif
 	uaegfx_card_install (ctx, size);

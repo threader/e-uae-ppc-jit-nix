@@ -229,7 +229,7 @@ static void extract_dev_unit(char *name, char **dev_name, int *dev_unit)
 	    s = malloc(8+strlen(*dev_name));
 	    if(s) {
 		sprintf(s,"%s.device",*dev_name);
-		free(*dev_name);
+		xfree(*dev_name);
 		*dev_name = s;
 	    }
 	}
@@ -342,7 +342,7 @@ int readdevice(char *name, char *dst)
 		fclose(f);
 	    }
 	}
-	free(device_name);
+	xfree(device_name);
     }
 
 #ifdef HAVE_SIGACTION

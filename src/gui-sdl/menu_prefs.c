@@ -6,12 +6,24 @@
 #include "button_mappings.h"
 #include <stdlib.h>
 
+int prefz (int parameter);
+
 extern void write_text(int x, int y, char* txt);
 extern void blit_image(SDL_Surface* img, int x, int y);
 extern SDL_Surface *display;
 #ifdef USE_GL
+#define NO_SDL_GLEXT
+# include <SDL_opengl.h>
+/* These are not defined in the current version of SDL_opengl.h. */
+# ifndef GL_TEXTURE_STORAGE_HINT_APPLE
+#  define GL_TEXTURE_STORAGE_HINT_APPLE 0x85BC
+#  endif
+# ifndef GL_STORAGE_SHARED_APPLE
+#  define GL_STORAGE_SHARED_APPLE 0x85BF
+# endif
 extern struct gl_buffer_t glbuffer;
 extern void render_gl_buffer (const struct gl_buffer_t *buffer, int first_line, int last_line);
+extern void flush_gl_buffer (const struct gl_buffer_t *buffer, int first_line, int last_line);
 #endif
 extern SDL_Surface* tmpSDLScreen;
 extern SDL_Surface* pMenu_Surface;
@@ -23,7 +35,7 @@ extern char msg_status[50];
 #define STATUS_X 30 
 #define STATUS_Y 460
 
-int prefz (int parametre) {
+int prefz (int parameter) {
 	SDL_Event event;
 
 	pMenu_Surface = SDL_LoadBMP("guidep/images/menu_tweak.bmp");

@@ -2252,7 +2252,7 @@ static a_inode *create_child_aino (Unit *unit, a_inode *base, TCHAR *rel, int is
 
 	aino->nname = create_nname (unit, base, rel);
 	if (!aino->nname) {
-		free (aino);
+		xfree (aino);
 		return 0;
 	}
 	aino->aname = my_strdup (rel);

@@ -100,7 +100,7 @@ static void fdi_free (void *p)
 	size = ((int*)p)[-1];
 	fdi_allocated -= size;
 	write_log (_T("%d freed (%d)\n"), size, fdi_allocated);
-	free ((int*)p - 1);
+	xfree ((int*)p - 1);
 }
 static void *fdi_malloc (int size)
 {

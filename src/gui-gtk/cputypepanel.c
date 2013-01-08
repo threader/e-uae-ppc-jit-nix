@@ -4,6 +4,7 @@
  * Copyright 2003-2004 Richard Drummond
  */
 
+#include "sysdeps.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -33,11 +34,12 @@ static void on_mmu40_changed (GtkWidget *w, CpuTypePanel *ctpanel);
 static void on_fputype_changed (GtkWidget *w, FpuTypePanel *ftpanel);
 static void on_fpu_morecompat_changed (GtkWidget *w, FpuTypePanel *ftpanel);
 
-guint cputypepanel_get_type ()
+GtkType cputypepanel_get_type ()
 {
-    static guint cputypepanel_type = 0;
+	static bool    hasCputype = false;
+    static GtkType cputypepanel_type;
 
-    if (!cputypepanel_type) {
+    if (!hasCputype) {
 	static const GtkTypeInfo cputypepanel_info = {
 	    (char *) "CpuTypePanel",
 	    sizeof (CpuTypePanel),
@@ -49,6 +51,7 @@ guint cputypepanel_get_type ()
 	    (GtkClassInitFunc) NULL
 	};
 	cputypepanel_type = gtk_type_unique (gtk_frame_get_type (), &cputypepanel_info);
+		hasCputype = true;
     }
     return cputypepanel_type;
 }

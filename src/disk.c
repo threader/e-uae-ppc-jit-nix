@@ -1745,7 +1745,7 @@ static void diskfile_update (struct zfile *diskfile, trackid *ti, int len, image
 		memset (zerobuf, 0, ti->len);
 		zfile_fseek (diskfile, ti->offs, SEEK_SET);
 		zfile_fwrite (zerobuf, 1, ti->len, diskfile);
-		free (zerobuf);
+		xfree (zerobuf);
 	}
 	if (disk_debug_logging > 0)
 		write_log (_T("track %d, raw track length %d written (total size %d)\n"), ti->track, (ti->bitlen + 7) / 8, ti->len);
@@ -3746,7 +3746,7 @@ static uae_u32 getadfcrc (drive *drv)
 	zfile_fseek (drv->diskfile, 0, SEEK_SET);
 	zfile_fread (b, 1, size, drv->diskfile);
 	crc32 = get_crc32 (b, size);
-	free (b);
+	xfree (b);
 	return crc32;
 }
 

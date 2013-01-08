@@ -88,30 +88,30 @@ USHORT DMS_Process_File(struct zfile *fi, struct zfile *fo, USHORT cmd, USHORT o
 	if (!b1) return ERR_NOMEMORY;
 	b2 = xcalloc(UCHAR,TRACK_BUFFER_LEN);
 	if (!b2) {
-		free(b1);
+		xfree(b1);
 		return ERR_NOMEMORY;
 	}
 	dms_text = xcalloc(UCHAR,TEMP_BUFFER_LEN);
 	if (!dms_text) {
-		free(b1);
-		free(b2);
+		xfree(b1);
+		xfree(b2);
 		return ERR_NOMEMORY;
 	}
 
 	/* if iname is NULL, input is stdin;   if oname is NULL, output is stdout */
 
 	if (zfile_fread(b1,1,HEADLEN,fi) != HEADLEN) {
-		free(b1);
-		free(b2);
-		free(dms_text);
+		xfree(b1);
+		xfree(b2);
+		xfree(dms_text);
 		return ERR_SREAD;
 	}
 
 	if ( (b1[0] != 'D') || (b1[1] != 'M') || (b1[2] != 'S') || (b1[3] != '!') ) {
 		/*  Check the first 4 bytes of file to see if it is "DMS!"  */
-		free(b1);
-		free(b2);
-		free(dms_text);
+		xfree(b1);
+		xfree(b2);
+		xfree(dms_text);
 		return ERR_NOTDMS;
 	}
 
@@ -119,9 +119,9 @@ USHORT DMS_Process_File(struct zfile *fi, struct zfile *fo, USHORT cmd, USHORT o
 	/* Header CRC */
 
 	if (hcrc != dms_CreateCRC(b1+4,(ULONG)(HEADLEN-6))) {
-		free(b1);
-		free(b2);
-		free(dms_text);
+		xfree(b1);
+		xfree(b2);
+		xfree(dms_text);
 		return ERR_HCRC;
 	}
 
@@ -131,9 +131,9 @@ USHORT DMS_Process_File(struct zfile *fi, struct zfile *fo, USHORT cmd, USHORT o
 	to = (USHORT) ((b1[18]<<8) | b1[19]);		/*  Highest track in archive. May be incorrect if archive is "appended" */
 
 	if (part && from < 30) {
-		free(b1);
-		free(b2);
-		free(dms_text);
+		xfree(b1);
+		xfree(b2);
+		xfree(dms_text);
 		return DMS_FILE_END;
 	}
 
@@ -219,9 +219,9 @@ USHORT DMS_Process_File(struct zfile *fi, struct zfile *fo, USHORT cmd, USHORT o
 
 	if (disktype == 7) {
 		/*  It's not a DMS compressed disk image, but a FMS archive  */
-		free(b1);
-		free(b2);
-		free(dms_text);
+		xfree(b1);
+		xfree(b2);
+		xfree(dms_text);
 		return ERR_FMS;
 	}
 
@@ -288,9 +288,9 @@ USHORT DMS_Process_File(struct zfile *fi, struct zfile *fo, USHORT cmd, USHORT o
 	if (ret == ERR_NOTTRACK) ret = NO_PROBLEM;
 
 
-	free(b1);
-	free(b2);
-	free(dms_text);
+	xfree(b1);
+	xfree(b2);
+	xfree(dms_text);
 
 	return ret;
 }
@@ -522,7 +522,7 @@ static USHORT Unpack_Track(UCHAR *b1, UCHAR *b2, USHORT pklen2, USHORT unpklen, 
 			break;
 		}
 	}
-	free (tmp);
+	xfree (tmp);
 	return err;
 }
 
