@@ -93,11 +93,7 @@ void uae_abort (const TCHAR *format,...)
 	TCHAR buffer[1000];
 
 	va_start (parms, format);
-#ifdef _WIN32
-	_vsnprintf(buffer, sizeof (buffer) -1, format, parms);
-#else
 	vsnprintf(buffer, sizeof (buffer) -1, format, parms);
-#endif
 	va_end (parms);
 	if (nomore) {
 		write_log (_T("%s\n"), buffer);
@@ -2932,10 +2928,10 @@ void compute_framesync (void)
 					}
 				}
 				if (isvsync_chipset () < 0) {
-					double v2;
-					v2 = vblank_calibrate (cr->locked ? cr->rate : vblank_hz, cr->locked);
+//					double v2;
+//					v2 = vblank_calibrate (cr->locked ? cr->rate : vblank_hz, cr->locked);
 					if (!cr->locked)
-						v = v2;
+						v = -1; //v2
 				} else if (isvsync_chipset () > 0) {
 					if (currprefs.gfx_apmode[0].gfx_refreshrate)
 						v = abs (currprefs.gfx_apmode[0].gfx_refreshrate);
@@ -3041,9 +3037,7 @@ void compute_framesync (void)
 	if (gfxvidinfo.outheight > gfxvidinfo.height_allocated)
 		gfxvidinfo.outheight = gfxvidinfo.height_allocated;
 
-	if (target_graphics_buffer_update ()) {
-		reset_drawing ();
-	}
+	reset_drawing ();
 
 	memset (line_decisions, 0, sizeof line_decisions);
 
@@ -3780,7 +3774,6 @@ void INTREQ_0 (uae_u16 v)
 void INTREQ (uae_u16 data)
 {
 	INTREQ_0 (data);
-	serial_check_irq ();
 	rethink_cias ();
 #ifdef A2065
 	rethink_a2065 ();
@@ -3807,8 +3800,6 @@ static void ADKCON (int hpos, uae_u16 v)
 	DISK_update_adkcon (hpos, v);
 	setclr (&adkcon, v);
 	audio_update_adkmasks ();
-	if ((v >> 11) & 1)
-		serial_uartbreak ((adkcon >> 11) & 1);
 }
 
 static void BEAMCON0 (uae_u16 v)
@@ -5375,13 +5366,10 @@ static void rtg_vsync (void)
 
 static void rtg_vsynccheck (void)
 {
-	if (vblank_found_rtg) {
-		vblank_found_rtg = false;
 #ifdef PICASSO96
 		rtg_vsync ();
 #endif
 	}
-}
 
 
 // moving average algorithm
@@ -5419,7 +5407,6 @@ static int mavg (struct mavg_data *md, int newval, int size)
 
 #define MAVG_VSYNC_SIZE 128
 
-extern int log_vsync, debug_vsync_min_delay, debug_vsync_forced_delay;
 static bool framewait (void)
 {
 	frame_time_t curr_time;
@@ -5457,12 +5444,6 @@ static bool framewait (void)
 		if (t > legacy_avg)
 			legacy_avg = t;
 		t = legacy_avg;
-
-		if (debug_vsync_min_delay && t < debug_vsync_min_delay * vsynctimebase / 100)
-			t = debug_vsync_min_delay * vsynctimebase / 100;
-		if (debug_vsync_forced_delay > 0)
-			t = debug_vsync_forced_delay * vsynctimebase / 100;
-
 		vsync_time = read_processor_time ();
 		if (t > vsynctimebase * 2 / 3)
 			t = vsynctimebase * 2 / 3;
@@ -5475,11 +5456,6 @@ static bool framewait (void)
 
 		if (vsynctimeperline < 1)
 			vsynctimeperline = 1;
-
-		if (0 || (log_vsync & 2)) {
-			write_log (_T("%06d %06d/%06d %03d%%\n"), t, vsynctimeperline, vsynctimebase, t * 100 / vsynctimebase);
-		}
-
 		frame_shown = true;
 		return 1;
 
@@ -5494,7 +5470,7 @@ static bool framewait (void)
 		if (vs == -2 || vs == -3) {
 
 			// fastest possible
-			int max, adjust, flipdelay, val;
+			int max, adjust, flipdelay = 0, val;
 			frame_time_t now;
 			static struct mavg_data ma_skip, ma_adjust;
 			
@@ -5507,10 +5483,8 @@ static bool framewait (void)
 				end = read_processor_time ();
 				val += end - start;
 			}
-
-			curr_time = vsync_busywait_end (&flipdelay); // vsync time
+			curr_time = 0;
 			status = vsync_busywait_do (NULL, (bplcon0 & 4) != 0 && !lof_changed && !lof_changing, lof_store != 0);
-			vsync_busywait_start ();
 
 			now = read_processor_time (); // current time
 			adjust = (int)now - (int)curr_time;
@@ -5533,13 +5507,6 @@ static bool framewait (void)
 			}
 			val += frameskipt_avg;
 
-			if (currprefs.gfx_apmode[0].gfx_vflip == 0) {
-				if (debug_vsync_min_delay && val < debug_vsync_min_delay * vsynctimebase / 100)
-					val = debug_vsync_min_delay * vsynctimebase / 100;
-				if (debug_vsync_forced_delay > 0)
-					val = debug_vsync_forced_delay * vsynctimebase / 100;
-			}
-
 			//write_log (_T("%d "), adjust);
 
 			if (val > vsynctimebase * 2 / 3)
@@ -5556,12 +5523,6 @@ static bool framewait (void)
 			if (status <= 0 || vsynctimeperline < 1)
 				vsynctimeperline = 1;
 			vsyncmaxtime = now + max;
-
-			if (0 || (log_vsync & 2)) {
-				write_log (_T("%05d:%05d:%05d=%05d:%05d/%05d %03d%%\n"), adjust_avg, frameskipt_avg, flipdelay_avg,
-					val, vsynctimeperline, vsynctimebase, val * 100 / vsynctimebase);
-			}
-
 			frame_shown = true;
 
 		} else {
@@ -5571,13 +5532,11 @@ static bool framewait (void)
 			frame_time_t now;
 
 			flipdelay = 0;
-			curr_time = vsync_busywait_end (&flipdelay);
+			curr_time = 0;
 			if (!frame_rendered && !picasso_on)
 				frame_rendered = render_screen (false);
 
 						status = vsync_busywait_do (&freetime, (bplcon0 & 4) != 0 && !lof_changed && !lof_changing, lof_store != 0);
-			vsync_busywait_start ();
-
 			now = read_processor_time ();
 
 			if (extraframewait && !currprefs.turbo_emulation)
@@ -5607,10 +5566,6 @@ static bool framewait (void)
 
 			if (currprefs.gfx_apmode[0].gfx_vflip == 0) {
 				int val = vsynctimebase - max;
-				if (debug_vsync_min_delay && val < debug_vsync_min_delay * vsynctimebase / 100)
-					val = debug_vsync_min_delay * vsynctimebase / 100;
-				if (debug_vsync_forced_delay > 0)
-					val = debug_vsync_forced_delay * vsynctimebase / 100;
 				max = vsynctimebase - val;
 			}
 
@@ -5618,14 +5573,7 @@ static bool framewait (void)
 			if (status <= 0 || vsynctimeperline < 1)
 				vsynctimeperline = 1;
 			vsyncmaxtime = now + max;
-
-			if (0 || (log_vsync & 2)) {
-				write_log (_T("%06d:%06d:%06d:%06d %06d/%06d %03d%%\n"), frameskipt_avg, flipdelay_avg, adjust, adjustx,
-					vsynctimeperline, vsynctimebase, (vsynctimebase - max) * 100 / vsynctimebase);
-			}
-
 			frame_shown = true;
-
 		}
 		return status != 0;
 	}
@@ -6383,7 +6331,7 @@ static void hsync_handler_post (bool onvsync)
 			vsyncmintime += vsynctimeperline;
 			linecounter++;
 			is_syncline = 0;
-			if (!vsync_isdone () && !currprefs.turbo_emulation) {
+			if (!currprefs.turbo_emulation) {
 				if ((int)vsyncmaxtime - (int)vsyncmintime > 0) {
 					if ((int)vsyncwaittime - (int)vsyncmintime > 0) {
 						frame_time_t rpt = read_processor_time ();
@@ -6409,10 +6357,11 @@ static void hsync_handler_post (bool onvsync)
 	} else {
 		if (vpos + 1 < maxvpos + lof_store && (vpos == maxvpos_nom * 1 / 3 || vpos == maxvpos_nom * 2 / 3)) {
 			vsyncmintime += vsynctimeperline;
-			if (!vsync_isdone () && !currprefs.turbo_emulation) {
+			if (!currprefs.turbo_emulation) {
 				frame_time_t rpt = read_processor_time ();
 				// sleep if more than 2ms "free" time
-				while (!vsync_isdone () && (int)vsyncmintime - (int)(rpt + vsynctimebase / 10) > 0 && (int)vsyncmintime - (int)rpt < vsynctimebase) {
+				while ( ((int)vsyncmintime - (int)(rpt + vsynctimebase / 10) > 0)
+					 && ((int)vsyncmintime - (int)rpt < vsynctimebase) ) {
 					sleep_millis_main (1);
 					rpt = read_processor_time ();
 				    //write_log (_T("*"));
@@ -6472,7 +6421,6 @@ static void hsync_handler_post (bool onvsync)
 	cop_state.last_write = 0;
 	compute_spcflag_copper (maxhpos);
 
-	serial_hsynchandler ();
 #ifdef CUSTOM_SIMPLE
 	do_sprites (0);
 #endif
@@ -6722,7 +6670,6 @@ void custom_reset (bool hardreset, bool keyboardreset)
 	if (!isrestore ()) {
 		/* must be called after audio_reset */
 		adkcon = 0;
-		serial_uartbreak (0);
 		audio_update_adkmasks ();
 	}
 

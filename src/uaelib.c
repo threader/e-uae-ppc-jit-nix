@@ -448,20 +448,12 @@ static uae_u32 REGPARAM2 uaelib_demux2 (TrapContext *context)
 	return 0;
 }
 
-extern int uaelib_debug;
 static uae_u32 REGPARAM2 uaelib_demux (TrapContext *context)
 {
 	uae_u32 v;
 	struct regstruct *r = &regs;
 
-	if (uaelib_debug)
-		write_log (_T("%d: %08x %08x %08x %08x %08x %08x %08x %08x, %08x %08x %08x %08x %08x %08x %08x %08x\n"),
-		ARG0,
-		r->regs[0],r->regs[1],r->regs[2],r->regs[3],r->regs[4],r->regs[5],r->regs[6],r->regs[7],
-		r->regs[8],r->regs[9],r->regs[10],r->regs[11],r->regs[12],r->regs[13],r->regs[14],r->regs[15]);
 	v = uaelib_demux2 (context);
-	if (uaelib_debug)
-		write_log (_T("=%08x\n"), v);
 	return v;
 }
 

@@ -17,12 +17,4 @@ void uaeserialdev_start_threads (void);
 
 extern int log_uaeserial;
 
-#ifdef _WIN32
-struct uaeserialdata
-{
-    void *handle;
-    void *writeevent;
-};
-#endif
-
 #endif // SRC_INCLUDE_UAESERIAL_H_INCLUDED

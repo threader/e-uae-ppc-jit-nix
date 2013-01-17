@@ -80,7 +80,6 @@ static void init_libs (void)
 }
 
 static int fromWB;
-static FILE *logfile;
 
 /*
  * Amiga-specific main entry
@@ -89,9 +88,6 @@ int main (int argc, char *argv[])
 {
     fromWB = argc == 0;
 
-    if (fromWB)
-	set_logfile ("T:E-UAE.log");
-
     init_libs ();
 
 #ifdef USE_SDL
@@ -99,9 +95,6 @@ int main (int argc, char *argv[])
 #endif
 
     real_main (argc, argv);
-
-    if (fromWB)
-	set_logfile (0);
 
     return 0;
 }

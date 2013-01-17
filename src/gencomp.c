@@ -3134,38 +3134,38 @@ main (int argc, char **argv)
 		"");
 	
 	stblfile = fopen ("compstbl.c", "wb");
-    if (freopen ("compemu.c", "wb", stdout))
-	generate_includes (stdout, 1);
+	if (freopen ("compemu.c", "wb", stdout))
+		generate_includes (stdout, 1);
 
-    generate_includes (stblfile, 1);
+	generate_includes (stblfile, 1);
 
-    printf("#include \"compemu.h\"\n");
+	printf("#include \"compemu.h\"\n");
 
-    noflags=0;
-    generate_func (noflags);
-
-	xfree (opcode_map);
-	xfree (opcode_last_postfix);
-	xfree (opcode_next_clev);
-	xfree (counts);
-
-    opcode_map          = xmalloc (int, nr_cpuop_funcs);
-    opcode_last_postfix = xmalloc (int, nr_cpuop_funcs);
-    opcode_next_clev    = xmalloc (int, nr_cpuop_funcs);
-    counts              = xmalloc (unsigned long, 65536);
-
-    read_counts ();
-    noflags=1;
-    generate_func (noflags);
-
-    printf ("#endif\n");
-    fprintf (stblfile, "#endif\n");
+	noflags=0;
+	generate_func (noflags);
 
 	xfree (opcode_map);
 	xfree (opcode_last_postfix);
 	xfree (opcode_next_clev);
 	xfree (counts);
-    xfree (table68k);
 
-    return 0;
+	opcode_map          = xmalloc (int, nr_cpuop_funcs);
+	opcode_last_postfix = xmalloc (int, nr_cpuop_funcs);
+	opcode_next_clev    = xmalloc (int, nr_cpuop_funcs);
+	counts              = xmalloc (unsigned long, 65536);
+
+	read_counts ();
+	noflags=1;
+	generate_func (noflags);
+
+	printf ("#endif\n");
+	fprintf (stblfile, "#endif\n");
+
+	xfree (opcode_map);
+	xfree (opcode_last_postfix);
+	xfree (opcode_next_clev);
+	xfree (counts);
+	xfree (table68k);
+
+	return 0;
 }

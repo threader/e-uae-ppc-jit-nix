@@ -17,6 +17,7 @@ struct uaedev_config_info;
 struct uae_prefs;
 
 #define MAX_HDF_CACHE_BLOCKS 128
+#define MAX_SCSI_SENSE 36
 struct hdf_cache
 {
 	bool valid;
@@ -32,14 +33,9 @@ struct hardfiledata {
     uae_u64 virtsize; // virtual size
     uae_u64 physsize; // physical size (dynamic disk)
     uae_u64 offset;
-    int nrcyls;
-    int secspertrack;
-    int surfaces;
-    int reservedblocks;
-    int blocksize;
+    struct uaedev_config_info ci;
     struct hardfilehandle *handle;
     int handle_valid;
-    int readonly;
     int dangerous;
     int flags;
     uae_u8 *cache;
@@ -50,36 +46,42 @@ struct hardfiledata {
     TCHAR product_rev[4 + 1];
     TCHAR device_name[256];
     /* geometry from possible RDSK block */
-    int cylinders;
-    int sectors;
-    int heads;
+    int rdbcylinders;
+    int rdbsectors;
+    int rdbheads;
     uae_u8 *virtual_rdb;
     uae_u64 virtual_size;
     int unitnum;
     int byteswap;
     int adide;
+    int hfd_type;
 
     uae_u8 *vhd_header;
     uae_u32 vhd_bamoffset;
     uae_u32 vhd_bamsize;
     uae_u32 vhd_blocksize;
-    uae_u32 vhd_type;
     uae_u8 *vhd_sectormap;
     uae_u64 vhd_sectormapblock;
     uae_u32 vhd_bitmapsize;
     uae_u64 vhd_footerblock;
 
+	void *chd_handle;
+
     int drive_empty;
     TCHAR *emptyname;
 
 	struct hdf_cache bcache[MAX_HDF_CACHE_BLOCKS];
+	uae_u8 scsi_sense[MAX_SCSI_SENSE];
+
+	struct uaedev_config_info delayedci;
+	int reinsertdelay;
+	bool isreinsert;
 };
 
 #define HFD_FLAGS_REALDRIVE 1
 
 struct hd_hardfiledata {
     struct hardfiledata hfd;
-    int bootpri;
     uae_u64 size;
     int cyls;
     int heads;
@@ -87,7 +89,6 @@ struct hd_hardfiledata {
     int cyls_def;
     int secspertrack_def;
     int heads_def;
-    TCHAR *path;
     int ansi_version;
 };
 
@@ -130,13 +131,12 @@ extern int hdf_getnumharddrives (void);
 extern TCHAR *hdf_getnameharddrive (int index, int flags, int *sectorsize, int *dangerousdrive);
 extern int isspecialdrive(const TCHAR *name);
 extern int get_native_path(uae_u32 lock, TCHAR *out);
-extern void hardfile_do_disk_change (struct uaedev_config_info *uci, int insert);
+extern void hardfile_do_disk_change (struct uaedev_config_data *uci, bool insert);
+extern void hardfile_send_disk_change (struct hardfiledata *hfd, bool insert);
+extern int hardfile_media_change (struct hardfiledata *hfd, struct uaedev_config_info *ci, bool inserted, bool timer);
 
 void hdf_hd_close(struct hd_hardfiledata *hfd);
-int hdf_hd_open(struct hd_hardfiledata *hfd, const TCHAR *path, int blocksize, int readonly,
-		       const TCHAR *devname, int cyls, int sectors, int surfaces, int reserved,
-		       int bootpri, const TCHAR *filesys,
-			   int pcyls, int pheads, int psectors);
+int hdf_hd_open(struct hd_hardfiledata *hfd);
 
 
 extern int vhd_create (const TCHAR *name, uae_u64 size, uae_u32);
@@ -151,22 +151,5 @@ extern int hdf_resize_target (struct hardfiledata *hfd, uae_u64 newsize);
 extern void getchsgeometry (uae_u64 size, int *pcyl, int *phead, int *psectorspertrack);
 extern void getchsgeometry_hdf (struct hardfiledata *hfd, uae_u64 size, int *pcyl, int *phead, int *psectorspertrack);
 extern void getchspgeometry (uae_u64 total, int *pcyl, int *phead, int *psectorspertrack, bool idegeometry);
-
-int get_filesys_unitconfig (struct uae_prefs *, int, struct mountedinfo *);
-int set_filesys_unit (int nr,
-	const TCHAR *devname, const TCHAR *volname, const TCHAR *rootdir, bool readonly,
-	int cyls, int secspertrack, int surfaces, int reserved,
-	int blocksize, int bootpri, bool donotmount, bool autoboot,
-	const TCHAR *filesysdir, int hdc, int flags);
-int add_filesys_unit (const TCHAR *devname, const TCHAR *volname, const TCHAR *rootdir, bool readonly,
-	int cyls, int secspertrack, int surfaces, int reserved,
-	int blocksize, int bootpri, bool donotmount, bool autoboot,
-	const TCHAR *filesysdir, int hdc, int flags);
-int kill_filesys_unitconfig (struct uae_prefs *, int);
-int move_filesys_unitconfig (struct uae_prefs *p, int nr, int to);
-void filesys_addexternals (void);
-void free_mountinfo (void);
-
-void setsystime (void);
 
 #endif // SRC_INCLUDE_FILESYS_H_INCLUDED

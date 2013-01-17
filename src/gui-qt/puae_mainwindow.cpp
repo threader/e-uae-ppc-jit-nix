@@ -894,10 +894,6 @@ void puae_MainWindow::display_fromselect (int val, int *fs, int *vsync, int p96)
 	if (p96) {
 		*fs = val / 2;
 		*vsync = val & 1;
-		/*if (*fs == 2 && *fs != ofs) {
-			workprefs.win32_rtgscaleifsmall = 1;
-			workprefs.win32_rtgmatchdepth = 0;
-		}*/
 		return;
 	}
 	switch (val)
@@ -1112,19 +1108,6 @@ void puae_MainWindow::values_to_memorydlg()
 		printf (tmp, "%d", workprefs.win32_rtgvblankrate);
 		//ui->IDC_RTG_VBLANKRATE->setText(tmp);
 	}
-/*
-	workprefs.win32_rtgscaleifsmall = ui->IDC_RTG_SCALE->getValue();
-	workprefs.win32_rtgallowscaling = ui->IDC_RTG_SCALE_ALLOW->getValue();
-	workprefs.win32_rtgmatchdepth = ui->IDC_RTG_MATCH_DEPTH->getValue();
-
-	ui->IDC_RTG_SCALE_ASPECTRATIO->setCurrentIndex (
-		(workprefs.win32_rtgscaleaspectratio == 0) ? 0 :
-		(workprefs.win32_rtgscaleaspectratio == 4 * 256 + 3) ? 2 :
-		(workprefs.win32_rtgscaleaspectratio == 5 * 256 + 4) ? 3 :
-		(workprefs.win32_rtgscaleaspectratio == 15 * 256 + 9) ? 4 :
-		(workprefs.win32_rtgscaleaspectratio == 16 * 256 + 9) ? 5 :
-		(workprefs.win32_rtgscaleaspectratio == 16 * 256 + 10) ? 6 : 1);
-*/
 	mem_size = 0;
 	switch (workprefs.mbresmem_low_size) {
 	case 0x00000000: mem_size = 0; break;

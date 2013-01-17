@@ -34,12 +34,8 @@ void setupExtensions(void);
 void setmaintitle (void);
 int mousehack_allowed (void);
 int is_vsync (void);
-int WIN32GFX_IsPicassoScreen (void);
-
 uae_u8 *gfx_lock_picasso (bool fullupdate, bool doclear);
 void gfx_unlock_picasso (bool dorender);
-int is_vsync (void);
-int WIN32GFX_IsPicassoScreen (void);
 
 #ifdef USE_GL
 #define NO_SDL_GLEXT
@@ -53,10 +49,7 @@ int WIN32GFX_IsPicassoScreen (void);
 # endif
 
 #ifdef GL_SHADER
-#ifdef __WIN32__
-  #define uglGetProcAddress(x) wglGetProcAddress(x)
-  #define WIN32_OR_X11
-#elifdef __APPLE__
+#ifdef __APPLE__
   #include <OpenGL/glu.h>
   #include <OpenGL/glext.h>
   void setupExtensions(void)
@@ -65,7 +58,7 @@ int WIN32GFX_IsPicassoScreen (void);
   #include <GL/glx.h>
   #include <GL/glxext.h>
   #define uglGetProcAddress(x) (*glXGetProcAddressARB)((const GLubyte*)(x))
-  #define WIN32_OR_X11
+  #define X11_GL
 #else
   void setupExtensions(void)
   { shading_enabled = 0; } // just fail otherwise?
@@ -141,8 +134,8 @@ static int red_shift, green_shift, blue_shift, alpha_shift;
 static int alpha;
 
 #ifdef PICASSO96
-static int screen_is_picasso;
-static int screen_was_picasso;
+extern int screen_is_picasso;
+extern int screen_was_picasso;
 static char picasso_invalid_lines[1201];
 static int picasso_has_invalid_lines;
 static int picasso_invalid_start, picasso_invalid_stop;
@@ -253,7 +246,7 @@ unsigned int mouse_capture;
 
 TCHAR config_filename[256] = "";
 
-#if defined(WIN32_OR_X11) && defined(GL_SHADER)
+#if defined(X11_GL)
 PFNGLCREATEPROGRAMOBJECTARBPROC     glCreateProgramObjectARB = NULL;
 PFNGLDELETEOBJECTARBPROC            glDeleteObjectARB = NULL;
 PFNGLCREATESHADEROBJECTARBPROC      glCreateShaderObjectARB = NULL;
@@ -342,7 +335,7 @@ void setupExtensions(void)
   } else
     shading_enabled = 0;
 }
-#endif /* defined(WIN32_OR_X11) && defined(GL_SHADER) */
+#endif /* defined(X11_GL) */
 
 /*
  * What graphics platform are we running on . . .?
@@ -2012,11 +2005,7 @@ static void read_mouse (void)
 
 static int get_mouse_flags (int num)
 {
-/*        if (di_mouse[num].rawinput || !rawinput_enabled_mouse)
-                return 0;
-        if (di_mouse[num].catweasel)
-                return 0;*/
-	return 1;
+	return 0;
 }
 
 struct inputdevice_functions inputdevicefunc_mouse = {
@@ -2193,7 +2182,7 @@ void setcapslockstate (int state)
 /*
  * Default inputdevice config for SDL mouse
  */
-int input_get_default_mouse (struct uae_input_device *uid, int num, int port, int af, bool gp)
+int input_get_default_mouse (struct uae_input_device *uid, int num, int port, int af, bool gp, bool wheel)
 {
 	/* SDL supports only one mouse */
 	setid (uid, num, ID_AXIS_OFFSET + 0, 0, port, port ? INPUTEVENT_MOUSE2_HORIZ : INPUTEVENT_MOUSE1_HORIZ);
@@ -2258,11 +2247,6 @@ int gfx_parse_option (struct uae_prefs *p, const char *option, const char *value
 	return result;
 }
 
-int WIN32GFX_IsPicassoScreen (void)
-{
-	return screen_is_picasso;
-}
-
 int target_checkcapslock (int scancode, int *state)
 {
         if (scancode != DIK_CAPITAL && scancode != DIK_NUMLOCK && scancode != DIK_SCROLL)
@@ -2298,11 +2282,6 @@ void setmaintitle (void)
 	}
 	_tcscat (txt, title);
 	txt2[0] = 0;
-/*	if (mouseactive > 0) {
-		WIN32GUI_LoadUIString (currprefs.win32_middle_mouse ? IDS_WINUAETITLE_MMB : IDS_WINUAETITLE_NORMAL,
-			txt2, sizeof (txt2) / sizeof (TCHAR));
-	}
-*/
 	if (txt2[0]) {
 		_tcscat (txt, " - ");
 		_tcscat (txt, txt2);

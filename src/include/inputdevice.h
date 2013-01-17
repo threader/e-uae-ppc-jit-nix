@@ -154,13 +154,11 @@ extern int inputdevice_get_device_total (int type);
 extern int inputdevice_get_widget_num (int devnum);
 extern int inputdevice_get_widget_type (int devnum, int num, TCHAR *name);
 
-extern int input_get_default_mouse (struct uae_input_device *uid, int num, int port, int af, bool gp);
+extern int input_get_default_mouse (struct uae_input_device *uid, int num, int port, int af, bool gp, bool wheel);
 extern int input_get_default_lightpen (struct uae_input_device *uid, int num, int port, int af, bool gp);
 extern int input_get_default_joystick (struct uae_input_device *uid, int num, int port, int af, int mode, bool gp);
 extern int input_get_default_joystick_analog (struct uae_input_device *uid, int num, int port, int af, bool gp);
 extern int input_get_default_keyboard (int num);
-
-extern void inputdevice_release_all_keys (void);
 
 #define DEFEVENT(A, B, C, D, E, F) INPUTEVENT_ ## A,
 enum inputevents {
@@ -179,7 +177,6 @@ extern uae_u8 handle_joystick_buttons (uae_u8, uae_u8);
 #define MAGICMOUSE_HOST_ONLY 2
 
 extern int magicmouse_alive (void);
-extern int is_tablet (void);
 extern int inputdevice_is_tablet (void);
 extern int input_mousehack_status (int mode, uaecptr diminfo, uaecptr dispinfo, uaecptr vp, uae_u32 moffset);
 extern void input_mousehack_mouseoffset (uaecptr pointerprefs);
@@ -263,13 +260,14 @@ extern void inputdevice_tablet_strobe (void);
 extern uae_u64 input_getqualifiers (void);
 
 #define JSEM_MODE_DEFAULT 0
-#define JSEM_MODE_MOUSE 1
-#define JSEM_MODE_JOYSTICK 2
-#define JSEM_MODE_GAMEPAD 3
-#define JSEM_MODE_JOYSTICK_ANALOG 4
-#define JSEM_MODE_MOUSE_CDTV 5
-#define JSEM_MODE_JOYSTICK_CD32 6
-#define JSEM_MODE_LIGHTPEN 7
+#define JSEM_MODE_WHEELMOUSE 1
+#define JSEM_MODE_MOUSE 2
+#define JSEM_MODE_JOYSTICK 3
+#define JSEM_MODE_GAMEPAD 4
+#define JSEM_MODE_JOYSTICK_ANALOG 5
+#define JSEM_MODE_MOUSE_CDTV 6
+#define JSEM_MODE_JOYSTICK_CD32 7
+#define JSEM_MODE_LIGHTPEN 8
 
 #define JSEM_KBDLAYOUT 0
 #define JSEM_JOYS 100

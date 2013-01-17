@@ -816,15 +816,7 @@ static void savelog (const TCHAR *path, const TCHAR *file)
 		int loglen;
 		uae_u8 *log;
 		loglen = 0;
-		log = save_log (true, &loglen);
-		if (log)
-			zfile_fwrite (log, loglen, 1, zfd);
-		xfree (log);
-		loglen = 0;
-		log = save_log (false, &loglen);
-		if (log)
-			zfile_fwrite (log, loglen, 1, zfd);
-		xfree (log);
+
 		zfile_fclose (zfd);
 		write_log (_T("log '%s' saved\n"), tmp);
 	}

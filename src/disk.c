@@ -41,11 +41,7 @@ int disk_debug_track = -1;
 #include "catweasel.h"
 #include "driveclick.h"
 #ifdef CAPS
-#ifdef _WIN32
-#include "caps/caps_win32.h"
-#else
 #include "caps.h"
-#endif
 #endif
 #include "crc32.h"
 #include "inputdevice.h"

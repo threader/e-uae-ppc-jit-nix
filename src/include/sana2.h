@@ -15,6 +15,4 @@ void netdev_install (void);
 void netdev_reset (void);
 void netdev_start_threads (void);
 
-extern int log_net;
-
 #endif // SRC_INCLUDE_SANA2_H_INCLUDED

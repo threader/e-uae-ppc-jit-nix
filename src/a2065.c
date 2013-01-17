@@ -17,9 +17,6 @@
 #include "custom.h"
 #include "newcpu.h"
 #include "a2065.h"
-#ifdef _WIN32
-#include "win32_uaenet.h"
-#endif
 #include "crc32.h"
 #include "savestate.h"
 #include "autoconf.h"

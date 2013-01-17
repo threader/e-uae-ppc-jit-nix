@@ -54,6 +54,8 @@
 #include "gcc_warnings.h"
 
 int debug_rtg_blitter = 3;
+int screen_is_picasso  = 0;
+int screen_was_picasso = 0;
 
 #define NOBLITTER (0 || !(debug_rtg_blitter & 1))
 #define NOBLITTER_BLIT (0 || !(debug_rtg_blitter & 2))
@@ -601,8 +603,6 @@ void picasso_trigger_vblank (void)
 		return;
 	put_long (uaegfx_base + CARD_IRQPTR, ABI_interrupt + PSSO_BoardInfo_SoftInterrupt);
 	put_byte (uaegfx_base + CARD_IRQFLAG, 1);
-	if (currprefs.win32_rtgvblankrate != 0)
-		INTREQ (0x8000 | 0x0008);
 }
 
 static bool rtg_render (void)
@@ -633,7 +633,6 @@ static void picasso_handle_vsync2 (void)
 	bool rendered = false;
 
 	if (vsync < 0) {
-		vsync_busywait_end (NULL);
 		vsync_busywait_do (NULL, false, false);
 	}
 
@@ -658,10 +657,6 @@ static void picasso_handle_vsync2 (void)
 	if (thisisvsync)
 		picasso_trigger_vblank ();
 
-	if (vsync < 0) {
-		vsync_busywait_start ();
-	}
-
 	if (thisisvsync && !rendered)
 		rtg_show ();
 }
@@ -683,8 +678,6 @@ void picasso_handle_vsync (void)
 	if (vsync < 0) {
 		p96hsync = 0;
 		picasso_handle_vsync2 ();
-	} else if (currprefs.win32_rtgvblankrate == 0) {
-		picasso_handle_vsync2 ();
 	}
 }
 
@@ -703,9 +696,6 @@ void picasso_handle_hsync (void)
 		}
 		return;
 	}
-
-	if (currprefs.win32_rtgvblankrate == 0)
-		return;
 
 	p96hsync++;
 	if (p96hsync >= p96syncrate) {
@@ -1959,14 +1949,14 @@ static void inituaegfx (uaecptr ABI)
 		write_log (_T("P96: Blitter disabled in devs:monitors/uaegfx!\n"));
 	flags |= BIF_BLITTER | BIF_NOMEMORYMODEMIX;
 	flags &= ~BIF_HARDWARESPRITE;
-	if (currprefs.gfx_api && D3D_goodenough () > 0 && USE_HARDWARESPRITE && currprefs.rtg_hardwaresprite) {
+/*	if (currprefs.gfx_api && D3D_goodenough () > 0 && USE_HARDWARESPRITE && currprefs.rtg_hardwaresprite) {
 		hwsprite = 1;
 		flags |= BIF_HARDWARESPRITE;
 		write_log (_T("P96: Hardware sprite support enabled\n"));
-	} else {
+	} else {*/
 		hwsprite = 0;
 		write_log (_T("P96: Hardware sprite support disabled\n"));
-	}
+//	}
 	if (currprefs.rtg_hardwareinterrupt && !uaegfx_old)
 		flags |= BIF_VBLANKINTERRUPT;
 	if (!(flags & BIF_INDISPLAYCHAIN)) {
@@ -3102,17 +3092,6 @@ static uae_u32 REGPARAM2 picasso_SetDisplay (TrapContext *ctx)
 
 void init_hz_p96 (void)
 {
-	if (currprefs.win32_rtgvblankrate < 0 || isvsync_rtg ())  {
-                double rate = getcurrentvblankrate ();
-                if (rate < 0)
-			p96vblank = vblank_hz;
-                else
-			p96vblank = getcurrentvblankrate ();
-        } else if (currprefs.win32_rtgvblankrate == 0) {
-		p96vblank = vblank_hz;
-        } else {
-                p96vblank = currprefs.win32_rtgvblankrate;
-        }
 	if (p96vblank <= 0)
 		p96vblank = 60;
 	if (p96vblank >= 300)

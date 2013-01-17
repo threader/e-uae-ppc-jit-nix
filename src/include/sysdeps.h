@@ -212,61 +212,6 @@ struct utimbuf
 extern "C" {
 #  endif
 
-#if defined _WIN32
-#if defined __WATCOMC__
-#define O_NDELAY 0
-#include <direct.h>
-#define dirent direct
-#define mkdir(a,b) mkdir(a)
-#define strcasecmp stricmp
-#elif defined __MINGW32__
-#define O_NDELAY 0
-#define mkdir(a,b) mkdir(a)
-#elif defined _MSC_VER
-#ifdef HAVE_GETTIMEOFDAY
-#include <winsock.h> // for 'struct timeval' definition
-extern void gettimeofday( struct timeval *tv, void *blah );
-#endif
-#define O_NDELAY 0
-#ifdef REGPARAM2
-#undef REGPARAM2
-#endif
-#define REGPARAM2 __fastcall
-#define REGPARAM3 __fastcall
-#define REGPARAM
-#include <io.h>
-#define O_BINARY _O_BINARY
-#define O_WRONLY _O_WRONLY
-#define O_RDONLY _O_RDONLY
-#define O_RDWR   _O_RDWR
-#define O_CREAT  _O_CREAT
-#define O_TRUNC  _O_TRUNC
-#define strcasecmp _tcsicmp 
-#define strncasecmp _tcsncicmp 
-#define W_OK 0x2
-#define R_OK 0x4
-#define STAT struct stat
-#define DIR struct DIR
-struct direct
-{
-    char d_name[1];
-};
-#include <sys/utime.h>
-#define utimbuf __utimbuf64
-#define USE_ZFILE
-#undef S_ISDIR
-#undef S_IWUSR
-#undef S_IRUSR
-#undef S_IXUSR
-#define S_ISDIR(a) (a&FILEFLAG_DIR)
-#define S_ISARC(a) (a&FILEFLAG_ARCHIVE)
-#define S_IWUSR FILEFLAG_WRITE
-#define S_IRUSR FILEFLAG_READ
-#define S_IXUSR FILEFLAG_EXECUTE
-
-#endif
-#endif /* _WIN32 */
-
 #ifdef DONT_HAVE_POSIX
 #define access posixemu_access
 extern int posixemu_access (const char *, int);

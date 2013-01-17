@@ -9,9 +9,9 @@
 #include "sysconfig.h"
 #include "sysdeps.h"
 
-#ifdef _WIN32
-#include <windows.h>
-#include "win32.h"
+#if defined(__FreeBSD__)
+#include <time.h>
+#include <sys/time.h>
 #endif
 
 #include "options.h"
@@ -19,17 +19,11 @@
 #include "archivers/zip/unzip.h"
 #include "archivers/dms/pfile.h"
 #include "crc32.h"
-#include "zfile.h"
 #include "disk.h"
 #include "fsdb.h"
 #include "misc.h"
 
 #include <zlib.h>
-
-#if defined(__FreeBSD__)
-#include <time.h>
-#include <sys/time.h>
-#endif
 
 #define unpack_log write_log
 #undef unpack_log
@@ -187,6 +181,10 @@ struct zfile *archive_access_select (struct znode *parent, struct zfile *zf, uns
 				int ft = 0;
 				if (mask & ZFD_CD) {
 					if (ext && !_tcsicmp (ext, _T(".iso"))) {
+						whf = 2;
+						ft = ZFILE_CDIMAGE;
+					}
+					if (ext && !_tcsicmp (ext, _T(".chd"))) {
 						whf = 2;
 						ft = ZFILE_CDIMAGE;
 					}

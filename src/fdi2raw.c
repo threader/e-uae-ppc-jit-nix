@@ -82,12 +82,12 @@ static TCHAR *datalog (uae_u8 *src, int len) { return _T(""); }
 #ifdef DEBUG
 #define debuglog write_log
 #else
-#define debuglog
+#define debuglog(...) { }
 #endif
 #ifdef VERBOSE
 #define outlog write_log
 #else
-#define outlog
+#define outlog(...) { }
 #endif
 
 static int fdi_allocated;

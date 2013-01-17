@@ -26,7 +26,7 @@
 
 #ifdef PICASSO96
 #include "picasso96.h"
-static int screen_is_picasso;
+extern int screen_is_picasso;
 #endif
 // -----
 @implementation PUAE_GLView
@@ -101,11 +101,6 @@ int is_fullscreen (void)
 #ifdef PICASSO96
 void gfx_set_picasso_modeinfo (uae_u32 w, uae_u32 h, uae_u32 depth, RGBFTYPE rgbfmt)
 {
-}
-
-int WIN32GFX_IsPicassoScreen (void)
-{
-	return screen_is_picasso;
 }
 
 int picasso_palette (void)

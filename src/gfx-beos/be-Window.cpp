@@ -489,11 +489,7 @@ static int get_mouse_widget_type (unsigned int mouse, unsigned int num, char *na
 
 static int get_mouse_flags (int num)
 {
-/*        if (di_mouse[num].rawinput || !rawinput_enabled_mouse)
-                return 0;
-        if (di_mouse[num].catweasel)
-                return 0;*/
-        return 1;
+    return 0;
 }
 
 static void read_mouse (void)

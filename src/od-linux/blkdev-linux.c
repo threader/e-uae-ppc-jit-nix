@@ -25,8 +25,7 @@
 
 #define DEBUG_ME
 #ifdef  DEBUG_ME
-extern int log_scsi;
-# define DEBUG_LOG    if (log_scsi) write_log
+# define DEBUG_LOG write_log
 #else
 # define DEBUG_LOG(...) { }
 #endif

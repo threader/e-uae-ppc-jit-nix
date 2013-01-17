@@ -141,9 +141,6 @@ static bool canjit (void)
 }
 static bool needmman (void)
 {
-#ifdef _WIN32	
-		return true;
-#endif
 	if (canjit ())
 		return true;
 	return false;
@@ -1035,7 +1032,7 @@ uae_u32 REGPARAM2 kickmem_lget (uaecptr addr)
 	return do_get_mem_long (m);
 }
 
-uae_u32 REGPARAM2 kickmem_wget (uaecptr addr)
+static uae_u32 REGPARAM2 kickmem_wget (uaecptr addr)
 {
 	uae_u16 *m;
 	addr &= kickmem_mask;
@@ -1043,13 +1040,13 @@ uae_u32 REGPARAM2 kickmem_wget (uaecptr addr)
 	return do_get_mem_word (m);
 }
 
-uae_u32 REGPARAM2 kickmem_bget (uaecptr addr)
+static uae_u32 REGPARAM2 kickmem_bget (uaecptr addr)
 {
 	addr &= kickmem_mask;
 	return kickmemory[addr];
 }
 
-void REGPARAM2 kickmem_lput (uaecptr addr, uae_u32 b)
+static void REGPARAM2 kickmem_lput (uaecptr addr, uae_u32 b)
 {
 	uae_u32 *m;
 #ifdef JIT
@@ -1097,8 +1094,9 @@ void REGPARAM2 kickmem_bput (uaecptr addr, uae_u32 b)
 			return;
 		} else
 			a1000_handle_kickstart (0);
-	} else if (currprefs.illegal_mem)
+	} else if (currprefs.illegal_mem) {
 		write_log (_T("Illegal kickmem bput at %08x\n"), addr);
+	}
 }
 
 void REGPARAM2 kickmem2_lput (uaecptr addr, uae_u32 l)
@@ -1316,7 +1314,7 @@ uae_u8 *REGPARAM2 default_xlate (uaecptr a)
 				write_log (_T("Your Amiga program just did something terribly stupid %08X PC=%08X\n"), a, M68K_GETPC);
 /*				if (debugging || DEBUG_STUPID)
 					activate_debugger ();*/
-				m68k_dumpstate (0, 0);
+				m68k_dumpstate (0);
 				for (i = 0; i < 10; i++) {
 					write_log (_T("%08X "), i >= 5 ? a3 : a2);
 					for (j = 0; j < 16; j += 2) {
@@ -1328,11 +1326,11 @@ uae_u8 *REGPARAM2 default_xlate (uaecptr a)
 				memory_map_dump ();
 			}
 			be_cnt++;
-			if (be_cnt > 1000) {
-				uae_reset (0, 0);
+			if (regs.s || be_cnt > 1000) {
+				cpu_halt (3);
 				be_cnt = 0;
 			} else {
-				regs.panic = 1;
+				regs.panic = 4;
 				regs.panic_pc = m68k_getpc ();
 				regs.panic_addr = a;
 				set_special (SPCFLAG_BRK);
@@ -1857,7 +1855,7 @@ static void patch_kick (void)
 
 extern unsigned char arosrom[];
 extern unsigned int arosrom_len;
-extern int seriallog;
+
 static bool load_kickstart_replacement (void)
 {
 	struct zfile *f = NULL;
@@ -1878,9 +1876,7 @@ static bool load_kickstart_replacement (void)
 	extendedkickmem_mask = extendedkickmem_size - 1;
 	read_kickstart (f, kickmemory, 0x80000, 1, 0);
 	zfile_fclose (f);
-#ifdef SERIAL_PORT
-	seriallog = -1;
-#endif
+
 	return true;
 }
 
@@ -2273,7 +2269,7 @@ static void allocate_memory (void)
 
 		memsize = allocated_chipmem = chipmem_full_size = currprefs.chipmem_size;
 		chipmem_full_mask = chipmem_mask = allocated_chipmem - 1;
-		if (!canbang && memsize < 0x100000)
+		if (!currprefs.cachesize && memsize < 0x100000)
 			memsize = 0x100000;
 		if (memsize > 0x100000 && memsize < 0x200000)
 			memsize = 0x200000;
@@ -2288,7 +2284,7 @@ static void allocate_memory (void)
 		}
 		currprefs.chipset_mask = changed_prefs.chipset_mask;
 		chipmem_full_mask = allocated_chipmem - 1;
-		if ((currprefs.chipset_mask & CSMASK_ECS_AGNUS) && !canbang) {
+		if ((currprefs.chipset_mask & CSMASK_ECS_AGNUS) && !currprefs.cachesize) {
 			if (allocated_chipmem < 0x100000)
 				chipmem_full_mask = 0x100000 - 1;
 			if (allocated_chipmem > 0x100000 && allocated_chipmem < 0x200000)
@@ -2678,8 +2674,8 @@ void memory_reset (void)
 
 	map_banks (&custom_bank, 0xC0, 0xE0 - 0xC0, 0); // Map custom chips at at 0xC00000 - 0xDFFFFF
 	map_banks (&cia_bank, 0xA0, 32, 0); // Map CIAs at 0xA00000 - 0xBFFFFF
-	if (!currprefs.cs_a1000ram)
-		/* D80000 - DDFFFF not mapped (A1000 = custom chips) */
+	if (!currprefs.cs_a1000ram && currprefs.cs_rtc != 3)
+		/* D80000 - DDFFFF not mapped (A1000 or A2000 = custom chips) */
 		map_banks (&dummy_bank, 0xD8, 6, 0);
 
 	/* map "nothing" to 0x200000 - 0x9FFFFF (0xBEFFFF if Gayle or Fat Gary) */
@@ -2722,8 +2718,10 @@ void memory_reset (void)
 			map_banks (&gayle_bank, 0xDD, 1, 0);
 	}
 #endif
-	if (currprefs.cs_rtc || currprefs.cs_cdtvram)
-		// Real-time clock at 0xDC0000 - 0xDCFFFF.
+	// Real-time clock at 0xDC0000 - 0xDCFFFF.
+	if (currprefs.cs_rtc == 3) // A2000 clock
+		map_banks (&clock_bank, 0xD8, 4, 0);
+	if (currprefs.cs_rtc == 1 || currprefs.cs_rtc == 2 || currprefs.cs_cdtvram)
 		map_banks (&clock_bank, 0xDC, 1, 0);
 	else if (currprefs.cs_ksmirror_a8 || currprefs.cs_ide > 0 || currprefs.cs_pcmcia)
 		map_banks (&clock_bank, 0xDC, 1, 0); /* none clock */
@@ -2880,6 +2878,7 @@ void memory_init (void)
 	a3000lmemory = a3000hmemory = 0;
 	bogomemory = 0;
 	cardmemory = 0;
+	allocated_custmem1 = allocated_custmem2 = 0;
 	custmem1 = 0;
 	custmem2 = 0;
 

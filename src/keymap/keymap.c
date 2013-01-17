@@ -366,25 +366,11 @@ void my_kbd_handler (int keyboard, int scancode, int newstate)
         bool special = false;
         static int swapperdrive = 0;
 
-#ifdef WIN32
-		if (amode && scancode == DIK_F11 && currprefs.win32_ctrl_F11_is_quit && ctrlpressed ())
-			code = AKS_QUIT;
-#endif
+	scancode_new = scancode;
+	if (!specialpressed () && inputdevice_iskeymapped (keyboard, scancode))
+		scancode = 0;
 
-		scancode_new = scancode;
-		if (!specialpressed () && inputdevice_iskeymapped (keyboard, scancode))
-			scancode = 0;
-
-		defaultguikey = amode ? DIK_F12 : DIK_NUMLOCK;
-#ifdef WIN32
-        // GUI must be always available
-        if (scancode_new == defaultguikey && currprefs.win32_guikey < 0)
-                scancode = scancode_new;
-        if (scancode_new == currprefs.win32_guikey && scancode_new != defaultguikey)
-                scancode = scancode_new;
-#endif
-
-//	write_log ("KBDHANDLER_1: kbd = %d, scancode= %d (0x%02x), state= %d, sc_new= %d\n", keyboard, scancode, scancode, newstate, scancode_new);
+	defaultguikey = amode ? DIK_F12 : DIK_NUMLOCK;
 
         if (newstate && code == 0 && amode) {
 

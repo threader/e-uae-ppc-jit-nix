@@ -67,7 +67,6 @@ extern void sound_volume (int dir);
 // 32 = vsync
 
 int inputdevice_logging = 0;
-extern int tablet_log;
 
 #define ID_FLAG_CANRELEASE 0x1000
 #define ID_FLAG_TOGGLED 0x2000
@@ -1174,12 +1173,7 @@ int inputdevice_is_tablet (void)
 		return 0;
 	if (currprefs.input_tablet == TABLET_MOUSEHACK)
 		return -1;
-	v = is_tablet ();
-	if (!v)
-		return 0;
-	if (kickstart_version < 37)
-		return v ? -1 : 0;
-	return v ? 1 : 0;
+	return 0;
 }
 
 static uaecptr mousehack_address;
@@ -1378,19 +1372,6 @@ void inputdevice_tablet (int x, int y, int z, int pressure, uae_u32 buttonbits, 
 	if (!memcmp (tmp, p + MH_START, MH_END - MH_START))
 		return;
 
-	if (tablet_log & 1) {
-		static uae_u32 obuttonbits = 0;
-		static int oinproximity = 0;
-		if (inproximity != oinproximity || buttonbits != obuttonbits) {
-			obuttonbits = buttonbits;
-			oinproximity = inproximity;
-			write_log (_T("TABLET: B=%08x P=%d\n"), buttonbits, inproximity);
-		}
-	}
-	if (tablet_log & 2) {
-		write_log (_T("TABLET: X=%d Y=%d Z=%d AX=%d AY=%d AZ=%d\n"), x, y, z, ax, ay, az);
-	}
-
 	p[MH_E] = 0xc0 | 2;
 	p[MH_CNT]++;
 }
@@ -1425,8 +1406,6 @@ void inputdevice_tablet_info (int maxx, int maxy, int maxz, int maxax, int maxay
 	p[MH_MAXAZ + 1] = maxaz;
 }
 
-
-void getgfxoffset (int *dx, int *dy, int*,int*);
 
 static void inputdevice_mh_abs (int x, int y, uae_u32 buttonbits)
 {
@@ -1587,7 +1566,7 @@ static void mousehack_helper (uae_u32 buttonmask)
 {
 #ifdef FILESYS /* Internal mousehack depends on filesys boot-rom */
 	int x, y;
-	int fdy, fdx, fmx, fmy;
+	float fdy, fdx, fmx, fmy;
 
 	if (currprefs.input_magic_mouse == 0 && currprefs.input_tablet < TABLET_MOUSEHACK)
 		return;
@@ -1601,22 +1580,21 @@ static void mousehack_helper (uae_u32 buttonmask)
 	y = lastmy;
 	getgfxoffset (&fdx, &fdy, &fmx, &fmy);
 
-
 #ifdef PICASSO96
 	if (picasso_on) {
 		x -= picasso96_state.XOffset;
 		y -= picasso96_state.YOffset;
-		x = x * fmx / 1000;
-		y = y * fmy / 1000;
-		x -= fdx * fmx / 1000;
-		y -= fdy * fmy / 1000;
+		x = (int)(x * fmx);
+		y = (int)(y * fmy);
+		x -= (int)(fdx * fmx);
+		y -= (int)(fdy * fmy);
 	} else
 #endif
 	{
-		x = x * fmx / 1000;
-		y = y * fmy / 1000;
-		x -= fdx * fmx / 1000 - 1;
-		y -= fdy * fmy / 1000 - 2;
+		x = (int)(x * fmx);
+		y = (int)(y * fmy);
+		x -= (int)(fdx * fmx) - 1;
+		y -= (int)(fdy * fmy) - 2;
 		if (x < 0)
 			x = 0;
 		if (x >= gfxvidinfo.outwidth)
@@ -2314,11 +2292,12 @@ static int handle_custom_event (const TCHAR *custom)
 			while (*nextp == ' ')
 				nextp++;
 		}
-		//write_log (_T("-> '%s'\n"), p);
 		if (!_tcsicmp (p, _T("no_config_check"))) {
 			config_changed = 0;
 		} else if (!_tcsicmp (p, _T("do_config_check"))) {
 			config_changed = 1;
+		} else if (!_tcsnicmp (p, _T("dbg "), 4)) {
+			debug_parser (p + 4, NULL, -1);
 		} else {
 			cfgfile_parse_line (&changed_prefs, p, 0);
 		}
@@ -3275,7 +3254,7 @@ void inputdevice_reset (void)
 {
 	magicmouse_ibase = 0;
 	magicmouse_gfxbase = 0;
-//	mousehack_reset ();
+	mousehack_reset ();
 	if (inputdevice_is_tablet ())
 		mousehack_enable ();
 	bouncy = 0;
@@ -4405,7 +4384,7 @@ void inputdevice_compa_prepare_custom (struct uae_prefs *prefs, int index, int n
 	if (newmode >= 0) {
 		mode = newmode;
 	} else if (mode == 0) {
-		mode = index == 0 ? JSEM_MODE_MOUSE : (prefs->cs_cd32cd ? JSEM_MODE_JOYSTICK_CD32 : JSEM_MODE_JOYSTICK);
+		mode = index == 0 ? JSEM_MODE_WHEELMOUSE : (prefs->cs_cd32cd ? JSEM_MODE_JOYSTICK_CD32 : JSEM_MODE_JOYSTICK);
 	}
 	prefs->jports[index].mode = mode;
 	prefs->jports[index].id = -2;
@@ -4491,6 +4470,7 @@ static void setjoyinputs (struct uae_prefs *prefs, int port)
 		case JSEM_MODE_JOYSTICK_ANALOG:
 			joyinputs[port] = port ? ip_analog2 : ip_analog1;
 		break;
+		case JSEM_MODE_WHEELMOUSE:
 		case JSEM_MODE_MOUSE:
 			joyinputs[port] = port ? ip_mouse2 : ip_mouse1;
 		break;
@@ -4564,8 +4544,9 @@ static void compatibility_copy (struct uae_prefs *prefs, bool gameports)
 				{
 					case JSEM_MODE_DEFAULT:
 					case JSEM_MODE_MOUSE:
+					case JSEM_MODE_WHEELMOUSE:
 					default:
-					joymodes[i] = JSEM_MODE_MOUSE;
+					joymodes[i] = JSEM_MODE_WHEELMOUSE;
 					joyinputs[i] = i ? ip_mouse2 : ip_mouse1;
 					break;
 					case JSEM_MODE_LIGHTPEN:
@@ -4604,7 +4585,8 @@ static void compatibility_copy (struct uae_prefs *prefs, bool gameports)
 						joyinputs[i] = i ? ip_analog2 : ip_analog1;
 						break;
 					case JSEM_MODE_MOUSE:
-						joymodes[i] = JSEM_MODE_MOUSE;
+					case JSEM_MODE_WHEELMOUSE:
+						joymodes[i] = JSEM_MODE_WHEELMOUSE;
 						joyinputs[i] = i ? ip_mouse2 : ip_mouse1;
 						break;
 					case JSEM_MODE_LIGHTPEN:
@@ -4617,7 +4599,7 @@ static void compatibility_copy (struct uae_prefs *prefs, bool gameports)
 						break;
 				}
 			} else if (prefs->jports[i].id >= 0) {
-				joymodes[i] = i ? JSEM_MODE_JOYSTICK : JSEM_MODE_MOUSE;
+				joymodes[i] = i ? JSEM_MODE_JOYSTICK : JSEM_MODE_WHEELMOUSE;
 				joyinputs[i] = i ? ip_joy2 : ip_mouse1;
 			}
 		}
@@ -4647,9 +4629,10 @@ static void compatibility_copy (struct uae_prefs *prefs, bool gameports)
 				{
 				case JSEM_MODE_DEFAULT:
 				case JSEM_MODE_MOUSE:
+				case JSEM_MODE_WHEELMOUSE:
 				default:
-					input_get_default_mouse (mice, joy, i, af, !gameports);
-					joymodes[i] = JSEM_MODE_MOUSE;
+					input_get_default_mouse (mice, joy, i, af, !gameports, mode != JSEM_MODE_MOUSE);
+					joymodes[i] = JSEM_MODE_WHEELMOUSE;
 					break;
 				case JSEM_MODE_LIGHTPEN:
 					input_get_default_lightpen (mice, joy, i, af, !gameports);
@@ -4693,8 +4676,9 @@ static void compatibility_copy (struct uae_prefs *prefs, bool gameports)
 					joymodes[i] = JSEM_MODE_JOYSTICK_ANALOG;
 					break;
 				case JSEM_MODE_MOUSE:
-					input_get_default_mouse (joysticks, joy, i, af, !gameports);
-					joymodes[i] = JSEM_MODE_MOUSE;
+				case JSEM_MODE_WHEELMOUSE:
+					input_get_default_mouse (joysticks, joy, i, af, !gameports, mode == JSEM_MODE_WHEELMOUSE);
+					joymodes[i] = JSEM_MODE_WHEELMOUSE;
 					break;
 				case JSEM_MODE_LIGHTPEN:
 					input_get_default_lightpen (joysticks, joy, i, af, !gameports);
@@ -4784,8 +4768,9 @@ static void compatibility_copy (struct uae_prefs *prefs, bool gameports)
 						}
 						break;
 					case JSEM_MODE_MOUSE:
+					case JSEM_MODE_WHEELMOUSE:
 						setcompakb (kb, i ? ip_mouse2 : ip_mouse1, i, af);
-						joymodes[i] = JSEM_MODE_MOUSE;
+						joymodes[i] = JSEM_MODE_WHEELMOUSE;
 						break;
 					}
 					used[joy] = 1;
@@ -4906,7 +4891,7 @@ static void matchdevices (struct inputdevice_functions *inf, struct uae_input_de
 				} else if (p1 && p2 && p1 - bname == p2 - bname2) {
 					*p1 = 0;
 					*p2 = 0;
-					if (!_tcscmp (bname2, bname))
+					if (bname && !_tcscmp (bname2, bname))
 						matched = true;
 				}
 				if (matched) {
@@ -5057,16 +5042,16 @@ static void resetinput (void)
 }
 
 
-void inputdevice_updateconfig_internal (const struct uae_prefs *srcprefs, struct uae_prefs *dstprefs)
+void inputdevice_updateconfig_internal (const struct uae_prefs *srcprrefs, struct uae_prefs *dstprefs)
 {
 	int i;
 
 	keyboard_default = keyboard_default_table[currprefs.input_keyboard_type];
 
-	copyjport (srcprefs, dstprefs, 0);
-	copyjport (srcprefs, dstprefs, 1);
-	copyjport (srcprefs, dstprefs, 2);
-	copyjport (srcprefs, dstprefs, 3);
+	copyjport (srcprrefs, dstprefs, 0);
+	copyjport (srcprrefs, dstprefs, 1);
+	copyjport (srcprrefs, dstprefs, 2);
+	copyjport (srcprrefs, dstprefs, 3);
 
 	resetinput ();
 
@@ -6434,9 +6419,9 @@ void setmousestate (int mouse, int axis, int data, int isabs)
 {
 	int i, v, diff;
 	int *mouse_p, *oldm_p;
-	double d;
+	float d;
 	struct uae_input_device *id = &mice[mouse];
-	static double fract[MAX_INPUT_DEVICES][MAX_INPUT_DEVICE_EVENTS];
+	static float fract[MAX_INPUT_DEVICES][MAX_INPUT_DEVICE_EVENTS];
 
 	if (testmode) {
 		inputdevice_testrecord (IDTYPE_MOUSE, mouse, IDEV_WIDGET_AXIS, axis, data, -1);
@@ -6466,7 +6451,7 @@ void setmousestate (int mouse, int axis, int data, int isabs)
 			return;*/
 		*oldm_p = *mouse_p;
 		*mouse_p += data;
-		d = (*mouse_p - *oldm_p) * currprefs.input_mouse_speed / 100.0;
+		d = (*mouse_p - *oldm_p) * currprefs.input_mouse_speed / 100.0f;
 	} else {
 		d = data - *oldm_p;
 		*oldm_p = data;

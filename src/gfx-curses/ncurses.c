@@ -756,11 +756,7 @@ static void read_mouse (void)
 
 static int get_mouse_flags (int num)
 {
-/*        if (di_mouse[num].rawinput || !rawinput_enabled_mouse)
-                return 0;
-        if (di_mouse[num].catweasel)
-                return 0;*/
-        return 1;
+    return 0;
 }
 
 struct inputdevice_functions inputdevicefunc_mouse = {

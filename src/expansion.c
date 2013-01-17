@@ -1384,10 +1384,6 @@ static uaecptr check_boot_rom (void)
 		return b;
 	if (currprefs.rtgmem_size)
 		return b;
-#ifdef WIN32
-	if (currprefs.win32_automount_removable)
-		return b;
-#endif
 	if (currprefs.chipmem_size > 2 * 1024 * 1024)
 		return b;
 	if (currprefs.z3chipmem_size)

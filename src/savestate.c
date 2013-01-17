@@ -66,11 +66,6 @@
 #include "disk.h"
 #include "misc.h"
 
-#ifndef _WIN32
-#define console_out printf
-#endif
-
-
 int savestate_state = 0;
 static int savestate_first_capture;
 
@@ -590,7 +585,7 @@ void restore_state (const TCHAR *filename)
 		else if (!_tcscmp (name, _T("FPU ")))
 			end = restore_fpu (chunk);
 #endif
-#ifdef MMU
+#ifdef MMUEMU
 		else if (!_tcscmp (name, _T("MMU ")))
 			end = restore_mmu (chunk);
 #endif
@@ -686,7 +681,13 @@ void restore_state (const TCHAR *filename)
 		else if (!_tcscmp (name, _T("CDTV")))
 			end = restore_cdtv (chunk);
 		else if (!_tcscmp (name, _T("DMAC")))
-			end = restore_dmac (chunk);
+			end = restore_cdtv_dmac (chunk);
+#endif
+#ifdef SCSI
+		else if (!_tcscmp (name, _T("DMC2")))
+			end = restore_scsi_dmac (chunk);
+		else if (!_tcscmp (name, _T("SCSI")))
+			end = restore_scsi_hd (chunk);
 #endif
 #ifdef GAYLE
 		else if (!_tcscmp (name, _T("GAYL")))
@@ -1036,11 +1037,6 @@ static int save_state_internal (struct zfile *f, const TCHAR *description, int c
 		xfree(dst);
 	}
 	len = 30000;
-	dst = save_log (true, &len);
-	if (dst) {
-		save_chunk (f, dst, len, _T("LOG "), comp);
-		xfree (dst);
-	}
 
 	zfile_fwrite (endhunk, 1, 8, f);
 
@@ -1174,30 +1170,6 @@ int savestate_dorewind (int pos)
 	}
 	return 0;
 }
-#if 0
-void savestate_listrewind (void)
-{
-	int i = replaycounter;
-	int cnt;
-	uae_u8 *p;
-	uae_u32 pc;
-
-	cnt = 1;
-	for (;;) {
-		struct staterecord *st;
-		st = &staterecords[i];
-		if (!st->start)
-			break;
-		p = st->cpu + 17 * 4;
-		pc = restore_u32_func (&p);
-		console_out (_T("%d: PC=%08X %c\n"), cnt, pc, regs.pc == pc ? '*' : ' ');
-		cnt++;
-		i--;
-		if (i < 0)
-			i += MAX_STATERECORDS;
-	}
-}
-#endif
 
 void savestate_rewind (void)
 {
@@ -1293,7 +1265,11 @@ void savestate_rewind (void)
 	if (restore_u32_func (&p))
 		p = restore_cdtv (p);
 	if (restore_u32_func (&p))
-		p = restore_dmac (p);
+		p = restore_cdtv_dmac (p);
+#endif
+#ifdef SCSCI
+	if (restore_u32_func (&p))
+		p = restore_scsi_dmac (p);
 #endif
 #ifdef GAYLE
 	if (restore_u32_func (&p))
@@ -1633,7 +1609,19 @@ retry2:
 	p3 = p;
 	save_u32_func (&p, 0);
 	tlen += 4;
-	if (save_dmac (&len, p)) {
+	if (save_cdtv_dmac (&len, p)) {
+		save_u32_func (&p3, 1);
+		tlen += len;
+		p += len;
+	}
+#endif
+#ifdef SCSI
+	if (bufcheck (st, p, 0))
+		goto retry;
+	p3 = p;
+	save_u32_func (&p, 0);
+	tlen += 4;
+	if (save_scsi_dmac (&len, p)) {
 		save_u32_func (&p3, 1);
 		tlen += len;
 		p += len;

@@ -2381,15 +2381,6 @@ static int get_mouse_widget_type (unsigned int mouse, unsigned int num, char *na
     return IDEV_WIDGET_NONE;
 }
 
-static int get_mouse_flags (int num)
-{
-/*        if (di_mouse[num].rawinput || !rawinput_enabled_mouse)
-                return 0;
-        if (di_mouse[num].catweasel)
-                return 0;*/
-        return 1;
-}
-
 static void read_mouse (void)
 {
     /* We handle mouse input in handle_events() */
@@ -2397,11 +2388,7 @@ static void read_mouse (void)
 
 static int get_mouse_flags (int num)
 {
-/*        if (di_mouse[num].rawinput || !rawinput_enabled_mouse)
                 return 0;
-        if (di_mouse[num].catweasel)
-                return 0;*/
-        return 1;
 }
 
 struct inputdevice_functions inputdevicefunc_mouse = {

@@ -36,15 +36,15 @@ DIST_SUBDIRS = \
 	sd-none sd-alsa sd-amigaos sd-beos sd-sdl sd-solaris sd-uss \
 	jd-none jd-amigainput jd-amigaos jd-beos jd-linuxold jd-sdl \
 	gui-none gui-beos gui-cocoa gui-gtk gui-muirexx gui-sdl \
-	od-generic od-amiga od-beos od-linux od-macosx od-win32 \
-	td-none td-amigaos td-beos td-posix td-sdl td-win32 \
+	od-generic od-amiga od-beos od-linux od-macosx \
+	td-none td-amigaos td-beos td-posix td-sdl \
 	keymap caps archivers/dms archivers/zip
 
 BUILT_SOURCES = \
 	blit.h blitfunc.h blitfunc.c blittable.c \
 	linetoscr.c \
 	cpudefs.c \
-	cpuemu_0.c cpuemu_11.c cpuemu_12.c cpuemu_20.c cpuemu_21.c cpuemu_22.c cpuemu_31.c \
+	cpuemu_0.c cpuemu_11.c cpuemu_12.c cpuemu_20.c cpuemu_21.c cpuemu_22.c cpuemu_31.c cpuemu_32.c cpuemu_33.c \
 	cpustbl.c cputbl.h \
 	compemu.c \
 	compstbl.c comptbl.h
@@ -52,7 +52,7 @@ BUILT_SOURCES = \
 CLEANFILES = \
 	blit.h blitfunc.h blitfunc.c blittable.c \
 	cpudefs.c \
-	cpuemu_0.c cpuemu_11.c cpuemu_12.c cpuemu_20.c cpuemu_21.c cpuemu_22.c cpuemu_31.c \
+	cpuemu_0.c cpuemu_11.c cpuemu_12.c cpuemu_20.c cpuemu_21.c cpuemu_22.c cpuemu_31.c cpuemu_32.c cpuemu_32.c \
 	cpustbl.c cputbl.h \
 	compemu.c \
 	compstbl.c comptbl.h \
@@ -160,7 +160,7 @@ noinst_HEADERS = \
 	include/writelog.h \
 	include/xwin.h		include/zfile.h		include/diskutil.h \
 	targets/t-amiga.h	targets/t-beos.h        \
-	targets/t-unix.h	targets/t-win32.h	\
+	targets/t-unix.h\
 	include/gcc_warnings.h
 
 dist_noinst_SCRIPTS = \
@@ -261,6 +261,8 @@ cpuemu_20.c:	cpuemu_0.c
 cpuemu_21.c:	cpuemu_0.c
 cpuemu_22.c:	cpuemu_0.c
 cpuemu_31.c:	cpuemu_0.c
+cpuemu_32.c:	cpuemu_0.c
+cpuemu_33.c:	cpuemu_0.c
 
 compemu.c:	tools/gencomp
 		./tools/gencomp

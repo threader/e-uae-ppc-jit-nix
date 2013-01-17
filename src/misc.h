@@ -10,12 +10,7 @@
  * Copyright 2010-2013 Mustafa TUFAN
  */
 
-int ispressed (int key);
-
-int D3D_goodenough (void);
-int DirectDraw_CurrentRefreshRate (void);
-int DirectDraw_GetVerticalBlankStatus (void);
-double getcurrentvblankrate (void);
+void getgfxoffset (int *dxp, int *dyp, int *mxp, int *myp);
 int isfullscreen (void);
 void fetch_configurationpath (TCHAR *out, int size);
 TCHAR* buf_out (TCHAR *buffer, int *bufsize, const TCHAR *format, ...);
@@ -24,7 +19,6 @@ char *ua (const TCHAR *s);
 char *uutf8 (const char *s);
 char *utf8u (const char *s);
 int my_existsdir (const char *name);
-bool target_graphics_buffer_update (void);
 bool show_screen_maybe (bool show);
 bool render_screen (bool immediate);
 void show_screen (void);
@@ -43,5 +37,8 @@ char *ua_fs (const char *s, int defchar);
 void close_console (void);
 bool console_isch (void);
 TCHAR console_getch (void);
+int vsync_switchmode (int hz);
+bool vsync_busywait_do (int *freetime, bool lace, bool oddeven);
+void doflashscreen (void);
 
 #endif /* SRC_MISC_H_INCLUDED */

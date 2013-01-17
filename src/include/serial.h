@@ -19,15 +19,11 @@ extern void  SERDAT (uae_u16 w);
 
 extern uae_u8 serial_writestatus (uae_u8, uae_u8);
 extern uae_u8 serial_readstatus (uae_u8);
-extern void serial_uartbreak (int);
 extern uae_u16 serdat;
 
 extern int doreadser, serstat;
 
 extern void serial_flush_buffer (void);
-
-extern void serial_hsynchandler (void);
-extern void serial_check_irq (void);
 
 extern void uaeser_initdata (void *vsd, void *user);
 extern int uaeser_getdatalength (void);

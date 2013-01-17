@@ -99,7 +99,7 @@ static int setfiletime (const TCHAR *name, int days, int minute, int tick, int t
 
 bool my_utime (const TCHAR *name, struct mytimeval *tv)
 {
-        int result = -1, tolocal;
+        int tolocal;
         int days, mins, ticks;
         struct mytimeval tv2;
 
@@ -180,11 +180,11 @@ FILE *my_opentext (const TCHAR *name)
 
 struct my_opendir_s *my_opendir (const TCHAR *name)
 {
+/*
 	struct my_opendir_s *mod;
 	TCHAR tmp[MAX_DPATH];
 
 	tmp[0] = 0;
-/*
 	if (currprefs.win32_filesystem_mangle_reserved_names == false)
 		_tcscpy (tmp, PATHPREFIX);
 	_tcscat (tmp, name);
@@ -225,6 +225,7 @@ int my_readdir (struct my_opendir_s *mod, TCHAR *name) {
 	return 1;
 }
 
+#if 0
 static int recycle (const TCHAR *name)
 {
 /*        DWORD dirattr = GetFileAttributesSafe (name);
@@ -292,12 +293,14 @@ static int recycle (const TCHAR *name)
         }*/
 	return 0;
 }
+#endif
 
 int my_rmdir (const TCHAR *name)
 {
         struct my_opendir_s *od;
         int cnt;
         TCHAR tname[MAX_DPATH];
+        memset(tname, 0, sizeof(TCHAR) * MAX_DPATH);
 
         /* SHFileOperation() ignores FOF_NORECURSION when deleting directories.. */
         od = my_opendir (name);
@@ -318,14 +321,12 @@ int my_rmdir (const TCHAR *name)
                 return -1;
         }
 
-//	return recycle (name);
 	return rmdir (name);
 }
 
 /* "move to Recycle Bin" (if enabled) -version of DeleteFile() */
 int my_unlink (const TCHAR *name)
 {
-//	return recycle (name);
 	return unlink (name);
 }
 
@@ -447,7 +448,7 @@ HANDLE CreateFile(const TCHAR *lpFileName, DWORD dwDesiredAccess, DWORD dwShareM
 	}
 
 	int fd = 0;
-	mode = S_IREAD | S_IWRITE;
+	mode = S_IRUSR | S_IWUSR;
 
 	if (dwFlagsAndAttributes & FILE_FLAG_NO_BUFFERING)
 		flags |= O_SYNC;
@@ -481,15 +482,8 @@ struct my_openfile_s *my_open (const TCHAR *name, int flags) {
 	DWORD FlagsAndAttributes = FILE_ATTRIBUTE_NORMAL;
 	DWORD attr;
 	const TCHAR *namep;
-	TCHAR path[MAX_DPATH];
-	
-/*	if (currprefs.win32_filesystem_mangle_reserved_names == false) {
-		_tcscpy (path, PATHPREFIX);
-		_tcscat (path, name);
-		namep = path;
-	} else {*/
-		namep = name;
-//	}
+	namep = name;
+
 	mos = xmalloc (struct my_openfile_s, 1);
 	if (!mos)
 		return NULL;
@@ -549,18 +543,11 @@ BOOL SetEndOfFile(HANDLE hFile) {
 
 int my_truncate (const TCHAR *name, uae_u64 len) {
 	HANDLE hFile;
-	bool bResult = false;
 	int result = -1;
 	const TCHAR *namep;
-	TCHAR path[MAX_DPATH];
 	
-/*	if (currprefs.win32_filesystem_mangle_reserved_names == false) {
-		_tcscpy (path, PATHPREFIX);
-		_tcscat (path, name);
-		namep = path;
-	} else {*/
-		namep = name;
-//	}
+	namep = name;
+
 	if ((hFile = CreateFile (namep, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL ) ) != INVALID_HANDLE_VALUE ) {
 		LARGE_INTEGER li;
 		li.QuadPart = len;

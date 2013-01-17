@@ -106,24 +106,11 @@ int isdatatrack (struct cd_toc_head *th, int block)
 
 static int cdscsidevicetype[MAX_TOTAL_SCSI_DEVICES];
 
-#ifdef _WIN32
-
-#include "od-win32/win32.h"
-
-extern struct device_functions devicefunc_win32_spti;
-extern struct device_functions devicefunc_win32_ioctl;
-
-#endif
-
 extern struct device_functions devicefunc_cdimage;
 
 static struct device_functions *devicetable[] = {
 	NULL,
 	&devicefunc_cdimage,
-#ifdef _WIN32
-	&devicefunc_win32_ioctl,
-	&devicefunc_win32_spti,
-#endif
 	NULL
 };
 static int driver_installed[6];
@@ -152,16 +139,7 @@ static void install_driver (int flags)
 				scsiemu[i] = true;
 				break;
 				case SCSI_UNIT_SPTI:
-#ifdef _WIN32
-				if (currprefs.win32_uaescsimode == UAESCSI_CDEMU) {
-					device_func[i] = devicetable[SCSI_UNIT_IOCTL];
-					scsiemu[i] = true;
-				} else {
-#endif
 					device_func[i] = devicetable[SCSI_UNIT_SPTI];
-#ifdef _WIN32
-				}
-#endif
 				break;
 			}
 		}
@@ -220,21 +198,11 @@ void blkdev_fix_prefs (struct uae_prefs *p)
 		if (p->cdslots[i].inuse || p->cdslots[i].name[0]) {
 			TCHAR *name = p->cdslots[i].name;
 			if (_tcslen (name) == 3 && name[1] == ':' && name[2] == '\\') {
-#ifdef _WIN32
-				if (currprefs.scsi && (currprefs.win32_uaescsimode == UAESCSI_SPTI || currprefs.win32_uaescsimode == UAESCSI_SPTISCAN))
-					cdscsidevicetype[i] = SCSI_UNIT_SPTI;
-				else
-#endif
 					cdscsidevicetype[i] = SCSI_UNIT_IOCTL;
 			} else {
 				cdscsidevicetype[i] = SCSI_UNIT_IMAGE;
 			}
 		} else if (currprefs.scsi) {
-#ifdef _WIN32
-			if (currprefs.win32_uaescsimode == UAESCSI_CDEMU)
-				cdscsidevicetype[i] = SCSI_UNIT_IOCTL;
-			else
-#endif
 				cdscsidevicetype[i] = SCSI_UNIT_SPTI;
 		} else {
 			cdscsidevicetype[i] = SCSI_UNIT_IOCTL;
@@ -363,27 +331,7 @@ static int get_standard_cd_unit2 (unsigned int csu)
 		}
 		return unitnum;
 	}
-#ifdef _WIN32
-	device_func_init (SCSI_UNIT_IOCTL);
-	for (int drive = 'C'; drive <= 'Z'; ++drive) {
-		TCHAR vol[100];
-		_stprintf (vol, _T("%c:\\"), drive);
-		int drivetype = GetDriveType (vol);
-		if (drivetype == DRIVE_CDROM) {
-			if (sys_command_open_internal (unitnum, vol, csu)) {
-				if (getunitinfo (unitnum, drive, csu, &isaudio))
-					return unitnum;
-				sys_command_close (unitnum);
-			}
-		}
-	}
-	if (isaudio) {
-		TCHAR vol[100];
-		_stprintf (vol, _T("%c:\\"), isaudio);
-		if (sys_command_open_internal (unitnum, vol, csu)) 
-			return unitnum;
-	}
-#endif
+
 fallback:
 	device_func_init (SCSI_UNIT_IMAGE);
 	if (!sys_command_open_internal (unitnum, _T(""), csu)) {

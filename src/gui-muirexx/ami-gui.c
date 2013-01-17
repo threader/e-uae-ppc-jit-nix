@@ -242,7 +242,7 @@ static void do_file_dialog (unsigned int type)
 		set_last_savestate_dir (FileRequest->fr_Drawer);
 		strcpy (changed_prefs.df[FILEDIALOG_DRIVE(type)], path);
 		break;
-
+#ifdef SAVESTATE
 	    case FILEDIALOG_SAVE_STATE:
 		set_last_savestate_dir (FileRequest->fr_Drawer);
 		savestate_initsave (path, 1, 0);
@@ -255,6 +255,7 @@ static void do_file_dialog (unsigned int type)
 		savestate_state = STATE_DORESTORE;
 		write_log ("Restoring state from '%s'...\n", path);
 		break;
+#endif // SAVESTATE
 	}
     }
 

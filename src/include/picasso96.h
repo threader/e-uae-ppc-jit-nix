@@ -1,9 +1,6 @@
-
-#ifdef WIN32
-
-#include "picasso96_win.h"
-
-#else
+#pragma once
+#ifndef SRC_INCLUDE_PICASSO96_H_INCLUDED
+#define SRC_INCLUDE_PICASSO96_H_INCLUDED 1
 /*
  * UAE - The U*nix Amiga Emulator
  *
@@ -723,10 +720,6 @@ extern int uaegfx_card_found;
 extern struct picasso96_state_struct picasso96_state;
 extern uae_u16 picasso96_pixel_format;
 
-#ifdef _WIN32
-extern unsigned int timer_id;
-#endif
-
 #include "traps.h"
 
 extern void picasso_enablescreen (int on);
@@ -797,4 +790,4 @@ extern int p96hsync_counter;
 
 #endif
 
-#endif
+#endif // SRC_INCLUDE_PICASSO96_H_INCLUDED

@@ -21,7 +21,6 @@ extern int disk_empty (int num);
 extern void disk_insert (int num, const TCHAR *name);
 extern void disk_insert_force (int num, const TCHAR *name, bool writeprotected);
 extern void DISK_vsync (void);
-//extern int DISK_validate_filename (const TCHAR *fname, int leave_open, bool *wrprot, uae_u32 *crc32, struct zfile **zf);
 extern int DISK_validate_filename (struct uae_prefs *p, const TCHAR *fname, int leave_open, bool *wrprot, uae_u32 *crc32, struct zfile **zf);
 extern void DISK_handler (uae_u32);
 extern void DISK_update (int hpos);
@@ -54,9 +53,6 @@ extern int disk_fifostatus (void);
 extern int disk_debug_logging;
 extern int disk_debug_mode;
 extern int disk_debug_track;
-
-extern int getdebug(void);
-
 #define DISK_DEBUG_DMA_READ 1
 #define DISK_DEBUG_DMA_WRITE 2
 #define DISK_DEBUG_PIO 4

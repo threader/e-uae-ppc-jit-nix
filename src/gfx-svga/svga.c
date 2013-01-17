@@ -159,7 +159,7 @@ static int bitdepth, bit_unit, using_linear, vgamode, current_vgamode, gui_reque
 static vga_modeinfo modeinfo;
 static char *linear_mem = NULL;
 static int need_dither;
-static int screen_is_picasso;
+extern int screen_is_picasso;
 static int picasso_vgamode = -1;
 static char picasso_invalid_lines[1200];
 

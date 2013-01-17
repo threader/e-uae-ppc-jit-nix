@@ -99,7 +99,7 @@ static void generate_func(void)
 	if (a_is_on) {
 		printf("\tfor (i = 0; i < b->hblitsize; i++) {\n\t\tuae_u32 bltadat, srca;\n\n");
 	} else {
-		printf("\tfor (i = b->hblitsize; i--; ) {\n\t\tuae_u32 bltadat, srca;\n\n");
+		printf("\tfor (i = b->hblitsize; i--; ) {\n");
 	}
 	if (c_is_on) printf("\t\tif (ptc) { srcc = chipmem_wget_indirect (ptc); ptc += 2; }\n");
 	if (b_is_on) printf("\t\tif (ptb) {\n\t\t\tuae_u32 bltbdat = blt_info.bltbdat = chipmem_wget_indirect (ptb); ptb += 2;\n");
@@ -180,7 +180,7 @@ static void generate_func(void)
 	if (a_is_on) {
 		printf("\tfor (i = 0; i < b->hblitsize; i++) {\n\t\tuae_u32 bltadat, srca;\n");
 	} else {
-		printf("\tfor (i = b->hblitsize; i--; ) {\n\t\tuae_u32 bltadat, srca;\n");
+		printf("\tfor (i = b->hblitsize; i--; ) {\n");
 	}
 	if (c_is_on) printf("\t\tif (ptc) { srcc = chipmem_wget_indirect (ptc); ptc -= 2; }\n");
 	if (b_is_on) printf("\t\tif (ptb) {\n\t\t\tuae_u32 bltbdat = blt_info.bltbdat = chipmem_wget_indirect (ptb); ptb -= 2;\n");

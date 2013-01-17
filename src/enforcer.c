@@ -24,12 +24,6 @@
 
 #ifdef ENFORCER
 
-#ifndef _WIN32
-#define console_out printf
-#else
-#define console_out(...) do {;} while (0)
-#endif
-
 //#if defined(AHI)
 
 #if defined(JIT)
@@ -376,7 +370,6 @@ static void enforcer_display_hit (const TCHAR *addressmode, uae_u32 pc, uaecptr 
 	_stprintf (enforcer_buf_ptr, _T("Name: \"%s\"\n\n"), native_task_name);
 	enforcer_buf_ptr += _tcslen (enforcer_buf_ptr);
 
-	console_out (enforcer_buf);
 	write_log (enforcer_buf);
 	sleep_millis (5);
 	doflashscreen ();
@@ -581,13 +574,14 @@ static void REGPARAM2 dummy_bput2 (uaecptr addr, uae_u32 b)
 	}
 }
 
+#if 0
 static int REGPARAM2 dummy_check2 (uaecptr addr, uae_u32 size)
 {
 	special_mem_r;
 	enforcer_display_hit (_T("CHECK from "),(uae_u32)(regs.pc_p - NMEM_OFFSET),addr);
 	return 0;
 }
-
+#endif 0
 
 /*************************************************************
  enable the enforcer like support, maybe later this make MMU

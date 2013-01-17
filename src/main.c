@@ -530,9 +530,6 @@ void fixup_prefs (struct uae_prefs *p)
 #endif
 #if !defined (SCSIEMU)
 	p->scsi = 0;
-#ifdef _WIN32
-	p->win32_aspi = 0;
-#endif
 #endif
 #if !defined (SANA2)
 	p->sana2 = 0;
@@ -709,10 +706,15 @@ static void parse_cmdline (int argc, TCHAR **argv)
 			target_cfgfile_load (&currprefs, txt, -1, 0);
 			xfree (txt);
 		} else if (_tcsncmp (argv[i], _T("-statefile="), 11) == 0) {
+#ifdef SAVESTATE
 			TCHAR *txt = parsetextpath (argv[i] + 11);
 			savestate_state = STATE_DORESTORE;
 			_tcscpy (savestate_fname, txt);
 			xfree (txt);
+#else
+			write_log (_T("Option -statefile ignored:\n"));
+			write_log (_T("-> puae has been configured with --disable-save-state\n"));
+#endif // SAVESTATE
 		} else if (_tcscmp (argv[i], _T("-f")) == 0) {
 			/* Check for new-style "-f xxx" argument, where xxx is config-file */
 			if (i + 1 == argc) {
@@ -964,23 +966,8 @@ void virtualdevice_init (void)
 #endif
 }
 
-#if (defined (_WIN32) || defined (_WIN64)) && !defined (NO_WIN32_EXCEPTION_HANDLER)
-#ifndef JIT
-extern int DummyException (LPEXCEPTION_POINTERS blah, int n_except)
-{
-	return EXCEPTION_CONTINUE_SEARCH;
-}
-#endif
-#endif
-
 static int real_main2 (int argc, TCHAR **argv)
 {
-#if (defined (_WIN32) || defined (_WIN64)) && !defined (NO_WIN32_EXCEPTION_HANDLER)
-	extern int EvalException (LPEXCEPTION_POINTERS blah, int n_except);
-	__try
-#endif
-	{
-
 #ifdef USE_SDL
 	int result = (SDL_Init (SDL_INIT_TIMER | SDL_INIT_JOYSTICK | SDL_INIT_NOPARACHUTE) == 0);
 	if (result)
@@ -1023,15 +1010,18 @@ static int real_main2 (int argc, TCHAR **argv)
 
 	changed_prefs = currprefs;
 	no_gui = ! currprefs.start_gui;
+
 	if (restart_program == 2)
 		no_gui = 1;
 	else if (restart_program == 3)
 		no_gui = 0;
+
 	restart_program = 0;
 	if (! no_gui) {
 		int err = gui_init ();
 		currprefs = changed_prefs;
 		config_changed = 1;
+
 		if (err == -1) {
 			write_log (_T("Failed to initialize the GUI\n"));
 			return -1;
@@ -1060,9 +1050,11 @@ static int real_main2 (int argc, TCHAR **argv)
 #endif
 
 	fixup_prefs (&currprefs);
+
 #ifdef RETROPLATFORM
 	rp_fixup_options (&currprefs);
 #endif
+
 	changed_prefs = currprefs;
 	target_run ();
 	/* force sound settings change */
@@ -1079,9 +1071,11 @@ static int real_main2 (int argc, TCHAR **argv)
 #endif
 
 	custom_init (); /* Must come after memory_init */
+
 #ifdef SERIAL_PORT
 	serial_init ();
 #endif
+
 	DISK_init ();
 
 	reset_frame_rate_hack ();
@@ -1090,6 +1084,7 @@ static int real_main2 (int argc, TCHAR **argv)
 	gui_update ();
 
 	if (graphics_init ()) {
+
 #ifdef DEBUGGER
 		setup_brkhandler ();
 		if (currprefs.start_debugger && debuggable ())
@@ -1105,17 +1100,6 @@ static int real_main2 (int argc, TCHAR **argv)
 		start_program ();
 	}
 
-    }
-#if (defined (_WIN32) || defined (_WIN64)) && !defined (NO_WIN32_EXCEPTION_HANDLER)
-#ifdef JIT
-    __except( EvalException( GetExceptionInformation(), GetExceptionCode() ) )
-#else
-	__except (DummyException (GetExceptionInformation (), GetExceptionCode ()))
-#endif
-	{
-		// EvalException does the good stuff...
-	}
-#endif
 	return 0;
 }
 

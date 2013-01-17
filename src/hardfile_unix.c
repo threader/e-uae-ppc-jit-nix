@@ -10,6 +10,7 @@
 
 #include "sysconfig.h"
 #include "sysdeps.h"
+#include "options.h"
 
 #include "filesys.h"
 #include "zfile.h"
@@ -22,8 +23,6 @@
 #else
 #define DEBUG_LOG(...) { }
 #endif
-
-static int usefloppydrives = 0;
 
 struct hardfilehandle
 {
@@ -63,6 +62,7 @@ struct uae_driveinfo {
 
 int harddrive_dangerous, do_rdbdump;
 static struct uae_driveinfo uae_drives[MAX_FILESYSTEM_UNITS];
+static int num_drives = 0;
 
 static void rdbdump (FILE *h, uae_u64 offset, uae_u8 *buf, int blocksize)
 {
@@ -163,11 +163,13 @@ static int safetycheck (FILE *h, const char *name, uae_u64 offset, uae_u8 *buf, 
 }
 
 
+#if 0
 static void trim (TCHAR *s)
 {
 	while(_tcslen(s) > 0 && s[_tcslen(s) - 1] == ' ')
 		s[_tcslen(s) - 1] = 0;
 }
+#endif
 
 static int isharddrive (const TCHAR *name)
 {
@@ -207,14 +209,13 @@ int hdf_open_target (struct hardfiledata *hfd, const char *pname)
 		hdf_init_target ();
 		i = isharddrive (name);
 		if (i >= 0) {
-			long r;
 			udi = &uae_drives[i];
 			hfd->flags = HFD_FLAGS_REALDRIVE;
 			if (udi->nomedia)
 				hfd->drive_empty = -1;
-			if (udi->readonly)
-				hfd->readonly = 1;
-			h = fopen (udi->device_path, hfd->readonly ? "rb" : "r+b");
+		//	if (udi->readonly)
+		//		hfd->readonly = 1;
+			h = fopen (udi->device_path, /*hfd->readonly ? "rb" :*/ "r+b");
 			hfd->handle->h = h;
 			if (h == INVALID_HANDLE_VALUE)
 				goto end;
@@ -223,12 +224,12 @@ int hdf_open_target (struct hardfiledata *hfd, const char *pname)
 			_tcsncpy (hfd->product_rev, udi->product_rev, 4);
 			hfd->offset = udi->offset;
 			hfd->physsize = hfd->virtsize = udi->size;
-			hfd->blocksize = udi->bytespersector;
+//			hfd->blocksize = udi->bytespersector;
 			if (hfd->offset == 0 && !hfd->drive_empty) {
-				int sf = safetycheck (hfd->handle->h, udi->device_path, 0, hfd->cache, hfd->blocksize);
+				int sf = safetycheck (hfd->handle->h, udi->device_path, 0, hfd->cache, 0/*hfd->blocksize*/);
 				if (sf > 0)
 					goto end;
-				if (sf == 0 && !hfd->readonly && harddrive_dangerous != 0x1234dead) {
+				if (sf == 0 /*&& !hfd->readonly*/ && harddrive_dangerous != 0x1234dead) {
 					write_log ("'%s' forced read-only, safetycheck enabled\n", udi->device_path);
 					hfd->dangerous = 1;
 					// clear GENERIC_WRITE
@@ -256,7 +257,7 @@ int hdf_open_target (struct hardfiledata *hfd, const char *pname)
 					zmode = 1;
 			}
 		}
-		h = fopen (name, hfd->readonly ? "rb" : "r+b");
+		h = fopen (name, /*hfd->readonly ? "rb" :*/ "r+b");
 		if (h == INVALID_HANDLE_VALUE)
 			goto end;
 		hfd->handle->h = h;
@@ -279,14 +280,14 @@ int hdf_open_target (struct hardfiledata *hfd, const char *pname)
 			low = ftell (h);
 			if (low == -1)
 				goto end;
-			low &= ~(hfd->blocksize - 1);
+//			low &= ~(hfd->blocksize - 1);
 			hfd->physsize = hfd->virtsize = low;
 			hfd->handle_valid = HDF_HANDLE_LINUX;
 			if (hfd->physsize < 64 * 1024 * 1024 && zmode) {
 				write_log ("HDF '%s' re-opened in zfile-mode\n", name);
 				fclose (h);
 				hfd->handle->h = INVALID_HANDLE_VALUE;
-				hfd->handle->zf = zfile_fopen(name, hfd->readonly ? "rb" : "r+b", ZFD_NORMAL);
+				hfd->handle->zf = zfile_fopen(name, /*hfd->readonly ? "rb" :*/ "r+b", ZFD_NORMAL);
 				hfd->handle->zfile = 1;
 				if (!h)
 					goto end;
@@ -310,6 +311,7 @@ end:
 	return 0;
 }
 
+#if 0
 static void freehandle (struct hardfilehandle *h)
 {
 	if (!h)
@@ -322,6 +324,7 @@ static void freehandle (struct hardfilehandle *h)
 	h->h = INVALID_HANDLE_VALUE;
 	h->zfile = 0;
 }
+#endif
 
 void hdf_close_target (struct hardfiledata *hfd)
 {
@@ -331,9 +334,9 @@ void hdf_close_target (struct hardfiledata *hfd)
 	hfd->emptyname = NULL;
 	hfd->handle = NULL;
 	hfd->handle_valid = 0;
-	if (hfd->cache)
-		xfree (hfd->cache);
+	xfree (hfd->cache);
 	xfree(hfd->virtual_rdb);
+	hfd->handle_valid = 0;
 	hfd->virtual_rdb = 0;
 	hfd->virtual_size = 0;
 	hfd->cache = 0;
@@ -363,11 +366,11 @@ static int hdf_seek (struct hardfiledata *hfd, uae_u64 offset)
 		abort ();
     }
     offset += hfd->offset;
-    if (offset & (hfd->blocksize - 1)) {
-		gui_message ("hd: poscheck failed, offset=0x%llx not aligned to blocksize=%d! (0x%llx & 0x%04.4x = 0x%04.4x)\n",
-			offset, hfd->blocksize, offset, hfd->blocksize, offset & (hfd->blocksize - 1));
-		abort ();
-    }
+//    if (offset & (hfd->blocksize - 1)) {
+//		gui_message ("hd: poscheck failed, offset=0x%llx not aligned to blocksize=%d! (0x%llx & 0x%04.4x = 0x%04.4x)\n",
+//			offset, hfd->blocksize, offset, hfd->blocksize, offset & (hfd->blocksize - 1));
+//		abort ();
+  //  }
 	if (hfd->handle_valid == HDF_HANDLE_LINUX) {
 		ret = fseek (hfd->handle->h, (long)offset, SEEK_SET);
 		if (ret)
@@ -403,10 +406,10 @@ static void poscheck (struct hardfiledata *hfd, int len)
 		gui_message ("hd: poscheck failed, offset out of bounds! (0x%llx >= 0x%llx, LEN=%d)", pos, hfd->offset + hfd->physsize, len);
 		abort ();
     }
-    if (pos & (hfd->blocksize - 1)) {
-		gui_message ("hd: poscheck failed, offset not aligned to blocksize! (0x%llx & 0x%04.4x = 0x%04.4x\n", pos, hfd->blocksize, pos & hfd->blocksize);
-		abort ();
-    }
+//    if (pos & (hfd->blocksize - 1)) {
+//		gui_message ("hd: poscheck failed, offset not aligned to blocksize! (0x%llx & 0x%04.4x = 0x%04.4x\n", pos, hfd->blocksize, pos & hfd->blocksize);
+//		abort ();
+  //  }
 }
 
 static int isincache (struct hardfiledata *hfd, uae_u64 offset, int len)
@@ -516,8 +519,8 @@ static int hdf_write_2 (struct hardfiledata *hfd, void *buffer, uae_u64 offset, 
 {
 	long outlen = 0;
 
-	if (hfd->readonly)
-		return 0;
+//	if (hfd->readonly)
+//		return 0;
 	if (hfd->dangerous)
 		return 0;
 	hfd->cache_valid = 0;
@@ -526,7 +529,9 @@ static int hdf_write_2 (struct hardfiledata *hfd, void *buffer, uae_u64 offset, 
 	memcpy (hfd->cache, buffer, len);
 	if (hfd->handle_valid == HDF_HANDLE_LINUX) {
 	    outlen = fwrite (hfd->cache, 1, len, hfd->handle->h);
-		if (offset == 0) {
+		if (outlen != len)
+			gui_message ("Harddrive\n%s\ncache write failed!", hfd->device_name);
+		else if (offset == 0) {
 			long outlen2;
 			uae_u8 *tmp;
 			int tmplen = 512;
@@ -535,7 +540,7 @@ static int hdf_write_2 (struct hardfiledata *hfd, void *buffer, uae_u64 offset, 
 				memset (tmp, 0xa1, tmplen);
 				hdf_seek (hfd, offset);
 				outlen2 = fread (tmp, 1, tmplen, hfd->handle->h);
-				if (memcmp (hfd->cache, tmp, tmplen) != 0 || outlen != len)
+				if (memcmp (hfd->cache, tmp, tmplen) != 0 || outlen2 != len)
 					gui_message ("Harddrive\n%s\nblock zero write failed!", hfd->device_name);
 				xfree (tmp);
 			}
@@ -578,15 +583,15 @@ int hdf_resize_target (struct hardfiledata *hfd, uae_u64 newsize)
 	return 0;
 }
 
-static int num_drives;
-
 static int hdf_init2 (int force)
 {
+#if 0
 	int index = 0, index2 = 0, drive;
 	uae_u8 *buffer;
 	int errormode;
 	int dwDriveMask;
-	static int done;
+#endif
+	static int done = 0;
 
 	if (done && !force)
 		return num_drives;

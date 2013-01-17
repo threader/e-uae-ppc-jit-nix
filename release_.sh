@@ -1,6 +1,6 @@
 # P-UAE
 #
-# 2006-2011 Mustafa TUFAN
+# 2006-2013 Mustafa TUFAN
 #
 # this script cleans up various files so that we don't push unnecessary files to git..
 #
@@ -74,7 +74,6 @@ rm -rf src/od-linux/Makefile.in
 rm -rf src/od-macosx/Makefile.in
 rm -rf src/od-macosx/Credits.rtf
 rm -rf src/od-macosx/Info.plist
-rm -rf src/od-win32/Makefile.in
 rm -rf src/sd-alsa/Makefile.in
 rm -rf src/sd-amigaos/Makefile.in
 rm -rf src/sd-beos/Makefile.in
@@ -87,7 +86,6 @@ rm -rf src/td-beos/Makefile.in
 rm -rf src/td-none/Makefile.in
 rm -rf src/td-posix/Makefile.in
 rm -rf src/td-sdl/Makefile.in
-rm -rf src/td-win32/Makefile.in
 rm -rf src/test/Makefile.in
 
 # remove generated files, just in case
@@ -111,6 +109,8 @@ rm -rf src/cpuemu_20.c
 rm -rf src/cpuemu_21.c
 rm -rf src/cpuemu_22.c
 rm -rf src/cpuemu_31.c
+rm -rf src/cpuemu_32.c
+rm -rf src/cpuemu_33.c
 # jit
 rm -rf src/compemu.cpp
 rm -rf src/compstbl.h

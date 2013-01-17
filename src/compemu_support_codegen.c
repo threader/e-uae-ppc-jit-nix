@@ -49,11 +49,9 @@
 /* kludge for Brian, so he can compile under MSVC++ */
 #define USE_NORMAL_CALLING_CONVENTION 0
 
-#ifndef WIN32
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/mman.h>
-#endif
 
 #include <stdlib.h>
 #include <fcntl.h>
@@ -86,19 +84,11 @@
 #include "mon.h"
 #endif
 
-#ifndef WIN32
 #define PROFILE_COMPILE_TIME		1
 #define PROFILE_UNTRANSLATED_INSNS	1
-#endif
 
 #if defined(__x86_64__) && 0
 #define RECORD_REGISTER_USAGE		1
-#endif
-
-#ifdef WIN32
-#undef write_log
-#define write_log dummy_write_log
-static void dummy_write_log(const char *, ...) { }
 #endif
 
 #if JIT_DEBUG

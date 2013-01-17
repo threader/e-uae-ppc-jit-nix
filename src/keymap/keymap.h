@@ -328,8 +328,5 @@ struct uaekey_hostmap
 /* Alternate names for keys originally not used on US keyboards. */
 #define DIK_CIRCUMFLEX      DIK_PREVTRACK       /* Japanese keyboard */
 
-/* fixme
-struct uae_input_device_kbr_default *uaekey_make_default_kbr (const struct uaekey_hostmap *hostkeys);
-- Sven */
 extern void my_kbd_handler (int keyboard, int scancode, int newstate);
 

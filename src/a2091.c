@@ -3,7 +3,7 @@
  *
  * A590/A2091/A3000/CDTV SCSI expansion (DMAC/SuperDMAC + WD33C93) emulation
  *
- * Copyright 2007 Toni Wilen
+* Copyright 2007-2013 Toni Wilen
  *
  */
 
@@ -11,6 +11,7 @@
 #define A2091_DEBUG 0
 #define A3000_DEBUG 0
 #define WD33C93_DEBUG 0
+#define WD33C93_DEBUG_PIO 0
 
 #include "sysconfig.h"
 #include "sysdeps.h"
@@ -30,6 +31,7 @@
 #include "filesys.h"
 #include "autoconf.h"
 #include "cdtv.h"
+#include "savestate.h"
 
 #define ROM_VECTOR 0x2000
 #define ROM_OFFSET 0x2000
@@ -139,6 +141,39 @@
 #define PHS_MESS_OUT	    0x06
 #define PHS_MESS_IN	    0x07
 
+/* Auxialiry status */
+#define ASR_INT			0x80	/* Interrupt pending */
+#define ASR_LCI			0x40	/* Last command ignored */
+#define ASR_BSY			0x20	/* Busy, only cmd/data/asr readable */
+#define ASR_CIP			0x10	/* Busy, cmd unavail also */
+#define ASR_xxx			0x0c
+#define ASR_PE			0x02	/* Parity error (even) */
+#define ASR_DBR			0x01	/* Data Buffer Ready */
+/* Status */
+#define CSR_CAUSE		0xf0
+#define CSR_RESET		0x00	/* chip was reset */
+#define CSR_CMD_DONE	0x10	/* cmd completed */
+#define CSR_CMD_STOPPED	0x20	/* interrupted or abrted*/
+#define CSR_CMD_ERR		0x40	/* end with error */
+#define CSR_BUS_SERVICE	0x80	/* REQ pending on the bus */
+/* Control */
+#define CTL_DMA			0x80	/* Single byte dma */
+#define CTL_DBA_DMA		0x40	/* direct buffer access (bus master) */
+#define CTL_BURST_DMA	0x20	/* continuous mode (8237) */
+#define CTL_NO_DMA		0x00	/* Programmed I/O */
+#define CTL_HHP			0x10	/* Halt on host parity error */
+#define CTL_EDI			0x08	/* Ending disconnect interrupt */
+#define CTL_IDI			0x04	/* Intermediate disconnect interrupt*/
+#define CTL_HA			0x02	/* Halt on ATN */
+#define CTL_HSP			0x01	/* Halt on SCSI parity error */
+
+/* SCSI Messages */
+#define MSG_COMMAND_COMPLETE 0x00
+#define MSG_SAVE_DATA_POINTER 0x02
+#define MSG_RESTORE_DATA_POINTERS 0x03
+#define MSG_NOP 0x08
+#define MSG_IDENTIFY 0x80
+
 static int configured;
 static uae_u8 dmacmemory[100];
 static uae_u8 *rom;
@@ -163,6 +198,7 @@ static uae_u8 scsidelay_status;
 static int wd33c93a = 1;
 
 struct scsi_data *scsis[8];
+static struct scsi_data *scsi;
 
 uae_u8 wdregs[32];
 
@@ -196,7 +232,7 @@ static void INT2 (void)
 {
 	if (currprefs.cs_cdtvscsi)
 		return;
-	if (!(auxstatus & 0x80))
+	if (!(auxstatus & ASR_INT))
 		return;
 	dmac_istr |= ISTR_INTS;
 	if (isirq ())

@@ -31,9 +31,9 @@ extern uae_u32 addr (int);
 extern void db (uae_u8);
 extern void dw (uae_u16);
 extern void dl (uae_u32);
-extern uae_u32 ds_bstr_ansi (const uae_char *);
 extern uae_u32 ds_ansi (const uae_char*);
 extern uae_u32 ds (const char *);
+extern uae_u32 ds_bstr_ansi (const uae_char *);
 extern uae_u8 dbg (uaecptr);
 extern void calltrap (uae_u32);
 extern void org (uae_u32);
@@ -76,7 +76,7 @@ extern char *validatevolumename (char *s);
 
 int filesys_insert (int nr, TCHAR *volume, const TCHAR *rootdir, bool readonly, int flags);
 int filesys_eject (int nr);
-int filesys_media_change (const char *rootdir, int inserted, struct uaedev_config_info *uci);
+int filesys_media_change (const TCHAR *rootdir, int inserted, struct uaedev_config_data *uci);
 
 extern char *filesys_createvolname (const char *volname, const char *rootdir, const char *def);
 extern int target_get_volume_name(struct uaedev_mount_info *mtinf, const char *volumepath, char *volumename, int size, int inserted, int fullcheck);

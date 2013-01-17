@@ -425,7 +425,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 			[cpuMenu addItem:[NSMenuItem separatorItem]];
 			[self createMenuItemInMenu:cpuMenu withTitle:@"24-bit Addressing" action:@selector(changeCPU:) tag:10];
 			[self createMenuItemInMenu:cpuMenu withTitle:@"More Compatible" action:@selector(changeCPU:) tag:11];
-#ifdef MMU
+#ifdef MMUEMU
 			[self createMenuItemInMenu:cpuMenu withTitle:@"68040 MMU" action:@selector(changeCPU:) tag:12];
 #endif
 		menuItem = [[NSMenuItem alloc] initWithTitle:@"CPU" action:nil keyEquivalent:@""];
@@ -919,7 +919,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 			if (changed_prefs.cpu_compatible) [menuItem setState:NSOnState];
 			else [menuItem setState:NSOffState];
 		}
-#ifdef MMU
+#ifdef MMUEMU
 		if (tag == 12) {
 			if (changed_prefs.mmu_model) [menuItem setState:NSOnState];
 			else [menuItem setState:NSOffState];
@@ -1681,7 +1681,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 	case 11:
 		changed_prefs.cpu_compatible = !changed_prefs.cpu_compatible;
 		break;
-#ifdef MMU
+#ifdef MMUEMU
 	case 12:
 		changed_prefs.mmu_model = 68040;
 		break;

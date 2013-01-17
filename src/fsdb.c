@@ -20,6 +20,7 @@
 #include "fsusage.h"
 #include "scsidev.h"
 #include "fsdb.h"
+#include "misc.h"
 
 /* The on-disk format is as follows:
  * Offset 0, 1 byte, valid
@@ -44,7 +45,6 @@ TCHAR *nname_begin (TCHAR *nname)
 	return nname;
 }
 
-#ifndef _WIN32
 #include "filesys_linux.c"
 
 /* Find the name REL in directory DIRNAME.  If we find a file that
@@ -72,7 +72,6 @@ TCHAR *fsdb_search_dir (const TCHAR *dirname, TCHAR *rel)
 	my_closedir (dir);
 	return p;
 }
-#endif
 
 static FILE *get_fsdb (a_inode *dir, const TCHAR *mode)
 {

@@ -97,7 +97,7 @@ static void freesample (struct drvsample *s)
 static void processclicks (struct drvsample *ds)
 {
 	int n = 0;
-	int nClick = 0;
+	unsigned int nClick = 0;
 
 	for (n = 0; n < CLICK_TRACKS; n++)  {
 		ds->indexes[n] = 0;

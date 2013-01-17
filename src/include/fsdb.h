@@ -118,18 +118,10 @@ struct mystat
 	struct mytimeval mtime;
 };
 
-#ifdef __WIN32__
-struct my_opendir_s {
-	HANDLE h;
-	WIN32_FIND_DATA fd;
-	int first;
-};
-#else
 struct my_opendir_s {
 	DIR *h;
 	int first;
 };
-#endif
 
 struct my_openfile_s {
 	HANDLE h;

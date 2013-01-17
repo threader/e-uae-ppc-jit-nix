@@ -89,9 +89,6 @@ extern signed long pissoff;
 extern struct ev eventtab[ev_max];
 extern struct ev2 eventtab2[ev2_max];
 
-extern volatile bool vblank_found_chipset;
-extern volatile bool vblank_found_rtg;
-
 STATIC_INLINE void cycles_do_special (void)
 {
 #ifdef JIT

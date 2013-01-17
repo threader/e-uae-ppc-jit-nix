@@ -130,7 +130,7 @@ static int dga_colormap_installed;
 
 static int need_dither;
 
-static int screen_is_picasso;
+extern int screen_is_picasso;
 static char picasso_invalid_lines[1201];
 static int picasso_has_invalid_lines;
 static int picasso_invalid_start, picasso_invalid_stop;
@@ -1592,11 +1592,7 @@ static void read_mouse (void)
 
 static int get_mouse_flags (int num)
 {
-/*        if (di_mouse[num].rawinput || !rawinput_enabled_mouse)
-                return 0;
-        if (di_mouse[num].catweasel)
-                return 0;*/
-        return 1;
+        return 0;
 }
 
 struct inputdevice_functions inputdevicefunc_mouse = {
@@ -1694,7 +1690,7 @@ static void unacquire_kb (int num)
 /*
  * Default inputdevice config for X11 mouse
  */
-int input_get_default_mouse (struct uae_input_device *uid, int num, int port, int af, bool gp)
+int input_get_default_mouse (struct uae_input_device *uid, int num, int port, int af, bool gp, bool wheel)
 {
     /* Supports only one mouse */
     uid[0].eventid[ID_AXIS_OFFSET + 0][0]   = INPUTEVENT_MOUSE1_HORIZ;

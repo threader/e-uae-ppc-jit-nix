@@ -7,7 +7,7 @@ typedef unsigned long u32;
 
 extern void S2X_refresh (void);
 extern void S2X_render (void);
-extern void S2X_init (int dw, int dh, int aw, int ah, int ad, int dd);
+extern bool S2X_init (int dw, int dh, int dd);
 extern void S2X_reset (void);
 extern void S2X_free (void);
 extern int S2X_getmult (void);
@@ -73,6 +73,5 @@ struct uae_filter
 };
 
 extern struct uae_filter uaefilters[];
-extern struct uae_filter *usedfilter;
 
 #endif

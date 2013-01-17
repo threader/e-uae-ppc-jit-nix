@@ -19,6 +19,7 @@ static uaecptr beginio;
 
 void consolehook_config (struct uae_prefs *p)
 {
+	struct uaedev_config_info ci = { 0 };
 	int roms[] = { 15, 31, 16, 46, -1 };
 
 	default_prefs (p, 0);
@@ -49,10 +50,12 @@ void consolehook_config (struct uae_prefs *p)
 	p->gfx_size_win.width = 320;
 	p->gfx_size_win.height = 256;
 	p->turbo_emulation = 0;
-	//p->win32_automount_drives = 2;
-	//p->win32_automount_cddrives = 2;
 
-	add_filesys_config (p, -1, _T("DH0"), _T("CLIBOOT"), _T("."), 1, 0, 0, 0, 0, 0, 15, NULL, 0, 0, 0, 0, 0);
+	_tcscpy (ci.rootdir, _T("."));
+	_tcscpy (ci.volname, _T("CLIBOOT"));
+	_tcscpy (ci.devname, _T("DH0"));
+	ci.bootpri = 15;
+	add_filesys_config (p, -1, &ci, false);
 }
 
 static void *console_thread (void *v)

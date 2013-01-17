@@ -21,16 +21,4 @@ int scsi_do_disk_device_change (void);
 uae_u32 scsi_get_cd_drive_mask (void);
 uae_u32 scsi_get_cd_drive_media_mask (void);
 
-extern int log_scsi;
-
-#ifdef _WIN32
-#define UAESCSI_CDEMU 0
-#define UAESCSI_SPTI 1
-#define UAESCSI_SPTISCAN 2
-#define UAESCSI_ASPI_FIRST 3
-#define UAESCSI_ADAPTECASPI 3
-#define UAESCSI_NEROASPI 4
-#define UAESCSI_FROGASPI 5
-#endif
-
 #endif // SRC_INCLUDE_SCSIDEV_H_INCLUDED

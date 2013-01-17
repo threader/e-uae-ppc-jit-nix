@@ -372,9 +372,6 @@ case $host_os in
       HOST_OS=aros
       OSDEP=od-amiga
       ;;
-    mingw32*)
-      HOST_OS=win32
-      OSDEP=od-win32
 esac
 
 AC_MSG_RESULT([$HOST_OS])
@@ -566,6 +563,7 @@ WANT_CDTV=dunno
 WANT_BSDSOCK=dunno
 WANT_UI=dunno
 WANT_AUDIO=dunno
+WANT_MMU=yes
 WANT_FPU=yes
 WANT_COMPATIBLE=yes
 WANT_CYCLEEXACT=yes
@@ -625,22 +623,14 @@ else if [[ "$OSDEP" = "od-amiga" ]]; then
    JOY_NAME="Amiga lowlevel.library"
   fi
   WANT_BSDSOCK=no
-else if [[ "$OSDEP" = "od-win32" ]]; then
-  TARGET=win32
-  TARGETDEP=t-win32.h
-  WANT_BSDSOCK=no
-fi
 fi
 fi
 fi
 
 dnl
-dnl Win32 build has its own writelog.c
+dnl writelog is needed almost everywhere
 dnl
-if [[ "$OSDEP" != "od-win32" ]]; then
-   EXTRAOBJS='writelog.$(OBJEXT)'
-fi
-
+EXTRAOBJS='writelog.$(OBJEXT)'
 
 dnl
 dnl  Options
@@ -670,6 +660,7 @@ AC_ARG_ENABLE(gccopt,	       AS_HELP_STRING([--enable-gccopt],          [Enable 
 AC_ARG_ENABLE(gccdebug,	       AS_HELP_STRING([--enable-gccdebug],        [Enable gcc debugging options (default no)]),               [WANT_GGDB=$enableval],[])
 AC_ARG_ENABLE(jit,             AS_HELP_STRING([--enable-jit],             [Enable JIT compiler (currently x86 only)]),                [WANT_JIT=$enableval],[])
 AC_ARG_ENABLE(profiling,       AS_HELP_STRING([--enable-profiling],       [Build a profiling (SLOW!) version]),                       [DO_PROFILING=$enableval],[])
+AC_ARG_ENABLE(mmu,             AS_HELP_STRING([--enable-mmu],             [Enable MMU emulation (default yes)]),                      [WANT_MMU=$enableval],[])
 AC_ARG_ENABLE(natmem,          AS_HELP_STRING([--enable-natmem],          [Enable JIT direct memory support (default auto)]),         [NATMEM=$enableval],[])
 AC_ARG_ENABLE(noflags,	       AS_HELP_STRING([--enable-noflags],         [Enable noflags support in JIT (default no)]),              [NOFLAGS=$enableval],[])
 AC_ARG_ENABLE(ncr,             AS_HELP_STRING([--enable-ncr],             [Enable NCR SCSI emulation (default no)]),                  [WANT_NCR=$enableval],[])
@@ -915,10 +906,12 @@ fi
 
 dnl
 dnl CPUEMU_31: 68040 Aranym MMU
+dnl CPUEMU_32: Previous 68030 MMU
+dnl CPUEMU_33: 68060 MMU
 dnl
 dnl if [[ "x$WANT_MMU" != "xno" ]]; then
-  UAE_DEFINES="$UAE_DEFINES -DCPUEMU_31 -DMMU"
-  CPUOBJS="$CPUOBJS cpuemu_31.\$(OBJEXT) cpummu.\$(OBJEXT)"
+  UAE_DEFINES="$UAE_DEFINES -DCPUEMU_31 -DCPUEMU_32 -DCPUEMU_33 -DMMUEMU -DFULLMMU"
+  CPUOBJS="$CPUOBJS cpuemu_31.\$(OBJEXT) cpuemu_32.\$(OBJEXT) cpuemu_33.\$(OBJEXT) cpummu.\$(OBJEXT) cpummu30.\$(OBJEXT)"
 dnl fi
 
 if [[ "x$WANT_FPU" != "xno" ]]; then
@@ -1404,10 +1397,10 @@ if [[ "x$WANT_AUTOCONFIG" != "xno" ]]; then
   dnl  Configure hard disk emulation
   UAE_DEFINES="$UAE_DEFINES -DFILESYS"
   NEED_THREAD_SUPPORT=yes
-  FILESYSOBJS='filesys.$(OBJEXT) fsdb.$(OBJEXT) fsusage.$(OBJEXT) hardfile.$(OBJEXT)'
-  if [[ "x$HOST_OS" != "xwin32" ]]; then
-    FILESYSOBJS="$FILESYSOBJS filesys_unix.\$(OBJEXT) fsdb_unix.\$(OBJEXT) hardfile_unix.\$(OBJEXT)"
-  fi
+  FILESYSOBJS="filesys.\$(OBJEXT) fsdb.\$(OBJEXT) fsusage.\$(OBJEXT) \
+  	hardfile.\$(OBJEXT) filesys_unix.\$(OBJEXT) fsdb_unix.\$(OBJEXT) \
+  	hardfile_unix.\$(OBJEXT)"
+
   dnl  Filesys support currently requires threads, because hardfile
   dnl  support requires threads and we can't currently separate the
   dnl  two.
@@ -2088,7 +2081,7 @@ UAE_CFLAGS="$OPTIMIZED_FLAGS $UAE_CFLAGS $GUI_CFLAGS $GFX_CFLAGS $SND_CFLAGS $JO
 if [[ "x$HAVE_GCC47" = "xyes" ]]; then
 UAE_CXXFLAGS="$UAE_CXXFLAGS $UAE_CFLAGS -std=c++11"
 else
-UAE_CXXFLAGS="$UAE_CXXFLAGS $UAE_CFLAGS"
+UAE_CXXFLAGS="$UAE_CXXFLAGS $UAE_CFLAGS -std=c++98"
 fi
 
 UAE_CFLAGS="$UAE_CFLAGS -std=c99"
@@ -2121,13 +2114,11 @@ AC_CONFIG_FILES([Makefile
 		 src/od-macosx/Makefile
 		 src/od-macosx/Info.plist
 		 src/od-macosx/Credits.rtf
-		 src/od-win32/Makefile
 		 src/td-none/Makefile
 		 src/td-amigaos/Makefile
 		 src/td-beos/Makefile
 		 src/td-posix/Makefile
 		 src/td-sdl/Makefile
-		 src/td-win32/Makefile
 		 src/gfx-amigaos/Makefile
 		 src/gfx-beos/Makefile
 		 src/gfx-x11/Makefile
@@ -2160,7 +2151,6 @@ AC_CONFIG_FILES([Makefile
 
 AM_CONDITIONAL(TARGET_BIGENDIAN, test x$ac_cv_c_bigendian = xyes)
 AM_CONDITIONAL(TARGET_BEOS,  test x$OSDEP = xod-beos)
-AM_CONDITIONAL(TARGET_WIN32, test x$OSDEP = xod-win32)
 AM_CONDITIONAL(TARGET_LINUX, test x$OSDEP = xod-linux)
 AM_CONDITIONAL(BUILD_MACOSX_BUNDLE, test x$OSDEP = xod-macosx)
 AM_CONDITIONAL(ANDROID, test x$WANT_ANDROID = xyes)

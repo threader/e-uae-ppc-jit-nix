@@ -125,10 +125,8 @@ static uae_s32 nextused[VREGS];
 static uae_u8 *popallspace;
 
 #ifdef NATMEM_OFFSET
-# ifndef WIN32
 struct sigaction *saved_handler;
 # endif
-#endif
 
 uae_u32 m68k_pc_offset;
 
@@ -5390,7 +5388,6 @@ void alloc_cache(void)
 	}
 #ifdef NATMEM_OFFSET
     if (canbang) {
-# ifndef _WIN32
 		/* Set up signal handler to catch illegal natmem accesses */
 		struct sigaction act;
 		act.sa_sigaction = vec;
@@ -5398,7 +5395,6 @@ void alloc_cache(void)
 		sigemptyset (&act.sa_mask);
 		act.sa_flags = SA_SIGINFO;
 		sigaction (SIGSEGV, &act, NULL);
-# endif
 	/* Cache for generating illegal natmem access handler. */
 #endif
 	if (veccode == NULL)
@@ -5731,9 +5727,7 @@ void build_comp(void)
 	raw_init_cpu();
 #ifdef NATMEM_OFFSET
 	write_log (_T("JIT: Setting signal handler\n"));
-#ifndef _WIN32
 	signal(SIGSEGV,vec);
-#endif
 #endif
 	write_log (_T("JIT: Building Compiler function table\n"));
 	for (opcode = 0; opcode < 65536; opcode++) {

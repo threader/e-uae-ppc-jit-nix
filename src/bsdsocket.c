@@ -29,10 +29,6 @@
 
 int log_bsd;
 
-#ifdef WIN32
-# include <winsock2.h>
-#endif
-
 struct socketbase *socketbases;
 static uae_u32 SockLibBase;
 
@@ -73,6 +69,8 @@ uae_u32 addstr (uae_u32 * dst, const TCHAR *src)
 	xfree (s);
 	return res;
 }
+
+#if 0
 static uae_u32 addstr_ansi (uae_u32 * dst, const uae_char *src)
 {
 	uae_u32 res = *dst;
@@ -82,6 +80,7 @@ static uae_u32 addstr_ansi (uae_u32 * dst, const uae_char *src)
 	(*dst) += len;
 	return res;
 }
+#endif
 
 uae_u32 addmem (uae_u32 * dst, const uae_char *src, int len)
 {
@@ -466,7 +465,7 @@ static uae_u32 REGPARAM2 bsdsocklib_Expunge (TrapContext *context)
 	return 0;
 }
 
-static uae_u32 functable, datatable, inittable;
+static uae_u32 functable, datatable;
 
 static uae_u32 REGPARAM2 bsdsocklib_Open (TrapContext *context)
 {
@@ -680,7 +679,7 @@ static uae_u32 bsdsocklib_SetDTableSize (SB, int newSize)
 	newdtable = xcalloc (int, newSize);
 	newftable = xcalloc (int, newSize);
 
-	if (newdtable == NULL || newftable == NULL /*win32|| newmtable == NULL*/) {
+	if (newdtable == NULL || newftable == NULL) {
 		sb->resultval = -1;
 		bsdsocklib_seterrno(sb, ENOMEM);
 		xfree (newdtable);
@@ -1466,29 +1465,6 @@ done:
 
 static uae_u32 REGPARAM2 bsdsocklib_GetSocketEvents (TrapContext *context)
 {
-#ifdef _WIN32
-	struct socketbase *sb = get_socketbase (context);
-	int i;
-	int flags;
-	uae_u32 ptr = m68k_areg (regs, 0);
-
-	BSDTRACE ((_T("GetSocketEvents(0x%x) -> "), ptr));
-
-	for (i = sb->dtablesize; i--; sb->eventindex++) {
-		if (sb->eventindex >= sb->dtablesize)
-			sb->eventindex = 0;
-
-		if (sb->mtable[sb->eventindex]) {
-			flags = sb->ftable[sb->eventindex] & SET_ALL;
-			if (flags) {
-				sb->ftable[sb->eventindex] &= ~SET_ALL;
-				put_long (m68k_areg (regs, 0), flags >> 8);
-				BSDTRACE ((_T("%d (0x%x)\n"), sb->eventindex + 1, flags >> 8));
-				return sb->eventindex; // xxx
-			}
-		}
-	}
-#endif
 	BSDTRACE ((_T("-1\n")));
 	return -1;
 }
@@ -1498,10 +1474,12 @@ static uae_u32 REGPARAM2 bsdsocklib_getdtablesize (TrapContext *context)
 	return get_socketbase (context)->dtablesize;
 }
 
+#if 0
 static uae_u32 REGPARAM2 bsdsocklib_null (TrapContext *context)
 {
 	return 0;
 }
+#endif
 
 static uae_u32 REGPARAM2 bsdsocklib_init (TrapContext *context)
 {

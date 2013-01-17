@@ -83,8 +83,7 @@ static int fsdb_name_invalid_2 (const TCHAR *n, int dir)
         TCHAR a = n[0];
         TCHAR b = (a == '\0' ? a : n[1]);
         TCHAR c = (b == '\0' ? b : n[2]);
-        TCHAR d = (c == '\0' ? c : n[3]);
-        int l = _tcslen (n), ll;
+        int l = _tcslen (n);
 
         /* the reserved fsdb filename */
         if (_tcscmp (n, FSDB_FILE) == 0)
@@ -103,25 +102,6 @@ static int fsdb_name_invalid_2 (const TCHAR *n, int dir)
                 b -= 32;
         if (c >= 'a' && c <= 'z')
                 c -= 32;
-
-//        if (currprefs.win32_filesystem_mangle_reserved_names) {
-//                /* reserved dos devices */
-//                ll = 0;
-//                if (a == 'A' && b == 'U' && c == 'X') ll = 3; /* AUX  */
-//                if (a == 'C' && b == 'O' && c == 'N') ll = 3; /* CON  */
-//                if (a == 'P' && b == 'R' && c == 'N') ll = 3; /* PRN  */
-//                if (a == 'N' && b == 'U' && c == 'L') ll = 3; /* NUL  */
-//                if (a == 'L' && b == 'P' && c == 'T'  && (d >= '0' && d <= '9')) ll = 4; /* LPT# */
-//                if (a == 'C' && b == 'O' && c == 'M'  && (d >= '0' && d <= '9')) ll = 4; /* COM# */
-//                /* AUX.anything, CON.anything etc.. are also illegal names */
-//                if (ll && (l == ll || (l > ll && n[ll] == '.')))
-//                        return 1;
-//
-//               /* spaces and periods at the end are a no-no */
-//                i = l - 1;
-//                if (n[i] == '.' || n[i] == ' ')
-//                        return 1;
-//        }
 
         /* these characters are *never* allowed */
         for (i = 0; i < NUM_EVILCHARS; i++) {
