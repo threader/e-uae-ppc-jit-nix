@@ -151,7 +151,7 @@ extern int  graphics_init         (void);
 extern int  graphics_open         (void);
 extern void graphics_close        (void);
 extern void graphics_notify_state (int state);
-extern void handle_events         (void);
+extern bool handle_events         (void);
 extern int  is_fullscreen         (void);
 //extern int  is_vsync              (void);
 extern void toggle_fullscreen     (int mode);

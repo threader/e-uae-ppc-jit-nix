@@ -1383,7 +1383,7 @@ void graphics_notify_state (int state)
     }
 }
 
-void handle_events (void)
+bool handle_events (void)
 {
     SDL_Event rEvent = { SDL_NOEVENT };
 	int istest = inputdevice_istest ();
@@ -1596,6 +1596,8 @@ void handle_events (void)
     }
 #endif /* USE_GL */
 #endif /* PICASSSO96 */
+
+	return pause_emulation != 0;
 }
 
 static void switch_keymaps (void)
