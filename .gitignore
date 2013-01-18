@@ -38,7 +38,7 @@ src/md-fpp.h
 src/target.h
 src/blit*
 src/comp*
-src/cpu*
+src/cpuemu_*
 src/linetoscr.c
 
 # Executables
