@@ -1556,6 +1556,7 @@ void hardfile_do_disk_change (struct uaedev_config_data *uci, bool insert)
 	int fsid = uci->configoffset;
 	struct hardfiledata *hfd;
 
+#ifdef GAYLE
 	if (uci->ci.controller == HD_CONTROLLER_PCMCIA_SRAM) {
 		gayle_modify_pcmcia_sram_unit (uci->ci.rootdir, uci->ci.readonly, insert);
 		return;
@@ -1563,6 +1564,7 @@ void hardfile_do_disk_change (struct uaedev_config_data *uci, bool insert)
 		gayle_modify_pcmcia_ide_unit (uci->ci.rootdir, uci->ci.readonly, insert);
 		return;
 	}
+#endif
 	hfd = get_hardfile_data (fsid);
 	if (!hfd)
 		return;

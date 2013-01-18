@@ -146,9 +146,10 @@ void driveclick_init (void)
 			drvs[i][DS_CLICK].indexes[j] = 0;
 			drvs[i][DS_CLICK].lengths[j] = 0;
 		}
-fs->dfxclick = -1;
+
+		fs->dfxclick = -1;
 		if (fs->dfxclick) {
-			if (fs->dfxclick > 0) {
+			/*if (fs->dfxclick > 0) {
 				v = 0;
 				switch(fs->dfxclick)
 				{
@@ -164,7 +165,7 @@ fs->dfxclick = -1;
 						v = 1;
 					break;
 				}
-			} else if (fs->dfxclick == -1) {
+			} else*/ if (fs->dfxclick == -1) {
 				TCHAR path2[MAX_DPATH];
 				wave_initialized = 1;
 				for (j = 0; j < CLICK_TRACKS; j++)

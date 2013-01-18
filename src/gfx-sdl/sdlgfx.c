@@ -2223,7 +2223,7 @@ void gfx_default_options (struct uae_prefs *p)
 		p->map_raw_keys = 0;
 #endif
 #ifdef USE_GL
-	p->use_gl = 0;
+//	p->use_gl = 0;
 #endif /* USE_GL */
 }
 
