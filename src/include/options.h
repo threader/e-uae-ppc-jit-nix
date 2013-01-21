@@ -127,10 +127,11 @@ struct wh {
 };
 
 #define MOUNT_CONFIG_SIZE 30
-#ifndef HAS_UAEDEV_CONFIG_INFO
-# define HAS_UAEDEV_CONFIG_INFO 1
-#endif // HAS_UAEDEV_CONFIG_INFO
+#define UAEDEV_DIR 0
+#define UAEDEV_HDF 1
+#define UAEDEV_CD 2
 struct uaedev_config_info {
+	int type;
 	TCHAR devname[MAX_DPATH];
 	TCHAR volname[MAX_DPATH];
 	TCHAR rootdir[MAX_DPATH];
@@ -160,6 +161,8 @@ struct uaedev_config_info {
 	int unit;
 	int interleave;
 	int sectorsperblock;
+	int forceload;
+	int cd_emu_unit;
 
 };
 
@@ -167,7 +170,6 @@ struct uaedev_config_data
 {
 	struct uaedev_config_info ci;
 	int configoffset;
-	bool ishdf;
 };
 
 enum { CP_GENERIC = 1, CP_CDTV, CP_CD32, CP_A500, CP_A500P, CP_A600, CP_A1000,
@@ -641,7 +643,7 @@ extern void cfgfile_target_write_str (struct zfile *f, const TCHAR *option, cons
 extern void cfgfile_target_dwrite_str (struct zfile *f, const TCHAR *option, const TCHAR *value);
 
 extern void cfgfile_backup (const TCHAR *path);
-extern struct uaedev_config_data *add_filesys_config (struct uae_prefs *p, int index, struct uaedev_config_info*, bool hdf);
+extern struct uaedev_config_data *add_filesys_config (struct uae_prefs *p, int index, struct uaedev_config_info*);
 extern bool get_hd_geometry (struct uaedev_config_info *);
 extern void uci_set_defaults (struct uaedev_config_info *uci, bool rdb);
 

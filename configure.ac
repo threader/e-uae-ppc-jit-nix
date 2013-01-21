@@ -1431,12 +1431,10 @@ if [[ "x$WANT_SCSIEMU" = "xyes" ]]; then
     if [[ "$OSDEP" = "od-amiga" ]]; then
       AC_MSG_RESULT(yes)
 	SCSIOBJS='scsiemul.$(OBJEXT) blkdev.$(OBJEXT) blkdev_cdimage.$(OBJEXT) scsi.$(OBJEXT)'
-dnl	SCSIOBJS='scsiemul.$(OBJEXT) blkdev.$(OBJEXT) scsi.$(OBJEXT)'
       UAE_DEFINES="$UAE_DEFINES -DSCSIEMU"
 if [[ "x$WANT_A2091" = "xyes" ]]; then
 	UAE_DEFINES="$UAE_DEFINES -DA2091"
 	SCSIOBJS='scsiemul.$(OBJEXT) blkdev.$(OBJEXT) blkdev_cdimage.$(OBJEXT) scsi.$(OBJEXT) a2091.$(OBJEXT)'
-dnl	SCSIOBJS='scsiemul.$(OBJEXT) blkdev.$(OBJEXT) scsi.$(OBJEXT) a2091.$(OBJEXT)'
 fi
       NEED_THREAD_SUPPORT=yes
     else
@@ -1471,12 +1469,10 @@ typedef int BOOL;
     [
 	AC_MSG_RESULT(yes)
 	SCSIOBJS='scsiemul.$(OBJEXT) blkdev.$(OBJEXT) blkdev_cdimage.$(OBJEXT) blkdev-libscg.$(OBJEXT) scsi.$(OBJEXT)'
-dnl	SCSIOBJS='scsiemul.$(OBJEXT) blkdev.$(OBJEXT) blkdev-libscg.$(OBJEXT) scsi.$(OBJEXT)'
       UAE_DEFINES="$UAE_DEFINES -DSCSIEMU"
 if [[ "x$WANT_A2091" = "xyes" ]]; then
 	UAE_DEFINES="$UAE_DEFINES -DA2091"
 	SCSIOBJS='scsiemul.$(OBJEXT) blkdev.$(OBJEXT) blkdev_cdimage.$(OBJEXT) blkdev-libscg.$(OBJEXT) scsi.$(OBJEXT) a2091.$(OBJEXT)'
-dnl	SCSIOBJS='scsiemul.$(OBJEXT) blkdev.$(OBJEXT) blkdev-libscg.$(OBJEXT) scsi.$(OBJEXT) a2091.$(OBJEXT)'
 fi
       UAE_CPPFLAGS="$UAE_CPPFLAGS $LIBSCG_CPPFLAGS"
       UAE_LIBS="$LIBSCG_LIBS $UAE_LIBS"
@@ -1498,12 +1494,10 @@ typedef int BOOL;
       [
         AC_MSG_RESULT(yes)
         SCSIOBJS='scsiemul.$(OBJEXT) blkdev.$(OBJEXT) blkdev_cdimage.$(OBJEXT) blkdev-libscg.$(OBJEXT) scsi.$(OBJEXT)'
-dnl	SCSIOBJS='scsiemul.$(OBJEXT) blkdev.$(OBJEXT) blkdev-libscg.$(OBJEXT) scsi.$(OBJEXT)'
         UAE_DEFINES="$UAE_DEFINES -DSCSIEMU"
 if [[ "x$WANT_A2091" = "xyes" ]]; then
 	UAE_DEFINES="$UAE_DEFINES -DA2091"
 	SCSIOBJS='scsiemul.$(OBJEXT) blkdev.$(OBJEXT) blkdev_cdimage.$(OBJEXT) blkdev-libscg.$(OBJEXT) scsi.$(OBJEXT) a2091.$(OBJEXT)'
-dnl	SCSIOBJS='scsiemul.$(OBJEXT) blkdev.$(OBJEXT) blkdev-libscg.$(OBJEXT) scsi.$(OBJEXT) a2091.$(OBJEXT)'
 fi
         NEED_THREAD_SUPPORT=yes
         if [[ "$srcdir" != "." ]]; then
@@ -1526,12 +1520,10 @@ dnl          AC_CONFIG_LINKS(src/libschily.a:src/libschily.a)
 	[
 	   AC_MSG_RESULT(yes)
 	   SCSIOBJS='scsiemul.$(OBJEXT) blkdev.$(OBJEXT) blkdev_cdimage.$(OBJEXT) scsi.$(OBJEXT)'
-dnl	   SCSIOBJS='scsiemul.$(OBJEXT) blkdev.$(OBJEXT) scsi.$(OBJEXT)'
 	   UAE_DEFINES="$UAE_DEFINES -DSCSIEMU -DSCSIEMU_LINUX_IOCTL"
 if [[ "x$WANT_A2091" = "xyes" ]]; then
 	UAE_DEFINES="$UAE_DEFINES -DA2091"
 	SCSIOBJS='scsiemul.$(OBJEXT) blkdev.$(OBJEXT) blkdev_cdimage.$(OBJEXT) scsi.$(OBJEXT) a2091.$(OBJEXT)'
-dnl	SCSIOBJS='scsiemul.$(OBJEXT) blkdev.$(OBJEXT) scsi.$(OBJEXT) a2091.$(OBJEXT)'
 fi
 	   NEED_THREAD_SUPPORT=yes
 	],

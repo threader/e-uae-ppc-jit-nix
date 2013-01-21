@@ -121,7 +121,7 @@ extern struct zvolume *zfile_fopen_archive_flags (const TCHAR *filename, int fla
 extern struct zvolume *zfile_fopen_archive_root (const TCHAR *filename, int flags);
 extern void zfile_fclose_archive (struct zvolume *zv);
 extern int zfile_fs_usage_archive (const TCHAR *path, const TCHAR *disk, struct fs_usage *fsp);
-extern int zfile_stat_archive (const TCHAR *path, struct mystat *s);
+extern int zfile_stat_archive (const TCHAR *path, struct mystat *statbuf);
 extern struct zdirectory *zfile_opendir_archive (const TCHAR *path);
 extern struct zdirectory *zfile_opendir_archive2 (const TCHAR *path, int flags);
 extern void zfile_closedir_archive (struct zdirectory *);

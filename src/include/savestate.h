@@ -134,8 +134,13 @@ extern uae_u8 *restore_cdtv (uae_u8 *src);
 extern uae_u8 *save_cdtv (int *len, uae_u8*);
 extern void restore_cdtv_finish (void);
 
-extern uae_u8 *restore_dmac (uae_u8 *src);
-extern uae_u8 *save_dmac (int *len, uae_u8*);
+extern uae_u8 *restore_cdtv_dmac (uae_u8 *src);
+extern uae_u8 *save_cdtv_dmac (int *len, uae_u8*);
+extern uae_u8 *restore_scsi_dmac (uae_u8 *src);
+extern uae_u8 *save_scsi_dmac (int *len, uae_u8*);
+
+extern uae_u8 *save_scsi_hd (int num, int *len, uae_u8 *dstptr);
+extern uae_u8 *restore_scsi_hd (uae_u8 *src);
 
 extern uae_u8 *restore_filesys (uae_u8 *src);
 extern uae_u8 *save_filesys (int num, int *len);
@@ -155,7 +160,7 @@ extern void restore_cd_finish (void);
 extern uae_u8 *save_configuration (int *len, bool fullconfig);
 extern uae_u8 *restore_configuration (uae_u8 *src);
 extern uae_u8 *save_log (int, int *len);
-extern uae_u8 *restore_log (uae_u8 *src);
+//extern uae_u8 *restore_log (uae_u8 *src);
 
 extern uae_u8 *restore_input (uae_u8 *src);
 extern uae_u8 *save_input (int *len, uae_u8 *dstptr);
