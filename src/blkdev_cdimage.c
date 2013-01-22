@@ -709,7 +709,7 @@ static int command_rawread (int unitnum, uae_u8 *data, int sector, int size, int
 	struct cdtoc *t = findtoc (cdu, &sector);
 	int ssize = t->size + t->skipsize;
 
-	if (!t || t->handle == NULL)
+	if (!t)
 		goto end;
 
 	cdda_stop (cdu);
@@ -1752,6 +1752,8 @@ static int open_device (int unitnum, const TCHAR *ident, int flags)
 
 	if (!cdu->open) {
 		uae_sem_init (&cdu->sub_sem, 0, 1);
+		cdu->imgname[0] = 0;
+		if (ident)
 		_tcscpy (cdu->imgname, ident);
 		parse_image (cdu, ident);
 		cdu->open = true;
@@ -1766,7 +1768,7 @@ static int open_device (int unitnum, const TCHAR *ident, int flags)
 		}
 		ret = 1;
 	}
-	blkdev_cd_change (unitnum, currprefs.cdslots[unitnum].name);
+	blkdev_cd_change (unitnum, cdu->imgname);
 	return ret;
 }
 
@@ -1788,7 +1790,7 @@ static void close_device (int unitnum)
 		unload_image (cdu);
 		uae_sem_destroy (&cdu->sub_sem);
 	}
-	blkdev_cd_change (unitnum, currprefs.cdslots[unitnum].name);
+	blkdev_cd_change (unitnum, cdu->imgname);
 }
 
 static void close_bus (void)
