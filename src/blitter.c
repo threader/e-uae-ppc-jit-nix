@@ -7,11 +7,6 @@
  * (c) 2002 - 2005 Toni Wilen
  */
 
-//#define BLITTER_DEBUG_NOWAIT
-//#define BLITTER_DEBUG
-//#define BLITTER_DEBUG_NO_D
-//#define BLITTER_INSTANT
-
 #define SPEEDUP
 
 #include "sysconfig.h"
@@ -27,6 +22,17 @@
 #include "blit.h"
 #include "savestate.h"
 #include "debug.h"
+
+// 1 = logging
+// 2 = no wait detection
+// 4 = no D
+// 8 = instant
+
+#ifdef BLITTER_DEBUG
+int log_blitter = 1;
+#else
+int log_blitter = 0;
+#endif
 
 /* we must not change ce-mode while blitter is running.. */
 static int blitter_cycle_exact;

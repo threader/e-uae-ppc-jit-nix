@@ -90,4 +90,5 @@ extern void gui_update_gfx (void);
 #define NUMSG_NOROM         "Could not load system ROM, trying system ROM replacement.\n"
 #define NUMSG_EXPROMNEED    "One of the following expansion boot ROMs is required:\n\n%s\n\nCheck the System ROM path in the Paths panel and click Rescan ROMs."
 #define NUMSG_KS68030       "The selected system ROM requires a 68030 CPU."
+#define NUMSG_KS68030PLUS   "The selected system ROM requires a 68030 or higher CPU."
 
