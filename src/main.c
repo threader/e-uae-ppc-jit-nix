@@ -55,6 +55,7 @@
 #include "dongle.h"
 #include "sampler.h"
 #include "consolehook.h"
+#include "gayle.h"
 #include "misc.h"
 #include "keyboard.h"
 #ifdef RETROPLATFORM
@@ -908,7 +909,8 @@ void do_leave_program (void)
 	bsdlib_reset ();
 #endif
 #ifdef SCSIEMU
-//	device_func_reset ();
+	gayle_free ();
+	device_func_reset ();
 #endif
 	savestate_free ();
 	memory_cleanup ();
@@ -955,14 +957,14 @@ void virtualdevice_init (void)
 #endif
 #ifdef AUTOCONFIG
 	expansion_init ();
-//	emulib_install ();
-//	uaeexe_install ();
+	emulib_install ();
+	uaeexe_install ();
 #endif
 #ifdef FILESYS
 	filesys_install ();
 #endif
 #if defined (BSDSOCKET)
-//	bsdlib_install ();
+	bsdlib_install ();
 #endif
 }
 
@@ -1033,6 +1035,7 @@ static int real_main2 (int argc, TCHAR **argv)
 	memset (&gui_data, 0, sizeof gui_data);
 	gui_data.cd = -1;
 	gui_data.hd = -1;
+	gui_data.md = -1;
 
 #ifdef NATMEM_OFFSET
 	init_shm ();

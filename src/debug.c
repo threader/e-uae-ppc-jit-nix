@@ -3894,7 +3894,7 @@ void debug (void)
 		}
 		if (trace_same_insn_count > 1)
 			fprintf (logfile, "[ repeated %d times ]\n", trace_same_insn_count);
-		m68k_dumpstate (logfile, &nextpc);
+		m68k_dumpstate2 (logfile, &nextpc);
 		trace_same_insn_count = 1;
 		memcpy (trace_insn_copy, regs.pc_p, 10);
 		memcpy (&trace_prev_regs, &regs, sizeof regs);
@@ -4042,6 +4042,13 @@ const TCHAR *debuginfo (int mode)
 	_stprintf (txt, _T("PC=%08X INS=%04X %04X %04X"),
 		pc, get_word_debug (pc), get_word_debug (pc + 2), get_word_debug (pc + 4));
 	return txt;
+}
+
+void mmu_disasm (uaecptr pc, int lines)
+{
+	debug_mmu_mode = regs.s ? 6 : 2;
+	m68k_dumpstate2 (0xffffffff, NULL);
+	m68k_disasm (pc, NULL, lines);
 }
 
 static int mmu_logging;

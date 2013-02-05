@@ -149,7 +149,7 @@ static struct teststore testmode_wait[TESTMODE_MAX];
 static int bouncy;
 static unsigned long bouncy_cycles;
 
-int handle_input_event (int nr, int state, int max, int autofire, bool canstoprecord, bool playbackevent);
+static int handle_input_event (int nr, int state, int max, int autofire, bool canstoprecord, bool playbackevent);
 
 static struct inputdevice_functions idev[IDTYPE_MAX];
 
@@ -782,7 +782,7 @@ static void inputdevice_default_kb_all (struct uae_prefs *p)
 		inputdevice_default_kb (p, i);
 }
 
-static bool read_slot (TCHAR *parm, int num, int joystick, int button, struct uae_input_device *id, int keynum, int subnum, struct inputevent *ie, uae_u64 flags, int port, TCHAR *custom)
+static bool read_slot (const TCHAR *parm, int num, int joystick, int button, struct uae_input_device *id, int keynum, int subnum, struct inputevent *ie, uae_u64 flags, int port, TCHAR *custom)
 {
 	int mask;
 
@@ -2857,7 +2857,7 @@ static uae_u64 isqual (int evt)
 	return ID_FLAG_QUALIFIER1 << (num * 2);
 }
 
-int handle_input_event (int nr, int state, int max, int autofire, bool canstopplayback, bool playbackevent)
+static int handle_input_event (int nr, int state, int max, int autofire, bool canstopplayback, bool playbackevent)
 {
 	struct inputevent *ie;
 	int joy;
@@ -4116,9 +4116,11 @@ static void checkcompakb (int *kb, int *srcmap)
 			while (keyboard_default[k].scancode >= 0) {
 				if (keyboard_default[k].scancode == kb[j]) {
 					for (int l = 0; l < MAX_INPUT_DEVICE_EVENTS; l++) {
-						if (uid->extra[l] == id) {
+						if (uid->extra[l] == id && uid->port[l][0] == 0) {
 							for (int m = 0; m < MAX_INPUT_SUB_EVENT && keyboard_default[k].node[m].evt; m++) {
 								uid->eventid[l][m] = keyboard_default[k].node[m].evt;
+								uid->port[l][m] = 0;
+								uid->flags[l][m] = 0;
 							}
 					break;
 				}
@@ -4227,7 +4229,7 @@ static void setcompakb (int *kb, int *srcmap, int index, int af)
 int inputdevice_get_compatibility_input (struct uae_prefs *prefs, int index, int *typelist, int **inputlist, int **at)
 {
 	if (index >= MAX_JPORTS || joymodes[index] < 0)
-		return 0;
+		return -1;
 	*typelist = joymodes[index];
 	*inputlist = joyinputs[index];
 	*at = axistable;
@@ -4295,7 +4297,7 @@ static void remove_compa_config (struct uae_prefs *prefs, int index)
 {
 	int typelist, *inputlist, *atp;
 
-	if (!inputdevice_get_compatibility_input (prefs, index, &typelist, &inputlist, &atp))
+	if (inputdevice_get_compatibility_input (prefs, index, &typelist, &inputlist, &atp) <= 0)
 		return;
 	for (int i = 0; inputlist[i] >= 0; i++) {
 		int evtnum = inputlist[i];
@@ -5976,6 +5978,21 @@ void inputdevice_copyconfig (const struct uae_prefs *src, struct uae_prefs *dst)
 	inputdevice_updateconfig (src, dst);
 }
 
+static void swapevent (struct uae_input_device *uid, int i, int j, int evt)
+{
+	uid->eventid[i][j] = evt;
+	int port = uid->port[i][j];
+	if (port == 1)
+		port = 2;
+	else if (port == 2)
+		port = 1;
+	else if (port == 3)
+		port = 4;
+	else if (port == 4)
+		port = 3;
+	uid->port[i][j] = port;
+}
+
 static void swapjoydevice (struct uae_input_device *uid, int **swaps)
 {
 	for (int i = 0; i < MAX_INPUT_DEVICE_EVENTS; i++) {
@@ -5985,7 +6002,7 @@ static void swapjoydevice (struct uae_input_device *uid, int **swaps)
 				int evtnum;
 				for (int kk = 0; (evtnum = swaps[k][kk]) >= 0 && !found; kk++) {
 					if (uid->eventid[i][j] == evtnum) {
-						uid->eventid[i][j] = swaps[1 - k][kk];
+						swapevent (uid, i, j, swaps[1 - k][kk]);
 						found = true;
 					} else {
 						for (int jj = 0; axistable[jj] >= 0; jj += 3) {
@@ -5995,7 +6012,7 @@ static void swapjoydevice (struct uae_input_device *uid, int **swaps)
 										int evtnum2 = swaps[1 - k][kk];
 										for (int m = 0; axistable[m] >= 0; m += 3) {
 											if (evtnum2 == axistable[m] || evtnum2 == axistable[m + 1] || evtnum2 == axistable[m + 2]) {
-												uid->eventid[i][j] = axistable[m + ii];
+												swapevent (uid, i, j, axistable[m + ii]);												
 												found = true;
 											}
 										}

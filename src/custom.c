@@ -1606,10 +1606,15 @@ static void finish_last_fetch (int pos, int fm)
 		return;
 	if (plf_state == plf_end)
 		return;
-	pos += flush_plane_data (fm);
 	plf_state = plf_end;
-	ddfstate = DIW_waiting_start;
-	fetch_state = fetch_not_started;
+	if (!(currprefs.chipset_mask & CSMASK_ECS_AGNUS)) {
+		finish_final_fetch (fm);
+	} else {
+		bpl1dat_early = true;
+		pos += flush_plane_data (fm);
+		ddfstate = DIW_waiting_start;
+		fetch_state = fetch_not_started;
+	}
 }
 
 STATIC_INLINE int one_fetch_cycle_0 (int pos, int ddfstop_to_test, int dma, int fm)
@@ -3283,7 +3288,7 @@ static void calcdiw (void)
 				plfstop = 0xff;
 			plfstrt_start = HARD_DDF_START_REAL - 2;
 		} else {
-			plfstrt_start = plfstrt - 4;
+			plfstrt_start = plfstrt;
 		}
 	}
 	diw_change = 2;
@@ -6350,9 +6355,9 @@ static void hsync_handler_post (bool onvsync)
 	cnt++;
 	if (cnt == 500) {
 		int port_insert_custom (int inputmap_port, int devicetype, DWORD flags, const TCHAR *custom);
-		port_insert_custom (0, 2, 0, _T("Fire.autorepeat=0x38 Left=0x4B Right=0x4D Up=0x48 Down=0x50 Fire=0x4C Fire2=0x52'"));
-		port_insert_custom (1, 2, 0, _T("Left=0x48 Right=0x50 Up=0x4B Down=0x4D Fire=0x4C"));
-	} else if (cnt == 1000) {
+		//port_insert_custom (0, 2, 0, _T("Left=0xCB Right=0xCD Up=0xC8 Down=0xD0 Fire=0x39 Fire.autorepeat=0xD2"));
+		port_insert_custom (1, 2, 0, _T("Left=0x1E Right=0x20 Up=0x11 Down=0x1F Fire=0x38"));
+	} else if (0 && cnt == 1000) {
 		TCHAR out[256];
 		bool port_get_custom (int inputmap_port, TCHAR *out);
 		port_get_custom (0, out);
@@ -6663,7 +6668,7 @@ void custom_reset (bool hardreset, bool keyboardreset)
 	}
 
 #ifdef GAYLE
-	gayle_reset (hardreset);
+//	gayle_reset (hardreset);
 #endif
 #ifdef AUTOCONFIG
 	expamem_reset ();
@@ -6672,7 +6677,7 @@ void custom_reset (bool hardreset, bool keyboardreset)
 	DISK_reset ();
 	CIA_reset ();
 #ifdef GAYLE
-	gayle_reset (0);
+//	gayle_reset (0);
 #endif
 #ifdef A2091
 	a2091_reset ();
