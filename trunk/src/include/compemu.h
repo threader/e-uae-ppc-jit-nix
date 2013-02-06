@@ -209,14 +209,6 @@ typedef struct blockinfo_t
 /* The number of used non-volatile registers for saving/restoring */
 #define PPCR_REG_USED_NONVOLATILE_NUM 2
 
-/* The number of additional longwords in the stackframe that are allocated
- * for the temporary register saving.
- * Make sure it is in sync with the number of non-volatile registers, including
- * PPCR_TMP_NONVOL... registers that are not saved automatically at the stack
- * frame creation.
- */
-#define COMP_STACKFRAME_ALLOCATED_SLOTS 4
-
 /* Some function protos */
 STATIC_INLINE blockinfo* get_blockinfo(uae_u32 cl);
 STATIC_INLINE blockinfo* get_blockinfo_addr_new(void* addr, int setstate);
@@ -245,9 +237,11 @@ uae_u8 comp_allocate_temp_register(int allocate_for);
 void comp_free_temp_register(uae_u8 temp_reg);
 uae_u8 comp_map_temp_register(uae_u8 reg_number, int needs_init, int needs_flush);
 void comp_unmap_temp_register(uae_u8 reg_number);
+void comp_swap_temp_register_mapping(uae_u8 tmpreg1, uae_u8 tmpreg2);
 int comp_get_mapped_temp_register(uae_u8 reg_number);
 void comp_flush_temp_registers(int supresswarning);
 uae_u8 comp_get_gpr_for_temp_register(uae_u8 tmpreg);
+uae_u8 comp_get_temp_for_gpr_register(uae_u8 reg_mapped);
 void comp_unlock_all_temp_registers(void);
 void comp_dump_reg_usage(uae_u64 regs, char* str, char dump_control);
 
@@ -306,6 +300,7 @@ void comp_ppc_stw(int regs, uae_u16 delta, int rega);
 void comp_ppc_stwu(int regs, uae_u16 delta, int rega);
 void comp_ppc_subfco(int regd, int rega, int regb, int updateflags);
 void comp_ppc_subfe(int regd, int rega, int regb, int updateflags);
+void comp_ppc_subf(int regd, int rega, int regb, int updateflags);
 void comp_ppc_xor(int rega, int regs, int regb, int updateflags);
 void comp_ppc_xori(int rega, int regs, uae_u16 imm);
 void comp_ppc_xoris(int rega, int regs, uae_u16 imm);

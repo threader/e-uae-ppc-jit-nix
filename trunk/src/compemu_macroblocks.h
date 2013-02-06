@@ -202,10 +202,6 @@ void comp_opcode_LEAIND(const cpu_history* history, struct comptbl* props) REGPA
 void comp_opcode_PEAIMML(const cpu_history* history, struct comptbl* props) REGPARAM;
 void comp_opcode_PEAIMMW(const cpu_history* history, struct comptbl* props) REGPARAM;
 void comp_opcode_PEAIND(const cpu_history* history, struct comptbl* props) REGPARAM;
-void comp_opcode_MOVPREG2MEML(const cpu_history* history, struct comptbl* props) REGPARAM;
-void comp_opcode_MOVPREG2MEMW(const cpu_history* history, struct comptbl* props) REGPARAM;
-void comp_opcode_MOVPMEM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM;
-void comp_opcode_MOVPMEM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM;
 void comp_opcode_STREGB(const cpu_history* history, struct comptbl* props) REGPARAM;
 void comp_opcode_SFREGB(const cpu_history* history, struct comptbl* props) REGPARAM;
 void comp_opcode_SCCREGB(const cpu_history* history, struct comptbl* props) REGPARAM;
@@ -217,15 +213,6 @@ void comp_opcode_MOVCCR2MEMW(const cpu_history* history, struct comptbl* props) 
 void comp_opcode_MOVIMM2CCRW(const cpu_history* history, struct comptbl* props) REGPARAM;
 void comp_opcode_MOVREG2CCRW(const cpu_history* history, struct comptbl* props) REGPARAM;
 void comp_opcode_MOVMEM2CCRW(const cpu_history* history, struct comptbl* props) REGPARAM;
-void comp_opcode_MOVSR2REGW(const cpu_history* history, struct comptbl* props) REGPARAM;
-void comp_opcode_MOVSR2MEMW(const cpu_history* history, struct comptbl* props) REGPARAM;
-void comp_opcode_MOVIMM2SRW(const cpu_history* history, struct comptbl* props) REGPARAM;
-void comp_opcode_MOVREG2SRW(const cpu_history* history, struct comptbl* props) REGPARAM;
-void comp_opcode_MOVMEM2SRW(const cpu_history* history, struct comptbl* props) REGPARAM;
-void comp_opcode_MOVUSP2REGL(const cpu_history* history, struct comptbl* props) REGPARAM;
-void comp_opcode_MOVREG2USPL(const cpu_history* history, struct comptbl* props) REGPARAM;
-void comp_opcode_MOVCREG2CTRL(const cpu_history* history, struct comptbl* props) REGPARAM;
-void comp_opcode_MOVCCTR2REGL(const cpu_history* history, struct comptbl* props) REGPARAM;
 void comp_opcode_DBCOND(const cpu_history* history, struct comptbl* props) REGPARAM;
 void comp_opcode_DBF(const cpu_history* history, struct comptbl* props) REGPARAM;
 void comp_opcode_BCONDB(const cpu_history* history, struct comptbl* props) REGPARAM;
@@ -243,8 +230,7 @@ void comp_opcode_JSRIMM(const cpu_history* history, struct comptbl* props) REGPA
 void comp_opcode_JSRIND(const cpu_history* history, struct comptbl* props) REGPARAM;
 void comp_opcode_RTS(const cpu_history* history, struct comptbl* props) REGPARAM;
 void comp_opcode_RTD(const cpu_history* history, struct comptbl* props) REGPARAM;
-void comp_opcode_RTR(const cpu_history* history, struct comptbl* props) REGPARAM;
-void comp_opcode_RTE(const cpu_history* history, struct comptbl* props) REGPARAM;
+void comp_opcode_RTM(const cpu_history* history, struct comptbl* props) REGPARAM;
 void comp_opcode_EORIMM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM;
 void comp_opcode_EORIMM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM;
 void comp_opcode_EORIMM2REGB(const cpu_history* history, struct comptbl* props) REGPARAM;
@@ -296,9 +282,6 @@ void comp_opcode_NOTMEMB(const cpu_history* history, struct comptbl* props) REGP
 void comp_opcode_ANDIMM2CCRB(const cpu_history* history, struct comptbl* props) REGPARAM;
 void comp_opcode_ORIMM2CCRB(const cpu_history* history, struct comptbl* props) REGPARAM;
 void comp_opcode_EORIMM2CCRB(const cpu_history* history, struct comptbl* props) REGPARAM;
-void comp_opcode_ANDIMM2SRW(const cpu_history* history, struct comptbl* props) REGPARAM;
-void comp_opcode_ORIMM2SRW(const cpu_history* history, struct comptbl* props) REGPARAM;
-void comp_opcode_EORIMM2SRW(const cpu_history* history, struct comptbl* props) REGPARAM;
 void comp_opcode_BTSTIMM2MEM(const cpu_history* history, struct comptbl* props) REGPARAM;
 void comp_opcode_BTSTREG2MEM(const cpu_history* history, struct comptbl* props) REGPARAM;
 void comp_opcode_BTSTIMM2REG(const cpu_history* history, struct comptbl* props) REGPARAM;
@@ -395,17 +378,6 @@ void comp_opcode_CMPIMM2MEMB(const cpu_history* history, struct comptbl* props) 
 void comp_opcode_CMP2MEM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM;
 void comp_opcode_CMP2MEM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM;
 void comp_opcode_CMP2MEM2REGB(const cpu_history* history, struct comptbl* props) REGPARAM;
-void comp_opcode_CASREG2MEML(const cpu_history* history, struct comptbl* props) REGPARAM;
-void comp_opcode_CASREG2MEMW(const cpu_history* history, struct comptbl* props) REGPARAM;
-void comp_opcode_CASREG2MEMB(const cpu_history* history, struct comptbl* props) REGPARAM;
-void comp_opcode_CAS2REG2MEML(const cpu_history* history, struct comptbl* props) REGPARAM;
-void comp_opcode_CAS2REG2MEMW(const cpu_history* history, struct comptbl* props) REGPARAM;
-void comp_opcode_CHKREG2REGW(const cpu_history* history, struct comptbl* props) REGPARAM;
-void comp_opcode_CHKIMM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM;
-void comp_opcode_CHKMEM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM;
-void comp_opcode_CHKREG2REGL(const cpu_history* history, struct comptbl* props) REGPARAM;
-void comp_opcode_CHKIMM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM;
-void comp_opcode_CHKMEM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM;
 void comp_opcode_ADDREG2MEML(const cpu_history* history, struct comptbl* props) REGPARAM;
 void comp_opcode_ADDREG2MEMW(const cpu_history* history, struct comptbl* props) REGPARAM;
 void comp_opcode_ADDREG2MEMB(const cpu_history* history, struct comptbl* props) REGPARAM;
@@ -515,7 +487,8 @@ void comp_opcode_PACKMEM2MEMB(const cpu_history* history, struct comptbl* props)
 void comp_opcode_UNPKREG2REGB(const cpu_history* history, struct comptbl* props) REGPARAM;
 void comp_opcode_UNPKMEM2MEMB(const cpu_history* history, struct comptbl* props) REGPARAM;
 void comp_opcode_SWAP(const cpu_history* history, struct comptbl* props) REGPARAM;
-void comp_opcode_EXG(const cpu_history* history, struct comptbl* props) REGPARAM;
+void comp_opcode_EXGA(const cpu_history* history, struct comptbl* props) REGPARAM;
+void comp_opcode_EXGD(const cpu_history* history, struct comptbl* props) REGPARAM;
 void comp_opcode_EXTBW(const cpu_history* history, struct comptbl* props) REGPARAM;
 void comp_opcode_EXTWL(const cpu_history* history, struct comptbl* props) REGPARAM;
 void comp_opcode_EXTBL(const cpu_history* history, struct comptbl* props) REGPARAM;
@@ -529,12 +502,6 @@ void comp_opcode_TSTMEMB(const cpu_history* history, struct comptbl* props) REGP
 void comp_opcode_LINKW(const cpu_history* history, struct comptbl* props) REGPARAM;
 void comp_opcode_LINKL(const cpu_history* history, struct comptbl* props) REGPARAM;
 void comp_opcode_UNLINK(const cpu_history* history, struct comptbl* props) REGPARAM;
-void comp_opcode_TRAP(const cpu_history* history, struct comptbl* props) REGPARAM;
-void comp_opcode_TRAPCC(const cpu_history* history, struct comptbl* props) REGPARAM;
-void comp_opcode_STOP(const cpu_history* history, struct comptbl* props) REGPARAM;
-void comp_opcode_RESET(const cpu_history* history, struct comptbl* props) REGPARAM;
-void comp_opcode_BKPT(const cpu_history* history, struct comptbl* props) REGPARAM;
-void comp_opcode_ILLEGAL(const cpu_history* history, struct comptbl* props) REGPARAM;
 void comp_opcode_BFCHG2REG(const cpu_history* history, struct comptbl* props) REGPARAM;
 void comp_opcode_BFCHG2MEM(const cpu_history* history, struct comptbl* props) REGPARAM;
 void comp_opcode_BFCLR2REG(const cpu_history* history, struct comptbl* props) REGPARAM;
@@ -565,7 +532,6 @@ void comp_opcode_FRESTOREMEM(const cpu_history* history, struct comptbl* props) 
 void comp_opcode_FRESTOREMEMUP(const cpu_history* history, struct comptbl* props) REGPARAM;
 void comp_opcode_FSCCREGB(const cpu_history* history, struct comptbl* props) REGPARAM;
 void comp_opcode_FSCCMEMB(const cpu_history* history, struct comptbl* props) REGPARAM;
-void comp_opcode_FTRAPCC(const cpu_history* history, struct comptbl* props) REGPARAM;
 void comp_opcode_FNOP(const cpu_history* history, struct comptbl* props) REGPARAM;
 
 //Support compiling functions

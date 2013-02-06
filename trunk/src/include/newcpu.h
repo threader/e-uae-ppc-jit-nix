@@ -107,6 +107,12 @@ STATIC_INLINE int end_block(uae_u16 opcode)
 	uae_u8 specific = compprops[opcode].specific;
 	return (specific & COMPTBL_SPEC_ISJUMP) || ((specific & COMPTBL_SPEC_ISCONSTJUMP) && !currprefs.comp_constjump);
 }
+
+/**
+ * The number of longwords in the Regs structure that are allocated
+ * for the temporary register saving.
+ */
+#define COMP_REGS_ALLOCATED_SLOTS 4
 #endif
 
 extern unsigned long op_illg (uae_u32, struct regstruct *regs) REGPARAM;
@@ -169,6 +175,9 @@ extern struct regstruct
     uae_u8 panic;
     uae_u32 panic_pc, panic_addr;
 
+#ifdef JIT
+    uae_u32 regslots[COMP_REGS_ALLOCATED_SLOTS];
+#endif
 } regs, lastint_regs;
 
 struct blockinfo_t;
