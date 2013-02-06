@@ -140,11 +140,11 @@ struct comp_compiler_mb_extract_v_flag_arithmetic_left_shift
 	uae_u8 temp_reg;					//Temporary register for the operation
 };
 
-//Structure for stack slot operations
-struct comp_compiler_mb_reg_in_stackframe
+//Structure for Regs structure slot operations
+struct comp_compiler_mb_reg_in_slot
 {
 	struct comp_compiler_mb mb;			//Default macroblock descriptor
-	int slot;							//Target longword slot in stackframe
+	int slot;							//Target longword slot in Regs structure
 	uae_u8 reg;							//Input/output register
 };
 
@@ -172,7 +172,7 @@ union comp_compiler_mb_union
 	struct comp_compiler_mb_access_memory access_memory;
 	struct comp_compiler_mb_access_memory_size access_memory_size;
 	struct comp_compiler_mb_map_physical_mem map_physical_mem;
-	struct comp_compiler_mb_reg_in_stackframe reg_in_stackframe;
+	struct comp_compiler_mb_reg_in_slot reg_in_slot;
 	struct comp_compiler_mb_extract_v_flag_arithmetic_left_shift extract_v_flag_arithmetic_left_shift;
 	struct comp_compiler_mb_set_byte_from_z_flag set_byte_from_z_flag;
 };
