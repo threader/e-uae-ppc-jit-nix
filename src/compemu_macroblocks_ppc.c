@@ -1179,7 +1179,8 @@ void comp_opcode_MOVAREG2REGL(const cpu_history* history, struct comptbl* props)
 }
 void comp_opcode_MOVAREG2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_macroblock_push_copy_register_word(
+	//Address registers are always longword sized: sign extend source data
+	comp_macroblock_push_copy_register_word_extended(
 			input_dep,
 			output_dep,
 			dest_reg_mapped,
