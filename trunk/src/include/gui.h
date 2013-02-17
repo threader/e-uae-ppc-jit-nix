@@ -33,7 +33,14 @@ struct gui_info
     int fps, idle;
     char df[4][256];		    /* inserted image */
     uae_u32 crc32[4];		    /* crc32 of image */
+#ifdef JIT
+    uae_u32 jitled;				/* JIT compiled code execution ratio indicator */
+#endif
 };
+#ifndef JIT
 #define NUM_LEDS (1 + 1 + 1 + 1 + 1 + 4)
-
+#else
+//JIT is enabled in compiling: add JIT indicator led
+#define NUM_LEDS (1 + 1 + 1 + 1 + 1 + 4 + 1)
+#endif
 extern struct gui_info gui_data;

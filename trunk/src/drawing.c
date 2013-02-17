@@ -1642,10 +1642,15 @@ static int td_pos = (TD_RIGHT|TD_BOTTOM);
 
 #define TD_TOTAL_HEIGHT (TD_PADY * 2 + TD_NUM_HEIGHT)
 
+#ifndef JIT
 #define NUMBERS_NUM 14
+#else
+#define NUMBERS_NUM 16
+#endif
 
 #define TD_BORDER 0x333
 
+#ifndef JIT
 static const char *numbers = { /* ugly  0123456789CHD% */
 "+++++++--++++-+++++++++++++++++-++++++++++++++++++++++++++++++++++++++++++++-++++++-++++----++---+"
 "+xxxxx+--+xx+-+xxxxx++xxxxx++x+-+x++xxxxx++xxxxx++xxxxx++xxxxx++xxxxx++xxxx+-+x++x+-+xxx++-+xx+-+x"
@@ -1655,6 +1660,17 @@ static const char *numbers = { /* ugly  0123456789CHD% */
 "+xxxxx+---+x+-+xxxxx++xxxxx+----+x++xxxxx++xxxxx+--+x+--+xxxxx++xxxxx++xxxx+-+x++x+-+xxx+---+x++xx"
 "+++++++---+++-++++++++++++++----+++++++++++++++++--+++--++++++++++++++++++++-++++++-++++----------"
 };
+#else
+static const char *numbers = { /* ugly  0123456789CHD%JIT */
+"+++++++--++++-+++++++++++++++++-++++++++++++++++++++++++++++++++++++++++++++-++++++-++++----++---+++++++++++++++"
+"+xxxxx+--+xx+-+xxxxx++xxxxx++x+-+x++xxxxx++xxxxx++xxxxx++xxxxx++xxxxx++xxxx+-+x++x+-+xxx++-+xx+-+x+xxxx+x+xxxxx+"
+"+x+++x+--++x+-+++++x++++++x++x+++x++x++++++x++++++++++x++x+++x++x+++x++x++++-+x++x+-+x++x+--+x++x+++++x+x+++x+++"
+"+x+-+x+---+x+-+xxxxx++xxxxx++xxxxx++xxxxx++xxxxx+--++x+-+xxxxx++xxxxx++x+----+xxxx+-+x++x+----+x+----+x+x+-+x+--"
+"+x+++x+---+x+-+x++++++++++x++++++x++++++x++x+++x+--+x+--+x+++x++++++x++x++++-+x++x+-+x++x+---+x+x+--++x+x+-+x+--"
+"+xxxxx+---+x+-+xxxxx++xxxxx+----+x++xxxxx++xxxxx+--+x+--+xxxxx++xxxxx++xxxx+-+x++x+-+xxx+---+x++xx-+xx++x+-+x+--"
+"+++++++---+++-++++++++++++++----+++++++++++++++++--+++--++++++++++++++++++++-++++++-++++------------++-+++-+++--"
+};
+#endif
 
 STATIC_INLINE void putpixel (int x, xcolnr c8)
 {
@@ -1771,6 +1787,24 @@ static void draw_status_line (int line)
 	    num4 = num1 == 0 ? 13 : -1;
 	    am = 3;
 	}
+#ifdef JIT
+	 else if (led == 9) {
+			//Led #9 - JIT indicator
+		    pos = 9;
+			//It is always "on"
+		    on = 1;
+			//Calculate the color according to the ratio between the executed JIT compiled and interpreted instruction blocks
+		    on_rgb = (gui_data.jitled & 0xf) << 4;
+		    off_rgb = 0x000;
+		    num1 = -1;
+		    num2 = 14;
+		    num3 = 15;
+	 }
+#endif
+	 else {
+		 //Unknown led?
+		 continue;
+	 }
 	c = xcolors[on ? on_rgb : off_rgb];
 	if (y == 0 || y == TD_TOTAL_HEIGHT - 1)
 	    c = xcolors[TD_BORDER];
