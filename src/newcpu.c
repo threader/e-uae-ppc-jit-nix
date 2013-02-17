@@ -28,6 +28,10 @@
 
 #ifdef JIT
 extern uae_u8* compiled_code;
+
+//JIT compiled code executed indicators
+uae_u32 jit_indicator_compiled_executed = 0;
+uae_u32 jit_indicator_interpreted_executed = 0;
 #include "compemu.h"
 #endif
 
@@ -1876,7 +1880,18 @@ typedef void compiled_handler(void);
 static void m68k_run_2a (void)
 {
 	for (;;) {
-		((compiled_handler*)(cache_tags[cacheline(regs.pc_p)].handler))();
+		compiled_handler* handler = (compiled_handler*)cache_tags[cacheline(regs.pc_p)].handler;
+		if ((handler != (compiled_handler*)execute_normal_callback) &&
+						(handler != (compiled_handler*)exec_nostats_callback))
+		{
+			//This is a JIT compiled block: none of the known static handler functions are called
+			jit_indicator_compiled_executed++;
+		} else {
+			//This is an interpreted block
+			jit_indicator_interpreted_executed++;
+		}
+
+		handler();
 
 		/* Whenever we return from that, we should check spcflags */
 		if (regs.spcflags) {
