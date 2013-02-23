@@ -79,7 +79,7 @@ extern int move_filesys_unitconfig (struct uae_prefs *p, int nr, int to);
 extern char *validatedevicename (char *s);
 extern char *validatevolumename (char *s);
 
-int filesys_insert (int nr, TCHAR *volume, const TCHAR *rootdir, bool readonly, int flags);
+int filesys_insert (int nr, const TCHAR *volume, const TCHAR *rootdir, bool readonly, int flags);
 int filesys_eject (int nr);
 int filesys_media_change (const TCHAR *rootdir, int inserted, struct uaedev_config_data *uci);
 

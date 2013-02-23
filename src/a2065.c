@@ -126,7 +126,8 @@ static void ew (int addr, uae_u32 value)
 void a2065_reset (void)
 {
 	am_initialized = 0;
-	csr[0] = csr[1] = csr[2] = csr[3] = 0;
+	csr[0] = CSR0_STOP;
+	csr[1] = csr[2] = csr[3] = 0;
 	rap = 0;
 
 	uaenet_close (sysdata);
@@ -647,25 +648,23 @@ static void chip_wput (uaecptr addr, uae_u16 v)
 			if ((csr[0] & CSR0_STOP) && !(oreg & CSR0_STOP)) {
 
 				csr[0] = CSR0_STOP;
-				if (log_a2065)
-					write_log (_T("A2065: STOP.\n"));
 				csr[3] = 0;
-				am_initialized = 0;
 
-			} else if ((csr[0] & CSR0_STRT) && !(oreg & CSR0_STRT) && (oreg & CSR0_STOP)) {
+			} else if ((csr[0] & CSR0_STRT) && !(oreg & CSR0_STRT) && (oreg & (CSR0_STOP | CSR0_INIT))) {
 
 				csr[0] &= ~CSR0_STOP;
 				if (!(am_mode & MODE_DTX))
 					csr[0] |= CSR0_TXON;
 				if (!(am_mode & MODE_DRX))
 					csr[0] |= CSR0_RXON;
-				if (log_a2065)
-					write_log (_T("A2065: START.\n"));
+				if ((csr[0] & CSR0_INIT) && !(oreg & CSR0_INIT)) {
+					chip_init ();
+					csr[0] |= CSR0_IDON;
+					am_initialized = 1;
+				}
 
-			} else if ((csr[0] & CSR0_INIT) && (oreg & CSR0_STOP) && !(oreg & CSR0_INIT)) {
+			} else if ((csr[0] & CSR0_INIT) && !(oreg & CSR0_INIT) && (oreg & CSR0_STOP)) {
 
-				if (log_a2065)
-					write_log (_T("A2065: INIT.\n"));
 				chip_init ();
 				csr[0] |= CSR0_IDON;
 				csr[0] &= ~(CSR0_RXON | CSR0_TXON | CSR0_STOP);

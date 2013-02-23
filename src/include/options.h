@@ -117,6 +117,7 @@ struct floppyslot
 	int dfxtype;
 	int dfxclick;
 	TCHAR dfxclickexternal[256];
+	bool forcedwriteprotect;
 };
 
 #define WH_NATIVE 1
@@ -130,6 +131,11 @@ struct wh {
 #define UAEDEV_DIR 0
 #define UAEDEV_HDF 1
 #define UAEDEV_CD 2
+
+#define BOOTPRI_NOAUTOBOOT -128
+#define BOOTPRI_NOAUTOMOUNT -129
+#define ISAUTOBOOT(ci) ((ci)->bootpri > BOOTPRI_NOAUTOBOOT)
+#define ISAUTOMOUNT(ci) ((ci)->bootpri > BOOTPRI_NOAUTOMOUNT)
 struct uaedev_config_info {
 	int type;
 	TCHAR devname[MAX_DPATH];
@@ -137,8 +143,6 @@ struct uaedev_config_info {
 	TCHAR rootdir[MAX_DPATH];
 	bool readonly;
 	int bootpri;
-	bool autoboot;
-	bool donotmount;
 	TCHAR filesys[MAX_DPATH];
 	int lowcyl;
 	int highcyl; // zero if detected from size
@@ -339,7 +343,7 @@ struct uae_prefs {
 
 	int gfx_filter;
 	TCHAR gfx_filtershader[2 * MAX_FILTERSHADERS][MAX_DPATH];
-	TCHAR gfx_filtermask[MAX_DPATH];
+	TCHAR gfx_filtermask[2 * MAX_FILTERSHADERS][MAX_DPATH];
 	TCHAR gfx_filteroverlay[MAX_DPATH];
 	struct wh gfx_filteroverlay_pos;
 	int gfx_filteroverlay_overscan;
@@ -392,6 +396,7 @@ struct uae_prefs {
 	int floppy_auto_ext2;
 	bool tod_hack;
 	uae_u32 maprom;
+	bool rom_readwrite;
 	int turbo_emulation;
 	bool headless;
 	int filesys_limit;

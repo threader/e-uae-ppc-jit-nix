@@ -274,7 +274,10 @@ void fixup_cpu (struct uae_prefs *p)
 		break;
 	}
 
-	if (p->cpu_model != 68040)
+	if (p->cpu_model >= 68040 && p->cachesize && p->cpu_compatible)
+		p->cpu_compatible = false;
+
+	if (p->cpu_model < 68030 || p->cachesize)
 		p->mmu_model = 0;
 
 	if (p->cachesize && p->cpu_cycle_exact)

@@ -574,10 +574,6 @@ static void write_filesys_config (struct uae_prefs *p, struct zfile *f)
 		TCHAR *str;
 		int bp = ci->bootpri;
 
-		if (!ci->autoboot)
-			bp = -128;
-		if (ci->donotmount)
-			bp = -129;
 		str = cfgfile_put_multipath (&p->path_hardfile, ci->rootdir);
 		if (ci->type == UAEDEV_DIR) {
 			_stprintf (tmp, _T("%s,%s:%s:%s,%d"), ci->readonly ? _T("ro") : _T("rw"),
@@ -751,11 +747,14 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 		cfgfile_write_path (f, &p->path_rom, _T("amax_rom_file"), p->amaxromfile);
 
 	cfgfile_write_bool (f, _T("kickshifter"), p->kickshifter);
+	cfgfile_write_bool (f, _T("ks_write_enabled"), p->rom_readwrite);
 
 	p->nr_floppies = 4;
 	for (i = 0; i < 4; i++) {
 		_stprintf (tmp, _T("floppy%d"), i);
 		cfgfile_write_path (f, &p->path_floppy, tmp, p->floppyslots[i].df);
+		_stprintf (tmp, _T("floppy%dwp"), i);
+		cfgfile_dwrite_bool (f, tmp, p->floppyslots[i].forcedwriteprotect);
 		_stprintf (tmp, _T("floppy%dtype"), i);
 		cfgfile_dwrite (f, tmp, _T("%d"), p->floppyslots[i].dfxtype);
 		_stprintf (tmp, _T("floppy%dsound"), i);
@@ -959,10 +958,14 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 	for (int i = 0; i <MAX_FILTERSHADERS; i++) {
 		if (p->gfx_filtershader[i][0])
 			cfgfile_write (f, _T("gfx_filter_pre"), _T("D3D:%s"), p->gfx_filtershader[i]);
+		if (p->gfx_filtermask[i][0])
+			cfgfile_write_str (f, _T("gfx_filtermask_pre"), p->gfx_filtermask[i]);
 	}
 	for (int i = 0; i <MAX_FILTERSHADERS; i++) {
 		if (p->gfx_filtershader[i + MAX_FILTERSHADERS][0])
 			cfgfile_write (f, _T("gfx_filter_post"), _T("D3D:%s"), p->gfx_filtershader[i + MAX_FILTERSHADERS]);
+		if (p->gfx_filtermask[i + MAX_FILTERSHADERS][0])
+			cfgfile_write_str (f, _T("gfx_filtermask_post"), p->gfx_filtermask[i + MAX_FILTERSHADERS]);
 	}
 	if (p->gfx_filtershader[0][0] && p->gfx_api) {
 		cfgfile_dwrite (f, _T("gfx_filter"), _T("D3D:%s"), p->gfx_filtershader[0]);
@@ -1005,7 +1008,7 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 	cfgfile_dwrite (f, _T("gfx_luminance"), _T("%d"), p->gfx_luminance);
 	cfgfile_dwrite (f, _T("gfx_contrast"), _T("%d"), p->gfx_contrast);
 	cfgfile_dwrite (f, _T("gfx_gamma"), _T("%d"), p->gfx_gamma);
-	cfgfile_dwrite_str (f, _T("gfx_filter_mask"), p->gfx_filtermask);
+	cfgfile_dwrite_str (f, _T("gfx_filter_mask"), p->gfx_filtermask[2 * MAX_FILTERSHADERS - 1]);
 	if (p->gfx_filteroverlay[0]) {
 		cfgfile_dwrite (f, _T("gfx_filter_overlay"), _T("%s%s"),
 			p->gfx_filteroverlay, _tcschr (p->gfx_filteroverlay, ',') ? _T(",") : _T(""));
@@ -1684,7 +1687,7 @@ static int cfgfile_parse_host (struct uae_prefs *p, TCHAR *option, TCHAR *value)
 		|| cfgfile_intval (option, value, _T("gfx_gamma"), &p->gfx_gamma, 1)
 		|| cfgfile_intval (option, value, _T("gfx_filter_keep_autoscale_aspect"), &p->gfx_filter_keep_autoscale_aspect, 1)
 		|| cfgfile_intval (option, value, _T("gfx_horizontal_tweak"), &p->gfx_extrawidth, 1)
-		|| cfgfile_string (option, value, _T("gfx_filter_mask"), p->gfx_filtermask, sizeof p->gfx_filtermask / sizeof (TCHAR))
+		|| cfgfile_string (option, value, _T("gfx_filter_mask"), p->gfx_filtermask[2 * MAX_FILTERSHADERS - 1], sizeof p->gfx_filtermask[2 * MAX_FILTERSHADERS - 1] / sizeof (TCHAR))
 		|| cfgfile_intval (option, value, _T("filesys_max_size"), &p->filesys_limit, 1)
 
 		|| cfgfile_floatval (option, value, _T("rtg_vert_zoom_multf"), &p->rtg_vert_zoom_mult)
@@ -1715,6 +1718,10 @@ cfgfile_path (option, value, _T("floppy0soundext"), p->floppyslots[0].dfxclickex
 		return 1;
 
 	if (cfgfile_yesno (option, value, _T("use_debugger"), &p->start_debugger)
+		|| cfgfile_yesno (option, value, _T("floppy0wp"), &p->floppyslots[0].forcedwriteprotect)
+		|| cfgfile_yesno (option, value, _T("floppy1wp"), &p->floppyslots[1].forcedwriteprotect)
+		|| cfgfile_yesno (option, value, _T("floppy2wp"), &p->floppyslots[2].forcedwriteprotect)
+		|| cfgfile_yesno (option, value, _T("floppy3wp"), &p->floppyslots[3].forcedwriteprotect)
 		|| cfgfile_yesno (option, value, _T("sampler_stereo"), &p->sampler_stereo)
 		|| cfgfile_yesno (option, value, _T("sound_auto"), &p->sound_auto)
 		|| cfgfile_yesno (option, value, _T("sound_stereo_swap_paula"), &p->sound_stereo_swap_paula)
@@ -2473,10 +2480,6 @@ struct uaedev_config_data *add_filesys_config (struct uae_prefs *p, int index, s
 	memcpy (&uci->ci, ci, sizeof (struct uaedev_config_info));
 	validatedevicename (uci->ci.devname);
 	validatevolumename (uci->ci.volname);
-	if (uci->ci.bootpri < -128)
-		uci->ci.donotmount = true;
-	else if (uci->ci.bootpri >= -127)
-		uci->ci.autoboot = true;
 	if (!uci->ci.devname[0] && ci->type != UAEDEV_CD) {
 		TCHAR base[32];
 		TCHAR base2[32];
@@ -2638,12 +2641,11 @@ static bool parse_geo (const TCHAR *tname, struct uaedev_config_info *uci, struc
 		if (!_tcsicmp (key, _T("forceload")))
 			uci->forceload = v;
 		if (!_tcsicmp (key, _T("bootpri"))) {
+			if (v < -129)
+				v = -129;
+			if (v > 127)
+				v = 127;
 			uci->bootpri = v;
-			uci->donotmount = false;
-			if (uci->bootpri <= -128) {
-				uci->bootpri = -128;
-				uci->donotmount = true;
-			}
 		}
 		if (!_tcsicmp (key, _T("filesystem")))
 			_tcscpy (uci->filesys, val);
@@ -2778,8 +2780,6 @@ static int cfgfile_parse_newfilesys (struct uae_prefs *p, int nr, int type, TCHA
 		goto invalid_fs;
 	}
 empty_fs:
-	uci.autoboot = uci.bootpri >= -127; 
-	uci.donotmount = uci.bootpri == -129; 
 	if (uci.rootdir[0]) {
 		if (_tcslen (uci.rootdir) > 3 && uci.rootdir[0] == 'H' && uci.rootdir[1] == 'D' && uci.rootdir[2] == '_') {
 			memmove (uci.rootdir, uci.rootdir + 2, (_tcslen (uci.rootdir + 2) + 1) * sizeof (TCHAR));
@@ -2993,6 +2993,7 @@ static int cfgfile_parse_hardware (struct uae_prefs *p, const TCHAR *option, TCH
 		|| cfgfile_yesno (option, value, _T("synchronize_clock"), &p->tod_hack)
 
 		|| cfgfile_yesno (option, value, _T("kickshifter"), &p->kickshifter)
+		|| cfgfile_yesno (option, value, _T("ks_write_enabled"), &p->rom_readwrite)
 		|| cfgfile_yesno (option, value, _T("ntsc"), &p->ntscmode)
 		|| cfgfile_yesno (option, value, _T("sana2"), &p->sana2)
 		|| cfgfile_yesno (option, value, _T("genlock"), &p->genlock)
@@ -4793,8 +4794,8 @@ void default_prefs (struct uae_prefs *p, int type)
 	p->gfx_filter = 0;
 	for (int i = 0; i < 2 * MAX_FILTERSHADERS; i++) {
 		p->gfx_filtershader[i][0] = 0;
+		p->gfx_filtermask[i][0] = 0;
 	}
-	p->gfx_filtermask[0] = 0;
 	p->gfx_filter_horiz_zoom_mult = 1.0;
 	p->gfx_filter_vert_zoom_mult = 1.0;
 	p->gfx_filter_bilinear = 0;

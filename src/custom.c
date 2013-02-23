@@ -647,10 +647,12 @@ STATIC_INLINE int GET_PLANES_LIMIT (uae_u16 bc0)
 	return real_bitplane_number[fetchmode][res][planes];
 }
 
+#define HARD_DDF_LIMITS_DISABLED ((beamcon0 & 0x80) || (bplcon0 & 0x40))
 /* The HRM says 0xD8, but that can't work... */
-#define HARD_DDF_STOP ((beamcon0 & 0x80) ? 0xff : 0xd4)
+#define HARD_DDF_STOP (HARD_DDF_LIMITS_DISABLED ? 0xff : 0xd4)
 #define HARD_DDF_START_REAL 0x18
-#define HARD_DDF_START ((beamcon0 & 0x80) ? 0x10 : 0x18)
+/* Programmed rates or superhires (!) disable normal DMA limits */
+#define HARD_DDF_START (HARD_DDF_LIMITS_DISABLED ? 0x04 : 0x18)
 
 static void add_modulos (void)
 {
@@ -5517,6 +5519,7 @@ static bool framewait (void)
 				end = read_processor_time ();
 				val += end - start;
 			}
+
 			curr_time = 0;
 			status = vsync_busywait_do (NULL, (bplcon0 & 4) != 0 && !lof_changed && !lof_changing, lof_store != 0);
 
@@ -5570,7 +5573,8 @@ static bool framewait (void)
 			if (!frame_rendered && !picasso_on)
 				frame_rendered = render_screen (false);
 
-						status = vsync_busywait_do (&freetime, (bplcon0 & 4) != 0 && !lof_changed && !lof_changing, lof_store != 0);
+			status = vsync_busywait_do (&freetime, (bplcon0 & 4) != 0 && !lof_changed && !lof_changing, lof_store != 0);
+
 			now = read_processor_time ();
 
 			if (extraframewait && !currprefs.turbo_emulation)
@@ -7882,7 +7886,7 @@ uae_u8 *save_custom_event_delay (int *len, uae_u8 *dstptr)
 	uae_u8 *dstbak, *dst;
 	int cnt = 0;
 
-	for (unsigned int i = ev2_misc;  i < ev2_max; i++) {
+	for (int i = ev2_misc;  i < ev2_max; i++) {
 		struct ev2 *e = &eventtab2[i];
 		if (e->active && e->handler == send_interrupt_do) {
 			cnt++;
@@ -7898,7 +7902,7 @@ uae_u8 *save_custom_event_delay (int *len, uae_u8 *dstptr)
 
 	save_u32 (1);
 	save_u8 (cnt);
-	for (unsigned int i = ev2_misc;  i < ev2_max; i++) {
+	for (int i = ev2_misc;  i < ev2_max; i++) {
 		struct ev2 *e = &eventtab2[i];
 		if (e->active && e->handler == send_interrupt_do) {
 			save_u8 (1);

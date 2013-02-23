@@ -66,7 +66,7 @@ struct comptbl {
 #endif
 
 extern uae_u32 REGPARAM3 op_illg (uae_u32) REGPARAM;
-extern void REGPARAM3 op_unimpl (void) REGPARAM;
+extern void REGPARAM3 op_unimpl (uae_u16) REGPARAM;
 
 typedef uae_u8 flagtype;
 
@@ -438,7 +438,7 @@ extern void fpux_restore (int*);
 
 extern void exception3 (uae_u32 opcode, uaecptr addr);
 extern void exception3i (uae_u32 opcode, uaecptr addr);
-extern void exception3pc (uae_u32 opcode, uaecptr addr, int w, int i, uaecptr pc);
+extern void exception3pc (uae_u32 opcode, uaecptr addr, bool w, bool i, uaecptr pc);
 extern void exception2 (uaecptr addr);
 extern void cpureset (void);
 extern void cpu_halt (int id);

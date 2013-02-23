@@ -8,7 +8,7 @@ dnl
 AC_PREREQ(2.55)
 AC_INIT(PUAE, 2.6.0, mustafa.tufan@gmail.com, puae)
 AC_CONFIG_SRCDIR([bootstrap.sh])
-AM_CONFIG_HEADER([src/sysconfig.h])
+AC_CONFIG_HEADER([src/sysconfig.h])
 AC_CANONICAL_TARGET
 AM_INIT_AUTOMAKE(1.7 dist-bzip2 foreign)
 

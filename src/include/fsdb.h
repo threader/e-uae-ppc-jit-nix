@@ -182,9 +182,10 @@ extern int my_existsfile (const TCHAR *name);
 extern int my_existsdir (const TCHAR *name);
 extern FILE *my_opentext (const TCHAR*);
 
-extern bool my_stat (const TCHAR *name, struct mystat *statbuf);
+extern bool my_stat (const TCHAR *name, struct mystat *ms);
 extern bool my_utime (const TCHAR *name, struct mytimeval *tv);
 extern bool my_chmod (const TCHAR *name, uae_u32 mode);
+extern bool my_resolveshortcut(TCHAR *linkfile, int size);
 
 #define MYVOLUMEINFO_READONLY 1
 #define MYVOLUMEINFO_STREAMS 2
