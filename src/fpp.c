@@ -214,7 +214,7 @@ static void fpu_op_illg (uae_u16 opcode, uaecptr oldpc)
 	fpu_op_illg2 (opcode, 0, oldpc);
 }
 
-static bool fault_if_no_fpu (uae_u16 opcode, uaecptr ea, uaecptr oldpc)
+static bool fault_if_no_fpu (uae_u16 opcode, uae_u32 extra, uaecptr ea, uaecptr oldpc)
 {
 	if ((regs.pcr & 2) || currprefs.fpu_model <= 0) {
 		fpu_op_illg2 (opcode, ea, oldpc);
@@ -223,7 +223,7 @@ static bool fault_if_no_fpu (uae_u16 opcode, uaecptr ea, uaecptr oldpc)
 	return false;
 }
 
-static bool fault_if_no_6888x (uae_u16 opcode, uaecptr oldpc)
+static bool fault_if_no_6888x (uae_u16 opcode, uae_u32 extra, uaecptr oldpc)
 {
 	if (currprefs.cpu_model < 68040 && currprefs.fpu_model <= 0) {
 		m68k_setpc (oldpc);
@@ -461,7 +461,7 @@ STATIC_INLINE int get_fp_value (uae_u32 opcode, uae_u16 extra, fptype *src, uaec
 	static const int sz2[8] = { 4, 4, 12, 12, 2, 8, 2, 0 };
 
 	if (!(extra & 0x4000)) {
-		if (fault_if_no_fpu (opcode, 0, oldpc))
+		if (fault_if_no_fpu (opcode, extra, 0, oldpc))
 			return -1;
 		*src = regs.fp[(extra >> 10) & 7];
 		return 1;
@@ -535,7 +535,7 @@ STATIC_INLINE int get_fp_value (uae_u32 opcode, uae_u16 extra, fptype *src, uaec
 			}
 	}
 
-	if (fault_if_no_fpu (opcode, ad, oldpc))
+	if (fault_if_no_fpu (opcode, extra, ad, oldpc))
 		return -1;
 
 	switch (size)
@@ -598,7 +598,7 @@ STATIC_INLINE int put_fp_value (fptype value, uae_u32 opcode, uae_u16 extra, uae
 		write_log (_T("PUTFP: %f %04X %04X\n"), value, opcode, extra);
 #endif
 	if (!(extra & 0x4000)) {
-		if (fault_if_no_fpu (opcode, 0, oldpc))
+		if (fault_if_no_fpu (opcode, extra, 0, oldpc))
 			return 1;
 		regs.fp[(extra >> 10) & 7] = value;
 		return 1;
@@ -671,7 +671,7 @@ STATIC_INLINE int put_fp_value (fptype value, uae_u32 opcode, uae_u16 extra, uae
 			}
 	}
 
-	if (fault_if_no_fpu (opcode, ad, oldpc))
+	if (fault_if_no_fpu (opcode, extra, ad, oldpc))
 		return 1;
 
 	switch (size)
@@ -864,13 +864,13 @@ void fpuop_dbcc (uae_u32 opcode, uae_u16 extra)
 	if (!isinrom ())
 		write_log (_T("fdbcc_opp at %08lx\n"), m68k_getpc ());
 #endif
-	if (fault_if_no_6888x (opcode, pc - 4))
+	if (fault_if_no_6888x (opcode, extra, pc - 4))
 		return;
 
 	disp = (uae_s32) (uae_s16) x_next_iword ();
-	if (fault_if_no_fpu (opcode, pc + disp, pc))
+	if (fault_if_no_fpu (opcode, extra, pc + disp, pc - 4))
 		return;
-	regs.fpiar = m68k_getpc () - 4;
+	regs.fpiar = pc - 4;
 	cc = fpp_cond (extra & 0x3f);
 	if (cc == -1) {
 		fpu_op_illg (opcode, regs.fpiar);
@@ -888,20 +888,21 @@ void fpuop_scc (uae_u32 opcode, uae_u16 extra)
 {
 	uae_u32 ad;
 	int cc;
+	uaecptr pc = m68k_getpc () - 4;
 
 #if DEBUG_FPP
 	if (!isinrom ())
 		write_log (_T("fscc_opp at %08lx\n"), m68k_getpc ());
 #endif
-	if (fault_if_no_fpu (opcode, 0, 4))
+	if (fault_if_no_fpu (opcode, extra, 0, pc))
 		return;
 
-	regs.fpiar = m68k_getpc () - 4;
+	regs.fpiar = pc;
 	cc = fpp_cond (extra & 0x3f);
 	if (cc == -1) {
 		fpu_op_illg (opcode, regs.fpiar);
 	} else if ((opcode & 0x38) == 0) {
-		if (fault_if_no_fpu (opcode, 0, 4))
+		if (fault_if_no_fpu (opcode, extra, 0, pc))
 			return;
 		m68k_dreg (regs, opcode & 7) = (m68k_dreg (regs, opcode & 7) & ~0xff) | (cc ? 0xff : 0x00);
 	} else {
@@ -916,13 +917,12 @@ void fpuop_scc (uae_u32 opcode, uae_u16 extra)
 void fpuop_trapcc (uae_u32 opcode, uaecptr oldpc, uae_u16 extra)
 {
 	int cc;
-	uaecptr pc = m68k_getpc ();
 
 #if DEBUG_FPP
 	if (!isinrom ())
 		write_log (_T("ftrapcc_opp at %08lx\n"), m68k_getpc ());
 #endif
-	if (fault_if_no_fpu (opcode, 0, pc))
+	if (fault_if_no_fpu (opcode, extra, 0, oldpc))
 		return;
 
 	regs.fpiar = oldpc;
@@ -937,19 +937,18 @@ void fpuop_trapcc (uae_u32 opcode, uaecptr oldpc, uae_u16 extra)
 void fpuop_bcc (uae_u32 opcode, uaecptr oldpc, uae_u32 extra)
 {
 	int cc;
-	uaecptr pc = m68k_getpc ();
 
 #if DEBUG_FPP
 	if (!isinrom ())
 		write_log (_T("fbcc_opp at %08lx\n"), m68k_getpc ());
 #endif
-	if (fault_if_no_fpu (opcode, 0, pc))
+	if (fault_if_no_fpu (opcode, extra, 0, oldpc - 2))
 		return;
 
-	regs.fpiar = oldpc;
+	regs.fpiar = oldpc - 2;
 	cc = fpp_cond (opcode & 0x3f);
 	if (cc == -1) {
-		fpu_op_illg (opcode, oldpc);
+		fpu_op_illg (opcode, oldpc - 2);
 	} else if (cc) {
 		if ((opcode & 0x40) == 0)
 			extra = (uae_s32) (uae_s16) extra;
@@ -970,7 +969,7 @@ void fpuop_save (uae_u32 opcode)
 		write_log (_T("fsave_opp at %08lx\n"), m68k_getpc ());
 #endif
 
-	if (fault_if_no_6888x (opcode, pc))
+	if (fault_if_no_6888x (opcode, 0, pc))
 		return;
 
 	if (get_fp_ad (opcode, &ad) == 0) {
@@ -978,7 +977,7 @@ void fpuop_save (uae_u32 opcode)
 		return;
 	}
 
-	if (fault_if_no_fpu (opcode, ad, pc))
+	if (fault_if_no_fpu (opcode, 0, ad, pc))
 		return;
 	regs.fpiar = pc;
 
@@ -1080,7 +1079,7 @@ void fpuop_restore (uae_u32 opcode)
 		write_log (_T("frestore_opp at %08lx\n"), m68k_getpc ());
 #endif
 
-	if (fault_if_no_6888x (opcode, pc))
+	if (fault_if_no_6888x (opcode, 0, pc))
 		return;
 
 	if (get_fp_ad (opcode, &ad) == 0) {
@@ -1088,7 +1087,7 @@ void fpuop_restore (uae_u32 opcode)
 		return;
 	}
 
-	if (fault_if_no_fpu (opcode, ad, pc))
+	if (fault_if_no_fpu (opcode, 0, ad, pc))
 		return;
 	regs.fpiar = pc;
 
@@ -1321,7 +1320,7 @@ static void fpuop_arithmetic2 (uae_u32 opcode, uae_u16 extra)
 	if (!isinrom ())
 		write_log (_T("FPP %04lx %04x at %08lx\n"), opcode & 0xffff, extra, pc);
 #endif
-	if (fault_if_no_6888x (opcode, pc))
+	if (fault_if_no_6888x (opcode, extra, pc))
 		return;
 
 	switch ((extra >> 13) & 0x7)
@@ -1334,7 +1333,7 @@ static void fpuop_arithmetic2 (uae_u32 opcode, uae_u16 extra)
 		case 4:
 		case 5:
 			if ((opcode & 0x38) == 0) {
-				if (fault_if_no_fpu (opcode, 0, pc))
+				if (fault_if_no_fpu (opcode, extra, 0, pc))
 					return;
 				if (extra & 0x2000) {
 					if (extra & 0x1000)
@@ -1354,7 +1353,7 @@ static void fpuop_arithmetic2 (uae_u32 opcode, uae_u16 extra)
 						regs.fpiar = m68k_dreg (regs, opcode & 7);
 				}
 			} else if ((opcode & 0x38) == 0x08) {
-				if (fault_if_no_fpu (opcode, 0, pc))
+				if (fault_if_no_fpu (opcode, extra, 0, pc))
 					return;
 				if (extra & 0x2000) {
 					if (extra & 0x1000)
@@ -1374,7 +1373,7 @@ static void fpuop_arithmetic2 (uae_u32 opcode, uae_u16 extra)
 						regs.fpiar = m68k_areg (regs, opcode & 7);
 				}
 			} else if ((opcode & 0x3f) == 0x3c) {
-				if (fault_if_no_fpu (opcode, 0, pc))
+				if (fault_if_no_fpu (opcode, extra, 0, pc))
 					return;
 				if ((extra & 0x2000) == 0) {
 					if (extra & 0x1000) {
@@ -1395,7 +1394,7 @@ static void fpuop_arithmetic2 (uae_u32 opcode, uae_u16 extra)
 					fpu_noinst (opcode, pc);
 					return;
 				}
-				if (fault_if_no_fpu (opcode, ad, pc))
+				if (fault_if_no_fpu (opcode, extra, ad, pc))
 					return;
 
 				if ((opcode & 0x38) == 0x20) {
@@ -1433,7 +1432,7 @@ static void fpuop_arithmetic2 (uae_u32 opcode, uae_u16 extra)
 					fpu_noinst (opcode, pc);
 					return;
 				}
-				if (fault_if_no_fpu (opcode, ad, pc))
+				if (fault_if_no_fpu (opcode, extra, ad, pc))
 					return;
 
 				if((opcode & 0x38) == 0x20) {
@@ -1476,7 +1475,7 @@ static void fpuop_arithmetic2 (uae_u32 opcode, uae_u16 extra)
 						fpu_noinst (opcode, pc);
 						return;
 					}
-					if (fault_if_no_fpu (opcode, ad, pc))
+					if (fault_if_no_fpu (opcode, extra, ad, pc))
 						return;
 
 					switch ((extra >> 11) & 3)
@@ -1509,7 +1508,7 @@ static void fpuop_arithmetic2 (uae_u32 opcode, uae_u16 extra)
 						fpu_noinst (opcode, pc);
 						return;
 					}
-					if (fault_if_no_fpu (opcode, ad, pc))
+					if (fault_if_no_fpu (opcode, extra, ad, pc))
 						return;
 					switch ((extra >> 11) & 3)
 					{
@@ -1544,7 +1543,7 @@ static void fpuop_arithmetic2 (uae_u32 opcode, uae_u16 extra)
 			regs.fpiar =  pc;
 			reg = (extra >> 7) & 7;
 			if ((extra & 0xfc00) == 0x5c00) {
-				if (fault_if_no_fpu (opcode, 0, pc))
+				if (fault_if_no_fpu (opcode, extra, 0, pc))
 					return;
 				switch (extra & 0x7f)
 				{

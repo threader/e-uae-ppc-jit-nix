@@ -1308,3 +1308,41 @@ int isinf (double x)
 }
 #endif
 */
+
+//fsdb_mywin
+bool my_issamevolume(const TCHAR *path1, const TCHAR *path2, TCHAR *path)
+{
+/*        TCHAR p1[MAX_DPATH];
+        TCHAR p2[MAX_DPATH];
+        TCHAR p1b[MAX_DPATH];
+        TCHAR p2b[MAX_DPATH];
+        int len;
+
+        if (!GetFullPathName(path1, sizeof p1 / sizeof (TCHAR), p1, NULL))
+                return false;
+        if (!GetFullPathName(path2, sizeof p2 / sizeof (TCHAR), p2, NULL))
+                return false;
+        PathCanonicalize(p1b, p1);
+        PathCanonicalize(p2b, p2);
+        len = _tcslen (p1b);
+        if (len > _tcslen (p2b))
+                len = _tcslen (p2b);
+        if (_tcsnicmp (p1b, p2b, len))
+                return false;
+        _tcscpy (path, p2b + len);
+        for (int i = 0; i < _tcslen (path); i++) {
+                if (path[i] == '\\')
+                        path[i] = '/';
+        }*/
+        return true;
+}
+
+bool my_resolvesoftlink(TCHAR *linkfile, int size)
+{
+/*	if (my_resolvessymboliclink(linkfile, size))
+		return true;
+	if (my_resolveshortcut(linkfile,size))
+		return true;*/
+	return false;
+}
+
