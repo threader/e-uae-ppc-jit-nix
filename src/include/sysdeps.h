@@ -312,10 +312,6 @@ extern int gui_message_multibutton (int flags, const char *format,...);
 #define STATIC_INLINE static __inline__ __attribute__ ((always_inline))
 #define NOINLINE __attribute__ ((noinline))
 #define NORETURN __attribute__ ((noreturn))
-#elif _MSC_VER
-#define STATIC_INLINE static __forceinline
-#define NOINLINE __declspec(noinline)
-#define NORETURN __declspec(noreturn)
 #else
 #define STATIC_INLINE static __inline__
 #define NOINLINE
@@ -342,12 +338,21 @@ extern int gui_message_multibutton (int flags, const char *format,...);
 
 #define XFREE_DEBUG 0
 
-#define __xfree(buffer) { free(buffer); buffer = NULL; }
+// Please do NOT use identifiers with two leading underscores.
+// See C++99 Standard chapter 7.1.3 "Reserved identifiers"
+// #define __xfree(buffer) { free(buffer); buffer = NULL; }
+#define xfree_d(buffer) { free(buffer); buffer = NULL; }
 
 #if XFREE_DEBUG > 0
-#define xfree(buffer) { if (buffer) { __xfree (buffer) } else { fprintf (stderr, "NULL pointer freed at %s:%d %s\n", __FILE__, __LINE__, __FUNCTION__); } }
+# define xfree(buffer) { \
+	if (buffer) { \
+		xfree_d (buffer) \
+	} else { \
+		fprintf (stderr, "NULL pointer freed at %s:%d %s\n", \
+				__FILE__, __LINE__, __FUNCTION__); \
+	} }
 #else
-#define xfree(buffer) { if (buffer) { __xfree (buffer) } }
+# define xfree(buffer) { if (buffer) { xfree_d (buffer) } }
 #endif //xfree_debug
 
 #define DBLEQU(f, i) (abs ((f) - (i)) < 0.000001)

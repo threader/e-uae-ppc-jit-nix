@@ -2070,9 +2070,9 @@ static int init_kb (void)
 	keyboard_inited = 1;
 
 	int i = 0;
-	for ( ; i < num_keyboard; i++) {
+	/*for ( ; i < num_keyboard; i++) {
 		struct didata *did = &di_keyboard[i];
-	/*	if (did->connection == DIDC_DX) {
+		if (did->connection == DIDC_DX) {
 			hr = g_lpdi->CreateDevice (did->iguid, &lpdi, NULL);
 			if (SUCCEEDED (hr)) {
 				hr = lpdi->SetDataFormat (&c_dfDIKeyboard);
@@ -2092,8 +2092,8 @@ static int init_kb (void)
 				did->lpdi = lpdi;
 			} else
 				write_log (_T("keyboard CreateDevice failed, %s\n"), DXError (hr));
-		}*/
-	}
+		}
+	}*/
 
 	keyboard_german = 0;
 //	if ((LOWORD(GetKeyboardLayout (0)) & 0x3ff) == 7)
@@ -2242,7 +2242,7 @@ int gfx_parse_option (struct uae_prefs *p, const char *option, const char *value
 #if 0
 	int result = (cfgfile_yesno (option, value, "map_raw_keys", &(p->map_raw_keys)));
 #endif
-	int result;
+	int result = 0;
 #ifdef USE_GL
 	result = result || (cfgfile_yesno (option, value, "use_gl", &(p->use_gl)));
 #endif /* USE_GL */

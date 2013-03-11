@@ -9,7 +9,6 @@
 
 #define RECURSIVE_ARCHIVES 1
 //#define ZFILE_DEBUG
-#define FSDB_DIR_SEPARATOR_S "\\"
 
 #include "sysconfig.h"
 #include "sysdeps.h"
@@ -2524,7 +2523,6 @@ static struct zvolume *zfile_fopen_archive_ext (struct znode *parent, struct zfi
 	}
 	return zv;
 }
-
 
 static struct zvolume *zfile_fopen_archive_data (struct znode *parent, struct zfile *zf, int flags)
 {

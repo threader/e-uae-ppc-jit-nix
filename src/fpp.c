@@ -75,7 +75,12 @@ static long double *fp_1e512  = (long double *)xhex_1e512;
 static long double *fp_1e1024 = (long double *)xhex_1e1024;
 static long double *fp_1e2048 = (long double *)xhex_1e2048;
 static long double *fp_1e4096 = (long double *)xhex_1e4096;
+/* REMOVEME:
+ * nowhere used
+ */
+#if 0
 static long double *fp_inf    = (long double *)xhex_inf;
+#endif
 static long double *fp_nan    = (long double *)xhex_nan;
 #else
 static uae_u32 dhex_pi[]    ={0x54442D18, 0x400921FB};
@@ -108,7 +113,12 @@ static double *fp_1e512  = (double *)dhex_inf;
 static double *fp_1e1024 = (double *)dhex_inf;
 static double *fp_1e2048 = (double *)dhex_inf;
 static double *fp_1e4096 = (double *)dhex_inf;
+/* REMOVEME:
+ * nowhere used
+ */
+#if 0
 static double *fp_inf    = (double *)dhex_inf;
+#endif
 static double *fp_nan    = (double *)dhex_nan;
 #endif
 double fp_1e8 = 1.0e8;

@@ -933,6 +933,11 @@ static void byteswap (uae_u8 *buf, int size)
 		buf[i + 1] = t;
 	}
 }
+
+/* UNUSED:
+ * useful, but nowhere used
+ */
+#if 0
 static void wordbyteswap (uae_u8 *buf, int size)
 {
 	int i;
@@ -946,6 +951,7 @@ static void wordbyteswap (uae_u8 *buf, int size)
 		buf[i + 3] = t;
 	}
 }
+#endif
 
 static void mergecd32 (uae_u8 *dst, uae_u8 *src, int size)
 {

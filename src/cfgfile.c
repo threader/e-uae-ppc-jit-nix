@@ -153,7 +153,12 @@ static const TCHAR *collmode[] = { _T("none"), _T("sprites"), _T("playfields"), 
 static const TCHAR *compmode[] = { _T("direct"), _T("indirect"), _T("indirectKS"), _T("afterPic"), 0 };
 static const TCHAR *flushmode[] = { _T("soft"), _T("hard"), 0 };
 static const TCHAR *kbleds[] = { _T("none"), _T("POWER"), _T("DF0"), _T("DF1"), _T("DF2"), _T("DF3"), _T("HD"), _T("CD"), 0 };
+
+/// REMOVEME: nowhere used
+#if 0
 static const TCHAR *onscreenleds[] = { _T("false"), _T("true"), _T("rtg"), _T("both"), 0 };
+#endif // 0
+
 static const TCHAR *soundfiltermode1[] = { _T("off"), _T("emulated"), _T("on"), 0 };
 static const TCHAR *soundfiltermode2[] = { _T("standard"), _T("enhanced"), 0 };
 static const TCHAR *lorestype1[] = { _T("lores"), _T("hires"), _T("superhires"), 0 };
@@ -168,7 +173,12 @@ static const TCHAR *cartsmode[] = { _T("none"), _T("hrtmon"), 0 };
 static const TCHAR *idemode[] = { _T("none"), _T("a600/a1200"), _T("a4000"), 0 };
 static const TCHAR *rtctype[] = { _T("none"), _T("MSM6242B"), _T("RP5C01A"), _T("MSM6242B_A2000"), 0 };
 static const TCHAR *ciaatodmode[] = { _T("vblank"), _T("50hz"), _T("60hz"), 0 };
+
+/// REMOVEME: nowhere used
+#if 0
 static const TCHAR *ksmirrortype[] = { _T("none"), _T("e0"), _T("a8+e0"), 0 };
+#endif // 0
+
 static const TCHAR *cscompa[] = {
 	_T("-"), _T("Generic"), _T("CDTV"), _T("CD32"), _T("A500"), _T("A500+"), _T("A600"),
 	_T("A1000"), _T("A1200"), _T("A2000"), _T("A3000"), _T("A3000T"), _T("A4000"), _T("A4000T"), 0
@@ -225,14 +235,7 @@ static const TCHAR *obsolete[] = {
 	NULL
 };
 
-/* external prototypes */
-extern int machdep_parse_option (struct uae_prefs *, const char *, const char *);
-extern int gfx_parse_option (struct uae_prefs *, const char *, const char *);
-extern int audio_parse_option (struct uae_prefs *, const char *, const char *);
-extern void machdep_default_options (struct uae_prefs *);
-extern void gfx_default_options (struct uae_prefs *);
-extern void audio_default_options (struct uae_prefs *);
-
+/* internal prototypes */
 void cfgfile_write_str (struct zfile *f, const TCHAR *option, const TCHAR *value);
 void cfgfile_dwrite_str (struct zfile *f, const TCHAR *option, const TCHAR *value);
 void cfgfile_target_write_str (struct zfile *f, const TCHAR *option, const TCHAR *value);
@@ -240,6 +243,7 @@ void cfgfile_target_dwrite_str (struct zfile *f, const TCHAR *option, const TCHA
 void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type);
 int cfgfile_yesno2 (const TCHAR *option, const TCHAR *value, const TCHAR *name, int *location);
 int cfgfile_doubleval (const TCHAR *option, const TCHAR *value, const TCHAR *name, double *location);
+int cfgfile_floatval (const TCHAR *option, const TCHAR *value, const TCHAR *name, float *location);
 int cfgfile_intval_unsigned (const TCHAR *option, const TCHAR *value, const TCHAR *name, unsigned int *location, int scale);
 int cfgfile_strboolval (const TCHAR *option, const TCHAR *value, const TCHAR *name, bool *location, const TCHAR *table[], int more);
 int cfgfile_path_mp (const TCHAR *option, const TCHAR *value, const TCHAR *name, TCHAR *location, int maxsz, struct multipath *mp);

@@ -256,7 +256,7 @@ TCHAR *restore_path_func (uae_u8 **dstp, int type)
 {
 	TCHAR *newpath;
 	TCHAR *s;
-	TCHAR *out = NULL;
+	/// REMOVEME: nowhere used: TCHAR *out = NULL;
 	TCHAR tmp[MAX_DPATH], tmp2[MAX_DPATH];
 
 	s = restore_string_func (dstp);
@@ -464,7 +464,7 @@ void restore_ram (size_t filepos, uae_u8 *memory)
 	}
 }
 
-uae_u8 *restore_log (uae_u8 *src)
+static uae_u8 *restore_log (uae_u8 *src)
 {
 #if OPEN_LOG > 0
 	TCHAR *s = utf8u (src);
@@ -517,7 +517,7 @@ void restore_state (const TCHAR *filename)
 		gui_message ("Cannot restore state from '%s'.\nIt is not an AmigaStateFile.\n", filename);
 		goto error;
 	}
-	write_log (_T("STATERESTORE:\n"));
+	write_log (_T("STATERESTORE: '%s'\n"), filename);
 	config_changed = 1;
 	savestate_file = f;
 	restore_header (chunk);

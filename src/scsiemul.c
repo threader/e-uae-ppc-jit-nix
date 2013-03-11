@@ -254,6 +254,8 @@ static uae_u32 REGPARAM2 diskdev_expunge (TrapContext *context)
 	return 0;
 }
 
+/// REMOVEME: nowhere used
+#if 0
 static int is_async_request (struct devstruct *dev, uaecptr request)
 {
 	int i = 0;
@@ -263,6 +265,7 @@ static int is_async_request (struct devstruct *dev, uaecptr request)
 	}
 	return 0;
 }
+#endif // 0
 
 #if 0
 static int scsiemul_switchscsi (const TCHAR *name)
@@ -333,7 +336,7 @@ int scsi_do_disk_change (int unitnum, int insert, int *pollmode)
 				if (pollmode)
 					*pollmode = 1;
 				if (dev->aunit >= 0) {
-					struct priv_devstruct *pdev = &pdevst[dev->aunit];
+					/// REMOVEME: unused : struct priv_devstruct *pdev = &pdevst[dev->aunit];
 					devinfo (dev, &dev->di);
 				}
 				dev->changenum++;
@@ -489,7 +492,7 @@ static int command_cd_read (struct devstruct *dev, uaecptr data, uae_u64 offset,
 			data += len;
 			startoffset = 0;
 			*io_actual += len;
-		} else if (length >= blocksize) {
+		} else if (length >= (uae_u32)blocksize) {
 			len = blocksize;
 			memcpyha_safe (data, temp, len);
 			length -= len;
@@ -817,7 +820,7 @@ static int dev_do_io (struct devstruct *dev, uaecptr request)
 		int ok = 0;
 		if (sys_command_cd_toc (dev->di.unitnum, &toc)) {
 			for (int i = toc.first_track_offset; i < toc.last_track_offset; i++) {
-				if (i == io_offset && i + io_length <= toc.last_track_offset) {
+				if (i == (int)io_offset && (int)(i + io_length) <= toc.last_track_offset) {
 					ok = sys_command_cd_play (dev->di.unitnum, toc.toc[i].address, toc.toc[i + io_length].address, 0);
 					break;
 				}
@@ -921,7 +924,7 @@ static uae_u32 REGPARAM2 dev_beginio (TrapContext *context)
 {
 	uae_u32 request = m68k_areg (regs, 1);
 	uae_u8 flags = get_byte (request + 30);
-	int command = get_word (request + 28);
+	/// REMOVEME: nowhere used : int command = get_word (request + 28);
 	struct priv_devstruct *pdev = getpdevstruct (request);
 	struct devstruct *dev;
 	int canquick;

@@ -1341,7 +1341,7 @@ static void genmovemle (uae_u16 opcode)
 			printf ("\twhile (amask) {\n");
 			printf ("\t\tsrca -= %d;\n", size);
 
-			printf ("\t\tif (!type || movem_index2[amask] != dstreg)\n");
+			printf ("\t\tif (!type || (uae_u32)movem_index2[amask] != dstreg)\n");
 			printf ("\t\t\t%s, m68k_areg (regs, movem_index2[amask]));\n", putcode);
 			printf ("\t\telse\n");
 			printf ("\t\t\t%s, m68k_areg (regs, movem_index2[amask]) - %d);\n", putcode, size);
@@ -2628,7 +2628,7 @@ static void gen_opcode (unsigned long int opcode)
 			pop_braces (old_brace_level);
 			printf ("\tregs.sr = newsr; MakeFromSR ();\n");
 			printf ("\tif (newpc & 1) {\n");
-		    printf ("\t\texception3i (0x%04X, newpc);\n", opcode);
+		    printf ("\t\texception3i (0x%04X, newpc);\n", (unsigned int)opcode);
 			printf ("\t\tgoto %s;\n", endlabelstr);
 			printf ("\t}\n");
 		    setpc ("newpc");
@@ -2649,12 +2649,12 @@ static void gen_opcode (unsigned long int opcode)
 			genamode (curi->smode, "srcreg", curi->size, "offs", 1, 0, 0);
 			printf ("\tm68k_areg (regs, 7) += offs;\n");
 			printf ("\tif (pc & 1) {\n");
-			printf ("\t\texception3i (0x%04X, pc);\n", opcode);
+			printf ("\t\texception3i (0x%04X, pc);\n", (unsigned int)opcode);
 			printf ("\t\tgoto %s;\n", endlabelstr);
 			printf ("\t}\n");
 		}
 	    printf ("\tif (pc & 1) {\n");
-	    printf ("\t\texception3i (0x%04X, pc);\n", opcode);
+	    printf ("\t\texception3i (0x%04X, pc);\n", (unsigned int)opcode);
 		printf ("\t\tgoto %s;\n", endlabelstr);
 		printf ("\t}\n");
 		setpc ("pc");
@@ -2713,7 +2713,7 @@ static void gen_opcode (unsigned long int opcode)
 	    printf ("\tif (m68k_getpc () & 1) {\n");
 		printf ("\t\tuaecptr faultpc = m68k_getpc ();\n");
 		setpc ("pc");
-		printf ("\t\texception3i (0x%04X, faultpc);\n", opcode);
+		printf ("\t\texception3i (0x%04X, faultpc);\n", (unsigned int)opcode);
 		printf ("\t}\n");
 		count_read += 2;
 		m68k_pc_offset = 0;
@@ -2740,7 +2740,7 @@ static void gen_opcode (unsigned long int opcode)
 		printf ("\tif (m68k_getpc () & 1) {\n");
 		printf ("\t\tuaecptr faultpc = m68k_getpc ();\n");
 		setpc ("oldpc");
-		printf ("\t\texception3i (0x%04X, faultpc);\n", opcode);
+		printf ("\t\texception3i (0x%04X, faultpc);\n", (unsigned int)opcode);
 		printf ("\t}\n");
 		m68k_pc_offset = 0;
 		fill_prefetch_full ();
@@ -3157,7 +3157,8 @@ static void gen_opcode (unsigned long int opcode)
 		default: abort ();
 		}
 		printf ("\tuae_u32 sign = (%s & val) >> %d;\n", cmask (curi->size), bit_size (curi->size) - 1);
-		printf ("\tint ccnt = cnt & 63;\n");
+		if (using_ce && isreg (curi->dmode))
+			printf ("\tint ccnt = cnt & 63;\n");
 		printf ("\tcnt &= 63;\n");
 		printf ("\tCLEAR_CZNV ();\n");
 		printf ("\tif (cnt >= %d) {\n", bit_size (curi->size));
@@ -3192,7 +3193,8 @@ static void gen_opcode (unsigned long int opcode)
 		case sz_long: printf ("\tuae_u32 val = data;\n"); break;
 		default: abort ();
 		}
-		printf ("\tint ccnt = cnt & 63;\n");
+		if (using_ce && isreg (curi->dmode))
+			printf ("\tint ccnt = cnt & 63;\n");
 		printf ("\tcnt &= 63;\n");
 		printf ("\tCLEAR_CZNV ();\n");
 		printf ("\tif (cnt >= %d) {\n", bit_size (curi->size));
@@ -3231,7 +3233,8 @@ static void gen_opcode (unsigned long int opcode)
 		case sz_long: printf ("\tuae_u32 val = data;\n"); break;
 		default: abort ();
 		}
-		printf ("\tint ccnt = cnt & 63;\n");
+		if (using_ce && isreg (curi->dmode))
+			printf ("\tint ccnt = cnt & 63;\n");
 		printf ("\tcnt &= 63;\n");
 		printf ("\tCLEAR_CZNV ();\n");
 		printf ("\tif (cnt >= %d) {\n", bit_size (curi->size));
@@ -3263,7 +3266,8 @@ static void gen_opcode (unsigned long int opcode)
 		case sz_long: printf ("\tuae_u32 val = data;\n"); break;
 		default: abort ();
 		}
-		printf ("\tint ccnt = cnt & 63;\n");
+		if (using_ce && isreg (curi->dmode))
+			printf ("\tint ccnt = cnt & 63;\n");
 		printf ("\tcnt &= 63;\n");
 		printf ("\tCLEAR_CZNV ();\n");
 		printf ("\tif (cnt >= %d) {\n", bit_size (curi->size));
@@ -3295,7 +3299,8 @@ static void gen_opcode (unsigned long int opcode)
 		case sz_long: printf ("\tuae_u32 val = data;\n"); break;
 		default: abort ();
 		}
-		printf ("\tint ccnt = cnt & 63;\n");
+		if (using_ce && isreg (curi->dmode))
+			printf ("\tint ccnt = cnt & 63;\n");
 		printf ("\tcnt &= 63;\n");
 		printf ("\tCLEAR_CZNV ();\n");
 		if (source_is_imm1_8 (curi))
@@ -3325,7 +3330,8 @@ static void gen_opcode (unsigned long int opcode)
 		case sz_long: printf ("\tuae_u32 val = data;\n"); break;
 		default: abort ();
 		}
-		printf ("\tint ccnt = cnt & 63;\n");
+		if (using_ce && isreg (curi->dmode))
+			printf ("\tint ccnt = cnt & 63;\n");
 		printf ("\tcnt &= 63;\n");
 		printf ("\tCLEAR_CZNV ();\n");
 		if (source_is_imm1_8 (curi))
@@ -3355,7 +3361,8 @@ static void gen_opcode (unsigned long int opcode)
 		case sz_long: printf ("\tuae_u32 val = data;\n"); break;
 		default: abort ();
 		}
-		printf ("\tint ccnt = cnt & 63;\n");
+		if (using_ce && isreg (curi->dmode))
+			printf ("\tint ccnt = cnt & 63;\n");
 		printf ("\tcnt &= 63;\n");
 		printf ("\tCLEAR_CZNV ();\n");
 		if (source_is_imm1_8 (curi))
@@ -3388,7 +3395,8 @@ static void gen_opcode (unsigned long int opcode)
 		case sz_long: printf ("\tuae_u32 val = data;\n"); break;
 		default: abort ();
 		}
-		printf ("\tint ccnt = cnt & 63;\n");
+		if (using_ce && isreg (curi->dmode))
+			printf ("\tint ccnt = cnt & 63;\n");
 		printf ("\tcnt &= 63;\n");
 		printf ("\tCLEAR_CZNV ();\n");
 		if (source_is_imm1_8 (curi))
@@ -3760,14 +3768,23 @@ static void gen_opcode (unsigned long int opcode)
 			genamode (curi->smode, "srcreg", curi->size, "extra", 1, 0, 0);
 			genamode (curi->dmode, "dstreg", sz_long, "dst", 2, 0, 0);
 			start_brace ();
-			printf ("\tuae_u32 bdata[2];\n");
+			if ( (curi->mnemo == i_BFCHG)
+			  || (curi->mnemo == i_BFCLR)
+			  || (curi->mnemo == i_BFSET)
+			  || (curi->mnemo == i_BFINS)
+			  || (Dreg != curi->dmode) )
+				printf ("\tuae_u32 bdata[2];\n");
 			printf ("\tuae_s32 offset = extra & 0x800 ? m68k_dreg(regs, (extra >> 6) & 7) : (extra >> 6) & 0x1f;\n");
-			printf ("\tint width = (((extra & 0x20 ? m68k_dreg(regs, extra & 7) : extra) -1) & 0x1f) +1;\n");
+			printf ("\tint width = (((extra & 0x20 ? (int)m68k_dreg(regs, extra & 7) : extra) -1) & 0x1f) +1;\n");
 			if (curi->dmode == Dreg) {
 				printf ("\tuae_u32 tmp = m68k_dreg(regs, dstreg);\n");
 				printf ("\toffset &= 0x1f;\n");
 				printf ("\ttmp = (tmp << offset) | (tmp >> (32 - offset));\n");
-				printf ("\tbdata[0] = tmp & ((1 << (32 - width)) - 1);\n");
+				if ( (curi->mnemo == i_BFCHG)
+				  || (curi->mnemo == i_BFCLR)
+				  || (curi->mnemo == i_BFSET)
+				  || (curi->mnemo == i_BFINS) )
+					printf ("\tbdata[0] = tmp & ((1 << (32 - width)) - 1);\n");
 			} else {
 				printf ("\tuae_u32 tmp;\n");
 				printf ("\tdsta += offset >> 3;\n");
@@ -4255,7 +4272,7 @@ static void generate_one_opcode (int rp, char *extra)
 		if (table68k[opcode].dpos == -1) {
 			if (((int) table68k[opcode].dreg) >= 128)
 				printf ("\tuae_u32 dstreg = (uae_s32)(uae_s8)%d;\n", (int) table68k[opcode].dreg);
-			else
+			else if ((opcode & 0xfff8) == 0xf620)
 				printf ("\tuae_u32 dstreg = %d;\n", (int) table68k[opcode].dreg);
 		} else {
 			int pos = table68k[opcode].dpos;

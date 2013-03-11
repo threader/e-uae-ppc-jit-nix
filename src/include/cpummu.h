@@ -38,7 +38,7 @@
 #if DEBUG
 #define bug write_log
 #else
-#define bug
+#define bug(...) { }
 #endif
 
 static __inline void flush_internals (void) { }

@@ -8,6 +8,11 @@
 #include "xwin.h"
 #include "custom.h"
 
+/* there is no struct vidbuffer anywhere and this file
+ * is nowhere referenced. Thus it is nulled until further notice.
+ * - Sven
+*/
+#if (0)
 static bool automatic;
 static int monitor;
 
@@ -454,3 +459,5 @@ bool emulate_specialmonitors(struct vidbuf_description *src, struct vidbuf_descr
 	}
 	return true;
 }
+
+#endif /* (0) */

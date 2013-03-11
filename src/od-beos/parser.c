@@ -91,6 +91,10 @@ void uaeser_close (void *vsd)
 {
 }
 
+/* FIXME
+ * The rest got never implemented. But here are the copy'n'paste values needed?
+ */
+#if 0
 #define SERIAL_WRITE_BUFFER 100
 #define SERIAL_READ_BUFFER 100
 static uae_u8 outputbuffer[SERIAL_WRITE_BUFFER];
@@ -99,3 +103,4 @@ static uae_u8 inputbuffer[SERIAL_READ_BUFFER];
 static int datainoutput;
 static int dataininput, dataininputcnt;
 static int writepending;
+#endif

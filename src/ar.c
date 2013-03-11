@@ -1328,6 +1328,10 @@ static uae_u8* get_checksum_location (void)
 }
 
 
+/* UNNEEDED:
+ * This is a useful function, but currently it is nowhere used.
+ */
+#if 0
 /* Replaces the existing cart checksum with a correct one. */
 /* Useful if you want to patch the rom. */
 static void action_replay_fixup_checksum (uae_u32 new_checksum)
@@ -1339,6 +1343,7 @@ static void action_replay_fixup_checksum (uae_u32 new_checksum)
 		write_log (_T("Unable to locate Checksum in ROM.\n"));
 	return;
 }
+#endif
 
 /* Longword search on word boundary
 * the search_value is assumed to already be in the local endian format

@@ -48,7 +48,8 @@ void *xcalloc (size_t n, size_t size)
 
 void xfree (const void *p)
 {
-	free ((void*)p);
+	if (p)
+		free ((void*)p);
 }
 
 #endif // 0

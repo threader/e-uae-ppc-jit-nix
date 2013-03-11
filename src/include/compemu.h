@@ -1,3 +1,6 @@
+#pragma once
+#ifndef SRC_INCLUDE_COMPEMU_H_INCLUDED
+#define SRC_INCLUDE_COMPEMU_H_INCLUDED 1
 
 #include "flags_x86.h"
 
@@ -103,7 +106,6 @@ extern int check_for_cache_miss(void);
 
 
 #define scaled_cycles(x) (currprefs.m68k_speed==-1?(((x)/SCALE)?(((x)/SCALE<MAXCYCLES?((x)/SCALE):MAXCYCLES)):1):(x))
-
 
 extern uae_u32 needed_flags;
 extern cacheline cache_tags[];
@@ -586,3 +588,5 @@ void comp_fbcc_opp (uae_u32 opcode);
 void comp_fsave_opp (uae_u32 opcode);
 void comp_frestore_opp (uae_u32 opcode);
 void comp_fpp_opp (uae_u32 opcode, uae_u16 extra);
+
+#endif // SRC_INCLUDE_COMPEMU_H_INCLUDED

@@ -141,7 +141,11 @@ void fsdb_clean_dir (a_inode *dir)
 			continue;
 		if (pos1 != pos2) {
 			fseek (f, pos1, SEEK_SET);
-			fwrite (buf, 1, sizeof buf, f);
+			size_t isWritten = fwrite (buf, 1, sizeof buf, f);
+			if (isWritten < sizeof(buf))
+				write_log("%s:%d [%s] - Failed to write %l bytes (%l/%d)",
+							 __FILE__, __LINE__, __FUNCTION__,
+							sizeof(buf) - isWritten, isWritten, sizeof(buf));
 			fseek (f, pos2 + sizeof buf, SEEK_SET);
 		}
 		pos1 += sizeof buf;
@@ -290,7 +294,11 @@ static void write_aino (FILE *f, a_inode *aino)
 	ua_copy ((char*)buf + 5 + 2 * 257, 80, aino->comment ? aino->comment : _T(""));
 	buf[5 + 2 * 257 + 80] = '\0';
 	aino->db_offset = ftell (f);
-	fwrite (buf, 1, sizeof buf, f);
+	size_t isWritten = fwrite (buf, 1, sizeof buf, f);
+	if (isWritten < sizeof(buf))
+		write_log("%s:%d [%s] - Failed to write %l bytes (%l/%d)",
+							 __FILE__, __LINE__, __FUNCTION__,
+					sizeof(buf) - isWritten, isWritten, sizeof(buf));
 	aino->has_dbentry = aino->needs_dbentry;
 	TRACE ((_T("%d '%s' '%s' written\n"), aino->db_offset, aino->aname, aino->nname));
 }
@@ -360,7 +368,11 @@ void fsdb_dir_writeback (a_inode *dir)
 	tmpbuf = 0;
 	if (size > 0) {
 		tmpbuf = (uae_u8*)malloc (size);
-		fread (tmpbuf, 1, size, f);
+		size_t isRead = fread (tmpbuf, 1, size, f);
+		if (isRead < (size_t)size)
+			write_log("%s:%d [%s] - Failed to read %l bytes (%l/%d)",
+						__FILE__, __LINE__, __FUNCTION__,
+						(size_t)size - isRead, isRead, size);
 	}
 	TRACE ((_T("**** updating '%s' %d\n"), dir->aname, size));
 

@@ -55,6 +55,10 @@ int disk_debug_track = -1;
 
 #undef CATWEASEL
 
+/* external prototypes */
+extern uae_u32 uaerand (void);
+
+/* internal members */
 static int longwritemode = 0;
 
 /* support HD floppies */
@@ -111,7 +115,7 @@ static uae_u32 dskpt;
 static bool fifo_filled;
 static uae_u16 fifo[3];
 static int fifo_inuse[3];
-static int dma_enable, bitoffset, syncoffset;
+static int dma_enable, bitoffset; //, syncoffset;
 static uae_u16 word, dsksync;
 static unsigned long dsksync_cycles;
 #define WORDSYNC_TIME 11
@@ -305,7 +309,8 @@ static void createrootblock (uae_u8 *sector, const char *disk_name)
 {
 	char *dn = ua (disk_name);
 	char *dn2 = dn;
-	dn2[30] = 0;
+	if (strlen (dn2) >= 30)
+		dn2[30] = 0;
 	if (dn2[0] == 0)
 		dn2 = "empty";
 	memset (sector, 0, FS_FLOPPY_BLOCKSIZE);
@@ -376,7 +381,13 @@ static int createfileheaderblock (struct zfile *z,uae_u8 *sector, int parent, co
 	int datablock = getblock (bitmap, prevblock);
 	int datasec = 1;
 	int extensions;
-	int extensionblock, extensioncounter, headerextension = 1;
+	int extensionblock, extensioncounter;
+/* REMOVEME:
+ * nowhere used
+ */
+#if 0
+	int headerextension = 1;
+#endif
 	int size;
 
 	zfile_fseek (src, 0, SEEK_END);
@@ -947,7 +958,10 @@ static int drive_insert (drive * drv, struct uae_prefs *p, int dnum, const TCHAR
 {
 	uae_u8 buffer[2 + 2 + 4 + 4];
 	trackid *tid;
-	int num_tracks, size;
+#ifdef CAPS
+	int num_tracks;
+#endif
+	int size;
 	int canauto;
 	const TCHAR *ext;
 
@@ -2418,12 +2432,12 @@ void DISK_reinsert (int num)
 
 int disk_setwriteprotect (struct uae_prefs *p, int num, const TCHAR *name, bool writeprotected)
 {
-	int needwritefile, oldprotect;
+	int needwritefile = 0, oldprotect;
 	struct zfile *zf1, *zf2;
 	bool wrprot1, wrprot2;
 	int i;
 	TCHAR *name2;
-	drive_type drvtype;
+	drive_type drvtype = DRV_NONE;
 
 	oldprotect = diskfile_iswriteprotect (p, name, &needwritefile, &drvtype);
 	DISK_validate_filename (p, name, 1, &wrprot1, NULL, &zf1);
@@ -2572,7 +2586,12 @@ static void DISK_check_change (void)
 	if (currprefs.floppy_speed != changed_prefs.floppy_speed)
 		currprefs.floppy_speed = changed_prefs.floppy_speed;
 	for (int i = 0; i < MAX_FLOPPY_DRIVES; i++) {
+/* REMOVEME:
+ * nowhere used
+ */
+#if 0
 		drive *drv = floppy + i;
+#endif
 		if (currprefs.floppyslots[i].dfxtype != changed_prefs.floppyslots[i].dfxtype) {
 			currprefs.floppyslots[i].dfxtype = changed_prefs.floppyslots[i].dfxtype;
 			reset_drive (i);
@@ -2845,7 +2864,13 @@ static void disk_dmafinished (void)
 	dskdmaen = DSKDMA_OFF;
 	dsklength = 0;
 	if (disk_debug_logging > 0) {
-		int dr, mfmpos = -1;
+		int dr;
+/* REMOVEME:
+ * nowhere used
+ */
+#if 0
+		int mfmpos = -1;
+#endif
 		write_log (_T("disk dma finished %08X MFMpos="), dskpt);
 		for (dr = 0; dr < MAX_FLOPPY_DRIVES; dr++)
 			write_log (_T("%d%s"), floppy[dr].mfmpos, dr < MAX_FLOPPY_DRIVES - 1 ? _T(",") : _T(""));
@@ -2884,7 +2909,12 @@ void DISK_handler (uae_u32 data)
 {
 	int flag = data & 255;
 	int disk_sync_cycle = data >> 8;
+/* REMOVEME:
+ * nowhere used
+ */
+#if 0
 	int hpos = current_hpos ();
+#endif
 
 	event2_remevent (ev2_disk);
 	DISK_update (disk_sync_cycle);
@@ -3103,7 +3133,12 @@ static int doreaddma (void)
 
 static void disk_doupdate_read_nothing (int floppybits)
 {
+/* REMOVEME:
+ * nowhere used
+ */
+#if 0
 	int j = 0, k = 1, l = 0;
+#endif
 
 	while (floppybits >= get_floppy_speed ()) {
 		word <<= 1;
@@ -3293,7 +3328,12 @@ void DISK_update (int tohpos)
 {
 	int dr;
 	int cycles;
+/* REMOVEME:
+ * nowhere used
+ */
+#if 0
 	int startcycle = disk_hpos;
+#endif
 
 	if (disk_hpos < 0) {
 		disk_hpos = - disk_hpos;
@@ -4204,7 +4244,10 @@ int disk_prevnext (int drive, int dir)
 	return 1;
 }
 
+/// REMOVEME: nowhere used
+#if 0
 int getdebug(void)
 {
 	return floppy[0].mfmpos;
 }
+#endif

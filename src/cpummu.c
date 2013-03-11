@@ -224,7 +224,7 @@ static void mmu_dump_table(const char * label, uaecptr root_ptr)
 #endif
 
 /* {{{ mmu_dump_atc */
-void mmu_dump_atc(void)
+static void mmu_dump_atc(void)
 {
 
 }
@@ -639,7 +639,7 @@ uae_u32 REGPARAM2 mmu_get_long_unaligned(uaecptr addr, bool data, bool rmw)
 	return res;
 }
 
-uae_u16 REGPARAM2 mmu_get_lrmw_word_unaligned(uaecptr addr)
+static uae_u16 REGPARAM2 mmu_get_lrmw_word_unaligned(uaecptr addr)
 {
 	uae_u16 res;
 
@@ -657,7 +657,7 @@ uae_u16 REGPARAM2 mmu_get_lrmw_word_unaligned(uaecptr addr)
 	return res;
 }
 
-uae_u32 REGPARAM2 mmu_get_lrmw_long_unaligned(uaecptr addr)
+static uae_u32 REGPARAM2 mmu_get_lrmw_long_unaligned(uaecptr addr)
 {
 	uae_u32 res;
 

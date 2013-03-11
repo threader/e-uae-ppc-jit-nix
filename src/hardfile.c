@@ -1153,7 +1153,8 @@ int scsi_hd_emulate (struct hardfiledata *hfd, struct hd_hardfiledata *hdhfd, ua
 		if (!len)
 			len = 256;
 		len *= hfd->ci.blocksize;
-		if (checkbounds(hfd, offset, len))
+		if (!checkbounds(hfd, offset, len))
+			goto outofbounds;
 			scsi_len = (uae_u32)cmd_readx (hfd, scsi_data, offset, len);
 		break;
 	case 0x0a: /* WRITE (6) */
@@ -1167,7 +1168,8 @@ int scsi_hd_emulate (struct hardfiledata *hfd, struct hd_hardfiledata *hdhfd, ua
 		if (!len)
 			len = 256;
 		len *= hfd->ci.blocksize;
-		if (checkbounds(hfd, offset, len))
+		if (!checkbounds(hfd, offset, len))
+			goto outofbounds;
 			scsi_len = (uae_u32)cmd_writex (hfd, scsi_data, offset, len);
 		break;
 	case 0x12: /* INQUIRY */
@@ -1346,7 +1348,8 @@ int scsi_hd_emulate (struct hardfiledata *hfd, struct hd_hardfiledata *hdhfd, ua
 		offset *= hfd->ci.blocksize;
 		len = rl (cmdbuf + 7 - 2) & 0xffff;
 		len *= hfd->ci.blocksize;
-		if (checkbounds (hfd, offset, len))
+		if (!checkbounds (hfd, offset, len))
+			goto outofbounds;
 			scsi_len = (uae_u32)cmd_readx (hfd, scsi_data, offset, len);
 		break;
 	case 0x2a: /* WRITE (10) */
@@ -1358,7 +1361,8 @@ int scsi_hd_emulate (struct hardfiledata *hfd, struct hd_hardfiledata *hdhfd, ua
 		offset *= hfd->ci.blocksize;
 		len = rl (cmdbuf + 7 - 2) & 0xffff;
 		len *= hfd->ci.blocksize;
-		if (checkbounds (hfd, offset, len))
+		if (!checkbounds (hfd, offset, len))
+			goto outofbounds;
 			scsi_len = (uae_u32)cmd_writex (hfd, scsi_data, offset, len);
 		break;
 #if 0
@@ -1399,7 +1403,8 @@ int scsi_hd_emulate (struct hardfiledata *hfd, struct hd_hardfiledata *hdhfd, ua
 		offset *= hfd->ci.blocksize;
 		len = rl (cmdbuf + 6);
 		len *= hfd->ci.blocksize;
-		if (checkbounds(hfd, offset, len))
+		if (!checkbounds(hfd, offset, len))
+			goto outofbounds;
 			scsi_len = (uae_u32)cmd_readx (hfd, scsi_data, offset, len);
 		break;
 	case 0xaa: /* WRITE (12) */
@@ -1411,7 +1416,8 @@ int scsi_hd_emulate (struct hardfiledata *hfd, struct hd_hardfiledata *hdhfd, ua
 		offset *= hfd->ci.blocksize;
 		len = rl (cmdbuf + 6);
 		len *= hfd->ci.blocksize;
-		if (checkbounds(hfd, offset, len))
+		if (!checkbounds(hfd, offset, len))
+			goto outofbounds;
 			scsi_len = (uae_u32)cmd_writex (hfd, scsi_data, offset, len);
 		break;
 	case 0x37: /* READ DEFECT DATA */
@@ -1450,6 +1456,14 @@ errreq:
 		s[0] = 0x70;
 		s[2] = 5; /* ILLEGAL REQUEST */
 		s[12] = 0x24; /* ILLEGAL FIELD IN CDB */
+		ls = 0x12;
+		break;
+outofbounds:
+		lr = -1;
+		status = 2; /* CHECK CONDITION */
+		s[0] = 0x70;
+		s[2] = 5; /* ILLEGAL REQUEST */
+		s[12] = 0x21; /* LOGICAL BLOCK OUT OF RANGE */
 		ls = 0x12;
 		break;
 miscompare:

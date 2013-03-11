@@ -136,6 +136,9 @@ struct wh {
 #define BOOTPRI_NOAUTOMOUNT -129
 #define ISAUTOBOOT(ci) ((ci)->bootpri > BOOTPRI_NOAUTOBOOT)
 #define ISAUTOMOUNT(ci) ((ci)->bootpri > BOOTPRI_NOAUTOMOUNT)
+#ifndef HAS_UAEDEV_CONFIG_INFO
+# define HAS_UAEDEV_CONFIG_INFO 1
+#endif // HAS_UAEDEV_CONFIG_INFO
 struct uaedev_config_info {
 	int type;
 	TCHAR devname[MAX_DPATH];
@@ -170,6 +173,9 @@ struct uaedev_config_info {
 
 };
 
+#ifndef HAS_UAEDEV_CONFIG_DATA
+# define HAS_UAEDEV_CONFIG_DATA 1
+#endif // HAS_UAEDEV_CONFIG_DATA
 struct uaedev_config_data
 {
 	struct uaedev_config_info ci;
@@ -236,6 +242,8 @@ struct apmode
 	// -1 = wait for flip, before frame ends
 	// 1 = wait for flip, after new frame has started
 	int gfx_vflip;
+	// doubleframemode strobo
+	bool gfx_strobo;
 	int gfx_vsyncmode;
 	int gfx_backbuffers;
 	bool gfx_interlaced;
@@ -525,60 +533,7 @@ struct uae_prefs {
 	int svga_no_linear;
 #endif
 
-#ifdef _WIN32
-	bool win32_middle_mouse;
-	bool win32_logfile;
-	bool win32_notaskbarbutton;
-	bool win32_nonotificationicon;
-	bool win32_alwaysontop;
-	bool win32_powersavedisabled;
-	bool win32_minimize_inactive;
-	int win32_statusbar;
-	bool win32_start_minimized;
-	bool win32_start_uncaptured;
-
-	int win32_active_capture_priority;
-	bool win32_active_nocapture_pause;
-	bool win32_active_nocapture_nosound;
-	int win32_inactive_priority;
-	bool win32_inactive_pause;
-	bool win32_inactive_nosound;
-	int win32_iconified_priority;
-	bool win32_iconified_pause;
-	bool win32_iconified_nosound;
-
-	bool win32_rtgmatchdepth;
-	int win32_rtgscalemode;
-	bool win32_rtgallowscaling;
-	int win32_rtgscaleaspectratio;
 	int win32_rtgvblankrate;
-	bool win32_borderless;
-	bool win32_ctrl_F11_is_quit;
-	bool win32_automount_removable;
-	bool win32_automount_drives;
-	bool win32_automount_cddrives;
-	bool win32_automount_netdrives;
-	bool win32_automount_removabledrives;
-	int win32_midioutdev;
-	int win32_midiindev;
-	bool win32_midirouter;
-	int win32_uaescsimode;
-	int win32_soundcard;
-	int win32_samplersoundcard;
-	bool win32_norecyclebin;
-	int win32_guikey;
-	int win32_kbledmode;
-	bool win32_blankmonitors;
-	TCHAR win32_commandpathstart[MAX_DPATH];
-	TCHAR win32_commandpathend[MAX_DPATH];
-	TCHAR win32_parjoyport0[MAX_DPATH];
-	TCHAR win32_parjoyport1[MAX_DPATH];
-	TCHAR win32_guipage[32];
-	TCHAR win32_guiactivepage[32];
-	bool win32_filesystem_mangle_reserved_names;
-#endif
-	int win32_rtgvblankrate;
-
 #ifdef USE_CURSES_GFX
 	int curses_reverse_video;
 #endif

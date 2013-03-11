@@ -278,7 +278,7 @@ static void xlinecheck (unsigned int start, unsigned int end)
 	}
 }
 #else
-#define xlinecheck
+#define xlinecheck(...) { }
 #endif
 
 
@@ -569,7 +569,12 @@ int get_custom_limits (int *pw, int *ph, int *pdx, int *pdy, int *prealh)
 
 void get_custom_mouse_limits (int *pw, int *ph, int *pdx, int *pdy, int dbl)
 {
+/* REMOVEME:
+ * nowhere used
+ */
+#if 0
 	int delay1, delay2;
+#endif
 	int w, h, dx, dy, dbl1, dbl2, y1, y2;
 
 	w = diwlastword_total - diwfirstword_total;
@@ -595,8 +600,8 @@ void get_custom_mouse_limits (int *pw, int *ph, int *pdx, int *pdy, int dbl)
 	if (*ph > 0)
 		h = *ph;
 
-	delay1 = (firstword_bplcon1 & 0x0f) | ((firstword_bplcon1 & 0x0c00) >> 6);
-	delay2 = ((firstword_bplcon1 >> 4) & 0x0f) | (((firstword_bplcon1 >> 4) & 0x0c00) >> 6);
+//	delay1 = (firstword_bplcon1 & 0x0f) | ((firstword_bplcon1 & 0x0c00) >> 6);
+//	delay2 = ((firstword_bplcon1 >> 4) & 0x0f) | (((firstword_bplcon1 >> 4) & 0x0c00) >> 6);
 //	if (delay1 == delay2)
 //		dx += delay1;
 
@@ -991,9 +996,9 @@ STATIC_INLINE uae_u8 render_sprites (int pos, int dualpf, uae_u8 apixel, int aga
 	return 0;
 }
 
-#include "linetoscr.c"
-
 #define LTPARMS src_pixel, start, stop
+
+#include "linetoscr.c"
 
 #ifdef ECS_DENISE
 /* ECS SuperHires special cases */
@@ -1964,7 +1969,12 @@ STATIC_INLINE void do_flush_screen (int start, int stop)
  * form. */
 static void pfield_expand_dp_bplcon (void)
 {
+/* REMOVEME:
+ * nowhere used
+ */
+#if 0
 	static int b2;
+#endif
 
 	bplres = dp_for_drawing->bplres;
 	bplplanecnt = dp_for_drawing->nr_planes;
@@ -2143,7 +2153,12 @@ enum double_how {
 
 static void pfield_draw_line (int lineno, int gfx_ypos, int follow_ypos)
 {
+/* REMOVEME:
+ * nowhere set to anything initially
+ */
+#if 0
 	static int warned = 0;
+#endif
 	int border = 0;
 	int do_double = 0;
 	enum double_how dh;
@@ -2154,8 +2169,13 @@ static void pfield_draw_line (int lineno, int gfx_ypos, int follow_ypos)
 	switch (linestate[lineno])
 	{
 	case LINE_REMEMBERED_AS_PREVIOUS:
-//		if (!warned) // happens when program messes up with VPOSW
-//			write_log (_T("Shouldn't get here... this is a bug.\n")), warned++;
+/* REMOVEME:
+ * nowhere set to anything initially
+ */
+#if 0
+		if (!warned) // happens when program messes up with VPOSW
+			write_log (_T("Shouldn't get here... this is a bug.\n")), warned++;
+#endif
 		return;
 
 	case LINE_BLACK:
@@ -2583,13 +2603,24 @@ void putpixel (uae_u8 *buf, int bpp, int x, xcolnr c8, int opaq)
 
 static void draw_status_line (int line, int statusy)
 {
-	int bpp, y;
+/* REMOVEME:
+ * nowhere used
+ */
+#if 0
+	int y;
+#endif
+	int bpp;
 	uae_u8 *buf;
 
 	if (!(currprefs.leds_on_screen & STATUSLINE_CHIPSET) || (currprefs.leds_on_screen & STATUSLINE_TARGET))
 		return;
 	bpp = gfxvidinfo.pixbytes;
+/* REMOVEME:
+ * nowhere used
+ */
+#if 0
 	y = line - (gfxvidinfo.outheight - TD_TOTAL_HEIGHT);
+#endif
 	xlinebuffer = gfxvidinfo.linemem;
 	if (xlinebuffer == 0)
 		xlinebuffer = row_map[line];
@@ -2608,6 +2639,11 @@ static void draw_debug_status_line (int line)
 #define LIGHTPEN_HEIGHT 12
 #define LIGHTPEN_WIDTH 17
 
+/* UNUSED:
+ * only used by lightpen_update(), which is unused since its
+ * call in finish_drawing_frame() is marked "if 0".
+ */
+#if 0
 static const char *lightpen_cursor = {
 	"------.....------"
 	"------.xxx.------"
@@ -2642,9 +2678,15 @@ static void draw_lightpen_cursor (int x, int y, int line, int onscreen)
 		p++;
 	}
 }
+#endif
 
 static int lightpen_y1, lightpen_y2;
 
+/* UNUSED:
+ * the only call is in finish_drawing_frame(), but
+ * it has been marked out with "if 0"
+ */
+#if 0
 static void lightpen_update (void)
 {
 	int i;
@@ -2689,6 +2731,7 @@ static void lightpen_update (void)
 	if (lightpen_active < 0)
 		lightpen_active = 0;
 }
+#endif
 
 void finish_drawing_frame (void)
 {
@@ -2769,6 +2812,10 @@ void finish_drawing_frame (void)
 	}
 #endif
 
+/* UNUSED:
+ *
+ * Why is this unused? (Was already marked "if 0")
+ */
 #if 0
 	if (lightpen_active)
 		lightpen_update ();
@@ -2971,6 +3018,10 @@ void hsync_record_line_state (int lineno, enum nln_how how, int changed)
 	}
 }
 
+/* REMOVEME:
+ * nowhere used
+ */
+#if 0
 static void dummy_flush_line (struct vidbuf_description *gfxinfo, int line_no)
 {
 }
@@ -3005,6 +3056,7 @@ static void gfxbuffer_reset (void)
 	gfxvidinfo.lockscr            = dummy_lock;
 	gfxvidinfo.unlockscr          = dummy_unlock;
 }
+#endif
 
 void notice_resolution_seen (int res, bool lace)
 {
@@ -3090,7 +3142,12 @@ void drawing_init (void)
 	xlinebuffer = gfxvidinfo.bufmem;
 	inhibit_frame = 0;
 
+/* REMOVEME
+ * orphaned
+ */
+#if 0
 //	gfxbuffer_reset ();
+#endif
 	reset_drawing ();
 }
 

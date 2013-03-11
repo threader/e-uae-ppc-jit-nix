@@ -1,3 +1,7 @@
+#pragma once
+#ifndef SRC_INCLUDE_CIA_H_INCLUDED
+#define SRC_INCLUDE_CIA_H_INCLUDED 1
+
  /*
   * UAE - The Un*x Amiga Emulator
   *
@@ -28,3 +32,5 @@ extern int parallel_direct_write_status (uae_u8, uae_u8);
 extern int parallel_direct_read_status (uae_u8*);
 
 extern void rtc_hardreset (void);
+
+#endif // SRC_INCLUDE_CIA_H_INCLUDED

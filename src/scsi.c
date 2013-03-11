@@ -94,6 +94,7 @@ void scsi_emulate_cmd(struct scsi_data *sd)
 	if (sd->cd_emu_unit >= 0) {
 		if (sd->cmd[0] == 0x03) { /* REQUEST SENSE */
 			int len = sd->cmd[4];
+			scsi_cd_emulate(sd->cd_emu_unit, sd->cmd, 0, 0, 0, 0, 0, 0, 0, sd->atapi); /* ack request sense */
 			memset (sd->buffer, 0, len);
 			memcpy (sd->buffer, sd->sense, sd->sense_len > len ? len : sd->sense_len);
 			sd->data_len = len;

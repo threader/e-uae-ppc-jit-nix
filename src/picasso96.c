@@ -123,7 +123,7 @@ static uae_u32 cursorrgb[4], cursorrgbn[4];
 static int cursordeactivate, setupcursor_needed;
 static bool cursorvisible;
 //static HCURSOR wincursor;
-static int wincursor_shown;
+/// REMOVEME: nowhere used: static int wincursor_shown;
 static uaecptr boardinfo, ABI_interrupt;
 static int interrupt_enabled;
 double p96vblank;
@@ -456,6 +456,8 @@ static int CopyTemplateStructureA2U (uaecptr amigamemptr, struct Template *tmpl)
 	return 0;
 }
 
+/// REMOVEME: nowhere used
+#if 0
 static int CopyLineStructureA2U(uaecptr amigamemptr, struct Line *line)
 {
 	if (valid_address(amigamemptr, sizeof(struct Line))) {
@@ -480,6 +482,8 @@ static int CopyLineStructureA2U(uaecptr amigamemptr, struct Line *line)
 	write_log (_T("ERROR - Invalid Line structure...\n"));
 	return 0;
 }
+#endif // 0
+
 
 /* list is Amiga address of list, in correct endian format for UAE
 * node is Amiga address of node, in correct endian format for UAE */
@@ -491,6 +495,9 @@ static void AmigaListAddTail (uaecptr l, uaecptr n)
 	put_long (l + 8, n); // l->lh_TailPred = n;
 }
 
+
+/// REMOVEME: nowhere used
+#if 0
 static int renderinfo_is_current_screen (struct RenderInfo *ri)
 {
 	if (! picasso_on)
@@ -499,6 +506,8 @@ static int renderinfo_is_current_screen (struct RenderInfo *ri)
 		return 0;
 	return 1;
 }
+#endif // 0
+
 
 /*
 * Fill a rectangle in the screen.
@@ -569,9 +578,12 @@ static int newcursor_x, newcursor_y;
 
 static void mouseupdate (void)
 {
-	int x = newcursor_x;
+/// UNUSED: needed for setcursor, only D3D variant present
+/*	int x = newcursor_x;
 	int y = newcursor_y;
-	int forced = 0;
+*/
+/// REMOVEME: nowhere used
+//	int forced = 0;
 
 	if (!hwsprite)
 		return;
@@ -884,7 +896,8 @@ static void setconvert (void)
 */
 void picasso_refresh (void)
 {
-	struct RenderInfo ri;
+/// REMOVEME: nowehere used
+//	struct RenderInfo ri;
 
 	if (! picasso_on)
 		return;
@@ -897,27 +910,40 @@ void picasso_refresh (void)
 	* We can do this by checking if we have an Address yet. 
 	*/
 	if (picasso96_state.Address) {
+/// REMOVEME: nowehere used
+#if 0
 		unsigned int width, height;
+#endif // 0
 
 		/* blit the stuff from our static frame-buffer to the gfx-card */
+/// REMOVEME: nowehere used
+#if 0
 		ri.Memory = gfxmemory + (picasso96_state.Address - gfxmem_start);
 		ri.BytesPerRow = picasso96_state.BytesPerRow;
 		ri.RGBFormat = picasso96_state.RGBFormat;
+#endif // 0
 
 		if (set_panning_called) {
+/// REMOVEME: nowhere used
+#if 0
 			width = (picasso96_state.VirtualWidth < picasso96_state.Width) ?
 				picasso96_state.VirtualWidth : picasso96_state.Width;
 			height = (picasso96_state.VirtualHeight < picasso96_state.Height) ?
 				picasso96_state.VirtualHeight : picasso96_state.Height;
+#endif // 0
 			// Let's put a black-border around the case where we've got a sub-screen...
 			if (!picasso96_state.BigAssBitmap) {
 				if (picasso96_state.XOffset || picasso96_state.YOffset)
 					DX_Fill (0, 0, picasso96_state.Width, picasso96_state.Height, 0, picasso96_state.RGBFormat);
 			}
-		} else {
+		}
+/// REMOVEME: nowhere used
+#if 0
+		else {
 			width = picasso96_state.Width;
 			height = picasso96_state.Height;
 		}
+#endif // 0
 	} else {
 		write_log (_T("ERROR - picasso_refresh() can't refresh!\n"));
 	}
@@ -926,6 +952,7 @@ void picasso_refresh (void)
 #define BLT_SIZE 4
 #define BLT_MULT 1
 #define BLT_NAME BLIT_FALSE_32
+#undef  BLT_NEED_SOURCE
 #define BLT_FUNC(s,d) *d = 0
 #include "p96_blit.c"
 #define BLT_NAME BLIT_NOR_32
@@ -941,6 +968,7 @@ void picasso_refresh (void)
 #define BLT_FUNC(s,d) *d = (*s) & ~(*d)
 #include "p96_blit.c"
 #define BLT_NAME BLIT_NOTDST_32
+#undef  BLT_NEED_SOURCE
 #define BLT_FUNC(s,d) *d = ~(*d)
 #include "p96_blit.c"
 #define BLT_NAME BLIT_EOR_32
@@ -965,6 +993,7 @@ void picasso_refresh (void)
 #define BLT_FUNC(s,d) *d = (*s) | (*d)
 #include "p96_blit.c"
 #define BLT_NAME BLIT_TRUE_32
+#undef  BLT_NEED_SOURCE
 #define BLT_FUNC(s,d) *d = 0xffffffff
 #include "p96_blit.c"
 #define BLT_NAME BLIT_SWAP_32
@@ -977,6 +1006,7 @@ void picasso_refresh (void)
 #define BLT_SIZE 3
 #define BLT_MULT 1
 #define BLT_NAME BLIT_FALSE_24
+#undef  BLT_NEED_SOURCE
 #define BLT_FUNC(s,d) *d = 0
 #include "p96_blit.c"
 #define BLT_NAME BLIT_NOR_24
@@ -992,6 +1022,7 @@ void picasso_refresh (void)
 #define BLT_FUNC(s,d) *d = (*s) & ~(*d)
 #include "p96_blit.c"
 #define BLT_NAME BLIT_NOTDST_24
+#undef  BLT_NEED_SOURCE
 #define BLT_FUNC(s,d) *d = ~(*d)
 #include "p96_blit.c"
 #define BLT_NAME BLIT_EOR_24
@@ -1016,7 +1047,8 @@ void picasso_refresh (void)
 #define BLT_FUNC(s,d) *d = (*s) | (*d)
 #include "p96_blit.c"
 #define BLT_NAME BLIT_TRUE_24
-//#define BLT_FUNC(s,d) *d = 0xffffffff
+#undef  BLT_NEED_SOURCE
+// Note: We use 0xff, because the 3-byte funcs operate byte-by-byte
 #define BLT_FUNC(s,d) *d = 0xff
 #include "p96_blit.c"
 #define BLT_NAME BLIT_SWAP_24
@@ -1029,6 +1061,7 @@ void picasso_refresh (void)
 #define BLT_SIZE 2
 #define BLT_MULT 2
 #define BLT_NAME BLIT_FALSE_16
+#undef  BLT_NEED_SOURCE
 #define BLT_FUNC(s,d) *d = 0
 #include "p96_blit.c"
 #define BLT_NAME BLIT_NOR_16
@@ -1044,6 +1077,7 @@ void picasso_refresh (void)
 #define BLT_FUNC(s,d) *d = (*s) & ~(*d)
 #include "p96_blit.c"
 #define BLT_NAME BLIT_NOTDST_16
+#undef  BLT_NEED_SOURCE
 #define BLT_FUNC(s,d) *d = ~(*d)
 #include "p96_blit.c"
 #define BLT_NAME BLIT_EOR_16
@@ -1068,7 +1102,7 @@ void picasso_refresh (void)
 #define BLT_FUNC(s,d) *d = (*s) | (*d)
 #include "p96_blit.c"
 #define BLT_NAME BLIT_TRUE_16
-//#define BLT_FUNC(s,d) *d = 0xffffffff
+#undef  BLT_NEED_SOURCE
 #define BLT_FUNC(s,d) *d = 0xffff
 #include "p96_blit.c"
 #define BLT_NAME BLIT_SWAP_16
@@ -1081,6 +1115,7 @@ void picasso_refresh (void)
 #define BLT_SIZE 1
 #define BLT_MULT 4
 #define BLT_NAME BLIT_FALSE_8
+#undef  BLT_NEED_SOURCE
 #define BLT_FUNC(s,d) *d = 0
 #include "p96_blit.c"
 #define BLT_NAME BLIT_NOR_8
@@ -1096,6 +1131,7 @@ void picasso_refresh (void)
 #define BLT_FUNC(s,d) *d = (*s) & ~(*d)
 #include "p96_blit.c"
 #define BLT_NAME BLIT_NOTDST_8
+#undef  BLT_NEED_SOURCE
 #define BLT_FUNC(s,d) *d = ~(*d)
 #include "p96_blit.c"
 #define BLT_NAME BLIT_EOR_8
@@ -1120,7 +1156,7 @@ void picasso_refresh (void)
 #define BLT_FUNC(s,d) *d = (*s) | (*d)
 #include "p96_blit.c"
 #define BLT_NAME BLIT_TRUE_8
-//#define BLT_FUNC(s,d) *d = 0xffffffff
+#undef  BLT_NEED_SOURCE
 #define BLT_FUNC(s,d) *d = 0xff
 #include "p96_blit.c"
 #define BLT_NAME BLIT_SWAP_8
@@ -1129,6 +1165,7 @@ void picasso_refresh (void)
 #include "p96_blit.c"
 #undef BLT_SIZE
 #undef BLT_MULT
+#undef BLT_NEED_SOURCE
 
 #define PARMS width, height, src, dst, ri->BytesPerRow, dstri->BytesPerRow
 
@@ -1712,7 +1749,7 @@ static void init_alloc (TrapContext *ctx, int size)
 {
 	picasso96_amem = picasso96_amemend = 0;
 	if (uaegfx_base) {
-		int size = get_long (uaegfx_base + CARD_RESLISTSIZE);
+		/// REMOVEME: unused: int size = get_long (uaegfx_base + CARD_RESLISTSIZE);
 		picasso96_amem = get_long (uaegfx_base + CARD_RESLIST);
 	} else if (uaegfx_active) {
 		reserved_gfxmem = size;
@@ -2304,16 +2341,16 @@ static uae_u32 REGPARAM2 picasso_SetPanning (TrapContext *ctx)
 	uaecptr bi = m68k_areg (regs, 0);
 	uaecptr bmeptr = get_long (bi + PSSO_BoardInfo_BitMapExtra);  /* Get our BoardInfo ptr's BitMapExtra ptr */
 	uae_u16 bme_width, bme_height;
-	int changed = 0;
+	/// REMOVEME: int changed = 0;
 	RGBFTYPE rgbf;
 
 	if (oldscr == 0) {
 		oldscr = start_of_screen;
-		changed = 1;
+	/// REMOVEME: 	changed = 1;
 	}
 	if (oldscr != start_of_screen) {
 		oldscr = start_of_screen;
-		changed = 1;
+	/// REMOVEME: 	changed = 1;
 	}
 
 	bme_width = get_word (bmeptr + PSSO_BitMapExtra_Width);
@@ -2426,7 +2463,7 @@ static uae_u32 REGPARAM2 picasso_InvertRect (TrapContext *ctx)
 	uae_u32 xorval;
 	unsigned int lines;
 	struct RenderInfo ri;
-	uae_u8 *uae_mem, *rectstart;
+	uae_u8 *uae_mem; /// REMOVEME: unused: , *rectstart;
 	unsigned long width_in_bytes;
 	uae_u32 result = 0;
 
@@ -2440,7 +2477,7 @@ static uae_u32 REGPARAM2 picasso_InvertRect (TrapContext *ctx)
 
 		xorval = 0x01010101 * (mask & 0xFF);
 		width_in_bytes = Bpp * Width;
-		rectstart = uae_mem = ri.Memory + Y * ri.BytesPerRow + X * Bpp;
+		/* REMOVEME rectstart = */ uae_mem = ri.Memory + Y * ri.BytesPerRow + X * Bpp;
 
 		for (lines = 0; lines < Height; lines++, uae_mem += ri.BytesPerRow)
 			do_xor8 (uae_mem, width_in_bytes, xorval);
@@ -2685,7 +2722,7 @@ static uae_u32 REGPARAM2 picasso_BlitRectNoMaskComplete (TrapContext *ctx)
 	unsigned long width = (uae_u16)m68k_dreg (regs, 4);
 	unsigned long height = (uae_u16)m68k_dreg (regs, 5);
 	BLIT_OPCODE OpCode = (BLIT_OPCODE)(m68k_dreg (regs, 6) & 0xff);
-	uae_u32 RGBFmt = m68k_dreg (regs, 7);
+	/// REMOVEME: unused: uae_u32 RGBFmt = m68k_dreg (regs, 7);
 	uae_u32 result = 0;
 
 	if (NOBLITTER_BLIT)
@@ -3703,7 +3740,7 @@ static bool flushpixels (void)
 			for (i = 0; (ULONG)i < gwwcnt; i++)
 				gwwbuf[i] = src_start + i * gwwpagesize;
 		} else {
-			ULONG ps;
+			/*ULONG ps;*/
 			gwwcnt = gwwbufsize;
 			/*if (mman_GetWriteWatch (src_start, src_end - src_start, gwwbuf, &gwwcnt, &ps))
 				break;*/
@@ -3931,7 +3968,7 @@ void InitPicasso96 (void)
 
 static uae_u32 REGPARAM2 picasso_SetInterrupt (TrapContext *ctx)
 {
-	uaecptr bi = m68k_areg (regs, 0);
+	/// REMOVEME: unused: uaecptr bi = m68k_areg (regs, 0);
 	uae_u32 onoff = m68k_dreg (regs, 0);
 	interrupt_enabled = onoff;
 	//write_log (_T("Picasso_SetInterrupt(%08x,%d)\n"), bi, onoff);
@@ -3978,13 +4015,18 @@ static void initvblankirq (TrapContext *ctx, uaecptr base)
 	CallLib (ctx, get_long (4), -168);	/* AddIntServer */
 }
 
+/// UNUSED: called only in inituaegfxfuncs(), but commented out there
+#if 0
 static uae_u32 REGPARAM2 picasso_SetClock(TrapContext *ctx)
 {
 	uaecptr bi = m68k_areg (regs, 0);
 	P96TRACE((_T("SetClock\n")));
 	return 0;
 }
+#endif // 0
 
+/// UNUSED: called only in inituaegfxfuncs(), but commented out there
+#if 0
 static uae_u32 REGPARAM2 picasso_SetMemoryMode(TrapContext *ctx)
 {
 	uaecptr bi = m68k_areg (regs, 0);
@@ -3992,6 +4034,7 @@ static uae_u32 REGPARAM2 picasso_SetMemoryMode(TrapContext *ctx)
 	P96TRACE((_T("SetMemoryMode\n")));
 	return 0;
 }
+#endif // 0
 
 #define PUTABI(func) \
 	if (ABI) \

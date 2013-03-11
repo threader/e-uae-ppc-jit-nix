@@ -617,10 +617,10 @@ static bool isaudiotrack (int startlsn)
 
 static struct cd_toc *get_track (int startlsn)
 {
-	for (unsigned int i = cdrom_toc_cd_buffer.first_track_offset + 1; i <= cdrom_toc_cd_buffer.last_track_offset; i++) {
+	for (int i = cdrom_toc_cd_buffer.first_track_offset + 1; i <= cdrom_toc_cd_buffer.last_track_offset; i++) {
 		struct cd_toc *s = &cdrom_toc_cd_buffer.toc[i];
-		uae_u32 addr = s->paddress;
-		if (startlsn < addr)
+		size_t addr = (size_t)s->paddress;
+		if ((size_t)startlsn < addr)
 			return s - 1;
 	}
 	return NULL;
@@ -859,12 +859,17 @@ static int cdrom_command_led (void)
 	return 0;
 }
 
+/** REMOVEME:
+  * nowhere used
+**/
+#if 0
 static int cdrom_command_idle_status (void)
 {
 	cdrom_result_buffer[0] = 0x0a;
 	cdrom_result_buffer[1] = 0x70;
 	return 2;
 }
+#endif // 0
 
 static int cdrom_command_media_status (void)
 {
@@ -1484,8 +1489,15 @@ STATIC_INLINE void akiko_put_long (uae_u32 *p, int offset, int v)
 static uae_u32 REGPARAM3 akiko_lget (uaecptr) REGPARAM;
 static uae_u32 REGPARAM3 akiko_wget (uaecptr) REGPARAM;
 static uae_u32 REGPARAM3 akiko_bget (uaecptr) REGPARAM;
+
+/** REMOVEME:
+  * Nowhere defined, nowhere used
+**/
+#if 0
 static uae_u32 REGPARAM3 akiko_lgeti (uaecptr) REGPARAM;
 static uae_u32 REGPARAM3 akiko_wgeti (uaecptr) REGPARAM;
+#endif // 0
+
 static void REGPARAM3 akiko_lput (uaecptr, uae_u32) REGPARAM;
 static void REGPARAM3 akiko_wput (uaecptr, uae_u32) REGPARAM;
 static void REGPARAM3 akiko_bput (uaecptr, uae_u32) REGPARAM;

@@ -1,3 +1,7 @@
+#pragma once
+#ifndef SRC_INCLUDE_AUTOCONF_H_INCLUDED
+#define SRC_INCLUDE_AUTOCONF_H_INCLUDED 1
+
  /*
   * UAE - The Un*x Amiga Emulator
   *
@@ -22,6 +26,10 @@ struct uae_prefs;
 #ifndef HAS_UAEDEV_CONFIG_INFO
 struct uaedev_config_info;
 #endif // HAS_UAEDEV_CONFIG_INFO
+
+#ifndef HAS_UAEDEV_CONFIG_DATA
+struct uaedev_config_data;
+#endif // HAS_UAEDEV_CONFIG_DATA
 
 struct uaedev_mount_info;
 
@@ -105,3 +113,5 @@ extern void emulib_install (void);
 extern void expansion_init (void);
 extern void expansion_cleanup (void);
 extern void expansion_clear (void);
+
+#endif // SRC_INCLUDE_AUTOCONF_H_INCLUDED

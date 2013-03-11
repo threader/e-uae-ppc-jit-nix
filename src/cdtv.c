@@ -315,9 +315,9 @@ static void startplay (void)
 static int play_cdtrack (uae_u8 *p)
 {
 	int track_start = p[1];
-	int index_start = p[2];
+	/// REMOVEME: nowhere used : int index_start = p[2];
 	int track_end = p[3];
-	int index_end = p[4];
+	/// REMOVEME: nowhere used : int index_end = p[4];
 	int start_found, end_found;
 	uae_u32 start, end;
 	int j;
@@ -1218,6 +1218,11 @@ static void do_stch (void)
 	}
 }
 
+/** REMOVEME:
+  * nowhere used. All I found was the comment
+  * "bleh for compatibility" in cfgfile.c
+**/
+#if 0
 void bleh (void)
 {
 #if 0
@@ -1227,6 +1232,7 @@ void bleh (void)
 	do_stch();
 #endif
 }
+#endif // 0
 
 static void cdtv_reset_int (void)
 {

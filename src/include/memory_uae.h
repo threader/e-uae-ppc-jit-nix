@@ -126,8 +126,10 @@ extern addrbank rtarea_bank;
 extern addrbank expamem_bank;
 extern addrbank fastmem_bank;
 extern addrbank gfxmem_bank;
+#ifdef GAYLE
 extern addrbank gayle_bank;
 extern addrbank gayle2_bank;
+#endif // GAYLE
 extern addrbank mbres_bank;
 extern addrbank akiko_bank;
 extern addrbank cardmem_bank;
@@ -333,6 +335,13 @@ extern uae_u8 *(REGPARAM3 *chipmem_xlate_indirect)(uaecptr) REGPARAM;
 
 #ifdef NATMEM_OFFSET
 
+#ifdef HAVE_SYS_TYPES_H
+#  include <sys/types.h>
+#endif // HAVE_SYS_TYPES_H
+#ifndef __key_t_defined
+  typedef int key_t;
+#endif // __key_t_defined
+
 typedef struct shmpiece_reg {
 	uae_u8 *native_address;
 	int id;
@@ -343,6 +352,14 @@ typedef struct shmpiece_reg {
 } shmpiece;
 
 extern shmpiece *shm_start;
+
+struct shmid_ds;
+
+/* Prototypes from src/memory.c used elsewhere, too */
+int my_shmdt (const void *shmaddr);
+void *my_shmat (int shmid, void *shmaddr, int shmflg);
+int my_shmget (key_t key, size_t size, int shmflg, const TCHAR *name);
+int my_shmctl (int shmid, int cmd, struct shmid_ds *buf);
 
 #endif
 

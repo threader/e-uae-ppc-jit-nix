@@ -119,7 +119,7 @@ noinst_HEADERS = \
 	include/audio.h		include/autoconf.h	\
 	include/blitter.h	include/blkdev.h	\
 	include/bsdsocket.h 	include/caps.h		\
-	include/catweasel.h     \
+	include/catweasel.h     include/cdrom.h \
 	include/cia.h		include/cfgfile.h        \
 	include/commpipe.h	include/compemu.h	\
 	include/cpu_prefetch.h  include/custom.h	\
@@ -183,7 +183,7 @@ uae_SOURCES = \
 
 EXTRA_uae_SOURCES = \
 	bsdsocket.c bsdsocket-posix-new.c build68k.c catweasel.c cdrom.c \
-	fpp.c compemu_fpp.c compemu_raw_x86.c compemu_support.c \
+	fpp.c compemu_fpp.c compemu_support.c \
 	debug.c identify.c filesys_bootrom.c fsdb.c fsdb_unix.c fsusage.c genblitter.c \
 	gencpu.c gengenblitter.c gencomp.c genlinetoscr.c hardfile.c \
 	hardfile_unix.c scsi-none.c scsiemul.c svgancui.c tui.c amax.c \

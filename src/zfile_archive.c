@@ -27,7 +27,7 @@
 
 #define unpack_log write_log
 #undef unpack_log
-#define unpack_log
+#define unpack_log(...) { }
 
 static time_t fromdostime (uae_u32 dd)
 {
@@ -1759,7 +1759,9 @@ static struct zfile *archive_access_dir (struct znode *zn)
 
 struct zfile *archive_unpackzfile (struct zfile *zf)
 {
+#ifdef A_ZIP
 	struct zfile *zout = NULL;
+#endif
 	if (!zf->archiveparent)
 		return NULL;
 	unpack_log (_T("delayed unpack '%s'\n"), zf->name);

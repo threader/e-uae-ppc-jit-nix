@@ -1770,7 +1770,7 @@ STATIC_INLINE void update_fetch (int until, int fm)
 	programs that move the DDFSTOP before our current position before we
 	reach it.  */
 	ddfstop_to_test = HARD_DDF_STOP;
-	if (ddfstop >= last_fetch_hpos && plfstop < ddfstop_to_test)
+	if (ddfstop >= (unsigned int)last_fetch_hpos && plfstop < ddfstop_to_test)
 		ddfstop_to_test = plfstop;
 
 	update_toscr_planes ();
@@ -2487,9 +2487,17 @@ static void calcsprite (void)
 		int min, max;
 		min = tospritexddf (thisline_decision.plfleft);
 		max = tospritexddf (thisline_decision.plfright);
-		if (min > sprite_minx && min < max) /* min < max = full line ddf */
-			sprite_minx = min;
+		if (min > sprite_minx && min < max) { /* min < max = full line ddf */
+			if (currprefs.chipset_mask & CSMASK_ECS_DENISE) {
+				sprite_minx = min;
+			} else {
+				if (thisline_decision.plfleft >= 0x28 || bpldmawasactive)
+					sprite_minx = min;
+			}
+		}
 		/* sprites are visible from first BPL1DAT write to end of line
+		 * ECS Denise/AGA: not limits
+		 * OCS Denise: BPL1DAT write only enables sprite if hpos >= 0x28 or so.
 		* (undocumented feature)
 		*/
 	}
@@ -3025,7 +3033,7 @@ void compute_framesync (void)
 		gfxvidinfo.extrawidth = 0;
 		gfxvidinfo.inwidth2 = gfxvidinfo.inwidth;
 
-		gfxvidinfo.inheight = (maxvpos - minfirstline) << vres2;
+		gfxvidinfo.inheight = (maxvpos - minfirstline + 1) << vres2;
 		gfxvidinfo.inheight2 = gfxvidinfo.inheight;
 
 	} else {
@@ -3033,7 +3041,7 @@ void compute_framesync (void)
 		gfxvidinfo.inwidth = AMIGA_WIDTH_MAX << currprefs.gfx_resolution;
 		gfxvidinfo.extrawidth = currprefs.gfx_extrawidth ? currprefs.gfx_extrawidth : -1;
 		gfxvidinfo.inwidth2 = gfxvidinfo.inwidth;
-		gfxvidinfo.inheight = (maxvpos_nom - minfirstline + 1) << currprefs.gfx_vresolution;
+		gfxvidinfo.inheight = ((maxvpos_nom + 1) - minfirstline + 1) << currprefs.gfx_vresolution;
 		gfxvidinfo.inheight2 = gfxvidinfo.inheight;
 
 	}
@@ -4667,10 +4675,15 @@ static int customdelay[]= {
 	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 };
 
+/* FIXME
+ * Marked "if 0" in update_copper(). Why?
+ */
+#if 0
 static void copper_write (uae_u32 v)
 {
 	custom_wput_copper (current_hpos (), v >> 16, v & 0xffff, 0);
 }
+#endif
 
 static void update_copper (int until_hpos)
 {
@@ -5474,7 +5487,7 @@ static bool framewait (void)
 			t += (int)start - (int)vsync_time;
 
 		if (!frame_shown)
-		show_screen ();
+			show_screen (1);
 
 		int legacy_avg = mavg (&ma_legacy, t, MAVG_VSYNC_SIZE);
 		if (t > legacy_avg)
@@ -5708,7 +5721,7 @@ static bool framewait (void)
         	vsyncmintime = curr_time;
 		vsyncmaxtime = vsyncwaittime = curr_time + vstb;
 		if (frame_rendered) {
-                	show_screen ();
+			show_screen (0);
 			t += read_processor_time () - curr_time;
 		}
 		t += frameskipt_avg;
@@ -5790,7 +5803,7 @@ static void vsync_handler_pre (void)
 		if (vsync_handle_check ()) {
 			redraw_frame ();
 			render_screen (true);
-			show_screen ();
+			show_screen (0);
 		}
 		config_check_vsync ();
 	}
@@ -6480,7 +6493,7 @@ static void hsync_handler_post (bool onvsync)
 #endif
 
 #ifdef GAYLE
-	gayle_hsync ();
+//	gayle_hsync ();
 #endif
 #ifdef A2091
 	scsi_hsync ();
@@ -7872,7 +7885,7 @@ uae_u8 *restore_custom_event_delay (uae_u8 *src)
 	if (restore_u32 () != 1)
 		return src;
 	int cnt = restore_u8 ();
-	for (unsigned int i = 0; i < cnt; i++) {
+	for (int i = 0; i < cnt; i++) {
 		uae_u8 type = restore_u8 ();
 		evt e = restore_u64 ();
 		uae_u32 data = restore_u32 ();

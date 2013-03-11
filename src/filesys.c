@@ -463,7 +463,12 @@ TCHAR *filesys_createvolname (const TCHAR *volname, const TCHAR *rootdir, const 
 			nvol = my_strdup (p + i);
 	}
 	if (!nvol && archivehd >= 0) {
+/* REMOVEME:
+ * nowhere used
+ */
+#if 0
 		TCHAR *s = NULL;
+#endif
 		if (volname && _tcslen (volname) > 0)
 			nvol = my_strdup (volname);
 		else
@@ -599,7 +604,7 @@ static int set_filesys_unit_1 (int nr, struct uaedev_config_info *ci)
 				write_log (_T("Hardfile %s not found\n"), ui->hf.device_name);
 				goto err;
 			}
-			if (ui->hf.ci.blocksize > ui->hf.virtsize || ui->hf.virtsize == 0) {
+			if ((uae_u64)(ui->hf.ci.blocksize) > ui->hf.virtsize || ui->hf.virtsize == 0) {
 				write_log (_T("Hardfile %s too small\n"), ui->hf.device_name);
 				goto err;
 			}
@@ -705,7 +710,10 @@ int move_filesys_unitconfig (struct uae_prefs *p, int nr, int to)
 }
 
 
-void filesys_addexternals (void) {}
+static void filesys_addexternals (void)
+{
+	/// FIXME : not implemented, yet
+}
 
 static void allocuci (struct uae_prefs *p, int nr, int idx)
 {
@@ -723,7 +731,12 @@ static void allocuci (struct uae_prefs *p, int nr, int idx)
 static void initialize_mountinfo (void)
 {
 	int nr;
+/* REMOVEME:
+ * nowhere used
+ */
+#if 0
 	UnitInfo *uip = &mountinfo.ui[0];
+#endif
 
 	cd_unit_offset = MAX_FILESYSTEM_UNITS;
 
@@ -817,7 +830,7 @@ int sprintf_filesys_unit (TCHAR *buffer, int num)
 	return 0;
 }
 
-void free_mountinfo (void)
+static void free_mountinfo (void)
 {
 	int i;
 	for (i = 0; i < MAX_FILESYSTEM_UNITS; i++)
@@ -928,6 +941,8 @@ struct hardfiledata *get_hardfile_data (int nr)
 #define ACTION_ADD_NOTIFY		4097
 #define ACTION_REMOVE_NOTIFY	4098
 
+#define ACTION_READ_LINK		1024
+
 #define ACTION_CHANGE_FILE_POSITION64  8001
 #define ACTION_GET_FILE_POSITION64     8002
 #define ACTION_CHANGE_FILE_SIZE64      8003
@@ -935,7 +950,6 @@ struct hardfiledata *get_hardfile_data (int nr)
 
 /* not supported */
 #define ACTION_MAKE_LINK		1021
-#define ACTION_READ_LINK		1024
 
 #define DISK_TYPE_DOS 0x444f5300 /* DOS\0 */
 #define DISK_TYPE_DOS_FFS 0x444f5301 /* DOS\1 */
@@ -1811,6 +1825,10 @@ int hardfile_media_change (struct hardfiledata *hfd, struct uaedev_config_info *
 	return 0;
 }
 
+/** REMOVEME:
+  * nowhere used
+**/
+#if 0
 int hardfile_remount (int nr)
 {
 	/* this does work but every media reinsert duplicates the device.. */
@@ -1822,7 +1840,7 @@ int hardfile_remount (int nr)
 #endif
 	return 1;
 }
-
+#endif // 0
 
 bool filesys_do_disk_change (int cdunitnum, bool insert)
 {
@@ -2130,6 +2148,11 @@ static a_inode *lookup_aino (Unit *unit, uae_u32 uniq)
 	return a;
 }
 
+static a_inode *aino_from_lock (Unit *unit, uaecptr lock)
+{
+	return lookup_aino (unit, get_long (lock + 4));
+}
+
 TCHAR *build_nname (const TCHAR *d, const TCHAR *n)
 {
 	TCHAR dsep[2] = { FSDB_DIR_SEPARATOR, 0 };
@@ -2154,7 +2177,12 @@ TCHAR *build_aname (const TCHAR *d, const TCHAR *n)
 static TCHAR *get_nname (Unit *unit, a_inode *base, TCHAR *rel, TCHAR **modified_rel, uae_u64 *uniq_ext)
 {
 	TCHAR *found;
+/* REMOVEME:
+ * nowhere used
+ */
+#if 0
 	TCHAR *p = 0;
+#endif
 
 	*modified_rel = 0;
 
@@ -2714,12 +2742,20 @@ static uae_u32 REGPARAM2 startup_handler (TrapContext *context)
 	/* Just got the startup packet. It's in D3. DosBase is in A2,
 	* our allocated volume structure is in A3, A5 is a pointer to
 	* our port. */
+/* REMOVEME:
+ * nowhere used
+ */
+#if 0
 	uaecptr rootnode = get_long (m68k_areg (regs, 2) + 34);
-	uaecptr dos_info = get_long (rootnode + 24) << 2;
+#endif
 	uaecptr pkt = m68k_dreg (regs, 3);
-	uaecptr arg1 = get_long (pkt + dp_Arg1);
+	//uaecptr arg1 = get_long (pkt + dp_Arg1);
 	uaecptr arg2 = get_long (pkt + dp_Arg2);
-	uaecptr arg3 = get_long (pkt + dp_Arg3);
+	//uaecptr arg3 = get_long (pkt + dp_Arg3);
+	// 1.3:
+	// dp_Arg1 contains crap (Should be name of device)
+	// dp_Arg2 = works as documented
+	// dp_Arg3 = NULL (!?). (Should be DeviceNode)
 	uaecptr devnode;
 	int nr;
 	Unit *unit;
@@ -2729,11 +2765,6 @@ static uae_u32 REGPARAM2 startup_handler (TrapContext *context)
 	uae_u64 uniq = 0;
 	uae_u32 cdays;
 	struct mytimeval ctime = { 0 };
-
-	// 1.3:
-	// dp_Arg1 contains crap (Should be name of device)
-	// dp_Arg2 = works as documented
-	// dp_Arg3 = NULL (!?). (Should be DeviceNode)
 
 	for (nr = 0; nr < MAX_FILESYSTEM_UNITS; nr++) {
 		/* Hardfile volume name? */
@@ -2999,7 +3030,7 @@ static void
 		get_long (lock) << 2, get_long (lock+8),
 		get_long (lock+12), get_long (lock+16),
 		get_long (lock + 4)));
-	a = lookup_aino (unit, get_long (lock + 4));
+	a = aino_from_lock (unit, lock);
 	if (a == 0) {
 		TRACE((_T("not found!")));
 	} else {
@@ -3014,7 +3045,7 @@ static a_inode *find_aino (Unit *unit, uaecptr lock, const TCHAR *name, int *err
 	a_inode *a;
 
 	if (lock) {
-		a_inode *olda = lookup_aino (unit, get_long (lock + 4));
+		a_inode *olda = aino_from_lock (unit, lock);
 		if (olda == 0) {
 			/* That's the best we can hope to do. */
 			a = get_aino (unit, &unit->rootnode, name, err);
@@ -3087,7 +3118,12 @@ static void notify_check (Unit *unit, a_inode *a)
 	Notify *n;
 	int hash = notifyhash (a->aname);
 	for (n = unit->notifyhash[hash]; n; n = n->next) {
+/* REMOVEME:
+ * nowhere used
+ */
+#if 0
 		uaecptr nr = n->notifyrequest;
+#endif
 		if (same_aname (n->partname, a->aname)) {
 			int err;
 			a_inode *a2 = find_aino (unit, 0, n->fullname, &err);
@@ -3098,7 +3134,12 @@ static void notify_check (Unit *unit, a_inode *a)
 	if (a->parent) {
 		hash = notifyhash (a->parent->aname);
 		for (n = unit->notifyhash[hash]; n; n = n->next) {
+/* REMOVEME:
+ * nowhere used
+ */
+#if 0
 			uaecptr nr = n->notifyrequest;
+#endif
 			if (same_aname (n->partname, a->parent->aname)) {
 				int err;
 				a_inode *a2 = find_aino (unit, 0, n->fullname, &err);
@@ -3156,7 +3197,14 @@ static void
 	n->fullname = name;
 	if (flags & NRF_NOTIFY_INITIAL) {
 		int err;
+/* REMOVEME:
+ * nowhere used
+ */
+#if 0
 		a_inode *a = find_aino (unit, 0, n->fullname, &err);
+#else
+		find_aino (unit, 0, n->fullname, &err);
+#endif
 		if (err == 0)
 			notify_send (unit, n);
 	}
@@ -3264,7 +3312,6 @@ static void action_read_link_add_parent (Unit *u, a_inode *a, TCHAR *path)
 	}
 }
 
-#if 0
 #define LINK_HARD 0
 #define LINK_SOFT 1
 
@@ -3272,35 +3319,62 @@ static void action_make_link (Unit *unit, dpacket packet)
 {
 	uaecptr lock = GET_PCK_ARG1 (packet) << 2;
 	uaecptr name = GET_PCK_ARG2 (packet) << 2;
-	uaecptr linkname = GET_PCK_ARG3 (packet);
+	uaecptr target = GET_PCK_ARG3 (packet);
 	int type = GET_PCK_ARG4 (packet);
 	a_inode *a1, *a2;
 	int err;
+	TCHAR tmp[256], tmp2[MAX_DPATH], tmp3[MAX_DPATH];
+
+	_tcscpy (tmp, bstr (unit, name));
+	a1 = aino_from_lock (unit, lock);
 
 	if (type == LINK_HARD) {
+
+		// we don't support hard links
+		uaecptr tlock = target << 2;
+		a2 = aino_from_lock (unit, tlock);
+		write_log (_T("ACTION_MAKE_LINK(HARD,'%s','%s','%s')\n"),
+			a1 ? a1->aname : _T("?"), tmp,
+			a2 ? a2->aname : _T("?"));
+
 		PUT_PCK_RES1 (packet, DOS_FALSE);
 		PUT_PCK_RES2 (packet, ERROR_NOT_IMPLEMENTED);
-		return;
-	}
-	a1 = find_aino (unit, lock, bstr (unit, name), &err);
-	if (err != 0) {
+
+	} else {
+
+		a_inode *a3;
+		TCHAR *link = cstr (unit, target);
+		write_log (_T("ACTION_MAKE_LINK(SOFT,'%s','%s','%s')\n"),
+			a1 ? a1->aname : _T("?"), tmp, link);
+		if (!a1) {
 		PUT_PCK_RES1 (packet, DOS_FALSE);
-		PUT_PCK_RES2 (packet, err);
+			PUT_PCK_RES2 (packet, ERROR_OBJECT_NOT_AROUND);
 		return;
 	}
-	a2 = find_aino (unit, lock, cstr (unit, linkname), &err);
-	if (err != 0) {
-		PUT_PCK_RES1 (packet, DOS_FALSE);
-		PUT_PCK_RES2 (packet, err);
+		// try to find softlink target
+		for (Unit *u = units; u; u = u->next) {
+			if (u->volflags & (MYVOLUMEINFO_ARCHIVE | MYVOLUMEINFO_CDFS))
+				continue;
+			a3 = find_aino (u, NULL, link, &err);
+			if (err || !a3)
+				continue;
+			_tcscpy (tmp2, a1->nname);
+			_tcscat (tmp2, FSDB_DIR_SEPARATOR_S);
+			_tcscat (tmp2, tmp);
+			tmp3[0] = 0;
+			action_read_link_add_parent (u, a3, tmp3);
+//			if (!my_createshortcut (tmp2, a3->nname, tmp3)) {
+//				PUT_PCK_RES1 (packet, DOS_FALSE);
+//				PUT_PCK_RES2 (packet, dos_errno ());
+//			}
 		return;
 	}
-	if (!my_createsoftlink (a1->nname, a2->nname)) {
+		// real Amiga softlinks would accept invalid paths too,
+		// we won't.
 		PUT_PCK_RES1 (packet, DOS_FALSE);
 		PUT_PCK_RES2 (packet, ERROR_OBJECT_NOT_AROUND);
-		return;
 	}
 }
-#endif
 
 static void action_read_link (Unit *unit, dpacket packet)
 {
@@ -3308,9 +3382,9 @@ static void action_read_link (Unit *unit, dpacket packet)
 	uaecptr name = GET_PCK_ARG2 (packet);
 	uaecptr newname = GET_PCK_ARG3 (packet);
 	int size = GET_PCK_ARG4 (packet);
-	a_inode *a;
-	Unit *u = NULL;
-	int err, i;
+	a_inode *a, *matched_aino;
+	Unit *u = NULL, *u2 = NULL, *matched_unit;
+	int err, i, matched_len;
 	TCHAR tmp[MAX_DPATH];
 	TCHAR *namep, *extrapath;
 
@@ -3329,46 +3403,55 @@ static void action_read_link (Unit *unit, dpacket packet)
 			}
 		}
 	}
+	if (!a->softlink)
+		err = ERROR_OBJECT_WRONG_TYPE;
 	if (err != 0) {
 		PUT_PCK_RES1 (packet, DOS_FALSE);
 		PUT_PCK_RES2 (packet, err);
 		return;
 	}
 	_tcscpy (tmp, a->nname);
+	write_log (_T("Resolving softlink '%s'\n"), tmp);
 	if (!my_resolvesoftlink (tmp, sizeof tmp / sizeof (TCHAR))) {
 		PUT_PCK_RES1 (packet, DOS_FALSE);
 		//  not sure what to return
 		PUT_PCK_RES2 (packet, ERROR_OBJECT_NOT_AROUND);
 		return;
 	}
-	// TODO:
-	// now we have full absolute path, need to check if it can
-	// mapped to any Amiga side filesystem
-	// not that trivial..
-	a = NULL;
+	write_log (_T("-> '%s'\n"), tmp);
+	matched_aino = NULL;
+	matched_unit = NULL;
 	err = 0;
+	matched_len = 0;
 	for (u = units; u; u = u->next) {
 		if (!(u->volflags & (MYVOLUMEINFO_ARCHIVE | MYVOLUMEINFO_CDFS))) {
 			TCHAR path[MAX_DPATH];
-			if (my_issamevolume (u->rootnode.nname, tmp, path)) {
+			i = my_issamevolume (u->rootnode.nname, tmp, path);
+			if (i > matched_len) {
 				a = find_aino (u, 0, path, &err);
-				if (a && !err)
-					break;
+				if (a && !err) {
+					write_log (_T("Match found from '%s' (%d)\n"), u->rootnode.aname, i);
+					matched_aino = a;
+					matched_unit = u;
+					matched_len = i;
+				}
 			}
 		}
 	}
-	if (!a || err) {
+	if (!matched_aino) {
+		write_log (_T("Path not found in any mounted drive\n"));
 		PUT_PCK_RES1 (packet, DOS_FALSE);
 		PUT_PCK_RES2 (packet, ERROR_OBJECT_NOT_AROUND);
 		return;
 	}
 	tmp[0] = 0;
-	action_read_link_add_parent (u, a, tmp);
+	action_read_link_add_parent (matched_unit, matched_aino, tmp);
 	if (extrapath) {
 		_tcscat (tmp, _T("/"));
 		_tcscat (tmp, extrapath);
 	}
 	xfree (extrapath);
+	write_log (_T("got target '%s'\n"), tmp); 
 	char *s = ua_fs (tmp, -1);
 	for (i = 0; s[i]; i++) {
 		if (i >= size - 1)
@@ -3386,7 +3469,7 @@ static void action_free_lock (Unit *unit, dpacket packet)
 	TRACE((_T("ACTION_FREE_LOCK(0x%lx)\n"), lock));
 	DUMPLOCK(unit, lock);
 
-	a = lookup_aino (unit, get_long (lock + 4));
+	a = aino_from_lock (unit, lock);
 	if (a == 0) {
 		PUT_PCK_RES1 (packet, DOS_FALSE);
 		PUT_PCK_RES2 (packet, ERROR_OBJECT_NOT_AROUND);
@@ -3551,7 +3634,13 @@ static void
 	int i, n, entrytype, blocksize;
 	int fsdb_can = fsdb_cando (unit);
 	TCHAR *xs;
-	char *x, *x2;
+	char *x;
+/* REMOVEME:
+ * nowhere used
+ */
+#if 0
+	char *x2;
+#endif
 	bool ok = true;
 
 	memset (&statbuf, 0, sizeof statbuf);
@@ -3633,7 +3722,7 @@ int get_native_path (uae_u32 lock, TCHAR *out)
 	int i = 0;
 	for (i = 0; i < MAX_FILESYSTEM_UNITS; i++) {
 		if (mountinfo.ui[i].self) {
-			a_inode *a = lookup_aino (mountinfo.ui[i].self, get_long ((lock << 2) + 4));
+			a_inode *a = aino_from_lock (mountinfo.ui[i].self, lock << 2);
 			if (a) {
 				_tcscpy (out, a->nname);
 				return 0;
@@ -3756,7 +3845,12 @@ static int action_lock_record (Unit *unit, dpacket packet, uae_u32 msg)
 	uae_u32 mode = GET_PCK_ARG4 (packet);
 	uae_u32 timeout = GET_PCK_ARG5 (packet);
 
+/* REMOVEME:
+ * nowhere used
+ */
+#if 0
 	bool exclusive = mode == REC_EXCLUSIVE || mode == REC_EXCLUSIVE_IMMED;
+#endif
 
 	write_log (_T("action_lock_record('%s',%d,%d,%d,%d)\n"), k ? k->aino->nname : _T("null"), pos, len, mode, timeout);
 
@@ -3998,7 +4092,7 @@ static int action_examine_all_do (Unit *unit, uaecptr lock, ExAllKey *eak, uaecp
 	TCHAR fn[MAX_DPATH];
 
 	if (lock != 0)
-		base = lookup_aino (unit, get_long (lock + 4));
+		base = aino_from_lock (unit, lock);
 	if (base == 0)
 		base = &unit->rootnode;
 	for (;;) {
@@ -4130,7 +4224,7 @@ static int action_examine_all (Unit *unit, dpacket packet)
 		if (!eak)
 			goto fail;
 		if (lock != 0)
-			base = lookup_aino (unit, get_long (lock + 4));
+			base = aino_from_lock (unit, lock);
 		if (base == 0)
 			base = &unit->rootnode;
 #if EXALL_DEBUG > 0
@@ -4239,7 +4333,7 @@ static void action_examine_object (Unit *unit, dpacket packet)
 	DUMPLOCK(unit, lock);
 
 	if (lock != 0)
-		aino = lookup_aino (unit, get_long (lock + 4));
+		aino = aino_from_lock (unit, lock);
 	if (aino == 0)
 		aino = &unit->rootnode;
 
@@ -4334,7 +4428,7 @@ static void action_examine_next (Unit *unit, dpacket packet)
 	DUMPLOCK(unit, lock);
 
 	if (lock != 0)
-		aino = lookup_aino (unit, get_long (lock + 4));
+		aino = aino_from_lock (unit, lock);
 	if (aino == 0)
 		aino = &unit->rootnode;
 	for(;;) {
@@ -4530,7 +4624,7 @@ static void
 		return;
 	}
 
-	aino = lookup_aino (unit, get_long (lock + 4));
+	aino = aino_from_lock (unit, lock);
 	if (aino == 0)
 		aino = &unit->rootnode;
 	if (aino->softlink) {
@@ -4882,6 +4976,11 @@ static void
 		PUT_PCK_RES2 (packet, err);
 		return;
 	}
+	if (a->softlink) {
+		PUT_PCK_RES1 (packet, DOS_FALSE);
+		PUT_PCK_RES2 (packet, ERROR_IS_SOFT_LINK);
+		return;
+	}
 
 	a->amigaos_mode = mask;
 	if (!fsdb_cando (unit))
@@ -4940,6 +5039,12 @@ maybe_free_and_out:
 			xfree (commented);
 		return;
 	}
+	if (a->softlink) {
+		PUT_PCK_RES1 (packet, DOS_FALSE);
+		PUT_PCK_RES2 (packet, ERROR_IS_SOFT_LINK);
+		goto maybe_free_and_out;
+	}
+
 	PUT_PCK_RES1 (packet, DOS_TRUE);
 	PUT_PCK_RES2 (packet, 0);
 	if (a->comment == 0 && commented == 0)
@@ -4984,7 +5089,13 @@ static void
 	* Above is wrong, it is always *_LOCK. TW. */
 	long mode = GET_PCK_ARG3 (packet);
 	unsigned long uniq;
-	a_inode *a = NULL, *olda = NULL;
+	a_inode *a = NULL;
+/* REMOVEME:
+ * nowhere used
+ */
+#if 0
+	a_inode *olda = NULL;
+#endif
 	int err = 0;
 	TRACE((_T("ACTION_CHANGE_MODE(0x%lx,%d,%d)\n"), object, type, mode));
 
@@ -5345,14 +5456,25 @@ static void
 		return;
 	}
 
-	amiga_to_timeval (&tv, get_long (date), get_long (date + 4), get_long (date + 8));
 	a = find_aino (unit, lock, bstr (unit, name), &err);
+	if (err != 0) {
+		PUT_PCK_RES1 (packet, DOS_FALSE);
+		PUT_PCK_RES2 (packet, err);
+		return;
+	}
+	if (a->softlink) {
+		PUT_PCK_RES1 (packet, DOS_FALSE);
+		PUT_PCK_RES2 (packet, ERROR_IS_SOFT_LINK);
+		return;
+	}
+	amiga_to_timeval (&tv, get_long (date), get_long (date + 4), get_long (date + 8));
 	write_log (_T("%llu.%u (%d,%d,%d) %s\n"), tv.tv_sec, tv.tv_usec, get_long (date), get_long (date + 4), get_long (date + 8), a->nname);
-	if (err == 0 && !my_utime (a->nname, &tv))
+	if (!my_utime (a->nname, &tv))
 		err = dos_errno ();
 	if (err != 0) {
 		PUT_PCK_RES1 (packet, DOS_FALSE);
 		PUT_PCK_RES2 (packet, err);
+		return;
 	} else {
 		notify_check (unit, a);
 		PUT_PCK_RES1 (packet, DOS_TRUE);
@@ -5912,9 +6034,8 @@ static int handle_packet (Unit *unit, dpacket pck, uae_u32 msg)
 	case ACTION_LOCK_RECORD: return action_lock_record (unit, pck, msg); break;
 	case ACTION_FREE_RECORD: action_free_record (unit, pck); break;
 	case ACTION_READ_LINK: action_read_link (unit, pck); break;
-#if 0
 	case ACTION_MAKE_LINK: action_make_link (unit, pck); break;
-#endif
+
 		/* OS4+ packet types */
 	case ACTION_CHANGE_FILE_POSITION64: action_change_file_position64 (unit, pck); break;
 	case ACTION_GET_FILE_POSITION64: action_get_file_position64 (unit, pck); break;
@@ -5923,7 +6044,6 @@ static int handle_packet (Unit *unit, dpacket pck, uae_u32 msg)
 
 		/* unsupported packets */
 	case ACTION_FORMAT:
-	case ACTION_MAKE_LINK:
 		write_log (_T("FILESYS: UNSUPPORTED PACKET %x\n"), type);
 		return 0;
 	default:
@@ -6124,12 +6244,12 @@ void filesys_reset (void)
 
 static void filesys_prepare_reset2 (void)
 {
+#ifdef UAE_FILESYS_THREADS
 	UnitInfo *uip;
 	//    Unit *u;
 	int i;
 
 	uip = mountinfo.ui;
-#ifdef UAE_FILESYS_THREADS
 	for (i = 0; i < MAX_FILESYSTEM_UNITS; i++) {
 		if (uip[i].open && uip[i].unit_pipe != 0) {
 			uae_sem_init (&uip[i].reset_sync_sem, 0, 0);
@@ -6331,6 +6451,9 @@ static uae_u32 REGPARAM2 filesys_init_storeinfo (TrapContext *context)
 	return ret;
 }
 
+/* REMOVEME:
+ * orphaned, nowhere used
+ */
 #if 0
 static uae_u8 *cdfs_handler;
 static int cdfs_handler_len;
@@ -6342,9 +6465,9 @@ static uae_u32 REGPARAM2 filesys_dev_remember (TrapContext *context)
 {
 	int no = m68k_dreg (regs, 6) & 0x7fffffff;
 	int unit_no = no & 65535;
-	int sub_no = no >> 16;
+	/// REMOVEME: unused : int sub_no = no >> 16;
 	UnitInfo *uip = &mountinfo.ui[unit_no];
-	int iscd = (m68k_dreg (regs, 6) & 0x80000000) != 0 || uip->unit_type == UNIT_CDFS;
+	/// REMOVEME: unused : int iscd = (m68k_dreg (regs, 6) & 0x80000000) != 0 || uip->unit_type == UNIT_CDFS;
 	int i;
 	uaecptr devicenode = m68k_areg (regs, 3);
 	uaecptr parmpacket = m68k_areg (regs, 1);
@@ -6375,7 +6498,7 @@ static int legalrdbblock (UnitInfo *uip, int block)
 {
 	if (block <= 0)
 		return 0;
-	if (block >= uip->hf.virtsize / uip->hf.ci.blocksize)
+	if ((uae_u64)block >= (uip->hf.virtsize / uip->hf.ci.blocksize) )
 		return 0;
 	return 1;
 }
@@ -7032,7 +7155,12 @@ static uae_u32 REGPARAM2 filesys_dev_storeinfo (TrapContext *context)
 	put_long (parmpacket + PP_ADDTOFSRES, 0);
 	put_long (parmpacket + PP_FSSIZE, 0);
 	if (iscd) {
+/* REMOVEME:
+ * nowhere used
+ */
+#if 0
 		TCHAR *cdname = NULL;
+#endif
 		uaecptr cdname_amiga;
 		int cd_unit_no = unit_no - cd_unit_offset;
 

@@ -69,6 +69,10 @@ static uaecptr debug_copper_pc;
 extern int audio_channel_mask;
 extern int inputdevice_logging;
 
+#ifdef MMUEMU
+int safe_addr (uaecptr addr, int size);
+#endif
+
 #define console_out               printf
 #define console_flush()           fflush( stdout )
 #define console_get( input, len ) fgets( input, len, stdin )
@@ -2728,21 +2732,21 @@ static void show_exec_tasks (void)
 	uaecptr execbase = get_long_debug (4);
 	uaecptr taskready = get_long_debug (execbase + 406);
 	uaecptr taskwait = get_long_debug (execbase + 420);
-	uaecptr node, end;
+	uaecptr node/* REMOVEME: set but not used: , end */ ;
 	console_out_f (_T("Execbase at 0x%08X\n"), execbase);
 	console_out (_T("Current:\n"));
 	node = get_long_debug (execbase + 276);
 	print_task_info (node);
 	console_out_f (_T("Ready:\n"));
 	node = get_long_debug (taskready);
-	end = get_long_debug (taskready + 4);
+	/* REMOVEME: Not used: end = get_long_debug (taskready + 4); */
 	while (node) {
 		print_task_info (node);
 		node = get_long_debug (node);
 	}
 	console_out (_T("Waiting:\n"));
 	node = get_long_debug (taskwait);
-	end = get_long_debug (taskwait + 4);
+	/* REMOVEME: Not used: end = get_long_debug (taskwait + 4); */
 	while (node) {
 		print_task_info (node);
 		node = get_long_debug (node);
@@ -3862,7 +3866,7 @@ static void addhistory (void)
 	uae_u32 pc = m68k_getpc ();
 
 	history[lasthist] = regs;
-	history[lasthist].pc = m68k_getpc ();
+	history[lasthist].pc = pc;
 	if (++lasthist == MAX_HIST)
 		lasthist = 0;
 	if (lasthist == firsthist) {
@@ -3941,7 +3945,12 @@ void debug (void)
 							seglist = BPTR2APTR(get_long_debug (activetask + 128));
 							seglist = BPTR2APTR(get_long_debug (seglist + 12));
 						}
-						if (activetask == processptr || (processname && (!strcasecmp (name, processname) || (command && command[0] && !strncasecmp (command + 1, processname, command[0]) && processname[command[0]] == 0)))) {
+						if ( (activetask == processptr)
+						  || ( processname
+							&& ( !strcasecmp (name, processname)
+							  || (command && command[0] && !strncasecmp (command + 1, processname, (size_t)command[0])
+								&& (0 == processname[(size_t)command[0]]))
+							   ) ) ) {
 							while (seglist) {
 								uae_u32 size = get_long_debug (seglist - 4) - 4;
 								if (pc >= (seglist + 4) && pc < (seglist + size)) {

@@ -315,10 +315,13 @@ static void set_status (uae_u8 status, int delay)
 	scsidelay_irq[queue_index] = delay == 0 ? 1 : (delay <= 2 ? 2 : delay);
 }
 
+/// REMOVEME: deprecated
+#if 0
 static void set_status (uae_u8 status)
 {
 	set_status (status, 0);
 }
+#endif // 0
 
 static uae_u32 gettc (void)
 {
@@ -357,7 +360,7 @@ static TCHAR *scsitostring (void)
 
 	p = buf;
 	p[0] = 0;
-	for (i = 0; i < scsi->offset && i < sizeof wd_data; i++) {
+	for (i = 0; i < scsi->offset && (size_t)i < sizeof wd_data; i++) {
 		if (i > 0) {
 			_tcscat (p, _T("."));
 			p++;
@@ -836,7 +839,7 @@ static void wd_cmd_abort (void)
 void scsi_hsync (void)
 {
 	if (wd_data_avail < 0 && dmac_dma > 0) {
-		bool v;
+		bool v = false;
 		do_dma ();
 		if (scsi->direction < 0)
 			v = wd_do_transfer_in ();
@@ -1585,7 +1588,7 @@ static void *scsi_thread (void *null)
 			break;
 		int cmd = v & 0x7f;
 		int msg = (v >> 8) & 0xff;
-		int unit = (v >> 24) & 0xff;
+		/// REMOVEME: unused : int unit = (v >> 24) & 0xff;
 		//write_log (_T("scsi_thread got msg=%d cmd=%d\n"), msg, cmd);
 		if (msg == 0) {
 			if (WD33C93_DEBUG > 0)

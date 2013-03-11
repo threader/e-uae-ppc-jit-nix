@@ -66,6 +66,7 @@
 #endif
 
 /* internal prototypes */
+uae_u32 uaerand (void);
 uae_u32 uaesrand (uae_u32 seed);
 uae_u32 uaerandgetseed (void);
 void my_trim (TCHAR *s);
@@ -222,11 +223,15 @@ void fixup_prefs_dimensions (struct uae_prefs *prefs)
 					ap->gfx_vflip = 1;
 				if (!i && ap->gfx_backbuffers == 2)
 					ap->gfx_vflip = 1;
+				if (ap->gfx_vflip)
+					ap->gfx_strobo = true;
 			} else {
 				// legacy vsync: always wait for flip
 				ap->gfx_vflip = -1;
 				if (prefs->gfx_api && ap->gfx_backbuffers < 1)
 					ap->gfx_backbuffers = 1;
+				if (ap->gfx_vflip)
+					ap->gfx_strobo = true;
 			}
 		} else {
 			// no vsync: wait if triple bufferirng
@@ -912,7 +917,9 @@ void do_leave_program (void)
 	bsdlib_reset ();
 #endif
 #ifdef SCSIEMU
+#ifdef GAYLE
 	gayle_free ();
+#endif
 	device_func_reset ();
 #endif
 	savestate_free ();
@@ -1046,13 +1053,6 @@ static int real_main2 (int argc, TCHAR **argv)
 
 #ifdef PICASSO96
 	picasso_reset ();
-#endif
-
-#if 0
-#ifdef JIT
-	if (!(currprefs.cpu_model >= 68020 && currprefs.address_space_24 == 0 && currprefs.cachesize))
-		canbang = 0;
-#endif
 #endif
 
 	fixup_prefs (&currprefs);
