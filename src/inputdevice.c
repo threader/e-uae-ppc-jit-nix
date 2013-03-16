@@ -136,15 +136,7 @@ static int joymodes[MAX_JPORTS];
 static int *joyinputs[MAX_JPORTS];
 
 static int input_acquired;
-
 static int testmode;
-/* REMOVEME:
- * nowhere used
- */
-#if 0
-static int testmode_read, testmode_toggle;
-#endif
-
 struct teststore
 {
 	int testmode_type;
@@ -4073,7 +4065,7 @@ static void scanevents (struct uae_prefs *p)
 	}
 }
 
-static int axistable[] = {
+static const int axistable[] = {
 	INPUTEVENT_MOUSE1_HORIZ, INPUTEVENT_MOUSE1_LEFT, INPUTEVENT_MOUSE1_RIGHT,
 	INPUTEVENT_MOUSE1_VERT, INPUTEVENT_MOUSE1_UP, INPUTEVENT_MOUSE1_DOWN,
 	INPUTEVENT_MOUSE2_HORIZ, INPUTEVENT_MOUSE2_LEFT, INPUTEVENT_MOUSE2_RIGHT,
@@ -4093,7 +4085,7 @@ static int axistable[] = {
 	-1
 };
 
-int intputdevice_compa_get_eventtype (int evt, int **axistablep)
+int intputdevice_compa_get_eventtype (int evt, const int **axistablep)
 {
 	for (int i = 0; axistable[i] >= 0; i += 3) {
 		*axistablep = &axistable[i];
@@ -4419,15 +4411,55 @@ static void setcompakb (int *kb, int *srcmap, int index, int af)
 	}
 }
 
-int inputdevice_get_compatibility_input (struct uae_prefs *prefs, int index, int *typelist, int **inputlist, int **at)
+int inputdevice_get_compatibility_input (struct uae_prefs *prefs, int index, int *typelist, int *inputlist, const int **at)
 {
 	if (index >= MAX_JPORTS || joymodes[index] < 0)
 		return -1;
-	*typelist = joymodes[index];
-	*inputlist = joyinputs[index];
-	*at = axistable;
-	int cnt = 0;
-	for (int i = 0; joyinputs[index] && joyinputs[index][i] >= 0; i++, cnt++);
+	if (typelist != NULL)
+		*typelist = joymodes[index];
+	if (at != NULL)
+		*at = axistable;
+	if (inputlist == NULL)
+		return -1;
+	
+	//write_log (_T("%d %p %p\n"), *typelist, *inputlist, *at);
+	int cnt;
+	for (cnt = 0; joyinputs[index] && joyinputs[index][cnt] >= 0; cnt++) {
+		inputlist[cnt] = joyinputs[index][cnt];
+	}
+	inputlist[cnt] = -1;
+
+	// find custom events (custom event = event that is mapped to same port but not included in joyinputs[]
+	int devnum = 0;
+	while (inputdevice_get_device_status (devnum) >= 0) {
+		for (int j = 0; j < inputdevice_get_widget_num (devnum); j++) {
+			for (int sub = 0; sub < MAX_INPUT_SUB_EVENT; sub++) {
+				int port, k;
+				uae_u64 flags;
+				int evtnum2 = inputdevice_get_mapping (devnum, j, &flags, &port, NULL, NULL, sub);
+				if (port - 1 != index)
+					continue;
+				for (k = 0; axistable[k] >= 0; k++) {
+					if (evtnum2 == axistable[k])
+						break;
+				}
+				if (axistable[k] < 0) {
+					for (k = 0; inputlist[k] >= 0; k++) {
+						if (evtnum2 == inputlist[k])
+							break;
+					}
+					if (inputlist[k] < 0) {
+						inputlist[k] = evtnum2;
+						inputlist[k + 1] = -1;
+						cnt++;
+					}
+				}
+			}
+		}
+		devnum++;
+	}
+
+	//write_log (_T("%d\n"), cnt);
 	return cnt;
 }
 
@@ -4488,9 +4520,11 @@ static void resetjport (struct uae_prefs *prefs, int index)
 
 static void remove_compa_config (struct uae_prefs *prefs, int index)
 {
-	int typelist, *inputlist, *atp;
+	int typelist;
+	const int *atp;
+	int inputlist[MAX_COMPA_INPUTLIST];
 
-	if (inputdevice_get_compatibility_input (prefs, index, &typelist, &inputlist, &atp) <= 0)
+	if (inputdevice_get_compatibility_input (prefs, index, &typelist, inputlist, &atp) <= 0)
 		return;
 	for (int i = 0; inputlist[i] >= 0; i++) {
 		int evtnum = inputlist[i];
@@ -5926,6 +5960,8 @@ static struct inputdevice_functions *getidf (int devnum)
 
 struct inputevent *inputdevice_get_eventinfo (int evt)
 {
+	if (evt > 0 && !events[evt].name)
+		return NULL;
 	return &events[evt];
 }
 

@@ -2875,6 +2875,7 @@ static void dumpsync (void)
 	write_log (_T("  HSSTOP=%04X HBSTRT=%04X  HBSTOP=%04X\n"), hsstop, hbstrt, hbstop);
 	write_log (_T("  VSSTOP=%04X VBSTRT=%04X  VBSTOP=%04X\n"), vsstop, vbstrt, vbstop);
 	write_log (_T("  HSSTRT=%04X VSSTRT=%04X HCENTER=%04X\n"), hsstrt, vsstrt, hcenter);
+	write_log (_T("  HSYNCSTART=%04X HSYNCEND=%04X\n"), hsyncstartpos, hsyncendpos);
 }
 
 int current_maxvpos (void)

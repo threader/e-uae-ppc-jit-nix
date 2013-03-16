@@ -146,7 +146,7 @@ static TCHAR help[] = {
 	"  s \"<string>\"/<values> [<addr>] [<length>]\n"
 	"                        Search for string/bytes.\n"
 	"  T or Tt               Show exec tasks and their PCs.\n"
-	"  Td,Tl,Tr              Show devices, libraries or resources.\n"
+	"  Td,Tl,Tr,Ts,Ti,TO     Show devices, libraries, resources, residents, interrupts, doslist.\n"
 #ifdef SAVESTATE
 	"  b                     Step to previous state capture position.\n"
 #endif
@@ -2793,8 +2793,9 @@ static void show_exec_lists (TCHAR t)
 {
 	uaecptr execbase = get_long_debug (4);
 	uaecptr list = 0, node;
+	TCHAR c = _totupper (t);
 
-	if (_totupper (t) == 'O') { // doslist
+	if (c == 'O') { // doslist
 		uaecptr dosbase = get_base ("dos.library");
 		if (dosbase) {
 			uaecptr rootnode = get_long_debug (dosbase + 34);
@@ -2819,11 +2820,11 @@ static void show_exec_lists (TCHAR t)
 			console_out_f (_T("can't find dos.library\n"));
 		}
 		return;
-	} else if (_totupper (t) == 'I') { // interrupts
+	} else if (c == 'I') { // interrupts
 		static const int it[] = {  1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0 };
 		static const int it2[] = { 1, 1, 1, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5, 6, 6, 7 };
 		list = execbase + 84;
-		for (unsigned int i = 0; i < 16; i++) {
+		for (int i = 0; i < 16; i++) {
 			console_out_f (_T("%2d %d: %08x\n"), i + 1, it2[i], list);
 			if (it[i]) {
 				console_out_f (_T("  [H] %08x\n"), get_long_debug (list));
@@ -2870,9 +2871,37 @@ static void show_exec_lists (TCHAR t)
 			list += 12;
 		}
 		return;
+	} else if (c == 'S') { // residents
+		list = get_long (execbase + 300);
+		while (list) {
+			uaecptr resident = get_long_debug (list);
+			if (!resident)
+				break;
+			if (resident & 0x80000000) {
+				write_log (_T("-> %08X\n"), resident & ~0x7fffffff);
+				list = resident & ~0x7fffffff;
+				continue;
+			}
+			uae_u8 *addr;
+			addr = get_real_address (get_long_debug (resident + 14));
+			TCHAR *name1 = addr ? au ((char*)addr) : au("<null>");
+			my_trim (name1);
+			addr = get_real_address (get_long_debug (resident + 18));
+			TCHAR *name2 = addr ? au ((char*)addr) : au("<null>");
+			my_trim (name2);
+			console_out_f (_T("%08X %08X: %02X %3d %02X %+3.3d '%s' ('%s')\n"),
+				list, resident,
+				get_byte_debug (resident + 10), get_byte_debug (resident + 11),
+				get_byte_debug (resident + 12), (uae_s8)get_byte_debug (resident + 13),
+				name1, name2);
+			xfree (name2);
+			xfree (name1);
+			list += 4;
+		}
+		return;
 	}
 
-	switch (_totupper (t))
+	switch (c)
 	{
 	case 'R':
 		list = execbase + 336;

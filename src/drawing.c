@@ -7,7 +7,7 @@
  *
  * Copyright 1995-2000 Bernd Schmidt
  * Copyright 1995 Alessandro Bissacco
- * Copyright 2000-2012 Toni Wilen
+ * Copyright 2000-2013 Toni Wilen
  */
 
 /* There are a couple of concepts of "coordinates" in this file.
@@ -718,6 +718,13 @@ static void pfield_init_linetoscr (void)
 	playfield_start = linetoscr_diw_start;
 	playfield_end = linetoscr_diw_end;
 
+	if (beamcon0 & 0x80) {
+		if (playfield_start < coord_hw_to_window_x (hsyncendpos * 2 + DIW_DDF_OFFSET))
+			playfield_start = coord_hw_to_window_x (hsyncendpos * 2 + DIW_DDF_OFFSET);
+		if (playfield_end > coord_hw_to_window_x (hsyncstartpos * 2 + DIW_DDF_OFFSET))
+			playfield_end = coord_hw_to_window_x (hsyncstartpos * 2 + DIW_DDF_OFFSET);
+	}
+
 	unpainted = visible_left_border < playfield_start ? 0 : visible_left_border - playfield_start;
 	ham_src_pixel = MAX_PIXELS_PER_LINE + res_shift_from_window (playfield_start - native_ddf_left);
 	unpainted = res_shift_from_window (unpainted);
@@ -747,6 +754,12 @@ static void pfield_init_linetoscr (void)
 		}
 		min = coord_hw_to_window_x (min >> sprite_buffer_res) + (DIW_DDF_OFFSET << lores_shift);
 		max = coord_hw_to_window_x (max >> sprite_buffer_res) + (DIW_DDF_OFFSET << lores_shift);
+		if (beamcon0 & 0x80) {
+			if (min < coord_hw_to_window_x (hsyncendpos * 2 + DIW_DDF_OFFSET))
+				min = coord_hw_to_window_x (hsyncendpos * 2 + DIW_DDF_OFFSET);
+			if (min > coord_hw_to_window_x (hsyncstartpos * 2 + DIW_DDF_OFFSET))
+				min = coord_hw_to_window_x (hsyncstartpos * 2 + DIW_DDF_OFFSET);
+		}
 		if (min < playfield_start)
 			playfield_start = min;
 		if (playfield_start < visible_left_border)
