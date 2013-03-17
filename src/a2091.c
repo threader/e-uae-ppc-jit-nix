@@ -191,7 +191,7 @@ static volatile uae_u8 sasr, scmd, auxstatus;
 static volatile int wd_used;
 static volatile int wd_phase, wd_next_phase, wd_busy, wd_data_avail;
 static volatile bool wd_selected;
-static volatile int wd_dataoffset;
+static volatile size_t wd_dataoffset;
 static volatile uae_u8 wd_data[32];
 
 static int superdmac;
@@ -352,6 +352,7 @@ static bool canwddma (void)
 	return mode == 4 || mode == 1;
 }
 
+#if WD33C93_DEBUG > 0
 static TCHAR *scsitostring (void)
 {
 	static TCHAR buf[200];
@@ -370,6 +371,7 @@ static TCHAR *scsitostring (void)
 	}
 	return buf;
 }
+#endif // WD33C93_DEBUG
 
 static void dmacheck (void)
 {
@@ -395,7 +397,9 @@ static bool do_dma (void)
 	if (scsi->direction == 0) {
 		write_log (_T("%s DMA but no data!?\n"), WD33C93);
 	} else if (scsi->direction < 0) {
+#if WD33C93_DEBUG > 0
 		uaecptr odmac_acr = dmac_acr;
+#endif
 		for (;;) {
 			uae_u8 v;
 			int status = scsi_receive_data (scsi, &v);
@@ -413,7 +417,9 @@ static bool do_dma (void)
 #endif
 		return true;
 	} else if (scsi->direction > 0) {
+#if WD33C93_DEBUG > 0
 		uaecptr odmac_acr = dmac_acr;
+#endif
 		for (;;) {
 			int status;
 			uae_u8 v = get_byte (dmac_acr);
@@ -547,7 +553,7 @@ static bool wd_do_transfer_in (void)
 
 static void wd_cmd_sel_xfer (bool atn)
 {
-	int i, tmp_tc;
+	uae_u32 i, tmp_tc;
 	int delay = 0;
 
 	wd_data_avail = 0;

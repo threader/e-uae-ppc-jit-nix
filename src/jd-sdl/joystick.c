@@ -189,8 +189,8 @@ struct inputdevice_functions inputdevicefunc_joystick = {
 int input_get_default_joystick (struct uae_input_device *uid, int num, int port, int af, int mode, bool gp)
 {
 	int h,v;
-	unsigned int j;
-	struct didata *did;
+//	unsigned int j;
+//	struct didata *did;
 	SDL_Joystick *joy;
 	joy = joys[num].joy;
 
@@ -220,14 +220,17 @@ int input_get_default_joystick (struct uae_input_device *uid, int num, int port,
 			setid (uid, num, ID_BUTTON_OFFSET + 2, 0, port, port ? INPUTEVENT_JOY2_3RD_BUTTON : INPUTEVENT_JOY1_3RD_BUTTON);
 	}
 
-/*	for (j = 2; j < MAX_MAPPINGS - 1; j++) {
+#if 0
+	for (j = 2; j < MAX_MAPPINGS - 1; j++) {
 		int am = did->axismappings[j];
 		if (am == DIJOFS_POV(0) || am == DIJOFS_POV(1) || am == DIJOFS_POV(2) || am == DIJOFS_POV(3)) {
 			setid (uid, num, ID_AXIS_OFFSET + j + 0, 0, port, h);
 			setid (uid, num, ID_AXIS_OFFSET + j + 1, 0, port, v);
 			j++;
 		}
-	}*/
+	}
+#endif
+
 	if (mode == JSEM_MODE_JOYSTICK_CD32) {
 		setid_af (uid, num, ID_BUTTON_OFFSET + 0, 0, port, port ? INPUTEVENT_JOY2_CD32_RED : INPUTEVENT_JOY1_CD32_RED, af);
 		setid_af (uid, num, ID_BUTTON_OFFSET + 0, 1, port, port ? INPUTEVENT_JOY2_FIRE_BUTTON : INPUTEVENT_JOY1_FIRE_BUTTON, af);

@@ -16,7 +16,7 @@ struct zdirectory;
 #include "zarchive.h"
 #include "fsusage.h"
 
-#define FSDB_DIR_SEPARATOR_S "\\"
+#define FSDB_DIR_SEPARATOR_S "/"
 
 #define FS_DIRECTORY 0
 #define FS_ARCHIVE 1

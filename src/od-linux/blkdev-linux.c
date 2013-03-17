@@ -41,7 +41,7 @@ struct scsidevdata {
 static struct scsidevdata drives[MAX_SCSI_DRIVES];
 static int total_drives = 0;
 
-static const uae_u8 *execscsicmd_in_ioctl (int unitnum, const uae_u8 *cmd_data, int cmd_len, int *outlen);
+static uae_u8 *execscsicmd_in_ioctl (int unitnum, uae_u8 *cmd_data, int cmd_len, int *outlen);
 
 /*
  * this little piece of magic from Toni Wilen is needed to detect
@@ -49,10 +49,10 @@ static const uae_u8 *execscsicmd_in_ioctl (int unitnum, const uae_u8 *cmd_data, 
  */
 static int is_atapi_drive (int unitnum)
 {
-    static const uae_u8 cmd[6] = {0x12, 0, 0, 0, 36, 0}; /* INQUIRY */
+    static uae_u8 cmd[6] = {0x12, 0, 0, 0, 36, 0}; /* INQUIRY */
     uae_u8 out[36];
     int outlen = sizeof (out);
-    const uae_u8 *p = execscsicmd_in_ioctl (unitnum, cmd, sizeof (cmd), &outlen);
+    uae_u8 *p = execscsicmd_in_ioctl (unitnum, cmd, sizeof (cmd), &outlen);
     if (!p) {
 	DEBUG_LOG ("SCSIDEV: Inquiry command failed; unit %d is not ATAPI drive\n", unitnum);
 	return 0;
@@ -81,7 +81,7 @@ static void close_scsi_bus_ioctl (void)
     DEBUG_LOG ("SCSIDEV: close_scsi_bus_ioctl\n");
 }
 
-static int open_scsi_device_ioctl (int unitnum)
+static int open_scsi_device_ioctl (int unitnum, const char* dummy1, int dummy2)
 {
     int result = 0;
 
@@ -134,7 +134,7 @@ static int media_check (struct scsidevdata *sdd)
 	return 0;
 }
 
-static const uae_u8 *execscsicmd_out_ioctl (int unitnum, const uae_u8 *cmd_data, int cmd_len)
+static uae_u8 *execscsicmd_out_ioctl (int unitnum, uae_u8 *cmd_data, int cmd_len)
 {
     struct scsidevdata *sdd;
     struct cdrom_generic_command cmd;
@@ -170,7 +170,7 @@ static const uae_u8 *execscsicmd_out_ioctl (int unitnum, const uae_u8 *cmd_data,
     return cmd_data;
 }
 
-static const uae_u8 *execscsicmd_in_ioctl (int unitnum, const uae_u8 *cmd_data, int cmd_len, int *outlen)
+static uae_u8 *execscsicmd_in_ioctl (int unitnum, uae_u8 *cmd_data, int cmd_len, int *outlen)
 {
     struct scsidevdata *sdd;
     struct cdrom_generic_command cmd;
@@ -209,11 +209,12 @@ static const uae_u8 *execscsicmd_in_ioctl (int unitnum, const uae_u8 *cmd_data, 
     return sdd->buf;
 }
 
-static int execscsicmd_direct_ioctl (int unitnum, uaecptr acmd)
+static int execscsicmd_direct_ioctl (int unitnum, struct amigascsi* ascsi)
 {
     struct scsidevdata *sdd;
     struct cdrom_generic_command cmd;
     struct request_sense sense;
+    uaecptr acmd = VALUE_TO_PTR(ascsi);
 
     uaecptr scsi_data         = get_long (acmd + 0);
     uae_u32 scsi_len          = get_long (acmd + 4);
@@ -327,7 +328,7 @@ static int execscsicmd_direct_ioctl (int unitnum, uaecptr acmd)
     return io_error;
 }
 
-static struct device_info *info_device_ioctl (int unitnum, struct device_info *di)
+static struct device_info *info_device_ioctl (int unitnum, struct device_info *di, int dummy1, int dummy2)
 {
     DEBUG_LOG ("SCSIDEV: unit = %d: info_device_ioctl\n", unitnum);
 
@@ -366,31 +367,32 @@ static int stop_ioctl (int unitnum)
     return 0;
 }
 
-static int play_ioctl (int unitnum, uae_u32 startmsf, uae_u32 endmsf, int scan)
+static int play_ioctl (int unitnum, int startmsf, int endmsf, int scan,
+					play_status_callback pStatus, play_subchannel_callback pSubC)
 {
     DEBUG_LOG ("SCSIDEV: unit = %d, play_ioctl not implemented\n", unitnum);
     return 0;
 }
 
-static const uae_u8 *qcode_ioctl (int unitnum)
+static int qcode_ioctl (int unitnum, uae_u8 *buf, int offset)
 {
     DEBUG_LOG ("SCSIDEV: unit = %d, qcode_ioctl not implemented\n", unitnum);
     return 0;
 }
 
-static const uae_u8 *toc_ioctl (int unitnum)
+static int toc_ioctl (int unitnum, struct cd_toc_head* cth)
 {
     DEBUG_LOG ("SCSIDEV: unit = %d, toc_ioctl not implemented\n", unitnum);
     return 0;
 }
 
-static const uae_u8 *read_ioctl (int unitnum, int offset)
+static int read_ioctl (int unitnum, uae_u8 *buf, int offset, int length)
 {
     DEBUG_LOG ("SCSIDEV: unit = %d, read_ioctl not implemented\n", unitnum);
     return 0;
 }
 
-static int write_ioctl (int unitnum, int length, uae_u8 *buf)
+static int write_ioctl (int unitnum, uae_u8 *buf, int offset, int length)
 {
     DEBUG_LOG ("SCSIDEV: unit = %d, write_ioctl not implemented\n", unitnum);
     return 0;
@@ -407,6 +409,7 @@ static int check_isatapi_ioctl (int unitnum)
 }
 
 struct device_functions devicefunc_scsi_linux_ioctl = {
+	NULL, /* name */
     open_scsi_bus_ioctl, /* open_bus_func     openbus; */
     close_scsi_bus_ioctl, /* close_bus_func    closebus; */
     open_scsi_device_ioctl, /* open_device_func  opendev; */
@@ -420,14 +423,16 @@ struct device_functions devicefunc_scsi_linux_ioctl = {
     pause_ioctl, /* pause_func pause; */
     stop_ioctl, /* stop_func  stop; */
     play_ioctl, /* play_func  play; */
+    0,          /* colume_func qcode; */
     qcode_ioctl, /* qcode_func qcode; */
     toc_ioctl, /* toc_func   toc; */
     read_ioctl, /* read_func  read; */
+    0,          /* rawread_func read; */
     write_ioctl, /* write_func write; */
 
     check_isatapi_ioctl, /* isatapi_func isatapi; */
+    0,                   /* ismedia_func ismedia; */
 
-    0, /* open_device_func  opendevthread; */
-    0 /* close_device_func closedevthread; */
+    0                    /* scsiemu_func scsiemu; */
 };
 #endif

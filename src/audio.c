@@ -311,7 +311,12 @@ int sound_available = 0;
 void (*sample_handler) (void);
 static void (*sample_prehandler) (unsigned long best_evtime);
 
+/* REMOVEME:
+ * nowhere used
+ */
+#if 0
 static float sample_evtime;
+#endif
 float scaled_sample_evtime;
 
 static unsigned long last_cycles;

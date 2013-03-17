@@ -287,10 +287,8 @@ static void lopt_emit_all(void)
 	 case 1: ((lopt_handler1*)x->func)(x->args[0]); break;
 	 case 2: ((lopt_handler2*)x->func)(x->args[0],x->args[1]); break;
 	 case 3: ((lopt_handler3*)x->func)(x->args[0],x->args[1],x->args[2]); break;
-	 case 4: ((lopt_handler4*)x->func)(x->args[0],x->args[1],x->args[2],
-					   x->args[3]); break;
-	 case 5: ((lopt_handler5*)x->func)(x->args[0],x->args[1],x->args[2],
-					   x->args[3],x->args[4]); break;
+	 case 4: ((lopt_handler4*)x->func)(x->args[0],x->args[1],x->args[2],x->args[3]); break;
+	 case 5: ((lopt_handler5*)x->func)(x->args[0],x->args[1],x->args[2],x->args[3],x->args[4]); break;
 	 default: abort();
 	}
     }

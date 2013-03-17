@@ -216,6 +216,7 @@ void fixup_prefs_dimensions (struct uae_prefs *prefs)
 	for (int i = 0; i < 2; i++) {
 		struct apmode *ap = &prefs->gfx_apmode[i];
 		ap->gfx_vflip = 0;
+		ap->gfx_strobo = false;
 		if (ap->gfx_vsync) {
 			if (ap->gfx_vsyncmode) {
 				// low latency vsync: no flip only if no-buffer
@@ -302,6 +303,15 @@ void fixup_cpu (struct uae_prefs *p)
 
 void fixup_prefs (struct uae_prefs *p)
 {
+/** FIXME:
+  * There must be a way to a) have a sane max_z3fastmem value
+  * without NATMEM being used and b) a way to use fastmem and
+  * rtg mem without crashing 64bit linux systems.
+**/
+#ifndef NATMEM_OFFSET
+	max_z3fastmem = 0;
+#endif // NATMEM_OFFSET
+
 	int err = 0;
 
 	built_in_chipset_prefs (p);
@@ -1030,7 +1040,7 @@ static int real_main2 (int argc, TCHAR **argv)
 		no_gui = 0;
 
 	restart_program = 0;
-	if (! no_gui) {
+	if (! no_gui && currprefs.start_gui) {
 		int err = gui_init ();
 		currprefs = changed_prefs;
 		config_changed = 1;

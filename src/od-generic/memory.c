@@ -17,10 +17,14 @@
 #include <sys/sysctl.h>
 #endif
 #include "include/memory_uae.h"
+#include "misc.h"
 
 uae_u32 max_z3fastmem;
 
 #if defined(NATMEM_OFFSET)
+
+#include "include/newcpu.h"
+
 #define MEMORY_DEBUG 0
 
 typedef int BOOL;
@@ -56,10 +60,6 @@ typedef size_t SIZE_T;
 #define MEM_DECOMMIT	0x00004000
 #define MEM_RELEASE		0x00008000
 #define MEM_WRITE_WATCH	0x00200000
-
-#if !defined(__FreeBSD__)
-typedef int key_t;
-#endif
 
 /* One shmid data structure for each shared memory segment in the system. */
 struct shmid_ds {
@@ -100,7 +100,8 @@ typedef struct virt_alloc_s
 }virt_alloc;
 static virt_alloc* vm=0;
 
-void GetSystemInfo(SYSTEM_INFO *si) {
+static void GetSystemInfo(SYSTEM_INFO *si)
+{
     si->dwPageSize = sysconf(_SC_PAGESIZE); //PAGE_SIZE <asm/page.h>
 }
 
@@ -113,7 +114,7 @@ void GetSystemInfo(SYSTEM_INFO *si) {
 #define MAP_ANONYMOUS MAP_ANON
 #endif
 
-void *mmap_anon(void *addr, size_t len, int prot, int flags, off_t offset)
+static void *mmap_anon(void *addr, size_t len, int prot, int flags, off_t offset)
 {
 	void *result;
 
@@ -137,14 +138,17 @@ void *mmap_anon(void *addr, size_t len, int prot, int flags, off_t offset)
 	close(fd);
 #endif /* MAP_ANONYMOUS */
 	if (result == MAP_FAILED) {
-		write_log("MMAPed failed addr: 0x%08X, %d bytes (%d MB)\n", addr, len, len/0x100000);
+		write_log("MMAPed failed addr: 0x%08X, %d bytes (%d MB)\n",
+					addr, (uae_u32)len, (uae_u32)len / 0x100000);
     } else {
-		write_log("MMAPed OK range: 0x%08X - 0x%08X, %d bytes (%d MB)\n", result, result+len, len, len/0x100000);
+		write_log("MMAPed OK range: 0x%08X - 0x%08X, %d bytes (%d MB)\n",
+					PTR_TO_UINT32(result), PTR_TO_UINT32(result) + (uae_u32)len,
+					(uae_u32)len, (uae_u32)len / 0x100000);
 	}
     return result;
 }
 
-void *VirtualAlloc(LPVOID lpAddress, int dwSize, DWORD flAllocationType, DWORD flProtect) {
+static void *VirtualAlloc(LPVOID lpAddress, int dwSize, DWORD flAllocationType, DWORD flProtect) {
 #if MEMORY_DEBUG > 0
 	write_log ("VirtualAlloc Addr: 0x%08X, Size: %zu bytes (%d MB), Type: %x, Protect: %d\n", lpAddress, dwSize, dwSize/0x100000, flAllocationType, flProtect);
 #endif
@@ -154,6 +158,12 @@ void *VirtualAlloc(LPVOID lpAddress, int dwSize, DWORD flAllocationType, DWORD f
 	memory = malloc(dwSize);
 	if (memory == NULL)
 		write_log ("VirtualAlloc failed errno %d\n", errno);
+#if (MEMORY_DEBUG > 0) && defined(__x86_64__)
+	else if ((uaecptr)memory != (0x00000000ffffffff & (uaecptr)memory))
+		write_log ("VirtualAlloc allocated 64bit high mem at 0x%08x %08x\n",
+					(uae_u32)((uaecptr)memory >> 32),
+					(uae_u32)(0x00000000ffffffff & (uaecptr)memory));
+#endif
 	return memory;
     } else {
         return lpAddress;
@@ -166,15 +176,15 @@ void *VirtualAlloc(LPVOID lpAddress, int dwSize, DWORD flAllocationType, DWORD f
 		return NULL;
 	}
 
-	if (flAllocationType & MEM_RESERVE && (unsigned)lpAddress & 0xffff) {
-		dwSize   += (unsigned)lpAddress &  0xffff;
-		lpAddress = (unsigned)lpAddress & ~0xffff;
+	if (flAllocationType & MEM_RESERVE && VALUE_TO_PTR(lpAddress) & 0xffff) {
+		dwSize   += VALUE_TO_PTR(lpAddress) &  0xffff;
+		lpAddress = (LPVOID)(VALUE_TO_PTR(lpAddress) & ~0xffff);
 	}
 
 	pgsz = sysconf(_SC_PAGESIZE);
-	if ( flAllocationType & MEM_COMMIT && (unsigned)lpAddress % pgsz) {
-		dwSize    += (unsigned)lpAddress % pgsz;
-		lpAddress -= (unsigned)lpAddress % pgsz;
+	if ( flAllocationType & MEM_COMMIT && PTR_TO_UINT32(lpAddress) % pgsz) {
+		dwSize    += PTR_TO_UINT32(lpAddress) % pgsz;
+		lpAddress  = (LPVOID)(VALUE_TO_PTR(lpAddress) - (VALUE_TO_PTR(lpAddress) % pgsz));
 	}
 
 	if (flAllocationType & MEM_RESERVE && dwSize < 0x10000) {
@@ -188,25 +198,25 @@ void *VirtualAlloc(LPVOID lpAddress, int dwSize, DWORD flAllocationType, DWORD f
 		//check whether we can allow to allocate this
 		virt_alloc* str = vm;
 		while (str) {
-			if ((unsigned)lpAddress >= (unsigned)str->address + str->mapping_size) {
+			if (PTR_TO_UINT32(lpAddress) >= PTR_TO_UINT32(str->address) + str->mapping_size) {
 				str = str->prev;
 				continue;
 			}
-			if ((unsigned)lpAddress + dwSize <= (unsigned)str->address) {
+			if (PTR_TO_UINT32(lpAddress) + dwSize <= PTR_TO_UINT32(str->address)) {
 				str = str->prev;
 				continue;
 			}
 			if (str->state == 0) {
 				//FIXME
-				if (   ((unsigned)lpAddress        >= (unsigned)str->address)
-					&& ((unsigned)lpAddress + dwSize <= (unsigned)str->address + str->mapping_size)
+				if (   (PTR_TO_UINT32(lpAddress)        >= PTR_TO_UINT32(str->address))
+					&& (PTR_TO_UINT32(lpAddress) + dwSize <= PTR_TO_UINT32(str->address) + str->mapping_size)
 					&& (flAllocationType & MEM_COMMIT)) {
 						write_log ("VirtualAlloc: previously reserved memory 0x%08X\n", lpAddress);
 						return lpAddress; //returning previously reserved memory
 				}
 				write_log ("VirtualAlloc: does not commit or not entirely within reserved, and\n");
 			}
-			write_log ("VirtualAlloc: (0x%08X, %u) overlaps with (0x%08X, %u, state=%d)\n", (unsigned)lpAddress, dwSize, (unsigned)str->address, str->mapping_size, str->state);
+			write_log ("VirtualAlloc: (0x%08X, %u) overlaps with (0x%08X, %u, state=%d)\n", PTR_TO_UINT32(lpAddress), dwSize, PTR_TO_UINT32(str->address), str->mapping_size, str->state);
 			return NULL;
 		}
 	}
@@ -221,7 +231,7 @@ void *VirtualAlloc(LPVOID lpAddress, int dwSize, DWORD flAllocationType, DWORD f
 		write_log ("VirtualAlloc: cannot satisfy requested address\n");
     }
 	if (answer == (void*)-1) {
-		write_log ("VirtualAlloc: mmap(0x%08X, %u) failed with errno=%d\n", (unsigned)lpAddress, dwSize, errno);
+		write_log ("VirtualAlloc: mmap(0x%08X, %u) failed with errno=%d\n", PTR_TO_UINT32(lpAddress), dwSize, errno);
 		return NULL;
     } else {
 		virt_alloc *new_vm = malloc(sizeof(virt_alloc));
@@ -236,18 +246,18 @@ void *VirtualAlloc(LPVOID lpAddress, int dwSize, DWORD flAllocationType, DWORD f
 			vm->next = new_vm;
 		vm = new_vm;
 		vm->next = 0;
-		write_log ("VirtualAlloc: provides %u bytes starting at 0x%08X\n", dwSize, (unsigned)answer);
+		write_log ("VirtualAlloc: provides %u bytes starting at 0x%08X\n", dwSize, PTR_TO_UINT32(answer));
 		return answer;
     }
 }
 
-bool VirtualFree(LPVOID lpAddress, SIZE_T dwSize, DWORD dwFreeType) {
+static bool VirtualFree(LPVOID lpAddress, SIZE_T dwSize, DWORD dwFreeType) {
 	return true;
 	virt_alloc* str = vm;
 	int answer;
 
 #if MEMORY_DEBUG > 0
-	write_log ("VirtualFree: Addr: 0x%08X, Size: %d bytes (%d MB), Type: 0x%08X)\n", (unsigned)lpAddress, dwSize, dwSize/0x100000, dwFreeType);
+	write_log ("VirtualFree: Addr: 0x%08X, Size: %d bytes (%d MB), Type: 0x%08X)\n", PTR_TO_UINT32(lpAddress), dwSize, dwSize/0x100000, dwFreeType);
 #endif
 
 	while (str) {
@@ -260,7 +270,7 @@ bool VirtualFree(LPVOID lpAddress, SIZE_T dwSize, DWORD dwFreeType) {
 		if (str->next) str->next->prev = str->prev;
 		if (str->prev) str->prev->next = str->next;
 		if (vm == str) vm = str->prev;
-		write_log ("VirtualFree: failed munmap(0x%08X, %d)\n", (unsigned)str->address, str->mapping_size);
+		write_log ("VirtualFree: failed munmap(0x%08X, %d)\n", PTR_TO_UINT32(str->address), str->mapping_size);
 		xfree (str);
 		return 0;
 	}
@@ -412,7 +422,7 @@ bool preinit_shm (void)
 	if (natmem_size <= 768 * 1024 * 1024) {
 		uae_u32 p = 0x78000000 - natmem_size;
 		for (;;) {
-			natmem_offset = (uae_u8*)VirtualAlloc ((void*)p, natmem_size, MEM_RESERVE, PAGE_READWRITE);
+			natmem_offset = (uae_u8*)VirtualAlloc ((void*)VALUE_TO_PTR(p), natmem_size, MEM_RESERVE, PAGE_READWRITE);
 //			natmem_offset = (uae_u8*)VirtualAlloc ((void*)p, natmem_size, MEM_RESERVE | (VAMODE == 1 ? MEM_WRITE_WATCH : 0), PAGE_READWRITE);
 			if (natmem_offset)
 				break;
@@ -680,12 +690,11 @@ bool init_shm (void)
 	static uae_u32 ortgmem_size;
 	static int ortgmem_type;
 
-	if (
-		oz3fastmem_size == changed_prefs.z3fastmem_size &&
-		oz3fastmem2_size == changed_prefs.z3fastmem2_size &&
-		oz3chipmem_size == changed_prefs.z3chipmem_size &&
-		ortgmem_size == changed_prefs.rtgmem_size &&
-		ortgmem_type == changed_prefs.rtgmem_type)
+	if ( (oz3fastmem_size  == changed_prefs.z3fastmem_size)
+	  && (oz3fastmem2_size == changed_prefs.z3fastmem2_size)
+	  && (oz3chipmem_size  == changed_prefs.z3chipmem_size)
+	  && (ortgmem_size     == changed_prefs.rtgmem_size)
+	  && (ortgmem_type     == changed_prefs.rtgmem_type) )
 		return false;
 
 	oz3fastmem_size = changed_prefs.z3fastmem_size;
@@ -780,7 +789,6 @@ void *my_shmat (int shmid, void *shmaddr, int shmflg)
 	bool got = false, readonly = false, maprom = false;
 	int p96special = false;
 
-#ifdef NATMEM_OFFSET
 	unsigned int size = shmids[shmid].size;
 	unsigned int readonlysize = size;
 
@@ -918,7 +926,6 @@ void *my_shmat (int shmid, void *shmaddr, int shmflg)
 			got = true;
 		}
 	}
-#endif
 
 	if (shmids[shmid].key == shmid && shmids[shmid].size) {
 		DWORD protect = readonly ? PAGE_READONLY : PAGE_READWRITE;
@@ -960,13 +967,6 @@ void unprotect_maprom (void)
 		if (shm->maprom <= 0)
 			continue;
 		shm->maprom = -1;
-#ifdef _WIN32
-		if (!VirtualProtect (shm->attached, shm->rosize, protect ? PAGE_READONLY : PAGE_READWRITE, &old)) {
-			write_log (_T("VP %08X - %08X %x (%dk) failed %d\n"),
-				(uae_u8*)shm->attached - natmem_offset, (uae_u8*)shm->attached - natmem_offset + shm->size,
-				shm->size, shm->size >> 10, GetLastError ());
-		}
-#endif
 	}
 }
 
@@ -987,13 +987,6 @@ void protect_roms (bool protect)
 			continue;
 		if (shm->maprom < 0 && protect)
 			continue;
-#ifdef _WIN32
-		if (!VirtualProtect (shm->attached, shm->rosize, protect ? PAGE_READONLY : PAGE_READWRITE, &old)) {
-			write_log (_T("VP %08X - %08X %x (%dk) failed %d\n"),
-				(uae_u8*)shm->attached - natmem_offset, (uae_u8*)shm->attached - natmem_offset + shm->size,
-				shm->size, shm->size >> 10, GetLastError ());
-		}
-#endif
 	}
 }
 

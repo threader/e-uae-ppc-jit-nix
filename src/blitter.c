@@ -1091,6 +1091,12 @@ void decide_blitter (int hpos)
 			}
 
 			blitter_nasty++;
+
+			if (v <= 0) {
+				blit_misscyclecounter++;
+				break;
+			}
+
 			blt_info.got_cycle = 1;
 			if (c == 4) {
 				blitter_doddma (last_blitter_hpos);

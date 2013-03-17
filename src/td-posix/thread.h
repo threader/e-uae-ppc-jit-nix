@@ -11,49 +11,42 @@
 #include <semaphore.h>
 
 
-#ifndef USE_NAMED_SEMAPHORES
-
-typedef struct {
-    sem_t  sem;
-} uae_sem_t;
-
-STATIC_INLINE int uae_sem_init (uae_sem_t *sem, int pshared, unsigned int value)
-{
-   return sem_init (&sem->sem, pshared, value);
-}
-
-STATIC_INLINE int uae_sem_destroy (uae_sem_t *sem)
-{
-    return sem_destroy (&sem->sem);
-}
-
-STATIC_INLINE int uae_sem_post (uae_sem_t *sem)
-{
-    return sem_post (&sem->sem);
-}
-
-STATIC_INLINE int uae_sem_wait (uae_sem_t *sem)
-{
-    return sem_wait (&sem->sem);
-}
-
-STATIC_INLINE int uae_sem_trywait (uae_sem_t *sem)
-{
-    return sem_trywait (&sem->sem);
-}
-
-STATIC_INLINE int uae_sem_getvalue (uae_sem_t *sem, int *sval)
-{
-    return sem_getvalue (&sem->sem, sval);
-}
-
-#else
-
 typedef struct {
     sem_t *sem;
 } uae_sem_t;
 
-extern int uae_sem_init (uae_sem_t *sem, int pshared, unsigned int value);
+#ifndef USE_NAMED_SEMAPHORES
+
+int uae_sem_init (uae_sem_t *sem, int pshared, unsigned int value);
+
+STATIC_INLINE int uae_sem_destroy (uae_sem_t *sem)
+{
+    return sem_destroy (sem->sem);
+}
+
+STATIC_INLINE int uae_sem_post (uae_sem_t *sem)
+{
+    return sem_post (sem->sem);
+}
+
+STATIC_INLINE int uae_sem_wait (uae_sem_t *sem)
+{
+    return sem_wait (sem->sem);
+}
+
+STATIC_INLINE int uae_sem_trywait (uae_sem_t *sem)
+{
+    return sem_trywait (sem->sem);
+}
+
+STATIC_INLINE int uae_sem_getvalue (uae_sem_t *sem, int *sval)
+{
+    return sem_getvalue (sem->sem, sval);
+}
+
+#else
+
+int uae_sem_init (uae_sem_t *sem, int pshared, unsigned int value);
 
 STATIC_INLINE int uae_sem_destroy (uae_sem_t *sem)
 {

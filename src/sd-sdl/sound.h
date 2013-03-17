@@ -64,7 +64,9 @@ int audio_parse_option (struct uae_prefs *p, const char *option, const char *val
 extern int outputsample, doublesample;
 #endif
 
+#if SOUNDSTUFF > 1
 static uae_u16 *paula_sndbufpt_prev, *paula_sndbufpt_start;
+#endif // SOUNDSTUFF
 
 STATIC_INLINE void set_sound_buffers (void)
 {

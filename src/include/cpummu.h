@@ -760,11 +760,11 @@ STATIC_INLINE uae_u32 get_long_mmu060 (uaecptr addr)
 
 STATIC_INLINE void get_move16_mmu (uaecptr addr, uae_u32 *v)
 {
-    return uae_mmu_get_move16 (addr, v);
+    uae_mmu_get_move16 (addr, v);
 }
 STATIC_INLINE void put_move16_mmu (uaecptr addr, uae_u32 *v)
 {
-    return uae_mmu_put_move16 (addr, v);
+    uae_mmu_put_move16 (addr, v);
 }
 
 // locked rmw 060

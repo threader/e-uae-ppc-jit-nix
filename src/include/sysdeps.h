@@ -37,21 +37,66 @@
 #  endif // HAVE_STDBOOL_H
 #endif // __cplusplus
 
-//#ifndef FALSE
-//#  define FALSE 0
-//#endif /* FALSE */
-//#ifndef true
-//#  define true (!FALSE)
-//#endif /* true */
-
 #define UAE_RAND_MAX RAND_MAX
-
 #define ECS_DENISE
 
 #ifdef JIT
 #define NATMEM_OFFSET natmem_offset
 #else
 #undef NATMEM_OFFSET
+#  undef JIT_DEBUG
+#  undef USE_UDIS86
+#endif
+
+/* Add some useful macros for debugging. If JIT_DEBUG
+ * is not defined, these macros do nothing.
+ * Note: These are defined here, because some other parts
+ * like inputrecord.c do make use of them.
+ */
+#if defined(JIT_DEBUG) && defined(__GNUC__)
+# define JITLOG(fmt, ...) { \
+	char trace_info[1024]; \
+	snprintf(trace_info, 256, "[JIT] %s:%d - %s : %s\n", basename(__FILE__), __LINE__, __FUNCTION__, fmt); \
+	write_log(trace_info, __VA_ARGS__); \
+}
+# if defined(USE_UDIS86)
+#   include <udis86.h>
+#   if defined(__x86_64__)
+#	  define UD_MODE 64
+#   else
+#	  define UD_MODE 32
+#   endif // __x86_64__
+#   define UDISFN(udis_func, udis_end) { \
+	int dSize = (int)((uaecptr)(udis_end) - (uaecptr)(udis_func)); \
+	if (dSize > 0) { \
+		uint8_t* p = (uint8_t*)(udis_func); \
+		for ( ; dSize && (!p[dSize-1] || (0x90 == p[dSize-1])); --dSize) ; /* Find ending */ \
+		JITLOG("Disassembling %s (size %u bytes) @ 0x%p:", #udis_func, dSize, p) \
+		for (int i = 0; i < dSize; i += 0x10) { \
+			write_log("%08x ", i); \
+			for (int j = 0; j < 16; ++j) \
+				write_log("%s%02x", 8==j ? "  " : " ", p[i + j]); \
+			write_log("\n"); \
+		} \
+		ud_t ud_obj; \
+		ud_init(&ud_obj); \
+		ud_set_input_buffer(&ud_obj, p, dSize); \
+		ud_set_mode(&ud_obj, UD_MODE); \
+		ud_set_syntax(&ud_obj, UD_SYN_INTEL); \
+		while (dSize > 0) { \
+				dSize -= ud_disassemble(&ud_obj); \
+				JITLOG("%s", ud_insn_asm(&ud_obj)); \
+		} \
+	} else \
+		JITLOG("Can't dissassemble %s, start (0x%08lx) is larger than end (0x%08lx)", \
+				#udis_func, (uaecptr)udis_func, (uaecptr)udis_end) \
+}
+# else
+#   define UDISFN(...) {}
+# endif // defined(USE_UDIS86)
+#else
+# define JITLOG(...) {}
+# define UDISFN(...) {}
 #endif
 
 #if defined __AMIGA__ || defined __amiga__
@@ -73,7 +118,9 @@
 #endif // __cplusplus
 
 #ifndef __STDC__
-#ifndef _MSC_VER
+#  ifdef _MSC_VER
+#    error "M$ is no longer supported. Use WinUAE instead, it's great!"
+#  else
 #error "Your compiler is not ANSI. Get a real one."
 #endif
 #endif
@@ -169,6 +216,41 @@ struct utimbuf
 #include "uae_types.h"
 #include "uae_malloc.h"
 #include "writelog.h"
+
+// Support macros for working with pointers of variable size -> 32bit.
+#ifdef __x86_64__
+#  if defined(JIT_DEBUG)
+static uae_u32 jit_debug_to_uae_u32(uaecptr ptr, const char* macro, const char* file, const int line, const char* func)
+{
+	uae_u32 result = (uae_u32)ptr;
+	if ((uaecptr)result != ptr) {
+		write_log("%s:%d - %s : %s - Pointer Truncated! 0x%08x %08x\n",
+				file, line, func, macro, (uae_u32)(ptr >> 32), result);
+	}
+	return result;
+}
+#    define PTR_TO_UINT32(ptr) jit_debug_to_uae_u32((uaecptr)ptr, "PTR_TO_UINT32", \
+										basename(__FILE__), __LINE__, __FUNCTION__)
+#  else
+#    define PTR_TO_UINT32(ptr) ((uae_u32)(uaecptr)(ptr))
+#  endif
+#else
+#  define PTR_TO_UINT32(ptr) ((uae_u32)(ptr))
+#endif // __x86_64__
+#define VALUE_TO_PTR(val)  ((uaecptr)(val))
+#define PTR_OFFSET(src, dst) (((uaecptr)(dst)) - ((uaecptr)(src)))
+#define NATMEM_ADDRESS     PTR_TO_UINT32(NATMEM_OFFSET)
+
+/* The following macro allows to execute machine code directly
+ * without the need of (illegal) object<->function pointer conversions.
+ */
+/// @todo : Add compiler/OS checks
+#ifdef __GNUC__
+#  define CALL_CODE_DIRECT(ptr) __asm__("call *%0" : : "a" (ptr));
+#else
+#  define CALL_CODE_DIRECT(ptr) ((compop_func*)ptr)(0);
+#endif // __GNUC__
+
 
 #ifdef __GNUC__
 /* While we're here, make abort more useful.  */

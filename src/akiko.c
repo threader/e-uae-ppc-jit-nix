@@ -593,18 +593,19 @@ static void cdaudioplay_do (void)
 	sys_command_cd_play2 (unitnum, startlsn, endlsn, scan, statusfunc, subfunc);
 }
 
-static bool isaudiotrack (int startlsn)
+#ifdef SAVESTATE
+static bool akiko_isaudiotrack (int startlsn)
 {
 	struct cd_toc *s = NULL;
-	uae_u32 addr;
+	size_t addr;
 	int i;
 
 	if (!cdrom_toc_cd_buffer.points)
 		return false;
 	for (i = 0; i < cdrom_toc_cd_buffer.points; i++) {
 		s = &cdrom_toc_cd_buffer.toc[i];
-		addr = s->paddress;
-		if (s->track > 0 && s->track < 100 && addr >= startlsn)
+		addr = (size_t)s->paddress;
+		if (s->track > 0 && s->track < 100 && addr >= (size_t)startlsn)
 			break;
 		s++;
 	}
@@ -614,6 +615,7 @@ static bool isaudiotrack (int startlsn)
 	}
 	return true;
 }
+#endif // SAVESTATE
 
 static struct cd_toc *get_track (int startlsn)
 {
@@ -2020,7 +2022,7 @@ void restore_akiko_finish (void)
 	write_comm_pipe_u32 (&requests, 0x0102, 1); // pause
 	write_comm_pipe_u32 (&requests, 0x0104, 1); // stop
 	write_comm_pipe_u32 (&requests, 0x0103, 1); // unpause
-	if (cdrom_playing && isaudiotrack (last_play_pos)) {
+	if (cdrom_playing && akiko_isaudiotrack (last_play_pos)) {
 		write_comm_pipe_u32 (&requests, 0x0103, 1); // unpause
 		write_comm_pipe_u32 (&requests, 0x0110, 0); // play
 		write_comm_pipe_u32 (&requests, last_play_pos, 0);

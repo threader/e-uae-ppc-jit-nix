@@ -94,7 +94,7 @@ static void sigbrkhandler (int foo)
 void setup_brkhandler (void)
 {
     struct sigaction sa;
-    sa.sa_handler = sigbrkhandler;
+    sa.sa_sigaction = sigbrkhandler;
     sa.sa_flags = 0;
     sigemptyset (&sa.sa_mask);
     sigaction (SIGINT, &sa, NULL);

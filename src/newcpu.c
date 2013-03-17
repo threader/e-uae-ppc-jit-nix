@@ -9,8 +9,9 @@
 #define MOVEC_DEBUG 0
 #define MMUOP_DEBUG 2
 #define DEBUG_CD32CDTVIO 0
-#define EXCEPTION3_DEBUG 0
+#define EXCEPTION3_DEBUGGER 0
 #define CPUTRACE_DEBUG 0
+#undef OPCODE_DEBUG
 
 #include "sysconfig.h"
 #include "sysdeps.h"
@@ -2777,7 +2778,7 @@ static void ExceptionX (int nr, uaecptr address)
 
 #ifdef JIT
 	if (currprefs.cachesize)
-		regs.instruction_pc = address == -1 ? m68k_getpc () : address;
+		regs.instruction_pc = address == (uaecptr)-1 ? m68k_getpc () : address;
 #endif
 #ifdef CPUEMU_12
 	if (currprefs.cpu_cycle_exact && currprefs.cpu_model == 68000)
@@ -4252,12 +4253,13 @@ void execute_normal (void)
 	}
 }
 
-typedef void compiled_handler (void);
+//typedef void compiled_handler (void);
 
 static void m68k_run_jit (void)
 {
+	// pushall_call_handler already disassembled in create_popalls()
 	for (;;) {
-		((compiled_handler*)(pushall_call_handler))();
+		CALL_CODE_DIRECT(pushall_call_handler)
 		/* Whenever we return from that, we should check spcflags */
 		if (uae_int_requested) {
 			INTREQ_f (0x8008);
@@ -4280,6 +4282,7 @@ static void m68k_run_2 (void)
 
 #else
 
+#if defined(OPCODE_DEBUG)
 static void opcodedebug (uae_u32 pc, uae_u16 opcode, bool full)
 {
 	struct mnemolookup *lookup;
@@ -4308,6 +4311,7 @@ static void opcodedebug (uae_u32 pc, uae_u16 opcode, bool full)
 			m68k_dumpstate (NULL);
 	}
 }
+#endif
 
 void cpu_halt (int id)
 {
@@ -4316,12 +4320,14 @@ void cpu_halt (int id)
 		regs.halted = id;
 		gui_data.cpu_halted = true;
 		gui_led (LED_CPU, 0);
+		regs.intmask = 7;
+		MakeSR ();
 	}
 	while (regs.halted) {
 		x_do_cycles (8 * CYCLE_UNIT);
 		cpu_cycles = adjust_cycles (cpu_cycles);
 		if (regs.spcflags) {
-			if (do_specialties (cpu_cycles))
+			if ((regs.spcflags & (SPCFLAG_BRK | SPCFLAG_MODE_CHANGE)))
 				return;
 		}
 	}
@@ -5092,7 +5098,7 @@ void m68k_disasm_2 (TCHAR *buf, int bufsize, uaecptr pc, uaecptr *nextpc, int cn
 		return;
 	while (cnt-- > 0) {
 		TCHAR instrname[100], *ccpt;
-		int i;
+		uaecptr i;
 		uae_u32 opcode;
 		struct mnemolookup *lookup;
 		struct instr *dp;
@@ -5282,7 +5288,7 @@ void sm68k_disasm (TCHAR *instrname, TCHAR *instrcode, uaecptr addr, uaecptr *ne
 
 	if (instrcode)
 	{
-		int i;
+		uaecptr i;
 		for (i = 0; i < (pc - oldpc) / 2; i++)
 		{
 			_stprintf (instrcode, _T("%04x "), get_iword_1 (oldpc + i * 2));
@@ -5908,7 +5914,7 @@ static void exception3f (uae_u32 opcode, uaecptr addr, int writeaccess, int inst
 	last_writeaccess_for_exception_3 = writeaccess;
 	last_instructionaccess_for_exception_3 = instructionaccess;
 	Exception (3);
-#if EXCEPTION3_DEBUG
+#if EXCEPTION3_DEBUGGER
 	//activate_debugger();
 #endif
 }
@@ -6145,6 +6151,30 @@ int getDivs68kCycles (uae_s32 dividend, uae_s16 divisor)
 	return mcycles * 2;
 }
 
+/* 68000 Z=1. NVC=0
+ * 68020 Signed: Z=1 NVC=0. Unsigned: V=1 N<dst, Z=!N.
+ * 68060 C=0.
+ */
+void divbyzero_special (bool issigned, uae_s32 dst)
+{
+	if (currprefs.cpu_model == 68020 || currprefs.cpu_model == 68030) {
+		CLEAR_CZNV ();
+		if (issigned == false) {
+			if (dst < 0) 
+				SET_NFLG (1);
+			SET_ZFLG (!GET_NFLG ());
+			SET_VFLG (1);
+		} else {
+			SET_ZFLG (1);
+		}
+	} else if (currprefs.cpu_model >= 68040) {
+		SET_CFLG (0);
+	} else {
+		// 68000/010
+		CLEAR_CZNV ();
+	}
+}
+
 STATIC_INLINE void fill_cache040 (uae_u32 addr)
 {
 	int index, i, lws;
@@ -6182,7 +6212,7 @@ STATIC_INLINE void fill_cache040 (uae_u32 addr)
 }
 
 // this one is really simple and easy
-void fill_icache020 (uae_u32 addr)
+static void fill_icache020 (uae_u32 addr)
 {
 	int index;
 	uae_u32 tag;

@@ -39,11 +39,12 @@ int uae_sem_init (uae_sem_t *sem, int pshared, unsigned int value)
 
 #else
 
-/* Satisfy those linkers that complain about empty linker libs */
-void thread_dummy (void);
-
-void thread_dummy (void)
+int uae_sem_init (uae_sem_t *sem, int pshared, unsigned int value)
 {
+	if (!sem || (sem && sem->sem))
+		return -1;
+	sem->sem = (sem_t*)calloc(0, sizeof(sem_t));
+	return sem_init (sem->sem, pshared, value);
 }
 
 #endif

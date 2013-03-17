@@ -113,7 +113,7 @@ void setup_brkhandler (void)
 {
 #ifdef HAVE_SIGACTION
     struct sigaction sa;
-    sa.sa_handler = (void*)sigbrkhandler;
+    sa.sa_sigaction = sigbrkhandler;
     sa.sa_flags = 0;
     sa.sa_flags = SA_RESTART;
     sigemptyset (&sa.sa_mask);
