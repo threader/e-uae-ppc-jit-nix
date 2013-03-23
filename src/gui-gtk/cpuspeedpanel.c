@@ -71,7 +71,7 @@ static void cpuspeedpanel_class_init (CpuSpeedPanelClass *class)
 
 static void cpuspeedpanel_init (CpuSpeedPanel *cspanel)
 {
-    GtkWidget *table;
+//    GtkWidget *table;
 
     gtk_frame_set_label (GTK_FRAME(cspanel), "Emulation speed");
     gtk_container_set_border_width (GTK_CONTAINER (cspanel), PANEL_BORDER_WIDTH);

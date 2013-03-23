@@ -145,7 +145,7 @@ static void led_size_request (GtkWidget *widget, GtkRequisition *requisition)
 
 static void led_size_allocate (GtkWidget *widget, GtkAllocation *allocation)
 {
-    Led *theled = LED (widget);
+//    Led *theled = LED (widget);
 
     g_return_if_fail (widget != NULL);
     g_return_if_fail (IS_LED (widget));

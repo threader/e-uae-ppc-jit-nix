@@ -88,37 +88,8 @@ static uae_u8 *REGPARAM3 kickmem_xlate (uaecptr addr) REGPARAM;
 void memcpyha (uaecptr dst, const uae_u8 *src, int size);
 
 
-/* internal prototypes */
-#ifdef AGA
-uae_u32 REGPARAM2 chipmem_lget_ce2 (uaecptr addr);
-uae_u32 REGPARAM2 chipmem_wget_ce2 (uaecptr addr);
-uae_u32 REGPARAM2 chipmem_bget_ce2 (uaecptr addr);
-void REGPARAM2 chipmem_lput_ce2 (uaecptr addr, uae_u32 l);
-void REGPARAM2 chipmem_wput_ce2 (uaecptr addr, uae_u32 w);
-void REGPARAM2 chipmem_bput_ce2 (uaecptr addr, uae_u32 b);
-#endif
-uae_u32 REGPARAM2 chipmem_lget (uaecptr addr);
-uae_u32 REGPARAM2 chipmem_wget (uaecptr addr);
-uae_u32 REGPARAM2 chipmem_bget (uaecptr addr);
-void REGPARAM2 chipmem_dummy_bput (uaecptr addr, uae_u32 b);
-void REGPARAM2 chipmem_dummy_wput (uaecptr addr, uae_u32 b);
-void REGPARAM2 chipmem_dummy_lput (uaecptr addr, uae_u32 b);
-uae_u32 REGPARAM2 chipmem_agnus_lget (uaecptr addr);
-uae_u32 REGPARAM2 chipmem_agnus_bget (uaecptr addr);
-void REGPARAM2 chipmem_agnus_lput (uaecptr addr, uae_u32 l);
-void REGPARAM2 chipmem_agnus_bput (uaecptr addr, uae_u32 b);
-static uae_u32 REGPARAM3 kickmem_lget (uaecptr) REGPARAM;
-static uae_u32 REGPARAM3 kickmem_wget (uaecptr) REGPARAM;
-static uae_u32 REGPARAM3 kickmem_bget (uaecptr) REGPARAM;
-static void REGPARAM3 kickmem_lput (uaecptr, uae_u32) REGPARAM;
-static void REGPARAM3 kickmem_wput (uaecptr, uae_u32) REGPARAM;
-static void REGPARAM3 kickmem_bput (uaecptr, uae_u32) REGPARAM;
-static int REGPARAM3 kickmem_check (uaecptr addr, uae_u32 size) REGPARAM;
-void REGPARAM2 kickmem2_lput (uaecptr addr, uae_u32 l);
-void REGPARAM2 kickmem2_wput (uaecptr addr, uae_u32 w);
-void REGPARAM2 kickmem2_bput (uaecptr addr, uae_u32 b);
-static uae_u8 *REGPARAM3 kickmem_xlate (uaecptr addr) REGPARAM;
-void memcpyha (uaecptr dst, const uae_u8 *src, int size);
+/* external prototypes */
+uae_u32 uaerand (void);
 
 
 static bool isdirectjit (void)
@@ -852,7 +823,7 @@ static uae_u8 *REGPARAM2 cardmem_xlate (uaecptr addr)
 
 /* A3000 motherboard fast memory */
 static uae_u8 *a3000lmemory, *a3000hmemory;
-uae_u32 a3000lmem_start, a3000hmem_start;
+uaecptr a3000lmem_start, a3000hmem_start;
 
 static uae_u32 REGPARAM3 a3000lmem_lget (uaecptr) REGPARAM;
 static uae_u32 REGPARAM3 a3000lmem_wget (uaecptr) REGPARAM;
@@ -1525,6 +1496,7 @@ static uae_u8 *REGPARAM2 custmem1_xlate (uaecptr addr)
 	return custmem1 + addr;
 }
 
+#if 0
 static uae_u32 REGPARAM3 custmem2_lget (uaecptr) REGPARAM;
 static uae_u32 REGPARAM3 custmem2_wget (uaecptr) REGPARAM;
 static uae_u32 REGPARAM3 custmem2_bget (uaecptr) REGPARAM;
@@ -1590,6 +1562,7 @@ static uae_u8 *REGPARAM2 custmem2_xlate (uaecptr addr)
 	addr &= custmem2_mask;
 	return custmem2 + addr;
 }
+#endif
 
 addrbank custmem1_bank = {
 	custmem1_lget, custmem1_wget, custmem1_bget,
@@ -2147,7 +2120,7 @@ static void add_shmmaps (uae_u32 start, addrbank *what)
 		return;
 	y = xmalloc (shmpiece, 1); // Create another shmpiece node for the new mapping
 	*y = *x;
-	base = ((uae_u8 *) NATMEM_OFFSET) + start;
+	base = NATMEM_OFFSET + start;
 	y->native_address = (uae_u8*)my_shmat (y->id, base, 0);
 	if (y->native_address == (void *) -1) {
 		write_log (_T("NATMEM: Failure to map id %d existing at %08x (%p):%d "), y->id, start, base, errno);
@@ -2236,10 +2209,11 @@ uae_u8 *mapped_malloc (size_t s, const TCHAR *file)
 
 static void init_mem_banks (void)
 {
-	int i;
+	uae_u32 i;
 
 	for (i = 0; i < MEMORY_BANKS; i++)
 		put_mem_bank (i << 16, &dummy_bank, 0);
+
 #ifdef NATMEM_OFFSET
 	delete_shmmaps (0, 0xFFFF0000);
 #endif
@@ -2368,7 +2342,7 @@ static void allocate_memory (void)
 		need_hardreset = true;
 	}
 #ifdef CDTV
-	if (allocated_cardmem != currprefs.cs_cdtvcard * 1024) {
+	if ((int)allocated_cardmem != currprefs.cs_cdtvcard * 1024) {
 		if (cardmemory)
 			mapped_free (cardmemory);
 		cardmemory = 0;
@@ -3003,8 +2977,6 @@ void map_banks (addrbank *bank, int start, int size, int realsize)
 #endif
 #ifdef JIT
 	flush_icache (0, 3); /* Sure don't want to keep any old mappings around! */
-#endif
-#ifdef NATMEM_OFFSET
 	delete_shmmaps (start << 16, size << 16);
 #endif
 

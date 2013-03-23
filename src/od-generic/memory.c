@@ -76,7 +76,7 @@ struct shmid_ds {
 };
 
 typedef struct {
-    int dwPageSize;
+	int dwPageSize;
 } SYSTEM_INFO;
 
 static struct shmid_ds shmids[MAX_SHMID];
@@ -92,17 +92,17 @@ uae_u32 natmem_size;
 struct virt_alloc_s;
 typedef struct virt_alloc_s
 {
-    int mapping_size;
-    char* address;
-    struct virt_alloc_s* next;
-    struct virt_alloc_s* prev;
-    int state;
+	int mapping_size;
+	char* address;
+	struct virt_alloc_s* next;
+	struct virt_alloc_s* prev;
+	int state;
 }virt_alloc;
 static virt_alloc* vm=0;
 
 static void GetSystemInfo(SYSTEM_INFO *si)
 {
-    si->dwPageSize = sysconf(_SC_PAGESIZE); //PAGE_SIZE <asm/page.h>
+	si->dwPageSize = sysconf(_SC_PAGESIZE); //PAGE_SIZE <asm/page.h>
 }
 
 /*
@@ -140,12 +140,12 @@ static void *mmap_anon(void *addr, size_t len, int prot, int flags, off_t offset
 	if (result == MAP_FAILED) {
 		write_log("MMAPed failed addr: 0x%08X, %d bytes (%d MB)\n",
 					addr, (uae_u32)len, (uae_u32)len / 0x100000);
-    } else {
+	} else {
 		write_log("MMAPed OK range: 0x%08X - 0x%08X, %d bytes (%d MB)\n",
 					PTR_TO_UINT32(result), PTR_TO_UINT32(result) + (uae_u32)len,
 					(uae_u32)len, (uae_u32)len / 0x100000);
 	}
-    return result;
+	return result;
 }
 
 static void *VirtualAlloc(LPVOID lpAddress, int dwSize, DWORD flAllocationType, DWORD flProtect) {
@@ -154,25 +154,25 @@ static void *VirtualAlloc(LPVOID lpAddress, int dwSize, DWORD flAllocationType, 
 #endif
 	void *memory = NULL;
 
-    if ((flAllocationType == MEM_COMMIT && lpAddress == NULL) || flAllocationType & MEM_RESERVE) {
-	memory = malloc(dwSize);
-	if (memory == NULL)
-		write_log ("VirtualAlloc failed errno %d\n", errno);
+	if ((flAllocationType == MEM_COMMIT && lpAddress == NULL) || flAllocationType & MEM_RESERVE) {
+		memory = malloc(dwSize);
+		if (memory == NULL)
+			write_log ("VirtualAlloc failed errno %d\n", errno);
 #if (MEMORY_DEBUG > 0) && defined(__x86_64__)
-	else if ((uaecptr)memory != (0x00000000ffffffff & (uaecptr)memory))
-		write_log ("VirtualAlloc allocated 64bit high mem at 0x%08x %08x\n",
-					(uae_u32)((uaecptr)memory >> 32),
-					(uae_u32)(0x00000000ffffffff & (uaecptr)memory));
+		else if ((uaecptr)memory != (0x00000000ffffffff & (uaecptr)memory))
+			write_log ("VirtualAlloc allocated 64bit high mem at 0x%08x %08x\n",
+						(uae_u32)((uaecptr)memory >> 32),
+						(uae_u32)(0x00000000ffffffff & (uaecptr)memory));
 #endif
-	return memory;
-    } else {
-        return lpAddress;
-    }
+		return memory;
+	} else {
+		return lpAddress;
+	}
 
-     void* answer;
-    long pgsz;
+	void* answer;
+	long pgsz;
 
-    if ((flAllocationType & (MEM_RESERVE | MEM_COMMIT)) == 0) {
+	if ((flAllocationType & (MEM_RESERVE | MEM_COMMIT)) == 0) {
 		return NULL;
 	}
 
@@ -208,7 +208,7 @@ static void *VirtualAlloc(LPVOID lpAddress, int dwSize, DWORD flAllocationType, 
 			}
 			if (str->state == 0) {
 				//FIXME
-				if (   (PTR_TO_UINT32(lpAddress)        >= PTR_TO_UINT32(str->address))
+				if (   (PTR_TO_UINT32(lpAddress)          >= PTR_TO_UINT32(str->address))
 					&& (PTR_TO_UINT32(lpAddress) + dwSize <= PTR_TO_UINT32(str->address) + str->mapping_size)
 					&& (flAllocationType & MEM_COMMIT)) {
 						write_log ("VirtualAlloc: previously reserved memory 0x%08X\n", lpAddress);
@@ -221,19 +221,19 @@ static void *VirtualAlloc(LPVOID lpAddress, int dwSize, DWORD flAllocationType, 
 		}
 	}
 
-    answer = mmap_anon(lpAddress, dwSize, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE, 0);
-    if (answer != (void *)-1 && lpAddress && answer != lpAddress) {
+	answer = mmap_anon(lpAddress, dwSize, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE, 0);
+	if (answer != (void *)-1 && lpAddress && answer != lpAddress) {
 		/* It is dangerous to try mmap() with MAP_FIXED since it does not always detect conflicts or non-allocation and chaos ensues after
 	   	   a successful call but an overlapping or non-allocated region.  */
 		munmap (answer, dwSize);
 		answer = (void *) -1;
 		errno = EINVAL;
 		write_log ("VirtualAlloc: cannot satisfy requested address\n");
-    }
+	}
 	if (answer == (void*)-1) {
 		write_log ("VirtualAlloc: mmap(0x%08X, %u) failed with errno=%d\n", PTR_TO_UINT32(lpAddress), dwSize, errno);
 		return NULL;
-    } else {
+	} else {
 		virt_alloc *new_vm = malloc(sizeof(virt_alloc));
 		new_vm->mapping_size = dwSize;
 		new_vm->address = (char*)answer;
@@ -248,7 +248,7 @@ static void *VirtualAlloc(LPVOID lpAddress, int dwSize, DWORD flAllocationType, 
 		vm->next = 0;
 		write_log ("VirtualAlloc: provides %u bytes starting at 0x%08X\n", dwSize, PTR_TO_UINT32(answer));
 		return answer;
-    }
+	}
 }
 
 static bool VirtualFree(LPVOID lpAddress, SIZE_T dwSize, DWORD dwFreeType) {
@@ -296,13 +296,13 @@ void cache_free (uae_u8 *cache)
 
 uae_u8 *cache_alloc (int size)
 {
-    size = size < sysconf(_SC_PAGESIZE) ? sysconf(_SC_PAGESIZE) : size;
+	size = size < sysconf(_SC_PAGESIZE) ? sysconf(_SC_PAGESIZE) : size;
 
-    void *cache = mmap(0, size, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANON, -1, 0);
-    if (!cache) {
-        write_log ("Cache_Alloc of %d failed. ERR=%d\n", size, errno);
-    }
-    return (uae_u8 *) cache;
+	void *cache = mmap(0, size, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANON, -1, 0);
+	if (!cache) {
+		write_log ("Cache_Alloc of %d failed. ERR=%d\n", size, errno);
+	}
+	return (uae_u8 *) cache;
 
 //fixme:	return virtualallocwithlock (NULL, size, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
 }

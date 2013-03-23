@@ -527,19 +527,28 @@ genastore (char *from, amodes mode, char *reg, wordsizes size, char *to)
     switch (mode)
     {
      case Dreg:
+
+	/* The mov functions are defined as:
+	 * DECLARE(mov_b_rr(W1 d, R1 s));
+	 * DECLARE(mov_w_rr(W2 d, R2 s));
+	 * DECLARE(mov_l_rr(W4 d, R4 s));
+	 * Thus cast to ensure the correct type in
+	 * both comparison and call.
+	*/
+
 	switch (size)
 	{
 	 case sz_byte:
-	    comprintf("\tif(%s!=%s)\n",reg,from);
-	    comprintf ("\t\tmov_b_rr(%s,%s);\n", reg, from);
+	    comprintf("\tif((W1)%s != (R1)%s)\n",reg,from);
+	    comprintf ("\t\tmov_b_rr((W1)%s, (R1)%s);\n", reg, from);
 	    break;
 	 case sz_word:
-	    comprintf("\tif(%s!=%s)\n",reg,from);
-	    comprintf ("\t\tmov_w_rr(%s,%s);\n", reg, from);
+	    comprintf("\tif((W2)%s != (R2)%s)\n",reg,from);
+	    comprintf ("\t\tmov_w_rr((W2)%s, (R2)%s);\n", reg, from);
 	    break;
 	 case sz_long:
-	    comprintf("\tif(%s!=%s)\n",reg,from);
-	    comprintf ("\t\tmov_l_rr(%s,%s);\n", reg, from);
+	    comprintf("\tif((W4)%s != (R4)%s)\n",reg,from);
+	    comprintf ("\t\tmov_l_rr((W4)%s, (R4)%s);\n", reg, from);
 	    break;
 	 default:
 	    abort ();
@@ -549,12 +558,12 @@ genastore (char *from, amodes mode, char *reg, wordsizes size, char *to)
 	switch (size)
 	{
 	 case sz_word:
-	    comprintf("\tif(%s+8!=%s)\n",reg,from);
-	    comprintf ("\t\tmov_w_rr(%s+8,%s);\n", reg, from);
+	    comprintf("\tif((W2)(%s+8) != (R2)%s)\n",reg,from);
+	    comprintf ("\t\tmov_w_rr((W2)(%s+8), (R2)%s);\n", reg, from);
 	    break;
 	 case sz_long:
-	    comprintf("\tif(%s+8!=%s)\n",reg,from);
-	    comprintf ("\t\tmov_l_rr(%s+8,%s);\n", reg, from);
+	    comprintf("\tif((W4)(%s+8) != (R4)%s)\n",reg,from);
+	    comprintf ("\t\tmov_l_rr((W4)(%s+8), (R4)%s);\n", reg, from);
 	    break;
 	 default:
 	    abort ();
@@ -1708,9 +1717,9 @@ gen_opcode (unsigned long int opcode)
 	comprintf("\tint newad=scratchie++;\n"
 		  "\treadlong(15,newad,scratchie);\n"
 		  "\tand_l_ri(newad,~1);\n"
-		  "\tmov_l_mr((uae_u32)&regs.pc,newad);\n"
+		  "\tmov_l_mr(PTR_TO_UINT32(&regs.pc), newad);\n"
 		  "\tget_n_addr_jmp(newad,PC_P,scratchie);\n"
-		  "\tmov_l_mr((uae_u32)&regs.pc_oldp,PC_P);\n"
+		  "\tmov_l_mr(PTR_TO_UINT32(&regs.pc_oldp) ,PC_P);\n"
 		  "\tm68k_pc_offset=0;\n"
 		  "\tadd_l(15,offs);\n");
 	gen_update_next_handler();
@@ -1738,9 +1747,9 @@ gen_opcode (unsigned long int opcode)
 	comprintf("\tint newad=scratchie++;\n"
 		  "\treadlong(15,newad,scratchie);\n"
 		  "\tand_l_ri(newad,~1);\n"
-		  "\tmov_l_mr((uae_u32)&regs.pc,newad);\n"
+		  "\tmov_l_mr(PTR_TO_UINT32(&regs.pc), newad);\n"
 		  "\tget_n_addr_jmp(newad,PC_P,scratchie);\n"
-		  "\tmov_l_mr((uae_u32)&regs.pc_oldp,PC_P);\n"
+		  "\tmov_l_mr(PTR_TO_UINT32(&regs.pc_oldp), PC_P);\n"
 		  "\tm68k_pc_offset=0;\n"
 		  "\tlea_l_brr(15,15,4);\n");
 	gen_update_next_handler();
@@ -1764,9 +1773,9 @@ gen_opcode (unsigned long int opcode)
 		  "\tsub_l_ri(15,4);\n"
 		  "\twritelong_clobber(15,ret,scratchie);\n");
 	comprintf("\tand_l_ri(srca,~1);\n"
-		  "\tmov_l_mr((uae_u32)&regs.pc,srca);\n"
+		  "\tmov_l_mr(PTR_TO_UINT32(&regs.pc), srca);\n"
 		  "\tget_n_addr_jmp(srca,PC_P,scratchie);\n"
-		  "\tmov_l_mr((uae_u32)&regs.pc_oldp,PC_P);\n"
+		  "\tmov_l_mr(PTR_TO_UINT32(&regs.pc_oldp),PC_P);\n"
 		  "\tm68k_pc_offset=0;\n");
 	gen_update_next_handler();
 	break;
@@ -1774,9 +1783,9 @@ gen_opcode (unsigned long int opcode)
 	isjump;
 	genamode (curi->smode, "srcreg", curi->size, "src", 0, 0);
 	comprintf("\tand_l_ri(srca,~1);\n"
-		  "\tmov_l_mr((uae_u32)&regs.pc,srca);\n"
+		  "\tmov_l_mr(PTR_TO_UINT32(&regs.pc), srca);\n"
 		  "\tget_n_addr_jmp(srca,PC_P,scratchie);\n"
-		  "\tmov_l_mr((uae_u32)&regs.pc_oldp,PC_P);\n"
+		  "\tmov_l_mr(PTR_TO_UINT32(&regs.pc_oldp), PC_P);\n"
 		  "\tm68k_pc_offset=0;\n");
 	gen_update_next_handler();
 	break;
@@ -1796,7 +1805,7 @@ gen_opcode (unsigned long int opcode)
 	comprintf("\tm68k_pc_offset=0;\n");
 	comprintf("\tadd_l(PC_P,src);\n");
 
-	comprintf("\tcomp_pc_p=(uae_u8*)get_const(PC_P);\n");
+	comprintf("\tcomp_pc_p=(uae_u8*)VALUE_TO_PTR(get_const(PC_P));\n");
 	break;
      case i_Bcc:
 	comprintf("\tuae_u32 v1,v2;\n");
@@ -1811,8 +1820,8 @@ gen_opcode (unsigned long int opcode)
 	comprintf("\tsub_l_ri(src,m68k_pc_offset-m68k_pc_offset_thisinst-2);\n");
 	/* Leave the following as "add" --- it will allow it to be optimized
 	   away due to src being a constant ;-) */
-	comprintf("\tadd_l_ri(src,(uae_u32)comp_pc_p);\n");
-	comprintf("\tmov_l_ri(PC_P,(uae_u32)comp_pc_p);\n");
+	comprintf("\tadd_l_ri(src,PTR_TO_UINT32(comp_pc_p));\n");
+	comprintf("\tmov_l_ri(PC_P,PTR_TO_UINT32(comp_pc_p));\n");
 	/* Now they are both constant. Might as well fold in m68k_pc_offset */
 	comprintf("\tadd_l_ri(src,m68k_pc_offset);\n");
 	comprintf("\tadd_l_ri(PC_P,m68k_pc_offset);\n");
@@ -1833,7 +1842,7 @@ gen_opcode (unsigned long int opcode)
 	switch(curi->cc) {
 	 case 0:  /* Unconditional jump */
 	    comprintf("\tmov_l_rr(PC_P,src);\n");
-	    comprintf("\tcomp_pc_p=(uae_u8*)get_const(PC_P);\n");
+	    comprintf("\tcomp_pc_p=(uae_u8*)VALUE_TO_PTR(get_const(PC_P));\n");
 	    break;
 	 case 1: break; /* This is silly! */
 	 case 8: failure; break;  /* Work out details! FIXME */
@@ -1885,7 +1894,7 @@ gen_opcode (unsigned long int opcode)
 	 default: abort();  /* Seems this only comes in word flavour */
 	}
 	comprintf("\tsub_l_ri(offs,m68k_pc_offset-m68k_pc_offset_thisinst-2);\n");
-	comprintf("\tadd_l_ri(offs,(uae_u32)comp_pc_p);\n"); /* New PC,
+	comprintf("\tadd_l_ri(offs,PTR_TO_UINT32(comp_pc_p));\n"); /* New PC,
 								once the
 								offset_68k is
 								* also added */
@@ -3086,7 +3095,7 @@ generate_func (int noflags)
 		 "#define PART_7 1\n"
 		 "#define PART_8 1\n"
 		 "#endif\n\n"
-//		 "extern void setzflg_l();\n"
+		 "extern void setzflg_l(RW4 r);\n"
 		 "extern void comp_fpp_opp (uae_u32 opcode, uae_u16 extra);\n"
 		 "extern void comp_fscc_opp (uae_u32 opcode, uae_u16 extra);\n"
 		 "extern void comp_fbcc_opp (uae_u32 opcode);\n\n");

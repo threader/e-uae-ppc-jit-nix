@@ -5509,8 +5509,11 @@ static bool framewait (void)
 		if ((int)start - (int)vsync_time >= 0 && (int)start - (int)vsync_time < vsynctimebase)
 			t += (int)start - (int)vsync_time;
 
-		if (!frame_shown)
+		if (!frame_shown) {
 			show_screen (1);
+			if (currprefs.gfx_apmode[0].gfx_strobo)
+				show_screen (2);
+		}
 
 		int legacy_avg = mavg (&ma_legacy, t, MAVG_VSYNC_SIZE);
 		if (t > legacy_avg)

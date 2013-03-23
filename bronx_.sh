@@ -1,10 +1,15 @@
 # P-UAE
 #
-# 2006-2011 Mustafa TUFAN (aka GnoStiC/BRONX)
+# 2006-2013 Mustafa TUFAN (aka GnoStiC/BRONX)
 #
 # this is the main script to build (and test) PUAE
-#
+
+#sdl
 base=" --with-sdl --with-sdl-gfx --with-sdl-sound --enable-drvsnd --with-sdl-gui --with-sdl-gl "
+
+#mac
+base=" --with-sdl --with-sdl-gl --with-sdl-gfx --with-sdl-sound --enable-drvsnd "
+
 wiqt=" "
 cd32=" --enable-cd32 "
 a600=" --enable-gayle "

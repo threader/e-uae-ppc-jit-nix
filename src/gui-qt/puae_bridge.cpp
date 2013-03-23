@@ -19,11 +19,11 @@ extern "C" {
 #include "gui.h"
 #include "options.h"
 #include "writelog.h"
+#include "misc.h"
 extern struct uae_prefs workprefs;
 extern struct uae_prefs currprefs;
 extern void romlist_clear (void);
 extern int load_keyring (struct uae_prefs *p, const char *path);
-extern int scan_roms (int);
 }
 
 static unsigned int gui_available;

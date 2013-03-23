@@ -1089,25 +1089,7 @@ void puae_MainWindow::values_to_memorydlg()
 		(workprefs.picasso96_modeflags & RGBFF_R8G8B8A8) ? 4 :
 		(workprefs.picasso96_modeflags & RGBFF_B8G8R8A8) ? 5 : 0, 0);
 */
-	if (workprefs.win32_rtgvblankrate <= 0 ||
-		workprefs.win32_rtgvblankrate == 50 ||
-		workprefs.win32_rtgvblankrate == 60 ||
-		workprefs.win32_rtgvblankrate == 70 ||
-		workprefs.win32_rtgvblankrate == 75)
-	{
-			ui->IDC_RTG_VBLANKRATE->setCurrentIndex(
-				(workprefs.win32_rtgvblankrate == 0) ? 1 :
-				(workprefs.win32_rtgvblankrate == -1) ? 2 :
-				(workprefs.win32_rtgvblankrate == -2) ? 0 :
-				(workprefs.win32_rtgvblankrate == 50) ? 3 :
-				(workprefs.win32_rtgvblankrate == 60) ? 4 :
-				(workprefs.win32_rtgvblankrate == 70) ? 5 :
-				(workprefs.win32_rtgvblankrate == 75) ? 6 : 0);
-	} else {
-		char tmp[10];
-		printf (tmp, "%d", workprefs.win32_rtgvblankrate);
 		//ui->IDC_RTG_VBLANKRATE->setText(tmp);
-	}
 	mem_size = 0;
 	switch (workprefs.mbresmem_low_size) {
 	case 0x00000000: mem_size = 0; break;
@@ -1943,12 +1925,7 @@ void puae_MainWindow::values_from_sounddlg () {
 	}
 
 	workprefs.sound_interpol = ui->IDC_SOUNDINTERPOLATION->currentIndex();
-//	workprefs.win32_soundexclusive = ui->IDC_SOUND_EXCLUSIVE->isChecked();
 	soundcard = ui->IDC_SOUNDCARDLIST->currentIndex();
-/*	if (soundcard != workprefs.win32_soundcard && soundcard != NULL) {
-		workprefs.win32_soundcard = soundcard;
-		update_soundgui ();
-	}*/
 
 	switch (ui->IDC_SOUNDFILTER->currentIndex())
 	{
@@ -2102,19 +2079,12 @@ void puae_MainWindow::values_to_miscdlg () {
 #define STATUSLINE_CHIPSET 1
 #define STATUSLINE_RTG 2
 #define STATUSLINE_TARGET 0x80
-/*                ui->IDC_FOCUSMINIMIZE->setEnabled(workprefs.win32_minimize_inactive);
-                ui->IDC_ILLEGAL->setEnabled(workprefs.illegal_mem);
+/*                ui->IDC_ILLEGAL->setEnabled(workprefs.illegal_mem);
                 ui->IDC_SHOWGUI->setEnabled(workprefs.start_gui);
-                ui->IDC_JULIAN->setEnabled(workprefs.win32_middle_mouse);
-                ui->IDC_CREATELOGFILE->setEnabled(workprefs.win32_logfile);
-                ui->IDC_CTRLF11->setEnabled(workprefs.win32_ctrl_F11_is_quit);
                 ui->IDC_SHOWLEDS->setEnabled((workprefs.leds_on_screen & STATUSLINE_CHIPSET) ? 1 : 0);
                 ui->IDC_SHOWLEDSRTG->setEnabled((workprefs.leds_on_screen & STATUSLINE_RTG) ? 1 : 0);
-                ui->IDC_NOTASKBARBUTTON->setEnabled(workprefs.win32_notaskbarbutton);
-                ui->IDC_ALWAYSONTOP->setEnabled(workprefs.win32_alwaysontop);
                 ui->IDC_CLOCKSYNC->setEnabled(workprefs.tod_hack);
                 ui->IDC_CLIPBOARDSHARE->setEnabled(workprefs.clipboard_sharing);
-                ui->IDC_POWERSAVE->setEnabled(workprefs.win32_powersavedisabled);
                 ui->IDC_FASTERRTG->setEnabled(workprefs.picasso96_nocustom);
 */
 }
@@ -2122,7 +2092,7 @@ void puae_MainWindow::values_to_miscdlg () {
 void puae_MainWindow::enable_for_gameportsdlg () {
 /*
 	int v = full_property_sheet;
-	ui->IDC_PORT_TABLET_FULL->setEnabled(v && is_tablet () && workprefs.input_tablet > 0);
+	ui->IDC_PORT_TABLET_FULL->setEnabled(false);
 	ui->IDC_PORT_TABLET_CURSOR->setEnabled(v && workprefs.input_tablet > 0);
 	ui->IDC_PORT_TABLET->setEnabled(v);
 */
@@ -2199,9 +2169,6 @@ void puae_MainWindow::enable_for_portsdlg () {
 #endif
 /*	if (workprefs.prtname[0]) {
 		issampler = false;
-		workprefs.win32_samplersoundcard = -1;
-	} else if (workprefs.win32_samplersoundcard >= 0) {
-		isprinter = false;
 	}
 	ui->IDC_PRINTERLIST->setEnabled (isprinter);
 	ui->IDC_SAMPLERLIST->setEnabled (issampler);

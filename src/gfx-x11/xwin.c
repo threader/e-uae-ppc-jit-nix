@@ -76,31 +76,6 @@
     XPutImage (display, mywin, mygc, (IMG), (SRCX), (SRCY), (DSTX), (DSTY), (WIDTH), (HEIGHT))
 #endif
 
-
-/* internal prototypes */
-int mousehack_allowed (void);
-void setmaintitle(void);
-
-int is_vsync (void);
-void gfx_save_options (FILE *, const struct uae_prefs *);
-int gfx_parse_option (struct uae_prefs *, const char *, const char *);
-void gfx_default_options (struct uae_prefs *);
-
-
-/* external prototypes */
-extern void inputdevice_release_all_keys (void);
-
-
-/* internal types */
-void gfx_save_options (FILE *, const struct uae_prefs *);
-int gfx_parse_option (struct uae_prefs *, const char *, const char *);
-void gfx_default_options (struct uae_prefs *);
-
-
-/* external prototypes */
-extern void inputdevice_release_all_keys (void);
-
-
 /* internal types */
 struct disp_info {
     XImage *ximg;
@@ -110,6 +85,8 @@ struct disp_info {
 #endif
 };
 
+
+/* internal members */
 static Display *display;
 static int screen;
 static Window rootwin, mywin;
@@ -175,8 +152,22 @@ static int inwindow;
 /* Hack to detect shm-failure, probably due to displaying on a
  * remote server. */
 static int shmerror;
+
+
+/* internal prototypes */
+int mousehack_allowed (void);
+void setmaintitle(void);
+void gfx_save_options (FILE *, const struct uae_prefs *);
+int gfx_parse_option (struct uae_prefs *, const char *, const char *);
+void gfx_default_options (struct uae_prefs *);
+int is_vsync (void);
+void gfx_save_options (FILE *, const struct uae_prefs *);
+int gfx_parse_option (struct uae_prefs *, const char *, const char *);
+void gfx_default_options (struct uae_prefs *);
 static int (*oldshmerrorhandler) (Display *, XErrorEvent *);
 
+
+/* implementations */
 static int shmerrorhandler (Display *dsp, XErrorEvent *ev)
 {
     if (ev->error_code == BadAccess)
@@ -1038,7 +1029,7 @@ void graphics_notify_state (int state)
 {
 }
 
-void handle_events (void)
+bool handle_events (void)
 {
     for (;;) {
 	XEvent event;
@@ -1056,6 +1047,7 @@ void handle_events (void)
 	 case KeyRelease: {
 	    int state = (event.type == KeyPress);
 
+#if 0 // map_raw_keys is marked "if 0" in options.h
 	    if (currprefs.map_raw_keys) {
 		unsigned int keycode = ((XKeyEvent *)&event)->keycode;
 		unsigned int ievent;
@@ -1065,6 +1057,7 @@ void handle_events (void)
 		else
 		    inputdevice_translatekeycode (0, keycode, state);
 	    } else {
+#endif // 0
 		KeySym keysym;
 		int index = 0;
 		int ievent, amiga_keycode;
@@ -1080,7 +1073,9 @@ void handle_events (void)
 			}
 		    index++;
 		} while (keysym != NoSymbol);
+#if 0 // from removal above
 	    }
+#endif // 0
 	    break;
 	 }
 	 case ButtonPress:
@@ -1240,6 +1235,7 @@ void handle_events (void)
 	    }
 	}
     }
+	return pause_emulation != 0;
 }
 
 int check_prefs_changed_gfx (void)
@@ -1656,6 +1652,7 @@ static void read_kb (void)
 
 static int init_kb (void)
 {
+#if 0 // map_raw_keys marked "if 0" in options.h
     if (currprefs.map_raw_keys) {
 	if (rawkeys_available) {
 //	    inputdevice_setkeytranslation (raw_keyboard, kbmaps);
@@ -1666,10 +1663,13 @@ static int init_kb (void)
 	    write_log ("X11GFX: Raw key-mapping disabled. Keycodes not supported.\n");
 	}
     } else
+#endif // 0
 	write_log ("X11GFX: Raw key-mapping disabled.\n");
 
+#if 0 // map_raw_keys marked "if 0" in options.h
     if (!currprefs.map_raw_keys)
 	set_default_hotkeys (get_x11_default_hotkeys ());
+#endif // 0
 
     return 1;
 }
@@ -1759,7 +1759,9 @@ void gfx_save_options (FILE *f, const struct uae_prefs *p)
 {
     fprintf (f, "x11.low_bandwidth=%s\n", p->x11_use_low_bandwidth ? "true" : "false");
     fprintf (f, "x11.use_mitshm=%s\n",    p->x11_use_mitshm ? "true" : "false");
+#if 0 // map_raw_keys marked "if 0" in options.h
     fprintf (f, "x11.map_raw_keys=%s\n",  p->map_raw_keys ? "true" : "false");
+#endif // 0
 }
 
 int gfx_parse_option (struct uae_prefs *p, const char *option, const char *value)
@@ -1767,14 +1769,19 @@ int gfx_parse_option (struct uae_prefs *p, const char *option, const char *value
     return (cfgfile_yesno (option, value, "low_bandwidth", &p->x11_use_low_bandwidth)
 	 || cfgfile_yesno (option, value, "use_mitshm",    &p->x11_use_mitshm)
 	 || cfgfile_yesno (option, value, "hide_cursor",   &p->hide_cursor) /* Compatibility. This was an X11-specific option. */
+#if 0 // map_raw_keys marked "if 0" in options.h
 	 || cfgfile_yesno (option, value, "map_raw_keys",  &p->map_raw_keys));
+#endif // 0
+	);
 }
 
 void gfx_default_options (struct uae_prefs *p)
 {
     p->x11_use_low_bandwidth = 0;
     p->x11_use_mitshm        = 1;
+#if 0 // map_raw_keys marked "if 0" in options.h
     p->map_raw_keys          = rawkeys_available;
+#endif // 0
 }
 
 void setmaintitle (void)

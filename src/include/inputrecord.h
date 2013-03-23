@@ -32,7 +32,7 @@ extern int inputrecord_debug;
 
 extern int input_record, input_play;
 extern void inprec_close (bool);
-extern void inprec_save (const TCHAR*, const TCHAR*);
+//extern void inprec_save (const TCHAR*, const TCHAR*);
 extern int inprec_open (const TCHAR*, const TCHAR*);
 extern bool inprec_prepare_record (const TCHAR*);
 extern void inprec_playtorecord (void);

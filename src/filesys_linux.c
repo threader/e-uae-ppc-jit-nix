@@ -201,16 +201,18 @@ struct my_opendir_s *my_opendir (const TCHAR *name)
 	mod->first = 1;
 	return mod;
 */
-	return opendir(name);
+	/// FIXME: opendir returns struct DIR*, please translate instead of casting.
+	return (struct my_opendir_s*)opendir(name);
 }
 
 void my_closedir (struct my_opendir_s *mod) {
 	if (mod)
-		closedir(mod);
+		/// FIXME: closedir needs struct DIR*, please translate instead of casting.
+		closedir((struct DIR*)mod);
 //	xfree (mod);
 }
 
-int my_readdir (struct my_opendir_s *mod, TCHAR *name) {
+struct dirent* my_readdir (struct my_opendir_s *mod, TCHAR *name) {
 /*
 	if (mod->first) {
 		_tcscpy (name, mod->fd.cFileName);
@@ -221,8 +223,8 @@ int my_readdir (struct my_opendir_s *mod, TCHAR *name) {
 		return 0;
 	_tcscpy (name, mod->fd.cFileName);
 */
-	return readdir(mod);
-	return 1;
+	///FIXME: readdir needs struct DIR*, please translate instead of casting.
+	return readdir((struct DIR*)mod);
 }
 
 #if 0
@@ -352,7 +354,7 @@ int my_rename (const TCHAR *oldname, const TCHAR *newname)
 	return rename(oldname, newname);
 }
 
-bool CloseHandle(HANDLE hObject) {
+static bool CloseHandle(HANDLE hObject) {
 	if (!hObject)
 		return false;
 
@@ -368,8 +370,8 @@ void my_close (struct my_openfile_s *mos)
 	xfree (mos);
 }
 
-DWORD SetFilePointer(HANDLE hFile, int32_t lDistanceToMove, int32_t *lpDistanceToMoveHigh, DWORD dwMoveMethod) {
-	if (hFile == NULL)
+static DWORD SetFilePointer(HANDLE hFile, int32_t lDistanceToMove, int32_t *lpDistanceToMoveHigh, DWORD dwMoveMethod) {
+	if (!hFile)
 		return 0;
 
 	LONGLONG offset = lDistanceToMove;
@@ -416,7 +418,7 @@ uae_s64 my_lseek (struct my_openfile_s *mos, uae_s64 offset, int whence) {
 	return old.QuadPart;
 }
 
-HANDLE CreateFile(const TCHAR *lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, DWORD lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile) {
+static HANDLE CreateFile(const TCHAR *lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, DWORD lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile) {
 	int flags = 0, mode = S_IRUSR | S_IRGRP | S_IROTH;
 	if (dwDesiredAccess & FILE_WRITE_DATA) {
 		flags = O_RDWR;
@@ -502,12 +504,12 @@ struct my_openfile_s *my_open (const TCHAR *name, int flags) {
 		DesiredAccess = GENERIC_READ | GENERIC_WRITE;
 //	if (CreationDisposition == CREATE_ALWAYS && attr != INVALID_FILE_ATTRIBUTES && (attr & (FILE_ATTRIBUTE_SYSTEM | FILE_ATTRIBUTE_HIDDEN)))
 //		SetFileAttributesSafe (name, FILE_ATTRIBUTE_NORMAL);
-	h = CreateFile (namep, DesiredAccess, ShareMode, NULL, CreationDisposition, FlagsAndAttributes, NULL);
+	h = CreateFile (namep, DesiredAccess, ShareMode, 0, CreationDisposition, FlagsAndAttributes, 0);
 	if (h == INVALID_HANDLE_VALUE) {
 		DWORD err = GetLastError();
 		if (err == ERROR_ACCESS_DENIED && (DesiredAccess & GENERIC_WRITE)) {
 			DesiredAccess &= ~GENERIC_WRITE;
-			h = CreateFile (namep, DesiredAccess, ShareMode, NULL, CreationDisposition, FlagsAndAttributes, NULL);
+			h = CreateFile (namep, DesiredAccess, ShareMode, 0, CreationDisposition, FlagsAndAttributes, 0);
 			if (h == INVALID_HANDLE_VALUE)
 				err = GetLastError();
 		}
@@ -530,14 +532,12 @@ err:
 	return mos;
 }
 
-BOOL SetEndOfFile(HANDLE hFile) {
-	if (hFile == NULL)
-		return false;
-
-	off64_t currOff = lseek(hFile, 0, SEEK_CUR);
-	if (currOff >= 0)
-		return (ftruncate(hFile, currOff) == 0);
-
+static BOOL SetEndOfFile(HANDLE hFile) {
+	if (hFile) {
+		off64_t currOff = lseek(hFile, 0, SEEK_CUR);
+		if (currOff >= 0)
+			return (ftruncate(hFile, currOff) == 0);
+	}
 	return false;
 }
 
@@ -548,7 +548,7 @@ int my_truncate (const TCHAR *name, uae_u64 len) {
 	
 	namep = name;
 
-	if ((hFile = CreateFile (namep, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL ) ) != INVALID_HANDLE_VALUE ) {
+	if ((hFile = CreateFile (namep, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0 ) ) != INVALID_HANDLE_VALUE ) {
 		LARGE_INTEGER li;
 		li.QuadPart = len;
 		li.LowPart = SetFilePointer (hFile, li.LowPart, &li.HighPart, FILE_BEGIN);

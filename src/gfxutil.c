@@ -833,7 +833,6 @@ void setup_dither (int bits, allocfunc_type allocfunc)
  * Make sure you call this only with (len & 3) == 0, or you'll just make
  * yourself unhappy.
  */
-
 void DitherLine (uae_u8 *l, uae_u16 *r4g4b4, int x, int y, uae_s16 len, int bits)
 {
     uae_u8 *dith = cidx[y&3]+(x&3)*4096;

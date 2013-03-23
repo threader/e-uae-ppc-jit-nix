@@ -28,7 +28,7 @@ GCC_DIAG_ON(strict-prototypes)
 
 static void chipsettypepanel_init (ChipsetTypePanel *pathent);
 static void chipsettypepanel_class_init (ChipsetTypePanelClass *class);
-static void update_state (ChipsetTypePanel *panel);
+//static void update_state (ChipsetTypePanel *panel);
 static void on_chipsettype_changed (GtkWidget *w, ChipsetTypePanel *panel);
 static void on_frequency_changed (GtkWidget *w, ChipsetTypePanel *panel);
 

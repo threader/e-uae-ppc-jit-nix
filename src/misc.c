@@ -1322,7 +1322,7 @@ int isinf (double x)
 */
 
 //fsdb_mywin
-int my_issamevolume(const TCHAR *path1, const TCHAR *path2, TCHAR *path)
+bool my_issamevolume(const TCHAR *path1, const TCHAR *path2, TCHAR *path)
 {
 /*        TCHAR p1[MAX_DPATH];
         TCHAR p2[MAX_DPATH];

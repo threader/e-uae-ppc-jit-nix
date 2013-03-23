@@ -252,12 +252,14 @@ int cfgfile_multipath (const TCHAR *option, const TCHAR *value, const TCHAR *nam
 int cfgfile_rom (const TCHAR *option, const TCHAR *value, const TCHAR *name, TCHAR *location, int maxsz);
 
 /* external prototypes */
-extern int machdep_parse_option (struct uae_prefs *, const char *, const char *);
-extern int gfx_parse_option (struct uae_prefs *, const char *, const char *);
-extern int audio_parse_option (struct uae_prefs *, const char *, const char *);
-extern void machdep_default_options (struct uae_prefs *);
-extern void gfx_default_options (struct uae_prefs *);
-extern void audio_default_options (struct uae_prefs *);
+int machdep_parse_option (struct uae_prefs *, const char *, const char *);
+int gfx_parse_option (struct uae_prefs *, const char *, const char *);
+int audio_parse_option (struct uae_prefs *, const char *, const char *);
+void machdep_default_options (struct uae_prefs *);
+void gfx_default_options (struct uae_prefs *);
+void audio_default_options (struct uae_prefs *);
+void my_trim (TCHAR *s);
+TCHAR *my_strdup_trim (const TCHAR *s);
 
 #define UNEXPANDED _T("$(FILE_PATH)")
 

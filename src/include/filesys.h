@@ -118,38 +118,50 @@ struct hd_hardfiledata {
 struct uaedev_mount_info;
 extern struct uaedev_mount_info options_mountinfo;
 
-extern struct hardfiledata *get_hardfile_data (int nr);
+struct hardfiledata *get_hardfile_data (int nr);
 #define FILESYS_MAX_BLOCKSIZE 2048
 
-extern int hdf_open (struct hardfiledata *hfd, const TCHAR *altname);
-extern int hdf_dup (struct hardfiledata *dhfd, const struct hardfiledata *shfd);
-extern void hdf_close (struct hardfiledata *hfd);
-extern int hdf_read_rdb (struct hardfiledata *hfd, void *buffer, uae_u64 offset, int len);
-extern int hdf_read (struct hardfiledata *hfd, void *buffer, uae_u64 offset, int len);
-extern int hdf_write (struct hardfiledata *hfd, void *buffer, uae_u64 offset, int len);
-extern int hdf_getnumharddrives (void);
-extern TCHAR *hdf_getnameharddrive (int index, int flags, int *sectorsize, int *dangerousdrive);
-extern int isspecialdrive(const TCHAR *name);
-extern int get_native_path(uae_u32 lock, TCHAR *out);
-extern void hardfile_do_disk_change (struct uaedev_config_data *uci, bool insert);
-extern void hardfile_send_disk_change (struct hardfiledata *hfd, bool insert);
-extern int hardfile_media_change (struct hardfiledata *hfd, struct uaedev_config_info *ci, bool inserted, bool timer);
+int hdf_open (struct hardfiledata *hfd, const TCHAR *altname);
+int hdf_dup (struct hardfiledata *dhfd, const struct hardfiledata *shfd);
+void hdf_close (struct hardfiledata *hfd);
+int hdf_read_rdb (struct hardfiledata *hfd, void *buffer, uae_u64 offset, int len);
+int hdf_read (struct hardfiledata *hfd, void *buffer, uae_u64 offset, int len);
+int hdf_write (struct hardfiledata *hfd, void *buffer, uae_u64 offset, int len);
+int hdf_getnumharddrives (void);
+TCHAR *hdf_getnameharddrive (int index, int flags, int *sectorsize, int *dangerousdrive);
+int isspecialdrive(const TCHAR *name);
+int get_native_path(uae_u32 lock, TCHAR *out);
+void hardfile_do_disk_change (struct uaedev_config_data *uci, bool insert);
+void hardfile_send_disk_change (struct hardfiledata *hfd, bool insert);
+int hardfile_media_change (struct hardfiledata *hfd, struct uaedev_config_info *ci, bool inserted, bool timer);
 
 void hdf_hd_close(struct hd_hardfiledata *hfd);
 int hdf_hd_open(struct hd_hardfiledata *hfd);
 
 
-extern int vhd_create (const TCHAR *name, uae_u64 size, uae_u32);
+int vhd_create (const TCHAR *name, uae_u64 size, uae_u32);
 
-extern int hdf_init_target (void);
-extern int hdf_open_target (struct hardfiledata *hfd, const TCHAR *name);
-extern int hdf_dup_target (struct hardfiledata *dhfd, const struct hardfiledata *shfd);
-extern void hdf_close_target (struct hardfiledata *hfd);
-extern int hdf_read_target (struct hardfiledata *hfd, void *buffer, uae_u64 offset, int len);
-extern int hdf_write_target (struct hardfiledata *hfd, void *buffer, uae_u64 offset, int len);
-extern int hdf_resize_target (struct hardfiledata *hfd, uae_u64 newsize);
-extern void getchsgeometry (uae_u64 size, int *pcyl, int *phead, int *psectorspertrack);
-extern void getchsgeometry_hdf (struct hardfiledata *hfd, uae_u64 size, int *pcyl, int *phead, int *psectorspertrack);
-extern void getchspgeometry (uae_u64 total, int *pcyl, int *phead, int *psectorspertrack, bool idegeometry);
+int hdf_init_target (void);
+int hdf_open_target (struct hardfiledata *hfd, const TCHAR *name);
+int hdf_dup_target (struct hardfiledata *dhfd, const struct hardfiledata *shfd);
+void hdf_close_target (struct hardfiledata *hfd);
+int hdf_read_target (struct hardfiledata *hfd, void *buffer, uae_u64 offset, int len);
+int hdf_write_target (struct hardfiledata *hfd, void *buffer, uae_u64 offset, int len);
+int hdf_resize_target (struct hardfiledata *hfd, uae_u64 newsize);
+void getchsgeometry (uae_u64 size, int *pcyl, int *phead, int *psectorspertrack);
+void getchsgeometry_hdf (struct hardfiledata *hfd, uae_u64 size, int *pcyl, int *phead, int *psectorspertrack);
+void getchspgeometry (uae_u64 total, int *pcyl, int *phead, int *psectorspertrack, bool idegeometry);
+
+void setsystime (void);
+
+//int set_filesys_unit (int nr, struct uaedev_config_info *ci);
+//int add_filesys_unit (struct uaedev_config_info *ci);
+
+/** REMOVEME:
+  * nowhere used
+**/
+#if 0
+int hardfile_remount (int nr);
+#endif // 0
 
 #endif // SRC_INCLUDE_FILESYS_H_INCLUDED

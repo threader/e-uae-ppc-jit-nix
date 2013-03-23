@@ -1,6 +1,6 @@
 # P-UAE
 #
-# 2006-2011 Mustafa TUFAN (aka GnoStiC/BRONX)
+# 2006-2013 Mustafa TUFAN (aka GnoStiC/BRONX)
 #
 #
 #

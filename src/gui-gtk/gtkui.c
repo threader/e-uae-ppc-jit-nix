@@ -101,10 +101,8 @@ static GtkWidget *cpu_widget[6], *fpu_widget[4];
 
 #ifdef JIT
 static GtkWidget *jit_page;
-#ifdef NATMEM_OFFSET
 static GtkWidget *compbyte_widget[4], *compword_widget[4], *complong_widget[4];
 static GtkWidget *compaddr_widget[4];
-#endif
 static GtkWidget *compnf_widget[2];
 static GtkWidget *compfpu_widget[2], *comp_hardflush_widget[2];
 static GtkWidget *comp_constjump_widget[2];
@@ -356,12 +354,10 @@ static void set_mem_state (void)
 #ifdef JIT
 static void set_comp_state (void)
 {
-#ifdef NATMEM_OFFSET
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (compbyte_widget[currprefs.comptrustbyte]), 1);
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (compword_widget[currprefs.comptrustword]), 1);
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (complong_widget[currprefs.comptrustlong]), 1);
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (compaddr_widget[currprefs.comptrustnaddr]), 1);
-#endif
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (compnf_widget[currprefs.compnf]), 1);
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (comp_hardflush_widget[currprefs.comp_hardflush]), 1);
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (comp_constjump_widget[currprefs.comp_constjump]), 1);
@@ -779,12 +775,10 @@ static void sound_changed (void)
 static void comp_changed (void)
 {
     changed_prefs.cachesize=cachesize_adj->value;
-#ifdef NATMEM_OFFSET
     changed_prefs.comptrustbyte = find_current_toggle (compbyte_widget, 4);
     changed_prefs.comptrustword = find_current_toggle (compword_widget, 4);
     changed_prefs.comptrustlong = find_current_toggle (complong_widget, 4);
     changed_prefs.comptrustnaddr = find_current_toggle (compaddr_widget, 4);
-#endif
     changed_prefs.compnf = find_current_toggle (compnf_widget, 2);
     changed_prefs.comp_hardflush = find_current_toggle (comp_hardflush_widget, 2);
     changed_prefs.comp_constjump = find_current_toggle (comp_constjump_widget, 2);
@@ -1568,7 +1562,6 @@ static void make_comp_widgets (GtkWidget *vbox)
 
     add_empty_vbox (vbox);
 
-#ifdef NATMEM_OFFSET
     newbox = make_radio_group_box ("Byte access", complabels1, compbyte_widget, 1, comp_changed);
     gtk_widget_show (newbox);
     add_centered_to_vbox (vbox, newbox);
@@ -1581,7 +1574,6 @@ static void make_comp_widgets (GtkWidget *vbox)
     newbox = make_radio_group_box ("Address lookup", complabels3a, compaddr_widget, 1, comp_changed);
     gtk_widget_show (newbox);
     add_centered_to_vbox (vbox, newbox);
-#endif
 
     newbox = make_radio_group_box ("Flags", complabels4, compnf_widget, 1, comp_changed);
     gtk_widget_show (newbox);
@@ -1695,16 +1687,22 @@ static void newdir_ok (void)
     }
     if (strlen (dirdlg_volname) == 0 || strlen (dirdlg_path) == 0) {
 		/* Uh, no messageboxes in gtk?  */
+/// FIXME: set_filesys_unit() needs uaedev_config_info* !
+#if 0
     } else if (hd_change_mode) {
 		set_filesys_unit (selected_hd_row, dirdlg_devname, dirdlg_volname, dirdlg_path,
 				readonly, 0, secspertrack, surfaces, reserved, blocksize, bootpri,
 				donotmount, autoboot, (TCHAR*)NULL, hdc, flags);
 		set_hd_state ();
+#endif // 0
+/// FIXME: add_filesys_unit() needs uaedev_config_info* !
+#if 0
     } else {
 		add_filesys_unit (dirdlg_devname, dirdlg_volname, dirdlg_path, readonly,
 				0, secspertrack, surfaces, reserved, blocksize, bootpri,
 				donotmount, autoboot, (TCHAR*)NULL, hdc, flags);
 		set_hd_state ();
+#endif // 0
     }
     gtk_widget_destroy (dirdlg);
 }

@@ -38,9 +38,26 @@ static int dolog = 0;
 #define DMSFLAG_ENCRYPTED 2
 #define DMSFLAG_HD 16
 
+#undef DEBUG_PFILE
+#if defined(DEBUG_PFILE)
+# define printbandiz(m, len) { \
+	UCHAR *i,*j; \
+	i=j=m; \
+	while (i<m+len) { \
+		if (*i == 10) { \
+			*i=0; \
+			write_log ("%s\n",j); \
+			j=i+1; \
+		} \
+		i++; \
+	} \
+}
+#else
+# define printbandiz(...) { }
+#endif // defined
+
 static USHORT Process_Track(struct zfile *, struct zfile *, UCHAR *, UCHAR *, USHORT, USHORT, int, struct zfile **extra);
 static USHORT Unpack_Track(UCHAR *, UCHAR *, USHORT, USHORT, UCHAR, UCHAR, USHORT, USHORT, USHORT, int);
-static void printbandiz(UCHAR *, USHORT);
 
 static int passfound, passretries;
 
@@ -386,13 +403,13 @@ static USHORT Process_Track(struct zfile *fi, struct zfile *fo, UCHAR *b1, UCHAR
 	if (number == 0xffff && extra){
 		Unpack_Track(b1, b2, pklen2, unpklen, cmode, flags, number, pklen1, usum, dmsflags & DMSFLAG_ENCRYPTED);
 		addextra("Banner", extra, b2, unpklen);
-		//printbandiz(b2,unpklen);
+		printbandiz(b2,unpklen);
 	}
 
 	if (number == 80 && extra) {
 		Unpack_Track(b1, b2, pklen2, unpklen, cmode, flags, number, pklen1, usum, dmsflags & DMSFLAG_ENCRYPTED);
 		addextra("FILEID.DIZ", extra, b2, unpklen);
-		//printbandiz(b2,unpklen);
+		printbandiz(b2,unpklen);
 	}
 
 	return NO_PROBLEM;
@@ -525,20 +542,3 @@ static USHORT Unpack_Track(UCHAR *b1, UCHAR *b2, USHORT pklen2, USHORT unpklen, 
 	xfree (tmp);
 	return err;
 }
-
-
-static void printbandiz(UCHAR *m, USHORT len){
-	UCHAR *i,*j;
-
-	i=j=m;
-	while (i<m+len) {
-		if (*i == 10) {
-			*i=0;
-			write_log ("%s\n",j);
-			j=i+1;
-		}
-		i++;
-	}
-}
-
-

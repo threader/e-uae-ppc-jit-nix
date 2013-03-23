@@ -603,7 +603,7 @@ static int command_pause (int unitnum, int paused)
 		return -1;
 	int old = cdu->cdda_paused;
 	if ((paused && cdu->cdda_play) || !paused)
-	cdu->cdda_paused = paused;
+		cdu->cdda_paused = paused;
 	return old;
 }
 

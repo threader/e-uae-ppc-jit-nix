@@ -21,9 +21,12 @@ extern int special_mem;
 extern uae_u8 *cache_alloc (int);
 extern void cache_free (uae_u8*);
 
+#ifdef NATMEM_OFFSET
 bool init_shm (void);
 void free_shm (void);
 bool preinit_shm (void);
+#endif
+
 extern bool canbang;
 extern int candirect;
 #endif
@@ -165,13 +168,14 @@ extern uae_u8 *baseaddr[MEMORY_BANKS];
 #define get_mem_bank(addr) (*mem_banks[bankindex(addr)])
 
 #ifdef JIT
-#define put_mem_bank(addr, b, realstart) do { \
-	(mem_banks[bankindex(addr)] = (b)); \
+#define put_mem_bank(addr, b, realstart) { \
+	uaecptr idx = bankindex((uae_u32)(addr)); \
+	(mem_banks[idx] = (b)); \
 	if ((b)->baseaddr) \
-	baseaddr[bankindex(addr)] = (b)->baseaddr - (realstart); \
+	baseaddr[idx] = (b)->baseaddr - (realstart); \
 	else \
-	baseaddr[bankindex(addr)] = (uae_u8*)(((uae_u8*)b)+1); \
-} while (0)
+	baseaddr[idx] = (uae_u8*)(((uae_u8*)b)+1); \
+}
 #else
 #define put_mem_bank(addr, b, realstart) \
 	(mem_banks[bankindex(addr)] = (b));

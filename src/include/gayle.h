@@ -3,17 +3,17 @@
 #define SRC_INCLUDE_GAYLE_H_INCLUDED 1
 
 #ifdef GAYLE
-extern void gayle_reset (int);
-extern void gayle_hsync (void);
-extern void gayle_free (void);
-extern int gayle_add_ide_unit (int ch, struct uaedev_config_info *ci);
-extern int gayle_modify_pcmcia_sram_unit (const TCHAR *path, int readonly, int insert);
-extern int gayle_modify_pcmcia_ide_unit (const TCHAR *path, int readonly, int insert);
-extern int gayle_add_pcmcia_sram_unit (const TCHAR *path, int readonly);
-extern int gayle_add_pcmcia_ide_unit (const TCHAR *path, int readonly);
-extern void gayle_free_units (void);
-extern void rethink_gayle (void);
-extern void gayle_map_pcmcia (void);
+void gayle_reset (int);
+void gayle_hsync (void);
+void gayle_free (void);
+int gayle_add_ide_unit (int ch, struct uaedev_config_info *ci);
+int gayle_modify_pcmcia_sram_unit (const TCHAR *path, int readonly, int insert);
+int gayle_modify_pcmcia_ide_unit (const TCHAR *path, int readonly, int insert);
+int gayle_add_pcmcia_sram_unit (const TCHAR *path, int readonly);
+int gayle_add_pcmcia_ide_unit (const TCHAR *path, int readonly);
+void gayle_free_units (void);
+void rethink_gayle (void);
+void gayle_map_pcmcia (void);
 #endif // GAYLE
 
 #define PCMCIA_COMMON_START 0x600000

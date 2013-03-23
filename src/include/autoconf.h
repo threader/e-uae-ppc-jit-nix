@@ -35,23 +35,23 @@ struct uaedev_mount_info;
 
 
 /* external prototypes */
-extern uae_u32 addr (int);
-extern void db (uae_u8);
-extern void dw (uae_u16);
-extern void dl (uae_u32);
-extern uae_u32 ds_ansi (const uae_char*);
-extern uae_u32 ds (const char *);
-extern uae_u32 ds_bstr_ansi (const uae_char *);
-extern uae_u8 dbg (uaecptr);
-extern void calltrap (uae_u32);
-extern void org (uae_u32);
-extern uae_u32 here (void);
-extern uaecptr makedatatable (uaecptr resid, uaecptr resname, uae_u8 type, uae_s8 priority, uae_u16 ver, uae_u16 rev);
+uae_u32 addr (int);
+void db (uae_u8);
+void dw (uae_u16);
+void dl (uae_u32);
+uae_u32 ds_ansi (const uae_char*);
+uae_u32 ds (const char *);
+uae_u32 ds_bstr_ansi (const uae_char *);
+uae_u8 dbg (uaecptr);
+void calltrap (uae_u32);
+void org (uae_u32);
+uae_u32 here (void);
+uaecptr makedatatable (uaecptr resid, uaecptr resname, uae_u8 type, uae_s8 priority, uae_u16 ver, uae_u16 rev);
 
-extern void align (int);
+void align (int);
 
 extern volatile int uae_int_requested;
-extern void set_uae_int_flag (void);
+void set_uae_int_flag (void);
 
 #define RTS 0x4e75
 #define RTE 0x4e73
@@ -66,10 +66,10 @@ extern uaecptr ROM_hardfile_resname, ROM_hardfile_resid;
 extern uaecptr ROM_hardfile_init;
 extern uaecptr filesys_initcode;
 
-extern int is_hardfile (int unit_no);
-extern int nr_units (void);
-extern int nr_directory_units (struct uae_prefs*);
-extern uaecptr need_uae_boot_rom (void);
+int is_hardfile (int unit_no);
+int nr_units (void);
+int nr_directory_units (struct uae_prefs*);
+uaecptr need_uae_boot_rom (void);
 
 struct mountedinfo
 {
@@ -80,38 +80,38 @@ struct mountedinfo
 	TCHAR rootdir[MAX_DPATH];
 };
 
-extern int add_filesys_unitconfig (struct uae_prefs *p, int index, TCHAR *error);
-extern int get_filesys_unitconfig (struct uae_prefs *p, int index, struct mountedinfo*);
-extern int kill_filesys_unitconfig (struct uae_prefs *p, int nr);
-extern int move_filesys_unitconfig (struct uae_prefs *p, int nr, int to);
-extern char *validatedevicename (char *s);
-extern char *validatevolumename (char *s);
+int add_filesys_unitconfig (struct uae_prefs *p, int index, TCHAR *error);
+int get_filesys_unitconfig (struct uae_prefs *p, int index, struct mountedinfo*);
+int kill_filesys_unitconfig (struct uae_prefs *p, int nr);
+int move_filesys_unitconfig (struct uae_prefs *p, int nr, int to);
+char *validatedevicename (char *s);
+char *validatevolumename (char *s);
 
 int filesys_insert (int nr, const TCHAR *volume, const TCHAR *rootdir, bool readonly, int flags);
 int filesys_eject (int nr);
 int filesys_media_change (const TCHAR *rootdir, int inserted, struct uaedev_config_data *uci);
 
-extern char *filesys_createvolname (const char *volname, const char *rootdir, const char *def);
-extern int target_get_volume_name(struct uaedev_mount_info *mtinf, const char *volumepath, char *volumename, int size, int inserted, int fullcheck);
+char *filesys_createvolname (const char *volname, const char *rootdir, const char *def);
+int target_get_volume_name(struct uaedev_mount_info *mtinf, const char *volumepath, char *volumename, int size, int inserted, int fullcheck);
 
-extern int sprintf_filesys_unit (char *buffer, int num);
+int sprintf_filesys_unit (char *buffer, int num);
 
-extern void filesys_reset (void);
-extern void filesys_cleanup (void);
-extern void filesys_prepare_reset (void);
-extern void filesys_start_threads (void);
-extern void filesys_flush_cache (void);
-extern void filesys_free_handles (void);
-extern void filesys_vsync (void);
+void filesys_reset (void);
+void filesys_cleanup (void);
+void filesys_prepare_reset (void);
+void filesys_start_threads (void);
+void filesys_flush_cache (void);
+void filesys_free_handles (void);
+void filesys_vsync (void);
 
-extern void filesys_install (void);
-extern void filesys_install_code (void);
-extern void filesys_store_devinfo (uae_u8 *);
-extern void hardfile_install (void);
-extern void hardfile_reset (void);
-extern void emulib_install (void);
-extern void expansion_init (void);
-extern void expansion_cleanup (void);
-extern void expansion_clear (void);
+void filesys_install (void);
+void filesys_install_code (void);
+void filesys_store_devinfo (uae_u8 *);
+void hardfile_install (void);
+void hardfile_reset (void);
+void emulib_install (void);
+void expansion_init (void);
+void expansion_cleanup (void);
+void expansion_clear (void);
 
 #endif // SRC_INCLUDE_AUTOCONF_H_INCLUDED

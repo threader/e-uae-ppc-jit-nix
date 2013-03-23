@@ -50,14 +50,18 @@
 # endif
 #endif
 
-#if   SIZEOF_VOID_P == 8
+#if 0
+#if SIZEOF_VOID_P == 8
 typedef long int          uae_intptr;
 typedef unsigned long int uae_uintptr;
 #elif SIZEOF_VOID_P == 4
 typedef int               uae_intptr;
 typedef unsigned int      uae_uintptr;
-#else
-# error Unknown/unsupported pointer size
+#endif
+#endif
+
+#if (SIZEOF_VOID_P != 8) && (SIZEOF_VOID_P != 4)
+# error "Unknown/unsupported pointer size"
 #endif
 
 #ifdef HAVE_STDINT_H
@@ -76,7 +80,6 @@ typedef unsigned int      uae_uintptr;
   typedef  int32_t uae_s32;
   typedef uint64_t uae_u64;
   typedef  int64_t uae_s64;
-  typedef uint32_t uaecptr;
 # ifndef HAS_uae_64
 #   define HAS_uae_64 1
 # endif
@@ -108,9 +111,14 @@ typedef unsigned int      uae_uintptr;
 #   error No 4 byte type, you lose.
 # endif
 
-  typedef uae_u32        uaecptr;
-
 #endif /* ! HAVE_STDINT_H */
+
+// Unified pointer type. Please use this for everything address related.
+#if defined(__x86_64__) && defined(HAS_uae_64)
+  typedef uae_u64 uaecptr;
+# else
+  typedef uae_u32 uaecptr;
+# endif // __x86_64__
 
 /* We can only rely on GNU C getting enums right. Mickeysoft VSC++ is known
  * to have problems, and it's likely that other compilers choke too. */

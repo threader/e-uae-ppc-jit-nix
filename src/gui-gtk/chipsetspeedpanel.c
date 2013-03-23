@@ -28,7 +28,7 @@ GCC_DIAG_ON(strict-prototypes)
 
 static void chipsetspeedpanel_init (ChipsetSpeedPanel *pathent);
 static void chipsetspeedpanel_class_init (ChipsetSpeedPanelClass *class);
-static void update_state (ChipsetSpeedPanel *panel);
+//static void update_state (ChipsetSpeedPanel *panel);
 
 static void on_framerate_changed (GtkWidget *w, ChipsetSpeedPanel *panel);
 static void on_sprite_collisions_changed (GtkWidget *w, ChipsetSpeedPanel *panel);
