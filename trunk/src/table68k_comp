@@ -25,9 +25,7 @@
 ;*** regA    - Ax register: Ax
 ;*** indA    - Ax indirect: (Ax)
 ;*** indmAy  - Ax indirect with predecrement : -(Ax), y - size: B, W, L
-;*** indmAyk - Ax indirect with predecrement : -(Ax), y - size: B, W, L (keeps original register value in _SRC)
 ;*** indApy  - Ax indirect with postincrement: (Ax)+, y - size: B, W, L
-;*** indApyk - Ax indirect with postincrement: (Ax)+, y - size: B, W, L (keeps original register value in _SRC)
 ;*** immed   - immediate value: #x - size: B, W, L
 ;*** immedQ  - immediate value in opcode
 ;*** indAd16 - Ax indirect d16 indexed: d16(Ax)
@@ -50,12 +48,6 @@ indmAB      100    rrr
 indApL      011    rrr
 indApW      011    rrr
 indApB      011    rrr
-indmALk     100    rrr
-indmAWk     100    rrr
-indmABk     100    rrr
-indApLk     011    rrr
-indApWk     011    rrr
-indApBk     011    rrr
 immedL      111    100
 immedW      111    100
 immedB      111    100
@@ -135,49 +127,14 @@ MOVAREG2REGL 1   0010 dddD DDSS Ssss   0 0     regD,regA    regA
 MOVAREG2REGW 1   0011 dddD DDSS Ssss   0 0     regD,regA    regA
 
 ;*** Move memory to memory
-MOVMEM2MEML  0   0010 dddD DDSS Ssss   0 0     indA,indApL,indmAL,indAd16,indAcp,indPCcp,indPCd16,absW,absL    indA,indApL,indmAL,indAd16,indAcp,absW,absL
-MOVMEM2MEMW  0   0011 dddD DDSS Ssss   0 0     indA,indApW,indmAW,indAd16,indAcp,indPCcp,indPCd16,absW,absL    indA,indApW,indmAW,indAd16,indAcp,absW,absL
-MOVMEM2MEMB  0   0001 dddD DDSS Ssss   0 0     indA,indApB,indmAB,indAd16,indAcp,indPCcp,indPCd16,absW,absL    indA,indApB,indmAB,indAd16,indAcp,absW,absL
+MOVMEM2MEML  1   0010 dddD DDSS Ssss   0 0     indA,indApL,indmAL,indAd16,indAcp,indPCcp,indPCd16,absW,absL    indA,indApL,indmAL,indAd16,indAcp,absW,absL
+MOVMEM2MEMW  1   0011 dddD DDSS Ssss   0 0     indA,indApW,indmAW,indAd16,indAcp,indPCcp,indPCd16,absW,absL    indA,indApW,indmAW,indAd16,indAcp,absW,absL
+MOVMEM2MEMB  1   0001 dddD DDSS Ssss   0 0     indA,indApB,indmAB,indAd16,indAcp,indPCcp,indPCd16,absW,absL    indA,indApB,indmAB,indAd16,indAcp,absW,absL
 
 ;*** Move register to memory
 MOVREG2MEML  1   0010 dddD DDSS Ssss   0 0     regD,regA    indA,indApL,indmAL,indAd16,indAcp,absW,absL
 MOVREG2MEMW  1   0011 dddD DDSS Ssss   0 0     regD,regA    indA,indApW,indmAW,indAd16,indAcp,absW,absL
 MOVREG2MEMB  1   0001 dddD DDSS Ssss   0 0     regD    indA,indApB,indmAB,indAd16,indAcp,absW,absL
-
-;*** Move reg to mem with the same register
-;a0
-MOVREG2MEML  1   0010 000D DDSS S000   0 0     regA    indApLk,indmALk
-;a1
-MOVREG2MEML  1   0010 001D DDSS S001   0 0     regA    indApLk,indmALk
-;a2
-MOVREG2MEML  1   0010 010D DDSS S010   0 0     regA    indApLk,indmALk
-;a3
-MOVREG2MEML  1   0010 011D DDSS S011   0 0     regA    indApLk,indmALk
-;a4
-MOVREG2MEML  1   0010 100D DDSS S100   0 0     regA    indApLk,indmALk
-;a5
-MOVREG2MEML  1   0010 101D DDSS S101   0 0     regA    indApLk,indmALk
-;a6
-MOVREG2MEML  1   0010 110D DDSS S110   0 0     regA    indApLk,indmALk
-;a7
-MOVREG2MEML  1   0010 111D DDSS S111   0 0     regA    indApLk,indmALk
-
-;a0
-MOVREG2MEMW  1   0011 000D DDSS S000   0 0     regA    indApWk,indmAWk
-;a1
-MOVREG2MEMW  1   0011 001D DDSS S001   0 0     regA    indApWk,indmAWk
-;a2
-MOVREG2MEMW  1   0011 010D DDSS S010   0 0     regA    indApWk,indmAWk
-;a3
-MOVREG2MEMW  1   0011 011D DDSS S011   0 0     regA    indApWk,indmAWk
-;a4
-MOVREG2MEMW  1   0011 100D DDSS S100   0 0     regA    indApWk,indmAWk
-;a5
-MOVREG2MEMW  1   0011 101D DDSS S101   0 0     regA    indApWk,indmAWk
-;a6
-MOVREG2MEMW  1   0011 110D DDSS S110   0 0     regA    indApWk,indmAWk
-;a7
-MOVREG2MEMW  1   0011 111D DDSS S111   0 0     regA    indApWk,indmAWk
 
 ;*** Move memory to register
 ;move.z x.w,dy
@@ -330,9 +287,9 @@ EORREG2REGL  1   1011 sss1 10DD Dddd   0 0     regD    regD
 EORREG2REGW  1   1011 sss1 01DD Dddd   0 0     regD    regD
 EORREG2REGB  1   1011 sss1 00DD Dddd   0 0     regD    regD
 
-EORREG2MEML  0   1011 sss1 10DD Dddd   0 0     regD    indA,indApL,indmAL,indAd16,indAcp,absW,absL
-EORREG2MEMW  0   1011 sss1 01DD Dddd   0 0     regD    indA,indApW,indmAW,indAd16,indAcp,absW,absL
-EORREG2MEMB  0   1011 sss1 00DD Dddd   0 0     regD    indA,indApB,indmAB,indAd16,indAcp,absW,absL
+EORREG2MEML  1   1011 sss1 10DD Dddd   0 0     regD    indA,indApL,indmAL,indAd16,indAcp,absW,absL
+EORREG2MEMW  1   1011 sss1 01DD Dddd   0 0     regD    indA,indApW,indmAW,indAd16,indAcp,absW,absL
+EORREG2MEMB  1   1011 sss1 00DD Dddd   0 0     regD    indA,indApB,indmAB,indAd16,indAcp,absW,absL
 
 ;*** And
 ;ANDI.x #imm,Dy
@@ -389,9 +346,9 @@ ORIMM2REGW   1   1000 ddd0 01SS Ssss   0 0     immedW    regD
 ORIMM2REGB   1   1000 ddd0 00SS Ssss   0 0     immedB    regD
 
 ;*** Not
-NOTREGL      0   0100 0110 10DD Dddd   0 0     none    regD
-NOTREGW      0   0100 0110 01DD Dddd   0 0     none    regD
-NOTREGB      0   0100 0110 00DD Dddd   0 0     none    regD
+NOTREGL      1   0100 0110 10DD Dddd   0 0     none    regD
+NOTREGW      1   0100 0110 01DD Dddd   0 0     none    regD
+NOTREGB      1   0100 0110 00DD Dddd   0 0     none    regD
 
 NOTMEML      0   0100 0110 10DD Dddd   0 0     none    indA,indApL,indmAL,indAd16,indAcp,absW,absL
 NOTMEMW      0   0100 0110 01DD Dddd   0 0     none    indA,indApW,indmAW,indAd16,indAcp,absW,absL
@@ -762,9 +719,9 @@ EXGA         1   1100 sss1 0100 1ddd   0 0     regA    regA
 EXGD         1   1100 sss1 1000 1ddd   0 0     regD    regA
 
 ;*** EXT
-EXTBW        0   0100 1000 1000 0ddd   0 0     none    regD
-EXTWL        0   0100 1000 1100 0ddd   0 0     none    regD
-EXTBL        0   0100 1001 1100 0ddd   0 0     none    regD
+EXTBW        1   0100 1000 1000 0ddd   0 0     none    regD
+EXTWL        1   0100 1000 1100 0ddd   0 0     none    regD
+EXTBL        1   0100 1001 1100 0ddd   0 0     none    regD
 
 ;*** Other
 NOP          1   0100 1110 0111 0001   0 0     none    none
@@ -774,9 +731,9 @@ TSTREGL      1   0100 1010 10SS Ssss   0 0     regD,regA    none
 TSTREGW      1   0100 1010 01SS Ssss   0 0     regD,regA    none
 TSTREGB      1   0100 1010 00SS Ssss   0 0     regD    none
 
-TSTMEML      0   0100 1010 10SS Ssss   0 0     indA,indApL,indmAL,indPCd16,indAd16,indAcp,indPCcp,absW,absL    none
-TSTMEMW      0   0100 1010 01SS Ssss   0 0     indA,indApW,indmAW,indPCd16,indAd16,indAcp,indPCcp,absW,absL    none
-TSTMEMB      0   0100 1010 00SS Ssss   0 0     indA,indApB,indmAB,indPCd16,indAd16,indAcp,indPCcp,absW,absL    none
+TSTMEML      1   0100 1010 10SS Ssss   0 0     indA,indApL,indmAL,indPCd16,indAd16,indAcp,indPCcp,absW,absL    none
+TSTMEMW      1   0100 1010 01SS Ssss   0 0     indA,indApW,indmAW,indPCd16,indAd16,indAcp,indPCcp,absW,absL    none
+TSTMEMB      1   0100 1010 00SS Ssss   0 0     indA,indApB,indmAB,indPCd16,indAd16,indAcp,indPCcp,absW,absL    none
 
 ;*** Link - unlink
 LINKW        0   0100 1110 0101 0ddd   0 0     immedW    regA

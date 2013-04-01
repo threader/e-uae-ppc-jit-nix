@@ -123,6 +123,7 @@ void comp_macroblock_push_and_register_register(uae_u64 regsin, uae_u64 regsout,
 void comp_macroblock_push_or_high_register_imm(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, uae_u16 imm);
 void comp_macroblock_push_or_low_register_imm(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, uae_u16 imm);
 void comp_macroblock_push_or_register_register(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg1, uae_u8 input_reg2, char updateflags);
+void comp_macroblock_push_not_or_register_register(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg1, uae_u8 input_reg2, char updateflags);
 void comp_macroblock_push_xor_register_register(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg1, uae_u8 input_reg2, char updateflags);
 void comp_macroblock_push_xor_low_register_imm(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, uae_u16 immediate);
 void comp_macroblock_push_xor_high_register_imm(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, uae_u16 immediate);
@@ -134,8 +135,8 @@ void comp_macroblock_push_copy_nz_flags_to_register(uae_u64 regsout, uae_u8 outp
 void comp_macroblock_push_copy_cv_flags_to_register(uae_u64 regsout, uae_u8 output_reg);
 void comp_macroblock_push_check_long_register(uae_u64 regsin, uae_u8 input_reg);
 void comp_macroblock_push_check_word_register(uae_u64 regsin, uae_u8 input_reg);
-void comp_macroblock_push_copy_register_word_extended(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg);
-void comp_macroblock_push_copy_register_byte_extended(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg);
+void comp_macroblock_push_copy_register_word_extended(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, char updateflags);
+void comp_macroblock_push_copy_register_byte_extended(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, char updateflags);
 void comp_macroblock_push_check_byte_register(uae_u64 regsin, uae_u8 input_reg);
 void comp_macroblock_push_rotate_and_copy_bits(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, uae_u8 shift, uae_u8 maskb, uae_u8 maske, int updateflags);
 void comp_macroblock_push_rotate_and_mask_bits(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, uae_u8 shift, uae_u8 maskb, uae_u8 maske, int updateflags);
