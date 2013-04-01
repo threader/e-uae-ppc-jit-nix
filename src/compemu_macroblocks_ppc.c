@@ -49,10 +49,7 @@ STATIC_INLINE void helper_free_dest_temp_reg(void);
 STATIC_INLINE void helper_allocate_ax_dest_mem_reg(struct comptbl* props, int modified);
 STATIC_INLINE void helper_add_imm_to_dest_ax(struct comptbl* props, uae_u16 immediate);
 STATIC_INLINE void helper_allocate_2_ax_dest_mem_regs(struct comptbl* props, int modified);
-STATIC_INLINE void helper_allocate_2_ax_dest_mem_regs_copy(struct comptbl* props, int modified);
-STATIC_INLINE void helper_addr_indmAk_dest(struct comptbl* props, uae_u8 size);
-STATIC_INLINE void helper_addr_indApk_dest(struct comptbl* props, uae_u8 size);
-STATIC_INLINE int helper_read_memory(const cpu_history* history, uae_u8 size, int srcsamedest);
+STATIC_INLINE int helper_read_memory(const cpu_history* history, uae_u8 size, int srcsamedest, int savedestreg);
 STATIC_INLINE void helper_write_memory(const cpu_history* history, int input_reg, uae_u8 size);
 STATIC_INLINE void helper_check_result_set_flags(int regsin, int input_reg, uae_u8 size);
 STATIC_INLINE void helper_copy_result_set_flags(uae_u8 src_reg, int src_reg_mapped, uae_u8 size);
@@ -73,6 +70,7 @@ STATIC_INLINE void helper_SUBREG2REG(uae_u8 size);
 STATIC_INLINE void helper_ANDIMM2REG(uae_u8 size);
 STATIC_INLINE void helper_ANDREG2REG(uae_u8 size);
 STATIC_INLINE void helper_TSTREG(uae_u8 size);
+STATIC_INLINE void helper_TSTMEM(const cpu_history* history, uae_u8 size);
 STATIC_INLINE void helper_CMPIMM2REG(uae_u8 size);
 STATIC_INLINE void helper_ASRIMM2REG(uae_u8 size);
 STATIC_INLINE void helper_LSRIMM2REG(uae_u8 size);
@@ -221,42 +219,6 @@ void comp_addr_pre_indApB_src(const cpu_history* history, struct comptbl* props)
 
 	//Increase the address register by the size of the operation
 	helper_add_imm_to_src_ax(props, 1);
-}
-void comp_addr_pre_indmALk_src(const cpu_history* history, struct comptbl* props) REGPARAM
-{
-	//Invalid addressing mode
-	write_log("JIT error: invalid addressing mode - indmALk as source\n");
-	abort();
-}
-void comp_addr_pre_indmAWk_src(const cpu_history* history, struct comptbl* props) REGPARAM
-{
-	//Invalid addressing mode
-	write_log("JIT error: invalid addressing mode - indmAWk as source\n");
-	abort();
-}
-void comp_addr_pre_indmABk_src(const cpu_history* history, struct comptbl* props) REGPARAM
-{
-	//Invalid addressing mode
-	write_log("JIT error: invalid addressing mode - indmABk as source\n");
-	abort();
-}
-void comp_addr_pre_indApLk_src(const cpu_history* history, struct comptbl* props) REGPARAM
-{
-	//Invalid addressing mode
-	write_log("JIT error: invalid addressing mode - indApLk as source\n");
-	abort();
-}
-void comp_addr_pre_indApWk_src(const cpu_history* history, struct comptbl* props) REGPARAM
-{
-	//Invalid addressing mode
-	write_log("JIT error: invalid addressing mode - indApWk as source\n");
-	abort();
-}
-void comp_addr_pre_indApBk_src(const cpu_history* history, struct comptbl* props) REGPARAM
-{
-	//Invalid addressing mode
-	write_log("JIT error: invalid addressing mode - indApBk as source\n");
-	abort();
 }
 void comp_addr_pre_immedL_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
@@ -425,30 +387,6 @@ void comp_addr_post_indApB_src(const cpu_history* history, struct comptbl* props
 	//Release temp register
 	helper_free_src_mem_addr_temp_reg();
 }
-void comp_addr_post_indmALk_src(const cpu_history* history, struct comptbl* props) REGPARAM
-{
-	//We won't come here anyway, this addressing mode is not supported
-}
-void comp_addr_post_indmAWk_src(const cpu_history* history, struct comptbl* props) REGPARAM
-{
-	//We won't come here anyway, this addressing mode is not supported
-}
-void comp_addr_post_indmABk_src(const cpu_history* history, struct comptbl* props) REGPARAM
-{
-	//We won't come here anyway, this addressing mode is not supported
-}
-void comp_addr_post_indApLk_src(const cpu_history* history, struct comptbl* props) REGPARAM
-{
-	//We won't come here anyway, this addressing mode is not supported
-}
-void comp_addr_post_indApWk_src(const cpu_history* history, struct comptbl* props) REGPARAM
-{
-	//We won't come here anyway, this addressing mode is not supported
-}
-void comp_addr_post_indApBk_src(const cpu_history* history, struct comptbl* props) REGPARAM
-{
-	//We won't come here anyway, this addressing mode is not supported
-}
 void comp_addr_post_immedL_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
 	//No need to do anything
@@ -518,69 +456,63 @@ void comp_addr_pre_indA_dest(const cpu_history* history, struct comptbl* props) 
 }
 void comp_addr_pre_indmAL_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	helper_allocate_ax_dest_mem_reg(props, TRUE);
+	//Allocate the destination register and a temporary memory target register,
+	//address register won't be modified here
+	helper_allocate_2_ax_dest_mem_regs(props, FALSE);
 
-	//Decrease the register before use by the size of the operation
-	helper_add_imm_to_dest_ax(props, -4);
+	//TODO: this is not the optimal way: the memory reading and the decrease must be done twice. See also post_indmAL_dest
+	//Decrease the temporary memory target register
+	comp_macroblock_push_add_register_imm(
+			COMP_COMPILER_MACROBLOCK_REG_AX(props->destreg),
+			COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+			dest_mem_addrreg_mapped,
+			dest_reg_mapped,
+			-4);
 }
 void comp_addr_pre_indmAW_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	helper_allocate_ax_dest_mem_reg(props, TRUE);
+	//Allocate the destination register and a temporary memory target register,
+	//address register won't be modified here
+	helper_allocate_2_ax_dest_mem_regs(props, FALSE);
 
-	//Decrease the register before use by the size of the operation
-	helper_add_imm_to_dest_ax(props, -2);
+	//TODO: this is not the optimal way: the memory reading and the decrease must be done twice. See also post_indmAW_dest
+	//Decrease the temporary memory target register
+	comp_macroblock_push_add_register_imm(
+			COMP_COMPILER_MACROBLOCK_REG_AX(props->destreg),
+			COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+			dest_mem_addrreg_mapped,
+			dest_reg_mapped,
+			-2);
 }
 void comp_addr_pre_indmAB_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	helper_allocate_ax_dest_mem_reg(props, TRUE);
+	//Allocate the destination register and a temporary memory target register,
+	//address register won't be modified here
+	helper_allocate_2_ax_dest_mem_regs(props, FALSE);
 
-	//Decrease the register before use by the size of the operation
-	helper_add_imm_to_dest_ax(props, -1);
+	//TODO: this is not the optimal way: the memory reading and the decrease must be done twice. See also post_indmAB_dest
+	//Decrease the temporary memory target register
+	comp_macroblock_push_add_register_imm(
+			COMP_COMPILER_MACROBLOCK_REG_AX(props->destreg),
+			COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+			dest_mem_addrreg_mapped,
+			dest_reg_mapped,
+			-1);
 }
 void comp_addr_pre_indApL_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	helper_allocate_2_ax_dest_mem_regs_copy(props, TRUE);
-
-	//Increase the address register by the size of the operation
-	helper_add_imm_to_dest_ax(props, 4);
+	//Allocate register for the memory address, post increment delayed
+	helper_allocate_ax_dest_mem_reg(props, FALSE);
 }
 void comp_addr_pre_indApW_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	helper_allocate_2_ax_dest_mem_regs_copy(props, TRUE);
-
-	//Increase the address register by the size of the operation
-	helper_add_imm_to_dest_ax(props, 2);
+	//Allocate register for the memory address, post increment delayed
+	helper_allocate_ax_dest_mem_reg(props, FALSE);
 }
 void comp_addr_pre_indApB_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	helper_allocate_2_ax_dest_mem_regs_copy(props, TRUE);
-
-	//Increase the address register by the size of the operation
-	helper_add_imm_to_dest_ax(props, 1);
-}
-void comp_addr_pre_indmALk_dest(const cpu_history* history, struct comptbl* props) REGPARAM
-{
-	helper_addr_indmAk_dest(props, 4);
-}
-void comp_addr_pre_indmAWk_dest(const cpu_history* history, struct comptbl* props) REGPARAM
-{
-	helper_addr_indmAk_dest(props, 2);
-}
-void comp_addr_pre_indmABk_dest(const cpu_history* history, struct comptbl* props) REGPARAM
-{
-	helper_addr_indmAk_dest(props, 1);
-}
-void comp_addr_pre_indApLk_dest(const cpu_history* history, struct comptbl* props) REGPARAM
-{
-	helper_addr_indApk_dest(props, 4);
-}
-void comp_addr_pre_indApWk_dest(const cpu_history* history, struct comptbl* props) REGPARAM
-{
-	helper_addr_indApk_dest(props, 2);
-}
-void comp_addr_pre_indApBk_dest(const cpu_history* history, struct comptbl* props) REGPARAM
-{
-	helper_addr_indApk_dest(props, 1);
+	//Allocate register for the memory address, post increment delayed
+	helper_allocate_ax_dest_mem_reg(props, FALSE);
 }
 void comp_addr_pre_immedL_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
@@ -720,63 +652,60 @@ void comp_addr_post_indA_dest(const cpu_history* history, struct comptbl* props)
 }
 void comp_addr_post_indmAL_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//No need to do anything
+	//Release temp register
+	helper_free_dest_mem_addr_temp_reg();
+
+	//(Re)allocate the destination address register with modify flag
+	dest_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->destreg), TRUE, TRUE);
+
+	//Decrease the address register by the size of the operation
+	helper_add_imm_to_dest_ax(props, -4);
 }
 void comp_addr_post_indmAW_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//No need to do anything
+	//Release temp register
+	helper_free_dest_mem_addr_temp_reg();
+
+	//(Re)allocate the destination address register with modify flag
+	dest_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->destreg), TRUE, TRUE);
+
+	//Decrease the address register by the size of the operation
+	helper_add_imm_to_dest_ax(props, -2);
 }
 void comp_addr_post_indmAB_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//No need to do anything
+	//Release temp register
+	helper_free_dest_mem_addr_temp_reg();
+
+	//(Re)allocate the destination address register with modify flag
+	dest_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->destreg), TRUE, TRUE);
+
+	//Decrease the address register by the size of the operation
+	helper_add_imm_to_dest_ax(props, -1);
 }
 void comp_addr_post_indApL_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Release temp register
-	helper_free_dest_mem_addr_temp_reg();
+	//(Re)allocate the destination address register with modify flag
+	dest_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->destreg), TRUE, TRUE);
+
+	//Increase the address register by the size of the operation
+	helper_add_imm_to_dest_ax(props, 4);
 }
 void comp_addr_post_indApW_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Release temp register
-	helper_free_dest_mem_addr_temp_reg();
+	//(Re)allocate the destination address register with modify flag
+	dest_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->destreg), TRUE, TRUE);
+
+	//Increase the address register by the size of the operation
+	helper_add_imm_to_dest_ax(props, 2);
 }
 void comp_addr_post_indApB_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Release temp register
-	helper_free_dest_mem_addr_temp_reg();
-}
-void comp_addr_post_indmALk_dest(const cpu_history* history, struct comptbl* props) REGPARAM
-{
-	//Release temp register: this is not a mistake,
-	//we rigged the source register with our temp register
-	helper_free_src_temp_reg();
-}
-void comp_addr_post_indmAWk_dest(const cpu_history* history, struct comptbl* props) REGPARAM
-{
-	//Release temp register: this is not a mistake,
-	//we rigged the source register with our temp register
-	helper_free_src_temp_reg();
-}
-void comp_addr_post_indmABk_dest(const cpu_history* history, struct comptbl* props) REGPARAM
-{
-	//Release temp register: this is not a mistake,
-	//we rigged the source register with our temp register
-	helper_free_src_temp_reg();
-}
-void comp_addr_post_indApLk_dest(const cpu_history* history, struct comptbl* props) REGPARAM
-{
-	//Release temp register
-	helper_free_dest_mem_addr_temp_reg();
-}
-void comp_addr_post_indApWk_dest(const cpu_history* history, struct comptbl* props) REGPARAM
-{
-	//Release temp register
-	helper_free_dest_mem_addr_temp_reg();
-}
-void comp_addr_post_indApBk_dest(const cpu_history* history, struct comptbl* props) REGPARAM
-{
-	//Release temp register
-	helper_free_dest_mem_addr_temp_reg();
+	//(Re)allocate the destination address register with modify flag
+	dest_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->destreg), TRUE, TRUE);
+
+	//Increase the address register by the size of the operation
+	helper_add_imm_to_dest_ax(props, 1);
 }
 void comp_addr_post_immedL_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
@@ -1184,7 +1113,8 @@ void comp_opcode_MOVAREG2REGW(const cpu_history* history, struct comptbl* props)
 			input_dep,
 			output_dep,
 			dest_reg_mapped,
-			src_reg_mapped);
+			src_reg_mapped,
+			FALSE);
 
 	//No flag change
 }
@@ -1769,15 +1699,50 @@ void comp_opcode_ORMEM2REGB(const cpu_history* history, struct comptbl* props) R
 }
 void comp_opcode_NOTREGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
+	comp_macroblock_push_not_or_register_register(
+			output_dep,
+			output_dep,
+			dest_reg_mapped,
+			dest_reg_mapped,
+			dest_reg_mapped,
+			TRUE);
+
+	//Save flags
+	helper_check_nz_clear_cv_flags();
 }
 void comp_opcode_NOTREGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
+	comp_macroblock_push_xor_low_register_imm(
+			output_dep,
+			output_dep,
+			dest_reg_mapped,
+			dest_reg_mapped,
+			0xffff);
+
+	//Check result
+	comp_macroblock_push_check_word_register(
+			output_dep,
+			dest_reg_mapped);
+
+	//Save flags
+	helper_check_nz_clear_cv_flags();
 }
 void comp_opcode_NOTREGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
+	comp_macroblock_push_xor_low_register_imm(
+			output_dep,
+			output_dep,
+			dest_reg_mapped,
+			dest_reg_mapped,
+			0xff);
+
+	//Check result
+	comp_macroblock_push_check_byte_register(
+			output_dep,
+			dest_reg_mapped);
+
+	//Save flags
+	helper_check_nz_clear_cv_flags();
 }
 void comp_opcode_NOTMEML(const cpu_history* history, struct comptbl* props) REGPARAM
 {
@@ -2388,7 +2353,8 @@ void comp_opcode_ADDAREG2REGW(const cpu_history* history, struct comptbl* props)
 			input_dep,
 			COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
 			tmpreg_mapped,
-			src_reg_mapped);
+			src_reg_mapped,
+			FALSE);
 
 	comp_macroblock_push_add(
 			output_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
@@ -2590,7 +2556,8 @@ void comp_opcode_SUBAREG2REGW(const cpu_history* history, struct comptbl* props)
 			input_dep,
 			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
 			tempreg_mapped,
-			src_reg_mapped);
+			src_reg_mapped,
+			FALSE);
 
 	//Subtract the registers
 	comp_macroblock_push_sub(
@@ -2642,14 +2609,16 @@ void comp_opcode_MULSREG2REGW(const cpu_history* history, struct comptbl* props)
 			input_dep,
 			COMP_COMPILER_MACROBLOCK_REG_TMP(srctemp),
 			srctemp_mapped,
-			src_reg_mapped);
+			src_reg_mapped,
+			FALSE);
 
 	//Keep the low half word from destination register
 	comp_macroblock_push_copy_register_word_extended(
 			output_dep,
 			COMP_COMPILER_MACROBLOCK_REG_TMP(desttemp),
 			desttemp_mapped,
-			dest_reg_mapped);
+			dest_reg_mapped,
+			FALSE);
 
 	//Multiply the registers and set the flags
 	comp_macroblock_push_multiply_registers_with_flags(
@@ -2894,15 +2863,50 @@ void comp_opcode_EXGD(const cpu_history* history, struct comptbl* props) REGPARA
 }
 void comp_opcode_EXTBW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
+	uae_u8 tmp_reg = helper_allocate_tmp_reg();
+	uae_u8 tmp_reg_mapped = comp_get_gpr_for_temp_register(tmp_reg);
+
+	comp_macroblock_push_copy_register_byte_extended(
+			output_dep,
+			COMP_COMPILER_MACROBLOCK_REG_TMP(tmp_reg),
+			tmp_reg_mapped,
+			dest_reg_mapped,
+			TRUE);
+
+	comp_macroblock_push_copy_register_word(
+			COMP_COMPILER_MACROBLOCK_REG_TMP(tmp_reg),
+			output_dep,
+			dest_reg_mapped,
+			tmp_reg_mapped);
+
+	//Save flags
+	helper_check_nz_clear_cv_flags();
+
+	helper_free_tmp_reg(tmp_reg);
 }
 void comp_opcode_EXTWL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
+	comp_macroblock_push_copy_register_word_extended(
+			output_dep,
+			output_dep,
+			dest_reg_mapped,
+			dest_reg_mapped,
+			TRUE);
+
+	//Save flags
+	helper_check_nz_clear_cv_flags();
 }
 void comp_opcode_EXTBL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
+	comp_macroblock_push_copy_register_byte_extended(
+			output_dep,
+			output_dep,
+			dest_reg_mapped,
+			dest_reg_mapped,
+			TRUE);
+
+	//Save flags
+	helper_check_nz_clear_cv_flags();
 }
 void comp_opcode_NOP(const cpu_history* history, struct comptbl* props) REGPARAM
 {
@@ -2922,15 +2926,15 @@ void comp_opcode_TSTREGB(const cpu_history* history, struct comptbl* props) REGP
 }
 void comp_opcode_TSTMEML(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
+	helper_TSTMEM(history, 4);
 }
 void comp_opcode_TSTMEMW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
+	helper_TSTMEM(history, 2);
 }
 void comp_opcode_TSTMEMB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
+	helper_TSTMEM(history, 1);
 }
 void comp_opcode_LINKW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
@@ -3644,6 +3648,9 @@ STATIC_INLINE void helper_allocate_2_ax_src_mem_regs(struct comptbl* props, int 
 	src_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->srcreg), TRUE, modified);
 	src_mem_addrreg = helper_allocate_tmp_reg();
 	src_mem_addrreg_mapped = comp_get_gpr_for_temp_register(src_mem_addrreg);
+
+	//Instruction is depending on both registers
+	input_dep = COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg) | COMP_COMPILER_MACROBLOCK_REG_AX(props->srcreg);
 }
 
 /**
@@ -3739,30 +3746,9 @@ STATIC_INLINE void helper_allocate_2_ax_dest_mem_regs(struct comptbl* props, int
 	dest_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->destreg), TRUE, modified);
 	dest_mem_addrreg = helper_allocate_tmp_reg();
 	dest_mem_addrreg_mapped = comp_get_gpr_for_temp_register(dest_mem_addrreg);
-}
 
-/**
- * Allocate two temp registers for the specified address register (Ax) from
- * the properties of the instruction, map the address register and copy
- * the value to the other temp register. Also specify the first temp register as
- * the destination address register for the memory operations.
- * This way the temporary register can preserve the original value of
- * the address register for the memory operations.
- * Parameters:
- *    props - pointer to the instruction properties
- *    modified - if TRUE then allocate the register for saving back, because it is modified in the instruction
- */
-STATIC_INLINE void helper_allocate_2_ax_dest_mem_regs_copy(struct comptbl* props, int modified)
-{
-	helper_allocate_2_ax_dest_mem_regs(props, modified);
-
-	//TODO: this useless move instruction could be removed if the registers could be swapped
-	//Move target address register's original value to a temp register
-	comp_macroblock_push_copy_register_long(
-			COMP_COMPILER_MACROBLOCK_REG_AX(props->destreg),
-			COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
-			dest_mem_addrreg_mapped,
-			dest_reg_mapped);
+	//Instruction is depending on both registers
+	input_dep = COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg) | COMP_COMPILER_MACROBLOCK_REG_AX(props->destreg);
 }
 
 /**
@@ -4049,7 +4035,8 @@ STATIC_INLINE void helper_MOVMEM2REG(const cpu_history* history, struct comptbl*
 						COMP_COMPILER_MACROBLOCK_REG_NONE,
 						output_dep,
 						dest_reg_mapped,
-						PPCR_SPECTMP);
+						PPCR_SPECTMP,
+						FALSE);
 			}
 			break;
 		case 1:
@@ -4157,7 +4144,7 @@ STATIC_INLINE void helper_MOVMEM2REG(const cpu_history* history, struct comptbl*
 STATIC_INLINE void helper_MOVMEM2MEM(const cpu_history* history, struct comptbl* props, uae_u8 size)
 {
 	//Read memory from source
-	int tmpreg = helper_read_memory(history, size, FALSE);
+	int tmpreg = helper_read_memory(history, size, FALSE, TRUE);
 
 	//Check register
     helper_check_result_set_flags(COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg), comp_get_gpr_for_temp_register(tmpreg), size);
@@ -4775,12 +4762,14 @@ STATIC_INLINE void helper_EORREG2REG(uae_u8 size)
 /**
  * Implementation of all EORREG2MEM instruction
  * Parameters:
+ *    history - pointer to the execution history
+ *    props - pointer to the instruction properties
  *    size - size of the operation: byte (1), word (2) or long (4)
  */
 STATIC_INLINE void helper_EORREG2MEM(const cpu_history* history, struct comptbl* props, uae_u8 size)
 {
 	//Read memory from source
-	int tempreg = helper_read_memory(history, size, TRUE);
+	int tempreg = helper_read_memory(history, size, TRUE, TRUE);
 	int tempreg_mapped = comp_get_gpr_for_temp_register(tempreg);
 
 	//Source register was free'd: reload
@@ -4863,6 +4852,46 @@ STATIC_INLINE void helper_TSTREG(uae_u8 size)
 		break;
 	default:
 		write_log("Error: wrong operation size for TSTREG\n");
+		abort();
+	}
+
+	//Save flags
+	helper_check_nz_clear_cv_flags();
+}
+
+/**
+ * Implementation of all TSTMEM instruction
+ * Parameters:
+ *    history - pointer to the execution history
+ *    size - size of the operation: byte (1), word (2) or long (4)
+ */
+STATIC_INLINE void helper_TSTMEM(const cpu_history* history, uae_u8 size)
+{
+	//Read memory from source
+	int tempreg = helper_read_memory(history, size, FALSE, FALSE);
+	int tempreg_mapped = comp_get_gpr_for_temp_register(tempreg);
+
+	switch (size)
+	{
+	case 4:
+		comp_macroblock_push_copy_register_long_with_flags(
+				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
+				COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
+				PPCR_SPECTMP,
+				tempreg_mapped);
+		break;
+	case 2:
+		comp_macroblock_push_check_word_register(
+				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
+				tempreg_mapped);
+		break;
+	case 1:
+		comp_macroblock_push_check_byte_register(
+				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
+				tempreg_mapped);
+		break;
+	default:
+		write_log("Error: wrong operation size for TSTMEM\n");
 		abort();
 	}
 
@@ -4959,13 +4988,15 @@ STATIC_INLINE void helper_ASRIMM2REG(uae_u8 size)
 					output_dep,
 					COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
 					tmpreg_mapped,
-					dest_reg_mapped);
+					dest_reg_mapped,
+					FALSE);
 		} else {
 			comp_macroblock_push_copy_register_byte_extended(
 					output_dep,
 					COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
 					tmpreg_mapped,
-					dest_reg_mapped);
+					dest_reg_mapped,
+					FALSE);
 		}
 
 		//Arithmetic shifting to the right
@@ -5192,47 +5223,6 @@ STATIC_INLINE void helper_ROLIMM2REG(uae_u8 size)
 
 	//Check flags
 	helper_check_nz_flags();
-}
-
-
-
-STATIC_INLINE void helper_addr_indmAk_dest(struct comptbl* props, uae_u8 size)
-{
-	//Allocate the address register
-	helper_allocate_ax_dest_mem_reg(props, TRUE);
-
-	//HACK: Switch off source register with a temp register,
-	//that preserves the original value of the address register
-	src_reg = helper_allocate_tmp_reg();
-	src_reg_mapped = comp_get_gpr_for_temp_register(src_reg);
-
-	//Move target address register's original value to a temp register
-	comp_macroblock_push_copy_register_long(
-			COMP_COMPILER_MACROBLOCK_REG_AX(props->destreg),
-			COMP_COMPILER_MACROBLOCK_REG_TMP(src_reg),
-			src_reg_mapped,
-			dest_reg_mapped);
-
-	//Decrease the register before use by the size of the operation
-	helper_add_imm_to_dest_ax(props, -size);
-
-	//Instruction is depending on both registers
-	input_dep = COMP_COMPILER_MACROBLOCK_REG_TMP(src_reg) | COMP_COMPILER_MACROBLOCK_REG_AX(props->destreg);
-}
-
-STATIC_INLINE void helper_addr_indApk_dest(struct comptbl* props, uae_u8 size)
-{
-	helper_allocate_2_ax_dest_mem_regs_copy(props, TRUE);
-
-	//Increase the address register by the size of the operation
-	helper_add_imm_to_dest_ax(props, size);
-
-	//HACK: Switch off source register with a temp register,
-	//that preserves the original value of the address register
-	src_reg_mapped = dest_mem_addrreg_mapped;
-
-	//Instruction is depending on both registers
-	input_dep = COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg) | COMP_COMPILER_MACROBLOCK_REG_AX(props->destreg);
 }
 
 /*
@@ -5842,7 +5832,8 @@ STATIC_INLINE uae_u8 helper_calculate_complex_index(uae_u16 ext)
 				index_reg_dep,
 				COMP_COMPILER_MACROBLOCK_REG_TMP(scaled_index_reg),
 				scaled_index_reg_mapped,
-				index_reg_mapped);
+				index_reg_mapped,
+				FALSE);
 	}
 
 	//Get scaling
@@ -5870,10 +5861,11 @@ STATIC_INLINE uae_u8 helper_calculate_complex_index(uae_u16 ext)
  *    history - pointer to the execution history
  *    size - size of the operation (1,2 or 4)
  *    srcsamedest - if TRUE then source memory address is same as destination - destination will be used
+ *    savedestreg - if TRUE then the destination register is saved to a store slot and restored after the memory reading
  * Returns:
  *    number of allocated temporary register
  */
-STATIC_INLINE int helper_read_memory(const cpu_history* history, uae_u8 size, int srcsamedest)
+STATIC_INLINE int helper_read_memory(const cpu_history* history, uae_u8 size, int srcsamedest, int savedestreg)
 {
 	int specread;
 	int tmpreg;
@@ -5904,11 +5896,14 @@ STATIC_INLINE int helper_read_memory(const cpu_history* history, uae_u8 size, in
 
 	if (specread)
 	{
-		//Store the destination register temporarily
-		comp_macroblock_push_save_reg_slot(
-				(dest_mem_addrreg == PPC_TMP_REG_NOTUSED ? output_dep : COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg)) | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-				dest_mem_addrreg_mapped,
-				0);
+		if (savedestreg)
+		{
+			//Store the destination register temporarily
+			comp_macroblock_push_save_reg_slot(
+					(dest_mem_addrreg == PPC_TMP_REG_NOTUSED ? output_dep : COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg)) | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
+					dest_mem_addrreg_mapped,
+					0);
+		}
 
 		//Special memory access, result returned in R4
 		comp_macroblock_push_load_memory_spec(
@@ -5945,11 +5940,14 @@ STATIC_INLINE int helper_read_memory(const cpu_history* history, uae_u8 size, in
 					PPCR_PARAM2);
 		}
 
-		//Restore the destination address register
-		comp_macroblock_push_load_reg_slot(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
-				dest_mem_addrreg_mapped,
-				0);
+		if (savedestreg)
+		{
+			//Restore the destination address register
+			comp_macroblock_push_load_reg_slot(
+					COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+					dest_mem_addrreg_mapped,
+					0);
+		}
 	}
 	else
 	{
