@@ -1324,7 +1324,9 @@ int isinf (double x)
 //fsdb_mywin
 bool my_issamevolume(const TCHAR *path1, const TCHAR *path2, TCHAR *path)
 {
-/*        TCHAR p1[MAX_DPATH];
+/*
+FIXME:
+        TCHAR p1[MAX_DPATH];
         TCHAR p2[MAX_DPATH];
         TCHAR p1b[MAX_DPATH];
         TCHAR p2b[MAX_DPATH];
@@ -1351,7 +1353,9 @@ bool my_issamevolume(const TCHAR *path1, const TCHAR *path2, TCHAR *path)
 
 bool my_resolvesoftlink(TCHAR *linkfile, int size)
 {
-/*	if (my_resolvessymboliclink(linkfile, size))
+/*
+FIXME:
+	if (my_resolvessymboliclink(linkfile, size))
 		return true;
 	if (my_resolveshortcut(linkfile,size))
 		return true;*/

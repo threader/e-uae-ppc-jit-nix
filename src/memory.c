@@ -1496,7 +1496,6 @@ static uae_u8 *REGPARAM2 custmem1_xlate (uaecptr addr)
 	return custmem1 + addr;
 }
 
-#if 0
 static uae_u32 REGPARAM3 custmem2_lget (uaecptr) REGPARAM;
 static uae_u32 REGPARAM3 custmem2_wget (uaecptr) REGPARAM;
 static uae_u32 REGPARAM3 custmem2_bget (uaecptr) REGPARAM;
@@ -1562,7 +1561,6 @@ static uae_u8 *REGPARAM2 custmem2_xlate (uaecptr addr)
 	addr &= custmem2_mask;
 	return custmem2 + addr;
 }
-#endif
 
 addrbank custmem1_bank = {
 	custmem1_lget, custmem1_wget, custmem1_bget,
@@ -1571,10 +1569,10 @@ addrbank custmem1_bank = {
 	custmem1_lget, custmem1_wget, ABFLAG_RAM
 };
 addrbank custmem2_bank = {
-	custmem1_lget, custmem1_wget, custmem1_bget,
-	custmem1_lput, custmem1_wput, custmem1_bput,
-	custmem1_xlate, custmem1_check, NULL, _T("Non-autoconfig RAM #2"),
-	custmem1_lget, custmem1_wget, ABFLAG_RAM
+	custmem2_lget, custmem2_wget, custmem2_bget,
+	custmem2_lput, custmem2_wput, custmem2_bput,
+	custmem2_xlate, custmem2_check, NULL, _T("Non-autoconfig RAM #2"),
+	custmem2_lget, custmem2_wget, ABFLAG_RAM
 };
 
 #define fkickmem_size 524288

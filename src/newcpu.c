@@ -3067,22 +3067,29 @@ void m68k_divl (uae_u32 opcode, uae_u32 src, uae_u16 extra)
 			a &= 0xffffffffu;
 			a |= (uae_s64)m68k_dreg (regs, extra & 7) << 32;
 		}
-		rem = a % (uae_s64)(uae_s32)src;
-		quot = a / (uae_s64)(uae_s32)src;
-		if ((quot & UVAL64 (0xffffffff80000000)) != 0
-			&& (quot & UVAL64 (0xffffffff80000000)) != UVAL64 (0xffffffff80000000))
-		{
+
+		if (a == 0x8000000000000000 && src == -1) {
 			SET_VFLG (1);
 			SET_NFLG (1);
 			SET_CFLG (0);
 		} else {
-			if (((uae_s32)rem < 0) != ((uae_s64)a < 0)) rem = -rem;
-			SET_VFLG (0);
-			SET_CFLG (0);
-			SET_ZFLG (((uae_s32)quot) == 0);
-			SET_NFLG (((uae_s32)quot) < 0);
-			m68k_dreg (regs, extra & 7) = (uae_u32)rem;
-			m68k_dreg (regs, (extra >> 12) & 7) = (uae_u32)quot;
+			rem = a % (uae_s64)(uae_s32)src;
+			quot = a / (uae_s64)(uae_s32)src;
+			if ((quot & UVAL64 (0xffffffff80000000)) != 0
+				&& (quot & UVAL64 (0xffffffff80000000)) != UVAL64 (0xffffffff80000000))
+			{
+				SET_VFLG (1);
+				SET_NFLG (1);
+				SET_CFLG (0);
+			} else {
+				if (((uae_s32)rem < 0) != ((uae_s64)a < 0)) rem = -rem;
+				SET_VFLG (0);
+				SET_CFLG (0);
+				SET_ZFLG (((uae_s32)quot) == 0);
+				SET_NFLG (((uae_s32)quot) < 0);
+				m68k_dreg (regs, extra & 7) = (uae_u32)rem;
+				m68k_dreg (regs, (extra >> 12) & 7) = (uae_u32)quot;
+			}
 		}
 	} else {
 		/* unsigned */
@@ -4598,6 +4605,11 @@ static void m68k_run_2ce (void)
 	for (;;) {
 		r->instruction_pc = m68k_getpc ();
 		opcode = get_word_ce020_prefetch (0);
+
+
+#if DEBUG_CD32CDTVIO
+		out_cd32io (r->instruction_pc);
+#endif
 
 		if (cpu_tracer) {
 
