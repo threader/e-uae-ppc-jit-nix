@@ -47,7 +47,7 @@ See the docs/compiling.txt
 
 i use 
 imac,        xcode 4.3.3, sdl 1.2.15, macosx 10.7.5
-macbook pro, xcode 4.5.2, sdl 1.2.15, macosx 10.8.2
+macbook pro, xcode 4.6, sdl 1.2.15, macosx 10.8.3
 (build_macos_cocoa)
 
 
