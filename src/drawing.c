@@ -174,7 +174,7 @@ static uae_u8 all_zeros[MAX_PIXELS_PER_LINE];
 uae_u8 *xlinebuffer;
 
 static int *amiga2aspect_line_map, *native2amiga_line_map;
-static uae_u8 *row_map[MAX_VIDHEIGHT + 1];
+static uae_u8 *row_map[MAX_UAE_HEIGHT + 1];
 static uae_u8 row_tmp[MAX_PIXELS_PER_LINE * 32 / 8];
 static int max_drawn_amiga_line;
 
@@ -691,10 +691,11 @@ void record_diw_line (int plfstrt, int first, int last)
    All of these are forced into the visible window (VISIBLE_LEFT_BORDER .. VISIBLE_RIGHT_BORDER).
    PLAYFIELD_START and PLAYFIELD_END are in window coordinates.  */
 static int playfield_start, playfield_end;
-static int real_playfield_start, real_playfield_end;
 static int linetoscr_diw_start, linetoscr_diw_end;
 static int native_ddf_left, native_ddf_right;
+#if 0
 static bool can_have_bordersprite;
+#endif
 
 static int pixels_offset;
 static int src_pixel, ham_src_pixel;
@@ -745,15 +746,11 @@ static void pfield_init_linetoscr (void)
 
 	playfield_start = linetoscr_diw_start;
 	playfield_end = linetoscr_diw_end;
-#if 0
+
 	if (playfield_start < native_ddf_left)
 		playfield_start = native_ddf_left;
 	if (playfield_end > native_ddf_right)
 		playfield_end = native_ddf_right;
-#endif
-	unpainted = visible_left_border < playfield_start ? 0 : visible_left_border - playfield_start;
-	ham_src_pixel = MAX_PIXELS_PER_LINE + res_shift_from_window (playfield_start - native_ddf_left);
-	unpainted = res_shift_from_window (unpainted);
 
 	if (playfield_start < visible_left_border)
 		playfield_start = visible_left_border;
@@ -764,25 +761,28 @@ static void pfield_init_linetoscr (void)
 	if (playfield_end > visible_right_border)
 		playfield_end = visible_right_border;
 
+#if 0
 	real_playfield_end = playfield_end;
 	real_playfield_start = playfield_start;
+#endif
 
 	// Sprite hpos don't include DIW_DDF_OFFSET and can appear 1 lores pixel
 	// before first bitplane pixel appears.
-	// This means "bordersprite" conditions is possible under OCS/ECS too. Argh!
+	// This means "bordersprite" condition is possible under OCS/ECS too. Argh!
 	if (dip_for_drawing->nr_sprites) {
 		/* bordersprite off or not supported: sprites are visible until diw_end */
-		if (playfield_end < linetoscr_diw_end)
+		if (playfield_end < linetoscr_diw_end && hblank_right_stop > playfield_end) {
 			playfield_end = linetoscr_diw_end;
+		}
 		int end = coord_hw_to_window_x (dp_for_drawing->plfleft * 2);
 		if (end < playfield_start && end > linetoscr_diw_start) {
 			playfield_start = end;
-			can_have_bordersprite = true;
+			;//can_have_bordersprite = true;
 		} else {
-			can_have_bordersprite = false;
+			;//can_have_bordersprite = false;
 		}
 	} else {
-		can_have_bordersprite = dp_for_drawing->bordersprite_seen;
+		;//can_have_bordersprite = dp_for_drawing->bordersprite_seen;
 	}
 
 #ifdef AGA
@@ -811,6 +811,10 @@ static void pfield_init_linetoscr (void)
 	}
 #endif
 
+	unpainted = visible_left_border < playfield_start ? 0 : visible_left_border - playfield_start;
+	ham_src_pixel = MAX_PIXELS_PER_LINE + res_shift_from_window (playfield_start - native_ddf_left);
+	unpainted = res_shift_from_window (unpainted);
+
 	if (sprite_first_x < sprite_last_x) {
 		if (sprite_first_x < 0)
 			sprite_first_x = 0;
@@ -834,7 +838,7 @@ static void pfield_init_linetoscr (void)
 
 	if (dip_for_drawing->nr_sprites == 0)
 		return;
-	/* Must clear parts of apixels.  */
+	/* We need to clear parts of apixels.  */
 	if (linetoscr_diw_start < native_ddf_left) {
 		int size = res_shift_from_window (native_ddf_left - linetoscr_diw_start);
 		linetoscr_diw_start = native_ddf_left;
@@ -847,6 +851,29 @@ static void pfield_init_linetoscr (void)
 		memset (pixdata.apixels + MAX_PIXELS_PER_LINE + pos, 0, size);
 	}
 }
+
+// erase sprite graphics in pixdata if they were outside of ddf
+static void pfield_erase_hborder_sprites (void)
+{
+	if (sprite_first_x < native_ddf_left) {
+		int size = res_shift_from_window (native_ddf_left - sprite_first_x);
+		memset (pixdata.apixels + MAX_PIXELS_PER_LINE - size, 0, size);
+	}
+	if (sprite_last_x > native_ddf_right) {
+		int pos = res_shift_from_window (native_ddf_right - native_ddf_left);
+		int size = res_shift_from_window (sprite_last_x - native_ddf_right);
+		memset (pixdata.apixels + MAX_PIXELS_PER_LINE + pos, 0, size);
+	}
+}
+
+// erase whole viewable area if upper or lower border
+static void pfield_erase_vborder_sprites (void)
+{
+	uae_u8 c = colors_for_drawing.borderblank ? 0 : colors_for_drawing.acolors[0];
+	int size = res_shift_from_window (linetoscr_diw_end - linetoscr_diw_start);
+	memset (pixdata.apixels + MAX_PIXELS_PER_LINE - size, c, size);
+}
+
 
 STATIC_INLINE uae_u16 merge_2pixel16 (uae_u16 p1, uae_u16 p2)
 {
@@ -1714,6 +1741,7 @@ STATIC_INLINE void draw_sprites_ecs (struct sprite_entry *e)
 	}
 }
 
+#if 0
 /* clear possible bitplane data outside DIW area */
 static void clear_bitplane_border (void)
 {
@@ -1733,6 +1761,7 @@ static void clear_bitplane_border (void)
 		memset (pixdata.apixels + pixels_offset + (real_playfield_end >> shift), v, len);
 	}
 }
+#endif
 
 /* emulate OCS/ECS only undocumented "SWIV" hardware feature */
 static void weird_bitplane_fix (void)
@@ -1865,9 +1894,9 @@ void init_row_map (void)
 {
 	static uae_u8 *oldbufmem;
 	static int oldheight, oldpitch;
-
 	int i, j;
-	if (gfxvidinfo.height_allocated > MAX_VIDHEIGHT) {
+
+	if (gfxvidinfo.height_allocated > MAX_UAE_HEIGHT) {
 		write_log (_T("Resolution too high, aborting\n"));
 		abort ();
 	}
@@ -1875,14 +1904,14 @@ void init_row_map (void)
 		oldheight == gfxvidinfo.height_allocated &&
 		oldpitch == gfxvidinfo.rowbytes)
 		return;
+	j = oldheight == 0 ? MAX_UAE_HEIGHT : oldheight;
+	for (i = gfxvidinfo.height_allocated; i < MAX_UAE_HEIGHT + 1 && i < j + 1; i++)
+		row_map[i] = row_tmp;
+	for (i = 0, j = 0; i < gfxvidinfo.height_allocated; i++, j += gfxvidinfo.rowbytes)
+		row_map[i] = gfxvidinfo.bufmem + j;
 	oldbufmem = gfxvidinfo.bufmem;
 	oldheight = gfxvidinfo.height_allocated;
 	oldpitch = gfxvidinfo.rowbytes;
-	j = 0;
-	for (i = gfxvidinfo.height_allocated; i < MAX_VIDHEIGHT + 1; i++)
-		row_map[i] = row_tmp;
-	for (i = 0; i < gfxvidinfo.height_allocated; i++, j += gfxvidinfo.rowbytes)
-		row_map[i] = gfxvidinfo.bufmem + j;
 }
 
 void init_aspect_maps (void)
@@ -2072,22 +2101,22 @@ static void pfield_expand_dp_bplconx (int regno, int v)
 	regno -= 0x1000;
 	switch (regno)
 	{
-	case 0x100:
+	case 0x100: // BPLCON1
 		dp_for_drawing->bplcon0 = v;
 		dp_for_drawing->bplres = GET_RES_DENISE (v);
 		dp_for_drawing->nr_planes = GET_PLANES (v);
 		dp_for_drawing->ham_seen = isham (v);
 		break;
-	case 0x104:
+	case 0x104: // BPLCON2
 		dp_for_drawing->bplcon2 = v;
 		break;
 #ifdef ECS_DENISE
-	case 0x106:
+	case 0x106: // BPLCON3
 		dp_for_drawing->bplcon3 = v;
 		break;
 #endif
 #ifdef AGA
-	case 0x10c:
+	case 0x10c: // BPLCON4
 		dp_for_drawing->bplcon4 = v;
 		break;
 #endif
@@ -2300,8 +2329,6 @@ static void pfield_draw_line (int lineno, int gfx_ypos, int follow_ypos)
 
 		if (dip_for_drawing->nr_sprites) {
 			int i;
-			if (can_have_bordersprite)
-				clear_bitplane_border ();
 
 			for (i = 0; i < dip_for_drawing->nr_sprites; i++) {
 #ifdef AGA
@@ -2327,6 +2354,9 @@ static void pfield_draw_line (int lineno, int gfx_ypos, int follow_ypos)
 			do_flush_line (follow_ypos);
 		}
 
+		if (dip_for_drawing->nr_sprites)
+			pfield_erase_hborder_sprites ();
+
 	} else if (border > 0) {
 		// border > 0: top or bottom border
 		bool dosprites = false;
@@ -2338,7 +2368,7 @@ static void pfield_draw_line (int lineno, int gfx_ypos, int follow_ypos)
 			dosprites = true;
 			pfield_expand_dp_bplcon ();
 			pfield_init_linetoscr ();
-			memset (pixdata.apixels + MAX_PIXELS_PER_LINE, colors_for_drawing.borderblank ? 0 : colors_for_drawing.acolors[0], MAX_PIXELS_PER_LINE);
+			pfield_erase_vborder_sprites ();
 		}
 #endif
 

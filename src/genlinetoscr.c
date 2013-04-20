@@ -140,13 +140,13 @@ static void out_linetoscr_do_srcpix (DEPTH_T bpp, HMODE_T hmode, int aga, CMODE_
 static void out_linetoscr_do_dstpix (DEPTH_T bpp, HMODE_T hmode, int aga, CMODE_T cmode, int spr)
 {
 	if (aga && cmode == CMODE_HAM) {
-		outln (		"    dpix_val = CONVERT_RGB (ham_linebuf[spix]);");
-		if (spr)
-			outln (	"    sprpix_val = dpix_val;");
+		outln (	    "    spix_val = ham_linebuf[spix];");
+		outln (	    "    dpix_val = CONVERT_RGB (spix_val);");
 	} else if (cmode == CMODE_HAM) {
-		outln (		"    dpix_val = xcolors[ham_linebuf[spix]];");
+		outln (		"    spix_val = ham_linebuf[spix];");
+		outln ( "    dpix_val = xcolors[spix_val];");
 		if (spr)
-			outln (	"    sprpix_val = dpix_val;");
+			outln ( "    sprpix_val = pixdata.apixels[spix];");
 	} else if (aga && cmode == CMODE_DUALPF) {
 		outln (		"    {");
 		outln (		"        uae_u8 val = lookup[spix_val];");
@@ -306,7 +306,7 @@ static void out_linetoscr_mode (DEPTH_T bpp, HMODE_T hmode, int aga, int spr, CM
 	if (bpp == DEPTH_16BPP && hmode != HMODE_DOUBLE && hmode != HMODE_DOUBLE2X && spr == 0) {
 		outln (		"int rem;");
 		outln (		"if (((long)&buf[dpix]) & 2) {");
-		if (CMODE_HAM != cmode)
+		//if (CMODE_HAM != cmode)
 			outln (	"    uae_u32 spix_val;");
 		outln (		"    uae_u32 dpix_val = 0;");
 
@@ -327,10 +327,10 @@ static void out_linetoscr_mode (DEPTH_T bpp, HMODE_T hmode, int aga, int spr, CM
 	outln (		"while (dpix < dpix_end) {");
 	if (spr)
 		outln (		"    uae_u32 sprpix_val;");
-	if (CMODE_HAM != cmode)
+	//if (CMODE_HAM != cmode)
 		outln (		"    uae_u32 spix_val;");
-	outln (			"    uae_u32 dpix_val   = 0;");
-	outln (			"    uae_u32 out_val    = 0;");
+	outln (			"    uae_u32 dpix_val = 0;");
+	outln (			"    uae_u32 out_val  = 0;");
 	outln (			"");
 
 	out_linetoscr_do_srcpix (bpp, hmode, aga, cmode, spr);
@@ -414,7 +414,7 @@ static void out_linetoscr_mode (DEPTH_T bpp, HMODE_T hmode, int aga, int spr, CM
 
 	if (bpp == DEPTH_16BPP && hmode != HMODE_DOUBLE && hmode != HMODE_DOUBLE2X && spr == 0) {
 		outln (		"if (rem) {");
-		if (CMODE_HAM != cmode)
+		//if (CMODE_HAM != cmode)
 			outln (	"    uae_u32 spix_val;");
 		outln (		"    uae_u32 dpix_val = 0;");
 

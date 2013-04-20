@@ -485,8 +485,8 @@ void alloc_cycle_blitter (int hpos, uaecptr *ptr, int chnum)
 			write_log (_T("buggy copper cycle conflict with blitter ch %c %08x <- %08x PC=%08x\n"), 'A' + (chnum - 1), *ptr, srcptr, m68k_getpc ());
 			warned--;
 		}
-//		if (currprefs.cpu_model == 68000)
-//			*ptr = srcptr;
+		if ((currprefs.cs_hacks & 1) && currprefs.cpu_model == 68000)
+			*ptr = srcptr;
 	}
 	alloc_cycle (hpos, CYCLE_BLITTER);
 }
@@ -1104,6 +1104,24 @@ STATIC_INLINE void maybe_first_bpl1dat (int hpos)
 	}
 }
 
+// emulate weird shifting glitch on right border if
+// bitplane is lores max overscan and bitplane delay >= 8
+// not fully understood yet.
+static void do_right_ddf_hack (int nr, int hpos)
+{
+	int shift;
+	
+	if (GET_RES_AGNUS (bplcon0) != RES_LORES)
+		return;
+	if (hpos < 0xd8)
+		return;
+	shift = (nr & 1) ? toscr_delay2 : toscr_delay1;
+	if (shift < 8)
+		return;
+	fetched[nr] >>= 7;
+}
+
+
 STATIC_INLINE void fetch (int nr, int fm, int hpos)
 {
 	if ((unsigned int)nr < bplcon0_planes_limit) {
@@ -1146,6 +1164,9 @@ STATIC_INLINE void fetch (int nr, int fm, int hpos)
 				mod = bpl1mod;
 			bplpt[nr] += mod;
 			bplptx[nr] += mod;
+
+			if ((currprefs.cs_hacks & 2) || 0)
+				do_right_ddf_hack (nr, hpos);
 		}
 	} else {
 		// use whatever left in BPLxDAT if no DMA
