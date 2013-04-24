@@ -9,7 +9,12 @@
 #include "od-generic/memory.c"
 
 #ifdef JIT
+#if defined(tenfour) /* != 10.5 > */
+#include "OSCacheControl.h"
+#else
 #include <libkern/OSCacheControl.h>
+#endif
+
 /*
  * PowerPC instruction cache flush function
  */
