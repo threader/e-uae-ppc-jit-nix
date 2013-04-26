@@ -1,8 +1,5 @@
 /* src/sysconfig.h.in.  Generated from configure.ac by autoheader.  */
 
-#define MAX_UAE_WIDTH 8192
-#define MAX_UAE_HEIGHT 8192
-
 /* Define if building universal (internal helper macro) */
 #undef AC_APPLE_UNIVERSAL_BUILD
 

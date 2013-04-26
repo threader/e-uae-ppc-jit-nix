@@ -11,6 +11,9 @@
   * Copyright 2005 Richard Drummond
   */
 
+#define MAX_UAE_WIDTH 8192
+#define MAX_UAE_HEIGHT 8192
+
 typedef uae_u32 xcolnr;
 
 typedef int (*allocfunc_type)(int, int, int, xcolnr *);
