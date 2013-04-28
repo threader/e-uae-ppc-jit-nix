@@ -284,6 +284,8 @@ void comp_ppc_mtcrf(int crreg, int regf);
 void comp_ppc_mtlr(int reg);
 void comp_ppc_mtxer(int reg);
 void comp_ppc_mullwo(int regd, int rega, int regb, int updateflags);
+void comp_ppc_neg(int regd, int rega, int updateflags);
+void comp_ppc_nego(int regd, int rega, int updateflags);
 void comp_ppc_nop(void);
 void comp_ppc_nor(int rega, int regs, int regb, int updateflags);
 void comp_ppc_or(int rega, int regs, int regb, int updateflags);
