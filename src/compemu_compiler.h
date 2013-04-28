@@ -99,6 +99,7 @@ void comp_macroblock_push_add_register_imm(uae_u64 regsin, uae_u64 regsout, uae_
 void comp_macroblock_push_add_high_register_imm(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, uae_u16 imm);
 void comp_macroblock_push_sub(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 subtrahend_input_reg1, uae_u8 minuend_input_reg2);
 void comp_macroblock_push_sub_with_flags(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 subtrahend_input_reg1, uae_u8 minuend_input_reg2);
+void comp_macroblock_push_negate_with_overflow(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, char updateflags);
 void comp_macroblock_push_copy_register_long_with_flags(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg);
 void comp_macroblock_push_copy_register_long(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg);
 void comp_macroblock_push_copy_register_word(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg);

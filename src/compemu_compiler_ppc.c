@@ -64,6 +64,7 @@ void comp_macroblock_impl_sub(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_sub_with_flags(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_add_register_imm(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_add_high_register_imm(union comp_compiler_mb_union* mb);
+void comp_macroblock_impl_negate_with_overflow(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_copy_register_long_with_flags(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_copy_register_long(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_opcode_unsupported(union comp_compiler_mb_union* mb);
@@ -1249,6 +1250,25 @@ void comp_macroblock_impl_add_high_register_imm(union comp_compiler_mb_union* mb
 			mb->two_regs_imm_opcode.output_reg,
 			mb->two_regs_imm_opcode.input_reg,
 			mb->two_regs_imm_opcode.immediate);
+}
+
+/**
+ * Macroblock: Negate register into another register with overflow flag set.
+ */
+void comp_macroblock_push_negate_with_overflow(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, char updateflags)
+{
+	comp_mb_init(mb,
+				comp_macroblock_impl_negate_with_overflow,
+				regsin,
+				regsout);
+	mb->two_regs_opcode_flags.input_reg = input_reg;
+	mb->two_regs_opcode_flags.output_reg = output_reg;
+	mb->two_regs_opcode_flags.updateflags = updateflags;
+}
+
+void comp_macroblock_impl_negate_with_overflow(union comp_compiler_mb_union* mb)
+{
+	comp_ppc_nego(mb->two_regs_opcode_flags.output_reg, mb->two_regs_opcode_flags.input_reg, mb->two_regs_opcode_flags.updateflags);
 }
 
 /**

@@ -1976,6 +1976,32 @@ void comp_ppc_mullwo(int regd, int rega, int regb, int updateflags)
 			0x05d6 | (regb << 11) | (updateflags ? 1 : 0));
 }
 
+/* Compiles neg instruction
+ * Parameters:
+ * 		regd - target register
+ * 		rega - source register
+ * 		updateflags - compiles the flag updating version if TRUE
+ */
+void comp_ppc_neg(int regd, int rega, int updateflags)
+{
+	// ## neg(x) rega, regs
+	comp_ppc_emit_halfwords(0x7c00 | ((regd) << 5) | rega,
+			0x00d0 | (updateflags ? 1 : 0));
+}
+
+/* Compiles nego instruction
+ * Parameters:
+ * 		regd - target register
+ * 		rega - source register
+ * 		updateflags - compiles the flag updating version if TRUE
+ */
+void comp_ppc_nego(int regd, int rega, int updateflags)
+{
+	// ## nego(x) rega, regs
+	comp_ppc_emit_halfwords(0x7c00 | ((regd) << 5) | rega,
+			0x04d0 | (updateflags ? 1 : 0));
+}
+
 /* Compiles nop instruction
  * Parameters:
  * 		none
