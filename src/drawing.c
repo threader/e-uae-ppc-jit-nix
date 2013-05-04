@@ -174,7 +174,7 @@ static uae_u8 all_zeros[MAX_PIXELS_PER_LINE];
 uae_u8 *xlinebuffer;
 
 static int *amiga2aspect_line_map, *native2amiga_line_map;
-static uae_u8 *row_map[MAX_UAE_HEIGHT + 1];
+static uae_u8 **row_map;
 static uae_u8 row_tmp[MAX_PIXELS_PER_LINE * 32 / 8];
 static int max_drawn_amiga_line;
 
@@ -193,7 +193,7 @@ typedef void (*line_draw_func)(int, int, bool);
 
 #define LINESTATE_SIZE ((MAXVPOS + 2) * 2 + 1)
 
-static uae_u8 linestate[LINESTATE_SIZE], linestate2[LINESTATE_SIZE];
+static uae_u8 linestate[LINESTATE_SIZE];
 
 uae_u8 line_data[(MAXVPOS + 2) * 2][MAX_PLANES * MAX_WORDS_PER_LINE * 2];
 
@@ -1892,6 +1892,9 @@ void init_row_map (void)
 		write_log (_T("Resolution too high, aborting\n"));
 		abort ();
 	}
+	if (!row_map)
+		row_map = xmalloc (uae_u8*, MAX_UAE_HEIGHT + 1);
+	
 	if (oldbufmem && oldbufmem == gfxvidinfo.bufmem &&
 		oldheight == gfxvidinfo.height_allocated &&
 		oldpitch == gfxvidinfo.rowbytes)
@@ -2850,17 +2853,19 @@ bool draw_frame (struct vidbuffer *vb)
 
 	init_row_map ();
 	memcpy (oldstate, linestate, LINESTATE_SIZE);
-	memcpy (linestate, linestate2, LINESTATE_SIZE);
 	for (int i = 0; i < LINESTATE_SIZE; i++) {
 		uae_u8 v = linestate[i];
-		if (v == LINE_REMEMBERED_AS_PREVIOUS)
+		if (v == LINE_REMEMBERED_AS_PREVIOUS) {
+			linestate[i - 1] = LINE_DECIDED_DOUBLE;
 			v = LINE_AS_PREVIOUS;
-		else if (v == LINE_DONE_AS_PREVIOUS)
+		} else if (v == LINE_DONE_AS_PREVIOUS) {
+			linestate[i - 1] = LINE_DECIDED_DOUBLE;
 			v = LINE_AS_PREVIOUS;
-		else if (v == LINE_REMEMBERED_AS_BLACK)
+		} else if (v == LINE_REMEMBERED_AS_BLACK) {
 			v = LINE_BLACK;
-		else if (v == LINE_DONE)
+		} else if (v == LINE_DONE) {
 			v = LINE_DECIDED;
+		}
 		linestate[i] = v;
 	}
 	last_drawn_line = 0;
@@ -3087,13 +3092,12 @@ void vsync_handle_redraw (int long_frame, int lof_changed, uae_u16 bplcon0p, uae
 
 void hsync_record_line_state (int lineno, enum nln_how how, int changed)
 {
-	uae_u8 *state, *state2;
+	uae_u8 *state;
 
 	if (framecnt != 0)
 		return;
 
 	state = linestate + lineno;
-	state2 = linestate2 + lineno;
 	changed += frame_redraw_necessary + ((lineno >= lightpen_y1 && lineno <= lightpen_y2) ? 1 : 0);
 
 	switch (how) {
@@ -3123,7 +3127,6 @@ void hsync_record_line_state (int lineno, enum nln_how how, int changed)
 			state[1] = LINE_DECIDED; //LINE_BLACK;
 		break;
 	}
-	*state2 = *state;
 }
 
 /* REMOVEME:
