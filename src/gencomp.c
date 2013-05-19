@@ -698,6 +698,9 @@ void dumpaddresstable(int src, int pre)
 				{
 					//Yes, we need it, CC codes are ignored for post or destination
 					fprintf(cfile, "\n\tcomp_cond_%s_%s_%s,", (pre ? "pre" : "post"), adact->name, (src ? "src" : "dest"));
+				} else {
+					//This addressing mode is not in use
+					fprintf(cfile, "\n\tNULL,");
 				}
 			}
 			else

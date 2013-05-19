@@ -235,20 +235,22 @@ DIST_COMMON = $(noinst_HEADERS) $(srcdir)/Makefile.in Info.plist.in \
 	Makefile.am
 SOURCES = $(libosdep_a_SOURCES)
 
+ifeq ($(host_triplet),powerpc-apple-darwin5.5) # MacOS X 10.1 
+allelsefailed = true
+endif
+ifeq ($(host_triplet),powerpc-apple-darwin6.8) # MacOS X 10.2.9 
+allelsefailed = true
+endif
 ifeq ($(host_triplet),powerpc-apple-darwin7.9.0) # MacOS X 10.3.9 
 needicachehack = true
-else ifeq ($(host_triplet),powerpc-apple-darwin8.11.0) # MacOS X 10.4.11 
+endif
+ifeq ($(host_triplet),powerpc-apple-darwin8.11.0) # MacOS X 10.4.11 
 needicachehack = true
-else
-needicachehack = false
 endif
 
 ifeq ($(needicachehack),true)
-CPPFLAGS += -Dtenfour # -D__APPLE_API_PRIVATE
-#am_libosdep_a_OBJECTS += icacheinval.$(OBJEXT)
+CPPFLAGS += -Dtenfour
 endif
-
-all: all-am
 
 .SUFFIXES:
 .SUFFIXES: .c .s .m .o .obj

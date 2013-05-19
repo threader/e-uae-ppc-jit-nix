@@ -19,3 +19,20 @@ http://euaejit.blogspot.com
 You can find the actual project sources in the SourceForge project:
 
 https://sourceforge.net/projects/euaeppcjit
+
+
+To compile on Mac OSX 10.3.9 or earlier:
+
+Autoconf2.57 and automake1.6 screw up @OBJCFLAGS@ and is not really compatible. 
+
+http://ftp.gnu.org/gnu/autoconf/autoconf-2.61.tar.bz2
+./configure --bindir=/usr/bin --datarootdir=/usr/share 
+http://ftp.gnu.org/gnu/automake/automake-1.7.9.tar.bz2
+./configure --bindir=/usr/bin --datadir=/usr/share
+
+Mac OSX 10.4.x and 10.3.x: 
+Latest SDL.framework is not properly detected. 
+Using the SDL.framework already in E-UAE.app/Content/Frameworks at http://www.rcdrummond.net/uae
+Copy SDL.framework/Headers from the latest SDL.framework and put the framework in /Library/Frameworks/
+./configure --enable-jit --without-x --withsdl-gl --with-cocoa-gui \ 
+--with-sdl-prefix=/Library/Frameworks/SDL.framework

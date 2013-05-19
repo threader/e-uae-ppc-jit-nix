@@ -10,8 +10,14 @@
 #include "compemu_compiler.h"
 #include "compemu_macroblocks.h"
 
+/* Local function protos */
+STATIC_INLINE void helper_schedule_branch(uae_u32 opcode, int reference);
+
 /* Number of temporary registers */
 #define PPC_TMP_REGS_COUNT 11
+
+/* Maximum number of handled branch insrtuction scheduling */
+#define MAX_BRANCH_SCHEDULE 3
 
 /* List of temporary registers
  * Note: do not use this array directly, get the register mapping by
@@ -87,14 +93,14 @@ uae_u8* max_compile_start;
 uae_u16* current_block_pc_p;
 
 /**
- * Pointer to the previously marked branch instruction that has to be completed when target is identified
+ * Pointers to the previously marked branch instruction that has to be completed when target is identified
  */
-uae_u8* compiled_branch_instruction;
+uae_u8* compiled_branch_instruction[MAX_BRANCH_SCHEDULE];
 
 /**
- * Pointer to the target address for a branch instruction for compiling it later on
+ * Pointers to the target address for a branch instruction for compiling it later on
  */
-uae_u8* compiled_branch_target;
+uae_u8* compiled_branch_target[MAX_BRANCH_SCHEDULE];
 
 /**
  * Actually compiled m68k instruction location
@@ -242,7 +248,10 @@ void comp_init(void)
 	write_jit_log("Init compiling\n");
 
 	/* Initialize branch compiling: both pointers must be zero */
-	compiled_branch_instruction = compiled_branch_target = NULL;
+	for(i = 0; i < MAX_BRANCH_SCHEDULE; i++)
+	{
+		compiled_branch_instruction[i] = compiled_branch_target[i] = NULL;
+	}
 
 	/* Initialize macroblock compiler */
 	comp_compiler_init();
@@ -253,20 +262,24 @@ void comp_init(void)
  */
 void comp_done(void)
 {
+	int i;
+
 	write_jit_log("Done compiling\n");
 
-	if (compiled_branch_instruction != NULL)
+	for(i = 0; i < MAX_BRANCH_SCHEDULE; i++)
 	{
-		write_log("Compiling error: branch instruction compiling was not completed, branch instruction address: 0x%08x\n", compiled_branch_instruction);
-		abort();
-	}
+		if (compiled_branch_instruction[i] != NULL)
+		{
+			write_log("Compiling error: branch instruction compiling was not completed, branch instruction address: 0x%08x\n", compiled_branch_instruction[i]);
+			abort();
+		}
 
-	if (compiled_branch_target != NULL)
-	{
-		write_log("Compiling error: branch instruction compiling was scheduled, but not completed, target address: 0x%08x\n", compiled_branch_target);
-		abort();
+		if (compiled_branch_target[i] != NULL)
+		{
+			write_log("Compiling error: branch instruction compiling was scheduled, but not completed, target address: 0x%08x\n", compiled_branch_target[i]);
+			abort();
+		}
 	}
-
 	comp_compiler_done();
 }
 
@@ -481,10 +494,13 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 	char str[200];
 
 	//This flag indicates if in the current block consists of unsupported instructions only
-	int unsupported_only = TRUE;
+	BOOL unsupported_only = TRUE;
 
-	//This flag signs the unsupported opcodes in a row, some initialization/cleanup is skipped if there was multiple unsupported opcode
-	int unsupported_in_a_row = TRUE;
+	//This flag indicates the unsupported opcodes in a row, some initialization/cleanup is skipped if there was multiple unsupported opcode
+	BOOL unsupported_in_a_row = TRUE;
+
+	//This flags indicate whether the last supported instruction was a branch/jump (TRUE)
+	BOOL last_supported_branch = FALSE;
 
 	//write_jit_log("JIT: compile code, pc: %08x, block length: %d, total cycles: %d\n",
 	//		pc_hist->pc, blocklen, totcycles);
@@ -587,6 +603,7 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 
 				unsupported_in_a_row = FALSE;
 				unsupported_only = FALSE;
+				last_supported_branch = ((props->specific & (COMPTBL_SPEC_ISJUMP | COMPTBL_SPEC_ISCONSTJUMP)) != 0);
 
 				//Init opcode compiling
 				comp_opcode_init(inst_history);
@@ -644,8 +661,12 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 				//Save back flags to the regs structure
 				comp_macroblock_push_save_flags();
 
-				//Reload the PC at the end of the block from the additional virtual history item at the end
-				comp_macroblock_push_load_pc(&pc_hist[blocklen]);
+				//The last supported instruction was not a branch/jump then we need to reload PC
+				if (!last_supported_branch)
+				{
+					//Reload the PC at the end of the block from the additional virtual history item at the end
+					comp_macroblock_push_load_pc(&pc_hist[blocklen]);
+				}
 			}
 
 			//Optimize the collected macroblocks
@@ -1530,6 +1551,20 @@ void comp_ppc_and(int rega, int regs, int regb, int updateflags)
 			0x0038 | (regb << 11) | (updateflags ? 1 : 0));
 }
 
+/* Compiles andc instruction
+ * Parameters:
+ * 		rega - target register
+ * 		regs - source register 1
+ * 		regb - source register 2
+ * 		updateflags - compiles the flag updating version if TRUE
+ */
+void comp_ppc_andc(int rega, int regs, int regb, int updateflags)
+{
+	// ## andc(x) rega, regs, regb
+	comp_ppc_emit_halfwords(0x7c00 | ((regs) << 5) | rega,
+			0x0078 | (regb << 11) | (updateflags ? 1 : 0));
+}
+
 /* Compiles andi. instruction
  * Parameters:
  * 		rega - target register
@@ -1556,41 +1591,49 @@ void comp_ppc_andis(int rega, int regs, uae_u16 imm)
 
 /* Compiles b instruction
  * Parameters:
- * 		target - target address for the branch
+ * 		target - target address offset for the branch, or 0 if branch target scheduling is used
+ *		reference - reference number between 0 and MAX_BRANCH_SCHEDULE, ignored if target is not 0
  */
-void comp_ppc_b(uae_u32 target)
+void comp_ppc_b(uae_u32 target, int reference)
 {
-	// ## b target
-	comp_ppc_emit_word(0x48000000 | (target & 0x3fffffc));
+	if (target != 0)
+	{
+		// ## b target
+		comp_ppc_emit_word(0x48000000 | (target & 0x3fffffc));
+	} else {
+		helper_schedule_branch(0x48000000, reference);
+	}
 }
 
 /* Schedules a branch instruction target or compiles a conditional branch, if it was scheduled before.
+ * Parameters:
+ *		reference - reference number between 0 and MAX_BRANCH_SCHEDULE
  * See also:  comp_ppc_bc() function
  */
-void comp_ppc_branch_target()
+void comp_ppc_branch_target(int reference)
 {
 	//Is there an already scheduled target?
-	if (compiled_branch_target != NULL)
+	if (compiled_branch_target[reference] != NULL)
 	{
 		//Yes, this must not happen
-		write_log("Compiling error: branch target was already scheduled, scheduled branch target address: 0x%08x, new branch target address: 0x%08x\n", compiled_branch_instruction, current_compile_p);
+		write_log("Compiling error: branch target was already scheduled, scheduled branch target address: 0x%08x, new branch target address: 0x%08x\n", compiled_branch_instruction[reference], current_compile_p);
 		abort();
 	}
 
 	//Is there a previously scheduled branch instruction?
-	if (compiled_branch_instruction != NULL)
+	if (compiled_branch_instruction[reference] != NULL)
 	{
 		//Calculate the offset to the target from the previously scheduled branch instruction
-		uae_u32 offset = ((uae_u32) current_compile_p) - ((uae_u32) compiled_branch_instruction);
+		uae_u32 offset = ((uae_u32) current_compile_p) - ((uae_u32) compiled_branch_instruction[reference]);
 
 		//Is the offset to the target address less than 0x02000000 or more than 0xfdffffff?
 		if ((offset < 0x02000000) || (offset > 0xfdffffff))
 		{
 			// complete already pre-compiled branch instruction in memory
-			*((uae_u32*) compiled_branch_instruction) |= (offset & 0x3fffffc);
+			*((uae_u32*) compiled_branch_instruction[reference]) |= (offset & 0x3fffffc);
 
 			//Branch instruction is finished, removing scheduled address
-			compiled_branch_instruction = NULL;
+			compiled_branch_instruction[reference] = NULL;
 		}
 		else
 		{
@@ -1604,33 +1647,39 @@ void comp_ppc_branch_target()
 	else
 	{
 		//There was no branch instruction scheduled, schedule target
-		compiled_branch_target = current_compile_p;
+		compiled_branch_target[reference] = current_compile_p;
 	}
 }
 
 /* Schedules or compiles a conditional branch instruction.
  * Parameters:
- * 		bibo - the combined value for BI and BO instruction parts (conditional code)
+ *		bibo - the combined value for BI and BO instruction parts (conditional code)
+ *		reference - reference number between 0 and MAX_BRANCH_SCHEDULE
  * See also: PPC_B_* defines and comp_ppc_branch_target() function
  */
-void comp_ppc_bc(int bibo)
+void comp_ppc_bc(int bibo, int reference)
+{
+	helper_schedule_branch(0x40000000 | (bibo << 16), reference);
+}
+
+/**
+ * Schedule the specified branch opcode for a branch target.
+ */
+STATIC_INLINE void helper_schedule_branch(uae_u32 opcode, int reference)
 {
 	//Is there a scheduled branch instruction already?
-	if (compiled_branch_instruction != NULL)
+	if (compiled_branch_instruction[reference] != NULL)
 	{
 		//This must not happen, bailing out
 		write_log("Compiling error: branch instruction was already scheduled\n");
 		abort();
 	}
 
-	//Prepare instruction
-	uae_u32 opcode = 0x40000000 | (bibo << 16);
-
 	//Is there a target already available?
-	if (compiled_branch_target != NULL)
+	if (compiled_branch_target[reference] != NULL)
 	{
 		//Calculate the offset to the target from the actual PC address
-		uae_u32 offset = ((uae_u32) compiled_branch_target) - ((uae_u32) current_compile_p);
+		uae_u32 offset = ((uae_u32) compiled_branch_target[reference]) - ((uae_u32) current_compile_p);
 
 		//Is the offset to the target address less than 0x02000000 or more than 0xfdffffff?
 		if ((offset < 0x02000000) || (offset > 0xfdffffff))
@@ -1639,7 +1688,7 @@ void comp_ppc_bc(int bibo)
 			comp_ppc_emit_word(opcode | (offset & 0x3fffffc));
 
 			//Instruction is finished, remove target
-			compiled_branch_target = NULL;
+			compiled_branch_target[reference] = NULL;
 		}
 		else
 		{
@@ -1651,7 +1700,7 @@ void comp_ppc_bc(int bibo)
 	else
 	{
 		//There was no target scheduled, schedule instruction
-		compiled_branch_instruction = current_compile_p;
+		compiled_branch_instruction[reference] = current_compile_p;
 
 		//Emit the base instruction, target address will be filled in later on
 		comp_ppc_emit_word(opcode);
@@ -2096,6 +2145,22 @@ void comp_ppc_rlwinm(int rega, int regs, int shift, int maskb, int maske, int up
 			(shift << 11) | (maskb << 6) | (maske << 1) | (updateflags ? 1 : 0));
 }
 
+/* Compiles rlwnm instruction
+ * Parameters:
+ * 		rega - target register
+ * 		regs - source register
+ * 		regb - shift amount register
+ * 		maskb - mask beginning
+ * 		maske - mask end
+ * 		updateflags - compiles the flag updating version if TRUE
+ */
+void comp_ppc_rlwnm(int rega, int regs, int regb, int maskb, int maske, int updateflags)
+{
+	// ## rlwnm(x) rega, regs, regb, maskb, maske
+	comp_ppc_emit_halfwords(0x5C00 | ((regs) << 5) | rega,
+			(regb << 11) | (maskb << 6) | (maske << 1) | (updateflags ? 1 : 0));
+}
+
 /* Compiles srawi instruction
  * Parameters:
  * 		rega - target register
@@ -2313,7 +2378,7 @@ void comp_ppc_jump(uae_uintptr addr)
 	if ((offset < 0x02000000) || (offset > 0xfdffffff))
 	{
 		//Yes - we can use relative branch instruction
-		comp_ppc_b(offset);
+		comp_ppc_b(offset, 0);
 	}
 	else
 	{
@@ -2594,7 +2659,7 @@ void comp_ppc_verify_pc(uae_u8* pc_addr_exp)
 	comp_ppc_liw(PPCR_TMP0, (uae_u32) pc_addr_exp);	//Load original PC address into tempreg1
 	comp_ppc_lwz(PPCR_TMP1, COMP_GET_OFFSET_IN_REGS(pc_p), PPCR_REGS_BASE);	//Load the recent PC into tempreg2 from regs structure
 	comp_ppc_cmplw(PPCR_CR_TMP0, PPCR_TMP0, PPCR_TMP1);	//Compare registers
-	comp_ppc_bc(PPC_B_CR_TMP0_EQ | PPC_B_TAKEN);	//beq+ skip
+	comp_ppc_bc(PPC_B_CR_TMP0_EQ | PPC_B_TAKEN, 0);	//beq+ skip
 
 	//PC is not the same as the cached
 	//Dispose stack frame
@@ -2604,7 +2669,7 @@ void comp_ppc_verify_pc(uae_u8* pc_addr_exp)
 	comp_ppc_jump((uae_u32) cache_miss);
 
 	//skip:
-	comp_ppc_branch_target();
+	comp_ppc_branch_target(0);
 }
 
 /* Compiles a piece of code to reload the regs.pc_p pointer to the specified address. */
