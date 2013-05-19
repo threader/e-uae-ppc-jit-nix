@@ -237,37 +237,37 @@ MOVMEM2CCRW  0   0100 0100 11SS Ssss   0 0     indA,indApW,indmAW,indAd16,indAcp
 ;---------------------------------------------------------------------
 ;*** Branch instructions
 ;*** DBcc
-DBCOND       0   0101 Ssss 1100 1ddd   1 0     CC_cc,CC_cs,CC_eq,CC_ge,CC_gt,CC_hi,CC_le,CC_ls,CC_lt,CC_mi,CC_ne,CC_pl,CC_vc,CC_vs    regD
-DBF          0   0101 0001 1100 1ddd   1 0     none    regD
+DBCOND       1   0101 Ssss 1100 1ddd   1 0     CC_cc,CC_cs,CC_eq,CC_ge,CC_gt,CC_hi,CC_le,CC_ls,CC_lt,CC_mi,CC_ne,CC_pl,CC_vc,CC_vs    regD
+DBF          1   0101 0001 1100 1ddd   1 0     immedW    regD
 
 ;*** Bcc.b
 ;Must precede Bcc.w and Bcc.l
-BCONDB       0   0110 Ssss dddd dddd   1 0     CC_cc,CC_cs,CC_eq,CC_ge,CC_gt,CC_hi,CC_le,CC_ls,CC_lt,CC_mi,CC_ne,CC_pl,CC_vc,CC_vs    immedQ
-BRAB         0   0110 0000 dddd dddd   1 1     none    immedQ
-BSRB         0   0110 0001 dddd dddd   1 1     none    immedQ
+BCOND        1   0110 Ssss dddd dddd   1 0     CC_cc,CC_cs,CC_eq,CC_ge,CC_gt,CC_hi,CC_le,CC_ls,CC_lt,CC_mi,CC_ne,CC_pl,CC_vc,CC_vs    immedQ
+BRA          1   0110 0000 ssss ssss   1 1     immedQ    none
+BSR          1   0110 0001 ssss ssss   1 1     immedQ    none
 
 ;*** Bcc.w
-BCONDW       0   0110 Ssss 0000 0000   1 0     CC_cc,CC_cs,CC_eq,CC_ge,CC_gt,CC_hi,CC_le,CC_ls,CC_lt,CC_mi,CC_ne,CC_pl,CC_vc,CC_vs    none
-BRAW         0   0110 0000 0000 0000   1 1     none    none
-BSRW         0   0110 0001 0000 0000   1 1     none    none
+BCOND        1   0110 Ssss 0000 0000   1 0     CC_cc,CC_cs,CC_eq,CC_ge,CC_gt,CC_hi,CC_le,CC_ls,CC_lt,CC_mi,CC_ne,CC_pl,CC_vc,CC_vs    immedW
+BRA          1   0110 0000 0000 0000   1 1     immedW    none
+BSR          1   0110 0001 0000 0000   1 1     immedW    none
 
 ;*** Bcc.l
-BCONDL       0   0110 Ssss 1111 1111   1 0     CC_cc,CC_cs,CC_eq,CC_ge,CC_gt,CC_hi,CC_le,CC_ls,CC_lt,CC_mi,CC_ne,CC_pl,CC_vc,CC_vs    none
-BRAL         0   0110 0000 1111 1111   1 1     none    none
-BSRL         0   0110 0001 1111 1111   1 1     none    none
+BCOND        1   0110 Ssss 1111 1111   1 0     CC_cc,CC_cs,CC_eq,CC_ge,CC_gt,CC_hi,CC_le,CC_ls,CC_lt,CC_mi,CC_ne,CC_pl,CC_vc,CC_vs    immedL
+BRA          1   0110 0000 1111 1111   1 1     immedL    none
+BSR          1   0110 0001 1111 1111   1 1     immedL    none
 
 ;*** Jump
 ;JMPIMM modified to take argument directly from address translation
 ;original source addressing is absL
-JMPIMM       0   0100 1110 1111 1001   1 1     immedL    none
-JMPIND       0   0100 1110 11SS Ssss   1 0     indAd16,indPCd16,indAd16,indAcp,indPCcp,indA    none
+JMPIMM       1   0100 1110 1111 1001   1 1     immedL    none
+JMPIND       1   0100 1110 11SS Ssss   1 0     indAd16,indPCd16,indAd16,indAcp,indPCcp,indA    none
 
 ;JSRIMM modified to take argument directly from address translation
 ;original source addressing is absL
-JSRIMM       0   0100 1110 1011 1001   1 1     immedL    none
-JSRIND       0   0100 1110 10SS Ssss   1 0     indAd16,indPCd16,indAcp,indPCcp,indA    none
+JSRIMM       1   0100 1110 1011 1001   1 1     immedL    none
+JSRIND       1   0100 1110 10SS Ssss   1 0     indAd16,indPCd16,indAcp,indPCcp,indA    none
 
-RTS          0   0100 1110 0111 0101   1 0     none    none
+RTS          1   0100 1110 0111 0101   1 0     none    none
 RTD          0   0100 1110 0111 0100   1 0     immedW    none
 RTM          0   0000 0110 1100 0SSS   1 0     regD    none
 RTM          0   0000 0110 1100 1SSS   1 0     regA    none
@@ -279,9 +279,9 @@ EORIMM2REGL  1   0000 1010 10DD Dddd   0 0     immedL    regD
 EORIMM2REGW  1   0000 1010 01DD Dddd   0 0     immedW    regD
 EORIMM2REGB  1   0000 1010 00DD Dddd   0 0     immedB    regD
 
-EORIMM2MEML  0   0000 1010 10DD Dddd   0 0     immedL    indA,indApL,indmAL,indAd16,indAcp,absW,absL
-EORIMM2MEMW  0   0000 1010 01DD Dddd   0 0     immedW    indA,indApW,indmAW,indAd16,indAcp,absW,absL
-EORIMM2MEMB  0   0000 1010 00DD Dddd   0 0     immedB    indA,indApB,indmAB,indAd16,indAcp,absW,absL
+EORIMM2MEML  1   0000 1010 10DD Dddd   0 0     immedL    indA,indApL,indmAL,indAd16,indAcp,absW,absL
+EORIMM2MEMW  1   0000 1010 01DD Dddd   0 0     immedW    indA,indApW,indmAW,indAd16,indAcp,absW,absL
+EORIMM2MEMB  1   0000 1010 00DD Dddd   0 0     immedB    indA,indApB,indmAB,indAd16,indAcp,absW,absL
 
 EORREG2REGL  1   1011 sss1 10DD Dddd   0 0     regD    regD
 EORREG2REGW  1   1011 sss1 01DD Dddd   0 0     regD    regD
@@ -350,9 +350,9 @@ NOTREGL      1   0100 0110 10DD Dddd   0 0     none    regD
 NOTREGW      1   0100 0110 01DD Dddd   0 0     none    regD
 NOTREGB      1   0100 0110 00DD Dddd   0 0     none    regD
 
-NOTMEML      0   0100 0110 10DD Dddd   0 0     none    indA,indApL,indmAL,indAd16,indAcp,absW,absL
-NOTMEMW      0   0100 0110 01DD Dddd   0 0     none    indA,indApW,indmAW,indAd16,indAcp,absW,absL
-NOTMEMB      0   0100 0110 00DD Dddd   0 0     none    indA,indApB,indmAB,indAd16,indAcp,absW,absL
+NOTMEML      1   0100 0110 10DD Dddd   0 0     none    indA,indApL,indmAL,indAd16,indAcp,absW,absL
+NOTMEMW      1   0100 0110 01DD Dddd   0 0     none    indA,indApW,indmAW,indAd16,indAcp,absW,absL
+NOTMEMB      1   0100 0110 00DD Dddd   0 0     none    indA,indApB,indmAB,indAd16,indAcp,absW,absL
 
 ;*** Condition Code Register bit logic
 ANDIMM2CCRB  0   0000 0010 0011 1100   0 0     immedB    none
@@ -360,33 +360,33 @@ ORIMM2CCRB   0   0000 0000 0011 1100   0 0     immedB    none
 EORIMM2CCRB  0   0000 1010 0011 1100   0 0     immedB    none
 
 ;*** Btst
-BTSTIMM2MEM  0   0000 1000 00DD Dddd   0 0     immedW    indA,indApB,indmAB,indAd16,indAcp,indPCcp,absW,absL,indPCd16
-BTSTREG2MEM  0   0000 sss1 00DD Dddd   0 0     regD    indA,indApB,indmAB,indAd16,indAcp,indPCcp,absW,absL,indPCd16
+BTSTIMM2MEM  1   0000 1000 00DD Dddd   0 0     immedW    indA,indApB,indmAB,indAd16,indAcp,indPCcp,absW,absL,indPCd16
+BTSTREG2MEM  1   0000 sss1 00DD Dddd   0 0     regD    indA,indApB,indmAB,indAd16,indAcp,indPCcp,absW,absL,indPCd16
 BTSTIMM2REG  1   0000 1000 00DD Dddd   0 0     immedW    regD
-BTSTREG2REG  0   0000 sss1 00DD Dddd   0 0     regD    regD
-BTSTREG2IMM  0   0000 sss1 00DD Dddd   0 0     regD    immedB
+BTSTREG2REG  1   0000 sss1 00DD Dddd   0 0     regD    regD
+BTSTREG2IMM  1   0000 sss1 00DD Dddd   0 0     regD    immedB
 
 ;*** Bset
 BSETIMM2MEM  1   0000 1000 11DD Dddd   0 0     immedW    indA,indApB,indmAB,indAd16,indAcp,absW,absL
-BSETREG2MEM  0   0000 sss1 11DD Dddd   0 0     regD    indA,indApB,indmAB,indAd16,indAcp,absW,absL
+BSETREG2MEM  1   0000 sss1 11DD Dddd   0 0     regD    indA,indApB,indmAB,indAd16,indAcp,absW,absL
 BSETIMM2REG  1   0000 1000 11DD Dddd   0 0     immedW    regD
-BSETREG2REG  0   0000 sss1 11DD Dddd   0 0     regD    regD
+BSETREG2REG  1   0000 sss1 11DD Dddd   0 0     regD    regD
 
 ;*** Bclr
 BCLRIMM2MEM  1   0000 1000 10DD Dddd   0 0     immedW    indA,indApB,indmAB,indAd16,indAcp,absW,absL
-BCLRREG2MEM  0   0000 sss1 10DD Dddd   0 0     regD    indA,indApB,indmAB,indAd16,indAcp,absW,absL
+BCLRREG2MEM  1   0000 sss1 10DD Dddd   0 0     regD    indA,indApB,indmAB,indAd16,indAcp,absW,absL
 BCLRIMM2REG  1   0000 1000 10DD Dddd   0 0     immedW    regD
-BCLRREG2REG  0   0000 sss1 10DD Dddd   0 0     regD    regD
+BCLRREG2REG  1   0000 sss1 10DD Dddd   0 0     regD    regD
 
 ;*** Bchg
 BCHGIMM2MEM  1   0000 1000 01DD Dddd   0 0     immedW    indA,indApB,indmAB,indAd16,indAcp,absW,absL
-BCHGREG2MEM  0   0000 sss1 01DD Dddd   0 0     regD    indA,indApB,indmAB,indAd16,indAcp,absW,absL
+BCHGREG2MEM  1   0000 sss1 01DD Dddd   0 0     regD    indA,indApB,indmAB,indAd16,indAcp,absW,absL
 BCHGIMM2REG  1   0000 1000 01DD Dddd   0 0     immedW    regD
-BCHGREG2REG  0   0000 sss1 01DD Dddd   0 0     regD    regD
+BCHGREG2REG  1   0000 sss1 01DD Dddd   0 0     regD    regD
 
 ;*** Test and set
-TAS2MEM      0   0100 1010 11DD Dddd   0 0     none    indA,indApB,indmAB,indAd16,indAcp,absW,absL
-TAS2REG      0   0100 1010 11DD Dddd   0 0     none    regD
+TAS2MEM      1   0100 1010 11DD Dddd   0 0     none    indA,indApB,indmAB,indAd16,indAcp,absW,absL
+TAS2REG      1   0100 1010 11DD Dddd   0 0     none    regD
 
 ;---------------------------------------------------------------------
 ;*** Shifting instructions
@@ -411,9 +411,9 @@ ASRREG2REGB  0   1110 sss0 0010 0ddd   0 0     regD    regD
 
 ASRMEMW      0   1110 0000 11DD Dddd   0 0        none    indA,indApW,indmAW,indAd16,indAcp,absW,absL
 
-LSLIMM2REGL  0   1110 sss1 1000 1ddd   0 0     immedQ    regD
-LSLIMM2REGW  0   1110 sss1 0100 1ddd   0 0     immedQ    regD
-LSLIMM2REGB  0   1110 sss1 0000 1ddd   0 0     immedQ    regD
+LSLIMM2REGL  1   1110 sss1 1000 1ddd   0 0     immedQ    regD
+LSLIMM2REGW  1   1110 sss1 0100 1ddd   0 0     immedQ    regD
+LSLIMM2REGB  1   1110 sss1 0000 1ddd   0 0     immedQ    regD
 
 LSLREG2REGL  0   1110 sss1 1010 1ddd   0 0     regD    regD
 LSLREG2REGW  0   1110 sss1 0110 1ddd   0 0     regD    regD
@@ -451,9 +451,9 @@ ROXLREG2REGB 0   1110 sss1 0011 0ddd   0 0     regD    regD
 
 ROXLMEMW     0   1110 0101 11DD Dddd   0 0     none    indA,indApW,indmAW,indAd16,indAcp,absW,absL
 
-RORIMM2REGL  0   1110 sss0 1001 1ddd   0 0     immedQ    regD
-RORIMM2REGW  0   1110 sss0 0101 1ddd   0 0     immedQ    regD
-RORIMM2REGB  0   1110 sss0 0001 1ddd   0 0     immedQ    regD
+RORIMM2REGL  1   1110 sss0 1001 1ddd   0 0     immedQ    regD
+RORIMM2REGW  1   1110 sss0 0101 1ddd   0 0     immedQ    regD
+RORIMM2REGB  1   1110 sss0 0001 1ddd   0 0     immedQ    regD
 
 RORREG2REGL  0   1110 sss0 1011 1ddd   0 0     regD    regD
 RORREG2REGW  0   1110 sss0 0111 1ddd   0 0     regD    regD
@@ -474,13 +474,13 @@ ROXRMEMW     0   1110 0100 11DD Dddd   0 0     none    indA,indApW,indmAW,indAd1
 ;---------------------------------------------------------------------
 ;*** Comparing instructions
 ;*** CMP
-CMPMEM2REGL  0   1011 ddd0 10SS Ssss   0 0     indA,indApL,indmAL,indPCd16,indAd16,indAcp,indPCcp,absW,absL    regD
-CMPMEM2REGW  0   1011 ddd0 01SS Ssss   0 0     indA,indApW,indmAW,indPCd16,indAd16,indAcp,indPCcp,absW,absL    regD
-CMPMEM2REGB  0   1011 ddd0 00SS Ssss   0 0     indA,indApB,indmAB,indPCd16,indAd16,indAcp,indPCcp,absW,absL    regD
+CMPMEM2REGL  1   1011 ddd0 10SS Ssss   0 0     indA,indApL,indmAL,indPCd16,indAd16,indAcp,indPCcp,absW,absL    regD
+CMPMEM2REGW  1   1011 ddd0 01SS Ssss   0 0     indA,indApW,indmAW,indPCd16,indAd16,indAcp,indPCcp,absW,absL    regD
+CMPMEM2REGB  1   1011 ddd0 00SS Ssss   0 0     indA,indApB,indmAB,indPCd16,indAd16,indAcp,indPCcp,absW,absL    regD
 
-CMPREG2REGL  0   1011 ddd0 10SS Ssss   0 0     regD,regA    regD
-CMPREG2REGW  0   1011 ddd0 01SS Ssss   0 0     regD,regA    regD
-CMPREG2REGB  0   1011 ddd0 00SS Ssss   0 0     regD    regD
+CMPREG2REGL  1   1011 ddd0 10SS Ssss   0 0     regD,regA    regD
+CMPREG2REGW  1   1011 ddd0 01SS Ssss   0 0     regD,regA    regD
+CMPREG2REGB  1   1011 ddd0 00SS Ssss   0 0     regD    regD
 
 ;*** CMPM
 CMPMEM2MEML  0   1011 ddd1 1000 1sss   0 0     indApL    indApL
@@ -488,11 +488,12 @@ CMPMEM2MEMW  0   1011 ddd1 0100 1sss   0 0     indApW    indApW
 CMPMEM2MEMB  0   1011 ddd1 0000 1sss   0 0     indApB    indApB
 
 ;*** CMPA
-CMPMEM2REGL  0   1011 ddd1 11SS Ssss   0 0     indA,indApL,indmAL,indPCd16,indAd16,indAcp,indPCcp,absW,absL    regA
-CMPAMEM2REGW 0   1011 ddd0 11SS Ssss   0 0     indA,indApW,indmAW,indPCd16,indAd16,indAcp,indPCcp,absW,absL    regA
+CMPAMEM2REGL 1   1011 ddd1 11SS Ssss   0 0     indA,indApL,indmAL,indPCd16,indAd16,indAcp,indPCcp,absW,absL    regA
+CMPAMEM2REGW 1   1011 ddd0 11SS Ssss   0 0     indA,indApW,indmAW,indPCd16,indAd16,indAcp,indPCcp,absW,absL    regA
 
-CMPREG2REGL  0   1011 ddd1 11SS Ssss   0 0     regD,regA    regA
-CMPAREG2REGW 0   1011 ddd0 11SS Ssss   0 0     regD,regA    regA
+;CMPA.L reg,Ax is the same implementation as CMP.L reg,Dx
+CMPREG2REGL  1   1011 ddd1 11SS Ssss   0 0     regD,regA    regA
+CMPAREG2REGW 1   1011 ddd0 11SS Ssss   0 0     regD,regA    regA
 
 CMPIMM2REGL  1   1011 ddd1 11SS Ssss   0 0     immedL    regA
 CMPAIMM2REGW 1   1011 ddd0 11SS Ssss   0 0     immedW    regA
@@ -502,9 +503,9 @@ CMPIMM2REGL  1   0000 1100 10DD Dddd   0 0     immedL    regD
 CMPIMM2REGW  1   0000 1100 01DD Dddd   0 0     immedW    regD
 CMPIMM2REGB  1   0000 1100 00DD Dddd   0 0     immedB    regD
 
-CMPIMM2MEML  0   0000 1100 10DD Dddd   0 0     immedL    indA,indApL,indmAL,indAd16,indAcp,indPCcp,absW,absL
-CMPIMM2MEMW  0   0000 1100 01DD Dddd   0 0     immedW    indA,indApW,indmAW,indAd16,indAcp,indPCcp,absW,absL
-CMPIMM2MEMB  0   0000 1100 00DD Dddd   0 0     immedB    indA,indApB,indmAB,indAd16,indAcp,indPCcp,absW,absL
+CMPIMM2MEML  1   0000 1100 10DD Dddd   0 0     immedL    indA,indApL,indmAL,indAd16,indAcp,indPCcp,absW,absL
+CMPIMM2MEMW  1   0000 1100 01DD Dddd   0 0     immedW    indA,indApW,indmAW,indAd16,indAcp,indPCcp,absW,absL
+CMPIMM2MEMB  1   0000 1100 00DD Dddd   0 0     immedB    indA,indApB,indmAB,indAd16,indAcp,indPCcp,absW,absL
 
 CMPIMM2REGL  1   1011 ddd0 10SS Ssss   0 0     immedL    regD
 CMPIMM2REGW  1   1011 ddd0 01SS Ssss   0 0     immedW    regD
@@ -681,9 +682,9 @@ NEGREGL      1   0100 0100 10DD Dddd   0 0     none    regD
 NEGREGW      1   0100 0100 01DD Dddd   0 0     none    regD
 NEGREGB      1   0100 0100 00DD Dddd   0 0     none    regD
 
-NEGMEML      0   0100 0100 10DD Dddd   0 0     none    indA,indApL,indmAL,indAd16,indAcp,absW,absL
-NEGMEMW      0   0100 0100 01DD Dddd   0 0     none    indA,indApW,indmAW,indAd16,indAcp,absW,absL
-NEGMEMB      0   0100 0100 00DD Dddd   0 0     none    indA,indApB,indmAB,indAd16,indAcp,absW,absL
+NEGMEML      1   0100 0100 10DD Dddd   0 0     none    indA,indApL,indmAL,indAd16,indAcp,absW,absL
+NEGMEMW      1   0100 0100 01DD Dddd   0 0     none    indA,indApW,indmAW,indAd16,indAcp,absW,absL
+NEGMEMB      1   0100 0100 00DD Dddd   0 0     none    indA,indApB,indmAB,indAd16,indAcp,absW,absL
 
 ;*** NEGX
 NEGXREGL     0   0100 0000 10DD Dddd   0 0     none    regD
