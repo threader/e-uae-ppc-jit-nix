@@ -1749,6 +1749,18 @@ void comp_ppc_cmplw(int regcrfd, int rega, int regb)
 	comp_ppc_emit_halfwords(0x7C00 | regcrfd << 7 | rega, 0x0040 | regb << 11);
 }
 
+/* Compiles cmplwi instruction
+ * Parameters:
+ * 		regd - target register
+ * 		rega - source register
+ * 		imm - immediate to be added
+ */
+void comp_ppc_cmplwi(int regcrfd, int rega, uae_u16 imm)
+{
+	// ## cmplwi regcrfd, 0, rega, imm
+	comp_ppc_emit_halfwords(0x2800 | regcrfd << 7 | rega, imm);
+}
+
 /* Compiles cntlwz instruction
  * Parameters:
  * 		rega - target register
@@ -2161,6 +2173,20 @@ void comp_ppc_rlwnm(int rega, int regs, int regb, int maskb, int maske, int upda
 			(regb << 11) | (maskb << 6) | (maske << 1) | (updateflags ? 1 : 0));
 }
 
+/* Compiles slw instruction
+ * Parameters:
+ * 		rega - target register
+ * 		regs - source register
+ * 		regb - shift amount
+ * 		updateflags - compiles the flag updating version if TRUE
+ */
+void comp_ppc_slw(int rega, int regs, int regb, int updateflags)
+{
+	// ## slw(x) rega, regs, regb
+	comp_ppc_emit_halfwords(0x7C00 | ((regs) << 5) | rega,
+			0x0030 | (regb << 11) | (updateflags ? 1 : 0));
+}
+
 /* Compiles srawi instruction
  * Parameters:
  * 		rega - target register
@@ -2173,6 +2199,20 @@ void comp_ppc_srawi(int rega, int regs, int shift, int updateflags)
 	// ## srawi(x) rega, regs, shift
 	comp_ppc_emit_halfwords(0x7C00 | ((regs) << 5) | rega,
 			0x0670 | (shift << 11) | (updateflags ? 1 : 0));
+}
+
+/* Compiles srw instruction
+ * Parameters:
+ * 		rega - target register
+ * 		regs - source register
+ * 		regb - shift amount
+ * 		updateflags - compiles the flag updating version if TRUE
+ */
+void comp_ppc_srw(int rega, int regs, int regb, int updateflags)
+{
+	// ## srw(x) rega, regs, regb
+	comp_ppc_emit_halfwords(0x7C00 | ((regs) << 5) | rega,
+			0x0430 | (regb << 11) | (updateflags ? 1 : 0));
 }
 
 /* Compiles stb instruction
@@ -2235,6 +2275,20 @@ void comp_ppc_stwu(int regs, uae_u16 delta, int rega)
 	comp_ppc_emit_halfwords(0x9400 | ((regs) << 5) | rega, delta);
 }
 
+/* Compiles subf instruction
+ * Parameters:
+ * 		regd - target register
+ * 		rega - source register 1
+ * 		regb - source register 2
+ * 		updateflags - compiles the flag updating version if TRUE
+ */
+void comp_ppc_subf(int regd, int rega, int regb, int updateflags)
+{
+	// ## subf(x) regd, rega, regb
+	comp_ppc_emit_halfwords(0x7c00 | ((regd) << 5) | rega,
+			0x0050 | (regb << 11) | (updateflags ? 1 : 0));
+}
+
 /* Compiles subfco instruction
  * Parameters:
  * 		regd - target register
@@ -2263,18 +2317,16 @@ void comp_ppc_subfe(int regd, int rega, int regb, int updateflags)
 			0x0110 | (regb << 11) | (updateflags ? 1 : 0));
 }
 
-/* Compiles subf instruction
+/* Compiles subfic instruction
  * Parameters:
  * 		regd - target register
- * 		rega - source register 1
- * 		regb - source register 2
- * 		updateflags - compiles the flag updating version if TRUE
+ * 		rega - source register
+ * 		imm - immediate to be subtracted from
  */
-void comp_ppc_subf(int regd, int rega, int regb, int updateflags)
+void comp_ppc_subfic(int regd, int rega, uae_u16 imm)
 {
-	// ## subf(x) regd, rega, regb
-	comp_ppc_emit_halfwords(0x7c00 | ((regd) << 5) | rega,
-			0x0050 | (regb << 11) | (updateflags ? 1 : 0));
+	// ## subfic(x) regd, rega, regb
+	comp_ppc_emit_halfwords(0x2000 | ((regd) << 5) | rega, imm);
 }
 
  /* Compiles trap instruction

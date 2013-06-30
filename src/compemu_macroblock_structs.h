@@ -150,6 +150,15 @@ struct comp_compiler_mb_extract_v_flag_arithmetic_left_shift
 	uae_u8 temp_reg;					//Temporary register for the operation
 };
 
+//Structure for extracting C flag for a shift instruction
+struct comp_compiler_mb_extract_c_flag_shift
+{
+	struct comp_compiler_mb mb;			//Default macroblock descriptor
+	uae_u8 input_reg;					//Input register
+	uae_u8 shift_reg;					//Shift steps to the left
+	BOOL left_shift;					//Boolean that specifies if left shift (TRUE) or right shift (FALSE) operation was done
+};
+
 //Structure for Regs structure slot operations
 struct comp_compiler_mb_reg_in_slot
 {
@@ -197,6 +206,7 @@ union comp_compiler_mb_union
 	struct comp_compiler_mb_map_physical_mem map_physical_mem;
 	struct comp_compiler_mb_reg_in_slot reg_in_slot;
 	struct comp_compiler_mb_extract_v_flag_arithmetic_left_shift extract_v_flag_arithmetic_left_shift;
+	struct comp_compiler_mb_extract_c_flag_shift extract_c_flag_shift;
 	struct comp_compiler_mb_set_byte_from_z_flag set_byte_from_z_flag;
 	struct comp_compiler_mb_set_pc_on_z_flag set_pc_on_z_flag;
 };
