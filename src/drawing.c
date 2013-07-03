@@ -3028,8 +3028,6 @@ void redraw_frame (void)
 
 bool vsync_handle_check (void)
 {
-	check_picasso ();
-
 	int changed = check_prefs_changed_gfx ();
 	if (changed > 0) {
 		reset_drawing ();
@@ -3050,6 +3048,7 @@ bool vsync_handle_check (void)
 #endif
 	check_prefs_changed_custom ();
 	check_prefs_changed_cpu ();
+	check_picasso ();
 	return changed != 0;
 }
 

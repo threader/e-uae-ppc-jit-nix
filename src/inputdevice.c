@@ -122,7 +122,7 @@ static const int slotorder2[] = { 8, 1, 2, 3, 4, 5, 6, 7 };
 
 struct uae_input_device2 {
 	uae_u32 buttonmask;
-	int states[MAX_INPUT_DEVICE_EVENTS / 2];
+	int states[MAX_INPUT_DEVICE_EVENTS / 2][MAX_INPUT_SUB_EVENT + 1];
 };
 
 static struct uae_input_device2 joysticks2[MAX_INPUT_DEVICES];
@@ -3835,7 +3835,8 @@ static void setbuttonstateall (struct uae_input_device *id, struct uae_input_dev
 		} else {
 			if (!checkqualifiers (evt, flags, qualmask, NULL)) {
 				if (!state && !(flags & ID_FLAG_CANRELEASE)) {
-					continue;
+					if (!invert)
+						continue;
 				} else if (state) {
 					continue;
 				}
@@ -5549,9 +5550,6 @@ static int inputdevice_translatekeycode_2 (int keyboard, int scancode, int keyst
 	if (!keyboards || scancode < 0)
 		return handled;
 
-//	if (!state)
-//		process_custom_event (NULL, 0, 0, 0, 0, 0);
-
 	j = 0;
 	while (j < MAX_INPUT_DEVICE_EVENTS && na->extra[j] >= 0) {
 		if (na->extra[j] == scancode) {
@@ -5634,16 +5632,19 @@ static int inputdevice_translatekeycode_2 (int keyboard, int scancode, int keyst
 				} else {
 					rqualifiers (flags, state ? true : false);
 					if (!checkqualifiers (evt, flags, qualmask, na->eventid[j])) {
-						if (!state && !(flags & ID_FLAG_CANRELEASE))
+						if (!state && !(flags & ID_FLAG_CANRELEASE)) {
+							if (!invert)
+								continue;
+						} else if (state) {
 							continue;
-						else if (state)
-							continue;
+						}
 					}
 
 					if (state) {
-						*flagsp |= ID_FLAG_CANRELEASE;
+						if (!invert)
+							*flagsp |= ID_FLAG_CANRELEASE;
 					} else {
-						if (!(flags & ID_FLAG_CANRELEASE))
+						if (!(flags & ID_FLAG_CANRELEASE) && !invert)
 							continue;
 						*flagsp &= ~ID_FLAG_CANRELEASE;
 					}
@@ -6708,19 +6709,22 @@ void setjoystickstate (int joy, int axis, int state, int max)
 		return;
 	}
 	v1 = state;
-	v2 = id2->states[axis];
+	v2 = id2->states[axis][MAX_INPUT_SUB_EVENT];
+
+	write_log (_T("new=%d old=%d state=%d max=%d\n"), v1, v2, state, max);
+
 	if (v1 < deadzone && v1 > -deadzone)
 		v1 = 0;
 	if (v2 < deadzone && v2 > -deadzone)
 		v2 = 0;
-	if (v1 == v2)
-		return;
-	if (input_play && state)
-		inprec_realtimev ();
+	if (input_play && state) {
+		if (v1 != v2)
+			inprec_realtimev ();
+	}
 	if (input_play)
 		return;
 	if (!joysticks[joy].enabled) {
-		if (v1)
+		if (v1 && v1 != v2)
 			switchdevice (&joysticks[joy], axis * 2 + (v1 < 0 ? 0 : 1), false);
 		return;
 	}
@@ -6728,9 +6732,13 @@ void setjoystickstate (int joy, int axis, int state, int max)
 		uae_u64 flags = id->flags[ID_AXIS_OFFSET + axis][i];
 		if (flags & ID_FLAG_INVERT)
 			state = -state;
+		if (state != id2->states[axis][i]) {
+			write_log(_T("-> %d %d\n"), i, state);
 		handle_input_event (id->eventid[ID_AXIS_OFFSET + axis][i], state, max, flags & ID_FLAG_AUTOFIRE, true, false);
+			id2->states[axis][i] = state;
+		}
 	}
-	id2->states[axis] = state;
+	id2->states[axis][MAX_INPUT_SUB_EVENT] = v1;
 }
 int getjoystickstate (int joy)
 {

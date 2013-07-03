@@ -8,7 +8,7 @@
  */
 
 #define SPEEDUP 1
-#define BLITTER_DEBUG 0
+#undef BLITTER_DEBUG
 
 #include "sysconfig.h"
 #include "sysdeps.h"
@@ -28,12 +28,6 @@
 // 2 = no wait detection
 // 4 = no D
 // 8 = instant
-
-#if BLITTER_DEBUG
-int log_blitter = 1;
-#else
-int log_blitter = 0;
-#endif
 
 /* we must not change ce-mode while blitter is running.. */
 static int blitter_cycle_exact;

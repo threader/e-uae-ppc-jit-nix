@@ -975,21 +975,28 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 		if (p->gfx_filtermask[i + MAX_FILTERSHADERS][0])
 			cfgfile_write_str (f, _T("gfx_filtermask_post"), p->gfx_filtermask[i + MAX_FILTERSHADERS]);
 	}
-	cfgfile_dwrite_str (f, _T("gfx_filter_mask"), p->gfx_filtermask[2 * MAX_FILTERSHADERS - 1]);
-	if (p->gfx_filtershader[0][0] && p->gfx_api) {
-		cfgfile_dwrite (f, _T("gfx_filter"), _T("D3D:%s"), p->gfx_filtershader[0]);
-	} else if (p->gfx_filter > 0) {
-		int i = 0;
-		struct uae_filter *uf;
-		while (uaefilters[i].name) {
-			uf = &uaefilters[i];
-			if (uf->type == p->gfx_filter) {
-				cfgfile_dwrite_str (f, _T("gfx_filter"), uf->cfgname);
-			}
-			i++;
+	cfgfile_dwrite_str (f, _T("gfx_filter_mask"), p->gfx_filtermask[2 * MAX_FILTERSHADERS]);
+	{
+		bool d3dfound = false;
+		if (p->gfx_filtershader[2 * MAX_FILTERSHADERS][0] && p->gfx_api) {
+			cfgfile_dwrite (f, _T("gfx_filter"), _T("D3D:%s"), p->gfx_filtershader[2 * MAX_FILTERSHADERS]);
+			d3dfound = true;
 		}
-	} else {
-		cfgfile_dwrite (f, _T("gfx_filter"), _T("no"));
+		if (!d3dfound) {
+			if (p->gfx_filter > 0) {
+				int i = 0;
+				struct uae_filter *uf;
+				while (uaefilters[i].name) {
+					uf = &uaefilters[i];
+					if (uf->type == p->gfx_filter) {
+						cfgfile_dwrite_str (f, _T("gfx_filter"), uf->cfgname);
+					}
+					i++;
+				}
+			} else {
+				cfgfile_dwrite (f, _T("gfx_filter"), _T("no"));
+			}
+		}
 	}
 	cfgfile_dwrite_str (f, _T("gfx_filter_mode"), filtermode2[p->gfx_filter_filtermode]);
 	cfgfile_dwrite (f, _T("gfx_filter_vert_zoomf"), _T("%f"), p->gfx_filter_vert_zoom);
@@ -1210,6 +1217,7 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 	cfgfile_write_bool (f, _T("blitter_cycle_exact"), p->blitter_cycle_exact);
 	cfgfile_write_bool (f, _T("cycle_exact"), p->cpu_cycle_exact && p->blitter_cycle_exact ? 1 : 0);
 	cfgfile_dwrite_bool (f, _T("fpu_no_unimplemented"), p->fpu_no_unimplemented);
+	cfgfile_dwrite_bool (f, _T("cpu_no_unimplemented"), p->int_no_unimplemented);
 
 	cfgfile_write_bool (f, _T("rtg_nocustom"), p->picasso96_nocustom);
 	cfgfile_write (f, _T("rtg_modes"), _T("0x%x"), p->picasso96_modeflags);
@@ -2046,20 +2054,25 @@ cfgfile_path (option, value, _T("floppy0soundext"), p->floppyslots[0].dfxclickex
 	}
 
 	if (_tcscmp (option, _T("gfx_filter")) == 0) {
-		int i = 0;
 		TCHAR *s = _tcschr (value, ':');
-		p->gfx_filtershader[0][0] = 0;
 		p->gfx_filter = 0;
 		if (s) {
 			*s++ = 0;
 			if (!_tcscmp (value, _T("D3D"))) {
 				p->gfx_api = 1;
-				_tcscpy (p->gfx_filtershader[0], s);
+				_tcscpy (p->gfx_filtershader[2 * MAX_FILTERSHADERS], s);
+				for (int i = 0; i < 2 * MAX_FILTERSHADERS; i++) {
+					if (!_tcsicmp (p->gfx_filtershader[i], s)) {
+						p->gfx_filtershader[i][0] = 0;
+						p->gfx_filtermask[i][0] = 0;
+					}
+				}
 			}
 		}
 		if (!_tcscmp (value, _T("direct3d"))) {
 			p->gfx_api = 1; // forwards compatibiity
 		} else {
+			int i = 0;
 			while(uaefilters[i].name) {
 				if (!_tcscmp (uaefilters[i].cfgname, value)) {
 					p->gfx_filter = uaefilters[i].type;
@@ -2998,6 +3011,7 @@ static int cfgfile_parse_hardware (struct uae_prefs *p, const TCHAR *option, TCH
 
 	if (cfgfile_yesno (option, value, _T("immediate_blits"), &p->immediate_blits)
 		|| cfgfile_yesno (option, value, _T("fpu_no_unimplemented"), &p->fpu_no_unimplemented)
+		|| cfgfile_yesno (option, value, _T("cpu_no_unimplemented"), &p->int_no_unimplemented)
 		|| cfgfile_yesno (option, value, _T("cd32cd"), &p->cs_cd32cd)
 		|| cfgfile_yesno (option, value, _T("cd32c2p"), &p->cs_cd32c2p)
 		|| cfgfile_yesno (option, value, _T("cd32nvram"), &p->cs_cd32nvram)
@@ -4872,6 +4886,7 @@ void default_prefs (struct uae_prefs *p, int type)
 	p->cpu060_revision = 6;
 	p->fpu_revision = -1;
 	p->fpu_no_unimplemented = false;
+	p->int_no_unimplemented = false;
 	p->m68k_speed = 0;
 	p->cpu_compatible = 1;
 	p->address_space_24 = 1;
