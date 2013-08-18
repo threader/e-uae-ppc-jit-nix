@@ -332,7 +332,8 @@ void comp_macroblock_impl_opcode_unsupported(union comp_compiler_mb_union* mb)
  */
 void comp_macroblock_push_load_flags()
 {
-	uae_u8 tempreg = comp_allocate_temp_register(PPC_TMP_REG_ALLOCATED);
+	//TODO: this macroblock is more like a helper function, must be moved out
+	comp_tmp_reg* tempreg = comp_allocate_temp_register(NULL);
 
 	//Load flag_struct.cznv to the flags register
 	comp_macroblock_push_load_memory_long(
@@ -345,17 +346,17 @@ void comp_macroblock_push_load_flags()
 	//Load flag_struct.x to a temp register
 	comp_macroblock_push_load_memory_long(
 			COMP_COMPILER_MACROBLOCK_REG_NONE,
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-			comp_get_gpr_for_temp_register(tempreg),
+			tempreg->reg_usage_mapping,
+			tempreg->mapped_reg_num,
 			PPCR_REGS_BASE,
 			COMP_GET_OFFSET_IN_REGS(ccrflags.x));
 
 	//Rotate X flag to the position and insert it into the flag register
 	comp_macroblock_push_rotate_and_copy_bits(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
+			tempreg->reg_usage_mapping,
 			COMP_COMPILER_MACROBLOCK_REG_FLAGX,
 			PPCR_FLAGS,
-			comp_get_gpr_for_temp_register(tempreg),
+			tempreg->mapped_reg_num,
 			16, 26, 26, FALSE);
 
 	comp_free_temp_register(tempreg);
@@ -397,39 +398,40 @@ void comp_macroblock_push_save_flags()
  */
 void comp_macroblock_push_load_pc(const cpu_history * inst_history)
 {
-	uae_u8 temp_reg = comp_allocate_temp_register(PPC_TMP_REG_ALLOCATED);
+	//TODO: this macroblock is more like a helper function, must be moved out
+	comp_tmp_reg* temp_reg = comp_allocate_temp_register(NULL);
 
 	//Load real memory pointer for the executed instruction
 	comp_macroblock_push_load_register_long(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(temp_reg) | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-			comp_get_gpr_for_temp_register(temp_reg),
+			temp_reg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
+			temp_reg->mapped_reg_num,
 			(uae_u32)inst_history->location);
 
 	comp_macroblock_push_save_memory_long(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(temp_reg),
+			temp_reg->reg_usage_mapping,
 			COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-			comp_get_gpr_for_temp_register(temp_reg),
+			temp_reg->mapped_reg_num,
 			PPCR_REGS_BASE,
 			COMP_GET_OFFSET_IN_REGS(pc_p));
 
 	//Synchronize the executed instruction pointer from the block start to the actual
 	comp_macroblock_push_save_memory_long(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(temp_reg),
+			temp_reg->reg_usage_mapping,
 			COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-			comp_get_gpr_for_temp_register(temp_reg),
+			temp_reg->mapped_reg_num,
 			PPCR_REGS_BASE,
 			COMP_GET_OFFSET_IN_REGS(pc_oldp));
 
 	//Load emulated instruction pointer (PC register)
 	comp_macroblock_push_load_register_long(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(temp_reg) | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-			comp_get_gpr_for_temp_register(temp_reg),
+			temp_reg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
+			temp_reg->mapped_reg_num,
 			(uae_u32)inst_history->pc);
 
 	comp_macroblock_push_save_memory_long(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(temp_reg),
+			temp_reg->reg_usage_mapping,
 			COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-			comp_get_gpr_for_temp_register(temp_reg),
+			temp_reg->mapped_reg_num,
 			PPCR_REGS_BASE,
 			COMP_GET_OFFSET_IN_REGS(pc));
 
@@ -799,14 +801,15 @@ void comp_macroblock_impl_save_memory_byte(union comp_compiler_mb_union* mb)
  */
 void comp_macroblock_push_map_physical_mem(uae_u64 regsin, uae_u64 regsout, uae_u8 dest_mem_reg, uae_u8 source_reg)
 {
-	uae_u8 tmpreg = comp_allocate_temp_register(PPC_TMP_REG_ALLOCATED);
+	//TODO: this temp registration allocation must be moved out from the macroblock
+	comp_tmp_reg* tmpreg = comp_allocate_temp_register(NULL);
 
 	comp_mb_init(mb,
 				comp_macroblock_impl_map_physical_mem,
 				regsin, regsout);
 	mb->map_physical_mem.output_reg = dest_mem_reg;
 	mb->map_physical_mem.input_reg = source_reg;
-	mb->map_physical_mem.temp_reg = comp_get_gpr_for_temp_register(tmpreg);
+	mb->map_physical_mem.temp_reg = tmpreg->mapped_reg_num;
 
 	comp_free_temp_register(tmpreg);
 }
@@ -1941,8 +1944,8 @@ void comp_macroblock_impl_load_reg_slot(union comp_compiler_mb_union* mb)
  */
 void comp_macroblock_push_load_pc_from_register(uae_u64 regsin, uae_u8 address_reg)
 {
-	uae_u8 temp_reg = comp_allocate_temp_register(PPC_TMP_REG_ALLOCATED);
-	uae_u8 temp_reg_mapped = comp_get_gpr_for_temp_register(temp_reg);
+	//TODO: this macroblock is more like a helper function, must be moved out
+	comp_tmp_reg* temp_reg = comp_allocate_temp_register(NULL);
 
 	//TODO: odd address must trigger exception
 
@@ -1957,23 +1960,23 @@ void comp_macroblock_push_load_pc_from_register(uae_u64 regsin, uae_u8 address_r
 	//Get memory address into the temp register
 	comp_macroblock_push_map_physical_mem(
 			regsin,
-			COMP_COMPILER_MACROBLOCK_REG_TMP(temp_reg),
-			temp_reg_mapped,
+			temp_reg->reg_usage_mapping,
+			temp_reg->mapped_reg_num,
 			address_reg);
 
 	//Save physical memory pointer for the executed instruction
 	comp_macroblock_push_save_memory_long(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(temp_reg),
+			temp_reg->reg_usage_mapping,
 			COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-			temp_reg_mapped,
+			temp_reg->mapped_reg_num,
 			PPCR_REGS_BASE,
 			COMP_GET_OFFSET_IN_REGS(pc_p));
 
 	//Synchronize the executed instruction pointer from the block start to the actual
 	comp_macroblock_push_save_memory_long(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(temp_reg),
+			temp_reg->reg_usage_mapping,
 			COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-			temp_reg_mapped,
+			temp_reg->mapped_reg_num,
 			PPCR_REGS_BASE,
 			COMP_GET_OFFSET_IN_REGS(pc_oldp));
 

@@ -51,6 +51,15 @@ typedef struct blockinfo_t
 	struct blockinfo_t** prev_same_cl_p;	/* Cache line pointer */
 } blockinfo;
 
+/* Temporary register mapping descriptor structure */
+typedef struct comp_tmp_reg_t
+{
+	uae_u64 reg_usage_mapping;		/* Temporary register usage mapping, see register mapping for macroblocks in compemu_compiler.h */
+	struct m68k_register* allocated_for;			/* Pointer to the emulated 68K register which is linked to this temporary register, or null if there is no M68k register linked. */
+	BOOL allocated;					/* If TRUE then the temporary register is allocated at the moment */
+	uae_u8 mapped_reg_num;			/* Mapped physical register for the temporary register */
+} comp_tmp_reg;
+
 /* PowerPC register layout
  * SysV ABI assumed, might change for other ABIs
  * See documentation:
@@ -130,8 +139,8 @@ typedef struct blockinfo_t
  * the translated code.
  * IMPORTANT: these registers are not saved automatically in the prolog/epilog
  * functions for the translated code chunk. Save these registers using
- * comp_macroblock_push_save_reg_stack() function before use and restore
- * by calling comp_macroblock_push_load_reg_stack() before the execution leaves
+ * comp_macroblock_push_save_reg_slot() function before use and restore
+ * by calling comp_macroblock_push_load_reg_slot() before the execution leaves
  * the compiled block.
  */
 #ifndef __APPLE__
@@ -233,15 +242,13 @@ int comp_is_spec_memory_write_word(uae_u32 pc, int specmem_flags);
 int comp_is_spec_memory_write_long(uae_u32 pc, int specmem_flags);
 
 void comp_not_implemented(uae_u16 opcode);
-uae_u8 comp_allocate_temp_register(int allocate_for);
-void comp_free_temp_register(uae_u8 temp_reg);
-uae_u8 comp_map_temp_register(uae_u8 reg_number, int needs_init, int needs_flush);
-void comp_unmap_temp_register(uae_u8 reg_number);
-void comp_swap_temp_register_mapping(uae_u8 tmpreg1, uae_u8 tmpreg2);
-int comp_get_mapped_temp_register(uae_u8 reg_number);
+comp_tmp_reg* comp_allocate_temp_register(struct m68k_register* allocate_for);
+void comp_free_temp_register(comp_tmp_reg* temp_reg);
+comp_tmp_reg* comp_map_temp_register(uae_u8 reg_number, int needs_init, int needs_flush);
+void comp_unmap_temp_register(struct m68k_register* reg);
+void comp_swap_temp_register_mapping(comp_tmp_reg* tmpreg1, comp_tmp_reg* tmpreg2);
+comp_tmp_reg* comp_get_mapped_temp_register(uae_u8 reg_number);
 void comp_flush_temp_registers(int supresswarning);
-uae_u8 comp_get_gpr_for_temp_register(uae_u8 tmpreg);
-uae_u8 comp_get_temp_for_gpr_register(uae_u8 reg_mapped);
 void comp_unlock_all_temp_registers(void);
 void comp_dump_reg_usage(uae_u64 regs, char* str, char dump_control);
 
