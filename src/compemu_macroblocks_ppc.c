@@ -24,19 +24,19 @@
 /**
  * Local function protos
  */
-STATIC_INLINE uae_u8 helper_allocate_tmp_reg(void);
-STATIC_INLINE uae_u8 helper_allocate_tmp_reg_with_init(uae_u32 immed);
-STATIC_INLINE void helper_free_tmp_reg(uae_u8 reg);
+STATIC_INLINE comp_tmp_reg* helper_allocate_tmp_reg(void);
+STATIC_INLINE comp_tmp_reg* helper_allocate_tmp_reg_with_init(uae_u32 immed);
+STATIC_INLINE void helper_free_tmp_reg(comp_tmp_reg* reg);
 STATIC_INLINE void helper_update_flags(uae_u16 flagscheck, uae_u16 flagsclear, uae_u16 flagsset, int invertc);
 STATIC_INLINE void helper_check_nz_flags(void);
 STATIC_INLINE void helper_check_z_flag(void);
 STATIC_INLINE void helper_check_nz_clear_cv_flags(void);
 STATIC_INLINE void helper_check_nzcvx_flags(int invertc);
 STATIC_INLINE void helper_check_nzcv_flags(int invertc);
-STATIC_INLINE void helper_extract_c_clear_nzvx_flags(uae_u64 regsin, uae_u8 input_reg, int input_bit);
-STATIC_INLINE void helper_extract_cx_clear_nzv_flags(uae_u64 regsin, uae_u8 input_reg, int input_bit);
-STATIC_INLINE void helper_extract_c_clear_v_flags(uae_u64 regsin, uae_u8 input_reg, uae_u8 rotation_reg, BOOL left_shift);
-STATIC_INLINE void helper_extract_cx_clear_v_flags(uae_u64 regsin, uae_u8 input_reg, uae_u8 rotation_reg, BOOL left_shift);
+STATIC_INLINE void helper_extract_c_clear_nzvx_flags(uae_u64 regsin, comp_tmp_reg* input_reg, int input_bit);
+STATIC_INLINE void helper_extract_cx_clear_nzv_flags(uae_u64 regsin, comp_tmp_reg* input_reg, int input_bit);
+STATIC_INLINE void helper_extract_c_clear_v_flags(uae_u64 regsin, comp_tmp_reg* input_reg, comp_tmp_reg* rotation_reg, BOOL left_shift);
+STATIC_INLINE void helper_extract_cx_clear_v_flags(uae_u64 regsin, comp_tmp_reg* input_reg, comp_tmp_reg* rotation_reg, BOOL left_shift);
 STATIC_INLINE void helper_move_inst_static_flags(int immediate);
 STATIC_INLINE void helper_free_src_mem_addr_temp_reg(void);
 STATIC_INLINE void helper_free_src_temp_reg(void);
@@ -49,10 +49,10 @@ STATIC_INLINE void helper_free_dest_temp_reg(void);
 STATIC_INLINE void helper_allocate_ax_dest_mem_reg(struct comptbl* props, int modified);
 STATIC_INLINE void helper_add_imm_to_dest_ax(struct comptbl* props, uae_u16 immediate);
 STATIC_INLINE void helper_allocate_2_ax_dest_mem_regs(struct comptbl* props, int modified);
-STATIC_INLINE int helper_read_memory(uae_u64 regsin, const cpu_history* history, int target_reg_mapped, uae_u8 size, int preservedestreg);
-STATIC_INLINE void helper_write_memory(uae_u64 regsin, const cpu_history* history, int target_mem_mapped, int input_reg, int input_reg_mapped, uae_u8 size);
+STATIC_INLINE comp_tmp_reg* helper_read_memory(uae_u64 regsin, const cpu_history* history, comp_tmp_reg* target_reg, uae_u8 size, BOOL preservedestreg);
+STATIC_INLINE void helper_write_memory(uae_u64 regsin, const cpu_history* history, comp_tmp_reg* target_mem, comp_tmp_reg* input_reg, uae_u8 size);
 STATIC_INLINE void helper_check_result_set_flags(int regsin, int input_reg, uae_u8 size);
-STATIC_INLINE void helper_copy_result_set_flags(uae_u8 src_reg, int src_reg_mapped, uae_u8 size);
+STATIC_INLINE void helper_copy_result_set_flags(comp_tmp_reg* src_reg, uae_u8 size);
 STATIC_INLINE void helper_MOVIMMREG2MEM(const cpu_history* history, uae_u8 size, int immediate, int checkflags);
 STATIC_INLINE void helper_MOVMEM2REG(const cpu_history* history, struct comptbl* props, uae_u8 size, int dataregmode);
 STATIC_INLINE void helper_MOVEM2MEMU(const cpu_history* history, struct comptbl* props, uae_u8 size);
@@ -106,23 +106,23 @@ STATIC_INLINE void helper_ROLIMM2REG(uae_u8 size);
 STATIC_INLINE void helper_ROLREG2REG(uae_u8 size);
 STATIC_INLINE void helper_RORIMM2REG(uae_u8 size);
 STATIC_INLINE void helper_RORREG2REG(uae_u8 size);
-STATIC_INLINE void helper_copy_word_with_flagcheck(uae_u8 tmpreg, int tmpreg_mapped);
-STATIC_INLINE void helper_copy_byte_with_flagcheck(uae_u8 tmpreg, int tmpreg_mapped);
-STATIC_INLINE uae_u8 helper_pre_word(uae_u64 regsin, uae_u8 input_reg_mapped);
-STATIC_INLINE void helper_pre_word_no_alloc(uae_u64 regsin, uae_u8 input_reg_mapped);
-STATIC_INLINE void helper_post_word(uae_u64 regsout, uae_u8 tmpreg, uae_u8 output_reg_mapped);
-STATIC_INLINE void helper_post_word_no_free(uae_u64 regsout, uae_u8 output_reg_mapped);
-STATIC_INLINE uae_u8 helper_pre_byte(uae_u64 regsin, uae_u8 input_reg_mapped);
-STATIC_INLINE void helper_pre_byte_no_alloc(uae_u64 regsin, uae_u8 input_reg_mapped);
-STATIC_INLINE void helper_post_byte(uae_u64 regsout, uae_u8 tmpreg, uae_u8 output_reg_mapped);
-STATIC_INLINE void helper_post_byte_no_free(uae_u64 regsout, uae_u8 output_reg_mapped);
-STATIC_INLINE uae_u8 helper_prepare_word_shift(uae_u64 regsin, uae_u8 input_reg_mapped);
-STATIC_INLINE uae_u8 helper_prepare_byte_shift(uae_u64 regsin, uae_u8 input_reg_mapped);
-STATIC_INLINE void helper_complex_addressing(uae_u64 regsin, uae_u64 regsout, const cpu_history* history, uae_u8 output_mem_reg, uae_u8 base_reg, uae_u32 base_address);
-STATIC_INLINE void helper_complete_complex_addressing(uae_u64 regsin, uae_u64 regsout, const cpu_history* history, uae_u8 output_mem_reg, uae_u8 base_reg, uae_u32 base_address, uae_u16 ext);
-STATIC_INLINE uae_u8 helper_calculate_complex_index(uae_u16 ext);
-STATIC_INLINE void helper_test_bit_register_imm(uae_u64 regsin, int bitnum, int input_reg_mapped);
-STATIC_INLINE int helper_test_bit_register_register(uae_u64 regsbit, uae_u64 regsin, int bitnum_reg_mapped, int input_reg_mapped, int modulo);
+STATIC_INLINE void helper_copy_word_with_flagcheck(comp_tmp_reg* tmpreg);
+STATIC_INLINE void helper_copy_byte_with_flagcheck(comp_tmp_reg* tmpreg);
+STATIC_INLINE comp_tmp_reg* helper_pre_word(uae_u64 regsin, comp_tmp_reg* input_reg);
+STATIC_INLINE void helper_pre_word_no_alloc(uae_u64 regsin, comp_tmp_reg* input_reg);
+STATIC_INLINE void helper_post_word(uae_u64 regsout, comp_tmp_reg* tmpreg, comp_tmp_reg* output_reg);
+STATIC_INLINE void helper_post_word_no_free(uae_u64 regsout, comp_tmp_reg* output_reg);
+STATIC_INLINE comp_tmp_reg* helper_pre_byte(uae_u64 regsin, comp_tmp_reg* input_reg);
+STATIC_INLINE void helper_pre_byte_no_alloc(uae_u64 regsin, comp_tmp_reg* input_reg);
+STATIC_INLINE void helper_post_byte(uae_u64 regsout, comp_tmp_reg* tmpreg, comp_tmp_reg* output_reg);
+STATIC_INLINE void helper_post_byte_no_free(uae_u64 regsout, comp_tmp_reg* output_reg);
+STATIC_INLINE comp_tmp_reg* helper_prepare_word_shift(uae_u64 regsin, comp_tmp_reg* input_reg);
+STATIC_INLINE comp_tmp_reg* helper_prepare_byte_shift(uae_u64 regsin, comp_tmp_reg* input_reg);
+STATIC_INLINE void helper_complex_addressing(uae_u64 regsin, uae_u64 regsout, const cpu_history* history, comp_tmp_reg* output_mem_reg, comp_tmp_reg* base_reg, uae_u32 base_address);
+STATIC_INLINE void helper_complete_complex_addressing(uae_u64 regsin, uae_u64 regsout, const cpu_history* history, comp_tmp_reg* output_mem_reg, comp_tmp_reg* base_reg, uae_u32 base_address, uae_u16 ext);
+STATIC_INLINE comp_tmp_reg* helper_calculate_complex_index(uae_u16 ext);
+STATIC_INLINE void helper_test_bit_register_imm(uae_u64 regsin, int bitnum, comp_tmp_reg* input_reg);
+STATIC_INLINE comp_tmp_reg* helper_test_bit_register_register(uae_u64 regsbit, uae_u64 regsin, comp_tmp_reg* bitnum_reg, comp_tmp_reg* input_reg, int modulo);
 
 /**
  * Local variables
@@ -130,11 +130,7 @@ STATIC_INLINE int helper_test_bit_register_register(uae_u64 regsbit, uae_u64 reg
 
 //Source register (allocated temporary register) for the opcode
 //Initialized and released by the addressing mode
-int src_reg;
-
-//Source register (allocated temporary register mapped to PPC register) for the opcode
-//Initialized and released by the addressing mode
-uae_u8 src_reg_mapped;
+comp_tmp_reg* src_reg;
 
 //Flag for negate the value of the evaluated condition code before use
 //This boolean variable is used by the condition code addressing modes
@@ -144,11 +140,7 @@ int src_condition_negate;
 
 //Destination register (allocated temporary register) for the opcode
 //Initialized and released by the addressing mode
-int dest_reg;
-
-//Destination register (allocated temporary register mapped to PPC register) for the opcode
-//Initialized and released by the addressing mode
-uae_u8 dest_reg_mapped;
+comp_tmp_reg* dest_reg;
 
 //Input register dependency mask
 //Initialized and released by the addressing mode
@@ -169,18 +161,12 @@ signed int dest_immediate;
 //Source addressing mode register (allocated temporary register) that contains
 //the precalculated memory address for the opcode memory operations
 //Initialized and released by the addressing mode
-int src_mem_addrreg;
-
-//Same as src_mem_addrreg, but mapped to the physical PPC register
-uae_u8 src_mem_addrreg_mapped;
+comp_tmp_reg* src_mem_addrreg;
 
 //Destination addressing mode register (allocated temporary register) that contains
 //the precalculated memory address for the opcode memory operations
 //Initialized and released by the addressing mode
-int dest_mem_addrreg;
-
-//Same as dest_mem_addrreg, but mapped to the physical PPC register
-uae_u8 dest_mem_addrreg_mapped;
+comp_tmp_reg* dest_mem_addrreg;
 
 //Pointer to the next word sized data in memory after the opcode
 //Each addressing mode that needs additional data increments this pointer
@@ -194,7 +180,7 @@ void comp_opcode_init(const cpu_history* history)
 
 	//Reset variables
 	input_dep = output_dep = COMP_COMPILER_MACROBLOCK_REG_NONE;
-	src_mem_addrreg = dest_mem_addrreg = PPC_TMP_REG_NOTUSED;
+	src_mem_addrreg = dest_mem_addrreg = NULL;
 	src_condition_negate = FALSE;
 }
 
@@ -207,12 +193,12 @@ void comp_opcode_init(const cpu_history* history)
  */
 void comp_addr_pre_regD_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	src_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_DATAREG(props->srcreg), TRUE, FALSE);
+	src_reg = comp_map_temp_register(COMP_COMPILER_REGS_DATAREG(props->srcreg), TRUE, FALSE);
 	input_dep |= COMP_COMPILER_MACROBLOCK_REG_DX(props->srcreg);
 }
 void comp_addr_pre_regA_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	src_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->srcreg), TRUE, FALSE);
+	src_reg = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->srcreg), TRUE, FALSE);
 	input_dep |= COMP_COMPILER_MACROBLOCK_REG_AX(props->srcreg);
 }
 void comp_addr_pre_indA_src(const cpu_history* history, struct comptbl* props) REGPARAM
@@ -299,9 +285,9 @@ void comp_addr_pre_indAd16_src(const cpu_history* history, struct comptbl* props
 		//Add the offset from the next word after the opcode to the register
 		comp_macroblock_push_add_register_imm(
 				COMP_COMPILER_MACROBLOCK_REG_AX(props->srcreg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg),
-				src_mem_addrreg_mapped,
-				src_reg_mapped,
+				src_mem_addrreg->reg_usage_mapping,
+				src_mem_addrreg->mapped_reg_num,
+				src_reg->mapped_reg_num,
 				*(pc_ptr++));
 	} else {
 		comp_addr_pre_indA_src(history, props);
@@ -317,11 +303,10 @@ void comp_addr_pre_indPCd16_src(const cpu_history* history, struct comptbl* prop
 	pc_ptr++;
 
 	src_mem_addrreg = helper_allocate_tmp_reg();
-	src_mem_addrreg_mapped = comp_get_gpr_for_temp_register(src_mem_addrreg);
 
 	comp_macroblock_push_load_register_long(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg),
-			src_mem_addrreg_mapped,
+			src_mem_addrreg->reg_usage_mapping,
+			src_mem_addrreg->mapped_reg_num,
 			address);
 }
 void comp_addr_pre_absW_src(const cpu_history* history, struct comptbl* props) REGPARAM
@@ -332,11 +317,10 @@ void comp_addr_pre_absW_src(const cpu_history* history, struct comptbl* props) R
 	pc_ptr++;
 
 	src_mem_addrreg = helper_allocate_tmp_reg();
-	src_mem_addrreg_mapped = comp_get_gpr_for_temp_register(src_mem_addrreg);
 
 	comp_macroblock_push_load_register_long(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg),
-			src_mem_addrreg_mapped,
+			src_mem_addrreg->reg_usage_mapping,
+			src_mem_addrreg->mapped_reg_num,
 			address);
 }
 void comp_addr_pre_absL_src(const cpu_history* history, struct comptbl* props) REGPARAM
@@ -346,24 +330,23 @@ void comp_addr_pre_absL_src(const cpu_history* history, struct comptbl* props) R
 	pc_ptr += 2;
 
 	src_mem_addrreg = helper_allocate_tmp_reg();
-	src_mem_addrreg_mapped = comp_get_gpr_for_temp_register(src_mem_addrreg);
 
 	comp_macroblock_push_load_register_long(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg),
-			src_mem_addrreg_mapped,
+			src_mem_addrreg->reg_usage_mapping,
+			src_mem_addrreg->mapped_reg_num,
 			address);
 }
 void comp_addr_pre_indAcp_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
 	helper_allocate_2_ax_src_mem_regs(props, FALSE);
 
-	//Process the extension word, result is coming back in src_mem_addrreg_mapped
+	//Process the extension word, result is coming back in src_mem_addrreg
 	helper_complex_addressing(
 			COMP_COMPILER_MACROBLOCK_REG_AX(props->srcreg),
-			COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg),
+			src_mem_addrreg->reg_usage_mapping,
 			history,
-			src_mem_addrreg_mapped,
-			src_reg_mapped, 0);
+			src_mem_addrreg,
+			src_reg, 0);
 }
 void comp_addr_pre_indPCcp_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
@@ -373,13 +356,13 @@ void comp_addr_pre_indPCcp_src(const cpu_history* history, struct comptbl* props
 	//Map registers
 	helper_allocate_2_ax_src_mem_regs(props, FALSE);
 
-	//Process the extension word, result is coming back in src_mem_addrreg_mapped
+	//Process the extension word, result is coming back in src_mem_addrreg
 	helper_complex_addressing(
 			COMP_COMPILER_MACROBLOCK_REG_NONE,
-			COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg),
+			src_mem_addrreg->reg_usage_mapping,
 			history,
-			src_mem_addrreg_mapped,
-			COMP_COMPILER_MACROBLOCK_REG_NONE,
+			src_mem_addrreg,
+			NULL,
 			address);
 }
 
@@ -485,12 +468,12 @@ void comp_addr_post_indPCcp_src(const cpu_history* history, struct comptbl* prop
  */
 void comp_addr_pre_regD_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	dest_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_DATAREG(props->destreg), TRUE, TRUE);
+	dest_reg = comp_map_temp_register(COMP_COMPILER_REGS_DATAREG(props->destreg), TRUE, TRUE);
 	output_dep |= COMP_COMPILER_MACROBLOCK_REG_DX(props->destreg);
 }
 void comp_addr_pre_regA_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	dest_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->destreg), TRUE, TRUE);
+	dest_reg = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->destreg), TRUE, TRUE);
 	output_dep |= COMP_COMPILER_MACROBLOCK_REG_AX(props->destreg);
 }
 void comp_addr_pre_indA_dest(const cpu_history* history, struct comptbl* props) REGPARAM
@@ -507,9 +490,9 @@ void comp_addr_pre_indmAL_dest(const cpu_history* history, struct comptbl* props
 	//Decrease the temporary memory target register
 	comp_macroblock_push_add_register_imm(
 			COMP_COMPILER_MACROBLOCK_REG_AX(props->destreg),
-			COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
-			dest_mem_addrreg_mapped,
-			dest_reg_mapped,
+			dest_mem_addrreg->reg_usage_mapping,
+			dest_mem_addrreg->mapped_reg_num,
+			dest_reg->mapped_reg_num,
 			-4);
 }
 void comp_addr_pre_indmAW_dest(const cpu_history* history, struct comptbl* props) REGPARAM
@@ -522,9 +505,9 @@ void comp_addr_pre_indmAW_dest(const cpu_history* history, struct comptbl* props
 	//Decrease the temporary memory target register
 	comp_macroblock_push_add_register_imm(
 			COMP_COMPILER_MACROBLOCK_REG_AX(props->destreg),
-			COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
-			dest_mem_addrreg_mapped,
-			dest_reg_mapped,
+			dest_mem_addrreg->reg_usage_mapping,
+			dest_mem_addrreg->mapped_reg_num,
+			dest_reg->mapped_reg_num,
 			-2);
 }
 void comp_addr_pre_indmAB_dest(const cpu_history* history, struct comptbl* props) REGPARAM
@@ -537,9 +520,9 @@ void comp_addr_pre_indmAB_dest(const cpu_history* history, struct comptbl* props
 	//Decrease the temporary memory target register
 	comp_macroblock_push_add_register_imm(
 			COMP_COMPILER_MACROBLOCK_REG_AX(props->destreg),
-			COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
-			dest_mem_addrreg_mapped,
-			dest_reg_mapped,
+			dest_mem_addrreg->reg_usage_mapping,
+			dest_mem_addrreg->mapped_reg_num,
+			dest_reg->mapped_reg_num,
 			-1);
 }
 void comp_addr_pre_indApL_dest(const cpu_history* history, struct comptbl* props) REGPARAM
@@ -595,9 +578,9 @@ void comp_addr_pre_indAd16_dest(const cpu_history* history, struct comptbl* prop
 		//Add the offset from the next word after the opcode to the register
 		comp_macroblock_push_add_register_imm(
 				COMP_COMPILER_MACROBLOCK_REG_AX(props->destreg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
-				dest_mem_addrreg_mapped,
-				dest_reg_mapped,
+				dest_mem_addrreg->reg_usage_mapping,
+				dest_mem_addrreg->mapped_reg_num,
+				dest_reg->mapped_reg_num,
 				*(pc_ptr++));
 	} else {
 		comp_addr_pre_indA_dest(history, props);
@@ -613,11 +596,10 @@ void comp_addr_pre_indPCd16_dest(const cpu_history* history, struct comptbl* pro
 	pc_ptr++;
 
 	dest_mem_addrreg = helper_allocate_tmp_reg();
-	dest_mem_addrreg_mapped = comp_get_gpr_for_temp_register(dest_mem_addrreg);
 
 	comp_macroblock_push_load_register_long(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
-			dest_mem_addrreg_mapped,
+			dest_mem_addrreg->reg_usage_mapping,
+			dest_mem_addrreg->mapped_reg_num,
 			address);
 }
 void comp_addr_pre_absW_dest(const cpu_history* history, struct comptbl* props) REGPARAM
@@ -628,11 +610,10 @@ void comp_addr_pre_absW_dest(const cpu_history* history, struct comptbl* props) 
 	pc_ptr++;
 
 	dest_mem_addrreg = helper_allocate_tmp_reg();
-	dest_mem_addrreg_mapped = comp_get_gpr_for_temp_register(dest_mem_addrreg);
 
 	comp_macroblock_push_load_register_long(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
-			dest_mem_addrreg_mapped,
+			dest_mem_addrreg->reg_usage_mapping,
+			dest_mem_addrreg->mapped_reg_num,
 			address);
 }
 void comp_addr_pre_absL_dest(const cpu_history* history, struct comptbl* props) REGPARAM
@@ -642,24 +623,23 @@ void comp_addr_pre_absL_dest(const cpu_history* history, struct comptbl* props) 
 	pc_ptr += 2;
 
 	dest_mem_addrreg = helper_allocate_tmp_reg();
-	dest_mem_addrreg_mapped = comp_get_gpr_for_temp_register(dest_mem_addrreg);
 
 	comp_macroblock_push_load_register_long(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
-			dest_mem_addrreg_mapped,
+			dest_mem_addrreg->reg_usage_mapping,
+			dest_mem_addrreg->mapped_reg_num,
 			address);
 }
 void comp_addr_pre_indAcp_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
 	helper_allocate_2_ax_dest_mem_regs(props, FALSE);
 
-	//Process the extension word, result is coming back in dest_mem_addrreg_mapped
+	//Process the extension word, result is coming back in dest_mem_addrreg
 	helper_complex_addressing(
 			COMP_COMPILER_MACROBLOCK_REG_AX(props->destreg),
-			COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+			dest_mem_addrreg->reg_usage_mapping,
 			history,
-			dest_mem_addrreg_mapped,
-			dest_reg_mapped, 0);
+			dest_mem_addrreg,
+			dest_reg, 0);
 }
 void comp_addr_pre_indPCcp_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
@@ -669,13 +649,13 @@ void comp_addr_pre_indPCcp_dest(const cpu_history* history, struct comptbl* prop
 	//Map registers
 	helper_allocate_2_ax_dest_mem_regs(props, FALSE);
 
-	//Process the extension word, result is coming back in dest_mem_addrreg_mapped
+	//Process the extension word, result is coming back in dest_mem_addrreg
 	helper_complex_addressing(
 			COMP_COMPILER_MACROBLOCK_REG_NONE,
-			COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+			dest_mem_addrreg->reg_usage_mapping,
 			history,
-			dest_mem_addrreg_mapped,
-			COMP_COMPILER_MACROBLOCK_REG_NONE,
+			dest_mem_addrreg,
+			NULL,
 			address);
 }
 
@@ -704,7 +684,7 @@ void comp_addr_post_indmAL_dest(const cpu_history* history, struct comptbl* prop
 	helper_free_dest_mem_addr_temp_reg();
 
 	//(Re)allocate the destination address register with modify flag
-	dest_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->destreg), TRUE, TRUE);
+	dest_reg = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->destreg), TRUE, TRUE);
 
 	//Decrease the address register by the size of the operation
 	helper_add_imm_to_dest_ax(props, -4);
@@ -715,7 +695,7 @@ void comp_addr_post_indmAW_dest(const cpu_history* history, struct comptbl* prop
 	helper_free_dest_mem_addr_temp_reg();
 
 	//(Re)allocate the destination address register with modify flag
-	dest_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->destreg), TRUE, TRUE);
+	dest_reg = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->destreg), TRUE, TRUE);
 
 	//Decrease the address register by the size of the operation
 	helper_add_imm_to_dest_ax(props, -2);
@@ -726,7 +706,7 @@ void comp_addr_post_indmAB_dest(const cpu_history* history, struct comptbl* prop
 	helper_free_dest_mem_addr_temp_reg();
 
 	//(Re)allocate the destination address register with modify flag
-	dest_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->destreg), TRUE, TRUE);
+	dest_reg = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->destreg), TRUE, TRUE);
 
 	//Decrease the address register by the size of the operation
 	helper_add_imm_to_dest_ax(props, -1);
@@ -734,7 +714,7 @@ void comp_addr_post_indmAB_dest(const cpu_history* history, struct comptbl* prop
 void comp_addr_post_indApL_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
 	//(Re)allocate the destination address register with modify flag
-	dest_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->destreg), TRUE, TRUE);
+	dest_reg = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->destreg), TRUE, TRUE);
 
 	//Increase the address register by the size of the operation
 	helper_add_imm_to_dest_ax(props, 4);
@@ -742,7 +722,7 @@ void comp_addr_post_indApL_dest(const cpu_history* history, struct comptbl* prop
 void comp_addr_post_indApW_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
 	//(Re)allocate the destination address register with modify flag
-	dest_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->destreg), TRUE, TRUE);
+	dest_reg = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->destreg), TRUE, TRUE);
 
 	//Increase the address register by the size of the operation
 	helper_add_imm_to_dest_ax(props, 2);
@@ -750,7 +730,7 @@ void comp_addr_post_indApW_dest(const cpu_history* history, struct comptbl* prop
 void comp_addr_post_indApB_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
 	//(Re)allocate the destination address register with modify flag
-	dest_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->destreg), TRUE, TRUE);
+	dest_reg = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->destreg), TRUE, TRUE);
 
 	//Increase the address register by the size of the operation
 	helper_add_imm_to_dest_ax(props, 1);
@@ -855,15 +835,14 @@ void comp_cond_pre_CC_hi_src(const cpu_history* history, struct comptbl* props) 
 }
 void comp_cond_pre_CC_le_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	uae_u8 tmp_reg = helper_allocate_tmp_reg();
-	uae_u8 tmp_reg_mapped = comp_get_gpr_for_temp_register(tmp_reg);
+	comp_tmp_reg* tmp_reg = helper_allocate_tmp_reg();
 
 	//Z <= if (N^V)|Z
 	//Mask out N and Z flag to temp register
 	comp_macroblock_push_and_high_register_imm(
 			COMP_COMPILER_MACROBLOCK_REG_FLAGN | COMP_COMPILER_MACROBLOCK_REG_FLAGZ,
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tmp_reg),
-			tmp_reg_mapped,
+			tmp_reg->reg_usage_mapping,
+			tmp_reg->mapped_reg_num,
 			PPCR_FLAGS,
 			(1 << (FLAGBIT_N - 16)) | (1 << (FLAGBIT_Z - 16)));
 
@@ -877,11 +856,11 @@ void comp_cond_pre_CC_le_src(const cpu_history* history, struct comptbl* props) 
 
 	//Exclusive OR N and repositioned V flag, Z flag left unchanged (OR'ed to the result)
 	comp_macroblock_push_xor_register_register(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tmp_reg) | COMP_COMPILER_MACROBLOCK_TMP_REG_SPEC,
+			tmp_reg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_TMP_REG_SPEC,
 			COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
 			PPCR_SPECTMP,
 			PPCR_SPECTMP,
-			tmp_reg_mapped, TRUE);
+			tmp_reg->mapped_reg_num, TRUE);
 
 	comp_free_temp_register(tmp_reg);
 }
@@ -906,15 +885,14 @@ void comp_cond_pre_CC_ls_src(const cpu_history* history, struct comptbl* props) 
 }
 void comp_cond_pre_CC_lt_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	uae_u8 tmp_reg = helper_allocate_tmp_reg();
-	uae_u8 tmp_reg_mapped = comp_get_gpr_for_temp_register(tmp_reg);
+	comp_tmp_reg* tmp_reg = helper_allocate_tmp_reg();
 
 	//Z <= if N^V
 	//Mask out N flag to temp register
 	comp_macroblock_push_rotate_and_mask_bits(
 			COMP_COMPILER_MACROBLOCK_REG_FLAGN,
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tmp_reg),
-			tmp_reg_mapped,
+			tmp_reg->reg_usage_mapping,
+			tmp_reg->mapped_reg_num,
 			PPCR_FLAGS,
 			0, PPC_FLAGBIT_N, PPC_FLAGBIT_N, FALSE);
 
@@ -928,11 +906,11 @@ void comp_cond_pre_CC_lt_src(const cpu_history* history, struct comptbl* props) 
 
 	//Exclusive OR N and repositioned V flag
 	comp_macroblock_push_xor_register_register(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tmp_reg) | COMP_COMPILER_MACROBLOCK_TMP_REG_SPEC,
+			tmp_reg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_TMP_REG_SPEC,
 			COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
 			PPCR_SPECTMP,
 			PPCR_SPECTMP,
-			tmp_reg_mapped, TRUE);
+			tmp_reg->mapped_reg_num, TRUE);
 
 	comp_free_temp_register(tmp_reg);
 }
@@ -1114,8 +1092,8 @@ void comp_opcode_MOVREG2REGL(const cpu_history* history, struct comptbl* props) 
 	comp_macroblock_push_copy_register_long_with_flags(
 			input_dep,
 			output_dep,
-			dest_reg_mapped,
-			src_reg_mapped);
+			dest_reg->mapped_reg_num,
+			src_reg->mapped_reg_num);
 
 	//Save flags
 	helper_check_nz_clear_cv_flags();
@@ -1125,10 +1103,10 @@ void comp_opcode_MOVREG2REGW(const cpu_history* history, struct comptbl* props) 
 	comp_macroblock_push_copy_register_word(
 			input_dep,
 			output_dep,
-			dest_reg_mapped,
-			src_reg_mapped);
+			dest_reg->mapped_reg_num,
+			src_reg->mapped_reg_num);
 
-	comp_macroblock_push_check_word_register(output_dep, dest_reg_mapped);
+	comp_macroblock_push_check_word_register(output_dep, dest_reg->mapped_reg_num);
 
 	//Save flags
 	helper_check_nz_clear_cv_flags();
@@ -1138,10 +1116,10 @@ void comp_opcode_MOVREG2REGB(const cpu_history* history, struct comptbl* props) 
 	comp_macroblock_push_copy_register_byte(
 			input_dep,
 			output_dep,
-			dest_reg_mapped,
-			src_reg_mapped);
+			dest_reg->mapped_reg_num,
+			src_reg->mapped_reg_num);
 
-	comp_macroblock_push_check_byte_register(output_dep, dest_reg_mapped);
+	comp_macroblock_push_check_byte_register(output_dep, dest_reg->mapped_reg_num);
 
 	//Save flags
 	helper_check_nz_clear_cv_flags();
@@ -1151,8 +1129,8 @@ void comp_opcode_MOVAREG2REGL(const cpu_history* history, struct comptbl* props)
 	comp_macroblock_push_copy_register_long(
 			input_dep,
 			output_dep,
-			dest_reg_mapped,
-			src_reg_mapped);
+			dest_reg->mapped_reg_num,
+			src_reg->mapped_reg_num);
 
 	//No flag change
 }
@@ -1162,8 +1140,8 @@ void comp_opcode_MOVAREG2REGW(const cpu_history* history, struct comptbl* props)
 	comp_macroblock_push_copy_register_word_extended(
 			input_dep,
 			output_dep,
-			dest_reg_mapped,
-			src_reg_mapped,
+			dest_reg->mapped_reg_num,
+			src_reg->mapped_reg_num,
 			FALSE);
 
 	//No flag change
@@ -1229,7 +1207,7 @@ void comp_opcode_MOVAIMM2REGL(const cpu_history* history, struct comptbl* props)
 	//Load the immediate value to the destination register
 	comp_macroblock_push_load_register_long(
 			output_dep,
-			dest_reg_mapped,
+			dest_reg->mapped_reg_num,
 			src_immediate);
 }
 void comp_opcode_MOVAIMM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
@@ -1238,14 +1216,14 @@ void comp_opcode_MOVAIMM2REGW(const cpu_history* history, struct comptbl* props)
 	//sign-extended to longword size
 	comp_macroblock_push_load_register_word_extended(
 			output_dep,
-			dest_reg_mapped,
+			dest_reg->mapped_reg_num,
 			src_immediate);
 }
 void comp_opcode_MOVEQ(const cpu_history* history, struct comptbl* props) REGPARAM
 {
 	comp_macroblock_push_load_register_long(
 			output_dep,
-			dest_reg_mapped,
+			dest_reg->mapped_reg_num,
 			src_immediate);
 
 	//Set up flags
@@ -1356,7 +1334,7 @@ void comp_opcode_LEAIMML(const cpu_history* history, struct comptbl* props) REGP
 	//Load the immediate value to the destination register
 	comp_macroblock_push_load_register_long(
 			output_dep,
-			dest_reg_mapped,
+			dest_reg->mapped_reg_num,
 			src_immediate);
 }
 void comp_opcode_LEAIMMW(const cpu_history* history, struct comptbl* props) REGPARAM
@@ -1365,7 +1343,7 @@ void comp_opcode_LEAIMMW(const cpu_history* history, struct comptbl* props) REGP
 	//sign-extended to longword size
 	comp_macroblock_push_load_register_word_extended(
 			output_dep,
-			dest_reg_mapped,
+			dest_reg->mapped_reg_num,
 			src_immediate);
 }
 void comp_opcode_LEAIND(const cpu_history* history, struct comptbl* props) REGPARAM
@@ -1373,10 +1351,10 @@ void comp_opcode_LEAIND(const cpu_history* history, struct comptbl* props) REGPA
 	//TODO: this useless move instruction could be removed if the registers could be swapped
 	//Move temporary register to the destination address register
 	comp_macroblock_push_copy_register_long(
-			input_dep | (src_mem_addrreg == PPC_TMP_REG_NOTUSED ? 0 : COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg)),
+			input_dep | (src_mem_addrreg == NULL ? 0 : src_mem_addrreg->reg_usage_mapping),
 			output_dep,
-			dest_reg_mapped,
-			src_mem_addrreg_mapped);
+			dest_reg->mapped_reg_num,
+			src_mem_addrreg->mapped_reg_num);
 }
 void comp_opcode_PEAIMML(const cpu_history* history, struct comptbl* props) REGPARAM
 {
@@ -1384,15 +1362,15 @@ void comp_opcode_PEAIMML(const cpu_history* history, struct comptbl* props) REGP
 	//decrease stack pointer (A7) and store the longword to the pointed address
 
 	//Map A7 register as destination
-	dest_mem_addrreg_mapped = dest_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(7), TRUE, TRUE);
+	dest_mem_addrreg = dest_reg = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(7), TRUE, TRUE);
 	input_dep |= COMP_COMPILER_MACROBLOCK_REG_AX(7);
 
 	//Decrease A7 register by 4
 	comp_macroblock_push_add_register_imm(
 			COMP_COMPILER_MACROBLOCK_REG_AX(7),
 			COMP_COMPILER_MACROBLOCK_REG_AX(7),
-			dest_reg_mapped,
-			dest_reg_mapped,
+			dest_reg->mapped_reg_num,
+			dest_reg->mapped_reg_num,
 			-4);
 
 	//Store immediate using the A7 register into memory, skip the flag checking
@@ -1410,19 +1388,19 @@ void comp_opcode_PEAIND(const cpu_history* history, struct comptbl* props) REGPA
 	//decrease stack pointer (A7) and store the longword to the pointed address
 
 	//Map A7 register as destination
-	dest_mem_addrreg_mapped = dest_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(7), TRUE, TRUE);
+	dest_mem_addrreg = dest_reg = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(7), TRUE, TRUE);
 	input_dep |= COMP_COMPILER_MACROBLOCK_REG_AX(7);
 
 	//Decrease A7 register by 4
 	comp_macroblock_push_add_register_imm(
 			COMP_COMPILER_MACROBLOCK_REG_AX(7),
 			COMP_COMPILER_MACROBLOCK_REG_AX(7),
-			dest_reg_mapped,
-			dest_reg_mapped,
+			dest_reg->mapped_reg_num,
+			dest_reg->mapped_reg_num,
 			-4);
 
 	//The source memory mapped register is the source register for the memory operation
-	src_reg_mapped = src_mem_addrreg_mapped;
+	src_reg = src_mem_addrreg;
 
 	//Store source address from the register using the A7 register into memory,
 	//skip the flag checking
@@ -1434,8 +1412,8 @@ void comp_opcode_STREGB(const cpu_history* history, struct comptbl* props) REGPA
 	comp_macroblock_push_or_low_register_imm(
 			output_dep,
 			output_dep,
-			dest_reg_mapped,
-			dest_reg_mapped,
+			dest_reg->mapped_reg_num,
+			dest_reg->mapped_reg_num,
 			0xff);
 }
 void comp_opcode_SFREGB(const cpu_history* history, struct comptbl* props) REGPARAM
@@ -1444,8 +1422,8 @@ void comp_opcode_SFREGB(const cpu_history* history, struct comptbl* props) REGPA
 	comp_macroblock_push_rotate_and_mask_bits(
 			output_dep,
 			output_dep,
-			dest_reg_mapped,
-			dest_reg_mapped,
+			dest_reg->mapped_reg_num,
+			dest_reg->mapped_reg_num,
 			0, 0, 23, FALSE);
 }
 void comp_opcode_SCCREGB(const cpu_history* history, struct comptbl* props) REGPARAM
@@ -1453,7 +1431,7 @@ void comp_opcode_SCCREGB(const cpu_history* history, struct comptbl* props) REGP
 	//This instruction was implemented in one macroblock for simplicity
 	comp_macroblock_push_set_byte_from_z_flag(
 			output_dep,
-			dest_reg_mapped,
+			dest_reg->mapped_reg_num,
 			src_condition_negate);
 }
 void comp_opcode_STMEMB(const cpu_history* history, struct comptbl* props) REGPARAM
@@ -1474,12 +1452,11 @@ void comp_opcode_SCCMEMB(const cpu_history* history, struct comptbl* props) REGP
 {
 	//Allocate a temp register for the calculated source byte
 	src_reg = helper_allocate_tmp_reg();
-	src_reg_mapped = comp_get_gpr_for_temp_register(src_reg);
 
 	//Call the macroblock which produces the source byte into the temp register
 	comp_macroblock_push_set_byte_from_z_flag(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(src_reg),
-			src_reg_mapped,
+			src_reg->reg_usage_mapping,
+			src_reg->mapped_reg_num,
 			src_condition_negate);
 
 	//Call normal MOVE.B reg,mem instruction
@@ -1509,8 +1486,8 @@ void comp_opcode_MOVMEM2CCRW(const cpu_history* history, struct comptbl* props) 
 }
 void comp_opcode_DBCOND(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	uae_u8 address_reg = helper_allocate_tmp_reg();
-	uae_u8 tempreg = helper_allocate_tmp_reg();
+	comp_tmp_reg* address_reg = helper_allocate_tmp_reg();
+	comp_tmp_reg* tempreg = helper_allocate_tmp_reg();
 
 	//The next word after the instruction is the branch offset,
 	//load it with sign extension
@@ -1522,12 +1499,12 @@ void comp_opcode_DBCOND(const cpu_history* history, struct comptbl* props) REGPA
 	//or decrements the specified register and jumps if it reaches -1.
 	comp_macroblock_push_load_pc_from_immediate_conditional_decrement_register(
 			output_dep,
-			dest_reg_mapped,
+			dest_reg->mapped_reg_num,
 			(uae_u32)history->pc + branch_offset + 2,
 			(uae_u32)history->pc + ((uae_u32)pc_ptr - (uae_u32)history->location),
 			src_condition_negate,
-			comp_get_gpr_for_temp_register(address_reg),
-			comp_get_gpr_for_temp_register(tempreg));
+			address_reg->mapped_reg_num,
+			tempreg->mapped_reg_num);
 
 	//Free temporary registers
 	helper_free_tmp_reg(address_reg);
@@ -1535,33 +1512,32 @@ void comp_opcode_DBCOND(const cpu_history* history, struct comptbl* props) REGPA
 }
 void comp_opcode_DBF(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	uae_u8 address_reg = helper_allocate_tmp_reg();
-	uae_u8 tempreg = helper_allocate_tmp_reg();
-	uae_u8 tempreg_mapped = comp_get_gpr_for_temp_register(tempreg);
+	comp_tmp_reg* address_reg = helper_allocate_tmp_reg();
+	comp_tmp_reg* tempreg = helper_allocate_tmp_reg();
 
 	//Word sized operation: mask out lowest word from target register
 	//This will also set the Z flag on PPC
 	comp_macroblock_push_and_low_register_imm(
 			output_dep,
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-			tempreg_mapped,
-			dest_reg_mapped,
+			tempreg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
+			tempreg->mapped_reg_num,
+			dest_reg->mapped_reg_num,
 			0xffff);
 
 	//Decrease target register
 	comp_macroblock_push_add_register_imm(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-			tempreg_mapped,
-			tempreg_mapped,
+			tempreg->reg_usage_mapping,
+			tempreg->reg_usage_mapping,
+			tempreg->mapped_reg_num,
+			tempreg->mapped_reg_num,
 			-1);
 
 	//Insert result back to source register
     comp_macroblock_push_copy_register_word(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
+			tempreg->reg_usage_mapping,
 			output_dep,
-			dest_reg_mapped,
-			tempreg_mapped);
+			dest_reg->mapped_reg_num,
+			tempreg->mapped_reg_num);
 
 
     //Branch if the result is -1 (the Z flag is coming from the register before decrementation)
@@ -1570,8 +1546,8 @@ void comp_opcode_DBF(const cpu_history* history, struct comptbl* props) REGPARAM
 			(uae_u32)history->pc + src_immediate + 2,
 			(uae_u32)history->pc + ((uae_u32)pc_ptr - (uae_u32)history->location),
 			FALSE,
-			comp_get_gpr_for_temp_register(address_reg),
-			tempreg_mapped);
+			address_reg->mapped_reg_num,
+			tempreg->mapped_reg_num);
 
 	//Free temporary registers
 	helper_free_tmp_reg(address_reg);
@@ -1580,16 +1556,16 @@ void comp_opcode_DBF(const cpu_history* history, struct comptbl* props) REGPARAM
 void comp_opcode_BCOND(const cpu_history* history, struct comptbl* props) REGPARAM
 {
 	//Allocate required temporary registers
-	uae_u8 address_reg = helper_allocate_tmp_reg();
-	uae_u8 tmp_reg = helper_allocate_tmp_reg();
+	comp_tmp_reg* address_reg = helper_allocate_tmp_reg();
+	comp_tmp_reg* tmp_reg = helper_allocate_tmp_reg();
 
 	//Load target address to PC, if Z flag set (or not set if condition is negated)
 	comp_macroblock_push_load_pc_from_immediate_conditional(
 			(uae_u32)history->pc + dest_immediate + 2,
 			(uae_u32)history->pc + ((uae_u32)pc_ptr - (uae_u32)history->location),
 			src_condition_negate,
-			comp_get_gpr_for_temp_register(address_reg),
-			comp_get_gpr_for_temp_register(tmp_reg));
+			address_reg->mapped_reg_num,
+			tmp_reg->mapped_reg_num);
 
 	//Free temporary registers
 	helper_free_tmp_reg(address_reg);
@@ -1598,24 +1574,24 @@ void comp_opcode_BCOND(const cpu_history* history, struct comptbl* props) REGPAR
 void comp_opcode_BRA(const cpu_history* history, struct comptbl* props) REGPARAM
 {
 	//Load target address into a temporary register
-	int tempreg = helper_allocate_tmp_reg_with_init((uae_u32)history->pc + src_immediate + 2);
+	comp_tmp_reg* tempreg = helper_allocate_tmp_reg_with_init((uae_u32)history->pc + src_immediate + 2);
 
 	//Load target address to PC
 	comp_macroblock_push_load_pc_from_register(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-			comp_get_gpr_for_temp_register(tempreg));
+			tempreg->reg_usage_mapping,
+			tempreg->mapped_reg_num);
 
 	helper_free_tmp_reg(tempreg);
 }
 void comp_opcode_BSR(const cpu_history* history, struct comptbl* props) REGPARAM
 {
 	//Load target address into a temporary register
-	int tempreg = helper_allocate_tmp_reg_with_init((uae_u32)history->pc + src_immediate + 2);
+	comp_tmp_reg* tempreg = helper_allocate_tmp_reg_with_init((uae_u32)history->pc + src_immediate + 2);
 
 	//Load target address to PC
 	comp_macroblock_push_load_pc_from_register(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-			comp_get_gpr_for_temp_register(tempreg));
+			tempreg->reg_usage_mapping,
+			tempreg->mapped_reg_num);
 
 	helper_free_tmp_reg(tempreg);
 
@@ -1623,32 +1599,32 @@ void comp_opcode_BSR(const cpu_history* history, struct comptbl* props) REGPARAM
 	tempreg = helper_allocate_tmp_reg_with_init((uae_u32)history->pc + ((uae_u32)pc_ptr - (uae_u32)history->location));
 
 	//Load stack register
-	uae_u8 a7_reg = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(7), TRUE, TRUE);
+	comp_tmp_reg* a7_reg = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(7), TRUE, TRUE);
 
 	//Subtract data size from stack register
 	comp_macroblock_push_add_register_imm(
 			COMP_COMPILER_MACROBLOCK_REG_A7,
 			COMP_COMPILER_MACROBLOCK_REG_A7,
-			a7_reg,
-			a7_reg,
+			a7_reg->mapped_reg_num,
+			a7_reg->mapped_reg_num,
 			-4);
 
 	//Save it to the stack and free temp register
 	helper_write_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | COMP_COMPILER_MACROBLOCK_REG_A7,
+			tempreg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_REG_A7,
 			history,
 			a7_reg,
-			tempreg, 0, 4);
+			tempreg, 4);
 }
 void comp_opcode_JMPIMM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
 	//Load immediate into a temporary register
-	int tempreg = helper_allocate_tmp_reg_with_init(src_immediate);
+	comp_tmp_reg* tempreg = helper_allocate_tmp_reg_with_init(src_immediate);
 
 	//Load target address to PC
 	comp_macroblock_push_load_pc_from_register(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-			comp_get_gpr_for_temp_register(tempreg));
+			tempreg->reg_usage_mapping,
+			tempreg->mapped_reg_num);
 
 	helper_free_tmp_reg(tempreg);
 }
@@ -1657,17 +1633,17 @@ void comp_opcode_JMPIND(const cpu_history* history, struct comptbl* props) REGPA
 	//Load target address to PC
 	comp_macroblock_push_load_pc_from_register(
 			input_dep,
-			src_mem_addrreg_mapped);
+			src_mem_addrreg->mapped_reg_num);
 }
 void comp_opcode_JSRIMM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
 	//Load immediate into a temporary register
-	int tempreg = helper_allocate_tmp_reg_with_init(src_immediate);
+	comp_tmp_reg* tempreg = helper_allocate_tmp_reg_with_init(src_immediate);
 
 	//Load target address to PC
 	comp_macroblock_push_load_pc_from_register(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-			comp_get_gpr_for_temp_register(tempreg));
+			tempreg->reg_usage_mapping,
+			tempreg->mapped_reg_num);
 
 	helper_free_tmp_reg(tempreg);
 
@@ -1675,58 +1651,58 @@ void comp_opcode_JSRIMM(const cpu_history* history, struct comptbl* props) REGPA
 	tempreg = helper_allocate_tmp_reg_with_init((uae_u32)history->pc + ((uae_u32)pc_ptr - (uae_u32)history->location));
 
 	//Load stack register
-	uae_u8 a7_reg = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(7), TRUE, TRUE);
+	comp_tmp_reg* a7_reg = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(7), TRUE, TRUE);
 
 	//Subtract data size from stack register
 	comp_macroblock_push_add_register_imm(
 			COMP_COMPILER_MACROBLOCK_REG_A7,
 			COMP_COMPILER_MACROBLOCK_REG_A7,
-			a7_reg,
-			a7_reg,
+			a7_reg->mapped_reg_num,
+			a7_reg->mapped_reg_num,
 			-4);
 
 	//Save it to the stack and free temp register
 	helper_write_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | COMP_COMPILER_MACROBLOCK_REG_A7,
+			tempreg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_REG_A7,
 			history,
 			a7_reg,
-			tempreg, 0, 4);
+			tempreg, 4);
 }
 void comp_opcode_JSRIND(const cpu_history* history, struct comptbl* props) REGPARAM
 {
 	//Load target address to PC
 	comp_macroblock_push_load_pc_from_register(
 			input_dep,
-			src_mem_addrreg_mapped);
+			src_mem_addrreg->mapped_reg_num);
 
 	//Load the next address after the current instruction into a temp register
-	uae_u8 tempreg = helper_allocate_tmp_reg_with_init((uae_u32)history->pc + ((uae_u32)pc_ptr - (uae_u32)history->location));
+	comp_tmp_reg* tempreg = helper_allocate_tmp_reg_with_init((uae_u32)history->pc + ((uae_u32)pc_ptr - (uae_u32)history->location));
 
 	//Load stack register
-	uae_u8 a7_reg = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(7), TRUE, TRUE);
+	comp_tmp_reg* a7_reg = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(7), TRUE, TRUE);
 
 	//Subtract data size from stack register
 	comp_macroblock_push_add_register_imm(
 			COMP_COMPILER_MACROBLOCK_REG_A7,
 			COMP_COMPILER_MACROBLOCK_REG_A7,
-			a7_reg,
-			a7_reg,
+			a7_reg->mapped_reg_num,
+			a7_reg->mapped_reg_num,
 			-4);
 
 	//Save it to the stack and free temp register
 	helper_write_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | COMP_COMPILER_MACROBLOCK_REG_A7,
+			tempreg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_REG_A7,
 			history,
 			a7_reg,
-			tempreg, 0, 4);
+			tempreg, 4);
 }
 void comp_opcode_RTS(const cpu_history* history, struct comptbl* props) REGPARAM
 {
 	//Load stack register
-	uae_u8 a7_reg = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(7), TRUE, FALSE);
+	comp_tmp_reg* a7_reg = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(7), TRUE, FALSE);
 
 	//Read return address from the stack
-	int tempreg = helper_read_memory(
+	comp_tmp_reg* tempreg = helper_read_memory(
 			COMP_COMPILER_MACROBLOCK_REG_A7,
 			history,
 			a7_reg,
@@ -1735,8 +1711,8 @@ void comp_opcode_RTS(const cpu_history* history, struct comptbl* props) REGPARAM
 
 	//Load return address to PC
 	comp_macroblock_push_load_pc_from_register(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-			comp_get_gpr_for_temp_register(tempreg));
+			tempreg->reg_usage_mapping,
+			tempreg->mapped_reg_num);
 
 	//Remap stack register
 	a7_reg = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(7), TRUE, TRUE);
@@ -1745,8 +1721,8 @@ void comp_opcode_RTS(const cpu_history* history, struct comptbl* props) REGPARAM
 	comp_macroblock_push_add_register_imm(
 			COMP_COMPILER_MACROBLOCK_REG_A7,
 			COMP_COMPILER_MACROBLOCK_REG_A7,
-			a7_reg,
-			a7_reg,
+			a7_reg->mapped_reg_num,
+			a7_reg->mapped_reg_num,
 			4);
 
 	//Free temp register
@@ -1933,9 +1909,9 @@ void comp_opcode_NOTREGL(const cpu_history* history, struct comptbl* props) REGP
 	comp_macroblock_push_not_or_register_register(
 			output_dep,
 			output_dep,
-			dest_reg_mapped,
-			dest_reg_mapped,
-			dest_reg_mapped,
+			dest_reg->mapped_reg_num,
+			dest_reg->mapped_reg_num,
+			dest_reg->mapped_reg_num,
 			TRUE);
 
 	//Save flags
@@ -1946,14 +1922,14 @@ void comp_opcode_NOTREGW(const cpu_history* history, struct comptbl* props) REGP
 	comp_macroblock_push_xor_low_register_imm(
 			output_dep,
 			output_dep,
-			dest_reg_mapped,
-			dest_reg_mapped,
+			dest_reg->mapped_reg_num,
+			dest_reg->mapped_reg_num,
 			0xffff);
 
 	//Check result
 	comp_macroblock_push_check_word_register(
 			output_dep,
-			dest_reg_mapped);
+			dest_reg->mapped_reg_num);
 
 	//Save flags
 	helper_check_nz_clear_cv_flags();
@@ -1963,14 +1939,14 @@ void comp_opcode_NOTREGB(const cpu_history* history, struct comptbl* props) REGP
 	comp_macroblock_push_xor_low_register_imm(
 			output_dep,
 			output_dep,
-			dest_reg_mapped,
-			dest_reg_mapped,
+			dest_reg->mapped_reg_num,
+			dest_reg->mapped_reg_num,
 			0xff);
 
 	//Check result
 	comp_macroblock_push_check_byte_register(
 			output_dep,
-			dest_reg_mapped);
+			dest_reg->mapped_reg_num);
 
 	//Save flags
 	helper_check_nz_clear_cv_flags();
@@ -2002,22 +1978,21 @@ void comp_opcode_EORIMM2CCRB(const cpu_history* history, struct comptbl* props) 
 void comp_opcode_BTSTIMM2MEM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
 	//Read memory from source (byte size operation)
-	int tempreg = helper_read_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+	comp_tmp_reg* tempreg = helper_read_memory(
+			dest_mem_addrreg->reg_usage_mapping,
 			history,
-			dest_mem_addrreg_mapped,
+			dest_mem_addrreg,
 			1,
 			FALSE);
-	int tempreg_mapped = comp_get_gpr_for_temp_register(tempreg);
 
 	//Limit immediate into 0-7 range
 	src_immediate &= 7;
 
 	//Test bit in register
 	helper_test_bit_register_imm(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
+			tempreg->reg_usage_mapping,
 			src_immediate,
-			tempreg_mapped);
+			tempreg);
 
 	//Free temp register
 	helper_free_tmp_reg(tempreg);
@@ -2025,23 +2000,22 @@ void comp_opcode_BTSTIMM2MEM(const cpu_history* history, struct comptbl* props) 
 void comp_opcode_BTSTREG2MEM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
 	//Read memory from source (byte size operation)
-	int tempreg = helper_read_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+	comp_tmp_reg* tempreg = helper_read_memory(
+			dest_mem_addrreg->reg_usage_mapping,
 			history,
-			dest_mem_addrreg_mapped,
+			dest_mem_addrreg,
 			1,
 			FALSE);
-	int tempreg_mapped = comp_get_gpr_for_temp_register(tempreg);
 
 	//Re-map source register
-	src_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_DATAREG(props->srcreg), TRUE, FALSE);
+	src_reg = comp_map_temp_register(COMP_COMPILER_REGS_DATAREG(props->srcreg), TRUE, FALSE);
 
 	//Test bit in register and return mask in a register
-	int masktempreg = helper_test_bit_register_register(
+	comp_tmp_reg* masktempreg = helper_test_bit_register_register(
 			input_dep,
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-			src_reg_mapped,
-			tempreg_mapped,
+			tempreg->reg_usage_mapping,
+			src_reg,
+			tempreg,
 			8);
 
 	//Free temp regs
@@ -2054,51 +2028,49 @@ void comp_opcode_BTSTIMM2REG(const cpu_history* history, struct comptbl* props) 
 	src_immediate &= 31;
 
 	//Test bit in register
-	helper_test_bit_register_imm(output_dep, src_immediate, dest_reg_mapped);
+	helper_test_bit_register_imm(output_dep, src_immediate, dest_reg);
 }
 void comp_opcode_BTSTREG2REG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
 	//Test bit in register
-	int masktempreg = helper_test_bit_register_register(
+	comp_tmp_reg* masktempreg = helper_test_bit_register_register(
 			input_dep,
 			output_dep,
-			src_reg_mapped,
-			dest_reg_mapped,
+			src_reg,
+			dest_reg,
 			32);
 
 	helper_free_tmp_reg(masktempreg);
 }
 void comp_opcode_BTSTREG2IMM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	int masktempreg = helper_allocate_tmp_reg_with_init(1);
-	int masktempreg_mapped = comp_get_gpr_for_temp_register(masktempreg);
+	comp_tmp_reg* masktempreg = helper_allocate_tmp_reg_with_init(1);
 
-	int srctmpreg = helper_allocate_tmp_reg();
-	int srctmpreg_mapped = comp_get_gpr_for_temp_register(srctmpreg);
+	comp_tmp_reg* srctmpreg = helper_allocate_tmp_reg();
 
 	//Modulo 8 for the input register
 	comp_macroblock_push_and_low_register_imm(
 			input_dep,
-			COMP_COMPILER_MACROBLOCK_REG_TMP(srctmpreg),
-			srctmpreg_mapped,
-			src_reg_mapped,
+			srctmpreg->reg_usage_mapping,
+			srctmpreg->mapped_reg_num,
+			src_reg->mapped_reg_num,
 			7);
 
 	//Rotate the masking bit to the right position
 	comp_macroblock_push_rotate_and_mask_bits_register(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(srctmpreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(masktempreg),
-			COMP_COMPILER_MACROBLOCK_REG_TMP(masktempreg),
-			masktempreg_mapped,
-			masktempreg_mapped,
-			srctmpreg_mapped,
+			srctmpreg->reg_usage_mapping | masktempreg->reg_usage_mapping,
+			masktempreg->reg_usage_mapping,
+			masktempreg->mapped_reg_num,
+			masktempreg->mapped_reg_num,
+			srctmpreg->mapped_reg_num,
 			0, 31, FALSE);
 
 	//And operation with the source register mask and the immediate
 	comp_macroblock_push_and_low_register_imm(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(masktempreg),
+			masktempreg->reg_usage_mapping,
 			COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
 			PPCR_SPECTMP,
-			masktempreg_mapped,
+			masktempreg->mapped_reg_num,
 			dest_immediate);
 
 	//Free temp registers
@@ -2111,79 +2083,75 @@ void comp_opcode_BTSTREG2IMM(const cpu_history* history, struct comptbl* props) 
 void comp_opcode_BSETIMM2MEM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
 	//Read memory from source (byte size operation)
-	int tempreg = helper_read_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+	comp_tmp_reg* tempreg = helper_read_memory(
+			dest_mem_addrreg->reg_usage_mapping,
 			history,
-			dest_mem_addrreg_mapped,
+			dest_mem_addrreg,
 			1,
 			TRUE);
-	int tempreg_mapped = comp_get_gpr_for_temp_register(tempreg);
 
 	//Limit immediate into 0-7 range
 	src_immediate &= 7;
 
 	//Test bit in register
 	helper_test_bit_register_imm(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
+			tempreg->reg_usage_mapping,
 			src_immediate,
-			tempreg_mapped);
+			tempreg);
 
 	//Set the bit in the lower word
 	comp_macroblock_push_or_low_register_imm(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-			tempreg_mapped,
-			tempreg_mapped,
+			tempreg->reg_usage_mapping,
+			tempreg->reg_usage_mapping,
+			tempreg->mapped_reg_num,
+			tempreg->mapped_reg_num,
 			1 << src_immediate);
 
 	//Write result to destination memory address and release temp register
 	helper_write_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+			tempreg->reg_usage_mapping | dest_mem_addrreg->reg_usage_mapping,
 			history,
-			dest_mem_addrreg_mapped,
-			tempreg, 0,
-			1);
+			dest_mem_addrreg,
+			tempreg, 1);
 }
 void comp_opcode_BSETREG2MEM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
 	//Read memory from source (byte size operation)
-	int tempreg = helper_read_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+	comp_tmp_reg* tempreg = helper_read_memory(
+			dest_mem_addrreg->reg_usage_mapping,
 			history,
-			dest_mem_addrreg_mapped,
+			dest_mem_addrreg,
 			1,
 			TRUE);
-	int tempreg_mapped = comp_get_gpr_for_temp_register(tempreg);
 
 	//Re-map source register
-	src_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_DATAREG(props->srcreg), TRUE, FALSE);
+	src_reg = comp_map_temp_register(COMP_COMPILER_REGS_DATAREG(props->srcreg), TRUE, FALSE);
 
 	//Test bit in register and return mask in a register
-	int masktempreg = helper_test_bit_register_register(
+	comp_tmp_reg* masktempreg = helper_test_bit_register_register(
 			input_dep,
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-			src_reg_mapped,
-			tempreg_mapped,
+			tempreg->reg_usage_mapping,
+			src_reg,
+			tempreg,
 			8);
 
 	//Set the bit
 	comp_macroblock_push_or_register_register(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(masktempreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-			tempreg_mapped,
-			tempreg_mapped,
-			comp_get_gpr_for_temp_register(masktempreg),
+			masktempreg->reg_usage_mapping | tempreg->reg_usage_mapping,
+			tempreg->reg_usage_mapping,
+			tempreg->mapped_reg_num,
+			tempreg->mapped_reg_num,
+			masktempreg->mapped_reg_num,
 			FALSE);
 
 	helper_free_tmp_reg(masktempreg);
 
 	//Write result to destination memory address and release temp register
 	helper_write_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+			tempreg->reg_usage_mapping | dest_mem_addrreg->reg_usage_mapping,
 			history,
-			dest_mem_addrreg_mapped,
-			tempreg, 0,
-			1);
+			dest_mem_addrreg,
+			tempreg, 1);
 }
 void comp_opcode_BSETIMM2REG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
@@ -2191,7 +2159,7 @@ void comp_opcode_BSETIMM2REG(const cpu_history* history, struct comptbl* props) 
 	src_immediate &= 31;
 
 	//Test bit in register
-	helper_test_bit_register_imm(output_dep, src_immediate, dest_reg_mapped);
+	helper_test_bit_register_imm(output_dep, src_immediate, dest_reg);
 
 	if (src_immediate < 16)
 	{
@@ -2199,36 +2167,36 @@ void comp_opcode_BSETIMM2REG(const cpu_history* history, struct comptbl* props) 
 		comp_macroblock_push_or_low_register_imm(
 				output_dep,
 				output_dep,
-				dest_reg_mapped,
-				dest_reg_mapped,
+				dest_reg->mapped_reg_num,
+				dest_reg->mapped_reg_num,
 				1 << src_immediate);
 	} else {
 		//Bit is in the higher word
 		comp_macroblock_push_or_high_register_imm(
 				output_dep,
 				output_dep,
-				dest_reg_mapped,
-				dest_reg_mapped,
+				dest_reg->mapped_reg_num,
+				dest_reg->mapped_reg_num,
 				1 << (src_immediate - 16));
 	}
 }
 void comp_opcode_BSETREG2REG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
 	//Test bit in register
-	int masktempreg = helper_test_bit_register_register(
+	comp_tmp_reg* masktempreg = helper_test_bit_register_register(
 			input_dep,
 			output_dep,
-			src_reg_mapped,
-			dest_reg_mapped,
+			src_reg,
+			dest_reg,
 			32);
 
 	//Set bit in output register
 	comp_macroblock_push_or_register_register(
-			output_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(masktempreg),
+			output_dep | masktempreg->reg_usage_mapping,
 			output_dep,
-			dest_reg_mapped,
-			dest_reg_mapped,
-			comp_get_gpr_for_temp_register(masktempreg),
+			dest_reg->mapped_reg_num,
+			dest_reg->mapped_reg_num,
+			masktempreg->mapped_reg_num,
 			FALSE);
 
 	helper_free_tmp_reg(masktempreg);
@@ -2236,79 +2204,75 @@ void comp_opcode_BSETREG2REG(const cpu_history* history, struct comptbl* props) 
 void comp_opcode_BCLRIMM2MEM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
 	//Read memory from source (byte size operation)
-	int tempreg = helper_read_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+	comp_tmp_reg* tempreg = helper_read_memory(
+			dest_mem_addrreg->reg_usage_mapping,
 			history,
-			dest_mem_addrreg_mapped,
+			dest_mem_addrreg,
 			1,
 			TRUE);
-	int tempreg_mapped = comp_get_gpr_for_temp_register(tempreg);
 
 	//Limit immediate into 0-7 range
 	src_immediate &= 7;
 
 	//Test bit in register
 	helper_test_bit_register_imm(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
+			tempreg->reg_usage_mapping,
 			src_immediate,
-			tempreg_mapped);
+			tempreg);
 
 	//Clear the bit in the lower word (operation is byte-sized)
 	comp_macroblock_push_and_low_register_imm(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-			tempreg_mapped,
-			tempreg_mapped,
+			tempreg->reg_usage_mapping,
+			tempreg->reg_usage_mapping,
+			tempreg->mapped_reg_num,
+			tempreg->mapped_reg_num,
 			~(1 << src_immediate));
 
 	//Write result to destination memory address and release temp register
 	helper_write_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+			tempreg->reg_usage_mapping | dest_mem_addrreg->reg_usage_mapping,
 			history,
-			dest_mem_addrreg_mapped,
-			tempreg, 0,
-			1);
+			dest_mem_addrreg,
+			tempreg, 1);
 }
 void comp_opcode_BCLRREG2MEM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
 	//Read memory from source (byte size operation)
-	int tempreg = helper_read_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+	comp_tmp_reg* tempreg = helper_read_memory(
+			dest_mem_addrreg->reg_usage_mapping,
 			history,
-			dest_mem_addrreg_mapped,
+			dest_mem_addrreg,
 			1,
 			TRUE);
-	int tempreg_mapped = comp_get_gpr_for_temp_register(tempreg);
 
 	//Re-map source register
-	src_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_DATAREG(props->srcreg), TRUE, FALSE);
+	src_reg = comp_map_temp_register(COMP_COMPILER_REGS_DATAREG(props->srcreg), TRUE, FALSE);
 
 	//Test bit in register and return mask in a register
-	int masktempreg = helper_test_bit_register_register(
+	comp_tmp_reg* masktempreg = helper_test_bit_register_register(
 			input_dep,
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-			src_reg_mapped,
-			tempreg_mapped,
+			tempreg->reg_usage_mapping,
+			src_reg,
+			tempreg,
 			8);
 
 	//Clear the bit
 	comp_macroblock_push_and_register_complement_register(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(masktempreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-			tempreg_mapped,
-			tempreg_mapped,
-			comp_get_gpr_for_temp_register(masktempreg),
+			masktempreg->reg_usage_mapping | tempreg->reg_usage_mapping,
+			tempreg->reg_usage_mapping,
+			tempreg->mapped_reg_num,
+			tempreg->mapped_reg_num,
+			masktempreg->mapped_reg_num,
 			FALSE);
 
 	helper_free_tmp_reg(masktempreg);
 
 	//Write result to destination memory address and release temp register
 	helper_write_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+			tempreg->reg_usage_mapping | dest_mem_addrreg->reg_usage_mapping,
 			history,
-			dest_mem_addrreg_mapped,
-			tempreg, 0,
-			1);
+			dest_mem_addrreg,
+			tempreg, 1);
 }
 void comp_opcode_BCLRIMM2REG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
@@ -2316,18 +2280,18 @@ void comp_opcode_BCLRIMM2REG(const cpu_history* history, struct comptbl* props) 
 	src_immediate &= 31;
 
 	//Test bit in register
-	helper_test_bit_register_imm(output_dep, src_immediate, dest_reg_mapped);
+	helper_test_bit_register_imm(output_dep, src_immediate, dest_reg);
 
 	//Load inverted mask into temp register
-	int tempreg = helper_allocate_tmp_reg_with_init(~(1 << src_immediate));
+	comp_tmp_reg* tempreg = helper_allocate_tmp_reg_with_init(~(1 << src_immediate));
 
 	//Mask it
 	comp_macroblock_push_and_register_register(
-			output_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
+			output_dep | tempreg->reg_usage_mapping,
 			output_dep,
-			dest_reg_mapped,
-			dest_reg_mapped,
-			comp_get_gpr_for_temp_register(tempreg),
+			dest_reg->mapped_reg_num,
+			dest_reg->mapped_reg_num,
+			tempreg->mapped_reg_num,
 			FALSE);
 
 	comp_free_temp_register(tempreg);
@@ -2335,20 +2299,20 @@ void comp_opcode_BCLRIMM2REG(const cpu_history* history, struct comptbl* props) 
 void comp_opcode_BCLRREG2REG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
 	//Test bit in register
-	int masktempreg = helper_test_bit_register_register(
+	comp_tmp_reg* masktempreg = helper_test_bit_register_register(
 			input_dep,
 			output_dep,
-			src_reg_mapped,
-			dest_reg_mapped,
+			src_reg,
+			dest_reg,
 			32);
 
 	//Clear bit in output register (and with complement of the mask)
 	comp_macroblock_push_and_register_complement_register(
-			output_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(masktempreg),
+			output_dep | masktempreg->reg_usage_mapping,
 			output_dep,
-			dest_reg_mapped,
-			dest_reg_mapped,
-			comp_get_gpr_for_temp_register(masktempreg),
+			dest_reg->mapped_reg_num,
+			dest_reg->mapped_reg_num,
+			masktempreg->mapped_reg_num,
 			FALSE);
 
 	helper_free_tmp_reg(masktempreg);
@@ -2356,79 +2320,75 @@ void comp_opcode_BCLRREG2REG(const cpu_history* history, struct comptbl* props) 
 void comp_opcode_BCHGIMM2MEM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
 	//Read memory from source (byte size operation)
-	int tempreg = helper_read_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+	comp_tmp_reg* tempreg = helper_read_memory(
+			dest_mem_addrreg->reg_usage_mapping,
 			history,
-			dest_mem_addrreg_mapped,
+			dest_mem_addrreg,
 			1,
 			TRUE);
-	int tempreg_mapped = comp_get_gpr_for_temp_register(tempreg);
 
 	//Limit immediate into 0-7 range
 	src_immediate &= 7;
 
 	//Test bit in register
 	helper_test_bit_register_imm(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
+			tempreg->reg_usage_mapping,
 			src_immediate,
-			tempreg_mapped);
+			tempreg);
 
 	//Reverse the bit in the lower word
 	comp_macroblock_push_xor_low_register_imm(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-			tempreg_mapped,
-			tempreg_mapped,
+			tempreg->reg_usage_mapping,
+			tempreg->reg_usage_mapping,
+			tempreg->mapped_reg_num,
+			tempreg->mapped_reg_num,
 			1 << src_immediate);
 
 	//Write result to destination memory address and release temp register
 	helper_write_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+			tempreg->reg_usage_mapping | dest_mem_addrreg->reg_usage_mapping,
 			history,
-			dest_mem_addrreg_mapped,
-			tempreg, 0,
-			1);
+			dest_mem_addrreg,
+			tempreg, 1);
 }
 void comp_opcode_BCHGREG2MEM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
 	//Read memory from source (byte size operation)
-	int tempreg = helper_read_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+	comp_tmp_reg* tempreg = helper_read_memory(
+			dest_mem_addrreg->reg_usage_mapping,
 			history,
-			dest_mem_addrreg_mapped,
+			dest_mem_addrreg,
 			1,
 			TRUE);
-	int tempreg_mapped = comp_get_gpr_for_temp_register(tempreg);
 
 	//Re-map source register
-	src_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_DATAREG(props->srcreg), TRUE, FALSE);
+	src_reg = comp_map_temp_register(COMP_COMPILER_REGS_DATAREG(props->srcreg), TRUE, FALSE);
 
 	//Test bit in register and return mask in a register
-	int masktempreg = helper_test_bit_register_register(
+	comp_tmp_reg* masktempreg = helper_test_bit_register_register(
 			input_dep,
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-			src_reg_mapped,
-			tempreg_mapped,
+			tempreg->reg_usage_mapping,
+			src_reg,
+			tempreg,
 			8);
 
 	//Set the bit
 	comp_macroblock_push_xor_register_register(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(masktempreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-			tempreg_mapped,
-			tempreg_mapped,
-			comp_get_gpr_for_temp_register(masktempreg),
+			masktempreg->reg_usage_mapping | tempreg->reg_usage_mapping,
+			tempreg->reg_usage_mapping,
+			tempreg->mapped_reg_num,
+			tempreg->mapped_reg_num,
+			masktempreg->mapped_reg_num,
 			FALSE);
 
 	helper_free_tmp_reg(masktempreg);
 
 	//Write result to destination memory address and release temp register
 	helper_write_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+			tempreg->reg_usage_mapping | dest_mem_addrreg->reg_usage_mapping,
 			history,
-			dest_mem_addrreg_mapped,
-			tempreg, 0,
-			1);
+			dest_mem_addrreg,
+			tempreg, 1);
 }
 void comp_opcode_BCHGIMM2REG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
@@ -2436,7 +2396,7 @@ void comp_opcode_BCHGIMM2REG(const cpu_history* history, struct comptbl* props) 
 	src_immediate &= 31;
 
 	//Test bit in register
-	helper_test_bit_register_imm(output_dep, src_immediate, dest_reg_mapped);
+	helper_test_bit_register_imm(output_dep, src_immediate, dest_reg);
 
 	if (src_immediate < 16)
 	{
@@ -2444,36 +2404,36 @@ void comp_opcode_BCHGIMM2REG(const cpu_history* history, struct comptbl* props) 
 		comp_macroblock_push_xor_low_register_imm(
 				output_dep,
 				output_dep,
-				dest_reg_mapped,
-				dest_reg_mapped,
+				dest_reg->mapped_reg_num,
+				dest_reg->mapped_reg_num,
 				1 << src_immediate);
 	} else {
 		//Bit is in the higher word
 		comp_macroblock_push_xor_high_register_imm(
 				output_dep,
 				output_dep,
-				dest_reg_mapped,
-				dest_reg_mapped,
+				dest_reg->mapped_reg_num,
+				dest_reg->mapped_reg_num,
 				1 << (src_immediate - 16));
 	}
 }
 void comp_opcode_BCHGREG2REG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
 	//Test bit in register
-	int masktempreg = helper_test_bit_register_register(
+	comp_tmp_reg* masktempreg = helper_test_bit_register_register(
 			input_dep,
 			output_dep,
-			src_reg_mapped,
-			dest_reg_mapped,
+			src_reg,
+			dest_reg,
 			32);
 
 	//Set bit in output register
 	comp_macroblock_push_xor_register_register(
-			output_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(masktempreg),
+			output_dep | masktempreg->reg_usage_mapping,
 			output_dep,
-			dest_reg_mapped,
-			dest_reg_mapped,
-			comp_get_gpr_for_temp_register(masktempreg),
+			dest_reg->mapped_reg_num,
+			dest_reg->mapped_reg_num,
+			masktempreg->mapped_reg_num,
 			FALSE);
 
 	helper_free_tmp_reg(masktempreg);
@@ -2481,44 +2441,42 @@ void comp_opcode_BCHGREG2REG(const cpu_history* history, struct comptbl* props) 
 void comp_opcode_TAS2MEM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
 	//Read memory from source
-	int tempreg = helper_read_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+	comp_tmp_reg* tempreg = helper_read_memory(
+			dest_mem_addrreg->reg_usage_mapping,
 			history,
-			dest_mem_addrreg_mapped,
+			dest_mem_addrreg,
 			1,
 			TRUE);
-	int tempreg_mapped = comp_get_gpr_for_temp_register(tempreg);
 
 	//Test byte-sized register
 	comp_macroblock_push_check_byte_register(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-			tempreg_mapped);
+			tempreg->reg_usage_mapping,
+			tempreg->mapped_reg_num);
 
 	//Save flags
 	helper_check_nz_clear_cv_flags();
 
 	//Set highest bit of the lowest byte in source register
 	comp_macroblock_push_or_low_register_imm(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-			tempreg_mapped,
-			tempreg_mapped,
+			tempreg->reg_usage_mapping,
+			tempreg->reg_usage_mapping,
+			tempreg->mapped_reg_num,
+			tempreg->mapped_reg_num,
 			0x80);
 
 	//Write result to destination memory address and release temp register
 	helper_write_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+			tempreg->reg_usage_mapping | dest_mem_addrreg->reg_usage_mapping,
 			history,
-			dest_mem_addrreg_mapped,
-			tempreg, 0,
-			1);
+			dest_mem_addrreg,
+			tempreg, 1);
 }
 void comp_opcode_TAS2REG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
 	//Test byte-sized register
 	comp_macroblock_push_check_byte_register(
 			output_dep,
-			dest_reg_mapped);
+			dest_reg->mapped_reg_num);
 
 	//Save flags
 	helper_check_nz_clear_cv_flags();
@@ -2527,8 +2485,8 @@ void comp_opcode_TAS2REG(const cpu_history* history, struct comptbl* props) REGP
 	comp_macroblock_push_or_high_register_imm(
 			output_dep,
 			output_dep,
-			dest_reg_mapped,
-			dest_reg_mapped,
+			dest_reg->mapped_reg_num,
+			dest_reg->mapped_reg_num,
 			0x80);
 }
 void comp_opcode_ASLIMM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
@@ -2794,25 +2752,23 @@ void comp_opcode_CMPMEM2MEMB(const cpu_history* history, struct comptbl* props) 
 void comp_opcode_CMPAMEM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
 	//Read memory from source
-	int tempreg = helper_read_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg),
+	comp_tmp_reg* tempreg = helper_read_memory(
+			src_mem_addrreg->reg_usage_mapping,
 			history,
-			src_mem_addrreg_mapped,
+			src_mem_addrreg,
 			4,
 			FALSE);
 
-	int tempreg_mapped = comp_get_gpr_for_temp_register(tempreg);
-
 	//Re-map destination register
-	dest_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->destreg), TRUE, FALSE);
+	dest_reg = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->destreg), TRUE, FALSE);
 
 	//Compile SUBFCO PPC opcode
 	comp_macroblock_push_sub_with_flags(
-			output_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
+			output_dep | tempreg->reg_usage_mapping,
 			COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
-			tempreg_mapped,
-			tempreg_mapped,
-			dest_reg_mapped);
+			tempreg->mapped_reg_num,
+			tempreg->mapped_reg_num,
+			dest_reg->mapped_reg_num);
 
 	//Free temp register
 	helper_free_tmp_reg(tempreg);
@@ -2822,37 +2778,34 @@ void comp_opcode_CMPAMEM2REGL(const cpu_history* history, struct comptbl* props)
 }
 void comp_opcode_CMPAMEM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	uae_u8 desttempreg;
-	uae_u8 desttempreg_mapped;
+	comp_tmp_reg* desttempreg;
 
 	//Read memory from source
-	int tempreg = helper_read_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg),
+	comp_tmp_reg* tempreg = helper_read_memory(
+			src_mem_addrreg->reg_usage_mapping,
 			history,
-			src_mem_addrreg_mapped,
+			src_mem_addrreg,
 			2,
 			FALSE);
 
-	int tempreg_mapped = comp_get_gpr_for_temp_register(tempreg);
-
 	//Re-map destination register
-	dest_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_DATAREG(props->destreg), TRUE, FALSE);
+	dest_reg = comp_map_temp_register(COMP_COMPILER_REGS_DATAREG(props->destreg), TRUE, FALSE);
 
 	//Address registers are always longword sized: sign extend source data
 	comp_macroblock_push_copy_register_word_extended(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-			tempreg_mapped,
-			tempreg_mapped,
+			tempreg->reg_usage_mapping,
+			tempreg->reg_usage_mapping,
+			tempreg->mapped_reg_num,
+			tempreg->mapped_reg_num,
 			FALSE);
 
 	//Compile SUBFCO PPC opcode
 	comp_macroblock_push_sub_with_flags(
-			output_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
+			output_dep | tempreg->reg_usage_mapping,
 			COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
-			tempreg_mapped,
-			tempreg_mapped,
-			dest_reg_mapped);
+			tempreg->mapped_reg_num,
+			tempreg->mapped_reg_num,
+			dest_reg->mapped_reg_num);
 
 	//Free temp register
 	helper_free_tmp_reg(tempreg);
@@ -2862,24 +2815,23 @@ void comp_opcode_CMPAMEM2REGW(const cpu_history* history, struct comptbl* props)
 }
 void comp_opcode_CMPAREG2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	uae_u8 srctempreg = helper_allocate_tmp_reg();
-	int srctempreg_mapped = comp_get_gpr_for_temp_register(srctempreg);
+	comp_tmp_reg* srctempreg = helper_allocate_tmp_reg();
 
 	//Address registers are always longword sized: sign extend source data
 	comp_macroblock_push_copy_register_word_extended(
 			input_dep,
-			COMP_COMPILER_MACROBLOCK_REG_TMP(srctempreg),
-			srctempreg_mapped,
-			src_reg_mapped,
+			srctempreg->reg_usage_mapping,
+			srctempreg->mapped_reg_num,
+			src_reg->mapped_reg_num,
 			FALSE);
 
 	//Compile SUBFCO PPC opcode
 	comp_macroblock_push_sub_with_flags(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(srctempreg) | output_dep,
+			srctempreg->reg_usage_mapping | output_dep,
 			COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
 			PPCR_SPECTMP,
-			srctempreg_mapped,
-			dest_reg_mapped);
+			srctempreg->mapped_reg_num,
+			dest_reg->mapped_reg_num);
 
 	helper_free_tmp_reg(srctempreg);
 
@@ -2892,23 +2844,22 @@ void comp_opcode_CMPIMM2REGL(const cpu_history* history, struct comptbl* props) 
 }
 void comp_opcode_CMPAIMM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	uae_u8 immtempreg = helper_allocate_tmp_reg();
-	uae_u8 immtempreg_mapped = comp_get_gpr_for_temp_register(immtempreg);
+	comp_tmp_reg* immtempreg = helper_allocate_tmp_reg();
 
 	//Load the immediate value to the temp register
 	//sign-extended to longword size
 	comp_macroblock_push_load_register_word_extended(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(immtempreg),
-			immtempreg_mapped,
+			immtempreg->reg_usage_mapping,
+			immtempreg->mapped_reg_num,
 			src_immediate);
 
 	//Do longword compare: compile SUBFCO PPC opcode
 	comp_macroblock_push_sub_with_flags(
-			output_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(immtempreg),
+			output_dep | immtempreg->reg_usage_mapping,
 			COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
-			immtempreg_mapped,
-			immtempreg_mapped,
-			dest_reg_mapped);
+			immtempreg->mapped_reg_num,
+			immtempreg->mapped_reg_num,
+			dest_reg->mapped_reg_num);
 
 	//Save flags: NZVC
 	helper_check_nzcv_flags(TRUE);
@@ -3027,8 +2978,8 @@ void comp_opcode_ADDAQ2REGL(const cpu_history* history, struct comptbl* props) R
 	comp_macroblock_push_add_register_imm(
 			output_dep,
 			output_dep,
-			dest_reg_mapped,
-			dest_reg_mapped,
+			dest_reg->mapped_reg_num,
+			dest_reg->mapped_reg_num,
 			src_immediate);
 }
 void comp_opcode_ADDQ2MEML(const cpu_history* history, struct comptbl* props) REGPARAM
@@ -3046,25 +2997,23 @@ void comp_opcode_ADDQ2MEMB(const cpu_history* history, struct comptbl* props) RE
 void comp_opcode_ADDAMEM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
 	//Read memory from source
-	int tempreg = helper_read_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg),
+	comp_tmp_reg* tempreg = helper_read_memory(
+			src_mem_addrreg->reg_usage_mapping,
 			history,
-			src_mem_addrreg_mapped,
+			src_mem_addrreg,
 			4,
 			FALSE);
 
-	int tempreg_mapped = comp_get_gpr_for_temp_register(tempreg);
-
 	//Re-map destination register
-	dest_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->destreg), TRUE, TRUE);
+	dest_reg = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->destreg), TRUE, TRUE);
 
 	//Add the output to the target register
 	comp_macroblock_push_add(
-			output_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
+			output_dep | tempreg->reg_usage_mapping,
 			output_dep,
-			dest_reg_mapped,
-			dest_reg_mapped,
-			tempreg_mapped);
+			dest_reg->mapped_reg_num,
+			dest_reg->mapped_reg_num,
+			tempreg->mapped_reg_num);
 
 	//Free temp register
 	helper_free_tmp_reg(tempreg);
@@ -3072,33 +3021,32 @@ void comp_opcode_ADDAMEM2REGL(const cpu_history* history, struct comptbl* props)
 void comp_opcode_ADDAMEM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
 	//Read memory from source
-	int tempreg = helper_read_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg),
+	comp_tmp_reg* tempreg = helper_read_memory(
+			src_mem_addrreg->reg_usage_mapping,
 			history,
-			src_mem_addrreg_mapped,
+			src_mem_addrreg,
 			2,
 			FALSE);
-	int tempreg_mapped = comp_get_gpr_for_temp_register(tempreg);
 
 	//Re-map destination register
-	dest_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->destreg), TRUE, TRUE);
+	dest_reg = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->destreg), TRUE, TRUE);
 
 	//Sign-extend source data from word to longword
 	//(address registers are woring with longwords)
 	comp_macroblock_push_copy_register_word_extended(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-			tempreg_mapped,
-			tempreg_mapped,
+			tempreg->reg_usage_mapping,
+			tempreg->reg_usage_mapping,
+			tempreg->mapped_reg_num,
+			tempreg->mapped_reg_num,
 			FALSE);
 
 	//Add the output to the target register
 	comp_macroblock_push_add(
-			output_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
+			output_dep | tempreg->reg_usage_mapping,
 			output_dep,
-			dest_reg_mapped,
-			dest_reg_mapped,
-			tempreg_mapped);
+			dest_reg->mapped_reg_num,
+			dest_reg->mapped_reg_num,
+			tempreg->mapped_reg_num);
 
 	//Free temp register
 	helper_free_tmp_reg(tempreg);
@@ -3108,28 +3056,27 @@ void comp_opcode_ADDAREG2REGL(const cpu_history* history, struct comptbl* props)
 	comp_macroblock_push_add(
 			output_dep | input_dep,
 			output_dep,
-			dest_reg_mapped,
-			dest_reg_mapped,
-			src_reg_mapped);
+			dest_reg->mapped_reg_num,
+			dest_reg->mapped_reg_num,
+			src_reg->mapped_reg_num);
 }
 void comp_opcode_ADDAREG2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	uae_u8 tmpreg = helper_allocate_tmp_reg();
-	uae_u8 tmpreg_mapped = comp_get_gpr_for_temp_register(tmpreg);
+	comp_tmp_reg* tmpreg = helper_allocate_tmp_reg();
 
 	comp_macroblock_push_copy_register_word_extended(
 			input_dep,
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-			tmpreg_mapped,
-			src_reg_mapped,
+			tmpreg->reg_usage_mapping,
+			tmpreg->mapped_reg_num,
+			src_reg->mapped_reg_num,
 			FALSE);
 
 	comp_macroblock_push_add(
-			output_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
+			output_dep | tmpreg->reg_usage_mapping,
 			output_dep,
-			dest_reg_mapped,
-			dest_reg_mapped,
-			tmpreg_mapped);
+			dest_reg->mapped_reg_num,
+			dest_reg->mapped_reg_num,
+			tmpreg->mapped_reg_num);
 
 	comp_free_temp_register(tmpreg);
 }
@@ -3140,15 +3087,14 @@ void comp_opcode_ADDAIMM2REGL(const cpu_history* history, struct comptbl* props)
 		//Immediate is within the word range: call word sized function
 		comp_opcode_ADDAIMM2REGW(history, props);
 	} else {
-		uae_u8 tmpreg = helper_allocate_tmp_reg_with_init(src_immediate);
-		uae_u8 tmpreg_mapped = comp_get_gpr_for_temp_register(tmpreg);
+		comp_tmp_reg* tmpreg = helper_allocate_tmp_reg_with_init(src_immediate);
 
 		comp_macroblock_push_add(
-				output_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
+				output_dep | tmpreg->reg_usage_mapping,
 				output_dep,
-				dest_reg_mapped,
-				dest_reg_mapped,
-				tmpreg_mapped);
+				dest_reg->mapped_reg_num,
+				dest_reg->mapped_reg_num,
+				tmpreg->mapped_reg_num);
 
 		comp_free_temp_register(tmpreg);
 	}
@@ -3158,8 +3104,8 @@ void comp_opcode_ADDAIMM2REGW(const cpu_history* history, struct comptbl* props)
 	comp_macroblock_push_add_register_imm(
 			output_dep,
 			output_dep,
-			dest_reg_mapped,
-			dest_reg_mapped,
+			dest_reg->mapped_reg_num,
+			dest_reg->mapped_reg_num,
 			src_immediate);
 }
 void comp_opcode_ADDXREG2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
@@ -3266,8 +3212,8 @@ void comp_opcode_SUBAQ2REGL(const cpu_history* history, struct comptbl* props) R
 	comp_macroblock_push_add_register_imm(
 			output_dep,
 			output_dep,
-			dest_reg_mapped,
-			dest_reg_mapped,
+			dest_reg->mapped_reg_num,
+			dest_reg->mapped_reg_num,
 			-src_immediate);
 }
 void comp_opcode_SUBQ2MEML(const cpu_history* history, struct comptbl* props) REGPARAM
@@ -3285,25 +3231,23 @@ void comp_opcode_SUBQ2MEMB(const cpu_history* history, struct comptbl* props) RE
 void comp_opcode_SUBAMEM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
 	//Read memory from source
-	int tempreg = helper_read_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg),
+	comp_tmp_reg* tempreg = helper_read_memory(
+			src_mem_addrreg->reg_usage_mapping,
 			history,
-			src_mem_addrreg_mapped,
+			src_mem_addrreg,
 			4,
 			FALSE);
 
-	int tempreg_mapped = comp_get_gpr_for_temp_register(tempreg);
-
 	//Re-map destination register
-	dest_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->destreg), TRUE, TRUE);
+	dest_reg = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->destreg), TRUE, TRUE);
 
 	//Subtract the output from the target register
 	comp_macroblock_push_sub(
-			output_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
+			output_dep | tempreg->reg_usage_mapping,
 			output_dep,
-			dest_reg_mapped,
-			tempreg_mapped,
-			dest_reg_mapped);
+			dest_reg->mapped_reg_num,
+			tempreg->mapped_reg_num,
+			dest_reg->mapped_reg_num);
 
 	//Free temp register
 	helper_free_tmp_reg(tempreg);
@@ -3311,33 +3255,32 @@ void comp_opcode_SUBAMEM2REGL(const cpu_history* history, struct comptbl* props)
 void comp_opcode_SUBAMEM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
 	//Read memory from source
-	int tempreg = helper_read_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg),
+	comp_tmp_reg* tempreg = helper_read_memory(
+			src_mem_addrreg->reg_usage_mapping,
 			history,
-			src_mem_addrreg_mapped,
+			src_mem_addrreg,
 			2,
 			FALSE);
-	int tempreg_mapped = comp_get_gpr_for_temp_register(tempreg);
 
 	//Re-map destination register
-	dest_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->destreg), TRUE, TRUE);
+	dest_reg = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->destreg), TRUE, TRUE);
 
 	//Sign-extend source data from word to longword
 	//(address registers are woring with longwords)
 	comp_macroblock_push_copy_register_word_extended(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-			tempreg_mapped,
-			tempreg_mapped,
+			tempreg->reg_usage_mapping,
+			tempreg->reg_usage_mapping,
+			tempreg->mapped_reg_num,
+			tempreg->mapped_reg_num,
 			FALSE);
 
 	//Subtract the output from the target register
 	comp_macroblock_push_sub(
-			output_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
+			output_dep | tempreg->reg_usage_mapping,
 			output_dep,
-			dest_reg_mapped,
-			dest_reg_mapped,
-			tempreg_mapped);
+			dest_reg->mapped_reg_num,
+			dest_reg->mapped_reg_num,
+			tempreg->mapped_reg_num);
 
 	//Free temp register
 	helper_free_tmp_reg(tempreg);
@@ -3356,44 +3299,43 @@ void comp_opcode_SUBAIMM2REGW(const cpu_history* history, struct comptbl* props)
 }
 void comp_opcode_SUBAREG2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	if (src_reg_mapped == dest_reg_mapped)
+	if (src_reg->mapped_reg_num == dest_reg->mapped_reg_num)
 	{
 		//The source and the destination register is the same: clear register instead of subtracting
 		//Clearing needs no preloading of the emulated register
 		comp_macroblock_push_load_register_long(
 				output_dep,
-				dest_reg_mapped,
+				dest_reg->mapped_reg_num,
 				0);
 	} else {
 		//Subtract the registers, this is so simple
 		comp_macroblock_push_sub(
 				input_dep | output_dep,
 				output_dep,
-				dest_reg_mapped,
-				src_reg_mapped,
-				dest_reg_mapped);
+				dest_reg->mapped_reg_num,
+				src_reg->mapped_reg_num,
+				dest_reg->mapped_reg_num);
 	}
 }
 void comp_opcode_SUBAREG2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	int tempreg = helper_allocate_tmp_reg();
-	int tempreg_mapped = comp_get_gpr_for_temp_register(tempreg);
+	comp_tmp_reg* tempreg = helper_allocate_tmp_reg();
 
 	//Extend the source register to long into a temp register
 	comp_macroblock_push_copy_register_word_extended(
 			input_dep,
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-			tempreg_mapped,
-			src_reg_mapped,
+			tempreg->reg_usage_mapping,
+			tempreg->mapped_reg_num,
+			src_reg->mapped_reg_num,
 			FALSE);
 
 	//Subtract the registers
 	comp_macroblock_push_sub(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | output_dep,
+			tempreg->reg_usage_mapping | output_dep,
 			output_dep,
-			dest_reg_mapped,
-			tempreg_mapped,
-			dest_reg_mapped);
+			dest_reg->mapped_reg_num,
+			tempreg->mapped_reg_num,
+			dest_reg->mapped_reg_num);
 
 	comp_free_temp_register(tempreg);
 }
@@ -3427,34 +3369,32 @@ void comp_opcode_MULSIMM2REGW(const cpu_history* history, struct comptbl* props)
 }
 void comp_opcode_MULSREG2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	uae_u8 srctemp = helper_allocate_tmp_reg();
-	uae_u8 srctemp_mapped = comp_get_gpr_for_temp_register(srctemp);
-	uae_u8 desttemp = helper_allocate_tmp_reg();
-	uae_u8 desttemp_mapped = comp_get_gpr_for_temp_register(desttemp);
+	comp_tmp_reg* srctemp = helper_allocate_tmp_reg();
+	comp_tmp_reg* desttemp = helper_allocate_tmp_reg();
 
 	//Keep the low half word from source register
 	comp_macroblock_push_copy_register_word_extended(
 			input_dep,
-			COMP_COMPILER_MACROBLOCK_REG_TMP(srctemp),
-			srctemp_mapped,
-			src_reg_mapped,
+			srctemp->reg_usage_mapping,
+			srctemp->mapped_reg_num,
+			src_reg->mapped_reg_num,
 			FALSE);
 
 	//Keep the low half word from destination register
 	comp_macroblock_push_copy_register_word_extended(
 			output_dep,
-			COMP_COMPILER_MACROBLOCK_REG_TMP(desttemp),
-			desttemp_mapped,
-			dest_reg_mapped,
+			desttemp->reg_usage_mapping,
+			desttemp->mapped_reg_num,
+			dest_reg->mapped_reg_num,
 			FALSE);
 
 	//Multiply the registers and set the flags
 	comp_macroblock_push_multiply_registers_with_flags(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(srctemp) | COMP_COMPILER_MACROBLOCK_REG_TMP(desttemp),
+			srctemp->reg_usage_mapping | desttemp->reg_usage_mapping,
 			output_dep | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGV | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGC,
-			dest_reg_mapped,
-			srctemp_mapped,
-			desttemp_mapped);
+			dest_reg->mapped_reg_num,
+			srctemp->mapped_reg_num,
+			desttemp->mapped_reg_num);
 
 	comp_free_temp_register(srctemp);
 	comp_free_temp_register(desttemp);
@@ -3472,34 +3412,32 @@ void comp_opcode_MULUIMM2REGW(const cpu_history* history, struct comptbl* props)
 }
 void comp_opcode_MULUREG2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	uae_u8 srctemp = helper_allocate_tmp_reg();
-	uae_u8 srctemp_mapped = comp_get_gpr_for_temp_register(srctemp);
-	uae_u8 desttemp = helper_allocate_tmp_reg();
-	uae_u8 desttemp_mapped = comp_get_gpr_for_temp_register(desttemp);
+	comp_tmp_reg* srctemp = helper_allocate_tmp_reg();
+	comp_tmp_reg* desttemp = helper_allocate_tmp_reg();
 
 	//Keep the low half word from source register
 	comp_macroblock_push_and_low_register_imm(
 			input_dep,
-			COMP_COMPILER_MACROBLOCK_REG_TMP(srctemp),
-			srctemp_mapped,
-			src_reg_mapped,
+			srctemp->reg_usage_mapping,
+			srctemp->mapped_reg_num,
+			src_reg->mapped_reg_num,
 			0xffff);
 
 	//Keep the low half word from destination register
 	comp_macroblock_push_and_low_register_imm(
 			output_dep,
-			COMP_COMPILER_MACROBLOCK_REG_TMP(desttemp),
-			desttemp_mapped,
-			dest_reg_mapped,
+			desttemp->reg_usage_mapping,
+			desttemp->mapped_reg_num,
+			dest_reg->mapped_reg_num,
 			0xffff);
 
 	//Multiply the registers and set the flags
 	comp_macroblock_push_multiply_registers_with_flags(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(srctemp) | COMP_COMPILER_MACROBLOCK_REG_TMP(desttemp),
+			srctemp->reg_usage_mapping | desttemp->reg_usage_mapping,
 			output_dep | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGV | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGC,
-			dest_reg_mapped,
-			srctemp_mapped,
-			desttemp_mapped);
+			dest_reg->mapped_reg_num,
+			srctemp->mapped_reg_num,
+			desttemp->mapped_reg_num);
 
 	comp_free_temp_register(srctemp);
 	comp_free_temp_register(desttemp);
@@ -3652,8 +3590,8 @@ void comp_opcode_SWAP(const cpu_history* history, struct comptbl* props) REGPARA
 	comp_macroblock_push_rotate_and_mask_bits(
 			output_dep,
 			output_dep,
-			dest_reg_mapped,
-			dest_reg_mapped,
+			dest_reg->mapped_reg_num,
+			dest_reg->mapped_reg_num,
 			16, 0, 31, TRUE);
 
 	//Save flags
@@ -3662,12 +3600,12 @@ void comp_opcode_SWAP(const cpu_history* history, struct comptbl* props) REGPARA
 void comp_opcode_EXGA(const cpu_history* history, struct comptbl* props) REGPARAM
 {
 	//Allocate source register for modifying
-	src_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->srcreg), TRUE, TRUE);
+	src_reg = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->srcreg), TRUE, TRUE);
 
 	//Swap temporary register mapping to simulate the exchanging of the registers
 	comp_swap_temp_register_mapping(
-			comp_get_temp_for_gpr_register(src_reg_mapped),
-			comp_get_temp_for_gpr_register(dest_reg_mapped));
+			src_reg,
+			dest_reg);
 
 	//Both source and destination registers are needed for the input and the output
 	comp_macroblock_push_null_operation(
@@ -3677,12 +3615,12 @@ void comp_opcode_EXGA(const cpu_history* history, struct comptbl* props) REGPARA
 void comp_opcode_EXGD(const cpu_history* history, struct comptbl* props) REGPARAM
 {
 	//Allocate source register for modifying
-	src_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_DATAREG(props->srcreg), TRUE, TRUE);
+	src_reg = comp_map_temp_register(COMP_COMPILER_REGS_DATAREG(props->srcreg), TRUE, TRUE);
 
 	//Swap temporary register mapping to simulate the exchanging of the registers
 	comp_swap_temp_register_mapping(
-			comp_get_temp_for_gpr_register(src_reg_mapped),
-			comp_get_temp_for_gpr_register(dest_reg_mapped));
+			src_reg,
+			dest_reg);
 
 	//Both source and destination registers are needed for the input and the output
 	comp_macroblock_push_null_operation(
@@ -3691,21 +3629,20 @@ void comp_opcode_EXGD(const cpu_history* history, struct comptbl* props) REGPARA
 }
 void comp_opcode_EXTBW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	uae_u8 tmp_reg = helper_allocate_tmp_reg();
-	uae_u8 tmp_reg_mapped = comp_get_gpr_for_temp_register(tmp_reg);
+	comp_tmp_reg* tmp_reg = helper_allocate_tmp_reg();
 
 	comp_macroblock_push_copy_register_byte_extended(
 			output_dep,
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tmp_reg),
-			tmp_reg_mapped,
-			dest_reg_mapped,
+			tmp_reg->reg_usage_mapping,
+			tmp_reg->mapped_reg_num,
+			dest_reg->mapped_reg_num,
 			TRUE);
 
 	comp_macroblock_push_copy_register_word(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tmp_reg),
+			tmp_reg->reg_usage_mapping,
 			output_dep,
-			dest_reg_mapped,
-			tmp_reg_mapped);
+			dest_reg->mapped_reg_num,
+			tmp_reg->mapped_reg_num);
 
 	//Save flags
 	helper_check_nz_clear_cv_flags();
@@ -3717,8 +3654,8 @@ void comp_opcode_EXTWL(const cpu_history* history, struct comptbl* props) REGPAR
 	comp_macroblock_push_copy_register_word_extended(
 			output_dep,
 			output_dep,
-			dest_reg_mapped,
-			dest_reg_mapped,
+			dest_reg->mapped_reg_num,
+			dest_reg->mapped_reg_num,
 			TRUE);
 
 	//Save flags
@@ -3729,8 +3666,8 @@ void comp_opcode_EXTBL(const cpu_history* history, struct comptbl* props) REGPAR
 	comp_macroblock_push_copy_register_byte_extended(
 			output_dep,
 			output_dep,
-			dest_reg_mapped,
-			dest_reg_mapped,
+			dest_reg->mapped_reg_num,
+			dest_reg->mapped_reg_num,
 			TRUE);
 
 	//Save flags
@@ -3778,81 +3715,80 @@ void comp_opcode_LINKW(const cpu_history* history, struct comptbl* props) REGPAR
 void comp_opcode_LINKL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
 	//Allocate temporary register for A7
-	int sptemp_mapped = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(7), TRUE, TRUE);
+	comp_tmp_reg* sptemp = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(7), TRUE, TRUE);
 
 	//Subtract 4 from SP
 	comp_macroblock_push_add_register_imm(
 			COMP_COMPILER_MACROBLOCK_REG_AX(7),
 			COMP_COMPILER_MACROBLOCK_REG_AX(7),
-			sptemp_mapped,
-			sptemp_mapped,
+			sptemp->mapped_reg_num,
+			sptemp->mapped_reg_num,
 			-4);
 
 	//Push input Ax register to the stack
 	helper_write_memory(
 			COMP_COMPILER_MACROBLOCK_REG_AX(7) | input_dep,
 			history,
-			sptemp_mapped,
-			PPC_TMP_REG_NOTUSED,
-			dest_reg_mapped,
+			sptemp,
+			dest_reg,
 			4);
 
 	//Get the register mappings again, memory operation might free registers
-	sptemp_mapped = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(7), TRUE, TRUE);
-	dest_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->destreg), FALSE, TRUE);
+	sptemp = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(7), TRUE, TRUE);
+	dest_reg = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->destreg), FALSE, TRUE);
 
 	//Copy SP to destination register
 	comp_macroblock_push_copy_register_long(
 			COMP_COMPILER_MACROBLOCK_REG_AX(props->destreg) | COMP_COMPILER_MACROBLOCK_REG_AX(7),
 			COMP_COMPILER_MACROBLOCK_REG_AX(props->destreg),
-			dest_reg_mapped,
-			sptemp_mapped);
+			dest_reg->mapped_reg_num,
+			sptemp->mapped_reg_num);
 
 	//Add immediate to the SP
 	comp_macroblock_push_add_register_imm(
 			COMP_COMPILER_MACROBLOCK_REG_AX(7),
 			COMP_COMPILER_MACROBLOCK_REG_AX(7),
-			sptemp_mapped,
-			sptemp_mapped,
+			sptemp->mapped_reg_num,
+			sptemp->mapped_reg_num,
 			src_immediate);
 }
 void comp_opcode_UNLINK(const cpu_history* history, struct comptbl* props) REGPARAM
 {
 	//Allocate temporary register for A7
-	int sptemp_mapped = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(7), TRUE, TRUE);
+	comp_tmp_reg* sptemp = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(7), TRUE, TRUE);
 
 	//Copy source register to A7
 	comp_macroblock_push_copy_register_long(
 			input_dep,
 			COMP_COMPILER_MACROBLOCK_REG_AX(7),
-			sptemp_mapped,
-			src_reg_mapped);
+			sptemp->mapped_reg_num,
+			src_reg->mapped_reg_num);
 
 	//Read Ax from the top of the stack
-	int tmpreg = helper_read_memory(
+	comp_tmp_reg* tmpreg = helper_read_memory(
 			COMP_COMPILER_MACROBLOCK_REG_AX(7),
 			history,
-			sptemp_mapped,
+			sptemp,
 			4,
 			FALSE);
 
 	//Get the register mappings again, memory operation might free registers
-	sptemp_mapped = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(7), TRUE, TRUE);
-	src_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->srcreg), FALSE, TRUE);
+	sptemp = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(7), TRUE, TRUE);
+	comp_tmp_reg* src_tempreg = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->srcreg), FALSE, TRUE);
 
 	//Copy read data into the source (destination) register
 	comp_macroblock_push_copy_register_long(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
+			tmpreg->reg_usage_mapping,
 			COMP_COMPILER_MACROBLOCK_REG_AX(props->srcreg),
-			src_reg_mapped,
-			comp_get_gpr_for_temp_register(tmpreg));
+			src_tempreg->mapped_reg_num,
+			tmpreg->mapped_reg_num);
 
 	//Add 4 to SP
 	comp_macroblock_push_add_register_imm(
 			COMP_COMPILER_MACROBLOCK_REG_AX(7),
 			COMP_COMPILER_MACROBLOCK_REG_AX(7),
-			sptemp_mapped,
-			sptemp_mapped,
+			sptemp->mapped_reg_num,
+			sptemp->mapped_reg_num,
 			4);
 
 	//Free temp reg
@@ -3996,21 +3932,21 @@ void comp_opcode_unsupported(uae_u16 opcode)
 /**
  * Allocate a temporary register
  */
-STATIC_INLINE uae_u8 helper_allocate_tmp_reg()
+STATIC_INLINE comp_tmp_reg* helper_allocate_tmp_reg()
 {
 	//This function is simple for now, but this might change in the future
-	return comp_allocate_temp_register(PPC_TMP_REG_ALLOCATED);
+	return comp_allocate_temp_register(NULL);
 }
 
 /**
  * Allocate a temporary register and load an immediate data into it
  */
-STATIC_INLINE uae_u8 helper_allocate_tmp_reg_with_init(uae_u32 immed)
+STATIC_INLINE comp_tmp_reg* helper_allocate_tmp_reg_with_init(uae_u32 immed)
 {
-	uae_u8 tmpreg = helper_allocate_tmp_reg();
+	comp_tmp_reg* tmpreg = helper_allocate_tmp_reg();
 	comp_macroblock_push_load_register_long(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-			comp_get_gpr_for_temp_register(tmpreg),
+			tmpreg->reg_usage_mapping,
+			tmpreg->mapped_reg_num,
 			immed);
 
 	return tmpreg;
@@ -4019,7 +3955,7 @@ STATIC_INLINE uae_u8 helper_allocate_tmp_reg_with_init(uae_u32 immed)
 /**
  * Free a previously allocated temporary register
  */
-STATIC_INLINE void helper_free_tmp_reg(uae_u8 reg)
+STATIC_INLINE void helper_free_tmp_reg(comp_tmp_reg* reg)
 {
 	//This function is simple for now, but this might change in the future
 	//What ever needs to be done in the translated code is handled in this function
@@ -4039,8 +3975,8 @@ STATIC_INLINE void helper_free_tmp_reg(uae_u8 reg)
  */
 STATIC_INLINE void helper_update_flags(uae_u16 flagscheck, uae_u16 flagsclear, uae_u16 flagsset, int invertc)
 {
-	uae_u8 tmpreg;
-	uae_u8 flagtmp;
+	comp_tmp_reg* tmpreg;
+	comp_tmp_reg* flagtmp;
 	uae_u16 flagmask;
 
 	//Get temporary register for the operations
@@ -4078,13 +4014,13 @@ STATIC_INLINE void helper_update_flags(uae_u16 flagscheck, uae_u16 flagsclear, u
 			//All flags but X are updated:
 			//Move XER to CR2, copy CR to the temp register then insert temp register relevant part to the flag register
 			comp_macroblock_push_copy_nzcv_flags_to_register(
-					COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-					comp_get_gpr_for_temp_register(tmpreg));
+					tmpreg->reg_usage_mapping,
+					tmpreg->mapped_reg_num);
 			comp_macroblock_push_rotate_and_copy_bits(
-					COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
+					tmpreg->reg_usage_mapping,
 					COMP_COMPILER_MACROBLOCK_REG_FLAGC | COMP_COMPILER_MACROBLOCK_REG_FLAGV | COMP_COMPILER_MACROBLOCK_REG_FLAGN | COMP_COMPILER_MACROBLOCK_REG_FLAGZ,
 					PPCR_FLAGS,
-					comp_get_gpr_for_temp_register(tmpreg),
+					tmpreg->mapped_reg_num,
 					0, 0, 10, FALSE);
 			if (invertc)
 			{
@@ -4100,47 +4036,47 @@ STATIC_INLINE void helper_update_flags(uae_u16 flagscheck, uae_u16 flagsclear, u
 			//Flags: N, C, V and X
 			//Move XER to CR2, copy CR to temp, copy X to C then insert temp register relevant part to the flag register
 			comp_macroblock_push_copy_nzcv_flags_to_register(
-					COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-					comp_get_gpr_for_temp_register(tmpreg));
+					tmpreg->reg_usage_mapping,
+					tmpreg->mapped_reg_num);
 			if (invertc)
 			{
 				comp_macroblock_push_xor_high_register_imm(
 						COMP_COMPILER_MACROBLOCK_REG_FLAGC,
 						COMP_COMPILER_MACROBLOCK_REG_FLAGC,
-						comp_get_gpr_for_temp_register(tmpreg),
-						comp_get_gpr_for_temp_register(tmpreg),
+						tmpreg->mapped_reg_num,
+						tmpreg->mapped_reg_num,
 						1 << 5);
 			}
 			comp_macroblock_push_rotate_and_copy_bits(
-					COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-					COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-					comp_get_gpr_for_temp_register(tmpreg),
-					comp_get_gpr_for_temp_register(tmpreg),
+					tmpreg->reg_usage_mapping,
+					tmpreg->reg_usage_mapping,
+					tmpreg->mapped_reg_num,
+					tmpreg->mapped_reg_num,
 					16, 26, 26, FALSE);
 			comp_macroblock_push_rotate_and_copy_bits(
-					COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
+					tmpreg->reg_usage_mapping,
 					COMP_COMPILER_MACROBLOCK_REG_FLAGN | COMP_COMPILER_MACROBLOCK_REG_FLAGC | COMP_COMPILER_MACROBLOCK_REG_FLAGV | COMP_COMPILER_MACROBLOCK_REG_FLAGX,
 					PPCR_FLAGS,
-					comp_get_gpr_for_temp_register(tmpreg),
+					tmpreg->mapped_reg_num,
 					0, 9, 0, FALSE);
 			break;
 		case (COMP_COMPILER_MACROBLOCK_REG_FLAGN | COMP_COMPILER_MACROBLOCK_REG_FLAGC | COMP_COMPILER_MACROBLOCK_REG_FLAGV):
 			//Flags: N, C and V
 			//Move XER to CR2, copy CR to temp then insert temp register relevant part to the flag register in two rounds: C and V first, then N
 			comp_macroblock_push_copy_nzcv_flags_to_register(
-					COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-					comp_get_gpr_for_temp_register(tmpreg));
+					tmpreg->reg_usage_mapping,
+					tmpreg->mapped_reg_num);
 			comp_macroblock_push_rotate_and_copy_bits(
-					COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
+					tmpreg->reg_usage_mapping,
 					COMP_COMPILER_MACROBLOCK_REG_FLAGC | COMP_COMPILER_MACROBLOCK_REG_FLAGV,
 					PPCR_FLAGS,
-					comp_get_gpr_for_temp_register(tmpreg),
+					tmpreg->mapped_reg_num,
 					0, 9, 10, FALSE);
 			comp_macroblock_push_rotate_and_copy_bits(
-					COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
+					tmpreg->reg_usage_mapping,
 					COMP_COMPILER_MACROBLOCK_REG_FLAGN,
 					PPCR_FLAGS,
-					comp_get_gpr_for_temp_register(tmpreg),
+					tmpreg->mapped_reg_num,
 					0, 0, 0, FALSE);
 			if (invertc)
 			{
@@ -4156,39 +4092,39 @@ STATIC_INLINE void helper_update_flags(uae_u16 flagscheck, uae_u16 flagsclear, u
 			//Flags: N, Z and V
 			//Move XER to CR2, copy CR to temp then insert temp register relevant part to the flag register
 			comp_macroblock_push_copy_nzcv_flags_to_register(
-					COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-					comp_get_gpr_for_temp_register(tmpreg));
+					tmpreg->reg_usage_mapping,
+					tmpreg->mapped_reg_num);
 			comp_macroblock_push_rotate_and_copy_bits(
-					COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
+					tmpreg->reg_usage_mapping,
 					COMP_COMPILER_MACROBLOCK_REG_FLAGN | COMP_COMPILER_MACROBLOCK_REG_FLAGZ | COMP_COMPILER_MACROBLOCK_REG_FLAGV,
 					PPCR_FLAGS,
-					comp_get_gpr_for_temp_register(tmpreg),
+					tmpreg->mapped_reg_num,
 					0, 0, 9, FALSE);
 			break;
 		case (COMP_COMPILER_MACROBLOCK_REG_FLAGN | COMP_COMPILER_MACROBLOCK_REG_FLAGZ):
 			//Flags: N, Z
 			//Copy CR to temp then insert temp register relevant part to the flag register
 			comp_macroblock_push_copy_nz_flags_to_register(
-					COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-					comp_get_gpr_for_temp_register(tmpreg));
+					tmpreg->reg_usage_mapping,
+					tmpreg->mapped_reg_num);
 			comp_macroblock_push_rotate_and_copy_bits(
-					COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
+					tmpreg->reg_usage_mapping,
 					COMP_COMPILER_MACROBLOCK_REG_FLAGN | COMP_COMPILER_MACROBLOCK_REG_FLAGZ,
 					PPCR_FLAGS,
-					comp_get_gpr_for_temp_register(tmpreg),
+					tmpreg->mapped_reg_num,
 					0, 0, 2, FALSE);
 			break;
 		case COMP_COMPILER_MACROBLOCK_REG_FLAGZ:
 			//Flag: Z
 			//Copy CR to temp then insert temp register relevant part to the flag register
 			comp_macroblock_push_copy_nz_flags_to_register(
-					COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-					comp_get_gpr_for_temp_register(tmpreg));
+					tmpreg->reg_usage_mapping,
+					tmpreg->mapped_reg_num);
 			comp_macroblock_push_rotate_and_copy_bits(
-					COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
+					tmpreg->reg_usage_mapping,
 					COMP_COMPILER_MACROBLOCK_REG_FLAGZ,
 					PPCR_FLAGS,
-					comp_get_gpr_for_temp_register(tmpreg),
+					tmpreg->mapped_reg_num,
 					0, 2, 2, FALSE);
 			break;
 		default:
@@ -4402,7 +4338,7 @@ STATIC_INLINE void helper_check_nzcvx_flags(int invertc)
 
 /* Extract C flag from the specified register using the specified bit,
  * clear N, Z, V and X flags */
-STATIC_INLINE void helper_extract_c_clear_nzvx_flags(uae_u64 regsin, uae_u8 input_reg, int input_bit)
+STATIC_INLINE void helper_extract_c_clear_nzvx_flags(uae_u64 regsin, comp_tmp_reg* input_reg, int input_bit)
 {
 	//C flag is at bit 21
 	int shift = 21 - input_bit;
@@ -4415,13 +4351,13 @@ STATIC_INLINE void helper_extract_c_clear_nzvx_flags(uae_u64 regsin, uae_u8 inpu
 			regsin,
 			COMP_COMPILER_MACROBLOCK_REG_FLAGC |COMP_COMPILER_MACROBLOCK_REG_FLAGV | COMP_COMPILER_MACROBLOCK_REG_FLAGN | COMP_COMPILER_MACROBLOCK_REG_FLAGX,
 			PPCR_FLAGS,
-			input_reg,
+			input_reg->mapped_reg_num,
 			shift, 10, 10, FALSE);
 }
 
 /* Extract C and X flags from the specified register using the specified bit,
  * clear N, Z and V flags. */
-STATIC_INLINE void helper_extract_cx_clear_nzv_flags(uae_u64 regsin, uae_u8 input_reg, int input_bit)
+STATIC_INLINE void helper_extract_cx_clear_nzv_flags(uae_u64 regsin, comp_tmp_reg* input_reg, int input_bit)
 {
 	helper_extract_c_clear_nzvx_flags(regsin, input_reg, input_bit);
 
@@ -4437,7 +4373,7 @@ STATIC_INLINE void helper_extract_cx_clear_nzv_flags(uae_u64 regsin, uae_u8 inpu
 /* Extract C flag from the specified register using the register for rotation,
  * clear V flag. C flag is extracted from the lowest bit.
  * If shift is zero then C flag is cleared.*/
-STATIC_INLINE void helper_extract_c_clear_v_flags(uae_u64 regsin, uae_u8 input_reg, uae_u8 rotation_reg, BOOL left_shift)
+STATIC_INLINE void helper_extract_c_clear_v_flags(uae_u64 regsin, comp_tmp_reg* input_reg, comp_tmp_reg* rotation_reg, BOOL left_shift)
 {
 	//Clear C and V flags in one step
 	helper_update_flags(
@@ -4449,15 +4385,15 @@ STATIC_INLINE void helper_extract_c_clear_v_flags(uae_u64 regsin, uae_u8 input_r
 	//Extract C flag (implemented as a macroblock for simplicity)
 	comp_macroblock_push_left_shift_extract_c_flag(
 			regsin,
-			input_reg,
-			rotation_reg,
+			input_reg->mapped_reg_num,
+			rotation_reg->mapped_reg_num,
 			left_shift);
 }
 
 /* Extract C flag from the specified register using the register for rotation,
  * copy C to X flag, clear V flag. C flag is extracted from the lowest bit.
  * If shift is zero then C flag is cleared.*/
-STATIC_INLINE void helper_extract_cx_clear_v_flags(uae_u64 regsin, uae_u8 input_reg, uae_u8 rotation_reg, BOOL left_shift)
+STATIC_INLINE void helper_extract_cx_clear_v_flags(uae_u64 regsin, comp_tmp_reg* input_reg, comp_tmp_reg* rotation_reg, BOOL left_shift)
 {
 	helper_extract_c_clear_v_flags(regsin, input_reg, rotation_reg, left_shift);
 
@@ -4522,10 +4458,10 @@ STATIC_INLINE void helper_move_inst_static_flags(signed int immediate)
 STATIC_INLINE void helper_free_src_mem_addr_temp_reg()
 {
 	//Release source memory temp address register, if it is still allocated
-	if (src_mem_addrreg != PPC_TMP_REG_NOTUSED)
+	if (src_mem_addrreg)
 	{
 		comp_free_temp_register(src_mem_addrreg);
-		src_mem_addrreg = PPC_TMP_REG_NOTUSED;
+		src_mem_addrreg = NULL;
 	}
 }
 
@@ -4535,10 +4471,10 @@ STATIC_INLINE void helper_free_src_mem_addr_temp_reg()
 STATIC_INLINE void helper_free_src_temp_reg()
 {
 	//Release source memory temp register, if it is still allocated
-	if (src_reg != PPC_TMP_REG_NOTUSED)
+	if (src_reg)
 	{
 		comp_free_temp_register(src_reg);
-		src_reg = PPC_TMP_REG_NOTUSED;
+		src_reg = NULL;
 	}
 }
 
@@ -4552,7 +4488,7 @@ STATIC_INLINE void helper_free_src_temp_reg()
  */
 STATIC_INLINE void helper_allocate_ax_src_mem_reg(struct comptbl* props, int modified)
 {
-	src_mem_addrreg_mapped = src_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->srcreg), TRUE, modified);
+	src_mem_addrreg = src_reg = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->srcreg), TRUE, modified);
 	input_dep |= COMP_COMPILER_MACROBLOCK_REG_AX(props->srcreg);
 }
 
@@ -4565,12 +4501,11 @@ STATIC_INLINE void helper_allocate_ax_src_mem_reg(struct comptbl* props, int mod
  */
 STATIC_INLINE void helper_allocate_2_ax_src_mem_regs(struct comptbl* props, int modified)
 {
-	src_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->srcreg), TRUE, modified);
+	src_reg = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->srcreg), TRUE, modified);
 	src_mem_addrreg = helper_allocate_tmp_reg();
-	src_mem_addrreg_mapped = comp_get_gpr_for_temp_register(src_mem_addrreg);
 
 	//Instruction is depending on both registers
-	input_dep |= COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg) | COMP_COMPILER_MACROBLOCK_REG_AX(props->srcreg);
+	input_dep |= src_mem_addrreg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_REG_AX(props->srcreg);
 }
 
 /**
@@ -4592,9 +4527,9 @@ STATIC_INLINE void helper_allocate_2_ax_src_mem_regs_copy(struct comptbl* props,
 	//Move target address register's original value to a temp register
 	comp_macroblock_push_copy_register_long(
 			COMP_COMPILER_MACROBLOCK_REG_AX(props->srcreg),
-			COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg),
-			src_mem_addrreg_mapped,
-			src_reg_mapped);
+			src_mem_addrreg->reg_usage_mapping,
+			src_mem_addrreg->mapped_reg_num,
+			src_reg->mapped_reg_num);
 }
 
 /**
@@ -4609,8 +4544,8 @@ STATIC_INLINE void helper_add_imm_to_src_ax(struct comptbl* props, uae_u16 immed
 	comp_macroblock_push_add_register_imm(
 			COMP_COMPILER_MACROBLOCK_REG_AX(props->srcreg),
 			COMP_COMPILER_MACROBLOCK_REG_AX(props->srcreg),
-			src_reg_mapped,
-			src_reg_mapped,
+			src_reg->mapped_reg_num,
+			src_reg->mapped_reg_num,
 			immediate);
 }
 
@@ -4620,10 +4555,10 @@ STATIC_INLINE void helper_add_imm_to_src_ax(struct comptbl* props, uae_u16 immed
 STATIC_INLINE void helper_free_dest_mem_addr_temp_reg()
 {
 	//Release destination memory temp address register, if it is still allocated
-	if (dest_mem_addrreg != PPC_TMP_REG_NOTUSED)
+	if (dest_mem_addrreg)
 	{
 		comp_free_temp_register(dest_mem_addrreg);
-		dest_mem_addrreg = PPC_TMP_REG_NOTUSED;
+		dest_mem_addrreg = NULL;
 	}
 }
 
@@ -4633,10 +4568,10 @@ STATIC_INLINE void helper_free_dest_mem_addr_temp_reg()
 STATIC_INLINE void helper_free_dest_temp_reg()
 {
 	//Release destination memory temp register, if it is still allocated
-	if (dest_reg != PPC_TMP_REG_NOTUSED)
+	if (dest_reg)
 	{
 		comp_free_temp_register(dest_reg);
-		dest_reg = PPC_TMP_REG_NOTUSED;
+		dest_reg = NULL;
 	}
 }
 
@@ -4650,7 +4585,7 @@ STATIC_INLINE void helper_free_dest_temp_reg()
  */
 STATIC_INLINE void helper_allocate_ax_dest_mem_reg(struct comptbl* props, int modified)
 {
-	dest_mem_addrreg_mapped = dest_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->destreg), TRUE, modified);
+	dest_mem_addrreg = dest_reg = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->destreg), TRUE, modified);
 	input_dep |= COMP_COMPILER_MACROBLOCK_REG_AX(props->destreg);
 }
 
@@ -4663,12 +4598,11 @@ STATIC_INLINE void helper_allocate_ax_dest_mem_reg(struct comptbl* props, int mo
  */
 STATIC_INLINE void helper_allocate_2_ax_dest_mem_regs(struct comptbl* props, int modified)
 {
-	dest_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->destreg), TRUE, modified);
+	dest_reg = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->destreg), TRUE, modified);
 	dest_mem_addrreg = helper_allocate_tmp_reg();
-	dest_mem_addrreg_mapped = comp_get_gpr_for_temp_register(dest_mem_addrreg);
 
 	//Instruction is depending on both registers
-	input_dep |= COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg) | COMP_COMPILER_MACROBLOCK_REG_AX(props->destreg);
+	input_dep |= dest_mem_addrreg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_REG_AX(props->destreg);
 }
 
 /**
@@ -4683,8 +4617,8 @@ STATIC_INLINE void helper_add_imm_to_dest_ax(struct comptbl* props, uae_u16 imme
 	comp_macroblock_push_add_register_imm(
 			COMP_COMPILER_MACROBLOCK_REG_AX(props->destreg),
 			COMP_COMPILER_MACROBLOCK_REG_AX(props->destreg),
-			dest_reg_mapped,
-			dest_reg_mapped,
+			dest_reg->mapped_reg_num,
+			dest_reg->mapped_reg_num,
 			immediate);
 }
 
@@ -4699,23 +4633,22 @@ STATIC_INLINE void helper_add_imm_to_dest_ax(struct comptbl* props, uae_u16 imme
 STATIC_INLINE void helper_MOVIMMREG2MEM(const cpu_history* history, uae_u8 size, int immediate, int checkflags)
 {
 	int spec;
-	int tmpregaddr;
-	int tmpregaddr_mapped;
+	comp_tmp_reg* tmpregaddr;
 
 	//Special memory determination by operation size
 	switch (size)
 	{
 	case 4:
 		spec = comp_is_spec_memory_write_long(history->pc, history->specmem);
-		if ((!immediate) && checkflags) comp_macroblock_push_check_long_register(input_dep, src_reg_mapped);
+		if ((!immediate) && checkflags) comp_macroblock_push_check_long_register(input_dep, src_reg->mapped_reg_num);
 		break;
 	case 2:
 		spec = comp_is_spec_memory_write_word(history->pc, history->specmem);
-		if ((!immediate) && checkflags) comp_macroblock_push_check_word_register(input_dep, src_reg_mapped);
+		if ((!immediate) && checkflags) comp_macroblock_push_check_word_register(input_dep, src_reg->mapped_reg_num);
 		break;
 	case 1:
 		spec = comp_is_spec_memory_write_byte(history->pc, history->specmem);
-		if ((!immediate) && checkflags) comp_macroblock_push_check_byte_register(input_dep, src_reg_mapped);
+		if ((!immediate) && checkflags) comp_macroblock_push_check_byte_register(input_dep, src_reg->mapped_reg_num);
 		break;
 	default:
 		write_log("Error: wrong operation size for MOVIMMREG2MEM\n");
@@ -4727,11 +4660,10 @@ STATIC_INLINE void helper_MOVIMMREG2MEM(const cpu_history* history, uae_u8 size,
 	{
 		//Immediate: load the immediate into a temporary register as source
 		src_reg  = helper_allocate_tmp_reg();
-		src_reg_mapped = comp_get_gpr_for_temp_register(src_reg);
-		input_dep |= COMP_COMPILER_MACROBLOCK_REG_TMP(src_reg);
+		input_dep |= src_reg->reg_usage_mapping;
 		comp_macroblock_push_load_register_long(
 				input_dep,
-				src_reg_mapped,
+				src_reg->mapped_reg_num,
 				src_immediate);
 
 		//Compile static flag settings
@@ -4745,58 +4677,57 @@ STATIC_INLINE void helper_MOVIMMREG2MEM(const cpu_history* history, uae_u8 size,
 	{
 		//Special memory access
 		comp_macroblock_push_save_memory_spec(
-				input_dep | (dest_mem_addrreg == PPC_TMP_REG_NOTUSED ? 0 : COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg)),
+				input_dep | (dest_mem_addrreg == NULL ? 0 : dest_mem_addrreg->reg_usage_mapping),
 				output_dep | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-				src_reg_mapped,
-				dest_mem_addrreg_mapped,
+				src_reg->mapped_reg_num,
+				dest_mem_addrreg->mapped_reg_num,
 				size);
 
 		//The previous will kill all temporary register mappings,
 		//because it calls a GCC function
-		src_mem_addrreg = dest_mem_addrreg = PPC_TMP_REG_NOTUSED;
+		src_mem_addrreg = dest_mem_addrreg = NULL;
 		if (immediate)
 		{
-			src_reg = PPC_TMP_REG_NOTUSED;
+			src_reg = NULL;
 		}
 	}
 	else
 	{
 		//Normal memory access
 		tmpregaddr = helper_allocate_tmp_reg();
-		tmpregaddr_mapped = comp_get_gpr_for_temp_register(tmpregaddr);
 
 		//Get memory address into the temp register
 		comp_macroblock_push_map_physical_mem(
-				dest_mem_addrreg == PPC_TMP_REG_NOTUSED ? output_dep : COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tmpregaddr),
-				tmpregaddr_mapped,
-				dest_mem_addrreg_mapped);
+				dest_mem_addrreg == NULL ? output_dep : dest_mem_addrreg->reg_usage_mapping,
+				tmpregaddr->reg_usage_mapping,
+				tmpregaddr->mapped_reg_num,
+				dest_mem_addrreg->mapped_reg_num);
 
 		//Save long to memory, prevent from optimizing away
 		switch (size)
 		{
 		case 4:
 			comp_macroblock_push_save_memory_long(
-					input_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(tmpregaddr),
+					input_dep | tmpregaddr->reg_usage_mapping,
 					output_dep | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-					src_reg_mapped,
-					tmpregaddr_mapped,
+					src_reg->mapped_reg_num,
+					tmpregaddr->mapped_reg_num,
 					0);
 			break;
 		case 2:
 			comp_macroblock_push_save_memory_word(
-					input_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(tmpregaddr),
+					input_dep | tmpregaddr->reg_usage_mapping,
 					output_dep | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-					src_reg_mapped,
-					tmpregaddr_mapped,
+					src_reg->mapped_reg_num,
+					tmpregaddr->mapped_reg_num,
 					0);
 			break;
 		case 1:
 			comp_macroblock_push_save_memory_byte(
-					input_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(tmpregaddr),
+					input_dep | tmpregaddr->reg_usage_mapping,
 					output_dep | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-					src_reg_mapped,
-					tmpregaddr_mapped,
+					src_reg->mapped_reg_num,
+					tmpregaddr->mapped_reg_num,
 					0);
 			break;
 		}
@@ -4823,7 +4754,7 @@ STATIC_INLINE void helper_MOVIMM2REG(uae_u8 size)
 	{
 		comp_macroblock_push_load_register_long(
 				output_dep,
-				dest_reg_mapped,
+				dest_reg->mapped_reg_num,
 				src_immediate);
 	} else {
 		//Word or byte sized: needs an additional bit insert
@@ -4831,32 +4762,31 @@ STATIC_INLINE void helper_MOVIMM2REG(uae_u8 size)
 		//Is the immediate zero?
 		if (src_immediate)
 		{
-			uae_u8 tmpreg = helper_allocate_tmp_reg();
-			uae_u8 tmpreg_mapped = comp_get_gpr_for_temp_register(tmpreg);
+			comp_tmp_reg* tmpreg = helper_allocate_tmp_reg();
 
 			//Load the immediate value to the temporary register
 			comp_macroblock_push_load_register_long(
-					COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-					tmpreg_mapped,
+					tmpreg->reg_usage_mapping,
+					tmpreg->mapped_reg_num,
 					src_immediate);
 
 			if (size == 2)
 			{
 				//Copy the lower word into the destination register
 				comp_macroblock_push_copy_register_word(
-						output_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
+						output_dep | tmpreg->reg_usage_mapping,
 						output_dep,
-						dest_reg_mapped,
-						tmpreg_mapped);
+						dest_reg->mapped_reg_num,
+						tmpreg->mapped_reg_num);
 			} else {
 				//We assume that this must be byte size, lazy-lazy...
 
 				//Copy the lowest byte into the destination register
 				comp_macroblock_push_copy_register_byte(
-						output_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
+						output_dep | tmpreg->reg_usage_mapping,
 						output_dep,
-						dest_reg_mapped,
-						tmpreg_mapped);
+						dest_reg->mapped_reg_num,
+						tmpreg->mapped_reg_num);
 			}
 
 			//Done with the temp register
@@ -4866,8 +4796,8 @@ STATIC_INLINE void helper_MOVIMM2REG(uae_u8 size)
 			comp_macroblock_push_rotate_and_mask_bits(
 					output_dep,
 					output_dep,
-					dest_reg_mapped,
-					dest_reg_mapped,
+					dest_reg->mapped_reg_num,
+					dest_reg->mapped_reg_num,
 					0, 0, size == 2 ? 15 : 23 , FALSE);
 		}
 	}
@@ -4886,10 +4816,8 @@ STATIC_INLINE void helper_MOVIMM2REG(uae_u8 size)
 STATIC_INLINE void helper_MOVMEM2REG(const cpu_history* history, struct comptbl* props, uae_u8 size, int dataregmode)
 {
 	int spec;
-	int tmpreg;
-	int tmpreg_mapped;
-	int tmpregaddr;
-	int tmpregaddr_mapped;
+	comp_tmp_reg* tmpreg;
+	comp_tmp_reg* tmpregaddr;
 
 	//Special memory determination by operation size
 	switch (size)
@@ -4912,18 +4840,18 @@ STATIC_INLINE void helper_MOVMEM2REG(const cpu_history* history, struct comptbl*
 	{
 		//Special memory access, result returned in R0
 		comp_macroblock_push_load_memory_spec(
-				input_dep | (src_mem_addrreg == PPC_TMP_REG_NOTUSED ? 0 : COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg)),
+				input_dep | (src_mem_addrreg == NULL ? 0 : src_mem_addrreg->reg_usage_mapping),
 				output_dep | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-				src_mem_addrreg_mapped,
+				src_mem_addrreg->mapped_reg_num,
 				PPCR_SPECTMP,
 				size);
 
 		//The previous will kill all temporary register mappings,
 		//because it calls a GCC function
-		src_mem_addrreg = PPC_TMP_REG_NOTUSED;
+		src_mem_addrreg = NULL;
 
 		//Reallocate the target register
-		dest_reg_mapped = comp_map_temp_register(
+		dest_reg = comp_map_temp_register(
 				dataregmode ?
 						COMP_COMPILER_REGS_DATAREG(props->destreg):
 						COMP_COMPILER_REGS_ADDRREG(props->destreg),
@@ -4937,7 +4865,7 @@ STATIC_INLINE void helper_MOVMEM2REG(const cpu_history* history, struct comptbl*
 			comp_macroblock_push_copy_register_long(
 					COMP_COMPILER_MACROBLOCK_REG_NONE,
 					output_dep,
-					dest_reg_mapped,
+					dest_reg->mapped_reg_num,
 					PPCR_SPECTMP);
 			break;
 		case 2:
@@ -4947,14 +4875,14 @@ STATIC_INLINE void helper_MOVMEM2REG(const cpu_history* history, struct comptbl*
 				comp_macroblock_push_copy_register_word(
 						COMP_COMPILER_MACROBLOCK_REG_NONE,
 						output_dep,
-						dest_reg_mapped,
+						dest_reg->mapped_reg_num,
 						PPCR_SPECTMP);
 			} else {
 				//Result is sign-extended into address register
 				comp_macroblock_push_copy_register_word_extended(
 						COMP_COMPILER_MACROBLOCK_REG_NONE,
 						output_dep,
-						dest_reg_mapped,
+						dest_reg->mapped_reg_num,
 						PPCR_SPECTMP,
 						FALSE);
 			}
@@ -4963,7 +4891,7 @@ STATIC_INLINE void helper_MOVMEM2REG(const cpu_history* history, struct comptbl*
 			comp_macroblock_push_copy_register_byte(
 					COMP_COMPILER_MACROBLOCK_REG_NONE,
 					output_dep,
-					dest_reg_mapped,
+					dest_reg->mapped_reg_num,
 					PPCR_SPECTMP);
 			break;
 		}
@@ -4973,24 +4901,23 @@ STATIC_INLINE void helper_MOVMEM2REG(const cpu_history* history, struct comptbl*
 		//Normal memory access
 
 		tmpregaddr = helper_allocate_tmp_reg();
-		tmpregaddr_mapped = comp_get_gpr_for_temp_register(tmpregaddr);
 
 		//Get memory address into the temp register
 		comp_macroblock_push_map_physical_mem(
-				src_mem_addrreg == PPC_TMP_REG_NOTUSED ? input_dep : COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tmpregaddr),
-				tmpregaddr_mapped,
-				src_mem_addrreg_mapped);
+				src_mem_addrreg == NULL ? input_dep : src_mem_addrreg->reg_usage_mapping,
+				tmpregaddr->reg_usage_mapping,
+				tmpregaddr->mapped_reg_num,
+				src_mem_addrreg->mapped_reg_num);
 
 		//Save long to memory, prevent from optimizing away
 		switch (size)
 		{
 		case 4:
 			comp_macroblock_push_load_memory_long(
-					input_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(tmpregaddr),
+					input_dep | tmpregaddr->reg_usage_mapping,
 					output_dep,
-					dest_reg_mapped,
-					tmpregaddr_mapped,
+					dest_reg->mapped_reg_num,
+					tmpregaddr->mapped_reg_num,
 					0);
 			break;
 		case 2:
@@ -4998,45 +4925,43 @@ STATIC_INLINE void helper_MOVMEM2REG(const cpu_history* history, struct comptbl*
 			{
 				//Result is inserted into data register
 				tmpreg = helper_allocate_tmp_reg();
-				tmpreg_mapped = comp_get_gpr_for_temp_register(tmpreg);
 
 				comp_macroblock_push_load_memory_word(
-						input_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(tmpregaddr),
-						COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-						tmpreg_mapped,
-						tmpregaddr_mapped,
+						input_dep | tmpregaddr->reg_usage_mapping,
+						tmpreg->reg_usage_mapping,
+						tmpreg->mapped_reg_num,
+						tmpregaddr->mapped_reg_num,
 						0);
 				comp_macroblock_push_copy_register_word(
-						output_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
+						output_dep | tmpreg->reg_usage_mapping,
 						output_dep,
-						dest_reg_mapped,
-						tmpreg_mapped);
+						dest_reg->mapped_reg_num,
+						tmpreg->mapped_reg_num);
 
 				comp_free_temp_register(tmpreg);
 			} else {
 				//Result is loaded with sign-extension into address register
 				comp_macroblock_push_load_memory_word_extended(
-						input_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(tmpregaddr),
+						input_dep | tmpregaddr->reg_usage_mapping,
 						output_dep,
-						dest_reg_mapped,
-						tmpregaddr_mapped,
+						dest_reg->mapped_reg_num,
+						tmpregaddr->mapped_reg_num,
 						0);
 			}
 			break;
 		case 1:
 			tmpreg = helper_allocate_tmp_reg();
-			tmpreg_mapped = comp_get_gpr_for_temp_register(tmpreg);
 			comp_macroblock_push_load_memory_byte(
-					input_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(tmpregaddr),
-					COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-					tmpreg_mapped,
-					tmpregaddr_mapped,
+					input_dep | tmpregaddr->reg_usage_mapping,
+					tmpreg->reg_usage_mapping,
+					tmpreg->mapped_reg_num,
+					tmpregaddr->mapped_reg_num,
 					0);
 			comp_macroblock_push_copy_register_byte(
-					output_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
+					output_dep | tmpreg->reg_usage_mapping,
 					output_dep,
-					dest_reg_mapped,
-					tmpreg_mapped);
+					dest_reg->mapped_reg_num,
+					tmpreg->mapped_reg_num);
 			comp_free_temp_register(tmpreg);
 			break;
 		}
@@ -5047,7 +4972,7 @@ STATIC_INLINE void helper_MOVMEM2REG(const cpu_history* history, struct comptbl*
 	//Check result for flags by operation size
 	if (dataregmode)
 	{
-		helper_check_result_set_flags(output_dep, dest_reg_mapped, size);
+		helper_check_result_set_flags(output_dep, dest_reg->mapped_reg_num, size);
 
 		//Save flags
 		helper_check_nz_clear_cv_flags();
@@ -5064,26 +4989,25 @@ STATIC_INLINE void helper_MOVMEM2REG(const cpu_history* history, struct comptbl*
 STATIC_INLINE void helper_MOVMEM2MEM(const cpu_history* history, struct comptbl* props, uae_u8 size)
 {
 	//Read memory from source
-	int tmpreg = helper_read_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg),
+	comp_tmp_reg* tmpreg = helper_read_memory(
+			src_mem_addrreg->reg_usage_mapping,
 			history,
-			src_mem_addrreg_mapped,
+			src_mem_addrreg,
 			size,
 			TRUE);
 
 	//Check register
-    helper_check_result_set_flags(COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg), comp_get_gpr_for_temp_register(tmpreg), size);
+    helper_check_result_set_flags(tmpreg->reg_usage_mapping, tmpreg->mapped_reg_num, size);
 
     //Save flags
 	helper_check_nz_clear_cv_flags();
 
 	//Write memory to destination and release temp register
 	helper_write_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+			tmpreg->reg_usage_mapping | dest_mem_addrreg->reg_usage_mapping,
 			history,
-			dest_mem_addrreg_mapped,
-			tmpreg, 0,
-			size);
+			dest_mem_addrreg,
+			tmpreg, size);
 }
 
 /**
@@ -5094,9 +5018,10 @@ STATIC_INLINE void helper_MOVMEM2MEM(const cpu_history* history, struct comptbl*
  */
 STATIC_INLINE void helper_MOVEM2MEMU(const cpu_history* history, struct comptbl* props, uae_u8 size)
 {
-	int spec, i, offset, selected_reg;
-	uae_u8 tempaddr_reg;
-	uae_u8 tempaddr_reg_mapped;
+	int spec, i, offset;
+	comp_tmp_reg * selected_reg;
+	uae_u8 selected_reg_mapped;
+	comp_tmp_reg* tempaddr_reg;
 
 	//Read the extended word
 	unsigned short extword  = *((unsigned short*)pc_ptr);
@@ -5127,7 +5052,7 @@ STATIC_INLINE void helper_MOVEM2MEMU(const cpu_history* history, struct comptbl*
 				COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
 				COMP_COMPILER_MACROBLOCK_REG_NONE,
 				PPCR_TMP_NONVOL0,
-				dest_reg_mapped);
+				dest_reg->mapped_reg_num);
 
 		//Flush temp registers back to the store
 		comp_flush_temp_registers(TRUE);
@@ -5165,13 +5090,13 @@ STATIC_INLINE void helper_MOVEM2MEMU(const cpu_history* history, struct comptbl*
 		}
 
 		//Keep modified address register content, but it must be reallocated
-		dest_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->destreg), FALSE, TRUE);
+		dest_reg = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->destreg), FALSE, TRUE);
 
 		//Copy modified address to the allocated address register
 		comp_macroblock_push_copy_register_long(
 				COMP_COMPILER_MACROBLOCK_REG_NONE,
 				COMP_COMPILER_MACROBLOCK_REG_AX(props->destreg),
-				dest_reg_mapped,
+				dest_reg->mapped_reg_num,
 				PPCR_TMP_NONVOL0);
 
 		//Restore non-volatile register
@@ -5183,14 +5108,13 @@ STATIC_INLINE void helper_MOVEM2MEMU(const cpu_history* history, struct comptbl*
 	{
 		//Normal memory access
 		tempaddr_reg = helper_allocate_tmp_reg();
-		tempaddr_reg_mapped = comp_get_gpr_for_temp_register(tempaddr_reg);
 
 		//Get memory address into the temp register
 		comp_macroblock_push_map_physical_mem(
 				output_dep,
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempaddr_reg),
-				tempaddr_reg_mapped,
-				dest_reg_mapped);
+				tempaddr_reg->reg_usage_mapping,
+				tempaddr_reg->mapped_reg_num,
+				dest_reg->mapped_reg_num);
 
 		//Check specified registers in the extension word
 		offset = 0;
@@ -5206,7 +5130,7 @@ STATIC_INLINE void helper_MOVEM2MEMU(const cpu_history* history, struct comptbl*
 						i < 8 ? COMP_COMPILER_REGS_ADDRREG(i) :
 								COMP_COMPILER_REGS_DATAREG(i - 8));
 
-				if (selected_reg == PPC_TMP_REG_NOTUSED)
+				if (selected_reg == NULL)
 				{
 					//Not mapped yet, let's read it directly from the register store
 					//Read register content from store to R0
@@ -5218,7 +5142,9 @@ STATIC_INLINE void helper_MOVEM2MEMU(const cpu_history* history, struct comptbl*
 							PPCR_REGS_BASE,
 							(15 - i) * 4);
 
-					selected_reg = PPCR_SPECTMP;
+					selected_reg_mapped = PPCR_SPECTMP;
+				} else {
+					selected_reg_mapped = selected_reg->mapped_reg_num;
 				}
 
 				//Save long to memory, prevent from optimizing away
@@ -5228,16 +5154,16 @@ STATIC_INLINE void helper_MOVEM2MEMU(const cpu_history* history, struct comptbl*
 					comp_macroblock_push_save_memory_long(
 							COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
 							COMP_COMPILER_MACROBLOCK_REG_NONE,
-							selected_reg,
-							tempaddr_reg_mapped,
+							selected_reg_mapped,
+							tempaddr_reg->mapped_reg_num,
 							offset);
 					break;
 				case 2:
 					comp_macroblock_push_save_memory_word(
 							COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
 							COMP_COMPILER_MACROBLOCK_REG_NONE,
-							selected_reg,
-							tempaddr_reg_mapped,
+							selected_reg_mapped,
+							tempaddr_reg->mapped_reg_num,
 							offset);
 					break;
 				}
@@ -5248,8 +5174,8 @@ STATIC_INLINE void helper_MOVEM2MEMU(const cpu_history* history, struct comptbl*
 		comp_macroblock_push_add_register_imm(
 				output_dep,
 				output_dep,
-				dest_reg_mapped,
-				dest_reg_mapped,
+				dest_reg->mapped_reg_num,
+				dest_reg->mapped_reg_num,
 				offset);
 
 		comp_free_temp_register(tempaddr_reg);
@@ -5268,25 +5194,24 @@ STATIC_INLINE void helper_ORREG2REG(uae_u8 size)
 		comp_macroblock_push_or_register_register(
 				input_dep | output_dep,
 				output_dep | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-				dest_reg_mapped,
-				src_reg_mapped,
-				dest_reg_mapped,
+				dest_reg->mapped_reg_num,
+				src_reg->mapped_reg_num,
+				dest_reg->mapped_reg_num,
 				TRUE);
 
 		helper_check_nz_clear_cv_flags();
 	} else {
-		uae_u8 tmpreg = helper_allocate_tmp_reg();
-		int tmpreg_mapped = comp_get_gpr_for_temp_register(tmpreg);
+		comp_tmp_reg* tmpreg = helper_allocate_tmp_reg();
 
 		comp_macroblock_push_or_register_register(
 				input_dep | output_dep,
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-				tmpreg_mapped,
-				src_reg_mapped,
-				dest_reg_mapped,
+				tmpreg->reg_usage_mapping,
+				tmpreg->mapped_reg_num,
+				src_reg->mapped_reg_num,
+				dest_reg->mapped_reg_num,
 				FALSE);
 
-		helper_copy_result_set_flags(tmpreg, tmpreg_mapped, size);
+		helper_copy_result_set_flags(tmpreg, size);
 
 		comp_free_temp_register(tmpreg);
 	}
@@ -5302,39 +5227,37 @@ STATIC_INLINE void helper_ORREG2REG(uae_u8 size)
 STATIC_INLINE void helper_ORMEM2REG(const cpu_history* history, struct comptbl* props, uae_u8 size)
 {
 	//Read memory from source
-	int tempreg = helper_read_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg),
+	comp_tmp_reg* tempreg = helper_read_memory(
+			src_mem_addrreg->reg_usage_mapping,
 			history,
-			src_mem_addrreg_mapped,
+			src_mem_addrreg,
 			size,
 			FALSE);
 
-	int tempreg_mapped = comp_get_gpr_for_temp_register(tempreg);
-
 	//Re-map destination register
-	dest_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_DATAREG(props->destreg), TRUE, TRUE);
+	dest_reg = comp_map_temp_register(COMP_COMPILER_REGS_DATAREG(props->destreg), TRUE, TRUE);
 
 	if (size == 4)
 	{
 		comp_macroblock_push_or_register_register(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | output_dep,
+				tempreg->reg_usage_mapping | output_dep,
 				output_dep | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-				dest_reg_mapped,
-				tempreg_mapped,
-				dest_reg_mapped,
+				dest_reg->mapped_reg_num,
+				tempreg->mapped_reg_num,
+				dest_reg->mapped_reg_num,
 				TRUE);
 
 		helper_check_nz_clear_cv_flags();
 	} else {
 		comp_macroblock_push_or_register_register(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | output_dep,
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-				tempreg_mapped,
-				tempreg_mapped,
-				dest_reg_mapped,
+				tempreg->reg_usage_mapping | output_dep,
+				tempreg->reg_usage_mapping,
+				tempreg->mapped_reg_num,
+				tempreg->mapped_reg_num,
+				dest_reg->mapped_reg_num,
 				FALSE);
 
-		helper_copy_result_set_flags(tempreg, tempreg_mapped, size);
+		helper_copy_result_set_flags(tempreg, size);
 	}
 
 	comp_free_temp_register(tempreg);
@@ -5377,8 +5300,8 @@ STATIC_INLINE void helper_ADDQ2MEM(const cpu_history* history, struct comptbl* p
  */
 STATIC_INLINE void helper_ADDIMM2REG(uae_u8 size)
 {
-	uae_u8 immtempreg;
-	uae_u8 desttempreg;
+	comp_tmp_reg* immtempreg;
+	comp_tmp_reg* desttempreg;
 
 	if (size == 4)
 	{
@@ -5387,36 +5310,36 @@ STATIC_INLINE void helper_ADDIMM2REG(uae_u8 size)
 
 		//Compile ADDCO PPC opcode
 		comp_macroblock_push_add_with_flags(
-				output_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(immtempreg),
+				output_dep | immtempreg->reg_usage_mapping,
 				output_dep | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
-				dest_reg_mapped,
-				dest_reg_mapped,
-				comp_get_gpr_for_temp_register(immtempreg));
+				dest_reg->mapped_reg_num,
+				dest_reg->mapped_reg_num,
+				immtempreg->mapped_reg_num);
 	} else {
 		//Prepare inputs: shift up to the highest word/byte
 		if (size == 2)
 		{
 			immtempreg = helper_allocate_tmp_reg_with_init(src_immediate << 16);
-			desttempreg = helper_pre_word(output_dep, dest_reg_mapped);
+			desttempreg = helper_pre_word(output_dep, dest_reg);
 		} else {
 			immtempreg = helper_allocate_tmp_reg_with_init(src_immediate << 24);
-			desttempreg = helper_pre_byte(output_dep, dest_reg_mapped);
+			desttempreg = helper_pre_byte(output_dep, dest_reg);
 		}
 
 		//Compile ADDCO PPC opcode
 		comp_macroblock_push_add_with_flags(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(desttempreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(immtempreg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(desttempreg) | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
-				comp_get_gpr_for_temp_register(desttempreg),
-				comp_get_gpr_for_temp_register(desttempreg),
-				comp_get_gpr_for_temp_register(immtempreg));
+				desttempreg->reg_usage_mapping | immtempreg->reg_usage_mapping,
+				desttempreg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
+				desttempreg->mapped_reg_num,
+				desttempreg->mapped_reg_num,
+				immtempreg->mapped_reg_num);
 
 		//Shift result back to normal position and insert into the destination register
 		if (size == 2)
 		{
-			helper_post_word(output_dep, desttempreg, dest_reg_mapped);
+			helper_post_word(output_dep, desttempreg, dest_reg);
 		} else {
-			helper_post_byte(output_dep, desttempreg, dest_reg_mapped);
+			helper_post_byte(output_dep, desttempreg, dest_reg);
 		}
 	}
 
@@ -5435,16 +5358,15 @@ STATIC_INLINE void helper_ADDIMM2REG(uae_u8 size)
  */
 STATIC_INLINE void helper_ADDIMM2MEM(const cpu_history* history, struct comptbl* props, uae_u8 size)
 {
-	uae_u8 immtempreg;
+	comp_tmp_reg* immtempreg;
 
 	//Read memory from source
-	int tempreg = helper_read_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+	comp_tmp_reg* tempreg = helper_read_memory(
+			dest_mem_addrreg->reg_usage_mapping,
 			history,
-			dest_mem_addrreg_mapped,
+			dest_mem_addrreg,
 			size,
 			TRUE);
-	int tempreg_mapped = comp_get_gpr_for_temp_register(tempreg);
 
 	if (size == 4)
 	{
@@ -5453,36 +5375,36 @@ STATIC_INLINE void helper_ADDIMM2MEM(const cpu_history* history, struct comptbl*
 
 		//Compile ADDCO PPC opcode
 		comp_macroblock_push_add_with_flags(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(immtempreg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
-				tempreg_mapped,
-				tempreg_mapped,
-				comp_get_gpr_for_temp_register(immtempreg));
+				tempreg->reg_usage_mapping | immtempreg->reg_usage_mapping,
+				tempreg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
+				tempreg->mapped_reg_num,
+				tempreg->mapped_reg_num,
+				immtempreg->mapped_reg_num);
 	} else {
 		//Prepare inputs: shift up to the highest word/byte
 		if (size == 2)
 		{
 			immtempreg = helper_allocate_tmp_reg_with_init(src_immediate << 16);
-			helper_pre_word_no_alloc(COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg), tempreg_mapped);
+			helper_pre_word_no_alloc(tempreg->reg_usage_mapping, tempreg);
 		} else {
 			immtempreg = helper_allocate_tmp_reg_with_init(src_immediate << 24);
-			helper_pre_byte_no_alloc(COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg), tempreg_mapped);
+			helper_pre_byte_no_alloc(tempreg->reg_usage_mapping, tempreg);
 		}
 
 		//Compile ADDCO PPC opcode
 		comp_macroblock_push_add_with_flags(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(immtempreg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
-				tempreg_mapped,
-				tempreg_mapped,
-				comp_get_gpr_for_temp_register(immtempreg));
+				tempreg->reg_usage_mapping | immtempreg->reg_usage_mapping,
+				tempreg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
+				tempreg->mapped_reg_num,
+				tempreg->mapped_reg_num,
+				immtempreg->mapped_reg_num);
 
 		//Shift result back to normal position and insert into the destination register
 		if (size == 2)
 		{
-			helper_post_word_no_free(COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg), tempreg_mapped);
+			helper_post_word_no_free(tempreg->reg_usage_mapping, tempreg);
 		} else {
-			helper_post_byte_no_free(COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg), tempreg_mapped);
+			helper_post_byte_no_free(tempreg->reg_usage_mapping, tempreg);
 		}
 	}
 
@@ -5493,11 +5415,10 @@ STATIC_INLINE void helper_ADDIMM2MEM(const cpu_history* history, struct comptbl*
 
 	//Write result to destination memory address and release temp register
 	helper_write_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+			tempreg->reg_usage_mapping | dest_mem_addrreg->reg_usage_mapping,
 			history,
-			dest_mem_addrreg_mapped,
-			tempreg, 0,
-			size);
+			dest_mem_addrreg,
+			tempreg, size);
 }
 
 /**
@@ -5507,8 +5428,8 @@ STATIC_INLINE void helper_ADDIMM2MEM(const cpu_history* history, struct comptbl*
  */
 STATIC_INLINE void helper_ADDREG2REG(uae_u8 size)
 {
-	uae_u8 srctempreg;
-	uae_u8 desttempreg;
+	comp_tmp_reg* srctempreg;
+	comp_tmp_reg* desttempreg;
 
 	if (size == 4)
 	{
@@ -5516,34 +5437,34 @@ STATIC_INLINE void helper_ADDREG2REG(uae_u8 size)
 		comp_macroblock_push_add_with_flags(
 				input_dep | output_dep,
 				output_dep | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
-				dest_reg_mapped,
-				dest_reg_mapped,
-				src_reg_mapped);
+				dest_reg->mapped_reg_num,
+				dest_reg->mapped_reg_num,
+				src_reg->mapped_reg_num);
 	} else {
 		//Prepare inputs: shift up to the highest word/byte
 		if (size == 2)
 		{
-			srctempreg = helper_pre_word(input_dep, src_reg_mapped);
-			desttempreg = helper_pre_word(output_dep, dest_reg_mapped);
+			srctempreg = helper_pre_word(input_dep, src_reg);
+			desttempreg = helper_pre_word(output_dep, dest_reg);
 		} else {
-			srctempreg = helper_pre_byte(input_dep, src_reg_mapped);
-			desttempreg = helper_pre_byte(output_dep, dest_reg_mapped);
+			srctempreg = helper_pre_byte(input_dep, src_reg);
+			desttempreg = helper_pre_byte(output_dep, dest_reg);
 		}
 
 		//Compile ADDCO PPC opcode
 		comp_macroblock_push_add_with_flags(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(desttempreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(srctempreg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(desttempreg) | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
-				comp_get_gpr_for_temp_register(desttempreg),
-				comp_get_gpr_for_temp_register(desttempreg),
-				comp_get_gpr_for_temp_register(srctempreg));
+				desttempreg->reg_usage_mapping | srctempreg->reg_usage_mapping,
+				desttempreg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
+				desttempreg->mapped_reg_num,
+				desttempreg->mapped_reg_num,
+				srctempreg->mapped_reg_num);
 
 		//Shift result back to normal position and insert into the destination register
 		if (size == 2)
 		{
-			helper_post_word(output_dep, desttempreg, dest_reg_mapped);
+			helper_post_word(output_dep, desttempreg, dest_reg);
 		} else {
-			helper_post_byte(output_dep, desttempreg, dest_reg_mapped);
+			helper_post_byte(output_dep, desttempreg, dest_reg);
 		}
 
 		helper_free_tmp_reg(srctempreg);
@@ -5562,54 +5483,53 @@ STATIC_INLINE void helper_ADDREG2REG(uae_u8 size)
  */
 STATIC_INLINE void helper_ADDREG2MEM(const cpu_history* history, struct comptbl* props, uae_u8 size)
 {
-	uae_u8 srctempreg;
+	comp_tmp_reg* srctempreg;
 
 	//Read memory from source
-	int tempreg = helper_read_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+	comp_tmp_reg* tempreg = helper_read_memory(
+			dest_mem_addrreg->reg_usage_mapping,
 			history,
-			dest_mem_addrreg_mapped,
+			dest_mem_addrreg,
 			size,
 			TRUE);
-	int tempreg_mapped = comp_get_gpr_for_temp_register(tempreg);
 
 	//Re-map source register
-	src_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_DATAREG(props->srcreg), TRUE, FALSE);
+	src_reg = comp_map_temp_register(COMP_COMPILER_REGS_DATAREG(props->srcreg), TRUE, FALSE);
 
 	if (size == 4)
 	{
 		//Compile ADDCO PPC opcode
 		comp_macroblock_push_add_with_flags(
-				input_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
-				tempreg_mapped,
-				tempreg_mapped,
-				src_reg_mapped);
+				input_dep | tempreg->reg_usage_mapping,
+				tempreg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
+				tempreg->mapped_reg_num,
+				tempreg->mapped_reg_num,
+				src_reg->mapped_reg_num);
 	} else {
 		//Prepare inputs: shift up to the highest word/byte
 		if (size == 2)
 		{
-			srctempreg = helper_pre_word(input_dep, src_reg_mapped);
-			helper_pre_word_no_alloc(COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg), tempreg_mapped);
+			srctempreg = helper_pre_word(input_dep, src_reg);
+			helper_pre_word_no_alloc(tempreg->reg_usage_mapping, tempreg);
 		} else {
-			srctempreg = helper_pre_byte(input_dep, src_reg_mapped);
-			helper_pre_byte_no_alloc(COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg), tempreg_mapped);
+			srctempreg = helper_pre_byte(input_dep, src_reg);
+			helper_pre_byte_no_alloc(tempreg->reg_usage_mapping, tempreg);
 		}
 
 		//Compile ADDCO PPC opcode
 		comp_macroblock_push_add_with_flags(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(srctempreg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
-				tempreg_mapped,
-				tempreg_mapped,
-				comp_get_gpr_for_temp_register(srctempreg));
+				tempreg->reg_usage_mapping | srctempreg->reg_usage_mapping,
+				tempreg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
+				tempreg->mapped_reg_num,
+				tempreg->mapped_reg_num,
+				srctempreg->mapped_reg_num);
 
 		//Shift result back to normal position and insert into the destination register
 		if (size == 2)
 		{
-			helper_post_word_no_free(COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg), tempreg_mapped);
+			helper_post_word_no_free(tempreg->reg_usage_mapping, tempreg);
 		} else {
-			helper_post_byte_no_free(COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg), tempreg_mapped);
+			helper_post_byte_no_free(tempreg->reg_usage_mapping, tempreg);
 		}
 
 		helper_free_tmp_reg(srctempreg);
@@ -5620,11 +5540,10 @@ STATIC_INLINE void helper_ADDREG2MEM(const cpu_history* history, struct comptbl*
 
 	//Write result to destination memory address and release temp register
 	helper_write_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+			tempreg->reg_usage_mapping | dest_mem_addrreg->reg_usage_mapping,
 			history,
-			dest_mem_addrreg_mapped,
-			tempreg, 0,
-			size);
+			dest_mem_addrreg,
+			tempreg, size);
 }
 
 /**
@@ -5636,55 +5555,53 @@ STATIC_INLINE void helper_ADDREG2MEM(const cpu_history* history, struct comptbl*
  */
 STATIC_INLINE void helper_ADDMEM2REG(const cpu_history* history, struct comptbl* props, uae_u8 size)
 {
-	uae_u8 desttempreg;
+	comp_tmp_reg* desttempreg;
 
 	//Read memory from source
-	int tempreg = helper_read_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg),
+	comp_tmp_reg* tempreg = helper_read_memory(
+			src_mem_addrreg->reg_usage_mapping,
 			history,
-			src_mem_addrreg_mapped,
+			src_mem_addrreg,
 			size,
 			FALSE);
 
-	int tempreg_mapped = comp_get_gpr_for_temp_register(tempreg);
-
 	//Re-map destination register
-	dest_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_DATAREG(props->destreg), TRUE, TRUE);
+	dest_reg = comp_map_temp_register(COMP_COMPILER_REGS_DATAREG(props->destreg), TRUE, TRUE);
 
 	if (size == 4)
 	{
 		//Compile ADDCO PPC opcode
 		comp_macroblock_push_add_with_flags(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | output_dep,
+				tempreg->reg_usage_mapping | output_dep,
 				output_dep | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
-				dest_reg_mapped,
-				dest_reg_mapped,
-				tempreg_mapped);
+				dest_reg->mapped_reg_num,
+				dest_reg->mapped_reg_num,
+				tempreg->mapped_reg_num);
 	} else {
 		//Prepare inputs: shift up to the highest word/byte
 		if (size == 2)
 		{
-			helper_pre_word_no_alloc(input_dep, tempreg_mapped);
-			desttempreg = helper_pre_word(output_dep, dest_reg_mapped);
+			helper_pre_word_no_alloc(input_dep, tempreg);
+			desttempreg = helper_pre_word(output_dep, dest_reg);
 		} else {
-			helper_pre_byte_no_alloc(input_dep, tempreg_mapped);
-			desttempreg = helper_pre_byte(output_dep, dest_reg_mapped);
+			helper_pre_byte_no_alloc(input_dep, tempreg);
+			desttempreg = helper_pre_byte(output_dep, dest_reg);
 		}
 
 		//Compile ADDCO PPC opcode
 		comp_macroblock_push_add_with_flags(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(desttempreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(desttempreg) | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
-				comp_get_gpr_for_temp_register(desttempreg),
-				comp_get_gpr_for_temp_register(desttempreg),
-				tempreg_mapped);
+				desttempreg->reg_usage_mapping | tempreg->reg_usage_mapping,
+				desttempreg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
+				desttempreg->mapped_reg_num,
+				desttempreg->mapped_reg_num,
+				tempreg->mapped_reg_num);
 
 		//Shift result back to normal position and insert into the destination register
 		if (size == 2)
 		{
-			helper_post_word(output_dep, desttempreg, dest_reg_mapped);
+			helper_post_word(output_dep, desttempreg, dest_reg);
 		} else {
-			helper_post_byte(output_dep, desttempreg, dest_reg_mapped);
+			helper_post_byte(output_dep, desttempreg, dest_reg);
 		}
 	}
 
@@ -5701,38 +5618,38 @@ STATIC_INLINE void helper_ADDMEM2REG(const cpu_history* history, struct comptbl*
  */
 STATIC_INLINE void helper_NEGREG(uae_u8 size)
 {
-	uae_u8 desttempreg;
+	comp_tmp_reg* desttempreg;
 
 	if (size == 4)
 	{
 		comp_macroblock_push_negate_with_overflow(
 				output_dep,
 				output_dep | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGV,
-				dest_reg_mapped,
-				dest_reg_mapped,
+				dest_reg->mapped_reg_num,
+				dest_reg->mapped_reg_num,
 				1);
 	} else {
 		//Prepare input: shift up to the highest word/byte
 		if (size == 2)
 		{
-			desttempreg = helper_pre_word(output_dep, dest_reg_mapped);
+			desttempreg = helper_pre_word(output_dep, dest_reg);
 		} else {
-			desttempreg = helper_pre_byte(output_dep, dest_reg_mapped);
+			desttempreg = helper_pre_byte(output_dep, dest_reg);
 		}
 
 		comp_macroblock_push_negate_with_overflow(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(desttempreg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(desttempreg) | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGV,
-				comp_get_gpr_for_temp_register(desttempreg),
-				comp_get_gpr_for_temp_register(desttempreg),
+				desttempreg->reg_usage_mapping,
+				desttempreg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGV,
+				desttempreg->mapped_reg_num,
+				desttempreg->mapped_reg_num,
 				1);
 
 		//Shift result back to normal position and insert into the destination register
 		if (size == 2)
 		{
-			helper_post_word(output_dep, desttempreg, dest_reg_mapped);
+			helper_post_word(output_dep, desttempreg, dest_reg);
 		} else {
-			helper_post_byte(output_dep, desttempreg, dest_reg_mapped);
+			helper_post_byte(output_dep, desttempreg, dest_reg);
 		}
 	}
 
@@ -5778,54 +5695,52 @@ STATIC_INLINE void helper_NEGREG(uae_u8 size)
 STATIC_INLINE void helper_NEGMEM(const cpu_history* history, struct comptbl* props, uae_u8 size)
 {
 	//Read memory from source
-	int tempreg = helper_read_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+	comp_tmp_reg* tempreg = helper_read_memory(
+			dest_mem_addrreg->reg_usage_mapping,
 			history,
-			dest_mem_addrreg_mapped,
+			dest_mem_addrreg,
 			size,
 			TRUE);
-	int tempreg_mapped = comp_get_gpr_for_temp_register(tempreg);
 
 	if (size == 4)
 	{
 		comp_macroblock_push_negate_with_overflow(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGV,
-				tempreg_mapped,
-				tempreg_mapped,
+				tempreg->reg_usage_mapping,
+				tempreg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGV,
+				tempreg->mapped_reg_num,
+				tempreg->mapped_reg_num,
 				1);
 	} else {
 		//Prepare input: shift up to the highest word/byte
 		if (size == 2)
 		{
-			helper_pre_word_no_alloc(COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg), tempreg_mapped);
+			helper_pre_word_no_alloc(tempreg->reg_usage_mapping, tempreg);
 		} else {
-			helper_pre_byte_no_alloc(COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg), tempreg_mapped);
+			helper_pre_byte_no_alloc(tempreg->reg_usage_mapping, tempreg);
 		}
 
 		comp_macroblock_push_negate_with_overflow(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGV,
-				tempreg_mapped,
-				tempreg_mapped,
+				tempreg->reg_usage_mapping,
+				tempreg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGV,
+				tempreg->mapped_reg_num,
+				tempreg->mapped_reg_num,
 				1);
 
 		//Shift result back to normal position and insert into the destination register
 		if (size == 2)
 		{
-			helper_post_word_no_free(COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg), tempreg_mapped);
+			helper_post_word_no_free(tempreg->reg_usage_mapping, tempreg);
 		} else {
-			helper_post_byte_no_free(COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg), tempreg_mapped);
+			helper_post_byte_no_free(tempreg->reg_usage_mapping, tempreg);
 		}
 	}
 
 	//Write result to destination memory address and release temp register
 	helper_write_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+			tempreg->reg_usage_mapping | dest_mem_addrreg->reg_usage_mapping,
 			history,
-			dest_mem_addrreg_mapped,
-			tempreg, 0,
-			size);
+			dest_mem_addrreg,
+			tempreg, size);
 
 	//Save flags: N, Z and V
 	helper_update_flags(
@@ -5896,8 +5811,8 @@ STATIC_INLINE void helper_SUBQ2MEM(const cpu_history* history, struct comptbl* p
  */
 STATIC_INLINE void helper_SUBIMM2REG(uae_u8 size)
 {
-	uae_u8 immtempreg;
-	uae_u8 desttempreg;
+	comp_tmp_reg* immtempreg;
+	comp_tmp_reg* desttempreg;
 
 	if (size == 4)
 	{
@@ -5906,36 +5821,36 @@ STATIC_INLINE void helper_SUBIMM2REG(uae_u8 size)
 
 		//Compile SUBCO PPC opcode
 		comp_macroblock_push_sub_with_flags(
-				output_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(immtempreg),
+				output_dep | immtempreg->reg_usage_mapping,
 				output_dep | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
-				dest_reg_mapped,
-				comp_get_gpr_for_temp_register(immtempreg),
-				dest_reg_mapped);
+				dest_reg->mapped_reg_num,
+				immtempreg->mapped_reg_num,
+				dest_reg->mapped_reg_num);
 	} else {
 		//Prepare inputs: shift up to the highest word/byte
 		if (size == 2)
 		{
 			immtempreg = helper_allocate_tmp_reg_with_init(src_immediate << 16);
-			desttempreg = helper_pre_word(output_dep, dest_reg_mapped);
+			desttempreg = helper_pre_word(output_dep, dest_reg);
 		} else {
 			immtempreg = helper_allocate_tmp_reg_with_init(src_immediate << 24);
-			desttempreg = helper_pre_byte(output_dep, dest_reg_mapped);
+			desttempreg = helper_pre_byte(output_dep, dest_reg);
 		}
 
 		//Compile SUBCO PPC opcode
 		comp_macroblock_push_sub_with_flags(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(desttempreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(immtempreg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(desttempreg) | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
-				comp_get_gpr_for_temp_register(desttempreg),
-				comp_get_gpr_for_temp_register(immtempreg),
-				comp_get_gpr_for_temp_register(desttempreg));
+				desttempreg->reg_usage_mapping | immtempreg->reg_usage_mapping,
+				desttempreg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
+				desttempreg->mapped_reg_num,
+				immtempreg->mapped_reg_num,
+				desttempreg->mapped_reg_num);
 
 		//Shift result back to normal position and insert into the destination register
 		if (size == 2)
 		{
-			helper_post_word(output_dep, desttempreg, dest_reg_mapped);
+			helper_post_word(output_dep, desttempreg, dest_reg);
 		} else {
-			helper_post_byte(output_dep, desttempreg, dest_reg_mapped);
+			helper_post_byte(output_dep, desttempreg, dest_reg);
 		}
 	}
 
@@ -5954,16 +5869,15 @@ STATIC_INLINE void helper_SUBIMM2REG(uae_u8 size)
  */
 STATIC_INLINE void helper_SUBIMM2MEM(const cpu_history* history, struct comptbl* props, uae_u8 size)
 {
-	uae_u8 immtempreg;
+	comp_tmp_reg* immtempreg;
 
 	//Read memory from source
-	int tempreg = helper_read_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+	comp_tmp_reg* tempreg = helper_read_memory(
+			dest_mem_addrreg->reg_usage_mapping,
 			history,
-			dest_mem_addrreg_mapped,
+			dest_mem_addrreg,
 			size,
 			TRUE);
-	int tempreg_mapped = comp_get_gpr_for_temp_register(tempreg);
 
 	if (size == 4)
 	{
@@ -5972,36 +5886,36 @@ STATIC_INLINE void helper_SUBIMM2MEM(const cpu_history* history, struct comptbl*
 
 		//Compile SUBCO PPC opcode
 		comp_macroblock_push_sub_with_flags(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(immtempreg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
-				tempreg_mapped,
-				comp_get_gpr_for_temp_register(immtempreg),
-				tempreg_mapped);
+				tempreg->reg_usage_mapping | immtempreg->reg_usage_mapping,
+				tempreg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
+				tempreg->mapped_reg_num,
+				immtempreg->mapped_reg_num,
+				tempreg->mapped_reg_num);
 	} else {
 		//Prepare inputs: shift up to the highest word/byte
 		if (size == 2)
 		{
 			immtempreg = helper_allocate_tmp_reg_with_init(src_immediate << 16);
-			helper_pre_word_no_alloc(COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg), tempreg_mapped);
+			helper_pre_word_no_alloc(tempreg->reg_usage_mapping, tempreg);
 		} else {
 			immtempreg = helper_allocate_tmp_reg_with_init(src_immediate << 24);
-			helper_pre_byte_no_alloc(COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg), tempreg_mapped);
+			helper_pre_byte_no_alloc(tempreg->reg_usage_mapping, tempreg);
 		}
 
 		//Compile SUBCO PPC opcode
 		comp_macroblock_push_sub_with_flags(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(immtempreg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
-				tempreg_mapped,
-				comp_get_gpr_for_temp_register(immtempreg),
-				tempreg_mapped);
+				tempreg->reg_usage_mapping | immtempreg->reg_usage_mapping,
+				tempreg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
+				tempreg->mapped_reg_num,
+				immtempreg->mapped_reg_num,
+				tempreg->mapped_reg_num);
 
 		//Shift result back to normal position and insert into the destination register
 		if (size == 2)
 		{
-			helper_post_word_no_free(COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg), tempreg_mapped);
+			helper_post_word_no_free(tempreg->reg_usage_mapping, tempreg);
 		} else {
-			helper_post_byte_no_free(COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg), tempreg_mapped);
+			helper_post_byte_no_free(tempreg->reg_usage_mapping, tempreg);
 		}
 	}
 
@@ -6012,11 +5926,10 @@ STATIC_INLINE void helper_SUBIMM2MEM(const cpu_history* history, struct comptbl*
 
 	//Write result to destination memory address and release temp register
 	helper_write_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+			tempreg->reg_usage_mapping | dest_mem_addrreg->reg_usage_mapping,
 			history,
-			dest_mem_addrreg_mapped,
-			tempreg, 0,
-			size);
+			dest_mem_addrreg,
+			tempreg, size);
 }
 
 /**
@@ -6026,8 +5939,8 @@ STATIC_INLINE void helper_SUBIMM2MEM(const cpu_history* history, struct comptbl*
  */
 STATIC_INLINE void helper_SUBREG2REG(uae_u8 size)
 {
-	uae_u8 srctempreg;
-	uae_u8 desttempreg;
+	comp_tmp_reg* srctempreg;
+	comp_tmp_reg* desttempreg;
 
 	if (size == 4)
 	{
@@ -6035,34 +5948,34 @@ STATIC_INLINE void helper_SUBREG2REG(uae_u8 size)
 		comp_macroblock_push_sub_with_flags(
 				input_dep | output_dep,
 				output_dep | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
-				dest_reg_mapped,
-				src_reg_mapped,
-				dest_reg_mapped);
+				dest_reg->mapped_reg_num,
+				src_reg->mapped_reg_num,
+				dest_reg->mapped_reg_num);
 	} else {
 		//Prepare inputs: shift up to the highest word/byte
 		if (size == 2)
 		{
-			srctempreg = helper_pre_word(input_dep, src_reg_mapped);
-			desttempreg = helper_pre_word(output_dep, dest_reg_mapped);
+			srctempreg = helper_pre_word(input_dep, src_reg);
+			desttempreg = helper_pre_word(output_dep, dest_reg);
 		} else {
-			srctempreg = helper_pre_byte(input_dep, src_reg_mapped);
-			desttempreg = helper_pre_byte(output_dep, dest_reg_mapped);
+			srctempreg = helper_pre_byte(input_dep, src_reg);
+			desttempreg = helper_pre_byte(output_dep, dest_reg);
 		}
 
 		//Compile SUBCO PPC opcode
 		comp_macroblock_push_sub_with_flags(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(desttempreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(srctempreg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(desttempreg) | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
-				comp_get_gpr_for_temp_register(desttempreg),
-				comp_get_gpr_for_temp_register(srctempreg),
-				comp_get_gpr_for_temp_register(desttempreg));
+				desttempreg->reg_usage_mapping | srctempreg->reg_usage_mapping,
+				desttempreg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
+				desttempreg->mapped_reg_num,
+				srctempreg->mapped_reg_num,
+				desttempreg->mapped_reg_num);
 
 		//Shift result back to normal position and insert into the destination register
 		if (size == 2)
 		{
-			helper_post_word(output_dep, desttempreg, dest_reg_mapped);
+			helper_post_word(output_dep, desttempreg, dest_reg);
 		} else {
-			helper_post_byte(output_dep, desttempreg, dest_reg_mapped);
+			helper_post_byte(output_dep, desttempreg, dest_reg);
 		}
 
 		helper_free_tmp_reg(srctempreg);
@@ -6081,54 +5994,53 @@ STATIC_INLINE void helper_SUBREG2REG(uae_u8 size)
  */
 STATIC_INLINE void helper_SUBREG2MEM(const cpu_history* history, struct comptbl* props, uae_u8 size)
 {
-	uae_u8 srctempreg;
+	comp_tmp_reg* srctempreg;
 
 	//Read memory from source
-	int tempreg = helper_read_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+	comp_tmp_reg* tempreg = helper_read_memory(
+			dest_mem_addrreg->reg_usage_mapping,
 			history,
-			dest_mem_addrreg_mapped,
+			dest_mem_addrreg,
 			size,
 			TRUE);
-	int tempreg_mapped = comp_get_gpr_for_temp_register(tempreg);
 
 	//Re-map source register
-	src_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_DATAREG(props->srcreg), TRUE, FALSE);
+	src_reg = comp_map_temp_register(COMP_COMPILER_REGS_DATAREG(props->srcreg), TRUE, FALSE);
 
 	if (size == 4)
 	{
 		//Compile SUBCO PPC opcode
 		comp_macroblock_push_sub_with_flags(
-				input_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
-				tempreg_mapped,
-				src_reg_mapped,
-				tempreg_mapped);
+				input_dep | tempreg->reg_usage_mapping,
+				tempreg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
+				tempreg->mapped_reg_num,
+				src_reg->mapped_reg_num,
+				tempreg->mapped_reg_num);
 	} else {
 		//Prepare inputs: shift up to the highest word/byte
 		if (size == 2)
 		{
-			srctempreg = helper_pre_word(input_dep, src_reg_mapped);
-			helper_pre_word_no_alloc(COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg), tempreg_mapped);
+			srctempreg = helper_pre_word(input_dep, src_reg);
+			helper_pre_word_no_alloc(tempreg->reg_usage_mapping, tempreg);
 		} else {
-			srctempreg = helper_pre_byte(input_dep, src_reg_mapped);
-			helper_pre_byte_no_alloc(COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg), tempreg_mapped);
+			srctempreg = helper_pre_byte(input_dep, src_reg);
+			helper_pre_byte_no_alloc(tempreg->reg_usage_mapping, tempreg);
 		}
 
 		//Compile SUBCO PPC opcode
 		comp_macroblock_push_sub_with_flags(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(srctempreg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
-				tempreg_mapped,
-				comp_get_gpr_for_temp_register(srctempreg),
-				tempreg_mapped);
+				tempreg->reg_usage_mapping | srctempreg->reg_usage_mapping,
+				tempreg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
+				tempreg->mapped_reg_num,
+				srctempreg->mapped_reg_num,
+				tempreg->mapped_reg_num);
 
 		//Shift result back to normal position and insert into the destination register
 		if (size == 2)
 		{
-			helper_post_word_no_free(COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg), tempreg_mapped);
+			helper_post_word_no_free(tempreg->reg_usage_mapping, tempreg);
 		} else {
-			helper_post_byte_no_free(COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg), tempreg_mapped);
+			helper_post_byte_no_free(tempreg->reg_usage_mapping, tempreg);
 		}
 
 		helper_free_tmp_reg(srctempreg);
@@ -6139,11 +6051,10 @@ STATIC_INLINE void helper_SUBREG2MEM(const cpu_history* history, struct comptbl*
 
 	//Write result to destination memory address and release temp register
 	helper_write_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+			tempreg->reg_usage_mapping | dest_mem_addrreg->reg_usage_mapping,
 			history,
-			dest_mem_addrreg_mapped,
-			tempreg, 0,
-			size);
+			dest_mem_addrreg,
+			tempreg, size);
 }
 
 /**
@@ -6155,55 +6066,53 @@ STATIC_INLINE void helper_SUBREG2MEM(const cpu_history* history, struct comptbl*
  */
 STATIC_INLINE void helper_SUBMEM2REG(const cpu_history* history, struct comptbl* props, uae_u8 size)
 {
-	uae_u8 desttempreg;
+	comp_tmp_reg* desttempreg;
 
 	//Read memory from source
-	int tempreg = helper_read_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg),
+	comp_tmp_reg* tempreg = helper_read_memory(
+			src_mem_addrreg->reg_usage_mapping,
 			history,
-			src_mem_addrreg_mapped,
+			src_mem_addrreg,
 			size,
 			FALSE);
 
-	int tempreg_mapped = comp_get_gpr_for_temp_register(tempreg);
-
 	//Re-map destination register
-	dest_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_DATAREG(props->destreg), TRUE, TRUE);
+	dest_reg = comp_map_temp_register(COMP_COMPILER_REGS_DATAREG(props->destreg), TRUE, TRUE);
 
 	if (size == 4)
 	{
 		//Compile SUBCO PPC opcode
 		comp_macroblock_push_sub_with_flags(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | output_dep,
+				tempreg->reg_usage_mapping | output_dep,
 				output_dep | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
-				dest_reg_mapped,
-				tempreg_mapped,
-				dest_reg_mapped);
+				dest_reg->mapped_reg_num,
+				tempreg->mapped_reg_num,
+				dest_reg->mapped_reg_num);
 	} else {
 		//Prepare inputs: shift up to the highest word/byte
 		if (size == 2)
 		{
-			helper_pre_word_no_alloc(input_dep, tempreg_mapped);
-			desttempreg = helper_pre_word(output_dep, dest_reg_mapped);
+			helper_pre_word_no_alloc(input_dep, tempreg);
+			desttempreg = helper_pre_word(output_dep, dest_reg);
 		} else {
-			helper_pre_byte_no_alloc(input_dep, tempreg_mapped);
-			desttempreg = helper_pre_byte(output_dep, dest_reg_mapped);
+			helper_pre_byte_no_alloc(input_dep, tempreg);
+			desttempreg = helper_pre_byte(output_dep, dest_reg);
 		}
 
 		//Compile SUBCO PPC opcode
 		comp_macroblock_push_sub_with_flags(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(desttempreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(desttempreg) | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
-				comp_get_gpr_for_temp_register(desttempreg),
-				tempreg_mapped,
-				comp_get_gpr_for_temp_register(desttempreg));
+				desttempreg->reg_usage_mapping | tempreg->reg_usage_mapping,
+				desttempreg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
+				desttempreg->mapped_reg_num,
+				tempreg->mapped_reg_num,
+				desttempreg->mapped_reg_num);
 
 		//Shift result back to normal position and insert into the destination register
 		if (size == 2)
 		{
-			helper_post_word(output_dep, desttempreg, dest_reg_mapped);
+			helper_post_word(output_dep, desttempreg, dest_reg);
 		} else {
-			helper_post_byte(output_dep, desttempreg, dest_reg_mapped);
+			helper_post_byte(output_dep, desttempreg, dest_reg);
 		}
 	}
 
@@ -6220,29 +6129,26 @@ STATIC_INLINE void helper_SUBMEM2REG(const cpu_history* history, struct comptbl*
  */
 STATIC_INLINE void helper_ANDIMM2REG(uae_u8 size)
 {
-	uae_u8 desttempreg;
-	uae_u8 desttempreg_mapped;
-	uae_u8 immtempreg;
-	uae_u8 immtempreg_mapped;
+	comp_tmp_reg* desttempreg;
+	comp_tmp_reg* immtempreg;
 
 	if (size == 4)
 	{
 		immtempreg = helper_allocate_tmp_reg();
-		immtempreg_mapped = comp_get_gpr_for_temp_register(immtempreg);
 
 		//Load immediate into a temporary register
 		comp_macroblock_push_load_register_long(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(immtempreg),
-				immtempreg_mapped,
+				immtempreg->reg_usage_mapping,
+				immtempreg->mapped_reg_num,
 				src_immediate);
 
 		//Compile AND PPC opcode with flag update
 		comp_macroblock_push_and_register_register(
-				output_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(immtempreg),
+				output_dep | immtempreg->reg_usage_mapping,
 				output_dep | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-				dest_reg_mapped,
-				dest_reg_mapped,
-				immtempreg_mapped,
+				dest_reg->mapped_reg_num,
+				dest_reg->mapped_reg_num,
+				immtempreg->mapped_reg_num,
 				TRUE);
 
 		helper_check_nz_clear_cv_flags();
@@ -6250,7 +6156,6 @@ STATIC_INLINE void helper_ANDIMM2REG(uae_u8 size)
 		helper_free_tmp_reg(immtempreg);
 	} else {
 		desttempreg = helper_allocate_tmp_reg();
-		desttempreg_mapped = comp_get_gpr_for_temp_register(desttempreg);
 
 		//Prepare immediate, we use it as unsigned
 		if (size == 1) src_immediate &= 0xff;
@@ -6258,16 +6163,16 @@ STATIC_INLINE void helper_ANDIMM2REG(uae_u8 size)
 		//Compile ANDI PPC opcode
 		comp_macroblock_push_and_low_register_imm(
 				output_dep,
-				COMP_COMPILER_MACROBLOCK_REG_TMP(desttempreg) | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-				desttempreg_mapped,
-				dest_reg_mapped,
+				desttempreg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
+				desttempreg->mapped_reg_num,
+				dest_reg->mapped_reg_num,
 				src_immediate);
 
 		//Check flags
 		helper_check_nz_clear_cv_flags();
 
 		//Check flags
-		helper_copy_result_set_flags(desttempreg, desttempreg_mapped, size);
+		helper_copy_result_set_flags(desttempreg, size);
 
 		comp_free_temp_register(desttempreg);
 	}
@@ -6285,25 +6190,24 @@ STATIC_INLINE void helper_ANDREG2REG(uae_u8 size)
 		comp_macroblock_push_and_register_register(
 				input_dep | output_dep,
 				output_dep | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-				dest_reg_mapped,
-				src_reg_mapped,
-				dest_reg_mapped,
+				dest_reg->mapped_reg_num,
+				src_reg->mapped_reg_num,
+				dest_reg->mapped_reg_num,
 				TRUE);
 
 		helper_check_nz_clear_cv_flags();
 	} else {
-		uae_u8 tmpreg = helper_allocate_tmp_reg();
-		int tmpreg_mapped = comp_get_gpr_for_temp_register(tmpreg);
+		comp_tmp_reg* tmpreg = helper_allocate_tmp_reg();
 
 		comp_macroblock_push_and_register_register(
 				input_dep | output_dep,
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-				tmpreg_mapped,
-				src_reg_mapped,
-				dest_reg_mapped,
+				tmpreg->reg_usage_mapping,
+				tmpreg->mapped_reg_num,
+				src_reg->mapped_reg_num,
+				dest_reg->mapped_reg_num,
 				FALSE);
 
-		helper_copy_result_set_flags(tmpreg, tmpreg_mapped, size);
+		helper_copy_result_set_flags(tmpreg, size);
 
 		comp_free_temp_register(tmpreg);
 	}
@@ -6319,39 +6223,37 @@ STATIC_INLINE void helper_ANDREG2REG(uae_u8 size)
 STATIC_INLINE void helper_ANDMEM2REG(const cpu_history* history, struct comptbl* props, uae_u8 size)
 {
 	//Read memory from source
-	int tempreg = helper_read_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg),
+	comp_tmp_reg* tempreg = helper_read_memory(
+			src_mem_addrreg->reg_usage_mapping,
 			history,
-			src_mem_addrreg_mapped,
+			src_mem_addrreg,
 			size,
 			FALSE);
 
-	int tempreg_mapped = comp_get_gpr_for_temp_register(tempreg);
-
 	//Re-map destination register
-	dest_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_DATAREG(props->destreg), TRUE, TRUE);
+	dest_reg = comp_map_temp_register(COMP_COMPILER_REGS_DATAREG(props->destreg), TRUE, TRUE);
 
 	if (size == 4)
 	{
 		comp_macroblock_push_and_register_register(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | output_dep,
+				tempreg->reg_usage_mapping | output_dep,
 				output_dep | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-				dest_reg_mapped,
-				tempreg_mapped,
-				dest_reg_mapped,
+				dest_reg->mapped_reg_num,
+				tempreg->mapped_reg_num,
+				dest_reg->mapped_reg_num,
 				TRUE);
 
 		helper_check_nz_clear_cv_flags();
 	} else {
 		comp_macroblock_push_and_register_register(
 				input_dep | output_dep,
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-				tempreg_mapped,
-				tempreg_mapped,
-				dest_reg_mapped,
+				tempreg->reg_usage_mapping,
+				tempreg->mapped_reg_num,
+				tempreg->mapped_reg_num,
+				dest_reg->mapped_reg_num,
 				FALSE);
 
-		helper_copy_result_set_flags(tempreg, tempreg_mapped, size);
+		helper_copy_result_set_flags(tempreg, size);
 	}
 
 	comp_free_temp_register(tempreg);
@@ -6367,13 +6269,12 @@ STATIC_INLINE void helper_ANDMEM2REG(const cpu_history* history, struct comptbl*
 STATIC_INLINE void helper_ANDREG2MEM(const cpu_history* history, struct comptbl* props, uae_u8 size)
 {
 	//Read memory from source
-	int tempreg = helper_read_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+	comp_tmp_reg* tempreg = helper_read_memory(
+			dest_mem_addrreg->reg_usage_mapping,
 			history,
-			dest_mem_addrreg_mapped,
+			dest_mem_addrreg,
 			size,
 			TRUE);
-	int tempreg_mapped = comp_get_gpr_for_temp_register(tempreg);
 
 	//Source register was free'd: reload
 	comp_addr_pre_regD_src(history, props);
@@ -6382,24 +6283,24 @@ STATIC_INLINE void helper_ANDREG2MEM(const cpu_history* history, struct comptbl*
 	{
 		//Compile AND PPC opcode with flag update
 		comp_macroblock_push_and_register_register(
-				input_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-				tempreg_mapped,
-				tempreg_mapped,
-				src_reg_mapped,
+				input_dep | tempreg->reg_usage_mapping,
+				tempreg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
+				tempreg->mapped_reg_num,
+				tempreg->mapped_reg_num,
+				src_reg->mapped_reg_num,
 				TRUE);
 	} else {
 		//Compile AND PPC opcode
 		comp_macroblock_push_and_register_register(
-				input_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-				tempreg_mapped,
-				tempreg_mapped,
-				src_reg_mapped,
+				input_dep | tempreg->reg_usage_mapping,
+				tempreg->reg_usage_mapping,
+				tempreg->mapped_reg_num,
+				tempreg->mapped_reg_num,
+				src_reg->mapped_reg_num,
 				FALSE);
 
 		//Check register
-	    helper_check_result_set_flags(COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg), tempreg_mapped, size);
+	    helper_check_result_set_flags(tempreg->reg_usage_mapping, tempreg->mapped_reg_num, size);
 	}
 
 	//Save flags
@@ -6407,11 +6308,10 @@ STATIC_INLINE void helper_ANDREG2MEM(const cpu_history* history, struct comptbl*
 
 	//Write result to destination memory address and release temp register
 	helper_write_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+			tempreg->reg_usage_mapping | dest_mem_addrreg->reg_usage_mapping,
 			history,
-			dest_mem_addrreg_mapped,
-			tempreg, 0,
-			size);
+			dest_mem_addrreg,
+			tempreg, size);
 }
 
 /**
@@ -6422,16 +6322,15 @@ STATIC_INLINE void helper_ANDREG2MEM(const cpu_history* history, struct comptbl*
  */
 STATIC_INLINE void helper_ANDIMM2MEM(const cpu_history* history, uae_u8 size)
 {
-	uae_u8 immtempreg;
+	comp_tmp_reg* immtempreg;
 
 	//Read memory from source
-	int tempreg = helper_read_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+	comp_tmp_reg* tempreg = helper_read_memory(
+			dest_mem_addrreg->reg_usage_mapping,
 			history,
-			dest_mem_addrreg_mapped,
+			dest_mem_addrreg,
 			size,
 			TRUE);
-	int tempreg_mapped = comp_get_gpr_for_temp_register(tempreg);
 
 	if (size == 4)
 	{
@@ -6440,11 +6339,11 @@ STATIC_INLINE void helper_ANDIMM2MEM(const cpu_history* history, uae_u8 size)
 
 		//Compile AND PPC opcode with flag update
 		comp_macroblock_push_and_register_register(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg_mapped) | COMP_COMPILER_MACROBLOCK_REG_TMP(immtempreg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg_mapped) | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-				tempreg_mapped,
-				tempreg_mapped,
-				comp_get_gpr_for_temp_register(immtempreg),
+				tempreg->reg_usage_mapping | immtempreg->reg_usage_mapping,
+				tempreg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
+				tempreg->mapped_reg_num,
+				tempreg->mapped_reg_num,
+				immtempreg->mapped_reg_num,
 				TRUE);
 
 		helper_free_tmp_reg(immtempreg);
@@ -6454,14 +6353,14 @@ STATIC_INLINE void helper_ANDIMM2MEM(const cpu_history* history, uae_u8 size)
 
 		//Compile AND immediate PPC opcode
 		comp_macroblock_push_and_low_register_imm(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg_mapped),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg_mapped),
-				tempreg_mapped,
-				tempreg_mapped,
+				tempreg->reg_usage_mapping,
+				tempreg->reg_usage_mapping,
+				tempreg->mapped_reg_num,
+				tempreg->mapped_reg_num,
 				src_immediate);
 
 		//Check flags
-		helper_check_result_set_flags(output_dep, tempreg_mapped, size);
+		helper_check_result_set_flags(output_dep, tempreg->mapped_reg_num, size);
 	}
 
 	//Save flags
@@ -6469,11 +6368,10 @@ STATIC_INLINE void helper_ANDIMM2MEM(const cpu_history* history, uae_u8 size)
 
 	//Write result to destination memory address and release temp register
 	helper_write_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+			tempreg->reg_usage_mapping | dest_mem_addrreg->reg_usage_mapping,
 			history,
-			dest_mem_addrreg_mapped,
-			tempreg, 0,
-			size);
+			dest_mem_addrreg,
+			tempreg, size);
 }
 
 /**
@@ -6483,7 +6381,7 @@ STATIC_INLINE void helper_ANDIMM2MEM(const cpu_history* history, uae_u8 size)
  */
 STATIC_INLINE void helper_ORIMM2REG(uae_u8 size)
 {
-	uae_u8 immtempreg;
+	comp_tmp_reg* immtempreg;
 
 	if (size == 4)
 	{
@@ -6492,11 +6390,11 @@ STATIC_INLINE void helper_ORIMM2REG(uae_u8 size)
 
 		//Compile OR PPC opcode with flag update
 		comp_macroblock_push_or_register_register(
-				output_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(immtempreg),
+				output_dep | immtempreg->reg_usage_mapping,
 				output_dep | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-				dest_reg_mapped,
-				dest_reg_mapped,
-				comp_get_gpr_for_temp_register(immtempreg),
+				dest_reg->mapped_reg_num,
+				dest_reg->mapped_reg_num,
+				immtempreg->mapped_reg_num,
 				TRUE);
 
 		helper_free_tmp_reg(immtempreg);
@@ -6508,12 +6406,12 @@ STATIC_INLINE void helper_ORIMM2REG(uae_u8 size)
 		comp_macroblock_push_or_low_register_imm(
 				output_dep,
 				output_dep,
-				dest_reg_mapped,
-				dest_reg_mapped,
+				dest_reg->mapped_reg_num,
+				dest_reg->mapped_reg_num,
 				src_immediate);
 
 		//Check flags
-		helper_check_result_set_flags(output_dep, dest_reg_mapped, size);
+		helper_check_result_set_flags(output_dep, dest_reg->mapped_reg_num, size);
 	}
 
 	//Save flags
@@ -6528,16 +6426,15 @@ STATIC_INLINE void helper_ORIMM2REG(uae_u8 size)
  */
 STATIC_INLINE void helper_ORIMM2MEM(const cpu_history* history, uae_u8 size)
 {
-	uae_u8 immtempreg;
+	comp_tmp_reg* immtempreg;
 
 	//Read memory from source
-	int tempreg = helper_read_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+	comp_tmp_reg* tempreg = helper_read_memory(
+			dest_mem_addrreg->reg_usage_mapping,
 			history,
-			dest_mem_addrreg_mapped,
+			dest_mem_addrreg,
 			size,
 			TRUE);
-	int tempreg_mapped = comp_get_gpr_for_temp_register(tempreg);
 
 	if (size == 4)
 	{
@@ -6546,11 +6443,11 @@ STATIC_INLINE void helper_ORIMM2MEM(const cpu_history* history, uae_u8 size)
 
 		//Compile OR PPC opcode with flag update
 		comp_macroblock_push_or_register_register(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg_mapped) | COMP_COMPILER_MACROBLOCK_REG_TMP(immtempreg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg_mapped) | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-				tempreg_mapped,
-				tempreg_mapped,
-				comp_get_gpr_for_temp_register(immtempreg),
+				tempreg->reg_usage_mapping | immtempreg->reg_usage_mapping,
+				tempreg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
+				tempreg->mapped_reg_num,
+				tempreg->mapped_reg_num,
+				immtempreg->mapped_reg_num,
 				TRUE);
 
 		helper_free_tmp_reg(immtempreg);
@@ -6560,14 +6457,14 @@ STATIC_INLINE void helper_ORIMM2MEM(const cpu_history* history, uae_u8 size)
 
 		//Compile OR immediate PPC opcode
 		comp_macroblock_push_or_low_register_imm(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg_mapped),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg_mapped),
-				tempreg_mapped,
-				tempreg_mapped,
+				tempreg->reg_usage_mapping,
+				tempreg->reg_usage_mapping,
+				tempreg->mapped_reg_num,
+				tempreg->mapped_reg_num,
 				src_immediate);
 
 		//Check flags
-		helper_check_result_set_flags(output_dep, tempreg_mapped, size);
+		helper_check_result_set_flags(output_dep, tempreg->mapped_reg_num, size);
 	}
 
 	//Save flags
@@ -6575,11 +6472,10 @@ STATIC_INLINE void helper_ORIMM2MEM(const cpu_history* history, uae_u8 size)
 
 	//Write result to destination memory address and release temp register
 	helper_write_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+			tempreg->reg_usage_mapping | dest_mem_addrreg->reg_usage_mapping,
 			history,
-			dest_mem_addrreg_mapped,
-			tempreg, 0,
-			size);
+			dest_mem_addrreg,
+			tempreg, size);
 }
 
 /**
@@ -6592,13 +6488,12 @@ STATIC_INLINE void helper_ORIMM2MEM(const cpu_history* history, uae_u8 size)
 STATIC_INLINE void helper_ORREG2MEM(const cpu_history* history, struct comptbl* props, uae_u8 size)
 {
 	//Read memory from source
-	int tempreg = helper_read_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+	comp_tmp_reg* tempreg = helper_read_memory(
+			dest_mem_addrreg->reg_usage_mapping,
 			history,
-			dest_mem_addrreg_mapped,
+			dest_mem_addrreg,
 			size,
 			TRUE);
-	int tempreg_mapped = comp_get_gpr_for_temp_register(tempreg);
 
 	//Source register was free'd: reload
 	comp_addr_pre_regD_src(history, props);
@@ -6607,24 +6502,24 @@ STATIC_INLINE void helper_ORREG2MEM(const cpu_history* history, struct comptbl* 
 	{
 		//Compile OR PPC opcode with flag update
 		comp_macroblock_push_or_register_register(
-				input_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-				tempreg_mapped,
-				tempreg_mapped,
-				src_reg_mapped,
+				input_dep | tempreg->reg_usage_mapping,
+				tempreg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
+				tempreg->mapped_reg_num,
+				tempreg->mapped_reg_num,
+				src_reg->mapped_reg_num,
 				TRUE);
 	} else {
 		//Compile OR PPC opcode
 		comp_macroblock_push_or_register_register(
-				input_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-				tempreg_mapped,
-				tempreg_mapped,
-				src_reg_mapped,
+				input_dep | tempreg->reg_usage_mapping,
+				tempreg->reg_usage_mapping,
+				tempreg->mapped_reg_num,
+				tempreg->mapped_reg_num,
+				src_reg->mapped_reg_num,
 				FALSE);
 
 		//Check register
-	    helper_check_result_set_flags(COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg), tempreg_mapped, size);
+	    helper_check_result_set_flags(tempreg->reg_usage_mapping, tempreg->mapped_reg_num, size);
 	}
 
 	//Save flags
@@ -6632,11 +6527,10 @@ STATIC_INLINE void helper_ORREG2MEM(const cpu_history* history, struct comptbl* 
 
 	//Write result to destination memory address and release temp register
 	helper_write_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+			tempreg->reg_usage_mapping | dest_mem_addrreg->reg_usage_mapping,
 			history,
-			dest_mem_addrreg_mapped,
-			tempreg, 0,
-			size);
+			dest_mem_addrreg,
+			tempreg, size);
 }
 
 /**
@@ -6649,15 +6543,15 @@ STATIC_INLINE void helper_EORIMM2REG(uae_u8 size)
 	if (size == 4)
 	{
 		//Allocate temp register for the immediate
-		uae_u8 immtempreg = helper_allocate_tmp_reg_with_init(src_immediate);
+		comp_tmp_reg* immtempreg = helper_allocate_tmp_reg_with_init(src_immediate);
 
 		//Compile XOR PPC opcode with flag update
 		comp_macroblock_push_xor_register_register(
-				output_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(immtempreg),
+				output_dep | immtempreg->reg_usage_mapping,
 				output_dep | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-				dest_reg_mapped,
-				dest_reg_mapped,
-				comp_get_gpr_for_temp_register(immtempreg),
+				dest_reg->mapped_reg_num,
+				dest_reg->mapped_reg_num,
+				immtempreg->mapped_reg_num,
 				TRUE);
 
 		helper_free_tmp_reg(immtempreg);
@@ -6669,12 +6563,12 @@ STATIC_INLINE void helper_EORIMM2REG(uae_u8 size)
 		comp_macroblock_push_xor_low_register_imm(
 				output_dep,
 				output_dep,
-				dest_reg_mapped,
-				dest_reg_mapped,
+				dest_reg->mapped_reg_num,
+				dest_reg->mapped_reg_num,
 				src_immediate);
 
 		//Check flags
-		helper_check_result_set_flags(output_dep, dest_reg_mapped, size);
+		helper_check_result_set_flags(output_dep, dest_reg->mapped_reg_num, size);
 	}
 
 	//Save flags
@@ -6693,25 +6587,24 @@ STATIC_INLINE void helper_EORREG2REG(uae_u8 size)
 		comp_macroblock_push_xor_register_register(
 				input_dep | output_dep,
 				output_dep | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-				dest_reg_mapped,
-				src_reg_mapped,
-				dest_reg_mapped,
+				dest_reg->mapped_reg_num,
+				src_reg->mapped_reg_num,
+				dest_reg->mapped_reg_num,
 				TRUE);
 
 		helper_check_nz_clear_cv_flags();
 	} else {
-		uae_u8 tmpreg = helper_allocate_tmp_reg();
-		int tmpreg_mapped = comp_get_gpr_for_temp_register(tmpreg);
+		comp_tmp_reg* tmpreg = helper_allocate_tmp_reg();
 
 		comp_macroblock_push_xor_register_register(
 				input_dep | output_dep,
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-				tmpreg_mapped,
-				src_reg_mapped,
-				dest_reg_mapped,
+				tmpreg->reg_usage_mapping,
+				tmpreg->mapped_reg_num,
+				src_reg->mapped_reg_num,
+				dest_reg->mapped_reg_num,
 				FALSE);
 
-		helper_copy_result_set_flags(tmpreg, tmpreg_mapped, size);
+		helper_copy_result_set_flags(tmpreg, size);
 
 		comp_free_temp_register(tmpreg);
 	}
@@ -6727,26 +6620,25 @@ STATIC_INLINE void helper_EORREG2REG(uae_u8 size)
 STATIC_INLINE void helper_EORIMM2MEM(const cpu_history* history, struct comptbl* props, uae_u8 size)
 {
 	//Read memory from source
-	int tempreg = helper_read_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+	comp_tmp_reg* tempreg = helper_read_memory(
+			dest_mem_addrreg->reg_usage_mapping,
 			history,
-			dest_mem_addrreg_mapped,
+			dest_mem_addrreg,
 			size,
 			TRUE);
-	int tempreg_mapped = comp_get_gpr_for_temp_register(tempreg);
 
 	if (size == 4)
 	{
 		//Allocate temp register for the immediate
-		uae_u8 immtempreg = helper_allocate_tmp_reg_with_init(src_immediate);
+		comp_tmp_reg* immtempreg = helper_allocate_tmp_reg_with_init(src_immediate);
 
 		//Compile XOR PPC opcode with flag update
 		comp_macroblock_push_xor_register_register(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(immtempreg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-				tempreg_mapped,
-				tempreg_mapped,
-				comp_get_gpr_for_temp_register(immtempreg),
+				tempreg->reg_usage_mapping | immtempreg->reg_usage_mapping,
+				tempreg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
+				tempreg->mapped_reg_num,
+				tempreg->mapped_reg_num,
+				immtempreg->mapped_reg_num,
 				TRUE);
 
 		helper_free_tmp_reg(immtempreg);
@@ -6756,14 +6648,14 @@ STATIC_INLINE void helper_EORIMM2MEM(const cpu_history* history, struct comptbl*
 
 		//Compile XOR immediate PPC opcode
 		comp_macroblock_push_xor_low_register_imm(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-				tempreg_mapped,
-				tempreg_mapped,
+				tempreg->reg_usage_mapping,
+				tempreg->reg_usage_mapping,
+				tempreg->mapped_reg_num,
+				tempreg->mapped_reg_num,
 				src_immediate);
 
 		//Check flags
-		helper_check_result_set_flags(output_dep, dest_reg_mapped, size);
+		helper_check_result_set_flags(output_dep, dest_reg->mapped_reg_num, size);
 	}
 
 	//Save flags
@@ -6771,11 +6663,10 @@ STATIC_INLINE void helper_EORIMM2MEM(const cpu_history* history, struct comptbl*
 
 	//Write result to destination memory address and release temp register
 	helper_write_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+			tempreg->reg_usage_mapping | dest_mem_addrreg->reg_usage_mapping,
 			history,
-			dest_mem_addrreg_mapped,
-			tempreg, 0,
-			size);
+			dest_mem_addrreg,
+			tempreg, size);
 }
 
 /**
@@ -6788,13 +6679,12 @@ STATIC_INLINE void helper_EORIMM2MEM(const cpu_history* history, struct comptbl*
 STATIC_INLINE void helper_EORREG2MEM(const cpu_history* history, struct comptbl* props, uae_u8 size)
 {
 	//Read memory from source
-	int tempreg = helper_read_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+	comp_tmp_reg* tempreg = helper_read_memory(
+			dest_mem_addrreg->reg_usage_mapping,
 			history,
-			dest_mem_addrreg_mapped,
+			dest_mem_addrreg,
 			size,
 			TRUE);
-	int tempreg_mapped = comp_get_gpr_for_temp_register(tempreg);
 
 	//Source register was free'd: reload
 	comp_addr_pre_regD_src(history, props);
@@ -6803,24 +6693,24 @@ STATIC_INLINE void helper_EORREG2MEM(const cpu_history* history, struct comptbl*
 	{
 		//Compile XOR PPC opcode with flag update
 		comp_macroblock_push_xor_register_register(
-				input_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-				tempreg_mapped,
-				tempreg_mapped,
-				src_reg_mapped,
+				input_dep | tempreg->reg_usage_mapping,
+				tempreg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
+				tempreg->mapped_reg_num,
+				tempreg->mapped_reg_num,
+				src_reg->mapped_reg_num,
 				TRUE);
 	} else {
 		//Compile XOR PPC opcode
 		comp_macroblock_push_xor_register_register(
-				input_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-				tempreg_mapped,
-				tempreg_mapped,
-				src_reg_mapped,
+				input_dep | tempreg->reg_usage_mapping,
+				tempreg->reg_usage_mapping,
+				tempreg->mapped_reg_num,
+				tempreg->mapped_reg_num,
+				src_reg->mapped_reg_num,
 				FALSE);
 
 		//Check register
-	    helper_check_result_set_flags(COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg), tempreg_mapped, size);
+	    helper_check_result_set_flags(tempreg->reg_usage_mapping, tempreg->mapped_reg_num, size);
 	}
 
 	//Save flags
@@ -6828,11 +6718,10 @@ STATIC_INLINE void helper_EORREG2MEM(const cpu_history* history, struct comptbl*
 
 	//Write result to destination memory address and release temp register
 	helper_write_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+			tempreg->reg_usage_mapping | dest_mem_addrreg->reg_usage_mapping,
 			history,
-			dest_mem_addrreg_mapped,
-			tempreg, 0,
-			size);
+			dest_mem_addrreg,
+			tempreg, size);
 }
 
 /**
@@ -6845,46 +6734,45 @@ STATIC_INLINE void helper_EORREG2MEM(const cpu_history* history, struct comptbl*
 STATIC_INLINE void helper_NOTMEM(const cpu_history* history, struct comptbl* props, uae_u8 size)
 {
 	//Read memory from source
-	int tempreg = helper_read_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+	comp_tmp_reg* tempreg = helper_read_memory(
+			dest_mem_addrreg->reg_usage_mapping,
 			history,
-			dest_mem_addrreg_mapped,
+			dest_mem_addrreg,
 			size,
 			TRUE);
-	int tempreg_mapped = comp_get_gpr_for_temp_register(tempreg);
 
 	switch (size)
 	{
 	case 4:
 		comp_macroblock_push_not_or_register_register(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-				tempreg_mapped,
-				tempreg_mapped,
-				tempreg_mapped,
+				tempreg->reg_usage_mapping,
+				tempreg->reg_usage_mapping,
+				tempreg->mapped_reg_num,
+				tempreg->mapped_reg_num,
+				tempreg->mapped_reg_num,
 				TRUE);
 		break;
 	case 2:
 		comp_macroblock_push_xor_low_register_imm(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-				tempreg_mapped,
-				tempreg_mapped,
+				tempreg->reg_usage_mapping,
+				tempreg->reg_usage_mapping,
+				tempreg->mapped_reg_num,
+				tempreg->mapped_reg_num,
 				0xffff);
 
 		//Check result
-		comp_macroblock_push_check_word_register(output_dep, dest_reg_mapped);
+		comp_macroblock_push_check_word_register(output_dep, dest_reg->mapped_reg_num);
 		break;
 	case 1:
 		comp_macroblock_push_xor_low_register_imm(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-				tempreg_mapped,
-				tempreg_mapped,
+				tempreg->reg_usage_mapping,
+				tempreg->reg_usage_mapping,
+				tempreg->mapped_reg_num,
+				tempreg->mapped_reg_num,
 				0xff);
 
 		//Check result
-		comp_macroblock_push_check_byte_register(output_dep, dest_reg_mapped);
+		comp_macroblock_push_check_byte_register(output_dep, dest_reg->mapped_reg_num);
 		break;
 	default:
 		write_log("Error: wrong operation size for NOTMEM\n");
@@ -6896,11 +6784,10 @@ STATIC_INLINE void helper_NOTMEM(const cpu_history* history, struct comptbl* pro
 
 	//Write result to destination memory address and release temp register
 	helper_write_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+			tempreg->reg_usage_mapping | dest_mem_addrreg->reg_usage_mapping,
 			history,
-			dest_mem_addrreg_mapped,
-			tempreg, 0,
-			size);
+			dest_mem_addrreg,
+			tempreg, size);
 }
 
 /**
@@ -6917,17 +6804,17 @@ STATIC_INLINE void helper_TSTREG(uae_u8 size)
 				input_dep,
 				COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
 				PPCR_SPECTMP,
-				src_reg_mapped);
+				src_reg->mapped_reg_num);
 		break;
 	case 2:
 		comp_macroblock_push_check_word_register(
 				input_dep,
-				src_reg_mapped);
+				src_reg->mapped_reg_num);
 		break;
 	case 1:
 		comp_macroblock_push_check_byte_register(
 				input_dep,
-				src_reg_mapped);
+				src_reg->mapped_reg_num);
 		break;
 	default:
 		write_log("Error: wrong operation size for TSTREG\n");
@@ -6947,32 +6834,31 @@ STATIC_INLINE void helper_TSTREG(uae_u8 size)
 STATIC_INLINE void helper_TSTMEM(const cpu_history* history, uae_u8 size)
 {
 	//Read memory from source
-	int tempreg = helper_read_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg),
+	comp_tmp_reg* tempreg = helper_read_memory(
+			src_mem_addrreg->reg_usage_mapping,
 			history,
-			src_mem_addrreg_mapped,
+			src_mem_addrreg,
 			size,
 			FALSE);
-	int tempreg_mapped = comp_get_gpr_for_temp_register(tempreg);
 
 	switch (size)
 	{
 	case 4:
 		comp_macroblock_push_copy_register_long_with_flags(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
+				tempreg->reg_usage_mapping,
 				COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
 				PPCR_SPECTMP,
-				tempreg_mapped);
+				tempreg->mapped_reg_num);
 		break;
 	case 2:
 		comp_macroblock_push_check_word_register(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-				tempreg_mapped);
+				tempreg->reg_usage_mapping,
+				tempreg->mapped_reg_num);
 		break;
 	case 1:
 		comp_macroblock_push_check_byte_register(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
-				tempreg_mapped);
+				tempreg->reg_usage_mapping,
+				tempreg->mapped_reg_num);
 		break;
 	default:
 		write_log("Error: wrong operation size for TSTMEM\n");
@@ -6993,45 +6879,40 @@ STATIC_INLINE void helper_TSTMEM(const cpu_history* history, uae_u8 size)
  */
 STATIC_INLINE void helper_CMPIMM2REG(uae_u8 size)
 {
-	uae_u8 immtempreg;
-	uae_u8 immtempreg_mapped;
-	uae_u8 desttempreg;
-	uae_u8 desttempreg_mapped;
+	comp_tmp_reg* immtempreg;
+	comp_tmp_reg* desttempreg;
 
 	if (size == 4)
 	{
 		//Allocate temp register for the immediate
 		immtempreg = helper_allocate_tmp_reg_with_init(src_immediate);
-		immtempreg_mapped = comp_get_gpr_for_temp_register(immtempreg);
 
 		//Compile SUBFCO PPC opcode
 		comp_macroblock_push_sub_with_flags(
-				output_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(immtempreg),
+				output_dep | immtempreg->reg_usage_mapping,
 				COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
-				immtempreg_mapped,
-				immtempreg_mapped,
-				dest_reg_mapped);
+				immtempreg->mapped_reg_num,
+				immtempreg->mapped_reg_num,
+				dest_reg->mapped_reg_num);
 	} else {
 		//Prepare inputs: shift up to the highest word/byte
 		if (size == 2)
 		{
 			immtempreg = helper_allocate_tmp_reg_with_init(src_immediate << 16);
-			desttempreg = helper_pre_word(output_dep, dest_reg_mapped);
+			desttempreg = helper_pre_word(output_dep, dest_reg);
 		} else {
 			immtempreg = helper_allocate_tmp_reg_with_init(src_immediate << 24);
-			desttempreg = helper_pre_byte(output_dep, dest_reg_mapped);
+			desttempreg = helper_pre_byte(output_dep, dest_reg);
 		}
 
-		immtempreg_mapped = comp_get_gpr_for_temp_register(immtempreg);
-		desttempreg_mapped = comp_get_gpr_for_temp_register(desttempreg);
 
 		//Compile SUBFCO PPC opcode
 		comp_macroblock_push_sub_with_flags(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(desttempreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(immtempreg),
+				desttempreg->reg_usage_mapping | immtempreg->reg_usage_mapping,
 				COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
-				immtempreg_mapped,
-				immtempreg_mapped,
-				desttempreg_mapped);
+				immtempreg->mapped_reg_num,
+				immtempreg->mapped_reg_num,
+				desttempreg->mapped_reg_num);
 
 		helper_free_tmp_reg(desttempreg);
 	}
@@ -7050,51 +6931,46 @@ STATIC_INLINE void helper_CMPIMM2REG(uae_u8 size)
  */
 STATIC_INLINE void helper_CMPIMM2MEM(const cpu_history* history, uae_u8 size)
 {
-	uae_u8 immtempreg;
-	uae_u8 immtempreg_mapped;
+	comp_tmp_reg* immtempreg;
 
 	//Read memory from source
-	int tempreg = helper_read_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
+	comp_tmp_reg* tempreg = helper_read_memory(
+			dest_mem_addrreg->reg_usage_mapping,
 			history,
-			dest_mem_addrreg_mapped,
+			dest_mem_addrreg,
 			size,
 			FALSE);
-	int tempreg_mapped = comp_get_gpr_for_temp_register(tempreg);
 
 	if (size == 4)
 	{
 		//Allocate temp register for the immediate
 		immtempreg = helper_allocate_tmp_reg_with_init(src_immediate);
-		immtempreg_mapped = comp_get_gpr_for_temp_register(immtempreg);
 
 		//Compile SUBFCO PPC opcode
 		comp_macroblock_push_sub_with_flags(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(immtempreg),
+				tempreg->reg_usage_mapping | immtempreg->reg_usage_mapping,
 				COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
-				immtempreg_mapped,
-				immtempreg_mapped,
-				tempreg_mapped);
+				immtempreg->mapped_reg_num,
+				immtempreg->mapped_reg_num,
+				tempreg->mapped_reg_num);
 	} else {
 		//Prepare inputs: shift up to the highest word/byte
 		if (size == 2)
 		{
 			immtempreg = helper_allocate_tmp_reg_with_init(src_immediate << 16);
-			helper_pre_word_no_alloc(COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg), tempreg_mapped);
+			helper_pre_word_no_alloc(tempreg->reg_usage_mapping, tempreg);
 		} else {
 			immtempreg = helper_allocate_tmp_reg_with_init(src_immediate << 24);
-			helper_pre_byte_no_alloc(COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg), tempreg_mapped);
+			helper_pre_byte_no_alloc(tempreg->reg_usage_mapping, tempreg);
 		}
-
-		immtempreg_mapped = comp_get_gpr_for_temp_register(immtempreg);
 
 		//Compile SUBFCO PPC opcode
 		comp_macroblock_push_sub_with_flags(
-				output_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(immtempreg),
+				output_dep | immtempreg->reg_usage_mapping,
 				COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
-				immtempreg_mapped,
-				immtempreg_mapped,
-				tempreg_mapped);
+				immtempreg->mapped_reg_num,
+				immtempreg->mapped_reg_num,
+				tempreg->mapped_reg_num);
 	}
 
 	//Free temp regs
@@ -7112,8 +6988,8 @@ STATIC_INLINE void helper_CMPIMM2MEM(const cpu_history* history, uae_u8 size)
  */
 STATIC_INLINE void helper_CMPREG2REG(uae_u8 size)
 {
-	uae_u8 srctempreg;
-	uae_u8 desttempreg;
+	comp_tmp_reg* srctempreg;
+	comp_tmp_reg* desttempreg;
 
 	if (size == 4)
 	{
@@ -7122,26 +6998,26 @@ STATIC_INLINE void helper_CMPREG2REG(uae_u8 size)
 				input_dep | output_dep,
 				COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
 				PPCR_SPECTMP,
-				src_reg_mapped,
-				dest_reg_mapped);
+				src_reg->mapped_reg_num,
+				dest_reg->mapped_reg_num);
 	} else {
 		//Prepare inputs: shift up to the highest word/byte
 		if (size == 2)
 		{
-			srctempreg = helper_pre_word(input_dep, src_reg_mapped);
-			desttempreg = helper_pre_word(output_dep, dest_reg_mapped);
+			srctempreg = helper_pre_word(input_dep, src_reg);
+			desttempreg = helper_pre_word(output_dep, dest_reg);
 		} else {
-			srctempreg = helper_pre_byte(input_dep, src_reg_mapped);
-			desttempreg = helper_pre_byte(output_dep, dest_reg_mapped);
+			srctempreg = helper_pre_byte(input_dep, src_reg);
+			desttempreg = helper_pre_byte(output_dep, dest_reg);
 		}
 
 		//Compile SUBFCO PPC opcode
 		comp_macroblock_push_sub_with_flags(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(srctempreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(desttempreg),
+				srctempreg->reg_usage_mapping | desttempreg->reg_usage_mapping,
 				COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
 				PPCR_SPECTMP,
-				comp_get_gpr_for_temp_register(srctempreg),
-				comp_get_gpr_for_temp_register(desttempreg));
+				srctempreg->mapped_reg_num,
+				desttempreg->mapped_reg_num);
 
 		helper_free_tmp_reg(srctempreg);
 		helper_free_tmp_reg(desttempreg);
@@ -7160,51 +7036,46 @@ STATIC_INLINE void helper_CMPREG2REG(uae_u8 size)
  */
 STATIC_INLINE void helper_CMPMEM2REG(const cpu_history* history, struct comptbl* props, uae_u8 size)
 {
-	uae_u8 desttempreg;
-	uae_u8 desttempreg_mapped;
+	comp_tmp_reg* desttempreg;
 
 	//Read memory from source
-	int tempreg = helper_read_memory(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg),
+	comp_tmp_reg* tempreg = helper_read_memory(
+			src_mem_addrreg->reg_usage_mapping,
 			history,
-			src_mem_addrreg_mapped,
+			src_mem_addrreg,
 			size,
 			FALSE);
 
-	int tempreg_mapped = comp_get_gpr_for_temp_register(tempreg);
-
 	//Re-map destination register
-	dest_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_DATAREG(props->destreg), TRUE, FALSE);
+	dest_reg = comp_map_temp_register(COMP_COMPILER_REGS_DATAREG(props->destreg), TRUE, FALSE);
 
 	if (size == 4)
 	{
 		//Compile SUBFCO PPC opcode
 		comp_macroblock_push_sub_with_flags(
-				output_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
+				output_dep | tempreg->reg_usage_mapping,
 				COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
-				tempreg_mapped,
-				tempreg_mapped,
-				dest_reg_mapped);
+				tempreg->mapped_reg_num,
+				tempreg->mapped_reg_num,
+				dest_reg->mapped_reg_num);
 	} else {
 		//Prepare inputs: shift up to the highest word/byte
 		if (size == 2)
 		{
-			helper_pre_word_no_alloc(COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg), tempreg_mapped);
-			desttempreg = helper_pre_word(output_dep, dest_reg_mapped);
+			helper_pre_word_no_alloc(tempreg->reg_usage_mapping, tempreg);
+			desttempreg = helper_pre_word(output_dep, dest_reg);
 		} else {
-			helper_pre_byte_no_alloc(COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg), tempreg_mapped);
-			desttempreg = helper_pre_byte(output_dep, dest_reg_mapped);
+			helper_pre_byte_no_alloc(tempreg->reg_usage_mapping, tempreg);
+			desttempreg = helper_pre_byte(output_dep, dest_reg);
 		}
-
-		desttempreg_mapped = comp_get_gpr_for_temp_register(desttempreg);
 
 		//Compile SUBFCO PPC opcode
 		comp_macroblock_push_sub_with_flags(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(desttempreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
+				desttempreg->reg_usage_mapping | tempreg->reg_usage_mapping,
 				COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
-				tempreg_mapped,
-				tempreg_mapped,
-				desttempreg_mapped);
+				tempreg->mapped_reg_num,
+				tempreg->mapped_reg_num,
+				desttempreg->mapped_reg_num);
 
 		helper_free_tmp_reg(desttempreg);
 	}
@@ -7226,7 +7097,7 @@ STATIC_INLINE void helper_ASRIMM2REG(uae_u8 size)
 	//Value 0 means value 8
 	if (src_immediate == 0) src_immediate = 8;
 
-	helper_extract_cx_clear_nzv_flags(output_dep, dest_reg_mapped, src_immediate - 1);
+	helper_extract_cx_clear_nzv_flags(output_dep, dest_reg, src_immediate - 1);
 
 	if (size == 4)
 	{
@@ -7234,54 +7105,53 @@ STATIC_INLINE void helper_ASRIMM2REG(uae_u8 size)
 		comp_macroblock_push_arithmetic_shift_right_register(
 				output_dep,
 				output_dep | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN  | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-				dest_reg_mapped,
-				dest_reg_mapped,
+				dest_reg->mapped_reg_num,
+				dest_reg->mapped_reg_num,
 				src_immediate, TRUE);
 	} else {
 		//Get temporary register for the operations
-		uae_u8 tmpreg = helper_allocate_tmp_reg();
-		uae_u8 tmpreg_mapped = comp_get_gpr_for_temp_register(tmpreg);
+		comp_tmp_reg* tmpreg = helper_allocate_tmp_reg();
 
 		//Sign-extend the register to longword
 		if (size == 2)
 		{
 			comp_macroblock_push_copy_register_word_extended(
 					output_dep,
-					COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-					tmpreg_mapped,
-					dest_reg_mapped,
+					tmpreg->reg_usage_mapping,
+					tmpreg->mapped_reg_num,
+					dest_reg->mapped_reg_num,
 					FALSE);
 		} else {
 			comp_macroblock_push_copy_register_byte_extended(
 					output_dep,
-					COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-					tmpreg_mapped,
-					dest_reg_mapped,
+					tmpreg->reg_usage_mapping,
+					tmpreg->mapped_reg_num,
+					dest_reg->mapped_reg_num,
 					FALSE);
 		}
 
 		//Arithmetic shifting to the right
 		comp_macroblock_push_arithmetic_shift_right_register(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg) | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN  | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-				tmpreg_mapped,
-				tmpreg_mapped,
+				tmpreg->reg_usage_mapping,
+				tmpreg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN  | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
+				tmpreg->mapped_reg_num,
+				tmpreg->mapped_reg_num,
 				src_immediate, TRUE);
 
 		//Copy result to the destination register
 		if (size == 2)
 		{
 			comp_macroblock_push_copy_register_word(
-					COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
+					tmpreg->reg_usage_mapping,
 					output_dep,
-					dest_reg_mapped,
-					tmpreg_mapped);
+					dest_reg->mapped_reg_num,
+					tmpreg->mapped_reg_num);
 		} else {
 			comp_macroblock_push_copy_register_byte(
-					COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
+					tmpreg->reg_usage_mapping,
 					output_dep,
-					dest_reg_mapped,
-					tmpreg_mapped);
+					dest_reg->mapped_reg_num,
+					tmpreg->mapped_reg_num);
 		}
 
 		comp_free_temp_register(tmpreg);
@@ -7300,7 +7170,7 @@ STATIC_INLINE void helper_LSRIMM2REG(uae_u8 size)
 	//Value 0 means value 8
 	if (src_immediate == 0) src_immediate = 8;
 
-	helper_extract_cx_clear_nzv_flags(output_dep, dest_reg_mapped, src_immediate - 1);
+	helper_extract_cx_clear_nzv_flags(output_dep, dest_reg, src_immediate - 1);
 
 	if (size == 4)
 	{
@@ -7308,36 +7178,35 @@ STATIC_INLINE void helper_LSRIMM2REG(uae_u8 size)
 		comp_macroblock_push_rotate_and_mask_bits(
 				output_dep,
 				output_dep | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN  | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-				dest_reg_mapped,
-				dest_reg_mapped,
+				dest_reg->mapped_reg_num,
+				dest_reg->mapped_reg_num,
 				32 - src_immediate, src_immediate, 31, TRUE);
 	} else {
 		//Get temporary register for the operations
-		uae_u8 tmpreg = helper_allocate_tmp_reg();
-		uae_u8 tmpreg_mapped = comp_get_gpr_for_temp_register(tmpreg);
+		comp_tmp_reg* tmpreg = helper_allocate_tmp_reg();
 
 		//Simulate SRWI by using RLWINM
 		comp_macroblock_push_rotate_and_mask_bits(
 				output_dep,
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg) | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN  | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-				tmpreg_mapped,
-				dest_reg_mapped,
+				tmpreg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN  | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
+				tmpreg->mapped_reg_num,
+				dest_reg->mapped_reg_num,
 				32 - src_immediate, (32 - size * 8) + src_immediate, 31, TRUE);
 
 		//Copy result to the destination register
 		if (size == 2)
 		{
 			comp_macroblock_push_copy_register_word(
-					COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
+					tmpreg->reg_usage_mapping,
 					output_dep,
-					dest_reg_mapped,
-					tmpreg_mapped);
+					dest_reg->mapped_reg_num,
+					tmpreg->mapped_reg_num);
 		} else {
 			comp_macroblock_push_copy_register_byte(
-					COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
+					tmpreg->reg_usage_mapping,
 					output_dep,
-					dest_reg_mapped,
-					tmpreg_mapped);
+					dest_reg->mapped_reg_num,
+					tmpreg->mapped_reg_num);
 		}
 
 		comp_free_temp_register(tmpreg);
@@ -7353,84 +7222,82 @@ STATIC_INLINE void helper_LSRIMM2REG(uae_u8 size)
  */
 STATIC_INLINE void helper_LSRREG2REG(uae_u8 size)
 {
-	uae_u8 shiftreg = helper_allocate_tmp_reg();
-	uae_u8 shiftreg_mapped = comp_get_gpr_for_temp_register(shiftreg);
+	comp_tmp_reg* shiftreg = helper_allocate_tmp_reg();
 	int modulo = (8  * size) - 1;
-	uae_u8 tmpreg = helper_allocate_tmp_reg();
-	uae_u8 tmpreg_mapped = comp_get_gpr_for_temp_register(tmpreg);
+	comp_tmp_reg* tmpreg = helper_allocate_tmp_reg();
 
 	//Modulo for shift register
 	comp_macroblock_push_and_low_register_imm(
 			input_dep,
-			COMP_COMPILER_MACROBLOCK_REG_TMP(shiftreg),
-			shiftreg_mapped,
-			src_reg_mapped,
+			shiftreg->reg_usage_mapping,
+			shiftreg->mapped_reg_num,
+			src_reg->mapped_reg_num,
 			modulo);
 
 	//Subtract shift register from 32 to reverse direction of shifting for the C flag extraction
 	comp_macroblock_push_sub_register_from_immediate(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(shiftreg),
-			COMP_COMPILER_MACROBLOCK_REG_TMP(shiftreg),
-			tmpreg_mapped,
-			shiftreg_mapped,
+			shiftreg->reg_usage_mapping,
+			shiftreg->reg_usage_mapping,
+			tmpreg->mapped_reg_num,
+			shiftreg->mapped_reg_num,
 			32);
 
 	if (size == 4)
 	{
 		//Extract C flag, clear V flag
 		helper_extract_c_clear_v_flags(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(shiftreg) | output_dep,
-				dest_reg_mapped,
-				tmpreg_mapped,
+				shiftreg->reg_usage_mapping | output_dep,
+				dest_reg,
+				tmpreg,
 				FALSE);
 
 		//Shifting to the right
 		comp_macroblock_push_logic_shift_right_register(
 				input_dep | output_dep,
 				output_dep | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-				dest_reg_mapped,
-				dest_reg_mapped,
-				shiftreg_mapped, TRUE);
+				dest_reg->mapped_reg_num,
+				dest_reg->mapped_reg_num,
+				shiftreg->mapped_reg_num, TRUE);
 	} else {
 		//Extract C flag, clear V flag
 		helper_extract_c_clear_v_flags(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(shiftreg) | output_dep,
-				dest_reg_mapped,
-				tmpreg_mapped,
+				shiftreg->reg_usage_mapping | output_dep,
+				dest_reg,
+				tmpreg,
 				FALSE);
 
 		//TODO: it would be nice to get rid of this masking
 		//Clear the rest of the longword
 		comp_macroblock_push_and_register_imm(
 				output_dep,
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-				tmpreg_mapped,
-				dest_reg_mapped,
+				tmpreg->reg_usage_mapping,
+				tmpreg->mapped_reg_num,
+				dest_reg->mapped_reg_num,
 				size == 2 ? 0xffff : 0x00ff);
 
 		//Shifting to the right
 		comp_macroblock_push_logic_shift_right_register(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(shiftreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-				tmpreg_mapped,
-				tmpreg_mapped,
-				shiftreg_mapped, FALSE);
+				shiftreg->reg_usage_mapping | tmpreg->reg_usage_mapping,
+				tmpreg->reg_usage_mapping,
+				tmpreg->mapped_reg_num,
+				tmpreg->mapped_reg_num,
+				shiftreg->mapped_reg_num, FALSE);
 
 		if (size == 2)
 		{
 			comp_macroblock_push_copy_register_word(
-					COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
+					tmpreg->reg_usage_mapping,
 					output_dep,
-					dest_reg_mapped,
-					tmpreg_mapped);
-		    comp_macroblock_push_check_word_register(output_dep, dest_reg_mapped);
+					dest_reg->mapped_reg_num,
+					tmpreg->mapped_reg_num);
+		    comp_macroblock_push_check_word_register(output_dep, dest_reg->mapped_reg_num);
 		} else {
 			comp_macroblock_push_copy_register_byte(
-					COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
+					tmpreg->reg_usage_mapping,
 					output_dep,
-					dest_reg_mapped,
-					tmpreg_mapped);
-		    comp_macroblock_push_check_byte_register(output_dep, dest_reg_mapped);
+					dest_reg->mapped_reg_num,
+					tmpreg->mapped_reg_num);
+		    comp_macroblock_push_check_byte_register(output_dep, dest_reg->mapped_reg_num);
 		}
 	}
 
@@ -7448,28 +7315,27 @@ STATIC_INLINE void helper_LSRREG2REG(uae_u8 size)
  */
 STATIC_INLINE void helper_ASLIMM2REG(uae_u8 size)
 {
-	uae_u8 tmpreg = helper_allocate_tmp_reg();
-	uae_u8 tmpreg_mapped = comp_get_gpr_for_temp_register(tmpreg);
-	uae_u8 src_reg;
+	comp_tmp_reg* tmpreg = helper_allocate_tmp_reg();
+	comp_tmp_reg* src_tmpreg;
 
 	//Value 0 means value 8
 	if (src_immediate == 0) src_immediate = 8;
 
 	//Extract C and X flag
-	helper_extract_cx_clear_nzv_flags(output_dep, dest_reg_mapped, (size * 8) - src_immediate);
+	helper_extract_cx_clear_nzv_flags(output_dep, dest_reg, (size * 8) - src_immediate);
 
 	//Load the shifting into a temp register
 	//TODO: this could be managed by using the immediate directly
-	src_reg = helper_allocate_tmp_reg_with_init(src_immediate);
+	src_tmpreg = helper_allocate_tmp_reg_with_init(src_immediate);
 
 	//Extract V flag
 	comp_macroblock_push_arithmetic_left_shift_extract_v_flag(
-			output_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(src_reg),
-			dest_reg_mapped,
-			comp_get_gpr_for_temp_register(src_reg),
-			tmpreg_mapped);
+			output_dep | src_tmpreg->reg_usage_mapping,
+			dest_reg->mapped_reg_num,
+			src_tmpreg->mapped_reg_num,
+			tmpreg->mapped_reg_num);
 
-	comp_free_temp_register(src_reg);
+	comp_free_temp_register(src_tmpreg);
 	comp_free_temp_register(tmpreg);
 
 	if (size == 4)
@@ -7478,27 +7344,25 @@ STATIC_INLINE void helper_ASLIMM2REG(uae_u8 size)
 		comp_macroblock_push_rotate_and_mask_bits(
 				output_dep,
 				output_dep | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN  | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-				dest_reg_mapped,
-				dest_reg_mapped,
+				dest_reg->mapped_reg_num,
+				dest_reg->mapped_reg_num,
 				src_immediate,
 				0, 31 - src_immediate, TRUE);
 	} else {
 		//Prepare the source for arithmetic operation
 		if (size == 2)
 		{
-			tmpreg = helper_pre_word(output_dep, dest_reg_mapped);
+			tmpreg = helper_pre_word(output_dep, dest_reg);
 		} else {
-			tmpreg = helper_pre_byte(output_dep, dest_reg_mapped);
+			tmpreg = helper_pre_byte(output_dep, dest_reg);
 		}
-
-		tmpreg_mapped = comp_get_gpr_for_temp_register(tmpreg);
 
 		//Shifting to the left
 		comp_macroblock_push_rotate_and_mask_bits(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg) | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN  | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-				tmpreg_mapped,
-				tmpreg_mapped,
+				tmpreg->reg_usage_mapping,
+				tmpreg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN  | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
+				tmpreg->mapped_reg_num,
+				tmpreg->mapped_reg_num,
 				src_immediate,
 				0,
 				size == 2 ? 15 - src_immediate : 7 - src_immediate,
@@ -7507,9 +7371,9 @@ STATIC_INLINE void helper_ASLIMM2REG(uae_u8 size)
 		//Copy result to the destination register
 		if (size == 2)
 		{
-			helper_post_word(output_dep, tmpreg, dest_reg_mapped);
+			helper_post_word(output_dep, tmpreg, dest_reg);
 		} else {
-			helper_post_byte(output_dep, tmpreg, dest_reg_mapped);
+			helper_post_byte(output_dep, tmpreg, dest_reg);
 		}
 	}
 
@@ -7524,29 +7388,27 @@ STATIC_INLINE void helper_ASLIMM2REG(uae_u8 size)
  */
 STATIC_INLINE void helper_ASLREG2REG(uae_u8 size)
 {
-	uae_u8 tmpreg = helper_allocate_tmp_reg();
-	uae_u8 tmpreg_mapped = comp_get_gpr_for_temp_register(tmpreg);
-	uae_u8 shiftreg = helper_allocate_tmp_reg();
-	uae_u8 shiftreg_mapped = comp_get_gpr_for_temp_register(shiftreg);
+	comp_tmp_reg* tmpreg = helper_allocate_tmp_reg();
+	comp_tmp_reg* shiftreg = helper_allocate_tmp_reg();
 	int modulo = (8  * size) - 1;
 
 	//Modulo for shift register
 	comp_macroblock_push_and_low_register_imm(
 			input_dep,
-			COMP_COMPILER_MACROBLOCK_REG_TMP(shiftreg),
-			shiftreg_mapped,
-			src_reg_mapped,
+			shiftreg->reg_usage_mapping,
+			shiftreg->mapped_reg_num,
+			src_reg->mapped_reg_num,
 			modulo);
 
 	//Extract C and X flag
-	helper_extract_cx_clear_v_flags(output_dep, dest_reg_mapped, shiftreg_mapped, TRUE);
+	helper_extract_cx_clear_v_flags(output_dep, dest_reg, shiftreg, TRUE);
 
 	//Extract V flag
 	comp_macroblock_push_arithmetic_left_shift_extract_v_flag(
-			output_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(shiftreg),
-			dest_reg_mapped,
-			shiftreg_mapped,
-			tmpreg_mapped);
+			output_dep | shiftreg->reg_usage_mapping,
+			dest_reg->mapped_reg_num,
+			shiftreg->mapped_reg_num,
+			tmpreg->mapped_reg_num);
 
 	comp_free_temp_register(tmpreg);
 
@@ -7554,38 +7416,36 @@ STATIC_INLINE void helper_ASLREG2REG(uae_u8 size)
 	{
 		//Shifting to the left
 		comp_macroblock_push_logic_shift_left_register(
-				output_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(shiftreg) | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN  | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
+				output_dep | shiftreg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN  | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
 				output_dep,
-				dest_reg_mapped,
-				dest_reg_mapped,
-				shiftreg_mapped,
+				dest_reg->mapped_reg_num,
+				dest_reg->mapped_reg_num,
+				shiftreg->mapped_reg_num,
 				TRUE);
 	} else {
 		//Prepare the source for arithmetic operation
 		if (size == 2)
 		{
-			tmpreg = helper_pre_word(output_dep, dest_reg_mapped);
+			tmpreg = helper_pre_word(output_dep, dest_reg);
 		} else {
-			tmpreg = helper_pre_byte(output_dep, dest_reg_mapped);
+			tmpreg = helper_pre_byte(output_dep, dest_reg);
 		}
-
-		tmpreg_mapped = comp_get_gpr_for_temp_register(tmpreg);
 
 		//Shifting to the left
 		comp_macroblock_push_logic_shift_left_register(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(shiftreg) | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN  | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-				tmpreg_mapped,
-				tmpreg_mapped,
-				shiftreg_mapped,
+				tmpreg->reg_usage_mapping | shiftreg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN  | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
+				tmpreg->reg_usage_mapping,
+				tmpreg->mapped_reg_num,
+				tmpreg->mapped_reg_num,
+				shiftreg->mapped_reg_num,
 				TRUE);
 
 		//Copy result to the destination register
 		if (size == 2)
 		{
-			helper_post_word(output_dep, tmpreg, dest_reg_mapped);
+			helper_post_word(output_dep, tmpreg, dest_reg);
 		} else {
-			helper_post_byte(output_dep, tmpreg, dest_reg_mapped);
+			helper_post_byte(output_dep, tmpreg, dest_reg);
 		}
 	}
 
@@ -7607,7 +7467,7 @@ STATIC_INLINE void helper_LSLIMM2REG(uae_u8 size)
 	if (src_immediate == 0) src_immediate = 8;
 
 	//Extract C and X flag
-	helper_extract_cx_clear_nzv_flags(output_dep, dest_reg_mapped, (size * 8) - src_immediate);
+	helper_extract_cx_clear_nzv_flags(output_dep, dest_reg, (size * 8) - src_immediate);
 
 	if (size == 4)
 	{
@@ -7615,30 +7475,27 @@ STATIC_INLINE void helper_LSLIMM2REG(uae_u8 size)
 		comp_macroblock_push_rotate_and_mask_bits(
 				output_dep,
 				output_dep | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN  | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-				dest_reg_mapped,
-				dest_reg_mapped,
+				dest_reg->mapped_reg_num,
+				dest_reg->mapped_reg_num,
 				src_immediate,
 				0, 31 - src_immediate, TRUE);
 	} else {
-		uae_u8 tmpreg;
-		uae_u8 tmpreg_mapped;
+		comp_tmp_reg* tmpreg;
 
 		//Prepare the source for arithmetic operation
 		if (size == 2)
 		{
-			tmpreg = helper_pre_word(output_dep, dest_reg_mapped);
+			tmpreg = helper_pre_word(output_dep, dest_reg);
 		} else {
-			tmpreg = helper_pre_byte(output_dep, dest_reg_mapped);
+			tmpreg = helper_pre_byte(output_dep, dest_reg);
 		}
-
-		tmpreg_mapped = comp_get_gpr_for_temp_register(tmpreg);
 
 		//Shifting to the left
 		comp_macroblock_push_rotate_and_mask_bits(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg) | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN  | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-				tmpreg_mapped,
-				tmpreg_mapped,
+				tmpreg->reg_usage_mapping,
+				tmpreg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN  | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
+				tmpreg->mapped_reg_num,
+				tmpreg->mapped_reg_num,
 				src_immediate,
 				0,
 				size == 2 ? 15 - src_immediate : 7 - src_immediate,
@@ -7647,9 +7504,9 @@ STATIC_INLINE void helper_LSLIMM2REG(uae_u8 size)
 		//Copy result to the destination register
 		if (size == 2)
 		{
-			helper_post_word(output_dep, tmpreg, dest_reg_mapped);
+			helper_post_word(output_dep, tmpreg, dest_reg);
 		} else {
-			helper_post_byte(output_dep, tmpreg, dest_reg_mapped);
+			helper_post_byte(output_dep, tmpreg, dest_reg);
 		}
 	}
 
@@ -7664,68 +7521,65 @@ STATIC_INLINE void helper_LSLIMM2REG(uae_u8 size)
  */
 STATIC_INLINE void helper_LSLREG2REG(uae_u8 size)
 {
-	uae_u8 shiftreg = helper_allocate_tmp_reg();
-	uae_u8 shiftreg_mapped = comp_get_gpr_for_temp_register(shiftreg);
+	comp_tmp_reg* shiftreg = helper_allocate_tmp_reg();
 	int modulo = (8  * size) - 1;
 
 	//Modulo for shift register
 	comp_macroblock_push_and_low_register_imm(
 			input_dep,
-			COMP_COMPILER_MACROBLOCK_REG_TMP(shiftreg),
-			shiftreg_mapped,
-			src_reg_mapped,
+			shiftreg->reg_usage_mapping,
+			shiftreg->mapped_reg_num,
+			src_reg->mapped_reg_num,
 			modulo);
 
 	if (size == 4)
 	{
 		//Extract C flag, clear V flag
 		helper_extract_c_clear_v_flags(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(shiftreg) | output_dep,
-				dest_reg_mapped,
-				shiftreg_mapped,
+				shiftreg->reg_usage_mapping | output_dep,
+				dest_reg,
+				shiftreg,
 				FALSE);
 
 		//Shifting to the left
 		comp_macroblock_push_logic_shift_left_register(
 				input_dep | output_dep,
 				output_dep | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-				dest_reg_mapped,
-				dest_reg_mapped,
-				shiftreg_mapped, TRUE);
+				dest_reg->mapped_reg_num,
+				dest_reg->mapped_reg_num,
+				shiftreg->mapped_reg_num, TRUE);
 	} else {
-		uae_u8 tmpreg;
-		uae_u8 tmpreg_mapped;
+		comp_tmp_reg* tmpreg;
 
 		if (size == 2)
 		{
-			tmpreg = helper_pre_word(output_dep, dest_reg_mapped);
+			tmpreg = helper_pre_word(output_dep, dest_reg);
 		} else {
-			tmpreg = helper_pre_byte(output_dep, dest_reg_mapped);
+			tmpreg = helper_pre_byte(output_dep, dest_reg);
 		}
-		tmpreg_mapped = comp_get_gpr_for_temp_register(tmpreg);
 
 		//Extract C flag, clear V flag
 		helper_extract_c_clear_v_flags(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(shiftreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-				tmpreg_mapped,
-				shiftreg_mapped,
+				shiftreg->reg_usage_mapping | tmpreg->reg_usage_mapping,
+				tmpreg,
+				shiftreg,
 				TRUE);
 
 		//Shifting to the left
 		comp_macroblock_push_logic_shift_left_register(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(shiftreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-				tmpreg_mapped,
-				tmpreg_mapped,
-				shiftreg_mapped, FALSE);
+				shiftreg->reg_usage_mapping | tmpreg->reg_usage_mapping,
+				tmpreg->reg_usage_mapping,
+				tmpreg->mapped_reg_num,
+				tmpreg->mapped_reg_num,
+				shiftreg->mapped_reg_num, FALSE);
 
 		if (size == 2)
 		{
-			helper_post_word(output_dep, tmpreg, dest_reg_mapped);
-		    comp_macroblock_push_check_word_register(output_dep, dest_reg_mapped);
+			helper_post_word(output_dep, tmpreg, dest_reg);
+		    comp_macroblock_push_check_word_register(output_dep, dest_reg->mapped_reg_num);
 		} else {
-			helper_post_byte(output_dep, tmpreg, dest_reg_mapped);
-		    comp_macroblock_push_check_byte_register(output_dep, dest_reg_mapped);
+			helper_post_byte(output_dep, tmpreg, dest_reg);
+		    comp_macroblock_push_check_byte_register(output_dep, dest_reg->mapped_reg_num);
 		}
 	}
 
@@ -7742,14 +7596,13 @@ STATIC_INLINE void helper_LSLREG2REG(uae_u8 size)
  */
 STATIC_INLINE void helper_ROLIMM2REG(uae_u8 size)
 {
-	uae_u8 tmpreg;
-	uae_u8 tmpreg_mapped;
+	comp_tmp_reg* tmpreg;
 
 	//Value 0 means value 8
 	if (src_immediate == 0) src_immediate = 8;
 
 	//Extract C, clear V flag
-	helper_extract_c_clear_nzvx_flags(output_dep, dest_reg_mapped, (size * 8) - src_immediate);
+	helper_extract_c_clear_nzvx_flags(output_dep, dest_reg, (size * 8) - src_immediate);
 
 	if (size == 4)
 	{
@@ -7757,26 +7610,25 @@ STATIC_INLINE void helper_ROLIMM2REG(uae_u8 size)
 		comp_macroblock_push_rotate_and_mask_bits(
 				output_dep,
 				output_dep | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN  | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-				dest_reg_mapped,
-				dest_reg_mapped,
+				dest_reg->mapped_reg_num,
+				dest_reg->mapped_reg_num,
 				src_immediate,
 				0, 31, TRUE);
 	} else {
 		//Prepare the source for arithmetic operation
 		if (size == 2)
 		{
-			tmpreg = helper_prepare_word_shift(output_dep, dest_reg_mapped);
+			tmpreg = helper_prepare_word_shift(output_dep, dest_reg);
 		} else {
-			tmpreg = helper_prepare_byte_shift(output_dep, dest_reg_mapped);
+			tmpreg = helper_prepare_byte_shift(output_dep, dest_reg);
 		}
-		tmpreg_mapped = comp_get_gpr_for_temp_register(tmpreg);
 
 		//Shifting to the left
 		comp_macroblock_push_rotate_and_copy_bits(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
+				tmpreg->reg_usage_mapping,
 				output_dep,
-				dest_reg_mapped,
-				tmpreg_mapped,
+				dest_reg->mapped_reg_num,
+				tmpreg->mapped_reg_num,
 				src_immediate,
 				size == 2 ? 16 : 24, 31, FALSE);
 
@@ -7785,11 +7637,11 @@ STATIC_INLINE void helper_ROLIMM2REG(uae_u8 size)
 		{
 		    comp_macroblock_push_check_word_register(
 		    		output_dep,
-		    		dest_reg_mapped);
+		    		dest_reg->mapped_reg_num);
 		} else {
 		    comp_macroblock_push_check_byte_register(
 		    		output_dep,
-		    		dest_reg_mapped);
+		    		dest_reg->mapped_reg_num);
 		}
 
 		comp_free_temp_register(tmpreg);
@@ -7811,72 +7663,69 @@ STATIC_INLINE void helper_ROLREG2REG(uae_u8 size)
 		//Extract C flag, clear V flag
 		helper_extract_c_clear_v_flags(
 				input_dep | output_dep,
-				dest_reg_mapped,
-				src_reg_mapped,
+				dest_reg,
+				src_reg,
 				TRUE);
 
 		//Shifting to the left
 		comp_macroblock_push_rotate_and_mask_bits_register(
 				input_dep | output_dep,
 				output_dep | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-				dest_reg_mapped,
-				dest_reg_mapped,
-				src_reg_mapped,
+				dest_reg->mapped_reg_num,
+				dest_reg->mapped_reg_num,
+				src_reg->mapped_reg_num,
 				0, 31, TRUE);
 	} else {
-		uae_u8 tmpreg;
-		uae_u8 tmpreg_mapped;
+		comp_tmp_reg* tmpreg;
 
 		if (size == 2)
 		{
-			tmpreg = helper_prepare_word_shift(output_dep, dest_reg_mapped);
+			tmpreg = helper_prepare_word_shift(output_dep, dest_reg);
 		} else {
-			tmpreg = helper_prepare_byte_shift(output_dep, dest_reg_mapped);
+			tmpreg = helper_prepare_byte_shift(output_dep, dest_reg);
 		}
-		tmpreg_mapped = comp_get_gpr_for_temp_register(tmpreg);
 
-		uae_u8 shiftreg = helper_allocate_tmp_reg();
-		uae_u8 shiftreg_mapped = comp_get_gpr_for_temp_register(shiftreg);
+		comp_tmp_reg* shiftreg = helper_allocate_tmp_reg();
 
 		//Modulo for shift register
 		comp_macroblock_push_and_low_register_imm(
 				input_dep,
-				COMP_COMPILER_MACROBLOCK_REG_TMP(shiftreg),
-				shiftreg_mapped,
-				src_reg_mapped,
+				shiftreg->reg_usage_mapping,
+				shiftreg->mapped_reg_num,
+				src_reg->mapped_reg_num,
 				size == 2 ? 15 : 7);
 
 		//Extract C flag, clear V flag
 		helper_extract_c_clear_v_flags(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(shiftreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-				tmpreg_mapped,
-				shiftreg_mapped,
+				shiftreg->reg_usage_mapping | tmpreg->reg_usage_mapping,
+				tmpreg,
+				shiftreg,
 				TRUE);
 
 		//Shifting to the left
 		comp_macroblock_push_rotate_and_mask_bits_register(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(shiftreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-				tmpreg_mapped,
-				tmpreg_mapped,
-				shiftreg_mapped,
+				shiftreg->reg_usage_mapping | tmpreg->reg_usage_mapping,
+				tmpreg->reg_usage_mapping,
+				tmpreg->mapped_reg_num,
+				tmpreg->mapped_reg_num,
+				shiftreg->mapped_reg_num,
 				0, 31, FALSE);
 
 		if (size == 2)
 		{
 			comp_macroblock_push_copy_register_word(
-					COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
+					tmpreg->reg_usage_mapping,
 					output_dep,
-					dest_reg_mapped,
-					tmpreg_mapped);
-		    comp_macroblock_push_check_word_register(output_dep, dest_reg_mapped);
+					dest_reg->mapped_reg_num,
+					tmpreg->mapped_reg_num);
+		    comp_macroblock_push_check_word_register(output_dep, dest_reg->mapped_reg_num);
 		} else {
 			comp_macroblock_push_copy_register_byte(
-					COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
+					tmpreg->reg_usage_mapping,
 					output_dep,
-					dest_reg_mapped,
-					tmpreg_mapped);
-		    comp_macroblock_push_check_byte_register(output_dep, dest_reg_mapped);
+					dest_reg->mapped_reg_num,
+					tmpreg->mapped_reg_num);
+		    comp_macroblock_push_check_byte_register(output_dep, dest_reg->mapped_reg_num);
 		}
 
 		comp_free_temp_register(tmpreg);
@@ -7894,14 +7743,13 @@ STATIC_INLINE void helper_ROLREG2REG(uae_u8 size)
  */
 STATIC_INLINE void helper_RORIMM2REG(uae_u8 size)
 {
-	uae_u8 tmpreg;
-	uae_u8 tmpreg_mapped;
+	comp_tmp_reg* tmpreg;
 
 	//Value 0 means value 8
 	if (src_immediate == 0) src_immediate = 8;
 
 	//Extract C, clear V flag
-	helper_extract_cx_clear_nzv_flags(output_dep, dest_reg_mapped, src_immediate - 1);
+	helper_extract_cx_clear_nzv_flags(output_dep, dest_reg, src_immediate - 1);
 
 	if (size == 4)
 	{
@@ -7909,26 +7757,25 @@ STATIC_INLINE void helper_RORIMM2REG(uae_u8 size)
 		comp_macroblock_push_rotate_and_mask_bits(
 				output_dep,
 				output_dep | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN  | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-				dest_reg_mapped,
-				dest_reg_mapped,
+				dest_reg->mapped_reg_num,
+				dest_reg->mapped_reg_num,
 				32 - src_immediate,
 				0, 31, TRUE);
 	} else {
 		//Prepare the source for arithmetic operation
 		if (size == 2)
 		{
-			tmpreg = helper_prepare_word_shift(output_dep, dest_reg_mapped);
+			tmpreg = helper_prepare_word_shift(output_dep, dest_reg);
 		} else {
-			tmpreg = helper_prepare_byte_shift(output_dep, dest_reg_mapped);
+			tmpreg = helper_prepare_byte_shift(output_dep, dest_reg);
 		}
-		tmpreg_mapped = comp_get_gpr_for_temp_register(tmpreg);
 
 		//Shifting to the left
 		comp_macroblock_push_rotate_and_copy_bits(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
+				tmpreg->reg_usage_mapping,
 				output_dep,
-				dest_reg_mapped,
-				tmpreg_mapped,
+				dest_reg->mapped_reg_num,
+				tmpreg->mapped_reg_num,
 				32 - src_immediate,
 				size == 2 ? 16 : 24, 31, FALSE);
 
@@ -7937,11 +7784,11 @@ STATIC_INLINE void helper_RORIMM2REG(uae_u8 size)
 		{
 		    comp_macroblock_push_check_word_register(
 		    		output_dep,
-		    		dest_reg_mapped);
+		    		dest_reg->mapped_reg_num);
 		} else {
 		    comp_macroblock_push_check_byte_register(
 		    		output_dep,
-		    		dest_reg_mapped);
+		    		dest_reg->mapped_reg_num);
 		}
 
 		comp_free_temp_register(tmpreg);
@@ -7958,78 +7805,75 @@ STATIC_INLINE void helper_RORIMM2REG(uae_u8 size)
  */
 STATIC_INLINE void helper_RORREG2REG(uae_u8 size)
 {
-	uae_u8 shiftreg = helper_allocate_tmp_reg();
-	uae_u8 shiftreg_mapped = comp_get_gpr_for_temp_register(shiftreg);
+	comp_tmp_reg* shiftreg = helper_allocate_tmp_reg();
 	int modulo = (8  * size) - 1;
 
 	//Modulo for shift register
 	comp_macroblock_push_and_low_register_imm(
 			input_dep,
-			COMP_COMPILER_MACROBLOCK_REG_TMP(shiftreg),
-			shiftreg_mapped,
-			src_reg_mapped,
+			shiftreg->reg_usage_mapping,
+			shiftreg->mapped_reg_num,
+			src_reg->mapped_reg_num,
 			modulo);
 
 	//Subtract shift register from 32 to reverse direction of shifting
 	comp_macroblock_push_sub_register_from_immediate(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(shiftreg),
-			COMP_COMPILER_MACROBLOCK_REG_TMP(shiftreg),
-			shiftreg_mapped,
-			shiftreg_mapped,
+			shiftreg->reg_usage_mapping,
+			shiftreg->reg_usage_mapping,
+			shiftreg->mapped_reg_num,
+			shiftreg->mapped_reg_num,
 			32);
 
 	if (size == 4)
 	{
 		//Extract C flag, clear V flag
 		helper_extract_c_clear_v_flags(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(shiftreg) | output_dep,
-				dest_reg_mapped,
-				shiftreg_mapped,
+				shiftreg->reg_usage_mapping | output_dep,
+				dest_reg,
+				shiftreg,
 				FALSE);
 
 		//Shifting to the left
 		comp_macroblock_push_rotate_and_mask_bits_register(
 				input_dep | output_dep,
 				output_dep | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-				dest_reg_mapped,
-				dest_reg_mapped,
-				shiftreg_mapped,
+				dest_reg->mapped_reg_num,
+				dest_reg->mapped_reg_num,
+				shiftreg->mapped_reg_num,
 				0, 31, TRUE);
 	} else {
-		uae_u8 tmpreg;
-		uae_u8 tmpreg_mapped;
+		comp_tmp_reg* tmpreg;
 
 		if (size == 2)
 		{
-			tmpreg = helper_prepare_word_shift(output_dep, dest_reg_mapped);
+			tmpreg = helper_prepare_word_shift(output_dep, dest_reg);
 		} else {
-			tmpreg = helper_prepare_byte_shift(output_dep, dest_reg_mapped);
+			tmpreg = helper_prepare_byte_shift(output_dep, dest_reg);
 		}
-		tmpreg_mapped = comp_get_gpr_for_temp_register(tmpreg);
 
 		//Extract C flag, clear V flag
 		helper_extract_c_clear_v_flags(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(shiftreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-				tmpreg_mapped,
-				shiftreg_mapped,
+				shiftreg->reg_usage_mapping | tmpreg->reg_usage_mapping,
+				tmpreg,
+				shiftreg,
 				FALSE);
 
 		//Shifting to the left
 		comp_macroblock_push_rotate_and_mask_bits_register(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(shiftreg) | COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-				tmpreg_mapped,
-				tmpreg_mapped,
-				shiftreg_mapped,
+				shiftreg->reg_usage_mapping | tmpreg->reg_usage_mapping,
+				tmpreg->reg_usage_mapping,
+				tmpreg->mapped_reg_num,
+				tmpreg->mapped_reg_num,
+				shiftreg->mapped_reg_num,
 				0, 31, FALSE);
 
 		if (size == 2)
 		{
-			helper_post_word(output_dep, tmpreg, dest_reg_mapped);
-		    comp_macroblock_push_check_word_register(output_dep, dest_reg_mapped);
+			helper_post_word(output_dep, tmpreg, dest_reg);
+		    comp_macroblock_push_check_word_register(output_dep, dest_reg->mapped_reg_num);
 		} else {
-			helper_post_byte(output_dep, tmpreg, dest_reg_mapped);
-		    comp_macroblock_push_check_byte_register(output_dep, dest_reg_mapped);
+			helper_post_byte(output_dep, tmpreg, dest_reg);
+		    comp_macroblock_push_check_byte_register(output_dep, dest_reg->mapped_reg_num);
 		}
 	}
 
@@ -8042,17 +7886,17 @@ STATIC_INLINE void helper_RORREG2REG(uae_u8 size)
 /*
  * Copy a result word from the specified temp register to the destination register with normal flag checks
  */
-STATIC_INLINE void helper_copy_word_with_flagcheck(uae_u8 tmpreg, int tmpreg_mapped)
+STATIC_INLINE void helper_copy_word_with_flagcheck(comp_tmp_reg* tmpreg)
 {
     comp_macroblock_push_copy_register_word(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
+			tmpreg->reg_usage_mapping,
 			output_dep,
-			dest_reg_mapped,
-			tmpreg_mapped);
+			dest_reg->mapped_reg_num,
+			tmpreg->mapped_reg_num);
 
     comp_macroblock_push_check_word_register(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-			tmpreg_mapped);
+			tmpreg->reg_usage_mapping,
+			tmpreg->mapped_reg_num);
 
     	helper_check_nz_clear_cv_flags();
 }
@@ -8060,17 +7904,17 @@ STATIC_INLINE void helper_copy_word_with_flagcheck(uae_u8 tmpreg, int tmpreg_map
 /*
  * Copy a result byte from the specified temp register to the destination register with normal flag checks
  */
-STATIC_INLINE void helper_copy_byte_with_flagcheck(uae_u8 tmpreg, int tmpreg_mapped)
+STATIC_INLINE void helper_copy_byte_with_flagcheck(comp_tmp_reg* tmpreg)
 {
     comp_macroblock_push_copy_register_byte(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
+			tmpreg->reg_usage_mapping,
 			output_dep,
-			dest_reg_mapped,
-			tmpreg_mapped);
+			dest_reg->mapped_reg_num,
+			tmpreg->mapped_reg_num);
 
     comp_macroblock_push_check_byte_register(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-			tmpreg_mapped);
+			tmpreg->reg_usage_mapping,
+			tmpreg->mapped_reg_num);
 
     	helper_check_nz_clear_cv_flags();
 }
@@ -8082,19 +7926,19 @@ STATIC_INLINE void helper_copy_byte_with_flagcheck(uae_u8 tmpreg, int tmpreg_map
  * Note: Must be in pair with helper_post_word() function.
  * Parameters:
  *    regsin - input register dependency
- *    input_reg_mapped - input register for the copy
+ *    input_reg - input register for the copy
  * Returns:
  *    allocated temporary register with the shifted data
  */
-STATIC_INLINE uae_u8 helper_pre_word(uae_u64 regsin, uae_u8 input_reg_mapped)
+STATIC_INLINE comp_tmp_reg* helper_pre_word(uae_u64 regsin, comp_tmp_reg* input_reg)
 {
-	uae_u8 tmpreg = helper_allocate_tmp_reg();
+	comp_tmp_reg* tmpreg = helper_allocate_tmp_reg();
 
 	comp_macroblock_push_rotate_and_mask_bits(
 			regsin,
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-			comp_get_gpr_for_temp_register(tmpreg),
-			input_reg_mapped,
+			tmpreg->reg_usage_mapping,
+			tmpreg->mapped_reg_num,
+			input_reg->mapped_reg_num,
 			16, 0, 15, FALSE);
 
 	return tmpreg;
@@ -8106,16 +7950,16 @@ STATIC_INLINE uae_u8 helper_pre_word(uae_u64 regsin, uae_u8 input_reg_mapped)
  * Note: This function does not allocate a temporary register for the output.
  *       Usually this function call is in pair with helper_post_word() function.
  * Parameters:
- *    regsin - input/output register dependency
- *    input_reg_mapped - input/output register for the copy
+ *    regsin - input register dependency
+ *    input_reg - input/output register for the copy
  */
-STATIC_INLINE void helper_pre_word_no_alloc(uae_u64 regsin, uae_u8 input_reg_mapped)
+STATIC_INLINE void helper_pre_word_no_alloc(uae_u64 regsin, comp_tmp_reg* input_reg)
 {
 	comp_macroblock_push_rotate_and_mask_bits(
 			regsin,
 			regsin,
-			input_reg_mapped,
-			input_reg_mapped,
+			input_reg->mapped_reg_num,
+			input_reg->mapped_reg_num,
 			16, 0, 15, FALSE);
 }
 
@@ -8126,24 +7970,23 @@ STATIC_INLINE void helper_pre_word_no_alloc(uae_u64 regsin, uae_u8 input_reg_map
  * Note: the allocated temp register must be free'd after use.
  * Parameters:
  *    regsin - input register dependency
- *    input_reg_mapped - input register for the copy
+ *    input_reg - input register for the copy
  */
-STATIC_INLINE uae_u8 helper_prepare_word_shift(uae_u64 regsin, uae_u8 input_reg_mapped)
+STATIC_INLINE comp_tmp_reg* helper_prepare_word_shift(uae_u64 regsin, comp_tmp_reg* input_reg)
 {
-	uae_u8 tmpreg = helper_allocate_tmp_reg();
-	uae_u8 tempreg_mapped = comp_get_gpr_for_temp_register(tmpreg);
+	comp_tmp_reg* tmpreg = helper_allocate_tmp_reg();
 
 	comp_macroblock_push_copy_register_long(
 			regsin,
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-			tempreg_mapped,
-			input_reg_mapped);
+			tmpreg->reg_usage_mapping,
+			tmpreg->mapped_reg_num,
+			input_reg->mapped_reg_num);
 
 	comp_macroblock_push_rotate_and_copy_bits(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-			tempreg_mapped,
-			tempreg_mapped,
+			tmpreg->reg_usage_mapping,
+			tmpreg->reg_usage_mapping,
+			tmpreg->mapped_reg_num,
+			tmpreg->mapped_reg_num,
 			16, 0, 15, FALSE);
 
 	return tmpreg;
@@ -8156,24 +7999,23 @@ STATIC_INLINE uae_u8 helper_prepare_word_shift(uae_u64 regsin, uae_u8 input_reg_
  * Note: the allocated temp register must be free'd after use.
  * Parameters:
  *    regsin - input register dependency
- *    input_reg_mapped - input register for the copy
+ *    input_reg - input register for the copy
  */
-STATIC_INLINE uae_u8 helper_prepare_byte_shift(uae_u64 regsin, uae_u8 input_reg_mapped)
+STATIC_INLINE comp_tmp_reg* helper_prepare_byte_shift(uae_u64 regsin, comp_tmp_reg* input_reg)
 {
-	uae_u8 tmpreg = helper_allocate_tmp_reg();
-	uae_u8 tempreg_mapped = comp_get_gpr_for_temp_register(tmpreg);
+	comp_tmp_reg* tmpreg = helper_allocate_tmp_reg();
 
 	comp_macroblock_push_copy_register_long(
 			regsin,
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-			tempreg_mapped,
-			input_reg_mapped);
+			tmpreg->reg_usage_mapping,
+			tmpreg->mapped_reg_num,
+			input_reg->mapped_reg_num);
 
 	comp_macroblock_push_rotate_and_copy_bits(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-			tempreg_mapped,
-			tempreg_mapped,
+			tmpreg->reg_usage_mapping,
+			tmpreg->reg_usage_mapping,
+			tmpreg->mapped_reg_num,
+			tmpreg->mapped_reg_num,
 			24, 0, 7, FALSE);
 
 	return tmpreg;
@@ -8187,15 +8029,15 @@ STATIC_INLINE uae_u8 helper_prepare_byte_shift(uae_u64 regsin, uae_u8 input_reg_
  * Parameters:
  *    regsout - input register dependency
  *    tmpreg - previously allocated temporary register number with the operation result
- *    output_reg_mapped - input register for the copy
+ *    output_reg - input register for the copy
  */
-STATIC_INLINE void helper_post_word(uae_u64 regsout, uae_u8 tmpreg, uae_u8 output_reg_mapped)
+STATIC_INLINE void helper_post_word(uae_u64 regsout, comp_tmp_reg* tmpreg, comp_tmp_reg* output_reg)
 {
 	comp_macroblock_push_rotate_and_copy_bits(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
+			tmpreg->reg_usage_mapping,
 			regsout,
-			output_reg_mapped,
-			comp_get_gpr_for_temp_register(tmpreg),
+			output_reg->mapped_reg_num,
+			tmpreg->mapped_reg_num,
 			16, 16, 31, FALSE);
 
 	comp_free_temp_register(tmpreg);
@@ -8208,15 +8050,15 @@ STATIC_INLINE void helper_post_word(uae_u64 regsout, uae_u8 tmpreg, uae_u8 outpu
  *       Usually this function is in pair with helper_pre_word() function.
  * Parameters:
  *    regsout - input/output register dependency
- *    output_reg_mapped - input/output register for the copy
+ *    output_reg - input/output register for the copy
  */
-STATIC_INLINE void helper_post_word_no_free(uae_u64 regsout, uae_u8 output_reg_mapped)
+STATIC_INLINE void helper_post_word_no_free(uae_u64 regsout, comp_tmp_reg* output_reg)
 {
 	comp_macroblock_push_rotate_and_copy_bits(
 			regsout,
 			regsout,
-			output_reg_mapped,
-			output_reg_mapped,
+			output_reg->mapped_reg_num,
+			output_reg->mapped_reg_num,
 			16, 16, 31, FALSE);
 }
 
@@ -8227,19 +8069,19 @@ STATIC_INLINE void helper_post_word_no_free(uae_u64 regsout, uae_u8 output_reg_m
  * Note: Must be in pair with helper_post_byte() function.
  * Parameters:
  *    regsin - input register dependency
- *    input_reg_mapped - input register for the copy
+ *    input_reg - input register for the copy
  * Returns:
  *    allocated temporary register with the shifted data
  */
-STATIC_INLINE uae_u8 helper_pre_byte(uae_u64 regsin, uae_u8 input_reg_mapped)
+STATIC_INLINE comp_tmp_reg* helper_pre_byte(uae_u64 regsin, comp_tmp_reg* input_reg)
 {
-	uae_u8 tmpreg = helper_allocate_tmp_reg();
+	comp_tmp_reg* tmpreg = helper_allocate_tmp_reg();
 
 	comp_macroblock_push_rotate_and_mask_bits(
-			regsin | COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-			comp_get_gpr_for_temp_register(tmpreg),
-			input_reg_mapped,
+			regsin | tmpreg->reg_usage_mapping,
+			tmpreg->reg_usage_mapping,
+			tmpreg->mapped_reg_num,
+			input_reg->mapped_reg_num,
 			24, 0, 7, FALSE);
 
 	return tmpreg;
@@ -8252,15 +8094,15 @@ STATIC_INLINE uae_u8 helper_pre_byte(uae_u64 regsin, uae_u8 input_reg_mapped)
  *       Usually this function call is in pair with helper_post_word() function.
  * Parameters:
  *    regsin - input/output register dependency
- *    input_reg_mapped - input/output register for the copy
+ *    input_reg - input/output register for the copy
  */
-STATIC_INLINE void helper_pre_byte_no_alloc(uae_u64 regsin, uae_u8 input_reg_mapped)
+STATIC_INLINE void helper_pre_byte_no_alloc(uae_u64 regsin, comp_tmp_reg* input_reg)
 {
 	comp_macroblock_push_rotate_and_mask_bits(
 			regsin,
 			regsin,
-			input_reg_mapped,
-			input_reg_mapped,
+			input_reg->mapped_reg_num,
+			input_reg->mapped_reg_num,
 			24, 0, 7, FALSE);
 }
 
@@ -8272,15 +8114,15 @@ STATIC_INLINE void helper_pre_byte_no_alloc(uae_u64 regsin, uae_u8 input_reg_map
  * Parameters:
  *    regsout - output register dependency
  *    tmpreg - previously allocated temporary register number with the operation result
- *    output_reg_mapped - input register for the copy
+ *    output_reg - input register for the copy
  */
-STATIC_INLINE void helper_post_byte(uae_u64 regsout, uae_u8 tmpreg, uae_u8 output_reg_mapped)
+STATIC_INLINE void helper_post_byte(uae_u64 regsout, comp_tmp_reg* tmpreg, comp_tmp_reg* output_reg)
 {
 	comp_macroblock_push_rotate_and_copy_bits(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
+			tmpreg->reg_usage_mapping,
 			regsout,
-			output_reg_mapped,
-			comp_get_gpr_for_temp_register(tmpreg),
+			output_reg->mapped_reg_num,
+			tmpreg->mapped_reg_num,
 			8, 24, 31, FALSE);
 
 	comp_free_temp_register(tmpreg);
@@ -8293,15 +8135,15 @@ STATIC_INLINE void helper_post_byte(uae_u64 regsout, uae_u8 tmpreg, uae_u8 outpu
  *       Usually this function is in pair with helper_pre_word() function.
  * Parameters:
  *    regsout - input/output register dependency
- *    output_reg_mapped - input/output register for the copy
+ *    output_reg - input/output register for the copy
  */
-STATIC_INLINE void helper_post_byte_no_free(uae_u64 regsout, uae_u8 output_reg_mapped)
+STATIC_INLINE void helper_post_byte_no_free(uae_u64 regsout, comp_tmp_reg* output_reg)
 {
 	comp_macroblock_push_rotate_and_copy_bits(
 			regsout,
 			regsout,
-			output_reg_mapped,
-			output_reg_mapped,
+			output_reg->mapped_reg_num,
+			output_reg->mapped_reg_num,
 			8, 24, 31, FALSE);
 }
 
@@ -8323,7 +8165,7 @@ STATIC_INLINE void helper_post_byte_no_free(uae_u64 regsout, uae_u8 output_reg_m
  *
  * Note: parameters base_reg and base_address are mutually exclusive.
  */
-STATIC_INLINE void helper_complex_addressing(uae_u64 regsin, uae_u64 regsout, const cpu_history* history, uae_u8 output_mem_reg, uae_u8 base_reg, uae_u32 base_address)
+STATIC_INLINE void helper_complex_addressing(uae_u64 regsin, uae_u64 regsout, const cpu_history* history, comp_tmp_reg* output_mem_reg, comp_tmp_reg* base_reg, uae_u32 base_address)
 {
 	//Load address extension word
 	uae_u16 ext = *pc_ptr;
@@ -8336,8 +8178,7 @@ STATIC_INLINE void helper_complex_addressing(uae_u64 regsin, uae_u64 regsout, co
 		helper_complete_complex_addressing(regsin, regsout, history, output_mem_reg, base_reg, base_address, ext);
 	} else {
 		// Simple base-displaced addressing
-		uae_u8 scaled_index_reg = helper_calculate_complex_index(ext);
-		uae_u8 scaled_index_reg_mapped = comp_get_gpr_for_temp_register(scaled_index_reg);
+		comp_tmp_reg* scaled_index_reg = helper_calculate_complex_index(ext);
 
 		//Get the displacement from the extension word
 		uae_u32 displacement = ext & 255;
@@ -8354,16 +8195,16 @@ STATIC_INLINE void helper_complex_addressing(uae_u64 regsin, uae_u64 regsout, co
 			//Load it to the output register
 			comp_macroblock_push_load_register_long(
 					regsout,
-					output_mem_reg,
+					output_mem_reg->mapped_reg_num,
 					base_address);
 
 			//Add the index * scale to the output register
 			comp_macroblock_push_add(
-					regsout | COMP_COMPILER_MACROBLOCK_REG_TMP(scaled_index_reg),
+					regsout | scaled_index_reg->reg_usage_mapping,
 					regsout,
-					output_mem_reg,
-					output_mem_reg,
-					scaled_index_reg_mapped);
+					output_mem_reg->mapped_reg_num,
+					output_mem_reg->mapped_reg_num,
+					scaled_index_reg->mapped_reg_num);
 		} else {
 			//No base address
 
@@ -8373,26 +8214,26 @@ STATIC_INLINE void helper_complex_addressing(uae_u64 regsin, uae_u64 regsout, co
 				comp_macroblock_push_add_register_imm(
 						regsin,
 						regsout,
-						output_mem_reg,
-						base_reg,
+						output_mem_reg->mapped_reg_num,
+						base_reg->mapped_reg_num,
 						displacement);
 
 				//Add the index * scale to the output register
 				comp_macroblock_push_add(
-						regsout | COMP_COMPILER_MACROBLOCK_REG_TMP(scaled_index_reg),
+						regsout | scaled_index_reg->reg_usage_mapping,
 						regsout,
-						output_mem_reg,
-						output_mem_reg,
-						scaled_index_reg_mapped);
+						output_mem_reg->mapped_reg_num,
+						output_mem_reg->mapped_reg_num,
+						scaled_index_reg->mapped_reg_num);
 			} else {
 				//There is no displacement: add base and index * scale to the output register
 				//Add the index * scale to the output register
 				comp_macroblock_push_add(
-						regsin | COMP_COMPILER_MACROBLOCK_REG_TMP(scaled_index_reg),
+						regsin | scaled_index_reg->reg_usage_mapping,
 						regsout,
-						output_mem_reg,
-						base_reg,
-						scaled_index_reg_mapped);
+						output_mem_reg->mapped_reg_num,
+						base_reg->mapped_reg_num,
+						scaled_index_reg->mapped_reg_num);
 			}
 		}
 
@@ -8419,7 +8260,7 @@ STATIC_INLINE void helper_complex_addressing(uae_u64 regsin, uae_u64 regsout, co
  *
  * Note: parameters base_reg and base_address are mutually exclusive.
  */
-STATIC_INLINE void helper_complete_complex_addressing(uae_u64 regsin, uae_u64 regsout, const cpu_history* history, uae_u8 output_mem_reg, uae_u8 base_reg, uae_u32 base_address, uae_u16 ext)
+STATIC_INLINE void helper_complete_complex_addressing(uae_u64 regsin, uae_u64 regsout, const cpu_history* history, comp_tmp_reg* output_mem_reg, comp_tmp_reg* base_reg, uae_u32 base_address, uae_u16 ext)
 {
 	uae_u32 base_displacement = 0;
 	uae_u32 outer_displacement = 0;
@@ -8455,7 +8296,7 @@ STATIC_INLINE void helper_complete_complex_addressing(uae_u64 regsin, uae_u64 re
 	if ((ext & (1 << 7)) == 0)
 	{
 		//Is base register specified?
-		if (base_reg == COMP_COMPILER_MACROBLOCK_REG_NONE)
+		if (base_reg == NULL)
 		{
 			//Not specified, base address is used: summarize BD and base address
 			base_address += base_displacement;
@@ -8463,7 +8304,7 @@ STATIC_INLINE void helper_complete_complex_addressing(uae_u64 regsin, uae_u64 re
 			//Load it to the output register
 			comp_macroblock_push_load_register_long(
 					regsout,
-					output_mem_reg,
+					output_mem_reg->mapped_reg_num,
 					base_address);
 		} else {
 			//Base register is specified: add base displacement to it
@@ -8472,8 +8313,8 @@ STATIC_INLINE void helper_complete_complex_addressing(uae_u64 regsin, uae_u64 re
 			comp_macroblock_push_add_register_imm(
 					regsin,
 					regsout,
-					output_mem_reg,
-					base_reg,
+					output_mem_reg->mapped_reg_num,
+					base_reg->mapped_reg_num,
 					base_displacement & 0xffff);
 
 			//Can we use word-sized immediate?
@@ -8487,8 +8328,8 @@ STATIC_INLINE void helper_complete_complex_addressing(uae_u64 regsin, uae_u64 re
 				comp_macroblock_push_add_high_register_imm(
 						regsout,
 						regsout,
-						output_mem_reg,
-						output_mem_reg,
+						output_mem_reg->mapped_reg_num,
+						output_mem_reg->mapped_reg_num,
 						((base_displacement >> 16) + (base_displacement & 0x8000 ? 1 : 0)) & 0xffff);
 			}
 		}
@@ -8497,7 +8338,7 @@ STATIC_INLINE void helper_complete_complex_addressing(uae_u64 regsin, uae_u64 re
 		//TODO: remove the unnecessary initialization of the output register
 		comp_macroblock_push_load_register_long(
 				regsout,
-				output_mem_reg,
+				output_mem_reg->mapped_reg_num,
 				base_displacement);
 	}
 
@@ -8561,16 +8402,15 @@ STATIC_INLINE void helper_complete_complex_addressing(uae_u64 regsin, uae_u64 re
 		if (preindex)
 		{
 			//Yes, add the index register to the output
-			uae_u8 scaled_index_reg = helper_calculate_complex_index(ext);
-			uae_u8 scaled_index_reg_mapped = comp_get_gpr_for_temp_register(scaled_index_reg);
+			comp_tmp_reg* scaled_index_reg = helper_calculate_complex_index(ext);
 
 			//Add the index * scale to the output register
 			comp_macroblock_push_add(
-					regsout | COMP_COMPILER_MACROBLOCK_REG_TMP(scaled_index_reg),
+					regsout | scaled_index_reg->reg_usage_mapping,
 					regsout,
-					output_mem_reg,
-					output_mem_reg,
-					scaled_index_reg_mapped);
+					output_mem_reg->mapped_reg_num,
+					output_mem_reg->mapped_reg_num,
+					scaled_index_reg->mapped_reg_num);
 
 			comp_free_temp_register(scaled_index_reg);
 		}
@@ -8618,16 +8458,16 @@ STATIC_INLINE void helper_complete_complex_addressing(uae_u64 regsin, uae_u64 re
 			comp_macroblock_push_load_memory_spec_save_temps(
 					regsout,
 					COMP_COMPILER_MACROBLOCK_REG_NONE | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-					output_mem_reg,
-					output_mem_reg,
+					output_mem_reg->mapped_reg_num,
+					output_mem_reg->mapped_reg_num,
 					4);
 		} else {
 			//Get memory address into the target temp register
 			comp_macroblock_push_map_physical_mem(
 					regsout,
 					regsout,
-					output_mem_reg,
-					output_mem_reg);
+					output_mem_reg->mapped_reg_num,
+					output_mem_reg->mapped_reg_num);
 		}
 	}
 
@@ -8635,16 +8475,15 @@ STATIC_INLINE void helper_complete_complex_addressing(uae_u64 regsin, uae_u64 re
 	if (indexing_enabled && !preindex)
 	{
 		//Calculate scaled index register
-		uae_u8 scaled_index_reg = helper_calculate_complex_index(ext);
-		uae_u8 scaled_index_reg_mapped = comp_get_gpr_for_temp_register(scaled_index_reg);
+		comp_tmp_reg* scaled_index_reg = helper_calculate_complex_index(ext);
 
 		//Add the index * scale to the output register
 		comp_macroblock_push_add(
-				regsout | COMP_COMPILER_MACROBLOCK_REG_TMP(scaled_index_reg),
+				regsout | scaled_index_reg->reg_usage_mapping,
 				regsout,
-				output_mem_reg,
-				output_mem_reg,
-				scaled_index_reg_mapped);
+				output_mem_reg->mapped_reg_num,
+				output_mem_reg->mapped_reg_num,
+				scaled_index_reg->mapped_reg_num);
 
 		comp_free_temp_register(scaled_index_reg);
 	}
@@ -8656,8 +8495,8 @@ STATIC_INLINE void helper_complete_complex_addressing(uae_u64 regsin, uae_u64 re
 		comp_macroblock_push_add_register_imm(
 				regsout,
 				regsout,
-				output_mem_reg,
-				output_mem_reg,
+				output_mem_reg->mapped_reg_num,
+				output_mem_reg->mapped_reg_num,
 				outer_displacement & 0xffff);
 
 		//Can we use word-sized immediate?
@@ -8671,8 +8510,8 @@ STATIC_INLINE void helper_complete_complex_addressing(uae_u64 regsin, uae_u64 re
 			comp_macroblock_push_add_high_register_imm(
 					regsout,
 					regsout,
-					output_mem_reg,
-					output_mem_reg,
+					output_mem_reg->mapped_reg_num,
+					output_mem_reg->mapped_reg_num,
 					((outer_displacement >> 16) + (outer_displacement & 0x8000 ? 1 : 0)) & 0xffff);
 		}
 	}
@@ -8688,29 +8527,28 @@ STATIC_INLINE void helper_complete_complex_addressing(uae_u64 regsin, uae_u64 re
  * Allocated temporary register populated with the calculated index.
  * The returned temporary register must be released by the caller.
  */
-STATIC_INLINE uae_u8 helper_calculate_complex_index(uae_u16 ext)
+STATIC_INLINE comp_tmp_reg* helper_calculate_complex_index(uae_u16 ext)
 {
 	uae_u64 index_reg_dep;
 
 	//Get the number of the register from the extension word
-	uae_u8 index_reg = (ext >> 12) & 7;
+	uae_u8 index_reg_num = (ext >> 12) & 7;
 
 	//Get the real register number: if bit 15 == 1 then address reg else data reg
 	if (ext & (1 << 15))
 	{
-		index_reg_dep = COMP_COMPILER_MACROBLOCK_REG_AX(index_reg);
-		index_reg = COMP_COMPILER_REGS_ADDRREG(index_reg);
+		index_reg_dep = COMP_COMPILER_MACROBLOCK_REG_AX(index_reg_num);
+		index_reg_num = COMP_COMPILER_REGS_ADDRREG(index_reg_num);
 	} else {
-		index_reg_dep = COMP_COMPILER_MACROBLOCK_REG_DX(index_reg);
-		index_reg = COMP_COMPILER_REGS_DATAREG(index_reg);
+		index_reg_dep = COMP_COMPILER_MACROBLOCK_REG_DX(index_reg_num);
+		index_reg_num = COMP_COMPILER_REGS_DATAREG(index_reg_num);
 	}
 
 	//Map register
-	uae_u8 index_reg_mapped = comp_map_temp_register(index_reg, TRUE, FALSE);
+	comp_tmp_reg* index_reg = comp_map_temp_register(index_reg_num, TRUE, FALSE);
 
 	//Allocate temporary register for manipulating the content of the index register
-	uae_u8 scaled_index_reg = helper_allocate_tmp_reg();
-	uae_u8 scaled_index_reg_mapped = comp_get_gpr_for_temp_register(scaled_index_reg);
+	comp_tmp_reg* scaled_index_reg = helper_allocate_tmp_reg();
 
 	//Is the index register word sized?
 	if (ext & (1 << 11))
@@ -8719,16 +8557,16 @@ STATIC_INLINE uae_u8 helper_calculate_complex_index(uae_u16 ext)
 		//Long sized: simply copy to the temp register
 		comp_macroblock_push_copy_register_long(
 				index_reg_dep,
-				COMP_COMPILER_MACROBLOCK_REG_TMP(scaled_index_reg),
-				scaled_index_reg_mapped,
-				index_reg_mapped);
+				scaled_index_reg->reg_usage_mapping,
+				scaled_index_reg->mapped_reg_num,
+				index_reg->mapped_reg_num);
 	} else {
 		//Word sized: extend to long sized to the temp register
 		comp_macroblock_push_copy_register_word_extended(
 				index_reg_dep,
-				COMP_COMPILER_MACROBLOCK_REG_TMP(scaled_index_reg),
-				scaled_index_reg_mapped,
-				index_reg_mapped,
+				scaled_index_reg->reg_usage_mapping,
+				scaled_index_reg->mapped_reg_num,
+				index_reg->mapped_reg_num,
 				FALSE);
 	}
 
@@ -8740,10 +8578,10 @@ STATIC_INLINE uae_u8 helper_calculate_complex_index(uae_u16 ext)
 	{
 		//Scale copied index register by 2, 4 or 8
 		comp_macroblock_push_rotate_and_mask_bits(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(scaled_index_reg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(scaled_index_reg),
-				scaled_index_reg_mapped,
-				scaled_index_reg_mapped,
+				scaled_index_reg->reg_usage_mapping,
+				scaled_index_reg->reg_usage_mapping,
+				scaled_index_reg->mapped_reg_num,
+				scaled_index_reg->mapped_reg_num,
 				scaling,
 				0, 31 - scaling, 0);
 	}
@@ -8756,17 +8594,16 @@ STATIC_INLINE uae_u8 helper_calculate_complex_index(uae_u16 ext)
  * Parameters:
  *    regsin - input register dependency
  *    history - pointer to the execution history
- *    target_mem_mapped - target memory address in a mapped register
+ *    target_mem - target memory address in a mapped register
  *    size - size of the operation (1,2 or 4)
  *    preservedestreg - if TRUE then the destination memory adddress register is saved to a store slot and restored after the memory reading
  * Returns:
  *    number of allocated temporary register
  */
-STATIC_INLINE int helper_read_memory(uae_u64 regsin, const cpu_history* history, int target_reg_mapped, uae_u8 size, int preservedestreg)
+STATIC_INLINE comp_tmp_reg* helper_read_memory(uae_u64 regsin, const cpu_history* history, comp_tmp_reg* target_reg, uae_u8 size, BOOL preservedestreg)
 {
 	int specread;
-	int tmpreg;
-	int tmpreg_mapped;
+	comp_tmp_reg* tmpreg;
 
 	//Special memory determination by operation size
 	switch (size)
@@ -8792,7 +8629,7 @@ STATIC_INLINE int helper_read_memory(uae_u64 regsin, const cpu_history* history,
 			//Store the destination register temporarily
 			comp_macroblock_push_save_reg_slot(
 					input_dep | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-					dest_mem_addrreg_mapped,
+					dest_mem_addrreg->mapped_reg_num,
 					0);
 		}
 
@@ -8800,42 +8637,40 @@ STATIC_INLINE int helper_read_memory(uae_u64 regsin, const cpu_history* history,
 		comp_macroblock_push_load_memory_spec(
 				regsin,
 				COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-				target_reg_mapped,
+				target_reg->mapped_reg_num,
 				PPCR_PARAM1,
 				size);
 
 		//The previous will kill all temporary register mappings,
 		//because it calls a GCC function
-		src_reg = PPC_TMP_REG_NOTUSED;
-		dest_reg = PPC_TMP_REG_NOTUSED;
-		src_mem_addrreg = PPC_TMP_REG_NOTUSED;
+		src_reg = NULL;
+		dest_reg = NULL;
+		src_mem_addrreg = NULL;
 
 
 		//Allocate temporary register for the result
 		//(if the destination mem reg reallocated then due to the order of the temp registers this will be R4)
 		tmpreg = helper_allocate_tmp_reg();
-		tmpreg_mapped = comp_get_gpr_for_temp_register(tmpreg);
 
 		if (preservedestreg)
 		{
 			//Reallocate temporary register for the destination memory address
 			//(due to the order of the temp registers this will be R3)
 			dest_mem_addrreg = helper_allocate_tmp_reg();
-			dest_mem_addrreg_mapped = comp_get_gpr_for_temp_register(dest_mem_addrreg);
 		} else {
-			dest_mem_addrreg = PPC_TMP_REG_NOTUSED;
+			dest_mem_addrreg = NULL;
 		}
 
 		//If the new temp register is not R3 then copy
 		//the previous result into it (but we tweaked the
 		//temporary register mapping already, so the allocated
 		//register will be R3 always)
-		if (tmpreg_mapped != PPCR_PARAM1)
+		if (tmpreg->mapped_reg_num != PPCR_PARAM1)
 		{
 			comp_macroblock_push_copy_register_long(
 					COMP_COMPILER_MACROBLOCK_REG_NONE,
-					COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg) | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-					tmpreg_mapped,
+					tmpreg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
+					tmpreg->mapped_reg_num,
 					PPCR_PARAM1);
 		}
 
@@ -8843,8 +8678,8 @@ STATIC_INLINE int helper_read_memory(uae_u64 regsin, const cpu_history* history,
 		{
 			//Restore the destination address register
 			comp_macroblock_push_load_reg_slot(
-					COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
-					dest_mem_addrreg_mapped,
+					dest_mem_addrreg->reg_usage_mapping,
+					dest_mem_addrreg->mapped_reg_num,
 					0);
 		}
 	}
@@ -8852,42 +8687,40 @@ STATIC_INLINE int helper_read_memory(uae_u64 regsin, const cpu_history* history,
 	{
 		//Normal memory access
 		tmpreg = helper_allocate_tmp_reg();
-		tmpreg_mapped = comp_get_gpr_for_temp_register(tmpreg);
-		int tmpregaddr = helper_allocate_tmp_reg();
-		int tmpregaddr_mapped = comp_get_gpr_for_temp_register(tmpregaddr);
+		comp_tmp_reg* tmpregaddr = helper_allocate_tmp_reg();
 
 		//Get memory address into the temp register
 		comp_macroblock_push_map_physical_mem(
-				src_mem_addrreg == PPC_TMP_REG_NOTUSED ? input_dep : COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tmpregaddr),
-				tmpregaddr_mapped,
-				target_reg_mapped);
+				src_mem_addrreg == NULL ? input_dep : src_mem_addrreg->reg_usage_mapping,
+				tmpregaddr->reg_usage_mapping,
+				tmpregaddr->mapped_reg_num,
+				target_reg->mapped_reg_num);
 
 		//Save long to memory, prevent from optimizing away
 		switch (size)
 		{
 		case 4:
 			comp_macroblock_push_load_memory_long(
-					COMP_COMPILER_MACROBLOCK_REG_TMP(tmpregaddr),
+					tmpregaddr->reg_usage_mapping,
 					COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-					tmpreg_mapped,
-					tmpregaddr_mapped,
+					tmpreg->mapped_reg_num,
+					tmpregaddr->mapped_reg_num,
 					0);
 			break;
 		case 2:
 			comp_macroblock_push_load_memory_word(
-					COMP_COMPILER_MACROBLOCK_REG_TMP(tmpregaddr),
+					tmpregaddr->reg_usage_mapping,
 					COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-					tmpreg_mapped,
-					tmpregaddr_mapped,
+					tmpreg->mapped_reg_num,
+					tmpregaddr->mapped_reg_num,
 					0);
 			break;
 		case 1:
 			comp_macroblock_push_load_memory_byte(
-					COMP_COMPILER_MACROBLOCK_REG_TMP(tmpregaddr),
+					tmpregaddr->reg_usage_mapping,
 					COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-					tmpreg_mapped,
-					tmpregaddr_mapped,
+					tmpreg->mapped_reg_num,
+					tmpregaddr->mapped_reg_num,
 					0);
 			break;
 		}
@@ -8903,22 +8736,14 @@ STATIC_INLINE int helper_read_memory(uae_u64 regsin, const cpu_history* history,
  * Parameters:
  *    regsin - input register dependency
  *    history - pointer to the execution history
- *    target_mem_mapped - target memory address in a mapped register
- *    input_reg - source register to be written into memory (or PPC_TMP_REG_NOTUSED)
- *    input_reg_mapped - source register tp be written into memory mapped to a PPC register, if input_reg is specified then this will be ignored.
+ *    target_mem - target memory address in a mapped register
+ *    input_reg - source register to be written into memory (or NULL)
  *    size - size of the operation (1,2 or 4)
  */
-STATIC_INLINE void helper_write_memory(uae_u64 regsin, const cpu_history* history, int target_mem_mapped, int input_reg, int input_reg_mapped, uae_u8 size)
+STATIC_INLINE void helper_write_memory(uae_u64 regsin, const cpu_history* history, comp_tmp_reg* target_mem, comp_tmp_reg* input_reg, uae_u8 size)
 {
 	int specwrite;
-	int tmpregaddr = PPC_TMP_REG_NOTUSED;
-	int tmpregaddr_mapped = 0;
-
-	//Input register is specified: get mapped register
-	if (input_reg != PPC_TMP_REG_NOTUSED)
-	{
-		input_reg_mapped = comp_get_gpr_for_temp_register(input_reg);
-	}
+	comp_tmp_reg* tmpregaddr = NULL;
 
 	//Special memory determination by operation size
 	switch (size)
@@ -8943,15 +8768,15 @@ STATIC_INLINE void helper_write_memory(uae_u64 regsin, const cpu_history* histor
 		comp_macroblock_push_save_memory_spec(
 				regsin,
 				COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-				input_reg_mapped,
-				target_mem_mapped,
+				input_reg->mapped_reg_num,
+				target_mem->mapped_reg_num,
 				size);
 
 		//The previous will kill all temporary register mappings,
 		//because it calls a GCC function
-		src_mem_addrreg = PPC_TMP_REG_NOTUSED;
-		dest_mem_addrreg = PPC_TMP_REG_NOTUSED;
-		input_reg = PPC_TMP_REG_NOTUSED;
+		src_mem_addrreg = NULL;
+		dest_mem_addrreg = NULL;
+		input_reg = NULL;
 	}
 	else
 	{
@@ -8959,40 +8784,39 @@ STATIC_INLINE void helper_write_memory(uae_u64 regsin, const cpu_history* histor
 
 		//(Re)allocate address calculation temporary register
 		tmpregaddr = helper_allocate_tmp_reg();
-		tmpregaddr_mapped = comp_get_gpr_for_temp_register(tmpregaddr);
 
 		//Get memory address into the temp register
 		comp_macroblock_push_map_physical_mem(
 				regsin,
-				COMP_COMPILER_MACROBLOCK_REG_TMP(tmpregaddr),
-				tmpregaddr_mapped,
-				target_mem_mapped);
+				tmpregaddr->reg_usage_mapping,
+				tmpregaddr->mapped_reg_num,
+				target_mem->mapped_reg_num);
 
 		//Save long to memory, prevent from optimizing away
 		switch (size)
 		{
 		case 4:
 			comp_macroblock_push_save_memory_long(
-					regsin | COMP_COMPILER_MACROBLOCK_REG_TMP(tmpregaddr),
+					regsin | tmpregaddr->reg_usage_mapping,
 					COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-					input_reg_mapped,
-					tmpregaddr_mapped,
+					input_reg->mapped_reg_num,
+					tmpregaddr->mapped_reg_num,
 					0);
 			break;
 		case 2:
 			comp_macroblock_push_save_memory_word(
-					regsin | COMP_COMPILER_MACROBLOCK_REG_TMP(tmpregaddr),
+					regsin | tmpregaddr->reg_usage_mapping,
 					COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-					input_reg_mapped,
-					tmpregaddr_mapped,
+					input_reg->mapped_reg_num,
+					tmpregaddr->mapped_reg_num,
 					0);
 			break;
 		case 1:
 			comp_macroblock_push_save_memory_byte(
-					regsin | COMP_COMPILER_MACROBLOCK_REG_TMP(tmpregaddr),
+					regsin | tmpregaddr->reg_usage_mapping,
 					COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-					input_reg_mapped,
-					tmpregaddr_mapped,
+					input_reg->mapped_reg_num,
+					tmpregaddr->mapped_reg_num,
 					0);
 			break;
 		}
@@ -9000,7 +8824,7 @@ STATIC_INLINE void helper_write_memory(uae_u64 regsin, const cpu_history* histor
 	}
 
 	//Input register specified: free it
-	if (input_reg != PPC_TMP_REG_NOTUSED)
+	if (input_reg)
 	{
 		comp_free_temp_register(input_reg);
 	}
@@ -9038,19 +8862,18 @@ STATIC_INLINE void helper_check_result_set_flags(int regsin, int input_reg, uae_
  * Result is copied into the PPC flag register.
  * Parameters:
  *    src_reg - input register
- *    src_reg_mapped - (mapped) input register
  *    size - operation size (1 or 2 bytes)
  */
-STATIC_INLINE void helper_copy_result_set_flags(uae_u8 src_reg, int src_reg_mapped, uae_u8 size)
+STATIC_INLINE void helper_copy_result_set_flags(comp_tmp_reg* src_reg, uae_u8 size)
 {
     //Copy result and set flags by operation size
 	switch (size)
 	{
 	case 2:
-		helper_copy_word_with_flagcheck(src_reg, src_reg_mapped);
+		helper_copy_word_with_flagcheck(src_reg);
 		break;
 	case 1:
-		helper_copy_byte_with_flagcheck(src_reg, src_reg_mapped);
+		helper_copy_byte_with_flagcheck(src_reg);
 		break;
 	default:
 		write_log("Error: wrong operation size for copy result and set flags function\n");
@@ -9064,9 +8887,9 @@ STATIC_INLINE void helper_copy_result_set_flags(uae_u8 src_reg, int src_reg_mapp
  * Parameters:
  *    regsin - input register dependency
  *    bitnum - bit number for the test
- *    input_reg_mapped - mapped input register
+ *    input_reg - mapped input register
  */
-STATIC_INLINE void helper_test_bit_register_imm(uae_u64 regsin, int bitnum, int input_reg_mapped)
+STATIC_INLINE void helper_test_bit_register_imm(uae_u64 regsin, int bitnum, comp_tmp_reg* input_reg)
 {
 	if (bitnum < 16)
 	{
@@ -9075,7 +8898,7 @@ STATIC_INLINE void helper_test_bit_register_imm(uae_u64 regsin, int bitnum, int 
 				regsin,
 				COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
 				PPCR_SPECTMP,
-				input_reg_mapped,
+				input_reg->mapped_reg_num,
 				1 << bitnum);
 	} else {
 		//Bit is in the higher half word
@@ -9083,7 +8906,7 @@ STATIC_INLINE void helper_test_bit_register_imm(uae_u64 regsin, int bitnum, int 
 				regsin,
 				COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
 				PPCR_SPECTMP,
-				input_reg_mapped,
+				input_reg->mapped_reg_num,
 				1 << (bitnum - 16));
 	}
 
@@ -9097,20 +8920,18 @@ STATIC_INLINE void helper_test_bit_register_imm(uae_u64 regsin, int bitnum, int 
  * Parameters:
  *    regsbit - bitnum register dependency
  *    regsin - input register dependency
- *    bitnum_reg_mapped - bit number for the test
- *    input_reg_mapped - mapped input register
+ *    bitnum_reg - bit number for the test
+ *    input_reg - mapped input register
  *    modulo - maximum number of bits for the testing
  * Returns:
  *    Temporary register number with the bit mask in it.
  */
-STATIC_INLINE int helper_test_bit_register_register(uae_u64 regsbit, uae_u64 regsin, int bitnum_reg_mapped, int input_reg_mapped, int modulo)
+STATIC_INLINE comp_tmp_reg* helper_test_bit_register_register(uae_u64 regsbit, uae_u64 regsin, comp_tmp_reg* bitnum_reg, comp_tmp_reg* input_reg, int modulo)
 {
-	int masktempreg = helper_allocate_tmp_reg_with_init(1);
-	int masktempreg_mapped = comp_get_gpr_for_temp_register(masktempreg);
-
-	int srctmpreg;
-	int srctmpreg_mapped;
+	comp_tmp_reg* masktempreg = helper_allocate_tmp_reg_with_init(1);
+	comp_tmp_reg* srctmpreg;
 	uae_u64 srctmpreg_dep;
+	uae_u8 mapped_reg;
 
 	//If modulo other than 32 for the input register then apply it
 	//Modulo 32 is automatically applied by the rotation
@@ -9118,43 +8939,44 @@ STATIC_INLINE int helper_test_bit_register_register(uae_u64 regsbit, uae_u64 reg
 	{
 		//Allocate source register for the shifting
 		srctmpreg = helper_allocate_tmp_reg();
-		srctmpreg_mapped = comp_get_gpr_for_temp_register(srctmpreg);
-		srctmpreg_dep = COMP_COMPILER_MACROBLOCK_REG_TMP(srctmpreg);
+		srctmpreg_dep = srctmpreg->reg_usage_mapping;
 
 		//Copy bit number from source register and apply modulo
 		comp_macroblock_push_and_low_register_imm(
 				regsbit,
-				COMP_COMPILER_MACROBLOCK_REG_TMP(srctmpreg),
-				srctmpreg_mapped,
-				bitnum_reg_mapped,
+				srctmpreg->reg_usage_mapping,
+				srctmpreg->mapped_reg_num,
+				bitnum_reg->mapped_reg_num,
 				modulo - 1);
+
+		mapped_reg = srctmpreg->mapped_reg_num;
 	} else {
 		//Modulo is 32, register is not copied, let's copy the source register number
-		srctmpreg = PPC_TMP_REG_NOTUSED;
-		srctmpreg_mapped = bitnum_reg_mapped;
+		srctmpreg = NULL;
+		mapped_reg = bitnum_reg->mapped_reg_num;
 		srctmpreg_dep = regsbit;
 	}
 
 	//Rotate the masking bit to the right position
 	comp_macroblock_push_rotate_and_mask_bits_register(
-			srctmpreg_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(masktempreg),
-			COMP_COMPILER_MACROBLOCK_REG_TMP(masktempreg),
-			masktempreg_mapped,
-			masktempreg_mapped,
-			srctmpreg_mapped,
+			srctmpreg_dep | masktempreg->reg_usage_mapping,
+			masktempreg->reg_usage_mapping,
+			masktempreg->mapped_reg_num,
+			masktempreg->mapped_reg_num,
+			mapped_reg,
 			0, 31, FALSE);
 
 	//Check bit in output register
 	comp_macroblock_push_and_register_register(
-			regsin | COMP_COMPILER_MACROBLOCK_REG_TMP(masktempreg),
+			regsin | masktempreg->reg_usage_mapping,
 			COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
 			PPCR_SPECTMP,
-			input_reg_mapped,
-			masktempreg_mapped,
+			input_reg->mapped_reg_num,
+			masktempreg->mapped_reg_num,
 			TRUE);
 
 	//Free source temp register
-	if (srctmpreg != PPC_TMP_REG_NOTUSED)
+	if (srctmpreg)
 	{
 		helper_free_tmp_reg(srctmpreg);
 	}
