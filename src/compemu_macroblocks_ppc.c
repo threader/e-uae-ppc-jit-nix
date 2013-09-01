@@ -51,7 +51,7 @@ STATIC_INLINE void helper_add_imm_to_dest_ax(struct comptbl* props, uae_u16 imme
 STATIC_INLINE void helper_allocate_2_ax_dest_mem_regs(struct comptbl* props, int modified);
 STATIC_INLINE comp_tmp_reg* helper_read_memory(uae_u64 regsin, const cpu_history* history, comp_tmp_reg* target_reg, uae_u8 size, BOOL preservedestreg);
 STATIC_INLINE void helper_write_memory(uae_u64 regsin, const cpu_history* history, comp_tmp_reg* target_mem, comp_tmp_reg* input_reg, uae_u8 size);
-STATIC_INLINE void helper_check_result_set_flags(int regsin, int input_reg, uae_u8 size);
+STATIC_INLINE void helper_check_result_set_flags(uae_u64 regsin, comp_ppc_reg input_reg, uae_u8 size);
 STATIC_INLINE void helper_copy_result_set_flags(comp_tmp_reg* src_reg, uae_u8 size);
 STATIC_INLINE void helper_MOVIMMREG2MEM(const cpu_history* history, uae_u8 size, int immediate, int checkflags);
 STATIC_INLINE void helper_MOVMEM2REG(const cpu_history* history, struct comptbl* props, uae_u8 size, int dataregmode);
@@ -801,8 +801,8 @@ void comp_cond_pre_CC_cs_src(const cpu_history* history, struct comptbl* props) 
 	comp_macroblock_push_rotate_and_mask_bits(
 			COMP_COMPILER_MACROBLOCK_REG_FLAGC,
 			COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-			PPCR_SPECTMP,
-			PPCR_FLAGS,
+			PPCR_SPECTMP_MAPPED,
+			PPCR_FLAGS_MAPPED,
 			0, PPC_FLAGBIT_C, PPC_FLAGBIT_C, TRUE);
 }
 void comp_cond_pre_CC_eq_src(const cpu_history* history, struct comptbl* props) REGPARAM
@@ -811,8 +811,8 @@ void comp_cond_pre_CC_eq_src(const cpu_history* history, struct comptbl* props) 
 	comp_macroblock_push_rotate_and_mask_bits(
 			COMP_COMPILER_MACROBLOCK_REG_FLAGZ,
 			COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-			PPCR_SPECTMP,
-			PPCR_FLAGS,
+			PPCR_SPECTMP_MAPPED,
+			PPCR_FLAGS_MAPPED,
 			0, PPC_FLAGBIT_Z, PPC_FLAGBIT_Z, TRUE);
 }
 void comp_cond_pre_CC_ge_src(const cpu_history* history, struct comptbl* props) REGPARAM
@@ -843,23 +843,23 @@ void comp_cond_pre_CC_le_src(const cpu_history* history, struct comptbl* props) 
 			COMP_COMPILER_MACROBLOCK_REG_FLAGN | COMP_COMPILER_MACROBLOCK_REG_FLAGZ,
 			tmp_reg->reg_usage_mapping,
 			tmp_reg->mapped_reg_num,
-			PPCR_FLAGS,
+			PPCR_FLAGS_MAPPED,
 			(1 << (FLAGBIT_N - 16)) | (1 << (FLAGBIT_Z - 16)));
 
 	//Rotate V flag to N flag position to R0
 	comp_macroblock_push_rotate_and_mask_bits(
 			COMP_COMPILER_MACROBLOCK_REG_FLAGV,
 			COMP_COMPILER_MACROBLOCK_TMP_REG_SPEC,
-			PPCR_SPECTMP,
-			PPCR_FLAGS,
+			PPCR_SPECTMP_MAPPED,
+			PPCR_FLAGS_MAPPED,
 			PPC_FLAGBIT_V - PPC_FLAGBIT_N, PPC_FLAGBIT_N, PPC_FLAGBIT_N, FALSE);
 
 	//Exclusive OR N and repositioned V flag, Z flag left unchanged (OR'ed to the result)
 	comp_macroblock_push_xor_register_register(
 			tmp_reg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_TMP_REG_SPEC,
 			COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-			PPCR_SPECTMP,
-			PPCR_SPECTMP,
+			PPCR_SPECTMP_MAPPED,
+			PPCR_SPECTMP_MAPPED,
 			tmp_reg->mapped_reg_num, TRUE);
 
 	comp_free_temp_register(tmp_reg);
@@ -871,16 +871,16 @@ void comp_cond_pre_CC_ls_src(const cpu_history* history, struct comptbl* props) 
 	comp_macroblock_push_rotate_and_mask_bits(
 			COMP_COMPILER_MACROBLOCK_REG_FLAGC,
 			COMP_COMPILER_MACROBLOCK_TMP_REG_SPEC,
-			PPCR_SPECTMP,
-			PPCR_FLAGS,
+			PPCR_SPECTMP_MAPPED,
+			PPCR_FLAGS_MAPPED,
 			0, PPC_FLAGBIT_C, PPC_FLAGBIT_C, FALSE);
 
 	//Insert Z flag to the temp register
 	comp_macroblock_push_rotate_and_copy_bits(
 			COMP_COMPILER_MACROBLOCK_REG_FLAGZ | COMP_COMPILER_MACROBLOCK_TMP_REG_SPEC,
 			COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-			PPCR_SPECTMP,
-			PPCR_FLAGS,
+			PPCR_SPECTMP_MAPPED,
+			PPCR_FLAGS_MAPPED,
 			0, PPC_FLAGBIT_Z, PPC_FLAGBIT_Z, TRUE);
 }
 void comp_cond_pre_CC_lt_src(const cpu_history* history, struct comptbl* props) REGPARAM
@@ -893,23 +893,23 @@ void comp_cond_pre_CC_lt_src(const cpu_history* history, struct comptbl* props) 
 			COMP_COMPILER_MACROBLOCK_REG_FLAGN,
 			tmp_reg->reg_usage_mapping,
 			tmp_reg->mapped_reg_num,
-			PPCR_FLAGS,
+			PPCR_FLAGS_MAPPED,
 			0, PPC_FLAGBIT_N, PPC_FLAGBIT_N, FALSE);
 
 	//Rotate V flag to N flag position to R0
 	comp_macroblock_push_rotate_and_mask_bits(
 			COMP_COMPILER_MACROBLOCK_REG_FLAGV,
 			COMP_COMPILER_MACROBLOCK_TMP_REG_SPEC,
-			PPCR_SPECTMP,
-			PPCR_FLAGS,
+			PPCR_SPECTMP_MAPPED,
+			PPCR_FLAGS_MAPPED,
 			PPC_FLAGBIT_V - PPC_FLAGBIT_N, PPC_FLAGBIT_N, PPC_FLAGBIT_N, FALSE);
 
 	//Exclusive OR N and repositioned V flag
 	comp_macroblock_push_xor_register_register(
 			tmp_reg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_TMP_REG_SPEC,
 			COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-			PPCR_SPECTMP,
-			PPCR_SPECTMP,
+			PPCR_SPECTMP_MAPPED,
+			PPCR_SPECTMP_MAPPED,
 			tmp_reg->mapped_reg_num, TRUE);
 
 	comp_free_temp_register(tmp_reg);
@@ -920,8 +920,8 @@ void comp_cond_pre_CC_mi_src(const cpu_history* history, struct comptbl* props) 
 	comp_macroblock_push_rotate_and_mask_bits(
 			COMP_COMPILER_MACROBLOCK_REG_FLAGN,
 			COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-			PPCR_SPECTMP,
-			PPCR_FLAGS,
+			PPCR_SPECTMP_MAPPED,
+			PPCR_FLAGS_MAPPED,
 			0, PPC_FLAGBIT_N, PPC_FLAGBIT_N, TRUE);
 }
 void comp_cond_pre_CC_ne_src(const cpu_history* history, struct comptbl* props) REGPARAM
@@ -948,8 +948,8 @@ void comp_cond_pre_CC_vs_src(const cpu_history* history, struct comptbl* props) 
 	comp_macroblock_push_rotate_and_mask_bits(
 			COMP_COMPILER_MACROBLOCK_REG_FLAGV,
 			COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-			PPCR_SPECTMP,
-			PPCR_FLAGS,
+			PPCR_SPECTMP_MAPPED,
+			PPCR_FLAGS_MAPPED,
 			0, PPC_FLAGBIT_V, PPC_FLAGBIT_V, TRUE);
 }
 void comp_cond_pre_FCC_f_src(const cpu_history* history, struct comptbl* props) REGPARAM
@@ -2069,7 +2069,7 @@ void comp_opcode_BTSTREG2IMM(const cpu_history* history, struct comptbl* props) 
 	comp_macroblock_push_and_low_register_imm(
 			masktempreg->reg_usage_mapping,
 			COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-			PPCR_SPECTMP,
+			PPCR_SPECTMP_MAPPED,
 			masktempreg->mapped_reg_num,
 			dest_immediate);
 
@@ -2829,7 +2829,7 @@ void comp_opcode_CMPAREG2REGW(const cpu_history* history, struct comptbl* props)
 	comp_macroblock_push_sub_with_flags(
 			srctempreg->reg_usage_mapping | output_dep,
 			COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
-			PPCR_SPECTMP,
+			PPCR_SPECTMP_MAPPED,
 			srctempreg->mapped_reg_num,
 			dest_reg->mapped_reg_num);
 
@@ -3299,7 +3299,7 @@ void comp_opcode_SUBAIMM2REGW(const cpu_history* history, struct comptbl* props)
 }
 void comp_opcode_SUBAREG2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	if (src_reg->mapped_reg_num == dest_reg->mapped_reg_num)
+	if (src_reg->mapped_reg_num.r == dest_reg->mapped_reg_num.r)
 	{
 		//The source and the destination register is the same: clear register instead of subtracting
 		//Clearing needs no preloading of the emulated register
@@ -3992,21 +3992,21 @@ STATIC_INLINE void helper_update_flags(uae_u16 flagscheck, uae_u16 flagsclear, u
 			//Move XER to CR2, copy CR to the flags register then copy X flag from C
 			comp_macroblock_push_copy_nzcv_flags_to_register(
 					COMP_COMPILER_MACROBLOCK_REG_FLAGC | COMP_COMPILER_MACROBLOCK_REG_FLAGV | COMP_COMPILER_MACROBLOCK_REG_FLAGN | COMP_COMPILER_MACROBLOCK_REG_FLAGZ,
-					PPCR_FLAGS);
+					PPCR_FLAGS_MAPPED);
 			if (invertc)
 			{
 				comp_macroblock_push_xor_high_register_imm(
 						COMP_COMPILER_MACROBLOCK_REG_FLAGC,
 						COMP_COMPILER_MACROBLOCK_REG_FLAGC,
-						PPCR_FLAGS,
-						PPCR_FLAGS,
+						PPCR_FLAGS_MAPPED,
+						PPCR_FLAGS_MAPPED,
 						1 << 5);
 			}
 			comp_macroblock_push_rotate_and_copy_bits(
 					COMP_COMPILER_MACROBLOCK_REG_FLAGC,
 					COMP_COMPILER_MACROBLOCK_REG_FLAGX,
-					PPCR_FLAGS,
-					PPCR_FLAGS,
+					PPCR_FLAGS_MAPPED,
+					PPCR_FLAGS_MAPPED,
 					16, 26, 26, FALSE);
 			break;
 
@@ -4019,7 +4019,7 @@ STATIC_INLINE void helper_update_flags(uae_u16 flagscheck, uae_u16 flagsclear, u
 			comp_macroblock_push_rotate_and_copy_bits(
 					tmpreg->reg_usage_mapping,
 					COMP_COMPILER_MACROBLOCK_REG_FLAGC | COMP_COMPILER_MACROBLOCK_REG_FLAGV | COMP_COMPILER_MACROBLOCK_REG_FLAGN | COMP_COMPILER_MACROBLOCK_REG_FLAGZ,
-					PPCR_FLAGS,
+					PPCR_FLAGS_MAPPED,
 					tmpreg->mapped_reg_num,
 					0, 0, 10, FALSE);
 			if (invertc)
@@ -4027,8 +4027,8 @@ STATIC_INLINE void helper_update_flags(uae_u16 flagscheck, uae_u16 flagsclear, u
 				comp_macroblock_push_xor_high_register_imm(
 						COMP_COMPILER_MACROBLOCK_REG_FLAGC,
 						COMP_COMPILER_MACROBLOCK_REG_FLAGC,
-						PPCR_FLAGS,
-						PPCR_FLAGS,
+						PPCR_FLAGS_MAPPED,
+						PPCR_FLAGS_MAPPED,
 						1 << 5);
 			}
 			break;
@@ -4056,7 +4056,7 @@ STATIC_INLINE void helper_update_flags(uae_u16 flagscheck, uae_u16 flagsclear, u
 			comp_macroblock_push_rotate_and_copy_bits(
 					tmpreg->reg_usage_mapping,
 					COMP_COMPILER_MACROBLOCK_REG_FLAGN | COMP_COMPILER_MACROBLOCK_REG_FLAGC | COMP_COMPILER_MACROBLOCK_REG_FLAGV | COMP_COMPILER_MACROBLOCK_REG_FLAGX,
-					PPCR_FLAGS,
+					PPCR_FLAGS_MAPPED,
 					tmpreg->mapped_reg_num,
 					0, 9, 0, FALSE);
 			break;
@@ -4069,13 +4069,13 @@ STATIC_INLINE void helper_update_flags(uae_u16 flagscheck, uae_u16 flagsclear, u
 			comp_macroblock_push_rotate_and_copy_bits(
 					tmpreg->reg_usage_mapping,
 					COMP_COMPILER_MACROBLOCK_REG_FLAGC | COMP_COMPILER_MACROBLOCK_REG_FLAGV,
-					PPCR_FLAGS,
+					PPCR_FLAGS_MAPPED,
 					tmpreg->mapped_reg_num,
 					0, 9, 10, FALSE);
 			comp_macroblock_push_rotate_and_copy_bits(
 					tmpreg->reg_usage_mapping,
 					COMP_COMPILER_MACROBLOCK_REG_FLAGN,
-					PPCR_FLAGS,
+					PPCR_FLAGS_MAPPED,
 					tmpreg->mapped_reg_num,
 					0, 0, 0, FALSE);
 			if (invertc)
@@ -4083,8 +4083,8 @@ STATIC_INLINE void helper_update_flags(uae_u16 flagscheck, uae_u16 flagsclear, u
 				comp_macroblock_push_xor_high_register_imm(
 						COMP_COMPILER_MACROBLOCK_REG_FLAGC,
 						COMP_COMPILER_MACROBLOCK_REG_FLAGC,
-						PPCR_FLAGS,
-						PPCR_FLAGS,
+						PPCR_FLAGS_MAPPED,
+						PPCR_FLAGS_MAPPED,
 						1 << 5);
 			}
 			break;
@@ -4097,7 +4097,7 @@ STATIC_INLINE void helper_update_flags(uae_u16 flagscheck, uae_u16 flagsclear, u
 			comp_macroblock_push_rotate_and_copy_bits(
 					tmpreg->reg_usage_mapping,
 					COMP_COMPILER_MACROBLOCK_REG_FLAGN | COMP_COMPILER_MACROBLOCK_REG_FLAGZ | COMP_COMPILER_MACROBLOCK_REG_FLAGV,
-					PPCR_FLAGS,
+					PPCR_FLAGS_MAPPED,
 					tmpreg->mapped_reg_num,
 					0, 0, 9, FALSE);
 			break;
@@ -4110,7 +4110,7 @@ STATIC_INLINE void helper_update_flags(uae_u16 flagscheck, uae_u16 flagsclear, u
 			comp_macroblock_push_rotate_and_copy_bits(
 					tmpreg->reg_usage_mapping,
 					COMP_COMPILER_MACROBLOCK_REG_FLAGN | COMP_COMPILER_MACROBLOCK_REG_FLAGZ,
-					PPCR_FLAGS,
+					PPCR_FLAGS_MAPPED,
 					tmpreg->mapped_reg_num,
 					0, 0, 2, FALSE);
 			break;
@@ -4123,7 +4123,7 @@ STATIC_INLINE void helper_update_flags(uae_u16 flagscheck, uae_u16 flagsclear, u
 			comp_macroblock_push_rotate_and_copy_bits(
 					tmpreg->reg_usage_mapping,
 					COMP_COMPILER_MACROBLOCK_REG_FLAGZ,
-					PPCR_FLAGS,
+					PPCR_FLAGS_MAPPED,
 					tmpreg->mapped_reg_num,
 					0, 2, 2, FALSE);
 			break;
@@ -4141,7 +4141,7 @@ STATIC_INLINE void helper_update_flags(uae_u16 flagscheck, uae_u16 flagsclear, u
 		case COMP_COMPILER_MACROBLOCK_REG_FLAG_ALL:
 			//Clear all flags: N, Z, C, V and X
 			comp_macroblock_push_load_register_long(COMP_COMPILER_MACROBLOCK_REG_FLAG_ALL,
-					PPCR_FLAGS,
+					PPCR_FLAGS_MAPPED,
 					0);
 			break;
 		case (COMP_COMPILER_MACROBLOCK_REG_FLAGC | COMP_COMPILER_MACROBLOCK_REG_FLAGV | COMP_COMPILER_MACROBLOCK_REG_FLAGN | COMP_COMPILER_MACROBLOCK_REG_FLAGZ):
@@ -4149,8 +4149,8 @@ STATIC_INLINE void helper_update_flags(uae_u16 flagscheck, uae_u16 flagsclear, u
 			comp_macroblock_push_rotate_and_mask_bits(
 				COMP_COMPILER_MACROBLOCK_REG_NONE,
 				COMP_COMPILER_MACROBLOCK_REG_FLAGC | COMP_COMPILER_MACROBLOCK_REG_FLAGV | COMP_COMPILER_MACROBLOCK_REG_FLAGN | COMP_COMPILER_MACROBLOCK_REG_FLAGZ,
-				PPCR_FLAGS,
-				PPCR_FLAGS,
+				PPCR_FLAGS_MAPPED,
+				PPCR_FLAGS_MAPPED,
 				0, 26, 26, FALSE);
 			break;
 		case (COMP_COMPILER_MACROBLOCK_REG_FLAGC | COMP_COMPILER_MACROBLOCK_REG_FLAGV):
@@ -4158,8 +4158,8 @@ STATIC_INLINE void helper_update_flags(uae_u16 flagscheck, uae_u16 flagsclear, u
 			comp_macroblock_push_rotate_and_mask_bits(
 				COMP_COMPILER_MACROBLOCK_REG_NONE,
 				COMP_COMPILER_MACROBLOCK_REG_FLAGC | COMP_COMPILER_MACROBLOCK_REG_FLAGV,
-				PPCR_FLAGS,
-				PPCR_FLAGS,
+				PPCR_FLAGS_MAPPED,
+				PPCR_FLAGS_MAPPED,
 				0, 11, 8, FALSE);
 			break;
 		case (COMP_COMPILER_MACROBLOCK_REG_FLAGC | COMP_COMPILER_MACROBLOCK_REG_FLAGX):
@@ -4167,8 +4167,8 @@ STATIC_INLINE void helper_update_flags(uae_u16 flagscheck, uae_u16 flagsclear, u
 			comp_macroblock_push_rotate_and_mask_bits(
 				COMP_COMPILER_MACROBLOCK_REG_NONE,
 				COMP_COMPILER_MACROBLOCK_REG_FLAGC | COMP_COMPILER_MACROBLOCK_REG_FLAGX,
-				PPCR_FLAGS,
-				PPCR_FLAGS,
+				PPCR_FLAGS_MAPPED,
+				PPCR_FLAGS_MAPPED,
 				0, 27, 9, FALSE);
 			break;
 		case (COMP_COMPILER_MACROBLOCK_REG_FLAGC | COMP_COMPILER_MACROBLOCK_REG_FLAGV | COMP_COMPILER_MACROBLOCK_REG_FLAGN):
@@ -4182,22 +4182,22 @@ STATIC_INLINE void helper_update_flags(uae_u16 flagscheck, uae_u16 flagsclear, u
 				comp_macroblock_push_rotate_and_mask_bits(
 					COMP_COMPILER_MACROBLOCK_REG_NONE,
 					COMP_COMPILER_MACROBLOCK_REG_FLAGC | COMP_COMPILER_MACROBLOCK_REG_FLAGV | COMP_COMPILER_MACROBLOCK_REG_FLAGN,
-					PPCR_FLAGS,
-					PPCR_FLAGS,
+					PPCR_FLAGS_MAPPED,
+					PPCR_FLAGS_MAPPED,
 					0, 26, 26, FALSE);
 			} else {
 				//Clear flags: C, V and N: mask out these registers and keep Z and X
 				comp_macroblock_push_rotate_and_mask_bits(
 					COMP_COMPILER_MACROBLOCK_REG_NONE,
 					COMP_COMPILER_MACROBLOCK_REG_FLAGC | COMP_COMPILER_MACROBLOCK_REG_FLAGV,
-					PPCR_FLAGS,
-					PPCR_FLAGS,
+					PPCR_FLAGS_MAPPED,
+					PPCR_FLAGS_MAPPED,
 					0, 11, 8, FALSE);
 				comp_macroblock_push_rotate_and_mask_bits(
 					COMP_COMPILER_MACROBLOCK_REG_NONE,
 					COMP_COMPILER_MACROBLOCK_REG_FLAGN,
-					PPCR_FLAGS,
-					PPCR_FLAGS,
+					PPCR_FLAGS_MAPPED,
+					PPCR_FLAGS_MAPPED,
 					0, 1, 31, FALSE);
 			}
 			break;
@@ -4206,8 +4206,8 @@ STATIC_INLINE void helper_update_flags(uae_u16 flagscheck, uae_u16 flagsclear, u
 			comp_macroblock_push_rotate_and_mask_bits(
 				COMP_COMPILER_MACROBLOCK_REG_NONE,
 				COMP_COMPILER_MACROBLOCK_REG_FLAGC | COMP_COMPILER_MACROBLOCK_REG_FLAGV | COMP_COMPILER_MACROBLOCK_REG_FLAGZ,
-				PPCR_FLAGS,
-				PPCR_FLAGS,
+				PPCR_FLAGS_MAPPED,
+				PPCR_FLAGS_MAPPED,
 				0, 11, 1, FALSE);
 			break;
 		case (COMP_COMPILER_MACROBLOCK_REG_FLAGN | COMP_COMPILER_MACROBLOCK_REG_FLAGZ):
@@ -4215,8 +4215,8 @@ STATIC_INLINE void helper_update_flags(uae_u16 flagscheck, uae_u16 flagsclear, u
 			comp_macroblock_push_rotate_and_mask_bits(
 				COMP_COMPILER_MACROBLOCK_REG_NONE,
 				COMP_COMPILER_MACROBLOCK_REG_FLAGN | COMP_COMPILER_MACROBLOCK_REG_FLAGZ,
-				PPCR_FLAGS,
-				PPCR_FLAGS,
+				PPCR_FLAGS_MAPPED,
+				PPCR_FLAGS_MAPPED,
 				0, 3, 31, FALSE);
 			break;
 		case COMP_COMPILER_MACROBLOCK_REG_FLAGC:
@@ -4224,8 +4224,8 @@ STATIC_INLINE void helper_update_flags(uae_u16 flagscheck, uae_u16 flagsclear, u
 			comp_macroblock_push_rotate_and_mask_bits(
 				COMP_COMPILER_MACROBLOCK_REG_NONE,
 				COMP_COMPILER_MACROBLOCK_REG_FLAGC,
-				PPCR_FLAGS,
-				PPCR_FLAGS,
+				PPCR_FLAGS_MAPPED,
+				PPCR_FLAGS_MAPPED,
 				0, 11, 9, FALSE);
 			break;
 		case COMP_COMPILER_MACROBLOCK_REG_FLAGV:
@@ -4233,8 +4233,8 @@ STATIC_INLINE void helper_update_flags(uae_u16 flagscheck, uae_u16 flagsclear, u
 			comp_macroblock_push_rotate_and_mask_bits(
 				COMP_COMPILER_MACROBLOCK_REG_NONE,
 				COMP_COMPILER_MACROBLOCK_REG_FLAGV,
-				PPCR_FLAGS,
-				PPCR_FLAGS,
+				PPCR_FLAGS_MAPPED,
+				PPCR_FLAGS_MAPPED,
 				0, 10, 8, FALSE);
 			break;
 		case COMP_COMPILER_MACROBLOCK_REG_FLAGN:
@@ -4242,8 +4242,8 @@ STATIC_INLINE void helper_update_flags(uae_u16 flagscheck, uae_u16 flagsclear, u
 			comp_macroblock_push_rotate_and_mask_bits(
 				COMP_COMPILER_MACROBLOCK_REG_NONE,
 				COMP_COMPILER_MACROBLOCK_REG_FLAGN,
-				PPCR_FLAGS,
-				PPCR_FLAGS,
+				PPCR_FLAGS_MAPPED,
+				PPCR_FLAGS_MAPPED,
 				0, 1, 31, FALSE);
 			break;
 		case COMP_COMPILER_MACROBLOCK_REG_FLAGZ:
@@ -4251,8 +4251,8 @@ STATIC_INLINE void helper_update_flags(uae_u16 flagscheck, uae_u16 flagsclear, u
 			comp_macroblock_push_rotate_and_mask_bits(
 				COMP_COMPILER_MACROBLOCK_REG_NONE,
 				COMP_COMPILER_MACROBLOCK_REG_FLAGZ,
-				PPCR_FLAGS,
-				PPCR_FLAGS,
+				PPCR_FLAGS_MAPPED,
+				PPCR_FLAGS_MAPPED,
 				0, 3, 1, FALSE);
 			break;
 		default:
@@ -4275,7 +4275,7 @@ STATIC_INLINE void helper_update_flags(uae_u16 flagscheck, uae_u16 flagsclear, u
 		comp_macroblock_push_or_high_register_imm(
 				COMP_COMPILER_MACROBLOCK_REG_NONE,
 				flagsset & (~COMP_COMPILER_MACROBLOCK_REG_FLAGX),
-				PPCR_FLAGS, PPCR_FLAGS, flagmask);
+				PPCR_FLAGS_MAPPED, PPCR_FLAGS_MAPPED, flagmask);
 
 		if ((flagsset & COMP_COMPILER_MACROBLOCK_REG_FLAGX) != 0)
 		{
@@ -4283,7 +4283,7 @@ STATIC_INLINE void helper_update_flags(uae_u16 flagscheck, uae_u16 flagsclear, u
 			comp_macroblock_push_or_low_register_imm(
 					COMP_COMPILER_MACROBLOCK_REG_NONE,
 					COMP_COMPILER_MACROBLOCK_REG_FLAGX,
-					PPCR_FLAGS, PPCR_FLAGS, (1 << (PPCR_FLAG_X)));
+					PPCR_FLAGS_MAPPED, PPCR_FLAGS_MAPPED, (1 << (PPCR_FLAG_X)));
 		}
 	}
 
@@ -4350,7 +4350,7 @@ STATIC_INLINE void helper_extract_c_clear_nzvx_flags(uae_u64 regsin, comp_tmp_re
 	comp_macroblock_push_rotate_and_mask_bits(
 			regsin,
 			COMP_COMPILER_MACROBLOCK_REG_FLAGC |COMP_COMPILER_MACROBLOCK_REG_FLAGV | COMP_COMPILER_MACROBLOCK_REG_FLAGN | COMP_COMPILER_MACROBLOCK_REG_FLAGX,
-			PPCR_FLAGS,
+			PPCR_FLAGS_MAPPED,
 			input_reg->mapped_reg_num,
 			shift, 10, 10, FALSE);
 }
@@ -4365,8 +4365,8 @@ STATIC_INLINE void helper_extract_cx_clear_nzv_flags(uae_u64 regsin, comp_tmp_re
 	comp_macroblock_push_rotate_and_copy_bits(
 			COMP_COMPILER_MACROBLOCK_REG_FLAGC,
 			COMP_COMPILER_MACROBLOCK_REG_FLAGX,
-			PPCR_FLAGS,
-			PPCR_FLAGS,
+			PPCR_FLAGS_MAPPED,
+			PPCR_FLAGS_MAPPED,
 			16, 26, 26, FALSE);
 }
 
@@ -4401,8 +4401,8 @@ STATIC_INLINE void helper_extract_cx_clear_v_flags(uae_u64 regsin, comp_tmp_reg*
 	comp_macroblock_push_rotate_and_copy_bits(
 			COMP_COMPILER_MACROBLOCK_REG_FLAGC,
 			COMP_COMPILER_MACROBLOCK_REG_FLAGX,
-			PPCR_FLAGS,
-			PPCR_FLAGS,
+			PPCR_FLAGS_MAPPED,
+			PPCR_FLAGS_MAPPED,
 			16, 26, 26, FALSE);
 }
 
@@ -4843,7 +4843,7 @@ STATIC_INLINE void helper_MOVMEM2REG(const cpu_history* history, struct comptbl*
 				input_dep | (src_mem_addrreg == NULL ? 0 : src_mem_addrreg->reg_usage_mapping),
 				output_dep | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
 				src_mem_addrreg->mapped_reg_num,
-				PPCR_SPECTMP,
+				PPCR_SPECTMP_MAPPED,
 				size);
 
 		//The previous will kill all temporary register mappings,
@@ -4866,7 +4866,7 @@ STATIC_INLINE void helper_MOVMEM2REG(const cpu_history* history, struct comptbl*
 					COMP_COMPILER_MACROBLOCK_REG_NONE,
 					output_dep,
 					dest_reg->mapped_reg_num,
-					PPCR_SPECTMP);
+					PPCR_SPECTMP_MAPPED);
 			break;
 		case 2:
 			if (dataregmode)
@@ -4876,14 +4876,14 @@ STATIC_INLINE void helper_MOVMEM2REG(const cpu_history* history, struct comptbl*
 						COMP_COMPILER_MACROBLOCK_REG_NONE,
 						output_dep,
 						dest_reg->mapped_reg_num,
-						PPCR_SPECTMP);
+						PPCR_SPECTMP_MAPPED);
 			} else {
 				//Result is sign-extended into address register
 				comp_macroblock_push_copy_register_word_extended(
 						COMP_COMPILER_MACROBLOCK_REG_NONE,
 						output_dep,
 						dest_reg->mapped_reg_num,
-						PPCR_SPECTMP,
+						PPCR_SPECTMP_MAPPED,
 						FALSE);
 			}
 			break;
@@ -4892,7 +4892,7 @@ STATIC_INLINE void helper_MOVMEM2REG(const cpu_history* history, struct comptbl*
 					COMP_COMPILER_MACROBLOCK_REG_NONE,
 					output_dep,
 					dest_reg->mapped_reg_num,
-					PPCR_SPECTMP);
+					PPCR_SPECTMP_MAPPED);
 			break;
 		}
 	}
@@ -5020,7 +5020,7 @@ STATIC_INLINE void helper_MOVEM2MEMU(const cpu_history* history, struct comptbl*
 {
 	int spec, i, offset;
 	comp_tmp_reg * selected_reg;
-	uae_u8 selected_reg_mapped;
+	comp_ppc_reg selected_reg_mapped;
 	comp_tmp_reg* tempaddr_reg;
 
 	//Read the extended word
@@ -5045,13 +5045,13 @@ STATIC_INLINE void helper_MOVEM2MEMU(const cpu_history* history, struct comptbl*
 		//Save non-volatile register #0 temporarily
 		comp_macroblock_push_save_reg_slot(
 				COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-				PPCR_TMP_NONVOL0, 0);
+				PPCR_TMP_NONVOL0_MAPPED, 0);
 
 		//Copy destination address register to the non-volatile register
 		comp_macroblock_push_copy_register_long(
 				COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
 				COMP_COMPILER_MACROBLOCK_REG_NONE,
-				PPCR_TMP_NONVOL0,
+				PPCR_TMP_NONVOL0_MAPPED,
 				dest_reg->mapped_reg_num);
 
 		//Flush temp registers back to the store
@@ -5066,8 +5066,8 @@ STATIC_INLINE void helper_MOVEM2MEMU(const cpu_history* history, struct comptbl*
 				comp_macroblock_push_add_register_imm(
 						COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
 						COMP_COMPILER_MACROBLOCK_REG_NONE,
-						PPCR_TMP_NONVOL0,
-						PPCR_TMP_NONVOL0,
+						PPCR_TMP_NONVOL0_MAPPED,
+						PPCR_TMP_NONVOL0_MAPPED,
 						-size);
 
 				//Read register content from store to the second argument register (to avoid copying)
@@ -5075,16 +5075,16 @@ STATIC_INLINE void helper_MOVEM2MEMU(const cpu_history* history, struct comptbl*
 				comp_macroblock_push_load_memory_long(
 						COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
 						COMP_COMPILER_MACROBLOCK_REG_NONE,
-						PPCR_PARAM2,
-						PPCR_REGS_BASE,
+						PPCR_PARAM2_MAPPED,
+						PPCR_REGS_BASE_MAPPED,
 						(15 - i) * 4);
 
 				//Store register content in memory using special memory access
 				comp_macroblock_push_save_memory_spec(
 						COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
 						COMP_COMPILER_MACROBLOCK_REG_NONE,
-						PPCR_PARAM2,
-						PPCR_TMP_NONVOL0,
+						PPCR_PARAM2_MAPPED,
+						PPCR_TMP_NONVOL0_MAPPED,
 						size);
 			}
 		}
@@ -5097,12 +5097,12 @@ STATIC_INLINE void helper_MOVEM2MEMU(const cpu_history* history, struct comptbl*
 				COMP_COMPILER_MACROBLOCK_REG_NONE,
 				COMP_COMPILER_MACROBLOCK_REG_AX(props->destreg),
 				dest_reg->mapped_reg_num,
-				PPCR_TMP_NONVOL0);
+				PPCR_TMP_NONVOL0_MAPPED);
 
 		//Restore non-volatile register
 		comp_macroblock_push_load_reg_slot(
 				COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-				PPCR_TMP_NONVOL0, 0);
+				PPCR_TMP_NONVOL0_MAPPED, 0);
 	}
 	else
 	{
@@ -5138,11 +5138,11 @@ STATIC_INLINE void helper_MOVEM2MEMU(const cpu_history* history, struct comptbl*
 					comp_macroblock_push_load_memory_long(
 							COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
 							COMP_COMPILER_MACROBLOCK_REG_NONE,
-							PPCR_SPECTMP,
-							PPCR_REGS_BASE,
+							PPCR_SPECTMP_MAPPED,
+							PPCR_REGS_BASE_MAPPED,
 							(15 - i) * 4);
 
-					selected_reg_mapped = PPCR_SPECTMP;
+					selected_reg_mapped = PPCR_SPECTMP_MAPPED;
 				} else {
 					selected_reg_mapped = selected_reg->mapped_reg_num;
 				}
@@ -5664,24 +5664,24 @@ STATIC_INLINE void helper_NEGREG(uae_u8 size)
 	comp_macroblock_push_rotate_and_copy_bits(
 			COMP_COMPILER_MACROBLOCK_REG_FLAGZ,
 			COMP_COMPILER_MACROBLOCK_REG_FLAGC,
-			PPCR_FLAGS,
-			PPCR_FLAGS,
+			PPCR_FLAGS_MAPPED,
+			PPCR_FLAGS_MAPPED,
 			24, 10, 10, FALSE);
 
 	//Invert C
 	comp_macroblock_push_xor_high_register_imm(
 			COMP_COMPILER_MACROBLOCK_REG_FLAGC,
 			COMP_COMPILER_MACROBLOCK_REG_FLAGC,
-			PPCR_FLAGS,
-			PPCR_FLAGS,
+			PPCR_FLAGS_MAPPED,
+			PPCR_FLAGS_MAPPED,
 			1 << 5);
 
 	//Copy C to X
 	comp_macroblock_push_rotate_and_copy_bits(
 			COMP_COMPILER_MACROBLOCK_REG_FLAGC,
 			COMP_COMPILER_MACROBLOCK_REG_FLAGX,
-			PPCR_FLAGS,
-			PPCR_FLAGS,
+			PPCR_FLAGS_MAPPED,
+			PPCR_FLAGS_MAPPED,
 			16, 26, 26, FALSE);
 }
 
@@ -5753,24 +5753,24 @@ STATIC_INLINE void helper_NEGMEM(const cpu_history* history, struct comptbl* pro
 	comp_macroblock_push_rotate_and_copy_bits(
 			COMP_COMPILER_MACROBLOCK_REG_FLAGZ,
 			COMP_COMPILER_MACROBLOCK_REG_FLAGC,
-			PPCR_FLAGS,
-			PPCR_FLAGS,
+			PPCR_FLAGS_MAPPED,
+			PPCR_FLAGS_MAPPED,
 			24, 10, 10, FALSE);
 
 	//Invert C
 	comp_macroblock_push_xor_high_register_imm(
 			COMP_COMPILER_MACROBLOCK_REG_FLAGC,
 			COMP_COMPILER_MACROBLOCK_REG_FLAGC,
-			PPCR_FLAGS,
-			PPCR_FLAGS,
+			PPCR_FLAGS_MAPPED,
+			PPCR_FLAGS_MAPPED,
 			1 << 5);
 
 	//Copy C to X
 	comp_macroblock_push_rotate_and_copy_bits(
 			COMP_COMPILER_MACROBLOCK_REG_FLAGC,
 			COMP_COMPILER_MACROBLOCK_REG_FLAGX,
-			PPCR_FLAGS,
-			PPCR_FLAGS,
+			PPCR_FLAGS_MAPPED,
+			PPCR_FLAGS_MAPPED,
 			16, 26, 26, FALSE);
 }
 
@@ -6803,7 +6803,7 @@ STATIC_INLINE void helper_TSTREG(uae_u8 size)
 		comp_macroblock_push_copy_register_long_with_flags(
 				input_dep,
 				COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-				PPCR_SPECTMP,
+				PPCR_SPECTMP_MAPPED,
 				src_reg->mapped_reg_num);
 		break;
 	case 2:
@@ -6847,7 +6847,7 @@ STATIC_INLINE void helper_TSTMEM(const cpu_history* history, uae_u8 size)
 		comp_macroblock_push_copy_register_long_with_flags(
 				tempreg->reg_usage_mapping,
 				COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-				PPCR_SPECTMP,
+				PPCR_SPECTMP_MAPPED,
 				tempreg->mapped_reg_num);
 		break;
 	case 2:
@@ -6997,7 +6997,7 @@ STATIC_INLINE void helper_CMPREG2REG(uae_u8 size)
 		comp_macroblock_push_sub_with_flags(
 				input_dep | output_dep,
 				COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
-				PPCR_SPECTMP,
+				PPCR_SPECTMP_MAPPED,
 				src_reg->mapped_reg_num,
 				dest_reg->mapped_reg_num);
 	} else {
@@ -7015,7 +7015,7 @@ STATIC_INLINE void helper_CMPREG2REG(uae_u8 size)
 		comp_macroblock_push_sub_with_flags(
 				srctempreg->reg_usage_mapping | desttempreg->reg_usage_mapping,
 				COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
-				PPCR_SPECTMP,
+				PPCR_SPECTMP_MAPPED,
 				srctempreg->mapped_reg_num,
 				desttempreg->mapped_reg_num);
 
@@ -8638,7 +8638,7 @@ STATIC_INLINE comp_tmp_reg* helper_read_memory(uae_u64 regsin, const cpu_history
 				regsin,
 				COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
 				target_reg->mapped_reg_num,
-				PPCR_PARAM1,
+				PPCR_PARAM1_MAPPED,
 				size);
 
 		//The previous will kill all temporary register mappings,
@@ -8665,13 +8665,13 @@ STATIC_INLINE comp_tmp_reg* helper_read_memory(uae_u64 regsin, const cpu_history
 		//the previous result into it (but we tweaked the
 		//temporary register mapping already, so the allocated
 		//register will be R3 always)
-		if (tmpreg->mapped_reg_num != PPCR_PARAM1)
+		if (tmpreg->mapped_reg_num.r != PPCR_PARAM1)
 		{
 			comp_macroblock_push_copy_register_long(
 					COMP_COMPILER_MACROBLOCK_REG_NONE,
 					tmpreg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
 					tmpreg->mapped_reg_num,
-					PPCR_PARAM1);
+					PPCR_PARAM1_MAPPED);
 		}
 
 		if (preservedestreg)
@@ -8839,7 +8839,7 @@ STATIC_INLINE void helper_write_memory(uae_u64 regsin, const cpu_history* histor
  *    input_reg - (mapped) input register
  *    size - operation size (1,2 or 4 bytes)
  */
-STATIC_INLINE void helper_check_result_set_flags(int regsin, int input_reg, uae_u8 size)
+STATIC_INLINE void helper_check_result_set_flags(uae_u64 regsin, comp_ppc_reg input_reg, uae_u8 size)
 {
     //Check result for flags by operation size
     switch (size)
@@ -8897,7 +8897,7 @@ STATIC_INLINE void helper_test_bit_register_imm(uae_u64 regsin, int bitnum, comp
 		comp_macroblock_push_and_low_register_imm(
 				regsin,
 				COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-				PPCR_SPECTMP,
+				PPCR_SPECTMP_MAPPED,
 				input_reg->mapped_reg_num,
 				1 << bitnum);
 	} else {
@@ -8905,7 +8905,7 @@ STATIC_INLINE void helper_test_bit_register_imm(uae_u64 regsin, int bitnum, comp
 		comp_macroblock_push_and_high_register_imm(
 				regsin,
 				COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-				PPCR_SPECTMP,
+				PPCR_SPECTMP_MAPPED,
 				input_reg->mapped_reg_num,
 				1 << (bitnum - 16));
 	}
@@ -8931,7 +8931,7 @@ STATIC_INLINE comp_tmp_reg* helper_test_bit_register_register(uae_u64 regsbit, u
 	comp_tmp_reg* masktempreg = helper_allocate_tmp_reg_with_init(1);
 	comp_tmp_reg* srctmpreg;
 	uae_u64 srctmpreg_dep;
-	uae_u8 mapped_reg;
+	comp_ppc_reg mapped_reg;
 
 	//If modulo other than 32 for the input register then apply it
 	//Modulo 32 is automatically applied by the rotation
@@ -8970,7 +8970,7 @@ STATIC_INLINE comp_tmp_reg* helper_test_bit_register_register(uae_u64 regsbit, u
 	comp_macroblock_push_and_register_register(
 			regsin | masktempreg->reg_usage_mapping,
 			COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-			PPCR_SPECTMP,
+			PPCR_SPECTMP_MAPPED,
 			input_reg->mapped_reg_num,
 			masktempreg->mapped_reg_num,
 			TRUE);
