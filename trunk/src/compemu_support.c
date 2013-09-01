@@ -358,7 +358,7 @@ void compemu_reset(void)
 	/* Init used temporary registers list */
 	for (i = 0; i < PPC_TMP_REGS_COUNT; i++)
 	{
-		used_tmp_regs[i].mapped_reg_num = PPC_TMP_REGS[i];
+		used_tmp_regs[i].mapped_reg_num = PPCR_MAPPED_REG(PPC_TMP_REGS[i]);
 		used_tmp_regs[i].reg_usage_mapping = COMP_COMPILER_MACROBLOCK_REG_TMP(i);
 		comp_reset_tmp_register(&used_tmp_regs[i]);
 	}
@@ -577,7 +577,7 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 		comp_ppc_prolog(PPCR_REG_USED_NONVOLATILE);
 
 		//Set up Regs pointer register
-		comp_ppc_liw(PPCR_REGS_BASE, (uae_u32)&regs);
+		comp_ppc_liw(PPCR_REGS_BASE_MAPPED, (uae_u32)&regs);
 
 		//Compile verification of 68k PC against the expected PC and call
 		//cache miss function if these were not matching
@@ -930,7 +930,7 @@ comp_tmp_reg* comp_map_temp_register(uae_u8 reg_number, int needs_init, int need
 					COMP_COMPILER_MACROBLOCK_REG_NONE,
 					COMP_COMPILER_MACROBLOCK_REG_DX_OR_AX(reg_number),
 					temp_reg->mapped_reg_num,
-					PPCR_REGS_BASE,
+					PPCR_REGS_BASE_MAPPED,
 					reg_number * 4);
 		}
 	}
@@ -1004,7 +1004,7 @@ void comp_unmap_temp_register(struct m68k_register* reg)
 					COMP_COMPILER_MACROBLOCK_REG_DX_OR_AX(reg->regnum),
 					COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
 					reg->tmpreg->mapped_reg_num,
-					PPCR_REGS_BASE,
+					PPCR_REGS_BASE_MAPPED,
 					reg->regnum * 4);
 		}
 		comp_reset_tmp_register(reg->tmpreg);
@@ -1432,11 +1432,11 @@ void comp_ppc_emit_halfwords(uae_u16 halfword_high, uae_u16 halfword_low)
  * 		regb - source register 2
  * 		updateflags - compiles the flag updating version if TRUE
  */
-void comp_ppc_add(int regd, int rega, int regb, int updateflags)
+void comp_ppc_add(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags)
 {
 	// ## add(x) rega, regs, regb
-	comp_ppc_emit_halfwords(0x7c00 | ((regd) << 5) | rega,
-			0x0214 | (regb << 11) | (updateflags ? 1 : 0));
+	comp_ppc_emit_halfwords(0x7c00 | ((regd.r) << 5) | rega.r,
+			0x0214 | (regb.r << 11) | (updateflags ? 1 : 0));
 }
 
 /* Compiles addc instruction
@@ -1446,11 +1446,11 @@ void comp_ppc_add(int regd, int rega, int regb, int updateflags)
  * 		regb - source register 2
  * 		updateflags - compiles the flag updating version if TRUE
  */
-void comp_ppc_addc(int regd, int rega, int regb, int updateflags)
+void comp_ppc_addc(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags)
 {
 	// ## addc(x) rega, regs, regb
-	comp_ppc_emit_halfwords(0x7c00 | ((regd) << 5) | rega,
-			0x0014 | (regb << 11) | (updateflags ? 1 : 0));
+	comp_ppc_emit_halfwords(0x7c00 | ((regd.r) << 5) | rega.r,
+			0x0014 | (regb.r << 11) | (updateflags ? 1 : 0));
 }
 
 /* Compiles addco instruction
@@ -1460,11 +1460,11 @@ void comp_ppc_addc(int regd, int rega, int regb, int updateflags)
  * 		regb - source register 2
  * 		updateflags - compiles the flag updating version if TRUE
  */
-void comp_ppc_addco(int regd, int rega, int regb, int updateflags)
+void comp_ppc_addco(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags)
 {
 	// ## addco(x) rega, regs, regb
-	comp_ppc_emit_halfwords(0x7c00 | ((regd) << 5) | rega,
-			0x0414 | (regb << 11) | (updateflags ? 1 : 0));
+	comp_ppc_emit_halfwords(0x7c00 | ((regd.r) << 5) | rega.r,
+			0x0414 | (regb.r << 11) | (updateflags ? 1 : 0));
 }
 
 /* Compiles addi instruction
@@ -1473,10 +1473,10 @@ void comp_ppc_addco(int regd, int rega, int regb, int updateflags)
  * 		rega - source register
  * 		imm - immediate to be added
  */
-void comp_ppc_addi(int regd, int rega, uae_u16 imm)
+void comp_ppc_addi(comp_ppc_reg regd, comp_ppc_reg rega, uae_u16 imm)
 {
 	//Parameter validation
-	if (rega == 0)
+	if (rega.r == 0)
 	{
 		write_log(
 				"JIT compiling error: r0 register cannot be used for source register in addi instruction");
@@ -1484,7 +1484,7 @@ void comp_ppc_addi(int regd, int rega, uae_u16 imm)
 	}
 
 	// ## addi regd, rega, imm
-	comp_ppc_emit_halfwords(0x3800 | (regd << 5) | rega, imm);
+	comp_ppc_emit_halfwords(0x3800 | (regd.r << 5) | rega.r, imm);
 }
 
 /* Compiles addis instruction
@@ -1493,10 +1493,10 @@ void comp_ppc_addi(int regd, int rega, uae_u16 imm)
  * 		rega - source register
  * 		imm - immediate to be added
  */
-void comp_ppc_addis(int regd, int rega, uae_u16 imm)
+void comp_ppc_addis(comp_ppc_reg regd, comp_ppc_reg rega, uae_u16 imm)
 {
 	//Parameter validation
-	if (rega == 0)
+	if (rega.r == 0)
 	{
 		write_log(
 				"Compiling error: r0 register cannot be used for source register in addis instruction");
@@ -1504,7 +1504,7 @@ void comp_ppc_addis(int regd, int rega, uae_u16 imm)
 	}
 
 	// ## addis regd, rega, imm
-	comp_ppc_emit_halfwords(0x3c00 | (regd << 5) | rega, imm);
+	comp_ppc_emit_halfwords(0x3c00 | (regd.r << 5) | rega.r, imm);
 }
 
 /* Compiles and instruction
@@ -1514,11 +1514,11 @@ void comp_ppc_addis(int regd, int rega, uae_u16 imm)
  * 		regb - source register 2
  * 		updateflags - compiles the flag updating version if TRUE
  */
-void comp_ppc_and(int rega, int regs, int regb, int updateflags)
+void comp_ppc_and(comp_ppc_reg rega, comp_ppc_reg regs, comp_ppc_reg regb, BOOL updateflags)
 {
 	// ## and(x) rega, regs, regb
-	comp_ppc_emit_halfwords(0x7c00 | ((regs) << 5) | rega,
-			0x0038 | (regb << 11) | (updateflags ? 1 : 0));
+	comp_ppc_emit_halfwords(0x7c00 | ((regs.r) << 5) | rega.r,
+			0x0038 | (regb.r << 11) | (updateflags ? 1 : 0));
 }
 
 /* Compiles andc instruction
@@ -1528,11 +1528,11 @@ void comp_ppc_and(int rega, int regs, int regb, int updateflags)
  * 		regb - source register 2
  * 		updateflags - compiles the flag updating version if TRUE
  */
-void comp_ppc_andc(int rega, int regs, int regb, int updateflags)
+void comp_ppc_andc(comp_ppc_reg rega, comp_ppc_reg regs, comp_ppc_reg regb, BOOL updateflags)
 {
 	// ## andc(x) rega, regs, regb
-	comp_ppc_emit_halfwords(0x7c00 | ((regs) << 5) | rega,
-			0x0078 | (regb << 11) | (updateflags ? 1 : 0));
+	comp_ppc_emit_halfwords(0x7c00 | ((regs.r) << 5) | rega.r,
+			0x0078 | (regb.r << 11) | (updateflags ? 1 : 0));
 }
 
 /* Compiles andi. instruction
@@ -1541,10 +1541,10 @@ void comp_ppc_andc(int rega, int regs, int regb, int updateflags)
  * 		regs - source register
  * 		imm - immediate to be and'ed to the register
  */
-void comp_ppc_andi(int rega, int regs, uae_u16 imm)
+void comp_ppc_andi(comp_ppc_reg rega, comp_ppc_reg regs, uae_u16 imm)
 {
 	// ## andi. rega, regs, imm
-	comp_ppc_emit_halfwords(0x7000 | ((regs) << 5) | rega, imm);
+	comp_ppc_emit_halfwords(0x7000 | ((regs.r) << 5) | rega.r, imm);
 }
 
 /* Compiles andis. instruction
@@ -1553,10 +1553,10 @@ void comp_ppc_andi(int rega, int regs, uae_u16 imm)
  * 		regs - source register
  * 		imm - immediate to be and'ed to the register
  */
-void comp_ppc_andis(int rega, int regs, uae_u16 imm)
+void comp_ppc_andis(comp_ppc_reg rega, comp_ppc_reg regs, uae_u16 imm)
 {
 	// ## andis. rega, regs, imm
-	comp_ppc_emit_halfwords(0x7400 | ((regs) << 5) | rega, imm);
+	comp_ppc_emit_halfwords(0x7400 | ((regs.r) << 5) | rega.r, imm);
 }
 
 /* Compiles b instruction
@@ -1713,10 +1713,10 @@ void comp_ppc_blrl()
  * 		rega - first register for comparing
  * 		regb - second register for comparing
  */
-void comp_ppc_cmplw(int regcrfd, int rega, int regb)
+void comp_ppc_cmplw(int regcrfd, comp_ppc_reg rega, comp_ppc_reg regb)
 {
 	// ## cmpl regcrfd, 0, rega, regb
-	comp_ppc_emit_halfwords(0x7C00 | regcrfd << 7 | rega, 0x0040 | regb << 11);
+	comp_ppc_emit_halfwords(0x7C00 | regcrfd << 7 | rega.r, 0x0040 | regb.r << 11);
 }
 
 /* Compiles cmplwi instruction
@@ -1725,10 +1725,10 @@ void comp_ppc_cmplw(int regcrfd, int rega, int regb)
  * 		rega - source register
  * 		imm - immediate to be added
  */
-void comp_ppc_cmplwi(int regcrfd, int rega, uae_u16 imm)
+void comp_ppc_cmplwi(int regcrfd, comp_ppc_reg rega, uae_u16 imm)
 {
 	// ## cmplwi regcrfd, 0, rega, imm
-	comp_ppc_emit_halfwords(0x2800 | regcrfd << 7 | rega, imm);
+	comp_ppc_emit_halfwords(0x2800 | regcrfd << 7 | rega.r, imm);
 }
 
 /* Compiles cntlwz instruction
@@ -1737,10 +1737,10 @@ void comp_ppc_cmplwi(int regcrfd, int rega, uae_u16 imm)
  * 		regs - source register
  * 		updateflags - compiles the flag updating version if TRUE
  */
-void comp_ppc_cntlwz(int rega, int regs, int updateflags)
+void comp_ppc_cntlwz(comp_ppc_reg rega, comp_ppc_reg regs, BOOL updateflags)
 {
 	// ## cntlwz(x) rega, regs
-	comp_ppc_emit_halfwords(0x7C00 | regs << 5 | rega, 0x0034 | (updateflags ? 1 : 0));
+	comp_ppc_emit_halfwords(0x7C00 | regs.r << 5 | rega.r, 0x0034 | (updateflags ? 1 : 0));
 }
 
 /* Compiles extsb instruction
@@ -1749,10 +1749,10 @@ void comp_ppc_cntlwz(int rega, int regs, int updateflags)
  * 		regs - source register
  * 		updateflags - compiles the flag updating version if TRUE
  */
-void comp_ppc_extsb(int rega, int regs, int updateflags)
+void comp_ppc_extsb(comp_ppc_reg rega, comp_ppc_reg regs, BOOL updateflags)
 {
 	// ## extsb(x) rega, regs
-	comp_ppc_emit_halfwords(0x7C00 | regs << 5 | rega, 0x774 | (updateflags ? 1 : 0));
+	comp_ppc_emit_halfwords(0x7C00 | regs.r << 5 | rega.r, 0x774 | (updateflags ? 1 : 0));
 }
 
 /* Compiles extsh instruction
@@ -1761,10 +1761,10 @@ void comp_ppc_extsb(int rega, int regs, int updateflags)
  * 		regs - source register
  * 		updateflags - compiles the flag updating version if TRUE
  */
-void comp_ppc_extsh(int rega, int regs, int updateflags)
+void comp_ppc_extsh(comp_ppc_reg rega, comp_ppc_reg regs, BOOL updateflags)
 {
 	// ## extsh(x) rega, regs
-	comp_ppc_emit_halfwords(0x7C00 | regs << 5 | rega, 0x734 | (updateflags ? 1 : 0));
+	comp_ppc_emit_halfwords(0x7C00 | regs.r << 5 | rega.r, 0x734 | (updateflags ? 1 : 0));
 }
 
 /* Compiles lbz instruction
@@ -1773,10 +1773,10 @@ void comp_ppc_extsh(int rega, int regs, int updateflags)
  * 		delta - offset for the source address register
  * 		rega - source register
  */
-void comp_ppc_lbz(int regd, uae_u16 delta, int rega)
+void comp_ppc_lbz(comp_ppc_reg regd, uae_u16 delta, comp_ppc_reg rega)
 {
 	// ## lbz regd, delta(rega)
-	comp_ppc_emit_halfwords(0x8800 | ((regd) << 5) | rega, delta);
+	comp_ppc_emit_halfwords(0x8800 | ((regd.r) << 5) | rega.r, delta);
 }
 
 /* Compiles lha instruction
@@ -1785,10 +1785,10 @@ void comp_ppc_lbz(int regd, uae_u16 delta, int rega)
  * 		delta - offset for the source address register
  * 		rega - source register
  */
-void comp_ppc_lha(int regd, uae_u16 delta, int rega)
+void comp_ppc_lha(comp_ppc_reg regd, uae_u16 delta, comp_ppc_reg rega)
 {
 	// ## lha regd, delta(rega)
-	comp_ppc_emit_halfwords(0xA800 | ((regd) << 5) | rega, delta);
+	comp_ppc_emit_halfwords(0xA800 | ((regd.r) << 5) | rega.r, delta);
 }
 
 /* Compiles lhz instruction
@@ -1797,10 +1797,10 @@ void comp_ppc_lha(int regd, uae_u16 delta, int rega)
  * 		delta - offset for the source address register
  * 		rega - source register
  */
-void comp_ppc_lhz(int regd, uae_u16 delta, int rega)
+void comp_ppc_lhz(comp_ppc_reg regd, uae_u16 delta, comp_ppc_reg rega)
 {
 	// ## lhz regd, delta(rega)
-	comp_ppc_emit_halfwords(0xA000 | ((regd) << 5) | rega, delta);
+	comp_ppc_emit_halfwords(0xA000 | ((regd.r) << 5) | rega.r, delta);
 }
 
 /* Compiles li instruction
@@ -1808,10 +1808,10 @@ void comp_ppc_lhz(int regd, uae_u16 delta, int rega)
  * 		rega - target register
  * 		imm - immediate to be loaded
  */
-void comp_ppc_li(int rega, uae_u16 imm)
+void comp_ppc_li(comp_ppc_reg rega, uae_u16 imm)
 {
 	// ## li rega, imm ==> addi reg, 0, imm
-	comp_ppc_emit_halfwords(0x3800 | (rega << 5), imm);
+	comp_ppc_emit_halfwords(0x3800 | (rega.r << 5), imm);
 }
 
 /* Compiles lis instruction
@@ -1819,10 +1819,10 @@ void comp_ppc_li(int rega, uae_u16 imm)
  * 		rega - target register
  * 		imm - immediate to be added
  */
-void comp_ppc_lis(int rega, uae_u16 imm)
+void comp_ppc_lis(comp_ppc_reg rega, uae_u16 imm)
 {
 	// ## lis rega, imm ==> addis rega, 0, imm
-	comp_ppc_emit_halfwords(0x3c00 | (rega << 5), imm);
+	comp_ppc_emit_halfwords(0x3c00 | (rega.r << 5), imm);
 }
 
 /* Compiles liw instruction
@@ -1830,7 +1830,7 @@ void comp_ppc_lis(int rega, uae_u16 imm)
  * 		reg - target register
  * 		value - value to be loaded
  */
-void comp_ppc_liw(int reg, uae_u32 value)
+void comp_ppc_liw(comp_ppc_reg reg, uae_u32 value)
 {
 	//Value smaller than 0x00008000 or bigger than 0xffff7fff?
 	if ((value < 0x00008000) || (value > 0xffff7fff))
@@ -1862,10 +1862,10 @@ void comp_ppc_liw(int reg, uae_u32 value)
  * 		delta - offset for the source address register
  * 		rega - source register
  */
-void comp_ppc_lwz(int regd, uae_u16 delta, int rega)
+void comp_ppc_lwz(comp_ppc_reg regd, uae_u16 delta, comp_ppc_reg rega)
 {
 	// ## lwz regd, delta(rega)
-	comp_ppc_emit_halfwords(0x8000 | ((regd) << 5) | rega, delta);
+	comp_ppc_emit_halfwords(0x8000 | ((regd.r) << 5) | rega.r, delta);
 }
 
 /* Compiles lwzx instruction
@@ -1874,10 +1874,10 @@ void comp_ppc_lwz(int regd, uae_u16 delta, int rega)
  * 		rega - source register
  * 		regb - index register
  */
-void comp_ppc_lwzx(int regd, int rega, int regb)
+void comp_ppc_lwzx(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb)
 {
 	// ## lwzx regd, rega, regb
-	comp_ppc_emit_halfwords(0x7c00 | (regd << 5) | rega, 0x002e | (regb << 11));
+	comp_ppc_emit_halfwords(0x7c00 | (regd.r << 5) | rega.r, 0x002e | (regb.r << 11));
 }
 
 /* Compiles mcrxr instruction
@@ -1889,15 +1889,15 @@ void comp_ppc_mcrxr(int crreg)
 	// ## mcrxr crreg
 #ifdef _ARCH_PWR4
 	// Rotate the XER bits into the right slot in the temp register.
-	comp_ppc_mfxer(PPCR_SPECTMP);
-	comp_ppc_rlwinm(PPCR_SPECTMP, PPCR_SPECTMP, (4*(8-crreg)), 0, 31, FALSE);
+	comp_ppc_mfxer(PPCR_SPECTMP_MAPPED);
+	comp_ppc_rlwinm(PPCR_SPECTMP_MAPPED, PPCR_SPECTMP_MAPPED, (4*(8-crreg)), 0, 31, FALSE);
 	// Copy to that CR field.
 	// Our mt(o)crf mask is based on the condreg we're after. 128 = cr0
-	comp_ppc_mtcrf(crreg, PPCR_SPECTMP);
+	comp_ppc_mtcrf(crreg, PPCR_SPECTMP_MAPPED);
 	// Now rotate back and clear out the XER fields we need to erase.
-	comp_ppc_rlwinm(PPCR_SPECTMP, PPCR_SPECTMP, (32-(4*(8-crreg))), (31-(4*crreg)), (31-(4*(7-crreg))), FALSE);
+	comp_ppc_rlwinm(PPCR_SPECTMP_MAPPED, PPCR_SPECTMP_MAPPED, (32-(4*(8-crreg))), (31-(4*crreg)), (31-(4*(7-crreg))), FALSE);
 	// And do the write back to the XER
-	comp_ppc_mtxer(PPCR_SPECTMP);
+	comp_ppc_mtxer(PPCR_SPECTMP_MAPPED);
 #else
 	comp_ppc_emit_word(0x7c000400 | (crreg << 23));
 #endif
@@ -1907,10 +1907,10 @@ void comp_ppc_mcrxr(int crreg)
  * Parameters:
  * 		reg - target register
  */
-void comp_ppc_mfcr(int reg)
+void comp_ppc_mfcr(comp_ppc_reg reg)
 {
 	// ## mfcr reg
-	comp_ppc_emit_word(0x7c000026 | (reg << 21));
+	comp_ppc_emit_word(0x7c000026 | (reg.r << 21));
 }
 
 #ifdef _ARCH_PWR4
@@ -1922,7 +1922,7 @@ void comp_ppc_mfcr(int reg)
 void comp_ppc_mfocrf(int crreg, int reg)
 {
 	// ## mf(o)crf reg
-	comp_ppc_emit_word(0x7c000826 | (reg << 21) | (1 << (crreg + 12)));
+	comp_ppc_emit_word(0x7c000826 | (reg.r << 21) | (1 << (crreg + 12)));
 }
 #endif
 
@@ -1930,20 +1930,20 @@ void comp_ppc_mfocrf(int crreg, int reg)
  * Parameters:
  * 		reg - target register
  */
-void comp_ppc_mflr(int reg)
+void comp_ppc_mflr(comp_ppc_reg reg)
 {
 	// ## mflr reg
-	comp_ppc_emit_word(0x7c0802a6 | (reg << 21));
+	comp_ppc_emit_word(0x7c0802a6 | (reg.r << 21));
 }
 
 /* Compiles mfxer instruction
  * Parameters:
  * 		reg - target register
  */
-void comp_ppc_mfxer(int reg)
+void comp_ppc_mfxer(comp_ppc_reg reg)
 {
 	// ## mfxer reg
-	comp_ppc_emit_word(0x7c0102a6 | (reg << 21));
+	comp_ppc_emit_word(0x7c0102a6 | (reg.r << 21));
 }
 
 /* Compiles mt(o)crf instruction
@@ -1951,13 +1951,13 @@ void comp_ppc_mfxer(int reg)
  * 		crreg - target flag register
  * 		regf - register containing the flags
  */
-void comp_ppc_mtcrf(int crreg, int regf)
+void comp_ppc_mtcrf(int crreg, comp_ppc_reg regf)
 {
 	// ## mtcrf reg
 #ifdef _ARCH_PWR4
-	comp_ppc_emit_word(0x7c000920 | (regf << 21) | (1 << (crreg + 12)));
+	comp_ppc_emit_word(0x7c000920 | (regf.r << 21) | (1 << (crreg + 12)));
 #else
-	comp_ppc_emit_word(0x7c000120 | (regf << 21) | (1 << (crreg + 12)));
+	comp_ppc_emit_word(0x7c000120 | (regf.r << 21) | (1 << (crreg + 12)));
 #endif
 }
 
@@ -1965,20 +1965,20 @@ void comp_ppc_mtcrf(int crreg, int regf)
  * Parameters:
  * 		reg - source register
  */
-void comp_ppc_mtlr(int reg)
+void comp_ppc_mtlr(comp_ppc_reg reg)
 {
 	// ## mtlr reg
-	comp_ppc_emit_word(0x7c0803a6 | (reg << 21));
+	comp_ppc_emit_word(0x7c0803a6 | (reg.r << 21));
 }
 
 /* Compiles mtxer instruction
  * Parameters:
  * 		reg - source register
  */
-void comp_ppc_mtxer(int reg)
+void comp_ppc_mtxer(comp_ppc_reg reg)
 {
 	// ## mtxer reg
-	comp_ppc_emit_word(0x7c0103a6 | (reg << 21));
+	comp_ppc_emit_word(0x7c0103a6 | (reg.r << 21));
 }
 
 /* Compiles mr instruction
@@ -1987,7 +1987,7 @@ void comp_ppc_mtxer(int reg)
  * 		regs - source register
  * 		updateflags - compiles the flag updating version if TRUE
  */
-void comp_ppc_mr(int rega, int regs, int updateflags)
+void comp_ppc_mr(comp_ppc_reg rega, comp_ppc_reg regs, BOOL updateflags)
 {
 	// ## mr(x) rega, regs ==> or(x) rega, regs, regs
 	comp_ppc_or(rega, regs, regs, updateflags);
@@ -2000,11 +2000,11 @@ void comp_ppc_mr(int rega, int regs, int updateflags)
  * 		regb - source register 2
  * 		updateflags - compiles the flag updating version if TRUE
  */
-void comp_ppc_mullwo(int regd, int rega, int regb, int updateflags)
+void comp_ppc_mullwo(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags)
 {
 	// ## mullwo(x) regd, rega, regb
-	comp_ppc_emit_halfwords(0x7c00 | ((regd) << 5) | rega,
-			0x05d6 | (regb << 11) | (updateflags ? 1 : 0));
+	comp_ppc_emit_halfwords(0x7c00 | ((regd.r) << 5) | rega.r,
+			0x05d6 | (regb.r << 11) | (updateflags ? 1 : 0));
 }
 
 /* Compiles neg instruction
@@ -2013,10 +2013,10 @@ void comp_ppc_mullwo(int regd, int rega, int regb, int updateflags)
  * 		rega - source register
  * 		updateflags - compiles the flag updating version if TRUE
  */
-void comp_ppc_neg(int regd, int rega, int updateflags)
+void comp_ppc_neg(comp_ppc_reg regd, comp_ppc_reg rega, BOOL updateflags)
 {
 	// ## neg(x) rega, regs
-	comp_ppc_emit_halfwords(0x7c00 | ((regd) << 5) | rega,
+	comp_ppc_emit_halfwords(0x7c00 | ((regd.r) << 5) | rega.r,
 			0x00d0 | (updateflags ? 1 : 0));
 }
 
@@ -2026,10 +2026,10 @@ void comp_ppc_neg(int regd, int rega, int updateflags)
  * 		rega - source register
  * 		updateflags - compiles the flag updating version if TRUE
  */
-void comp_ppc_nego(int regd, int rega, int updateflags)
+void comp_ppc_nego(comp_ppc_reg regd, comp_ppc_reg rega, BOOL updateflags)
 {
 	// ## nego(x) rega, regs
-	comp_ppc_emit_halfwords(0x7c00 | ((regd) << 5) | rega,
+	comp_ppc_emit_halfwords(0x7c00 | ((regd.r) << 5) | rega.r,
 			0x04d0 | (updateflags ? 1 : 0));
 }
 
@@ -2040,7 +2040,7 @@ void comp_ppc_nego(int regd, int rega, int updateflags)
 void comp_ppc_nop()
 {
 	// ## nop = ori r0,r0,0
-	comp_ppc_ori(0, 0, 0);
+	comp_ppc_ori(PPCR_MAPPED_REG(0), PPCR_MAPPED_REG(0), 0);
 }
 
 /* Compiles nor instruction
@@ -2050,11 +2050,11 @@ void comp_ppc_nop()
  * 		regb - source register 2
  * 		updateflags - compiles the flag updating version if TRUE
  */
-void comp_ppc_nor(int rega, int regs, int regb, int updateflags)
+void comp_ppc_nor(comp_ppc_reg rega, comp_ppc_reg regs, comp_ppc_reg regb, BOOL updateflags)
 {
 	// ## nor(x) rega, regs, regb
-	comp_ppc_emit_halfwords(0x7c00 | ((regs) << 5) | rega,
-			0x00f8 | (regb << 11) | (updateflags ? 1 : 0));
+	comp_ppc_emit_halfwords(0x7c00 | ((regs.r) << 5) | rega.r,
+			0x00f8 | (regb.r << 11) | (updateflags ? 1 : 0));
 }
 
 /* Compiles or instruction
@@ -2064,11 +2064,11 @@ void comp_ppc_nor(int rega, int regs, int regb, int updateflags)
  * 		regb - source register 2
  * 		updateflags - compiles the flag updating version if TRUE
  */
-void comp_ppc_or(int rega, int regs, int regb, int updateflags)
+void comp_ppc_or(comp_ppc_reg rega, comp_ppc_reg regs, comp_ppc_reg regb, BOOL updateflags)
 {
 	// ## or(x) rega, regs, regb
-	comp_ppc_emit_halfwords(0x7c00 | ((regs) << 5) | rega,
-			0x0378 | (regb << 11) | (updateflags ? 1 : 0));
+	comp_ppc_emit_halfwords(0x7c00 | ((regs.r) << 5) | rega.r,
+			0x0378 | (regb.r << 11) | (updateflags ? 1 : 0));
 }
 
 /* Compiles ori instruction
@@ -2077,10 +2077,10 @@ void comp_ppc_or(int rega, int regs, int regb, int updateflags)
  * 		regs - source register
  * 		imm - immediate to be or'ed to the register
  */
-void comp_ppc_ori(int rega, int regs, uae_u16 imm)
+void comp_ppc_ori(comp_ppc_reg rega, comp_ppc_reg regs, uae_u16 imm)
 {
 	// ## ori rega, regs, imm
-	comp_ppc_emit_halfwords(0x6000 | ((regs) << 5) | rega, imm);
+	comp_ppc_emit_halfwords(0x6000 | ((regs.r) << 5) | rega.r, imm);
 }
 
 /* Compiles oris instruction
@@ -2089,10 +2089,10 @@ void comp_ppc_ori(int rega, int regs, uae_u16 imm)
  * 		regs - source register
  * 		imm - immediate to be or'ed to the register
  */
-void comp_ppc_oris(int rega, int regs, uae_u16 imm)
+void comp_ppc_oris(comp_ppc_reg rega, comp_ppc_reg regs, uae_u16 imm)
 {
 	// ## oris rega, regs, imm
-	comp_ppc_emit_halfwords(0x6400 | ((regs) << 5) | rega, imm);
+	comp_ppc_emit_halfwords(0x6400 | ((regs.r) << 5) | rega.r, imm);
 }
 
 /* Compiles rlwimi instruction
@@ -2104,10 +2104,10 @@ void comp_ppc_oris(int rega, int regs, uae_u16 imm)
  * 		maske - mask end
  * 		updateflags - compiles the flag updating version if TRUE
  */
-void comp_ppc_rlwimi(int rega, int regs, int shift, int maskb, int maske, int updateflags)
+void comp_ppc_rlwimi(comp_ppc_reg rega, comp_ppc_reg regs, int shift, int maskb, int maske, BOOL updateflags)
 {
 	// ## rlwimi(x) rega, regs, shift, maskb, maske
-	comp_ppc_emit_halfwords(0x5000 | ((regs) << 5) | rega,
+	comp_ppc_emit_halfwords(0x5000 | ((regs.r) << 5) | rega.r,
 			(shift << 11) | (maskb << 6) | (maske << 1) | (updateflags ? 1 : 0));
 }
 
@@ -2120,10 +2120,10 @@ void comp_ppc_rlwimi(int rega, int regs, int shift, int maskb, int maske, int up
  * 		maske - mask end
  * 		updateflags - compiles the flag updating version if TRUE
  */
-void comp_ppc_rlwinm(int rega, int regs, int shift, int maskb, int maske, int updateflags)
+void comp_ppc_rlwinm(comp_ppc_reg rega, comp_ppc_reg regs, int shift, int maskb, int maske, BOOL updateflags)
 {
 	// ## rlwinm(x) rega, regs, shift, maskb, maske
-	comp_ppc_emit_halfwords(0x5400 | ((regs) << 5) | rega,
+	comp_ppc_emit_halfwords(0x5400 | ((regs.r) << 5) | rega.r,
 			(shift << 11) | (maskb << 6) | (maske << 1) | (updateflags ? 1 : 0));
 }
 
@@ -2136,11 +2136,11 @@ void comp_ppc_rlwinm(int rega, int regs, int shift, int maskb, int maske, int up
  * 		maske - mask end
  * 		updateflags - compiles the flag updating version if TRUE
  */
-void comp_ppc_rlwnm(int rega, int regs, int regb, int maskb, int maske, int updateflags)
+void comp_ppc_rlwnm(comp_ppc_reg rega, comp_ppc_reg regs, comp_ppc_reg regb, int maskb, int maske, BOOL updateflags)
 {
 	// ## rlwnm(x) rega, regs, regb, maskb, maske
-	comp_ppc_emit_halfwords(0x5C00 | ((regs) << 5) | rega,
-			(regb << 11) | (maskb << 6) | (maske << 1) | (updateflags ? 1 : 0));
+	comp_ppc_emit_halfwords(0x5C00 | ((regs.r) << 5) | rega.r,
+			(regb.r << 11) | (maskb << 6) | (maske << 1) | (updateflags ? 1 : 0));
 }
 
 /* Compiles slw instruction
@@ -2150,11 +2150,11 @@ void comp_ppc_rlwnm(int rega, int regs, int regb, int maskb, int maske, int upda
  * 		regb - shift amount
  * 		updateflags - compiles the flag updating version if TRUE
  */
-void comp_ppc_slw(int rega, int regs, int regb, int updateflags)
+void comp_ppc_slw(comp_ppc_reg rega, comp_ppc_reg regs, comp_ppc_reg regb, BOOL updateflags)
 {
 	// ## slw(x) rega, regs, regb
-	comp_ppc_emit_halfwords(0x7C00 | ((regs) << 5) | rega,
-			0x0030 | (regb << 11) | (updateflags ? 1 : 0));
+	comp_ppc_emit_halfwords(0x7C00 | ((regs.r) << 5) | rega.r,
+			0x0030 | (regb.r << 11) | (updateflags ? 1 : 0));
 }
 
 /* Compiles srawi instruction
@@ -2164,10 +2164,10 @@ void comp_ppc_slw(int rega, int regs, int regb, int updateflags)
  * 		shift - shift amount
  * 		updateflags - compiles the flag updating version if TRUE
  */
-void comp_ppc_srawi(int rega, int regs, int shift, int updateflags)
+void comp_ppc_srawi(comp_ppc_reg rega, comp_ppc_reg regs, int shift, BOOL updateflags)
 {
 	// ## srawi(x) rega, regs, shift
-	comp_ppc_emit_halfwords(0x7C00 | ((regs) << 5) | rega,
+	comp_ppc_emit_halfwords(0x7C00 | ((regs.r) << 5) | rega.r,
 			0x0670 | (shift << 11) | (updateflags ? 1 : 0));
 }
 
@@ -2178,11 +2178,11 @@ void comp_ppc_srawi(int rega, int regs, int shift, int updateflags)
  * 		regb - shift amount
  * 		updateflags - compiles the flag updating version if TRUE
  */
-void comp_ppc_srw(int rega, int regs, int regb, int updateflags)
+void comp_ppc_srw(comp_ppc_reg rega, comp_ppc_reg regs, comp_ppc_reg regb, BOOL updateflags)
 {
 	// ## srw(x) rega, regs, regb
-	comp_ppc_emit_halfwords(0x7C00 | ((regs) << 5) | rega,
-			0x0430 | (regb << 11) | (updateflags ? 1 : 0));
+	comp_ppc_emit_halfwords(0x7C00 | ((regs.r) << 5) | rega.r,
+			0x0430 | (regb.r << 11) | (updateflags ? 1 : 0));
 }
 
 /* Compiles stb instruction
@@ -2191,10 +2191,10 @@ void comp_ppc_srw(int rega, int regs, int regb, int updateflags)
  * 		delta - offset for the source address register
  * 		rega - source register
  */
-void comp_ppc_stb(int regs, uae_u16 delta, int rega)
+void comp_ppc_stb(comp_ppc_reg regs, uae_u16 delta, comp_ppc_reg rega)
 {
 	// ## stb regs, delta(rega)
-	comp_ppc_emit_halfwords(0x9800 | ((regs) << 5) | rega, delta);
+	comp_ppc_emit_halfwords(0x9800 | ((regs.r) << 5) | rega.r, delta);
 }
 
 /* Compiles sth instruction
@@ -2203,10 +2203,10 @@ void comp_ppc_stb(int regs, uae_u16 delta, int rega)
  * 		delta - offset for the source address register
  * 		rega - source register
  */
-void comp_ppc_sth(int regs, uae_u16 delta, int rega)
+void comp_ppc_sth(comp_ppc_reg regs, uae_u16 delta, comp_ppc_reg rega)
 {
 	// ## sth regs, delta(rega)
-	comp_ppc_emit_halfwords(0xb000 | ((regs) << 5) | rega, delta);
+	comp_ppc_emit_halfwords(0xb000 | ((regs.r) << 5) | rega.r, delta);
 }
 
 /* Compiles sthu instruction
@@ -2215,10 +2215,10 @@ void comp_ppc_sth(int regs, uae_u16 delta, int rega)
  * 		delta - offset for the source address register
  * 		rega - source register
  */
-void comp_ppc_sthu(int regs, uae_u16 delta, int rega)
+void comp_ppc_sthu(comp_ppc_reg regs, uae_u16 delta, comp_ppc_reg rega)
 {
 	// ## sth regs, delta(rega)
-	comp_ppc_emit_halfwords(0xb400 | ((regs) << 5) | rega, delta);
+	comp_ppc_emit_halfwords(0xb400 | ((regs.r) << 5) | rega.r, delta);
 }
 
 /* Compiles stw instruction
@@ -2227,10 +2227,10 @@ void comp_ppc_sthu(int regs, uae_u16 delta, int rega)
  * 		delta - offset for the source address register
  * 		rega - source register
  */
-void comp_ppc_stw(int regs, uae_u16 delta, int rega)
+void comp_ppc_stw(comp_ppc_reg regs, uae_u16 delta, comp_ppc_reg rega)
 {
 	// ## stw regs, delta(rega)
-	comp_ppc_emit_halfwords(0x9000 | ((regs) << 5) | rega, delta);
+	comp_ppc_emit_halfwords(0x9000 | ((regs.r) << 5) | rega.r, delta);
 }
 
 /* Compiles stwu instruction
@@ -2239,10 +2239,10 @@ void comp_ppc_stw(int regs, uae_u16 delta, int rega)
  * 		delta - offset for the source address register
  * 		rega - source register
  */
-void comp_ppc_stwu(int regs, uae_u16 delta, int rega)
+void comp_ppc_stwu(comp_ppc_reg regs, uae_u16 delta, comp_ppc_reg rega)
 {
 	// ## stw regs, delta(rega)
-	comp_ppc_emit_halfwords(0x9400 | ((regs) << 5) | rega, delta);
+	comp_ppc_emit_halfwords(0x9400 | ((regs.r) << 5) | rega.r, delta);
 }
 
 /* Compiles subf instruction
@@ -2252,11 +2252,11 @@ void comp_ppc_stwu(int regs, uae_u16 delta, int rega)
  * 		regb - source register 2
  * 		updateflags - compiles the flag updating version if TRUE
  */
-void comp_ppc_subf(int regd, int rega, int regb, int updateflags)
+void comp_ppc_subf(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags)
 {
 	// ## subf(x) regd, rega, regb
-	comp_ppc_emit_halfwords(0x7c00 | ((regd) << 5) | rega,
-			0x0050 | (regb << 11) | (updateflags ? 1 : 0));
+	comp_ppc_emit_halfwords(0x7c00 | ((regd.r) << 5) | rega.r,
+			0x0050 | (regb.r << 11) | (updateflags ? 1 : 0));
 }
 
 /* Compiles subfco instruction
@@ -2266,11 +2266,11 @@ void comp_ppc_subf(int regd, int rega, int regb, int updateflags)
  * 		regb - source register 2
  * 		updateflags - compiles the flag updating version if TRUE
  */
-void comp_ppc_subfco(int regd, int rega, int regb, int updateflags)
+void comp_ppc_subfco(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags)
 {
 	// ## subfco(x) regd, rega, regb
-	comp_ppc_emit_halfwords(0x7c00 | ((regd) << 5) | rega,
-			0x0410 | (regb << 11) | (updateflags ? 1 : 0));
+	comp_ppc_emit_halfwords(0x7c00 | ((regd.r) << 5) | rega.r,
+			0x0410 | (regb.r << 11) | (updateflags ? 1 : 0));
 }
 
 /* Compiles subfe instruction
@@ -2280,11 +2280,11 @@ void comp_ppc_subfco(int regd, int rega, int regb, int updateflags)
  * 		regb - source register 2
  * 		updateflags - compiles the flag updating version if TRUE
  */
-void comp_ppc_subfe(int regd, int rega, int regb, int updateflags)
+void comp_ppc_subfe(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags)
 {
 	// ## subfe(x) regd, rega, regb
-	comp_ppc_emit_halfwords(0x7c00 | ((regd) << 5) | rega,
-			0x0110 | (regb << 11) | (updateflags ? 1 : 0));
+	comp_ppc_emit_halfwords(0x7c00 | ((regd.r) << 5) | rega.r,
+			0x0110 | (regb.r << 11) | (updateflags ? 1 : 0));
 }
 
 /* Compiles subfic instruction
@@ -2293,10 +2293,10 @@ void comp_ppc_subfe(int regd, int rega, int regb, int updateflags)
  * 		rega - source register
  * 		imm - immediate to be subtracted from
  */
-void comp_ppc_subfic(int regd, int rega, uae_u16 imm)
+void comp_ppc_subfic(comp_ppc_reg regd, comp_ppc_reg rega, uae_u16 imm)
 {
 	// ## subfic(x) regd, rega, regb
-	comp_ppc_emit_halfwords(0x2000 | ((regd) << 5) | rega, imm);
+	comp_ppc_emit_halfwords(0x2000 | ((regd.r) << 5) | rega.r, imm);
 }
 
  /* Compiles trap instruction
@@ -2316,11 +2316,11 @@ void comp_ppc_trap()
  * 		regb - source register 2
  * 		updateflags - compiles the flag updating version if TRUE
  */
-void comp_ppc_xor(int rega, int regs, int regb, int updateflags)
+void comp_ppc_xor(comp_ppc_reg rega, comp_ppc_reg regs, comp_ppc_reg regb, BOOL updateflags)
 {
 	// ## xor(x) rega, regs, regb
-	comp_ppc_emit_halfwords(0x7c00 | ((regs) << 5) | rega,
-			0x0278 | (regb << 11) | (updateflags ? 1 : 0));
+	comp_ppc_emit_halfwords(0x7c00 | ((regs.r) << 5) | rega.r,
+			0x0278 | (regb.r << 11) | (updateflags ? 1 : 0));
 }
 
 /* Compiles xori instruction
@@ -2329,10 +2329,10 @@ void comp_ppc_xor(int rega, int regs, int regb, int updateflags)
  * 		regs - source register
  * 		imm - immediate to be or'ed to the register
  */
-void comp_ppc_xori(int rega, int regs, uae_u16 imm)
+void comp_ppc_xori(comp_ppc_reg rega, comp_ppc_reg regs, uae_u16 imm)
 {
 	// ## xori rega, regs, imm
-	comp_ppc_emit_halfwords(0x6800 | ((regs) << 5) | rega, imm);
+	comp_ppc_emit_halfwords(0x6800 | ((regs.r) << 5) | rega.r, imm);
 }
 
 /* Compiles xoris instruction
@@ -2341,10 +2341,10 @@ void comp_ppc_xori(int rega, int regs, uae_u16 imm)
  * 		regs - source register
  * 		imm - immediate to be or'ed to the register
  */
-void comp_ppc_xoris(int rega, int regs, uae_u16 imm)
+void comp_ppc_xoris(comp_ppc_reg rega, comp_ppc_reg regs, uae_u16 imm)
 {
 	// ## xoris rega, regs, imm
-	comp_ppc_emit_halfwords(0x6c00 | ((regs) << 5) | rega, imm);
+	comp_ppc_emit_halfwords(0x6c00 | ((regs.r) << 5) | rega.r, imm);
 }
 
 
@@ -2357,7 +2357,7 @@ void comp_ppc_xoris(int rega, int regs, uae_u16 imm)
  * 		reg - a temporary register (not preserved)
  * 		addr - target address for the subroutine
  */
-void comp_ppc_call(int reg, uae_uintptr addr)
+void comp_ppc_call(comp_ppc_reg reg, uae_uintptr addr)
 {
 	//Calculate the offset to the target from the actual PC address
 	uae_u32 offset = ((uae_u32) addr) - ((uae_u32) current_compile_p);
@@ -2380,7 +2380,7 @@ void comp_ppc_call(int reg, uae_uintptr addr)
  * Parameters:
  * 		addrreg - target address for the subroutine in a register
  */
-void comp_ppc_call_reg(int addrreg)
+void comp_ppc_call_reg(comp_ppc_reg addrreg)
 {
 		comp_ppc_mtlr(addrreg);
 		comp_ppc_blrl();
@@ -2405,8 +2405,8 @@ void comp_ppc_jump(uae_uintptr addr)
 	else
 	{
 		//No - offset is too large, indirect jump is used
-		comp_ppc_liw(PPCR_SPECTMP, addr);
-		comp_ppc_mtlr(PPCR_SPECTMP);
+		comp_ppc_liw(PPCR_SPECTMP_MAPPED, addr);
+		comp_ppc_mtlr(PPCR_SPECTMP_MAPPED);
 		comp_ppc_blr();
 	}
 }
@@ -2426,13 +2426,13 @@ void comp_ppc_prolog(uae_u32 save_regs)
 	//How many registers do we want to save?
 	for(i = 0; i < 32; i++) regnum += (save_regs & (1 << i)) ? 1 : 0;
 
-	comp_ppc_mflr(PPCR_TMP0); //Read LR
-	comp_ppc_stw(PPCR_TMP0, -4, PPCR_SP); //Store in stack frame
+	comp_ppc_mflr(PPCR_TMP0_MAPPED); //Read LR
+	comp_ppc_stw(PPCR_TMP0_MAPPED, -4, PPCR_SP_MAPPED); //Store in stack frame
 
-	comp_ppc_addi(PPCR_TMP0, PPCR_SP, -16 - (regnum * 4)); //Calculate new stack frame
-	comp_ppc_rlwinm(PPCR_TMP0, PPCR_TMP0, 0, 0, 27, FALSE); //Align stack pointer
-	comp_ppc_stw(PPCR_SP, 0, PPCR_TMP0); //Store backchain pointer
-	comp_ppc_mr(PPCR_SP, PPCR_TMP0, FALSE); //Set real stack pointer
+	comp_ppc_addi(PPCR_TMP0_MAPPED, PPCR_SP_MAPPED, -16 - (regnum * 4)); //Calculate new stack frame
+	comp_ppc_rlwinm(PPCR_TMP0_MAPPED, PPCR_TMP0_MAPPED, 0, 0, 27, FALSE); //Align stack pointer
+	comp_ppc_stw(PPCR_SP_MAPPED, 0, PPCR_TMP0_MAPPED); //Store backchain pointer
+	comp_ppc_mr(PPCR_SP_MAPPED, PPCR_TMP0_MAPPED, FALSE); //Set real stack pointer
 
 	//Save registers
 	regnum = 8;
@@ -2440,7 +2440,7 @@ void comp_ppc_prolog(uae_u32 save_regs)
 	{
 		if (save_regs & (1 << i))
 		{
-			comp_ppc_stw(i, regnum, PPCR_SP);
+			comp_ppc_stw(PPCR_MAPPED_REG(i), regnum, PPCR_SP_MAPPED);
 			regnum += 4;
 		}
 	}
@@ -2451,11 +2451,11 @@ void comp_ppc_prolog(uae_u32 save_regs)
 {
 	int i;
 	int offset = -4;
-	int regnum = 0;
+	int r = 0;
 
 	//How many registers do we want to save?
 	for(i = 0; i < 32; i++) {
-		regnum += (save_regs & (1 << i)) ? 1 : 0;
+		r += (save_regs & (1 << i)) ? 1 : 0;
 	}
 
 	comp_ppc_mflr(PPCR_TMP0); //Read LR
@@ -2471,7 +2471,7 @@ void comp_ppc_prolog(uae_u32 save_regs)
 		}
 	}
 
-	comp_ppc_stwu(PPCR_SP, ((-24 - (regnum * 4) + 15) & (-16)), PPCR_SP); //Calculate new stack frame; 16 byte aligned, no parameter area!!! Set real stack pointer
+	comp_ppc_stwu(PPCR_SP, ((-24 - (r * 4) + 15) & (-16)), PPCR_SP); //Calculate new stack frame; 16 byte aligned, no parameter area!!! Set real stack pointer
 }
 #endif
 
@@ -2492,14 +2492,14 @@ void comp_ppc_epilog(uae_u32 restore_regs)
 	{
 		if (restore_regs & (1 << i))
 		{
-			comp_ppc_lwz(i, regnum, PPCR_SP);
+			comp_ppc_lwz(PPCR_MAPPED_REG(i), regnum, PPCR_SP_MAPPED);
 			regnum += 4;
 		}
 	}
 
-	comp_ppc_lwz(PPCR_SP, 0, PPCR_SP); //Read the pointer to the previous stack frame and free up stack space by using the backchain pointer
-	comp_ppc_lwz(PPCR_SPECTMP, -4, PPCR_SP); //Read LR from the stackframe
-	comp_ppc_mtlr(PPCR_SPECTMP); //Restore LR
+	comp_ppc_lwz(PPCR_SP_MAPPED, 0, PPCR_SP_MAPPED); //Read the pointer to the previous stack frame and free up stack space by using the backchain pointer
+	comp_ppc_lwz(PPCR_SPECTMP_MAPPED, -4, PPCR_SP_MAPPED); //Read LR from the stackframe
+	comp_ppc_mtlr(PPCR_SPECTMP_MAPPED); //Restore LR
 }
 #else
 //Epilog for MacOSX Darwin ABI
@@ -2512,20 +2512,20 @@ void comp_ppc_epilog(uae_u32 restore_regs)
 	comp_ppc_mtlr(PPCR_SPECTMP); //Restore LR
 
 	//Restore registers
-	int regnum = -4;
+	int r = -4;
 	for(i = 0; i < 32; i++)
 	{
 		if (restore_regs & (1 << i))
 		{
-			comp_ppc_lwz(i, regnum, PPCR_SP);
-			regnum -= 4;
+			comp_ppc_lwz(i, r, PPCR_SP);
+			r -= 4;
 		}
 	}
 }
 #endif
 
 /* Saves a specified register to a slot in the Regs structure. */
-void comp_ppc_save_to_slot(int reg, int slot)
+void comp_ppc_save_to_slot(comp_ppc_reg reg, uae_u8 slot)
 {
 	//Check for the available slots
 	if (slot > COMP_REGS_ALLOCATED_SLOTS)
@@ -2535,11 +2535,11 @@ void comp_ppc_save_to_slot(int reg, int slot)
 		abort();
 	}
 
-	comp_ppc_stw(reg, COMP_GET_OFFSET_IN_REGS(regslots) + (slot * 4), PPCR_REGS_BASE);
+	comp_ppc_stw(reg, COMP_GET_OFFSET_IN_REGS(regslots) + (slot * 4), PPCR_REGS_BASE_MAPPED);
 }
 
 /* Restores the specified register from the Regs structure. */
-void comp_ppc_restore_from_slot(int reg, int slot)
+void comp_ppc_restore_from_slot(comp_ppc_reg reg, uae_u8 slot)
 {
 	//Check for the available slots
 	if (slot > COMP_REGS_ALLOCATED_SLOTS)
@@ -2549,7 +2549,7 @@ void comp_ppc_restore_from_slot(int reg, int slot)
 		abort();
 	}
 
-	comp_ppc_lwz(reg, COMP_GET_OFFSET_IN_REGS(regslots) + (slot * 4), PPCR_REGS_BASE);
+	comp_ppc_lwz(reg, COMP_GET_OFFSET_IN_REGS(regslots) + (slot * 4), PPCR_REGS_BASE_MAPPED);
 }
 
 /* Saves allocated temporary registers to the stack.
@@ -2584,8 +2584,8 @@ uae_u32 comp_ppc_save_temp_regs(uae_u32 exceptions)
 	comp_macroblock_push_add_register_imm(
 			COMP_COMPILER_MACROBLOCK_REG_NONE,
 			COMP_COMPILER_MACROBLOCK_REG_NONE | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-			PPCR_SP,
-			PPCR_SP,
+			PPCR_SP_MAPPED,
+			PPCR_SP_MAPPED,
 			-count * 4);
 
 	//Walk through the list of registers again and save the marked ones
@@ -2598,8 +2598,8 @@ uae_u32 comp_ppc_save_temp_regs(uae_u32 exceptions)
 			comp_macroblock_push_save_memory_long(
 					COMP_COMPILER_MACROBLOCK_REG_NONE,
 					COMP_COMPILER_MACROBLOCK_REG_NONE | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-					reg,
-					PPCR_SP,
+					PPCR_MAPPED_REG(reg),
+					PPCR_SP_MAPPED,
 					count * 4);
 			count++;
 		}
@@ -2628,8 +2628,8 @@ void comp_ppc_restore_temp_regs(uae_u32 saved_regs)
 			comp_macroblock_push_load_memory_long(
 					COMP_COMPILER_MACROBLOCK_REG_NONE,
 					COMP_COMPILER_MACROBLOCK_REG_NONE | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-					reg,
-					PPCR_SP,
+					PPCR_MAPPED_REG(reg),
+					PPCR_SP_MAPPED,
 					count * 4);
 			count++;
 		}
@@ -2639,8 +2639,8 @@ void comp_ppc_restore_temp_regs(uae_u32 saved_regs)
 	comp_macroblock_push_add_register_imm(
 			COMP_COMPILER_MACROBLOCK_REG_NONE,
 			COMP_COMPILER_MACROBLOCK_REG_NONE | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-			PPCR_SP,
-			PPCR_SP,
+			PPCR_SP_MAPPED,
+			PPCR_SP_MAPPED,
 			count * 4);
 }
 
@@ -2650,8 +2650,8 @@ void comp_ppc_restore_temp_regs(uae_u32 saved_regs)
  */
 void comp_ppc_do_cycles(int totalcycles)
 {
-	comp_ppc_liw(PPCR_PARAM1, totalcycles);
-	comp_ppc_call(PPCR_SPECTMP, (uae_uintptr) do_cycles_callback);
+	comp_ppc_liw(PPCR_PARAM1_MAPPED, totalcycles);
+	comp_ppc_call(PPCR_SPECTMP_MAPPED, (uae_uintptr) do_cycles_callback);
 }
 
 /* Compiles "return from function" code to the code cache actual position
@@ -2678,9 +2678,9 @@ void comp_ppc_return_to_caller(uae_u32 restore_regs)
   */
 void comp_ppc_verify_pc(uae_u8* pc_addr_exp)
 {
-	comp_ppc_liw(PPCR_TMP0, (uae_u32) pc_addr_exp);	//Load original PC address into tempreg1
-	comp_ppc_lwz(PPCR_TMP1, COMP_GET_OFFSET_IN_REGS(pc_p), PPCR_REGS_BASE);	//Load the recent PC into tempreg2 from regs structure
-	comp_ppc_cmplw(PPCR_CR_TMP0, PPCR_TMP0, PPCR_TMP1);	//Compare registers
+	comp_ppc_liw(PPCR_TMP0_MAPPED, (uae_u32) pc_addr_exp);	//Load original PC address into tempreg1
+	comp_ppc_lwz(PPCR_TMP1_MAPPED, COMP_GET_OFFSET_IN_REGS(pc_p), PPCR_REGS_BASE_MAPPED);	//Load the recent PC into tempreg2 from regs structure
+	comp_ppc_cmplw(PPCR_CR_TMP0, PPCR_TMP0_MAPPED, PPCR_TMP1_MAPPED);	//Compare registers
 	comp_ppc_bc(PPC_B_CR_TMP0_EQ | PPC_B_TAKEN, 0);	//beq+ skip
 
 	//PC is not the same as the cached
@@ -2697,6 +2697,6 @@ void comp_ppc_verify_pc(uae_u8* pc_addr_exp)
 /* Compiles a piece of code to reload the regs.pc_p pointer to the specified address. */
 void comp_ppc_reload_pc_p(uae_u8* new_pc_p)
 {
-	comp_ppc_liw(PPCR_SPECTMP, (uae_u32) new_pc_p);
-	comp_ppc_stw(PPCR_SPECTMP, COMP_GET_OFFSET_IN_REGS(pc_p), PPCR_REGS_BASE);
+	comp_ppc_liw(PPCR_SPECTMP_MAPPED, (uae_u32) new_pc_p);
+	comp_ppc_stw(PPCR_SPECTMP_MAPPED, COMP_GET_OFFSET_IN_REGS(pc_p), PPCR_REGS_BASE_MAPPED);
 }
