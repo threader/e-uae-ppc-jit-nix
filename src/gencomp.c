@@ -36,6 +36,7 @@ struct opcode
 
 	int opcode; //*** Opcode translator number
 	int implemented; //*** Is this instruction implemented in JIT (0/1)
+	int ext; //*** Number of extension words
 	int op1; //*** Addressing of operand1
 	int op2; //*** Addressing of operand2
 	int jump; //*** Jump instruction (stop compiling)
@@ -63,7 +64,7 @@ void dealloc(struct list* head);
 unsigned int bindec(char* s);
 void decbin(char* s, unsigned int i);
 void selectstr(char* s, char* t, char c, int i);
-void insertopcode(int opcode, char* code, struct address* src, struct address* dest, int implemented, int jump, int constjump);
+void insertopcode(int opcode, char* code, struct address* src, struct address* dest, int implemented, int ext, int jump, int constjump);
 void readfromtablefile(void);
 void buildaddresslist(void);
 void buildopcodelist(void);
@@ -305,7 +306,7 @@ void selectstr(char* s, char* t, char c, int i)
 
 }
 
-void insertopcode(int opcode, char* code, struct address* src, struct address* dest, int implemented, int jump, int constjump)
+void insertopcode(int opcode, char* code, struct address* src, struct address* dest, int implemented, int ext, int jump, int constjump)
 {
 	struct opcode* act;
 	int i, j;
@@ -320,6 +321,7 @@ void insertopcode(int opcode, char* code, struct address* src, struct address* d
 	act->opcode = opcode;
 	strcpy(act->code, code);
 	act->implemented = implemented;
+	act->ext = ext;
 	act->jump = jump;
 	act->constjump = constjump;
 	if (src)
@@ -444,6 +446,7 @@ void buildopcodelist(void)
 	char str[300];
 	int jump, constjump;
 	int implemented;
+	int ext;
 	int i, j, num;
 	int opcodenamecount = 0;
 
@@ -452,9 +455,9 @@ void buildopcodelist(void)
 		readfromtablefile();
 		if ((s[0] != ';') && (strlen(s) > 4))
 		{
-			/* format: opcode impl code1 code2 code3 code4 jump constjump srcaddr destaddr */
+			/* format: opcode impl ext code1 code2 code3 code4 jump constjump srcaddr destaddr */
 
-			sscanf(s, "%s %d %s %s %s %s %d %d %s %s", name, &implemented, c1, c2, c3, c4, &jump, &constjump, src, dest);
+			sscanf(s, "%s %d %d %s %s %s %s %d %d %s %s", name, &implemented, &ext, c1, c2, c3, c4, &jump, &constjump, src, dest);
 
 			for (i = 0; (i < opcodenamecount) && (strcmp(opcodename[i], name)); i++);
 
@@ -528,12 +531,12 @@ void buildopcodelist(void)
 			{
 				if (destadr[0] == NULL)
 				{
-					insertopcode(num, code, NULL, NULL, implemented, jump, constjump);
+					insertopcode(num, code, NULL, NULL, implemented, ext, jump, constjump);
 				}
 				else
 				{
 					for (i = 0; destadr[i] != NULL; i++)
-						insertopcode(num, code, NULL, destadr[i], implemented, jump, constjump);
+						insertopcode(num, code, NULL, destadr[i], implemented, ext, jump, constjump);
 				}
 			}
 			else
@@ -541,13 +544,13 @@ void buildopcodelist(void)
 				if (destadr[0] == NULL)
 				{
 					for (i = 0; srcadr[i] != NULL; i++)
-						insertopcode(num, code, srcadr[i], NULL, implemented, jump, constjump);
+						insertopcode(num, code, srcadr[i], NULL, implemented, ext, jump, constjump);
 				}
 				else
 				{
 					for (j = 0; srcadr[j] != NULL; j++)
 						for (i = 0; destadr[i] != NULL; i++)
-							insertopcode(num, code, srcadr[j], destadr[i], implemented, jump, constjump);
+							insertopcode(num, code, srcadr[j], destadr[i], implemented, ext, jump, constjump);
 				}
 			}
 		}
@@ -631,8 +634,9 @@ unsigned long generatecfile(void)
 			c2[sr] = '\0';
 			c3[de] = '\0';
 
-			fprintf(cfile, "\t{comp_opcode_%s, %d, %d, %d, %d, %s}",
+			fprintf(cfile, "\t{comp_opcode_%s, %d, %d, %d, %d, %d, %s}",
 					opcodename[act->opcode],
+					act->ext,
 					bindec(c2),
 					bindec(c3),
 					act->op1,
@@ -645,7 +649,7 @@ unsigned long generatecfile(void)
 		{
 			//Not implemented/illegal opcode: null filled
 
-			fprintf(cfile, "\t{NULL, 0, 0, 0, 0, %s}", specstr);
+			fprintf(cfile, "\t{NULL, 0, 0, 0, 0, 0, %s}", specstr);
 		}
 
 		if (i != 65535) fprintf(cfile, ",");

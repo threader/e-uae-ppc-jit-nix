@@ -179,8 +179,8 @@ typedef struct comp_tmp_reg_t
  * the translated code.
  * IMPORTANT: these registers are not saved automatically in the prolog/epilog
  * functions for the translated code chunk. Save these registers using
- * comp_macroblock_push_save_reg_slot() function before use and restore
- * by calling comp_macroblock_push_load_reg_slot() before the execution leaves
+ * comp_macroblock_push_save_register_to_context() function before use and restore
+ * by calling comp_macroblock_push_restore_register_from_context() before the execution leaves
  * the compiled block.
  */
 #ifndef __APPLE__
@@ -294,12 +294,15 @@ void comp_swap_temp_register_mapping(comp_tmp_reg* tmpreg1, comp_tmp_reg* tmpreg
 comp_tmp_reg* comp_get_mapped_temp_register(uae_u8 reg_number);
 void comp_flush_temp_registers(int supresswarning);
 void comp_unlock_all_temp_registers(void);
+int comp_next_free_register_slot(void);
+int comp_last_register_slot(void);
 void comp_dump_reg_usage(uae_u64 regs, char* str, char dump_control);
 
 /* PowerPC instruction compiler functions */
 void comp_ppc_add(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags);
 void comp_ppc_addc(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags);
 void comp_ppc_addco(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags);
+void comp_ppc_addeo(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags);
 void comp_ppc_addi(comp_ppc_reg regd, comp_ppc_reg rega, uae_u16 imm);
 void comp_ppc_addis(comp_ppc_reg regd, comp_ppc_reg rega, uae_u16 imm);
 void comp_ppc_and(comp_ppc_reg rega, comp_ppc_reg regs, comp_ppc_reg regb, BOOL updateflags);
@@ -348,6 +351,7 @@ void comp_ppc_rlwimi(comp_ppc_reg rega, comp_ppc_reg regs, int shift, int maskb,
 void comp_ppc_rlwinm(comp_ppc_reg rega, comp_ppc_reg regs, int shift, int maskb, int maske, BOOL updateflags);
 void comp_ppc_rlwnm(comp_ppc_reg rega, comp_ppc_reg regs, comp_ppc_reg regb, int maskb, int maske, BOOL updateflags);
 void comp_ppc_slw(comp_ppc_reg rega, comp_ppc_reg regs, comp_ppc_reg regb, BOOL updateflags);
+void comp_ppc_sraw(comp_ppc_reg rega, comp_ppc_reg regs, comp_ppc_reg regb, BOOL updateflags);
 void comp_ppc_srawi(comp_ppc_reg rega, comp_ppc_reg regs, int shift, BOOL updateflags);
 void comp_ppc_srw(comp_ppc_reg rega, comp_ppc_reg regs, comp_ppc_reg regb, BOOL updateflags);
 void comp_ppc_stb(comp_ppc_reg regs, uae_u16 delta, comp_ppc_reg rega);
@@ -357,6 +361,7 @@ void comp_ppc_stw(comp_ppc_reg regs, uae_u16 delta, comp_ppc_reg rega);
 void comp_ppc_stwu(comp_ppc_reg regs, uae_u16 delta, comp_ppc_reg rega);
 void comp_ppc_subf(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags);
 void comp_ppc_subfco(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags);
+void comp_ppc_subfeo(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags);
 void comp_ppc_subfe(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags);
 void comp_ppc_subfic(comp_ppc_reg rega, comp_ppc_reg regs, uae_u16 imm);
 void comp_ppc_trap(void);
@@ -373,8 +378,6 @@ void comp_ppc_call_reg(comp_ppc_reg addrreg);
 void comp_ppc_jump(uae_uintptr addr);
 void comp_ppc_prolog(uae_u32 save_regs);
 void comp_ppc_epilog(uae_u32 restore_regs);
-void comp_ppc_save_to_slot(comp_ppc_reg reg, uae_u8 slot);
-void comp_ppc_restore_from_slot(comp_ppc_reg reg, uae_u8 slot);
 void comp_ppc_return_to_caller(uae_u32 restore_regs);
 void comp_ppc_do_cycles(int totalcycles);
 void comp_ppc_verify_pc(uae_u8* pc_addr_exp);
