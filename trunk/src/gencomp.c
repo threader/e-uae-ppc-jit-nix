@@ -37,6 +37,7 @@ struct opcode
 	int opcode; //*** Opcode translator number
 	int implemented; //*** Is this instruction implemented in JIT (0/1)
 	int ext; //*** Number of extension words
+	int size; //*** Operation size
 	int op1; //*** Addressing of operand1
 	int op2; //*** Addressing of operand2
 	int jump; //*** Jump instruction (stop compiling)
@@ -64,7 +65,7 @@ void dealloc(struct list* head);
 unsigned int bindec(char* s);
 void decbin(char* s, unsigned int i);
 void selectstr(char* s, char* t, char c, int i);
-void insertopcode(int opcode, char* code, struct address* src, struct address* dest, int implemented, int ext, int jump, int constjump);
+void insertopcode(int opcode, char* code, struct address* src, struct address* dest, int implemented, int ext, int size, int jump, int constjump);
 void readfromtablefile(void);
 void buildaddresslist(void);
 void buildopcodelist(void);
@@ -76,6 +77,7 @@ void dumpaddresstable(int src, int pre);
 struct address* adhead = NULL;
 struct opcode* ophead = NULL;
 char opcodename[MAXOPCODENAME][30];
+int opcodenamecount = 0;
 struct address* srcadr[MAXADDRMODE];
 struct address* destadr[MAXADDRMODE];
 FILE* headerfile = NULL;
@@ -306,7 +308,7 @@ void selectstr(char* s, char* t, char c, int i)
 
 }
 
-void insertopcode(int opcode, char* code, struct address* src, struct address* dest, int implemented, int ext, int jump, int constjump)
+void insertopcode(int opcode, char* code, struct address* src, struct address* dest, int implemented, int ext, int size, int jump, int constjump)
 {
 	struct opcode* act;
 	int i, j;
@@ -322,6 +324,7 @@ void insertopcode(int opcode, char* code, struct address* src, struct address* d
 	strcpy(act->code, code);
 	act->implemented = implemented;
 	act->ext = ext;
+	act->size = size;
 	act->jump = jump;
 	act->constjump = constjump;
 	if (src)
@@ -446,18 +449,32 @@ void buildopcodelist(void)
 	char str[300];
 	int jump, constjump;
 	int implemented;
-	int ext;
+	int ext, size;
 	int i, j, num;
-	int opcodenamecount = 0;
 
 	while (!(feof(tablefile)))
 	{
 		readfromtablefile();
 		if ((s[0] != ';') && (strlen(s) > 4))
 		{
-			/* format: opcode impl ext code1 code2 code3 code4 jump constjump srcaddr destaddr */
+			/* format: opcode impl ext siz code1 code2 code3 code4 jump constjump srcaddr destaddr */
 
-			sscanf(s, "%s %d %d %s %s %s %s %d %d %s %s", name, &implemented, &ext, c1, c2, c3, c4, &jump, &constjump, src, dest);
+			sscanf(s, "%s %d %d %d %s %s %s %s %d %d %s %s", name, &implemented, &ext, &size, c1, c2, c3, c4, &jump, &constjump, src, dest);
+
+			if (implemented != 0 && implemented != 1)
+			{
+				exception("Implemented property must be either 0 or 1 at line %d", line);
+			}
+
+			if (ext != 0 && ext != 1 && ext != 2 && ext != 3)
+			{
+				exception("Extension words property must be between 0 and 3 at line %d", line);
+			}
+
+			if (size != 0 && size != 1 && size != 2 && size != 4 && size != 16)
+			{
+				exception("Operation size property must be one of these values: 0, 1, 2, 4 or 16 at line %d", line);
+			}
 
 			for (i = 0; (i < opcodenamecount) && (strcmp(opcodename[i], name)); i++);
 
@@ -531,12 +548,12 @@ void buildopcodelist(void)
 			{
 				if (destadr[0] == NULL)
 				{
-					insertopcode(num, code, NULL, NULL, implemented, ext, jump, constjump);
+					insertopcode(num, code, NULL, NULL, implemented, ext, size, jump, constjump);
 				}
 				else
 				{
 					for (i = 0; destadr[i] != NULL; i++)
-						insertopcode(num, code, NULL, destadr[i], implemented, ext, jump, constjump);
+						insertopcode(num, code, NULL, destadr[i], implemented, ext, size, jump, constjump);
 				}
 			}
 			else
@@ -544,13 +561,13 @@ void buildopcodelist(void)
 				if (destadr[0] == NULL)
 				{
 					for (i = 0; srcadr[i] != NULL; i++)
-						insertopcode(num, code, srcadr[i], NULL, implemented, ext, jump, constjump);
+						insertopcode(num, code, srcadr[i], NULL, implemented, ext, size, jump, constjump);
 				}
 				else
 				{
 					for (j = 0; srcadr[j] != NULL; j++)
 						for (i = 0; destadr[i] != NULL; i++)
-							insertopcode(num, code, srcadr[j], destadr[i], implemented, ext, jump, constjump);
+							insertopcode(num, code, srcadr[j], destadr[i], implemented, ext, size, jump, constjump);
 				}
 			}
 		}
@@ -559,7 +576,36 @@ void buildopcodelist(void)
 
 void generateheaderfile(void)
 {
-	fprintf(headerfile, "//TODO: generate comptbl header file");
+	struct address* adact;
+	int i;
+
+	fprintf(headerfile, "// Generated macroblock function protos\n// Do not edit manually!\n\n");
+
+	fprintf(headerfile, "// Addressing modes\n");
+	for (adact = adhead; (adact); adact = adact->next)
+	{
+		char* name = adact->name;
+
+		if ((name[0] == 'C' && name[1] == 'C') || (name[0] == 'F' && name[1] == 'C' && name[2] == 'C'))
+		{
+			//Condition code (virtual) addressing mode
+			fprintf(headerfile, "void comp_cond_pre_%s_src(const cpu_history* history, struct comptbl* props) REGPARAM;\n", name);
+		} else {
+			//Normal addressing mode
+			fprintf(headerfile, "void comp_addr_pre_%s_src(const cpu_history* history, struct comptbl* props) REGPARAM;\n", name);
+			fprintf(headerfile, "void comp_addr_pre_%s_dest(const cpu_history* history, struct comptbl* props) REGPARAM;\n", name);
+			fprintf(headerfile, "void comp_addr_post_%s_src(const cpu_history* history, struct comptbl* props) REGPARAM;\n", name);
+			fprintf(headerfile, "void comp_addr_post_%s_dest(const cpu_history* history, struct comptbl* props) REGPARAM;\n", name);
+		}
+	}
+
+	fprintf(headerfile, "\n\n// Instructions\n");
+	for(i = 0; i < opcodenamecount; i++)
+	{
+		fprintf(headerfile, "void comp_opcode_%s(const cpu_history* history, struct comptbl* props) REGPARAM;\n", opcodename[i]);
+	}
+
+	fprintf(headerfile, "\n\n");
 }
 
 unsigned long generatecfile(void)
@@ -575,6 +621,8 @@ unsigned long generatecfile(void)
 	int i, j;
 	char specstr[200];
 
+	fprintf(cfile, "// Generated instruction property table and addressing function offsets\n// Do not edit manually!\n\n");
+
 	//Start with includes
 	fprintf(cfile, "#include \"sysconfig.h\"\n");
 	fprintf(cfile, "#include \"sysdeps.h\"\n");
@@ -583,7 +631,8 @@ unsigned long generatecfile(void)
 	fprintf(cfile, "#include \"custom.h\"\n");
 	fprintf(cfile, "#include \"newcpu.h\"\n");
 	fprintf(cfile, "#include \"compemu.h\"\n");
-	fprintf(cfile, "#include \"compemu_macroblocks.h\"\n\n");
+	fprintf(cfile, "#include \"compemu_macroblocks.h\"\n");
+	fprintf(cfile, "#include \"comptbl.h\"\n\n");
 
 	//Generate compile properties table
 	fprintf(cfile, "struct comptbl compprops[65536] = {\n");
@@ -634,9 +683,10 @@ unsigned long generatecfile(void)
 			c2[sr] = '\0';
 			c3[de] = '\0';
 
-			fprintf(cfile, "\t{comp_opcode_%s, %d, %d, %d, %d, %d, %s}",
+			fprintf(cfile, "\t{comp_opcode_%s, %d, %d, %d, %d, %d, %d, %s}",
 					opcodename[act->opcode],
 					act->ext,
+					act->size,
 					bindec(c2),
 					bindec(c3),
 					act->op1,
@@ -649,7 +699,7 @@ unsigned long generatecfile(void)
 		{
 			//Not implemented/illegal opcode: null filled
 
-			fprintf(cfile, "\t{NULL, 0, 0, 0, 0, 0, %s}", specstr);
+			fprintf(cfile, "\t{NULL, 0, 0, 0, 0, 0, 0, %s}", specstr);
 		}
 
 		if (i != 65535) fprintf(cfile, ",");

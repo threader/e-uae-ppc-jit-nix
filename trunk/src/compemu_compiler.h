@@ -155,6 +155,7 @@ void comp_macroblock_push_arithmetic_shift_right_register_imm(uae_u64 regsin, ua
 void comp_macroblock_push_logic_shift_left_register_register(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, comp_ppc_reg shift_reg, BOOL updateflags);
 void comp_macroblock_push_logic_shift_right_register_register(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, comp_ppc_reg shift_reg, BOOL updateflags);
 void comp_macroblock_push_arithmetic_shift_right_register_register(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, comp_ppc_reg shift_reg, BOOL updateflags);
+void comp_macroblock_push_count_leading_zeroes_register(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, BOOL updateflags);
 void comp_macroblock_push_arithmetic_left_shift_extract_v_flag(uae_u64 regsin, comp_ppc_reg input_reg, comp_ppc_reg shift_reg, comp_ppc_reg tmp_reg);
 void comp_macroblock_push_shift_extract_c_flag(uae_u64 regsin, comp_ppc_reg input_reg, comp_ppc_reg shift_reg, BOOL left_shift);
 void comp_macroblock_push_shift_extract_cx_flag(uae_u64 regsin, comp_ppc_reg input_reg, comp_ppc_reg shift_reg, BOOL left_shift);
@@ -164,6 +165,7 @@ void comp_macroblock_push_load_pc_from_register(uae_u64 regsin, comp_ppc_reg add
 void comp_macroblock_push_load_pc_from_immediate_conditional(uae_u32 target_address, uae_u32 skip_address, BOOL negate, comp_ppc_reg address_reg, comp_ppc_reg tmp_reg);
 void comp_macroblock_push_load_pc_from_immediate_conditional_decrement_register(uae_u64 regsin, comp_ppc_reg decrement_reg, uae_u32 target_address, uae_u32 skip_address, BOOL negate, comp_ppc_reg address_reg, comp_ppc_reg tmp_reg);
 void comp_macroblock_push_set_byte_from_z_flag(uae_u64 regsout, comp_ppc_reg output_reg, BOOL negate);
+void comp_macroblock_push_or_negative_mask_if_n_flag_set(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg mask_reg);
 void comp_macroblock_push_convert_ccr_to_internal(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg);
 void comp_macroblock_push_convert_internal_to_ccr(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg);
 void comp_macroblock_push_stop(void);
