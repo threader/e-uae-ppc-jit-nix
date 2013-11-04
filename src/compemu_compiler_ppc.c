@@ -100,12 +100,14 @@ void comp_macroblock_impl_arithmetic_shift_right_register_imm(union comp_compile
 void comp_macroblock_impl_logic_shift_left_register_register(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_logic_shift_right_register_register(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_arithmetic_shift_right_register_register(union comp_compiler_mb_union* mb);
+void comp_macroblock_impl_count_leading_zeroes_register(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_arithmetic_left_shift_extract_v_flag(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_shift_extract_c_flag(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_shift_extract_cx_flag(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_save_register_to_context(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_restore_register_from_context(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_set_byte_from_z_flag(union comp_compiler_mb_union* mb);
+void comp_macroblock_impl_or_negative_mask_if_n_flag_set(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_convert_ccr_to_internal(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_convert_internal_to_ccr(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_stop(union comp_compiler_mb_union* mb);
@@ -1849,6 +1851,27 @@ void comp_macroblock_impl_arithmetic_shift_right_register_register(union comp_co
 }
 
 /**
+ * Macroblock: count leading zero bits into a register
+ */
+void comp_macroblock_push_count_leading_zeroes_register(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, BOOL updateflags)
+{
+	comp_mb_init(mb,
+				comp_macroblock_impl_count_leading_zeroes_register,
+				regsin, regsout);
+	mb->two_regs_opcode_flags.output_reg = output_reg;
+	mb->two_regs_opcode_flags.input_reg = input_reg;
+	mb->two_regs_opcode_flags.updateflags = updateflags;
+}
+
+void comp_macroblock_impl_count_leading_zeroes_register(union comp_compiler_mb_union* mb)
+{
+	comp_ppc_cntlzw(
+			mb->two_regs_opcode_flags.output_reg,
+			mb->two_regs_opcode_flags.input_reg,
+			mb->two_regs_opcode_flags.updateflags);
+}
+
+/**
  * Macroblock: Calculate V flag for arithmetic left shift, inserts the V flag directly
  * into the flag emulation register
  */
@@ -1870,14 +1893,14 @@ void comp_macroblock_impl_arithmetic_left_shift_extract_v_flag(union comp_compil
 	comp_ppc_reg shift_reg = mb->extract_v_flag_arithmetic_left_shift.shift_reg;
 
 	//Count leading 0 bits to R0
-	comp_ppc_cntlwz(PPCR_SPECTMP_MAPPED, input_reg, FALSE);
+	comp_ppc_cntlzw(PPCR_SPECTMP_MAPPED, input_reg, FALSE);
 
 	//Invert the source register into the temp register
 	comp_ppc_nor(temp_reg, input_reg, input_reg, FALSE);
 
 	//Count leading 0 bits again to the temp register
 	//(counting leading 1 bits by using the result from the previous inversion)
-	comp_ppc_cntlwz(temp_reg, temp_reg, FALSE);
+	comp_ppc_cntlzw(temp_reg, temp_reg, FALSE);
 
 	//Calculate the distance of the first changing bit to temp register,
 	//also clear XER[CA] (Carry flag) for the next instruction
@@ -1952,6 +1975,7 @@ void comp_macroblock_push_shift_extract_cx_flag(uae_u64 regsin, comp_ppc_reg inp
 				regsin | COMP_COMPILER_MACROBLOCK_REG_FLAGC,
 				COMP_COMPILER_MACROBLOCK_REG_FLAGX);
 	mb->extract_c_flag_shift.shift_reg = shift_reg;
+	mb->extract_c_flag_shift.input_reg = input_reg;
 	mb->extract_c_flag_shift.left_shift = left_shift;
 }
 
@@ -2331,6 +2355,40 @@ void comp_macroblock_impl_set_byte_from_z_flag(union comp_compiler_mb_union* mb)
 
 	//Set byte to 0xff (true)
 	comp_ppc_ori(output_reg, output_reg, 0xff);
+
+	//Branch target reached, set it
+	comp_ppc_branch_target(0);
+}
+
+/* This is a very specific macroblock for BFEXTS instruction:
+ * inverse of the provided bit mask is or'ed to the target register if the emulated N flag
+ * is set.
+ * Note: this macroblock uses the spec temp (R0) register.
+ * TODO: refactor this macroblock into the instruction without branching, if possible.
+ */
+void comp_macroblock_push_or_negative_mask_if_n_flag_set(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg mask_reg)
+{
+	comp_mb_init(mb,
+				comp_macroblock_impl_or_negative_mask_if_n_flag_set,
+				regsin | COMP_COMPILER_MACROBLOCK_REG_FLAGN,
+				regsout);
+	mb->two_regs_opcode.input_reg = mask_reg;
+	mb->two_regs_opcode.output_reg = output_reg;
+}
+
+void comp_macroblock_impl_or_negative_mask_if_n_flag_set(union comp_compiler_mb_union* mb)
+{
+	//Set the Z flag accordingly to the emulated N flag
+	comp_ppc_andis(PPCR_SPECTMP_MAPPED, PPCR_FLAGS_MAPPED, (PPCR_REG_BIT(FLAGBIT_N) >> 16));
+
+	//Branch if N flag was not set
+	comp_ppc_bc(PPC_B_CR_TMP0_EQ | PPC_B_TAKEN, 0);
+
+	//Complement-or the mask to the target register
+	comp_ppc_orc(mb->two_regs_opcode.output_reg,
+					mb->two_regs_opcode.output_reg,
+					mb->two_regs_opcode.input_reg,
+					FALSE);
 
 	//Branch target reached, set it
 	comp_ppc_branch_target(0);
