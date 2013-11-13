@@ -2538,7 +2538,7 @@ void gui_message (const char *format,...)
  */
 static void do_message_box (const gchar *title, const gchar *message, gboolean modal, gboolean wait )
 {
-    uae_sem_t msg_quit_sem;
+    uae_sem_t msg_quit_sem = {0};
 
     // If we a need reply, then this semaphore which will be used
     // to signal us when the dialog has been exited.
