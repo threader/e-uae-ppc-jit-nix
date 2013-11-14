@@ -640,6 +640,7 @@ static int my_idle (void)
 #endif
 	}
     }
+    gui_handle_events();
     return 1;
 }
 
