@@ -1,10 +1,11 @@
+#!/bin/sh
 # P-UAE
 #
 # 2006-2011 Mustafa TUFAN (aka GnoStiC/BRONX)
 #
 #
 #
-base=" --with-sdl --with-sdl-gl --with-sdl-gfx --with-sdl-sound --enable-drvsnd "
+base=" --with-sdl --with-sdl-gl --with-sdl-gfx --with-alsa --enable-drvsnd "
 cd32=" --enable-cd32 "
 a600=" --enable-gayle "
 scsi=" --enable-scsi-device --enable-ncr --enable-a2091 "
@@ -13,6 +14,5 @@ debug=""
 #
 #
 ./bootstrap.sh
-./configure $debug $base $cd32 $a600 $scsi $other CFLAGS="-m32" LDFLAGS="-m32" CPPFLAGS="-m32"
-make clean
-make
+./configure $debug $base $cd32 $a600 $scsi $other
+make -j9
