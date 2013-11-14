@@ -1680,7 +1680,7 @@ if [[ "x$WANT_THREADS" = "xyes" -o "x$NEED_THREAD_SUPPORT" = "xyes" ]]; then
   AC_MSG_RESULT(yes)
   AC_MSG_CHECKING([which thread target to build])
 
-  if [[ "x$WANT_SDL" = "xyes" -o "$THREADDEP" = "td-none" ]]; then
+  if [[ "x$WANT_SDL" = "xyes" -a "$THREADDEP" = "td-none" ]]; then
     if [[ "x$HAVE_SDL" = "xyes" -a "x$WANT_SDL" != "xno" ]]; then
       WANT_SDL=yes
       THREADDEP=td-sdl
