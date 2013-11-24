@@ -1,3 +1,4 @@
+
 /*
  * PUAE - The Un*x Amiga Emulator
  *
@@ -21,7 +22,9 @@
 
 uae_u32 max_z3fastmem;
 
-#if defined(NATMEM_OFFSET)
+#if !defined(NATMEM_OFFSET)
+void protect_roms (bool protect) {}
+#else
 
 #include "include/newcpu.h"
 

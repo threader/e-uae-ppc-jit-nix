@@ -156,7 +156,7 @@ static struct teststore testmode_wait[TESTMODE_MAX];
 static int bouncy;
 static unsigned long bouncy_cycles;
 
-static int handle_input_event (int nr, int state, int max, int autofire, bool canstoprecord, bool playbackevent);
+int handle_input_event (int nr, int state, int max, int autofire, bool canstoprecord, bool playbackevent);
 
 static struct inputdevice_functions idev[IDTYPE_MAX];
 
@@ -3002,7 +3002,7 @@ static uae_u64 isqual (int evt)
 	return ID_FLAG_QUALIFIER1 << (num * 2);
 }
 
-static int handle_input_event (int nr, int state, int max, int autofire, bool canstopplayback, bool playbackevent)
+int handle_input_event (int nr, int state, int max, int autofire, bool canstopplayback, bool playbackevent)
 {
 	struct inputevent *ie;
 	int joy;

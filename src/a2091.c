@@ -35,6 +35,7 @@
 #include "cdtv.h"
 #include "savestate.h"
 #include "threaddep/thread.h"
+#include "sleep.h"
 
 #define ROM_VECTOR 0x2000
 #define ROM_OFFSET 0x2000

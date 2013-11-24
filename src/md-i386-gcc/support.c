@@ -45,7 +45,8 @@ frame_time_t linux_get_tsc_freq (void)
 {
     int  cpuinfo_fd;
     char buffer[1024];
-    uae_s64 tsc_freq = 0;
+    static uae_s64 tsc_freq = 0;
+    if(tsc_freq) return tsc_freq;
 
     cpuinfo_fd = open ("/proc/cpuinfo", O_RDONLY);
 

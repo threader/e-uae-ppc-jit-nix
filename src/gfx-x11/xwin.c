@@ -1637,7 +1637,7 @@ static int get_kb_widget_first ( int kb, int type)
 static int get_kb_widget_type (int kb, int num, TCHAR *name, uae_u32 *code)
 {
     // fix me
-    *code = num;
+    if(code) *code = num;
     return IDEV_WIDGET_KEY;
 }
 
