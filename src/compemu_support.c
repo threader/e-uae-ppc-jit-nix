@@ -18,7 +18,7 @@
 #include "uae_endian.h"
 #include "misc.h"
 
-//#define NATMEM_OFFSETX (uae_u32)NATMEM_OFFSET
+#define NATMEM_OFFSETX (uae_u32)NATMEM_OFFSET
 
 // %%% BRIAN KING WAS HERE %%%
 extern bool canbang;
@@ -77,11 +77,11 @@ extern unsigned long foink;
    waste half the entries in this array
    UPDATE: We now use those entries to store the start of the linked
    lists that we maintain for each hash result. */
+cacheline cache_tags[TAGSIZE];
 static int letit=0;
 static blockinfo* hold_bi[MAX_HOLD_BI];
 static blockinfo* active;
 static blockinfo* dormant;
-cacheline cache_tags[TAGSIZE];
 
 op_properties prop[65536];
 
@@ -108,10 +108,10 @@ static void flush_icache_hard(uae_u32 ptr, int n);
 
 
 
+bigstate live;
 static smallstate empty_ss;
 static smallstate default_ss;
 static int optlev;
-bigstate live;
 
 static int writereg(int r, int size);
 static void unlock(int r);
@@ -273,7 +273,7 @@ STATIC_INLINE void remove_deps(blockinfo* bi)
 
 STATIC_INLINE void adjust_jmpdep(dependency* d, cpuop_func* a)
 {
-	*(d->jmp_off) = PTR_TO_UINT32(a) - (PTR_TO_UINT32(d->jmp_off) + 4);
+	*(d->jmp_off) = (uae_u32)a - ((uae_u32)d->jmp_off + 4);
 }
 
 /********************************************************************
@@ -321,7 +321,7 @@ STATIC_INLINE void invalidate_block(blockinfo* bi)
 
 STATIC_INLINE void create_jmpdep(blockinfo* bi, int i, uae_u32* jmpaddr, uae_u32 target)
 {
-	blockinfo* tbi = get_blockinfo_addr((void*)VALUE_TO_PTR(target));
+	blockinfo* tbi = get_blockinfo_addr((void*)target);
 
 	Dif(!tbi) {
 		jit_abort (_T("JIT: Could not create jmpdep!\n"));
@@ -783,9 +783,9 @@ static  void tomem(int r)
 
 	if (live.state[r].status==DIRTY) {
 		switch (live.state[r].dirtysize) {
-		case 1: raw_mov_b_mr(PTR_TO_UINT32(live.state[r].mem),rr); break;
-		case 2: raw_mov_w_mr(PTR_TO_UINT32(live.state[r].mem),rr); break;
-		case 4: raw_mov_l_mr(PTR_TO_UINT32(live.state[r].mem),rr); break;
+		case 1: raw_mov_b_mr((uae_u32)live.state[r].mem,rr); break;
+		case 2: raw_mov_w_mr((uae_u32)live.state[r].mem,rr); break;
+		case 4: raw_mov_l_mr((uae_u32)live.state[r].mem,rr); break;
 		default: abort();
 		}
 		set_status(r,CLEAN);
@@ -811,7 +811,7 @@ STATIC_INLINE void writeback_const(int r)
 		jit_abort (_T("JIT: Trying to write back constant NF_HANDLER!\n"));
 	}
 
-	raw_mov_l_mi(VALUE_TO_PTR(live.state[r].mem),live.state[r].val);
+	raw_mov_l_mi((uae_u32)live.state[r].mem,live.state[r].val);
 	live.state[r].val=0;
 	set_status(r,INMEM);
 }
@@ -939,7 +939,7 @@ static  int alloc_reg_hinted(int r, int size, int willclobber, int hint)
 			jit_abort (_T("live.nat[rr].nholds!=1"));
 		if (size==4 && live.state[r].validsize==2) {
 			log_isused(bestreg);
-			raw_mov_l_rm(bestreg,PTR_TO_UINT32(live.state[r].mem));
+			raw_mov_l_rm(bestreg,(uae_u32)live.state[r].mem);
 			raw_bswap_32(bestreg);
 			raw_zero_extend_16_rr(rr,rr);
 			raw_zero_extend_16_rr(bestreg,bestreg);
@@ -970,7 +970,7 @@ static  int alloc_reg_hinted(int r, int size, int willclobber, int hint)
 				else if (r==FLAGX)
 					raw_load_flagx(bestreg,r);
 				else {
-					raw_mov_l_rm(bestreg,PTR_TO_UINT32(live.state[r].mem));
+					raw_mov_l_rm(bestreg,(uae_u32)live.state[r].mem);
 				}
 				live.state[r].dirtysize=0;
 				set_status(r,CLEAN);
@@ -1423,7 +1423,7 @@ static  void f_tomem(int r)
 #if USE_LONG_DOUBLE
 		raw_fmov_ext_mr((uae_u32)live.fate[r].mem,live.fate[r].realreg);
 #else
-		raw_fmov_mr(PTR_TO_UINT32(live.fate[r].mem),live.fate[r].realreg);
+		raw_fmov_mr((uae_u32)live.fate[r].mem,live.fate[r].realreg);
 #endif
 		live.fate[r].status=CLEAN;
 	}
@@ -1435,7 +1435,7 @@ static  void f_tomem_drop(int r)
 #if USE_LONG_DOUBLE
 		raw_fmov_ext_mr_drop((uae_u32)live.fate[r].mem,live.fate[r].realreg);
 #else
-		raw_fmov_mr_drop(PTR_TO_UINT32(live.fate[r].mem),live.fate[r].realreg);
+		raw_fmov_mr_drop((uae_u32)live.fate[r].mem,live.fate[r].realreg);
 #endif
 		live.fate[r].status=INMEM;
 	}
@@ -1541,9 +1541,9 @@ static  int f_alloc_reg(int r, int willclobber)
 	if (!willclobber) {
 		if (live.fate[r].status!=UNDEF) {
 #if USE_LONG_DOUBLE
-			raw_fmov_ext_rm(bestreg,PTR_TO_UINT32(live.fate[r].mem));
+			raw_fmov_ext_rm(bestreg,(uae_u32)live.fate[r].mem);
 #else
-			raw_fmov_rm(bestreg,PTR_TO_UINT32(live.fate[r].mem));
+			raw_fmov_rm(bestreg,(uae_u32)live.fate[r].mem);
 #endif
 		}
 		live.fate[r].status=CLEAN;
@@ -1747,7 +1747,7 @@ MENDFUNC(0,dont_care_flags,(void))
 {
 	evict(FLAGX);
 	make_flags_live_internal();
-	COMPCALL(setcc_m)(PTR_TO_UINT32(live.state[FLAGX].mem) + 1,2);
+	COMPCALL(setcc_m)((uae_u32)live.state[FLAGX].mem + 1,2);
 }
 MENDFUNC(0,duplicate_carry,(void))
 
@@ -4507,7 +4507,7 @@ void init_comp(void)
 	}
 	live.state[PC_P].mem=(uae_u32*)&(regs.pc_p);
 	live.state[PC_P].needflush=NF_TOMEM;
-	set_const(PC_P,PTR_TO_UINT32(comp_pc_p));
+	set_const(PC_P,(uae_u32)comp_pc_p);
 
 	live.state[FLAGX].mem=&(regflags.x);
 	live.state[FLAGX].needflush=NF_TOMEM;
@@ -4706,7 +4706,7 @@ STATIC_INLINE void match_states(smallstate* s)
 					write_log (_T("JIT: natreg %d holds %d vregs, should be empty\n"),
 						n,live.nat[n].nholds);
 				}
-				raw_mov_l_rm(n,PTR_TO_UINT32(live.state[i].mem));
+				raw_mov_l_rm(n,(uae_u32)live.state[i].mem);
 				live.state[i].validsize=4;
 				live.state[i].dirtysize=0;
 				live.state[i].realreg=n;
@@ -4791,7 +4791,7 @@ void flush(int save_regs)
 				switch(live.state[i].status) {
 				case INMEM:
 					if (live.state[i].val) {
-						raw_add_l_mi(PTR_TO_UINT32(live.state[i].mem),live.state[i].val);
+						raw_add_l_mi((uae_u32)live.state[i].mem,live.state[i].val);
 						live.state[i].val=0;
 					}
 					break;
@@ -4889,15 +4889,14 @@ static void align_target(uae_u32 a)
 {
 	lopt_emit_all();
 	/* Fill with NOPs --- makes debugging with gdb easier */
-	while (VALUE_TO_PTR(target) & (a-1))
+	while ((uae_u32)target&(a-1))
 		*target++=0x90;
 }
 
-extern uae_u8* kickmemory;
 STATIC_INLINE int isinrom(uae_u32 addr)
 {
-	return ( (addr >= PTR_TO_UINT32(kickmemory))
-		  && (addr <  (PTR_TO_UINT32(kickmemory) + (8 * 65536)) ) );
+	return (addr>=(uae_u32)kickmem_bank.baseaddr &&
+		addr<(uae_u32)kickmem_bank.baseaddr+8*65536);
 }
 
 static void flush_all(void)
@@ -4958,25 +4957,25 @@ void register_branch(uae_u32 not_taken, uae_u32 taken, uae_u8 cond)
 static uae_u32 get_handler_address(uae_u32 addr)
 {
 	uae_u32 cl=cacheline(addr);
-	blockinfo* bi=get_blockinfo_addr_new((void*)VALUE_TO_PTR(addr),0);
+	blockinfo* bi=get_blockinfo_addr_new((void*)addr,0);
 
 #if USE_OPTIMIZER
 	if (!bi && reg_alloc_run)
 		return 0;
 #endif
-	return PTR_TO_UINT32(&(bi->direct_handler_to_use));
+	return (uae_u32)&(bi->direct_handler_to_use);
 }
 
 static uae_u32 get_handler(uae_u32 addr)
 {
 	uae_u32 cl=cacheline(addr);
-	blockinfo* bi=get_blockinfo_addr_new((void*)VALUE_TO_PTR(addr),0);
+	blockinfo* bi=get_blockinfo_addr_new((void*)addr,0);
 
 #if USE_OPTIMIZER
 	if (!bi && reg_alloc_run)
 		return 0;
 #endif
-	return PTR_TO_UINT32(bi->direct_handler_to_use);
+	return (uae_u32)bi->direct_handler_to_use;
 }
 
 static void load_handler(int reg, uae_u32 addr)
@@ -4992,22 +4991,24 @@ static void writemem_real(int address, int source, int offset, int size, int tmp
 {
 	int f=tmp;
 
+#ifdef NATMEM_OFFSET
 	if (canbang) {  /* Woohoo! go directly at the memory! */
 		if (clobber)
 			f=source;
 		switch(size) {
-		case 1: mov_b_bRr(address,source,NATMEM_ADDRESS); break;
-		case 2: mov_w_rr(f,source); gen_bswap_16(f); mov_w_bRr(address,f,NATMEM_ADDRESS); break;
-		case 4: mov_l_rr(f,source); gen_bswap_32(f); mov_l_bRr(address,f,NATMEM_ADDRESS); break;
+		case 1: mov_b_bRr(address,source,NATMEM_OFFSETX); break;
+		case 2: mov_w_rr(f,source); gen_bswap_16(f); mov_w_bRr(address,f,NATMEM_OFFSETX); break;
+		case 4: mov_l_rr(f,source); gen_bswap_32(f); mov_l_bRr(address,f,NATMEM_OFFSETX); break;
 		}
 		forget_about(tmp);
 		forget_about(f);
 		return;
 	}
+#endif
 
 	mov_l_rr(f,address);
 	shrl_l_ri(f,16);  /* The index into the baseaddr table */
-	mov_l_rm_indexed(f,PTR_TO_UINT32(baseaddr),f);
+	mov_l_rm_indexed(f,(uae_u32)(baseaddr),f);
 
 	if (address==source) { /* IBrowse does this! */
 		if (size > 1) {
@@ -5035,7 +5036,7 @@ STATIC_INLINE void writemem(int address, int source, int offset, int size, int t
 
 	mov_l_rr(f,address);
 	shrl_l_ri(f,16);   /* The index into the mem bank table */
-	mov_l_rm_indexed(f,PTR_TO_UINT32(mem_banks),f);
+	mov_l_rm_indexed(f,(uae_u32)mem_banks,f);
 	/* Now f holds a pointer to the actual membank */
 	mov_l_rR(f,f,offset);
 	/* Now f holds the address of the b/w/lput function */
@@ -5129,19 +5130,21 @@ static void readmem_real(int address, int dest, int offset, int size, int tmp)
 	if (size==4 && address!=dest)
 		f=dest;
 
+#ifdef NATMEM_OFFSET
 	if (canbang) {  /* Woohoo! go directly at the memory! */
 		switch(size) {
-		case 1: mov_b_brR(dest,address,NATMEM_ADDRESS); break;
-		case 2: mov_w_brR(dest,address,NATMEM_ADDRESS); gen_bswap_16(dest); break;
-		case 4: mov_l_brR(dest,address,NATMEM_ADDRESS); gen_bswap_32(dest); break;
+		case 1: mov_b_brR(dest,address,NATMEM_OFFSETX); break;
+		case 2: mov_w_brR(dest,address,NATMEM_OFFSETX); gen_bswap_16(dest); break;
+		case 4: mov_l_brR(dest,address,NATMEM_OFFSETX); gen_bswap_32(dest); break;
 		}
 		forget_about(tmp);
 		return;
 	}
+#endif
 
 	mov_l_rr(f,address);
 	shrl_l_ri(f,16);   /* The index into the baseaddr table */
-	mov_l_rm_indexed(f,PTR_TO_UINT32(baseaddr),f);
+	mov_l_rm_indexed(f,(uae_u32)baseaddr,f);
 	/* f now holds the offset */
 
 	switch(size) {
@@ -5160,7 +5163,7 @@ STATIC_INLINE void readmem(int address, int dest, int offset, int size, int tmp)
 
 	mov_l_rr(f,address);
 	shrl_l_ri(f,16);   /* The index into the mem bank table */
-	mov_l_rm_indexed(f,PTR_TO_UINT32(mem_banks),f);
+	mov_l_rm_indexed(f,(uae_u32)mem_banks,f);
 	/* Now f holds a pointer to the actual membank */
 	mov_l_rR(f,f,offset);
 	/* Now f holds the address of the b/w/lget function */
@@ -5233,15 +5236,17 @@ STATIC_INLINE void get_n_addr_real(int address, int dest, int tmp)
 	if (address!=dest)
 		f=dest;
 
+#ifdef NATMEM_OFFSET
 	if (canbang) {
-		lea_l_brr(dest,address,NATMEM_ADDRESS);
+		lea_l_brr(dest,address,NATMEM_OFFSETX);
 		forget_about(tmp);
 		return;
 	}
+#endif
 	mov_l_rr(f,address);
 	mov_l_rr(dest,address); // gb-- nop if dest==address
 	shrl_l_ri(f,16);
-	mov_l_rm_indexed(f,PTR_TO_UINT32(baseaddr),f);
+	mov_l_rm_indexed(f,(uae_u32)baseaddr,f);
 	add_l(dest,f);
 	forget_about(tmp);
 }
@@ -5274,7 +5279,7 @@ would --- otherwise we end up translating everything twice */
 		f=dest;
 	mov_l_rr(f,address);
 	shrl_l_ri(f,16);   /* The index into the baseaddr bank table */
-	mov_l_rm_indexed(dest,PTR_TO_UINT32(baseaddr),f);
+	mov_l_rm_indexed(dest,(uae_u32)baseaddr,f);
 	add_l(dest,address);
 	and_l_ri (dest, ~1);
 	forget_about(tmp);
@@ -5426,7 +5431,7 @@ static void calc_checksum(blockinfo* bi, uae_u32* c1, uae_u32* c2)
 
 	len+=(tmp&3);
 	tmp&=(~3);
-	pos = (uae_u32*)VALUE_TO_PTR(tmp);
+	pos=(uae_u32*)tmp;
 
 	if (len<0 || len>MAX_CHECKSUM_LEN) {
 		*c1=0;
@@ -5449,12 +5454,12 @@ static void show_checksum(blockinfo* bi)
 	uae_u32 k1=0;
 	uae_u32 k2=0;
 	uae_s32 len=bi->len;
-	uae_u32 tmp = PTR_TO_UINT32(bi->pc_p);
+	uae_u32 tmp=(uae_u32)bi->pc_p;
 	uae_u32* pos;
 
 	len+=(tmp&3);
 	tmp&=(~3);
-	pos = (uae_u32*)VALUE_TO_PTR(tmp);
+	pos=(uae_u32*)tmp;
 
 	if (len<0 || len>MAX_CHECKSUM_LEN) {
 		return;
@@ -5584,60 +5589,50 @@ STATIC_INLINE void create_popalls(void)
 		if (need_to_preserve[i])
 			raw_pop_l_r(i);
 	}
-	raw_jmp(VALUE_TO_PTR(do_nothing));
+	raw_jmp((uae_u32)do_nothing);
 	align_target(32);
-	UDISFN(popall_do_nothing, target)
 
-	current_compile_p = get_target();
-	popall_execute_normal = current_compile_p;
+	popall_execute_normal=get_target();
 	for (i=0;i<N_REGS;i++) {
 		if (need_to_preserve[i])
 			raw_pop_l_r(i);
 	}
-	raw_jmp(VALUE_TO_PTR(execute_normal));
+	raw_jmp((uae_u32)execute_normal);
 	align_target(32);
-	UDISFN(popall_execute_normal, target)
 
-	current_compile_p = get_target();
-	popall_cache_miss = current_compile_p;
+	popall_cache_miss=get_target();
 	for (i=0;i<N_REGS;i++) {
 		if (need_to_preserve[i])
 			raw_pop_l_r(i);
 	}
-	raw_jmp(VALUE_TO_PTR(cache_miss));
+	raw_jmp((uae_u32)cache_miss);
 	align_target(32);
-	UDISFN(popall_cache_miss, target)
 
-	current_compile_p = get_target();
-	popall_recompile_block = current_compile_p;
+	popall_recompile_block=get_target();
 	for (i=0;i<N_REGS;i++) {
 		if (need_to_preserve[i])
 			raw_pop_l_r(i);
 	}
-	raw_jmp(VALUE_TO_PTR(recompile_block));
+	raw_jmp((uae_u32)recompile_block);
 	align_target(32);
-	UDISFN(popall_recompile_block, target)
 
-	current_compile_p = get_target();
-	popall_exec_nostats = current_compile_p;
+	popall_exec_nostats=get_target();
 	for (i=0;i<N_REGS;i++) {
 		if (need_to_preserve[i])
 			raw_pop_l_r(i);
 	}
-	raw_jmp(VALUE_TO_PTR(exec_nostats));
+	raw_jmp((uae_u32)exec_nostats);
 	align_target(32);
-	UDISFN(popall_exec_nostats, target)
 
-	current_compile_p = get_target();
-	popall_check_checksum = current_compile_p;
+	popall_check_checksum=get_target();
 	for (i=0;i<N_REGS;i++) {
 		if (need_to_preserve[i])
 			raw_pop_l_r(i);
 	}
-	raw_jmp(VALUE_TO_PTR(check_checksum));
+	raw_jmp((uae_u32)check_checksum);
 	align_target(32);
-	UDISFN(popall_check_checksum, target)
 
+	current_compile_p=get_target();
 #else
 	popall_exec_nostats		= exec_nostats;
 	popall_execute_normal	= execute_normal;
@@ -5649,8 +5644,7 @@ STATIC_INLINE void create_popalls(void)
 
 	/* And now, the code to do the matching pushes and then jump
 	into a handler routine */
-	current_compile_p = get_target();
-	pushall_call_handler = current_compile_p;
+	pushall_call_handler=get_target();
 #if USE_PUSH_POP
 	for (i=N_REGS;i--;) {
 		if (need_to_preserve[i])
@@ -5658,23 +5652,13 @@ STATIC_INLINE void create_popalls(void)
 	}
 #endif
 	r=REG_PC_TMP;
-	raw_mov_l_rm(r,PTR_TO_UINT32(&regs.pc_p));
+	raw_mov_l_rm(r,(uae_u32)&regs.pc_p);
 	raw_and_l_ri(r,TAGMASK);
 #if defined(__x86_64__)
-	raw_jmp_m_indexed(VALUE_TO_PTR(cache_tags),r,1);
+	raw_jmp_m_indexed((uae_u32)cache_tags,r,1);
 #else
-	raw_jmp_m_indexed(VALUE_TO_PTR(cache_tags),r,4);
+	raw_jmp_m_indexed((uae_u32)cache_tags,r,4);
 #endif // defined(__x86_64__)
-
-	UDISFN(pushall_call_handler, target)
-
-#if defined(__x86_64__)
-	JITLOG("pushall_call_handler JMPs to 0x%016lx", VALUE_TO_PTR(cache_tags) + ((uaecptr)regs.pc_p & TAGMASK))
-#  if defined(USE_UDIS86)
-	uae_u8* ct_start = (uae_u8*)(&cache_tags[(uaecptr)regs.pc_p & TAGMASK]);
-	UDISFN(ct_start, ct_start + 64)
-#  endif // USE_UDIS86
-#endif // x64
 }
 
 STATIC_INLINE void reset_lists(void)
@@ -5694,20 +5678,17 @@ static void prepare_block(blockinfo* bi)
 	set_target(current_compile_p);
 	align_target(32);
 	bi->direct_pen=(cpuop_func*)get_target();
-	raw_mov_l_rm(0,PTR_TO_UINT32(&(bi->pc_p)));
-	raw_mov_l_mr(PTR_TO_UINT32(&regs.pc_p),0);
-	//JITLOG("raw_jmp target 0x%016x, popall_execute_normal 0x%016x", target, popall_execute_normal)
-	raw_jmp(VALUE_TO_PTR(popall_execute_normal));
+	raw_mov_l_rm(0,(uae_u32)&(bi->pc_p));
+	raw_mov_l_mr((uae_u32)&regs.pc_p,0);
+	raw_jmp((uae_u32)popall_execute_normal);
 
 	align_target(32);
 	bi->direct_pcc=(cpuop_func*)get_target();
-	raw_mov_l_rm(0,PTR_TO_UINT32(&(bi->pc_p)));
-	raw_mov_l_mr(PTR_TO_UINT32(&regs.pc_p),0);
-	//JITLOG("raw_jmp target 0x%016x, popall_check_checksum 0x%016x", target, popall_check_checksum)
-	raw_jmp(VALUE_TO_PTR(popall_check_checksum));
+	raw_mov_l_rm(0,(uae_u32)&(bi->pc_p));
+	raw_mov_l_mr((uae_u32)&regs.pc_p,0);
+	raw_jmp((uae_u32)popall_check_checksum);
 
 	align_target(32);
-	UDISFN(current_compile_p, target)
 	current_compile_p=get_target();
 
 	bi->deplist=NULL;
@@ -5743,14 +5724,14 @@ void build_comp(void)
 		: op_smalltbl_5_nf);
 #endif
 	raw_init_cpu();
-
+#ifdef NATMEM_OFFSET
 	write_log (_T("JIT: Setting signal handler\n"));
 	struct sigaction act;
 	act.sa_sigaction = vec;
 	sigemptyset(&act.sa_mask);
 	act.sa_flags = SA_SIGINFO;
 	sigaction(SIGSEGV, &act, 0);
-
+#endif
 	write_log (_T("JIT: Building Compiler function table\n"));
 	for (opcode = 0; opcode < 65536; opcode++) {
 #ifdef NOFLAGS_SUPPORT
@@ -5961,7 +5942,7 @@ void compile_block(cpu_history* pc_hist, int blocklen, int totcycles)
 		int r;
 		int was_comp=0;
 		uae_u8 liveflags[MAXRUN+1];
-		uae_u32 max_pcp=PTR_TO_UINT32(pc_hist[0].location);
+		uae_u32 max_pcp=(uae_u32)pc_hist[0].location;
 		uae_u32 min_pcp=max_pcp;
 		uae_u32 cl=cacheline(pc_hist[0].location);
 		void* specflags=(void*)&regs.spcflags;
@@ -5999,7 +5980,7 @@ void compile_block(cpu_history* pc_hist, int blocklen, int totcycles)
 				optlev++;
 			bi->count=currprefs.optcount[optlev]-1;
 		}
-		current_block_pc_p = PTR_TO_UINT32(pc_hist[0].location);
+		current_block_pc_p=(uae_u32)pc_hist[0].location;
 
 		remove_deps(bi); /* We are about to create new code */
 		bi->optlevel=optlev;
@@ -6011,10 +5992,10 @@ void compile_block(cpu_history* pc_hist, int blocklen, int totcycles)
 			uae_u16* currpcp=pc_hist[i].location;
 			int op=cft_map(*currpcp);
 
-			if (PTR_TO_UINT32(currpcp) < min_pcp)
-				min_pcp = PTR_TO_UINT32(currpcp);
-			if (PTR_TO_UINT32(currpcp) > max_pcp)
-				max_pcp = PTR_TO_UINT32(currpcp);
+			if ((uae_u32)currpcp<min_pcp)
+				min_pcp=(uae_u32)currpcp;
+			if ((uae_u32)currpcp>max_pcp)
+				max_pcp=(uae_u32)currpcp;
 
 			if (currprefs.compnf) {
 				liveflags[i]=((liveflags[i+1]&
@@ -6037,12 +6018,8 @@ void compile_block(cpu_history* pc_hist, int blocklen, int totcycles)
 		/* Now aligned at n*32+16 */
 
 		bi->handler = bi->handler_to_use = (cpuop_func*)get_target();
-#if defined(USE_UDIS86)
-		uae_u8* handler_p = get_target();
-#endif
-		raw_cmp_l_mi(VALUE_TO_PTR(&regs.pc_p),PTR_TO_UINT32(pc_hist[0].location));
-		raw_jnz(PTR_TO_UINT32(popall_cache_miss));
-		UDISFN(handler_p, target)
+		raw_cmp_l_mi((uae_u32)&regs.pc_p,(uae_u32)pc_hist[0].location);
+		raw_jnz((uae_u32)popall_cache_miss);
 		/* This was 16 bytes on the x86, so now aligned on (n+1)*32 */
 
 		was_comp=0;
@@ -6055,22 +6032,18 @@ void compile_block(cpu_history* pc_hist, int blocklen, int totcycles)
 #endif
 
 		bi->direct_handler=(cpuop_func*)get_target();
-#if defined(USE_UDIS86)
-		uae_u8* direct_handler_p = get_target();
-#endif
 		set_dhtu(bi,bi->direct_handler);
-		current_block_start_target=PTR_TO_UINT32(get_target());
+		current_block_start_target=(uae_u32)get_target();
 
 		if (bi->count>=0) { /* Need to generate countdown code */
-			raw_mov_l_mi(VALUE_TO_PTR(&regs.pc_p),PTR_TO_UINT32(pc_hist[0].location));
-			raw_sub_l_mi(VALUE_TO_PTR(&(bi->count)),1);
-			raw_jl(PTR_TO_UINT32(popall_recompile_block));
+			raw_mov_l_mi((uae_u32)&regs.pc_p,(uae_u32)pc_hist[0].location);
+			raw_sub_l_mi((uae_u32)&(bi->count),1);
+			raw_jl((uae_u32)popall_recompile_block);
 		}
 		if (optlev==0) { /* No need to actually translate */
 			/* Execute normally without keeping stats */
-			raw_mov_l_mi(VALUE_TO_PTR(&regs.pc_p),PTR_TO_UINT32(pc_hist[0].location));
-			//JITLOG("raw_jmp target 0x%016x, popall_exec_nostats 0x%016x", target, popall_exec_nostats)
-			raw_jmp(VALUE_TO_PTR(popall_exec_nostats));
+			raw_mov_l_mi((uae_u32)&regs.pc_p,(uae_u32)pc_hist[0].location);
+			raw_jmp((uae_u32)popall_exec_nostats);
 		}
 		else {
 			reg_alloc_run=0;
@@ -6129,16 +6102,16 @@ void compile_block(cpu_history* pc_hist, int blocklen, int totcycles)
 							flush(1);
 							was_comp=0;
 						}
-						raw_mov_l_ri(REG_PAR1,PTR_TO_UINT32(opcode));
-						raw_mov_l_ri(REG_PAR2,PTR_TO_UINT32(&regs));
+						raw_mov_l_ri(REG_PAR1,(uae_u32)opcode);
+						raw_mov_l_ri(REG_PAR2,(uae_u32)&regs);
 #if USE_NORMAL_CALLING_CONVENTION
 						raw_push_l_r(REG_PAR2);
 						raw_push_l_r(REG_PAR1);
 #endif
-						raw_mov_l_mi(VALUE_TO_PTR(&regs.pc_p),
-							PTR_TO_UINT32(pc_hist[i].location));
-						raw_call(VALUE_TO_PTR(cputbl[opcode]));
-						//raw_add_l_mi(PTR_TO_UINT32(&oink),1); // FIXME
+						raw_mov_l_mi((uae_u32)&regs.pc_p,
+							(uae_u32)pc_hist[i].location);
+						raw_call((uae_u32)cputbl[opcode]);
+						//raw_add_l_mi((uae_u32)&oink,1); // FIXME
 #if USE_NORMAL_CALLING_CONVENTION
 						raw_inc_sp(8);
 #endif
@@ -6151,15 +6124,14 @@ void compile_block(cpu_history* pc_hist, int blocklen, int totcycles)
 						if (i<blocklen-1) {
 							uae_s8* branchadd;
 
-							raw_mov_l_rm(0,PTR_TO_UINT32(specflags));
+							raw_mov_l_rm(0,(uae_u32)specflags);
 							raw_test_l_rr(0,0);
 							raw_jz_b_oponly();
 							branchadd=(uae_s8*)get_target();
 							emit_byte(0);
-							raw_sub_l_mi(VALUE_TO_PTR(&countdown),scaled_cycles(totcycles));
-							//JITLOG("raw_jmp target 0x%016x, popall_do_nothing 0x%016x", target, popall_do_nothing)
-							raw_jmp(VALUE_TO_PTR(popall_do_nothing));
-							*branchadd=PTR_TO_UINT32(get_target()) - PTR_TO_UINT32(branchadd)-1;
+							raw_sub_l_mi((uae_u32)&countdown,scaled_cycles(totcycles));
+							raw_jmp((uae_u32)popall_do_nothing);
+							*branchadd=(uae_u32)get_target()-(uae_u32)branchadd-1;
 						}
 					}
 			}
@@ -6218,33 +6190,31 @@ void compile_block(cpu_history* pc_hist, int blocklen, int totcycles)
 				branchadd=(uae_u32*)get_target();
 				emit_long(0);
 				/* predicted outcome */
-				tbi=get_blockinfo_addr_new((void*)VALUE_TO_PTR(t1),1);
+				tbi=get_blockinfo_addr_new((void*)t1,1);
 				match_states(&(tbi->env));
 				//flush(1); /* Can only get here if was_comp==1 */
-				raw_sub_l_mi(VALUE_TO_PTR(&countdown),scaled_cycles(totcycles));
+				raw_sub_l_mi((uae_u32)&countdown,scaled_cycles(totcycles));
 				raw_jcc_l_oponly(9);
 				tba=(uae_u32*)get_target();
-				emit_long(get_handler(t1)-PTR_TO_UINT32(tba+4));
-				raw_mov_l_mi(VALUE_TO_PTR(&regs.pc_p),t1);
-				//JITLOG("raw_jmp target 0x%016x, popall_do_nothing 0x%016x", target, popall_do_nothing)
-				raw_jmp(VALUE_TO_PTR(popall_do_nothing));
+				emit_long(get_handler(t1)-((uae_u32)tba+4));
+				raw_mov_l_mi((uae_u32)&regs.pc_p,t1);
+				raw_jmp((uae_u32)popall_do_nothing);
 				create_jmpdep(bi,0,tba,t1);
 
 				align_target(16);
 				/* not-predicted outcome */
-				*branchadd = PTR_TO_UINT32(get_target()) - PTR_TO_UINT32(branchadd) + 4;
+				*branchadd=(uae_u32)get_target()-((uae_u32)branchadd+4);
 				live=tmp; /* Ouch again */
-				tbi=get_blockinfo_addr_new((void*)VALUE_TO_PTR(t2),1);
+				tbi=get_blockinfo_addr_new((void*)t2,1);
 				match_states(&(tbi->env));
 
 				//flush(1); /* Can only get here if was_comp==1 */
-				raw_sub_l_mi(VALUE_TO_PTR(&countdown),scaled_cycles(totcycles));
+				raw_sub_l_mi((uae_u32)&countdown,scaled_cycles(totcycles));
 				raw_jcc_l_oponly(9);
 				tba=(uae_u32*)get_target();
-				emit_long(get_handler(t2)-PTR_TO_UINT32(tba+4));
-				raw_mov_l_mi(VALUE_TO_PTR(&regs.pc_p),t2);
-				//JITLOG("raw_jmp target 0x%016x, popall_do_nothing 0x%016x", target, popall_do_nothing)
-				raw_jmp(VALUE_TO_PTR(popall_do_nothing));
+				emit_long(get_handler(t2)-((uae_u32)tba+4));
+				raw_mov_l_mi((uae_u32)&regs.pc_p,t2);
+				raw_jmp((uae_u32)popall_do_nothing);
 				create_jmpdep(bi,1,tba,t2);
 			}
 			else
@@ -6265,9 +6235,9 @@ void compile_block(cpu_history* pc_hist, int blocklen, int totcycles)
 						r2=0;
 
 					raw_and_l_ri(r,TAGMASK);
-					raw_mov_l_ri(r2,PTR_TO_UINT32(popall_do_nothing));
-					raw_sub_l_mi(VALUE_TO_PTR(&countdown),scaled_cycles(totcycles));
-					raw_cmov_l_rm_indexed(r2,PTR_TO_UINT32(cache_tags),r,9);
+					raw_mov_l_ri(r2,(uae_u32)popall_do_nothing);
+					raw_sub_l_mi((uae_u32)&countdown,scaled_cycles(totcycles));
+					raw_cmov_l_rm_indexed(r2,(uae_u32)cache_tags,r,9);
 					raw_jmp_r(r2);
 				}
 				else if (was_comp && isconst(PC_P)) {
@@ -6275,32 +6245,31 @@ void compile_block(cpu_history* pc_hist, int blocklen, int totcycles)
 					uae_u32* tba;
 					blockinfo* tbi;
 
-					tbi=get_blockinfo_addr_new((void*)VALUE_TO_PTR(v),1);
+					tbi=get_blockinfo_addr_new((void*)v,1);
 					match_states(&(tbi->env));
 
-					raw_sub_l_mi(VALUE_TO_PTR(&countdown),scaled_cycles(totcycles));
+					raw_sub_l_mi((uae_u32)&countdown,scaled_cycles(totcycles));
 					raw_jcc_l_oponly(9);
 					tba=(uae_u32*)get_target();
-					emit_long(get_handler(v) - (PTR_TO_UINT32(tba) + 4));
-					raw_mov_l_mi(VALUE_TO_PTR(&regs.pc_p),v);
-					//JITLOG("raw_jmp target 0x%016x, popall_do_nothing 0x%016x", target, popall_do_nothing)
-					raw_jmp(VALUE_TO_PTR(popall_do_nothing));
+					emit_long(get_handler(v)-((uae_u32)tba+4));
+					raw_mov_l_mi((uae_u32)&regs.pc_p,v);
+					raw_jmp((uae_u32)popall_do_nothing);
 					create_jmpdep(bi,0,tba,v);
 				}
 				else {
 					int r2;
 
 					r=REG_PC_TMP;
-					raw_mov_l_rm(r,PTR_TO_UINT32(&regs.pc_p));
+					raw_mov_l_rm(r,(uae_u32)&regs.pc_p);
 					if (r==0)
 						r2=1;
 					else
 						r2=0;
 
 					raw_and_l_ri(r,TAGMASK);
-					raw_mov_l_ri(r2,PTR_TO_UINT32(popall_do_nothing));
-					raw_sub_l_mi(VALUE_TO_PTR(&countdown),scaled_cycles(totcycles));
-					raw_cmov_l_rm_indexed(r2,PTR_TO_UINT32(cache_tags),r,9);
+					raw_mov_l_ri(r2,(uae_u32)popall_do_nothing);
+					raw_sub_l_mi((uae_u32)&countdown,scaled_cycles(totcycles));
+					raw_cmov_l_rm_indexed(r2,(uae_u32)cache_tags,r,9);
 					raw_jmp_r(r2);
 				}
 			}
@@ -6326,8 +6295,6 @@ void compile_block(cpu_history* pc_hist, int blocklen, int totcycles)
 
 		log_dump();
 		align_target(32);
-		UDISFN(direct_handler_p, target)
-
 		current_compile_p=get_target();
 
 		raise_in_cl_list(bi);

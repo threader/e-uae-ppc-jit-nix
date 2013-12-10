@@ -116,10 +116,9 @@ dist_noinst_DATA = \
 
 noinst_HEADERS = \
 	include/akiko.h		include/ar.h		include/amax.h \
-	include/audio.h		include/autoconf.h	\
-	include/blitter.h	include/blkdev.h	\
-	include/bsdsocket.h 	include/caps.h		\
-	include/catweasel.h     include/cdrom.h		\
+	include/audio.h		include/autoconf.h \
+	include/blitter.h	include/blkdev.h	include/bsdsocket.h \
+	include/caps.h		include/catweasel.h     include/cdrom.h	\
 	include/cia.h		include/cfgfile.h       \
 	include/commpipe.h	include/compemu.h	\
 	include/cpu_prefetch.h  include/custom.h	\
@@ -130,14 +129,12 @@ noinst_HEADERS = \
 	include/dongle.h	include/a2065.h		\
 	include/gayle.h		include/a2091.h		include/ncr_scsi.h	\
 	include/drawing.h 	include/driveclick.h	\
-	include/enforcer.h	\
-	include/events.h 	\
-	include/execlib.h 	\
+	include/enforcer.h	include/events.h 	include/execlib.h 	\
 	include/fdi2raw.h	include/filesys.h	\
 	include/fpp-ieee.h	include/fpp-unknown.h	\
 	include/fsdb.h		include/fsusage.h	\
 	include/genblitter.h	include/gensound.h	\
-	include/gfxfilter.h	include/gui.h		\
+	include/gfxfilter.h	include/gfxboard.h	include/gui.h		\
 	include/hotkeys.h				\
 	include/hrtimer.h	include/identify.h	\
 	include/inputdevice.h	include/joystick.h	\
@@ -179,13 +176,15 @@ uae_SOURCES = \
 	native2amiga.c disk.c crc32.c savestate.c arcadia.c cdtv.c cd32_fmv.c \
 	uaeexe.c uaelib.c uaeresource.c uaeserial.c fdi2raw.c hotkeys.c amax.c \
 	ar.c driveclick.c enforcer.c misc.c uaenet.c a2065.c gayle.c blkdev.c blkdev_cdimage.c scsi.c ncr_scsi.c \
-	missing.c readcpu.c hrtmon.rom.c events.c calc.c aros.rom.c specialmonitors.c
+	missing.c readcpu.c hrtmon.rom.c events.c calc.c aros.rom.c \
+	specialmonitors.c gfxboard.c qemuvga/cirrus_vga.c qemuvga/qemuuaeglue.c qemuvga/vga.c \
+	sana2.c
 
 EXTRA_uae_SOURCES = \
 	bsdsocket.c bsdsocket-posix-new.c build68k.c catweasel.c cdrom.c \
 	fpp.c compemu_fpp.c compemu_support.c \
 	debug.c identify.c filesys_bootrom.c fsdb.c fsdb_unix.c fsusage.c genblitter.c \
-	gencpu.c gengenblitter.c gencomp.c genlinetoscr.c hardfile.c \
+	gencpu.c gengenblitter.c gencomp.c genlinetoscr.c hardfile.c scsitape.c \
 	hardfile_unix.c scsi-none.c scsiemul.c svgancui.c tui.c amax.c \
 	akiko.c cd32_fmv.c ar.c blkdev-libscg.c \
 	blitops.c writelog.c

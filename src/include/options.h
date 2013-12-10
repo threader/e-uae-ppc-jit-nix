@@ -12,8 +12,8 @@
  */
 
 #define UAEMAJOR 2
-#define UAEMINOR 6
-#define UAESUBREV 1
+#define UAEMINOR 7
+#define UAESUBREV 0
 
 #include "uae_types.h"
 
@@ -132,6 +132,7 @@ struct wh {
 #define UAEDEV_DIR 0
 #define UAEDEV_HDF 1
 #define UAEDEV_CD 2
+#define UAEDEV_TAPE 3
 
 #define BOOTPRI_NOAUTOBOOT -128
 #define BOOTPRI_NOAUTOMOUNT -129
@@ -170,7 +171,7 @@ struct uaedev_config_info {
 	int interleave;
 	int sectorsperblock;
 	int forceload;
-	int cd_emu_unit;
+	int device_emu_unit;
 
 };
 
@@ -180,7 +181,8 @@ struct uaedev_config_info {
 struct uaedev_config_data
 {
 	struct uaedev_config_info ci;
-	int configoffset;
+	int configoffset; // HD config entry index
+	int unitnum; // scsi unit number (if tape currently)
 };
 
 enum { CP_GENERIC = 1, CP_CDTV, CP_CD32, CP_A500, CP_A500P, CP_A600, CP_A1000,
@@ -411,6 +413,8 @@ struct uae_prefs {
 	int turbo_emulation;
 	bool headless;
 	int filesys_limit;
+	int filesys_max_name;
+	int filesys_max_file_size;
 
 	int cs_compatible;
 	int cs_ciaatod;
@@ -442,6 +446,7 @@ struct uae_prefs {
 	bool cs_denisenoehb;
 	bool cs_dipagnus;
 	bool cs_agnusbltbusybug;
+	bool cs_ciatodbug;
 	int cs_hacks;
 
 	TCHAR romfile[MAX_DPATH];
@@ -502,6 +507,7 @@ struct uae_prefs {
 	bool rtg_hardwareinterrupt;
 	bool rtg_hardwaresprite;
 	int rtgmem_type;
+	bool rtg_more_compatible;
 	uae_u32 custom_memory_addrs[MAX_CUSTOM_MEMORY_ADDRS];
 	uae_u32 custom_memory_sizes[MAX_CUSTOM_MEMORY_ADDRS];
 
@@ -512,6 +518,8 @@ struct uae_prefs {
 	int uae_hide;
 	bool clipboard_sharing;
 	bool native_code;
+	bool uae_hide_autoconfig;
+	bool jit_direct_compatible_memory;
 
 	int mountitems;
 	struct uaedev_config_data mountconfig[MOUNT_CONFIG_SIZE];
@@ -590,6 +598,7 @@ struct uae_prefs {
 
 extern int config_changed;
 extern void config_check_vsync (void);
+extern void set_config_changed (void);
 
 /* Contains the filename of .uaerc */
 extern TCHAR optionsfile[];
@@ -614,6 +623,10 @@ extern void cfgfile_backup (const TCHAR *path);
 extern struct uaedev_config_data *add_filesys_config (struct uae_prefs *p, int index, struct uaedev_config_info*);
 extern bool get_hd_geometry (struct uaedev_config_info *);
 extern void uci_set_defaults (struct uaedev_config_info *uci, bool rdb);
+
+extern void error_log (const TCHAR*, ...);
+extern TCHAR *get_error_log (void);
+extern bool is_error_log (void);
 
 extern void default_prefs (struct uae_prefs *, int);
 extern void discard_prefs (struct uae_prefs *, int);

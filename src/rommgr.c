@@ -89,7 +89,7 @@ struct romdata *getromdatabypath (const TCHAR *path)
 	return NULL;
 }
 
-#define NEXT_ROM_ID 74
+#define NEXT_ROM_ID 75
 
 static struct romheader romheaders[] = {
 	{ _T("Freezer Cartridges"), 1 },
@@ -169,6 +169,7 @@ static struct romdata roms[] = {
 	{ _T("KS ROM v3.1 (A3000)"),                              3,  1, 40,  68, _T("A3000\0"),              524288, 61, 2,     0, ROMTYPE_KICK,        0,  0, NULL,            0xefb239cc, { 0xF8E210D7, 0x2B4C4853, 0xE0C9B85D, 0x223BA20E, 0x3D1B36EE }, NULL },
 	{ _T("Freezer: Action Cartridge Super IV Professional"),  0,  0,  0,   0, _T("SUPERIV\0"),                 0, 62, 0,     0, ROMTYPE_SUPERIV,     0,  1, NULL,            0xffffffff, {          0,          0,          0,          0,          0 }, _T("SuperIV") },
 	{ _T("Freezer: HRTMon v2.33 (built-in)"),                 0,  0,  0,   0, _T("HRTMON\0"),                  0, 63, 0,     0, ROMTYPE_HRTMON,      0,  1, NULL,            0xffffffff, {          0,          0,          0,          0,          0 }, _T("HRTMon") },
+
 	/* plain CD32 rom */
 	{ _T("CD32 ROM (KS + extended)"),                         3,  1, 40,  60, _T("CD32\0"),           2 * 524288, 64, 1,     0, ROMTYPE_ALL_CD32,    0,  0, NULL,            0xf5d4f3c8, { 0x9fa14825, 0xc40a2475, 0xa2eba5cf, 0x325bd483, 0xc447e7c1 }, NULL },
 	{ _T("Freezer: X-Power Professional 500 v1.2"),           1,  2,  1,   2, _T("XPOWER\0"),             131072, 65, 0,     0, ROMTYPE_XPOWER,      0,  1, NULL,            0x9e70c231, { 0xa2977a1c, 0x41a8ca7d, 0x4af4a168, 0x726da542, 0x179d5963 }, NULL },
@@ -180,6 +181,8 @@ static struct romdata roms[] = {
 	{ _T("KS ROM v2.04 (A3000)"),                             2,  4, 37, 175, _T("A3000\0"),              524288, 71, 8,     0, ROMTYPE_KICK,        0,  0, NULL,            0x234a7233, { 0xd82ebb59, 0xafc53540, 0xddf2d718, 0x7ecf239b, 0x7ea91590 }, NULL },
 	{ _T("The Diagnostic 2.0 (Logica)"),                      2,  0,  2,   0, _T("LOGICA\0"),             524288, 72, 0,     0, ROMTYPE_KICK_SPC,    0,  0, NULL,            0x8484f426, { 0xba10d161, 0x66b2e2d6, 0x177c979c, 0x99edf846, 0x2b21651e }, NULL },
 	{ _T("Cloanto Amiga Forever 2010 ROM key"),               0,  0,  0,   0, NULL,                         1544, 73, 0,     1, ROMTYPE_KEY,         0,  0, NULL,            0x8c4dd05c, { 0x05034f62, 0x0b5bb7b2, 0x86954ea9, 0x164fdb90, 0xfb2897a4 }, NULL },
+    { _T("CD32 MPEG Cartridge ROM"),						  3,  1, 40,  22, _T("CD32FMV\0"), 			  262144, 74, 1, 	 0, ROMTYPE_CD32CART, 	 0,  0, _T("391777-01"), 0xe57d05fe, { 0x56077abd, 0x82b652f0, 0x54f76002, 0xdde2bcd5, 0x33198cc2 }, NULL },
+
 	/* Format of the ALTROMPN() macro: (Please keep valid!)
 	 *      (id,grp,num,       size, flags,                       pn,              crc32,      sha1[0],    sha1[1],    sha1[2],    sha1[3],    sha1[4]   ) */
 	ALTROMPN(11,  1,  1,     262144, ROMTYPE_EVEN,                _T("391523-01"), 0xc742a412, 0x999eb81c, 0x65dfd07a, 0x71ee1931, 0x5d99c7eb, 0x858ab186)

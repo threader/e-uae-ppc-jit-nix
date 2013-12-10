@@ -73,13 +73,13 @@ static char inbuf[1024], outbuf[1024];
 static int inptr, inlast, outlast;
 
 int waitqueue=0,
-    carrier=0,
-    serdev=0,
-    dsr=0,
-    dtr=0,
-    isbaeh=0,
-    doreadser=0,
-    serstat=-1;
+	carrier=0,
+	serdev=0,
+	dsr=0,
+	dtr=0,
+	isbaeh=0,
+	doreadser=0,
+	serstat=-1;
 
 int sd = -1;
 
@@ -97,7 +97,7 @@ void SERPER (uae_u16 w)
 		return;
 
 #if defined POSIX_SERIAL
-    if (serper == w)  /* don't set baudrate if it's already ok */
+	if (serper == w)  /* don't set baudrate if it's already ok */
 		return;
     serper = w;
 

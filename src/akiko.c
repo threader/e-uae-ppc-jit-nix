@@ -808,19 +808,19 @@ static void cdrom_return_data (void)
 		return;
 
 #if AKIKO_DEBUG_IO
-		write_log (_T("OUT IDX=0x%02X-0x%02X LEN=%d,%08x:"), cdcomrxinx, cdcomrxcmp, cdrom_receive_length, cmd_buf);
+	write_log (_T("OUT IDX=0x%02X-0x%02X LEN=%d,%08x:"), cdcomrxinx, cdcomrxcmp, cdrom_receive_length, cmd_buf);
 #endif
 
 	if (cdrom_receive_offset < 0) {
-	checksum = 0xff;
+		checksum = 0xff;
 		for (i = 0; i < cdrom_receive_length; i++) {
-		checksum -= cdrom_result_buffer[i];
+			checksum -= cdrom_result_buffer[i];
 #if AKIKO_DEBUG_IO
-		write_log (_T("%02X "), cdrom_result_buffer[i]);
+			write_log (_T("%02X "), cdrom_result_buffer[i]);
 #endif
-	}
+		}
 #if AKIKO_DEBUG_IO
-	write_log (_T("(%02X)\n"), checksum);
+		write_log (_T("(%02X)\n"), checksum);
 #endif
 		cdrom_result_buffer[cdrom_receive_length++] = checksum;
 		cdrom_receive_offset = 0;
@@ -835,7 +835,7 @@ static void cdrom_return_data (void)
 		cdrom_receive_offset++;
 	}
 	if (cdcomrxinx == cdcomrxcmp) {
-	set_status (CDINTERRUPT_RXDMADONE);
+		set_status (CDINTERRUPT_RXDMADONE);
 #if AKIKO_DEBUG_IO
 		write_log (_T("RXDMADONE %d/%d\n"), cdrom_receive_offset, cdrom_receive_length);
 #endif
@@ -1077,64 +1077,64 @@ static void cdrom_run_command (void)
 		return;
 	if ((cdrom_flags & CDFLAG_ENABLE))
 		return;
-		if (cdrom_command_active)
-			return;
+	if (cdrom_command_active)
+		return;
 	if (cdrom_receive_length)
 		return;
-		if (cdcomtxinx == cdcomtxcmp)
-			return;
+	if (cdcomtxinx == cdcomtxcmp)
+		return;
 	if (cdrom_tx_dma_delay > 0)
 		return;
 
-		cdrom_command = get_byte (cdtx_address + cdcomtxinx);
+	cdrom_command = get_byte (cdtx_address + cdcomtxinx);
 
 	if (cdrom_command == 0) {
 		cdcomtxinx++;
-			return;
-		}
+		return;
+	}
 
-		cdrom_checksum_error = 0;
-		cdrom_unknown_command = 0;
+	cdrom_checksum_error = 0;
+	cdrom_unknown_command = 0;
 
-		cmd_len = command_lengths[cdrom_command & 0x0f];
-		if (cmd_len < 0) {
+	cmd_len = command_lengths[cdrom_command & 0x0f];
+	if (cmd_len < 0) {
 #if AKIKO_DEBUG_IO_CMD
-			write_log (_T("unknown command %x\n"), cdrom_command & 0x0f);
+		write_log (_T("unknown command %x\n"), cdrom_command & 0x0f);
 #endif
-			cdrom_unknown_command = 1;
-			cdrom_command_active = 1;
-			cdrom_command_length = 1;
-			set_status (CDINTERRUPT_TXDMADONE);
-			return;
-		}
+		cdrom_unknown_command = 1;
+		cdrom_command_active = 1;
+		cdrom_command_length = 1;
+		set_status (CDINTERRUPT_TXDMADONE);
+		return;
+	}
 
 #if AKIKO_DEBUG_IO_CMD
 	write_log (_T("IN CMD=%02X IDX=0x%02X-0x%02X LEN=%d:"), cdrom_command & 0x0f, cdcomtxinx, cdcomtxcmp, cmd_len);
 #endif
-		checksum = 0;
-		for (i = 0; i < cmd_len + 1; i++) {
-			cdrom_command_buffer[i] = get_byte (cdtx_address + ((cdcomtxinx + i) & 0xff));
-			checksum += cdrom_command_buffer[i];
+	checksum = 0;
+	for (i = 0; i < cmd_len + 1; i++) {
+		cdrom_command_buffer[i] = get_byte (cdtx_address + ((cdcomtxinx + i) & 0xff));
+		checksum += cdrom_command_buffer[i];
 #if AKIKO_DEBUG_IO_CMD
-			if (i == cmd_len)
-				write_log (_T("(%02X) "), cdrom_command_buffer[i]); // checksum
-			else
-				write_log (_T("%02X "), cdrom_command_buffer[i]);
+		if (i == cmd_len)
+			write_log (_T("(%02X) "), cdrom_command_buffer[i]); // checksum
+		else
+			write_log (_T("%02X "), cdrom_command_buffer[i]);
 #endif
-		}
-		if (checksum != 0xff) {
+	}
+	if (checksum != 0xff) {
 #if AKIKO_DEBUG_IO_CMD
-			write_log (_T(" checksum error"));
+		write_log (_T(" checksum error"));
 #endif
-			cdrom_checksum_error = 1;
+		cdrom_checksum_error = 1;
 		//activate_debugger ();
-		}
+	}
 #if AKIKO_DEBUG_IO_CMD
-		write_log (_T("\n"));
+	write_log (_T("\n"));
 #endif
-		cdrom_command_active = 1;
-		cdrom_command_length = cmd_len;
-		set_status (CDINTERRUPT_TXDMADONE);
+	cdrom_command_active = 1;
+	cdrom_command_length = cmd_len;
+	set_status (CDINTERRUPT_TXDMADONE);
 }
 
 static void cdrom_run_command_run (void)
@@ -1262,11 +1262,11 @@ static void akiko_handler (bool framesync)
 
 	if (mediachanged) {
 		if (cdrom_start_return_data (0) < 0) {
-		cdrom_start_return_data (cdrom_command_media_status ());
+			cdrom_start_return_data (cdrom_command_media_status ());
 			mediachanged = 0;
-		get_cdrom_toc ();
-		/* do not remove! first try may fail */
-		get_cdrom_toc ();
+			get_cdrom_toc ();
+			/* do not remove! first try may fail */
+			get_cdrom_toc ();
 		}
 		return;
 	}
@@ -1298,7 +1298,7 @@ static void akiko_handler (bool framesync)
 	/* one toc entry / frame */
 	if (cdrom_toc_counter >= 0 && !cdrom_command_active && framesync) {
 		if (cdrom_start_return_data (-1)) {
-		cdrom_start_return_data (cdrom_return_toc_entry ());
+			cdrom_start_return_data (cdrom_return_toc_entry ());
 		}
 	}
 }
@@ -1380,7 +1380,6 @@ static void *akiko_thread (void *null)
 	uae_u8 *tmp1;
 	uae_u8 *tmp2;
 	int tmp3;
-	int offset;
 	int sector;
 
 	while (akiko_thread_running || comm_pipe_has_data (&requests)) {
@@ -1430,12 +1429,12 @@ static void *akiko_thread (void *null)
 						write_log (_T("CD32: CD missing but statefile was stored with CD inserted: faking media present\n"));
 					lastmediastate = 3;
 				} else {
-				write_log (_T("CD32: media changed = %d\n"), media);
-				lastmediastate = cdrom_disk = media;
-				mediachanged = 1;
-				cdaudiostop_do ();
+					write_log (_T("CD32: media changed = %d\n"), media);
+					lastmediastate = cdrom_disk = media;
+					mediachanged = 1;
+					cdaudiostop_do ();
+				}
 			}
-		}
 		}
 
 		uae_sem_wait (&akiko_sem);
@@ -1446,19 +1445,30 @@ static void *akiko_thread (void *null)
 		}
 		if (cdrom_data_end > 0 && sector >= 0 &&
 			(sector_buffer_sector_1 < 0 || sector < sector_buffer_sector_1 || sector >= sector_buffer_sector_1 + SECTOR_BUFFER_SIZE * 2 / 3 || i != SECTOR_BUFFER_SIZE)) {
+				int blocks;
 				memset (sector_buffer_info_2, 0, SECTOR_BUFFER_SIZE);
 #if AKIKO_DEBUG_IO_CMD
 				write_log (_T("filling buffer sector=%d (max=%d)\n"), sector, cdrom_data_end);
 #endif
 				sector_buffer_sector_2 = sector;
-				offset = 0;
-				while (offset < SECTOR_BUFFER_SIZE) {
-					int ok = 0;
-					if (sector < cdrom_data_end)
-						ok = sys_command_cd_rawread (unitnum, sector_buffer_2 + offset * 2352, sector, 1, 2352);
-					sector_buffer_info_2[offset] = ok ? 3 : 0;
-					offset++;
-					sector++;
+				if (sector + SECTOR_BUFFER_SIZE >= cdrom_data_end)
+					blocks = cdrom_data_end - sector;
+				else
+					blocks = SECTOR_BUFFER_SIZE;
+				int ok = sys_command_cd_rawread (unitnum, sector_buffer_2, sector, blocks, 2352);
+				if (!ok) {
+					int offset = 0;
+					while (offset < SECTOR_BUFFER_SIZE) {
+						int ok = 0;
+						if (sector < cdrom_data_end)
+							ok = sys_command_cd_rawread (unitnum, sector_buffer_2 + offset * 2352, sector, 1, 2352);
+						sector_buffer_info_2[offset] = ok ? 3 : 0;
+						offset++;
+						sector++;
+					}
+				} else {
+					for (int i = 0; i < SECTOR_BUFFER_SIZE; i++)
+						sector_buffer_info_2[i] = i < blocks ? 3 : 0;
 				}
 				tmp1 = sector_buffer_info_1;
 				sector_buffer_info_1 = sector_buffer_info_2;
@@ -1803,7 +1813,7 @@ static void patchrom (void)
 {
     int i;
 	if (currprefs.cpu_model > 68020 || currprefs.cachesize || currprefs.m68k_speed != 0) {
-		uae_u8 *p = (uae_u8*)extendedkickmemory;
+		uae_u8 *p = (uae_u8*)extendedkickmem_bank.baseaddr;
 		for (i = 0; i < 524288 - sizeof (patchdata); i++) {
 			if (!memcmp (p + i, patchdata, sizeof(patchdata))) {
 				protect_roms (false);
@@ -1865,7 +1875,6 @@ void akiko_reset (void)
 	mediacheckcounter = 0;
 	akiko_inited = false;
 }
-
 
 void akiko_free (void)
 {

@@ -64,6 +64,7 @@
 %   4 means jump offset
 %   8 means jump address
 % instruction
+% optional line feed and 68030 Head/Tail/Cycles/ea calculation
 %
 
 0000 0000 0011 1100:000:XNZVC:XNZVC:10: ORSR.B  #1

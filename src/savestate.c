@@ -290,7 +290,7 @@ TCHAR *restore_path_func (uae_u8 **dstp, int type)
 			return my_strdup (tmp2);
 		}
 	}
-	getpathpart(tmp2, sizeof tmp2 / sizeof (TCHAR), savestate_fname);
+	getpathpart (tmp2, sizeof tmp2 / sizeof (TCHAR), savestate_fname);
 	_tcscat (tmp2, tmp);
 	if (zfile_exists (tmp2)) {
 		xfree (s);
@@ -518,7 +518,7 @@ void restore_state (const TCHAR *filename)
 		goto error;
 	}
 	write_log (_T("STATERESTORE: '%s'\n"), filename);
-	config_changed = 1;
+	set_config_changed ();
 	savestate_file = f;
 	restore_header (chunk);
 	xfree (chunk);
@@ -687,7 +687,9 @@ void restore_state (const TCHAR *filename)
 		else if (!_tcscmp (name, _T("DMC2")))
 			end = restore_scsi_dmac (chunk);
 		else if (!_tcscmp (name, _T("SCSI")))
-			end = restore_scsi_hd (chunk);
+			end = restore_scsi_device (chunk);
+		else if (!_tcscmp (name, _T("SCSD")))
+			end = restore_scsidev (chunk);
 #endif
 #ifdef GAYLE
 		else if (!_tcscmp (name, _T("GAYL")))
@@ -728,7 +730,8 @@ void restore_state (const TCHAR *filename)
 error:
 	savestate_state = 0;
 	savestate_file = 0;
-	xfree (chunk);
+	if (chunk)
+		xfree (chunk);
 	if (f)
 		zfile_fclose (f);
 }
@@ -978,6 +981,21 @@ static int save_state_internal (struct zfile *f, const TCHAR *description, int c
 	save_chunk (f, dst, len, _T("DMAC"), 0);
 	xfree (dst);
 #endif
+#ifdef SCSI
+	dst = save_scsi_dmac (&len, NULL);
+	save_chunk (f, dst, len, _T("DMC2"), 0);
+	xfree (dst);
+	for (i = 0; i < 8; i++) {
+		dst = save_scsi_device (i, &len, NULL);
+		save_chunk (f, dst, len, _T("SCSI"), 0);
+		xfree (dst);
+	}
+	for (i = 0; i < MAX_TOTAL_SCSI_DEVICES; i++) {
+		dst = save_scsidev (i, &len, NULL);
+		save_chunk (f, dst, len, _T("SCSD"), 0);
+		xfree (dst);
+	}
+#endif
 
 #ifdef ACTION_REPLAY
 	dst = save_action_replay (&len, NULL);
@@ -1037,6 +1055,11 @@ static int save_state_internal (struct zfile *f, const TCHAR *description, int c
 		xfree(dst);
 	}
 	len = 30000;
+/*	dst = save_log (true, &len);
+	if (dst) {
+		save_chunk (f, dst, len, _T("LOG "), comp);
+		xfree (dst);
+	}*/
 
 	zfile_fwrite (endhunk, 1, 8, f);
 
@@ -1238,7 +1261,7 @@ void savestate_rewind (void)
 		p = restore_p96 (p);
 #endif
 	len = restore_u32_func (&p);
-	memcpy (chipmemory, p, currprefs.chipmem_size > len ? len : currprefs.chipmem_size);
+	memcpy (chipmem_bank.baseaddr, p, currprefs.chipmem_size > len ? len : currprefs.chipmem_size);
 	p += len;
 	len = restore_u32_func (&p);
 	memcpy (save_bram (&dummy), p, currprefs.bogomem_size > len ? len : currprefs.bogomem_size);

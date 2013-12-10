@@ -20,5 +20,6 @@ int scsi_do_disk_change (int unitnum, int insert, int *pollmode);
 int scsi_do_disk_device_change (void);
 uae_u32 scsi_get_cd_drive_mask (void);
 uae_u32 scsi_get_cd_drive_media_mask (void);
+int scsi_add_tape (struct uaedev_config_info *uci);
 
 #endif // SRC_INCLUDE_SCSIDEV_H_INCLUDED

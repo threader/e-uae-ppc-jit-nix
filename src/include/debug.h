@@ -28,7 +28,8 @@ extern void activate_debugger (void);
 extern void deactivate_debugger (void);
 extern int notinrom (void);
 extern const TCHAR *debuginfo (int);
-extern void record_copper (uaecptr addr, int hpos, int vpos);
+extern void record_copper (uaecptr addr, uae_u16 word1, uae_u16 word2, int hpos, int vpos);
+extern void record_copper_blitwait (uaecptr addr, int hpos, int vpos);
 extern void record_copper_reset (void);
 extern int mmu_init (int, uaecptr,uaecptr);
 extern void mmu_do_hit (void);
@@ -67,8 +68,9 @@ extern struct memwatch_node mwnodes[MEMWATCH_TOTAL];
 
 extern void memwatch_dump2 (TCHAR *buf, int bufsize, int num);
 
-uae_u16 debug_wgetpeekdma (uaecptr addr, uae_u32 v);
-uae_u16 debug_wputpeekdma (uaecptr addr, uae_u32 v);
+uae_u16 debug_wgetpeekdma_chipram (uaecptr addr, uae_u32 v);
+uae_u16 debug_wputpeekdma_chipram (uaecptr addr, uae_u32 v);
+uae_u16 debug_wputpeekdma_chipset (uaecptr addr, uae_u32 v);
 void debug_lgetpeek (uaecptr addr, uae_u32 v);
 void debug_wgetpeek (uaecptr addr, uae_u32 v);
 void debug_bgetpeek (uaecptr addr, uae_u32 v);
@@ -93,6 +95,7 @@ struct dma_rec
     uae_u32 addr;
     uae_u16 evt;
     int type;
+	uae_s8 intlev;
 };
 
 #define DMA_EVENT_BLITIRQ 1

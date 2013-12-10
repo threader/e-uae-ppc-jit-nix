@@ -226,9 +226,9 @@ static uae_u32 REGPARAM2 nullfunc (TrapContext *context)
 
 static uae_u32 REGPARAM2 getchipmemsize (TrapContext *context)
 {
-	m68k_dreg (regs, 1) = allocated_z3chipmem;
-	m68k_areg (regs, 1) = z3chipmem_start;
-	return allocated_chipmem;
+	m68k_dreg (regs, 1) = z3chipmem_bank.allocated;
+	m68k_areg (regs, 1) = z3chipmem_bank.start;
+	return chipmem_bank.allocated;
 }
 
 static uae_u32 REGPARAM2 uae_puts (TrapContext *context)
@@ -272,7 +272,7 @@ void rtarea_init (void)
 	dw (0);
 	dw (0);
 
-	a = here();
+	a = here ();
 	/* Dummy trap - removing this breaks the filesys emulation. */
 	org (rtarea_base + 0xFF00);
 	calltrap (deftrap2 (nullfunc, TRAPFLAG_NO_RETVAL, _T("")));

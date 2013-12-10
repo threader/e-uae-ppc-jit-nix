@@ -230,7 +230,7 @@ void rethink_a2091 (void)
 {
 	if (currprefs.cs_cdtvscsi)
 		return;
-	if (isirq()) {
+	if (isirq ()) {
 		uae_int_requested |= 2;
 #if A2091_DEBUG > 2 || A3000_DEBUG > 2
 		write_log (_T("Interrupt_RETHINK\n"));
@@ -251,14 +251,14 @@ static void INT2 (void)
 		uae_int_requested |= 2;
 }
 
-static void dmac_start_dma (void)
+static void scsi_dmac_start_dma (void)
 {
 #if A3000_DEBUG > 0 || A2091_DEBUG > 0
 	write_log (_T("DMAC DMA started, ADDR=%08X, LEN=%08X words\n"), dmac_acr, dmac_wtc);
 #endif
 	dmac_dma = 1;
 }
-static void dmac_stop_dma (void)
+static void scsi_dmac_stop_dma (void)
 {
 	dmac_dma = 0;
 	dmac_istr &= ~ISTR_E_INT;
@@ -287,7 +287,7 @@ static void incsasr (int w)
 static void dmac_cint (void)
 {
 	dmac_istr = 0;
-	rethink_a2091();
+	rethink_a2091 ();
 }
 
 static void doscsistatus (uae_u8 status)
@@ -481,7 +481,7 @@ static bool wd_do_transfer_out (void)
 				wd_phase = CSR_XFER_DONE | PHS_STATUS;
 				setphase (0x46);
 			} else {
-			wd_phase = CSR_XFER_DONE | PHS_DATA_OUT;
+				wd_phase = CSR_XFER_DONE | PHS_DATA_OUT;
 				setphase (0x45);
 			}
 		} else {
@@ -535,7 +535,7 @@ static bool wd_do_transfer_in (void)
 			wd_phase = CSR_UNEXP | PHS_STATUS;
 			setphase (0x46);
 		} else {
-		wd_phase = CSR_XFER_DONE | PHS_STATUS;
+			wd_phase = CSR_XFER_DONE | PHS_STATUS;
 			setphase (0x46);
 		}
 		scsi_start_transfer (scsi);
@@ -565,6 +565,10 @@ static void wd_cmd_sel_xfer (bool atn)
 	if (!scsi) {
 		set_status (CSR_TIMEOUT, 0);
 		wdregs[WD_COMMAND_PHASE] = 0x00;
+#if WD33C93_DEBUG > 0
+		write_log (_T("* %s select and transfer%s, ID=%d: No device\n"),
+		WD33C93, atn ? _T(" with atn") : _T(""), wdregs[WD_DESTINATION_ID] & 0x7);
+#endif
 		return;
 	}
 	if (!wd_selected) {
@@ -580,6 +584,7 @@ static void wd_cmd_sel_xfer (bool atn)
 		scsi->buffer[0] = 0;
 		scsi->status = 0;
 		memcpy (scsi->cmd, &wdregs[3], 16);
+		scsi->data_len = tmp_tc;
 		scsi_emulate_analyze (scsi);
 		settc (scsi->cmd_len);
 		wd_dataoffset = 0;
@@ -593,6 +598,7 @@ static void wd_cmd_sel_xfer (bool atn)
 			wd_dataoffset++;
 		}
 		// 0x30 = command phase has started
+		scsi->data_len = tmp_tc;
 		scsi_emulate_analyze (scsi);
 		wdregs[WD_COMMAND_PHASE] = 0x30 + gettc ();
 		settc (0);
@@ -617,7 +623,7 @@ static void wd_cmd_sel_xfer (bool atn)
 
 	// target replied or start/continue data phase (if data available)
 	if (wdregs[WD_COMMAND_PHASE] == 0x44) {
-		if (scsi->direction < 0) {
+		if (scsi->direction <= 0) {
 			scsi_emulate_cmd (scsi);
 		}
 		scsi_start_transfer (scsi);
@@ -651,7 +657,7 @@ static void wd_cmd_sel_xfer (bool atn)
 
 		if (scsi->direction) {
 			if (canwddma ()) {
-				if (scsi->direction <=  0) {
+				if (scsi->direction <= 0) {
 					do_dma ();
 					if (scsi->offset < scsi->data_len) {
 						// buffer not completely retrieved?
@@ -695,9 +701,9 @@ static void wd_cmd_sel_xfer (bool atn)
 				wd_phase = CSR_UNEXP | PHS_STATUS;
 				set_status (wd_phase, 1);
 				return;
-		}
+			}
 			wdregs[WD_COMMAND_PHASE] = 0x46;
-	}
+		}
 	}
 
 	end:
@@ -711,7 +717,7 @@ static void wd_cmd_sel_xfer (bool atn)
 	// 0x60 = command complete
 	wdregs[WD_COMMAND_PHASE] = 0x60;
 	if (!(wdregs[WD_CONTROL] & CTL_EDI)) {
-	wd_phase = CSR_SEL_XFER_DONE;
+		wd_phase = CSR_SEL_XFER_DONE;
 		delay += 2;
 		set_status (wd_phase, delay);
 		delay += 2;
@@ -821,7 +827,7 @@ static void wd_cmd_reset (bool irq)
 
 #if WD33C93_DEBUG > 0
 	if (irq)
-	write_log (_T("%s reset\n"), WD33C93);
+		write_log (_T("%s reset\n"), WD33C93);
 #endif
 	for (i = 1; i < 0x16; i++)
 		wdregs[i] = 0;
@@ -955,7 +961,7 @@ void wdscsi_put (uae_u8 d)
 		if (scsi && scsi->cd_emu_unit >= 0)
 			gui_flicker_led (LED_CD, scsi->id, 1);
 	}
-	incsasr(1);
+	incsasr (1);
 }
 
 void wdscsi_sasr (uae_u8 b)
@@ -1069,10 +1075,10 @@ static uae_u32 dmac_read_word (uaecptr addr)
 		break;
 	case 0xe0:
 		if (dmac_dma <= 0)
-			dmac_start_dma ();
+			scsi_dmac_start_dma ();
 		break;
 	case 0xe2:
-		dmac_stop_dma ();
+		scsi_dmac_stop_dma ();
 		break;
 	case 0xe4:
 		dmac_cint ();
@@ -1169,10 +1175,10 @@ static void dmac_write_word (uaecptr addr, uae_u32 b)
 		break;
 	case 0xe0:
 		if (dmac_dma <= 0)
-			dmac_start_dma ();
+			scsi_dmac_start_dma ();
 		break;
 	case 0xe2:
-		dmac_stop_dma ();
+		scsi_dmac_stop_dma ();
 		break;
 	case 0xe4:
 		dmac_cint ();
@@ -1310,20 +1316,20 @@ static uae_u32 REGPARAM2 dmac_lgeti (uaecptr addr)
 	special_mem |= S_READ;
 #endif
 	addr &= 65535;
-	v = (dmac_wgeti(addr) << 16) | dmac_wgeti(addr + 2);
+	v = (dmac_wgeti (addr) << 16) | dmac_wgeti (addr + 2);
 	return v;
 }
 
 static int REGPARAM2 dmac_check (uaecptr addr, uae_u32 size)
 {
-  return 1;
+	return 1;
 }
 
 static uae_u8 *REGPARAM2 dmac_xlate (uaecptr addr)
 {
-  addr &= rom_mask;
-  addr += rombank * rom_size;
-  return rom + addr;
+	addr &= rom_mask;
+	addr += rombank * rom_size;
+	return rom + addr;
 }
 
 addrbank dmaca2091_bank = {
@@ -1369,12 +1375,12 @@ static void mbdmac_write_word (uae_u32 addr, uae_u32 val)
 		break;
 	case 0x12:
 		if (dmac_dma <= 0)
-			dmac_start_dma ();
+			scsi_dmac_start_dma ();
 		break;
 	case 0x16:
 		if (dmac_dma) {
-		/* FLUSH */
-		dmac_istr |= ISTR_FE_FLG;
+			/* FLUSH */
+			dmac_istr |= ISTR_FE_FLG;
 			dmac_dma = 0;
 		}
 		break;
@@ -1385,7 +1391,7 @@ static void mbdmac_write_word (uae_u32 addr, uae_u32 val)
 		/* ISTR */
 		break;
 	case 0x3e:
-		dmac_stop_dma ();
+		scsi_dmac_stop_dma ();
 		break;
 	}
 }
@@ -1450,7 +1456,7 @@ static uae_u32 mbdmac_read_word (uae_u32 addr)
 		break;
 	case 0x12:
 		if (dmac_dma <= 0)
-			dmac_start_dma ();
+			scsi_dmac_start_dma ();
 		v = 0;
 		break;
 	case 0x1a:
@@ -1467,7 +1473,7 @@ static uae_u32 mbdmac_read_word (uae_u32 addr)
 		break;
 	case 0x3e:
 		if (dmac_dma) {
-		dmac_stop_dma ();
+			scsi_dmac_stop_dma ();
 			dmac_istr |= ISTR_FE_FLG;
 		}
 		v = 0;
@@ -1664,10 +1670,11 @@ static void freescsi (struct scsi_data *sd)
 
 int add_scsi_hd (int ch, struct hd_hardfiledata *hfd, struct uaedev_config_info *ci, int scsi_level)
 {
+	init_scsi ();
 	freescsi (scsis[ch]);
 	scsis[ch] = NULL;
 	if (!hfd) {
-	hfd = xcalloc (struct hd_hardfiledata, 1);
+		hfd = xcalloc (struct hd_hardfiledata, 1);
 		memcpy (&hfd->hfd.ci, ci, sizeof (struct uaedev_config_info));
 	}
 	if (!hdf_hd_open (hfd))
@@ -1679,9 +1686,18 @@ int add_scsi_hd (int ch, struct hd_hardfiledata *hfd, struct uaedev_config_info 
 
 int add_scsi_cd (int ch, int unitnum)
 {
+	init_scsi ();
 	device_func_init (0);
 	freescsi (scsis[ch]);
 	scsis[ch] = scsi_alloc_cd (ch, unitnum, false);
+	return scsis[ch] ? 1 : 0;
+}
+
+int add_scsi_tape (int ch, const TCHAR *tape_directory, bool readonly)
+{
+	init_scsi ();
+	freescsi (scsis[ch]);
+	scsis[ch] = scsi_alloc_tape (ch, tape_directory, readonly);
 	return scsis[ch] ? 1 : 0;
 }
 
@@ -1744,8 +1760,10 @@ static void addnativescsi (void)
 int a3000_add_scsi_unit (int ch, struct uaedev_config_info *ci)
 {
 	init_scsi ();
-	if (ci->cd_emu_unit >= 0)
-		return add_scsi_cd (ch, ci->cd_emu_unit);
+	if (ci->type == UAEDEV_CD)
+		return add_scsi_cd (ch, ci->device_emu_unit);
+	else if (ci->type == UAEDEV_TAPE)
+		return add_scsi_tape (ch, ci->rootdir, ci->readonly);
 	else
 		return add_scsi_hd (ch, NULL, ci, 2);
 }
@@ -1771,9 +1789,10 @@ void a3000scsi_free (void)
 
 int a2091_add_scsi_unit (int ch, struct uaedev_config_info *ci)
 {
-	init_scsi ();
-	if (ci->cd_emu_unit >= 0)
-		return add_scsi_cd (ch, ci->cd_emu_unit);
+	if (ci->type == UAEDEV_CD)
+		return add_scsi_cd (ch, ci->device_emu_unit);
+	else if (ci->type == UAEDEV_TAPE)
+		return add_scsi_tape (ch, ci->rootdir, ci->readonly);
 	else
 		return add_scsi_hd (ch, NULL, ci, 1);
 }
@@ -1856,8 +1875,8 @@ void a2091_init (void)
 					rom[i * 2 + 1] = 0xff;
 				}
 			} else {
-			for (int i = 1; i < slotsize / rom_size; i++)
-				memcpy (rom + i * rom_size, rom, rom_size);
+				for (int i = 1; i < slotsize / rom_size; i++)
+					memcpy (rom + i * rom_size, rom, rom_size);
 			}
 			rom_mask = rom_size - 1;
 		}
@@ -1906,73 +1925,103 @@ uae_u8 *restore_scsi_dmac (uae_u8 *src)
 	return src;
 }
 
-uae_u8 *save_scsi_hd (int num, int *len, uae_u8 *dstptr)
+uae_u8 *save_scsi_device (int num, int *len, uae_u8 *dstptr)
 {
 	uae_u8 *dstbak, *dst;
 	struct scsi_data *s;
 
-	if (!scsis[num])
-		return NULL;
 	s = scsis[num];
-	if (s->hfd == NULL)
+	if (!s)
 		return NULL;
 	if (dstptr)
 		dstbak = dst = dstptr;
 	else
 		dstbak = dst = xmalloc (uae_u8, 1000);
 	save_u32 (num);
-	save_u32 (0); // flags
-	save_u64 (s->hfd->size);
-	save_string (s->hfd->hfd.ci.rootdir);
-	save_u32 (s->hfd->hfd.ci.blocksize);
-	save_u32 (s->hfd->hfd.ci.readonly);
-	save_u32 (s->hfd->cyls);
-	save_u32 (s->hfd->heads);
-	save_u32 (s->hfd->secspertrack);
-	save_u64 (s->hfd->hfd.virtual_size);
-	save_u32 (s->hfd->hfd.ci.sectors);
-	save_u32 (s->hfd->hfd.ci.surfaces);
-	save_u32 (s->hfd->hfd.ci.reserved);
-	save_u32 (s->hfd->hfd.ci.bootpri);
-	save_u32 (s->hfd->ansi_version);
+	save_u32 (s->device_type); // flags
+	switch (s->device_type)
+	{
+	case UAEDEV_HDF:
+	case 0:
+		save_u64 (s->hfd->size);
+		save_string (s->hfd->hfd.ci.rootdir);
+		save_u32 (s->hfd->hfd.ci.blocksize);
+		save_u32 (s->hfd->hfd.ci.readonly);
+		save_u32 (s->hfd->cyls);
+		save_u32 (s->hfd->heads);
+		save_u32 (s->hfd->secspertrack);
+		save_u64 (s->hfd->hfd.virtual_size);
+		save_u32 (s->hfd->hfd.ci.sectors);
+		save_u32 (s->hfd->hfd.ci.surfaces);
+		save_u32 (s->hfd->hfd.ci.reserved);
+		save_u32 (s->hfd->hfd.ci.bootpri);
+		save_u32 (s->hfd->ansi_version);
+	break;
+	case UAEDEV_CD:
+		save_u32 (s->cd_emu_unit);
+	break;
+	case UAEDEV_TAPE:
+		save_u32 (s->cd_emu_unit);
+		save_u32 (s->tape->blocksize);
+		save_u32 (s->tape->wp);
+		save_string (s->tape->tape_dir);
+	break;
+	}
 	*len = dst - dstbak;
 	return dstbak;
 }
 
-uae_u8 *restore_scsi_hd (uae_u8 *src)
+uae_u8 *restore_scsi_device (uae_u8 *src)
 {
-	int num;
+	int num, num2;
 	struct hd_hardfiledata *hfd;
 	struct scsi_data *s;
 	uae_u64 size;
+	uae_u32 flags;
 	int blocksize, readonly;
 	TCHAR *path;
 
 	num = restore_u32 ();
 
-	hfd = xcalloc (struct hd_hardfiledata, 1);
-	s = scsis[num] = scsi_alloc_hd (num, hfd);
-	restore_u32 ();
-	size = restore_u64 ();
-	path = restore_string ();
-	_tcscpy (s->hfd->hfd.ci.rootdir, path);
-	blocksize = restore_u32 ();
-	readonly = restore_u32 ();
-	s->hfd->cyls = restore_u32 ();
-	s->hfd->heads = restore_u32 ();
-	s->hfd->secspertrack = restore_u32 ();
-	s->hfd->hfd.virtual_size = restore_u64 ();
-	s->hfd->hfd.ci.sectors = restore_u32 ();
-	s->hfd->hfd.ci.surfaces = restore_u32 ();
-	s->hfd->hfd.ci.reserved = restore_u32 ();
-	s->hfd->hfd.ci.bootpri = restore_u32 ();
-	s->hfd->ansi_version = restore_u32 ();
-
-	if (size) {
-		add_scsi_hd (num, hfd, NULL, s->hfd->ansi_version);
+	flags = restore_u32 ();
+	switch (flags & 15)
+	{
+	case UAEDEV_HDF:
+	case 0:
+		hfd = xcalloc (struct hd_hardfiledata, 1);
+		s = scsis[num] = scsi_alloc_hd (num, hfd);
+		size = restore_u64 ();
+		path = restore_string ();
+		_tcscpy (s->hfd->hfd.ci.rootdir, path);
+		blocksize = restore_u32 ();
+		readonly = restore_u32 ();
+		s->hfd->cyls = restore_u32 ();
+		s->hfd->heads = restore_u32 ();
+		s->hfd->secspertrack = restore_u32 ();
+		s->hfd->hfd.virtual_size = restore_u64 ();
+		s->hfd->hfd.ci.sectors = restore_u32 ();
+		s->hfd->hfd.ci.surfaces = restore_u32 ();
+		s->hfd->hfd.ci.reserved = restore_u32 ();
+		s->hfd->hfd.ci.bootpri = restore_u32 ();
+		s->hfd->ansi_version = restore_u32 ();
+		s->hfd->hfd.ci.blocksize = blocksize;
+		if (size)
+			add_scsi_hd (num, hfd, NULL, s->hfd->ansi_version);
+		xfree (path);
+	break;
+	case UAEDEV_CD:
+		num2 = restore_u32 ();
+		add_scsi_cd (num, num2);
+	break;
+	case UAEDEV_TAPE:
+		num2 = restore_u32 ();
+		blocksize = restore_u32 ();
+		readonly = restore_u32 ();
+		path = restore_string ();
+		add_scsi_tape (num, path, readonly != 0);
+		xfree (path);
+	break;
 	}
-	xfree (path);
 	return src;
-
 }
 #endif //A2091

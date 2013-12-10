@@ -155,6 +155,7 @@ struct device_functions {
 int device_func_init(int flags);
 void device_func_reset(void);
 int sys_command_open (int unitnum);
+int sys_command_open_tape (int unitnum, const TCHAR *tape_directory, bool readonly);
 void sys_command_close (int unitnum);
 int sys_command_isopen (int unitnum);
 struct device_info *sys_command_info (int unitnum, struct device_info *di, int);
@@ -170,8 +171,8 @@ int sys_command_cd_rawread (int unitnum, uae_u8 *data, int sector, int size, int
 int sys_command_cd_rawread2 (int unitnum, uae_u8 *data, int block, int size, int sectorsize, uae_u8 sectortype, uae_u8 scsicmd9, uae_u8 subs);
 int sys_command_read (int unitnum, uae_u8 *data, int block, int size);
 int sys_command_write (int unitnum, uae_u8 *data, int block, int size);
-int sys_command_scsi_direct_native (int unitnum, struct amigascsi *as);
-int sys_command_scsi_direct (int unitnum, uaecptr request);
+int sys_command_scsi_direct_native (int unitnum, int type, struct amigascsi *as);
+int sys_command_scsi_direct (int unitnum, int type, uaecptr request);
 int sys_command_ismedia (int unitnum, int quick);
 struct device_info *sys_command_info_session (int unitnum, struct device_info *di, int, int);
 bool blkdev_get_info (struct uae_prefs *p, int unitnum, struct device_info *di);

@@ -206,9 +206,9 @@ int getsd (SB, SOCKET_TYPE s)
 	if (fdcb) {
 		for (i = 0; i < sb->dtablesize; i++) {
 			if (dt[i] == -2) {
-			dt[i] = s;
-			sb->ftable[i] = SF_BLOCKING;
-			return i + 1;
+				dt[i] = s;
+				sb->ftable[i] = SF_BLOCKING;
+				return i + 1;
 			}
 		}
 	}

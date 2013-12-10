@@ -1001,7 +1001,7 @@ LOWFUNC(NONE,NONE,2,raw_mov_l_rr,(W4 d, R4 s))
 }
 LENDFUNC(NONE,NONE,2,raw_mov_l_rr,(W4 d, R4 s))
 
-LOWFUNC(NONE,WRITE,2,raw_mov_l_mr,(MEMR d, R4 s))
+	LOWFUNC(NONE,WRITE,2,raw_mov_l_mr,(IMM d, R4 s))
 {
 #if defined(__x86_64__)
 	emit_byte(0x48); // Prefix for 64bit register
@@ -1014,7 +1014,7 @@ LOWFUNC(NONE,WRITE,2,raw_mov_l_mr,(MEMR d, R4 s))
 #endif // __x86_64__
 	emit_long(d);
 }
-LENDFUNC(NONE,WRITE,2,raw_mov_l_mr,(MEMR d, R4 s))
+LENDFUNC(NONE,WRITE,2,raw_mov_l_mr,(IMM d, R4 s))
 
 LOWFUNC(NONE,READ,2,raw_mov_l_rm,(W4 d, MEMR s))
 {
@@ -1507,7 +1507,7 @@ STATIC_INLINE void raw_jmp_m_indexed(uaecptr base, uae_u32 r, uae_u32 m)
 	emit_byte(0xff);
 	emit_byte(0x24);
 	emit_byte(8*r+sib);
-	emit_long(PTR_TO_UINT32(base));
+	emit_long(base);
 }
 
 STATIC_INLINE void raw_jmp_m(uae_u32 base)
@@ -1544,7 +1544,7 @@ STATIC_INLINE void raw_call(uaecptr t)
 	}
 #else
 	emit_byte(0xe8);
-	emit_long(PTR_OFFSET(target, t) - 4);
+	emit_long(t-(uae_u32)target-4);
 #endif // __x86_64__
 }
 
@@ -1572,7 +1572,7 @@ STATIC_INLINE void raw_jmp(uaecptr t)
 	}
 #else
 	emit_byte(0xe9);
-	emit_long(PTR_OFFSET(target, t) - 4);
+	emit_long(t-(uae_u32)target-4);
 #endif // __x86_64__
 }
 
@@ -1581,7 +1581,7 @@ STATIC_INLINE void raw_jl(uae_u32 t)
 	lopt_emit_all();
 	emit_byte(0x0f);
 	emit_byte(0x8c);
-	emit_long(PTR_OFFSET(target, t) - 4);
+	emit_long(t-(uae_u32)target-4);
 }
 
 STATIC_INLINE void raw_jz(uae_u32 t)
@@ -1589,7 +1589,7 @@ STATIC_INLINE void raw_jz(uae_u32 t)
 	lopt_emit_all();
 	emit_byte(0x0f);
 	emit_byte(0x84);
-	emit_long(PTR_OFFSET(target, t) - 4);
+	emit_long(t-(uae_u32)target-4);
 }
 
 STATIC_INLINE void raw_jnz(uae_u32 t)
@@ -1597,7 +1597,7 @@ STATIC_INLINE void raw_jnz(uae_u32 t)
 	lopt_emit_all();
 	emit_byte(0x0f);
 	emit_byte(0x85);
-	emit_long(PTR_OFFSET(target, t) - 4);
+	emit_long(t-(uae_u32)target-4);
 }
 
 STATIC_INLINE void raw_jnz_l_oponly(void)
@@ -1662,11 +1662,11 @@ STATIC_INLINE void raw_flags_to_reg(int r)
 {
 	raw_lahf(0);  /* Most flags in AH */
 	//raw_setcc(r,0); /* V flag in AL */
-	raw_setcc_m(VALUE_TO_PTR(live.state[FLAGTMP].mem),0);
+	raw_setcc_m((uae_u32)live.state[FLAGTMP].mem,0);
 
 #if 1   /* Let's avoid those nasty partial register stalls */
 	//raw_mov_b_mr((uae_u32)live.state[FLAGTMP].mem,r);
-	raw_mov_b_mr(PTR_TO_UINT32(live.state[FLAGTMP].mem) + 1,r + 4);
+	raw_mov_b_mr(((uae_u32)live.state[FLAGTMP].mem)+1,r+4);
 	//live.state[FLAGTMP].status=CLEAN;
 	live.state[FLAGTMP].status=INMEM;
 	live.state[FLAGTMP].realreg=-1;
@@ -1691,10 +1691,10 @@ STATIC_INLINE void raw_reg_to_flags(int r)
 STATIC_INLINE void raw_load_flagreg(uae_u32 target, uae_u32 r)
 {
 #if 1
-	raw_mov_l_rm(target,PTR_TO_UINT32(live.state[r].mem));
+	raw_mov_l_rm(target,(uae_u32)live.state[r].mem);
 #else
-	raw_mov_b_rm(target,PTR_TO_UINT32(live.state[r].mem));
-	raw_mov_b_rm(target+4,PTR_TO_UINT32(live.state[r].mem) + 1);
+	raw_mov_b_rm(target,(uae_u32)live.state[r].mem);
+	raw_mov_b_rm(target+4,((uae_u32)live.state[r].mem)+1);
 #endif
 }
 
@@ -1702,9 +1702,9 @@ STATIC_INLINE void raw_load_flagreg(uae_u32 target, uae_u32 r)
 STATIC_INLINE void raw_load_flagx(uae_u32 target, uae_u32 r)
 {
 	if (live.nat[target].canword)
-		raw_mov_w_rm(target,PTR_TO_UINT32(live.state[r].mem));
+		raw_mov_w_rm(target,(uae_u32)live.state[r].mem);
 	else
-		raw_mov_l_rm(target,PTR_TO_UINT32(live.state[r].mem));
+		raw_mov_l_rm(target,(uae_u32)live.state[r].mem);
 }
 
 #define NATIVE_FLAG_Z 0x40
@@ -1825,10 +1825,11 @@ static void vec(int sig, siginfo_t* info, void* _ct)
     /*
      * Decode access opcode if this is possible
      */
-	int size = 4;
-	int len  = 0;
 	int reg  = -1;
+	int size = 4;
 	int dir  = -1;
+	int len  = 0;
+	int j;
 	if ( canbang
 	  && (src_addr >= compiled_code)
 	  && (src_addr <= current_compile_p) ) {
@@ -1861,6 +1862,7 @@ static void vec(int sig, siginfo_t* info, void* _ct)
 					break;
 				}
 				break;
+
 			case 0x8b:
 				// MOV into general register (Word or doubleword)
 				switch(src_addr[1] & 0xc0) {
@@ -1958,7 +1960,7 @@ static void vec(int sig, siginfo_t* info, void* _ct)
 		if (pr) {
 			if (currprefs.comp_oldsegv) {
 				// Align tgt_addr to NATMEM
-				tgt_addr -= (uae_u8)NATMEM_ADDRESS;
+				tgt_addr -= (uae_u32)NATMEM_OFFSET;
 
 				if ((tgt_addr>=0x10000000 && tgt_addr<0x40000000) ||
 					(tgt_addr>=0x50000000)) {
@@ -1988,7 +1990,7 @@ static void vec(int sig, siginfo_t* info, void* _ct)
 				uae_u8 vecbuf[5];
 
 				// Align tgt_addr to NATMEM
-				tgt_addr -= (uae_u8)NATMEM_ADDRESS;
+				tgt_addr -= (uae_u32)NATMEM_OFFSET;
 
 				if ((tgt_addr>=0x10000000 && tgt_addr<0x40000000) ||
 					(tgt_addr>=0x50000000)) {
@@ -2682,7 +2684,7 @@ LOWFUNC(NONE,WRITE,3,raw_fmovi_mrb,(MEMW m, FR r, double *bounds))
 	/* Lower bound onto stack */
 	emit_byte(0xdd);
 	emit_byte(0x05);
-	emit_long(PTR_TO_UINT32(&bounds[0])); /* fld double from lower */
+	emit_long((uae_u32)&bounds[0]); /* fld double from lower */
 
 	/* Clamp to lower */
 	emit_byte(0xdb);
@@ -2695,7 +2697,7 @@ LOWFUNC(NONE,WRITE,3,raw_fmovi_mrb,(MEMW m, FR r, double *bounds))
 	emit_byte(0xd8);	/* fstp st(0) */
 	emit_byte(0xdd);
 	emit_byte(0x05);
-	emit_long(PTR_TO_UINT32(&bounds[1])); /* fld double from upper */
+	emit_long((uae_u32)&bounds[1]); /* fld double from upper */
 
 	/* Clamp to upper */
 	emit_byte(0xdb);
@@ -3196,7 +3198,7 @@ LOWFUNC(NONE,NONE,2,raw_ftwotox_rr,(FW d, FR s))
 	emit_byte(0xf0);    /* f2xm1 (2^frac(x))-1 */
 	emit_byte(0xd8);
 	emit_byte(0x05);
-	emit_long(PTR_TO_UINT32(&one)); /* fadd (2^frac(x))-1 + 1 */
+	emit_long((uae_u32)&one); /* fadd (2^frac(x))-1 + 1 */
 	emit_byte(0xd9);
 	emit_byte(0xfd);    /* fscale (2^frac(x))*2^int(x) */
 	emit_byte(0xdd);
@@ -3232,7 +3234,7 @@ LOWFUNC(NONE,NONE,2,raw_fetox_rr,(FW d, FR s))
 	emit_byte(0xf0);    /* f2xm1 (2^frac(x))-1 */
 	emit_byte(0xd8);
 	emit_byte(0x05);
-	emit_long(PTR_TO_UINT32(&one));  /* fadd (2^frac(x))-1 + 1 */
+	emit_long((uae_u32)&one);  /* fadd (2^frac(x))-1 + 1 */
 	emit_byte(0xd9);
 	emit_byte(0xfd);    /* fscale (2^frac(x))*2^int(x*log2(e)) */
 	emit_byte(0xdd);
@@ -3303,7 +3305,7 @@ LOWFUNC(NONE,NONE,2,raw_ftentox_rr,(FW d, FR s))
 	emit_byte(0xf0);    /* f2xm1 (2^frac(x))-1 */
 	emit_byte(0xd8);
 	emit_byte(0x05);
-	emit_long(PTR_TO_UINT32(&one));  /* fadd (2^frac(x))-1 + 1 */
+	emit_long((uae_u32)&one);  /* fadd (2^frac(x))-1 + 1 */
 	emit_byte(0xd9);
 	emit_byte(0xfd);    /* fscale (2^frac(x))*2^int(x*log2(10)) */
 	emit_byte(0xdd);
@@ -3450,7 +3452,7 @@ LOWFUNC(NONE,NONE,2,raw_facos_rr,(FW d, FR s))
 	emit_byte(0xf3);    /* fpatan atan(x/sqrt(1-(x^2))) & pop */
 	emit_byte(0xdb);
 	emit_byte(0x2d);
-	emit_long(PTR_TO_UINT32(&pihalf)); /* fld load pi/2 from pihalf */
+	emit_long((uae_u32)&pihalf); /* fld load pi/2 from pihalf */
 	emit_byte(0xde);
 	emit_byte(0xe1);    /* fsubrp pi/2 - asin(x) & pop */
 	tos_make(d);        /* store y=acos(x) */
@@ -3554,7 +3556,7 @@ LOWFUNC(NONE,NONE,2,raw_fsinh_rr,(FW d, FR s))
 	emit_byte(0xf0);     /* f2xm1 (2^frac(x))-1 */
 	emit_byte(0xd8);
 	emit_byte(0x05);
-	emit_long(PTR_TO_UINT32(&one));  /* fadd (2^frac(x))-1 + 1 */
+	emit_long((uae_u32)&one);  /* fadd (2^frac(x))-1 + 1 */
 	emit_byte(0xd9);
 	emit_byte(0xfd);     /* fscale (2^frac(x))*2^int(x*log2(e)) */
 	emit_byte(0xd9);
@@ -3571,7 +3573,7 @@ LOWFUNC(NONE,NONE,2,raw_fsinh_rr,(FW d, FR s))
 	emit_byte(0xf0);     /* f2xm1 (2^frac(x))-1 */
 	emit_byte(0xd8);
 	emit_byte(0x05);
-	emit_long(PTR_TO_UINT32(&one));  /* fadd (2^frac(x))-1 + 1 */
+	emit_long((uae_u32)&one);  /* fadd (2^frac(x))-1 + 1 */
 	emit_byte(0xd9);
 	emit_byte(0xfd);     /* fscale (2^frac(x))*2^int(x*log2(e)) */
 	emit_byte(0xdd);
@@ -3649,7 +3651,7 @@ LOWFUNC(NONE,NONE,2,raw_fcosh_rr,(FW d, FR s))
 	emit_byte(0xf0);     /* f2xm1 (2^frac(x))-1 */
 	emit_byte(0xd8);
 	emit_byte(0x05);
-	emit_long(PTR_TO_UINT32(&one));  /* fadd (2^frac(x))-1 + 1 */
+	emit_long((uae_u32)&one);  /* fadd (2^frac(x))-1 + 1 */
 	emit_byte(0xd9);
 	emit_byte(0xfd);     /* fscale (2^frac(x))*2^int(x*log2(e)) */
 	emit_byte(0xd9);
@@ -3666,7 +3668,7 @@ LOWFUNC(NONE,NONE,2,raw_fcosh_rr,(FW d, FR s))
 	emit_byte(0xf0);     /* f2xm1 (2^frac(x))-1 */
 	emit_byte(0xd8);
 	emit_byte(0x05);
-	emit_long(PTR_TO_UINT32(&one));  /* fadd (2^frac(x))-1 + 1 */
+	emit_long((uae_u32)&one);  /* fadd (2^frac(x))-1 + 1 */
 	emit_byte(0xd9);
 	emit_byte(0xfd);     /* fscale (2^frac(x))*2^int(x*log2(e)) */
 	emit_byte(0xdd);
@@ -3740,7 +3742,7 @@ LOWFUNC(NONE,NONE,2,raw_ftanh_rr,(FW d, FR s))
 	emit_byte(0xf0);     /* f2xm1 (2^frac(x))-1 */
 	emit_byte(0xd8);
 	emit_byte(0x05);
-	emit_long(PTR_TO_UINT32(&one));  /* fadd (2^frac(x))-1 + 1 */
+	emit_long((uae_u32)&one);  /* fadd (2^frac(x))-1 + 1 */
 	emit_byte(0xd9);
 	emit_byte(0xfd);     /* fscale (2^frac(x))*2^int(x*log2(e)) */
 	emit_byte(0xd9);
@@ -3757,7 +3759,7 @@ LOWFUNC(NONE,NONE,2,raw_ftanh_rr,(FW d, FR s))
 	emit_byte(0xf0);     /* f2xm1 (2^frac(x))-1 */
 	emit_byte(0xd8);
 	emit_byte(0x05);
-	emit_long(PTR_TO_UINT32(&one));  /* fadd (2^frac(x))-1 + 1 */
+	emit_long((uae_u32)&one);  /* fadd (2^frac(x))-1 + 1 */
 	emit_byte(0xd9);
 	emit_byte(0xfd);     /* fscale (2^frac(x))*2^int(x*log2(e)) */
 	emit_byte(0xdd);

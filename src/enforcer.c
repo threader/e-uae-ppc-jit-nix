@@ -427,9 +427,9 @@ static uae_u32 REGPARAM2 chipmem_lget2 (uaecptr addr)
 {
 	uae_u32 *m;
 
-	addr -= chipmem_start & chipmem_mask;
-	addr &= chipmem_mask;
-	m = (uae_u32 *)(chipmemory + addr);
+	addr -= chipmem_start_addr & chipmem_bank.mask;
+	addr &= chipmem_bank.mask;
+	m = (uae_u32 *)(chipmem_bank.baseaddr + addr);
 
 	if (ISILLEGAL_LONG (addr))
 	{
@@ -444,9 +444,9 @@ static uae_u32 REGPARAM2 chipmem_wget2(uaecptr addr)
 {
 	uae_u16 *m;
 
-	addr -= chipmem_start & chipmem_mask;
-	addr &= chipmem_mask;
-	m = (uae_u16 *)(chipmemory + addr);
+	addr -= chipmem_start_addr & chipmem_bank.mask;
+	addr &= chipmem_bank.mask;
+	m = (uae_u16 *)(chipmem_bank.baseaddr + addr);
 
 	if (ISILLEGAL_WORD (addr))
 	{
@@ -459,8 +459,8 @@ static uae_u32 REGPARAM2 chipmem_wget2(uaecptr addr)
 
 static uae_u32 REGPARAM2 chipmem_bget2 (uaecptr addr)
 {
-	addr -= chipmem_start & chipmem_mask;
-	addr &= chipmem_mask;
+	addr -= chipmem_start_addr & chipmem_bank.mask;
+	addr &= chipmem_bank.mask;
 
 	if (ISILLEGAL_BYTE (addr))
 	{
@@ -469,16 +469,16 @@ static uae_u32 REGPARAM2 chipmem_bget2 (uaecptr addr)
 			set_special (SPCFLAG_TRAP);
 	}
 
-	return chipmemory[addr];
+	return chipmem_bank.baseaddr[addr];
 }
 
 static void REGPARAM2 chipmem_lput2 (uaecptr addr, uae_u32 l)
 {
 	uae_u32 *m;
 
-	addr -= chipmem_start & chipmem_mask;
-	addr &= chipmem_mask;
-	m = (uae_u32 *)(chipmemory + addr);
+	addr -= chipmem_start_addr & chipmem_bank.mask;
+	addr &= chipmem_bank.mask;
+	m = (uae_u32 *)(chipmem_bank.baseaddr + addr);
 
 	if (ISILLEGAL_LONG (addr))
 	{
@@ -496,9 +496,9 @@ static void REGPARAM2 chipmem_wput2 (uaecptr addr, uae_u32 w)
 {
 	uae_u16 *m;
 
-	addr -= chipmem_start & chipmem_mask;
-	addr &= chipmem_mask;
-	m = (uae_u16 *)(chipmemory + addr);
+	addr -= chipmem_start_addr & chipmem_bank.mask;
+	addr &= chipmem_bank.mask;
+	m = (uae_u16 *)(chipmem_bank.baseaddr + addr);
 
 	if (ISILLEGAL_WORD (addr))
 	{
@@ -513,8 +513,8 @@ static void REGPARAM2 chipmem_wput2 (uaecptr addr, uae_u32 w)
 
 static void REGPARAM2 chipmem_bput2 (uaecptr addr, uae_u32 b)
 {
-	addr -= chipmem_start & chipmem_mask;
-	addr &= chipmem_mask;
+	addr -= chipmem_start_addr & chipmem_bank.mask;
+	addr &= chipmem_bank.mask;
 
 	if (ISILLEGAL_BYTE (addr))
 	{
@@ -524,21 +524,21 @@ static void REGPARAM2 chipmem_bput2 (uaecptr addr, uae_u32 b)
 	}
 	if (ISEXEC (addr))
 		return;
-	chipmemory[addr] = b;
+	chipmem_bank.baseaddr[addr] = b;
 }
 
 static int REGPARAM2 chipmem_check2 (uaecptr addr, uae_u32 size)
 {
-	addr -= chipmem_start & chipmem_mask;
-	addr &= chipmem_mask;
-	return (addr + size) <= allocated_chipmem;
+	addr -= chipmem_start_addr & chipmem_bank.mask;
+	addr &= chipmem_bank.mask;
+	return (addr + size) <= chipmem_bank.allocated;
 }
 
 static uae_u8 * REGPARAM2 chipmem_xlate2 (uaecptr addr)
 {
-	addr -= chipmem_start & chipmem_mask;
-	addr &= chipmem_mask;
-	return chipmemory + addr;
+	addr -= chipmem_start_addr & chipmem_bank.mask;
+	addr &= chipmem_bank.mask;
+	return chipmem_bank.baseaddr + addr;
 }
 
 static uae_u32 REGPARAM2 dummy_lget2 (uaecptr addr)

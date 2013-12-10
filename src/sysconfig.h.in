@@ -6,6 +6,9 @@
 /* we want ecs_denise */
 #undef ECS_DENISE
 
+/* we want hardware graphics board */
+#undef GFXBOARD
+
 /* CPU supports 3DNOW */
 #undef HAVE_3DNOW
 

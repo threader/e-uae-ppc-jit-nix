@@ -34,13 +34,6 @@
 #include "sleep.h"
 #include "zfile.h"
 
-// this is handled by the graphics drivers and set up in picasso96.c
-#if defined(PICASSO96)
-extern int screen_is_picasso;
-#else
-static int screen_is_picasso = 0;
-#endif
-
 uae_u32 redc[3 * 256], grec[3 * 256], bluc[3 * 256];
 
 #define VBLANKTH_KILL 0
@@ -638,6 +631,11 @@ void fetch_datapath (TCHAR *out, int size)
 	fetch_path (NULL, out, size);
 }
 
+void fetch_rompath (TCHAR *out, int size)
+{
+        fetch_path ("KickstartPath", out, size);
+}
+
 // convert path to absolute or relative
 void fullpath (TCHAR *path, int size)
 {
@@ -731,6 +729,9 @@ void update_debug_info(void)
 ///////////////////////////////////////////////////
 // win32gfx.cpp
 ///////////////////////////////////////////////////
+int screen_is_picasso = 0;
+int screen_was_picasso = 0;
+
 #define MAX_DISPLAYS 10
 struct MultiDisplay Displays[MAX_DISPLAYS];
 

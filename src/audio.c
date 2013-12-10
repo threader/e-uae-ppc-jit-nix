@@ -542,7 +542,7 @@ static void sinc_prehandler (unsigned long best_evtime)
 		output = (acd->current_sample * vol) & acd->adk_mask;
 
 		/* if output state changes, record the state change and also
-		* write data into sinc queue for mixing in the BLEP */
+		 * write data into sinc queue for mixing in the BLEP */
 		if (acd->sinc_output_state != output) {
 			acd->sinc_queue_head = (acd->sinc_queue_head - 1) & (SINC_QUEUE_LENGTH - 1);
 			acd->sinc_queue[acd->sinc_queue_head].time = acd->sinc_queue_time;
@@ -1111,10 +1111,9 @@ static void audio_event_reset (void)
 
 static void audio_deactivate (void)
 {
-	if (!currprefs.sound_auto)
-		return;
 	gui_data.sndbuf_status = 3;
 	gui_data.sndbuf = 0;
+	audio_work_to_do = 0;
 	//pause_sound_buffer ();
 	clear_sound_buffers ();
 	audio_event_reset ();
@@ -1162,34 +1161,16 @@ extern unsigned int have_sound;
 extern float sampler_evtime;
 #endif
 
-void update_sound (double freq, int longframe, int linetoggle)
+float sound_sync_multiplier = 1.0;
+
+void update_sound (double clk)
 {
-	static int lastfreq;
-	double lines = 0;
-	double hpos;
-
-	if (freq < 0)
-		freq = lastfreq;
-	lastfreq = freq;
-
 	if (!have_sound)
 		return;
 
-	if (linetoggle) {
-		hpos = maxhpos_short + 0.5;
-		lines += 0.5;
-	} else {
-		if (longframe < 0)
-			lines += 0.5;
-		else if (longframe > 0)
-			lines += 1.0;
-		hpos = maxhpos_short;
-	}
-	lines += maxvpos_nom;
-
-	scaled_sample_evtime = hpos * lines * freq * CYCLE_UNIT / (double)obtainedfreq;
+	scaled_sample_evtime = clk * CYCLE_UNIT * sound_sync_multiplier / (double)obtainedfreq;
 #ifdef SAMPLER
-	sampler_evtime = hpos * lines * freq * CYCLE_UNIT;
+	sampler_evtime = clk * CYCLE_UNIT * sound_sync_multiplier;
 #endif
 }
 
@@ -1349,7 +1330,7 @@ static void audio_state_channel2 (int nr, bool perfin)
 			 */
 			if (cdp->wlen > 2)
 				cdp->ptx_tofetch = true;
-				cdp->dsr = true;
+			cdp->dsr = true;
 #if TEST_AUDIO > 0
 			cdp->have_dat = false;
 #endif
@@ -1723,7 +1704,7 @@ void set_audio (void)
 		schedule_audio ();
 		events_schedule ();
 	}
-	config_changed = 1;
+	set_config_changed ();
 }
 
 void update_audio (void)
@@ -1914,10 +1895,10 @@ void AUDxLCH (int nr, uae_u16 v)
 			write_log (_T("AUD%dLCH HACK: %04X %08X (%d) (%d %d %08x)\n"), nr, v, M68K_GETPC, cdp->state, cdp->dsr, cdp->ptx_written, cdp->ptx);
 #endif
 	} else {
-	cdp->lc = (cdp->lc & 0xffff) | ((uae_u32)v << 16);
+		cdp->lc = (cdp->lc & 0xffff) | ((uae_u32)v << 16);
 #if DEBUG_AUDIO > 0
-	if (debugchannel (nr))
-		write_log (_T("AUD%dLCH: %04X %08X (%d) (%d %d %08x)\n"), nr, v, M68K_GETPC, cdp->state, cdp->dsr, cdp->ptx_written, cdp->ptx);
+		if (debugchannel (nr))
+			write_log (_T("AUD%dLCH: %04X %08X (%d) (%d %d %08x)\n"), nr, v, M68K_GETPC, cdp->state, cdp->dsr, cdp->ptx_written, cdp->ptx);
 #endif
 	}
 }
@@ -1935,10 +1916,10 @@ void AUDxLCL (int nr, uae_u16 v)
 			write_log (_T("AUD%dLCL HACK: %04X %08X (%d) (%d %d %08x)\n"), nr, v, M68K_GETPC, cdp->state, cdp->dsr, cdp->ptx_written, cdp->ptx);
 #endif
 	} else {
-        	cdp->lc = (cdp->lc & ~0xffff) | (v & 0xFFFE);
+		cdp->lc = (cdp->lc & ~0xffff) | (v & 0xFFFE);
 #if DEBUG_AUDIO > 0
-	if (debugchannel (nr))
-		write_log (_T("AUD%dLCL: %04X %08X (%d) (%d %d %08x)\n"), nr, v, M68K_GETPC, cdp->state, cdp->dsr, cdp->ptx_written, cdp->ptx);
+		if (debugchannel (nr))
+			write_log (_T("AUD%dLCL: %04X %08X (%d) (%d %d %08x)\n"), nr, v, M68K_GETPC, cdp->state, cdp->dsr, cdp->ptx_written, cdp->ptx);
 #endif
 	}
 }

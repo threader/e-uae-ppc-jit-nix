@@ -262,15 +262,15 @@ static int stored_picasso_on = -1;
 static void cartridge_enter (void)
 {
 #ifdef PICASSO96
-	stored_picasso_on = picasso_on;
+	stored_picasso_on = picasso_requested_on;
 	picasso_requested_on = 0;
 #endif
 }
 static void cartridge_exit (void)
 {
 #ifdef PICASSO96
-	if (stored_picasso_on >= 0)
-		picasso_requested_on = stored_picasso_on != 0;
+	if (stored_picasso_on > 0)
+		picasso_requested_on = 1;
 	stored_picasso_on = -1;
 #endif
 }
@@ -614,38 +614,38 @@ static void action_replay_chipwrite (void);
 void REGPARAM2 chipmem_lput_actionreplay1 (uaecptr addr, uae_u32 l)
 {
 	uae_u32 *m;
-	addr -= chipmem_start & chipmem_mask;
-	addr &= chipmem_mask;
+	addr -= chipmem_start_addr & chipmem_bank.mask;
+	addr &= chipmem_bank.mask;
 	if (addr == 0x60 && !is_ar_pc_in_rom())
 		action_replay_chipwrite ();
-	m = (uae_u32 *)(chipmemory + addr);
+	m = (uae_u32 *)(chipmem_bank.baseaddr + addr);
 	do_put_mem_long (m, l);
 }
 void REGPARAM2 chipmem_wput_actionreplay1 (uaecptr addr, uae_u32 w)
 {
 	uae_u16 *m;
 
-	addr -= chipmem_start & chipmem_mask;
-	addr &= chipmem_mask;
+	addr -= chipmem_start_addr & chipmem_bank.mask;
+	addr &= chipmem_bank.mask;
 	if (addr == 0x60 && !is_ar_pc_in_rom())
 		action_replay_chipwrite ();
-	m = (uae_u16 *)(chipmemory + addr);
+	m = (uae_u16 *)(chipmem_bank.baseaddr + addr);
 	do_put_mem_word (m, w);
 }
 void REGPARAM2 chipmem_bput_actionreplay1 (uaecptr addr, uae_u32 b)
 {
-	addr -= chipmem_start & chipmem_mask;
-	addr &= chipmem_mask;
+	addr -= chipmem_start_addr & chipmem_bank.mask;
+	addr &= chipmem_bank.mask;
 	if (addr >= 0x60 && addr <= 0x63 && !is_ar_pc_in_rom())
 		action_replay_chipwrite();
-	chipmemory[addr] = b;
+	chipmem_bank.baseaddr[addr] = b;
 }
 void REGPARAM2 chipmem_lput_actionreplay23 (uaecptr addr, uae_u32 l)
 {
 	uae_u32 *m;
-	addr -= chipmem_start & chipmem_mask;
-	addr &= chipmem_mask;
-	m = (uae_u32 *)(chipmemory + addr);
+	addr -= chipmem_start_addr & chipmem_bank.mask;
+	addr &= chipmem_bank.mask;
+	m = (uae_u32 *)(chipmem_bank.baseaddr + addr);
 	do_put_mem_long (m, l);
 	if (addr == 8 && action_replay_flag == ACTION_REPLAY_WAITRESET)
 		action_replay_chipwrite();
@@ -654,9 +654,9 @@ void REGPARAM2 chipmem_wput_actionreplay23 (uaecptr addr, uae_u32 w)
 {
 	uae_u16 *m;
 
-	addr -= chipmem_start & chipmem_mask;
-	addr &= chipmem_mask;
-	m = (uae_u16 *)(chipmemory + addr);
+	addr -= chipmem_start_addr & chipmem_bank.mask;
+	addr &= chipmem_bank.mask;
+	m = (uae_u16 *)(chipmem_bank.baseaddr + addr);
 	do_put_mem_word (m, w);
 	if (addr == 8 && action_replay_flag == ACTION_REPLAY_WAITRESET)
 		action_replay_chipwrite();
@@ -993,7 +993,7 @@ static void hrtmon_go (void)
 	hrtmon_flag = ACTION_REPLAY_ACTIVE;
 	set_special (SPCFLAG_ACTION_REPLAY);
 	if (hrtmon_zeropage)
-		memcpy (hrtmon_zeropage, chipmemory, 1024);
+		memcpy (hrtmon_zeropage, chipmem_bank.baseaddr, 1024);
 	if (hrtmon_custom)
 		memcpy (hrtmon_custom, ar_custom, 2 * 256);
 	for (i = 0; i < 16; i++) {
@@ -1216,26 +1216,26 @@ static uae_u8 ar3patch2[] = {0x00,0xfc,0x01,0x44};
 static void action_replay_patch (void)
 {
 	uae_u32 off1 = 0, off2 = 0;
-	uae_u8 *kickmem = kickmemory;
+	uae_u8 *kickmem = kickmem_bank.baseaddr;
 
 	if (armodel != 3 || !kickmem || !armemory_rom)
 		return;
-	if (!memcmp (kickmem, kickmem + 262144, 262144)) off1 = 262144;
+	if (!memcmp (kickmem, kickmem + 262144, 262144)) off1 = 262144; else off1 = 0;
 	for (;;) {
 		if (!memcmp (kickmem + off1, ar3patch1, sizeof (ar3patch1)) || off1 == 524288 - sizeof (ar3patch1)) break;
 		off1++;
 	}
-
+	off2 = 0;
 	for(;;) {
 		if (!memcmp (armemory_rom + off2, ar3patch2, sizeof(ar3patch2)) || off2 == ar_rom_file_size - sizeof (ar3patch2)) break;
 		off2++;
 	}
 	if (off1 == 524288 - sizeof (ar3patch1) || off2 == ar_rom_file_size - sizeof (ar3patch2))
 		return;
-	armemory_rom[off2 + 0] = (uae_u8)((off1 + kickmem_start + 2) >> 24);
-	armemory_rom[off2 + 1] = (uae_u8)((off1 + kickmem_start + 2) >> 16);
-	armemory_rom[off2 + 2] = (uae_u8)((off1 + kickmem_start + 2) >> 8);
-	armemory_rom[off2 + 3] = (uae_u8)((off1 + kickmem_start + 2) >> 0);
+	armemory_rom[off2 + 0] = (uae_u8)((off1 + kickmem_start_addr + 2) >> 24);
+	armemory_rom[off2 + 1] = (uae_u8)((off1 + kickmem_start_addr + 2) >> 16);
+	armemory_rom[off2 + 2] = (uae_u8)((off1 + kickmem_start_addr + 2) >> 8);
+	armemory_rom[off2 + 3] = (uae_u8)((off1 + kickmem_start_addr + 2) >> 0);
 	write_log (_T("AR ROM patched for KS2.0+ (%x)\n"), off2);
 }
 
@@ -1729,8 +1729,10 @@ void action_replay_init (int activate)
 /* This only deallocates memory, it is not suitable for unloading roms and continuing */
 void action_replay_cleanup()
 {
-	xfree (armemory_rom);
-	xfree (armemory_ram);
+	if (armemory_rom)
+		xfree (armemory_rom);
+	if (armemory_ram)
+		xfree (armemory_ram);
 	if (hrtmemory)
 		mapped_free (hrtmemory);
 	if (hrtmemory2)

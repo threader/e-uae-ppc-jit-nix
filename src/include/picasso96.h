@@ -735,7 +735,7 @@ void uaegfx_install_code (uaecptr start);
 int createwindowscursor (uaecptr, int, int, int, int, int);
 int DX_Fill (int, int, int, int, uae_u32, RGBFTYPE);
 int DX_Blit (int, int, int, int, int, int, BLIT_OPCODE);
-void DX_Invalidate (int, int);
+void DX_Invalidate (int, int, int, int);
 void DX_SetPalette (int, int);
 void DX_SetPalette_vsync(void);
 void picasso96_alloc (TrapContext *);

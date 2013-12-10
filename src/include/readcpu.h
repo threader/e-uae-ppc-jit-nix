@@ -73,6 +73,8 @@ struct instr_def {
     } flaginfo[5];
     uae_u8 sduse;
     const char *opcstr;
+	// 68020/030 timing
+	// int head, tail, clocks, fetchmode;
 };
 
 extern struct instr_def defs68k[];

@@ -16,6 +16,8 @@ void CIA_hsync_prehandler (void);
 void CIA_vsync_posthandler (bool);
 void CIA_hsync_posthandler (bool);
 void CIA_handler (void);
+void CIAA_tod_inc (int);
+void CIAB_tod_handler (int);
 
 void cia_heartbeat (void);
 

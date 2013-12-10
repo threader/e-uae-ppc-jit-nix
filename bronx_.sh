@@ -2,23 +2,17 @@
 #
 # 2006-2013 Mustafa TUFAN (aka GnoStiC/BRONX)
 #
-# this is the main script to build (and test) PUAE
-
-#sdl
-base=" --with-sdl --with-sdl-gfx --with-sdl-sound --enable-drvsnd --with-sdl-gui --with-sdl-gl "
-
-#mac
+#
 base=" --with-sdl --with-sdl-gl --with-sdl-gfx --with-sdl-sound --enable-drvsnd "
-
-wiqt=" "
 cd32=" --enable-cd32 "
 a600=" --enable-gayle "
 scsi=" --enable-scsi-device --enable-ncr --enable-a2091 "
 other=" --with-caps --enable-amax --enable-gccopt --enable-serial-port "
-debug=" --enable-gccdebug "
+libscg=" --with-libscg-prefix=/usr/local/Cellar/cdrtools/3.00/ "
+#debug="--enable-profiling"
 #
 #
 ./bootstrap.sh
-./configure $debug $base $cd32 $a600 $scsi $other CFLAGS="-m32" LDFLAGS="-m32" CPPFLAGS="-m32"
+./configure $debug $base $cd32 $a600 $scsi $other $libscg CFLAGS="-m32" LDFLAGS="-m32" CPPFLAGS="-m32"
 make clean
 make

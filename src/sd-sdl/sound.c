@@ -21,6 +21,7 @@
 #include "driveclick.h"
 #include "sounddep/sound.h"
 #include "threaddep/thread.h"
+#include <SDL.h>
 #include <SDL_audio.h>
 
 int have_sound = 0;
@@ -141,7 +142,7 @@ static int open_sound (void)
 
 	have_sound = 1;
 	sound_available = 1;
-	update_sound (fake_vblank_hz, 1, currprefs.ntscmode);
+	//update_sound (fake_vblank_hz);
 	paula_sndbufsize = spec.samples * 2 * spec.channels;
 	paula_sndbufpt = paula_sndbuffer;
 #ifdef DRIVESOUND

@@ -522,7 +522,7 @@ TT_info mmu030_decode_tt(uae_u32 TT) {
         write_log(_T("MMU Warning: Transparent translation of read-modify-write cycle is not correctly handled!\n"));
     }
 #endif
-    
+
 #if MMU030_REG_DBG_MSG /* enable or disable debugging messages */
     write_log(_T("\n"));
     write_log(_T("TRANSPARENT TRANSLATION: %08X\n"), TT);

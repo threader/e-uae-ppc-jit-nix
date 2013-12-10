@@ -42,6 +42,7 @@ static int original_ch, original_fill, original_line;
 static int blinea_shift;
 static uae_u16 blinea, blineb;
 static int blitline, blitfc, blitfill, blitife, blitsing, blitdesc;
+static int blitline_started;
 static int blitonedot, blitsign, blitlinepixel;
 static int blit_add;
 static int blit_modadda, blit_modaddb, blit_modaddc, blit_modaddd;
@@ -336,14 +337,15 @@ STATIC_INLINE int canblit (int hpos)
 	return 1;
 }
 
-// blitter interrupt is set when last "main" cycle
-// has been finished, any non-linedraw D-channel blit
-// still needs 2 more cycles before final D is written
+// blitter interrupt is set (and busy bit cleared) when
+// last "main" cycle has been finished, any non-linedraw
+// D-channel blit still needs 2 more cycles before final
+// D is written
 static void blitter_interrupt (int hpos, int done)
 {
 	if (blit_interrupt)
 		return;
-	if (!done && (!currprefs.blitter_cycle_exact || currprefs.cpu_model >= 68020))
+	if (!done && (!currprefs.blitter_cycle_exact || currprefs.cpu_model >= 68030))
 		return;
 	blit_interrupt = 1;
 	send_interrupt (6, 3 * CYCLE_UNIT);
@@ -372,7 +374,7 @@ STATIC_INLINE void chipmem_agnus_wput2 (uaecptr addr, uae_u32 w)
 	last_custom_value1 = w;
 #ifndef BLITTER_DEBUG_NO_D
 	chipmem_wput_indirect (addr, w);
-	debug_wputpeekdma (addr, w);
+		debug_wputpeekdma_chipram (addr, w);
 #endif
 }
 
@@ -596,7 +598,7 @@ STATIC_INLINE void blitter_write (void)
 			return;
 		last_custom_value1 = blt_info.bltddat;
 		chipmem_wput_indirect (bltdpt, blt_info.bltddat);
-		debug_wputpeekdma (bltdpt, blt_info.bltddat);
+		debug_wputpeekdma_chipram (bltdpt, blt_info.bltddat);
 	}
 	bltstate = BLT_next;
 }
@@ -996,7 +998,7 @@ static void do_startcycles (int hpos)
 	while (vhpos < hpos) {
 		int v = canblit (vhpos);
 		vhpos++;
-		if (v >= 0) {
+		if (v > 0) {
 			blit_startcycles--;
 			if (blit_startcycles == 0) {
 				if (blit_faulty)
@@ -1177,6 +1179,10 @@ static void blit_bltset (int con)
 		blitdesc = bltcon1 & 2;
 		blt_info.blitbshift = bltcon1 >> 12;
 		blt_info.blitdownbshift = 16 - blt_info.blitbshift;
+		if ((bltcon1 & 1) && !blitline_started) {
+			write_log (_T("BLITTER: linedraw enabled after starting normal blit! %08x\n"), M68K_GETPC);
+			return;
+		}
 	}
 
 	if (con & 1) {
@@ -1189,11 +1195,11 @@ static void blit_bltset (int con)
 	blitfill = !!(bltcon1 & 0x18);
 
 	// disable line draw if bltcon0 is written while it is active
-	if (!savestate_state && bltstate != BLT_done && bltstate != BLT_init && blitline) {
+	if (!savestate_state && bltstate != BLT_done && bltstate != BLT_init && blitline && blitline_started) {
 		blitline = 0;
 		bltstate = BLT_done;
 		blit_interrupt = 1;
-		write_log (_T("BLITTER: register modification during linedraw!\n"));
+		write_log (_T("BLITTER: register modification during linedraw! %08x\n"), M68K_GETPC);
 	}
 
 	if (blitline) {
@@ -1212,7 +1218,7 @@ static void blit_bltset (int con)
 		}
 		if (blitfill && !blitdesc)
 			debugtest (DEBUGTEST_BLITTER, _T("fill without desc\n"));
-		blit_diag = blitfill &&  blit_cycle_diagram_fill[blit_ch][0] ? blit_cycle_diagram_fill[blit_ch] : blit_cycle_diagram[blit_ch];
+		blit_diag = blitfill && blit_cycle_diagram_fill[blit_ch][0] ? blit_cycle_diagram_fill[blit_ch] : blit_cycle_diagram[blit_ch];
 	}
 	if ((bltcon1 & 0x80) && (currprefs.chipset_mask & CSMASK_ECS_AGNUS))
 		debugtest (DEBUGTEST_BLITTER, _T("ECS BLTCON1 DOFF-bit set\n"));
@@ -1330,6 +1336,7 @@ static void blitter_start_init (void)
 	preva = 0;
 	prevb = 0;
 	blit_frozen = 0;
+	blitline_started = bltcon1 & 1;
 
 	blit_bltset (1 | 2);
 	blit_modset ();
@@ -1467,8 +1474,8 @@ static void do_blitter2 (int hpos, int copper)
 		return;
 	}
 	
-       blit_cyclecounter = cycles * (blit_dmacount2 + (blit_nod ? 0 : 1)); 
-       event2_newevent (ev2_blitter, blit_cyclecounter, 0);
+	blit_cyclecounter = cycles * (blit_dmacount2 + (blit_nod ? 0 : 1)); 
+	event2_newevent (ev2_blitter, blit_cyclecounter, 0);
 
 	if (dmaen (DMA_BLITTER) && (currprefs.cpu_model >= 68020 || !currprefs.cpu_cycle_exact)) {
 		if (currprefs.waiting_blits) {
@@ -1477,7 +1484,7 @@ static void do_blitter2 (int hpos, int copper)
 				waitingblits ();
 			}
 		}
-        }
+	}
 }
 
 void blitter_check_start (void)

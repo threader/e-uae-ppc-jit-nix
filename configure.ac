@@ -6,7 +6,7 @@ dnl Updated and generally mauled             2008-2013 Mustafa Tufan
 dnl
 
 AC_PREREQ(2.55)
-AC_INIT(PUAE, 2.6.0, mustafa.tufan@gmail.com, puae)
+AC_INIT(PUAE, 2.7.0, mustafa.tufan@gmail.com, puae)
 AC_CONFIG_SRCDIR([bootstrap.sh])
 AC_CONFIG_HEADER([src/sysconfig.h])
 AC_CANONICAL_TARGET
@@ -1435,7 +1435,7 @@ if [[ "x$WANT_AUTOCONFIG" != "xno" ]]; then
   UAE_DEFINES="$UAE_DEFINES -DFILESYS"
   NEED_THREAD_SUPPORT=yes
   FILESYSOBJS="filesys.\$(OBJEXT) fsdb.\$(OBJEXT) fsusage.\$(OBJEXT) \
-  	hardfile.\$(OBJEXT) filesys_unix.\$(OBJEXT) fsdb_unix.\$(OBJEXT) \
+  	hardfile.\$(OBJEXT) scsitape.\$(OBJEXT) filesys_unix.\$(OBJEXT) fsdb_unix.\$(OBJEXT) \
   	hardfile_unix.\$(OBJEXT)"
 
   dnl  Filesys support currently requires threads, because hardfile
@@ -1469,9 +1469,10 @@ if [[ "x$WANT_SCSIEMU" = "xyes" ]]; then
     if [[ "$OSDEP" = "od-amiga" ]]; then
 			SCSIOBJS='scsiemul.$(OBJEXT)'
       UAE_DEFINES="$UAE_DEFINES -DSCSIEMU"
+			SCSIOBJS='scsiemul.$(OBJEXT)'
 			if [[ "x$WANT_A2091" = "xyes" ]]; then
 				UAE_DEFINES="$UAE_DEFINES -DA2091"
-				SCSIOBJS='scsiemul.$(OBJEXT) a2091.$(OBJEXT)'
+				SCSIOBJS='$SCSIOBJS a2091.$(OBJEXT)'
 			fi
       NEED_THREAD_SUPPORT=yes
     else
@@ -2245,3 +2246,4 @@ if [[ "x$cross_compiling" = "xyes" ]]; then
 fi
 
 AC_DEFINE(ECS_DENISE,1,[we want ecs_denise])
+AC_DEFINE(GFXBOARD,1,[we want hardware graphics board])

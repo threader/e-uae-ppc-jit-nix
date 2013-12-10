@@ -376,10 +376,10 @@ void mmu_bus_error_ttr_write_fault(uaecptr addr, bool super, bool data, uae_u32 
 
 	if (currprefs.mmu_model == 68060) {
 		status |= MMU_FSLW_TTR;
-		}
+	}
 	regs.wb3_data = val;
 	mmu_bus_error(addr, mmu_get_fc (super, data), true, size, false, status);
-	}
+}
 
 
 /*
@@ -442,8 +442,8 @@ static ALWAYS_INLINE bool mmu_fill_atc_try(uaecptr addr, bool super, bool data, 
 			write_log(_T("MMU: write protected %lx by atc \n"), addr);
 #endif
 			mmu_dump_atc();
-		goto fail;
-	}
+			goto fail;
+		}
 
 	}
 	return true;
@@ -851,17 +851,17 @@ uae_u16 REGPARAM2 sfc_get_word(uaecptr addr)
 	if (likely(!is_unaligned(addr, 2))) {
 		res = mmu_get_user_word(addr, super, data, false, sz_word);
 	} else {
-	res = (uae_u16)mmu_get_user_byte(addr, super, data, false, sz_word) << 8;
-	SAVE_EXCEPTION;
-	TRY(prb) {
-		res |= mmu_get_user_byte(addr + 1, super, data, false, sz_word);
-		RESTORE_EXCEPTION;
-	}
-	CATCH(prb) {
-		RESTORE_EXCEPTION;
-		misalignednotfirst(addr);
-		THROW_AGAIN(prb);
-	} ENDTRY
+		res = (uae_u16)mmu_get_user_byte(addr, super, data, false, sz_word) << 8;
+		SAVE_EXCEPTION;
+		TRY(prb) {
+			res |= mmu_get_user_byte(addr + 1, super, data, false, sz_word);
+			RESTORE_EXCEPTION;
+		}
+		CATCH(prb) {
+			RESTORE_EXCEPTION;
+			misalignednotfirst(addr);
+			THROW_AGAIN(prb);
+		} ENDTRY
 	}
 	ismoves = false;
 	return res;
@@ -1009,11 +1009,11 @@ void REGPARAM2 mmu_op_real(uae_u32 opcode, uae_u16 extra)
 				if (!(l->valid))
 					regs.mmusr = MMU_MMUSR_B;
 				else {
-				regs.mmusr = desc & (~0xfff|MMU_MMUSR_G|MMU_MMUSR_Ux|MMU_MMUSR_S|
-									 MMU_MMUSR_CM|MMU_MMUSR_M|MMU_MMUSR_W);
-				regs.mmusr |= MMU_MMUSR_R;
+					regs.mmusr = desc & (~0xfff|MMU_MMUSR_G|MMU_MMUSR_Ux|MMU_MMUSR_S|
+										 MMU_MMUSR_CM|MMU_MMUSR_M|MMU_MMUSR_W);
+					regs.mmusr |= MMU_MMUSR_R;
+				}
 			}
-		}
 		}
 		CATCH(prb) {
 			regs.mmusr = MMU_MMUSR_B;
@@ -1039,7 +1039,7 @@ void REGPARAM2 mmu_op_real(uae_u32 opcode, uae_u16 extra)
 #endif
 	} else {
 		op_illg (opcode);
-}
+	}
 }
 
 // fixme : global parameter?

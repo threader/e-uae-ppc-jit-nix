@@ -57,6 +57,9 @@ struct cdtoc
 	int track;
 	int size;
 	int skipsize; // bytes to skip after each block
+	int index1; // distance between index0 and index1
+	int pregap; // sectors of silence
+	int postgap; // sectors of silence
 	audenc enctype;
 	int writeoffset;
 	int subcode;
@@ -115,13 +118,15 @@ static struct cdtoc *findtoc (struct cdunit *cdu, int *sectorp)
 	sector = *sectorp;
 	for (i = 0; i <= cdu->tracks; i++) {
 		struct cdtoc *t = &cdu->toc[i];
-		if (t->address > sector) {
+		if (t->address - t->index1 > sector) {
 			if (i == 0) {
 				*sectorp = 0;
 				return t;
 			}
 			t--;
-			sector -= t->address;
+			sector -= t->address - t->index1;
+			if (sector < t->pregap)
+				return NULL; // pregap silence
 			*sectorp = sector;
 			return t;
 		}
@@ -371,6 +376,19 @@ static void *cdda_unpack_func (void *v)
 	return 0;
 }
 
+static void audio_unpack (struct cdunit *cdu, struct cdtoc *t)
+{
+	// do this even if audio is not compressed, t->handle also could be
+	// compressed and we want to unpack it in background too
+	while (cdimage_unpack_active == 1)
+		Sleep (10);
+	cdimage_unpack_active = 0;
+	write_comm_pipe_u32 (&unpack_pipe, cdu - &cdunits[0], 0);
+	write_comm_pipe_u32 (&unpack_pipe, t - &cdu->toc[0], 1);
+	while (cdimage_unpack_active == 0)
+		Sleep (10);
+}
+
 static void *cdda_play_func (void *v)
 {
 	int cdda_pos;
@@ -379,9 +397,11 @@ static void *cdda_play_func (void *v)
 	int bufnum;
 	int bufon[2];
 	int oldplay;
-	int idleframes;
+	int idleframes = 0;
+	int silentframes = 0;
 	bool foundsub;
 	struct cdunit *cdu = (struct cdunit*)v;
+	int oldtrack = -1;
 
 	while (cdu->cdda_play == 0)
 		Sleep (10);
@@ -400,6 +420,7 @@ static void *cdda_play_func (void *v)
 			struct _timeb tb1, tb2;
 
 			idleframes = 0;
+			silentframes = 0;
 			foundsub = false;
 			_ftime (&tb1);
 			cdda_pos = cdu->cdda_start;
@@ -407,20 +428,19 @@ static void *cdda_play_func (void *v)
 			sector = cdu->cd_last_pos = cdda_pos;
 			t = findtoc (cdu, &sector);
 			if (!t) {
-				write_log (_T("IMAGE CDDA: illegal sector number %d\n"), cdu->cdda_start);
-				setstate (cdu, AUDIO_STATUS_PLAY_ERROR);
+				sector = cdu->cd_last_pos = cdda_pos + 2 * 75;
+				t = findtoc (cdu, &sector);
+				if (!t) {
+					write_log (_T("IMAGE CDDA: illegal sector number %d\n"), cdu->cdda_start);
+					setstate (cdu, AUDIO_STATUS_PLAY_ERROR);
+				} else {
+					audio_unpack (cdu, t);
+				}
 			} else {
-				write_log (_T("IMAGE CDDA: playing from %d to %d, track %d ('%s', offset %lld, secoffset %d)\n"),
-					cdu->cdda_start, cdu->cdda_end, t->track, t->fname, t->offset, sector);
-				// do this even if audio is not compressed, t->handle also could be
-				// compressed and we want to unpack it in background too
-				while (cdimage_unpack_active == 1)
-					Sleep (10);
-				cdimage_unpack_active = 0;
-				write_comm_pipe_u32 (&unpack_pipe, cdu - &cdunits[0], 0);
-				write_comm_pipe_u32 (&unpack_pipe, t - &cdu->toc[0], 1);
-				while (cdimage_unpack_active == 0)
-					Sleep (10);
+				write_log (_T("IMAGE CDDA: playing from %d to %d, track %d ('%s', offset %lld, secoffset %d (%d))\n"),
+					cdu->cdda_start, cdu->cdda_end, t->track, t->fname, t->offset, sector, t->index1);
+				oldtrack = t->track;
+				audio_unpack (cdu, t);
 			}
 			idleframes = cdu->cdda_delay_frames;
 			while (cdu->cdda_paused && cdu->cdda_play > 0) {
@@ -462,6 +482,20 @@ static void *cdda_play_func (void *v)
 			if (idleframes >= 0 && diff < 0 && cdu->cdda_play > 0)
 				Sleep (-diff);
 			setstate (cdu, AUDIO_STATUS_IN_PROGRESS);
+
+			sector = cdda_pos;
+			struct cdtoc *t1 = findtoc (cdu, &sector);
+			int tsector = cdda_pos + 2 * 75;
+			struct cdtoc *t2 = findtoc (cdu, &tsector);
+			if (t1 != t2) {
+				for (sector = cdda_pos; sector < cdda_pos + 2 * 75; sector++) {
+					int sec = sector;
+					t = findtoc (cdu, &sec);
+					if (t == t2)
+						break;
+					silentframes++;
+				}
+			}
 		}
 
 		cda->wait(bufnum);
@@ -493,6 +527,12 @@ static void *cdda_play_func (void *v)
 
 				t = findtoc (cdu, &sector);
 				if (t) {
+					if (t->track != oldtrack) {
+						oldtrack = t->track;
+						write_log (_T("IMAGE CDDA: track %d ('%s', offset %lld, secoffset %d (%d))\n"),
+							t->track, t->fname, t->offset, sector, t->index1);
+						audio_unpack (cdu, t);
+					}
 					if (!(t->ctrl & 4)) {
 						if (t->enctype == ENC_CHD) {
 							do_read (cdu, t, dst, sector, 0, t->size);
@@ -504,13 +544,16 @@ static void *cdda_play_func (void *v)
 							}
 						} else if (t->handle) {
 							int totalsize = t->size + t->skipsize;
-							if ((t->enctype == AUDENC_MP3 || t->enctype == AUDENC_FLAC) && t->data) {
-								if (t->filesize >= sector * totalsize + t->offset + t->size)
-									memcpy (dst, t->data + sector * totalsize + t->offset, t->size);
-							} else if (t->enctype == AUDENC_PCM) {
-								if (sector * totalsize + t->offset + totalsize < t->filesize) {
-									zfile_fseek (t->handle, (uae_u64)sector * totalsize + t->offset, SEEK_SET);
-									zfile_fread (dst, t->size, 1, t->handle);
+							int offset = t->offset;
+							if (offset >= 0) {
+								if ((t->enctype == AUDENC_MP3 || t->enctype == AUDENC_FLAC) && t->data) {
+									if (t->filesize >= sector * totalsize + offset + t->size)
+										memcpy (dst, t->data + sector * totalsize + offset, t->size);
+								} else if (t->enctype == AUDENC_PCM) {
+									if (sector * totalsize + offset + totalsize < t->filesize) {
+										zfile_fseek (t->handle, (uae_u64)sector * totalsize + offset, SEEK_SET);
+										zfile_fread (dst, t->size, 1, t->handle);
+									}
 								}
 							}
 						}
@@ -518,10 +561,14 @@ static void *cdda_play_func (void *v)
 					getsub_deinterleaved (subbuf, cdu, t, cdda_pos);
 				}
 
-				if (idleframes > 0) {
-					idleframes--;
+				if (idleframes > 0 || silentframes > 0) {
+					if (idleframes > 0) {
+						idleframes--;
+						memset (subbuf, 0, SUB_CHANNEL_SIZE);
+					}
+					if (silentframes > 0)
+						silentframes--;
 					memset (dst, 0, 2352);
-					memset (subbuf, 0, SUB_CHANNEL_SIZE);
 				}
 
 				if (cdda_pos < cdu->cdda_start && cdu->cdda_scan == 0)
@@ -745,7 +792,7 @@ static int command_rawread (int unitnum, uae_u8 *data, int sector, int size, int
 				uae_u8 b = 0;
 				do_read (cdu, t, &b, sector, 15, 1);
 				if (b != 2 && b != 0) // MODE0 or MODE2 only allowed
-					return 0; 
+					return 0;
 				do_read (cdu, t, data, sector, 16, sectorsize);
 				sector++;
 				asector++;
@@ -1346,9 +1393,10 @@ static int parseccd (struct cdunit *cdu, struct zfile *zcue, const TCHAR *img)
 
 static int parsecue (struct cdunit *cdu, struct zfile *zcue, const TCHAR *img)
 {
-	int tracknum, pregap;
+	int tracknum, pregap, postgap, lastpregap, lastpostgap;
 	int newfile, secoffset;
-	uae_s64 offset, index0;
+	uae_s64 fileoffset;
+	int index0;
 	TCHAR *fname, *fnametype;
 	audenc fnametypeid;
 	int ctrl;
@@ -1357,12 +1405,15 @@ static int parsecue (struct cdunit *cdu, struct zfile *zcue, const TCHAR *img)
 	fname = NULL;
 	fnametype = NULL;
 	tracknum = 0;
-	offset = 0;
+	fileoffset = 0;
 	secoffset = 0;
 	newfile = 0;
 	ctrl = 0;
 	index0 = -1;
 	pregap = 0;
+	postgap = 0;
+	lastpregap = 0;
+	lastpostgap = 0;
 	fnametypeid = AUDENC_NONE;
 
 	write_log (_T("CUE TOC: '%s'\n"), img);
@@ -1390,7 +1441,7 @@ static int parsecue (struct cdunit *cdu, struct zfile *zcue, const TCHAR *img)
 				fnametypeid = AUDENC_MP3;
 			else if (!_tcsicmp (fnametype, _T("FLAC")))
 				fnametypeid = AUDENC_FLAC;
-			offset = 0;
+			fileoffset = 0;
 			newfile = 1;
 			ctrl = 0;
 		} else if (!_tcsnicmp (p, _T("FLAGS"), 5)) {
@@ -1411,8 +1462,9 @@ static int parsecue (struct cdunit *cdu, struct zfile *zcue, const TCHAR *img)
 			TCHAR *tracktype;
 			
 			p += 5;
-			//pregap = 0;
 			index0 = -1;
+			lastpregap = 0;
+			lastpostgap = 0;
 			tracknum = _tstoi (nextstring (&p));
 			tracktype = nextstring (&p);
 			if (!tracktype)
@@ -1496,6 +1548,18 @@ static int parsecue (struct cdunit *cdu, struct zfile *zcue, const TCHAR *img)
 			tn += _tstoi (tt + 3) * 75;
 			tn += _tstoi (tt + 6);
 			pregap += tn;
+			lastpregap = tn;
+		} else if (!_tcsnicmp (p, _T("POSTGAP"), 7)) {
+			struct cdtoc *t = &cdu->toc[tracknum - 1];
+			TCHAR *tt;
+			int tn;
+			p += 7;
+			tt = nextstring (&p);
+			tn = _tstoi (tt) * 60 * 75;
+			tn += _tstoi (tt + 3) * 75;
+			tn += _tstoi (tt + 6);
+			postgap += tn;
+			lastpostgap = tn;
 		} else if (!_tcsnicmp (p, _T("INDEX"), 5)) {
 			int idxnum;
 			int tn = 0;
@@ -1513,13 +1577,23 @@ static int parsecue (struct cdunit *cdu, struct zfile *zcue, const TCHAR *img)
 				if (!t->address) {
 					t->address = tn + secoffset;
 					t->address += pregap;
-					if (tracknum > 1) {
-						offset += t->address - t[-1].address;
-					} else {
-						offset += t->address;
+					t->pregap = lastpregap;
+					t->postgap = lastpostgap;
+					if (index0 >= 0) {
+						t->index1 = tn - index0;
 					}
-					if (!secoffset)
-						t->offset = offset * t->size;
+					if (lastpregap && !secoffset) {
+						t->index1 = lastpregap;
+					}
+					int blockoffset = t->address - t->index1;
+					if (tracknum > 1)
+						blockoffset -= t[-1].address - t[-1].index1;
+					fileoffset += blockoffset * t[-1].size;
+					if (!secoffset) {
+						// secoffset == 0: same file contained also previous track
+						t->offset = fileoffset - pregap * t->size;
+					}
+					t->address += postgap;
 					if (fnametypeid == AUDENC_PCM && t->handle) {
 						struct zfile *zf = t->handle;
 						uae_u8 buf[16] = { 0 };
@@ -1566,10 +1640,11 @@ static int parsecue (struct cdunit *cdu, struct zfile *zcue, const TCHAR *img)
 	struct cdtoc *t = &cdu->toc[cdu->tracks - 1];
 	uae_s64 size = t->filesize;
 	if (!secoffset)
-		size -= offset * t->size;
+		size -= fileoffset;
 	if (size < 0)
 		size = 0;
-	cdu->toc[cdu->tracks].address = t->address + (int)(size / t->size);
+	size /= t->size;
+	cdu->toc[cdu->tracks].address = t->address + (int)size;
 
 	xfree (fname);
 
@@ -1647,11 +1722,20 @@ static int parse_image (struct cdunit *cdu, const TCHAR *img)
 
 	for (i = 0; i <= cdu->tracks; i++) {
 		struct cdtoc *t = &cdu->toc[i];
-		uae_u32 msf = lsn2msf (t->address);
+		uae_u32 msf;
+		if (t->pregap) {
+			msf = lsn2msf (t->pregap - 150);
+			write_log (_T("   PREGAP : %02d:%02d:%02d\n"), (msf >> 16) & 0x7fff, (msf >> 8) & 0xff, (msf >> 0) & 0xff);
+		}
+		if (t->index1) {
+			msf = lsn2msf (t->index1 - 150);
+			write_log (_T("   INDEX1 : %02d:%02d:%02d\n"), (msf >> 16) & 0x7fff, (msf >> 8) & 0xff, (msf >> 0) & 0xff);
+		}
 		if (i < cdu->tracks)
 			write_log (_T("%2d: "), i + 1);
 		else
 			write_log (_T("    "));
+		msf = lsn2msf (t->address);
 		write_log (_T("%7d %02d:%02d:%02d"),
 			t->address, (msf >> 16) & 0x7fff, (msf >> 8) & 0xff, (msf >> 0) & 0xff);
 		if (i < cdu->tracks) {
@@ -1666,6 +1750,10 @@ static int parse_image (struct cdunit *cdu, const TCHAR *img)
 			write_log (_T(" - %s\n"), t->fname);
 		if (t->handle && !t->filesize)
 			t->filesize = zfile_size (t->handle);
+		if (t->postgap) {
+			msf = lsn2msf (t->postgap - 150);
+			write_log (_T("   POSTGAP: %02d:%02d:%02d\n"), (msf >> 16) & 0x7fff, (msf >> 8) & 0xff, (msf >> 0) & 0xff);
+		}
 	}
 
 	cdu->blocksize = 2048;
@@ -1757,7 +1845,7 @@ static int open_device (int unitnum, const TCHAR *ident, int flags)
 		uae_sem_init (&cdu->sub_sem, 0, 1);
 		cdu->imgname[0] = 0;
 		if (ident)
-		_tcscpy (cdu->imgname, ident);
+			_tcscpy (cdu->imgname, ident);
 		parse_image (cdu, ident);
 		cdu->open = true;
 		cdu->enabled = true;

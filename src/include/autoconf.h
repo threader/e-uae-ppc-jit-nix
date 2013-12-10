@@ -50,7 +50,7 @@ uaecptr makedatatable (uaecptr resid, uaecptr resname, uae_u8 type, uae_s8 prior
 
 void align (int);
 
-extern volatile int uae_int_requested;
+extern volatile int uae_int_requested, uaenet_int_requested;
 void set_uae_int_flag (void);
 
 #define RTS 0x4e75

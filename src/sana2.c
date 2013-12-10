@@ -9,6 +9,8 @@
  *
  */
 
+#ifdef UAENET
+
 #include "sysconfig.h"
 #include "sysdeps.h"
 
@@ -27,6 +29,7 @@
 #include "sana2.h"
 #include "uaenet.h"
 #include "execio.h"
+#include "commpipe.h"
 
 #define SANA2NAME _T("uaenet.device")
 
@@ -1668,3 +1671,7 @@ void netdev_reset (void)
 		return;
 	dev_reset ();
 }
+
+#else
+volatile int uaenet_int_requested = 0;
+#endif
