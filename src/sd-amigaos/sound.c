@@ -26,7 +26,7 @@ unsigned char *buffers[2];
 uae_u16 *sndbuffer;
 uae_u16 *sndbufpt;
 int sndbufsize;
-int bufidx;
+int bufidx, ahiopen = FALSE;
 
 int have_sound;
 int clockval;
@@ -50,11 +50,13 @@ static BOOL open_AHI (void)
 	    if (!OpenDevice (AHINAME, 0, (struct IORequest *)AHIio[0], 0)) {
 		if ((AHIio[1] = malloc (sizeof(struct AHIRequest)))) {
 		    memcpy (AHIio[1], AHIio[0], sizeof(struct AHIRequest));
+		    ahiopen = TRUE;
 		    return TRUE;
 		}
 	    }
 	}
     }
+    ahiopen = FALSE;
     return FALSE;
 }
 
@@ -74,6 +76,7 @@ static void close_AHI (void)
     AHIio[0] = NULL;
     AHIio[1] = NULL;
     linkio   = NULL;
+	ahiopen = FALSE;
 }
 
 static int get_clockval (void)
@@ -153,7 +156,10 @@ fail:
 
 void close_sound (void)
 {
-    close_AHI ();
+	if (ahiopen)
+	{
+		close_AHI ();
+	}
 
     if (buffers[0]) {
 	FreeMem ((APTR) buffers[0], sndbufsize);
