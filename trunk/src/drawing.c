@@ -1791,14 +1791,22 @@ static void draw_status_line (int line)
 	 else if (led == 9) {
 			//Led #9 - JIT indicator
 		    pos = 9;
-			//It is always "on"
-		    on = 1;
-			//Calculate the color according to the ratio between the executed JIT compiled and interpreted instruction blocks
-		    on_rgb = (gui_data.jitled & 0xf) << 4;
-		    off_rgb = 0x000;
-		    num1 = -1;
-		    num2 = 14;
-		    num3 = 15;
+		    if (gui_data.jiton)
+		    {
+				//It is always "on"
+			    on = 1;
+
+			    //The color was calculated according to the ratio between the executed JIT compiled and interpreted instruction blocks
+				//When the JIT is off then it is set to pure red, otherwise it shows the balance by green level.
+				on_rgb = gui_data.jitled;
+				num1 = -1;
+				num2 = 14;
+				num3 = 15;
+		    } else {
+		    	//JIT is off
+		    	on = 0;
+		    }
+			off_rgb = 0x000;
 	 }
 #endif
 	 else {

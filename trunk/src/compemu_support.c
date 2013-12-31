@@ -7,6 +7,7 @@
 #include "newcpu.h"
 #include "compemu.h"
 #include "uae_endian.h"
+#include "gui.h"
 #include "compemu_compiler.h"
 #include "compemu_macroblocks.h"
 
@@ -17,7 +18,7 @@ STATIC_INLINE void comp_reset_tmp_register(comp_tmp_reg* temp_reg);
 /* Number of temporary registers */
 #define PPC_TMP_REGS_COUNT 11
 
-/* Maximum number of handled branch insrtuction scheduling */
+/* Maximum number of handled branch instruction scheduling */
 #define MAX_BRANCH_SCHEDULE 3
 
 /* List of temporary registers
@@ -152,9 +153,22 @@ static void alloc_cache(void)
 {
 	write_log("JIT: Allocation of translation cache...\n");
 
+	//Set JIT LED to off on screen
+	gui_data.jiton = 0;
+
+	//If the processor type is not suitable for JIT (no CPU cache) then leaving
+	if (currprefs.cpu_level < 2)
+	{
+		write_log("JIT: Selected processor type has no cache, leaving\n");
+		return;
+	}
+
 	if (compiled_code != NULL)
 	{
+		//JIT is on, set JIT LED on
+		gui_data.jiton = 1;
 		write_log("JIT: Translation cache is already allocated, leaving.\n");
+		return;
 	}
 
 	write_log("JIT: Translation cache size in prefs: %d\n", currprefs.cachesize);
@@ -178,6 +192,9 @@ static void alloc_cache(void)
 		max_compile_start = compiled_code_top - BYTES_PER_INST;
 		current_compile_p = compiled_code;
 	}
+
+	//JIT is on, set JIT LED on
+	gui_data.jiton = 1;
 
 	write_log("JIT: Allocated %d KB translation cache.\n", currprefs.cachesize);
 }
@@ -382,7 +399,7 @@ void compemu_reset(void)
 	}
 
 	//Reset the unmapped register round-robin counter
-	last_unmapped_register = -1;
+	last_unmapped_register = 0;
 
 	//Reset actually compiled M68k instruction pointer
 	compiled_m68k_location = NULL;
@@ -699,10 +716,7 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 			comp_compiler_debug_dump_compiled();
 
 			//Compile calling the do_cycles function at the end of the block with the pre-calculated cycles
-			comp_ppc_do_cycles(scaled_cycles(totcycles));
-
-			//Return to the caller from the compiled block, restore non-volatile registers
-			comp_ppc_return_to_caller(PPCR_REG_USED_NONVOLATILE);
+			comp_ppc_return_from_block(scaled_cycles(totcycles));
 
 			//Check whether we ran out of the compiling buffer
 			if (current_compile_p >= max_compile_start)
@@ -781,11 +795,12 @@ STATIC_INLINE comp_tmp_reg* comp_find_unlocked_temp_register(void)
 	int found = -1;
 
 	//Round-robin searching of the next unmappable register
-	for(i = last_unmapped_register + 1; i != last_unmapped_register; i++)
-	{
-		//Round-robin: turns around at the end of the array
-		if (i == PPC_TMP_REGS_COUNT) i = 0;
+	i = last_unmapped_register + 1;
+	//Turns around at the end of the array
+	if (i == PPC_TMP_REGS_COUNT) i = 0;
 
+	for(; i != last_unmapped_register;)
+	{
 		reg = used_tmp_regs[i].allocated_for;
 
 		//If the register is linked to a M68k register then it is a candidate
@@ -804,6 +819,12 @@ STATIC_INLINE comp_tmp_reg* comp_find_unlocked_temp_register(void)
 				if (found == -1) found = i;
 			}
 		}
+
+		//Next temp register
+		i++;
+
+		//Round-robin: turns around at the end of the array
+		if (i == PPC_TMP_REGS_COUNT) i = 0;
 	}
 
 	if (found == -1)
@@ -900,6 +921,40 @@ void comp_flush_temp_registers(int supresswarning)
 					write_jit_log("Warning: Temporary register %d allocated but not free'd\n", i);
 				}
 				comp_reset_tmp_register(reg);
+			}
+		}
+	}
+}
+
+/**
+ * Gather all mapped registers into a list that needs flushing.
+ * The list consists of 16 bytes, each element will refer to the actual host processor register number
+ * which was mapped to that register (the order is: D0-D7, A0-A7). If a register is not
+ * mapped then the byte will be -1.
+ */
+void comp_get_changed_mapped_regs_list(uae_s8* mapped_regs)
+{
+	int i;
+
+	/* Set all registers to non-mapped */
+	for (i = 0; i < 16; i++)
+		mapped_regs[i] = -1;
+
+	/* Walk down on the temporary register list */
+	for (i = 0; i < PPC_TMP_REGS_COUNT; i++)
+	{
+		comp_tmp_reg* reg = &used_tmp_regs[i];
+
+		//If the register is allocated for a 68k register
+		if (reg->allocated && reg->allocated_for)
+		{
+			struct m68k_register* reg_map = reg->allocated_for;
+
+			//And it needs flushing
+			if (reg_map->needs_flush)
+			{
+				//Then the register must be written back to the Regs array
+				mapped_regs[reg_map->regnum] = reg_map->tmpreg->mapped_reg_num.r;
 			}
 		}
 	}
@@ -1806,6 +1861,30 @@ void comp_ppc_cntlzw(comp_ppc_reg rega, comp_ppc_reg regs, BOOL updateflags)
 {
 	// ## cntlzw(x) rega, regs
 	comp_ppc_emit_halfwords(0x7C00 | regs.r << 5 | rega.r, 0x0034 | (updateflags ? 1 : 0));
+}
+
+/* Compiles divwo instruction
+ * Parameters:
+ * 		rega - target register
+ * 		regs - source register
+ * 		updateflags - compiles the flag updating version if TRUE
+ */
+void comp_ppc_divwo(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags)
+{
+	// ## divwo(x) regd, rega, regb
+	comp_ppc_emit_halfwords(0x7C00 | regd.r << 5 | rega.r, 0x07D6 | regb.r << 11 | (updateflags ? 1 : 0));
+}
+
+/* Compiles divwuo instruction
+ * Parameters:
+ * 		rega - target register
+ * 		regs - source register
+ * 		updateflags - compiles the flag updating version if TRUE
+ */
+void comp_ppc_divwuo(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags)
+{
+	// ## divwuo(x) regd, rega, regb
+	comp_ppc_emit_halfwords(0x7C00 | regd.r << 5 | rega.r, 0x0796 | regb.r << 11 | (updateflags ? 1 : 0));
 }
 
 /* Compiles extsb instruction
@@ -2779,3 +2858,114 @@ void comp_ppc_reload_pc_p(uae_u8* new_pc_p)
 	comp_ppc_liw(PPCR_SPECTMP_MAPPED, (uae_u32) new_pc_p);
 	comp_ppc_stw(PPCR_SPECTMP_MAPPED, COMP_GET_OFFSET_IN_REGS(pc_p), PPCR_REGS_BASE_MAPPED);
 }
+
+/* Compiles return from block.
+ * Parameters:
+ *    cycles - number of processor clock cycles that will be added to the cycle counter.
+ * Note: this function does not finish the compiled block, simply emits the required instructions
+ *       to the current position of the code buffer.
+ */
+void comp_ppc_return_from_block(int cycles)
+{
+	//TODO: this function could be a static callback, so it would eat up less free space from the code buffer
+	//Compile calling the do_cycles function at the end of the block with the pre-calculated cycles
+	comp_ppc_do_cycles(cycles);
+
+	//Return to the caller from the compiled block, restore non-volatile registers
+	comp_ppc_return_to_caller(PPCR_REG_USED_NONVOLATILE);
+}
+
+/* Compiles an exception routine call
+ * Parameters:
+ *   level - exception level
+ */
+void comp_ppc_exception(uae_u8 level, comp_exception_data* exception_data)
+{
+	//Save mapped registers back to the Regs structure before calling the exception handler
+	//(but don't release the temporary registers or the mapping)
+	comp_ppc_save_mapped_registers_from_list(exception_data->mapped_regs);
+
+	//Save flags
+	comp_ppc_save_flags();
+
+	//Call the exception handler
+	//Parameters: R3 - exception level, R4 - Regs structure address, R5 - triggering instruction address
+	comp_ppc_li(PPCR_PARAM1_MAPPED, level);
+	comp_ppc_mr(PPCR_PARAM2_MAPPED, PPCR_REGS_BASE_MAPPED, FALSE);
+	comp_ppc_liw(PPCR_PARAM3_MAPPED, exception_data->next_address);
+	comp_ppc_call(PPCR_SPECTMP_MAPPED, (uae_uintptr) Exception);
+
+	//Compile returning from the block to the current position
+	//The amount of spent processor cycles is static: it is too complicated to calculate it for
+	//the partial block and also take account of the time for the exception too.
+	//Let's say this is an awesomely fast Motorola processor and it takes only
+	//a few processor cycles to trigger the exception, so together with the rest
+	//of the block it will be executed in 50000 normal hardware cycles.
+	comp_ppc_return_from_block(scaled_cycles(50000));
+}
+
+/* Compiles store instructions for each 68k register in the list
+ * which was mapped to a PowerPC register.
+ * Parameters:
+ *    mapped_regs - list of 68k registers mapped to a PowerPC register,
+ *					if a register is not mapped then it will be -1, otherwise the number refers
+ *					to the PowerPC GPR number.
+ *					The order of the list is: D0-D7, A0-A7
+ */
+void comp_ppc_save_mapped_registers_from_list(uae_s8* mapped_regs)
+{
+	int i;
+
+	for (i = 0; i < 16; i++)
+	{
+		if (mapped_regs[i] != -1)
+		{
+			//TODO: it would be better to use the comp_ppc_reg structure in the list, but it is not possible to mark an item as unmapped
+			comp_ppc_stw((comp_ppc_reg){.r = mapped_regs[i]}, i * 4, PPCR_REGS_BASE_MAPPED);
+		}
+	}
+}
+
+/**
+ * Save flags
+ * Write the M68k flags from register to the interpretive emulator's structure
+ * We assume the GCC PPC target, there are two fields in the structure: cznv and x
+ * These two fields both have to be saved, but no other operation is needed to separate the flags.
+ * Have a look on md-ppc-gcc/m68k.h for the details.
+ * Note: this is the same implementation as comp_macroblock_push_save_flags() function, but
+ *       emits the code directly.
+ */
+void comp_ppc_save_flags()
+{
+	//Save flags register to flag_struct.cznv and avoid optimize away this block
+	comp_ppc_stw(PPCR_FLAGS_MAPPED, COMP_GET_OFFSET_IN_REGS(ccrflags.cznv), PPCR_REGS_BASE_MAPPED);
+
+	//Save flags register to flag_struct.x and avoid optimize away this block
+	//There is a little trick in this: to let us skip the shifting
+	//operation, we store the lower half word of the flag register,
+	//because X flag should go to the same bit as C flag in the other
+	//field (flag_struct.cznv).
+	comp_ppc_sth(PPCR_FLAGS_MAPPED, COMP_GET_OFFSET_IN_REGS(ccrflags.x), PPCR_REGS_BASE_MAPPED);
+}
+
+/**
+ * Loads the M68k PC
+ * Note: this is the same implementation as comp_macroblock_push_load_pc() function, but
+ *       emits the code directly.
+ */
+void comp_ppc_load_pc(uae_u32 pc_address, uae_u32 location)
+{
+	//Load real memory pointer for the executed instruction
+	comp_ppc_liw(PPCR_SPECTMP_MAPPED, location);
+
+	comp_ppc_stw(PPCR_SPECTMP_MAPPED, COMP_GET_OFFSET_IN_REGS(pc_p), PPCR_REGS_BASE_MAPPED);
+
+	//Synchronize the executed instruction pointer from the block start to the actual
+	comp_ppc_stw(PPCR_SPECTMP_MAPPED, COMP_GET_OFFSET_IN_REGS(pc_oldp), PPCR_REGS_BASE_MAPPED);
+
+	//Load emulated instruction pointer (PC register)
+	comp_ppc_liw(PPCR_SPECTMP_MAPPED, pc_address);
+
+	comp_ppc_stw(PPCR_SPECTMP_MAPPED, COMP_GET_OFFSET_IN_REGS(pc), PPCR_REGS_BASE_MAPPED);
+}
+

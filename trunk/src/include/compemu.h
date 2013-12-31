@@ -68,6 +68,14 @@ typedef struct comp_tmp_reg_t
 	comp_ppc_reg mapped_reg_num;	/* Mapped physical register for the temporary register */
 } comp_tmp_reg;
 
+/* Data structure for Exception triggering */
+typedef struct comp_exception_data_t
+{
+	uae_u32 next_address;			//Next instruction address
+	uae_u32 next_location;			//Pointer to next instruction in memory
+	uae_s8 mapped_regs[16];			//List of mapped registers to be flushed
+} comp_exception_data;
+
 /* PowerPC register layout
  * SysV ABI assumed, might change for other ABIs
  * See documentation:
@@ -204,9 +212,14 @@ typedef struct comp_tmp_reg_t
 /* Conditional branch BO and BI operands (together)
  * Please note: stupid old GCC does not allow binary constants. Pff. */
 #define PPC_B_CR_TMP0_LT	0x0180	//0b0110000000
+#define PPC_B_CR_TMP1_LT	0x0184	//0b0110000100
 #define PPC_B_CR_TMP0_GT	0x0181	//0b0110000001
+#define PPC_B_CR_TMP1_GT	0x0185	//0b0110000101
 #define PPC_B_CR_TMP0_EQ	0x0182	//0b0110000010
+#define PPC_B_CR_TMP1_EQ	0x0186	//0b0110000110
 #define PPC_B_CR_TMP0_NE	0x0082 	//0b0010000010
+#define PPC_B_CR_TMP1_NE	0x0086 	//0b0010000110
+
 
 //These two constants for hinting the branch if it was more likely taken or not
 #define PPC_B_TAKEN			0x0020	//0b0000100000
@@ -293,6 +306,7 @@ void comp_unmap_temp_register(struct m68k_register* reg);
 void comp_swap_temp_register_mapping(comp_tmp_reg* tmpreg1, comp_tmp_reg* tmpreg2);
 comp_tmp_reg* comp_get_mapped_temp_register(uae_u8 reg_number);
 void comp_flush_temp_registers(int supresswarning);
+void comp_get_changed_mapped_regs_list(uae_s8* mapped_regs);
 void comp_unlock_all_temp_registers(void);
 int comp_next_free_register_slot(void);
 int comp_last_register_slot(void);
@@ -318,6 +332,8 @@ void comp_ppc_blrl(void);
 void comp_ppc_cmplw(int regcrfd, comp_ppc_reg rega, comp_ppc_reg regb);
 void comp_ppc_cmplwi(int regcrfd, comp_ppc_reg rega, uae_u16 imm);
 void comp_ppc_cntlzw(comp_ppc_reg rega, comp_ppc_reg regs, BOOL updateflags);
+void comp_ppc_divwo(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags);
+void comp_ppc_divwuo(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags);
 void comp_ppc_extsb(comp_ppc_reg rega, comp_ppc_reg regs, BOOL updateflags);
 void comp_ppc_extsh(comp_ppc_reg rega, comp_ppc_reg regs, BOOL updateflags);
 void comp_ppc_lbz(comp_ppc_reg regd, uae_u16 delta, comp_ppc_reg rega);
@@ -385,6 +401,11 @@ void comp_ppc_verify_pc(uae_u8* pc_addr_exp);
 void comp_ppc_reload_pc_p(uae_u8* new_pc_p);
 uae_u32 comp_ppc_save_temp_regs(uae_u32 exceptions);
 void comp_ppc_restore_temp_regs(uae_u32 saved_regs);
+void comp_ppc_return_from_block(int cycles);
+void comp_ppc_exception(uae_u8 level, comp_exception_data* exception_data);
+void comp_ppc_save_mapped_registers_from_list(uae_s8* mapped_regs);
+void comp_ppc_save_flags(void);
+void comp_ppc_load_pc(uae_u32 pc_address, uae_u32 location);
 #endif
 
 /* I wonder why we don't have these defined globally. */

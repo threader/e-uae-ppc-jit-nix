@@ -4242,15 +4242,22 @@ static void vsync_handler (void)
 
 #ifdef JIT
     //Set the JIT indicator on the UI and then clear it
-    if (jit_indicator_interpreted_executed)
+    if (cache_enabled)
     {
-		//Calculate the ratio between the executed compiled and interpreted code
-		//The result will be between 0 and 0xf
-		gui_data.jitled = (jit_indicator_compiled_executed * 0xf) / jit_indicator_interpreted_executed;
+		if (jit_indicator_interpreted_executed)
+		{
+			//Calculate the ratio between the executed compiled and interpreted code
+			//The result will be between 0 and 0xf
+			gui_data.jitled = (((jit_indicator_compiled_executed * 0xf) / jit_indicator_interpreted_executed) & 0xf) << 4;
+		} else {
+			//No interpreted code was executed: JIT might be turned off
+			gui_data.jitled = jit_indicator_compiled_executed ? 0x0f0 : 0xf00;
+		}
     } else {
-		//No interpreted code was executed: JIT might be turned off
-    	gui_data.jitled = jit_indicator_compiled_executed ? 0xf : 0x0;
+    	//Cache is disabled: JIT is off
+    	gui_data.jitled = 0xf00;
     }
+
     jit_indicator_compiled_executed = 0;
     jit_indicator_interpreted_executed = 0;
 #endif
