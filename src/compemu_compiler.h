@@ -87,6 +87,9 @@ typedef void comp_compiler_macroblock_func (union comp_compiler_mb_union*) REGPA
 /* Getting an offset inside the regs structure for a specified field */
 #define COMP_GET_OFFSET_IN_REGS(x) (((void*)&(regs.x)) - ((void*)&regs))
 
+/* Getting the current 68k PC address inside a compiled block */
+#define COMP_GET_CURRENT_PC (((uae_u32)history->pc) + ((uae_u32)pc_ptr - (uae_u32)history->location))
+
 //Prototypes for functions
 void comp_compiler_init(void);
 void comp_compiler_done(void);
@@ -98,6 +101,7 @@ void comp_compiler_debug_dump_compiled(void);
 //Macroblock compiling handler prototypes
 void comp_macroblock_push_opcode_unsupported(uae_u16 opcode);
 void comp_macroblock_push_add_with_flags(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg1, comp_ppc_reg input_reg2);
+void comp_macroblock_push_add_register_register(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg1, comp_ppc_reg input_reg2, BOOL updateflags);
 void comp_macroblock_push_add_extended_with_flags(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg1, comp_ppc_reg input_reg2);
 void comp_macroblock_push_add(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg1, comp_ppc_reg input_reg2);
 void comp_macroblock_push_add_register_imm(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, uae_u16 imm);
@@ -168,6 +172,7 @@ void comp_macroblock_push_set_byte_from_z_flag(uae_u64 regsout, comp_ppc_reg out
 void comp_macroblock_push_or_negative_mask_if_n_flag_set(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg mask_reg);
 void comp_macroblock_push_convert_ccr_to_internal(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg);
 void comp_macroblock_push_convert_internal_to_ccr(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg);
+void comp_macroblock_push_division_32_16bit(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg dividend_reg, comp_ppc_reg divisor_reg, BOOL signed_division, uae_u32 next_address, uae_u32 next_location);
 void comp_macroblock_push_stop(void);
 void comp_macroblock_push_nop(void);
 void comp_macroblock_push_null_operation(uae_u64 regsin, uae_u64 regsout);

@@ -186,4 +186,6 @@ extern void copper_handler (void);
 //JIT compiled code executed indicators, defined in newcpu.c
 extern uae_u32 jit_indicator_compiled_executed;
 extern uae_u32 jit_indicator_interpreted_executed;
+//Cache reference from newcpu.c for detecting the JIT status
+extern int cache_enabled;
 #endif

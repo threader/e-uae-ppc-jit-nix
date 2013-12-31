@@ -34,6 +34,7 @@ struct gui_info
     char df[4][256];		    /* inserted image */
     uae_u32 crc32[4];		    /* crc32 of image */
 #ifdef JIT
+    uae_u8 jiton;				/* If non-zero then JIT feature is turned on */
     uae_u32 jitled;				/* JIT compiled code execution ratio indicator */
 #endif
 };
