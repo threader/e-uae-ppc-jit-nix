@@ -210,17 +210,19 @@ JIT compiler options
 
   Notes:
 
-  1) The JIT is currently only supported on x86 host systems.
+  1) The JIT is currently only supported on PPC host systems.
 
   2) Direct memory access in JIT compiled code (a method used to speed up
      memory access when using the JIT - this has nothing to do with hardware
-     DMA) is currently only supported when hosting on x86 Linux.
+     DMA) is currently not implemented, the options for this feature were
+     removed from the emulation.
 
   3) You must emulate a 68ec020 CPU or better to be able to use the JIT
      compiler.
 
   4) To enable direct memory access in compiled code, you must emulate a
-     32-bit CPU, e.g., a full 68020, or a 68040.
+     32-bit CPU, e.g., a full 68020, or a 68040. Currently direct memory
+     access is experimental, probably will fail.
 
 
 cachesize=<n> (default=0)
@@ -235,6 +237,8 @@ compfpu=<boolean>
   If true, translate m68k FPU instructions to native FPU instructions.
   If false, interpret FPU instructions. Only applies if a CPU with a
   floating-point unit is selected.
+  Please note: FPU support is not implemented yet for PPC JIT, but this
+  option is available.
 
 
 Chipset options
@@ -706,13 +710,6 @@ sound_output=<type>
   interrupts - audio emulation is enabled but audio output is disabled.
   normal     - audio emulation is enabled and output enabled.
   exact      - audio emulation is enabled and exact output enabled.
-
-
-sound_bits=<n>
-
-  Selects the resolution of audio output. <n> can be 8 or 16 for 8-bit and
-  16-bit output, respectively. Most hosts will use 16-bit output and this
-  will be the default.
 
 
 sound_frequency=<n>

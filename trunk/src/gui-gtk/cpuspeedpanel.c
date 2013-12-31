@@ -77,10 +77,10 @@ static void cpuspeedpanel_init (CpuSpeedPanel *cspanel)
 	cspanel->speed_widget = make_chooser (3, "Maximum", "Approximate 7MHz 68000", "Adjustable"), 2, 1, GTK_EXPAND | GTK_FILL,
 	GTKUTIL_ROW_END,
 	make_label("Cycles per\ninstruction"), 1, 1, GTK_FILL,
-        cspanel->adjust_widget = gtk_hscale_new (GTK_ADJUSTMENT (gtk_adjustment_new (2048, 1, 5121, 1, 512, 1))), 2, 1, GTK_FILL,
+	cspanel->adjust_widget = gtk_hscale_new (GTK_ADJUSTMENT (gtk_adjustment_new (2048, 1, 5121, 1, 512, 1))), 2, 1, GTK_FILL,
 	GTKUTIL_ROW_END,
 
-        cspanel->idleenabled_widget = gtk_check_button_new_with_label ("Idle on STOP instruction"), 1, 2, GTK_EXPAND,
+	cspanel->idleenabled_widget = gtk_check_button_new_with_label ("Idle on STOP instruction"), 1, 2, GTK_EXPAND,
 	GTKUTIL_ROW_END,
 	make_label("Idle rate"), 1, 1, GTK_FILL,
 	cspanel->idlerate_widget = gtk_hscale_new (GTK_ADJUSTMENT (gtk_adjustment_new (1, 1, 21, 1, 1, 1))), 2, 1, GTK_FILL,
@@ -151,7 +151,7 @@ static void on_idleenabled_toggled (GtkWidget *w, CpuSpeedPanel *cspanel)
     if (!cspanel->idleenabled)
 	cspanel->cpuidle = 0;
     else
-        cspanel->cpuidle = (21 - GTK_ADJUSTMENT (GTK_RANGE (cspanel->idlerate_widget)->adjustment)->value)*15;
+	cspanel->cpuidle = (21 - GTK_ADJUSTMENT (GTK_RANGE (cspanel->idlerate_widget)->adjustment)->value)*15;
     update_state (cspanel);
     gtk_signal_emit_by_name (GTK_OBJECT(cspanel), "cpuidle-changed");
 }

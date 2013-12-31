@@ -20,7 +20,7 @@
  * to Amiga keycodes or UAE commands.
  */
 static const int default_keymap[] = {
-                                INPUTEVENT_ZERO,
+				INPUTEVENT_ZERO,
     /* UAEKEY_ESCAPE */ 	INPUTEVENT_KEY_ESC,
 
     /* UAEKEY_F1 */		INPUTEVENT_KEY_F1,

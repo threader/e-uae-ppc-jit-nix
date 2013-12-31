@@ -30,10 +30,6 @@ void close_sound (void)
 {
 }
 
-void update_sound (int freq)
-{
-}
-
 void reset_sound (void)
 {
 }

@@ -42,7 +42,7 @@ STATIC_INLINE uae_u16 do_chipmem_wget (uaecptr addr)
 STATIC_INLINE uae_u32 do_chipmem_lget (uaecptr addr)
 {
     uae_u32 *m;
-   
+
     addr -= chipmem_start & chipmem_mask;
     addr &= chipmem_mask;
     m = (uae_u32 *)(chipmemory + addr);

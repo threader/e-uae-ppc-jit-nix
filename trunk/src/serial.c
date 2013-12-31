@@ -63,7 +63,7 @@ void SERPER (uae_u16 w)
 
     if (w & 0x8000) {
 	if (!warned) {
-	    write_log( "SERIAL: program uses 9bit mode PC=%x\n", m68k_getpc (&regs) );
+	    write_log ( "SERIAL: program uses 9bit mode PC=%x\n", m68k_getpc (&regs) );
 	    warned++;
 	}
 	ninebit = 1;
@@ -192,7 +192,7 @@ static void checksend (int mode)
 	writeser (serdatshift);
 #endif
 	data_in_serdat = 0;
-        INTREQ (0x8000 | 0x0001);
+	INTREQ (0x8000 | 0x0001);
 #if SERIALDEBUG > 2
 	write_log ("SERIAL: send %04.4X (%c)\n", serdatshift, dochar (serdatshift));
 #endif
@@ -260,7 +260,7 @@ uae_u16 SERDATR (void)
     if (ovrun)
 	serdatr |= 0x8000;
 #if SERIALDEBUG > 2
-    write_log( "SERIAL: read 0x%04.4x (%c) %x\n", serdatr, dochar (serdatr), m68k_getpc (&regs));
+    write_log ( "SERIAL: read 0x%04.4x (%c) %x\n", serdatr, dochar (serdatr), m68k_getpc (&regs));
 #endif
     ovrun = 0;
     data_in_serdatr = 0;
@@ -398,7 +398,7 @@ uae_u8 serial_writestatus (uae_u8 newstate, uae_u8 dir)
 		write_log ("SERIAL: RTS cleared\n");
 #endif
 	    } else {
-	        setserstat (TIOCM_RTS, 1);
+		setserstat (TIOCM_RTS, 1);
 #if SERIALHSDEBUG > 0
 		write_log ("SERIAL: RTS set\n");
 #endif
@@ -408,11 +408,11 @@ uae_u8 serial_writestatus (uae_u8 newstate, uae_u8 dir)
 
 #if 0 /* CIA io-pins can be read even when set to output.. */
     if ((newstate & 0x20) != (oldserbits & 0x20) && (dir & 0x20))
-        write_log ("SERIAL: warning, program tries to use CD as an output!\n");
+	write_log ("SERIAL: warning, program tries to use CD as an output!\n");
     if ((newstate & 0x10) != (oldserbits & 0x10) && (dir & 0x10))
-        write_log ("SERIAL: warning, program tries to use CTS as an output!\n");
+	write_log ("SERIAL: warning, program tries to use CTS as an output!\n");
     if ((newstate & 0x08) != (oldserbits & 0x08) && (dir & 0x08))
-        write_log ("SERIAL: warning, program tries to use DSR as an output!\n");
+	write_log ("SERIAL: warning, program tries to use DSR as an output!\n");
 #endif
 
     if (((newstate ^ oldserbits) & 0x40) && !(dir & 0x40))

@@ -66,7 +66,7 @@ struct device_functions {
     open_device_func  opendev;
     close_device_func closedev;
     info_device_func  info;
-    
+
     execscsicmd_out_func    exec_out;
     execscsicmd_in_func     exec_in;
     execscsicmd_direct_func exec_direct;

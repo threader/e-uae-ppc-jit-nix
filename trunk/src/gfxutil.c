@@ -97,14 +97,14 @@ void alloc_colors64k (int rw, int gw, int bw, int rs, int gs, int bs, int aw, in
 
 	xcolors[i] = doMask(r, rw, rs) | doMask(g, gw, gs) | doMask(b, bw, bs) | doAlpha (alpha, aw, as);
 
-        if (byte_swap) {
+	if (byte_swap) {
 	    if (bpp <= 16)
 		xcolors[i] = bswap_16 (xcolors[i]);
 	    else
 		xcolors[i] = bswap_32 (xcolors[i]);
 	}
 
-        if (bpp <= 16) {
+	if (bpp <= 16) {
 	    /* Fill upper 16 bits of each colour value
 	     * with a copy of the colour. */
 	    xcolors[i] = xcolors[i] * 0x00010001;
@@ -118,7 +118,7 @@ void alloc_colors64k (int rw, int gw, int bw, int rs, int gs, int bs, int aw, in
 	xgreencolors[i] = doColor (i, gw, gs) | doAlpha (alpha, aw, as);
 	xbluecolors [i] = doColor (i, bw, bs) | doAlpha (alpha, aw, as);
 
-        if (byte_swap) {
+	if (byte_swap) {
 	    if (bpp <= 16) {
 		xredcolors  [i] = bswap_16 (xredcolors[i]);
 		xgreencolors[i] = bswap_16 (xgreencolors[i]);
@@ -130,7 +130,7 @@ void alloc_colors64k (int rw, int gw, int bw, int rs, int gs, int bs, int aw, in
 	    }
 	}
 
-        if (bpp <= 16) {
+	if (bpp <= 16) {
 	    /* Fill upper 16 bits of each colour value with
 	     * a copy of the colour. */
 	    xredcolors  [i] = xredcolors  [i] * 0x00010001;

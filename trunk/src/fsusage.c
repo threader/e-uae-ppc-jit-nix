@@ -99,7 +99,7 @@ int get_fs_usage (const char *path, const char *disk, struct fs_usage *fsp)
     int result = -1;
 
     if (info) {
-        BPTR lock = Lock (path, SHARED_LOCK);
+	BPTR lock = Lock (path, SHARED_LOCK);
 	if (lock) {
 	    if (Info (lock, info)) {
 		fsp->fsu_blocks = adjust_blocks (info->id_NumBlocks,
@@ -132,8 +132,8 @@ int get_fs_usage (const char *path, const char *disk, struct fs_usage *fsp)
     dev_t device = dev_for_path (path);
 
     if (device >0) {
-    	fs_info info;
-    	if (fs_stat_dev (device, &info) == 0) {
+	fs_info info;
+	if (fs_stat_dev (device, &info) == 0) {
 	    fsp->fsu_blocks = adjust_blocks (info.total_blocks,
 					     info.block_size,
 					     512);
@@ -145,7 +145,7 @@ int get_fs_usage (const char *path, const char *disk, struct fs_usage *fsp)
 	    fsp->fsu_ffree = info.free_nodes;
 
 	    result = 0;
-    	}
+	}
     }
     return result;
 };

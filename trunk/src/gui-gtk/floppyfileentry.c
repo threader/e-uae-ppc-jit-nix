@@ -146,7 +146,7 @@ static void on_filesel_ok (FloppyFileEntry *ffe, gpointer data)
 		/* But it's a directory. Make sure we
 		 * have a trailing path separator
 		 */
-	        int len = strlen (fname);
+		int len = strlen (fname);
 		if (fname[len-1] != '/')
 		    ffe_currentdir = g_strconcat (fname, "/", NULL);
 		else
@@ -156,7 +156,7 @@ static void on_filesel_ok (FloppyFileEntry *ffe, gpointer data)
 		const gchar *p = strrchr (fname, '/');
 
 		/* Free old file path */
-        	if (ffe->filename) {
+		if (ffe->filename) {
 		    g_free (ffe->filename);
 		    ffe->filename = 0;
 		}
@@ -192,7 +192,7 @@ static void on_insert (GtkWidget *w, FloppyFileEntry *ffe)
     ffe->filesel = gtk_file_selection_new (title);
 
     if (ffe->filesel) {
-        gtk_file_selection_set_filename (GTK_FILE_SELECTION (ffe->filesel),
+	gtk_file_selection_set_filename (GTK_FILE_SELECTION (ffe->filesel),
 					 ffe_currentdir ? ffe_currentdir : "");
 
 	gtk_signal_connect_object (GTK_OBJECT (ffe->filesel),

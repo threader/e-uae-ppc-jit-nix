@@ -153,7 +153,7 @@ static void ersatz_init (void)
     m68k_areg (&regs, 1) = request;
     ersatz_doio ();
     /* kickstart disk loader */
-    if (get_long(0x4000) == 0x4b49434b) {
+    if (get_long (0x4000) == 0x4b49434b) {
 	/* a kickstart disk was found in drive 0! */
 	write_log ("Loading Kickstart rom image from Kickstart disk\n");
 	/* print some notes... */

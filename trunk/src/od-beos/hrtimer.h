@@ -2,7 +2,7 @@
  * E-UAE - The portable Amiga Emulator
  *
  * Generic high-resolution timer support
- * 
+ *
  * (c) 2005 Richard Drummond
  */
 

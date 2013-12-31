@@ -52,7 +52,7 @@
 #ifdef DEBUG
 #define DEBUG_LOG write_log
 #else
-#define DEBUG_LOG(...) do ; while(0)
+#define DEBUG_LOG(...) do {} while(0)
 #endif
 
 static SDL_Surface *display;
@@ -204,11 +204,11 @@ static int init_colors (void)
 
 #ifdef USE_GL
     if (currprefs.use_gl) {
-        DEBUG_LOG ("SDLGFX: bitdepth = %d\n", bitdepth);
-        if (bitdepth <= 8) {
-    	    write_log("SDLGFX: bitdepth %d to small\n", bitdepth);
-    	    abort();
-        }
+	DEBUG_LOG ("SDLGFX: bitdepth = %d\n", bitdepth);
+	if (bitdepth <= 8) {
+	    write_log ("SDLGFX: bitdepth %d to small\n", bitdepth);
+	    abort();
+	}
     }
 #endif /* USE_GL */
 
@@ -266,7 +266,7 @@ static int find_best_mode (int *width, int *height, int depth, int fullscreen)
 	*height = screenmode[i].h;
 	found   = 1;
 
- 	write_log ("SDLGFX: Using mode (%dx%d)\n", *width, *height);
+	write_log ("SDLGFX: Using mode (%dx%d)\n", *width, *height);
     }
     return found;
 }
@@ -524,7 +524,7 @@ static int alloc_gl_buffer (struct gl_buffer_t *buffer, int width, int height, i
 
     glTexImage2D (buffer->target, 0, tex_intformat,
 		  buffer->texture_width, buffer->texture_height,
-                  0, buffer->format, buffer->type, buffer->pixels);
+		  0, buffer->format, buffer->type, buffer->pixels);
 
     if (glGetError () != GL_NO_ERROR) {
 	write_log ("SDLGFX: Failed to allocate texture.\n");
@@ -821,7 +821,7 @@ static int graphics_subinit_gl (void)
     // TODO: introduce a virtual resolution with scaling
     uiSDLVidModFlags = SDL_OPENGL;
     if (fullscreen) {
-    	uiSDLVidModFlags |= SDL_FULLSCREEN;
+	uiSDLVidModFlags |= SDL_FULLSCREEN;
     }
     DEBUG_LOG ("Resolution: %d x %d \n", current_width, current_height);
     screen = SDL_SetVideoMode (current_width, current_height, 0, uiSDLVidModFlags);
@@ -847,7 +847,7 @@ static int graphics_subinit_gl (void)
 
 	SDL_GL_GetAttribute (SDL_GL_DOUBLEBUFFER, &dblbuff);
 #if SDL_VERSION_ATLEAST(1, 2, 10)
-        if (dblbuff)
+	if (dblbuff)
 	    SDL_GL_GetAttribute (SDL_GL_SWAP_CONTROL, &vsync);
 #endif
 
@@ -927,7 +927,7 @@ static int graphics_subinit (void)
 	uiSDLVidModFlags |= SDL_HWPALETTE;
     if (fullscreen) {
 	uiSDLVidModFlags |= SDL_FULLSCREEN | SDL_HWSURFACE;
-        if (!screen_is_picasso && currprefs.gfx_vsync)
+	if (!screen_is_picasso && currprefs.gfx_vsync)
 	    uiSDLVidModFlags |= SDL_DOUBLEBUF;
     }
 
@@ -968,10 +968,10 @@ static int graphics_subinit (void)
 	    gfxvidinfo.unlockscr   = sdl_unlock_nolock;
 	    gfxvidinfo.flush_block = sdl_flush_block_nolock;
 	}
-        gfxvidinfo.flush_clear_screen = sdl_flush_clear_screen;
+	gfxvidinfo.flush_clear_screen = sdl_flush_clear_screen;
 
 
-        if (vsync) {
+	if (vsync) {
 	    display = SDL_CreateRGBSurface(SDL_HWSURFACE, screen->w, screen->h, screen->format->BitsPerPixel,
 					  screen->format->Rmask, screen->format->Gmask, screen->format->Bmask, 0);
 
@@ -1005,7 +1005,7 @@ static int graphics_subinit (void)
 
 	    SDL_SetColors (display, arSDLColors, 0, 256);
 
-    	    reset_drawing ();
+	    reset_drawing ();
 
 	    /* Force recalculation of row maps - if we're locking */
 	    old_pixels = (void *)-1;
@@ -1090,7 +1090,7 @@ static void graphics_subshutdown (void)
 
 #ifdef USE_GL
     if (currprefs.use_gl)
-        free_gl_buffer (&glbuffer);
+	free_gl_buffer (&glbuffer);
     else
 #endif /* USE_GL */
     {
@@ -1135,7 +1135,7 @@ void graphics_leave (void)
 void graphics_notify_state (int state)
 {
     if (last_state != state) {
-        last_state = state;
+	last_state = state;
 	if (display)
 	    set_window_title ();
     }
@@ -1149,7 +1149,7 @@ void handle_events (void)
 	switch (rEvent.type) {
 	    case SDL_QUIT:
 		DEBUG_LOG ("Event: quit\n");
-		uae_stop ();
+		uae_quit ();
 		break;
 
 	    case SDL_MOUSEBUTTONDOWN:
@@ -1173,7 +1173,7 @@ void handle_events (void)
 		break;
 	    }
 
-  	    case SDL_KEYUP:
+	    case SDL_KEYUP:
 	    case SDL_KEYDOWN: {
 		int state = (rEvent.type == SDL_KEYDOWN);
 		int keycode;
@@ -1296,7 +1296,7 @@ void handle_events (void)
 
 	    refresh_necessary = 0;
 	    memset (picasso_invalid_lines, 0, sizeof picasso_invalid_lines);
-        } else if (screen_is_picasso && picasso_has_invalid_lines) {
+	} else if (screen_is_picasso && picasso_has_invalid_lines) {
 	    int i;
 	    int strt = -1;
 
@@ -1307,7 +1307,7 @@ void handle_events (void)
 		    if (strt != -1)
 			continue;
 		    strt = i;
-	        } else {
+		} else {
 		    if (strt != -1) {
 			flush_gl_buffer (&glbuffer, strt, i - 1);
 			strt = -1;
@@ -1334,7 +1334,7 @@ void handle_events (void)
 static void switch_keymaps (void)
 {
     if (currprefs.map_raw_keys) {
-        if (have_rawkeys) {
+	if (have_rawkeys) {
 	    set_default_hotkeys (get_default_raw_hotkeys ());
 	    write_log ("Using raw keymap\n");
 	} else {
@@ -1457,7 +1457,7 @@ void DX_SetPalette (int start, int count)
 	    int g = picasso96_state.CLUT[start].Green;
 	    int b = picasso96_state.CLUT[start].Blue;
 	    picasso_vidinfo.clut[start++] =
-	    			 (doMask256 (r, red_bits, red_shift)
+				 (doMask256 (r, red_bits, red_shift)
 				| doMask256 (g, green_bits, green_shift)
 				| doMask256 (b, blue_bits, blue_shift));
 	}
@@ -1516,7 +1516,7 @@ int DX_Blit (int srcx, int srcy, int dstx, int dsty, int width, int height, BLIT
 	       srcx, srcy, dstx, dsty, width, height, opcode);
 
     if (opcode == BLIT_SRC && SDL_BlitSurface (screen, &src_rect, screen, &dest_rect) == 0) {
-        DX_Invalidate (dsty, dsty + height - 1);
+	DX_Invalidate (dsty, dsty + height - 1);
 	result = 1;
     }
 #ifdef USE_GL
@@ -1690,8 +1690,8 @@ uae_u8 *gfx_lock_picasso (void)
     return screen->pixels;
 #ifdef USE_GL
     } else {
-        picasso_vidinfo.rowbytes = display->pitch;
-        return display->pixels;
+	picasso_vidinfo.rowbytes = display->pitch;
+	return display->pixels;
     }
 #endif /* USE_GL */
 }
@@ -1973,9 +1973,9 @@ void gfx_default_options (struct uae_prefs *p)
 
     if (type == SDLGFX_DRIVER_AMIGAOS4 || type == SDLGFX_DRIVER_CYBERGFX ||
 	type == SDLGFX_DRIVER_BWINDOW  || type == SDLGFX_DRIVER_QUARTZ)
-        p->map_raw_keys = 1;
+	p->map_raw_keys = 1;
     else
-        p->map_raw_keys = 0;
+	p->map_raw_keys = 0;
 #ifdef USE_GL
     p->use_gl = 0;
 #endif /* USE_GL */

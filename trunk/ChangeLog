@@ -1,3 +1,426 @@
+2008-08-18 22:54  evi1rich
+
+	* src/picasso96.c: At the request of AmiKit's Jan Zahurancik,
+	  implemented database of 'standard' Picasso96 mode ids based on
+	  code from WinUAE. This will make screenmode.prefs in AmigaOS more
+	  portable between host systems, since standard screen sizes should
+	  always map to the same screenmode ID.
+
+2008-08-18 13:03  evi1rich
+
+	* src/sd-solaris/sound.c: Fixed missing semi-colon. Thanks Bernhard
+	  Moellemann for the report.
+
+2008-08-15 21:57  evi1rich
+
+	* configure.in, src/main.c, src/sysconfig.h.in,
+	  src/include/version.h: Made maintenance of version numbers
+	  easier.
+
+2008-08-15 21:47  evi1rich
+
+	* src/md-i386-gcc/rpt.h: Minor clean-up.
+
+2008-08-14 16:38  evi1rich
+
+	* src/: bsdsocket-posix-new.c, hardfile_unix.c, gfx-sdl/sdlgfx.c,
+	  gui-gtk/gtkui.c: Fixed some new compiler warnings that show up in
+	  GCC 4.3.x.
+
+2008-08-14 10:17  evi1rich
+
+	* configure.in: When building the x86 JIT compiler, don't ask
+	  binutils to mark the uae binary as needing an executable stack.
+	  This was an early hack to work around problems with ExecShield
+	  and is no longer necessary (it should have been removed ages
+	  ago). Thanks to Andrea Musuruane of RPM Fusion for the prompt.
+
+2008-08-14 09:45  evi1rich
+
+	* src/disk.c: Fixed an out-of-bounds array write.
+
+2008-08-14 00:28  evi1rich
+
+	* src/: md-i386-gcc/support.c, od-macosx/hrtimer.h: On Intel macs,
+	  use mach_absolute_time() for timing when *.use_tsc is false, and
+	  in the default prefs we now set this to false for Intel macs.
+	  This is because on dual-core Intel macs, the counters on each
+	  core are not synchronized and will lead to unreliable results.
+
+2008-05-22 23:06  evi1rich
+
+	* README: Updated README.
+
+2008-05-22 23:06  evi1rich
+
+	* docs/make_hdf.txt: Added documentation for the make_hdf tool.
+
+2008-05-21 23:18  evi1rich
+
+	* src/audio.c: Cleaned up audio emulation a little by simplifying
+	  code which targetted 8-bit audio output (which we no longer
+	  support).
+
+2008-05-21 23:16  evi1rich
+
+	* src/od-linux/blkdev-linux.c: Linux SCSI back-end would fail
+	  silently if it couldn't open a device file (e.g., if it doesn't
+	  exist). Fixed. It now logs to the console, but probably a warning
+	  dialog would be better.
+
+2008-05-21 23:14  evi1rich
+
+	* src/uaelib.c: Unused FindFunctionInObject() function in uaelib is
+	  broken for 64-bit archs and causing compiler warnings, so #ifdef
+	  it out.
+
+2008-05-21 23:12  evi1rich
+
+	* src/picasso96.c: Fixed compiler warning in p96 emulation on
+	  64-bit archs.
+
+2008-05-21 23:10  evi1rich
+
+	* src/: hardfile_unix.c, include/filesys.h: Fixed compiler warnings
+	  in Unix hardfile back-end when building on 64-bit archs.
+
+2008-05-21 23:09  evi1rich
+
+	* src/: include/commpipe.h, gui-gtk/gtkui.c: Fixed compiler
+	  warnings with write_comm_pipe_pvoid().
+
+2008-02-11 21:32  evi1rich
+
+	* src/caps/caps.c: Fixed typo which caused CAPS support with the
+	  CAPS framwork to fail to build on OS X.
+
+2008-02-11 21:31  evi1rich
+
+	* configure.in, src/sysconfig.h.in: Fixed configure script's
+	  inability to detect the CAPSImage framework on OS X.
+
+2008-01-12 22:56  evi1rich
+
+	* src/gui-gtk/gtkui.c: Added support in the Gtk+ UI for selecting
+	  X-Arcade joysticks for joystick input. This is based on a patch
+	  from Robert Hurst. Thanks again, Robert.
+
+2008-01-12 22:54  evi1rich
+
+	* configure.in, src/keybuf.c: Added configure option to
+	  enable/disable building of keymaps to support X-Aracde joysticks.
+	  Thanks to Robert Hurst for the hint. (I didn't even know what an
+	  X-Arcade joystick was. :-b)
+
+2007-12-21 00:07  evi1rich
+
+	* configure.in, src/sysconfig.h.in, src/caps/caps.c: Added support
+	  for loading the CAPSImage framework on OS X.
+
+2007-12-21 00:03  evi1rich
+
+	* m4/framework.m4: Added m4 script to check for OS X frameworks at
+	  configure time.
+
+2007-12-18 21:31  evi1rich
+
+	* src/jd-amigainput/joystick.c: AmigaInput joystick driver would
+	  crash at exit if it failed to open amgiainput.library. Fixed.
+
+2007-12-18 21:29  evi1rich
+
+	* src/sd-amigaos/sound.h: When removing 8-bit audio support,
+	  accidentally disabled stereo output in AmigaOS audio back-end.
+	  Fixed.
+
+2007-12-18 00:07  evi1rich
+
+	* src/audio.c: Bring whitespace a little closer in line with UAE
+	  0.8.27.
+
+2007-12-17 23:52  evi1rich
+
+	* README, docs/configuration.txt: Updated documentation wrt to
+	  removal of 8-bit sound support.
+
+2007-12-17 23:39  evi1rich
+
+	* src/: audio.c, cfgfile.c, gui-gtk/gtkui.c, include/gensound.h,
+	  include/options.h, sd-alsa/sound.c, sd-alsa/sound.h,
+	  sd-amigaos/sound.c, sd-amigaos/sound.h, sd-beos/sound.cpp,
+	  sd-beos/sound.h, sd-sdl/sound.c, sd-sdl/sound.h,
+	  sd-solaris/sound.c, sd-solaris/sound.h, sd-uss/sound.c,
+	  sd-uss/sound.h: Removed support for 8-bit sound (this brings
+	  E-UAE in-line with UAE and WinUAE, and - let's face it - nobody's
+	  going to miss it).
+
+2007-12-17 21:20  evi1rich
+
+	* src/gui-cocoa/cocoaui.m: Show *.ipf files in Cocoa disk image
+	  selector when CAPS support is compiled in.
+
+2007-12-17 21:07  evi1rich
+
+	* src/caps/caps.c: In the CAPS floppy back-end, there was a
+	  potential but rare double-free bug. Fixed.
+
+2007-11-04 22:24  evi1rich
+
+	* configure.in, src/Makefile.am, src/gui-gtk/cputypepanel.c: Added
+	  support for compile-time option --disable-fpu for building
+	  without emulation of an FPU.
+
+2007-08-17 04:03  steven-j-s
+
+	* src/gfx-sdl/sdlgfx.c: When quitting the OS X build via the menu
+	  after launching with a default config that included
+	  'use_gui=false' the 'load config' dialog would appear. Fixed.
+
+2007-08-06 21:39  evi1rich
+
+	* src/: akiko.c, ar.c, audio.c, blitter.c, blkdev-libscg.c,
+	  blkdev.c, bsdsocket-posix-new.c, bsdsocket.c, catweasel.c,
+	  compemu_raw_x86.c, compemu_support.c, custom.c, disk.c,
+	  enforcer.c, ersatz.c, expansion.c, filesys.c, gencpu.c,
+	  hardfile.c, hardfile_unix.c, misc.c, newcpu.c, picasso96.c,
+	  scsiemul.c, serial.c, zfile.c, dms/pfile.c, gfx-curses/ncurses.c,
+	  gfx-sdl/sdlgfx.c, gfx-x11/xwin.c, gui-gtk/gtkui.c,
+	  include/cpu_prefetch.h, include/memory.h, include/native2amiga.h,
+	  include/osemu.h, od-win32/bsdsock.c, od-win32/posixemu.c: Applied
+	  patch from Bernd Schmidt: "This tries to make the coding style
+	  more uniform: function calls are supposed to have a space before
+	  the opening parentheses." Thanks, Bernd!
+
+2007-08-06 20:36  evi1rich
+
+	* src/: akiko.c, ar.c, audio.c, blitter.c, blkdev-libscg.c,
+	  blkdev.c, bsdsocket-posix-new.c, bsdsocket.c, catweasel.c,
+	  cfgfile.c, cia.c, compemu_raw_x86.c, compemu_support.c, custom.c,
+	  debug.c, disk.c, drawing.c, driveclick.c, enforcer.c,
+	  expansion.c, fdi2raw.c, filesys.c, filesys_unix.c, fpp.c,
+	  fsusage.c, gencomp.c, gencpu.c, gengenblitter.c, gfxutil.c,
+	  hardfile.c, hotkeys.c, main.c, memory.c, misc.c, newcpu.c,
+	  picasso96.c, readcpu.c, savestate.c, scsiemul.c, serial.c,
+	  sysconfig.h.in, tui.c, unzip.c, zfile.c, caps/caps.c,
+	  dms/getbits.c, dms/pfile.c, dms/u_heavy.c, dms/u_medium.c,
+	  gfx-amigaos/ami-win.c, gfx-beos/be-UAE.h, gfx-beos/be-Window.h,
+	  gfx-curses/ncurses.c, gfx-sdl/rawkeys.c, gfx-sdl/sdlgfx.c,
+	  gfx-x11/xwin.c, gui-gtk/chipsetspeedpanel.c,
+	  gui-gtk/chipsettypepanel.c, gui-gtk/chipsettypepanel.h,
+	  gui-gtk/cpuspeedpanel.c, gui-gtk/cpuspeedpanel.h,
+	  gui-gtk/cputypepanel.c, gui-gtk/floppyfileentry.c,
+	  gui-gtk/gtkui.c, gui-muirexx/ami-gui.c, gui-muirexx/ami-rexx.c,
+	  gui-none/nogui.c, include/blkdev.h, include/caps.h,
+	  include/commpipe.h, include/crc32.h, include/custom_private.h,
+	  include/events.h, include/fpp-unknown.h, include/gfxfilter.h,
+	  include/keyboard.h, include/memory.h, include/newcpu.h,
+	  include/noflags.h, include/sleep.h, include/unzip.h,
+	  jd-amigainput/joystick.c, jd-amigaos/joystick.c,
+	  jd-linuxold/joystick.c, jd-sdl/joystick.c, keymap/keymap.c,
+	  md-amd64-gcc/rpt.h, md-i386-gcc/rpt.h, md-i386-gcc/support.c,
+	  md-ppc/m68k.h, md-ppc/support.c, md-ppc-gcc/support.c,
+	  od-amiga/ami-disk.c, od-amiga/amiga-kludges.h,
+	  od-amiga/blkdev-amiga.c, od-beos/hrtimer.h, od-generic/main.c,
+	  od-linux/blkdev-linux.c, od-linux/hrtimer.h, od-linux/memory.h,
+	  od-win32/bsdsock.c, od-win32/hardfile_win32.c, od-win32/main.c,
+	  od-win32/posixemu.c, od-win32/writelog.c, sd-alsa/sound.h,
+	  sd-amigaos/sound.c, sd-beos/sound.h, td-amigaos/thread.c,
+	  td-none/thread.h, td-sdl/thread.h, test/test_optflag.c: Applied a
+	  patch from Bernd Schmidt which makes tab indentation more
+	  consistent. Thanks, Bernd!
+
+2007-07-30 23:33  evi1rich
+
+	* README: Updated README for new release.
+
+2007-07-30 23:13  evi1rich
+
+	* docs/compiling.txt: Updated compiling instructions.
+
+2007-07-30 14:29  evi1rich
+
+	* src/: filesys.asm, filesys_bootrom.c: Merged boot ROM changes
+	  from WinUAE 1.4.3.
+
+2007-07-30 14:28  evi1rich
+
+	* src/custom.c: Merge some custom chip changes from WinUAE 1.4.3.
+
+2007-07-30 13:35  evi1rich
+
+	* src/blitter.c: Merged some blitter tweaks from WinUAE 1.4.3.
+
+2007-07-28 00:19  evi1rich
+
+	* src/gui-gtk/gtkui.c: Should be unsigned values in Gtk+ UI's hard
+	  disk list.
+
+2007-07-28 00:17  evi1rich
+
+	* src/compemu_support.c: JIT won't currently compile unless
+	  building FPU emulation. It still won't. But this is a step
+	  towards fixing that.
+
+2007-07-27 23:34  evi1rich
+
+	* src/drawing.c: A minor optimization in the LED drawing code.
+
+2007-07-27 21:09  evi1rich
+
+	* src/drawing.c: Merged a couple of simple optimizations to the
+	  drawing code from Mustafa Tufan.
+
+2007-07-27 15:14  evi1rich
+
+	* src/: gui-cocoa/cocoaui.m, od-macosx/main.m: When starting OS X
+	  build from Finder (or Hi-Toro) with a config file, the 'load
+	  config' dialog would pop up on exit. Fixed.
+
+2007-07-26 01:38  evi1rich
+
+	* src/: Makefile.am, make_hdf.c: Added make_hdf tool, a really
+	  simple command-line tool for generating empty hard disk images
+	  and associated config options.
+
+2007-07-25 20:20  evi1rich
+
+	* configure.in, src/Makefile.am, src/sysconfig.h.in: More tidying
+	  up in build scripts.
+
+2007-07-25 15:24  evi1rich
+
+	* configure.in: Fixed bash-ism introduced in last change.
+
+2007-07-25 14:23  evi1rich
+
+	* configure.in, src/Makefile.am, src/sysconfig.h.in,
+	  src/caps/Makefile.am, src/dms/Makefile.am,
+	  src/gfx-amigaos/Makefile.am, src/gfx-beos/Makefile.am,
+	  src/gfx-curses/Makefile.am, src/gfx-sdl/Makefile.am,
+	  src/gfx-svga/Makefile.am, src/gfx-x11/Makefile.am,
+	  src/gui-beos/Makefile.am, src/gui-cocoa/Makefile.am,
+	  src/gui-gtk/Makefile.am, src/gui-muirexx/Makefile.am,
+	  src/gui-none/Makefile.am, src/jd-amigainput/Makefile.am,
+	  src/jd-amigaos/Makefile.am, src/jd-beos/Makefile.am,
+	  src/jd-linuxold/Makefile.am, src/jd-none/Makefile.am,
+	  src/jd-sdl/Makefile.am, src/keymap/Makefile.am,
+	  src/md-68k/Makefile.am, src/md-amd64-gcc/Makefile.am,
+	  src/md-generic/Makefile.am, src/md-i386-gcc/Makefile.am,
+	  src/md-ppc/Makefile.am, src/md-ppc-gcc/Makefile.am,
+	  src/od-amiga/Makefile.am, src/od-beos/Makefile.am,
+	  src/od-generic/Makefile.am, src/od-linux/Makefile.am,
+	  src/od-macosx/Makefile.am, src/od-win32/Makefile.am,
+	  src/sd-alsa/Makefile.am, src/sd-amigaos/Makefile.am,
+	  src/sd-beos/Makefile.am, src/sd-none/Makefile.am,
+	  src/sd-sdl/Makefile.am, src/sd-solaris/Makefile.am,
+	  src/sd-uss/Makefile.am, src/td-amigaos/Makefile.am,
+	  src/td-beos/Makefile.am, src/td-none/Makefile.am,
+	  src/td-posix/Makefile.am, src/td-sdl/Makefile.am,
+	  src/td-win32/Makefile.am, src/test/Makefile.am: Cleaned up build
+	  system a little. Replaced broken libz detection (it was poisoning
+	  CFLAGS, LDFLAGS, etc. with bogus values when cross-compiling) and
+	  fixed linking of readdisk (the whole raft of libs that the uae
+	  binary builds against isn't required).
+
+2007-07-24 16:40  evi1rich
+
+	* src/: hardfile.c, main.c, include/autoconf.h: Hardfile threads
+	  were not terminated at reset or exit time. Fixed.  (This fixes
+	  the problems on AmigaOS and clones where E-UAE would crash or
+	  hang at exit when using hardfiles.)
+
+2007-07-24 13:58  evi1rich
+
+	* src/inputdevice.c: Another sans-filesys fix. Internal mousehack
+	  depends on filesys bootrom, so cannot be used when filesys is
+	  disabled.
+
+2007-07-24 13:52  evi1rich
+
+	* src/misc.c: Another fix for building without filesys support.
+	  Thanks, Mustafa!
+
+2007-07-24 13:29  evi1rich
+
+	* src/main.c: Fix for building without filesys support.
+
+2007-07-24 00:50  evi1rich
+
+	* src/od-linux/blkdev-linux.c: Fixed yet another signed/unsigned
+	  (YASU) comparison.
+
+2007-07-24 00:11  evi1rich
+
+	* src/hardfile.c: Fixed missing linefeed in log message.
+
+2007-07-24 00:04  evi1rich
+
+	* src/hardfile.c: A race condition existed between the main UAE
+	  thread and a hardfile thread after closing a hardfile device and
+	  re-opening it. Fixed. This should fix problems when scanning
+	  uaehf.device with HDToolbox.
+
+2007-07-21 23:57  evi1rich
+
+	* src/disk.c: Profiling revealed that the DISK_update() function is
+	  still a significant bottleneck. Reworked this stuff a little to
+	  convince the compiler to generate more optimal code.
+
+2007-07-21 23:33  evi1rich
+
+	* src/blitter.c: Minor simplification for blitter cycle diagram
+	  (taken from WinUAE 1.4.2).
+
+2007-07-21 23:30  evi1rich
+
+	* src/gui-muirexx/ami-gui.c: Removed extraneous linefeed in dialog
+	  title.
+
+2007-07-17 00:21  evi1rich
+
+	* src/drawing.c: Removed some obsolete code.
+
+2007-07-16 23:23  evi1rich
+
+	* src/: custom.c, newcpu.c: New interrupt code in WIP4 was horribly
+	  bug-ridden. Now fixed. (BTW, this also fixes the broken Action
+	  Replay freeze button. Thanks to Steven Saunders for the report
+	  and Toni Wilen for the tip which located the source of the
+	  problem.)
+
+2007-06-08 00:12  evi1rich
+
+	* src/disk.c: Fixed sign bug in DISK_update() function.
+
+2007-05-25 10:50  evi1rich
+
+	* src/sd-none/sound.c: Dummy sound driver broke with recent changes
+	  in audio layer. Fixed.
+
+2007-05-16 21:05  evi1rich
+
+	* src/genblitter.c: Applied blitter speed-up patch from Mustafa
+	  Tufan. Thanks!
+
+2007-03-28 23:48  evi1rich
+
+	* config.sub: Applied patch from Mustafa Tufan which adds configure
+	  detection for GP2x and PSP platforms.
+
+2007-03-28 23:29  evi1rich
+
+	* src/gui-beos/gui.cpp: On BeOS, pause audio before opening a
+	  file/alert dialog (since it's not done in a thread) and resume
+	  when done. Fixes stuck audio when inserting a floppy image, for
+	  example.
+
+2007-03-28 23:27  evi1rich
+
+	* src/sd-beos/: sound.cpp, sound.h: BeOS sound driver was still
+	  knackered. Fixed this by rounding buffer size to nearest power of
+	  2 and doing buffer size calculations properly. Also fixed pausing
+	  and resuming of audio output.
+
 2007-03-28 00:16  tag E-UAE-0_8_29-WIP4
 
 2007-03-28 00:16  evi1rich

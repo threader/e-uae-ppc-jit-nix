@@ -16,7 +16,7 @@ typedef SDL_sem *uae_sem_t;
 STATIC_INLINE int uae_sem_init(uae_sem_t *PSEM, int DUMMY, int INIT)
 {
    *PSEM = SDL_CreateSemaphore (INIT);
-   
+
    return (*PSEM == 0);
 }
 #define uae_sem_destroy(PSEM)  SDL_DestroySemaphore (*PSEM)

@@ -81,9 +81,9 @@ static void chipsetspeedpanel_init (ChipsetSpeedPanel *panel)
     gtk_frame_set_label_align (GTK_FRAME (panel), 0.01, 0.5);
 
     gtkutil_add_table (GTK_WIDGET (panel),
-        make_label("Draw one\nframe in"), 1, 1, GTK_FILL,
-        panel->framerate_widget = gtk_hscale_new (GTK_ADJUSTMENT (gtk_adjustment_new (1, 1, 21, 1, 1, 1))), 2, 1, GTK_FILL,
-        GTKUTIL_ROW_END,
+	make_label("Draw one\nframe in"), 1, 1, GTK_FILL,
+	panel->framerate_widget = gtk_hscale_new (GTK_ADJUSTMENT (gtk_adjustment_new (1, 1, 21, 1, 1, 1))), 2, 1, GTK_FILL,
+	GTKUTIL_ROW_END,
 	make_label ("Sprite collisions"), 1, 1, GTK_FILL,
 	panel->collisions_widget = make_chooser (4, "None", "Sprites only", "Sprites & playfields", "Full"), 2, 1, GTK_EXPAND | GTK_FILL,
 	GTKUTIL_ROW_END,

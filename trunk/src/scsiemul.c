@@ -129,7 +129,7 @@ static void io_log (const char *msg, uaecptr request)
 {
     if (log_scsi)
 	write_log ("%s: %08X %d %08.8X %d %d io_actual=%d io_error=%d\n",
-	    msg, request,get_word(request + 28),get_long(request + 40),get_long(request + 36),get_long(request + 44),
+	    msg, request,get_word (request + 28),get_long (request + 40),get_long (request + 36),get_long (request + 44),
 	    get_long (request + 32), get_byte (request + 31));
 }
 
@@ -174,7 +174,7 @@ static void *dev_thread (void *devs);
 static int start_thread (struct devstruct *dev)
 {
     if (dev->thread_running)
-        return 1;
+	return 1;
     init_comm_pipe (&dev->requests, 100, 1);
     uae_sem_init (&dev->sync_sem, 0, 0);
     uae_start_thread (dev_thread, dev, &dev->tid);
@@ -192,7 +192,7 @@ static void dev_close_3 (struct devstruct *dev, struct priv_devstruct *pdev)
 	if (pdev->ioctl)
 	    sys_command_close (DF_IOCTL, dev->unitnum);
 	pdev->inuse = 0;
-        write_comm_pipe_u32 (&dev->requests, 0, 1);
+	write_comm_pipe_u32 (&dev->requests, 0, 1);
     }
 }
 
@@ -245,7 +245,7 @@ static uae_u32 REGPARAM2 dev_open_2 (TrapContext *context, int type)
     if (!dev)
 	return openfail (ioreq, 32); /* badunitnum */
     if (!dev->opencnt) {
-        for (i = 0; i < MAX_OPEN_DEVICES; i++) {
+	for (i = 0; i < MAX_OPEN_DEVICES; i++) {
 	    pdev = &pdevst[i];
 	    if (pdev->inuse == 0) break;
 	}
@@ -259,20 +259,20 @@ static uae_u32 REGPARAM2 dev_open_2 (TrapContext *context, int type)
 	}
 	if (!pdev->scsi && !pdev->ioctl)
 	    return openfail (ioreq, -1);
-        pdev->type = type;
-        pdev->unit = unit;
+	pdev->type = type;
+	pdev->unit = unit;
 	pdev->flags = flags;
 	pdev->inuse = 1;
-        put_long (ioreq + 24, pdev - pdevst);
+	put_long (ioreq + 24, pdev - pdevst);
 	start_thread (dev);
     } else {
-        for (i = 0; i < MAX_OPEN_DEVICES; i++) {
+	for (i = 0; i < MAX_OPEN_DEVICES; i++) {
 	    pdev = &pdevst[i];
 	    if (pdev->inuse && pdev->unit == (int)unit) break;
 	}
 	if (i == MAX_OPEN_DEVICES)
 	    return openfail (ioreq, -1);
-        put_long (ioreq + 24, pdev - pdevst);
+	put_long (ioreq + 24, pdev - pdevst);
     }
     dev->opencnt++;
 
@@ -489,8 +489,8 @@ static int dev_do_io (struct devstruct *dev, uaecptr request)
 	case CMD_REMCHANGEINT:
 	release_async_request (dev, request);
 	break;
-        case 28: /* HD_SCSICMD */
-        if (dev->allow_scsi && pdev->scsi) {
+	case 28: /* HD_SCSICMD */
+	if (dev->allow_scsi && pdev->scsi) {
 	    uae_u32 sdd = get_long (request + 40);
 	    io_error = sys_command_scsi_direct (dev->unitnum, sdd);
 	    if (log_scsi)
@@ -548,8 +548,8 @@ static uae_u32 REGPARAM2 dev_beginio (TrapContext *context)
 	    write_log ("device %s command %d bug with IO_QUICK\n", getdevname (pdev->type), command);
 	return get_byte (request + 31);
     } else {
-        add_async_request (dev, request, ASYNC_REQUEST_TEMP, 0);
-        put_byte (request+30, get_byte (request + 30) & ~1);
+	add_async_request (dev, request, ASYNC_REQUEST_TEMP, 0);
+	put_byte (request+30, get_byte (request + 30) & ~1);
 	write_comm_pipe_u32 (&dev->requests, request, 1);
 	return 0;
     }
@@ -569,15 +569,15 @@ static void *dev_thread (void *devs)
     for (;;) {
 	uaecptr request = (uaecptr)read_comm_pipe_u32_blocking (&dev->requests);
 	uae_sem_wait (&change_sem);
-        if (!request) {
+	if (!request) {
 	    dev->thread_running = 0;
 	    uae_sem_post (&dev->sync_sem);
 	    uae_sem_post (&change_sem);
 	    break;
 	} else if (dev_do_io (dev, request) == 0) {
-            put_byte (request + 30, get_byte (request + 30) & ~1);
+	    put_byte (request + 30, get_byte (request + 30) & ~1);
 	    release_async_request (dev, request);
-            uae_ReplyMsg (request);
+	    uae_ReplyMsg (request);
 	} else {
 	    if (log_scsi)
 		write_log ("async request %08.8X\n", request);
@@ -645,7 +645,7 @@ static void dev_exit (void)
 	if (dev->opencnt > 0) {
 	    /* Abort any outstanding requests */
 	    for (j = 0; j < MAX_ASYNC_REQUESTS; j++) {
-	        uaecptr request;
+		uaecptr request;
 		if ((request = dev->d_request[i]))
 		    abort_async (dev, request, 0, 0);
 	    }
@@ -686,8 +686,8 @@ static void dev_reset (void)
 	    discsi = sys_command_info (DF_SCSI, j, &discsi2);
 	    sys_command_close (DF_SCSI, j);
 	}
-        if (discsi) {
-            dev->unitnum = j;
+	if (discsi) {
+	    dev->unitnum = j;
 	    dev->allow_scsi = 1;
 	    dev->drivetype = discsi->type;
 	    memcpy (&dev->di, discsi, sizeof (struct device_info));
@@ -699,7 +699,7 @@ static void dev_reset (void)
     }
     unitnum = 0;
     for (i = 0; i < MAX_TOTAL_DEVICES; i++) {
-        dev = &devst[i];
+	dev = &devst[i];
 	if (dev->unitnum >= 0 && dev->iscd) {
 	    dev->aunit = unitnum;
 	    unitnum++;
@@ -708,7 +708,7 @@ static void dev_reset (void)
     if (unitnum == 0)
 	unitnum = 1;
     for (i = 0; i < MAX_TOTAL_DEVICES; i++) {
-        dev = &devst[i];
+	dev = &devst[i];
 	if (dev->unitnum >= 0) {
 	    if (!dev->iscd) {
 		dev->aunit = unitnum;
@@ -734,14 +734,14 @@ static uaecptr diskdev_startup (uaecptr resaddr)
      * the cd.device */
     if (log_scsi)
 	write_log ("diskdev_startup(0x%x)\n", resaddr);
-    put_word(resaddr + 0x0, 0x4AFC);
-    put_long(resaddr + 0x2, resaddr);
-    put_long(resaddr + 0x6, resaddr + 0x1A); /* Continue scan here */
-    put_word(resaddr + 0xA, 0x8101); /* RTF_AUTOINIT|RTF_COLDSTART; Version 1 */
-    put_word(resaddr + 0xC, 0x0305); /* NT_DEVICE; pri 05 */
-    put_long(resaddr + 0xE, ROM_diskdev_resname);
-    put_long(resaddr + 0x12, ROM_diskdev_resid);
-    put_long(resaddr + 0x16, ROM_diskdev_init);
+    put_word (resaddr + 0x0, 0x4AFC);
+    put_long (resaddr + 0x2, resaddr);
+    put_long (resaddr + 0x6, resaddr + 0x1A); /* Continue scan here */
+    put_word (resaddr + 0xA, 0x8101); /* RTF_AUTOINIT|RTF_COLDSTART; Version 1 */
+    put_word (resaddr + 0xC, 0x0305); /* NT_DEVICE; pri 05 */
+    put_long (resaddr + 0xE, ROM_diskdev_resname);
+    put_long (resaddr + 0x12, ROM_diskdev_resid);
+    put_long (resaddr + 0x16, ROM_diskdev_init);
     resaddr += 0x1A;
     return resaddr;
 }
@@ -754,14 +754,14 @@ uaecptr scsidev_startup (uaecptr resaddr)
 	write_log ("scsidev_startup(0x%x)\n", resaddr);
     /* Build a struct Resident. This will set up and initialize
      * the uaescsi.device */
-    put_word(resaddr + 0x0, 0x4AFC);
-    put_long(resaddr + 0x2, resaddr);
-    put_long(resaddr + 0x6, resaddr + 0x1A); /* Continue scan here */
-    put_word(resaddr + 0xA, 0x8101); /* RTF_AUTOINIT|RTF_COLDSTART; Version 1 */
-    put_word(resaddr + 0xC, 0x0305); /* NT_DEVICE; pri 05 */
-    put_long(resaddr + 0xE, ROM_scsidev_resname);
-    put_long(resaddr + 0x12, ROM_scsidev_resid);
-    put_long(resaddr + 0x16, ROM_scsidev_init); /* calls scsidev_init */
+    put_word (resaddr + 0x0, 0x4AFC);
+    put_long (resaddr + 0x2, resaddr);
+    put_long (resaddr + 0x6, resaddr + 0x1A); /* Continue scan here */
+    put_word (resaddr + 0xA, 0x8101); /* RTF_AUTOINIT|RTF_COLDSTART; Version 1 */
+    put_word (resaddr + 0xC, 0x0305); /* NT_DEVICE; pri 05 */
+    put_long (resaddr + 0xE, ROM_scsidev_resname);
+    put_long (resaddr + 0x12, ROM_scsidev_resid);
+    put_long (resaddr + 0x16, ROM_scsidev_init); /* calls scsidev_init */
     resaddr += 0x1A;
     return resaddr;
     return diskdev_startup (resaddr);

@@ -92,7 +92,7 @@ STATIC_INLINE void do_cycles (unsigned int cycles_to_add)
 	    vsyncmintime = rpt;
 	if (v < 0) {
 #ifdef JIT
-            pissoff = 3000 * CYCLE_UNIT;
+	    pissoff = 3000 * CYCLE_UNIT;
 #endif
 	    return;
 	}
@@ -129,7 +129,7 @@ STATIC_INLINE void cycles_do_special (void)
 {
 #ifdef JIT
     if (pissoff >= 0)
-        pissoff = -1;
+	pissoff = -1;
 #endif
 }
 

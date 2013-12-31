@@ -267,7 +267,7 @@ static void print_configuration (void)
 	sprintf (tmp, "Picasso 96 %d MB", currprefs.gfxmem_size / 0x100000);
 	tui_puts(tmp);
     } else
- 	tui_puts ("Picasso 96 Off");
+	tui_puts ("Picasso 96 Off");
     y++;
 
     tui_gotoxy (OPTION_COLUMN, y++);
