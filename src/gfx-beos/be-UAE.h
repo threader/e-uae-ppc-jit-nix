@@ -1,6 +1,6 @@
 #ifndef BE_UAE_H
 #define BE_UAE_H
-/***********************************************************/ 
+/***********************************************************/
 //  UAE - The Un*x Amiga Emulator
 //
 //  BeOS port specific stuff
@@ -19,8 +19,8 @@
 #include <support/SupportDefs.h>
 #include <support/String.h>
 
-#include <stdio.h> 
-#include <stdlib.h> 
+#include <stdio.h>
+#include <stdlib.h>
 
 // 0.8.17 BeOS Release 1
 const int32 kBeUAERelease = 1;
@@ -31,7 +31,7 @@ class UAEWindow;
 extern UAEWindow *gEmulationWindow;
 //extern BString gSettingsName;
 
-extern int inhibit_frame; 
+extern int inhibit_frame;
 
 
 class UAE : public BApplication {
@@ -50,7 +50,7 @@ public:
 private:
 	static long EmulationThreadFunc(void *obj);
 	thread_id fEmulationThread;
-	
+
 	UAEWindow *fEmulationWindow;
 };
 

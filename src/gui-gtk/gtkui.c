@@ -47,9 +47,9 @@
 
 //#define GUI_DEBUG
 #ifdef  GUI_DEBUG
-#define DEBUG_LOG write_log( "%s: ", __func__); write_log
+#define DEBUG_LOG write_log ( "%s: ", __func__); write_log
 #else
-#define DEBUG_LOG(...) do ; while(0)
+#define DEBUG_LOG(...) do {} while(0)
 #endif
 
 static int gui_active;
@@ -87,7 +87,7 @@ static GtkWidget *chipsetspeed_panel;
 static GtkWidget *hdpanel;
 static GtkWidget *memorypanel;
 
-static GtkWidget *sound_widget[4], *sound_bits_widget[2], *sound_freq_widget[3], *sound_ch_widget[3];
+static GtkWidget *sound_widget[4], *sound_freq_widget[3], *sound_ch_widget[3];
 
 #ifdef JIT
 static GtkWidget *jit_page;
@@ -101,7 +101,12 @@ static GtkWidget *comp_constjump_widget[2];
 static GtkAdjustment *cachesize_adj;
 #endif
 
-static GtkWidget *joy_widget[2][7];
+#ifdef XARCADE
+# define JOY_WIDGET_COUNT 9
+#else
+# define JOY_WIDGET_COUNT 7
+#endif
+static GtkWidget *joy_widget[2][JOY_WIDGET_COUNT];
 
 static unsigned int prevledstate;
 
@@ -246,7 +251,6 @@ static void set_sound_state (void)
 
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (sound_widget[currprefs.produce_sound]), 1);
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (sound_ch_widget[stereo]), 1);
-    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (sound_bits_widget[currprefs.sound_bits == 16]), 1);
 }
 
 static void set_mem_state (void)
@@ -289,7 +293,7 @@ static void set_mem_state (void)
 					changed_prefs.romfile : currprefs.romfile);
 
     gtk_label_set_text (GTK_LABEL (key_text_widget), changed_prefs.keyfile[0]!='\0' ?
-    					changed_prefs.keyfile : currprefs.keyfile);
+					changed_prefs.keyfile : currprefs.keyfile);
 }
 
 #ifdef JIT
@@ -322,6 +326,8 @@ static void set_comp_state (void)
  *        4 = numpad
  *        5 = cursor
  *        6 = other
+ *        7 = xarcade1
+ *        8 = xarcade2
  */
 static int map_jsem_to_widget (int jsem)
 {
@@ -352,6 +358,8 @@ static int map_widget_to_jsem (int widget)
 	case 4: jsem = JSEM_KBDLAYOUT;     break;
 	case 5: jsem = JSEM_KBDLAYOUT + 1; break;
 	case 6: jsem = JSEM_KBDLAYOUT + 2; break;
+	case 7: jsem = JSEM_KBDLAYOUT + 3; break;
+	case 8: jsem = JSEM_KBDLAYOUT + 4; break;
    }
 
    return jsem;
@@ -371,7 +379,7 @@ static void set_joy_state (void)
 	j0t %= 7;
     }
 
-    for (i = 0; i < 7; i++) {
+    for (i = 0; i < JOY_WIDGET_COUNT; i++) {
 	if (i == 1 && joy_count == 0) continue;
 	if (i == 2 && joy_count <= 1) continue;
 	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (joy_widget[0][i]), j0t == i);
@@ -413,16 +421,16 @@ static void set_hd_state (void)
 
 	if (is_hardfile (currprefs.mountinfo, i)) {
 	    if (secspertrack == 0)
-	        strcpy (texts[HDLIST_DEVICE], "N/A" );
+		strcpy (texts[HDLIST_DEVICE], "N/A" );
 	    else
-	        strncpy (texts[HDLIST_DEVICE], devname, 255);
+		strncpy (texts[HDLIST_DEVICE], devname, 255);
 	    sprintf (texts[HDLIST_VOLUME],  "N/A" );
-	    sprintf (texts[HDLIST_HEADS],   "%d", surfaces);
-	    sprintf (texts[HDLIST_CYLS],    "%d", cylinders);
-	    sprintf (texts[HDLIST_SECS],    "%d", secspertrack);
-	    sprintf (texts[HDLIST_RSRVD],   "%d", reserved);
-	    sprintf (texts[HDLIST_SIZE],    "%d", size);
-	    sprintf (texts[HDLIST_BLKSIZE], "%d", blocksize);
+	    sprintf (texts[HDLIST_HEADS],   "%u", surfaces);
+	    sprintf (texts[HDLIST_CYLS],    "%u", cylinders);
+	    sprintf (texts[HDLIST_SECS],    "%u", secspertrack);
+	    sprintf (texts[HDLIST_RSRVD],   "%u", reserved);
+	    sprintf (texts[HDLIST_SIZE],    "%u", size);
+	    sprintf (texts[HDLIST_BLKSIZE], "%u", blocksize);
 	} else {
 	    strncpy (texts[HDLIST_DEVICE], devname, 255);
 	    strncpy (texts[HDLIST_VOLUME], volname, 255);
@@ -482,10 +490,10 @@ static void update_buttons (int state)
 //	gtk_widget_set_sensitive (debug_uae_widget, running);
 	gtk_widget_set_sensitive (reset_uae_widget, running);
 
-        gtk_widget_set_sensitive (hdpanel,     !running && !paused);
-        gtk_widget_set_sensitive (memorypanel, !running && !paused);
-        gtk_widget_set_sensitive (rom_change_widget, !running && !paused);
-        gtk_widget_set_sensitive (key_change_widget, !running && !paused);
+	gtk_widget_set_sensitive (hdpanel,     !running && !paused);
+	gtk_widget_set_sensitive (memorypanel, !running && !paused);
+	gtk_widget_set_sensitive (rom_change_widget, !running && !paused);
+	gtk_widget_set_sensitive (key_change_widget, !running && !paused);
 
 	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (pause_uae_widget), paused);
     }
@@ -528,7 +536,7 @@ static int my_idle (void)
 		gtk_widget_show (gui_window);
 #	    if GTK_MAJOR_VERSION >= 2
 		gtk_window_present (GTK_WINDOW (gui_window));
-	        gui_active = 1;
+		gui_active = 1;
 #	    endif
 	    } else {
 		n = read_comm_pipe_int_blocking (&to_gui_pipe);
@@ -605,8 +613,8 @@ static void joy_changed (void)
 {
     if (! gui_active)
 	return;
-    changed_prefs.jport0 = map_widget_to_jsem (find_current_toggle (joy_widget[0], 7));
-    changed_prefs.jport1 = map_widget_to_jsem (find_current_toggle (joy_widget[1], 7));
+    changed_prefs.jport0 = map_widget_to_jsem (find_current_toggle (joy_widget[0], JOY_WIDGET_COUNT));
+    changed_prefs.jport1 = map_widget_to_jsem (find_current_toggle (joy_widget[1], JOY_WIDGET_COUNT));
 
     if( changed_prefs.jport0 != currprefs.jport0 || changed_prefs.jport1 != currprefs.jport1 )
 	inputdevice_config_change();
@@ -664,7 +672,6 @@ static void sound_changed (void)
     changed_prefs.sound_mixed_stereo = 0;
     if (changed_prefs.sound_stereo == 2)
 	changed_prefs.sound_mixed_stereo = changed_prefs.sound_stereo = 1;
-    changed_prefs.sound_bits = (find_current_toggle (sound_bits_widget, 2) + 1) * 8;
 }
 
 #ifdef JIT
@@ -1018,11 +1025,11 @@ static void make_floppy_disks (GtkWidget *vbox)
 	sprintf (buf, "DF%d:", i);
 
 	floppy_widget[i] = floppyfileentry_new ();
-        if (currprefs.dfxtype[i] == -1)
+	if (currprefs.dfxtype[i] == -1)
 	    gtk_widget_set_sensitive(floppy_widget[i], 0);
 	floppyfileentry_set_drivename (FLOPPYFILEENTRY (floppy_widget[i]), buf);
 	floppyfileentry_set_label (FLOPPYFILEENTRY (floppy_widget[i]), buf);
-        floppyfileentry_set_currentdir (FLOPPYFILEENTRY (floppy_widget[i]), prefs_get_attr ("floppy_path"));
+	floppyfileentry_set_currentdir (FLOPPYFILEENTRY (floppy_widget[i]), prefs_get_attr ("floppy_path"));
 	gtk_box_pack_start (GTK_BOX (vbox), floppy_widget[i], FALSE, TRUE, 0);
 	gtk_widget_show (floppy_widget[i]);
 	gtk_signal_connect (GTK_OBJECT (floppy_widget[i]), "disc-changed", (GtkSignalFunc) disc_changed, GINT_TO_POINTER (i));
@@ -1094,29 +1101,29 @@ static void make_cpu_widgets (GtkWidget *vbox)
 
     ctpanel = cputypepanel_new();
     gtk_table_attach (GTK_TABLE (table), ctpanel, 1, 4, 1, 2,
-                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
-                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL), 0, 0);
+		     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+		     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL), 0, 0);
     gtk_widget_show (ctpanel);
 
     cspanel = cpuspeedpanel_new();
     gtk_table_attach (GTK_TABLE (table), cspanel, 1, 4, 3, 4,
-                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
-                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL), 0, 0);
+		     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+		     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL), 0, 0);
     gtk_widget_show (cspanel);
 
 
     gtk_signal_connect (GTK_OBJECT (ctpanel), "cputype-changed",
-                        GTK_SIGNAL_FUNC (on_cputype_changed),
-                        NULL);
+			GTK_SIGNAL_FUNC (on_cputype_changed),
+			NULL);
     gtk_signal_connect (GTK_OBJECT (ctpanel), "addr24bit-changed",
-                        GTK_SIGNAL_FUNC (on_addr24bit_changed),
-                        NULL);
+			GTK_SIGNAL_FUNC (on_addr24bit_changed),
+			NULL);
     gtk_signal_connect (GTK_OBJECT (cspanel), "cpuspeed-changed",
-                        GTK_SIGNAL_FUNC (on_cpuspeed_changed),
-                        NULL);
+			GTK_SIGNAL_FUNC (on_cpuspeed_changed),
+			NULL);
     gtk_signal_connect (GTK_OBJECT (cspanel), "cpuidle-changed",
-                        GTK_SIGNAL_FUNC (on_cpuidle_changed),
-                        NULL);
+			GTK_SIGNAL_FUNC (on_cpuidle_changed),
+			NULL);
 }
 
 
@@ -1157,29 +1164,29 @@ static void make_chipset_widgets (GtkWidget *vbox)
 
     chipsettype_panel = chipsettypepanel_new ();
     gtk_table_attach (GTK_TABLE (table), chipsettype_panel, 1, 4, 1, 2,
-                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
-                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL), 0, 0);
+		     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+		     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL), 0, 0);
     gtk_widget_show (chipsettype_panel);
 
     chipsetspeed_panel = chipsetspeedpanel_new ();
     gtk_table_attach (GTK_TABLE (table), chipsetspeed_panel, 1, 4, 3, 4,
-                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
-                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL), 0, 0);
+		     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+		     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL), 0, 0);
     gtk_widget_show (chipsetspeed_panel);
 
 
     gtk_signal_connect (GTK_OBJECT (chipsettype_panel), "chipset-changed",
-                        GTK_SIGNAL_FUNC (on_chipset_changed),
-                        NULL);
+			GTK_SIGNAL_FUNC (on_chipset_changed),
+			NULL);
     gtk_signal_connect (GTK_OBJECT (chipsetspeed_panel), "framerate-changed",
-                        GTK_SIGNAL_FUNC (on_framerate_changed),
-                        NULL);
+			GTK_SIGNAL_FUNC (on_framerate_changed),
+			NULL);
     gtk_signal_connect (GTK_OBJECT (chipsetspeed_panel), "sprite-collisions-changed",
-                        GTK_SIGNAL_FUNC (on_collision_level_changed),
-                        NULL);
+			GTK_SIGNAL_FUNC (on_collision_level_changed),
+			NULL);
     gtk_signal_connect (GTK_OBJECT (chipsetspeed_panel), "immediate-blits-changed",
-                        GTK_SIGNAL_FUNC (on_immediate_blits_changed),
-                        NULL);
+			GTK_SIGNAL_FUNC (on_immediate_blits_changed),
+			NULL);
 }
 
 static void make_sound_widgets (GtkWidget *vbox)
@@ -1210,10 +1217,6 @@ static void make_sound_widgets (GtkWidget *vbox)
     gtk_widget_show (hbox);
     add_centered_to_vbox (vbox, hbox);
     newbox = make_radio_group_box ("Channels", soundlabels3, sound_ch_widget, 1, sound_changed);
-    gtk_widget_set_sensitive (newbox, sound_available);
-    gtk_widget_show (newbox);
-    gtk_box_pack_start (GTK_BOX (hbox), newbox, FALSE, TRUE, 0);
-    newbox = make_radio_group_box ("Resolution", soundlabels2, sound_bits_widget, 1, sound_changed);
     gtk_widget_set_sensitive (newbox, sound_available);
     gtk_widget_show (newbox);
     gtk_box_pack_start (GTK_BOX (hbox), newbox, FALSE, TRUE, 0);
@@ -1394,7 +1397,7 @@ static void make_joy_widgets (GtkWidget *dvbox)
 {
     int i;
     int joy_count = inputdevice_get_device_total (IDTYPE_JOYSTICK);
-    GtkWidget *hbox = gtk_hbox_new (FALSE, 10);
+    GtkWidget *hbox = gtk_hbox_new (FALSE, 12);
 
     static const char *joylabels[] = {
 	"None",
@@ -1404,6 +1407,10 @@ static void make_joy_widgets (GtkWidget *dvbox)
 	"Numeric pad",
 	"Cursor keys/Right Ctrl or Alt",
 	"T/F/H/B/Left Alt",
+#ifdef XARCADE
+	"X-Arcade Left",
+	"X-Arcade Right",
+#endif
 	NULL
     };
 
@@ -1450,7 +1457,7 @@ static void newdir_ok (void)
     /* Do device name too */
     n = strlen (dirdlg_devname);
     if (n > 0) {
-        if (dirdlg_devname[n - 1] == ':')
+	if (dirdlg_devname[n - 1] == ':')
 	    dirdlg_devname[n - 1] = '\0';
     }
     if (strlen (dirdlg_volname) == 0 || strlen (dirdlg_path) == 0) {
@@ -1485,14 +1492,14 @@ static void did_dirdlg_select (GtkObject *o, gpointer entry )
     gtk_window_set_modal (GTK_WINDOW (path_selector), TRUE);
 
     gtk_signal_connect (GTK_OBJECT (GTK_FILE_SELECTION(path_selector)->ok_button),
-                                          "clicked", GTK_SIGNAL_FUNC (did_dirdlg_done_select),
-                                          (gpointer) entry);
+					  "clicked", GTK_SIGNAL_FUNC (did_dirdlg_done_select),
+					  (gpointer) entry);
     gtk_signal_connect_object (GTK_OBJECT (GTK_FILE_SELECTION(path_selector)->ok_button),
-                                          "clicked", GTK_SIGNAL_FUNC (gtk_widget_destroy),
-                                          (gpointer) path_selector);
+					  "clicked", GTK_SIGNAL_FUNC (gtk_widget_destroy),
+					  (gpointer) path_selector);
     gtk_signal_connect_object (GTK_OBJECT (GTK_FILE_SELECTION(path_selector)->cancel_button),
-                                          "clicked", GTK_SIGNAL_FUNC (gtk_widget_destroy),
-                                          (gpointer) path_selector);
+					  "clicked", GTK_SIGNAL_FUNC (gtk_widget_destroy),
+					  (gpointer) path_selector);
 
     /* Gtk1.2 doesn't have a directory chooser widget, so we fake one from the
      * file dialog by hiding the widgets related to file selection */
@@ -1508,8 +1515,8 @@ static void did_dirdlg_select (GtkObject *o, gpointer entry )
 static void dirdlg_on_change (GtkObject *o, gpointer data)
 {
   int can_complete = (strlen (gtk_entry_get_text (GTK_ENTRY(path_entry))) !=0)
-                  && (strlen (gtk_entry_get_text (GTK_ENTRY(volname_entry))) != 0)
-	          && (strlen (gtk_entry_get_text (GTK_ENTRY(devname_entry))) != 0);
+		  && (strlen (gtk_entry_get_text (GTK_ENTRY(volname_entry))) != 0)
+		  && (strlen (gtk_entry_get_text (GTK_ENTRY(devname_entry))) != 0);
 
   gtk_widget_set_sensitive (dirdlg_ok, can_complete);
 }
@@ -1570,51 +1577,51 @@ static void create_dirdlg (const char *title)
     gtk_table_set_row_spacings (GTK_TABLE (table), 4);
     gtk_table_set_col_spacings (GTK_TABLE (table), 4);
 
-        label = gtk_label_new ("Device name");
-        gtk_table_attach (GTK_TABLE (table), label, 0, 1, 0, 1,
-                        (GtkAttachOptions) (GTK_FILL),
-                        (GtkAttachOptions) (0), 0, 0);
-        gtk_widget_show (label);
-        thing = gtk_entry_new_with_max_length (255);
+	label = gtk_label_new ("Device name");
+	gtk_table_attach (GTK_TABLE (table), label, 0, 1, 0, 1,
+			(GtkAttachOptions) (GTK_FILL),
+			(GtkAttachOptions) (0), 0, 0);
+	gtk_widget_show (label);
+	thing = gtk_entry_new_with_max_length (255);
 	gtk_signal_connect (GTK_OBJECT (thing), "changed", (GtkSignalFunc) dirdlg_on_change, (gpointer) NULL);
-        gtk_widget_show (thing);
-        gtk_table_attach (GTK_TABLE (table), thing, 1, 2, 0, 1,
-                        (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL),
-                        (GtkAttachOptions) (0), 0, 0);
-        gtk_widget_set_usize (thing, 200, -1);
-        devname_entry = thing;
+	gtk_widget_show (thing);
+	gtk_table_attach (GTK_TABLE (table), thing, 1, 2, 0, 1,
+			(GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL),
+			(GtkAttachOptions) (0), 0, 0);
+	gtk_widget_set_usize (thing, 200, -1);
+	devname_entry = thing;
 
-        label = gtk_label_new ("Volume name");
-        gtk_table_attach (GTK_TABLE (table), label, 0, 1, 1, 2,
-                        (GtkAttachOptions) (GTK_FILL),
-                        (GtkAttachOptions) (0), 0, 0);
-        gtk_widget_show (label);
-        thing = gtk_entry_new_with_max_length (255);
+	label = gtk_label_new ("Volume name");
+	gtk_table_attach (GTK_TABLE (table), label, 0, 1, 1, 2,
+			(GtkAttachOptions) (GTK_FILL),
+			(GtkAttachOptions) (0), 0, 0);
+	gtk_widget_show (label);
+	thing = gtk_entry_new_with_max_length (255);
 	gtk_signal_connect (GTK_OBJECT (thing), "changed", (GtkSignalFunc) dirdlg_on_change, (gpointer) NULL);
-        gtk_table_attach (GTK_TABLE (table), thing, 1, 2, 1, 2,
-                        (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL),
-                        (GtkAttachOptions) (0), 0, 0);
-        gtk_widget_show (thing);
-        gtk_widget_set_usize (thing, 200, -1);
-        volname_entry = thing;
+	gtk_table_attach (GTK_TABLE (table), thing, 1, 2, 1, 2,
+			(GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL),
+			(GtkAttachOptions) (0), 0, 0);
+	gtk_widget_show (thing);
+	gtk_widget_set_usize (thing, 200, -1);
+	volname_entry = thing;
 
-        label = gtk_label_new ("Boot priority");
-        gtk_table_attach (GTK_TABLE (table), label, 2, 3, 0, 2,
-                        (GtkAttachOptions) (GTK_FILL),
-                        (GtkAttachOptions) (0), 0, 0);
-        gtk_widget_show (label);
-        thing = gtk_spin_button_new (GTK_ADJUSTMENT (gtk_adjustment_new (0, -128, 127, 1, 5, 5)), 1, 0);
-        gtk_table_attach (GTK_TABLE (table), thing, 3, 4, 0, 2,
-                        (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
-                        (GtkAttachOptions) (GTK_EXPAND | GTK_FILL), 0, 0);
-        gtk_widget_show (thing);
-        bootpri_widget = thing;
+	label = gtk_label_new ("Boot priority");
+	gtk_table_attach (GTK_TABLE (table), label, 2, 3, 0, 2,
+			(GtkAttachOptions) (GTK_FILL),
+			(GtkAttachOptions) (0), 0, 0);
+	gtk_widget_show (label);
+	thing = gtk_spin_button_new (GTK_ADJUSTMENT (gtk_adjustment_new (0, -128, 127, 1, 5, 5)), 1, 0);
+	gtk_table_attach (GTK_TABLE (table), thing, 3, 4, 0, 2,
+			(GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+			(GtkAttachOptions) (GTK_EXPAND | GTK_FILL), 0, 0);
+	gtk_widget_show (thing);
+	bootpri_widget = thing;
 
-        readonly_widget = gtk_check_button_new_with_label ("Read only");
-        gtk_table_attach (GTK_TABLE (table), readonly_widget, 0, 4, 2, 3,
-                        (GtkAttachOptions) (GTK_EXPAND),
-                        (GtkAttachOptions) (0), 0, 0);
-        gtk_widget_show (readonly_widget);
+	readonly_widget = gtk_check_button_new_with_label ("Read only");
+	gtk_table_attach (GTK_TABLE (table), readonly_widget, 0, 4, 2, 3,
+			(GtkAttachOptions) (GTK_EXPAND),
+			(GtkAttachOptions) (0), 0, 0);
+	gtk_widget_show (readonly_widget);
 
     dialog_hbox = GTK_DIALOG (dirdlg)->action_area;
 
@@ -1671,11 +1678,11 @@ static void did_hdchange (void)
     if (is_hardfile (currprefs.mountinfo, selected_hd_row)) {
     } else {
 	create_dirdlg ("Hard disk properties");
-        gtk_entry_set_text (GTK_ENTRY (devname_entry), devname);
+	gtk_entry_set_text (GTK_ENTRY (devname_entry), devname);
 	gtk_entry_set_text (GTK_ENTRY (volname_entry), volname);
 	gtk_entry_set_text (GTK_ENTRY (path_entry), rootdir);
-        gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (readonly_widget), readonly);
-        gtk_spin_button_set_value (GTK_SPIN_BUTTON (bootpri_widget), bootpri);
+	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (readonly_widget), readonly);
+	gtk_spin_button_set_value (GTK_SPIN_BUTTON (bootpri_widget), bootpri);
    }
 }
 static void did_hddel (void)
@@ -1804,7 +1811,7 @@ static void make_about_widgets (GtkWidget *dvbox)
 static gint did_guidlg_delete (GtkWidget* window, GdkEventAny* e, gpointer data)
 {
     if (!quit_gui)
-        write_comm_pipe_int (&from_gui_pipe, UAECMD_QUIT, 1);
+	write_comm_pipe_int (&from_gui_pipe, UAECMD_QUIT, 1);
     gui_window = 0;
     return FALSE;
 }
@@ -1834,7 +1841,7 @@ static void create_guidlg (void)
 	{ "Chipset",      make_chipset_widgets },
 	{ "Sound",        make_sound_widgets },
 #ifdef JIT
- 	{ "JIT",          make_comp_widgets },
+	{ "JIT",          make_comp_widgets },
 #endif
 	{ "Game ports",   make_joy_widgets },
 #ifdef FILESYS
@@ -1979,9 +1986,9 @@ static void *gtk_gui_thread (void *dummy)
 	uae_sem_post (&gui_quit_sem);
 	DEBUG_LOG ("Exiting\n");
     } else {
-        DEBUG_LOG ("gtk_init() failed\n");
-        /* If GTK+ can't display, we still need to say we're done */
-        uae_sem_post (&gui_init_sem);
+	DEBUG_LOG ("gtk_init() failed\n");
+	/* If GTK+ can't display, we still need to say we're done */
+	uae_sem_post (&gui_init_sem);
     }
     return 0;
 }
@@ -2017,8 +2024,8 @@ void gui_filename (int num, const char *name)
     DEBUG_LOG ("Entered with drive:%d name:%s\n", num, name);
 
     if (gui_available) {
-        write_comm_pipe_int (&to_gui_pipe, GUICMD_DISKCHANGE, 0);
-        write_comm_pipe_int (&to_gui_pipe, num, 1);
+	write_comm_pipe_int (&to_gui_pipe, GUICMD_DISKCHANGE, 0);
+	write_comm_pipe_int (&to_gui_pipe, num, 1);
     }
     return;
 }
@@ -2047,15 +2054,15 @@ void gui_handle_events (void)
 	switch (cmd) {
 	    case UAECMD_EJECTDISK: {
 		int n = read_comm_pipe_int_blocking (&from_gui_pipe);
-	        uae_sem_wait (&gui_sem);
+		uae_sem_wait (&gui_sem);
 		changed_prefs.df[n][0] = '\0';
-	        uae_sem_post (&gui_sem);
+		uae_sem_post (&gui_sem);
 		if (uae_get_state () != UAE_STATE_RUNNING) {
 		    /* When UAE is running it will notify the GUI when a disk has been inserted
 		     * or removed itself. When UAE is paused, however, we need to do this ourselves
 		     * or the change won't be realized in the GUI until UAE is resumed */
-                    write_comm_pipe_int (&to_gui_pipe, GUICMD_DISKCHANGE, 0);
-	            write_comm_pipe_int (&to_gui_pipe, n, 1);
+		    write_comm_pipe_int (&to_gui_pipe, GUICMD_DISKCHANGE, 0);
+		    write_comm_pipe_int (&to_gui_pipe, n, 1);
 		}
 		break;
 	    }
@@ -2071,8 +2078,8 @@ void gui_handle_events (void)
 		    /* When UAE is running it will notify the GUI when a disk has been inserted
 		     * or removed itself. When UAE is paused, however, we need to do this ourselves
 		     * or the change won't be realized in the GUI until UAE is resumed */
-                    write_comm_pipe_int (&to_gui_pipe, GUICMD_DISKCHANGE, 0);
-	            write_comm_pipe_int (&to_gui_pipe, n, 1);
+		    write_comm_pipe_int (&to_gui_pipe, GUICMD_DISKCHANGE, 0);
+		    write_comm_pipe_int (&to_gui_pipe, n, 1);
 		}
 		break;
 	    }
@@ -2135,8 +2142,8 @@ int gui_update (void)
     DEBUG_LOG( "Entered\n" );
     return 0;
     if (gui_available) {
-        write_comm_pipe_int (&to_gui_pipe, GUICMD_UPDATE, 1);
-        uae_sem_wait (&gui_update_sem);
+	write_comm_pipe_int (&to_gui_pipe, GUICMD_UPDATE, 1);
+	uae_sem_wait (&gui_update_sem);
     }
     return 0;
 }
@@ -2211,7 +2218,7 @@ void gui_display (int shortcut)
 
     if (gui_available) {
 	/* If running fullscreen, then we must try to switched to windowed
-         * mode before activating the GUI */
+	 * mode before activating the GUI */
 	if (is_fullscreen ()) {
 	    toggle_fullscreen ();
 	    if (is_fullscreen ()) {
@@ -2276,13 +2283,13 @@ static void do_message_box (const gchar *title, const gchar *message, gboolean m
     uae_sem_init (&msg_quit_sem, 0, 0);
 
     write_comm_pipe_int   (&to_gui_pipe, GUICMD_MSGBOX, 0);
-    write_comm_pipe_pvoid (&to_gui_pipe, (void *) title, 0);
-    write_comm_pipe_pvoid (&to_gui_pipe, (void *) message, 0);
+    write_comm_pipe_pvoid (&to_gui_pipe, (const void *) title, 0);
+    write_comm_pipe_pvoid (&to_gui_pipe, (const void *) message, 0);
     write_comm_pipe_int   (&to_gui_pipe, (int) modal, 0);
     write_comm_pipe_pvoid (&to_gui_pipe, wait?&msg_quit_sem:NULL, 1);
 
     if (wait)
-        uae_sem_wait (&msg_quit_sem);
+	uae_sem_wait (&msg_quit_sem);
 
     DEBUG_LOG ("do_message_box() done");
     return;
@@ -2343,7 +2350,7 @@ static GtkWidget *make_message_box (const gchar *title, const gchar *message, in
     dialog = gtk_window_new ( GTK_WINDOW_TOPLEVEL /*GTK_WINDOW_DIALOG*/);
     gtk_container_set_border_width (GTK_CONTAINER (dialog), 12);
     if (title==NULL || (title!=NULL && strlen(title)==0))
-        title = PACKAGE_NAME " information";
+	title = PACKAGE_NAME " information";
     gtk_window_set_title (GTK_WINDOW (dialog), title);
     gtk_window_set_modal (GTK_WINDOW (dialog), modal);
     gtk_window_set_position (GTK_WINDOW (dialog), GTK_WIN_POS_MOUSE);
@@ -2373,10 +2380,10 @@ static GtkWidget *make_message_box (const gchar *title, const gchar *message, in
     GTK_WIDGET_SET_FLAGS (button, GTK_CAN_DEFAULT);
 
     if (sem)
-        gtk_signal_connect (GTK_OBJECT (button), "clicked", GTK_SIGNAL_FUNC (on_message_box_quit), sem);
+	gtk_signal_connect (GTK_OBJECT (button), "clicked", GTK_SIGNAL_FUNC (on_message_box_quit), sem);
     gtk_signal_connect_object (GTK_OBJECT (button), "clicked",
-			                           GTK_SIGNAL_FUNC (gtk_widget_destroy),
-			                           GTK_OBJECT (dialog));
+						   GTK_SIGNAL_FUNC (gtk_widget_destroy),
+						   GTK_OBJECT (dialog));
 
     gtk_widget_grab_default (button);
     gtk_window_add_accel_group (GTK_WINDOW (dialog), accel_group);

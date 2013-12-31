@@ -76,8 +76,8 @@ void activate_debugger (void)
 	    if (is_fullscreen ()) {
 		write_log ("Cannot activate debugger in full-screen mode\n");
 		return;
-            }
-        }
+	    }
+	}
 
 	if (logfile)
 	    fclose (logfile);
@@ -148,7 +148,7 @@ static void debug_help (void)
 static void ignore_ws (const char **c)
 {
     while (**c && isspace (**c))
-        (*c)++;
+	(*c)++;
 }
 
 static uae_u32 readint (const char **c);
@@ -1530,8 +1530,8 @@ static void debug_1 (void)
 	case 'o':
 	{
 	    if (copper_debugger(&inptr)) {
-	        debugger_active = 0;
-	        debugging = 0;
+		debugger_active = 0;
+		debugging = 0;
 		return;
 	    }
 	    break;
@@ -1686,9 +1686,9 @@ void debug (void)
 
 #ifdef SAVESTATE
     if (!debug_rewind
-#ifdef JIT	
+#ifdef JIT
 	&& !currprefs.cachesize
-#endif	
+#endif
 #ifdef FILESYS
 	&& nr_units (currprefs.mountinfo) == 0
 #endif

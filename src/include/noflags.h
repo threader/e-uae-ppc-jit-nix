@@ -2,18 +2,18 @@
 #define NOFLAGS_H
 
 /* Undefine everything that will *set* flags. Note: Leave *reading*
-   flags alone ;-). We assume that nobody does something like 
-   SET_ZFLG(a=b+c), i.e. expect side effects of the macros. That would 
+   flags alone ;-). We assume that nobody does something like
+   SET_ZFLG(a=b+c), i.e. expect side effects of the macros. That would
    be a stupid thing to do when using macros.
 */
 
 /* Gwenole Beauchesne pointed out that CAS and CAS2 use flag_cmp to set
    flags that are then used internally, and that thus the noflags versions
-   of those instructions were broken. Oops! 
-   Easy fix: Leave flag_cmp alone. It is only used by CMP* and CAS* 
+   of those instructions were broken. Oops!
+   Easy fix: Leave flag_cmp alone. It is only used by CMP* and CAS*
    instructions. For CAS*, noflags is a bad idea. For CMP*, which has
    setting flags as its only function, the noflags version is kinda pointless,
-   anyway. 
+   anyway.
    Note that this will only work while using the optflag_* routines ---
    as we do on all (one ;-) platforms that will ever use the noflags
    versions, anyway.
@@ -25,7 +25,7 @@
    Another problem exists with one of the bitfield operations. Once again,
    one of the operations sets a flag, and looks at it later. And the CHK2
    instruction does so as well. For those, a different solution is possible.
-   the *_ALWAYS versions of the SET_?FLG macros shall remain untouched by 
+   the *_ALWAYS versions of the SET_?FLG macros shall remain untouched by
    the redefinitions in this file.
    Unfortunately, they are defined in terms of the macros we *do* redefine.
    So here comes a bit of trickery....
@@ -68,7 +68,7 @@ static __inline__ void SET_CFLG_ALWAYS(uae_u32 x)
 #undef SET_CZNV
 #define SET_CZNV(y) do {uae_u32 dummy=(y); } while (0)
 #undef COPY_CARRY
-#define COPY_CARRY 
+#define COPY_CARRY
 
 #ifdef  optflag_testl
 #undef  optflag_testl

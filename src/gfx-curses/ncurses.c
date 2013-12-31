@@ -488,7 +488,7 @@ int graphics_init (void)
 	break;
     }
     if(!gfxvidinfo.bufmem) {
-	write_log("Not enough memory.\n");
+	write_log ("Not enough memory.\n");
 	return 0;
     }
 
@@ -576,9 +576,9 @@ void handle_events (void)
 	    MEVENT ev;
 	    if(getmouse(&ev) == OK) {
 		int mousex = (ev.x * gfxvidinfo.width) / COLS;
-	        int mousey = (ev.y * gfxvidinfo.height) / LINES;
-                setmousestate (0, 0, mousex, 1);
-	        setmousestate (0, 1 ,mousey, 1);
+		int mousey = (ev.y * gfxvidinfo.height) / LINES;
+		setmousestate (0, 0, mousex, 1);
+		setmousestate (0, 1 ,mousey, 1);
 #if 0
 		if(ev.bstate & BUTTON1_PRESSED)  buttonstate[0] = keydelay;
 		if(ev.bstate & BUTTON1_RELEASED) buttonstate[0] = 0;
@@ -599,7 +599,7 @@ void handle_events (void)
 	if (ch == 25) {buttonstate[2] = keydelay;ch = 0;} /* ^Y */
 #endif
 	if (ch == 15) uae_reset (0); /* ^O */
-        if (ch == 23) uae_stop ();   /* ^W (Note: ^Q won't work) */
+	if (ch == 23) uae_stop ();   /* ^W (Note: ^Q won't work) */
 #if 0
 	if (ch == KEY_F(1)) {
 	  curses_insert_disk();

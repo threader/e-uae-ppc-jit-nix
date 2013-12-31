@@ -79,7 +79,7 @@ static void chipsettypepanel_init (ChipsetTypePanel *panel)
 	make_label ("Chipset model"), 1, 1, GTK_FILL,
 	panel->chipsettype_widget = make_chooser (4, "OCS", "ECS Agnus", "Full ECS", "AGA"), 2, 1, GTK_EXPAND | GTK_FILL,
 	GTKUTIL_ROW_END,
-        gtkutil_make_radio_group (group, &panel->frequency_widget[0], "NTSC", "PAL", NULL), 1, 2, GTK_EXPAND | GTK_FILL,
+	gtkutil_make_radio_group (group, &panel->frequency_widget[0], "NTSC", "PAL", NULL), 1, 2, GTK_EXPAND | GTK_FILL,
 	GTKUTIL_ROW_END,
 	GTKUTIL_TABLE_END
     );
@@ -106,14 +106,14 @@ static void on_chipsettype_changed (GtkWidget *w, ChipsetTypePanel *panel)
     guint chipset_mask = 0;
 
     if (choice > 0)
-        chipset_mask |= CSMASK_ECS_AGNUS;
+	chipset_mask |= CSMASK_ECS_AGNUS;
     if (choice > 1)
-        chipset_mask |= CSMASK_ECS_DENISE;
+	chipset_mask |= CSMASK_ECS_DENISE;
 #ifdef AGA
     if (choice > 2)
-        chipset_mask |= CSMASK_AGA;
+	chipset_mask |= CSMASK_AGA;
 #endif
-   
+
     panel->chipset_mask = chipset_mask;
 
     gtk_signal_emit_by_name (GTK_OBJECT(panel), "chipset-changed");
@@ -122,8 +122,8 @@ static void on_chipsettype_changed (GtkWidget *w, ChipsetTypePanel *panel)
 static void on_frequency_changed (GtkWidget *w, ChipsetTypePanel *panel)
 {
      panel->ntscmode = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (panel->frequency_widget[0]));
-   
-     gtk_signal_emit_by_name (GTK_OBJECT(panel), "chipset-changed");    
+
+     gtk_signal_emit_by_name (GTK_OBJECT(panel), "chipset-changed");
 }
 
 GtkWidget *chipsettypepanel_new (void)
@@ -136,14 +136,14 @@ GtkWidget *chipsettypepanel_new (void)
 void chipsettypepanel_set_chipset_mask (ChipsetTypePanel *panel, guint chipset_mask)
 {
     int choice = 0;
-   
+
     if (chipset_mask & CSMASK_ECS_DENISE)
-        choice = 2;
+	choice = 2;
     if (chipset_mask & CSMASK_ECS_AGNUS)
-        choice = 1;
+	choice = 1;
 #ifdef AGA
     if (chipset_mask & CSMASK_AGA)
-        choice = 3;
+	choice = 3;
 #endif
     chooserwidget_set_choice (CHOOSERWIDGET (panel->chipsettype_widget), choice);
 }
@@ -151,6 +151,6 @@ void chipsettypepanel_set_chipset_mask (ChipsetTypePanel *panel, guint chipset_m
 void chipsettypepanel_set_ntscmode (ChipsetTypePanel *panel, guint ntscmode)
 {
    int buttonno = ntscmode == FALSE ? 1 : 0;
-   
+
    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (panel->frequency_widget[buttonno]), TRUE);
 }

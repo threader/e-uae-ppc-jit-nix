@@ -4,11 +4,15 @@
   * Definitions for accessing cycle counters on a given machine, if possible.
   *
   * Copyright 1997, 1998 Bernd Schmidt
-  * Copyright 2003-2005 Richard Drummond
+  * Copyright 2003-2008 Richard Drummond
   */
 
 #ifndef EUAE_MACHDEP_RPT_H
 #define EUAE_MACHDEP_RPT_H
+
+#ifdef linux
+frame_time_t linux_get_tsc_freq (void);
+#endif  
 
 STATIC_INLINE uae_s64 read_processor_time (void)
 {
@@ -26,13 +30,13 @@ STATIC_INLINE uae_s64 read_processor_time (void)
     {
 	extern frame_time_t linux_get_tsc_freq (void);
 	extern void         compute_vsynctime (void);
-        extern frame_time_t syncbase;
+	extern frame_time_t syncbase;
 
 	static frame_time_t next_tsc_synctime;
 	static frame_time_t prev_syncbase;
 
 	if (tsc > next_tsc_synctime) {
-	    uae_s64 new_tsc_freq = linux_get_tsc_freq ();
+	    frame_time_t new_tsc_freq = linux_get_tsc_freq ();
 
 	    if (new_tsc_freq > 0) {
 		syncbase = new_tsc_freq;

@@ -1205,7 +1205,7 @@ void fpp_opp (uae_u32 opcode, struct regstruct *regs, uae_u16 extra)
 	    break;
 	case 0x01: /* FINT */
 	    /* need to take the current rounding mode into account */
- 	    regs->fp[reg] = (fptype) toint (get_rounding_mode (regs), src);
+	    regs->fp[reg] = (fptype) toint (get_rounding_mode (regs), src);
 	    break;
 	case 0x02: /* FSINH */
 	    regs->fp[reg] = sinh (src);

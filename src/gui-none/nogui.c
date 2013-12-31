@@ -93,7 +93,7 @@ void gui_display(int shortcut)
 }
 
 void gui_message (const char *format,...)
-{   
+{
        char msg[2048];
        va_list parms;
 

@@ -76,13 +76,13 @@ static void read_joy (unsigned int nr)
 	    int x = 0, y = 0;
 
 	    if (state & JPF_JOY_UP)
-	        y = -1;
+		y = -1;
 	    else if (state & JPF_JOY_DOWN)
-	        y = 1;
+		y = 1;
 	    if (state & JPF_JOY_LEFT)
-	        x = -1;
+		x = -1;
 	    else if (state & JPF_JOY_RIGHT)
-	        x = 1;
+		x = 1;
 
 	    setjoystickstate (nr, 0, x, 1);
 	    setjoystickstate (nr, 1, y, 1);

@@ -2,7 +2,7 @@
 STATIC_INLINE uae_u32 get_word_prefetch (struct regstruct *regs, int o)
 {
     uae_u32 v = regs->irc;
-    regs->irc = get_word (m68k_getpc(regs) + o);
+    regs->irc = get_word (m68k_getpc (regs) + o);
     return v;
 }
 STATIC_INLINE uae_u32 get_long_prefetch (struct regstruct *regs, int o)
@@ -65,7 +65,7 @@ STATIC_INLINE uae_u32 get_byte_ce (uaecptr addr)
 STATIC_INLINE uae_u32 get_word_ce_prefetch (struct regstruct *regs, int o)
 {
     uae_u32 v = regs->irc;
-    regs->irc = get_word_ce (m68k_getpc(regs) + o);
+    regs->irc = get_word_ce (m68k_getpc (regs) + o);
     return v;
 }
 

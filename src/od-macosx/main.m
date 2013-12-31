@@ -259,12 +259,16 @@ extern NSString *finderLaunchFilename;
     setenv ("SDL_ENABLEAPPEVENTS", "1", 1);
 
 
-    if (init_sdl ()) 
+    if (init_sdl ())
 #endif
     {
-      
 	/* Hand off to main application code */
 	real_main (gArgc, gArgv);
+    }
+
+    if (finderLaunchFilename != nil) {
+	[finderLaunchFilename release];
+	finderLaunchFilename = nil;
     }
 
     /* We're done, thank you for playing */

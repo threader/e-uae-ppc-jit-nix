@@ -32,7 +32,7 @@ STATIC_INLINE uae_s64 read_processor_time (void)
     {
 	extern frame_time_t linux_get_tsc_freq (void);
 	extern void         compute_vsynctime (void);
-        extern frame_time_t syncbase;
+	extern frame_time_t syncbase;
 
 	static frame_time_t next_tsc_synctime;
 	static frame_time_t prev_syncbase;

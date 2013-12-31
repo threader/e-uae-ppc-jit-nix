@@ -188,7 +188,7 @@ int machdep_inithrtimer (void)
 	    signal (SIGALRM, alarmhandler);
 #endif
 
- 	    /* We want exact values... */
+	    /* We want exact values... */
 	    sync (); sync (); sync ();
 
 #ifdef USE_ALARM
@@ -244,5 +244,10 @@ int machdep_parse_option (struct uae_prefs *p, const char *option, const char *v
 
 void machdep_default_options (struct uae_prefs *p)
 {
+#ifdef __APPLE__
+    /* Don't use the TSC by default on Intel Macs. */
+    p->use_processor_clock = 0;
+#else
     p->use_processor_clock = 1;
+#endif
 }

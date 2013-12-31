@@ -42,7 +42,7 @@ static uae_u32 find_timebase (const char *path)
 		if (found)
 		    break;
 	    }
-        }  while (dirent);
+	}  while (dirent);
 
 	if (found) {
 	    /* We've found the PowerPC node in the OF tree, now construct
@@ -175,9 +175,9 @@ int machdep_inithrtimer (void)
 
     if (!done) {
 #	ifdef __MACH__
-            timebase = machdep_mach_gettimebase ();
+	    timebase = machdep_mach_gettimebase ();
 #	elif __amigaos4__
-            timebase = machdep_amigaos4_gettimebase ();
+	    timebase = machdep_amigaos4_gettimebase ();
 #	elif __linux__
 	    timebase = machdep_linux_gettimebase ();
 #       elif __MORPHOS__

@@ -203,15 +203,15 @@ static struct zfile *updateoutputfile (struct zfile *z)
     for (;;) {
 	if (!f)
 	    break;
-        fseek (f, 0, SEEK_END);
+	fseek (f, 0, SEEK_END);
 	size = ftell (f);
 	fseek (f, 0, SEEK_SET);
 	if (!size)
 	    break;
-        z2 = zfile_fopen_empty (z->name, size);
+	z2 = zfile_fopen_empty (z->name, size);
 	if (!z2)
 	    break;
-        fread (z2->data, size, 1, f);
+	fread (z2->data, size, 1, f);
 	fclose (f);
 	zfile_fclose (z);
 	return z2;
@@ -533,7 +533,7 @@ static struct zfile *zfile_opensinglefile (struct zfile *l)
     while (*s != 0 && *s != '/' && *s != '\\') s--;
     if (s > tmp)
 	s++;
-    write_log("loading from singlefile: '%s'\n", tmp);
+    write_log ("loading from singlefile: '%s'\n", tmp);
     while (*p++);
     offset = (p[0] << 24)|(p[1] << 16)|(p[2] << 8)|(p[3] << 0);
     p += 4;
@@ -730,7 +730,7 @@ int zfile_zcompress (struct zfile *f, void *src, int size)
     v = Z_OK;
     while (v == Z_OK) {
 	zs.next_out = outbuf;
-        zs.avail_out = sizeof (outbuf);
+	zs.avail_out = sizeof (outbuf);
 	v = deflate(&zs, Z_NO_FLUSH | Z_FINISH);
 	if (sizeof(outbuf) - zs.avail_out > 0)
 	    zfile_fwrite (outbuf, 1, sizeof (outbuf) - zs.avail_out, f);

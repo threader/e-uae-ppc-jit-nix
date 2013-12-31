@@ -34,7 +34,7 @@
 
 int cd32_enabled;
 
-//static int m68k_getpc(void) { return 0; }
+//static int m68k_getpc (void) { return 0; }
 
 /*
  * CD32 1Kb NVRAM (EEPROM) emulation
@@ -133,7 +133,7 @@ static void i2c_do (void)
 	    if (scl_out && !oscl) {
 		if (bitcounter == 8) {
 #if AKIKO_DEBUG_NVRAM
-		    write_log ("RB %02.2X ", nvram_byte, m68k_getpc());
+		    write_log ("RB %02.2X ", nvram_byte, m68k_getpc ());
 #endif
 		    sda_in = 0; /* ACK */
 		    if (direction > 0) {
@@ -144,7 +144,7 @@ static void i2c_do (void)
 			bitcounter = -1;
 		    }
 		} else {
-		    //write_log("NVRAM received bit %d, offset %d\n", sda_out, bitcounter);
+		    //write_log ("NVRAM received bit %d, offset %d\n", sda_out, bitcounter);
 		    nvram_byte <<= 1;
 		    nvram_byte |= sda_out;
 		    bitcounter++;
@@ -157,12 +157,12 @@ static void i2c_do (void)
 		    nvram_byte = cd32_nvram[nvram_address];
 		sda_dir_nvram = 1;
 		sda_in = (nvram_byte & 0x80) ? 1 : 0;
-		//write_log("NVRAM sent bit %d, offset %d\n", sda_in, bitcounter);
+		//write_log ("NVRAM sent bit %d, offset %d\n", sda_in, bitcounter);
 		nvram_byte <<= 1;
 		bitcounter++;
 		if (bitcounter == 8) {
 #if AKIKO_DEBUG_NVRAM
-		    write_log ("NVRAM sent byte %02.2X address %04.4X PC=%08.8X\n", cd32_nvram[nvram_address], nvram_address, m68k_getpc());
+		    write_log ("NVRAM sent byte %02.2X address %04.4X PC=%08.8X\n", cd32_nvram[nvram_address], nvram_address, m68k_getpc ());
 #endif
 		    nvram_address++;
 		    nvram_address &= NVRAM_SIZE - 1;
@@ -196,14 +196,14 @@ static void i2c_do (void)
 	}
 	bitcounter = 0;
 #if AKIKO_DEBUG_NVRAM
-	write_log ("I2C_DEVICEADDR: rw %d, address %02.2Xxx PC=%08.8X\n", nvram_rw, nvram_address >> 8, m68k_getpc());
+	write_log ("I2C_DEVICEADDR: rw %d, address %02.2Xxx PC=%08.8X\n", nvram_rw, nvram_address >> 8, m68k_getpc ());
 #endif
 	break;
 	case I2C_WORDADDR:
 	nvram_address &= 0x300;
 	nvram_address |= nvram_byte;
 #if AKIKO_DEBUG_NVRAM
-	write_log ("I2C_WORDADDR: address %04.4X PC=%08.8X\n", nvram_address, m68k_getpc());
+	write_log ("I2C_WORDADDR: address %04.4X PC=%08.8X\n", nvram_address, m68k_getpc ());
 #endif
 	if (direction < 0) {
 	    memcpy (nvram_writetmp, cd32_nvram + (nvram_address & ~(NVRAM_PAGE_SIZE - 1)), NVRAM_PAGE_SIZE);
@@ -875,7 +875,7 @@ static void cdrom_run_read (void)
 	    uae_sem_post (&akiko_sem);
 	    return;
 	}
-        uae_sem_post (&akiko_sem);
+	uae_sem_post (&akiko_sem);
 
 #if AKIKO_DEBUG_IO_CMD
 	write_log ("read sector=%d, scnt=%d -> %d\n", cdrom_data_offset, cdrom_sector_counter, sector);
@@ -981,7 +981,7 @@ static void *akiko_thread (void *null)
 
 	    memset (sector_buffer_info_2, 0, SECTOR_BUFFER_SIZE);
 #if AKIKO_DEBUG_IO_CMD
-	    write_log("filling buffer sector=%d (max=%d)\n", sector, cdrom_data_end);
+	    write_log ("filling buffer sector=%d (max=%d)\n", sector, cdrom_data_end);
 #endif
 	    sector_buffer_sector_2 = sector;
 	    offset = 0;
@@ -1257,7 +1257,7 @@ void REGPARAM2 akiko_wput (uaecptr addr, uae_u32 v)
     addr &= 0xfff;
 
     if((addr < 0x30 && AKIKO_DEBUG_IO))
-	write_log("akiko_wput %08.8X: %08.8X=%04.4X\n", m68k_getpc (&regs), addr, v & 0xffff);
+	write_log ("akiko_wput %08.8X: %08.8X=%04.4X\n", m68k_getpc (&regs), addr, v & 0xffff);
     akiko_bput2 (addr + 1, v & 0xff, 0);
     akiko_bput2 (addr + 0, v >> 8, 0);
 }
@@ -1267,7 +1267,7 @@ void REGPARAM2 akiko_lput (uaecptr addr, uae_u32 v)
     addr &= 0xffff;
 
     if(addr < 0x30 && AKIKO_DEBUG_IO)
-	write_log("akiko_lput %08.8X: %08.8X=%08.8X\n", m68k_getpc (&regs), addr, v);
+	write_log ("akiko_lput %08.8X: %08.8X=%08.8X\n", m68k_getpc (&regs), addr, v);
     akiko_bput2 (addr + 3, (v >> 0) & 0xff, 0);
     akiko_bput2 (addr + 2, (v >> 8) & 0xff, 0);
     akiko_bput2 (addr + 1, (v >> 16) & 0xff, 0);

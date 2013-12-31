@@ -23,7 +23,7 @@
 #include "threaddep/thread.h"
 
 /*
- * Handle CreateNewProc() differences between AmigaOS-like systems 
+ * Handle CreateNewProc() differences between AmigaOS-like systems
  */
 #ifdef __MORPHOS__
 /* CreateNewProc() on MorphOS needs to be told that code is PPC */
@@ -368,7 +368,7 @@ int uae_sem_wait (uae_sem_t *sem)
 	if (sem->value > 0) {
 	    --sem->value;
 	    result = 0;
-        } else {
+	} else {
 	    ReleaseSemaphore (&sem->mutex);
 
 	    /* Block on this semaphore by waiting for
@@ -396,7 +396,7 @@ int uae_sem_trywait (uae_sem_t *sem)
 	if (sem->value > 0) {
 	    --sem->value;
 	    result = 0;
-        }
+	}
     }
     ReleaseSemaphore (&sem->mutex);
     return result;

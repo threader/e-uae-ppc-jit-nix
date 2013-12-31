@@ -31,7 +31,7 @@ struct sdl_raw_keymap
     int                          sdl_gfx_driver;
     const char                  *name;
     const struct uaekey_hostmap *keymap;
-          struct uae_hotkeyseq  *hotkeys;
+	  struct uae_hotkeyseq  *hotkeys;
     const int                   *modtable;
 };
 
@@ -67,8 +67,8 @@ struct uae_input_device_kbr_default *get_default_raw_keymap (int type)
     const struct sdl_raw_keymap *k = &keymaps[0];
 
     if (!keyboard) {
-        free (keyboard);
-        keyboard = 0;
+	free (keyboard);
+	keyboard = 0;
     }
 
     while (k->sdl_gfx_driver != type && k->sdl_gfx_driver != 0)
@@ -77,7 +77,7 @@ struct uae_input_device_kbr_default *get_default_raw_keymap (int type)
     if (k->keymap) {
 	write_log ("Found %s raw keyboard mapping\n", k->name);
 	modkeytable = k->modtable;
-        keyboard = uaekey_make_default_kbr (k->keymap);
+	keyboard = uaekey_make_default_kbr (k->keymap);
     }
 
     return keyboard;
@@ -138,7 +138,7 @@ int modifier_hack (int *scancode, int *pressed)
 	     *pressed  = modifiers & KMOD_CAPS;
 	} else
 	     result = 0;
-        old_modifiers = modifiers;
+	old_modifiers = modifiers;
     } else
 	result = 0;
 

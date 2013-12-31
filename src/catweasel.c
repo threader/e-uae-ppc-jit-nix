@@ -21,7 +21,7 @@ void catweasel_hsync (void)
 	return;
     cwhsync--;
     if (cwhsync == 0) {
-        if (handshake)
+	if (handshake)
 	    ioport_write (currprefs.catweasel_io + 0xd0, 0);
 	handshake = 0;
     }
@@ -64,7 +64,7 @@ uae_u32 catweasel_do_bget (uaecptr addr)
 	} else if(addr >= 0x10000 + currprefs.catweasel_io && addr <= 0x10000 + currprefs.catweasel_io) {
 	    return ioport_read (addr & 0x3ff);
 	} else if ((addr & 0x3ff) < 0x200 || (addr & 0x3ff) >= 0x400) {
-	    write_log("catweasel_bget @%08.8X!\n",addr);
+	    write_log ("catweasel_bget @%08.8X!\n",addr);
 	}
     }
     return 0;
@@ -81,7 +81,7 @@ void catweasel_do_bput (uaecptr addr, uae_u32 b)
 	} else if(addr >= 0x10000 + currprefs.catweasel_io && addr <= 0x10000 + currprefs.catweasel_io) {
 	    ioport_write (addr & 0x3ff, b);
 	} else if ((addr & 0x3ff) < 0x200 || (addr & 0x3ff) >= 0x400) {
-	    write_log("catweasel_bput @%08.8X=%02.2X!\n",addr,b);
+	    write_log ("catweasel_bput @%08.8X=%02.2X!\n",addr,b);
 	}
     }
 }
@@ -138,7 +138,7 @@ static uae_u8 *mergepieces(uae_u8 *start,int len,int bits,uae_u8 *sync)
 	uae_u8 b;
 	int size;
 	int shift;
-	
+
 	size=len-(sync-start);
 	memcpy(dst,sync,size);
 	dst+=size;
@@ -152,8 +152,8 @@ static uae_u8 *mergepieces(uae_u8 *start,int len,int bits,uae_u8 *sync)
 		start++;
 	}
 	return tmpmfmbuffer;
-}	
-		
+}
+
 #define SCANOFFSET 1 /* scanning range in bytes, -SCANOFFSET to SCANOFFSET */
 #define SCANOFFSET2 20
 #define SCANLENGHT 200 /* scanning length in bytes */
@@ -162,7 +162,7 @@ static uae_u8* scantrack(uae_u8 *sync1,uae_u8 *sync2,int *trackbytes,int *trackb
 {
 	int i,bits,bytes,matched;
 	uae_u8 *sync2bak=sync2;
-	
+
 	sync1+=SCANOFFSET2;
 	sync2+=SCANOFFSET2;
 	while(sync1 < sync2bak - 2*SCANOFFSET - SCANOFFSET2 - SCANLENGHT) {
@@ -189,7 +189,7 @@ static uae_u8* scantrack(uae_u8 *sync1,uae_u8 *sync2,int *trackbytes,int *trackb
 		sync2++;
 	}
 	return 0;
-}	
+}
 
 static unsigned char threshtab[128];
 
@@ -271,7 +271,7 @@ void catweasel_init_controller(catweasel_contr *c)
 	c->io_mem   = c->iobase + 0xe0;
 	break;
     default:
-	return;	
+	return;
     }
 
     c->control_register = 255;
@@ -282,7 +282,7 @@ void catweasel_init_controller(catweasel_contr *c)
 	c->drives[i].number = i;
 	c->drives[i].contr = c;
 	c->drives[i].diskindrive = 0;
-	
+
 	/* select only the respective drive, step to track 0 */
 	if(i == 0) {
 	    CWSetCReg(c, c->crm_sel0, c->crm_dir | c->crm_sel1);
@@ -294,7 +294,7 @@ void catweasel_init_controller(catweasel_contr *c)
 	    CWTriggerStep(c);
 	    sleep_millis(6);
 	}
-	
+
 	if(j < 86) {
 	    c->drives[i].type = 1;
 	    c->drives[i].track = 0;
@@ -704,7 +704,7 @@ int catweasel_fillmfm (catweasel_drive *d, uae_u16 *mfm, int side, int clock, in
 		for (i = 0; i < bytes + 2; i+=2) {
 		    mfm[j++] = (p1[i] << 8) | p1[i + 1];
 		}
-	        return bytes * 8 + bits;
+		return bytes * 8 + bits;
 	    }
 	}
     } else {
@@ -712,7 +712,7 @@ int catweasel_fillmfm (catweasel_drive *d, uae_u16 *mfm, int side, int clock, in
     }
     return 0;
 }
-	
+
 int catweasel_read(catweasel_drive *d, int side, int clock, int rawmode)
 {
     int iobase = d->contr->iobase;

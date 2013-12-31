@@ -155,7 +155,7 @@ int init_sound (void)
 
     snd_output_stdio_attach (&alsa_out, stderr, 0);
 
-    dspbits  = currprefs.sound_bits;
+    dspbits  = 16;
     channels = currprefs.sound_stereo ? 2 : 1;
     rate     = currprefs.sound_freq;
 
@@ -214,13 +214,9 @@ int init_sound (void)
 
     obtainedfreq = currprefs.sound_freq;
 
-    if (dspbits == 16) {
-	init_sound_table16 ();
-	sample_handler = currprefs.sound_stereo ? sample16s_handler : sample16_handler;
-    } else {
-	init_sound_table8 ();
-	sample_handler = currprefs.sound_stereo ? sample8s_handler : sample8_handler;
-    }
+    init_sound_table16 ();
+    sample_handler = currprefs.sound_stereo ? sample16s_handler : sample16_handler;
+
     have_sound = 1;
     sound_available = 1;
 

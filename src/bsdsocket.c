@@ -270,7 +270,7 @@ static uae_u32 REGPARAM2 bsdsock_int_handler (TrapContext *context)
 	    if (sb->dosignal == 1) {
 		struct regstruct sbved_regs = context->regs;
 
-	        m68k_areg (&context->regs, 1) = sb->ownertask;
+		m68k_areg (&context->regs, 1) = sb->ownertask;
 		m68k_dreg (&context->regs, 0) = sb->sigstosend;
 		CallLib (context, get_long (4), -0x144);		/* Signal() */
 
@@ -714,9 +714,9 @@ static uae_u32 REGPARAM2 bsdsocklib_ObtainSocket (TrapContext *context)
     TRACE (("%d, %d\n", s, sd));
 
     if (sd != -1) {
-        sb->ftable[sd - 1] = sockpoolflags[i];
-        sockpoolids[i] = UNIQUE_ID;
-        return sd-1;
+	sb->ftable[sd - 1] = sockpoolflags[i];
+	sockpoolids[i] = UNIQUE_ID;
+	return sd-1;
     }
 
     return -1;
@@ -1131,7 +1131,7 @@ static uae_u32 REGPARAM2 bsdsocklib_SocketBaseTagList (TrapContext *context)
 		    if (currtag & 1) {
 			bsdsocklib_SetDTableSize(sb, currval);
 		    } else {
-			put_long(tagptr + 4, sb->dtablesize);
+			put_long (tagptr + 4, sb->dtablesize);
 		    }
 		    break;
 		 case SBTC_ERRNOSTRPTR:
@@ -1140,7 +1140,7 @@ static uae_u32 REGPARAM2 bsdsocklib_SocketBaseTagList (TrapContext *context)
 		    } else {
 			unsigned long ulTmp;
 			if (currtag & 0x8000)	/* SBTM_GETREF */
-			    ulTmp = get_long(currval);
+			    ulTmp = get_long (currval);
 			else			/* SBTM_GETVAL */
 			    ulTmp = currval;
 
@@ -1158,7 +1158,7 @@ static uae_u32 REGPARAM2 bsdsocklib_SocketBaseTagList (TrapContext *context)
 		    } else {
 			unsigned long ulTmp;
 			if (currtag & 0x8000)	/* SBTM_GETREF */
-			    ulTmp = get_long(currval);
+			    ulTmp = get_long (currval);
 			else			/* SBTM_GETVAL */
 			    ulTmp = currval;
 
@@ -1390,7 +1390,7 @@ void bsdlib_install (void)
     int i;
 
     if (currprefs.socket_emu == 0)
-        return;
+	return;
 
     if (!init_socket_layer ())
 	return;
