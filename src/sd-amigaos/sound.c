@@ -54,7 +54,7 @@ unsigned char *buffers[2];
 uae_u16 *sndbuffer;
 uae_u16 *sndbufpt;
 int sndbufsize;
-int bufidx, devopen, ahiopen;
+int bufidx, devopen, ahiopen ahiopen = FALSE;
 
 int have_sound;
 int clockval;
@@ -79,12 +79,16 @@ static const char *open_AHI (void)
 	    if (!OpenDevice (AHINAME, 0, (struct IORequest *)AHIio[0], 0)) {
 	        if ((AHIio[1] = malloc (sizeof(struct AHIRequest)))) {
 		    memcpy (AHIio[1], AHIio[0], sizeof(struct AHIRequest));
+      		 ahiopen = TRUE;
 		    return AHINAME;
+
+		   return TRUE;
 		}
 	    }
 	}
     }
 #endif
+    ahiopen = FALSE;
     return NULL;
 }
 
@@ -105,6 +109,7 @@ static void close_AHI (void)
     AHIio[0] = NULL;
     AHIio[1] = NULL;
     linkio   = NULL;
+	ahiopen = FALSE;
 #endif
 }
 
@@ -250,6 +255,12 @@ void close_sound (void)
 	DeleteMsgPort ((void*) AudioMP);
 	AudioMP = NULL;
     }
+
+	if (ahiopen)
+	{
+		close_AHI ();
+	}
+
     if (buffers[0]) {
 	FreeMem ((APTR) buffers[0], sndbufsize);
 	buffers[0] = 0;
