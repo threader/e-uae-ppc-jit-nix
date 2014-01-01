@@ -1,5 +1,6 @@
-INCLUDES = \
-	-I$(top_srcdir)/src/include -I$(top_builddir)/src -I$(top_srcdir)/src -I$(top_srcdir)
+AM_CFLAGS    = @UAE_CFLAGS@
+AM_CPPFLAGS  = @UAE_CPPFLAGS@
+AM_CPPFLAGS += -I$(top_srcdir)/src/include -I$(top_builddir)/src -I$(top_srcdir)/src -I$(top_srcdir)
 
 SUBDIRS = \
 	tools @MACHDEP@ @THREADDEP@ @GFX_DEP@ @SND_DEP@ @JOY_DEP@ @GUI_DEP@ \
@@ -36,7 +37,7 @@ DISTCLEANFILES = \
 	target.h md-fpp.h
 
 bin_PROGRAMS  = \
-	uae readdisk
+	uae readdisk make_hdf
 
 if BUILD_MACOSX_BUNDLE
 bundle = @PACKAGE_NAME@.app
@@ -126,7 +127,7 @@ EXTRA_DIST = \
 	test/test_optflag.c test/Makefile.in test/Makefile.am
 
 uae_SOURCES = \
-	main.c newcpu.c fpp.c memory.c events.c custom.c serial.c cia.c \
+	main.c newcpu.c memory.c events.c custom.c serial.c cia.c \
 	blitter.c autoconf.c traps.c ersatz.c keybuf.c expansion.c \
 	zfile.c cfgfile.c picasso96.c inputdevice.c \
 	gfxutil.c audio.c sinctable.c drawing.c \
@@ -137,7 +138,7 @@ uae_SOURCES = \
 
 EXTRA_uae_SOURCES = \
 	bsdsocket.c bsdsocket-posix-new.c build68k.c catweasel.c cdrom.c \
-	compemu_support.c compemu_macroblocks_ppc.c compemu_compiler_ppc.c \
+	fpp.c compemu_support.c compemu_macroblocks_ppc.c compemu_compiler_ppc.c \
 	debug.c identify.c filesys.c filesys_bootrom.c fsdb.c fsdb_unix.c fsusage.c genblitter.c \
 	gencpu.c gengenblitter.c gencomp.c genlinetoscr.c hardfile.c \
 	hardfile_unix.c scsi-none.c \
@@ -190,9 +191,13 @@ uae_LDADD = \
 	@THREADDEP@/libthreaddep.a	\
 	@OSDEP@/libosdep.a
 
+uae_LDADD += @UAE_LIBS@ @MATHLIB@
 
 readdisk_SOURCES = \
 	readdisk.c missing.c
+
+make_hdf_SOURCES = \
+	make_hdf.c
 
 libcpuemu_a_SOURCES =
 libcpuemu_a_LIBADD =		@CPUOBJS@ @JITOBJS@
@@ -215,7 +220,7 @@ compstbl.c:	tools/gencomp table68k_comp
 comptbl.h:	compstbl.c
 
 cpuemu_%.o: cpuemu_%.c
-	$(CC) $(INCLUDES) -c $(CPPFLAGS) $(CFLAGS) $(DEBUGFLAGS) $(NO_SCHED_CFLAGS) $< -o $@
+	$(COMPILE)  $< -c -o $@
 
 blit.h:		tools/genblitter
 		./tools/genblitter i >blit.h
