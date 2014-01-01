@@ -35,6 +35,10 @@ uses to specify paths.
 
 This document is a work-in-progress.
 
+Please note: this documentation was prepared for the PowerPC JIT
+implementation. There are some slight differences between the X86 and the
+PowerPC JIT compiler, therefore the configuration items are changed too.
+Please see the details below.
 
 General options
 ===============
@@ -218,12 +222,17 @@ JIT compiler options
      removed from the emulation.
 
   3) You must emulate a 68ec020 CPU or better to be able to use the JIT
-     compiler.
+     compiler. The JIT compiler is depending on the availibility of the
+	 processor cache.
 
   4) To enable direct memory access in compiled code, you must emulate a
      32-bit CPU, e.g., a full 68020, or a 68040. Currently direct memory
      access is experimental, probably will fail.
 
+enable_jit=<boolean>
+
+  if true, use JIT compiling when it is possible.
+  
 
 cachesize=<n> (default=0)
 
@@ -232,7 +241,7 @@ cachesize=<n> (default=0)
   1024 and 8192 (i.e., 1 to 8 MB of cache) should allow the best performance.
 
 
-compfpu=<boolean>
+compfpu=<boolean> (default=true)
 
   If true, translate m68k FPU instructions to native FPU instructions.
   If false, interpret FPU instructions. Only applies if a CPU with a
@@ -240,6 +249,55 @@ compfpu=<boolean>
   Please note: FPU support is not implemented yet for PPC JIT, but this
   option is available.
 
+
+comp_optimize=<boolean> (default=false)
+
+  If true, try to optimize the compiled code and remove the unused instructions,
+  flag emulation code.
+  Please note: the optimization is not working properly, it might or might not 
+  work at the moment.
+
+
+comp_constjump=<boolean> (default=true)
+
+  If true, use indirect jumping for constant jumps (slower).
+  Please note: this must be set to true at the moment.
+
+
+comp_trustbyte=<access mode> (default=indirect)
+comp_trustword=<access mode> (default=indirect)
+comp_trustlong=<access mode> (default=indirect)
+
+   How to access the emulated memory from the compiled code:
+   
+   direct -     use direct memory access, avoid indirections. This is the fastest way,
+                but it relies on the detection of the required indirection.
+
+   indirect -   use indirect memory access, slow, but safe. The indirect memory
+                access makes sure that the custom chips are getting the required
+				emulated access when needed.
+				It also makes sure that the emulator won' try to access any random
+				address on the host machine (and probably crash instantly).
+
+   indirectKS - same as the indirect mode, except for the Kickstart addresses
+                which will access memory directly. Same problems might apply
+				as the direct memory access.
+
+   afterPic -   use direct memory access after Picasso96 was initialized.
+	
+
+comp_log=<boolean> (default=false)
+
+   If true, additional JIT compiling related logs will be emitted to the console.
+   Please note: excessive amount of logs will be dumped to the console, I suggest to
+   redirect it into a file. The logging will slow down the emulation.
+
+comp_log_compiled=<boolean> (default=false)
+
+   if true, dump the macroblock data and the compiled code to the console.
+   Please note: HUGE amount of logs will be dumped to the console, I suggest to
+   redirect it into a file. The logging will slow down the emulation significantly.
+   
 
 Chipset options
 ===============
