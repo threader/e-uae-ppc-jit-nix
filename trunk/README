@@ -30,7 +30,7 @@ stable either. There are lots of issues with the JIT compiling yet to be
 fixed, but I would like to get some opinions and bug reports from you guys,
 so I decided to do an intial release of this long-running project.
 
-Please read carefully of the How to test and the Known issues sections before
+Please read carefully the How to test and the Known issues sections before
 you start with this release.
 
 You can also find a comparison of the original E-UAE 0.8.29 and this version
