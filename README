@@ -1,5 +1,5 @@
-E-UAE PowerPC JIT project
-=========================
+E-UAE PowerPC JIT project 0.8.29-PPCJITBETA01
+=============================================
 
 This project is a fork of the E-UAE Amiga emulation project. You can find the
 original project's pages here:
@@ -21,18 +21,217 @@ You can find the actual project sources in the SourceForge project:
 https://sourceforge.net/projects/euaeppcjit
 
 
+Initial Beta release (PPCJITBETA01)
+===================================
+This release is the very first public beta for the project.
+
+Just like most of the first beta versions for any software this one is not
+stable either. There are lots of issues with the JIT compiling yet to be
+fixed, but I would like to get some opinions and bug reports from you guys,
+so I decided to do an intial release of this long-running project.
+
+Please read carefully of the How to test and the Known issues sections before
+you start with this release.
+
+You can also find a comparison of the original E-UAE 0.8.29 and this version
+in What is the difference section.
+
+Please note: the tools for the emulator are not included in this beta package.
+If you need these tools (for example: mousehack, make-hdf, rtg.library, etc.)
+then please use them from a previous E-UAE release.
+This emulator is backward compatible with the original v0.8.29, you can use
+the same tools or even the same configuration files.
+
+
+What is the difference
+======================
+Here are the differences between the original v0.8.29 and this version:
+
+* Some minor fixes were applied on certain files when it was necessary.
+
+* The X86 JIT compiling were removed completely.
+
+* The PowerPC JIT compiling were implemented from scratch, some support 
+  functions were reused from the X86 implementation.
+  
+* New configuration items are available for the new JIT implementation.
+  (See docs/configuration.txt.)
+  
+* Some configuration items for JIT were removed.
+  (See docs/configuration.txt.)
+
+* An indicator LED were introduced for the JIT compiler state.
+  (See docs/configuration.txt.)
+  
+All other aspects of the emulation remained the same as it was available
+already in E-UAE v0.8.29 (as of 20/08/2008).
+
+
+How to test
+===========
+First of all: please read the available configuration items in the
+docs/configuration.txt file, especially regarding the JIT compiling
+configuration.
+
+You can reuse the same configuration files, HD image files, prepared folders
+that were already working with the previous E-UAE version.
+
+However, for testing the JIT implementation please make sure you set up
+the configuration exactly as listed below:
+	enable_jit=yes
+	cpu_speed=max
+	cpu_type=68020 (or 68EC020, 68040, see Known issues)
+	cpu_compatible=false
+	cpu_cycle_exact=false
+	blitter_cycle_exact=false
+	comp_optimize=no (see Known issues)
+	cachesize=8192 (or higher)
+	comp_constjump=yes
+	comp_trustbyte=indirect (see Known issues)
+	comp_trustword=indirect
+	comp_trustlong=indirect
+
+These settings will make sure you get the best performance from the JIT
+compiled code and workaround the known issues.
+
+Regarding the processor settings: the JIT implementation is depending on the
+availibility of the processor cache, any software that turns the cache off
+won't be JIT compiled.
+Same applies to the processor type: those processors which don't have cache
+cannot be used together with the JIT compiling (these are: 68000, 68010).
+
+If the JIT was set up properly then the JIT LED will blink green on the screen.
+(See show_leds in docs/configuration.txt.)
+
+
+How to report a bug
+===================
+
+When you have found a bug and would like to report it please make sure you
+follow these steps:
+
+1. Check whether the bug was already known. You can find the bug tickets on
+   the SourceForge project page: https://sourceforge.net/p/euaeppcjit/tickets
+
+2. Make sure you are using the most recent version of the emulator.
+   Check the SourceForge page for any updates:
+   https://sourceforge.net/p/euaeppcjit
+
+   You can check the version of your emulator when you start it from command
+   line, this will be the very first output from the program.
+
+3. Make sure the JIT is running, read through the How to test section and
+   follow the instructions regarding the configuration.
+
+4. Try to reproduce the bug without JIT compiling: turn off the JIT compiling
+   in the configuration and try to reproduce the bug.
+
+5. If you were able to reproduce the bug without JIT compiling then try to
+   reproduce it in the previous version of E-UAE.
+   If you are able to reproduce it then it is a generic E-UAE bug. Fixing
+   these issues is not a goal for the E-UAE PPC JIT project. You might still
+   report it, but most likely it won't be fixed in this project.
+
+6. Try to make sure you can reproduce the bug consistently (or often enough)
+   and preferably you can describe the exact details, provide the software
+   that triggers the bug.
+
+7. See the Contacts section for getting in touch with me. Gather all the
+   information and send it to me by email.
+
+
+Known issues
+============
+* The following instructions are planned, but not implemented yet for the
+  JIT compiling at the moment:
+
+  - long versions of the division and multiplication instructions
+    (DIVU.L/DIVS.L, MULU.L/MULS.L);
+
+  - compare against bounds instructions (CMP2);
+
+  - all the decimal data handling instructions (ABCD, SBCD, NBCD, PACK, UNPK);
+  
+  - the FPU instructions were not implemented yet, these are coming at a later
+    stage of the project.
+
+  Even though these instructions are not compiled, a fallback mechanism kicks
+  in and these will be executed by the interpretive emulation.
+  Any software that is relying on these instructions will be still working.
+
+* After booting the Workbench from AmigaOS 3.9 it crashes within a few seconds.
+  Other AmigaOS versions might work properly.
+
+* This is a debug version, so probably it is a little bit slower than the 
+  release version will be (including the non-JIT code).
+  
+* E-UAE does not support 68030 processor type, if this processor was selected
+  then it falls back to 68010.
+
+* A bug in the original E-UAE code prevents enabling of the processor cache
+  when the processor type is set to 68060. (In this case the JIT compiling
+  won't be enabled.)
+  As it is stated in the original configuration documentation: the 68060
+  emulation is incomplete, therefore it is not useful yet.
+
+* The uae_msleep() function is relying on MicroDelay() OS function, which is
+  working, but it might cause hogging of the whole system. (Mouse pointer
+  freezes for seconds.)
+  I have never experienced any issues like this, but the implementation needs
+  some fixing.
+ 
+* (AmigaOS4) Sometimes the emulation crashes when it was started several
+  (20-30) times in a row, rarely it brings down the whole system.
+  At the moment it is unclear how to reproduce the issue, but please
+  make sure you save everything in other applications before you start the
+  emulator, otherwise you might lose your work.
+
+* The register/flag flow optimization is not working properly at the moment,
+  therefore it should be turned off: comp_optimize=no
+  
+* The direct memory access is not completed yet, theoretically it might work
+  for certain software, but I suggest to turn it off: 
+	comp_trustbyte=indirect
+	comp_trustword=indirect
+	comp_trustlong=indirect
+
+
+Notes for compiling the sources
+===============================
+For general notes for compiling please refer to the README_original file.
+
 To compile on Mac OSX 10.3.9 or earlier:
 
 Autoconf2.57 and automake1.6 screw up @OBJCFLAGS@ and is not really compatible. 
 
+Get the previous versions:
 http://ftp.gnu.org/gnu/autoconf/autoconf-2.61.tar.bz2
 ./configure --bindir=/usr/bin --datarootdir=/usr/share 
 http://ftp.gnu.org/gnu/automake/automake-1.7.9.tar.bz2
 ./configure --bindir=/usr/bin --datadir=/usr/share
 
-Mac OSX 10.4.x and 10.3.x: 
+For Mac OSX 10.4.x and 10.3.x: 
 Latest SDL.framework is not properly detected. 
-Using the SDL.framework already in E-UAE.app/Content/Frameworks at http://www.rcdrummond.net/uae
-Copy SDL.framework/Headers from the latest SDL.framework and put the framework in /Library/Frameworks/
+Using the SDL.framework already in E-UAE.app/Content/Frameworks at
+http://www.rcdrummond.net/uae
+Copy SDL.framework/Headers from the latest SDL.framework and put the framework
+in /Library/Frameworks/
 ./configure --enable-jit --without-x --withsdl-gl --with-cocoa-gui \ 
 --with-sdl-prefix=/Library/Frameworks/SDL.framework
+
+
+Where to get the sources
+========================
+You can find the actual project sources at the SourceForge project pages:
+
+https://sourceforge.net/projects/euaeppcjit
+
+
+Contact
+=======
+Send any opinion, bug reports, patches, etc. to
+Almos Rajnai (almos dot rajnai at GMail)
+
+You can also get in touch with me using the Contact form at the project blog:
+http://euaejit.blogspot.com
+
