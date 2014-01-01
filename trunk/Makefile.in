@@ -39,8 +39,8 @@ target_triplet = @target@
 LIBOBJDIR =
 DIST_COMMON = README $(am__configure_deps) $(dist_noinst_SCRIPTS) \
 	$(srcdir)/Makefile.am $(srcdir)/Makefile.in \
-	$(top_srcdir)/configure COPYING ChangeLog config.guess \
-	config.sub depcomp install-sh missing mkinstalldirs
+	$(top_srcdir)/configure COPYING config.guess config.sub \
+	depcomp install-sh missing mkinstalldirs
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/acx_pthread.m4 \
