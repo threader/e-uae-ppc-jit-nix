@@ -83,7 +83,6 @@ static struct devstruct devst[MAX_TOTAL_SCSI_DEVICES];
 static struct priv_devstruct pdevst[MAX_OPEN_DEVICES];
 static uae_u32 nscmd_cmd;
 static uae_sem_t change_sem;
-static int log_scsi;
 
 static struct device_info *devinfo (struct devstruct *devst, struct device_info *di)
 {
@@ -517,6 +516,55 @@ static int command_cd_read (struct devstruct *dev, uaecptr data, uae_u64 offset,
 	return 0;
 }
 
+static int dev_do_io_other (struct devstruct *dev, uaecptr request)
+{
+	uae_u32 command;
+	uae_u32 io_data = get_long (request + 40); // 0x28
+	uae_u32 io_length = get_long (request + 36); // 0x24
+	uae_u32 io_actual = get_long (request + 32); // 0x20
+	uae_u32 io_offset = get_long (request + 44); // 0x2c
+	uae_u32 io_error = 0;
+	struct priv_devstruct *pdev = getpdevstruct (request);
+
+	if (!pdev)
+		return 0;
+	command = get_word (request + 28);
+
+	if (log_scsi)
+		write_log (_T("SCSI OTHER %d: DATA=%08X LEN=%08X OFFSET=%08X ACTUAL=%08X\n"),
+			command, io_data, io_length, io_offset, io_actual);
+	switch (command)
+	{
+	case CMD_UPDATE:
+	case CMD_CLEAR:
+	case CMD_FLUSH:
+	case CMD_MOTOR:
+	case CMD_SEEK:
+		io_actual = 0;
+		break;
+	case CMD_GETDRIVETYPE:
+		io_actual = dev->drivetype;
+		break;
+	case HD_SCSICMD:
+		{
+			uae_u32 sdd = get_long (request + 40);
+			io_error = sys_command_scsi_direct (dev->unitnum, dev->drivetype, sdd);
+			if (log_scsi)
+				write_log (_T("scsidev other: did io: sdd %08x request %08x error %d\n"), sdd, request, get_byte (request + 31));
+		}
+		break;
+	default:
+		io_error = IOERR_NOCMD;
+		break;
+	}
+
+	put_long (request + 32, io_actual);
+	put_byte (request + 31, io_error);
+	io_log (_T("dev_io_other"), request);
+	return 0;
+}
+
+
 static int dev_do_io_tape (struct devstruct *dev, uaecptr request)
 {
 	uae_u32 command;
@@ -536,6 +584,16 @@ static int dev_do_io_tape (struct devstruct *dev, uaecptr request)
 			command, io_data, io_length, io_offset, io_actual);
 	switch (command)
 	{
+	case CMD_UPDATE:
+	case CMD_CLEAR:
+	case CMD_FLUSH:
+	case CMD_MOTOR:
+	case CMD_SEEK:
+		io_actual = 0;
+		break;
+	case CMD_GETDRIVETYPE:
+		io_actual = dev->drivetype;
+		break;
 	case HD_SCSICMD:
 		{
 			uae_u32 sdd = get_long (request + 40);
@@ -551,7 +609,7 @@ static int dev_do_io_tape (struct devstruct *dev, uaecptr request)
 
 	put_long (request + 32, io_actual);
 	put_byte (request + 31, io_error);
-	io_log (_T("dev_io_tape"),request);
+	io_log (_T("dev_io_tape"), request);
 	return 0;
 }
 
@@ -936,7 +994,7 @@ no_media:
 	}
 	put_long (request + 32, io_actual);
 	put_byte (request + 31, io_error);
-	io_log (_T("dev_io_tape"),request);
+	io_log (_T("dev_io_cd"), request);
 	return async;
 }
 
@@ -944,8 +1002,10 @@ static int dev_do_io (struct devstruct *dev, uaecptr request)
 {
 	if (dev->drivetype == INQ_SEQD) {
 		return dev_do_io_tape (dev, request);
-	} else {
+	} else if (dev->drivetype == INQ_ROMD) {
 		return dev_do_io_cd (dev, request);
+	} else {
+		return dev_do_io_other (dev, request);
 	}
 }
 
@@ -1040,7 +1100,7 @@ static void *dev_thread (void *devs)
 
 static uae_u32 REGPARAM2 dev_init_2 (TrapContext *context, int type)
 {
-	uae_u32 base = m68k_dreg (regs,0);
+	uae_u32 base = m68k_dreg (regs, 0);
 	if (log_scsi)
 		write_log (_T("%s init\n"), getdevname (type));
 	return base;

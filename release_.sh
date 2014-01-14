@@ -1,6 +1,6 @@
 # P-UAE
 #
-# 2006-2013 Mustafa TUFAN
+# 2006-2014 Mustafa TUFAN
 #
 # this script cleans up various files so that we don't push unnecessary files to git..
 #
@@ -102,15 +102,7 @@ rm -rf src/cpustbl.c
 rm -rf src/compemu.c
 rm -rf src/comptbl.h
 rm -rf src/compstbl.c
-rm -rf src/cpuemu_0.c
-rm -rf src/cpuemu_11.c
-rm -rf src/cpuemu_12.c
-rm -rf src/cpuemu_20.c
-rm -rf src/cpuemu_21.c
-rm -rf src/cpuemu_22.c
-rm -rf src/cpuemu_31.c
-rm -rf src/cpuemu_32.c
-rm -rf src/cpuemu_33.c
+rm -rf src/cpuemu_*.c
 # jit
 rm -rf src/compemu.cpp
 rm -rf src/compstbl.h

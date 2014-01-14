@@ -2157,7 +2157,7 @@ static void exception_debug (int nr)
 
 Address/Bus Error:
 
-- 6 idle cycles
+- 8 idle cycles
 - write PC low word
 - write SR
 - write PC high word
@@ -2174,7 +2174,7 @@ Address/Bus Error:
 
 Division by Zero:
 
-- 6 idle cycles
+- 8 idle cycles
 - write PC low word
 - write SR
 - write PC high word
@@ -2186,7 +2186,7 @@ Division by Zero:
 
 Traps:
 
-- 2 idle cycles
+- 4 idle cycles
 - write PC low word
 - write SR
 - write PC high word
@@ -2198,6 +2198,7 @@ Traps:
 
 TrapV:
 
+(- normal prefetch done by TRAPV)
 - write PC low word
 - write SR
 - write PC high word
@@ -2209,7 +2210,7 @@ TrapV:
 
 CHK:
 
-- 6 idle cycles
+- 8 idle cycles
 - write PC low word
 - write SR
 - write PC high word
@@ -2220,8 +2221,11 @@ CHK:
 - prefetch
 
 Illegal Instruction:
+Privilege violation:
+Line A:
+Line F:
 
-- 2 idle cycles
+- 4 idle cycles
 - write PC low word
 - write SR
 - write PC high word
@@ -2254,13 +2258,16 @@ static void Exception_ce000 (int nr)
 	int start, interrupt;
 
 	start = 6;
-	if (nr == 7) // TRAPV
-		start = 0;
-	else if (nr >= 32 && nr < 32 + 16) // TRAP #x
-		start = 2;
-	else if (nr == 4 || nr == 8) // ILLG & PRIVIL VIOL
-		start = 2;
 	interrupt = nr >= 24 && nr < 24 + 8;
+	if (!interrupt) {
+		start = 8;
+		if (nr == 7) // TRAPV
+			start = 0;
+		else if (nr >= 32 && nr < 32 + 16) // TRAP #x
+			start = 4;
+		else if (nr == 4 || nr == 8 || nr == 10 || nr == 11) // ILLG, PRIV, LINEA, LINEF
+			start = 4;
+	}
 
 	if (start)
 		x_do_cycles (start * cpucycleunit);

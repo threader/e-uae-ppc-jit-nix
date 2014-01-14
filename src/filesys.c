@@ -181,6 +181,7 @@ typedef struct {
 	TCHAR *filesysdir;
 	/* filesystem seglist */
 	uaecptr filesysseg;
+	uae_u32 rdb_dostype;
 
 	/* CDFS */
 	bool cd_open;
@@ -6678,16 +6679,16 @@ static void dump_partinfo (struct hardfiledata *hfd, uae_u8 *pp)
 	s = au ((char*)pp + 37);
 	pp += 128;
 	dostype = rl (pp + 64);
-	size = ((uae_u64)rl (pp + 4)) * 4 * rl (pp + 12) * rl (pp + 20) * (rl (pp + 40) - rl (pp + 36) + 1);
+	spb = rl (pp + 16);
 	blocksize = rl (pp + 4) * 4;
 	surfaces = rl (pp + 12);
-	spb = rl (pp + 16);
 	spt = rl (pp + 20);
 	reserved = rl (pp + 24);
 	lowcyl = rl (pp + 36);
 	highcyl = rl (pp + 40);
+	size = ((uae_u64)blocksize) * surfaces * spt * (highcyl - lowcyl + 1);
 
-	write_log (_T("Partition '%s' Dostype=%08X (%s) Flags: %08X\n"), s, dostype, dostypes (dostype), flags);
+	write_log (_T("Partition '%s' Dostype=%08X (%s) Flags: %08X\n"), s[0] ? s : _T("_NULL_"), dostype, dostypes (dostype), flags);
 	write_log (_T("BlockSize: %d, Surfaces: %d, SectorsPerBlock %d\n"),
 		blocksize, surfaces, spb);
 	write_log (_T("SectorsPerTrack: %d, Reserved: %d, LowCyl %d, HighCyl %d, Size %dM\n"),
@@ -6804,6 +6805,8 @@ static int rdb_mount (UnitInfo *uip, int unit_no, int partnum, uaecptr parmpacke
 		hdf_read_rdb (hfd, bufrdb, rdblock * hfd->ci.blocksize, hfd->ci.blocksize);
 		if (rdb_checksum ("RDSK", bufrdb, rdblock))
 			break;
+		if (rdb_checksum ("CDSK", bufrdb, rdblock))
+			break;
 		hdf_read_rdb (hfd, bufrdb, rdblock * hfd->ci.blocksize, hfd->ci.blocksize);
 		if (!memcmp ("RDSK", bufrdb, 4)) {
 			bufrdb[0xdc] = 0;
@@ -6904,6 +6907,7 @@ static int rdb_mount (UnitInfo *uip, int unit_no, int partnum, uaecptr parmpacke
 	for (i = 0; i < PP_MAXSIZE; i++)
 		put_byte (parmpacket + 16 + i, buf[128 + i]);
 	dostype = get_long (parmpacket + 80);
+	uip->rdb_dostype = dostype;
 
 	if (dostype == 0) {
 		write_log (_T("RDB: mount failed, dostype=0\n"));
@@ -7348,8 +7352,13 @@ static uae_u32 REGPARAM2 filesys_dev_storeinfo (TrapContext *context)
 			put_long (parmpacket + 64, ci->bufmemtype); /* Buffer mem type */
 			put_long (parmpacket + 68, ci->maxtransfer); /* largest transfer */
 			put_long (parmpacket + 72, ci->mask); /* dma mask */
-			if (ci->dostype) // forced dostype?
+			if (ci->dostype) { // forced dostype?
 				put_long (parmpacket + 80, ci->dostype); /* dostype */
+			} else if (hdf_read (&uip[unit_no].hf, buf, 0, sizeof buf)) {
+				uae_u32 dt = get_long (rl (buf));
+				if (dt != 0x00000000 && dt != 0xffffffff)
+					put_long (parmpacket + 80, dt);
+			}
 			for (int i = 0; i < 80; i++)
 				buf[i + 128] = get_byte (parmpacket + 16 + i);
 			dump_partinfo (&uip[unit_no].hf, buf);

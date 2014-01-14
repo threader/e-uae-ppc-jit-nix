@@ -169,25 +169,25 @@ static void getchsgeometry2 (uae_u64 size, int *pcyl, int *phead, int *psectorsp
 		sptt[2] = 255;
 		sptt[3] = -1;
 
-	for (i = 0; sptt[i] >= 0; i++) {
-		spt = sptt[i];
-		for (head = 4; head <= 16;head++) {
-			cyl = total / (head * spt);
-			if (size <= 512 * 1024 * 1024) {
-				if (cyl <= 1023)
-					break;
-			} else {
-				if (cyl < 16383)
-					break;
-				if (cyl < 32767 && head >= 5)
-					break;
-				if (cyl <= 65535)
-					break;
+		for (i = 0; sptt[i] >= 0; i++) {
+			spt = sptt[i];
+			for (head = 4; head <= 16;head++) {
+				cyl = total / (head * spt);
+				if (size <= 512 * 1024 * 1024) {
+					if (cyl <= 1023)
+						break;
+				} else {
+					if (cyl < 16383)
+						break;
+					if (cyl < 32767 && head >= 5)
+						break;
+					if (cyl <= 65535)
+						break;
+				}
 			}
+			if (head <= 16)
+				break;
 		}
-		if (head <= 16)
-			break;
-	}
 
 	}
 
@@ -205,8 +205,9 @@ void getchsgeometry_hdf (struct hardfiledata *hfd, uae_u64 size, int *pcyl, int 
 {
 	uae_u8 block[512];
 	int i;
+	uae_u64 minsize = 512 * 1024 * 1024;
 
-	if (size <= 512 * 1024 * 1024) {
+	if (size <= minsize) {
 		*phead = 1;
 		*psectorspertrack = 32;
 	}
@@ -233,7 +234,7 @@ void getchsgeometry_hdf (struct hardfiledata *hfd, uae_u64 size, int *pcyl, int 
 			}
 		}
 	}
-	getchsgeometry2 (size, pcyl, phead, psectorspertrack, 2);
+	getchsgeometry2 (size, pcyl, phead, psectorspertrack, size <= minsize ? 1 : 2);
 }
 
 void getchspgeometry (uae_u64 total, int *pcyl, int *phead, int *psectorspertrack, bool idegeometry)
@@ -562,7 +563,9 @@ void hdf_close (struct hardfiledata *hfd)
 #endif
 	hfd->hfd_type = 0;
 	xfree (hfd->vhd_header);
+	hfd->vhd_header = NULL;
 	xfree (hfd->vhd_sectormap);
+	hfd->vhd_sectormap = NULL;
 }
 
 int hdf_dup (struct hardfiledata *dhfd, const struct hardfiledata *shfd)
@@ -1155,7 +1158,7 @@ int scsi_hd_emulate (struct hardfiledata *hfd, struct hd_hardfiledata *hdhfd, ua
 		len *= hfd->ci.blocksize;
 		if (!checkbounds(hfd, offset, len))
 			goto outofbounds;
-			scsi_len = (uae_u32)cmd_readx (hfd, scsi_data, offset, len);
+		scsi_len = (uae_u32)cmd_readx (hfd, scsi_data, offset, len);
 		break;
 	case 0x0a: /* WRITE (6) */
 		if (nodisk (hfd))
@@ -1170,7 +1173,7 @@ int scsi_hd_emulate (struct hardfiledata *hfd, struct hd_hardfiledata *hdhfd, ua
 		len *= hfd->ci.blocksize;
 		if (!checkbounds(hfd, offset, len))
 			goto outofbounds;
-			scsi_len = (uae_u32)cmd_writex (hfd, scsi_data, offset, len);
+		scsi_len = (uae_u32)cmd_writex (hfd, scsi_data, offset, len);
 		break;
 	case 0x12: /* INQUIRY */
 		{
@@ -1266,10 +1269,10 @@ int scsi_hd_emulate (struct hardfiledata *hfd, struct hd_hardfiledata *hdhfd, ua
 			}
 			if (pcode == 0) {
 				if (alen >= r[0] + 1 + r[3] + 4) {
-				p[0] = 0;
+					p[0] = 0;
 					p[1] = 3;
-				p[2] = 0x20;
-				p[3] = 0;
+					p[2] = 0x20;
+					p[3] = 0;
 					r[0] += p[1];
 				}
 			} else if (pcode == 3) {
@@ -1350,7 +1353,7 @@ int scsi_hd_emulate (struct hardfiledata *hfd, struct hd_hardfiledata *hdhfd, ua
 		len *= hfd->ci.blocksize;
 		if (!checkbounds (hfd, offset, len))
 			goto outofbounds;
-			scsi_len = (uae_u32)cmd_readx (hfd, scsi_data, offset, len);
+		scsi_len = (uae_u32)cmd_readx (hfd, scsi_data, offset, len);
 		break;
 	case 0x2a: /* WRITE (10) */
 		if (nodisk (hfd))
@@ -1363,7 +1366,7 @@ int scsi_hd_emulate (struct hardfiledata *hfd, struct hd_hardfiledata *hdhfd, ua
 		len *= hfd->ci.blocksize;
 		if (!checkbounds (hfd, offset, len))
 			goto outofbounds;
-			scsi_len = (uae_u32)cmd_writex (hfd, scsi_data, offset, len);
+		scsi_len = (uae_u32)cmd_writex (hfd, scsi_data, offset, len);
 		break;
 #if 0
 	case 0x2f: /* VERIFY */
@@ -1405,7 +1408,7 @@ int scsi_hd_emulate (struct hardfiledata *hfd, struct hd_hardfiledata *hdhfd, ua
 		len *= hfd->ci.blocksize;
 		if (!checkbounds(hfd, offset, len))
 			goto outofbounds;
-			scsi_len = (uae_u32)cmd_readx (hfd, scsi_data, offset, len);
+		scsi_len = (uae_u32)cmd_readx (hfd, scsi_data, offset, len);
 		break;
 	case 0xaa: /* WRITE (12) */
 		if (nodisk (hfd))
@@ -1418,7 +1421,7 @@ int scsi_hd_emulate (struct hardfiledata *hfd, struct hd_hardfiledata *hdhfd, ua
 		len *= hfd->ci.blocksize;
 		if (!checkbounds(hfd, offset, len))
 			goto outofbounds;
-			scsi_len = (uae_u32)cmd_writex (hfd, scsi_data, offset, len);
+		scsi_len = (uae_u32)cmd_writex (hfd, scsi_data, offset, len);
 		break;
 	case 0x37: /* READ DEFECT DATA */
 		if (nodisk (hfd))

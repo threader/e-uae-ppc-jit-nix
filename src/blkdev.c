@@ -227,7 +227,7 @@ void blkdev_fix_prefs (struct uae_prefs *p)
 	}
 
 	for (int i = 0; i < MAX_TOTAL_SCSI_DEVICES; i++) {
-		if (cdscsidevicetype[i] != SCSI_UNIT_DEFAULT)
+		if (cdscsidevicetype[i] != SCSI_UNIT_DEFAULT && (currprefs.scsi == 0))
 			continue;
 		if (p->cdslots[i].inuse || p->cdslots[i].name[0]) {
 			TCHAR *name = p->cdslots[i].name;
