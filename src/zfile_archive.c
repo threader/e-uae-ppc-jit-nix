@@ -529,7 +529,6 @@ struct aaFileInArchiveInfo {
 	char path[FileInArchiveInfoStringSize];
 };
 
-
 #define ARCACC_STACKSIZE 10
 static struct zfile *arcacc_stack[ARCACC_STACKSIZE];
 static int arcacc_stackptr = -1;
@@ -1830,7 +1829,9 @@ struct zfile *archive_getzfile (struct znode *zn, unsigned int id, int flags)
 		zf = archive_access_tar (zn);
 		break;
 	}
-	if (zf)
+	if (zf) {
 		zf->archiveid = id;
+		zfile_fseek (zf, 0, SEEK_SET);
+	}
 	return zf;
 }

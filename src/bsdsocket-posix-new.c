@@ -746,12 +746,7 @@ uae_u32 bsdthr_Recv_2 (SB)
 {
     int foo;
     int i;
-/* REMOVEME:
- * nowhere used
- */
-#if 0
-    int l;
-#endif
+
     if (sb->from == 0) {
 		foo = recv (sb->s, sb->buf, sb->len, sb->flags /*| MSG_NOSIGNAL*/);
 		DEBUG_LOG ("recv2, recv returns %d, errno is %d\n", foo, errno);

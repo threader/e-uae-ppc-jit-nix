@@ -303,9 +303,7 @@ static void copyjport (const struct uae_prefs *src, struct uae_prefs *dst, int n
 	dst->jports[num].nokeyboardoverride = src->jports[num].nokeyboardoverride;
 }
 
-/* REMOVEME:
- * nowhere used
- */
+// REMOVEME:
 #if 0
 static void out_config (struct zfile *f, int id, int num, TCHAR *s1, TCHAR *s2)
 {
@@ -313,7 +311,7 @@ static void out_config (struct zfile *f, int id, int num, TCHAR *s1, TCHAR *s2)
 	_stprintf (tmp, _T("input.%d.%s%d"), id, s1, num);
 	cfgfile_write_str (f, tmp, s2);
 }
-#endif
+#endif // 0
 
 static bool write_config_head (struct zfile *f, int idnum, int devnum, const TCHAR *name, struct uae_input_device *id,  struct inputdevice_functions *idf)
 {
@@ -416,12 +414,7 @@ static void kbrlabel (TCHAR *s)
 static void write_config2 (struct zfile *f, int idnum, int i, int offset, const TCHAR *extra, struct uae_input_device *id)
 {
 	TCHAR tmp2[CONFIG_BLEN], tmp3[CONFIG_BLEN], *p;
-/* REMOVEME:
- * nowhere used
- */
-#if 0
-	int got;
-#endif
+// REMOVEME: int got;
 	int evt, j, k;
 	TCHAR *custom;
 	const int *slotorder;
@@ -430,12 +423,7 @@ static void write_config2 (struct zfile *f, int idnum, int i, int offset, const 
 	tmp2[0] = 0;
 	p = tmp2;
 
-/* REMOVEME:
- * nowhere used
- */
-#if 0
-	got = 0;
-#endif
+// REMOVEME: got = 0;
 
 	slotorder = slotorder1;
 	// if gameports non-custom mapping in slot0 -> save slot8 as slot0
@@ -1159,7 +1147,7 @@ static uaecptr get_intuitionbase (void)
 	return magicmouse_ibase;
 }
 
-/// REMOVEME: only use in inputdevice_mh_abs_v36() which is marked "#if 0"
+// REMOVEME: only use in inputdevice_mh_abs_v36() which is marked "#if 0"
 #if 0
 static uaecptr get_gfxbase (void)
 {
@@ -1199,12 +1187,7 @@ static uaecptr get_gfxbase (void)
 
 int inputdevice_is_tablet (void)
 {
-/* REMOVEME:
- * nowhere used
- */
-#if 0
-	int v;
-#endif
+// REMOVEME: int v;
 	if (!uae_boot_rom)
 		return 0;
 	if (currprefs.input_tablet == TABLET_OFF)
@@ -1481,9 +1464,7 @@ static void inputdevice_mh_abs (int x, int y, uae_u32 buttonbits)
 }
 
 #ifdef FILESYS
-/* FIXME
- * Was "if 0" already, also in moushack_helper(). Why?
- */
+// FIXME: Was "if 0" already, also in mousehack_helper(). Why?
 #if 0
 static void inputdevice_mh_abs_v36 (int x, int y)
 {

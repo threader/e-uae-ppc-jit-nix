@@ -861,9 +861,7 @@ static int cdrom_command_led (void)
 	return 0;
 }
 
-/** REMOVEME:
-  * nowhere used
-**/
+// REMOVEME:
 #if 0
 static int cdrom_command_idle_status (void)
 {
@@ -1501,15 +1499,8 @@ STATIC_INLINE void akiko_put_long (uae_u32 *p, int offset, int v)
 static uae_u32 REGPARAM3 akiko_lget (uaecptr) REGPARAM;
 static uae_u32 REGPARAM3 akiko_wget (uaecptr) REGPARAM;
 static uae_u32 REGPARAM3 akiko_bget (uaecptr) REGPARAM;
-
-/** REMOVEME:
-  * Nowhere defined, nowhere used
-**/
-#if 0
-static uae_u32 REGPARAM3 akiko_lgeti (uaecptr) REGPARAM;
-static uae_u32 REGPARAM3 akiko_wgeti (uaecptr) REGPARAM;
-#endif // 0
-
+// REMOVEME: static uae_u32 REGPARAM3 akiko_lgeti (uaecptr) REGPARAM;
+// REMOVEME: static uae_u32 REGPARAM3 akiko_wgeti (uaecptr) REGPARAM;
 static void REGPARAM3 akiko_lput (uaecptr, uae_u32) REGPARAM;
 static void REGPARAM3 akiko_wput (uaecptr, uae_u32) REGPARAM;
 static void REGPARAM3 akiko_bput (uaecptr, uae_u32) REGPARAM;

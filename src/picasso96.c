@@ -606,12 +606,11 @@ static int newcursor_x, newcursor_y;
 
 static void mouseupdate (void)
 {
-/// UNUSED: needed for setcursor, only D3D variant present
+// REMOVEME: needed for setcursor, only D3D variant present
 /*	int x = newcursor_x;
 	int y = newcursor_y;
 */
-/// REMOVEME: nowhere used
-//	int forced = 0;
+// REMOVEME: int forced = 0;
 
 	if (!hwsprite)
 		return;
@@ -1844,7 +1843,7 @@ static void init_alloc (TrapContext *ctx, int size)
 {
 	picasso96_amem = picasso96_amemend = 0;
 	if (uaegfx_base) {
-		/// REMOVEME: unused: int size = get_long (uaegfx_base + CARD_RESLISTSIZE);
+// REMOVEME: int size = get_long (uaegfx_base + CARD_RESLISTSIZE);
 		picasso96_amem = get_long (uaegfx_base + CARD_RESLIST);
 	} else if (uaegfx_active) {
 		reserved_gfxmem = size;
@@ -2554,7 +2553,8 @@ static uae_u32 REGPARAM2 picasso_InvertRect (TrapContext *ctx)
 	uae_u32 xorval;
 	unsigned int lines;
 	struct RenderInfo ri;
-	uae_u8 *uae_mem; /// REMOVEME: unused: , *rectstart;
+	uae_u8 *uae_mem;
+// REMOVEME: *rectstart;
 	unsigned long width_in_bytes;
 	uae_u32 result = 0;
 
@@ -2822,7 +2822,7 @@ static uae_u32 REGPARAM2 picasso_BlitRectNoMaskComplete (TrapContext *ctx)
 	unsigned long width = (uae_u16)m68k_dreg (regs, 4);
 	unsigned long height = (uae_u16)m68k_dreg (regs, 5);
 	BLIT_OPCODE OpCode = (BLIT_OPCODE)(m68k_dreg (regs, 6) & 0xff);
-	/// REMOVEME: unused: uae_u32 RGBFmt = m68k_dreg (regs, 7);
+// REMOVEME: uae_u32 RGBFmt = m68k_dreg (regs, 7);
 	uae_u32 result = 0;
 
 	if (NOBLITTER_BLIT)
@@ -4054,7 +4054,7 @@ void InitPicasso96 (void)
 
 static uae_u32 REGPARAM2 picasso_SetInterrupt (TrapContext *ctx)
 {
-	/// REMOVEME: unused: uaecptr bi = m68k_areg (regs, 0);
+// REMOVEME: uaecptr bi = m68k_areg (regs, 0);
 	uae_u32 onoff = m68k_dreg (regs, 0);
 	interrupt_enabled = onoff;
 	//write_log (_T("Picasso_SetInterrupt(%08x,%d)\n"), bi, onoff);
@@ -4101,7 +4101,7 @@ static void initvblankirq (TrapContext *ctx, uaecptr base)
 	CallLib (ctx, get_long (4), -168);	/* AddIntServer */
 }
 
-/// UNUSED: called only in inituaegfxfuncs(), but commented out there
+// REMOVEME: called only in inituaegfxfuncs(), but commented out there
 #if 0
 static uae_u32 REGPARAM2 picasso_SetClock(TrapContext *ctx)
 {
@@ -4111,7 +4111,7 @@ static uae_u32 REGPARAM2 picasso_SetClock(TrapContext *ctx)
 }
 #endif // 0
 
-/// UNUSED: called only in inituaegfxfuncs(), but commented out there
+// REMOVEME: called only in inituaegfxfuncs(), but commented out there
 #if 0
 static uae_u32 REGPARAM2 picasso_SetMemoryMode(TrapContext *ctx)
 {

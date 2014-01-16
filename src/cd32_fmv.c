@@ -70,12 +70,7 @@ static uae_u32 fmv_size = 1048576;
 
 static uae_u16 l64111regs[32];
 static uae_u16 l64111intmask1, l64111intmask2, l64111intstatus1;
-/* REMOVEME:
- * nowhere used
- */
-#if 0
-static uae_u16 l64111intstatus2;
-#endif
+// REMOVEME: static uae_u16 l64111intstatus2;
 static uae_u16 io_reg;
 
 static int isdebug (uaecptr addr)

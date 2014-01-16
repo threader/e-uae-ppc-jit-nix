@@ -177,9 +177,7 @@ static void video_calc_gammatable (void)
 	}
 }
 
-/* UNUSED:
- * useful, but nowhere used
- */
+// REMOVEME: useful, but nowhere used
 #if 0
 static uae_u32 limit256 (double v)
 {
@@ -220,7 +218,7 @@ static uae_u32 get_cr (int r, int g, int b)
 {
 	return limit256rb (0.5f * r - 0.418688f * g - 0.081312f * b);
 }
-#endif
+#endif // 0
 
 extern uae_s32 tyhrgb[65536];
 extern uae_s32 tylrgb[65536];

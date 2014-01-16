@@ -1876,7 +1876,7 @@ static void allocate_memory (void)
 		mapped_free (custmem1_bank.baseaddr);
 		custmem1_bank.baseaddr = NULL;
 		custmem1_bank.allocated = currprefs.custom_memory_sizes[0];
-		custmem1_bank.mask = custmem1_bank.allocated - 1;
+		custmem1_bank.mask = -1;
 		custmem1_bank.start = currprefs.custom_memory_addrs[0];
 		if (custmem1_bank.allocated) {
 			custmem1_bank.baseaddr = mapped_malloc (custmem1_bank.allocated, _T("custmem1"));
@@ -1888,7 +1888,7 @@ static void allocate_memory (void)
 		mapped_free (custmem2_bank.baseaddr);
 		custmem2_bank.baseaddr = NULL;
 		custmem2_bank.allocated = currprefs.custom_memory_sizes[1];
-		custmem2_bank.mask = custmem2_bank.allocated - 1;
+		custmem2_bank.mask = -1;
 		custmem2_bank.start = currprefs.custom_memory_addrs[1];
 		if (custmem2_bank.allocated) {
 			custmem2_bank.baseaddr = mapped_malloc (custmem2_bank.allocated, _T("custmem2"));

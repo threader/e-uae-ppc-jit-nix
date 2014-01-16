@@ -553,15 +553,15 @@ struct zfile *zfile_gunzip (struct zfile *z, int *retcode)
 	read = zfile_fread (header, sizeof (header), 1, z);
 	flags = header[3];
 	if (header[0] != 0x1f && header[1] != 0x8b) {
-                write_log("zfile_gunzip: %s failed. not gzipped file.\n", z->name);
+		write_log ("zfile_gunzip: %s failed. not gzipped file.\n", z->name);
 		return NULL;
 	}
 	if (flags & 2) { /* multipart not supported */
-                write_log("zfile_gunzip: %s failed. multipart not supported.\n", z->name);
+		write_log ("zfile_gunzip: %s failed. multipart not supported.\n", z->name);
 		return NULL;
 	}
 	if (flags & 32) { /* encryption not supported */
-                write_log("zfile_gunzip: %s failed. encryption not supported.\n", z->name);
+		write_log ("zfile_gunzip: %s failed. encryption not supported.\n", z->name);
 		return NULL;
 	}
 	if (flags & 4) { /* skip extra field */
@@ -1099,7 +1099,7 @@ static struct zfile *dsq (struct zfile *z, int lzx, int *retcode)
 				if ((i % sectors) == sectors - 1) {
 					off += seccnt * 16;
 					seccnt = 0;
-			}
+				}
 			}
 			//FIXME: zfile_fclose_archive (zv);
 			zfile_fclose (z);
@@ -1118,20 +1118,11 @@ static struct zfile *dsq (struct zfile *z, int lzx, int *retcode)
 #ifdef A_WRP
 static struct zfile *wrp (struct zfile *z, int *retcode)
 {
-	//return unwarp (z);
-	return z;
+		if (retcode)
+			*retcode = -1;
+		return NULL;
 }
 #endif
-
-static struct zfile *bunzip (const char *decompress, struct zfile *z)
-{
-	return z;
-}
-
-static struct zfile *lha (struct zfile *z)
-{
-	return z;
-}
 
 #ifdef A_DMS
 static struct zfile *dms (struct zfile *z, int index, int *retcode)
@@ -2639,9 +2630,9 @@ static struct zvolume *prepare_recursive_volume (struct zvolume *zv, const TCHAR
 #if 1
 		zvnew = archive_directory_plain (zf);
 		if (zvnew) {
-        		zfile_fopen_archive_recurse (zvnew, flags);
-        		done = 1;
-                }
+			zfile_fopen_archive_recurse (zvnew, flags);
+			done = 1;
+		}
 #else
 		int rc;
 		int index;
@@ -2756,10 +2747,10 @@ struct znode *znode_adddir (struct znode *parent, const TCHAR *name, struct zarc
 	TCHAR path[MAX_DPATH];
 
 	path[0] = 0;
-	recurparent (path, parent, 0);
+	recurparent (path, parent, false);
 	_tcscat (path, FSDB_DIR_SEPARATOR_S);
 	_tcscat (path, name);
-	zn = get_znode (parent->volume, path, 0);
+	zn = get_znode (parent->volume, path, false);
 	if (zn)
 		return zn;
 	zn = znode_alloc_child (parent, name);
@@ -3001,7 +2992,7 @@ struct zdirectory *zfile_opendir_archive_flags (const TCHAR *path, int flags)
 	if (!zn || (!zn->child && !zn->vchild)) {
 		if (created)
 			zfile_fclose_archive (zv);
-	return NULL;
+		return NULL;
 	}
 	zd = xcalloc (struct zdirectory, 1);
 	if (created)
@@ -3066,7 +3057,7 @@ int zfile_readdir_archive_fullpath (struct zdirectory *zd, TCHAR *out, bool full
 					zd->filenames[j] = tmp;
 				}
 			}
-	}
+		}
 		zd->cnt = cnt;
 	}
 	if (out == NULL)

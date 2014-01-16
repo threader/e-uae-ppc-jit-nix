@@ -78,11 +78,7 @@ extern uae_u8 cycle_line[256];
 static long blit_firstline_cycles;
 static long blit_first_cycle;
 static int blit_last_cycle, blit_dmacount, blit_dmacount2;
-
-/// REMOVEME: nowhere used
-#if 0
-static int blit_linecycles, blit_extracycles;
-#endif // 0
+// REMOVEME: static int blit_linecycles, blit_extracycles;
 static int blit_nod;
 static const int *blit_diag;
 static int blit_frozen, blit_faulty;
@@ -942,21 +938,21 @@ STATIC_INLINE uae_u16 blitter_doblit (void)
 
 STATIC_INLINE void blitter_doddma (int hpos)
 {
-//	int wd;
+// REMOVEME: int wd;
 	uae_u16 d;
 
-//	wd = 0;
+// REMOVEME: wd = 0;
 	if (blit_dmacount2 == 0) {
 		d = blitter_doblit ();
-//		wd = -1;
+// REMOVEME: wd = -1;
 	} else if (ddat2use) {
 		d = ddat2;
 		ddat2use = 0;
-//		wd = 2;
+// REMOVEME: wd = 2;
 	} else if (ddat1use) {
 		d = ddat1;
 		ddat1use = 0;
-//		wd = 1;
+// REMOVEME: wd = 1;
 	} else {
 		static int warn = 10;
 		if (warn > 0) {
@@ -1139,10 +1135,16 @@ void decide_blitter (int hpos)
 			// idle cycles require free bus.
 			// Final empty cycle does not, unless it is fill mode that requires extra idle cycle
 			// (CPU can still use this cycle)
-			if ((blit_cyclecounter < 0 || !blit_final || (blitfill && blit_cycle_diagram_fill[blit_ch][0])) && ((c == 0 && v == 0) || v < 0)) {
-				blit_misscyclecounter++;
-				blitter_nasty++;
-				break;
+			if ((c == 0 && v == 0) || v < 0) {
+				if (blit_cyclecounter < 0 || !blit_final) {
+					blit_misscyclecounter++;
+					break;
+				}
+				if (blitfill && blit_cycle_diagram_fill[blit_ch][0]) {
+					blit_misscyclecounter++;
+					blitter_nasty++;
+					break;
+				}
 			}
 
 			if (blit_frozen) {

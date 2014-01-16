@@ -286,7 +286,8 @@ static void xlinecheck (unsigned int start, unsigned int end)
 #define xlinecheck(...) { }
 #endif
 
-/*static void clearbuffer (struct vidbuffer *dst)
+#if 0
+static void clearbuffer (struct vidbuffer *dst)
 {
 	if (!dst->bufmem_allocated)
 		return;
@@ -295,7 +296,8 @@ static void xlinecheck (unsigned int start, unsigned int end)
 		memset (p, 0, dst->width_allocated * dst->pixbytes);
 		p += dst->rowbytes;
 	}
-}*/
+}
+#endif
 
 void reset_decision_table (void)
 {
@@ -604,12 +606,7 @@ int get_custom_limits (int *pw, int *ph, int *pdx, int *pdy, int *prealh)
 
 void get_custom_mouse_limits (int *pw, int *ph, int *pdx, int *pdy, int dbl)
 {
-/* REMOVEME:
- * nowhere used
- */
-#if 0
-	int delay1, delay2;
-#endif
+// REMOVEME: int delay1, delay2;
 	int w, h, dx, dy, dbl1, dbl2, y1, y2;
 
 	w = diwlastword_total - diwfirstword_total;
@@ -635,8 +632,8 @@ void get_custom_mouse_limits (int *pw, int *ph, int *pdx, int *pdy, int dbl)
 	if (*ph > 0)
 		h = *ph;
 
-//	delay1 = (firstword_bplcon1 & 0x0f) | ((firstword_bplcon1 & 0x0c00) >> 6);
-//	delay2 = ((firstword_bplcon1 >> 4) & 0x0f) | (((firstword_bplcon1 >> 4) & 0x0c00) >> 6);
+// REMOVEME:	 delay1 = (firstword_bplcon1 & 0x0f) | ((firstword_bplcon1 & 0x0c00) >> 6);
+// REMOVEME: delay2 = ((firstword_bplcon1 >> 4) & 0x0f) | (((firstword_bplcon1 >> 4) & 0x0c00) >> 6);
 //	if (delay1 == delay2)
 //		dx += delay1;
 
@@ -726,13 +723,16 @@ STATIC_INLINE xcolnr getbgc (bool blank)
 /* Initialize the variables necessary for drawing a line.
  * This involves setting up start/stop positions and display window
  * borders.  */
-static void pfield_init_linetoscr (void)
+static void pfield_init_linetoscr (bool border)
 {
 	/* First, get data fetch start/stop in DIW coordinates.  */
 	int ddf_left = dp_for_drawing->plfleft * 2 + DIW_DDF_OFFSET;
 	int ddf_right = dp_for_drawing->plfright * 2 + DIW_DDF_OFFSET;
 	int leftborderhidden;
 	int native_ddf_left2;
+
+	if (border)
+		ddf_left = DISPLAY_LEFT_SHIFT;
 
 	/* Compute datafetch start/stop in pixels; native display coordinates.  */
 	native_ddf_left = coord_hw_to_window_x (ddf_left);
@@ -799,7 +799,8 @@ static void pfield_init_linetoscr (void)
 			x = curr_sprite_entries[dip_for_drawing->first_sprite_entry + i].pos;
 			if (x < min)
 				min = x;
-			x = curr_sprite_entries[dip_for_drawing->first_sprite_entry + i].max;
+			// include max extra pixels, sprite may be 2x or 4x size: 4x - 1.
+			x = curr_sprite_entries[dip_for_drawing->first_sprite_entry + i].max + (4 - 1);
 			if (x > max)
 				max = x;
 		}
@@ -873,14 +874,20 @@ static void pfield_erase_hborder_sprites (void)
 	}
 }
 
-// erase whole viewable area if upper or lower border
+// erase whole viewable area if sprite in upper or lower border
 static void pfield_erase_vborder_sprites (void)
 {
-	if (linetoscr_diw_end > linetoscr_diw_start) {
-		uae_u8 c = colors_for_drawing.borderblank ? 0 : colors_for_drawing.acolors[0];
-		int size = res_shift_from_window (linetoscr_diw_end - linetoscr_diw_start);
-		memset (pixdata.apixels + MAX_PIXELS_PER_LINE - size, c, size);
+	if (visible_right_border <= visible_left_border)
+		return;
+	int pos = 0;
+	int size = 0;
+	if (visible_left_border < native_ddf_left) {
+		size = res_shift_from_window (native_ddf_left - visible_left_border);
+		pos = -size;
 	}
+	if (visible_right_border > native_ddf_left)
+		size += res_shift_from_window (visible_right_border - native_ddf_left);
+	memset (pixdata.apixels + MAX_PIXELS_PER_LINE - pos, 0, size);
 }
 
 
@@ -2248,10 +2255,7 @@ enum double_how {
 
 static void pfield_draw_line (int lineno, int gfx_ypos, int follow_ypos)
 {
-// REMOVEME:
-#if 0
-	static int warned = 0;
-#endif
+// REMOVEME: static int warned = 0;
 	int border = 0;
 	int do_double = 0;
 	enum double_how dh;
@@ -2264,7 +2268,6 @@ static void pfield_draw_line (int lineno, int gfx_ypos, int follow_ypos)
 	switch (linestate[lineno])
 	{
 	case LINE_REMEMBERED_AS_PREVIOUS:
-// REMOVEME:
 #if 0
 		if (!warned) // happens when program messes up with VPOSW
 			write_log (_T("Shouldn't get here... this is a bug.\n")), warned++;
@@ -2318,7 +2321,7 @@ static void pfield_draw_line (int lineno, int gfx_ypos, int follow_ypos)
 	if (border == 0) {
 
 		pfield_expand_dp_bplcon ();
-		pfield_init_linetoscr ();
+		pfield_init_linetoscr (false);
 		pfield_doline (lineno);
 
 		adjust_drawing_colors (dp_for_drawing->ctable, dp_for_drawing->ham_seen || bplehb || ecsshres);
@@ -2386,7 +2389,7 @@ static void pfield_draw_line (int lineno, int gfx_ypos, int follow_ypos)
 		if (dp_for_drawing->bordersprite_seen && dip_for_drawing->nr_sprites) {
 			dosprites = true;
 			pfield_expand_dp_bplcon ();
-			pfield_init_linetoscr ();
+			pfield_init_linetoscr (true);
 			pfield_erase_vborder_sprites ();
 		}
 #endif
@@ -2407,6 +2410,7 @@ static void pfield_draw_line (int lineno, int gfx_ypos, int follow_ypos)
 			return;
 		}
 
+#ifdef AGA
 		if (dosprites) {
 
 			int i;
@@ -2414,7 +2418,6 @@ static void pfield_draw_line (int lineno, int gfx_ypos, int follow_ypos)
 			for (i = 0; i < dip_for_drawing->nr_sprites; i++)
 				draw_sprites_aga (curr_sprite_entries + dip_for_drawing->first_sprite_entry + i, 1);
 			uae_u16 oxor = bplxor;
-			memset (pixdata.apixels, 0, sizeof pixdata);
 			if (dp_for_drawing->ham_seen) {
 				int todraw_amiga = res_shift_from_window (visible_right_border - visible_left_border);
 				init_ham_decoding ();
@@ -2425,6 +2428,9 @@ static void pfield_draw_line (int lineno, int gfx_ypos, int follow_ypos)
 				do_color_changes (pfield_do_fill_line, pfield_do_linetoscr_border, lineno);
 				bplxor = oxor;
 			}
+#else
+		if (0) {
+#endif
 
 		} else {
 
@@ -2770,7 +2776,7 @@ static void draw_debug_status_line (int line)
 #define LIGHTPEN_HEIGHT 12
 #define LIGHTPEN_WIDTH 17
 
-/* UNUSED:
+/* REMOVEME:
  * only used by lightpen_update(), which is unused since its
  * call in finish_drawing_frame() is marked "if 0".
  */
@@ -2813,7 +2819,7 @@ static void draw_lightpen_cursor (int x, int y, int line, int onscreen)
 
 static int lightpen_y1, lightpen_y2;
 
-/* UNUSED:
+/* REMOVEME:
  * the only call is in finish_drawing_frame(), but
  * it has been marked out with "if 0"
  */
@@ -2982,13 +2988,11 @@ void finish_drawing_frame (void)
 	}
 #endif
 
-/* UNUSED:
- *
- */
+// REMOVEME:
 #if 0
 	if (lightpen_active)
 		lightpen_update ();
-#endif
+#endif // 0
 
 /*	if (currprefs.monitoremu && gfxvidinfo.tempbuffer.bufmem_allocated) {
 		if (emulate_specialmonitors (vb, &gfxvidinfo.tempbuffer)) {

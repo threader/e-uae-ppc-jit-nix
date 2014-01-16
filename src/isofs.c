@@ -419,7 +419,6 @@ static int iso_ltime(char *p)
 	return make_date(year - 1970, month, day, hour, minute, second, 0);
 }
 
-
 static int isofs_read_level3_size(struct inode *inode)
 {
 	unsigned long bufsize = ISOFS_BUFFER_SIZE(inode);
@@ -1746,8 +1745,8 @@ static int isofs_fill_super(struct super_block *s, void *data, int silent, uae_u
 					}
 					goto root_found;
 				} else {
-				/* Unknown supplementary volume descriptor */
-				sec = NULL;
+					/* Unknown supplementary volume descriptor */
+					sec = NULL;
 				}
 			}
 		} else {

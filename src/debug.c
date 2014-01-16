@@ -2934,21 +2934,21 @@ static void show_exec_tasks (void)
 	uaecptr execbase = get_long_debug (4);
 	uaecptr taskready = get_long_debug (execbase + 406);
 	uaecptr taskwait = get_long_debug (execbase + 420);
-	uaecptr node/* REMOVEME: set but not used: , end */ ;
+	uaecptr node; // REMOVEME: set but not used: end
 	console_out_f (_T("Execbase at 0x%08X\n"), execbase);
 	console_out (_T("Current:\n"));
 	node = get_long_debug (execbase + 276);
 	print_task_info (node);
 	console_out_f (_T("Ready:\n"));
 	node = get_long_debug (taskready);
-	/* REMOVEME: Not used: end = get_long_debug (taskready + 4); */
+// REMOVEME: end = get_long_debug (taskready + 4);
 	while (node) {
 		print_task_info (node);
 		node = get_long_debug (node);
 	}
 	console_out (_T("Waiting:\n"));
 	node = get_long_debug (taskwait);
-	/* REMOVEME: Not used: end = get_long_debug (taskwait + 4); */
+// REMOVEME: end = get_long_debug (taskwait + 4);
 	while (node) {
 		print_task_info (node);
 		node = get_long_debug (node);

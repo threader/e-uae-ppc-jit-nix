@@ -963,9 +963,7 @@ static void byteswap (uae_u8 *buf, int size)
 	}
 }
 
-/* UNUSED:
- * useful, but nowhere used
- */
+// REMOVEME: useful, but nowhere used
 #if 0
 static void wordbyteswap (uae_u8 *buf, int size)
 {

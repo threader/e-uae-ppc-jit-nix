@@ -318,7 +318,7 @@ static void set_status (uae_u8 status, int delay)
 	scsidelay_irq[queue_index] = delay == 0 ? 1 : (delay <= 2 ? 2 : delay);
 }
 
-/// REMOVEME: deprecated
+// REMOVEME: deprecated
 #if 0
 static void set_status (uae_u8 status)
 {
@@ -1607,7 +1607,7 @@ static void *scsi_thread (void *null)
 			break;
 		int cmd = v & 0x7f;
 		int msg = (v >> 8) & 0xff;
-		/// REMOVEME: unused : int unit = (v >> 24) & 0xff;
+		// REMOVEME: unused : int unit = (v >> 24) & 0xff;
 		//write_log (_T("scsi_thread got msg=%d cmd=%d\n"), msg, cmd);
 		if (msg == 0) {
 			if (WD33C93_DEBUG > 0)
