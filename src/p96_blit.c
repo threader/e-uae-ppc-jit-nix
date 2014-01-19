@@ -4,9 +4,7 @@ static void NOINLINE BLT_NAME (unsigned int w, unsigned int h, uae_u8 *src, uae_
 {
 	uae_u8 *src2 = src;
 	uae_u8 *dst2 = dst;
-/* REMOVEME:
- * r is nowhere used, and this is only a forwarder for uaelib_demux2.
- */
+// REMOVEME: r is not used, and this is only a forwarder for uaelib_demux2.
 #if 0
 	uae_u32 *src2_32 = (uae_u32*)src;
 	uae_u32 *dst2_32 = (uae_u32*)dst;
@@ -43,9 +41,7 @@ static void NOINLINE BLT_NAME (unsigned int w, unsigned int h, uae_u8 *src, uae_
 {
 	uae_u8 *src2 = src;
 	uae_u8 *dst2 = dst;
-/* REMOVEME:
- * r is nowhere used, and this is only a forwarder for uaelib_demux2.
- */
+// REMOVEME: r is not used, and this is only a forwarder for uaelib_demux2.
 #if 0
 	uae_u32 *src2_32 = (uae_u32*)src;
 	uae_u32 *dst2_32 = (uae_u32*)dst;

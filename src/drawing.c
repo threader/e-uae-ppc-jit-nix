@@ -2740,24 +2740,14 @@ void putpixel (uae_u8 *buf, int bpp, int x, xcolnr c8, int opaq)
 
 static void draw_status_line (int line, int statusy)
 {
-/* REMOVEME:
- * nowhere used
- */
-#if 0
-	int y;
-#endif
+// REMOVEME: int y;
 	int bpp;
 	uae_u8 *buf;
 
 	if (!(currprefs.leds_on_screen & STATUSLINE_CHIPSET) || (currprefs.leds_on_screen & STATUSLINE_TARGET))
 		return;
 	bpp = gfxvidinfo.pixbytes;
-/* REMOVEME:
- * nowhere used
- */
-#if 0
-	y = line - (gfxvidinfo.outheight - TD_TOTAL_HEIGHT);
-#endif
+// REMOVEME: y = line - (gfxvidinfo.outheight - TD_TOTAL_HEIGHT);
 	xlinebuffer = gfxvidinfo.linemem;
 	if (xlinebuffer == 0)
 		xlinebuffer = row_map[line];
@@ -3209,9 +3199,7 @@ void hsync_record_line_state (int lineno, enum nln_how how, int changed)
 	}
 }
 
-/* REMOVEME:
- * nowhere used
- */
+// REMOVEME:
 #if 0
 static void dummy_flush_line (struct vidbuf_description *gfxinfo, int line_no)
 {
@@ -3327,9 +3315,7 @@ void drawing_init (void)
 
 	inhibit_frame = 0;
 
-/* REMOVEME
- * orphaned
- */
+// REMOVEME
 #if 0
 //	gfxbuffer_reset ();
 #endif

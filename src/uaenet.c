@@ -13,9 +13,7 @@
 #include <stdio.h>
 #ifdef A2065
 
-/** REMOVEME:
-  * These two are windows specific
-**/
+// REMOVEME: These two are windows specific
 #if 0
 #include "packet32.h"
 #include "ntddndis.h"
@@ -139,7 +137,7 @@ void uaenet_close (struct uaenetdata *sd)
 	}
 	if (sd->threadactivew) {
 		sd->threadactivew = -1;
-/// REMOVEME: win32 specific
+// REMOVEME: win32 specific
 //		SetEvent (sd->evttw);
 	}
 	if (sd->threadactiver) {
@@ -151,7 +149,7 @@ void uaenet_close (struct uaenetdata *sd)
 	if (sd->threadactivew) {
 		while (sd->threadactivew)
 			sleep_millis(10);
-/// REMOVEME: win32 specific
+// REMOVEME: win32 specific
 //		CloseHandle (sd->evttw);
 		write_log ("uaenet thread %d killed\n", sd->tidw);
 		uae_kill_thread (&sd->tidw);
@@ -199,7 +197,7 @@ struct netdriverdata *uaenet_enumerate (struct netdriverdata **out, const TCHAR 
 	char errbuf[PCAP_ERRBUF_SIZE];
 	pcap_if_t *alldevs, *d;
 	int cnt;
-/// REMOVEME: Win32 specific
+// REMOVEME: Win32 specific
 #if 0
 	HMODULE hm;
 	LPADAPTER lpAdapter = 0;
@@ -215,7 +213,7 @@ struct netdriverdata *uaenet_enumerate (struct netdriverdata **out, const TCHAR 
 			*out = tds;
 		return enumit (name);
 	}
-/// REMOVEME: win32 specific
+// REMOVEME: win32 specific
 #if 0
 	tcp = tds;
 	hm = LoadLibrary ("wpcap.dll");
@@ -253,7 +251,7 @@ struct netdriverdata *uaenet_enumerate (struct netdriverdata **out, const TCHAR 
 	for(cnt = 0, d = alldevs; d != NULL; d = d->next) {
 		char *n2;
 		TCHAR *ss2;
-/// REMOVEME: unused
+// REMOVEME:
 //		tc = tcp + cnt;
 		if (cnt >= MAX_TOTAL_NET_DEVICES) {
 			write_log ("buffer overflow\n");
@@ -284,7 +282,7 @@ struct netdriverdata *uaenet_enumerate (struct netdriverdata **out, const TCHAR 
 			continue;
 		}
 
-/// REMOVEME: win32 specific
+// REMOVEME: win32 specific
 #if 0
 		lpAdapter = PacketOpenAdapter (n2 + strlen (PCAP_SRC_IF_STRING));
 		if (lpAdapter == NULL) {

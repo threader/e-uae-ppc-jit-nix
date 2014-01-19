@@ -262,7 +262,7 @@ static uae_u32 REGPARAM2 diskdev_expunge (TrapContext *context)
 	return 0;
 }
 
-/// REMOVEME: nowhere used
+// REMOVEME:
 #if 0
 static int is_async_request (struct devstruct *dev, uaecptr request)
 {
@@ -344,7 +344,7 @@ int scsi_do_disk_change (int unitnum, int insert, int *pollmode)
 				if (pollmode)
 					*pollmode = 1;
 				if (dev->aunit >= 0) {
-					/// REMOVEME: unused : struct priv_devstruct *pdev = &pdevst[dev->aunit];
+					// REMOVEME: struct priv_devstruct *pdev = &pdevst[dev->aunit];
 					devinfo (dev, &dev->di);
 				}
 				dev->changenum++;
@@ -1040,7 +1040,7 @@ static uae_u32 REGPARAM2 dev_beginio (TrapContext *context)
 {
 	uae_u32 request = m68k_areg (regs, 1);
 	uae_u8 flags = get_byte (request + 30);
-	/// REMOVEME: nowhere used : int command = get_word (request + 28);
+	// REMOVEME: int command = get_word (request + 28);
 	struct priv_devstruct *pdev = getpdevstruct (request);
 	struct devstruct *dev;
 	int canquick;

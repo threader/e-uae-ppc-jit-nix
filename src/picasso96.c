@@ -117,7 +117,7 @@ static uae_u32 cursorrgb[4], cursorrgbn[4];
 static int cursordeactivate, setupcursor_needed;
 static bool cursorvisible;
 //static HCURSOR wincursor;
-/// REMOVEME: nowhere used: static int wincursor_shown;
+// REMOVEME: static int wincursor_shown;
 static uaecptr boardinfo, ABI_interrupt;
 static int interrupt_enabled;
 double p96vblank;
@@ -484,7 +484,7 @@ static int CopyTemplateStructureA2U (uaecptr amigamemptr, struct Template *tmpl)
 	return 0;
 }
 
-/// REMOVEME: nowhere used
+// REMOVEME:
 #if 0
 static int CopyLineStructureA2U(uaecptr amigamemptr, struct Line *line)
 {
@@ -524,7 +524,7 @@ static void AmigaListAddTail (uaecptr l, uaecptr n)
 }
 
 
-/// REMOVEME: nowhere used
+// REMOVEME:
 #if 0
 static int renderinfo_is_current_screen (struct RenderInfo *ri)
 {
@@ -606,10 +606,9 @@ static int newcursor_x, newcursor_y;
 
 static void mouseupdate (void)
 {
-// REMOVEME: needed for setcursor, only D3D variant present
-/*	int x = newcursor_x;
-	int y = newcursor_y;
-*/
+// REMOVEME: needed for setcursor, only if D3D variant present
+//	int x = newcursor_x;
+//	int y = newcursor_y;
 // REMOVEME: int forced = 0;
 
 	if (!hwsprite)
@@ -946,8 +945,7 @@ static void setconvert (void)
 */
 void picasso_refresh (void)
 {
-/// REMOVEME: nowehere used
-//	struct RenderInfo ri;
+// REMOVEME: struct RenderInfo ri;
 
 	if (! picasso_on)
 		return;
@@ -965,13 +963,10 @@ void picasso_refresh (void)
 	* We can do this by checking if we have an Address yet. 
 	*/
 	if (picasso96_state.Address) {
-/// REMOVEME: nowehere used
-#if 0
-		unsigned int width, height;
-#endif // 0
+// REMOVEME: unsigned int width, height;
 
 		/* blit the stuff from our static frame-buffer to the gfx-card */
-/// REMOVEME: nowehere used
+// REMOVEME:
 #if 0
 		ri.Memory = gfxmem_bank.baseaddr + (picasso96_state.Address - gfxmem_bank.start);
 		ri.BytesPerRow = picasso96_state.BytesPerRow;
@@ -979,7 +974,7 @@ void picasso_refresh (void)
 #endif // 0
 
 		if (set_panning_called) {
-/// REMOVEME: nowhere used
+// REMOVEME:
 #if 0
 			width = (picasso96_state.VirtualWidth < picasso96_state.Width) ?
 				picasso96_state.VirtualWidth : picasso96_state.Width;
@@ -992,7 +987,7 @@ void picasso_refresh (void)
 					DX_Fill (0, 0, picasso96_state.Width, picasso96_state.Height, 0, picasso96_state.RGBFormat);
 			}
 		}
-/// REMOVEME: nowhere used
+// REMOVEME:
 #if 0
 		else {
 			width = picasso96_state.Width;
@@ -2431,16 +2426,16 @@ static uae_u32 REGPARAM2 picasso_SetPanning (TrapContext *ctx)
 	uaecptr bi = m68k_areg (regs, 0);
 	uaecptr bmeptr = get_long (bi + PSSO_BoardInfo_BitMapExtra);  /* Get our BoardInfo ptr's BitMapExtra ptr */
 	uae_u16 bme_width, bme_height;
-	/// REMOVEME: int changed = 0;
+	// REMOVEME: int changed = 0;
 	RGBFTYPE rgbf;
 
 	if (oldscr == 0) {
 		oldscr = start_of_screen;
-	/// REMOVEME: 	changed = 1;
+	// REMOVEME: 	changed = 1;
 	}
 	if (oldscr != start_of_screen) {
 		oldscr = start_of_screen;
-	/// REMOVEME: 	changed = 1;
+	// REMOVEME: 	changed = 1;
 	}
 
 	bme_width = get_word (bmeptr + PSSO_BitMapExtra_Width);
@@ -2569,7 +2564,7 @@ static uae_u32 REGPARAM2 picasso_InvertRect (TrapContext *ctx)
 
 		xorval = 0x01010101 * (mask & 0xFF);
 		width_in_bytes = Bpp * Width;
-		/* REMOVEME rectstart = */ uae_mem = ri.Memory + Y * ri.BytesPerRow + X * Bpp;
+		/* REMOVEME: rectstart = */ uae_mem = ri.Memory + Y * ri.BytesPerRow + X * Bpp;
 
 		for (lines = 0; lines < Height; lines++, uae_mem += ri.BytesPerRow)
 			do_xor8 (uae_mem, width_in_bytes, xorval);

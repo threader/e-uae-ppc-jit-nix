@@ -3541,12 +3541,7 @@ static int switchdevice (struct uae_input_device *id, int num, bool buttonmode)
 	/* "GamePorts" switch if in GamePorts mode or Input mode and GamePorts port was not NONE */
 	if (currprefs.input_selected_setting == GAMEPORT_INPUT_SETTINGS || currprefs.jports[newport].id != JPORT_NONE) {
 		if ((num == 0 || num == 1) && currprefs.jports[newport].id != JPORT_CUSTOM) {
-/* REMOVEME:
- * nowhere used
- */
-#if 0
-			int om = jsem_ismouse (num, &currprefs);
-#endif
+// REMOVEME: int om = jsem_ismouse (num, &currprefs);
 			int om1 = jsem_ismouse (0, &currprefs);
 			int om2 = jsem_ismouse (1, &currprefs);
 			if ((om1 >= 0 || om2 >= 0) && ismouse)
@@ -3747,21 +3742,11 @@ static bool process_custom_event (struct uae_input_device *id, int offset, int s
 	flags = id->flags[offset][slotoffset];
 	qual = flags & ID_FLAG_QUALIFIER_MASK;
 	custom = id->custom[offset][slotoffset];
-/* REMOVEME:
- * nowhere used
- */
-#if 0
-	int af = flags & ID_FLAG_AUTOFIRE_MASK;
-#endif
+// REMOVEME: int af = flags & ID_FLAG_AUTOFIRE_MASK;
  
 	for (idx = 1; idx < 4; idx++) {
 		uae_u64 flags2 = id->flags[offset][slotoffset + idx];
-/* REMOVEME:
- * nowhere used
- */
-#if 0
-		TCHAR *custom2 = id->custom[offset][slotoffset + idx];
-#endif
+// REMOVEME: TCHAR *custom2 = id->custom[offset][slotoffset + idx];
 
 		// all slots must have same qualifier
 		if ((flags2 & ID_FLAG_QUALIFIER_MASK) != qual)
@@ -3874,12 +3859,7 @@ static void setbuttonstateall (struct uae_input_device *id, struct uae_input_dev
 		int sub = sublevdir[buttonstate == 0 ? 1 : 0][i];
 		uae_u64 *flagsp = &id->flags[ID_BUTTON_OFFSET + button][sub];
 		int evt = id->eventid[ID_BUTTON_OFFSET + button][sub];
-/* REMOVEME:
- * nowhere used
- */
-#if 0
-		TCHAR *custom = id->custom[ID_BUTTON_OFFSET + button][sub];
-#endif
+// REMOVEME: TCHAR *custom = id->custom[ID_BUTTON_OFFSET + button][sub];
 		uae_u64 flags = flagsp[0];
 		int autofire = (flags & ID_FLAG_AUTOFIRE) ? 1 : 0;
 		int toggle = (flags & ID_FLAG_TOGGLE) ? 1 : 0;
@@ -4060,12 +4040,7 @@ static void isqualifier (int ei)
 static void scanevents (struct uae_prefs *p)
 {
 	int i, j, k, ei;
-/* REMOVEME:
- * nowhere used
- */
-#if 0
-	const struct inputevent *e;
-#endif
+// REMOVEME: const struct inputevent *e;
 	int n_joy = idev[IDTYPE_JOYSTICK].get_num ();
 	int n_mouse = idev[IDTYPE_MOUSE].get_num ();
 
@@ -4093,12 +4068,7 @@ static void scanevents (struct uae_prefs *p)
 
 				if ((joysticks[i].enabled && i < n_joy) || joysticks[i].enabled < 0) {
 					ei = joysticks[i].eventid[ID_BUTTON_OFFSET + j][k];
-/* REMOVEME:
- * nowhere used
- */
-#if 0
-					e = &events[ei];
-#endif
+// REMOVEME: e = &events[ei];
 					iscd32 (ei);
 					isparport (ei);
 					ismouse (ei);
@@ -4110,12 +4080,7 @@ static void scanevents (struct uae_prefs *p)
 				}
 				if ((mice[i].enabled && i < n_mouse) || mice[i].enabled < 0) {
 					ei = mice[i].eventid[ID_BUTTON_OFFSET + j][k];
-/* REMOVEME:
- * nowhere used
- */
-#if 0
-					e = &events[ei];
-#endif
+// REMOVEME: e = &events[ei];
 					iscd32 (ei);
 					isparport (ei);
 					ismouse (ei);
@@ -4407,12 +4372,7 @@ static void checkcompakb (int *kb, int *srcmap)
 		struct uae_input_device *uid = &keyboards[0];
 		while (kb[j] >= 0) {
 			int id = kb[j];
-/* REMOVEME:
- * nowhere used
- */
-#if 0
-			int evt0 = 0, evt1 = 0;
-#endif
+// REMOVEME: int evt0 = 0, evt1 = 0;
 			k = 0;
 			while (keyboard_default[k].scancode >= 0) {
 				if (keyboard_default[k].scancode == kb[j]) {
@@ -4903,12 +4863,7 @@ static void compatibility_copy (struct uae_prefs *prefs, bool gameports)
 	}
 
 	for (i = 0; i < 2; i++) {
-/* REMOVEME:
- * nowhere used
- */
-#if 0
-		int af = prefs->jports[i].autofire;
-#endif
+// REMOVEME: int af = prefs->jports[i].autofire;
 		if (prefs->jports[i].id >= 0 && joymodes[i] <= 0) {
 			int mode = prefs->jports[i].mode;
 			if (jsem_ismouse (i, prefs) >= 0) {
@@ -4979,12 +4934,7 @@ static void compatibility_copy (struct uae_prefs *prefs, bool gameports)
 
 	for (i = 2; i < MAX_JPORTS; i++) {
 		if (prefs->jports[i].id >= 0 && joymodes[i] <= 0) {
-/* REMOVEME:
- * nowhere used
- */
-#if 0
-			int mode = prefs->jports[i].mode;
-#endif
+// REMOVEME: int mode = prefs->jports[i].mode;
 			if (jsem_isjoy (i, prefs) >= 0) {
 				joymodes[i] = JSEM_MODE_JOYSTICK;
 				joyinputs[i] = i == 3 ? ip_parjoy2 : ip_parjoy1;
@@ -5171,12 +5121,7 @@ static void compatibility_copy (struct uae_prefs *prefs, bool gameports)
 	for (i = 2; i < MAX_JPORTS; i++) {
 		int af = prefs->jports[i].autofire;
 		if (prefs->jports[i].id >= 0) {
-/* REMOVEME:
- * nowhere used
- */
-#if 0
-			int *kb = NULL;
-#endif
+// REMOVEME: int *kb = NULL;
 			joy = jsem_isjoy (i, prefs);
 			if (joy >= 0) {
 				if (gameports)
@@ -5584,12 +5529,7 @@ void inputdevice_setkeytranslation (struct uae_input_device_kbr_default **trans,
 // return true if keyboard/scancode pair is mapped
 int inputdevice_iskeymapped (int keyboard, int scancode)
 {
-/* REMOVEME:
- * nowhere used
- */
-#if 0
-	struct uae_input_device *na = &keyboards[keyboard];
-#endif
+// REMOVEME: struct uae_input_device *na = &keyboards[keyboard];
 	if (!keyboards || scancode < 0)
 		return 0;
 	return scancodeused[keyboard][scancode];
@@ -6025,12 +5965,7 @@ static int put_event_data (const struct inputdevice_functions *id, int devnum, i
 
 static int is_event_used (const struct inputdevice_functions *id, int devnum, int isnum, int isevent)
 {
-/* REMOVEME:
- * nowhere used
- */
-#if 0
-	struct uae_input_device *uid = get_uid (id, devnum);
-#endif
+// REMOVEME: struct uae_input_device *uid = get_uid (id, devnum);
 	int num, evt, sub;
 
 	for (num = 0; num < id->get_widget_num (devnum); num++) {
@@ -6457,12 +6392,7 @@ void inputdevice_swap_ports (struct uae_prefs *p, int devnum)
 	const struct inputdevice_functions *idf = getidf (devnum);
 	struct uae_input_device *uid = get_uid (idf, inputdevice_get_device_index (devnum));
 	int i, j, k, event;
-/* REMOVEME:
- * nowhere used
- */
-#if 0
-	int unit;
-#endif
+// REMOVEME: int unit;
 	const struct inputevent *ie, *ie2;
 
 	for (i = 0; i < MAX_INPUT_DEVICE_EVENTS; i++) {
@@ -6473,12 +6403,7 @@ void inputdevice_swap_ports (struct uae_prefs *p, int devnum)
 			ie = &events[event];
 			if (ie->unit <= 0)
 				continue;
-/* REMOVEME:
- * nowhere used
- */
-#if 0
-			unit = ie->unit;
-#endif
+// REMOVEME: unit = ie->unit;
 			k = 1;
 			while (events[k].confname) {
 				ie2 = &events[k];

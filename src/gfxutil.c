@@ -511,9 +511,7 @@ void alloc_colors256 (allocfunc_type allocfunc)
 	    int g = (j * 15) / (nb_cols[GRN] - 1);
 	    for (k = 0; k < nb_cols[BLU]; ++k) {
 		int b = (k * 15) / (nb_cols[BLU] - 1);
-/* REMOVEME:
- * nowhere used
- */
+// REMOVEME:
 #if 0
 		int result;
 		result = allocfunc (r, g, b, map + l);
@@ -576,18 +574,11 @@ void alloc_colors256 (allocfunc_type allocfunc)
 			int rgb = (r << 8) | (g << 4) | b;
 
 			if (color_diff[rgb] == maxdiff) {
-/* REMOVEME:
- * nowhere used
- */
-#if 0
-			    int result;
-#endif
+// REMOVEME: int result;
 			    if (l >= maxcol)
 				lost++;
 			    else {
-/* REMOVEME:
- * nowhere used
- */
+// REMOVEME:
 #if 0
 				result = allocfunc (r, g, b, xcolors + rgb);
 #else
@@ -647,16 +638,9 @@ void setup_greydither_maxcol (int maxcol, allocfunc_type allocfunc)
      */
     for (i = 0; i < maxcol; ++i) {
 		int c;
-/* REMOVEME:
- * nowhere used
- */
-#if 0
-		int result;
-#endif
+// REMOVEME: int result;
 		c = (15 * i + (maxcol-1)/2) / (maxcol - 1);
-/* REMOVEME:
- * nowhere used
- */
+// REMOVEME:
 #if 0
 		result = allocfunc(c, c, c, map + i);
 #else
@@ -751,16 +735,9 @@ void setup_dither (int bits, allocfunc_type allocfunc)
 	    grnvals[j] = g;
 	    for (k = 0; k < nb_cols[BLU]; ++k) {
 		int b = (k * 15) / (nb_cols[BLU] - 1);
-/* REMOVEME:
- * nowhere used
- */
-#if 0
-		int result;
-#endif
+// REMOVEME: int result;
 		bluvals[k] = b;
-/* REMOVEME:
- * nowhere used
- */
+// REMOVEME:
 #if 0
 		result = allocfunc(r, g, b, map + l);
 #else

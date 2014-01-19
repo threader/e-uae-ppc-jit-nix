@@ -507,13 +507,11 @@ int input_get_default_joystick_analog (struct uae_input_device *uid, int num, in
 // writelog
 TCHAR* buf_out (TCHAR *buffer, int *bufsize, const TCHAR *format, ...)
 {
-	/// REMOVEME: unused: int count;
 	va_list parms;
 	va_start (parms, format);
 
 	if (buffer == NULL)
 		return 0;
-	/** REMOVEME: unused: count = **/
 	vsnprintf (buffer, (*bufsize) - 1, format, parms);
 	va_end (parms);
 	*bufsize -= _tcslen (buffer);
@@ -560,8 +558,6 @@ TCHAR start_path_data[MAX_DPATH];
 
 void fetch_path (TCHAR *name, TCHAR *out, int size)
 {
-	/// REMOVEME: unused: int size2 = size;
-
 	_tcscpy (start_path_data, "./");
         _tcscpy (out, start_path_data);
         if (!name)
@@ -1030,7 +1026,7 @@ dm.dmDisplayFrequency = 50;
 					idx2++;
 				}
 				if (!found && dm.dmBitsPerPel > 8) {
-					/// REMOVEME: unused: int freq = 0;
+// REMOVEME: int freq = 0;
 //					if ((dm.dmFields & DM_PELSWIDTH) && (dm.dmFields & DM_PELSHEIGHT) && (dm.dmFields & DM_BITSPERPEL)) {
 						addmode (md, &dm, mode);
 //					}

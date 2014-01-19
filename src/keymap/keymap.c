@@ -308,8 +308,7 @@ static int shiftpressed (void)
 	return input_getqualifiers () & ID_FLAG_QUALIFIER_SHIFT;
 }
 
-/* REMOVEME:
- */
+// REMOVEME:
 #if 0
 static int altpressed (void)
 {
