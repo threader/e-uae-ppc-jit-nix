@@ -1,6 +1,10 @@
+#ifndef GP2X
+int tweakz (int parametre) { return 0; }
+#else
+
 #include <SDL/SDL.h>
-#include "gp2x.h"
 #include <stdlib.h>
+#include "gp2x.h"
 #include "gp2x-cpuctrl/cpuctrl.h"
 
 extern void write_text(int x, int y, char* txt);
@@ -33,7 +37,6 @@ int tweakz (int parametre) {
 	char *tmp;
 	tmp=(char*)malloc(5);
 
-#ifdef GP2X
 	unsigned sysfreq=0;
 	int cpufreq;
 	sysfreq	= get_freq_920_CLK();
@@ -48,7 +51,6 @@ int tweakz (int parametre) {
 	defaults[5] = get_tRFC();
 	defaults[6] = get_tRP();
 	defaults[7] = get_tRCD();
-#endif
 
 	while (!tweakloopdone) {
 		while (SDL_PollEvent(&event)) {
@@ -184,3 +186,4 @@ int tweakz (int parametre) {
     	pMenu_Surface = SDL_LoadBMP("images/menu.bmp");
 	return 0;
 }
+#endif

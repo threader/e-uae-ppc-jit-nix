@@ -48,6 +48,12 @@ extern int flashLED;
 void cocoa_gui_early_setup (void);
 
 //
+
+extern SDL_Surface *screen;
+#ifndef GP2X
+#define prSDLScreen screen
+#endif
+
 int gui_init (void) {
 #if 0
 	if (display == NULL) {
