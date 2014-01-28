@@ -156,7 +156,7 @@ void gui_exit (void){
 	SDL_FreeSurface(icon_exit);
 //	SDL_FreeSurface(icon_tweaks);
 #endif
-	SDL_Quit;
+	SDL_Quit();
 }
 
 void gui_display (int shortcut){
