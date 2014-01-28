@@ -350,8 +350,10 @@ void gui_display (int shortcut){
 
 		if (mouse_x < 1) { mouse_x = 1; }
 		if (mouse_y < 1) { mouse_y = 1; }
-		if (mouse_x > _MENU_X) { mouse_x = _MENU_X; }
-		if (mouse_y > _MENU_Y) { mouse_y = _MENU_Y; }
+#define MOUSE_MAX_X (_MENU_X - pMouse_Pointer->w)
+#define MOUSE_MAX_Y (_MENU_Y - pMouse_Pointer->h)
+		if (mouse_x > MOUSE_MAX_X) { mouse_x = MOUSE_MAX_X; }
+		if (mouse_y > MOUSE_MAX_Y) { mouse_y = MOUSE_MAX_Y; }
 		rect.x = mouse_x;
 		rect.y = mouse_y;
 		//rect.w = pMouse_Pointer->w;
