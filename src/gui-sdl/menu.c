@@ -375,7 +375,16 @@ void gui_display (int shortcut){
 }
 
 void write_text (int x, int y, const char* txt) {
-	SDL_Surface* pText_Surface = TTF_RenderText_Solid(amiga_font, txt, text_color);
+	char txtbuf[45];
+	size_t l = strlen(txt);
+	if(l > 44) {
+		memcpy(txtbuf, txt, 20);
+		memcpy(txtbuf + 20, "...", 3);
+		memcpy(txtbuf + 23, txt + l - 20, 21);
+	} else {
+		strcpy(txtbuf, txt);
+	}
+	SDL_Surface* pText_Surface = TTF_RenderText_Solid(amiga_font, txtbuf, text_color);
 
 	rect.x = x;
 	rect.y = y;
