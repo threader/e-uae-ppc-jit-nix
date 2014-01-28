@@ -1,11 +1,12 @@
 #include "sysconfig.h"
 #include "sysdeps.h"
 
+#include "custom.h"
 #include "options.h"
+#include "menu.h"
 #include <SDL/SDL.h>
 #include "button_mappings.h"
 #include <stdlib.h>
-#include "menu.h"
 
 int prefz (int parameter);
 
@@ -30,10 +31,48 @@ extern SDL_Surface* pMenu_Surface;
 extern SDL_Color text_color;
 extern char msg[50];
 extern char msg_status[50];
+
 #define TITLE_X 52
 #define TITLE_Y 9
-#define STATUS_X 30 
+#define STATUS_X 30
 #define STATUS_Y 460
+
+enum sound_settings {
+	SS_OFF = 0,
+	SS_OFF_EMUL,
+	SS_ON,
+	SS_PERFECT,
+};
+
+enum sound_settings prefz_get_sound_settings(void) {
+	return changed_prefs.produce_sound;
+}
+
+void prefz_set_sound_settings(enum sound_settings s) {
+	changed_prefs.produce_sound = s;
+	changed_prefs.sound_stereo = changed_prefs.sound_mixed_stereo_delay = 0;
+	changed_prefs.sound_filter = FILTER_SOUND_OFF;
+	changed_prefs.sound_auto = 0;
+	if(!s) return;
+	if(s == SS_OFF_EMUL) changed_prefs.sound_filter = FILTER_SOUND_EMUL;
+	else {
+		changed_prefs.sound_filter = FILTER_SOUND_ON;
+		if(s == SS_PERFECT) changed_prefs.sound_stereo = 1;
+	}
+}
+
+#define ARRAYSIZE(x) (sizeof(x)/sizeof((x)[0]))
+static const signed char masks[] = {0, CSMASK_ECS_AGNUS, CSMASK_ECS_DENISE, CSMASK_AGA};
+int prefz_get_chipset(void) {
+	int i;
+	for(i = ARRAYSIZE(masks) -1; i >= 0; i--) if(changed_prefs.chipset_mask & masks[i]) return i;
+	return 0;
+}
+void prefz_set_chipset(int val) {
+	changed_prefs.chipset_mask = 0;
+	int i = 0;
+	for(; i < ARRAYSIZE(masks) && i <= val; i++) changed_prefs.chipset_mask |= masks[i];
+}
 
 static SDL_Surface* pPrefzMenu_Surface;
 int prefz (int parameter) {
@@ -54,46 +93,65 @@ int prefz (int parameter) {
 	int deger;
 	int q;
 	int w;
+	enum pref_items {
+		PI_CPU = 0,
+		PI_CPUSPEED,
+		PI_CHIPSET,
+		PI_CHIPMEM,
+		PI_FASTMEM,
+		PI_BOGOMEM,
+		PI_SOUND,
+		PI_FRAMESKIP,
+		PI_FLOPPYSPEED,
+		PI_MAX
+	};
 
-	char* prefs[]	= {	"CPU",
-						"CPU Speed",
-						"Chipset",
-						"Chip",
-						"Fast",
-						"Bogo",
-						"Sound",
-						"Frame Skip",
-						"Floppy Speed" };
+	static const char* prefs[] = { "CPU",  "CPU Speed", "Chipset",
+			        "Chip", "Fast", "Bogo",
+			        "Sound","Frame Skip", "Floppy Speed" };
 
-	char* p_cpu[]	= {"68000", "68010", "68020", "68020/68881", "68ec020", "68ec020/68881"};	//5
-	char* p_speed[]	= {"max","real"};								//20
-	char* p_chip[]	= {"OCS", "ECS (Agnus)", "ECS (Denise)", "ECS", "AGA"};				//4
-	char* p_sound[]	= {"Off", "Off (emulated)", "On", "On (perfect)"};				//3
-	char* p_frame[]	= {"0","1","2","3"};								//3
-	char* p_ram[]	= {"0","512","1024"};								//2
-	char* p_floppy[]= {"0","100","200","300"};							//3
-	int defaults[]	= {0,0,0,0,0,0,0,0};
-
+	static const char* p_cpu[]	= {"68000", "68010", "68020", "68020/68881", "68ec020", "68ec020/68881"};	//5
+	static const char* p_speed[]	= {"max","real"};								//20
+	static const char* p_chipset[]	= {"OCS", "ECS (Agnus)", "Full ECS", "AGA"};				//4
+	static const char* p_sound[]	= {
+		[SS_OFF] = "Off", [SS_OFF_EMUL] ="Off (emulated)",
+		[SS_ON] = "On", [SS_PERFECT] = "On (perfect)"
+	};
+	static const char* p_frame[]	= {"0","1","2","3"};								//3
+	static const char* p_ram[]	= {"0","512","1024", "2048"};								//2
+	static const char* p_floppy[]  = {"0","100","200","400","800"};							//3
+	static const char** prefs_map[] = {
+			[PI_CPU] = p_cpu, [PI_CPUSPEED] = p_speed,
+			[PI_CHIPSET] = p_chipset, [PI_CHIPMEM] = p_ram,
+			[PI_FASTMEM] = p_ram, [PI_BOGOMEM] = p_ram,
+			[PI_SOUND] = p_sound, [PI_FRAMESKIP] = p_frame,
+			[PI_FLOPPYSPEED] = p_floppy };
+	signed char defaults[PI_MAX]= {0};
+#define S(X)  ARRAYSIZE(X)-1
+	static const unsigned char defaults_max[PI_MAX] = {
+		[PI_CPU] = S(p_cpu),  [PI_CPUSPEED] = S(p_speed),
+		[PI_CHIPSET] = S(p_chipset), [PI_CHIPMEM] = S(p_ram),
+		[PI_FASTMEM] = S(p_ram), [PI_BOGOMEM] = S(p_ram),
+		[PI_SOUND] = S(p_sound), [PI_FRAMESKIP] = S(p_frame),
+		[PI_FLOPPYSPEED] = S(p_floppy)};
+#undef S
 	defaults[0] = currprefs.cpu_model;
 	if (currprefs.address_space_24 != 0) {
 		if (currprefs.cpu_model == 2) { defaults[0] = 4; }
 		if (currprefs.cpu_model == 3) { defaults[0] = 5; }
 	}
-	defaults[1] = 0;
-//	defaults[1] = currprefs.m68k_speed;
-	defaults[2] = currprefs.chipset_mask;
-	defaults[3] = currprefs.chipmem_size;
-	defaults[4] = currprefs.fastmem_size;
-	defaults[5] = currprefs.bogomem_size;
-	defaults[6] = currprefs.produce_sound;
-	defaults[7] = currprefs.gfx_framerate;
-	defaults[8] = currprefs.floppy_speed;
+	char tmp[32];
 
-	char *tmp;
-	tmp=(char*)malloc(6);
+#define DEF(IDX, ARR, VAL) do { snprintf(tmp, sizeof tmp, "%d", (int) (VAL)); \
+			        int foo = 0; for(;foo<ARRAYSIZE(ARR);foo++) \
+				if(!strcmp(tmp, ARR[foo])) { defaults[IDX] = foo; break; } \
+				if(foo == ARRAYSIZE(ARR)) defaults[IDX] = 0; } while(0)
+/* "" */
 
+	int need_redraw = 1;
 	while (!prefsloopdone) {
 		while (SDL_PollEvent(&event)) {
+			need_redraw = 1;
 			if (event.type == SDL_QUIT) {
 				prefsloopdone = 1;
 			}
@@ -119,59 +177,59 @@ int prefz (int parameter) {
 				}
 			}
 		}
+		if(!need_redraw) { SDL_Delay(20); continue; }
+		defaults[PI_SOUND] = prefz_get_sound_settings();
+		defaults[PI_CHIPSET] = prefz_get_chipset();
+		//DEF(PI_CPUSPEED, p_speed, /*currprefs.m68k_speed*/0);
+		//DEF(PI_CPU, p_cpu, /*currprefs.m68k_speed*/0);
+		DEF(PI_CHIPMEM, p_ram, changed_prefs.chipmem_size / 1024);
+		DEF(PI_FASTMEM, p_ram, changed_prefs.fastmem_size / 1024);
+		DEF(PI_BOGOMEM, p_ram, changed_prefs.bogomem_size / 1024);
+		DEF(PI_FRAMESKIP, p_frame, changed_prefs.gfx_framerate);
+		DEF(PI_FLOPPYSPEED, p_floppy, changed_prefs.floppy_speed);
 
-		if (kleft == 1) {
-			defaults[selected_item]--;
-			kleft = 0;
 
-			if (selected_item == 1) { 
-				//cpu_speed_change = 1; 
-			}
-			if (selected_item == 6) { 
-				//snd_change = 1; 
-			}
-			if (selected_item == 7) { 
-				//gfx_frameskip_change = 1; 
+		int i, dir = kleft ? -1 : kright ? 1 : 0;
+		defaults[selected_item] += dir;
+		for(i = 0; i < PI_MAX; i++)
+			if(defaults[i] < 0) defaults[i] = defaults_max[i];
+			else if(defaults[i] > defaults_max[i]) defaults[i] = 0;
+
+		if (selected_item < 0) selected_item = PI_MAX - 1;
+		else if (selected_item >= PI_MAX) selected_item = 0;
+
+		uae_u32* destmem;
+		if(kleft || kright) {
+			kleft = kright = 0;
+			switch(selected_item) {
+				case PI_FLOPPYSPEED:
+					changed_prefs.floppy_speed = atoi(p_floppy[defaults[selected_item]]);
+					break;
+				case PI_CPU:
+				case PI_CPUSPEED:
+					break;
+				case PI_CHIPSET:
+					prefz_set_chipset(defaults[PI_CHIPSET]);
+					break;
+				case PI_CHIPMEM:
+					destmem = &changed_prefs.chipmem_size;
+					goto set_mem;
+				case PI_FASTMEM:
+					destmem = &changed_prefs.fastmem_size;
+					goto set_mem;
+				case PI_BOGOMEM:
+					destmem = &changed_prefs.bogomem_size;
+					set_mem:
+					*destmem = atoi(prefs_map[selected_item][defaults[selected_item]]) * 1024;
+					break;
+				case PI_SOUND:
+					prefz_set_sound_settings(defaults[PI_SOUND]);
+				case PI_FRAMESKIP:
+				default:
+					break;
 			}
 		}
 
-		if (kright == 1) {
-			defaults[selected_item]++;
-			kright = 0;
-
-			if (selected_item == 1) { 
-				//cpu_speed_change = 1; 
-			}
-			if (selected_item == 6) { 
-				//snd_change = 1; 
-			}
-			if (selected_item == 7) { 
-				//gfx_frameskip_change = 1; 
-			}
-		}
-
-		if (defaults[0] < 0) defaults[0] = 5;	//cpu
-		if (defaults[1] < 0) defaults[1] = 1; //speed
-		if (defaults[2] < 0) defaults[2] = 4;	//chipset
-		if (defaults[3] < 0) defaults[3] = 3;	//chip
-		if (defaults[4] < 0) defaults[4] = 3;	//slow
-		if (defaults[5] < 0) defaults[5] = 3;	//fast
-		if (defaults[6] < 0) defaults[6] = 3;	//sound
-		if (defaults[7] < 0) defaults[7] = 3;	//frameskip
-		if (defaults[8] < 0) defaults[8] = 3;	//floppy
-
-		if (defaults[0] > 5) defaults[0] = 0;	//cpu
-		if (defaults[1] > 1) defaults[1] = 0;	//speed
-		if (defaults[2] > 4) defaults[2] = 0;	//chipset
-		if (defaults[3] > 3) defaults[3] = 0;	//chip
-		if (defaults[4] > 3) defaults[4] = 0;	//slow
-		if (defaults[5] > 3) defaults[5] = 0;	//fast
-		if (defaults[6] > 3) defaults[6] = 0;	//sound
-		if (defaults[7] > 3) defaults[7] = 0;	//frameskip
-		if (defaults[8] > 3) defaults[8] = 0;	//floppy
-
-		if (selected_item < 0) { selected_item = 8; }
-		if (selected_item > 8) { selected_item = 0; }
 	// background
 		SDL_BlitSurface (pMenu_Surface, NULL, tmpSDLScreen, NULL);
 
@@ -189,31 +247,8 @@ int prefz (int parameter) {
 			pos = 50 + (sira * 20);
 			write_text (20, pos, prefs[q]); //
 
-			if (q == 0) {
-				write_text (OPTIONS_Y, pos, p_cpu[defaults[q]]);
-			}
-			if (q == 1) {
-				sprintf(tmp, "%d", p_speed[defaults[q]]);
-				write_text (OPTIONS_Y, pos, tmp); 
-			}
-			if (q == 2) {
-				write_text (OPTIONS_Y, pos, p_chip[defaults[q]]);
-			}
-			if (q > 2 && q < 6) {
-				if (defaults[q] == 0) { deger = 0; }
-				if (defaults[q] == 1) { deger = 512; }
-				if (defaults[q] == 2) { deger = 1024; }
-				if (defaults[q] == 3) { deger = 2048; }
+			write_text (OPTIONS_Y, pos, prefs_map[q][defaults[q]]);
 
-				sprintf(tmp,"%d",deger);
-				write_text (OPTIONS_Y, pos, tmp);
-			}
-			if (q == 6) {
-				write_text (OPTIONS_Y, pos, p_sound[defaults[q]]);
-			}
-			if (q == 7) {
-				write_text (OPTIONS_Y, pos, p_frame[defaults[q]]);
-			}
 			text_color.r = 0;
 			text_color.g = 0;
 			text_color.b = 0;
@@ -227,11 +262,13 @@ int prefz (int parameter) {
 #ifdef USE_GL
 		flush_gl_buffer (&glbuffer, 0, display->h - 1);
 		render_gl_buffer (&glbuffer, 0, display->h - 1);
-        glFlush ();
-        SDL_GL_SwapBuffers ();
+		glFlush ();
+		SDL_GL_SwapBuffers ();
 #else
 		SDL_Flip (display);
 #endif
+		SDL_Delay(20); /* sleep a bit so the cpu is not on 100% all the time */
+		need_redraw = 0;
 	} //while done
 /*
 	if (defaults[0] == 4) { }
