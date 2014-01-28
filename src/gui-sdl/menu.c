@@ -168,6 +168,10 @@ void gui_exit (void){
 }
 
 void gui_display (int shortcut){
+
+	void* stor = display ? malloc(display->h * display->pitch) : 0;
+	if(stor) memcpy(stor, display->pixels, display->h * display->pitch);
+
 	if (tmpSDLScreen == NULL) {
 		tmpSDLScreen = SDL_DisplayFormat(display);
 		if (tmpSDLScreen == NULL) {
@@ -378,7 +382,11 @@ void gui_display (int shortcut){
 		SDL_Flip (display);
 #endif
 	} //while done
-
+	if(stor) {
+		memcpy(display->pixels, stor, display->h * display->pitch);
+		free(stor);
+		SDL_Flip(display);
+	}
 //	return menu_exitcode;
 }
 
