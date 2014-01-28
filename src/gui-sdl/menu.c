@@ -515,3 +515,20 @@ void gui_gameport_axis_change (int port, int axis, int state, int max)
 void cocoa_gui_early_setup (void) {
 //it's easier to put this here than adding a ifdef SDL_UI in main.m
 }
+
+SDL_Surface* pMouse_Pointer;
+SDL_Surface* pMenu_Surface;
+SDL_Surface* icon_expansion;
+SDL_Surface* icon_preferences;
+SDL_Surface* icon_keymaps;
+SDL_Surface* icon_floppy;
+SDL_Surface* icon_reset;
+SDL_Surface* icon_storage;
+SDL_Surface* icon_run;
+SDL_Surface* icon_exit;
+//SDL_Surface* icon_tweaks;
+
+TTF_Font *amiga_font;
+SDL_Color text_color;
+SDL_Rect rect;
+

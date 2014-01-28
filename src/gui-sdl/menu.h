@@ -1,3 +1,5 @@
+#ifndef MENU_H
+#define MENU_H
 #include <stdio.h>
 #include <SDL/SDL.h>
 #include <SDL/SDL_ttf.h>
@@ -21,18 +23,20 @@ void selected_hilite (int ix, int iy, int mx, int my, SDL_Surface* img, int hang
 
 enum { menu_sel_foo, menu_sel_expansion, menu_sel_prefs, menu_sel_keymaps, menu_sel_floppy, menu_sel_reset, menu_sel_storage, menu_sel_run, menu_sel_exit, menu_sel_tweaks };
 
-SDL_Surface* pMouse_Pointer = NULL;
-SDL_Surface* pMenu_Surface = NULL;
-SDL_Surface* icon_expansion = NULL;
-SDL_Surface* icon_preferences = NULL;
-SDL_Surface* icon_keymaps = NULL;
-SDL_Surface* icon_floppy = NULL;
-SDL_Surface* icon_reset = NULL;
-SDL_Surface* icon_storage = NULL;
-SDL_Surface* icon_run = NULL;
-SDL_Surface* icon_exit = NULL;
-//SDL_Surface* icon_tweaks = NULL;
+extern SDL_Surface* pMouse_Pointer;
+extern SDL_Surface* pMenu_Surface;
+extern SDL_Surface* icon_expansion;
+extern SDL_Surface* icon_preferences;
+extern SDL_Surface* icon_keymaps;
+extern SDL_Surface* icon_floppy;
+extern SDL_Surface* icon_reset;
+extern SDL_Surface* icon_storage;
+extern SDL_Surface* icon_run;
+extern SDL_Surface* icon_exit;
+//extern SDL_Surface* icon_tweaks;
 
-TTF_Font *amiga_font = NULL;
-SDL_Color text_color;
-SDL_Rect rect;
+extern TTF_Font *amiga_font;
+extern SDL_Color text_color;
+extern SDL_Rect rect;
+
+#endif
