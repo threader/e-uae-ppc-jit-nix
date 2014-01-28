@@ -375,7 +375,7 @@ void gui_display (int shortcut){
 //	return menu_exitcode;
 }
 
-void write_text (int x, int y, char* txt) {
+void write_text (int x, int y, const char* txt) {
 	SDL_Surface* pText_Surface = TTF_RenderText_Solid(amiga_font, txt, text_color);
 
 	rect.x = x;

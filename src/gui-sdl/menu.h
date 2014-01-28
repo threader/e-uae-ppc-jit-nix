@@ -17,7 +17,7 @@ extern void flush_gl_buffer (const struct gl_buffer_t *buffer, int first_line, i
 extern void render_gl_buffer (const struct gl_buffer_t *buffer, int first_line, int last_line);
 #endif
 
-void write_text(int x, int y, char* txt);
+void write_text(int x, int y, const char* txt);
 void blit_image(SDL_Surface* img, int x, int y);
 void selected_hilite (int ix, int iy, int mx, int my, SDL_Surface* img, int hangi);
 

@@ -6,8 +6,8 @@ int tweakz (int parametre) { return 0; }
 #include <stdlib.h>
 #include "gp2x.h"
 #include "gp2x-cpuctrl/cpuctrl.h"
+#include "menu.h"
 
-extern void write_text(int x, int y, char* txt);
 extern void blit_image(SDL_Surface* img, int x, int y);
 extern SDL_Surface* display;
 extern SDL_Surface* tmpSDLScreen;

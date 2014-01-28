@@ -10,10 +10,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include "menu.h"
 
 int dirz (int parameter);
 
-extern void write_text(int x, int y, char* txt);
 extern void blit_image(SDL_Surface* img, int x, int y);
 extern SDL_Surface *display;
 #ifdef USE_GL
