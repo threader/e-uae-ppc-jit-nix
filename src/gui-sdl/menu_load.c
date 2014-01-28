@@ -45,6 +45,7 @@ extern char yol[];
 extern char msg[];
 extern char msg_status[];
 
+static SDL_Surface *pDirzMenu_Surface;
 int dirz (int parameter) {
 	SDL_Event event;
 	int getdir = 1;
@@ -59,11 +60,13 @@ int dirz (int parameter) {
 	int i;
 	int paging = 18;
 
-	pMenu_Surface = SDL_LoadBMP("guidep/images/menu_load.bmp");
-	if (pMenu_Surface == NULL) {
+	if (!pDirzMenu_Surface) pDirzMenu_Surface = SDL_LoadBMP("guidep/images/menu_load.bmp");
+	if (!pDirzMenu_Surface) {
 		write_log ("SDLUI: Failed to load menu image\n");
 		abort();
 	}
+	menu_load_surface(pDirzMenu_Surface);
+
 	DIR *d;
 	d = opendir(yol);
 	struct dirent *ep;
@@ -211,7 +214,7 @@ int dirz (int parameter) {
 	} //while done
 
 	xfree(filez);
-    pMenu_Surface = SDL_LoadBMP("guidep/images/menu.bmp");
+	menu_restore_surface();
 
 	return 0;
 }

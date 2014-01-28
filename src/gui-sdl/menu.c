@@ -47,8 +47,15 @@ extern int flashLED;
 // --- internal prototypes ---
 void cocoa_gui_early_setup (void);
 
-//
+static SDL_Surface* pMainMenu_Surface;
+void menu_restore_surface(void) {
+	pMenu_Surface = pMainMenu_Surface;
+}
+void menu_load_surface(SDL_Surface *newmenu) {
+	pMenu_Surface = newmenu;
+}
 
+//
 extern SDL_Surface *screen;
 #ifndef GP2X
 #define prSDLScreen screen
@@ -82,7 +89,8 @@ int gui_init (void) {
 	text_color.g = 50;
 	text_color.b = 50;
 
-	pMenu_Surface	= SDL_LoadBMP("guidep/images/menu.bmp");
+	if(!pMainMenu_Surface) pMainMenu_Surface = SDL_LoadBMP("guidep/images/menu.bmp");
+	menu_load_surface(pMainMenu_Surface);
 	if (pMenu_Surface == NULL) {
 		write_log ("SDLUI: Failed to load menu image\n");
 		abort();
@@ -143,7 +151,7 @@ void gui_exit (void){
 #if 0
 	SDL_FreeSurface(tmpSDLScreen);
 
-	SDL_FreeSurface(pMenu_Surface);
+	SDL_FreeSurface(pMainMenu_Surface);
 	SDL_FreeSurface(pMouse_Pointer);
 
 	SDL_FreeSurface(icon_expansion);

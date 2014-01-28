@@ -35,14 +35,16 @@ extern char msg_status[50];
 #define STATUS_X 30 
 #define STATUS_Y 460
 
+static SDL_Surface* pPrefzMenu_Surface;
 int prefz (int parameter) {
 	SDL_Event event;
 
-	pMenu_Surface = SDL_LoadBMP("guidep/images/menu_tweak.bmp");
-	if (pMenu_Surface == NULL) {
+	if (!pPrefzMenu_Surface) pPrefzMenu_Surface = SDL_LoadBMP("guidep/images/menu_tweak.bmp");
+	if (!pPrefzMenu_Surface) {
 		write_log ("SDLUI: Failed to load menu image\n");
 		abort();
 	}
+	menu_load_surface(pPrefzMenu_Surface);
 	int prefsloopdone = 0;
 	int kup = 0;
 	int kdown = 0;
@@ -236,6 +238,6 @@ int prefz (int parameter) {
 	if (defaults[0] == 5) { }
 	defaults[1]--;
 */
-    pMenu_Surface = SDL_LoadBMP("guidep/images/menu.bmp");
+	menu_restore_surface();
 	return 0;
 }

@@ -11,15 +11,21 @@ int tweakz (int parametre) { return 0; }
 extern void blit_image(SDL_Surface* img, int x, int y);
 extern SDL_Surface* display;
 extern SDL_Surface* tmpSDLScreen;
-extern SDL_Surface* pMenu_Surface;
 extern SDL_Color text_color;
 extern char msg[50];
 extern char msg_status[50];
 
+static SDL_Surface* pTweakzMenu_Surface;
+
 int tweakz (int parametre) {
 	SDL_Event event;
 
-    	pMenu_Surface = SDL_LoadBMP("images/menu_tweak.bmp");
+	if (!pTweakzMenu_Surface) pTweakzMenu_Surface = SDL_LoadBMP("images/menu_tweak.bmp");
+        if (!pTweakzMenu_Surface) {
+		write_log ("SDLUI: Failed to load menu image\n");
+		abort();
+        }
+	menu_load_surface(pTweakz_Surface);
 	int tweakloopdone = 0;
 	int kup = 0;
 	int kdown = 0;
@@ -183,7 +189,7 @@ int tweakz (int parametre) {
 #endif
 	} //while done
 
-    	pMenu_Surface = SDL_LoadBMP("images/menu.bmp");
+    	menu_restore_surface();
 	return 0;
 }
 #endif

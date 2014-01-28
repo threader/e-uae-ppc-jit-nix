@@ -22,6 +22,8 @@ void blit_image(SDL_Surface* img, int x, int y);
 void selected_hilite (int ix, int iy, int mx, int my, SDL_Surface* img, int hangi);
 
 enum { menu_sel_foo, menu_sel_expansion, menu_sel_prefs, menu_sel_keymaps, menu_sel_floppy, menu_sel_reset, menu_sel_storage, menu_sel_run, menu_sel_exit, menu_sel_tweaks };
+void menu_load_surface(SDL_Surface *newmenu);
+void menu_restore_surface(void);
 
 extern SDL_Surface* pMouse_Pointer;
 extern SDL_Surface* pMenu_Surface;
