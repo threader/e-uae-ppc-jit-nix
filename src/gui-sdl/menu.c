@@ -161,8 +161,7 @@ void gui_exit (void){
 
 void gui_display (int shortcut){
 	if (tmpSDLScreen == NULL) {
-		tmpSDLScreen = SDL_CreateRGBSurface(display->flags, display->w, display->h, display->format->BitsPerPixel,
-						display->format->Rmask, display->format->Gmask, display->format->Bmask, display->format->Amask);
+		tmpSDLScreen = SDL_DisplayFormat(display);
 		if (tmpSDLScreen == NULL) {
 			write_log ("SDLUI: Failed to create temp screen\n");
 			abort();
