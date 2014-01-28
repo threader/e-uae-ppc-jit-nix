@@ -98,14 +98,16 @@ typedef struct {
 	mem_get_func lgeti, wgeti;
 	int flags;
 	uae_u32 mask;
+//FIXME: 	uae_u32 startmask;
 	uae_u32 start;
 	uae_u32 allocated;
 } addrbank;
 
-#define CE_MEMBANK_FAST 0
-#define CE_MEMBANK_CHIP 1
-#define CE_MEMBANK_CIA 2
-#define CE_MEMBANK_FAST16BIT 3
+#define CE_MEMBANK_FAST32 0
+#define CE_MEMBANK_CHIP16 1
+#define CE_MEMBANK_CHIP32 2
+#define CE_MEMBANK_CIA 3
+#define CE_MEMBANK_FAST16 4
 extern uae_u8 ce_banktype[65536], ce_cachable[65536];
 
 #define MEMORY_LGET(name) \

@@ -87,7 +87,7 @@ typedef double fptype;
 
 #define MAX68020CYCLES 4
 
-#define CPU_PIPELINE_MAX 3
+#define CPU_PIPELINE_MAX 4
 #define CPU000_MEM_CYCLE 4
 #define CPU000_CLOCK_MULT 2
 #define CPU020_MEM_CYCLE 3
@@ -109,6 +109,7 @@ struct cache030
 	uae_u32 tag;
 };
 
+#if 0
 #define CACHESETS040 64
 #define CACHELINES040 4
 struct cache040
@@ -117,6 +118,7 @@ struct cache040
 	bool valid[CACHELINES040];
 	uae_u32 tag[CACHELINES040];
 };
+#endif
 
 struct mmufixup
 {
@@ -136,6 +138,10 @@ struct regstruct
 
 	uae_u16 irc, ir;
 	uae_u32 spcflags;
+	uae_u32 last_prefetch;
+	uae_u32 chipset_latch_rw;
+	uae_u32 chipset_latch_read;
+	uae_u32 chipset_latch_write;
 
 	uaecptr usp, isp, msp;
 	uae_u16 sr;
@@ -179,12 +185,14 @@ struct regstruct
 	uae_u8 panic;
 	uae_u32 panic_pc, panic_addr;
 
-	uae_u16 prefetch020[CPU_PIPELINE_MAX];
+	uae_u32 prefetch020[CPU_PIPELINE_MAX];
 	uae_u32 prefetch020addr;
 	uae_u32 cacheholdingdata020;
 	uae_u32 cacheholdingaddr020;
 	int ce020memcycles;
-	int ce020tmpcycles;
+	bool ce020memcycle_data;
+	int ce020_tail;
+	frame_time_t ce020_tail_cycles;
 };
 
 extern struct regstruct regs;
@@ -206,7 +214,7 @@ struct cputracestruct
 
 	uae_u32 msp, vbr;
 	uae_u32 cacr, caar;
-	uae_u16 prefetch020[CPU_PIPELINE_MAX];
+	uae_u32 prefetch020[CPU_PIPELINE_MAX];
 	uae_u32 prefetch020addr;
 	uae_u32 cacheholdingdata020;
 	uae_u32 cacheholdingaddr020;
@@ -378,6 +386,7 @@ void (*x_do_cycles_post)(unsigned long, uae_u32);
 
 uae_u32 REGPARAM3 x_get_disp_ea_020 (uae_u32 base, int idx) REGPARAM;
 uae_u32 REGPARAM3 x_get_disp_ea_ce020 (uae_u32 base, int idx) REGPARAM;
+uae_u32 REGPARAM3 x_get_disp_ea_ce030 (uae_u32 base, int idx) REGPARAM;
 uae_u32 REGPARAM3 x_get_bitfield (uae_u32 src, uae_u32 bdata[2], uae_s32 offset, int width) REGPARAM;
 void REGPARAM3 x_put_bitfield (uae_u32 dst, uae_u32 bdata[2], uae_u32 val, uae_s32 offset, int width) REGPARAM;
 
@@ -398,6 +407,7 @@ int get_cpu_model (void);
 #ifdef __AROS__
 # undef Exception
 #endif
+
 void REGPARAM3 MakeSR (void) REGPARAM;
 //void SetSR (uae_u16 sr);
 void REGPARAM3 MakeFromSR (void) REGPARAM;
@@ -409,13 +419,14 @@ void doint (void);
 void dump_counts (void);
 int m68k_move2c (int, uae_u32 *);
 int m68k_movec2 (int, uae_u32 *);
-void m68k_divl (uae_u32, uae_u32, uae_u16);
-void m68k_mull (uae_u32, uae_u32, uae_u16);
+bool m68k_divl (uae_u32, uae_u32, uae_u16);
+bool m68k_mull (uae_u32, uae_u32, uae_u16);
 void init_m68k (void);
 void init_m68k_full (void);
 void m68k_go (int);
 void m68k_dumpstate (uaecptr *);
 void m68k_dumpstate2 (uaecptr, uaecptr *);
+void m68k_dumpcache (void);
 int getDivu68kCycles (uae_u32 dividend, uae_u16 divisor);
 int getDivs68kCycles (uae_s32 dividend, uae_s16 divisor);
 void divbyzero_special (bool issigned, uae_s32 dst);
@@ -446,6 +457,8 @@ void cpureset (void);
 void cpu_halt (int id);
 
 void fill_prefetch (void);
+void fill_prefetch_020 (void);
+void fill_prefetch_030 (void);
 
 #define CPU_OP_NAME(a) op ## a
 
@@ -467,10 +480,12 @@ extern const struct cputbl op_smalltbl_20_ff[]; // prefetch
 extern const struct cputbl op_smalltbl_21_ff[]; // CE
 /* 68010 */
 extern const struct cputbl op_smalltbl_4_ff[];
+extern const struct cputbl op_smalltbl_11_ff[]; // prefetch
+extern const struct cputbl op_smalltbl_13_ff[]; // CE
 /* 68000 */
 extern const struct cputbl op_smalltbl_5_ff[];
-extern const struct cputbl op_smalltbl_11_ff[]; // prefetch
-extern const struct cputbl op_smalltbl_12_ff[]; // CE
+extern const struct cputbl op_smalltbl_12_ff[]; // prefetch
+extern const struct cputbl op_smalltbl_14_ff[]; // CE
 
 extern cpuop_func *cpufunctbl[65536] ASM_SYM_FOR_FUNC ("cpufunctbl");
 

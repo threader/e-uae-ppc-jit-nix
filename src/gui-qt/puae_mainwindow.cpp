@@ -1508,7 +1508,7 @@ void puae_MainWindow::enable_for_chipsetdlg ()
 {
         int enable = workprefs.cpu_cycle_exact ? false : true;
         
-#if !defined (CPUEMU_12)
+#if !defined (CPUEMU_13)
         ui->IDC_CYCLEEXACT->setEnabled(false);
 #endif
 //        ui->IDC_FASTCOPPER->setEnabled(enable);

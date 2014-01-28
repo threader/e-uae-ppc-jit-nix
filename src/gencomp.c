@@ -269,7 +269,7 @@ gen_nextibyte (void)
 static void
 sync_m68k_pc (void)
 {
-    comprintf("\t if (m68k_pc_offset>100) sync_m68k_pc();\n");
+    comprintf("\t if (m68k_pc_offset>JIT_M68K_PC_SYNC) sync_m68k_pc();\n");
 }
 
 
@@ -287,14 +287,7 @@ genamode (amodes mode, char *reg, wordsizes size, char *name, int getv, int move
 	if (getv == 1 || getv==2) {
 	    /* We generate the variable even for getv==2, so we can use
 	       it as a destination for MOVE */
-/*		if (strcmp(reg, 'dstreg') == 0) {
-			if (strcmp(name, 'data') == 0) {
-			    comprintf ("\tunsigned int %s=%s;\n",name,reg);
-			} else
-			    comprintf ("\tint %s=%s;\n",name,reg);
-		} else */{
-		    comprintf ("\tint %s=%s;\n",name,reg);
-		}
+	    comprintf ("\tint %s=%s;\n",name,reg);
 	}
 	return;
 
@@ -737,7 +730,10 @@ genmovemel (uae_u16 opcode)
     comprintf ("\tint i;\n");
     comprintf ("\tint offset=0;\n");
     genamode (table68k[opcode].dmode, "dstreg", table68k[opcode].size, "src", 2, 1);
-    comprintf("\tif (1 && !special_mem) {\n");
+	if (table68k[opcode].size == sz_long)
+	    comprintf("\tif (!currprefs.comptrustlong && !special_mem) {\n");
+	else
+	    comprintf("\tif (!currprefs.comptrustword && !special_mem) {\n");
 
     /* Fast but unsafe...  */
     comprintf("\tget_n_addr(srca,native,scratchie);\n");
@@ -810,7 +806,10 @@ genmovemle (uae_u16 opcode)
        on her, but unfortunately, gfx mem isn't "real" mem, and thus that
        act of cleverness means that movmle must pay attention to special_mem,
        or Genetic Species is a rather boring-looking game ;-) */
-    comprintf("\tif (1 && !special_mem) {\n");
+	if (table68k[opcode].size == sz_long)
+	    comprintf("\tif (!currprefs.comptrustlong && !special_mem) {\n");
+	else
+	    comprintf("\tif (!currprefs.comptrustword && !special_mem) {\n");
     comprintf("\tget_n_addr(srca,native,scratchie);\n");
 
     if (table68k[opcode].dmode!=Apdi) {
@@ -2908,6 +2907,112 @@ generate_includes (FILE * f, int bigger)
 
 static int postfix;
 
+
+static char *decodeEA (amodes mode, wordsizes size)
+{
+	static char buffer[80];
+
+	buffer[0] = 0;
+	switch (mode){
+	case Dreg:
+		strcpy (buffer,"Dn");
+		break;
+	case Areg:
+		strcpy (buffer,"An");
+		break;
+	case Aind:
+		strcpy (buffer,"(An)");
+		break;
+	case Aipi:
+		strcpy (buffer,"(An)+");
+		break;
+	case Apdi:
+		strcpy (buffer,"-(An)");
+		break;
+	case Ad16:
+		strcpy (buffer,"(d16,An)");
+		break;
+	case Ad8r:
+		strcpy (buffer,"(d8,An,Xn)");
+		break;
+	case PC16:
+		strcpy (buffer,"(d16,PC)");
+		break;
+	case PC8r:
+		strcpy (buffer,"(d8,PC,Xn)");
+		break;
+	case absw:
+		strcpy (buffer,"(xxx).W");
+		break;
+	case absl:
+		strcpy (buffer,"(xxx).L");
+		break;
+	case imm:
+		switch (size){
+		case sz_byte:
+			strcpy (buffer,"#<data>.B");
+			break;
+		case sz_word:
+			strcpy (buffer,"#<data>.W");
+			break;
+		case sz_long:
+			strcpy (buffer,"#<data>.L");
+			break;
+		default:
+			break;
+		}
+		break;
+	case imm0:
+		strcpy (buffer,"#<data>.B");
+		break;
+	case imm1:
+		strcpy (buffer,"#<data>.W");
+		break;
+	case imm2:
+		strcpy (buffer,"#<data>.L");
+		break;
+	case immi:
+		strcpy (buffer,"#<data>");
+		break;
+
+	default:
+		break;
+	}
+	return buffer;
+}
+
+static char *outopcode (int opcode)
+{
+	static char out[100];
+	struct instr *ins;
+	int i;
+
+	ins = &table68k[opcode];
+	for (i = 0; lookuptab[i].name[0]; i++) {
+		if (ins->mnemo == lookuptab[i].mnemo)
+			break;
+	}
+	{
+		strcpy (out, lookuptab[i].name);
+	}
+	if (ins->smode == immi)
+		strcat (out, "Q");
+	if (ins->size == sz_byte)
+		strcat (out,".B");
+	if (ins->size == sz_word)
+		strcat (out,".W");
+	if (ins->size == sz_long)
+		strcat (out,".L");
+	strcat (out," ");
+	if (ins->suse)
+		strcat (out, decodeEA (ins->smode, ins->size));
+	if (ins->duse) {
+		if (ins->suse) strcat (out,",");
+		strcat (out, decodeEA (ins->dmode, ins->size));
+	}
+	return out;
+}
+
 static void
 generate_one_opcode (int rp, int noflags)
 {
@@ -3045,14 +3150,15 @@ generate_one_opcode (int rp, int noflags)
 	    fprintf (stblfile, "{ NULL, %ld, 0x%08x }, /* %s */\n", opcode, flags, lookuptab[i].name);
 	    com_discard();
 	} else {
-	    if (noflags) {
-		fprintf (stblfile, "{ op_%lx_%d_comp_nf, %ld, 0x%08x }, /* %s */\n", opcode, postfix, opcode, flags, lookuptab[i].name);
-		fprintf (headerfile, "extern compop_func op_%lx_%d_comp_nf;\n", opcode, postfix);
-		printf ("uae_u32 REGPARAM2 op_%lx_%d_comp_nf(uae_u32 opcode) /* %s */\n{\n", opcode, postfix, lookuptab[i].name);
+		printf ("/* %s */\n", outopcode (opcode));
+		if (noflags) {
+			fprintf (stblfile, "{ op_%lx_%d_comp_nf, %ld, 0x%08x }, /* %s */\n", opcode, postfix, opcode, flags, lookuptab[i].name);
+			fprintf (headerfile, "extern compop_func op_%lx_%d_comp_nf;\n", opcode, postfix);
+			printf ("uae_u32 REGPARAM2 op_%lx_%d_comp_nf(uae_u32 opcode) /* %s */\n{\n", opcode, postfix, lookuptab[i].name);
 	    } else {
-		fprintf (stblfile, "{ op_%lx_%d_comp_ff, %ld, 0x%08x }, /* %s */\n", opcode, postfix, opcode, flags, lookuptab[i].name);
-		fprintf (headerfile, "extern compop_func op_%lx_%d_comp_ff;\n", opcode, postfix);
-		printf ("uae_u32 REGPARAM2 op_%lx_%d_comp_ff(uae_u32 opcode) /* %s */\n{\n", opcode, postfix, lookuptab[i].name);
+			fprintf (stblfile, "{ op_%lx_%d_comp_ff, %ld, 0x%08x }, /* %s */\n", opcode, postfix, opcode, flags, lookuptab[i].name);
+			fprintf (headerfile, "extern compop_func op_%lx_%d_comp_ff;\n", opcode, postfix);
+			printf ("uae_u32 REGPARAM2 op_%lx_%d_comp_ff(uae_u32 opcode) /* %s */\n{\n", opcode, postfix, lookuptab[i].name);
 	    }
 	    com_flush();
 	}
@@ -3099,6 +3205,8 @@ generate_func (int noflags)
 		 "extern void comp_fpp_opp (uae_u32 opcode, uae_u16 extra);\n"
 		 "extern void comp_fscc_opp (uae_u32 opcode, uae_u16 extra);\n"
 		 "extern void comp_fbcc_opp (uae_u32 opcode);\n\n");
+
+	printf ("#define JIT_M68K_PC_SYNC 100\n\n");
 
 	rp = 0;
 	for (j = 1; j <= 8; ++j)

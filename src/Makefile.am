@@ -44,7 +44,7 @@ BUILT_SOURCES = \
 	blit.h blitfunc.h blitfunc.c blittable.c \
 	linetoscr.c \
 	cpudefs.c \
-	cpuemu_0.c cpuemu_11.c cpuemu_12.c cpuemu_20.c cpuemu_21.c cpuemu_22.c cpuemu_31.c cpuemu_32.c cpuemu_33.c \
+	cpuemu_0.c cpuemu_11.c cpuemu_13.c cpuemu_20.c cpuemu_21.c cpuemu_22.c cpuemu_31.c cpuemu_32.c cpuemu_33.c \
 	cpustbl.c cputbl.h \
 	compemu.c \
 	compstbl.c comptbl.h
@@ -52,7 +52,7 @@ BUILT_SOURCES = \
 CLEANFILES = \
 	blit.h blitfunc.h blitfunc.c blittable.c \
 	cpudefs.c \
-	cpuemu_0.c cpuemu_11.c cpuemu_12.c cpuemu_20.c cpuemu_21.c cpuemu_22.c cpuemu_31.c cpuemu_32.c cpuemu_32.c \
+	cpuemu_0.c cpuemu_11.c cpuemu_13.c cpuemu_20.c cpuemu_21.c cpuemu_22.c cpuemu_31.c cpuemu_32.c cpuemu_32.c \
 	cpustbl.c cputbl.h \
 	compemu.c \
 	compstbl.c comptbl.h \
@@ -255,7 +255,7 @@ cpustbl.c:	cpuemu_0.c
 cputbl.h:	cpuemu_0.c
 
 cpuemu_11.c:	cpuemu_0.c
-cpuemu_12.c:	cpuemu_0.c
+cpuemu_13.c:	cpuemu_0.c
 cpuemu_20.c:	cpuemu_0.c
 cpuemu_21.c:	cpuemu_0.c
 cpuemu_22.c:	cpuemu_0.c

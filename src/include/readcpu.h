@@ -74,7 +74,7 @@ struct instr_def {
     uae_u8 sduse;
     const char *opcstr;
 	// 68020/030 timing
-	// int head, tail, clocks, fetchmode;
+	int head, tail, clocks, fetchmode;
 };
 
 extern struct instr_def defs68k[];
@@ -101,6 +101,7 @@ extern struct instr {
     unsigned int clev:3, unimpclev:3;
     unsigned int isjmp:1;
     unsigned int unused2:1;
+	char head, tail, clocks, fetchmode;
 } *table68k;
 
 extern void read_table68k (void);

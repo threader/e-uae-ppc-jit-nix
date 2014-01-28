@@ -1931,39 +1931,46 @@ static void fill_ce_banks (void)
 {
 	int i;
 
-	memset (ce_banktype, CE_MEMBANK_FAST, sizeof ce_banktype);
+	if (currprefs.cpu_model <= 68010) {
+		memset (ce_banktype, CE_MEMBANK_FAST16, sizeof ce_banktype);
+	} else {
+		memset (ce_banktype, CE_MEMBANK_FAST32, sizeof ce_banktype);
+	}
 	// data cachable regions (2 = burst supported)
 	memset (ce_cachable, 0, sizeof ce_cachable);
-	memset (ce_cachable + (0x00200000 >> 16), 1, currprefs.fastmem_size >> 16);
+	memset (ce_cachable + (0x00200000 >> 16), 1 | 2, currprefs.fastmem_size >> 16);
 	memset (ce_cachable + (0x00c00000 >> 16), 1, currprefs.bogomem_size >> 16);
-	memset (ce_cachable + (z3fastmem_bank.start >> 16), 1, currprefs.z3fastmem_size >> 16);
-	memset (ce_cachable + (z3fastmem2_bank.start >> 16), 1, currprefs.z3fastmem2_size >> 16);
+	memset (ce_cachable + (z3fastmem_bank.start >> 16), 1 | 2, currprefs.z3fastmem_size >> 16);
+	memset (ce_cachable + (z3fastmem2_bank.start >> 16), 1 | 2, currprefs.z3fastmem2_size >> 16);
+	memset (ce_cachable + (a3000hmem_bank.start >> 16), 1 | 2, currprefs.mbresmem_high_size >> 16);
+	memset (ce_cachable + (a3000lmem_bank.start >> 16), 1 | 2, currprefs.mbresmem_low_size >> 16);
 
 	if (&get_mem_bank (0) == &chipmem_bank) {
-		for (i = 0; i < (0x200000 >> 16); i++)
-			ce_banktype[i] = CE_MEMBANK_CHIP;
+		for (i = 0; i < (0x200000 >> 16); i++) {
+			ce_banktype[i] = (currprefs.cs_mbdmac || (currprefs.chipset_mask & CSMASK_AGA)) ? CE_MEMBANK_CHIP32 : CE_MEMBANK_CHIP16;
+		}
 	}
 	if (!currprefs.cs_slowmemisfast) {
 		for (i = (0xc00000 >> 16); i < (0xe00000 >> 16); i++)
-			ce_banktype[i] = CE_MEMBANK_CHIP;
+			ce_banktype[i] = ce_banktype[0];
 	}
 	for (i = (0xd00000 >> 16); i < (0xe00000 >> 16); i++)
-		ce_banktype[i] = CE_MEMBANK_CHIP;
+		ce_banktype[i] = CE_MEMBANK_CHIP16;
 	for (i = (0xa00000 >> 16); i < (0xc00000 >> 16); i++) {
 		addrbank *b;
 		ce_banktype[i] = CE_MEMBANK_CIA;
 		b = &get_mem_bank (i << 16);
 		if (b != &cia_bank) {
-			ce_banktype[i] = CE_MEMBANK_FAST;
+			ce_banktype[i] = CE_MEMBANK_FAST32;
 			ce_cachable[i] = 1;
 		}
 	}
 	// CD32 ROM is 16-bit
 	if (currprefs.cs_cd32cd) {
 		for (i = (0xe00000 >> 16); i < (0xe80000 >> 16); i++)
-			ce_banktype[i] = CE_MEMBANK_FAST16BIT;
+			ce_banktype[i] = CE_MEMBANK_FAST16;
 		for (i = (0xf80000 >> 16); i <= (0xff0000 >> 16); i++)
-			ce_banktype[i] = CE_MEMBANK_FAST16BIT;
+			ce_banktype[i] = CE_MEMBANK_FAST16;
 	}
 
 	if (currprefs.address_space_24) {
@@ -2479,8 +2486,10 @@ void map_banks2 (addrbank *bank, int start, int size, int realsize, int quick)
 #endif
 #ifdef JIT
 	flush_icache (0, 3); /* Sure don't want to keep any old mappings around! */
+#ifdef NATMEM_OFFSET
 	if (!quick)
 		delete_shmmaps (start << 16, size << 16);
+#endif
 #endif
 
 	if (!realsize)

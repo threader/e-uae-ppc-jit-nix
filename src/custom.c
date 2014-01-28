@@ -159,6 +159,7 @@ static int frameskiptime;
 static bool genlockhtoggle;
 static bool genlockvtoggle;
 
+
 #define LOF_TOGGLES_NEEDED 3
 //#define NLACE_CNT_NEEDED 50
 static int lof_togglecnt_lace, lof_togglecnt_nlace;
@@ -257,7 +258,7 @@ static int last_sprite_point, nr_armed;
 static int sprite_width, sprres;
 int sprite_buffer_res;
 
-#ifdef CPUEMU_12
+#ifdef CPUEMU_13
 uae_u8 cycle_line[256];
 #endif
 
@@ -465,7 +466,7 @@ STATIC_INLINE void setclr (uae_u16 *p, uae_u16 val)
 
 STATIC_INLINE void alloc_cycle (int hpos, int type)
 {
-#ifdef CPUEMU_12
+#ifdef CPUEMU_13
 #if 0
 	if (cycle_line[hpos])
 		write_log (_T("hpos=%d, old=%d, new=%d\n"), hpos, cycle_line[hpos], type);
@@ -7109,7 +7110,7 @@ STATIC_INLINE bool is_last_line (void)
 static void hsync_handler_post (bool onvsync)
 {
 	last_copper_hpos = 0;
-#ifdef CPUEMU_12
+#ifdef CPUEMU_13
 	if (currprefs.cpu_cycle_exact || currprefs.blitter_cycle_exact) {
 		memset (cycle_line, 0, sizeof cycle_line);
 	}
@@ -7181,7 +7182,7 @@ static void hsync_handler_post (bool onvsync)
 		lof_lastline = lof_store != 0;
 	}
 
-#ifdef CPUEMU_12
+#ifdef CPUEMU_13
 	if (currprefs.cpu_cycle_exact || currprefs.blitter_cycle_exact) {
 		int hp = maxhpos - 1, i;
 		for (i = 0; i < 4; i++) {
@@ -8877,7 +8878,7 @@ void check_prefs_changed_custom (void)
 #endif
 }
 
-#ifdef CPUEMU_12
+#ifdef CPUEMU_13
 
 STATIC_INLINE void sync_copper (int hpos)
 {
