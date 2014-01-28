@@ -87,12 +87,12 @@ int gui_init (void) {
 		write_log ("SDLUI: Failed to load menu image\n");
 		abort();
 	}
-	pMouse_Pointer	= SDL_LoadBMP("guidep/images/mousep.bmp");
+	pMouse_Pointer	= SDL_LoadBMP("guidep/images/mousep_33x33_wb20.bmp");
 	if (pMouse_Pointer == NULL) {
 		write_log ("SDLUI: Failed to load mouse pointer image\n");
 		abort();
 	}
-	SDL_SetColorKey(pMouse_Pointer, SDL_SRCCOLORKEY, SDL_MapRGB(pMouse_Pointer->format, 75, 155, 135));
+	SDL_SetColorKey(pMouse_Pointer, SDL_SRCCOLORKEY, SDL_MapRGB(pMouse_Pointer->format, 68, 94, 174));
 
 	icon_expansion		= SDL_LoadBMP("guidep/images/icon-expansion.bmp");
 	if (icon_expansion == NULL) {
