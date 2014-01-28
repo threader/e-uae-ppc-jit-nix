@@ -257,7 +257,7 @@ void gui_display (int shortcut){
 				prefz(0);
 			}
 			if (selected_item == menu_sel_reset) {
-				//reset amiga
+				uae_reset(0, 1);
 				menu_exitcode = 2;
 				mainloopdone = 1;
 			}
