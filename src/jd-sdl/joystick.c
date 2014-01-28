@@ -13,7 +13,7 @@
 
 #include "options.h"
 #include "inputdevice.h"
-#include <SDL.h>
+#include <SDL/SDL.h>
 
 #define MAX_MAPPINGS 256
 

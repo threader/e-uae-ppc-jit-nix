@@ -2,9 +2,9 @@
 #include "sysdeps.h"
 
 #include "options.h"
-#include "SDL.h"
-#include "SDL_image.h"
-#include "SDL_ttf.h"
+#include <SDL/SDL.h>
+#include <SDL/SDL_image.h>
+#include <SDL/SDL_ttf.h>
 #include "button_mappings.h"
 #include <dirent.h>
 #include <stdlib.h>
@@ -18,7 +18,7 @@ extern void blit_image(SDL_Surface* img, int x, int y);
 extern SDL_Surface *display;
 #ifdef USE_GL
 #define NO_SDL_GLEXT
-# include <SDL_opengl.h>
+# include <SDL/SDL_opengl.h>
 /* These are not defined in the current version of SDL_opengl.h. */
 # ifndef GL_TEXTURE_STORAGE_HINT_APPLE
 #  define GL_TEXTURE_STORAGE_HINT_APPLE 0x85BC

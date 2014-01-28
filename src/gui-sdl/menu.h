@@ -1,6 +1,6 @@
 #include <stdio.h>
-#include <SDL.h>
-#include "SDL_ttf.h"
+#include <SDL/SDL.h>
+#include <SDL/SDL_ttf.h>
 
 #define iconsizex 100
 #define iconsizey 120

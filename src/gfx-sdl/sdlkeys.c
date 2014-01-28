@@ -21,7 +21,7 @@
 #include "../keymap/keymap.h"
 
 #include "sdlgfx.h"
-#include <SDL.h>
+#include <SDL/SDL.h>
 
 /*
  * This function knows about all keys that are common

@@ -22,7 +22,7 @@
 #include <exec/execbase.h>
 
 #ifdef USE_SDL
-# include <SDL.h>
+# include <SDL/SDL.h>
 #endif
 
 /* Get compiler/libc to enlarge stack to this size - if possible */

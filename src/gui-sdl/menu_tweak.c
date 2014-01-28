@@ -1,4 +1,4 @@
-#include "SDL.h"
+#include <SDL/SDL.h>
 #include "gp2x.h"
 #include <stdlib.h>
 #include "gp2x-cpuctrl/cpuctrl.h"

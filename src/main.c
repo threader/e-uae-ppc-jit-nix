@@ -63,7 +63,7 @@
 #include "rp.h"
 #endif
 #ifdef USE_SDL
-#include "SDL.h"
+#include <SDL/SDL.h>
 #endif
 
 /* internal prototypes */

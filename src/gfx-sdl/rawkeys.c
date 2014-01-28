@@ -18,7 +18,7 @@
 #include "keymap/keymap_all.h"
 #include "sdlgfx.h"
 
-#include <SDL.h>
+#include <SDL/SDL.h>
 
 /*
  * This stuff is hacked together for now to get

@@ -1,4 +1,4 @@
-#include <SDL.h>
+#include <SDL/SDL.h>
 #include "volumecontrol.h"
 
 extern SDL_Surface *prSDLScreen;

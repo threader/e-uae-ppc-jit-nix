@@ -14,7 +14,7 @@
 #  include <clib/alib_protos.h>
 # else
 #  ifdef USE_SDL
-#   include <SDL_timer.h>
+#   include <SDL/SDL_timer.h>
 #  endif
 # endif
 #endif

@@ -20,7 +20,7 @@
 #else
 /* Else, if using SDL, try SDL's endian functions. */
 # ifdef USE_SDL
-#  include <SDL_endian.h>
+#  include <SDL/SDL_endian.h>
 #  define bswap_16(x) SDL_Swap16(x)
 #  define bswap_32(x) SDL_Swap32(x)
 # else

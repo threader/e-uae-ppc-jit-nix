@@ -1,4 +1,4 @@
-#include <SDL.h>
+#include <SDL/SDL.h>
 #include "inputmode.h"
 
 extern char launchDir [256];
