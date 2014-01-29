@@ -190,7 +190,11 @@ extern op_properties prop[65536];
 STATIC_INLINE int end_block(uae_u16 opcode)
 {
     return prop[opcode].is_jump ||
-	(prop[opcode].is_const_jump && !currprefs.comp_constjump);
+  (prop[opcode].is_const_jump
+#ifdef JIT
+  && !currprefs.comp_constjump
+#endif
+  );
 }
 
 #define PC_P 16

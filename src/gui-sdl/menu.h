@@ -1,3 +1,13 @@
+/*
+ * PUAE - The Un*x Amiga Emulator
+ *
+ * Interface to the SDL GUI                
+ * (initially was for GP2X)
+ *
+ * Copyright 2006 Mustafa TUFAN
+ *
+ */
+
 #ifndef MENU_H
 #define MENU_H
 #include <stdio.h>

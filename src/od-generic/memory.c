@@ -21,6 +21,9 @@
 #include "misc.h"
 #include "gfxboard.h"
 
+uae_u32 max_z3fastmem;
+uae_u8 *natmem_offset, *natmem_offset_end;
+
 #if !defined(NATMEM_OFFSET)
 void protect_roms (bool protect) {}
 #else
@@ -37,8 +40,6 @@ static int os_64bit = 0;
 #endif
 
 #define VAMODE 1
-
-uae_u32 max_z3fastmem;
 
 /* JIT can access few bytes outside of memory block if it executes code at the very end of memory block */
 #define BARRIER 32
@@ -84,7 +85,6 @@ typedef struct {
 } SYSTEM_INFO;
 
 static struct shmid_ds shmids[MAX_SHMID];
-uae_u8 *natmem_offset, *natmem_offset_end;
 static uae_u8 *p96mem_offset;
 static int p96mem_size;
 static SYSTEM_INFO si;

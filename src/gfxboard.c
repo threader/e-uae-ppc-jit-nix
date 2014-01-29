@@ -1064,6 +1064,11 @@ static void REGPARAM2 gfxboard_bput_bsmem (uaecptr addr, uae_u32 b)
 }
 
 // normal vram
+#ifndef JIT
+#define S_READ 0
+#define S_WRITE 0
+#endif
+
 static uae_u32 REGPARAM2 gfxboard_lget_mem (uaecptr addr)
 {
 	addr -= gfxboardmem_start & gfxmem_bank.mask;

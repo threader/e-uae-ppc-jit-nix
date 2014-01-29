@@ -6,6 +6,9 @@
  * Copyright 1995 Bernd Schmidt
  */
 
+#ifndef MEMORY_UAE_H
+#define MEMORY_UAE_H
+
 #ifndef HAS_UAE_PREFS_STRUCT
 struct uae_prefs;
 #endif // HAS_UAEPREFS_STRUCT
@@ -98,7 +101,7 @@ typedef struct {
 	mem_get_func lgeti, wgeti;
 	int flags;
 	uae_u32 mask;
-//FIXME: 	uae_u32 startmask;
+//FIXME: uae_u32 startmask;
 	uae_u32 start;
 	uae_u32 allocated;
 } addrbank;
@@ -184,14 +187,14 @@ static uae_u8 *REGPARAM2 name ## _xlate (uaecptr addr) \
 }
 
 #define MEMORY_FUNCTIONS(name) \
-MEMORY_LGET(name); \
-MEMORY_WGET(name); \
-MEMORY_BGET(name); \
-MEMORY_LPUT(name); \
-MEMORY_WPUT(name); \
-MEMORY_BPUT(name); \
-MEMORY_CHECK(name); \
-MEMORY_XLATE(name);
+MEMORY_LGET(name) \
+MEMORY_WGET(name) \
+MEMORY_BGET(name) \
+MEMORY_LPUT(name) \
+MEMORY_WPUT(name) \
+MEMORY_BPUT(name) \
+MEMORY_CHECK(name) \
+MEMORY_XLATE(name)
 
 extern uae_u8 *filesysory;
 extern uae_u8 *rtarea;
@@ -464,3 +467,6 @@ extern void memcpyah (uae_u8 *dst, uaecptr src, int size);
 
 extern uae_s32 getz2size (struct uae_prefs *p);
 extern ULONG getz2endaddr (void);
+
+#endif
+

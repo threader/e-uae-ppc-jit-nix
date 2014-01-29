@@ -54,7 +54,7 @@
 #include "consolehook.h"
 #include "blkdev.h"
 #include "isofs_api.h"
-#include "scsidev.h"
+#include "scsi.h"
 #ifdef TARGET_AMIGAOS
 #include <dos/dos.h>
 #include <proto/dos.h>

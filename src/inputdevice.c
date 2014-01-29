@@ -2397,6 +2397,7 @@ struct delayed_event
 };
 static struct delayed_event *delayed_events;
 
+TCHAR *my_strdup_trim (const TCHAR *s);
 static int handle_custom_event (const TCHAR *custom)
 {
 	TCHAR *p = NULL, *buf = NULL, *nextp = NULL;

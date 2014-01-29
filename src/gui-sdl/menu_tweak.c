@@ -1,3 +1,13 @@
+/*
+ * PUAE - The Un*x Amiga Emulator
+ *
+ * Interface to the SDL GUI                
+ * (only for GP2X: tweaks/overclocks cpu/ram settings)
+ *
+ * Copyright 2006 Mustafa TUFAN
+ *
+ */
+
 #ifndef GP2X
 int tweakz (int parametre) { return 0; }
 #else

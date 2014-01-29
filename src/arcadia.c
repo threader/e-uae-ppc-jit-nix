@@ -536,3 +536,4 @@ struct romdata *scan_arcadia_rom (TCHAR *path, int cnt)
 	return rd;
 }
 #endif //ARCADIA
+

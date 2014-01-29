@@ -41,12 +41,12 @@ void amiga_clipboard_task_start (uaecptr data)
 {
 	clipboard_data = data;
 	signaling = 1;
-	write_log ("clipboard task init: %08x\n", clipboard_data);
+	write_log ("clipboard task init: %08lx\n", (long)clipboard_data);
 }
 
-uae_u32 amiga_clipboard_proc_start (void)
+uaecptr amiga_clipboard_proc_start (void)
 {
-	write_log ("clipboard process init: %08x\n", clipboard_data);
+	write_log ("clipboard process init: %08lx\n", (long)clipboard_data);
 	signaling = 1;
 	return clipboard_data;
 }

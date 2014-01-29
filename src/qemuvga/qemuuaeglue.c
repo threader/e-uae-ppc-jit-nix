@@ -3,6 +3,7 @@
 
 #include "qemuuaeglue.h"
 #include "vga_int.h"
+#include <sys/time.h> /* struct timeval and gettimeofday() */
 
 
 void memory_region_transaction_begin(void)

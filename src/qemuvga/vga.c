@@ -40,6 +40,7 @@
 #include "vga.h"
 #include "vga_int.h"
 #endif
+#include <string.h> /* memcpy */
 //#define DEBUG_VGA
 //#define DEBUG_VGA_MEM
 //#define DEBUG_VGA_REG

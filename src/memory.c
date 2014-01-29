@@ -684,16 +684,16 @@ static void chipmem_setindirect (void)
 
 /* Slow memory */
 
-MEMORY_FUNCTIONS(bogomem);
+MEMORY_FUNCTIONS(bogomem)
 
 /* CDTV expension memory card memory */
 
-MEMORY_FUNCTIONS(cardmem);
+MEMORY_FUNCTIONS(cardmem)
 
 /* A3000 motherboard fast memory */
 
-MEMORY_FUNCTIONS(a3000lmem);
-MEMORY_FUNCTIONS(a3000hmem);
+MEMORY_FUNCTIONS(a3000lmem)
+MEMORY_FUNCTIONS(a3000hmem)
 
 /* Kick memory */
 
@@ -737,11 +737,11 @@ static void REGPARAM3 kickmem_lput (uaecptr, uae_u32) REGPARAM;
 static void REGPARAM3 kickmem_wput (uaecptr, uae_u32) REGPARAM;
 static void REGPARAM3 kickmem_bput (uaecptr, uae_u32) REGPARAM;
 
-MEMORY_BGET(kickmem);
-MEMORY_WGET(kickmem);
-MEMORY_LGET(kickmem);
-MEMORY_CHECK(kickmem);
-MEMORY_XLATE(kickmem);
+MEMORY_BGET(kickmem)
+MEMORY_WGET(kickmem)
+MEMORY_LGET(kickmem)
+MEMORY_CHECK(kickmem)
+MEMORY_XLATE(kickmem)
 
 static void REGPARAM2 kickmem_lput (uaecptr addr, uae_u32 b)
 {
@@ -859,11 +859,11 @@ static void REGPARAM3 extendedkickmem_lput (uaecptr, uae_u32) REGPARAM;
 static void REGPARAM3 extendedkickmem_wput (uaecptr, uae_u32) REGPARAM;
 static void REGPARAM3 extendedkickmem_bput (uaecptr, uae_u32) REGPARAM;
 
-MEMORY_BGET(extendedkickmem);
-MEMORY_WGET(extendedkickmem);
-MEMORY_LGET(extendedkickmem);
-MEMORY_CHECK(extendedkickmem);
-MEMORY_XLATE(extendedkickmem);
+MEMORY_BGET(extendedkickmem)
+MEMORY_WGET(extendedkickmem)
+MEMORY_LGET(extendedkickmem)
+MEMORY_CHECK(extendedkickmem)
+MEMORY_XLATE(extendedkickmem)
 
 static void REGPARAM2 extendedkickmem_lput (uaecptr addr, uae_u32 b)
 {
@@ -895,11 +895,11 @@ static void REGPARAM3 extendedkickmem2_lput (uaecptr, uae_u32) REGPARAM;
 static void REGPARAM3 extendedkickmem2_wput (uaecptr, uae_u32) REGPARAM;
 static void REGPARAM3 extendedkickmem2_bput (uaecptr, uae_u32) REGPARAM;
 
-MEMORY_BGET(extendedkickmem2);
-MEMORY_WGET(extendedkickmem2);
-MEMORY_LGET(extendedkickmem2);
-MEMORY_CHECK(extendedkickmem2);
-MEMORY_XLATE(extendedkickmem2);
+MEMORY_BGET(extendedkickmem2)
+MEMORY_WGET(extendedkickmem2)
+MEMORY_LGET(extendedkickmem2)
+MEMORY_CHECK(extendedkickmem2)
+MEMORY_XLATE(extendedkickmem2)
 
 static void REGPARAM2 extendedkickmem2_lput (uaecptr addr, uae_u32 b)
 {
@@ -984,7 +984,7 @@ addrbank dummy_bank = {
 	dummy_lget, dummy_wget, dummy_bget,
 	dummy_lput, dummy_wput, dummy_bput,
 	default_xlate, dummy_check, NULL, NULL,
-	dummy_lgeti, dummy_wgeti, ABFLAG_NONE
+	dummy_lgeti, dummy_wgeti, ABFLAG_NONE,
 };
 
 addrbank ones_bank = {
@@ -1073,8 +1073,8 @@ addrbank extendedkickmem2_bank = {
 	extendedkickmem2_lget, extendedkickmem2_wget, ABFLAG_ROM
 };
 
-MEMORY_FUNCTIONS(custmem1);
-MEMORY_FUNCTIONS(custmem2);
+MEMORY_FUNCTIONS(custmem1)
+MEMORY_FUNCTIONS(custmem2)
 
 addrbank custmem1_bank = {
 	custmem1_lget, custmem1_wget, custmem1_bget,
@@ -1362,11 +1362,16 @@ static bool load_kickstart_replacement (void)
 	struct zfile *f = NULL;
 	
 	f = zfile_fopen_data (_T("aros.gz"), arosrom_len, arosrom);
-	if (!f)
+	if (!f) {
+		write_log ("kickstart replacement aros.gz not found.\n");
 		return false;
+	}
 	f = zfile_gunzip (f, NULL);
-	if (!f)
+	if (!f) {
+		write_log ("Can't extract kickstart replacement aros.gz\n");
 		return false;
+	}
+	write_log ("using kickstart replacement aros.gz\n");
 
 	extendedkickmem_bank.allocated = ROM_SIZE_512;
 	extendedkickmem_bank.mask = ROM_SIZE_512 - 1;

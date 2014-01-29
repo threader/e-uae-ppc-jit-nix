@@ -1469,7 +1469,7 @@ outofbounds:
 		s[12] = 0x21; /* LOGICAL BLOCK OUT OF RANGE */
 		ls = 0x12;
 		break;
-miscompare:
+//miscompare:
 		lr = -1;
 		status = 2; /* CHECK CONDITION */
 		s[0] = 0x70;

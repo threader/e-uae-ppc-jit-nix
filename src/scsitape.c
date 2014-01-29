@@ -18,6 +18,7 @@
 #include "memory.h"
 #include "a2091.h"
 #include "fsdb.h"
+#include "misc.h"
 
 int log_tapeemu = 1;
 

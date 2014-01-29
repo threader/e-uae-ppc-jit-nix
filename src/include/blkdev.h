@@ -1,3 +1,5 @@
+#ifndef BLKDEV_H
+#define BLKDEV_H
 
 #define DEVICE_SCSI_BUFSIZE (65536 - 1024)
 
@@ -210,3 +212,5 @@ void blkdev_entergui (void);
 void blkdev_exitgui (void);
 
 bool filesys_do_disk_change (int, bool);
+
+#endif

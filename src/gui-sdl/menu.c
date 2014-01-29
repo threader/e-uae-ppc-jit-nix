@@ -1,3 +1,13 @@
+/*
+ * PUAE - The Un*x Amiga Emulator
+ *
+ * Interface to the SDL GUI
+ * (initially was for GP2X)
+ *
+ * Copyright 2006 Mustafa TUFAN
+ *
+ */
+
 #include <SDL/SDL.h>
 #include <SDL/SDL_image.h>
 

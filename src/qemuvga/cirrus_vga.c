@@ -38,7 +38,8 @@
 #else
 #include "qemuuaeglue.h"
 #endif
-
+#include <string.h> /* memmove */
+ 
 /*
  * TODO:
  *    - destination write mask support not complete (bits 5..7)

@@ -29,6 +29,7 @@
 #include "ncr_scsi.h"
 #include "blkdev.h"
 #include "scsi.h"
+#include "misc.h"
 #include "threaddep/thread.h"
 
 #define PCMCIA_SRAM 1

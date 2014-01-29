@@ -1,3 +1,13 @@
+/*
+ * PUAE - The Un*x Amiga Emulator
+ *
+ * Interface to the SDL GUI                
+ * (initially was for GP2X)
+ *
+ * Copyright 2006 Mustafa TUFAN
+ *
+ */
+
 #define _POSIX_C_SOURCE 200809L
 #include <sys/time.h>
 #include "sysconfig.h"

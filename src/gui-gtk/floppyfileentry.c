@@ -249,8 +249,8 @@ void floppyfileentry_set_currentdir (FloppyFileEntry *ffe, const gchar *pathname
      * Make sure it has a trailing path separator so the file dialog
      * actually believes it's a directory
      */
-    ffe_currentdir = g_strconcat ((gchar *)pathname,
-				  (pathname[len-1] != '/') ? "/" : NULL,
+    ffe_currentdir = g_strconcat ((gchar *)(len ? pathname : "."),
+				  (!len || pathname[len-1] != '/') ? "/" : NULL,
 				   NULL);
 }
 

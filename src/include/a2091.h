@@ -1,4 +1,8 @@
+#ifndef A2091_H
+#define A2091_H
+
 #include "filesys.h"
+#include "memory_uae.h"
 
 #ifdef A2091
 
@@ -37,3 +41,5 @@ int add_scsi_cd (int ch, int unitnum);
 int add_scsi_tape (int ch, const TCHAR *tape_directory, bool readonly);
 
 #endif
+#endif
+
