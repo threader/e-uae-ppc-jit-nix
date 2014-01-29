@@ -205,6 +205,10 @@ void gui_display (int shortcut){
 		return;
 	}
 
+	/* set a proper keyboard delay so we can move through lists without having
+	   hammer the keyboard... */
+	SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
+
 	int need_redraw = 1;
 	while (!mainloopdone) {
 		while (SDL_PollEvent(&event)) {
@@ -410,6 +414,7 @@ void gui_display (int shortcut){
 		free(stor);
 		SDL_Flip(display);
 	}
+	SDL_EnableKeyRepeat(0, 0); /* disable keyrepeat again */
 //	return menu_exitcode;
 }
 
