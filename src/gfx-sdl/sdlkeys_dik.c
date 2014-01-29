@@ -18,7 +18,7 @@
 #include "../keymap/keymap.h"
 
 #include "sdlgfx.h"
-#include <SDL.h>
+#include <SDL/SDL.h>
 #include "sdlkeys_dik.h"
 
 /*

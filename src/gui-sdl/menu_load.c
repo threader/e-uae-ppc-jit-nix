@@ -1,24 +1,25 @@
+#define _POSIX_C_SOURCE 200809L
+#include <sys/time.h>
 #include "sysconfig.h"
 #include "sysdeps.h"
 
 #include "options.h"
-#include "SDL.h"
-#include "SDL_image.h"
-#include "SDL_ttf.h"
+#include <SDL/SDL.h>
+#include <SDL/SDL_image.h>
+#include <SDL/SDL_ttf.h>
 #include "button_mappings.h"
 #include <dirent.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include "menu.h"
 
-int dirz (int parameter);
 
-extern void write_text(int x, int y, char* txt);
 extern void blit_image(SDL_Surface* img, int x, int y);
 extern SDL_Surface *display;
 #ifdef USE_GL
 #define NO_SDL_GLEXT
-# include <SDL_opengl.h>
+# include <SDL/SDL_opengl.h>
 /* These are not defined in the current version of SDL_opengl.h. */
 # ifndef GL_TEXTURE_STORAGE_HINT_APPLE
 #  define GL_TEXTURE_STORAGE_HINT_APPLE 0x85BC
@@ -37,7 +38,7 @@ extern SDL_Color text_color;
 #define MAX_FILES 1024
 #define TITLE_X 52
 #define TITLE_Y 9
-#define STATUS_X 30 
+#define STATUS_X 30
 #define STATUS_Y 460
 
 extern char launchDir[];
@@ -45,6 +46,68 @@ extern char yol[];
 extern char msg[];
 extern char msg_status[];
 
+#include <sys/stat.h>
+#include <fcntl.h>
+#include "savestate.h"
+static void touch(const char* fn) {
+	int fd = open(fn, O_RDWR | O_CREAT | O_TRUNC, 0600);
+	if(fd != -1) close(fd);
+}
+
+extern int my_existsfile (const char *name);
+static void populate_savedir(const char* dir) {
+	char buf[512];
+	int i = 0;
+	for(i = 0; i < 18; i++) {
+		snprintf(buf, sizeof buf, "%s/save%.2d.uss", dir, i);
+		if(!my_existsfile(buf)) touch(buf);
+	}
+}
+
+static int isempty(const char *file) {
+	struct stat s;
+	return stat(file, &s) || !s.st_size;
+}
+
+static int filez_comp_name(const void* a, const void* b) {
+	const char * const*sa = a, *const* sb = b;
+	return strcmp(*sa, *sb);
+}
+
+static int ts_cmp(const struct timespec *a, const struct timespec *b) {
+	#define TSCMP_B -1
+	#define TSCMP_S 1
+	return a->tv_sec > b->tv_sec ? TSCMP_B :
+	       ( a->tv_sec < b->tv_sec ? TSCMP_S :
+	       ( a->tv_nsec > b->tv_nsec ? TSCMP_B :
+	       ( a->tv_nsec < b->tv_nsec ? TSCMP_S : 0)));
+}
+
+static int filez_comp_date(const void* a, const void* b) {
+	const char * const*sa = a, *const* sb = b;
+	struct stat sta, stb;
+	char ba[512], bb[512];
+	snprintf(ba, sizeof(ba), "%s/saves/%s", launchDir, *sa);
+	snprintf(bb, sizeof(bb), "%s/saves/%s", launchDir, *sb);
+	if(!stat(ba, &sta) && !stat(bb, &stb)) return ts_cmp(&sta.st_mtim, &stb.st_mtim);
+	return strcmp(*sa, *sb);
+}
+
+static void dirz_restore_savestate(const char *fn) {
+#ifdef SAVESTATE
+	savestate_initsave(fn, 0, 0, 0);
+	savestate_state = STATE_DORESTORE;
+#endif
+}
+static void dirz_save_savestate(const char *fn) {
+#ifdef SAVESTATE
+	savestate_initsave(fn, 0, 0, 0);
+	save_state(fn, "puae");
+#endif
+}
+
+static SDL_Surface *pDirzMenu_Surface;
+enum dirz_param { dz_floppy = 0, dz_rom, dz_saves };
 int dirz (int parameter) {
 	SDL_Event event;
 	int getdir = 1;
@@ -55,15 +118,17 @@ int dirz (int parameter) {
 	int bas = 0;
 	int ka = 0;
 	int kb = 0;
-	char **filez = (char **)malloc(MAX_FILES*sizeof(char *));
+	char **filez = malloc(MAX_FILES*sizeof(char *));
 	int i;
 	int paging = 18;
 
-	pMenu_Surface = SDL_LoadBMP("guidep/images/menu_load.bmp");
-	if (pMenu_Surface == NULL) {
+	if (!pDirzMenu_Surface) pDirzMenu_Surface = SDL_LoadBMP("guidep/images/menu_load.bmp");
+	if (!pDirzMenu_Surface) {
 		write_log ("SDLUI: Failed to load menu image\n");
 		abort();
 	}
+	menu_load_surface(pDirzMenu_Surface);
+
 	DIR *d;
 	d = opendir(yol);
 	struct dirent *ep;
@@ -76,41 +141,27 @@ int dirz (int parameter) {
 	if (d == NULL) {
 		write_log ("SDL_UI: opendir %s failed\n", yol);
 	} else {
+		if(parameter == dz_saves) populate_savedir(yol);
 		for(i=0; i<MAX_FILES; i++) {
 			ep = readdir(d);
 			if (ep == NULL) {
 				write_log ("SDL_UI: readdir %s failed\n", yol);
 				break;
-			} else {
-				//if ((!strcmp(ep->d_name,".")) || (!strcmp(ep->d_name,"..")) || (!strcmp(ep->d_name,"uae"))) {
-
-					struct stat sstat;
-					char *tmp=(char *)calloc(1,256);
-					strcpy(tmp,launchDir);
-					strcat(tmp,"/");
-					strcat(tmp,ep->d_name);
-
-					//if (!stat(tmp, &sstat)) {
-				        //	if (S_ISDIR(sstat.st_mode)) {
-					//		//folder EKLENECEK
-					//	} else {
-							filez[i]=(char*)malloc(64);
-							strncpy(filez[i],ep->d_name,64);
-							num_of_files++;
-					//	}
-					//}
-					xfree(tmp);
-				//}
+			} else if (ep->d_name[0] != '.')  {
+				filez[num_of_files++] = strdup(ep->d_name);
 			}
 		}
 		closedir(d);
+		qsort(filez, num_of_files, sizeof(char**), parameter == dz_saves ? filez_comp_date : filez_comp_name);
 	}
 	if (num_of_files<18) {
 		paging = num_of_files;
 	}
 
+	int need_redraw = 1;
 	while (!loadloopdone) {
 		while (SDL_PollEvent(&event)) {
+			need_redraw = 1;
 			if (event.type == SDL_QUIT) {
 				loadloopdone = 1;
 			}
@@ -134,44 +185,47 @@ int dirz (int parameter) {
 				}
 			}
 		}
-
-		if (ka == 1) {	//df1
-			if (parameter == 0) {
-				char *tmp=(char *)calloc(1,256);
-				strcpy(tmp,launchDir);
-				strcat(tmp,"/roms/");
-				strcat(tmp,filez[selected_item]);
-				strcpy(currprefs.floppyslots[1].df,tmp);
-				xfree(tmp);
-
-				loadloopdone = 1;
-			}
-			ka = 0;
-		}
-		if (kb == 1) {  //df0;
-			if (parameter == 0) {
-				char *tmp=(char *)calloc(1,256);
-				strcpy(tmp,launchDir);
-				strcat(tmp,"/disks/");
-				strcat(tmp,filez[selected_item]);
-				strcpy(currprefs.floppyslots[0].df,tmp);
-				xfree(tmp);
-
-				loadloopdone = 1;
-			} else {
-				char *tmp=(char *)calloc(1,256);
-				strcpy(tmp,launchDir);
-				strcat(tmp,"/roms/");
-				strcat(tmp,filez[selected_item]);
-				strcpy(currprefs.romfile,tmp);
-				xfree(tmp);
-
-				loadloopdone = 1; 
-			}
-			kb = 0;		
-		}
+		if (!need_redraw) { SDL_Delay(20); continue; }
 		if (selected_item < 0) { selected_item = 0; }
 		if (selected_item >= num_of_files) { selected_item = num_of_files-1; }
+
+		loadloopdone = (loadloopdone || kb || ka);
+
+		size_t l;
+		const char *dir = 0;
+		char* dest, buf[512];
+		void (*action)(const char*);
+		if (ka || kb) {
+			switch(parameter) {
+				case dz_floppy:
+					dir = "disks";
+					dest = changed_prefs.floppyslots[ka ? 1 : 0].df;
+					l = sizeof(changed_prefs.floppyslots[ka ? 1 : 0].df);
+					action = 0;
+					break;
+				case dz_rom:
+					dir = "roms";
+					dest = changed_prefs.romfile;
+					l = sizeof(changed_prefs.romfile);
+					action = 0;
+					break;
+				case dz_saves:
+					dir = "saves";
+					dest = buf;
+					l = sizeof(buf);
+					action = ka ? dirz_restore_savestate : dirz_save_savestate;
+					break;
+				default:
+					loadloopdone = 0;
+			}
+			ka = kb = 0;
+		}
+
+		if(dir) {
+			snprintf(dest, l, "%s/%s/%s", launchDir, dir, filez[selected_item]);
+			if(action) action(dest);
+		}
+
 		if (selected_item > (bas + paging -1)) { bas += 1; }
 		if (selected_item < bas) { bas -= 1; }
 		if ((bas+paging) > num_of_files) { bas = (num_of_files - paging); }
@@ -182,17 +236,20 @@ int dirz (int parameter) {
 	// texts
 		int sira = 0;
 		for (q=bas; q < (bas + paging); q++) {
+#define RGB(x,u,v,w) x.r = u, x.g = v, x.b = w
 			if (selected_item == q) {
-				text_color.r = 255;
-				text_color.g = 100;
-				text_color.b = 100;
+				RGB(text_color, 255, 100, 100);
+			} else {
+				char buf[512];
+				snprintf(buf, sizeof buf, "%s/saves/%s", launchDir, filez[q]);
+				if(parameter == dz_saves && isempty(buf)) {
+					RGB(text_color, 200, 200, 200);
+				} else {
+					RGB(text_color, 0, 0, 0);
+				}
 			}
 			write_text (20, 50 + (sira * 20),filez[q]); //
-			if (selected_item == q) {
-				text_color.r = 0;
-				text_color.g = 0;
-				text_color.b = 0;
-			}
+			RGB(text_color, 0,0,0);
 			sira++;
 		}
 
@@ -203,15 +260,16 @@ int dirz (int parameter) {
 #ifdef USE_GL
 		flush_gl_buffer (&glbuffer, 0, display->h - 1);
 		render_gl_buffer (&glbuffer, 0, display->h - 1);
-        glFlush ();
-        SDL_GL_SwapBuffers ();
+		glFlush ();
+		SDL_GL_SwapBuffers ();
 #else
 		SDL_Flip (display);
 #endif
-	} //while done
-
-	xfree(filez);
-    pMenu_Surface = SDL_LoadBMP("guidep/images/menu.bmp");
-
+		SDL_Delay(20);
+		need_redraw = 0;
+	}
+	for(i = 0; i < num_of_files; i++) free(filez[i]);
+	free(filez);
+	menu_restore_surface();
 	return 0;
 }

@@ -1,6 +1,9 @@
-#include <SDL.h>
+#include <SDL/SDL.h>
 #include "volumecontrol.h"
 
+#ifndef GP2X
+#define prSDLScreen screen
+#endif
 extern SDL_Surface *prSDLScreen;
 
 static SDL_Surface *ksur;

@@ -1,5 +1,9 @@
-#include <SDL.h>
+#include <SDL/SDL.h>
 #include "inputmode.h"
+
+#ifndef GP2X
+#define prSDLScreen screen
+#endif
 
 extern char launchDir [256];
 extern SDL_Surface *prSDLScreen;

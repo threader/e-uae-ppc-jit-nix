@@ -1,5 +1,5 @@
-#include "SDL.h"
-#include "SDL_image.h"
+#include <SDL/SDL.h>
+#include <SDL/SDL_image.h>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -14,11 +14,13 @@
 #include "zfile.h"
 #include "button_mappings.h"
 
+extern void toggle_fullscreen (int mode);
+
 #define SDL_UI_DEBUG 1
 
 #ifdef USE_GL
 #define NO_SDL_GLEXT
-# include <SDL_opengl.h>
+# include <SDL/SDL_opengl.h>
 /* These are not defined in the current version of SDL_opengl.h. */
 # ifndef GL_TEXTURE_STORAGE_HINT_APPLE
 #  define GL_TEXTURE_STORAGE_HINT_APPLE 0x85BC
@@ -47,7 +49,20 @@ extern int flashLED;
 // --- internal prototypes ---
 void cocoa_gui_early_setup (void);
 
+static SDL_Surface* pMainMenu_Surface;
+void menu_restore_surface(void) {
+	pMenu_Surface = pMainMenu_Surface;
+}
+void menu_load_surface(SDL_Surface *newmenu) {
+	pMenu_Surface = newmenu;
+}
+
 //
+extern SDL_Surface *screen;
+#ifndef GP2X
+#define prSDLScreen screen
+#endif
+
 int gui_init (void) {
 #if 0
 	if (display == NULL) {
@@ -76,17 +91,18 @@ int gui_init (void) {
 	text_color.g = 50;
 	text_color.b = 50;
 
-	pMenu_Surface	= SDL_LoadBMP("guidep/images/menu.bmp");
+	if(!pMainMenu_Surface) pMainMenu_Surface = SDL_LoadBMP("guidep/images/menu.bmp");
+	menu_load_surface(pMainMenu_Surface);
 	if (pMenu_Surface == NULL) {
 		write_log ("SDLUI: Failed to load menu image\n");
 		abort();
 	}
-	pMouse_Pointer	= SDL_LoadBMP("guidep/images/mousep.bmp");
+	pMouse_Pointer	= SDL_LoadBMP("guidep/images/mousep_33x33_wb20.bmp");
 	if (pMouse_Pointer == NULL) {
 		write_log ("SDLUI: Failed to load mouse pointer image\n");
 		abort();
 	}
-	SDL_SetColorKey(pMouse_Pointer, SDL_SRCCOLORKEY, SDL_MapRGB(pMouse_Pointer->format, 75, 155, 135));
+	SDL_SetColorKey(pMouse_Pointer, SDL_SRCCOLORKEY, SDL_MapRGB(pMouse_Pointer->format, 68, 94, 174));
 
 	icon_expansion		= SDL_LoadBMP("guidep/images/icon-expansion.bmp");
 	if (icon_expansion == NULL) {
@@ -137,7 +153,7 @@ void gui_exit (void){
 #if 0
 	SDL_FreeSurface(tmpSDLScreen);
 
-	SDL_FreeSurface(pMenu_Surface);
+	SDL_FreeSurface(pMainMenu_Surface);
 	SDL_FreeSurface(pMouse_Pointer);
 
 	SDL_FreeSurface(icon_expansion);
@@ -150,13 +166,16 @@ void gui_exit (void){
 	SDL_FreeSurface(icon_exit);
 //	SDL_FreeSurface(icon_tweaks);
 #endif
-	SDL_Quit;
+	SDL_Quit();
 }
 
 void gui_display (int shortcut){
+
+	void* stor = display ? malloc(display->h * display->pitch) : 0;
+	if(stor) memcpy(stor, display->pixels, display->h * display->pitch);
+
 	if (tmpSDLScreen == NULL) {
-		tmpSDLScreen = SDL_CreateRGBSurface(display->flags, display->w, display->h, display->format->BitsPerPixel,
-						display->format->Rmask, display->format->Gmask, display->format->Bmask, display->format->Amask);
+		tmpSDLScreen = SDL_DisplayFormat(display);
 		if (tmpSDLScreen == NULL) {
 			write_log ("SDLUI: Failed to create temp screen\n");
 			abort();
@@ -186,52 +205,71 @@ void gui_display (int shortcut){
 		return;
 	}
 
+	/* set a proper keyboard delay so we can move through lists without having
+	   hammer the keyboard... */
+	SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
+
+	int need_redraw = 1;
 	while (!mainloopdone) {
 		while (SDL_PollEvent(&event)) {
-			if (event.type == SDL_QUIT) {
-				mainloopdone = 1;
-			}
-			if (event.type == SDL_JOYBUTTONDOWN) {
-				switch (event.jbutton.button) {
-					case PLATFORM_BUTTON_R: break;
-					case PLATFORM_BUTTON_L: break;
-					case PLATFORM_BUTTON_UP: kup = 1; break;
-					case PLATFORM_BUTTON_DOWN: kdown = 1; break;
-					case PLATFORM_BUTTON_LEFT: kleft = 1; break;
-					case PLATFORM_BUTTON_RIGHT: kright = 1; break;
-					case PLATFORM_BUTTON_CLICK: ksel = 1; break;
-					case PLATFORM_BUTTON_B: ksel = 1; break;
-					case PLATFORM_BUTTON_Y: break;
-					case PLATFORM_BUTTON_START: mainloopdone = 1; break;
-				}
-			}
-			if (event.type == SDL_KEYDOWN) {
-    			switch (event.key.keysym.sym) {
-					case SDLK_ESCAPE:	mainloopdone = 1; break;
-				 	case SDLK_UP:		kup = 1; break;
-					case SDLK_DOWN:		kdown = 1; break;
-					case SDLK_LEFT:		kleft = 1; break;
-					case SDLK_RIGHT:	kright = 1; break;
-					case SDLK_b:		ksel = 1; break;
-					default: break;
-				}
-			}
-			if (event.type == SDL_MOUSEMOTION) {
-				mouse_x += event.motion.xrel;
-				mouse_y += event.motion.yrel;
-			}
-			if (event.type == SDL_MOUSEBUTTONDOWN) {
-				if (selected_item == 0) {
-					if (mouse_x >= 0 && mouse_x <= 20) {
-						if (mouse_y >= 0 && mouse_y <= 20) {
-							mainloopdone = 1;
-						}
+			need_redraw = 1;
+			switch(event.type) {
+				case SDL_QUIT:
+					mainloopdone = 1; break;
+				case SDL_JOYBUTTONDOWN:
+					switch (event.jbutton.button) {
+						case PLATFORM_BUTTON_R: break;
+						case PLATFORM_BUTTON_L: break;
+						case PLATFORM_BUTTON_UP: kup = 1; break;
+						case PLATFORM_BUTTON_DOWN: kdown = 1; break;
+						case PLATFORM_BUTTON_LEFT: kleft = 1; break;
+						case PLATFORM_BUTTON_RIGHT: kright = 1; break;
+						case PLATFORM_BUTTON_CLICK: ksel = 1; break;
+						case PLATFORM_BUTTON_B: ksel = 1; break;
+						case PLATFORM_BUTTON_Y: break;
+						case PLATFORM_BUTTON_START: mainloopdone = 1; break;
 					}
-				} else {
-					ksel = 1; break;
-				}
+					break;
+				case SDL_KEYDOWN:
+	    				switch (event.key.keysym.sym) {
+						case SDLK_RETURN:
+						if((event.key.keysym.mod & KMOD_LALT) ||
+						   (event.key.keysym.mod & KMOD_RALT)) {
+							toggle_fullscreen(0);
+							//SDL_Delay(100);
+							break;
+						}
+						case SDLK_ESCAPE:	mainloopdone = 1; break;
+					 	case SDLK_UP:		kup = 1; break;
+						case SDLK_DOWN:		kdown = 1; break;
+						case SDLK_LEFT:		kleft = 1; break;
+						case SDLK_RIGHT:	kright = 1; break;
+						case SDLK_b:		ksel = 1; break;
+						default: break;
+					}
+					break;
+				case SDL_MOUSEMOTION:
+					mouse_x += event.motion.xrel;
+					mouse_y += event.motion.yrel;
+					break;
+				case SDL_MOUSEBUTTONDOWN:
+					if (selected_item == 0) {
+						if (mouse_x >= 0 && mouse_x <= 20) {
+							if (mouse_y >= 0 && mouse_y <= 20) {
+								mainloopdone = 1;
+							}
+						}
+					} else {
+						ksel = 1; break;
+					}
+					break;
+				case SDL_ACTIVEEVENT: case SDL_KEYUP: break;
+				default:
+					dprintf(2, "got event %lu\n", (long) event.type);
+					need_redraw = 0;
 			}
 		}
+		if(!need_redraw) { SDL_Delay(20); continue; }
 		if (ksel == 1) {
 			if (selected_item == menu_sel_expansion) {
 				sprintf (msg, "%s", "Select KickStart ROM");
@@ -251,7 +289,7 @@ void gui_display (int shortcut){
 				prefz(0);
 			}
 			if (selected_item == menu_sel_reset) {
-				//reset amiga
+				uae_reset(0, 1);
 				menu_exitcode = 2;
 				mainloopdone = 1;
 			}
@@ -263,7 +301,10 @@ void gui_display (int shortcut){
 				tweakz(0);
 			}*/
 			if (selected_item == menu_sel_storage) {
-
+				strcpy(msg, "Savestates");
+				strcpy(msg_status, "LOAD: A SAVE: B");
+				sprintf (yol, "%s/saves", launchDir);
+				dirz(2);
 			}
 			if (selected_item == menu_sel_run) {
 				menu_exitcode = 1;
@@ -344,8 +385,11 @@ void gui_display (int shortcut){
 
 		if (mouse_x < 1) { mouse_x = 1; }
 		if (mouse_y < 1) { mouse_y = 1; }
-		if (mouse_x > _MENU_X) { mouse_x = _MENU_X; }
-		if (mouse_y > _MENU_Y) { mouse_y = _MENU_Y; }
+/* pMainMenu_Surface->w */
+#define MOUSE_MAX_X (_MENU_X - pMouse_Pointer->w)
+#define MOUSE_MAX_Y (_MENU_Y - pMouse_Pointer->h)
+		if (mouse_x > MOUSE_MAX_X) { mouse_x = MOUSE_MAX_X; }
+		if (mouse_y > MOUSE_MAX_Y) { mouse_y = MOUSE_MAX_Y; }
 		rect.x = mouse_x;
 		rect.y = mouse_y;
 		//rect.w = pMouse_Pointer->w;
@@ -357,18 +401,34 @@ void gui_display (int shortcut){
 #ifdef USE_GL
 		flush_gl_buffer (&glbuffer, 0, display->h - 1);
 		render_gl_buffer (&glbuffer, 0, display->h - 1);
-        glFlush ();
-        SDL_GL_SwapBuffers ();
+		glFlush ();
+		SDL_GL_SwapBuffers ();
 #else
 		SDL_Flip (display);
 #endif
+		need_redraw = 0;
+		SDL_Delay(20);
 	} //while done
-
+	if(stor) {
+		memcpy(display->pixels, stor, display->h * display->pitch);
+		free(stor);
+		SDL_Flip(display);
+	}
+	SDL_EnableKeyRepeat(0, 0); /* disable keyrepeat again */
 //	return menu_exitcode;
 }
 
-void write_text (int x, int y, char* txt) {
-	SDL_Surface* pText_Surface = TTF_RenderText_Solid(amiga_font, txt, text_color);
+void write_text (int x, int y, const char* txt) {
+	char txtbuf[45];
+	size_t l = strlen(txt);
+	if(l > 44) {
+		memcpy(txtbuf, txt, 20);
+		memcpy(txtbuf + 20, "...", 3);
+		memcpy(txtbuf + 23, txt + l - 20, 21);
+	} else {
+		strcpy(txtbuf, txt);
+	}
+	SDL_Surface* pText_Surface = TTF_RenderText_Solid(amiga_font, txtbuf, text_color);
 
 	rect.x = x;
 	rect.y = y;
@@ -509,3 +569,20 @@ void gui_gameport_axis_change (int port, int axis, int state, int max)
 void cocoa_gui_early_setup (void) {
 //it's easier to put this here than adding a ifdef SDL_UI in main.m
 }
+
+SDL_Surface* pMouse_Pointer;
+SDL_Surface* pMenu_Surface;
+SDL_Surface* icon_expansion;
+SDL_Surface* icon_preferences;
+SDL_Surface* icon_keymaps;
+SDL_Surface* icon_floppy;
+SDL_Surface* icon_reset;
+SDL_Surface* icon_storage;
+SDL_Surface* icon_run;
+SDL_Surface* icon_exit;
+//SDL_Surface* icon_tweaks;
+
+TTF_Font *amiga_font;
+SDL_Color text_color;
+SDL_Rect rect;
+

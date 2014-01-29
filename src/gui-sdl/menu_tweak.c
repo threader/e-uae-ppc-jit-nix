@@ -1,21 +1,31 @@
-#include "SDL.h"
-#include "gp2x.h"
-#include <stdlib.h>
-#include "gp2x-cpuctrl/cpuctrl.h"
+#ifndef GP2X
+int tweakz (int parametre) { return 0; }
+#else
 
-extern void write_text(int x, int y, char* txt);
+#include <SDL/SDL.h>
+#include <stdlib.h>
+#include "gp2x.h"
+#include "gp2x-cpuctrl/cpuctrl.h"
+#include "menu.h"
+
 extern void blit_image(SDL_Surface* img, int x, int y);
 extern SDL_Surface* display;
 extern SDL_Surface* tmpSDLScreen;
-extern SDL_Surface* pMenu_Surface;
 extern SDL_Color text_color;
 extern char msg[50];
 extern char msg_status[50];
 
+static SDL_Surface* pTweakzMenu_Surface;
+
 int tweakz (int parametre) {
 	SDL_Event event;
 
-    	pMenu_Surface = SDL_LoadBMP("images/menu_tweak.bmp");
+	if (!pTweakzMenu_Surface) pTweakzMenu_Surface = SDL_LoadBMP("images/menu_tweak.bmp");
+        if (!pTweakzMenu_Surface) {
+		write_log ("SDLUI: Failed to load menu image\n");
+		abort();
+        }
+	menu_load_surface(pTweakz_Surface);
 	int tweakloopdone = 0;
 	int kup = 0;
 	int kdown = 0;
@@ -33,7 +43,6 @@ int tweakz (int parametre) {
 	char *tmp;
 	tmp=(char*)malloc(5);
 
-#ifdef GP2X
 	unsigned sysfreq=0;
 	int cpufreq;
 	sysfreq	= get_freq_920_CLK();
@@ -48,7 +57,6 @@ int tweakz (int parametre) {
 	defaults[5] = get_tRFC();
 	defaults[6] = get_tRP();
 	defaults[7] = get_tRCD();
-#endif
 
 	while (!tweakloopdone) {
 		while (SDL_PollEvent(&event)) {
@@ -181,6 +189,7 @@ int tweakz (int parametre) {
 #endif
 	} //while done
 
-    	pMenu_Surface = SDL_LoadBMP("images/menu.bmp");
+    	menu_restore_surface();
 	return 0;
 }
+#endif
