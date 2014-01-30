@@ -177,9 +177,13 @@ void portio_list_add(PortioList *piolist,
                      uint32_t addr);
 void portio_list_del(PortioList *piolist);
 
-
-typedef struct IORange IORange;
 typedef struct IORangeOps IORangeOps;
+
+typedef struct IORange {
+    const IORangeOps *ops;
+    uint64_t base;
+    uint64_t len;
+} IORange;
 
 struct IORangeOps {
     void (*read)(IORange *iorange, uint64_t offset, unsigned width,
@@ -188,12 +192,6 @@ struct IORangeOps {
                   uint64_t data);
     void (*destructor)(IORange *iorange);
 };
-
-typedef struct IORange {
-    const IORangeOps *ops;
-    uint64_t base;
-    uint64_t len;
-} IORange;
 
 typedef void (IOPortWriteFunc)(void *opaque, uint32_t address, uint32_t data);
 typedef uint32_t (IOPortReadFunc)(void *opaque, uint32_t address);
