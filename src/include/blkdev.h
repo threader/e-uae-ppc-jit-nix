@@ -199,8 +199,8 @@ void tolongbcd (uae_u8 *p, int v);
 
 void blkdev_default_prefs (struct uae_prefs *p);
 void blkdev_fix_prefs (struct uae_prefs *p);
-int isdatatrack (struct cd_toc_head *th, int block);
 int isaudiotrack (struct cd_toc_head *th, int block);
+int isdatatrack (struct cd_toc_head *th, int block);
 
 enum cd_standard_unit { CD_STANDARD_UNIT_DEFAULT, CD_STANDARD_UNIT_AUDIO, CD_STANDARD_UNIT_CDTV, CD_STANDARD_UNIT_CD32 };
 

@@ -1,6 +1,6 @@
 #pragma once
-#ifndef SRC_INCLUDE_OPTIONS_H_INCLUDED
-#define SRC_INCLUDE_OPTIONS_H_INCLUDED 1
+#ifndef OPTIONS_H
+#define OPTIONS_H
 
 /*
  * UAE - The Un*x Amiga Emulator
@@ -769,4 +769,4 @@ STATIC_INLINE void fuzzy_memset_le32_1 (void *p, uae_u32 c, int offset, int len)
 #include "od-amiga/amiga-kludges.h"
 #endif
 
-#endif // SRC_INCLUDE_OPTIONS_H_INCLUDED
+#endif // OPTIONS_H

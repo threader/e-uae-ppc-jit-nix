@@ -1,6 +1,6 @@
 #pragma once
-#ifndef SRC_INCLUDE_SCSIDEV_H_INCLUDED
-#define SRC_INCLUDE_SCSIDEV_H_INCLUDED 1
+#ifndef SCSIDEV_H
+#define SCSIDEV_H
 
  /*
   * UAE - The Un*x Amiga Emulator
@@ -22,4 +22,4 @@ uae_u32 scsi_get_cd_drive_mask (void);
 uae_u32 scsi_get_cd_drive_media_mask (void);
 int scsi_add_tape (struct uaedev_config_info *uci);
 
-#endif // SRC_INCLUDE_SCSIDEV_H_INCLUDED
+#endif // SCSIDEV_H

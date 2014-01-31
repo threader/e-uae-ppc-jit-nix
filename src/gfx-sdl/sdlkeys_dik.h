@@ -1,7 +1,7 @@
 #pragma once
-#ifndef GFX_SDL_SDLKEYS_DIK_H_INCLUDED
-#define GFX_SDL_SDLKEYS_DIK_H_INCLUDED 1
+#ifndef SDLKEYS_DIK_H
+#define SDLKEYS_DIK_H
 
 extern int sdlk2dik      (int key);
 
-#endif // GFX_SDL_SDLKEYS_DIK_H_INCLUDED
+#endif // SDLKEYS_DIK_H

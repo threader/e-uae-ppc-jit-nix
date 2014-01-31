@@ -1,6 +1,6 @@
 #pragma once
-#ifndef SRC_INCLUDE_AUTOCONF_H_INCLUDED
-#define SRC_INCLUDE_AUTOCONF_H_INCLUDED 1
+#ifndef AUTOCONF_H
+#define AUTOCONF_H
 
  /*
   * UAE - The Un*x Amiga Emulator
@@ -114,5 +114,5 @@ void expansion_init (void);
 void expansion_cleanup (void);
 void expansion_clear (void);
 
-#endif // SRC_INCLUDE_AUTOCONF_H_INCLUDED
+#endif // AUTOCONF_H
 

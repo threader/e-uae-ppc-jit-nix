@@ -1,6 +1,6 @@
 #pragma once
-#ifndef SRC_INCLUDE_CLIPBOARD_H_INCLUDED
-#define SRC_INCLUDE_CLIPBOARD_H_INCLUDED 1
+#ifndef CLIPBOARD_H
+#define CLIPBOARD_H
 
 extern int amiga_clipboard_want_data (void);
 extern void amiga_clipboard_got_data (uaecptr data, uae_u32 size, uae_u32 actual);
@@ -11,5 +11,5 @@ extern void amiga_clipboard_task_start (uaecptr);
 extern void clipboard_disable (bool);
 extern void clipboard_vsync (void);
 
-#endif // SRC_INCLUDE_CLIPBOARD_H_INCLUDED
+#endif // CLIPBOARD_H
 

@@ -1,5 +1,5 @@
-#ifndef SRC_INCLUDE_GCC_WARNINGS_H_INCLUDED
-#define SRC_INCLUDE_GCC_WARNINGS_H_INCLUDED 1
+#ifndef GCC_WARNINGS_H
+#define GCC_WARNINGS_H
 
 /* The following pragma chain can be used to temporarily silence gcc warnings.
  * It has been written by Jonathan Wakely and modified by Patrick Horgan.
@@ -25,4 +25,4 @@
 #endif
 
 
-#endif /* SRC_INCLUDE_GCC_WARNINGS_H_INCLUDED */
+#endif // GCC_WARNINGS_H

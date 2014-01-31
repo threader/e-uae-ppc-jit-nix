@@ -1,6 +1,6 @@
 #pragma once
-#ifndef SRC_INCLUDE_UAESERIAL_H_INCLUDED
-#define SRC_INCLUDE_UAESERIAL_H_INCLUDED 1
+#ifndef UAESERIAL_H
+#define UAESERIAL_H
 
  /*
   * UAE - The Un*x Amiga Emulator
@@ -17,4 +17,4 @@ void uaeserialdev_start_threads (void);
 
 extern int log_uaeserial;
 
-#endif // SRC_INCLUDE_UAESERIAL_H_INCLUDED
+#endif // UAESERIAL_H

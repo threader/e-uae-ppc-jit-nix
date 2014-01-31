@@ -1,6 +1,6 @@
 #pragma once
-#ifndef SRC_INCLUDE_FSDB_H_INCLUDED
-#define SRC_INCLUDE_FSDB_H_INCLUDED 1
+#ifndef FSDB_H
+#define FSDB_H
 
  /*
   * UAE - The Un*x Amiga Emulator
@@ -204,4 +204,4 @@ extern bool my_createsoftlink(const TCHAR *path, const TCHAR *target);
 
 extern int my_getvolumeinfo (const TCHAR *root);
 
-#endif // SRC_INCLUDE_FSDB_H_INCLUDED
+#endif // FSDB_H

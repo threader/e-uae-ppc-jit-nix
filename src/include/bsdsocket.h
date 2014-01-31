@@ -1,6 +1,6 @@
 #pragma once
-#ifndef SRC_INCLUDE_BSDSOCKET_H_INCLUDED
-#define SRC_INCLUDE_BSDSOCKET_H_INCLUDED 1
+#ifndef BSDSOCKET_H
+#define BSDSOCKET_H
 
  /*
   * UAE - The Un*x Amiga Emulator
@@ -202,4 +202,4 @@ void bsdlib_reset (void);
 
 void bsdsock_fake_int_handler(void);
 
-#endif // SRC_INCLUDE_BSDSOCKET_H_INCLUDED
+#endif // BSDSOCKET_H

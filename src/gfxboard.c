@@ -1918,6 +1918,7 @@ addrbank gfxboard_bank_special = {
 	default_xlate, default_check, NULL, _T("Picasso IV MISC"),
 	dummy_lgeti, dummy_wgeti, ABFLAG_IO | ABFLAG_SAFE
 };
+
 bool gfxboard_is_z3 (int type)
 {
 	if (type == GFXBOARD_UAE_Z2)
@@ -1930,7 +1931,7 @@ bool gfxboard_is_z3 (int type)
 
 bool gfxboard_need_byteswap (int type)
 {
-	if (type < 2)
+	if (type < GFXBOARD_HARDWARE)
 		return false;
 	board = &boards[type - 2];
 	return board->swap;
@@ -1938,7 +1939,7 @@ bool gfxboard_need_byteswap (int type)
 
 int gfxboard_get_vram_min (int type)
 {
-	if (type < 2)
+	if (type < GFXBOARD_HARDWARE)
 		return -1;
 	board = &boards[type - 2];
 	//return board->vrammax;
@@ -1947,7 +1948,7 @@ int gfxboard_get_vram_min (int type)
 
 int gfxboard_get_vram_max (int type)
 {
-	if (type < 2)
+	if (type < GFXBOARD_HARDWARE)
 		return -1;
 	board = &boards[type - 2];
 	return board->vrammax;
@@ -1955,7 +1956,7 @@ int gfxboard_get_vram_max (int type)
 
 bool gfxboard_is_registers (int type)
 {
-	if (type < 2)
+	if (type < GFXBOARD_HARDWARE)
 		return false;
 	board = &boards[type - 2];
 	return board->model_registers != 0;
@@ -1963,7 +1964,7 @@ bool gfxboard_is_registers (int type)
 
 int gfxboard_num_boards (int type)
 {
-	if (type < 2)
+	if (type < GFXBOARD_HARDWARE)
 		return 1;
 	board = &boards[type - 2];
 	if (type == PICASSOIV_Z2)

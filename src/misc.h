@@ -1,6 +1,6 @@
 #pragma once
-#ifndef SRC_MISC_H_INCLUDED
-#define SRC_MISC_H_INCLUDED 1
+#ifndef MISC_H
+#define MISC_H
 
 /*
  * PUAE - The Un*x Amiga Emulator
@@ -44,4 +44,5 @@ int scan_roms (int show);
 void enumeratedisplays (void);
 void sortdisplays (void);
 
-#endif /* SRC_MISC_H_INCLUDED */
+#endif // MISC_H
+

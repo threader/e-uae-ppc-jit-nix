@@ -1,7 +1,6 @@
 #pragma once
-#ifndef SRC_INCLUDE_FILESYS_H_INCLUDED
-#define SRC_INCLUDE_FILESYS_H_INCLUDED 1
-
+#ifndef FILESYS_H
+#define FILESYS_H
 
  /*
   * UAE - The Un*x Amiga Emulator
@@ -159,11 +158,9 @@ void setsystime (void);
 //int set_filesys_unit (int nr, struct uaedev_config_info *ci);
 //int add_filesys_unit (struct uaedev_config_info *ci);
 
-/** REMOVEME:
-  * nowhere used
-**/
+// REMOVEME:
 #if 0
 int hardfile_remount (int nr);
 #endif // 0
 
-#endif // SRC_INCLUDE_FILESYS_H_INCLUDED
+#endif // FILESYS_H

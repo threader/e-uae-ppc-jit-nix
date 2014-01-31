@@ -1,6 +1,6 @@
 #pragma once
-#ifndef SRC_INCLUDE_GAYLE_H_INCLUDED
-#define SRC_INCLUDE_GAYLE_H_INCLUDED 1
+#ifndef GAYLE_H
+#define GAYLE_H
 
 #ifdef GAYLE
 void gayle_reset (int);
@@ -19,4 +19,4 @@ void gayle_map_pcmcia (void);
 #define PCMCIA_COMMON_START 0x600000
 #define PCMCIA_COMMON_SIZE 0x400000
 
-#endif // SRC_INCLUDE_GAYLE_H_INCLUDED
+#endif // GAYLE_H

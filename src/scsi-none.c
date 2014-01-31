@@ -9,3 +9,4 @@ void scsidev_reset (void) {}
 void scsidev_start_threads (void) {}
 
 int scsi_do_disk_change (int unitnum, int insert, int *pollmode) { return -1; }
+

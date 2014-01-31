@@ -141,6 +141,9 @@ extern struct device_functions devicefunc_cdimage;
 static struct device_functions *devicetable[] = {
 	NULL,
 	&devicefunc_cdimage,
+//devicefunc_scsi_amiga,
+//devicefunc_scsi_linux_ioctl,
+//devicefunc_scsi_libscg,
 	NULL
 };
 static int driver_installed[6];
@@ -171,9 +174,9 @@ static void install_driver (int flags)
 				st->device_func = devicetable[SCSI_UNIT_IOCTL];
 				st->scsiemu = true;
 				break;
-				case SCSI_UNIT_SPTI:
-				st->device_func = devicetable[SCSI_UNIT_SPTI];
-				break;
+				//case SCSI_UNIT_SPTI:
+				//st->device_func = devicetable[SCSI_UNIT_SPTI];
+				//break;
 			}
 		}
 	}
@@ -241,9 +244,9 @@ void blkdev_fix_prefs (struct uae_prefs *p)
 			}
 		} else if (currprefs.scsi) {
 //EMU			if (currprefs.win32_uaescsimode == UAESCSI_CDEMU)
-//				cdscsidevicetype[i] = SCSI_UNIT_IOCTL;
+				cdscsidevicetype[i] = SCSI_UNIT_IOCTL;
 //			else
-				cdscsidevicetype[i] = SCSI_UNIT_SPTI;
+//				cdscsidevicetype[i] = SCSI_UNIT_SPTI;
 		} else {
 			cdscsidevicetype[i] = SCSI_UNIT_IOCTL;
 		}

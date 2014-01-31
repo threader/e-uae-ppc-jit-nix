@@ -1,6 +1,6 @@
 #pragma once
-#ifndef SRC_INCLUDE_ZARCHIVE_H_INCLUDED
-#define SRC_INCLUDE_ZARCHIVE_H_INCLUDED 1
+#ifndef ZARCHIVE_H
+#define ZARCHIVE_H
 
 struct zfile;
 
@@ -153,4 +153,4 @@ extern struct zfile *archive_unpackzfile (struct zfile *zf);
 
 extern struct zfile *decompress_zfd (struct zfile*);
 
-#endif /* SRC_INCLUDE_ZARCHIVE_H_INCLUDED */
+#endif // ZARCHIVE_H

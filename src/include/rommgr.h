@@ -1,5 +1,5 @@
-#ifndef SRC_INCLUDE_ROMMGR_H_INCLUDED
-#define SRC_INCLUDE_ROMMGR_H_INCLUDED 1
+#ifndef ROMMGR_H
+#define ROMMGR_H
 
 extern int decode_cloanto_rom_do (uae_u8 *mem, int size, int real_size);
 
@@ -97,4 +97,4 @@ extern int romlist_count (void);
 extern struct romlist *romlist_getit (void);
 extern int configure_rom (struct uae_prefs *p, const int *rom, int msg);
 
-#endif /* SRC_INCLUDE_ROMMGR_H_INCLUDED */
+#endif // ROMMGR_H

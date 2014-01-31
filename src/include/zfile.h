@@ -1,6 +1,6 @@
 #pragma once
-#ifndef SRC_INCLUDE_ZFILE_H_INCLUDED
-#define SRC_INCLUDE_ZFILE_H_INCLUDED 1
+#ifndef ZFILE_H
+#define ZFILE_H
 
  /*
   * UAE - The Un*x Amiga Emulator
@@ -144,4 +144,4 @@ extern struct zfile *zfile_fopen_data (const TCHAR *name, uae_u64 size, const ua
 extern void timeval_to_amiga (struct mytimeval *tv, int* days, int* mins, int* ticks);
 extern void amiga_to_timeval (struct mytimeval *tv, int days, int mins, int ticks);
 
-#endif /* SRC_INCLUDE_ZFILE_H_INCLUDED */
+#endif // ZFILE_H

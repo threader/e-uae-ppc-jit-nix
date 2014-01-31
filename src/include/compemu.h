@@ -1,6 +1,6 @@
 #pragma once
-#ifndef SRC_INCLUDE_COMPEMU_H_INCLUDED
-#define SRC_INCLUDE_COMPEMU_H_INCLUDED 1
+#ifndef COMPEMU_H
+#define COMPEMU_H
 
 /*
  *  include/compemu.h - Public interface and definitions
@@ -624,4 +624,4 @@ void comp_fsave_opp (uae_u32 opcode);
 void comp_frestore_opp (uae_u32 opcode);
 void comp_fpp_opp (uae_u32 opcode, uae_u16 extra);
 
-#endif // SRC_INCLUDE_COMPEMU_H_INCLUDED
+#endif // COMPEMU_H

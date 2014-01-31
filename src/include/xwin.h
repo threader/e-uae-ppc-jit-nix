@@ -1,6 +1,6 @@
 #pragma once
-#ifndef SRC_INCLUDE_XWIN_H_INCLUDED
-#define SRC_INCLUDE_XWIN_H_INCLUDED 1
+#ifndef XWIN_H
+#define XWIN_H
 
  /*
   * UAE - The Un*x Amiga Emulator
@@ -168,4 +168,4 @@ void toggle_mousegrab      (void);
 extern struct bstring *video_mode_menu;
 void vidmode_menu_selected(int);
 
-#endif // SRC_INCLUDE_XWIN_H_INCLUDED
+#endif // XWIN_H

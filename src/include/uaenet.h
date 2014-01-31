@@ -1,6 +1,6 @@
 #pragma once
-#ifndef SRC_INCLUDE_UAENET_H_INCLUDED
-#define SRC_INCLUDE_UAENET_H_INCLUDED 1
+#ifndef UAENET_H
+#define UAENET_H
 
 #define ADDR_SIZE 6
 
@@ -92,4 +92,4 @@ void uaenet_gotdata (struct s2devstruct *dev, const uae_u8 *data, int len);
 int uaenet_getdata (struct s2devstruct *dev, uae_u8 *d, int *len);
 void uaenet_trigger (struct uaenetdata*);
 
-#endif // SRC_INCLUDE_UAENET_H_INCLUDED
+#endif // UAENET_H
