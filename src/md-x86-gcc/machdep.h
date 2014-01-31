@@ -10,7 +10,11 @@
 #define MACHDEP_MACHDEP_H
 
 #define MACHDEP_X86
+#ifdef __x86_64__
 #define MACHDEP_NAME    "amd64"
+#else
+#define MACHDEP_NAME    "x86"
+#endif
 
 #define HAVE_MACHDEP_TIMER
 

@@ -12,8 +12,8 @@
 
 #include "cfgfile.h"
 #include "sleep.h"
-#include "machdep/rpt.h"
-#include "machdep/m68k.h"
+#include "rpt.h"
+#include "m68k.h"
 #include "events.h"
 #include "custom.h"
 

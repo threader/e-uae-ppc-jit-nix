@@ -24,7 +24,8 @@
  */
 /* Is there any way to do this without declaring *all* memory clobbered?
    I.e. any way to tell gcc that some byte-sized value is in %al? */
-#ifdef __APPLE__
+//#if defined(__APPLE__) && !defined(__x86_64__)
+#ifndef __x86_64__
 #define optflag_testl(v) \
   __asm__ __volatile__ ("andl %0,%0\n\t" \
 			"lahf\n\t" \

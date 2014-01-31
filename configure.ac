@@ -1870,7 +1870,6 @@ is_64bit=no
 AC_MSG_CHECKING([whether CPU is 64bit])
 if [[ "$HOST_CPU" = amd64 ]]; then
 is_64bit=yes
-UAE_DEFINES="$UAE_DEFINES -D__x86_64__"
 fi
 AC_MSG_RESULT([$is_64bit])
 

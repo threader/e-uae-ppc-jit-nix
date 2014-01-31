@@ -16,8 +16,10 @@ STATIC_INLINE uae_u32 do_get_mem_long (uae_u32 *a)
 
 STATIC_INLINE uae_u32 do_get_mem_word (uae_u16 *a)
 {
-uae_u8 *b = (uae_u8 *)a;
-return (*b << 8) | (*(b+1));
+#if 0
+    uae_u8 *b = (uae_u8 *)a;
+    return (*b << 8) | (*(b+1));
+#endif
 
     uae_u32 retval;
 
@@ -52,6 +54,10 @@ STATIC_INLINE void do_put_mem_word (uae_u16 *a, uae_u32 v)
 #define call_mem_get_func(func,addr) ((*func)(addr))
 #define call_mem_put_func(func,addr,v) ((*func)(addr,v))
 
+
+#define ALIGN_POINTER_TO32(p) ((~(unsigned long)(p)) & 3)
+
+#ifndef __x86_64__
 #undef NO_INLINE_MEMORY_ACCESS
 #undef MD_HAVE_MEM_1_FUNCS
 
@@ -138,8 +144,6 @@ STATIC_INLINE void byteput_1 (uae_cptr addr, uae_u32 b)
 
 #endif
 
-#define ALIGN_POINTER_TO32(p) ((~(unsigned long)(p)) & 3)
-
 /* Not the best place for this, but then there's no good place for a kludge
  * like this... */
 #define HAVE_UAE_U24
@@ -151,3 +155,5 @@ STATIC_INLINE uae_u24 uae24_convert (uae_u32 v)
 {
     return *(uae_u24 *)&v;
 }
+
+#endif
