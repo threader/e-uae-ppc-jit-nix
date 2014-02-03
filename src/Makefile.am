@@ -177,7 +177,7 @@ uae_SOURCES = \
 	uaeexe.c uaelib.c uaeresource.c uaeserial.c fdi2raw.c hotkeys.c amax.c \
 	ar.c driveclick.c enforcer.c misc.c uaenet.c a2065.c gayle.c blkdev.c blkdev_cdimage.c scsi.c ncr_scsi.c \
 	missing.c readcpu.c hrtmon.rom.c events.c calc.c aros.rom.c \
-	specialmonitors.c gfxboard.c qemuvga/cirrus_vga.c qemuvga/qemuuaeglue.c qemuvga/vga.c \
+	specialmonitors.c gfxboard.c qemuvga/cirrus_vga.c qemuvga/qemuuaeglue.c qemuvga/vga.c qemuvga/lsi53c895a.c \
 	sana2.c
 
 EXTRA_uae_SOURCES = \

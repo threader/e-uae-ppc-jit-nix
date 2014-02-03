@@ -1,3 +1,4 @@
+
 #ifndef BLKDEV_H
 #define BLKDEV_H
 
@@ -213,4 +214,4 @@ void blkdev_exitgui (void);
 
 bool filesys_do_disk_change (int, bool);
 
-#endif
+#endif /* BLKDEV_H */

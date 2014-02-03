@@ -89,7 +89,7 @@ extern unsigned int joy0dir, joy1dir;
 extern int joy0button, joy1button;
 
 extern void INTREQ (uae_u16);
-extern void INTREQ_0 (uae_u16);
+extern bool INTREQ_0 (uae_u16);
 extern void INTREQ_f (uae_u16);
 extern void send_interrupt (int num, int delay);
 extern uae_u16 INTREQR (void);
@@ -238,4 +238,4 @@ extern void compute_framesync (void);
 
 #define HSYNCTIME (maxhpos * CYCLE_UNIT);
 
-#endif
+#endif /* CUSTOM_H */

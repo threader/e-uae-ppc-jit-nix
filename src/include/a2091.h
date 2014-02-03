@@ -1,3 +1,4 @@
+
 #ifndef A2091_H
 #define A2091_H
 
@@ -41,5 +42,5 @@ int add_scsi_cd (int ch, int unitnum);
 int add_scsi_tape (int ch, const TCHAR *tape_directory, bool readonly);
 
 #endif
-#endif
 
+#endif /* A2091H */

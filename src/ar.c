@@ -222,7 +222,7 @@
 
 extern void activate_debugger (void);
 
-static TCHAR *cart_memnames[] = { NULL, _T("hrtmon"), _T("arhrtmon"), _T("superiv") };
+static const TCHAR *cart_memnames[] = { NULL, _T("hrtmon"), _T("arhrtmon"), _T("superiv") };
 
 #define ARMODE_FREEZE 0 /* AR2/3 The action replay 'freeze' button has been pressed.  */
 #define ARMODE_BREAKPOINT_AR2 2 /* AR2: The action replay is activated via a breakpoint. */
@@ -528,7 +528,7 @@ int is_ar_pc_in_ram (void)
 /* flag writing == 1 for writing memory, 0 for reading from memory. */
 STATIC_INLINE int ar3a (uaecptr addr, uae_u8 b, int writing)
 {
-	uaecptr pc;
+	//REMOVEME: uaecptr pc;
 	/*	if (addr < 8) //|| writing ) */
 	/*	{ */
 	/*		if (writing) */
@@ -553,12 +553,12 @@ STATIC_INLINE int ar3a (uaecptr addr, uae_u8 b, int writing)
 					wait_for_pc = longget (m68k_areg (regs, 7) + 2); /* Get (SP+2) */
 					set_special (SPCFLAG_ACTION_REPLAY);
 
-					//pc = m68k_getpc ();
+					//REMOVEME: pc = m68k_getpc ();
 					/*		    write_log_debug ("Action Replay marked as ACTION_REPLAY_WAIT_PC, PC=%p\n",pc);*/
 				}
 				else
 				{
-					//pc = m68k_getpc ();
+					//REMOVEME: pc = m68k_getpc ();
 					/*		    write_log_debug ("Action Replay marked as IDLE, PC=%p\n",pc);*/
 					action_replay_flag = ACTION_REPLAY_IDLE;
 				}
@@ -696,19 +696,19 @@ static uae_u32 REGPARAM2 arram_lget (uaecptr addr)
 	addr &= arram_mask;
 	m = (uae_u32 *)(armemory_ram + addr);
 	if (strncmp ("T8", (char*)m, 2) == 0)
-		write_log_debug (_T("Reading T8 from addr %08x PC=%p\n"), addr, m68k_getpc ());
+		write_log_debug (_T("Reading T8 from addr %08x PC=%08x\n"), addr, m68k_getpc ());
 	if (strncmp ("LAME", (char*)m, 4) == 0)
-		write_log_debug (_T("Reading LAME from addr %08x PC=%p\n"), addr, m68k_getpc ());
+		write_log_debug (_T("Reading LAME from addr %08x PC=%08x\n"), addr, m68k_getpc ());
 	if (strncmp ("RES1", (char*)m, 4) == 0)
-		write_log_debug (_T("Reading RES1 from addr %08x PC=%p\n"), addr, m68k_getpc ());
+		write_log_debug (_T("Reading RES1 from addr %08x PC=%08x\n"), addr, m68k_getpc ());
 	if (strncmp ("ARON", (char*)m, 4) == 0)
-		write_log_debug (_T("Reading ARON from addr %08x PC=%p\n"), addr, m68k_getpc ());
+		write_log_debug (_T("Reading ARON from addr %08x PC=%08x\n"), addr, m68k_getpc ());
 	if (strncmp ("KILL", (char*)m, 4) == 0)
-		write_log_debug (_T("Reading KILL from addr %08x PC=%p\n"), addr, m68k_getpc ());
+		write_log_debug (_T("Reading KILL from addr %08x PC=%08x\n"), addr, m68k_getpc ());
 	if (strncmp ("BRON", (char*)m, 4) == 0)
-		write_log_debug (_T("Reading BRON from addr %08x PC=%p\n"), addr, m68k_getpc ());
+		write_log_debug (_T("Reading BRON from addr %08x PC=%08x\n"), addr, m68k_getpc ());
 	if (strncmp ("PRIN", (char*)m, 4) == 0)
-		write_log_debug (_T("Reading PRIN from addr %08x PC=%p\n"), addr, m68k_getpc ());
+		write_log_debug (_T("Reading PRIN from addr %08x PC=%08x\n"), addr, m68k_getpc ());
 	return do_get_mem_long (m);
 }
 
@@ -745,19 +745,19 @@ void REGPARAM2 arram_lput (uaecptr addr, uae_u32 l)
 	addr &= arram_mask;
 	m = (uae_u32 *)(armemory_ram + addr);
 	if (strncmp ("T8", (char*)m, 2) == 0)
-		write_log_debug (_T("Writing T8 to addr %08x PC=%p\n"), addr, m68k_getpc ());
+		write_log_debug (_T("Writing T8 to addr %08x PC=%08x\n"), addr, m68k_getpc ());
 	if (strncmp ("LAME", (char*)m, 4) == 0)
-		write_log_debug (_T("Writing LAME to addr %08x PC=%p\n"), addr, m68k_getpc ());
+		write_log_debug (_T("Writing LAME to addr %08x PC=%08x\n"), addr, m68k_getpc ());
 	if (strncmp ("RES1", (char*)m, 4) == 0)
-		write_log_debug (_T("Writing RES1 to addr %08x PC=%p\n"), addr, m68k_getpc ());
+		write_log_debug (_T("Writing RES1 to addr %08x PC=%08x\n"), addr, m68k_getpc ());
 	if (strncmp ("ARON", (char*)m, 4) == 0)
-		write_log_debug (_T("Writing ARON to addr %08x PC=%p\n"), addr, m68k_getpc ());
+		write_log_debug (_T("Writing ARON to addr %08x PC=%08x\n"), addr, m68k_getpc ());
 	if (strncmp ("KILL", (char*)m, 4) == 0)
-		write_log_debug (_T("Writing KILL to addr %08x PC=%p\n"), addr, m68k_getpc ());
+		write_log_debug (_T("Writing KILL to addr %08x PC=%08x\n"), addr, m68k_getpc ());
 	if (strncmp ("BRON", (char*)m, 4) == 0)
-		write_log_debug (_T("Writing BRON to addr %08x PC=%p\n"), addr, m68k_getpc ());
+		write_log_debug (_T("Writing BRON to addr %08x PC=%08x\n"), addr, m68k_getpc ());
 	if (strncmp ("PRIN", (char*)m, 4) == 0)
-		write_log_debug (_T("Writing PRIN to addr %08x PC=%p\n"), addr, m68k_getpc ());
+		write_log_debug (_T("Writing PRIN to addr %08x PC=%08x\n"), addr, m68k_getpc ());
 	do_put_mem_long (m, l);
 }
 
@@ -1039,7 +1039,7 @@ void action_replay_enter (void)
 		return;
 	triggered_once = 1;
 	if (armodel == 1) {
-		write_log (_T("AR1: Enter PC:%p\n"), m68k_getpc ());
+		write_log (_T("AR1: Enter PC:%08x\n"), m68k_getpc ());
 		action_replay_go1 (7);
 		unset_special (SPCFLAG_ACTION_REPLAY);
 		return;
@@ -1533,7 +1533,7 @@ static int superiv_init (struct romdata *rd, struct zfile *f)
 	uae_u32 chip = currprefs.chipmem_size - 0x10000;
 	int subtype = rd->id;
 	int flags = rd->type;
-	TCHAR *memname1, *memname2, *memname3;
+	const TCHAR *memname1, *memname2, *memname3;
 
 	memname1 = memname2 = memname3 = NULL;
 
@@ -2114,7 +2114,6 @@ uae_u8 *save_action_replay (int *len, uae_u8 *dstptr)
 
 uae_u8 *restore_action_replay (uae_u8 *src)
 {
-	uae_u32 crc32;
 	TCHAR *s;
 
 	action_replay_unload (1);
@@ -2122,7 +2121,7 @@ uae_u8 *restore_action_replay (uae_u8 *src)
 	armodel = restore_u8 ();
 	if (!armodel)
 		return src;
-	crc32 = restore_u32 ();
+	restore_u32 ();
 	s = restore_string ();
 	_tcsncpy (changed_prefs.cartfile, s, 255);
 	_tcscpy (currprefs.cartfile, changed_prefs.cartfile);

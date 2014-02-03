@@ -53,10 +53,10 @@ void do_cycles_slow (unsigned long cycles_to_add)
 
 		/* Keep only CPU emulation running while waiting for sync point. */
 		if (is_syncline > 0) {
-					int rpt = read_processor_time ();
+			int rpt = read_processor_time ();
 			int v = rpt - vsyncmintime;
 			int v2 = rpt - is_syncline_end;
-					if (v > vsynctimebase || v < -vsynctimebase) {
+			if (v > vsynctimebase || v < -vsynctimebase) {
 				v = 0;
 			}
 			if (v < 0 && v2 < 0) {
@@ -64,21 +64,26 @@ void do_cycles_slow (unsigned long cycles_to_add)
 				return;
 			}
 		} else if (is_syncline < 0) {
-					int rpt = read_processor_time ();
+			int rpt = read_processor_time ();
 			int v = rpt - is_syncline_end;
 			if (v < 0) {
 				pissoff = pissoff_value;
 				return;
 			}
+			is_syncline = 0;
 		}
-		is_syncline = 0;
 
 		cycles_to_add -= nextevent - currcycle;
 		currcycle = nextevent;
 
 		for (i = 0; i < ev_max; i++) {
 			if (eventtab[i].active && eventtab[i].evtime == currcycle) {
-				(*eventtab[i].handler)();
+				if (eventtab[i].handler == NULL) {
+					gui_message(_T("eventtab[%d].handler is null!\n"), i);
+					eventtab[i].active = 0;
+				} else {
+					(*eventtab[i].handler)();
+				}
 			}
 		}
 		events_schedule ();
