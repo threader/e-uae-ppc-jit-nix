@@ -1,7 +1,3 @@
-#pragma once
-#ifndef FILESYS_H
-#define FILESYS_H
-
  /*
   * UAE - The Un*x Amiga Emulator
   *
@@ -9,6 +5,10 @@
   *
   * Copyright 1997 Bernd Schmidt
   */
+
+#pragma once
+#ifndef FILESYS_H
+#define FILESYS_H
 
 struct hardfilehandle;
 struct mountedinfo;

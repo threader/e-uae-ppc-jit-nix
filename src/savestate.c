@@ -705,9 +705,10 @@ void restore_state (const TCHAR *filename)
 		else if (!_tcsncmp (name, _T("2065"), 4))
 			end = restore_a2065 (chunk);
 #endif
+#ifdef DEBUGGER
 		else if (!_tcsncmp (name, _T("DMWP"), 4))
 			end = restore_debug_memwatch (chunk);
-
+#endif
 		else if (!_tcscmp (name, _T("CONF")))
 			end = restore_configuration (chunk);
 		else if (!_tcscmp (name, _T("LOG ")))
@@ -759,7 +760,9 @@ void savestate_restore_finish (void)
 	restore_a2065_finish ();
 #endif
 	restore_cia_finish ();
+#ifdef DEBUGGER
 	restore_debug_memwatch_finish ();
+#endif
 	savestate_state = 0;
 	init_hz_full ();
 	audio_activate ();
@@ -1039,7 +1042,9 @@ static int save_state_internal (struct zfile *f, const TCHAR *description, int c
 		}
 	}
 #endif
+#ifdef DEBUGGER
 	dst = save_debug_memwatch (&len, NULL);
+#endif
 	if (dst) {
 		save_chunk (f, dst, len, _T("DMWP"), 0);
 		xfree(dst);
@@ -1073,10 +1078,12 @@ int save_state (const TCHAR *filename, const TCHAR *description)
 
 	if (!savestate_specialdump && !savestate_nodialogs) {
 		state_incompatible_warn ();
+#ifdef FILESYS
 		if (!save_filesys_cando ()) {
 			gui_message (_T("Filesystem active. Try again later."));
 			return -1;
 		}
+#endif
 	}
 	new_blitter = false;
 	savestate_nodialogs = 0;

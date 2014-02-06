@@ -9,6 +9,10 @@
   * in x11win.c and sdlgfx.c
   */
 
+#ifndef HOTKEYS_H
+#define HOTKEYS_H
+
+#include "uae_types.h"
 
 /* Maximum number of keys in a sequence */
 #define HOTKEYSEQ_MAXKEYS	4
@@ -39,3 +43,5 @@ static inline void handle_hotkey_event (int event, int state)
 {
     handle_input_event (event, state, 0, 0, false, false);
 }
+
+#endif  // HOTKEYS_H

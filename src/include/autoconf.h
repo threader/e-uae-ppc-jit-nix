@@ -1,7 +1,3 @@
-#pragma once
-#ifndef AUTOCONF_H
-#define AUTOCONF_H
-
  /*
   * UAE - The Un*x Amiga Emulator
   *
@@ -9,6 +5,10 @@
   *
   * (c) 1996 Ed Hanway
   */
+
+#pragma once
+#ifndef AUTOCONF_H
+#define AUTOCONF_H
 
 #define RTAREA_DEFAULT 0xf00000
 #define RTAREA_BACKUP  0xef0000

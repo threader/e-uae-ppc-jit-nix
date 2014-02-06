@@ -1,14 +1,14 @@
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * routines to handle compressed file automatically
+ *
+ * (c) 1996 Samuel Devulder
+ */
+
 #pragma once
 #ifndef ZFILE_H
 #define ZFILE_H
-
- /*
-  * UAE - The Un*x Amiga Emulator
-  *
-  * routines to handle compressed file automatically
-  *
-  * (c) 1996 Samuel Devulder
-  */
 
 struct zvolume;
 struct zdirectory;

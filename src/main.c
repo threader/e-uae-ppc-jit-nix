@@ -660,10 +660,12 @@ static int default_config;
 
 void uae_reset (int hardreset, int keyboardreset)
 {
+#ifdef DEBUGGER
 	if (debug_dma) {
 		record_dma_reset ();
 		record_dma_reset ();
 	}
+#endif
 	currprefs.quitstatefile[0] = changed_prefs.quitstatefile[0] = 0;
 
 	if (quit_program == 0) {
@@ -678,7 +680,9 @@ void uae_reset (int hardreset, int keyboardreset)
 
 void uae_quit (void)
 {
+#ifdef DEBUGGER
 	deactivate_debugger ();
+#endif
 	if (quit_program != -UAE_QUIT)
 		quit_program = -UAE_QUIT;
 	target_quit ();
@@ -1233,11 +1237,13 @@ void real_main (int argc, TCHAR **argv)
 }
 
 #ifndef NO_MAIN_IN_MAIN_C
+#ifndef __native_client__
 int main (int argc, TCHAR **argv)
 {
 	real_main (argc, argv);
 	return 0;
 }
+#endif  /* __native_client */
 #endif
 
 #ifdef SINGLEFILE

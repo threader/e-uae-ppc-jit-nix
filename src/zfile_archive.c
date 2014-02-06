@@ -25,6 +25,10 @@
 
 #include <zlib.h>
 
+#if defined(__native_client__)
+#include <sys/nacl_syscalls.h>
+#endif
+
 #define unpack_log write_log
 #undef unpack_log
 #define unpack_log(...) { }
@@ -48,7 +52,7 @@ static time_t fromdostime (uae_u32 dd)
 	struct tm* tm_local;
 	tm_local = localtime(&time_now);
 	t -= tm_local->tm_gmtoff;
-#else
+#elif defined(HAVE_TIMEZONE)
 	t -= (time_t)timezone;
 #endif
 	return t;
@@ -328,7 +332,7 @@ struct zvolume *archive_directory_tar (struct zfile *z)
 #if defined(__FreeBSD__)
 			zai.tv.tv_sec += tm_local->tm_gmtoff;
 			if (tm_local->tm_isdst)
-#else
+#elif defined(HAVE_DAYLIGHT) && defined(HAVE_TIMEZONE)
 			zai.tv.tv_sec += timezone;
 			if (daylight)
 #endif

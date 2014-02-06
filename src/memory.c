@@ -961,7 +961,9 @@ uae_u8 *REGPARAM2 default_xlate (uaecptr a)
 					}
 					write_log (_T("\n"));
 				}
+#ifdef DEBUGGER
 				memory_map_dump ();
+#endif
 			}
 			be_cnt++;
 			if (regs.s || be_cnt > 1000) {
@@ -2310,18 +2312,18 @@ void memory_reset (void)
 	case EXTENDED_ROM_CDTV:
 		map_banks (&extendedkickmem_bank, 0xF0, extendedkickmem_bank.allocated == 2 * ROM_SIZE_512 ? 16 : 8, 0);
 		break;
-#endif
+#endif // CDTV
 #ifdef CD32
 	case EXTENDED_ROM_CD32:
 		map_banks (&extendedkickmem_bank, 0xE0, 8, 0);
 		break;
-#endif
+#endif // CD32
 	}
 
 #ifdef AUTOCONFIG
 	if (need_uae_boot_rom ())
 		map_banks (&rtarea_bank, rtarea_base >> 16, 1, 0);
-#endif
+#endif // AUTOCONFIG
 
 	if ((cloanto_rom || currprefs.cs_ksmirror_e0) && (currprefs.maprom != 0xe00000) && !extendedkickmem_type)
 		map_banks (&kickmem_bank, 0xE0, 8, 0);
@@ -2329,7 +2331,10 @@ void memory_reset (void)
 		if (extendedkickmem2_bank.allocated) {
 			map_banks (&extendedkickmem2_bank, 0xa8, 16, 0);
 		} else {
-			struct romdata *rd = getromdatabypath (currprefs.cartfile);
+			struct romdata *rd;
+#ifdef ACTION_REPLAY
+			rd = getromdatabypath (currprefs.cartfile);
+#endif
 			if (!rd || rd->id != 63) {
 				if (extendedkickmem_type == EXTENDED_ROM_CD32 || extendedkickmem_type == EXTENDED_ROM_KS)
 					map_banks (&extendedkickmem_bank, 0xb0, 8, 0);
@@ -2485,7 +2490,7 @@ void map_banks2 (addrbank *bank, int start, int size, int realsize, int quick)
 	addrbank *orgbank = bank;
 	uae_u32 realstart = start;
 
-#ifdef DEBUG
+#ifdef DEBUGGER
 	if (!quick)
 		old = debug_bankchange (-1);
 #endif
@@ -2520,7 +2525,7 @@ void map_banks2 (addrbank *bank, int start, int size, int realsize, int quick)
 			put_mem_bank (bnr << 16, bank, realstart << 16);
 			real_left--;
 		}
-#ifdef DEBUG
+#ifdef DEBUGGER
 		if (!quick)
 			debug_bankchange (old);
 #endif
@@ -2547,7 +2552,7 @@ void map_banks2 (addrbank *bank, int start, int size, int realsize, int quick)
 			real_left--;
 		}
 	}
-#ifdef DEBUG
+#ifdef DEBUGGER
 	if (!quick)
 		debug_bankchange (old);
 #endif

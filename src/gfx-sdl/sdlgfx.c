@@ -7,7 +7,7 @@
  * Copyright 2003-2007 Richard Drummond
  * Copyright 2006 Jochen Becher
  *
- * Partialy based on the UAE X interface (xwin.c)
+ * Partially based on the UAE X interface (xwin.c)
  *
  * Copyright 1995, 1996 Bernd Schmidt
  * Copyright 1996 Ed Hanway, Andre Beck, Samuel Devulder, Bruno Coste

@@ -6,6 +6,9 @@
  * Copyright 1995, 1996, 1997 Bernd Schmidt
  */
 
+#ifndef UAE_AUDIO_H
+#define UAE_AUDIO_H
+
 #define PERIOD_MAX ULONG_MAX
 
 extern void pause_sound (void);
@@ -86,3 +89,5 @@ STATIC_INLINE int get_audio_ismono (int stereomode)
 #define SOUND_MAX_LOG_DELAY 10
 #define MIXED_STEREO_MAX 16
 #define MIXED_STEREO_SCALE 32
+
+#endif  // UAE_AUDIO_H

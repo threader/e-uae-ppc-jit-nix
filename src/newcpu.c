@@ -2914,8 +2914,8 @@ static void ExceptionX (int nr, uaecptr address)
 		} else {
 			Exception_normal (nr);
 		}
-#endif
-
+#endif // MMUEMU
+#ifdef DEBUGGER
 	if (debug_illegal && !in_rom (M68K_GETPC)) {
 		int v = nr;
 		if (nr <= 63 && (debug_illegal_mask & ((uae_u64)1 << nr))) {
@@ -2923,6 +2923,7 @@ static void ExceptionX (int nr, uaecptr address)
 			activate_debugger ();
 		}
 	}
+#endif // DEBUGGER
 	regs.exception = 0;
 	if (cpu_tracer) {
 		cputrace.state = 0;
@@ -2936,7 +2937,7 @@ void REGPARAM2 Exception (int nr)
 
 STATIC_INLINE void do_interrupt (int nr)
 {
-#ifdef DEBUG
+#ifdef DEBUGGER
 	if (debug_dma)
 		record_dma_event (DMA_EVENT_CPUIRQ, current_hpos (), vpos);
 #endif
@@ -3940,13 +3941,14 @@ STATIC_INLINE int do_specialties (int cycles)
 			INTREQ_f (0x8008);
 			set_special (SPCFLAG_INT);
 		}
+#ifdef BSDSOCKET
 		{
 			extern void bsdsock_fake_int_handler (void);
 			extern int volatile bsd_int_requested;
 			if (bsd_int_requested)
 				bsdsock_fake_int_handler ();
 		}
-
+#endif
 		if (cpu_tracer > 0) {
 			cputrace.stopped = regs.stopped;
 			cputrace.intmask = regs.intmask;
@@ -4248,7 +4250,9 @@ cont:
 		if (cputrace.needendcycles) {
 			cputrace.needendcycles = 0;
 			write_log (_T("STARTCYCLES=%08x ENDCYCLES=%08x\n"), cputrace.startcycles, get_cycles ());
+#ifdef DEBUGGER
 			log_dma_record ();
+#endif
 		}
 
 		if (r->spcflags || time_for_interrupt ()) {
@@ -4879,8 +4883,10 @@ static void m68k_run_mmu (void)
 		mmu_backup_regs = regs;
 		cpu_cycles = (*cpufunctbl[opcode])(opcode);
 		cpu_cycles = adjust_cycles (cpu_cycles);
+#ifdef DEBUGGER
 		if (mmu_triggered)
 			mmu_do_hit ();
+#endif
 		if (regs.spcflags) {
 			if (do_specialties (cpu_cycles))
 				return;
@@ -4950,7 +4956,7 @@ void m68k_go (int may_quit)
 				restore_state (savestate_fname);
 			else if (savestate_state == STATE_REWIND)
 				savestate_rewind ();
-#endif
+#endif // SAVESTATE
 			set_cycles (start_cycles);
 			custom_reset (hardreset != 0, kbreset);
 			m68k_reset (hardreset != 0);
@@ -4961,23 +4967,27 @@ void m68k_go (int may_quit)
 #ifdef SAVESTATE
 			/* We may have been restoring state, but we're done now.  */
 			if (isrestore ()) {
+#ifdef DEBUGGER
 				if (debug_dma) {
 					record_dma_reset ();
 					record_dma_reset ();
 				}
+#endif // DEBUGGER
 				savestate_restore_finish ();
+#ifdef DEBUGGER
 				memory_map_dump ();
+#endif // DEBUGGER
 #ifdef MMUEMU
 				if (currprefs.mmu_model == 68030) {
 					mmu030_decode_tc (tc_030);
 				} else if (currprefs.mmu_model >= 68040) {
 					mmu_set_tc (regs.tcr);
 				}
-#endif
+#endif // MMUEMU
 				startup = 1;
 				restored = 1;
 			}
-#endif
+#endif // SAVESTATE
 			if (currprefs.produce_sound == 0)
 				eventtab[ev_audio].active = 0;
 			m68k_setpc (regs.pc);

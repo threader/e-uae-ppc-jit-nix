@@ -1202,6 +1202,7 @@ static bool mousehack_enabled;
 
 static void mousehack_reset (void)
 {
+#ifdef FILESYS
 	dimensioninfo_width = dimensioninfo_height = 0;
 	mouseoffset_x = mouseoffset_y = 0;
 	dimensioninfo_dbl = 0;
@@ -1212,6 +1213,7 @@ static void mousehack_reset (void)
 		put_byte (mousehack_address + MH_E, 0);
 	mousehack_address = 0;
 	mousehack_enabled = false;
+#endif
 }
 
 static bool mousehack_enable (void)
@@ -1245,6 +1247,7 @@ void input_mousehack_mouseoffset (uaecptr pointerprefs)
 
 int input_mousehack_status (int mode, uaecptr diminfo, uaecptr dispinfo, uaecptr vp, uae_u32 moffset)
 {
+#ifdef FILESYS
 	if (mode == 4) {
 		return mousehack_enable () ? 1 : 0;
 	} else if (mode == 5) {
@@ -1288,6 +1291,7 @@ int input_mousehack_status (int mode, uaecptr diminfo, uaecptr dispinfo, uaecptr
 		else if (mousehack_alive_cnt > 0)
 			mousehack_alive_cnt = 100;
 	}
+#endif
 	return 1;
 }
 
@@ -1295,6 +1299,7 @@ void get_custom_mouse_limits (int *w, int *h, int *dx, int *dy, int dbl);
 
 void inputdevice_tablet_strobe (void)
 {
+#ifdef FILESYS
 	mousehack_enable ();
 	if (!uae_boot_rom)
 		return;
@@ -1302,10 +1307,12 @@ void inputdevice_tablet_strobe (void)
 		return;
 	if (mousehack_address)
 		put_byte (mousehack_address + MH_CNT, get_byte (mousehack_address + MH_CNT) + 1);
+#endif
 }
 
 void inputdevice_tablet (int x, int y, int z, int pressure, uae_u32 buttonbits, int inproximity, int ax, int ay, int az)
 {
+#ifdef FILESYS
 	uae_u8 *p;
 	uae_u8 tmp[MH_END];
 
@@ -1395,10 +1402,12 @@ void inputdevice_tablet (int x, int y, int z, int pressure, uae_u32 buttonbits, 
 
 	p[MH_E] = 0xc0 | 2;
 	p[MH_CNT]++;
+#endif
 }
 
 void inputdevice_tablet_info (int maxx, int maxy, int maxz, int maxax, int maxay, int maxaz, int xres, int yres)
 {
+#ifdef FILESYS
 	uae_u8 *p;
 
 	if (!uae_boot_rom || !mousehack_address)
@@ -1425,11 +1434,13 @@ void inputdevice_tablet_info (int maxx, int maxy, int maxz, int maxax, int maxay
 	p[MH_MAXAY + 1] = maxay;
 	p[MH_MAXAZ] = maxaz >> 8;
 	p[MH_MAXAZ + 1] = maxaz;
+#endif
 }
 
 
 static void inputdevice_mh_abs (int x, int y, uae_u32 buttonbits)
 {
+#ifdef FILESYS
 	uae_u8 *p;
 	uae_u8 tmp1[4], tmp2[4];
 
@@ -1461,6 +1472,7 @@ static void inputdevice_mh_abs (int x, int y, uae_u32 buttonbits)
 	p[MH_E] = 0xc0 | 1;
 	p[MH_CNT]++;
 	tablet_data = 1;
+#endif
 }
 
 #ifdef FILESYS
@@ -2754,7 +2766,11 @@ static bool inputdevice_handle_inputcode2 (int code, int state)
 
 	if (code == 0)
 		goto end;
-	if (needcputrace (code) && can_cpu_tracer () == true && is_cpu_tracer () == false && !input_play && !input_record && !debugging) {
+	if (needcputrace (code) && can_cpu_tracer () == true && is_cpu_tracer () == false && !input_play && !input_record
+#ifdef DEBUGGER
+		&& !debugging
+#endif
+		) {
 		if (set_cpu_tracer (true)) {
 			tracer_enable = 1;
 			return true; // wait for next frame

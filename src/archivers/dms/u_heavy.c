@@ -15,6 +15,9 @@
 #include "getbits.h"
 #include "maketbl.h"
 
+#ifdef __pnacl__
+#define INLINE  /* Redefine INLINE to mean nothing rather than 'inline'. */
+#endif  /* __pnacl__ */
 
 #define NC 510
 #define NPT 20
@@ -30,8 +33,8 @@ USHORT dms_heavy_text_loc;
 
 static USHORT read_tree_c(void);
 static USHORT read_tree_p(void);
-USHORT decode_c(void);
-USHORT decode_p(void);
+INLINE USHORT decode_c(void);
+INLINE USHORT decode_p(void);
 
 
 

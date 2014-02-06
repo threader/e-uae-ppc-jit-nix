@@ -1,14 +1,14 @@
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * SANAII compatible network driver emulation
+ *
+ * (c) 2007 Toni Wilen
+ */
+
 #pragma once
 #ifndef SANA2_H
 #define SANA2_H
-
- /*
-  * UAE - The Un*x Amiga Emulator
-  *
-  * SANAII compatible network driver emulation
-  *
-  * (c) 2007 Toni Wilen
-  */
 
 uaecptr netdev_startup (uaecptr resaddr);
 void netdev_install (void);

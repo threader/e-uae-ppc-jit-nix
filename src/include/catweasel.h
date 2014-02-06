@@ -1,3 +1,13 @@
+/*
+ * PUAE Catweasel support
+ *
+ * Copyright
+ * Copyright 2011 Mustafa TUFAN
+ *
+ * some parts inspired or taken from cwfloppy
+ * Copyright (C) 1998-2009 Michael Krause
+ *
+ */
 
 #ifdef CATWEASEL
 

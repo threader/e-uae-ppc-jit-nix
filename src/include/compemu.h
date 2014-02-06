@@ -1,7 +1,3 @@
-#pragma once
-#ifndef COMPEMU_H
-#define COMPEMU_H
-
 /*
  *  include/compemu.h - Public interface and definitions
  *
@@ -14,6 +10,10 @@
  *
  * Updated to a unified interface (C) 2013 Sven Eden
  */
+
+#pragma once
+#ifndef COMPEMU_H
+#define COMPEMU_H
 
 #include "flags_x86.h"
 

@@ -1601,8 +1601,9 @@ void set_audio (void)
 
 	if (ch >= 0) {
 		if (currprefs.produce_sound >= 2) {
+#ifndef __native_client__
 			if (!init_audio ()) {
-				if (! sound_available) {
+				if (!sound_available) {
 					write_log (_T("Sound is not supported.\n"));
 				} else {
 					write_log (_T("Sorry, can't initialize sound.\n"));
@@ -1611,6 +1612,7 @@ void set_audio (void)
 					changed_prefs.produce_sound = 1;
 				}
 			}
+#endif
 		}
 		next_sample_evtime = scaled_sample_evtime;
 		last_cycles = get_cycles ();

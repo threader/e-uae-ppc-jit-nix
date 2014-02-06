@@ -927,10 +927,12 @@ void cfgfile_save_options (struct zfile *f, struct uae_prefs *p, int type)
 	if (p->romextident[0])
 		cfgfile_write_str (f, _T("kickstart_ext_rom="), p->romextident);
 	cfgfile_write_path (f, &p->path_rom, _T("flash_file"), p->flashfile);
-	cfgfile_write_path (f, &p->path_rom, _T("cart_file"), p->cartfile);
 	cfgfile_write_path (f, &p->path_rom, _T("rtc_file"), p->rtcfile);
+#ifdef ACTION_REPLAY
+	cfgfile_write_path (f, &p->path_rom, _T("cart_file"), p->cartfile);
 	if (p->cartident[0])
 		cfgfile_write_str (f, _T("cart"), p->cartident);
+#endif
 	if (p->amaxromfile[0])
 		cfgfile_write_path (f, &p->path_rom, _T("amax_rom_file"), p->amaxromfile);
 
@@ -3428,7 +3430,7 @@ static int cfgfile_parse_hardware (struct uae_prefs *p, const TCHAR *option, TCH
 		return 1;
 	}
 
-
+#ifdef ACTION_REPLAY
 	if (cfgfile_strval (option, value, _T("cart_internal"), &p->cart_internal, cartsmode, 0)) {
 		if (p->cart_internal) {
 			struct romdata *rd = getromdatabyid (63);
@@ -3437,6 +3439,7 @@ static int cfgfile_parse_hardware (struct uae_prefs *p, const TCHAR *option, TCH
 		}
 		return 1;
 	}
+#endif
 	if (cfgfile_string (option, value, _T("kickstart_rom"), p->romident, sizeof p->romident / sizeof (TCHAR))) {
 		decode_rom_ident (p->romfile, sizeof p->romfile / sizeof (TCHAR), p->romident, ROMTYPE_ALL_KICK);
 		return 1;
@@ -3445,11 +3448,12 @@ static int cfgfile_parse_hardware (struct uae_prefs *p, const TCHAR *option, TCH
 		decode_rom_ident (p->romextfile, sizeof p->romextfile / sizeof (TCHAR), p->romextident, ROMTYPE_ALL_EXT);
 		return 1;
 	}
+#ifdef ACTION_REPLAY
 	if (cfgfile_string (option, value, _T("cart"), p->cartident, sizeof p->cartident / sizeof (TCHAR))) {
 		decode_rom_ident (p->cartfile, sizeof p->cartfile / sizeof (TCHAR), p->cartident, ROMTYPE_ALL_CART);
 		return 1;
 	}
-
+#endif
 	for (i = 0; i < 4; i++) {
 		_stprintf (tmpbuf, _T("floppy%d"), i);
 		if (cfgfile_path_mp (option, value, tmpbuf, p->floppyslots[i].df, sizeof p->floppyslots[i].df / sizeof (TCHAR), &p->path_floppy))
@@ -5103,7 +5107,9 @@ void default_prefs (struct uae_prefs *p, int type)
 	p->filesys_no_uaefsdb = 0;
 	p->filesys_custom_uaefsdb = 1;
 	p->picasso96_nocustom = 1;
+#ifdef ACTION_REPLAY
 	p->cart_internal = 1;
+#endif
 	p->sana2 = 0;
 	p->clipboard_sharing = false;
 	p->native_code = false;
@@ -5807,7 +5813,9 @@ static int bip_super (struct uae_prefs *p, int config, int compa, int romcheck)
 	p->scsi = 1;
 	p->uaeserial = 1;
 	p->socket_emu = 1;
+#ifdef ACTION_REPLAY
 	p->cart_internal = 0;
+#endif
 	p->picasso96_nocustom = 1;
 	p->cs_compatible = 1;
 	built_in_chipset_prefs (p);

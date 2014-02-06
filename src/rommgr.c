@@ -1006,8 +1006,10 @@ static void descramble (const struct romdata *rd, uae_u8 *data, int size, int od
 {
 	int flags = rd->type;
 
+#ifdef ACTION_REPLAY
 	if (flags & (ROMTYPE_NORDIC | ROMTYPE_XPOWER))
 		descramble_nordicpro (data, size, odd);
+#endif
 }
 
 static int read_rom_file (uae_u8 *buf, const struct romdata *rd)
@@ -1300,7 +1302,9 @@ int configure_rom (struct uae_prefs *p, const int *rom, int msg)
 		_tcscpy (p->romfile, path);
 	if (rd->type & (ROMTYPE_EXTCD32 | ROMTYPE_EXTCDTV | ROMTYPE_ARCADIABIOS))
 		_tcscpy (p->romextfile, path);
+#ifdef ACTION_REPLAY
 	if (rd->type & (ROMTYPE_CD32CART | ROMTYPE_ARCADIAGAME | ROMTYPE_HRTMON | ROMTYPE_XPOWER | ROMTYPE_NORDIC | ROMTYPE_AR | ROMTYPE_SUPERIV))
 		_tcscpy (p->cartfile, path);
+#endif
 	return 1;
 }

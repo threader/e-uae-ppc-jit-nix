@@ -400,8 +400,10 @@ static void blitter_interrupt (int hpos, int done)
 		return;
 	blit_interrupt = 1;
 	send_interrupt (6, 4 * CYCLE_UNIT);
+#ifdef DEBUGGER
 	if (debug_dma)
 		record_dma_event (DMA_EVENT_BLITIRQ, hpos, vpos);
+#endif
 }
 
 static void blitter_done (int hpos)
@@ -414,8 +416,8 @@ static void blitter_done (int hpos)
 	event2_remevent (ev2_blitter);
 	unset_special (SPCFLAG_BLTNASTY);
 #ifdef BLITTER_DEBUG
-		write_log (_T("cycles %d, missed %d, total %d\n"),
-			blit_totalcyclecounter, blit_misscyclecounter, blit_totalcyclecounter + blit_misscyclecounter);
+	write_log (_T("cycles %d, missed %d, total %d\n"),
+		blit_totalcyclecounter, blit_misscyclecounter, blit_totalcyclecounter + blit_misscyclecounter);
 #endif
 	blitter_dangerous_bpl = 0;
 
@@ -425,8 +427,10 @@ STATIC_INLINE void chipmem_agnus_wput2 (uaecptr addr, uae_u32 w)
 {
 	last_custom_value1 = w;
 #ifndef BLITTER_DEBUG_NO_D
-		chipmem_wput_indirect (addr, w);
-		debug_wputpeekdma_chipram (addr, w, 0x000);
+	chipmem_wput_indirect (addr, w);
+#ifdef DEBUGGER
+	debug_wputpeekdma_chipram (addr, w, 0x000);
+#endif
 #endif
 }
 
@@ -1732,8 +1736,10 @@ void blitter_reset (void)
 
 void restore_blitter_finish (void)
 {
+#ifdef DEBUGGER
 	record_dma_reset ();
 	record_dma_reset ();
+#endif
 	if (blt_statefile_type == 0) {
 		blit_interrupt = 1;
 		if (bltstate == BLT_init) {

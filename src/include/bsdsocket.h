@@ -1,15 +1,15 @@
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * bsdsocket.library emulation
+ *
+ * Copyright 1997,98 Mathias Ortmann
+ *
+ */
+
 #pragma once
 #ifndef BSDSOCKET_H
 #define BSDSOCKET_H
-
- /*
-  * UAE - The Un*x Amiga Emulator
-  *
-  * bsdsocket.library emulation
-  *
-  * Copyright 1997,98 Mathias Ortmann
-  *
-  */
 
 #define BSD_TRACING_ENABLED 0
 

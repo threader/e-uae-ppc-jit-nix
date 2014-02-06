@@ -2,7 +2,7 @@ dnl Process this file with autoconf to produce a configure script.
 dnl Written 1996, 1997, 1998 Bernd Schmidt
 dnl
 dnl Updated, re-written and generally mauled 2003 Richard Drummond
-dnl Updated and generally mauled             2008-2013 Mustafa Tufan
+dnl Updated and generally mauled             2008-2014 Mustafa Tufan
 dnl
 
 AC_PREREQ(2.55)
@@ -112,7 +112,6 @@ fi
 dnl
 dnl if QT
 dnl
-
 if [[ "x$HAVE_QT" = "xyes" ]]; then
 AC_MSG_CHECKING(QT: Meta Object Compiler)
 if test -z "$QT_MOC"; then
@@ -161,7 +160,6 @@ fi
 dnl
 dnl
 dnl
-
 if [[ "x$HAVE_QT" = "xno" ]]; then
 if [[ "x$WANT_QT" = "xyes" ]]; then
 WANT_QT=no
@@ -297,7 +295,6 @@ dnl
 ACX_PTHREAD(HAVE_PTHREAD=yes,HAVE_PTHREAD=no)
 
 dnl Solaris, for example, needs additional libs to use POSIX semaphores.
-
 if [[ "x$HAVE_PTHREAD" = "xyes" ]]; then
  SAVE_CFLAGS="$CFLAGS"
  SAVE_LIBS="$LIBS"
@@ -377,6 +374,14 @@ case $host_os in
     morphos)
       HOST_OS=morphos
       OSDEP=od-amiga
+      ;;
+    nacl*)
+      HOST_OS=nacl
+      OSDEP=od-linux
+      ;;
+    pnacl*)
+      HOST_OS=nacl
+      OSDEP=od-linux
       ;;
     aros)
       HOST_OS=aros
@@ -487,7 +492,6 @@ fi
 dnl
 dnl  Now we know the compiler, check some compiler options
 dnl
-
 if [[ "x$HAVEGCC27" = "xyes" -a "$HOST_CPU" = "i386" ]]; then
   SAVECFLAGS=$CFLAGS
   CFLAGS="$CFLAGS -mno-schedule-prologue"
@@ -597,7 +601,6 @@ MATHLIB=-lm
 dnl
 dnl  Override defaults for specific targets
 dnl
-
 if [[ "$HOST_OS" = "linux" ]]; then
   JOY_DEP=jd-linuxold
   JOY_NAME="linux"
@@ -643,6 +646,13 @@ else if [[ "$OSDEP" = "od-amiga" ]]; then
    JOY_NAME="Amiga lowlevel.library"
   fi
   WANT_BSDSOCK=no
+else if [[ "$HOST_OS" = "nacl" ]]; then
+  WANT_JIT=no
+  WANT_AUTOCONFIG=no
+  GUI_DEP=gui-html
+  GUI_LIBS="-lppapi -lppapi_cpp -lppapi_gles2"
+  GUI_NAME="HTML"
+fi
 fi
 fi
 fi
@@ -711,6 +721,10 @@ AC_ARG_WITH(sdl-gui,
 AC_ARG_WITH(cocoa-gfx,
   AS_HELP_STRING([--with-cocoa-gfx], [Use Cocoa library for graphics]),
   [WANT_COCOAGFX=$withval], [])
+
+AC_ARG_WITH(pepper,
+  AS_HELP_STRING([--with-pepper], [Use Pepper for graphics/sound/input (NaCl only)]),
+  [WANT_PEPPER=$withval], [])
 
 AC_ARG_WITH(qt,
   AS_HELP_STRING([--with-qt], [Use QT library for graphics/ui]),
@@ -791,7 +805,6 @@ AC_CHECK_LIB(ncurses, waddch, HAVE_NCURSES_LIB=yes, HAVE_NCURSES_LIB=no)
 dnl
 dnl Check for SDL
 dnl
-
 if [[ "x$WANT_SDL" != "xno" ]]; then
   if [[ "$HOST_OS" = "darwin" ]]; then
 
@@ -914,7 +927,6 @@ CPUOBJS='cpuemu_0.$(OBJEXT)'
 dnl
 dnl CPUEMU_11: 68000/68010 prefetch
 dnl
-
 if [[ "x$WANT_COMPATIBLE" != "xno" ]]; then
   UAE_DEFINES="$UAE_DEFINES -DCPUEMU_11"
   CPUOBJS="$CPUOBJS cpuemu_11.\$(OBJEXT)"
@@ -926,7 +938,6 @@ dnl CPUEMU_20: 68020 prefetch
 dnl CPUEMU_21: 68020 CE + blitter
 dnl CPUEMU_22: 68030 (040/060) CE + blitter
 dnl
-
 if [[ "x$WANT_CYCLEEXACT" != "xno" ]]; then
   UAE_DEFINES="$UAE_DEFINES -DCPUEMU_13 -DCPUEMU_20 -DCPUEMU_21 -DCPUEMU_22"
   CPUOBJS="$CPUOBJS cpuemu_13.\$(OBJEXT) cpuemu_20.\$(OBJEXT) cpuemu_21.\$(OBJEXT) cpuemu_22.\$(OBJEXT)"
@@ -965,7 +976,6 @@ fi
 dnl
 dnl  Check whether to build with optimized CCR flags handling
 dnl
-
 if [[ "x$HAVE_GCC27" = "xyes" ]]; then
   if [[ "$HOST_CPU" = "i386" -o "$HOST_CPU" = "ppc" -o "$HOST_CPU" = "68k" ]]; then
     GENCPUOPTS="--optimized-flags"
@@ -1025,7 +1035,6 @@ dnl Check whether we wanted to use ncurses
 dnl
 dnl First check if we need to uses ncurses because no
 dnl other gfx support is available
-
 if [[ "x$WANT_NCURSES" != "xno" -a "x$WANT_SDL" = "xno" -a "x$GFX_DEP" = "x" ]]; then
  WANT_NCURSES=yes
 fi
@@ -1059,7 +1068,6 @@ dnl  Check whether we actually wanted to use SDL or whether
 dnl  we need to use SDL because we couldn't find any other
 dnl  graphics support
 dnl
-
 if [[ "x$WANT_SDL" = "xyes" -o "x$GFX_DEP" = "x" ]]; then
   if [[ "x$HAVE_SDL" = "xyes" -a "x$WANT_SDLGFX" != "xno" ]]; then
     WANT_SDL=yes
@@ -1074,7 +1082,9 @@ if [[ "x$WANT_SDL" = "xyes" -o "x$GFX_DEP" = "x" ]]; then
         if [[ "x$OSDEP" = "xod-macosx" ]]; then
           GFX_LIBS="-framework OpenGL"
         else
-          GFX_LIBS="-lGL -lGLU"
+          if [[ "$HOST_OS" != "nacl" ]]; then
+            GFX_LIBS="-lGL -lGLU"
+          fi
         fi
       fi
     fi
@@ -1091,10 +1101,25 @@ GFX_CPPFLAGS=""
 GFX_LIBS="-framework OpenGL"
 fi
 
+dnl
+if [[ "x$WANT_PEPPER" = "xyes" ]]; then
+  GFX_DEP="gfx-pepper"
+  GFX_LIBS="-lppapi -lppapi_gles2"
+  GFX_NAME="Pepper (PPAPI)"
+  SND_DEP="sd-pepper"
+  SND_LIBS="-lppapi"
+  SND_NAME="Pepper (PPAPI)"
+  JOY_DEP="jd-pepper"
+  JOY_LIBS="-lppapi"
+  JOY_NAME="Pepper (PPAPI)"
+  NEED_THREAD_SUPPORT=yes
+  THREADDEP="td-posix"
+  THREADNAME="POSIX"
+fi
+
 dnl  If we got here and we still haven't found a graphics target
 dnl  then bail out.
 dnl
-
 if [[ "x$GFX_DEP" = "x" ]]; then
   AC_MSG_RESULT(none)
   AC_MSG_ERROR([Could not find a useable graphics target])
@@ -2048,7 +2073,6 @@ dnl -O?
 dnl while in gcc 3.x, -O3 creates faster executable, this is no longer the case with 4.x
 dnl (using -O3 is not recommended for gcc 4.x, so we don't)
 dnl
-
 if [[ "x$HAVE_GCC40" = "xyes" ]]; then
 OPTIMIZED_FLAGS="-O2 -ffast-math -ftree-vectorize"
 else
@@ -2150,6 +2174,7 @@ AC_CONFIG_FILES([Makefile
 		 src/td-sdl/Makefile
 		 src/gfx-amigaos/Makefile
 		 src/gfx-beos/Makefile
+		 src/gfx-pepper/Makefile
 		 src/gfx-x11/Makefile
 		 src/gfx-sdl/Makefile
 		 src/gfx-curses/Makefile
@@ -2158,6 +2183,7 @@ AC_CONFIG_FILES([Makefile
 		 src/sd-amigaos/Makefile
 		 src/sd-beos/Makefile
 		 src/sd-none/Makefile
+		 src/sd-pepper/Makefile
 		 src/sd-sdl/Makefile
 		 src/sd-solaris/Makefile
 		 src/sd-uss/Makefile
@@ -2166,11 +2192,13 @@ AC_CONFIG_FILES([Makefile
 		 src/jd-amigaos/Makefile
 		 src/jd-beos/Makefile
 		 src/jd-linuxold/Makefile
+		 src/jd-pepper/Makefile
 		 src/jd-sdl/Makefile
 		 src/gui-none/Makefile
 		 src/gui-beos/Makefile
 		 src/gui-cocoa/Makefile
 		 src/gui-gtk/Makefile
+		 src/gui-html/Makefile
 		 src/gui-muirexx/Makefile
 		 src/gui-qt/Makefile
 		 src/gui-sdl/Makefile
@@ -2184,6 +2212,7 @@ AM_CONDITIONAL(TARGET_LINUX, test x$OSDEP = xod-linux)
 AM_CONDITIONAL(BUILD_MACOSX_BUNDLE, test x$OSDEP = xod-macosx)
 AM_CONDITIONAL(ANDROID, test x$WANT_ANDROID = xyes)
 AM_CONDITIONAL(IS_QT, test x$WANT_QT = xyes)
+AM_CONDITIONAL(TARGET_NACL, test x$HOST_OS = xnacl)
 AM_CONDITIONAL(SDL_UI, test x$WANT_SDL_UI = xyes)
 
 AC_SUBST(UAE_CFLAGS)
@@ -2221,7 +2250,6 @@ AC_SUBST(top_srcdir)
 dnl  If we're not cross-compiling then, the config script in src/tools
 dnl  can be called by config.status as normal
 dnl
-
 if [[ "x$cross_compiling" != "xyes" ]]; then
   AC_CONFIG_SUBDIRS(src/tools)
 fi
@@ -2234,7 +2262,6 @@ dnl  autoconf currently has no support for building host tools
 dnl  when cross-compiling. Okay. This is a hack. But it works. Can
 dnl  anybody think of a better way of doing this?
 dnl
-
 if [[ "x$cross_compiling" = "xyes" ]]; then
   export CC=$CC_FOR_BUILD
   export CFLAGS=$CFLAGS_FOR_BUILD

@@ -3,7 +3,7 @@
  *
  * A590/A2091/A3000/CDTV SCSI expansion (DMAC/SuperDMAC + WD33C93) emulation
  *
-* Copyright 2007-2013 Toni Wilen
+ * Copyright 2007-2013 Toni Wilen
  *
  */
 

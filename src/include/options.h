@@ -1,7 +1,3 @@
-#pragma once
-#ifndef OPTIONS_H
-#define OPTIONS_H
-
 /*
  * UAE - The Un*x Amiga Emulator
  *
@@ -10,6 +6,10 @@
  * Copyright 1995, 1996 Ed Hanway
  * Copyright 1995-2001 Bernd Schmidt
  */
+
+#pragma once
+#ifndef OPTIONS_H
+#define OPTIONS_H
 
 #define UAEMAJOR 2
 #define UAEMINOR 7

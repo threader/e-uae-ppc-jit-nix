@@ -56,7 +56,9 @@ void consolehook_config (struct uae_prefs *p)
 	_tcscpy (ci.devname, _T("DH0"));
 	ci.bootpri = 15;
 	ci.type = UAEDEV_DIR;
+#ifdef FILESYS
 	add_filesys_config (p, -1, &ci);
+#endif
 }
 
 static void *console_thread (void *v)

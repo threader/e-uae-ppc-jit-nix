@@ -275,9 +275,19 @@ static struct uae_input_device_kbr_default *keytrans[] = {
 	keytrans_pc1
 };
 
+/* The format is as follows:
+   { <key(s) that should map to 'left'>, -1,
+     <key(s) that should map to 'right'>, -1,
+     <key(s) that should map to 'up'>, -1,
+     <key(s) that should map to 'down'>, -1,
+     <key(s) that should map to 'button 1'>, -1,
+     <key(s) that should map to 'button 2'>, -1,
+     <key(s) that should map to 'button 3'>, -1 }
+*/
+
 static int kb_np[] = { DIK_NUMPAD4, -1, DIK_NUMPAD6, -1, DIK_NUMPAD8, -1, DIK_NUMPAD2, -1, DIK_NUMPAD0, DIK_NUMPAD5, -1, DIK_DECIMAL, -1, DIK_NUMPADENTER, -1, -1 };
-static int kb_ck[] = { DIK_LEFT, -1, DIK_RIGHT, -1, DIK_UP, -1, DIK_DOWN, -1, DIK_RCONTROL, DIK_RMENU, -1, DIK_RSHIFT, -1, -1 };
-static int kb_se[] = { DIK_A, -1, DIK_D, -1, DIK_W, -1, DIK_S, -1, DIK_LMENU, -1, DIK_LSHIFT, -1, -1 };
+static int kb_ck[] = { DIK_LEFT, -1, DIK_RIGHT, -1, DIK_UP, -1, DIK_DOWN, -1, DIK_SPACE, DIK_PERIOD, -1, DIK_COMMA, DIK_SLASH, -1, DIK_M, -1 };
+static int kb_se[] = { DIK_A, -1, DIK_D, -1, DIK_W, -1, DIK_S, -1, DIK_TAB, -1, DIK_Q, -1, DIK_E, -1 };
 static int kb_np3[] = { DIK_NUMPAD4, -1, DIK_NUMPAD6, -1, DIK_NUMPAD8, -1, DIK_NUMPAD2, -1, DIK_NUMPAD0, DIK_NUMPAD5, -1, DIK_DECIMAL, -1, DIK_NUMPADENTER, -1, -1 };
 static int kb_ck3[] = { DIK_LEFT, -1, DIK_RIGHT, -1, DIK_UP, -1, DIK_DOWN, -1, DIK_RCONTROL, -1, DIK_RSHIFT, -1, DIK_RMENU, -1, -1 };
 static int kb_se3[] = { DIK_A, -1, DIK_D, -1, DIK_W, -1, DIK_S, -1, DIK_LMENU, -1, DIK_LSHIFT, -1, DIK_LCONTROL, -1, -1 };

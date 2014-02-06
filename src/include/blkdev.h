@@ -1,3 +1,11 @@
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * lowlevel cd device glue, scsi emulator
+ *
+ * Copyright 2009-2013 Toni Wilen
+ *
+ */
 
 #ifndef BLKDEV_H
 #define BLKDEV_H

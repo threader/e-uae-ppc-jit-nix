@@ -130,7 +130,6 @@ typedef unsigned int      uae_uintptr;
 # define ENUMNAME(name) ; typedef int name
 #endif
 
-
 /* When using the selective passing of parameters in registers (on x86 and
  * 68k hosts with GCC) REGPARAM will be defined by configure to contain the
  * necessary storage modifier to be used in a function declaration to specify

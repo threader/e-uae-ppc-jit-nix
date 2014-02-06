@@ -6,6 +6,7 @@
  * See http://dbp-consulting.com/tutorials/SuppressingGCCWarnings.html for
  * further information on this.
 */
+
 #if ((__GNUC__ * 100) + __GNUC_MINOR__) >= 402
 #define GCC_DIAG_STR(s) #s
 #define GCC_DIAG_JOINSTR(x,y) GCC_DIAG_STR(x ## y)
@@ -18,11 +19,10 @@
 # else
 #  define GCC_DIAG_OFF(x) GCC_DIAG_PRAGMA(ignored GCC_DIAG_JOINSTR(-W,x))
 #  define GCC_DIAG_ON(x)  GCC_DIAG_PRAGMA(warning GCC_DIAG_JOINSTR(-W,x))
-# endif
+# endif // 4.06
 #else
 # define GCC_DIAG_OFF(x)
 # define GCC_DIAG_ON(x)
-#endif
-
+#endif // 4.02
 
 #endif // GCC_WARNINGS_H

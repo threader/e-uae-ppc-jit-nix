@@ -1,3 +1,11 @@
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * A590/A2091/A3000/CDTV SCSI expansion (DMAC/SuperDMAC + WD33C93) emulation
+ *
+ * Copyright 2007-2013 Toni Wilen
+ *
+ */
 
 #ifndef A2091_H
 #define A2091_H

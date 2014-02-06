@@ -1,3 +1,14 @@
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * Config file handling
+ * This still needs some thought before it's complete...
+ *
+ * Copyright 1998 Brian King, Bernd Schmidt
+ * Copyright 2006 Richard Drummond
+ * Copyright 2008 Mustafa Tufan
+ */
+
 #pragma once
 #ifndef CFGFILE_H
 #define CFGFILE_H

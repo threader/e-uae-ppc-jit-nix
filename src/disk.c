@@ -4173,8 +4173,8 @@ int disk_prevnext_name (TCHAR *imgp, int dir)
 	wrapped = 0;
 retry:
 	_tcscpy (imgl, img);
-	for (i = 0; i < (int)_tcslen(imgl); ++i)
-		imgl[i] = tolower (imgl[i]);
+    for (i = 0; i < MAX_DPATH && imgl[i] != '\0'; i++)
+        tolower(imgl[i]);
 	gotone = 0;
 	ret = 0;
 	ps = imgl;

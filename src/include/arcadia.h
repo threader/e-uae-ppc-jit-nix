@@ -1,3 +1,12 @@
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * Arcadia emulation
+ *
+ * Copyright 2005-2007 Toni Wilen
+ *
+ *
+ */
 
 #ifdef ARCADIA
 

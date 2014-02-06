@@ -1,3 +1,13 @@
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * CDTV DMAC/CDROM controller emulation
+ *
+ * Copyright 2004/2007-2010 Toni Wilen
+ *
+ * Thanks to Mark Knibbs <markk@clara.co.uk> for CDTV Technical information
+ *
+ */
 
 #ifdef CDTV
 

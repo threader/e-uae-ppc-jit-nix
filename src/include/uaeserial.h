@@ -1,14 +1,14 @@
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * uaeserial.device
+ *
+ * (c) 2006 Toni Wilen
+ */
+
 #pragma once
 #ifndef UAESERIAL_H
 #define UAESERIAL_H
-
- /*
-  * UAE - The Un*x Amiga Emulator
-  *
-  * uaeserial.device
-  *
-  * (c) 2006 Toni Wilen
-  */
 
 uaecptr uaeserialdev_startup (uaecptr resaddr);
 void uaeserialdev_install (void);

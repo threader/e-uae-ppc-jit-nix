@@ -1,15 +1,15 @@
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * Interface to the graphics system (X, SVGAlib)
+ *
+ * Copyright 1995-1997 Bernd Schmidt
+ * Copyright 2005 Richard Drummond
+ */
+
 #pragma once
 #ifndef XWIN_H
 #define XWIN_H
-
- /*
-  * UAE - The Un*x Amiga Emulator
-  *
-  * Interface to the graphics system (X, SVGAlib)
-  *
-  * Copyright 1995-1997 Bernd Schmidt
-  * Copyright 2005 Richard Drummond
-  */
 
 #define MAX_UAE_WIDTH 8192
 #define MAX_UAE_HEIGHT 8192

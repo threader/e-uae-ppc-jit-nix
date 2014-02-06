@@ -32,6 +32,11 @@
 #include <stdarg.h>
 #include "misc.h"
 
+#ifdef __native_client__
+/* guidep == gui-html is currently the only way to build with Native Client. */
+#include "guidep/ppapi.h"
+#endif  /* __native_client__ */
+
 static struct zfile *zlist = 0;
 
 const TCHAR *uae_archive_extensions[] = { _T("zip"), _T("rar"), _T("7z"), _T("lha"), _T("lzh"), _T("lzx"), _T("tar"), NULL };

@@ -66,3 +66,6 @@ ui_puae_mainwindow.h
 *.depend
 *.cbp
 *.layout
+
+# macos
+.DS_Store

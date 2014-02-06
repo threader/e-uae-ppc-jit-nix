@@ -2784,7 +2784,9 @@ static void draw_debug_status_line (int line)
 	xlinebuffer = gfxvidinfo.linemem;
 	if (xlinebuffer == 0)
 		xlinebuffer = row_map[line];
+#ifdef DEBUGGER
 	debug_draw_cycles (xlinebuffer, gfxvidinfo.pixbytes, line, gfxvidinfo.outwidth, gfxvidinfo.outheight, xredcolors, xgreencolors, xbluecolors);
+#endif
 }
 
 #define LIGHTPEN_HEIGHT 12

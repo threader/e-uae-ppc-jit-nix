@@ -1,6 +1,3 @@
-#pragma once
-#ifndef PICASSO96_H
-#define PICASSO96_H
 /*
  * UAE - The U*nix Amiga Emulator
  *
@@ -8,6 +5,10 @@
  *
  * Copyright 1997 Brian King <Brian_King@Mitel.com, Brian_King@Cloanto.com>
  */
+
+#pragma once
+#ifndef PICASSO96_H
+#define PICASSO96_H
 
 #if defined PICASSO96_SUPPORTED
 

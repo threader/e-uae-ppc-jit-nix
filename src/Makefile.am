@@ -3,10 +3,14 @@ AM_CPPFLAGS = @UAE_CPPFLAGS@
 AM_CPPFLAGS += -I$(top_srcdir)/src/include -I$(top_builddir)/src -I$(top_srcdir)/src -I$(top_srcdir)
 AM_CXXFLAGS  = @UAE_CXXFLAGS@
 
-LIBS = -L/usr/lib -lstdc++
+LIBS = -lstdc++
+if !TARGET_NACL  # Native Client can only use its own versions of the libraries. 
+LIBS += -L/usr/lib
+endif
 if !ANDROID
 LIBS += -lpthread
 endif
+
 if IS_QT
 QT_INCPATH = $(shell qmake -query QT_INSTALL_HEADERS)
 QT_INSPATH = $(shell qmake -query QT_INSTALL_DATA)
@@ -32,10 +36,10 @@ SUBDIRS = \
 
 DIST_SUBDIRS = \
 	md-generic md-68k md-i386-gcc md-ppc md-ppc-gcc md-amd64-gcc \
-	gfx-amigaos gfx-beos gfx-x11 gfx-sdl gfx-curses gfx-svga gfx-cocoa \
-	sd-none sd-alsa sd-amigaos sd-beos sd-sdl sd-solaris sd-uss \
-	jd-none jd-amigainput jd-amigaos jd-beos jd-linuxold jd-sdl \
-	gui-none gui-beos gui-cocoa gui-gtk gui-muirexx gui-sdl \
+	gfx-amigaos gfx-beos gfx-x11 gfx-sdl gfx-curses gfx-svga gfx-cocoa gfx-pepper \
+	sd-none sd-alsa sd-amigaos sd-beos sd-sdl sd-solaris sd-uss sd-pepper \
+	jd-none jd-amigainput jd-amigaos jd-beos jd-linuxold jd-sdl jd-pepper \
+	gui-none gui-beos gui-cocoa gui-gtk gui-muirexx gui-sdl gui-html \
 	od-generic od-amiga od-beos od-linux od-macosx \
 	td-none td-amigaos td-beos td-posix td-sdl \
 	keymap caps archivers/dms archivers/zip
@@ -62,8 +66,13 @@ DISTCLEANFILES = \
 	machdep osdep threaddep gfxdep sounddep joydep guidep \
 	target.h md-fpp.h
 
+if TARGET_NACL # = Using Native Client/Pepper
+bin_PROGRAMS  = \
+	uae
+else
 bin_PROGRAMS  = \
 	uae readdisk make_hdf
+endif
 
 if BUILD_MACOSX_BUNDLE
 bundle = @PACKAGE_NAME@.app
@@ -122,7 +131,6 @@ noinst_HEADERS = \
 	include/cia.h		include/cfgfile.h       \
 	include/commpipe.h	include/compemu.h	\
 	include/cpu_prefetch.h  include/custom.h	\
-	include/custom_private.h                        \
 	include/crc32.h		include/consolehook.h	\
 	include/arcadia.h	include/cdtv.h		\
 	include/debug.h		include/disk.h 		\
@@ -176,9 +184,11 @@ uae_SOURCES = \
 	native2amiga.c disk.c crc32.c savestate.c arcadia.c cdtv.c cd32_fmv.c \
 	uaeexe.c uaelib.c uaeresource.c uaeserial.c fdi2raw.c hotkeys.c amax.c \
 	ar.c driveclick.c enforcer.c misc.c uaenet.c a2065.c gayle.c blkdev.c blkdev_cdimage.c scsi.c ncr_scsi.c \
-	missing.c readcpu.c hrtmon.rom.c events.c calc.c aros.rom.c \
-	specialmonitors.c gfxboard.c qemuvga/cirrus_vga.c qemuvga/qemuuaeglue.c qemuvga/vga.c qemuvga/lsi53c895a.c \
-	sana2.c
+	missing.c readcpu.c hrtmon.rom.c events.c calc.c sana2.c \
+	specialmonitors.c gfxboard.c qemuvga/cirrus_vga.c qemuvga/qemuuaeglue.c qemuvga/vga.c qemuvga/lsi53c895a.c
+if !TARGET_NACL  # Do not include AROS ROM in Native Client. 
+uae_SOURCES += aros.rom.c
+endif
 
 EXTRA_uae_SOURCES = \
 	bsdsocket.c bsdsocket-posix-new.c build68k.c catweasel.c cdrom.c \

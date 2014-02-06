@@ -32,14 +32,14 @@ static RETSIGTYPE sigbrkhandler (int foo)
     activate_debugger ();
 #endif
 
-#if !defined(__unix) || defined(__NeXT__)
+#ifndef HAVE_SIGACTION
     signal (SIGINT, sigbrkhandler);
 #endif
 }
 
 void setup_brkhandler (void)
 {
-#if defined(__unix) && !defined(__NeXT__)
+#ifdef HAVE_SIGACTION
     struct sigaction sa;
     sa.sa_handler = sigbrkhandler;
     sa.sa_flags = 0;

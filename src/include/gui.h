@@ -6,6 +6,9 @@
   * Copyright 1996 Bernd Schmidt
   */
 
+#ifndef INCLUDE_GUI_H
+#define INCLUDE_GUI_H
+
 extern int gui_init (void);
 extern int gui_update (void);
 extern void gui_exit (void);
@@ -92,3 +95,4 @@ extern void gui_update_gfx (void);
 #define NUMSG_KS68030       "The selected system ROM requires a 68030 CPU."
 #define NUMSG_KS68030PLUS   "The selected system ROM requires a 68030 or higher CPU."
 
+#endif  // INCLUDE_GUI_H

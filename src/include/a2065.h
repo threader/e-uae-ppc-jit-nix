@@ -1,3 +1,11 @@
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * A2065 ZorroII Ethernet Card
+ *
+ * Copyright 2009 Toni Wilen
+ *
+ */
 
 #ifdef A2065
 

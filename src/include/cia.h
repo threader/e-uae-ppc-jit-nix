@@ -1,7 +1,3 @@
-#pragma once
-#ifndef CIA_H
-#define CIA_H
-
  /*
   * UAE - The Un*x Amiga Emulator
   *
@@ -9,6 +5,10 @@
   *
   * (c) 1995 Bernd Schmidt
   */
+
+#pragma once
+#ifndef CIA_H
+#define CIA_H
 
 void CIA_reset (void);
 void CIA_vsync_prehandler (void);

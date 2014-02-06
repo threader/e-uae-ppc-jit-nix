@@ -3,7 +3,7 @@
  *
  * lowlevel cd device glue, scsi emulator
  *
-* Copyright 2009-2013 Toni Wilen
+ * Copyright 2009-2013 Toni Wilen
  *
  */
 

@@ -1,7 +1,3 @@
-#pragma once
-#ifndef FSDB_H
-#define FSDB_H
-
  /*
   * UAE - The Un*x Amiga Emulator
   *
@@ -10,6 +6,10 @@
   *
   * Copyright 1999 Bernd Schmidt
   */
+
+#pragma once
+#ifndef FSDB_H
+#define FSDB_H
 
 #ifndef FSDB_FILE
 #define FSDB_FILE _T("_UAEFSDB.___")
