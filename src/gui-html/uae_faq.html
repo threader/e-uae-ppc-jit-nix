@@ -1,0 +1,279 @@
+<!doctype html>
+<html>
+<head>
+<title>Amiga 500 Emulator: Frequently Asked Questions</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="-1" />
+<meta name="Description" content="FAQ for the PNaCl-based Amiga
+Emulator: an Amiga 500 emulator that works directly in your
+browser. This page has instructions on how to use the emulator,
+technical background, and details on the technology and the source
+code.">
+<link href="http://fonts.googleapis.com/css?family=Belleza"
+      rel="stylesheet" type="text/css">
+<link href="uae.css" rel="stylesheet" type="text/css">
+</head>
+<body id="body">
+<div id="one_column">
+  <h1>Amiga 500 Emulator</h1>
+  <h2>Frequently Asked Questions</h2>
+
+  <h3>About the Amiga emulator</h3>
+
+  <h4>What is this?</h4>
+<div class="image-container">
+  <img class="flow-with-text" src="img/amiga500_128x128.png"
+       alt="The Amiga 500 &ndash; the most awesome computer ever made" />
+  <p>The Amiga 500 &ndash; the most awesome computer ever made.
+  (Photo copyright: Bill Bertram 2006 CC-BY-2.5)</p>
+</div>
+
+<p>The Commodore <a
+href="http://en.wikipedia.org/wiki/Amiga_500">Amiga 500</a> was a
+home computer that had its heyday in the late 1980s and early 90s.
+For a while, at least in Europe, it was <i>the</i> computer for games
+and for demos &ndash; and for a whole generation of programmers who
+cut their teeth programming Motorola 680x0 assembler, AmigaBASIC, and
+C.</p>
+
+<p>This website runs an emulator of the Amiga 500 inside of Chrome by
+using Portable Native Client, a way to run existing C/C++ in the
+browser in a safe way across operating systems and across machine
+architectures. On the main page you can boot the Amiga, insert floppy
+disks, play the games, and generally pretend it's still the late
+80s. (We recommend some Enigma music or the soundtrack from the movie
+Top Gun in the background.)</p>
+
+<p>The <a href="http://github.com/cstefansen/PUAE">code</a> was forked from PUAE, the Portable Universal Amiga
+Emulator, from GnoStiC's GitHub <a
+href="https://github.com/GnoStiC/PUAE">repo</a>.  A huge thank you to
+Bernd Schmidt, Toni Wilen, Mathias Ortmann, Richard Drummond, Mustafa
+Tufan (GnoStiC), and the many other developers who have contributed to
+the various generations of UAE over time.  You guys rock!</p>
+
+
+<h3>Using the emulator</h3>
+
+<a id="get_roms"></a><h4>Why do I need Amiga Forever Essentials to use
+my own floppy disks?</h4>
+<p>Cloanto has kindly provided the Amiga Kickstart ROM for use with
+the Amiga Workbench 1.3 and the First Demos disks in this demo. To use
+other disks with the emulator, users can obtain a Kickstart ROM
+license by getting the <a
+href="https://chrome.google.com/webstore/detail/amiga-forever-essentials/aemohkgcfhdkjpoonndfpaikgbpgcogm">Amiga
+Forever Essentials</a> bundle for Chrome. If you are looking for a
+desktop Amiga emulator for Windows, check out <a
+href="http://www.amigaforever.com/">Amiga Forever</a>.</p>
+
+<h4>How can I use the games and apps I still own?</h4>
+<p>If you already have the disks as .adf files, just get a kickstart
+ROM license (see the previous question), and you should be good to
+go. If not, well, then it's complicated. Maybe try <a
+ href="https://www.google.com/search?q=create+adf+file+from+disk">this
+search</a> on Google.</p>
+
+<h4>What machines are supported?</h4>
+<p>All Chrome desktop devices, that is, any somewhat recent device
+running Mac OS, Microsoft Windows, Linux, or Chrome OS.</p>
+
+<h4>Why do the cursor keys and the space bar not work?</h4>
+<p>They do, but they are probably assigned to a joystick port.  When
+they are assigned to a joystick port, they will not work as normal
+keys.</p>
+
+<h4>I can't use the escape key. It makes Chrome leave full-screen mode. And
+where is the Help key and the Amiga keys?</h4>
+<p>By design there is no way to disable Chrome's reservation of the
+escape key.  Here are some substitute key mappings to use inside the
+Amiga:
+<ul>
+  <li>F11 &rarr; Help
+  <li>F12 &rarr; Esc
+  <li>Home &rarr; Left Amiga
+  <li>End &rarr; Right Amiga
+</ul>
+</p>
+
+<h4>Why does my favorite key in the whole world not work in the Amiga?</h4>
+
+<p>JavaScript does not get notifications for all keys that the Amiga
+knows about.  This being a demo, we didn't include a "send special key
+to emulator" feature except from those mention above.</p>
+
+<h4>Why don't you support more different Amiga configurations?</h4>
+<p>We could potentially. File a request (see below).</p>
+
+<h4>Aargh, why can't I change from PAL (50 Hz) to NTSC (60 Hz)?</h4>
+<p>Sorries, that feature didn't make the cut in this version. If
+enough people want to use NTSC content, I'll add that feature. The
+emulator was set up in PAL mode, as that's the mode that the largest
+amount of Amiga content was built for.</p>
+
+<h4>Why does full-screen mode have a big black border?  Why not
+stretch to fill the screen?</h4>
+<p>If full-screen mode is not actually filling up the entire screen,
+it's because Chrome does not support hardware accelerated graphics on
+your machine (or with your current driver).</p>
+
+<h4>Where is my favorite UAE or Amiga feature?</h4>
+<p>This port doesn't have all the features that the Universal Amiga
+Emulator has.  For some, such as saving games and connecting
+cartridges, they weren't deemed important for the demo; for others
+such as mounting local file systems they don't work in a web context.
+If you want a full-featured Amiga emulator, look as FS-UAE (free) or
+Amiga Forever.</p>
+
+
+<h3>The code, the source, the technology</h3>
+
+<h4>Where can I find the source?</h4>
+<p><a href="http://github.com/cstefansen/PUAE">Source</a>.</p>
+
+<h4>What exactly is Portable Native Client (PNaCl)?</h4>
+<p>See the official Portable Native Client developer
+<a href="https://developers.google.com/native-client/pnacl-preview/overview#how-native-client-works">documentation</a>.</p>
+
+<h4>Can I use the AROS ROM with this demo? Why is it not compiled in?</h4>
+<p>It doesn't work terribly well, but we were able to boot a few
+titles with the AROS ROM. YMMV. It is not enabled in the demo because
+it wasn't working reliably enough with the titles we tried.</p>
+
+<h4>Why did you base it on PUAE? Why not FS-UAE, WinUAE or something else?</h4>
+<p>PUAE's code base seemed the most accessible one to me at the time.</p>
+
+<h4>Could this be made to work in other browsers?</h4>
+<p>Probably. You could try using Emscripten/<a
+ href="http://asmjs.org/spec/latest/">asm.js</a>.  Since the Portable
+Native Client tools spit out LLVM bitcode, it should be possible to
+generate asm.js-compliant JavaScript code from that. One challenge is
+that the Amiga emulator is currently multi-threaded, but it can
+probably be made single-threaded.</p>
+
+<h4>How long did it take to port?</h4>
+<p>The emulator is something like 400,000 lines of C code.  The
+original port to Native Client was done in four days.  However, there
+was a lot of polishing afterwards, taking at least four times as long
+as the original port.
+
+<h4>Why not use SDL?</h4>
+<p>Good point. In fact, an <a href="http://www.libsdl.org/">SDL</a>
+port for Native Client does exist in the nacl_ports <a
+ href="https://code.google.com/p/naclports/">repository</a>. At the
+time when the bulk of the porting work was being done, however, the
+NaCl SDL port didn't have performant support for <i>both</i>
+Graphics2D and Graphics3D.  And, yes, I wanted an excuse to
+familiarize myself with the Pepper <a
+ href="https://developers.google.com/native-client/peppercpp/">interfaces</a>.</p>
+
+<h4>Can it be optimzed to run faster?</h4>
+<p>Certainly. I've left suggestions here and there in the code, so
+check out the code and go to town! E.g., currently, rendering happens
+on the emulator thread; an obvious thing to try is to render on a
+separate thread.</p>
+
+
+<h3>Issues &ndash; known and unknown</h3>
+
+<h4>Bummer, it's really slow on my machine (AKA I get choppy sound or
+janky graphics)</h4>
+<p>Here are some things to try:</p>
+<ul>
+  <li>If it's a laptop, plug in the power.</li>
+  <li>Try going full-screen. In some cases full-screen mode is faster
+  because Chrome doesn't have to run the compositor.</li>
+  <li>Check out about:gpu (type it in the address bar and hit
+  enter). If it doesn't show that you have support for hardware
+  accelerated graphics in Chrome, consider upgrading the driver for
+  your graphics card. (Make sure you keep a backup of your existing
+  driver. Only do this if you know how to revert to the previous
+  version if something goes wrong.)</li>
+</ul>
+<p>In general, look at the line of indicators at the bottom of the
+Amiga.  The third box contains the number of frames per second. This
+is a PAL-mode Amiga, so your sound will be choppy if it not able to
+hit 50 frames per second on average. On the other hand, even if you
+get 50 frames per seconds perfectly, it may still look slightly
+uneven. This is because a modern display runs 60 Hz, so approximately
+every fifth frame will be doubled.</p>
+<p>If you get stutter while choosing disks to insert, that's a known issues.
+We're working on it. </p>
+
+<h4>Uh, it seems to run 60 FPS when no audio is playing?</h4>
+<p>Yes. We'll fix it if it turns out to be a problem, but it's just so
+nice to have smooth scrolling when it's possible.</p>
+
+<h4>What's up with the gamepad support?</h4>
+<p>It sort of works. Use the dropdowns to select gamepad input,
+<i>then</i> press a few buttons on the gamepad to allow Chrome to
+connect it. Reset the Amiga if it doesn't work. And please report any
+issues.</p>
+
+<h4>How do I report an issue?</h>
+<p>First check the <a
+ href="https://code.google.com/p/chromium/issues/list?can=2&q=Cr%3APlatform-NaCl+Amiga&colspec=ID+Pri+M+Iteration+ReleaseBlock+Cr+Status+Owner+Summary+OS+Modified&x=m&y=releaseblock&cells=tiles">issue
+list</a> to see if it has already been reported.  If it has, just add
+any new information you may have and star the issue to vote for
+it.</p>
+<p>If it hasn't already been reported use this <a
+ href="https://code.google.com/p/chromium/issues/entry?template=NaCl%20Issue">form</a>.
+Always remember to include the five 'A's:</p>
+<ul>
+  <li><b>a</b>bout:version</li>
+  <li><b>a</b>bout:nacl</li>
+  <li><b>a</b>bout:gpu</li>
+  <li><b>A</b>ll output on the JavaScript console</li>
+  <li><b>A</b>ll output seen on stdout</li>
+</ul>
+<p>Thanks!</p>
+
+<h3>Miscellaneous</h3>
+
+<h4>The small print</h4>
+
+<p>The emulator code is GPL2 &ndash; check out the <a
+href="http://github.com/cstefansen/PUAE">source</a>.  The Amiga ROM,
+OS, and First Demos files are provided under license by <a
+href="http://www.amigaforever.com/">Cloanto</a>. Amiga is a
+trademark of <a
+href="http://www.amiga.com/sales/index.php?p=brand">Amiga Inc.</a>
+The favicon is provided with permission by Cloanto.</p>
+
+<h4>Who are you?</h4>
+<p>Oh, hai! I work for Google. I was a member of the Chrome team, and
+more specifically the Native Client team, from August 2010 to June
+2013. You can find <a
+href="https://google.com/+ChristianStefansen">me</a> on Google+</p>
+
+</div>
+
+<div class="footer">
+  <p> <a href="uae.html">Home</a> &nbsp;&nbsp; <a
+  href="uae_faq.html">FAQ</a> &nbsp;&nbsp; <a
+  href="https://github.com/cstefansen/PUAE">Source code</a>
+  </p>
+
+  <p>Ported by <a
+  href="https://google.com/+ChristianStefansen">Christian
+  Stefansen</a>. The Amiga ROM, OS, and First Demos files are provided
+  under license by <a
+  href="http://www.amigaforever.com/">Cloanto</a>.</p>
+
+  <p>The port is dedicated to Karsten, Mumm, Wulff, and K.P. in fond
+  remembrance of our childhood and the many hours of playing Amiga 500
+  games together.</p>
+</div>
+
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-6408327-2', 'pnacl-amiga-emulator.appspot.com');
+  ga('send', 'pageview');
+
+</script>
+
+</body>
+</html>

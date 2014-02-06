@@ -1,0 +1,121 @@
+<!doctype html>
+<html>
+<head>
+<title>Amiga 500 Emulator: A Portable Native Client demo</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+<!-- Enable these for development purposes.
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="-1" />
+ -->
+<meta name="Description" content="An Amiga 500 emulator that works
+directly in your browser. Play with the demos provided by Cloanto or
+bring your ROM to play your own good old Amiga games here. This
+technology demo is based on the Universal Amiga Emulator (UAE) and
+uses Portable Native Client (PNaCl) to make it run in the browser.">
+<link href="http://fonts.googleapis.com/css?family=Belleza"
+      rel="stylesheet" type="text/css">
+<link href="uae.css" rel="stylesheet" type="text/css">
+</head>
+<body id="body">
+<h1>Amiga 500 Emulator</h1>
+<h2>A <i>Portable Native Client</i> demo</h2>
+<p id="status_field">&nbsp;</p>
+
+<div id="uae_container">
+<div id="overlay">
+  <img id="cloanto-logo" src="img/cloanto-amiga-forever-powered-0120.png"
+       alt="Powered by Amiga Forever &ndash; Cloanto(tm)" />
+  <div id="progress">
+    <img src="img/loading.gif" id="loading_animation"
+         alt="Animated loading indicator" />
+  <p id='progress_text'>Loading...</p>
+  </div>
+</div>
+</div>
+
+<div id="instructions">
+  <h2>Tips</h2>
+  <p>When you see the Workbench screen, click inside the Amiga to
+  take control of the pointer.</p>
+  <img src="img/amiga_pointer.png" width="27px"
+       alt="Amiga mouse pointer screenshot" />
+  <p>Double-click "First Demos".</p>
+  <img src="img/first_demos.png" width="67px" alt="First Demos screenshot" />
+  <p>Then double-click "ReadMe.txt" for instructions.</p>
+  <img src="img/read_me.png" width="67px" alt="ReadMe.txt screenshot" />
+  <br />
+  <p>For better performance press <b>Ctrl-Shift-F</b> for fullscreen.
+  Press Esc to leave fullscreen.</p>
+</div>
+
+<div style="width: 720px;">
+<div style="width: 400px; float: left; padding-right: 10px;">
+  <p id="afe_message">To enable the floppy drives and use your own disks, get the
+  <a
+  href="https://chrome.google.com/webstore/detail/amiga-forever-essentials/aemohkgcfhdkjpoonndfpaikgbpgcogm"
+  target="_new">Amiga
+  Forever Essentials</a> bundle (<a href="uae_faq.html#get_roms">more details</a>).</p>
+  <p>Drive 0 (df0:) <button id="eject0Btn" disabled>Eject</button>
+  <input type="file" id="df0" disabled /></p>
+  <p>Drive 1 (df1:) <button id="eject1Btn" disabled>Eject</button>
+  <input type="file" id="df1" disabled /></p>
+</div>
+<div style="width: 300px; float: right; padding-left: 10px;">
+  <p><button id="resetBtn" disabled>Reset Amiga</button> &nbsp;
+  <button id="pauseBtn" disabled>Pause Amiga</button></p>
+  <p>Joy Port 0: <select id="port0" disabled>
+    <option value="mouse" selected>Mouse</option>
+    <option value="joy1">Gamepad 1 (experimental)</option>
+    <option value="kbd1">Keyboard (ADSW tab Q)</option>
+    <option value="none">None</option>
+  </select></p>
+  <p>Joy Port 1: <select id="port1" disabled>
+    <option value="joy0">Gamepad 0 (experimental)</option>
+    <option value="kbd0">Keyboard (&#8592;&#8594;&#8595;&#8593; space . , /)
+      </option>
+    <option value="none" selected>None</option>
+  </select></p>
+  <p onClick="javascript:
+  document.getElementById('rom_option').style.display='block';
+  return false;"><a
+  href="#">Advanced options...</a></p>
+  <p id="rom_option" style="display: none;">Kickstart ROM <input
+  type="file" id="rom" disabled /><br />
+  You <i>must</i> have a license for the ROM that you use. If you don't,
+  don't use this. Instead get <a
+  href="https://chrome.google.com/webstore/detail/amiga-forever-essentials/aemohkgcfhdkjpoonndfpaikgbpgcogm"
+  target="_new">Amiga Forever Essentials</a> for Chrome.</p>
+</div>
+</div>
+
+<div class="footer">
+  <p> <a href="uae.html">Home</a> &nbsp;&nbsp; <a
+  href="uae_faq.html">FAQ</a> &nbsp;&nbsp; <a
+  href="https://github.com/cstefansen/PUAE">Source code</a>
+  </p>
+
+  <p>Ported by <a
+  href="https://google.com/+ChristianStefansen">Christian
+  Stefansen</a>. The Amiga ROM, OS, and First Demos files are provided
+  under license by <a
+  href="http://www.amigaforever.com/">Cloanto</a>.</p>
+
+  <p>The port is dedicated to Karsten, Mumm, Wulff, and K.P. in fond
+  remembrance of our childhood and the many hours of playing Amiga 500
+  games together.</p>
+</div>
+
+<script src="uae.js"></script>
+
+<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-6408327-2', 'pnacl-amiga-emulator.appspot.com');
+ga('send', 'pageview');
+</script>
+
+</body>
+</html>

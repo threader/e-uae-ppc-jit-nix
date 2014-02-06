@@ -1,0 +1,130 @@
+html {
+    background: #2c2c2c;
+    color: #eee;
+    font-family: Belleza, helvetica, arial, sans-serif;
+    font-size: 12pt;
+    padding-left: 1.5cm;
+    padding-right: 1.5cm;
+    padding-bottom: 0.60cm;
+}
+body {
+    width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+}
+#status_field, #status_field a, #status_field a:visited {
+    color: red;
+}
+#one_column {
+    width: 720px;
+    margin-left: auto;
+    margin-right: auto;
+}
+#uae_container {
+    position: relative;
+    background: #000;
+    width: 720px;
+    height: 568px;
+    overflow: hidden;
+    float: left;
+    margin-bottom: 25px;
+}
+#instructions {
+    padding: 10px;
+    border-radius: 5px;
+    background: #3e3e3e;
+    margin-top: 0px;
+    margin-right: 0px;
+    margin-left: 20px;
+    width: 140px;
+    height: 548px;
+    float: right;
+    margin-bottom: 25px;
+}
+#instructions img {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    padding-top: 5px;
+    padding-bottom: 5px;
+}
+#instructions p b {
+    color: dodgerblue;
+}
+#instructions hr {
+    padding-top: 5px;
+    padding-bottom: 5px;
+}
+#overlay {
+    position: absolute;
+    width: 720px;
+    height: 568px;
+    vertical-align: middle;
+    text-align: center;
+}
+#cloanto-logo {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+}
+#progress {
+    display: inline-block;
+    margin-top: 35%;
+    margin-left: auto;
+    margin-right: auto;
+}
+#progress_text {
+    color: #fff;
+}
+h1 {
+    text-align: center;
+    font-size: 24pt;
+    margin-top: 0.5cm;
+    margin-bottom: 0.15cm;
+}
+h2 {
+    text-align: center;
+    font-size: 16pt;
+    margin-top: 0.15cm;
+    margin-bottom: 0.15cm;
+}
+h3 {
+    font-size: 16pt;
+    color: dodgerblue;
+    margin-top: 1cm;
+    margin-bottom: -0.15cm;
+}
+h4 {
+    font-size: 12pt;
+    margin-top: 0.6cm;
+    margin-bottom: -0.1cm;
+}
+p {
+    margin-top: 6px;
+    margin-bottom: 4px;
+    color: darkgrey;
+    line-height: 125%;
+}
+ul li {
+    color: darkgrey;
+}
+a, a:visited {
+    color: dodgerblue;
+}
+div.image-container {
+    float: right;
+    width: 128px;
+    margin-left: 0.4cm;
+    font-size: 75%;
+}
+img.flow-with-text {
+    vertical-align: top;
+}
+.footer {
+    padding-top: 1.1cm;
+    clear: both;
+    font-size: 10pt;
+}
+.footer p {
+    text-align: center;
+}
