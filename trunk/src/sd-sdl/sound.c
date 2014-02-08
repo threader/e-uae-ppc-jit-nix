@@ -18,7 +18,7 @@
 
 static int have_sound = 0;
 
-uae_u16 sndbuffer[44100];
+uae_u16 sndbuffer[441000];
 uae_u16 *sndbufpt;
 int sndbufsize;
 static SDL_AudioSpec spec;

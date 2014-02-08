@@ -3052,12 +3052,27 @@ void InitPicasso96 (void)
 	 * palette emulation issues. Tell the world we have a
 	 * a BGRA mode instead (and we'll byte-swap all pixels output).
 	 */
-	if (picasso_vidinfo.rgbformat == RGBFB_A8R8G8B8) {
-	    picasso_vidinfo.rgbformat = RGBFB_B8G8R8A8;
-	    picasso96_pixel_format &= RGBFF_CHUNKY;
-	    picasso96_pixel_format |= 1 << picasso_vidinfo.rgbformat;
-	    need_argb32_hack = 1;
-	   write_log ("Enabling argb32 byte-swapping for P96.\n");
+
+	//Do we need the workaround for the A8R8G8B8 modes?
+	BOOL need_workaround = TRUE;
+#ifdef __amigaos4__
+	uint32 machine = MACHINETYPE_UNKNOWN;
+	GetMachineInfoTags(GMIT_Machine, &machine, TAG_DONE);
+	if (machine == MACHINETYPE_SAM440EP)) {
+		//Workaround is removed for SAM440
+		need_workaround = FALSE;
+    }
+#endif
+
+	if (need_workaround)
+	{
+		if (picasso_vidinfo.rgbformat == RGBFB_A8R8G8B8) {
+			picasso_vidinfo.rgbformat = RGBFB_B8G8R8A8;
+			picasso96_pixel_format &= RGBFF_CHUNKY;
+			picasso96_pixel_format |= 1 << picasso_vidinfo.rgbformat;
+			need_argb32_hack = 1;
+		   write_log ("Enabling argb32 byte-swapping for P96.\n");
+		}
 	}
 
 	for (i = 0; i < mode_count; i++) {
