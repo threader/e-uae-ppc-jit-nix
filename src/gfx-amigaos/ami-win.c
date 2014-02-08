@@ -63,6 +63,12 @@
 # else /* not SAS/C => gcc */
 #  include CGX_CGX_H
 #  include <proto/cybergraphics.h>
+#	 if defined __MORPHOS__
+	  //Only for overlay on MorphOS under CGX
+#	  include <cybergraphx/cgxvideo.h>
+#	  include <proto/cgxvideo.h>
+#     define USE_CGX_OVERLAY
+#	endif
 # endif
 # ifndef BMF_SPECIALFMT
 #  define BMF_SPECIALFMT 0x80	/* should be cybergraphics.h but isn't for  */
@@ -129,12 +135,31 @@ struct GfxBase          *GfxBase = NULL;
 struct Library          *LayersBase = NULL;
 struct Library          *AslBase = NULL;
 struct Library          *CyberGfxBase = NULL;
+#ifdef USE_CGX_OVERLAY
+struct Library          *CGXVideoBase = NULL;
+#endif
 
 struct AslIFace *IAsl;
 struct GraphicsIFace *IGraphics;
 struct LayersIFace *ILayers;
 struct IntuitionIFace *IIntuition;
 struct CyberGfxIFace *ICyberGfx;
+
+#ifdef USE_CGX_OVERLAY
+int use_overlay = 0;
+UWORD * vlayer_baseaddress = NULL;
+APTR VLHandle = NULL;
+BOOL attached=FALSE;
+BOOL Bilinear=TRUE;
+
+int  InitOverlay(struct Screen * screen, int width, int height);
+void CloseOverlay(void);
+int  AttachOverlay(struct Window * window);
+APTR LockAddress(void);
+void UnlockAddress(void);
+void SwapBuffer(void);
+void ToggleBilinear(void);
+#endif
 
 unsigned long            frame_num; /* for arexx */
 
@@ -168,6 +193,95 @@ static int mouseGrabbed;
 static int grabTicks;
 #define GRAB_TIMEOUT 50
 #endif
+
+
+/*****************************************************************************/
+/* Overlay window under CGX */
+#ifdef USE_CGX_OVERLAY
+int InitOverlay(struct Screen * screen, int width, int height)
+{
+	if (!(VLHandle = CreateVLayerHandleTags(screen, VOA_SrcType, SRCFMT_RGB16,
+		  VOA_SrcWidth, width, VOA_SrcHeight, height,
+		  VOA_UseColorKey, TRUE, VOA_UseBackfill, TRUE,
+		  VOA_UseFilter, Bilinear,
+		  TAG_DONE)))
+		return 0;
+	return 1;
+}
+
+int AttachOverlay(struct Window * window)
+{
+	int pubscreen = currprefs.amiga_screen_type == UAESCREENTYPE_PUBLIC ? TRUE : FALSE;
+
+	if (AttachVLayerTags(VLHandle, window,
+						pubscreen ? TAG_IGNORE : VOA_LeftIndent, XOffset,
+						pubscreen ? TAG_IGNORE : VOA_RightIndent, XOffset,
+						pubscreen ? TAG_IGNORE : VOA_TopIndent,  YOffset,
+						pubscreen ? TAG_IGNORE : VOA_BottomIndent, YOffset,
+						TAG_DONE)!=0)
+	{
+		 return 0;
+	}
+	else
+	{
+		attached=TRUE;
+
+		if (pubscreen)
+		{
+			FillPixelArray (RP, XOffset, YOffset,
+						window->Width - 2*XOffset,
+						window->Height - 2*YOffset,
+						GetVLayerAttr(VLHandle, VOA_ColorKey));
+		}
+	}
+	return 1;
+}
+
+APTR LockAddress(void)
+{
+	if (LockVLayer(VLHandle))
+		return (APTR) GetVLayerAttr(VLHandle, VOA_BaseAddress);
+	else
+		return NULL;
+}
+
+void UnlockAddress(void)
+{
+	UnlockVLayer(VLHandle);
+}
+
+void SwapBuffer(void)
+{
+}
+
+void CloseOverlay(void)
+{
+	if (VLHandle)
+	{
+		if (attached)
+		{
+			DetachVLayer(VLHandle);
+			attached=FALSE;
+		}
+		DeleteVLayerHandle(VLHandle);
+
+		VLHandle = NULL;
+	}
+}
+
+void ToggleBilinear(void)
+{
+	if (Bilinear)
+		Bilinear = FALSE;
+	else
+		Bilinear = TRUE;
+
+	if (VLHandle)
+		SetVLayerAttrTags(VLHandle, VOA_UseFilter, Bilinear, TAG_DONE);
+}
+#endif
+
+/*****************************************************************************/
 
 static struct BitMap *myAllocBitMap(ULONG,ULONG,ULONG,ULONG,struct BitMap *);
 static void set_title(void);
@@ -215,7 +329,7 @@ static struct uae_hotkeyseq ami_hotkeys[] =
     { MAKE_HOTKEYSEQ (AK_CTRL, AK_LALT, AK_F1, -1,     INPUTEVENT_SPC_FLOPPY0) },
     { MAKE_HOTKEYSEQ (AK_CTRL, AK_LALT, AK_F2, -1,     INPUTEVENT_SPC_FLOPPY1) },
     { MAKE_HOTKEYSEQ (AK_CTRL, AK_LALT, AK_F3, -1,     INPUTEVENT_SPC_FLOPPY2) },
-    { MAKE_HOTKEYSEQ (AK_CTRL, AK_LALT, AK_F4, -1,     INPUTEVENT_SPC_FLOPPY3) },
+	{ MAKE_HOTKEYSEQ (AK_CTRL, AK_LALT, AK_F4, -1,     INPUTEVENT_SPC_FLOPPY3) },
     { MAKE_HOTKEYSEQ (AK_CTRL, AK_LALT, AK_LSH, AK_F1, INPUTEVENT_SPC_EFLOPPY0) },
     { MAKE_HOTKEYSEQ (AK_CTRL, AK_LALT, AK_LSH, AK_F2, INPUTEVENT_SPC_EFLOPPY1) },
     { MAKE_HOTKEYSEQ (AK_CTRL, AK_LALT, AK_LSH, AK_F3, INPUTEVENT_SPC_EFLOPPY2) },
@@ -419,6 +533,83 @@ static void flush_block_cgx_v41 (struct vidbuf_description *gfxinfo, int first_l
 		     RECTFMT_RAW);
 }
 # endif
+
+#ifdef USE_CGX_OVERLAY
+#define swapw(x) ( (((x)&0x00FF)<<8)+(((x)&0xFF00)>>8) )
+
+static int lock_overlay (struct vidbuf_description *gfxinfo)
+{
+	return 1;
+}
+
+static void unlock_overlay(struct vidbuf_description *gfxinfo)
+{
+}
+
+static void flush_screen_overlay(struct vidbuf_description *gfxinfo)
+{
+	SwapBuffer();
+}
+
+
+static void flush_line_cgx_overlay (struct vidbuf_description *gfxinfo, int line_no)
+{
+}
+
+static void flush_block_cgx_overlay (struct vidbuf_description *gfxinfo, int first_line, int last_line)
+{
+	int x,y;
+	unsigned short * dst = NULL;
+	unsigned short * ptr;
+	unsigned long  dstcolor;
+	unsigned short srccolor;
+	unsigned short color1, color2, color3, color4;
+
+/*
+	printf("first_line = %d last_line = %d "
+		   "rowbytes = %d pixbytes = %d "
+		   "width = %d height = %d\n\n", first_line, last_line, gfxinfo->rowbytes, gfxinfo->pixbytes, gfxinfo->width, gfxinfo->height);
+*/
+
+
+	dst = (unsigned short * ) LockAddress();
+	if (!dst)
+		return;
+
+	if (last_line  < 511)
+		last_line ++;
+
+	dst += first_line*gfxinfo->width;
+
+
+	for (y=first_line; y<last_line; y++)
+	{
+		ptr = dst;
+
+		for (x=0; x<gfxinfo->width*2; x+=8)
+		{
+			srccolor = *((unsigned short *)(gfxinfo->bufmem + gfxinfo->rowbytes * y + x));
+			color1=swapw(srccolor);
+
+			srccolor = *((unsigned short *)(gfxinfo->bufmem + gfxinfo->rowbytes * y + x + 2));
+			color2=swapw(srccolor);
+
+			srccolor = *((unsigned short *)(gfxinfo->bufmem + gfxinfo->rowbytes * y + x + 4));
+			color3=swapw(srccolor);
+
+			srccolor = *((unsigned short *)(gfxinfo->bufmem + gfxinfo->rowbytes * y + x + 6));
+			color4=swapw(srccolor);
+
+			*((unsigned long long *) ptr) = (((unsigned long long)color1)<<48) | (((unsigned long long)color2)<<32) | (((unsigned long long)color3)<<16) | (color4);
+			ptr+=4;
+		}
+
+		dst+= gfxinfo->width;
+	}
+
+	UnlockAddress();
+}
+#endif /* USE_CGX_OVERLAY */
 #endif
 
 /****************************************************************************/
@@ -428,10 +619,42 @@ static void flush_clear_screen_gfxlib (struct vidbuf_description *gfxinfo)
     if (RP) {
 #ifdef USE_CYBERGFX
 	if (use_cyb)
-	     FillPixelArray (RP, W->BorderLeft, W->BorderTop,
-			     W->Width - W->BorderLeft - W->BorderRight,
-			     W->Height - W->BorderTop - W->BorderBottom,
-			     0);
+
+#ifdef USE_CGX_OVERLAY
+		if (!use_overlay)
+		{
+#endif
+	        FillPixelArray (RP, W->BorderLeft, W->BorderTop,
+			        W->Width - W->BorderLeft - W->BorderRight,
+			        W->Height - W->BorderTop - W->BorderBottom,
+			        0);
+#ifdef USE_CGX_OVERLAY
+		}
+		else
+		{
+			int x,y;
+			unsigned short *dst = LockAddress();
+			unsigned short * ptr;
+
+			if (dst)
+			{
+				for (y=0; y<gfxinfo->height; y++)
+				{
+					ptr = dst;
+
+					for (x=0; x<gfxinfo->width; x++)
+					{
+						*ptr++ = 0;
+					}
+
+					dst+= gfxinfo->width;
+				}
+			}
+
+			UnlockAddress();
+			SwapBuffer();
+		}
+#endif /* USE_CGX_OVERLAY */
 	else
 #endif
 	{
@@ -441,7 +664,7 @@ static void flush_clear_screen_gfxlib (struct vidbuf_description *gfxinfo)
 	}
     }
     if (use_delta_buffer)
-	memset (oldpixbuf, 0, gfxinfo->rowbytes * gfxinfo->height);
+        memset (oldpixbuf, 0, gfxinfo->rowbytes * gfxinfo->height);
 }
 
 /****************************************************************************/
@@ -450,8 +673,15 @@ static void flush_clear_screen_gfxlib (struct vidbuf_description *gfxinfo)
 static int RPDepth (struct RastPort *RP)
 {
 #ifdef USE_CYBERGFX
-    if (use_cyb)
-	return GetCyberMapAttr (RP->BitMap, (LONG)CYBRMATTR_DEPTH);
+	if (use_cyb)
+	{
+#ifdef USE_CGX_OVERLAY
+		if (use_overlay)
+			return 16;
+		else
+#endif
+			return GetCyberMapAttr (RP->BitMap, (LONG)CYBRMATTR_DEPTH);
+	}
 #endif
     return RP->BitMap->Depth;
 }
@@ -565,7 +795,18 @@ static int init_colors_cgx (const struct RastPort *rp)
     int pixfmt;
     int found = TRUE;
 
-    pixfmt = GetCyberMapAttr (rp->BitMap, (LONG)CYBRMATTR_PIXFMT);
+#ifdef USE_CGX_OVERLAY
+	if (use_overlay)
+	{
+		pixfmt = PIXFMT_RGB16;
+	}
+	else
+	{
+#endif
+		pixfmt = GetCyberMapAttr (rp->BitMap, (LONG)CYBRMATTR_PIXFMT);
+#ifdef USE_CGX_OVERLAY
+	}
+#endif
 
     switch (pixfmt) {
 #ifdef WORDS_BIGENDIAN
@@ -965,6 +1206,14 @@ static ULONG find_rtg_mode (ULONG *width, ULONG *height, ULONG depth)
 }
 #endif
 
+STATIC_INLINE int min(int a, int b)
+{
+	if (a<b)
+		return a;
+	else
+		return b;
+}
+
 static int setup_customscreen (void)
 {
     static struct NewWindow NewWindowStructure = {
@@ -1019,12 +1268,49 @@ static int setup_customscreen (void)
     if (height > (ULONG) gfxvidinfo.height)
 	YOffset = (height - gfxvidinfo.height) / 2;
 
+#ifdef USE_CGX_OVERLAY
+	if (use_overlay)
+	{
+		struct Screen * s = LockPubScreen("Workbench");
+
+		if (s)
+		{
+			struct DrawInfo * dri = GetScreenDrawInfo(s);
+
+			width  = s->Width;
+			height = s->Height;
+
+			if (dri)
+			{
+				ULONG id = GetVPModeID(&s->ViewPort);
+				depth = GetCyberIDAttr(CYBRIDATTR_DEPTH, id);
+			}
+			else
+			{
+				write_log("Can't get screen drawinfo\n");
+				UnlockPubScreen(NULL, s);
+				return 0;
+			}
+
+			UnlockPubScreen(NULL, s);
+		}
+		else
+		{
+			write_log ("Can't lock workbench screen\n");
+			return 0;
+		}
+	}
+#endif
+
     do {
 	screen = OpenScreenTags (NULL,
 				 SA_Width,     width,
 				 SA_Height,    height,
 				 SA_Depth,     depth,
-				 SA_DisplayID, mode,
+#ifdef USE_CGX_OVERLAY
+				 use_overlay ? TAG_IGNORE :
+#endif
+					SA_DisplayID, mode,
 				 SA_Behind,    TRUE,
 				 SA_ShowTitle, FALSE,
 				 SA_Quiet,     TRUE,
@@ -1043,15 +1329,25 @@ static int setup_customscreen (void)
     CM = screen->ViewPort.ColorMap;
     RP = &screen->RastPort;
 
-    NewWindowStructure.Width  = screen->Width;
-    NewWindowStructure.Height = screen->Height;
-    NewWindowStructure.Screen = screen;
+	NewWindowStructure.Width  = screen->Width;
+	NewWindowStructure.Height = screen->Height;
+	NewWindowStructure.Screen = screen;	   
 
     W = (void*)OpenWindow (&NewWindowStructure);
     if (!W) {
 	write_log ("Cannot open UAE window on custom screen.\n");
 	return 0;
     }
+
+#ifdef USE_CGX_OVERLAY
+	if (use_overlay)
+	{
+		XOffset	= (screen->Width - min(screen->Width, (screen->Height*4)/3))/2;
+		YOffset	= (screen->Height - min(screen->Height, (screen->Width*3)/4))/2;
+	}
+
+	FillPixelArray(RP, 0, 0, screen->Width, screen->Height, 0);
+#endif
 
     hide_pointer (W);
 
@@ -1087,9 +1383,20 @@ static int setup_publicscreen(void)
 
     W = OpenWindowTags (NULL,
 			WA_Title,        (ULONG)PACKAGE_NAME,
+#ifdef USE_CGX_OVERLAY
+			use_overlay ? WA_MinWidth : TAG_IGNORE, currprefs.gfx_width_win/2,
+			use_overlay ? WA_MinHeight : TAG_IGNORE, currprefs.gfx_height_win/2,
+			WA_InnerWidth,   currprefs.gfx_width_win,
+			WA_InnerHeight,  currprefs.gfx_height_win,
+			WA_MaxWidth, S->Width,
+			WA_MaxHeight, S->Height,
+			WA_SizeGadget, use_overlay ? TRUE : FALSE,
+			WA_SizeBBottom, use_overlay ? TRUE : FALSE,
+#else
 			WA_AutoAdjust,   TRUE,
 			WA_InnerWidth,   gfxvidinfo.width,
 			WA_InnerHeight,  gfxvidinfo.height,
+#endif
 			WA_PubScreen,    (ULONG)S,
 			WA_Zoom,         (ULONG)ZoomArray,
 			WA_IDCMP,        IDCMP_MOUSEBUTTONS | IDCMP_RAWKEY
@@ -1099,7 +1406,7 @@ static int setup_publicscreen(void)
 				       | IDCMP_NEWSIZE      | IDCMP_INTUITICKS,
 			WA_Flags,	 WFLG_DRAGBAR     | WFLG_DEPTHGADGET
 				       | WFLG_REPORTMOUSE | WFLG_RMBTRAP
-				       | WFLG_ACTIVATE    | WFLG_CLOSEGADGET
+					   | WFLG_ACTIVATE    | WFLG_CLOSEGADGET
 				       | WFLG_SMART_REFRESH,
 			TAG_DONE);
 
@@ -1111,12 +1418,24 @@ static int setup_publicscreen(void)
 	return 0;
     }
 
+#ifdef USE_CGX_OVERLAY
+	gfxvidinfo.width  = currprefs.gfx_width_win;
+	gfxvidinfo.height = currprefs.gfx_height_win;
+#else
     gfxvidinfo.width  = (W->Width  - W->BorderRight - W->BorderLeft);
     gfxvidinfo.height = (W->Height - W->BorderTop   - W->BorderBottom);
-    XOffset = W->BorderLeft;
-    YOffset = W->BorderTop;
+#endif
+	XOffset = W->BorderLeft;
+	YOffset = W->BorderTop;
 
     RP = W->RPort;
+
+#ifdef USE_CGX_OVERLAY
+	if (use_overlay)
+	{
+		SizeWindow(W, 0, - currprefs.gfx_height_win + currprefs.gfx_width_win*S->Height/S->Width);
+	}
+#endif
 
     appw_init (W);
 
@@ -1141,9 +1460,9 @@ static char *get_num (char *s, int *n)
      ++s;
      if(*s=='x' || *s=='X') {
        do {char c=*++s;
-	   if(c>='0' && c<='9') {i*=16; i+= c-'0';}    else
-	   if(c>='a' && c<='f') {i*=16; i+= c-'a'+10;} else
-	   if(c>='A' && c<='F') {i*=16; i+= c-'A'+10;} else break;
+           if(c>='0' && c<='9') {i*=16; i+= c-'0';}    else
+           if(c>='a' && c<='f') {i*=16; i+= c-'a'+10;} else
+           if(c>='A' && c<='F') {i*=16; i+= c-'A'+10;} else break;
        } while(1);
      } else while(*s>='0' && *s<='7') {i*=8; i+= *s++ - '0';}
    } else {
@@ -1183,6 +1502,11 @@ static int setup_userscreen (void)
     BOOL AutoScroll = TRUE;
     int release_asl = 0;
 
+#ifdef USE_CGX_OVERLAY
+    ULONG width  = gfxvidinfo.width;
+    ULONG height = gfxvidinfo.height;
+#endif
+
     if (!AslBase) {
 	AslBase = OpenLibrary ("asl.library", 36);
 	if (!AslBase) {
@@ -1200,8 +1524,8 @@ static int setup_userscreen (void)
 	}
 #ifdef __amigaos4__
     } else {
-	IAsl->Obtain ();
-	release_asl = 1;
+        IAsl->Obtain ();
+        release_asl = 1;
 #endif
     }
 
@@ -1263,11 +1587,23 @@ static int setup_userscreen (void)
     if (ScreenHeight < gfxvidinfo.width)
 	gfxvidinfo.height = ScreenHeight;
 
-    /* If chosen screen is larger, than centre UAE's display */
-    if (ScreenWidth > gfxvidinfo.width)
-	XOffset = (ScreenWidth - gfxvidinfo.width) / 2;
-    if (ScreenHeight > gfxvidinfo.width)
-	YOffset = (ScreenHeight - gfxvidinfo.height) / 2;
+#ifdef USE_CGX_OVERLAY
+	if (use_overlay)
+	{
+		width  = gfxvidinfo.width;
+		height = gfxvidinfo.height;
+	}
+	else
+	{
+#endif
+	    /* If chosen screen is larger, than centre UAE's display */
+	    if (ScreenWidth > gfxvidinfo.width)
+		XOffset = (ScreenWidth - gfxvidinfo.width) / 2;
+	    if (ScreenHeight > gfxvidinfo.width)
+		YOffset = (ScreenHeight - gfxvidinfo.height) / 2;
+#ifdef USE_CGX_OVERLAY
+	}
+#endif
 
     S = OpenScreenTags (NULL,
 			SA_DisplayID,			 DisplayID,
@@ -1330,6 +1666,16 @@ static int setup_userscreen (void)
     RP = W->RPort; /* &S->Rastport if screen is not public */
 
     PubScreenStatus (S, 0);
+
+#ifdef USE_CGX_OVERLAY
+	if (use_overlay)
+	{
+		XOffset	= (S->Width - min(S->Width, (S->Height*4)/3))/2;
+		YOffset	= (S->Height - min(S->Height, (S->Width*3)/4))/2;
+	}
+
+	FillPixelArray(RP, 0, 0, S->Width, S->Height, 0);
+#endif
 
     write_log ("AMIGFX: Using screenmode: 0x%lx:%ld (%lu:%ld)\n",
 	DisplayID, Depth, DisplayID, Depth);
@@ -1396,11 +1742,11 @@ int graphics_setup (void)
 
 #ifdef USE_CYBERGFX
     if (!CyberGfxBase) {
-	CyberGfxBase = OpenLibrary ("cybergraphics.library", 40);
+        CyberGfxBase = OpenLibrary ("cybergraphics.library", 40);
 #ifdef __amigaos4__
-	if (CyberGfxBase) {
+        if (CyberGfxBase) {
 	   ICyberGfx = (struct CyberGfxIFace *) GetInterface (CyberGfxBase, "main", 1, NULL);
-	   if (!ICyberGfx) {
+           if (!ICyberGfx) {
 	       CloseLibrary (CyberGfxBase);
 	       CyberGfxBase = 0;
 	   }
@@ -1408,6 +1754,14 @@ int graphics_setup (void)
 #endif
     }
 #endif
+
+#ifdef USE_CGX_OVERLAY
+	if (!CGXVideoBase)
+	{
+		CGXVideoBase = (struct Library *)OpenLibrary("cgxvideo.library", 42);
+	}
+#endif
+
     init_pointer ();
 
     initpseudodevices ();
@@ -1448,9 +1802,27 @@ static void restore_prWindowPtr (void)
  */
 static APTR setup_cgx41_buffer (struct vidbuf_description *gfxinfo, const struct RastPort *rp)
 {
+#ifdef USE_CGX_OVERLAY
+	int bytes_per_row;
+    int bytes_per_pixel;
+#else
     int bytes_per_row   = GetCyberMapAttr (rp->BitMap, CYBRMATTR_XMOD);
     int bytes_per_pixel = GetCyberMapAttr (rp->BitMap, CYBRMATTR_BPPIX);
+#endif
     APTR buffer;
+
+#ifdef USE_CGX_OVERLAY
+	if (use_overlay)
+	{
+		bytes_per_pixel = 2;
+		bytes_per_row   = currprefs.gfx_width_win*bytes_per_pixel;
+	}
+	else
+	{
+	    bytes_per_row   = GetCyberMapAttr (rp->BitMap, CYBRMATTR_XMOD);
+	    bytes_per_pixel = GetCyberMapAttr (rp->BitMap, CYBRMATTR_BPPIX);
+	}
+#endif
 
     /* Note we allocate a buffer with the same width as the destination
      * bitmap - not the width of the output we want. This is because
@@ -1461,12 +1833,36 @@ static APTR setup_cgx41_buffer (struct vidbuf_description *gfxinfo, const struct
     buffer = AllocVec (bytes_per_row * gfxinfo->height, MEMF_ANY);
 
     if (buffer) {
-	gfxinfo->bufmem      = buffer;
-	gfxinfo->pixbytes    = bytes_per_pixel;
-	gfxinfo->rowbytes    = bytes_per_row;
+		gfxinfo->bufmem      = buffer;
+		gfxinfo->pixbytes    = bytes_per_pixel;
+		gfxinfo->rowbytes    = bytes_per_row;
 
-	gfxinfo->flush_line  = flush_line_cgx_v41;
-	gfxinfo->flush_block = flush_block_cgx_v41;
+#ifdef USE_CGX_OVERLAY
+		if (use_overlay)
+		{
+			if (!InitOverlay(S, gfxvidinfo.width, gfxvidinfo.height))
+			{
+				return 0;
+			}
+
+			if (!AttachOverlay(W))
+			{
+				return 0;
+			}
+
+			gfxinfo->flush_line  = flush_line_cgx_overlay;
+			gfxinfo->flush_block = flush_block_cgx_overlay;
+			gfxinfo->lockscr     = lock_overlay;
+			gfxinfo->unlockscr   = unlock_overlay;
+		}
+		else
+		{
+#endif
+			gfxinfo->flush_line  = flush_line_cgx_v41;
+			gfxinfo->flush_block = flush_block_cgx_v41;
+#ifdef USE_CGX_OVERLAY
+		}
+#endif
     }
     return buffer;
 }
@@ -1489,17 +1885,57 @@ static APTR setup_cgx_buffer (struct vidbuf_description *gfxinfo, const struct R
 			    rp->BitMap);
 
     if (bitmap) {
-	gfxinfo->bufmem   = (char *) GetCyberMapAttr (bitmap, CYBRMATTR_DISPADR);
-	gfxinfo->rowbytes = 	     GetCyberMapAttr (bitmap, CYBRMATTR_XMOD);
-	gfxinfo->pixbytes = 	     GetCyberMapAttr (bitmap, CYBRMATTR_BPPIX);
+		gfxinfo->bufmem   = (char *) GetCyberMapAttr (bitmap, CYBRMATTR_DISPADR);
 
-	gfxinfo->flush_line =        flush_line_cgx;
-	gfxinfo->flush_block =       flush_block_cgx;
+#ifdef USE_CGX_OVERLAY
+		if (use_overlay)
+		{
+			gfxinfo->pixbytes = 2;
+			gfxinfo->rowbytes = currprefs.gfx_width_win*gfxinfo->rowbytes;
+		}
+		else
+		{
+#endif
+			gfxinfo->rowbytes = 	     GetCyberMapAttr (bitmap, CYBRMATTR_XMOD);
+			gfxinfo->pixbytes = 	     GetCyberMapAttr (bitmap, CYBRMATTR_BPPIX);
+
+#ifdef USE_CGX_OVERLAY
+		}
+
+		if (use_overlay)
+		{
+			if (!InitOverlay(S, gfxvidinfo.width, gfxvidinfo.height))
+			{
+				return 0;
+			}
+
+			if (!AttachOverlay(W))
+			{
+				return 0;
+			}
+
+			gfxinfo->flush_line  = flush_line_cgx_overlay;
+			gfxinfo->flush_block = flush_block_cgx_overlay;
+			gfxinfo->lockscr     = lock_overlay;
+			gfxinfo->unlockscr   = unlock_overlay;
+		}
+		else
+		{
+#endif
+			gfxinfo->flush_line  = flush_line_cgx;
+			gfxinfo->flush_block = flush_block_cgx;
+#ifdef USE_CGX_OVERLAY
+		}
+#endif
     }
 
     return bitmap;
 }
 # endif
+#endif
+
+#ifdef USE_CGX_OVERLAY
+int fullscreen = 0;
 #endif
 
 int graphics_init (void)
@@ -1512,8 +1948,8 @@ int graphics_init (void)
 
 /* We'll ignore color_mode for now.
     if (currprefs.color_mode > 5) {
-	write_log ("Bad color mode selected. Using default.\n");
-	currprefs.color_mode = 0;
+        write_log ("Bad color mode selected. Using default.\n");
+        currprefs.color_mode = 0;
     }
 */
 
@@ -1527,6 +1963,11 @@ int graphics_init (void)
 
     gfxvidinfo.width += 7;
     gfxvidinfo.width &= ~7;
+
+#ifdef USE_CGX_OVERLAY
+	use_overlay = currprefs.amiga_use_overlay;
+	fullscreen = (currprefs.amiga_screen_type == UAESCREENTYPE_ASK) || (currprefs.amiga_screen_type == UAESCREENTYPE_CUSTOM);
+#endif
 
     switch (currprefs.amiga_screen_type) {
 	case UAESCREENTYPE_ASK:
@@ -1687,7 +2128,7 @@ void graphics_leave (void)
 # ifdef USE_CYBERGFX_V41
     if (CybBuffer) {
 	FreeVec (CybBuffer);
-	CybBuffer = NULL;
+        CybBuffer = NULL;
     }
 # else
     if (CybBitMap) {
@@ -1696,6 +2137,14 @@ void graphics_leave (void)
 	CybBitMap = NULL;
     }
 # endif
+
+#ifdef USE_CGX_OVERLAY
+	if (use_overlay)
+	{
+		CloseOverlay();
+	}
+#endif
+
 #endif
     if (BitMap) {
 	WaitBlit ();
@@ -1747,6 +2196,14 @@ void graphics_leave (void)
 	CloseLibrary ((void*)IntuitionBase);
 	IntuitionBase = NULL;
     }
+
+#ifdef USE_CGX_OVERLAY
+	if (CGXVideoBase) {
+	CloseLibrary((void*)CGXVideoBase);
+	CGXVideoBase = NULL;
+	}
+#endif
+
     if (CyberGfxBase) {
 	CloseLibrary((void*)CyberGfxBase);
 	CyberGfxBase = NULL;
@@ -1916,7 +2373,7 @@ void handle_events(void)
 	    default:
 		write_log ("Unknown event class: %x\n", class);
 		break;
-	}
+        }
     }
 
     appw_events();
@@ -2000,15 +2457,15 @@ static void set_title (void)
 
     if (!*ScreenTitle) {
 	sprintf (ScreenTitle,
-		 "UAE-%d.%d.%d (%s%s%s)  by Bernd Schmidt & contributors, "
-		 "Amiga Port by Samuel Devulder.",
+                 "UAE-%d.%d.%d (%s%s%s)  by Bernd Schmidt & contributors, "
+                 "Amiga Port by Samuel Devulder.",
 		  UAEMAJOR, UAEMINOR, UAESUBREV,
 		  currprefs.cpu_level==0?"68000":
 		  currprefs.cpu_level==1?"68010":
 		  currprefs.cpu_level==2?"68020":"68020/68881",
 		  currprefs.address_space_24?" 24bits":"",
 		  currprefs.cpu_compatible?" compat":"");
-	SetWindowTitles(W, title, ScreenTitle);
+        SetWindowTitles(W, title, ScreenTitle);
     } else SetWindowTitles(W, title, (char*)-1);
 #endif
 
@@ -2032,7 +2489,7 @@ void main_window_led (int led, int on)                /* is used in amigui.c */
  * Routines for OS2.0 (code taken out of mpeg_play by Michael Balzer)
  */
 static struct BitMap *myAllocBitMap(ULONG sizex, ULONG sizey, ULONG depth,
-				    ULONG flags, struct BitMap *friend_bitmap)
+                                    ULONG flags, struct BitMap *friend_bitmap)
 {
     struct BitMap *bm;
 
@@ -2096,8 +2553,8 @@ static LONG ObtainColor (ULONG r,ULONG g,ULONG b)
 		pen[maxpen++] = i;
 	    else
 		i = -1;
-	}
-	return i;
+        }
+        return i;
     }
 
     colors = is_halfbrite ? 32 : (1 << RPDepth (RP));
@@ -2254,33 +2711,33 @@ static void ham_conv (UWORD *src, UBYTE *buf, UWORD len)
 #endif
     rgb.all = 0;
     while(len--) {
-	UBYTE c,t;
-	RGB.all = *src++;
-	c = d_cmd[RGB.all];
-	/* cowabonga! */
-	t = h_buf[16912 + RGB.all - rgb.all];
+        UBYTE c,t;
+        RGB.all = *src++;
+        c = d_cmd[RGB.all];
+        /* cowabonga! */
+        t = h_buf[16912 + RGB.all - rgb.all];
 #ifndef USE_BITFIELDS
-	if(t<=d_dst[RGB.all]) {
+        if(t<=d_dst[RGB.all]) {
 	    static int ht[]={32+10,48+5,16+0}; ULONG m;
 	    t &= 3; m = 0x1F<<(ht[t]&15);
-	    m = ~m; rgb.all &= m;
-	    m = ~m; m &= RGB.all;rgb.all |= m;
+            m = ~m; rgb.all &= m;
+            m = ~m; m &= RGB.all;rgb.all |= m;
 	    m >>= ht[t]&15;
 	    c = (ht[t]&~15) | m;
-	} else {
+        } else {
 	    rgb.all = c;
 	    rgb.all <<= 5; rgb.all |= c;
 	    rgb.all <<= 5; rgb.all |= c;
-	}
+        }
 #else
-	if(t<=d_dst[RGB.all]) {
-	    t&=3;
-	    if(!t)        {c = 32; c |= (rgb._.r = RGB._.r);}
-	    else {--t; if(!t) {c = 48; c |= (rgb._.g = RGB._.g);}
-	    else              {c = 16; c |= (rgb._.b = RGB._.b);} }
-	} else rgb._.r = rgb._.g = rgb._.b = c;
+        if(t<=d_dst[RGB.all]) {
+            t&=3;
+            if(!t)        {c = 32; c |= (rgb._.r = RGB._.r);}
+            else {--t; if(!t) {c = 48; c |= (rgb._.g = RGB._.g);}
+            else              {c = 16; c |= (rgb._.b = RGB._.b);} }
+        } else rgb._.r = rgb._.g = rgb._.b = c;
 #endif
-	*buf++ = c;
+        *buf++ = c;
     }
 }
 
@@ -2307,7 +2764,11 @@ void toggle_mousegrab (void)
 
 int is_fullscreen (void)
 {
+#ifdef USE_CGX_OVERLAY
+	return fullscreen;
+#else
     return 0;
+#endif
 }
 
 int is_vsync (void)
@@ -2372,10 +2833,10 @@ static unsigned int get_mouse_widget_num (unsigned int mouse)
 static int get_mouse_widget_first (unsigned int mouse, int type)
 {
     switch (type) {
-	case IDEV_WIDGET_BUTTON:
-	    return FIRST_BUTTON;
-	case IDEV_WIDGET_AXIS:
-	    return FIRST_AXIS;
+        case IDEV_WIDGET_BUTTON:
+            return FIRST_BUTTON;
+        case IDEV_WIDGET_AXIS:
+            return FIRST_AXIS;
     }
     return -1;
 }
@@ -2383,13 +2844,13 @@ static int get_mouse_widget_first (unsigned int mouse, int type)
 static int get_mouse_widget_type (unsigned int mouse, unsigned int num, char *name, uae_u32 *code)
 {
     if (num >= MAX_AXES && num < MAX_AXES + MAX_BUTTONS) {
-	if (name)
-	    sprintf (name, "Button %d", num + 1 + MAX_AXES);
-	return IDEV_WIDGET_BUTTON;
+        if (name)
+            sprintf (name, "Button %d", num + 1 + MAX_AXES);
+        return IDEV_WIDGET_BUTTON;
     } else if (num < MAX_AXES) {
-	if (name)
-	    sprintf (name, "Axis %d", num + 1);
-	return IDEV_WIDGET_AXIS;
+        if (name)
+            sprintf (name, "Axis %d", num + 1);
+        return IDEV_WIDGET_AXIS;
     }
     return IDEV_WIDGET_NONE;
 }
@@ -2521,6 +2982,9 @@ void gfx_default_options (struct uae_prefs *p)
     p->amiga_publicscreen[0] = '\0';
     p->amiga_use_dither      = 1;
     p->amiga_use_grey        = 0;
+#ifdef USE_CGX_OVERLAY
+	p->amiga_use_overlay     = 0;
+#endif
 }
 
 void gfx_save_options (FILE *f, const struct uae_prefs *p)
@@ -2529,14 +2993,20 @@ void gfx_save_options (FILE *f, const struct uae_prefs *p)
     cfgfile_write (f, GFX_NAME ".publicscreen=%s\n", p->amiga_publicscreen);
     cfgfile_write (f, GFX_NAME ".use_dither=%s\n",   p->amiga_use_dither ? "true" : "false");
     cfgfile_write (f, GFX_NAME ".use_grey=%s\n",     p->amiga_use_grey ? "true" : "false");
+#ifdef USE_CGX_OVERLAY
+	cfgfile_write (f, GFX_NAME ".use_overlay=%s\n",     p->amiga_use_overlay ? "true" : "false");
+#endif
 }
 
 int gfx_parse_option (struct uae_prefs *p, const char *option, const char *value)
 {
     return (cfgfile_yesno  (option, value, "use_dither",   &p->amiga_use_dither)
 	 || cfgfile_yesno  (option, value, "use_grey",	 &p->amiga_use_grey)
-	 || cfgfile_strval (option, value, "screen_type",  &p->amiga_screen_type, screen_type, 0)
-	 || cfgfile_string (option, value, "publicscreen", &p->amiga_publicscreen[0], 256)
+#ifdef USE_CGX_OVERLAY
+	 || cfgfile_yesno  (option, value, "use_overlay",   &p->amiga_use_overlay)
+#endif
+     || cfgfile_strval (option, value, "screen_type",  &p->amiga_screen_type, screen_type, 0)
+     || cfgfile_string (option, value, "publicscreen", &p->amiga_publicscreen[0], 256)
     );
 }
 

@@ -231,6 +231,7 @@ struct uae_prefs {
     char amiga_publicscreen[256];
     int  amiga_use_grey;
     int  amiga_use_dither;
+    int  amiga_use_overlay;
 #endif
 
 #ifdef SAVESTATE
