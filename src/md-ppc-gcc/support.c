@@ -122,7 +122,7 @@ static frame_time_t machdep_amigaos4_gettimebase (void)
 
     GetMachineInfoTags(GMIT_Machine, &machine, TAG_DONE);
 
-    if (machine == MACHINETYPE_AMIGAONE) {
+    if ((machine == MACHINETYPE_AMIGAONE) || (machine == MACHINETYPE_SAM440EP)) {
 	struct EClockVal etime;
 	result = ReadEClock (&etime);
     }
