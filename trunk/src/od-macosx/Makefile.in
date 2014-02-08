@@ -249,9 +249,31 @@ libosdep_a_SOURCES = main.m memory.c
 noinst_HEADERS = main.h memory.h hrtimer.h
 noinst_DATA = Info.plist.in euae.icns
 EXTRA_DIST = euae.icns
+
+ifeq ($(host_triplet),powerpc-apple-darwin5.5) # MacOS X 10.1 
+allelsefailed = true
+endif
+ifeq ($(host_triplet),powerpc-apple-darwin6.8) # MacOS X 10.2.9 
+allelsefailed = true
+endif
+
+ifeq ($(host_triplet),powerpc-apple-darwin7.9.0) # MacOS X 10.3.9 
+needicachehack = true
+endif
+ifeq ($(host_triplet),powerpc-apple-darwin8.11.0) # MacOS X 10.4.11 
+needicachehack = true
+endif
+
+ifeq ($(needicachehack),true)
+CPPFLAGS += -Dtenfour 
+endif
+
+ifeq ($(allelsefailed),true) 
+CPPFLAGS += -Dallelsefailed # Fallback that should work in any case
+endif
+
 all: all-am
 
-.SUFFIXES:
 .SUFFIXES: .c .m .o .obj
 $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	@for dep in $?; do \
