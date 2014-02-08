@@ -12,7 +12,8 @@
 #include "compemu_macroblocks.h"
 
 /* Local function protos */
-STATIC_INLINE void helper_schedule_branch(uae_u32 opcode, int reference);
+STATIC_INLINE void helper_schedule_branch(uae_u32 opcode, int reference, BOOL is_16bit_instruction);
+STATIC_INLINE BOOL helper_is_inside_branch_range(uae_u32 offset, BOOL is_16bit_instruction);
 STATIC_INLINE void comp_reset_tmp_register(comp_tmp_reg* temp_reg);
 
 /* Number of temporary registers */
@@ -104,7 +105,10 @@ uae_u16* current_block_pc_p;
 /**
  * Pointers to the previously marked branch instruction that has to be completed when target is identified
  */
-uae_u8* compiled_branch_instruction[MAX_BRANCH_SCHEDULE];
+struct {
+	uae_u8* address;					//Instruction address
+	BOOL is_16bit_instruction;		//If TRUE then the instruction uses 16 bits for the address offset, 26 bits otherwise
+} compiled_branch_instruction[MAX_BRANCH_SCHEDULE];
 
 /**
  * Pointers to the target address for a branch instruction for compiling it later on
@@ -270,7 +274,7 @@ void comp_init(void)
 	/* Initialize branch compiling: both pointers must be zero */
 	for(i = 0; i < MAX_BRANCH_SCHEDULE; i++)
 	{
-		compiled_branch_instruction[i] = compiled_branch_target[i] = NULL;
+		compiled_branch_instruction[i].address = compiled_branch_target[i] = NULL;
 	}
 
 	/* Initialize macroblock compiler */
@@ -288,7 +292,7 @@ void comp_done(void)
 
 	for(i = 0; i < MAX_BRANCH_SCHEDULE; i++)
 	{
-		if (compiled_branch_instruction[i] != NULL)
+		if (compiled_branch_instruction[i].address != NULL)
 		{
 			write_log("Compiling error: branch instruction compiling was not completed, branch instruction address: 0x%08x\n", compiled_branch_instruction[i]);
 			abort();
@@ -844,28 +848,56 @@ STATIC_INLINE comp_tmp_reg* comp_find_unlocked_temp_register(void)
  * Parameters:
  *   allocate_for - the M68k register number that was mapped to the temp
  *                  register, or one of the PPC_TMP_REG_* constants.
+ *   preferred - preferred temporary register for the allocation, or PPC_TMP_REG_NOTUSED_MAPPED if not
+ *               needed. When the preferred register is not available then the function selects
+ *               a different available register.
  * Returns a pointer to a descriptor structure for the temporary register that was allocated
  */
-comp_tmp_reg* comp_allocate_temp_register(struct m68k_register* allocate_for)
+comp_tmp_reg* comp_allocate_temp_register(struct m68k_register* allocate_for, comp_ppc_reg preferred)
 {
 	uae_u8 i;
-	comp_tmp_reg* reg;
+	comp_tmp_reg* reg = NULL;
 
-	//Allocate the next free temporary register
-	for(i = 0; i < PPC_TMP_REGS_COUNT; i++)
-		if (!used_tmp_regs[i].allocated) break;
-
-	if (i != PPC_TMP_REGS_COUNT)
+	if (preferred.r != PPC_TMP_REG_NOTUSED_MAPPED.r)
 	{
-		reg = &used_tmp_regs[i];
+		//Preferred register is specified, let's check whether it was available
+		for(i = 0; i < PPC_TMP_REGS_COUNT; i++)
+		{
+			//Is this the preferred one?
+			if (used_tmp_regs[i].mapped_reg_num.r == preferred.r)
+			{
+				//Yes: is it available?
+				if (!used_tmp_regs[i].allocated)
+				{
+					//Preferred register is not allocated yet, let's choose this one
+					reg = &used_tmp_regs[i];
+				}
+
+				//Leave the iteration whether it is available or not
+				break;
+			}
+		}
 	}
-	else
-	{
-		//All registers are allocated: find an unlocked register for unmapping
-		reg = comp_find_unlocked_temp_register();
 
-		//Unmap the register and reuse the temporary register
-		comp_unmap_temp_register(reg->allocated_for);
+	//Have we found the register yet?
+	if (reg == NULL)
+	{
+		//No: allocate the next free temporary register
+		for(i = 0; i < PPC_TMP_REGS_COUNT; i++)
+			if (!used_tmp_regs[i].allocated) break;
+
+		if (i != PPC_TMP_REGS_COUNT)
+		{
+			reg = &used_tmp_regs[i];
+		}
+		else
+		{
+			//All registers are allocated: find an unlocked register for unmapping
+			reg = comp_find_unlocked_temp_register();
+
+			//Unmap the register and reuse the temporary register
+			comp_unmap_temp_register(reg->allocated_for);
+		}
 	}
 
 	//Set allocated state for the register
@@ -887,7 +919,14 @@ void comp_free_temp_register(comp_tmp_reg* temp_reg)
 	if (!temp_reg->allocated)
 	{
 		//Wasn't allocated
-		write_jit_log("Warning: Temporary register %d was not allocated, but now it is free'd\n", temp_reg);
+		int i;
+
+		for(i = 0; i < PPC_TMP_REGS_COUNT; i++)
+		{
+			if ((&used_tmp_regs[i]) == temp_reg) {
+				write_jit_log("Warning: Temporary register %d was not allocated, but now it is free'd\n", i);
+			}
+		}
 		return;
 	}
 
@@ -983,7 +1022,7 @@ comp_tmp_reg* comp_map_temp_register(uae_u8 reg_number, int needs_init, int need
 		temp_reg = reg->tmpreg;
 	} else {
 		//Allocate a temp register for the mapping
-		temp_reg = comp_allocate_temp_register(reg);
+		temp_reg = comp_allocate_temp_register(reg, PPC_TMP_REG_NOTUSED_MAPPED);
 
 		//Map the temp register
 		reg->tmpreg = temp_reg;
@@ -1691,7 +1730,7 @@ void comp_ppc_b(uae_u32 target, int reference)
 		// ## b target
 		comp_ppc_emit_word(0x48000000 | (target & 0x3fffffc));
 	} else {
-		helper_schedule_branch(0x48000000, reference);
+		helper_schedule_branch(0x48000000, reference, FALSE);
 	}
 }
 
@@ -1702,6 +1741,13 @@ void comp_ppc_b(uae_u32 target, int reference)
  */
 void comp_ppc_branch_target(int reference)
 {
+	if (reference >= MAX_BRANCH_SCHEDULE)
+	{
+		//This must not happen, bailing out
+		write_log("Compiling error: branch reference number is higher than MAX_BRANCH_SCHEDULE\n");
+		abort();
+	}
+
 	//Is there an already scheduled target?
 	if (compiled_branch_target[reference] != NULL)
 	{
@@ -1711,19 +1757,19 @@ void comp_ppc_branch_target(int reference)
 	}
 
 	//Is there a previously scheduled branch instruction?
-	if (compiled_branch_instruction[reference] != NULL)
+	if (compiled_branch_instruction[reference].address != NULL)
 	{
 		//Calculate the offset to the target from the previously scheduled branch instruction
-		uae_u32 offset = ((uae_u32) current_compile_p) - ((uae_u32) compiled_branch_instruction[reference]);
+		uae_u32 offset = ((uae_u32) current_compile_p) - ((uae_u32) compiled_branch_instruction[reference].address);
 
-		//Is the offset to the target address less than 0x02000000 or more than 0xfdffffff?
-		if ((offset < 0x02000000) || (offset > 0xfdffffff))
+		//Does the offset to the target address fit into the available bits?
+		if (helper_is_inside_branch_range(offset, compiled_branch_instruction[reference].is_16bit_instruction))
 		{
 			// complete already pre-compiled branch instruction in memory
-			*((uae_u32*) compiled_branch_instruction[reference]) |= (offset & 0x3fffffc);
+			*((uae_u32*) compiled_branch_instruction[reference].address) |= (offset & (compiled_branch_instruction[reference].is_16bit_instruction ? 0x0000fffc : 0x03fffffc));
 
 			//Branch instruction is finished, removing scheduled address
-			compiled_branch_instruction[reference] = NULL;
+			compiled_branch_instruction[reference].address = NULL;
 		}
 		else
 		{
@@ -1749,16 +1795,27 @@ void comp_ppc_branch_target(int reference)
  */
 void comp_ppc_bc(int bibo, int reference)
 {
-	helper_schedule_branch(0x40000000 | (bibo << 16), reference);
+	helper_schedule_branch(0x40000000 | (bibo << 16), reference, TRUE);
 }
 
 /**
  * Schedule the specified branch opcode for a branch target.
+ * Parameters:
+ *		opcode - raw opcode binary representation without the address offset
+ *		reference - reference number between 0 and MAX_BRANCH_SCHEDULE
+ *		is_16bit_instruction - if TRUE then the instruction uses 16 bits for the offset, 26 bits otherwise
  */
-STATIC_INLINE void helper_schedule_branch(uae_u32 opcode, int reference)
+STATIC_INLINE void helper_schedule_branch(uae_u32 opcode, int reference, BOOL is_16bit_instruction)
 {
+	if (reference >= MAX_BRANCH_SCHEDULE)
+	{
+		//This must not happen, bailing out
+		write_log("Compiling error: branch reference number is higher than MAX_BRANCH_SCHEDULE\n");
+		abort();
+	}
+
 	//Is there a scheduled branch instruction already?
-	if (compiled_branch_instruction[reference] != NULL)
+	if (compiled_branch_instruction[reference].address != NULL)
 	{
 		//This must not happen, bailing out
 		write_log("Compiling error: branch instruction was already scheduled\n");
@@ -1771,11 +1828,12 @@ STATIC_INLINE void helper_schedule_branch(uae_u32 opcode, int reference)
 		//Calculate the offset to the target from the actual PC address
 		uae_u32 offset = ((uae_u32) compiled_branch_target[reference]) - ((uae_u32) current_compile_p);
 
-		//Is the offset to the target address less than 0x02000000 or more than 0xfdffffff?
-		if ((offset < 0x02000000) || (offset > 0xfdffffff))
+		//Does the offset to the target address fit into the available bits?
+		if (helper_is_inside_branch_range(offset, is_16bit_instruction))
+
 		{
 			// ## bcc target
-			comp_ppc_emit_word(opcode | (offset & 0x3fffffc));
+			comp_ppc_emit_word(opcode | (offset & (is_16bit_instruction ? 0x0000fffc : 0x03fffffc)));
 
 			//Instruction is finished, remove target
 			compiled_branch_target[reference] = NULL;
@@ -1790,10 +1848,28 @@ STATIC_INLINE void helper_schedule_branch(uae_u32 opcode, int reference)
 	else
 	{
 		//There was no target scheduled, schedule instruction
-		compiled_branch_instruction[reference] = current_compile_p;
+		compiled_branch_instruction[reference].address = current_compile_p;
+		compiled_branch_instruction[reference].is_16bit_instruction = is_16bit_instruction;
 
 		//Emit the base instruction, target address will be filled in later on
 		comp_ppc_emit_word(opcode);
+	}
+}
+
+/*
+ * Checks an offset whether it fits into the bit range for a brach.
+ * Parameters:
+ *    offset - branch offset to be checked
+ *    is_16bit_instruction - if TRUE then the branch instruction for the check stores the offset on 16 bits,
+ *                           otherwise 26 bits otherwise
+ */
+STATIC_INLINE BOOL helper_is_inside_branch_range(uae_u32 offset, BOOL is_16bit_instruction)
+{
+	if (is_16bit_instruction)
+	{
+		return (offset < 0x00008000) || (offset > 0xffff7fff);
+	} else {
+		return (offset < 0x02000000) || (offset > 0xfdffffff);
 	}
 }
 
@@ -2135,6 +2211,48 @@ void comp_ppc_mr(comp_ppc_reg rega, comp_ppc_reg regs, BOOL updateflags)
 {
 	// ## mr(x) rega, regs ==> or(x) rega, regs, regs
 	comp_ppc_or(rega, regs, regs, updateflags);
+}
+
+/* Compiles mulhw instruction
+ * Parameters:
+ * 		regd - target register
+ * 		rega - source register 1
+ * 		regb - source register 2
+ * 		updateflags - compiles the flag updating version if TRUE
+ */
+void comp_ppc_mulhw(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags)
+{
+	// ## mulhw(x) regd, rega, regb
+	comp_ppc_emit_halfwords(0x7c00 | ((regd.r) << 5) | rega.r,
+			0x0096 | (regb.r << 11) | (updateflags ? 1 : 0));
+}
+
+/* Compiles mulhwu instruction
+ * Parameters:
+ * 		regd - target register
+ * 		rega - source register 1
+ * 		regb - source register 2
+ * 		updateflags - compiles the flag updating version if TRUE
+ */
+void comp_ppc_mulhwu(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags)
+{
+	// ## mulhwu(x) regd, rega, regb
+	comp_ppc_emit_halfwords(0x7c00 | ((regd.r) << 5) | rega.r,
+			0x0016 | (regb.r << 11) | (updateflags ? 1 : 0));
+}
+
+/* Compiles mullw instruction
+ * Parameters:
+ * 		regd - target register
+ * 		rega - source register 1
+ * 		regb - source register 2
+ * 		updateflags - compiles the flag updating version if TRUE
+ */
+void comp_ppc_mullw(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags)
+{
+	// ## mullw(x) regd, rega, regb
+	comp_ppc_emit_halfwords(0x7c00 | ((regd.r) << 5) | rega.r,
+			0x01d6 | (regb.r << 11) | (updateflags ? 1 : 0));
 }
 
 /* Compiles mullwo instruction
@@ -2548,8 +2666,8 @@ void comp_ppc_call(comp_ppc_reg reg, uae_uintptr addr)
 	//Calculate the offset to the target from the actual PC address
 	uae_u32 offset = ((uae_u32) addr) - ((uae_u32) current_compile_p);
 
-	//Is the offset to the target address less than 0x02000000 or more than 0xfdffffff?
-	if ((offset < 0x02000000) || (offset > 0xfdffffff))
+	//Does the offset to the target address fit into the available bits?
+	if (helper_is_inside_branch_range(offset, FALSE))
 	{
 		//Yes - we can use relative branch instruction
 		comp_ppc_bl(offset);
@@ -2582,8 +2700,8 @@ void comp_ppc_jump(uae_uintptr addr)
 	//Calculate the offset to the target from the actual PC address
 	uae_u32 offset = ((uae_u32) addr) - ((uae_u32) current_compile_p);
 
-	//Is the offset to the target address less than 0x02000000 or more than 0xfdffffff?
-	if ((offset < 0x02000000) || (offset > 0xfdffffff))
+	//Does the offset to the target address fit into the available bits?
+	if (helper_is_inside_branch_range(offset, FALSE))
 	{
 		//Yes - we can use relative branch instruction
 		comp_ppc_b(offset, 0);
@@ -2644,20 +2762,20 @@ void comp_ppc_prolog(uae_u32 save_regs)
 		r += (save_regs & (1 << i)) ? 1 : 0;
 	}
 
-	comp_ppc_mflr(PPCR_TMP0); //Read LR
-	comp_ppc_stw(PPCR_TMP0, 8, PPCR_SP); //Store in linkage area
+	comp_ppc_mflr(PPCR_TMP0_MAPPED); //Read LR
+	comp_ppc_stw(PPCR_TMP0_MAPPED, 8, PPCR_SP_MAPPED); //Store in linkage area
 
 	//Save registers
 	for(i = 0; i < 32; i++)
 	{
 		if (save_regs & (1 << i))
 		{
-			comp_ppc_stw(i, offset, PPCR_SP);
+			comp_ppc_stw(PPCR_MAPPED_REG(i), offset, PPCR_SP_MAPPED);
 			offset -= 4;
 		}
 	}
 
-	comp_ppc_stwu(PPCR_SP, ((-24 - (r * 4) + 15) & (-16)), PPCR_SP); //Calculate new stack frame; 16 byte aligned, no parameter area!!! Set real stack pointer
+	comp_ppc_stwu(PPCR_SP_MAPPED, ((-24 - (r * 4) + 15) & (-16)), PPCR_SP_MAPPED); //Calculate new stack frame; 16 byte aligned, no parameter area!!! Set real stack pointer
 }
 #endif
 
@@ -2693,9 +2811,9 @@ void comp_ppc_epilog(uae_u32 restore_regs)
 {
 	int i;
 
-	comp_ppc_lwz(PPCR_SP, 0, PPCR_SP); //Read the pointer to the previous stack frame and free up stack space by using the backchain pointer
-	comp_ppc_lwz(PPCR_SPECTMP, 8, PPCR_SP); //Read LR from the stackframe
-	comp_ppc_mtlr(PPCR_SPECTMP); //Restore LR
+	comp_ppc_lwz(PPCR_SP_MAPPED, 0, PPCR_SP_MAPPED); //Read the pointer to the previous stack frame and free up stack space by using the backchain pointer
+	comp_ppc_lwz(PPCR_SPECTMP_MAPPED, 8, PPCR_SP_MAPPED); //Read LR from the stackframe
+	comp_ppc_mtlr(PPCR_SPECTMP_MAPPED); //Restore LR
 
 	//Restore registers
 	int r = -4;
@@ -2703,7 +2821,7 @@ void comp_ppc_epilog(uae_u32 restore_regs)
 	{
 		if (restore_regs & (1 << i))
 		{
-			comp_ppc_lwz(i, r, PPCR_SP);
+			comp_ppc_lwz(PPCR_MAPPED_REG(i), r, PPCR_SP_MAPPED);
 			r -= 4;
 		}
 	}
@@ -2839,7 +2957,7 @@ void comp_ppc_verify_pc(uae_u8* pc_addr_exp)
 	comp_ppc_liw(PPCR_TMP0_MAPPED, (uae_u32) pc_addr_exp);	//Load original PC address into tempreg1
 	comp_ppc_lwz(PPCR_TMP1_MAPPED, COMP_GET_OFFSET_IN_REGS(pc_p), PPCR_REGS_BASE_MAPPED);	//Load the recent PC into tempreg2 from regs structure
 	comp_ppc_cmplw(PPCR_CR_TMP0, PPCR_TMP0_MAPPED, PPCR_TMP1_MAPPED);	//Compare registers
-	comp_ppc_bc(PPC_B_CR_TMP0_EQ | PPC_B_TAKEN, 0);	//beq+ skip
+	comp_ppc_bc(PPC_B_CR_TMP0_EQ, 0);	//beq skip
 
 	//PC is not the same as the cached
 	//Dispose stack frame
@@ -2969,3 +3087,65 @@ void comp_ppc_load_pc(uae_u32 pc_address, uae_u32 location)
 	comp_ppc_stw(PPCR_SPECTMP_MAPPED, COMP_GET_OFFSET_IN_REGS(pc), PPCR_REGS_BASE_MAPPED);
 }
 
+/**
+ * Signed division of 64 bit dividend by 32 bit divisor
+ * Parameters:
+ *    divisor - divisor for the division
+ *    dividend_low_regnum - number of 68k register for the low 32 bit part of the dividend
+ *    dividend_high_regnum - number of 68k register for the high 32 bit part of the dividend
+ * Returns non-zero if overflow happened, zero otherwise.
+ * Note: the result of the division is copied to the registers in the Regs structure, which
+ * were passed to the function by the register numbers.
+ */
+int comp_signed_divide_64_bit(uae_s32 divisor,  uae_u32 dividend_high_regnum, uae_u32 dividend_low_regnum)
+{
+	uae_s64 quotient64;
+	uae_s64 divisor64 = (uae_s64)divisor;
+
+	uae_s64 dividend64 = ((uae_s64)(uae_s32)regs.regs[dividend_high_regnum]) << 32 | ((uae_s64)(uae_s32)regs.regs[dividend_low_regnum]);
+
+	quotient64 = dividend64 / divisor64;
+
+	int overflow = ((quotient64 & UVAL64(0xffffffff80000000)) != 0
+		    && (quotient64 & UVAL64(0xffffffff80000000)) != UVAL64(0xffffffff80000000));
+
+	if (!overflow)
+	{
+		//Modify emulated registers only if there was no overflow
+		regs.regs[dividend_low_regnum] = (uae_u32)quotient64 & 0xffffffffu;
+		regs.regs[dividend_high_regnum] = (uae_u32)(dividend64 % divisor64) & 0xffffffffu;
+	}
+
+	return overflow;
+}
+
+/**
+ * Unsigned division of 64 bit dividend by 32 bit divisor
+ * Parameters:
+ *    divisor - divisor for the division
+ *    dividend_low_regnum - number of 68k register for the low 32 bit part of the dividend
+ *    dividend_high_regnum - number of 68k register for the high 32 bit part of the dividend
+ * Returns non-zero if overflow happened, zero otherwise.
+ * Note: the result of the division is copied to the registers in the Regs structure, which
+ * were passed to the function by the register numbers.
+ */
+int comp_unsigned_divide_64_bit(uae_u32 divisor, uae_u32 dividend_high_regnum, uae_u32 dividend_low_regnum)
+{
+	uae_u64 quotient64;
+	uae_u64 divisor64 = (uae_u64)divisor;
+
+	uae_u64 dividend64 = ((uae_u64)regs.regs[dividend_high_regnum]) << 32 | ((uae_s64)(uae_s32)regs.regs[dividend_low_regnum]);
+
+	quotient64 = dividend64 / divisor64;
+
+	int overflow = (quotient64 > 0xffffffffu);
+
+	if (!overflow)
+	{
+		//Modify emulated registers only if there was no overflow
+		regs.regs[dividend_low_regnum] = (uae_u32)quotient64 & 0xffffffffu;
+		regs.regs[dividend_high_regnum] = (uae_u32)(dividend64 % divisor64) & 0xffffffffu;
+	}
+
+	return overflow;
+}

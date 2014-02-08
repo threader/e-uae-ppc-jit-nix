@@ -31,6 +31,7 @@ struct comp_compiler_mb_three_regs_opcode
 	comp_ppc_reg	input_reg1;			//Input register #1
 	comp_ppc_reg	input_reg2;			//Input register #2
 	comp_ppc_reg	output_reg;			//Output register
+	comp_ppc_reg	temp_reg;			//Optional temporary register
 };
 
 //Structure for normal three register input: two input and one output registers, plus specify if flag update needed
@@ -209,16 +210,40 @@ struct comp_compiler_mb_set_pc_on_z_flag
 	comp_ppc_reg decrement_reg;			//Mapped decrement register (optional)
 };
 
+//Structure for division using two registers (32 bit / 16 bit -> 2 x 16 bit)
 struct comp_compiler_mb_division_two_reg_opcode
 {
 	struct comp_compiler_mb mb;			//Default macroblock descriptor
 	comp_exception_data exception_data;	//Data for the exception triggering
-	BOOL signed_division;				//If TRUE then this division is a signed operation, unsigned otherwise
 	comp_ppc_reg output_reg;			//Mapped output register
 	comp_ppc_reg divisor_reg;			//Mapped divisor register
 	comp_ppc_reg dividend_reg;			//Mapped dividend register
 	comp_ppc_reg temp_reg1;				//Mapped temporary#1 register
 	comp_ppc_reg temp_reg2;				//Mapped temporary#2 register
+	BOOL signed_division;				//If TRUE then this division is a signed operation, unsigned otherwise
+};
+
+//Structure for division using three registers (32 bit / 32 bit -> 32 bit, 32 bit)
+struct comp_compiler_mb_division_three_reg_opcode
+{
+	struct comp_compiler_mb mb;			//Default macroblock descriptor
+	comp_exception_data exception_data;	//Data for the exception triggering
+	comp_ppc_reg remainder_reg;			//Mapped remainder output register
+	comp_ppc_reg divisor_reg;			//Mapped divisor register
+	comp_ppc_reg quotient_reg;			//Mapped dividend and quotient register
+	comp_ppc_reg temp_reg;				//Mapped temporary register
+	BOOL signed_division;				//If TRUE then this division is a signed operation, unsigned otherwise
+};
+
+//Structure for 64 bit division using three registers (64 bit / 32 bit -> 32 bit, 32 bit)
+struct comp_compiler_mb_division_64_bit_opcode
+{
+	struct comp_compiler_mb mb;			//Default macroblock descriptor
+	comp_exception_data exception_data;	//Data for the exception triggering
+	comp_ppc_reg divisor_reg;			//Mapped divisor register
+	int dividend_low_reg_num;			//Number of the 68k register for dividend and quotient
+	int dividend_high_reg_num;			//Number of the 68k register for dividend and remainder
+	BOOL signed_division;				//If TRUE then this division is a signed operation, unsigned otherwise
 };
 
 //Union of all macroblock descriptor structures
@@ -246,4 +271,6 @@ union comp_compiler_mb_union
 	struct comp_compiler_mb_set_byte_from_z_flag set_byte_from_z_flag;
 	struct comp_compiler_mb_set_pc_on_z_flag set_pc_on_z_flag;
 	struct comp_compiler_mb_division_two_reg_opcode division_two_reg_opcode;
+	struct comp_compiler_mb_division_three_reg_opcode division_three_reg_opcode;
+	struct comp_compiler_mb_division_64_bit_opcode division_64_bit_opcode;
 };

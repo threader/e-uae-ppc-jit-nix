@@ -510,11 +510,6 @@ CMPIMM2REG    1   0   4   1011 ddd0 10SS Ssss   0 0     immedL    regD
 CMPIMM2REG    1   0   2   1011 ddd0 01SS Ssss   0 0     immedW    regD
 CMPIMM2REG    1   0   1   1011 ddd0 00SS Ssss   0 0     immedB    regD
 
-;*** CMP2
-CMP2MEM2REG   0   1   4   0000 0100 11SS Ssss   0 0     indA,indPCd16,indAd16,indAcp,indPCcp,absW,absL    none
-CMP2MEM2REG   0   1   2   0000 0010 11SS Ssss   0 0     indA,indPCd16,indAd16,indAcp,indPCcp,absW,absL    none
-CMP2MEM2REG   0   1   1   0000 0000 11SS Ssss   0 0     indA,indPCd16,indAd16,indAcp,indPCcp,absW,absL    none
-
 ;---------------------------------------------------------------------
 ;*** Arithmetic instructions
 ;*** Addition
@@ -657,9 +652,9 @@ MULUREG2REG   1   0   2   1100 ddd0 11SS Ssss   0 0     regD    regD
 MULUMEM2REG   1   0   2   1100 ddd0 11SS Ssss   0 0     indA,indApW,indmAW,indAd16,indAcp,indPCcp,indPCd16,absW,absL    regD
 
 ;*** MULU.L/MULS.L
-MULIMM2REG    0   3   4   0100 1100 0011 1100   0 0     none    none
-MULREG2REG    0   1   4   0100 1100 00SS Ssss   0 0     regD    none
-MULMEM2REG    0   1   4   0100 1100 00SS Ssss   0 0     indA,indApL,indmAL,indAd16,indAcp,indPCcp,indPCd16,absW,absL    none
+MULLIMM2REG   1   1   4   0100 1100 0011 1100   0 0     immedL    none
+MULLREG2REG   1   1   4   0100 1100 00SS Ssss   0 0     regD    none
+MULLMEM2REG   1   1   4   0100 1100 00SS Ssss   0 0     indA,indApL,indmAL,indAd16,indAcp,indPCcp,indPCd16,absW,absL    none
 
 ;*** DIVS.W
 DIVSIMM2REG   1   0   2   1000 ddd1 11SS Ssss   1 0     immedW    regD
@@ -672,9 +667,9 @@ DIVUREG2REG   1   0   2   1000 ddd0 11SS Ssss   1 0     regD    regD
 DIVUMEM2REG   1   0   2   1000 ddd0 11SS Ssss   1 0     indA,indApW,indmAW,indAd16,indAcp,indPCcp,indPCd16,absW,absL    regD
 
 ;*** DIVU.L/DIVS.L
-DIVIMM2REG    0   3   4   0100 1100 0111 1100   1 0     none    none
-DIVREG2REG    0   1   4   0100 1100 01SS Ssss   1 0     regD    none
-DIVMEM2REG    0   1   4   0100 1100 01SS Ssss   1 0     indA,indApL,indmAL,indAd16,indAcp,indPCcp,indPCd16,absW,absL    none
+DIVLIMM2REG   1   1   4   0100 1100 0111 1100   1 0     immedL    none
+DIVLREG2REG   1   1   4   0100 1100 01SS Ssss   1 0     regD    none
+DIVLMEM2REG   1   1   4   0100 1100 01SS Ssss   1 0     indA,indApL,indmAL,indAd16,indAcp,indPCcp,indPCd16,absW,absL    none
 
 ;*** NEG
 NEGREG        1   0   4   0100 0100 10DD Dddd   0 0     none    regD
@@ -695,18 +690,18 @@ NEGXMEM       1   0   2   0100 0000 01DD Dddd   0 0     none    indA,indApW,indm
 NEGXMEM       1   0   1   0100 0000 00DD Dddd   0 0     none    indA,indApB,indmAB,indAd16,indAcp,absW,absL
 
 ;*** Decimal arithmetics
-ABCDREG2REG   0   0   1   1100 ddd1 0000 0sss   0 0     regD    regD
-ABCDMEM2MEM   0   0   1   1100 ddd1 0000 1sss   0 0     indmAB    indmAB
+ABCDREG2REG   1   0   1   1100 ddd1 0000 0sss   0 0     regD    regD
+ABCDMEM2MEM   1   0   1   1100 ddd1 0000 1sss   0 0     indmAB    indmAB
 
-SBCDREG2REG   0   0   1   1000 ddd1 0000 0sss   0 0     regD    regD
-SBCDMEM2MEM   0   0   1   1000 ddd1 0000 1sss   0 0     indmAB    indmAB
+SBCDREG2REG   1   0   1   1000 ddd1 0000 0sss   0 0     regD    regD
+SBCDMEM2MEM   1   0   1   1000 ddd1 0000 1sss   0 0     indmAB    indmAB
 
-NBCDREG       0   0   1   0100 1000 00DD Dddd   0 0     none    regD
-NBCDMEM       0   0   1   0100 1000 00DD Dddd   0 0     none    indA,indApB,indmAB,indAd16,indAcp,absW,absL
-PACKREG2REG   0   1   1   1000 ddd1 0100 0sss   0 0     regD    regD
-PACKMEM2MEM   0   1   1   1000 ddd1 0100 1sss   0 0     indmAW    indmAB
-UNPKREG2REG   0   1   1   1000 ddd1 1000 0sss   0 0     regD    regD
-UNPKMEM2MEM   0   1   1   1000 ddd1 1000 1sss   0 0     indmAB    indmAW
+NBCDREG       1   0   1   0100 1000 00DD Dddd   0 0     none    regD
+NBCDMEM       1   0   1   0100 1000 00DD Dddd   0 0     none    indA,indApB,indmAB,indAd16,indAcp,absW,absL
+PACKREG2REG   1   1   1   1000 ddd1 0100 0sss   0 0     regD    regD
+PACKMEM2MEM   1   1   1   1000 ddd1 0100 1sss   0 0     indmAW    indmAB
+UNPKREG2REG   1   1   1   1000 ddd1 1000 0sss   0 0     regD    regD
+UNPKMEM2MEM   1   1   1   1000 ddd1 1000 1sss   0 0     indmAB    indmAW
 
 ;---------------------------------------------------------------------
 ;*** Misc instructions
