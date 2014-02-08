@@ -1,5 +1,10 @@
 #ifdef JIT
 
+/* If BOOL is not defined then define it here using int */
+#ifndef BOOL
+#define BOOL int
+#endif
+
 /* Margin for one instruction compiled code */
 #define BYTES_PER_INST 10240
 
@@ -220,16 +225,12 @@ typedef struct comp_exception_data_t
 #define PPC_B_CR_TMP0_NE	0x0082 	//0b0010000010
 #define PPC_B_CR_TMP1_NE	0x0086 	//0b0010000110
 
-
-//These two constants for hinting the branch if it was more likely taken or not
-#define PPC_B_TAKEN			0x0020	//0b0000100000
-#define PPC_B_NONTAKEN		0x0000	//0b0000000000
-
 /**
  * Not used temporary register
  * Note: must be a negative number
  */
 #define PPC_TMP_REG_NOTUSED -1
+#define PPC_TMP_REG_NOTUSED_MAPPED PPCR_MAPPED_REG(PPC_TMP_REG_NOTUSED)
 
 /**
  * Allocated temporary register that is not mapped to an M68k register
@@ -299,7 +300,7 @@ int comp_is_spec_memory_write_word(uae_u32 pc, int specmem_flags);
 int comp_is_spec_memory_write_long(uae_u32 pc, int specmem_flags);
 
 void comp_not_implemented(uae_u16 opcode);
-comp_tmp_reg* comp_allocate_temp_register(struct m68k_register* allocate_for);
+comp_tmp_reg* comp_allocate_temp_register(struct m68k_register* allocate_for, comp_ppc_reg preferred);
 void comp_free_temp_register(comp_tmp_reg* temp_reg);
 comp_tmp_reg* comp_map_temp_register(uae_u8 reg_number, int needs_init, int needs_flush);
 void comp_unmap_temp_register(struct m68k_register* reg);
@@ -311,6 +312,8 @@ void comp_unlock_all_temp_registers(void);
 int comp_next_free_register_slot(void);
 int comp_last_register_slot(void);
 void comp_dump_reg_usage(uae_u64 regs, char* str, char dump_control);
+int comp_unsigned_divide_64_bit(uae_u32 divisor, uae_u32 diviend_high_regnum, uae_u32 dividend_low_regnum);
+int comp_signed_divide_64_bit(uae_s32 divisor,  uae_u32 diviend_high_regnum, uae_u32 dividend_low_regnum);
 
 /* PowerPC instruction compiler functions */
 void comp_ppc_add(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags);
@@ -355,6 +358,9 @@ void comp_ppc_mr(comp_ppc_reg rega, comp_ppc_reg regs, BOOL updateflags);
 void comp_ppc_mtcrf(int crreg, comp_ppc_reg regf);
 void comp_ppc_mtlr(comp_ppc_reg reg);
 void comp_ppc_mtxer(comp_ppc_reg reg);
+void comp_ppc_mulhw(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags);
+void comp_ppc_mulhwu(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags);
+void comp_ppc_mullw(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags);
 void comp_ppc_mullwo(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags);
 void comp_ppc_neg(comp_ppc_reg regd, comp_ppc_reg rega, BOOL updateflags);
 void comp_ppc_nego(comp_ppc_reg regd, comp_ppc_reg rega, BOOL updateflags);
@@ -378,6 +384,7 @@ void comp_ppc_stw(comp_ppc_reg regs, uae_u16 delta, comp_ppc_reg rega);
 void comp_ppc_stwu(comp_ppc_reg regs, uae_u16 delta, comp_ppc_reg rega);
 void comp_ppc_subf(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags);
 void comp_ppc_subfco(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags);
+void comp_ppc_subfc(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags);
 void comp_ppc_subfeo(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags);
 void comp_ppc_subfe(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags);
 void comp_ppc_subfic(comp_ppc_reg rega, comp_ppc_reg regs, uae_u16 imm);

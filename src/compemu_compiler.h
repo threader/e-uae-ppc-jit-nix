@@ -140,9 +140,9 @@ void comp_macroblock_push_not_or_register_register(uae_u64 regsin, uae_u64 regso
 void comp_macroblock_push_xor_register_register(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg1, comp_ppc_reg input_reg2, BOOL updateflags);
 void comp_macroblock_push_xor_low_register_imm(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, uae_u16 immediate);
 void comp_macroblock_push_xor_high_register_imm(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, uae_u16 immediate);
-void comp_macroblock_push_and_register_imm(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, uae_u16 imm);
 void comp_macroblock_push_and_registers(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg1, comp_ppc_reg input_reg2);
-void comp_macroblock_push_multiply_registers_with_flags(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg1, comp_ppc_reg input_reg2);
+void comp_macroblock_push_multiply_registers(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg1, comp_ppc_reg input_reg2, BOOL updateflags);
+void comp_macroblock_push_multiply_registers_high(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg1, comp_ppc_reg input_reg2, BOOL is_signed, BOOL updateflags);
 void comp_macroblock_push_copy_nzcv_flags_to_register(uae_u64 regsout, comp_ppc_reg output_reg);
 void comp_macroblock_push_copy_nz_flags_to_register(uae_u64 regsout, comp_ppc_reg output_reg);
 void comp_macroblock_push_copy_cv_flags_to_register(uae_u64 regsout, comp_ppc_reg output_reg);
@@ -173,6 +173,12 @@ void comp_macroblock_push_or_negative_mask_if_n_flag_set(uae_u64 regsin, uae_u64
 void comp_macroblock_push_convert_ccr_to_internal(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg);
 void comp_macroblock_push_convert_internal_to_ccr(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg);
 void comp_macroblock_push_division_32_16bit(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg dividend_reg, comp_ppc_reg divisor_reg, BOOL signed_division, uae_u32 next_address, uae_u32 next_location);
+void comp_macroblock_push_division_32_32bit(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg quotient_reg, comp_ppc_reg remainder_reg, comp_ppc_reg divisor_reg, BOOL signed_division, uae_u32 next_address, uae_u32 next_location);
+void comp_macroblock_push_division_32_32bit_no_remainder(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg quotient_reg, comp_ppc_reg divisor_reg, BOOL signed_division, uae_u32 next_address, uae_u32 next_location);
+void comp_macroblock_push_division_64_32bit(uae_u64 regsin, uae_u64 regsout, int dividend_high_reg_num, int dividend_low_reg_num, comp_ppc_reg divisor_reg, BOOL signed_division, uae_u32 next_address, uae_u32 next_location);
+void comp_macroblock_push_add_decimal(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, comp_ppc_reg xflag_reg);
+void comp_macroblock_push_sub_decimal(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, comp_ppc_reg xflag_reg);
+void comp_macroblock_push_negate_decimal(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg xflag_reg);
 void comp_macroblock_push_stop(void);
 void comp_macroblock_push_nop(void);
 void comp_macroblock_push_null_operation(uae_u64 regsin, uae_u64 regsout);
