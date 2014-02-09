@@ -207,7 +207,7 @@ a_inode *fsdb_lookup_aino_aname (a_inode *base, const TCHAR *aname)
 		xfree (s);
 	}
 	fclose (f);
-    return 0;
+	return 0;
 }
 
 a_inode *fsdb_lookup_aino_nname (a_inode *base, const TCHAR *nname)
@@ -222,19 +222,19 @@ a_inode *fsdb_lookup_aino_nname (a_inode *base, const TCHAR *nname)
 		return 0;
 	}
 	s = ua (nname);
-    for (;;) {
+	for (;;) {
 		uae_u8 buf[1 + 4 + 257 + 257 + 81];
 		if (fread (buf, 1, sizeof buf, f) < sizeof buf)
-		    break;
+			break;
 		if (buf[0] != 0 && strcmp ((char*)buf + 5 + 257, s) == 0) {
-		    long pos = ftell (f) - sizeof buf;
-		    fclose (f);
+			long pos = ftell (f) - sizeof buf;
+			fclose (f);
 			xfree (s);
-		    return aino_from_buf (base, buf, pos);
+			return aino_from_buf (base, buf, pos);
 		}
-    }
+	}
 	xfree (s);
-    fclose (f);
+	fclose (f);
 	return 0;
 }
 

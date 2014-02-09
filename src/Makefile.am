@@ -177,7 +177,7 @@ EXTRA_DIST = \
 	test/test_optflag.c test/Makefile.in test/Makefile.am
 
 uae_SOURCES = \
-	main.c newcpu.c memory.c rommgr.c custom.c serial.c dongle.c cia.c \
+	main.c newcpu.c newcpu_common.c memory.c rommgr.c custom.c serial.c dongle.c cia.c \
 	blitter.c autoconf.c traps.c keybuf.c expansion.c inputrecord.c \
 	diskutil.c zfile.c zfile_archive.c cfgfile.c picasso96.c inputdevice.c \
 	gfxutil.c audio.c sinctable.c statusline.c drawing.c consolehook.c \

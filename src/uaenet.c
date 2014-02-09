@@ -7,7 +7,6 @@
  *           2010 Mustafa TUFAN
  */
 
-
 #include "sysconfig.h"
 
 #include <stdio.h>

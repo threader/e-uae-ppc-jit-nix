@@ -30,6 +30,7 @@ AC_DEFUN([jm_AC_TYPE_UINTMAX_T],
       [Define if you have the 'uintmax_t' type in <stdint.h> or <inttypes.h>.])
   fi
 ])
+
 # inttypes_h.m4 serial 5 (gettext-0.12)
 dnl Copyright (C) 1997-2003 Free Software Foundation, Inc.
 dnl This file is free software, distributed under the terms of the GNU

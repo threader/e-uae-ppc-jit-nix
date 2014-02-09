@@ -522,7 +522,7 @@ static int set_filesys_volume (const TCHAR *rootdir, int *flags, bool *readonly,
 		struct zvolume *zv;
 		zv = zfile_fopen_archive (rootdir);
 		if (!zv) {
-			write_log (_T("'%s' is not a supported archive file\n"), rootdir);
+			error_log (_T("'%s' is not a supported archive file."), rootdir);
 			return -1;
 		}
 		*zvp = zv;
@@ -532,11 +532,11 @@ static int set_filesys_volume (const TCHAR *rootdir, int *flags, bool *readonly,
 		*flags = my_getvolumeinfo (rootdir);
 		if (*flags < 0) {
 			if (rootdir && rootdir[0])
-				write_log (_T("directory '%s' not found, mounting as empty drive\n"), rootdir);
+				error_log (_T("directory '%s' not found, mounting as empty drive."), rootdir);
 			*emptydrive = 1;
 			*flags = 0;
 		} else if ((*flags) & MYVOLUMEINFO_READONLY) {
-			write_log (_T("'%s' set to read-only\n"), rootdir);
+			error_log (_T("'%s' set to read-only."), rootdir);
 			*readonly = 1;
 		}
 	}
@@ -578,7 +578,7 @@ static int set_filesys_unit_1 (int nr, struct uaedev_config_info *ci)
 				break;
 		}
 		if (nr == MAX_FILESYSTEM_UNITS) {
-			write_log (_T("No slot allocated for this unit\n"));
+			error_log (_T("No slot allocated for this unit"));
 			return -1;
 		}
 	}
@@ -600,7 +600,7 @@ static int set_filesys_unit_1 (int nr, struct uaedev_config_info *ci)
 		if (nr == i || !mountinfo.ui[i].open || mountinfo.ui[i].rootdir == NULL || is_hardfile (i) == FILESYS_CD)
 			continue;
 		if (_tcslen (c.rootdir) > 0 && !_tcsicmp (mountinfo.ui[i].rootdir, c.rootdir)) {
-			write_log (_T("directory/hardfile '%s' already added\n"), c.rootdir);
+			error_log (_T("directory/hardfile '%s' already added."), c.rootdir);
 			return -1;
 		}
 	}
@@ -629,9 +629,11 @@ static int set_filesys_unit_1 (int nr, struct uaedev_config_info *ci)
 		ui->volname = 0;
 		if (ui->hf.ci.rootdir[0]) {
 			if (!hdf_open (&ui->hf, NULL) && !c.readonly) {
-				write_log (_T("Attempting to open in read-only mode\n"));
+				write_log (_T("Attempting to open '%s' in read-only mode\n"), ui->hf.ci.rootdir);
 				ui->hf.ci.readonly = c.readonly = true;
-				hdf_open (&ui->hf, NULL);
+				if (hdf_open (&ui->hf, NULL)) {
+					error_log (_T("'%s' opened in read-only mode.\n"), ui->hf.ci.rootdir);
+				}
 			}
 		} else {
 			// empty drive?
@@ -639,22 +641,22 @@ static int set_filesys_unit_1 (int nr, struct uaedev_config_info *ci)
 		}
 		if (!ui->hf.drive_empty) {
 			if (ui->hf.handle_valid == 0) {
-				write_log (_T("Hardfile %s not found\n"), ui->hf.device_name);
+				error_log (_T("Hardfile '%s' not found."), ui->hf.ci.rootdir);
 				goto err;
 			}
 			if ((uae_u64)(ui->hf.ci.blocksize) > ui->hf.virtsize || ui->hf.virtsize == 0) {
-				write_log (_T("Hardfile %s too small\n"), ui->hf.device_name);
+				error_log (_T("Hardfile '%s' too small."), ui->hf.ci.rootdir);
 				goto err;
 			}
 		}
 		if ((ui->hf.ci.blocksize & (ui->hf.ci.blocksize - 1)) != 0 || ui->hf.ci.blocksize == 0) {
-			write_log (_T("Hardfile %s bad blocksize\n"), ui->hf.device_name);
+			error_log (_T("Hardfile '%s' bad blocksize %d."), ui->hf.ci.rootdir, ui->hf.ci.blocksize);
 			goto err;
 		}
 		if ((ui->hf.ci.sectors || ui->hf.ci.surfaces || ui->hf.ci.reserved) &&
 			(ui->hf.ci.sectors < 1 || ui->hf.ci.surfaces < 1 || ui->hf.ci.surfaces > 1023 ||
 			ui->hf.ci.reserved < 0 || ui->hf.ci.reserved > 1023) != 0) {
-				write_log (_T("Hardfile %s bad hardfile geometry\n"), ui->hf.device_name);
+				error_log (_T("Hardfile '%s' bad hardfile geometry."), ui->hf.ci.rootdir);
 				goto err;
 		}
 		if (!ui->hf.ci.highcyl) {
@@ -1386,7 +1388,7 @@ static unsigned int fs_write (struct fs_filehandle *fsf, void *b, unsigned int s
 }
 
 /* return value = old position. -1 = error. */
-static uae_u64 fs_lseek64 (struct fs_filehandle *fsf, uae_s64 offset, int whence)
+static uae_s64 fs_lseek64 (struct fs_filehandle *fsf, uae_s64 offset, int whence)
 {
 	if (fsf->fstype == FS_ARCHIVE)
 		return zfile_lseek_archive (fsf->zf, offset, whence);
@@ -1396,11 +1398,14 @@ static uae_u64 fs_lseek64 (struct fs_filehandle *fsf, uae_s64 offset, int whence
 		return isofs_lseek (fsf->isof, offset, whence);*/
 	return -1;
 }
-static uae_u32 fs_lseek (struct fs_filehandle *fsf, uae_s32 offset, int whence)
+static uae_s32 fs_lseek (struct fs_filehandle *fsf, uae_s32 offset, int whence)
 {
-	return (uae_u32)fs_lseek64 (fsf, offset, whence);
+	uae_s64 v = fs_lseek64 (fsf, offset, whence);
+	if (v < 0 || v > 0x7fffffff)
+		return -1;
+	return (uae_s32)v;
 }
-static uae_u64 fs_fsize64 (struct fs_filehandle *fsf)
+static uae_s64 fs_fsize64 (struct fs_filehandle *fsf)
 {
 	if (fsf->fstype == FS_ARCHIVE)
 		return zfile_fsize_archive (fsf->zf);
@@ -2745,7 +2750,7 @@ static Unit *startup_create_unit (UnitInfo *uinfo, int num)
 	return unit;
 }
 
-/*
+#if 0
 static bool mount_cd (UnitInfo *uinfo, int nr, struct mytimeval *ctime, uae_u64 *uniq)
 {
 	uinfo->cddevno = nr - cd_unit_offset;
@@ -2780,7 +2785,7 @@ static bool mount_cd (UnitInfo *uinfo, int nr, struct mytimeval *ctime, uae_u64 
 	uinfo->cd_open = true;
 	return true;
 }
-*/
+#endif
 
 #ifdef UAE_FILESYS_THREADS
 static void *filesys_thread (void *unit_v);
@@ -2817,19 +2822,17 @@ static uae_u32 REGPARAM2 startup_handler (TrapContext *context)
 	/* Just got the startup packet. It's in D3. DosBase is in A2,
 	* our allocated volume structure is in A3, A5 is a pointer to
 	* our port. */
-// REMOVEME:
-#if 0
-	uaecptr rootnode = get_long (m68k_areg (regs, 2) + 34);
-	uaecptr dos_info = get_long (rootnode + 24) << 2;
-#endif
+// REMOVEME: uaecptr rootnode = get_long (m68k_areg (regs, 2) + 34);
+// REMOVEME: uaecptr dos_info = get_long (rootnode + 24) << 2;
 	uaecptr pkt = m68k_dreg (regs, 3);
-	//uaecptr arg1 = get_long (pkt + dp_Arg1);
+// REMOVEME: uaecptr arg1 = get_long (pkt + dp_Arg1);
 	uaecptr arg2 = get_long (pkt + dp_Arg2);
-	//uaecptr arg3 = get_long (pkt + dp_Arg3);
+// REMOVEME: uaecptr arg3 = get_long (pkt + dp_Arg3);
 	// 1.3:
 	// dp_Arg1 contains crap (Should be name of device)
 	// dp_Arg2 = works as documented
 	// dp_Arg3 = NULL (!?). (Should be DeviceNode)
+
 	uaecptr devnode;
 	int nr;
 	Unit *unit;
@@ -3418,7 +3421,7 @@ static void action_make_link (Unit *unit, dpacket packet)
 		for (Unit *u = units; u; u = u->next) {
 			if (u->volflags & (MYVOLUMEINFO_ARCHIVE | MYVOLUMEINFO_CDFS))
 				continue;
-			a3 = find_aino (u, NULL, link, &err);
+			a3 = find_aino (u, 0, link, &err);
 			if (err || !a3)
 				continue;
 			_tcscpy (tmp2, a1->nname);
@@ -3733,8 +3736,10 @@ static void
 	TRACE((_T("name=\"%s\"\n"), xs));
 	x = ua_fs (xs, -1);
 	n = strlen (x);
-	if (n > 106)
-		n = 106;
+	if (n > 107)
+		n = 107;
+	if (n > abs (currprefs.filesys_max_name))
+		n = abs (currprefs.filesys_max_name);
 	i = 8;
 	put_byte (info + i, n); i++;
 	while (n--)
@@ -4823,7 +4828,7 @@ static void
 			write_log (_T("unixfs warning: Bad pointer passed for read: %08x, size %d\n"), addr, size);
 			/* ugh this is inefficient but easy */
 
-			if ((uae_u64)-1 == fs_lseek64 (k->fd, k->file_pos, SEEK_SET)) {
+			if (fs_lseek64 (k->fd, k->file_pos, SEEK_SET) < 0) {
 				PUT_PCK_RES1 (packet, 0);
 				PUT_PCK_RES2 (packet, dos_errno ());
 				return;
@@ -4838,7 +4843,7 @@ static void
 
 			actual = fs_read (k->fd, buf, size);
 
-			if (actual < 0) {
+			if ((uae_s32)actual == -1) {
 				PUT_PCK_RES1 (packet, 0);
 				PUT_PCK_RES2 (packet, dos_errno ());
 			} else {
@@ -4857,7 +4862,7 @@ static void
 		/* normal fast read */
 		uae_u8 *realpt = get_real_address (addr);
 
-		if ((uae_u64)-1 == fs_lseek64 (k->fd, k->file_pos, SEEK_SET)) {
+		if (fs_lseek64 (k->fd, k->file_pos, SEEK_SET) < 0) {
 			PUT_PCK_RES1 (packet, 0);
 			PUT_PCK_RES2 (packet, dos_errno ());
 			return;
@@ -4868,7 +4873,7 @@ static void
 		if (actual == 0) {
 			PUT_PCK_RES1 (packet, 0);
 			PUT_PCK_RES2 (packet, 0);
-		} else if ((uae_u32)-1 == actual) {
+		} else if (actual < 0) {
 			PUT_PCK_RES1 (packet, 0);
 			PUT_PCK_RES2 (packet, dos_errno ());
 		} else {
@@ -4913,7 +4918,7 @@ static void
 	} else if (valid_address (addr, size)) {
 		uae_u8 *realpt = get_real_address (addr);
 
-		if ((uae_u64)-1 == fs_lseek64 (k->fd, k->file_pos, SEEK_SET)) {
+		if (fs_lseek64 (k->fd, k->file_pos, SEEK_SET) < 0) {
 			PUT_PCK_RES1 (packet, 0);
 			PUT_PCK_RES2 (packet, dos_errno ());
 			return;
@@ -4924,7 +4929,7 @@ static void
 		write_log (_T("unixfs warning: Bad pointer passed for write: %08x, size %d\n"), addr, size);
 		/* ugh this is inefficient but easy */
 
-		if ((uae_u64)-1 == fs_lseek64 (k->fd, k->file_pos, SEEK_SET)) {
+		if (fs_lseek64 (k->fd, k->file_pos, SEEK_SET) < 0) {
 			PUT_PCK_RES1 (packet, 0);
 			PUT_PCK_RES2 (packet, dos_errno ());
 			return;
@@ -4948,7 +4953,7 @@ static void
 	PUT_PCK_RES1 (packet, actual);
 	if (actual != size)
 		PUT_PCK_RES2 (packet, dos_errno ());
-	if ((uae_u32)-1 != actual)
+	if ((uae_s32)actual != -1)
 		k->file_pos += actual;
 
 	k->notifyactive = 1;
@@ -6328,6 +6333,7 @@ void filesys_prepare_reset (void)
 static uae_u32 REGPARAM2 filesys_diagentry (TrapContext *context)
 {
 	uaecptr resaddr = m68k_areg (regs, 2) + 0x10;
+	uaecptr expansion = m68k_areg (regs, 5);
 	uaecptr start = resaddr;
 	uaecptr residents, tmp;
 
@@ -6371,6 +6377,7 @@ static uae_u32 REGPARAM2 filesys_diagentry (TrapContext *context)
 #ifdef UAESERIAL
 	resaddr = uaeserialdev_startup (resaddr);
 #endif
+
 	/* scan for Residents and return pointer to array of them */
 	residents = resaddr;
 	while (tmp < residents && tmp > start) {
@@ -6397,6 +6404,32 @@ static uae_u32 REGPARAM2 filesys_diagentry (TrapContext *context)
 
 	m68k_areg (regs, 0) = residents;
 	
+	if (currprefs.uae_hide_autoconfig) {
+		bool found = true;
+		while (found) {
+			uaecptr node = get_long (expansion + 0x3c);
+			found = false;
+			while (get_long (node)) {
+				if (get_word (node + 0x10 + 4) == 2011) {
+					uae_u8 prod = get_byte (node + 0x10 + 1);
+					if (prod != 2) {
+						// remove all 2011 boards except filesystem
+						found = true;
+						uaecptr succ = get_long (node);
+						uaecptr pred = get_long (node + 4);
+						put_long (pred,  succ);
+						put_long (succ + 4, pred);
+						break;
+					}
+					// replace filesystem with A590/A2091 IDs..
+					put_byte (node + 0x10 + 1, 3);
+					put_word (node + 0x10 + 4, 514);
+				}
+				node = get_long (node);
+			}
+		}
+	}
+
 	return 1;
 }
 
@@ -7092,7 +7125,7 @@ static int dofakefilesys (UnitInfo *uip, uaecptr parmpacket, struct uaedev_confi
 	zf = zfile_fopen (tmp, _T("rb"), ZFD_NORMAL);
 	if (!zf) {
 		addfakefilesys (parmpacket, dostype, ver, rev, ci);
-		write_log (_T("RDB: filesys not found, mounted without filesys\n"));
+		write_log (_T("RDB: filesys not found, mounted without forced filesys\n"));
 		return FILESYS_HARDFILE;
 	}
 

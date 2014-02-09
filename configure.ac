@@ -10,12 +10,11 @@ AC_INIT(PUAE, 2.7.1, mustafa.tufan@gmail.com, puae)
 AC_CONFIG_SRCDIR([bootstrap.sh])
 AC_CONFIG_HEADER([src/sysconfig.h])
 AC_CANONICAL_TARGET
-AM_INIT_AUTOMAKE(1.7 dist-bzip2 foreign)
+AM_INIT_AUTOMAKE(1.7 dist-bzip2 foreign subdir-objects)
 
 dnl
 dnl Checks for programs.
 dnl
-
 AC_PROG_CC
 AC_PROG_CPP
 AC_PROG_CXX
@@ -430,6 +429,7 @@ HAVE_GCC30=no
 HAVE_GCC40=no
 HAVE_GCC46=no
 HAVE_GCC47=no
+HAVE_GCC48=no
 HAVE_GLIBC2=no
 
 AC_MSG_CHECKING([for GCC 2.7 or higher])
@@ -470,6 +470,13 @@ AC_EGREP_CPP(yes,
   yes
 #endif
 ], [AC_MSG_RESULT(yes); HAVE_GCC47=yes], AC_MSG_RESULT(no))
+
+AC_MSG_CHECKING([for GCC 4.8 or higher])
+AC_EGREP_CPP(yes,
+[#if (__GNUC__ > 3 && __GNUC_MINOR__ > 7)
+  yes
+#endif
+], [AC_MSG_RESULT(yes); HAVE_GCC48=yes], AC_MSG_RESULT(no))
 
 if test $ac_cv_prog_gcc = yes; then
   if test $HAVE_GCC27 != yes; then
@@ -890,6 +897,9 @@ fi
 
   if [[ "x$want_gcc_debug" == "xyes" ]]; then
     DEBUG_CFLAGS="$DEBUG_CFLAGS -ggdb"
+dnl if [[ "x$HAVE_GCC48" = "xyes" ]]; then
+dnl    DEBUG_CFLAGS="$DEBUG_CFLAGS -Og"
+dnl fi
   else
   OPTIMIZE_CFLAGS="$OPTIMIZE_CFLAGS -fomit-frame-pointer -ffast-math"
 fi
@@ -908,7 +918,7 @@ if [[ "x$DO_PROFILING" = "xyes" ]]; then
 fi
 
 UAE_CFLAGS="$OPTIMIZE_CFLAGS $DEBUG_CFLAGS $WARNING_CFLAGS"
-UAE_CXXFLAGS="$OPTIMIZE_CFLAGS $DEBUG_CFLAGS  $WARNING_CXXFLAGS"
+UAE_CXXFLAGS="$OPTIMIZE_CFLAGS $DEBUG_CFLAGS $WARNING_CXXFLAGS"
 
 dnl -----------------------------------------------
 dnl  Check CPU emulation options
@@ -2136,6 +2146,11 @@ UAE_CXXFLAGS="$UAE_CXXFLAGS $UAE_CFLAGS -std=c++11"
 else
 UAE_CXXFLAGS="$UAE_CXXFLAGS $UAE_CFLAGS -std=c++98"
 fi
+
+dnl gcc 4.8
+dnl if [[ "x$HAVE_GCC48" = "xyes" ]]; then
+dnl  UAE_CFLAGS="$UAE_CFLAGS -fsanitize=address"
+dnl fi
 
 UAE_CFLAGS="$UAE_CFLAGS -std=c99"
 

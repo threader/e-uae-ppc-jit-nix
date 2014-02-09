@@ -1,3 +1,12 @@
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * SCSI emulation (not uaescsi.device)
+ *
+ * Copyright 2007 Toni Wilen
+ * 
+ */
+
 #pragma once
 #ifndef SCSI_H
 #define SCSI_H

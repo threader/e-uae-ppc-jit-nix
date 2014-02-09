@@ -29,11 +29,15 @@ install:
 
 
 clean:
-	-rm -f *.o cpudefs.c gencpu gencomp genblitter build68k genlinetoscr
+	-rm -f *.o
+	-rm cpudefs.c
+	-rm -f gencpu gencomp genblitter build68k genlinetoscr
 
 
 distclean: clean
-	-rm -f config.cache config.log config.status Makefile sysconfig.h *.c
+	-rm -f config.cache config.log config.status
+	-rm -f Makefile sysconfig.h
+	-rm -f *.c
 
 genblitter: genblitter.o blitops.o writelog.o
 	$(CC) $(LDFLAGS) -o genblitter genblitter.o blitops.o writelog.o
@@ -50,7 +54,6 @@ custom.o: blit.h
 drawing.o: linetoscr.c
 
 cpudefs.c: build68k @top_srcdir@/../table68k
-	sleep 1s
 	./build68k <@top_srcdir@/../table68k >cpudefs.c
 
 .c.o:

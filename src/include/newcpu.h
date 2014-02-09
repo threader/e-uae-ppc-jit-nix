@@ -256,6 +256,8 @@ STATIC_INLINE void m68k_setpc (uaecptr newpc)
 	regs.instruction_pc = regs.pc = newpc;
 }
 
+extern void m68k_setpc_normal (uaecptr newpc);
+
 STATIC_INLINE uaecptr m68k_getpc (void)
 {
 	return (uaecptr)(regs.pc + ((uae_u8*)regs.pc_p - (uae_u8*)regs.pc_oldp));
@@ -408,10 +410,12 @@ int get_cpu_model (void);
 # undef Exception
 #endif
 
+extern void set_cpu_caches (bool flush);
 void REGPARAM3 MakeSR (void) REGPARAM;
 //void SetSR (uae_u16 sr);
 void REGPARAM3 MakeFromSR (void) REGPARAM;
 void REGPARAM3 Exception (int) REGPARAM;
+void REGPARAM3 ExceptionL (int, uaecptr) REGPARAM;
 void NMI (void);
 void NMI_delayed (void);
 void prepare_interrupt (uae_u32);
@@ -451,8 +455,9 @@ void fpux_restore (int*);
 
 void exception3 (uae_u32 opcode, uaecptr addr);
 void exception3i (uae_u32 opcode, uaecptr addr);
-extern void exception3pc (uae_u32 opcode, uaecptr addr, bool w, bool i, uaecptr pc);
-void exception2 (uaecptr addr);
+void exception3b (uae_u32 opcode, uaecptr addr, bool w, bool i, uaecptr pc);
+void exception2 (uaecptr addr, bool read, int size, uae_u32 fc);
+void exception2_fake (uaecptr addr);
 void cpureset (void);
 void cpu_halt (int id);
 

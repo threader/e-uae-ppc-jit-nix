@@ -1,3 +1,12 @@
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * Linux uaenet emulation
+ *
+ * Copyright 2007 Toni Wilen
+ *           2010 Mustafa TUFAN
+ */
+
 #pragma once
 #ifndef UAENET_H
 #define UAENET_H

@@ -1,3 +1,10 @@
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * ROM file management
+ *
+ */
+
 #ifndef ROMMGR_H
 #define ROMMGR_H
 

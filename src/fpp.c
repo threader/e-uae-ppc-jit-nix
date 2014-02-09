@@ -20,7 +20,6 @@
 #include "custom.h"
 #include "events.h"
 #include "newcpu.h"
-#include "ersatz.h"
 #include "md-fpp.h"
 #include "savestate.h"
 #include "cpu_prefetch.h"
@@ -747,9 +746,9 @@ STATIC_INLINE int get_fp_value (uae_u32 opcode, uae_u16 extra, fptype *src, uaec
 			break;
 		case 2:
 			{
+				uae_u32 wrd1, wrd2, wrd3;
 				if (fault_if_4060 (opcode, extra, ad, oldpc, FPU_EXP_UNIMP_DATATYPE))
 					return -1;
-				uae_u32 wrd1, wrd2, wrd3;
 				wrd1 = (doext ? exts[0] : x_cp_get_long (ad));
 				ad += 4;
 				wrd2 = (doext ? exts[1] : x_cp_get_long (ad));
@@ -760,9 +759,9 @@ STATIC_INLINE int get_fp_value (uae_u32 opcode, uae_u16 extra, fptype *src, uaec
 			break;
 		case 3:
 			{
+				uae_u32 wrd1, wrd2, wrd3;
 				if (fault_if_4060 (opcode, extra, ad, oldpc, FPU_EXP_UNIMP_DATATYPE))
 					return -1;
-				uae_u32 wrd1, wrd2, wrd3;
 				wrd1 = (doext ? exts[0] : x_cp_get_long (ad));
 				ad += 4;
 				wrd2 = (doext ? exts[1] : x_cp_get_long (ad));
@@ -895,9 +894,9 @@ STATIC_INLINE int put_fp_value (fptype value, uae_u32 opcode, uae_u16 extra, uae
 			break;
 		case 2:
 			{
+				uae_u32 wrd1, wrd2, wrd3;
 				if (fault_if_4060 (opcode, extra, ad, oldpc, FPU_EXP_UNIMP_DATATYPE))
 					return -1;
-				uae_u32 wrd1, wrd2, wrd3;
 				from_exten (value, &wrd1, &wrd2, &wrd3);
 				x_cp_put_long (ad, wrd1);
 				ad += 4;
@@ -908,9 +907,9 @@ STATIC_INLINE int put_fp_value (fptype value, uae_u32 opcode, uae_u16 extra, uae
 			break;
 		case 3:
 			{
+				uae_u32 wrd1, wrd2, wrd3;
 				if (fault_if_4060 (opcode, extra, ad, oldpc, FPU_EXP_UNIMP_DATATYPE))
 					return -1;
-				uae_u32 wrd1, wrd2, wrd3;
 				from_pack (value, &wrd1, &wrd2, &wrd3);
 				x_cp_put_long (ad, wrd1);
 				ad += 4;

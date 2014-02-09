@@ -224,7 +224,7 @@ STATIC_INLINE void ipl_fetch (void)
 
 STATIC_INLINE uae_u32 mem_access_delay_word_read (uaecptr addr)
 {
-        uae_u32 v;
+	uae_u32 v;
 	switch (ce_banktype[addr >> 16])
 	{
 	case CE_MEMBANK_CHIP16:
@@ -240,7 +240,7 @@ STATIC_INLINE uae_u32 mem_access_delay_word_read (uaecptr addr)
 }
 STATIC_INLINE uae_u32 mem_access_delay_wordi_read (uaecptr addr)
 {
-        uae_u32 v;
+	uae_u32 v;
 	switch (ce_banktype[addr >> 16])
 	{
 	case CE_MEMBANK_CHIP16:
@@ -257,7 +257,7 @@ STATIC_INLINE uae_u32 mem_access_delay_wordi_read (uaecptr addr)
 
 STATIC_INLINE uae_u32 mem_access_delay_byte_read (uaecptr addr)
 {
-        uae_u32 v;
+	uae_u32 v;
 	switch (ce_banktype[addr >> 16])
 	{
 	case CE_MEMBANK_CHIP16:

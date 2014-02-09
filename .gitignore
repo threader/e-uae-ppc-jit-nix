@@ -69,3 +69,8 @@ ui_puae_mainwindow.h
 
 # macos
 .DS_Store
+
+# testing
+kick.rom
+kick_ext.rom
+df0.adz

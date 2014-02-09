@@ -23,7 +23,6 @@ Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.  */
 #include <devices/timer.h>
 #endif
 
-
 #include <stdlib.h>
 #include <sys/types.h>
 
@@ -68,25 +67,19 @@ int get_fs_usage (const TCHAR *path, const TCHAR *disk, struct fs_usage *fsp)
     int result = -1;
 
     if (info) {
-	BPTR lock = Lock (path, SHARED_LOCK);
-	if (lock) {
-	    if (Info (lock, info)) {
-		fsp->fsu_blocks = adjust_blocks (info->id_NumBlocks,
-						 info->id_BytesPerBlock,
-						 512);
-		fsp->fsu_bfree = fsp->fsu_bavail =
-				  adjust_blocks (info->id_NumBlocks - info->id_NumBlocksUsed,
-						 info->id_BytesPerBlock,
-						 512);
-		fsp->fsu_files = fsp->fsu_ffree = -1;
-
-		result = 0;
-	    }
-	    UnLock (lock);
+		BPTR lock = Lock (path, SHARED_LOCK);
+		if (lock) {
+		    if (Info (lock, info)) {
+				fsp->fsu_blocks = adjust_blocks (info->id_NumBlocks, info->id_BytesPerBlock, 512);
+				fsp->fsu_bfree = fsp->fsu_bavail = adjust_blocks (info->id_NumBlocks - info->id_NumBlocksUsed, info->id_BytesPerBlock, 512);
+				fsp->fsu_files = fsp->fsu_ffree = -1;
+				result = 0;
+			}
+			UnLock (lock);
+		}
+		FreeVec (info);
 	}
-	FreeVec (info);
-    }
-    return result;
+	return result;
 }
 
 #else /* ! TARGET_AMIGAOS */
@@ -97,21 +90,20 @@ int get_fs_usage (const TCHAR *path, const TCHAR *disk, struct fs_usage *fsp)
 
 int get_fs_usage (const char *path, const char *disk, struct fs_usage *fsp)
 {
-    int result = -1;
-    dev_t device = dev_for_path (path);
+	int result = -1;
+	dev_t device = dev_for_path (path);
 
-    if (device >0) {
-	fs_info info;
-	if (fs_stat_dev (device, &info) == 0) {
-	    fsp->fsu_blocks = adjust_blocks (info.total_blocks, info.block_size, 512);
-	    fsp->fsu_bfree = fsp->fsu_bavail = adjust_blocks (info.free_blocks, info.block_size, 512);
-	    fsp->fsu_files = info.total_nodes;
-	    fsp->fsu_ffree = info.free_nodes;
-
-	    result = 0;
+	if (device >0) {
+		fs_info info;
+		if (fs_stat_dev (device, &info) == 0) {
+			fsp->fsu_blocks = adjust_blocks (info.total_blocks, info.block_size, 512);
+			fsp->fsu_bfree = fsp->fsu_bavail = adjust_blocks (info.free_blocks, info.block_size, 512);
+			fsp->fsu_files = info.total_nodes;
+			fsp->fsu_ffree = info.free_nodes;
+			result = 0;
+		}
 	}
-    }
-    return result;
+	return result;
 };
 
 #else /* ! __BEOS__ */

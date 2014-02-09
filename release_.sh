@@ -35,6 +35,7 @@ rm -rf `find . -type f -name .DS_Store`
 rm -rf `find . -type f -name sysconfig.h`
 rm -rf `find . -type f -name gmon.out`
 
+#
 rm -rf Makefile.in
 rm -rf src/Makefile.in
 rm -rf src/archivers/dms/Makefile.in
@@ -47,6 +48,7 @@ rm -rf src/gfx-sdl/Makefile.in
 rm -rf src/gfx-svga/Makefile.in
 rm -rf src/gfx-x11/Makefile.in
 rm -rf src/gfx-cocoa/Makefile.in
+rm -rf src/gfx-pepper/Makefile.in
 rm -rf src/gui-beos/Makefile.in
 rm -rf src/gui-cocoa/Makefile.in
 rm -rf src/gui-gtk/Makefile.in
@@ -54,12 +56,14 @@ rm -rf src/gui-muirexx/Makefile.in
 rm -rf src/gui-none/Makefile.in
 rm -rf src/gui-qt/Makefile.in
 rm -rf src/gui-sdl/Makefile.in
+rm -rf src/gui-pepper/Makefile.in
 rm -rf src/jd-amigainput/Makefile.in
 rm -rf src/jd-amigaos/Makefile.in
 rm -rf src/jd-beos/Makefile.in
 rm -rf src/jd-linuxold/Makefile.in
 rm -rf src/jd-none/Makefile.in
 rm -rf src/jd-sdl/Makefile.in
+rm -rf src/jd-pepper/Makefile.in
 rm -rf src/keymap/Makefile.in
 rm -rf src/md-68k/Makefile.in
 rm -rf src/md-amd64-gcc/Makefile.in
@@ -81,6 +85,7 @@ rm -rf src/sd-none/Makefile.in
 rm -rf src/sd-sdl/Makefile.in
 rm -rf src/sd-solaris/Makefile.in
 rm -rf src/sd-uss/Makefile.in
+rm -rf src/sd-pepper/Makefile.in
 rm -rf src/td-amigaos/Makefile.in
 rm -rf src/td-beos/Makefile.in
 rm -rf src/td-none/Makefile.in

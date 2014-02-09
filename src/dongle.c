@@ -43,14 +43,14 @@ int dongle_analogjoy (int joy, int axis);
 uae_u32 uaerand (void);
 
 /*
-Robocop 3
+RoboCop 3
 - set firebutton as output
 - read JOY1DAT
 - pulse firebutton (high->low)
 - read JOY1DAT
 - JOY1DAT bit 8 must toggle
 
-Leaderboard
+Leader Board
 - JOY1DAT, both up and down active (0x0101)
 
 B.A.T. II
@@ -60,7 +60,7 @@ B.A.T. II
 - delay
 - CTS must be zero
 
-Italy'90 Soccer
+Italy '90 Soccer
 - 220k resistor between pins 5 (+5v) and 7 (POTX)
 - POT1DAT POTX must be between 0x32 and 0x60
 

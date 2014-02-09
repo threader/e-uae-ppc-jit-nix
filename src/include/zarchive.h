@@ -1,3 +1,11 @@
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * transparent archive handling
+ *
+ *     2007 Toni Wilen
+ */
+
 #pragma once
 #ifndef ZARCHIVE_H
 #define ZARCHIVE_H

@@ -1740,6 +1740,13 @@ static void init_mem_banks (void)
 #endif
 }
 
+static bool singlebit (uae_u32 v)
+{
+	while (v && !(v & 1))
+		v >>= 1;
+	return (v & ~1) == 0;
+}
+
 static void allocate_memory (void)
 {
 	bogomem_aliasing = false;
@@ -1883,7 +1890,8 @@ static void allocate_memory (void)
 		mapped_free (custmem1_bank.baseaddr);
 		custmem1_bank.baseaddr = NULL;
 		custmem1_bank.allocated = currprefs.custom_memory_sizes[0];
-		custmem1_bank.mask = -1;
+		// custmem1 and 2 can have non-power of 2 size so only set correct mask if size is power of 2.
+		custmem1_bank.mask = singlebit (custmem1_bank.allocated) ? custmem1_bank.allocated - 1 : -1;
 		custmem1_bank.start = currprefs.custom_memory_addrs[0];
 		if (custmem1_bank.allocated) {
 			custmem1_bank.baseaddr = mapped_malloc (custmem1_bank.allocated, _T("custmem1"));
@@ -1895,7 +1903,7 @@ static void allocate_memory (void)
 		mapped_free (custmem2_bank.baseaddr);
 		custmem2_bank.baseaddr = NULL;
 		custmem2_bank.allocated = currprefs.custom_memory_sizes[1];
-		custmem2_bank.mask = -1;
+		custmem2_bank.mask = singlebit (custmem2_bank.allocated) ? custmem2_bank.allocated - 1 : -1;
 		custmem2_bank.start = currprefs.custom_memory_addrs[1];
 		if (custmem2_bank.allocated) {
 			custmem2_bank.baseaddr = mapped_malloc (custmem2_bank.allocated, _T("custmem2"));
@@ -2033,7 +2041,7 @@ void map_overlay (int chip)
 	}
 	fill_ce_banks ();
 	if (!isrestore () && valid_address (regs.pc, 4))
-		m68k_setpc (m68k_getpc ());
+		m68k_setpc_normal (m68k_getpc ());
 }
 
 uae_s32 getz2size (struct uae_prefs *p)
