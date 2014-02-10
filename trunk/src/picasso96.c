@@ -3054,13 +3054,13 @@ void InitPicasso96 (void)
 	 */
 
 	//Do we need the workaround for the A8R8G8B8 modes?
-	BOOL need_workaround = TRUE;
+	uae_u32 need_workaround = 1;
 #ifdef __amigaos4__
 	uint32 machine = MACHINETYPE_UNKNOWN;
 	GetMachineInfoTags(GMIT_Machine, &machine, TAG_DONE);
 	if (machine == MACHINETYPE_SAM440EP)) {
 		//Workaround is removed for SAM440
-		need_workaround = FALSE;
+		need_workaround = 0;
     }
 #endif
 
