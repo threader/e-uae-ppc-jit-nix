@@ -2224,7 +2224,6 @@ AC_CONFIG_FILES([Makefile
 		 src/gfx-pepper/Makefile
 		 src/gfx-x11/Makefile
 		 src/gfx-sdl/Makefile
-		 src/gfx-sdl2/Makefile
 		 src/gfx-curses/Makefile
 		 src/gfx-cocoa/Makefile
 		 src/sd-alsa/Makefile
