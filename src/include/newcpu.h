@@ -127,6 +127,16 @@ struct mmufixup
 };
 extern struct mmufixup mmufixup[2];
 
+typedef struct
+{
+	fptype fp;
+#ifdef USE_SOFT_LONG_DOUBLE
+	bool fpx;
+	uae_u32 fpm;
+	uae_u64 fpe;
+#endif
+} fpdata;
+
 struct regstruct
 {
 	uae_u32 regs[16];
@@ -136,7 +146,7 @@ struct regstruct
 	uae_u8 *pc_oldp;
 	uae_u32 instruction_pc;
 
-	uae_u16 irc, ir;
+	uae_u16 irc, ir, db;
 	uae_u32 spcflags;
 	uae_u32 last_prefetch;
 	uae_u32 chipset_latch_rw;
@@ -358,7 +368,6 @@ STATIC_INLINE uae_u32 next_ilongi (void)
 }
 
 uae_u32 (*x_prefetch)(int);
-uae_u32 (*x_prefetch_long)(int);
 uae_u32 (*x_get_byte)(uaecptr addr);
 uae_u32 (*x_get_word)(uaecptr addr);
 uae_u32 (*x_get_long)(uaecptr addr);

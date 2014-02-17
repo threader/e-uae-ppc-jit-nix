@@ -61,7 +61,7 @@ dnl commit version
 dnl
 commit=`tail -1 .git/packed-refs | awk '{print $1}'`
 if test -z "$commit"; then
-commit="not git"
+	commit="not git"
 fi
 AC_DEFINE_UNQUOTED(PACKAGE_COMMIT, "$commit", [cloned git commit version])
 AC_SUBST(PACKAGE_COMMIT, $commit)
@@ -160,9 +160,9 @@ dnl
 dnl
 dnl
 if [[ "x$HAVE_QT" = "xno" ]]; then
-if [[ "x$WANT_QT" = "xyes" ]]; then
-WANT_QT=no
-fi
+	if [[ "x$WANT_QT" = "xyes" ]]; then
+		WANT_QT=no
+	fi
 fi
 
 dnl
@@ -260,7 +260,7 @@ AC_TRY_LINK([
 ])
 
 dnl
-dnl  Checks for fsuage
+dnl  Checks for fsusage
 dnl
 AC_CHECK_HEADERS(sys/param.h sys/vfs.h sys/fs_types.h)
 AC_CHECK_HEADERS(sys/mount.h, [], [],
@@ -439,23 +439,19 @@ AC_EGREP_CPP(yes,
 #endif
 ], [AC_MSG_RESULT(yes); HAVE_GCC27=yes], AC_MSG_RESULT(no))
 
-if [[ "x$HAVE_GCC27" = "xyes" ]]; then
-  AC_MSG_CHECKING([for GCC 3.0 or higher])
-  AC_EGREP_CPP(yes,
-  [#if __GNUC__ - 1 > 1
-    yes
-  #endif
-  ], [AC_MSG_RESULT(yes); HAVE_GCC30=yes], AC_MSG_RESULT(no))
-fi
+AC_MSG_CHECKING([for GCC 3.0 or higher])
+AC_EGREP_CPP(yes,
+[#if __GNUC__ - 1 > 1
+  yes
+#endif
+], [AC_MSG_RESULT(yes); HAVE_GCC30=yes], AC_MSG_RESULT(no))
 
-if [[ "x$HAVE_GCC30" = "xyes" ]]; then
-  AC_MSG_CHECKING([for GCC 4.0 or higher])
-  AC_EGREP_CPP(yes,
-  [#if __GNUC__ - 1 > 2
-    yes
-  #endif
-  ], [AC_MSG_RESULT(yes); HAVE_GCC40=yes], AC_MSG_RESULT(no))
-fi
+AC_MSG_CHECKING([for GCC 4.0 or higher])
+AC_EGREP_CPP(yes,
+[#if __GNUC__ - 1 > 2
+  yes
+#endif
+], [AC_MSG_RESULT(yes); HAVE_GCC40=yes], AC_MSG_RESULT(no))
 
 AC_MSG_CHECKING([for GCC 4.6 or higher])
 AC_EGREP_CPP(yes,
@@ -511,6 +507,8 @@ if [[ "x$HAVEGCC27" = "xyes" -a "$HOST_CPU" = "i386" ]]; then
   AC_TRY_COMPILE([],[int main(){return 0;}], [OPTIMIZE_CFLAGS="$OPTIMIZE_CFLAGS -mpreferred-stack-boundary=2"])
   CFLAGS=$SAVECFLAGS
 fi
+
+dnl
 dnl If GCC supports exceptions, we don't want them.
 dnl
 if [[ "x$HAVEGCC27" = "xyes" -a "$HOST_CPU" = "i386" ]]; then
@@ -537,7 +535,6 @@ if [[ "x$ac_cv_header_features_h" = "xyes" ]]; then
 #endif
 ], [AC_MSG_RESULT(yes); HAVE_GLIBC2=yes], AC_MSG_RESULT(no))
 fi
-
 
 dnl
 dnl  Generic default targets
@@ -569,9 +566,9 @@ DO_PROFILING=no
 
 if [[ "$HOST_CPU" = "i386" ]]; then
 dnl -o "$HOST_CPU" = "amd64" ]]; then
-  WANT_JIT=yes
+	WANT_JIT=yes
 else
-  WANT_JIT=no
+	WANT_JIT=no
 fi
 
 NATMEM=no
@@ -609,56 +606,66 @@ dnl
 dnl  Override defaults for specific targets
 dnl
 if [[ "$HOST_OS" = "linux" ]]; then
-  JOY_DEP=jd-linuxold
-  JOY_NAME="linux"
-  if [[ "$HOST_CPU" = "i386" ]]; then
-    NATMEM="0x50000000"
-  fi
+	JOY_DEP=jd-linuxold
+	JOY_NAME="linux"
+dnl	if [[ "$HOST_CPU" = "i386" ]]; then
+dnl		NATMEM="0x50000000"
+dnl	fi
+
 else if [[ "$OSDEP" = "od-beos" ]]; then
-  TARGET=beos
-  TARGETDEP=t-beos.h
-  THREADDEP=td-beos
-  THREADNAME="native BeOS"
-  GFX_DEP=gfx-beos
-  GFX_NAME="native BeOS"
-  GFX_LIBS="-lgame"
-  GUI_DEP="gui-beos"
-  GUI_NAME="native BeOS"
-  GUI_LIBS="-lbe -ltracker"
-  JOY_DEP=jd-beos
-  JOY_NAME="native BeOS"
-  JOY_LIBS="-ldevice"
-  SND_DEP=sd-beos
-  SND_NAME="native BeOS"
-  SND_LIBS="-lmedia"
-  WANT_BSDSOCK=no
-  MATHLIB=""
-  UAE_RSRCFILE="$OSDEP/uae.rsrc"
+	TARGET=beos
+	TARGETDEP=t-beos.h
+	THREADDEP=td-beos
+	THREADNAME="native BeOS"
+
+	GFX_DEP=gfx-beos
+	GFX_NAME="native BeOS"
+	GFX_LIBS="-lgame"
+
+	GUI_DEP="gui-beos"
+	GUI_NAME="native BeOS"
+	GUI_LIBS="-lbe -ltracker"
+
+	JOY_DEP=jd-beos
+	JOY_NAME="native BeOS"
+	JOY_LIBS="-ldevice"
+
+	SND_DEP=sd-beos
+	SND_NAME="native BeOS"
+	SND_LIBS="-lmedia"
+
+	WANT_BSDSOCK=no
+	MATHLIB=""
+	UAE_RSRCFILE="$OSDEP/uae.rsrc"
 else if [[ "$OSDEP" = "od-amiga" ]]; then
-  TARGET=amiga
-  TARGETDEP=t-amiga.h
-  THREADDEP=td-amigaos
-  THREADNAME="native AmigaOS"
-  GFX_DEP=gfx-amigaos
-  GFX_NAME="native AmigaOS"
-  GUI_DEP=gui-muirexx
-  GUI_NAME="MUIRexx"
-  SND_DEP=sd-amigaos
-  SND_NAME="native AmigaOS/AHI"
-  if [[ "x$HAVE_AMIGAINPUT" = "xyes" ]]; then
-   JOY_DEP=jd-amigainput
-   JOY_NAME="AmigaInput"
-  else
-   JOY_DEP=jd-amigaos
-   JOY_NAME="Amiga lowlevel.library"
-  fi
-  WANT_BSDSOCK=no
+	TARGET=amiga
+	TARGETDEP=t-amiga.h
+	THREADDEP=td-amigaos
+	THREADNAME="native AmigaOS"
+
+	GFX_DEP=gfx-amigaos
+	GFX_NAME="native AmigaOS"
+
+	GUI_DEP=gui-muirexx
+	GUI_NAME="MUIRexx"
+
+	SND_DEP=sd-amigaos
+	SND_NAME="native AmigaOS/AHI"
+
+	if [[ "x$HAVE_AMIGAINPUT" = "xyes" ]]; then
+		JOY_DEP=jd-amigainput
+		JOY_NAME="AmigaInput"
+	else
+		JOY_DEP=jd-amigaos
+		JOY_NAME="Amiga lowlevel.library"
+	fi
+	WANT_BSDSOCK=no
 else if [[ "$HOST_OS" = "nacl" ]]; then
-  WANT_JIT=no
-  WANT_AUTOCONFIG=no
-  GUI_DEP=gui-html
-  GUI_LIBS="-lppapi -lppapi_cpp -lppapi_gles2"
-  GUI_NAME="HTML"
+	WANT_JIT=no
+	WANT_AUTOCONFIG=no
+	GUI_DEP=gui-html
+	GUI_LIBS="-lppapi -lppapi_cpp -lppapi_gles2"
+	GUI_NAME="HTML"
 fi
 fi
 fi
@@ -691,7 +698,7 @@ AC_ARG_ENABLE(dga,             AS_HELP_STRING([--enable-dga],             [X11 v
 AC_ARG_ENABLE(drvsnd,	       AS_HELP_STRING([--enable-drvsnd],          [Enable Floppy Drive Sound Emulation (default no)]),	      [WANT_DRVSND=$enableval],[])
 AC_ARG_ENABLE(enforcer,	       AS_HELP_STRING([--enable-enforcer],        [Enable ersatz Enforcer support (default auto)]),           [WANT_ENFORCER=$enableval],[])
 AC_ARG_ENABLE(fpu,             AS_HELP_STRING([--enable-fpu],             [Enable FPU emulation (default yes)]),                      [WANT_FPU=$enableval],[])
-AC_ARG_ENABLE(fdi,	       AS_HELP_STRING([--enable-fdi],             [Enable FDI support (default yes)]),                        [WANT_FDI=$enableval],[])
+AC_ARG_ENABLE(fdi,	           AS_HELP_STRING([--enable-fdi],             [Enable FDI support (default yes)]),                        [WANT_FDI=$enableval],[])
 AC_ARG_ENABLE(gayle,           AS_HELP_STRING([--enable-gayle],           [Enable GAYLE IDE emulation (default no)]),                 [WANT_GAYLE=$enableval],[])
 AC_ARG_ENABLE(gccopt,	       AS_HELP_STRING([--enable-gccopt],          [Enable CPU Specific Optimizations (default no)]),	      [WANT_OPT=$enableval],[])
 AC_ARG_ENABLE(gccdebug,	       AS_HELP_STRING([--enable-gccdebug],        [Enable gcc debugging options (default no)]),               [WANT_GGDB=$enableval],[])
@@ -816,17 +823,35 @@ if [[ "x$WANT_SDL" != "xno" ]]; then
   if [[ "$HOST_OS" = "darwin" ]]; then
 
     dnl Assume this is MacOS X and try to use SDL framework
-
     SDL_CFLAGS="-I/Library/Frameworks/SDL.framework/Headers -D_REENTRANT"
+    SDL2_CFLAGS="-I/Library/Frameworks/SDL2.framework/Headers -D_REENTRANT"
     SDL_LIBS="-framework Cocoa -framework SDL -lobjc"
 
-    AC_MSG_CHECKING(for SDL framework)
 
     SAVE_CPPFLAGS=$CPPFLAGS
     SAVE_LIBS=$LIBS
-    CPPFLAGS="$CPPFLAGS $SDL_CFLAGS"
     LIBS="$SDL_LIBS $LIBS"
+    FOOFLAGS=$CPPFLAGS
 
+    AC_MSG_CHECKING(for SDL2 framework)
+    CPPFLAGS="$CPPFLAGS $SDL2_CFLAGS"
+    AC_TRY_LINK(
+    [
+      #include "confdefs.h"
+      #include <SDL.h>
+      #undef main
+    ],
+    [
+      SDL_Init(SDL_INIT_VIDEO);
+    ],
+    AC_MSG_RESULT(yes)
+    HAVE_SDL2=yes
+    WANT_COCOA_UI=yes,
+    AC_MSG_RESULT(no)
+    HAVE_SDL2=no)
+
+    AC_MSG_CHECKING(for SDL framework)
+    CPPFLAGS="$FOOFLAGS $SDL_CFLAGS"
     AC_TRY_LINK(
     [
       #include "confdefs.h"
@@ -845,6 +870,7 @@ if [[ "x$WANT_SDL" != "xno" ]]; then
     CPPFLAGS="$SAVE_CPPFLAGS"
     LIBS="$SAVE_LIBS"
   else
+    AM_PATH_SDL(2.0.0,HAVE_SDL2=yes,HAVE_SDL2=no)
     AM_PATH_SDL(1.2.0,HAVE_SDL=yes,HAVE_SDL=no)
   fi
 
@@ -868,7 +894,6 @@ else
   AC_MSG_RESULT(no)
   want_gcc_debug=no
 fi
-
 
 if test $ac_cv_prog_gcc = yes; then
   WARNING_CFLAGS="$WARNING_CFLAGS -fdiagnostics-show-option -Wall -Wextra -pedantic"
@@ -1079,60 +1104,63 @@ dnl  we need to use SDL because we couldn't find any other
 dnl  graphics support
 dnl
 if [[ "x$WANT_SDL" = "xyes" -o "x$GFX_DEP" = "x" ]]; then
-  if [[ "x$HAVE_SDL" = "xyes" -a "x$WANT_SDLGFX" != "xno" ]]; then
-    WANT_SDL=yes
-    if [[ "x$WANT_SDLGFX" = "xyes" -o "x$GFX_DEP" = "x" ]]; then
-      GFX_DEP=gfx-sdl
-      GFX_NAME=SDL
-      GFX_LIBS=""
-      GFX_CFLAGS=""
-      GFX_CPPFLAGS=""
-      if [[ "x$WANT_SDLGL" = "xyes" ]]; then
-        GFX_CFLAGS="-DUSE_GL"
-        if [[ "x$OSDEP" = "xod-macosx" ]]; then
-          GFX_LIBS="-framework OpenGL"
-        else
-          if [[ "$HOST_OS" != "nacl" ]]; then
-            GFX_LIBS="-lGL -lGLU"
-          fi
-        fi
-      fi
-    fi
-  fi
+	if [[ "x$HAVE_SDL" = "xyes" -a "x$WANT_SDLGFX" != "xno" ]]; then
+		WANT_SDL=yes
+		if [[ "x$WANT_SDLGFX" = "xyes" -o "x$GFX_DEP" = "x" ]]; then
+			GFX_DEP=gfx-sdl
+			GFX_NAME=SDL
+			GFX_LIBS=""
+			GFX_CFLAGS=""
+			GFX_CPPFLAGS=""
+			if [[ "x$WANT_SDLGL" = "xyes" ]]; then
+				GFX_CFLAGS="-DUSE_GL"
+				if [[ "x$OSDEP" = "xod-macosx" ]]; then
+					GFX_LIBS="-framework OpenGL"
+				else
+					if [[ "$HOST_OS" != "nacl" ]]; then
+						GFX_LIBS="-lGL -lGLU"
+					fi
+				fi
+			fi
+		fi
+	fi
 fi
 
 dnl
 if [[ "x$WANT_COCOAGFX" = "xyes" ]]; then
-GFX_DEP=gfx-cocoa
-GFX_NAME=COCOA
-GFX_LIBS=""
-GFX_CFLAGS=""
-GFX_CPPFLAGS=""
-GFX_LIBS="-framework OpenGL"
+	GFX_DEP=gfx-cocoa
+	GFX_NAME=COCOA
+	GFX_LIBS=""
+	GFX_CFLAGS=""
+	GFX_CPPFLAGS=""
+	GFX_LIBS="-framework OpenGL"
 fi
 
 dnl
 if [[ "x$WANT_PEPPER" = "xyes" ]]; then
-  GFX_DEP="gfx-pepper"
-  GFX_LIBS="-lppapi -lppapi_gles2"
-  GFX_NAME="Pepper (PPAPI)"
-  SND_DEP="sd-pepper"
-  SND_LIBS="-lppapi"
-  SND_NAME="Pepper (PPAPI)"
-  JOY_DEP="jd-pepper"
-  JOY_LIBS="-lppapi"
-  JOY_NAME="Pepper (PPAPI)"
-  NEED_THREAD_SUPPORT=yes
-  THREADDEP="td-posix"
-  THREADNAME="POSIX"
+	GFX_DEP="gfx-pepper"
+	GFX_LIBS="-lppapi -lppapi_gles2"
+	GFX_NAME="Pepper (PPAPI)"
+	
+	SND_DEP="sd-pepper"
+	SND_LIBS="-lppapi"
+	SND_NAME="Pepper (PPAPI)"
+	
+	JOY_DEP="jd-pepper"
+	JOY_LIBS="-lppapi"
+	JOY_NAME="Pepper (PPAPI)"
+	
+	NEED_THREAD_SUPPORT=yes
+	THREADDEP="td-posix"
+	THREADNAME="POSIX"
 fi
 
 dnl  If we got here and we still haven't found a graphics target
 dnl  then bail out.
 dnl
 if [[ "x$GFX_DEP" = "x" ]]; then
-  AC_MSG_RESULT(none)
-  AC_MSG_ERROR([Could not find a useable graphics target])
+	AC_MSG_RESULT(none)
+	AC_MSG_ERROR([Could not find a useable graphics target])
 fi
 
 AC_MSG_RESULT("$GFX_NAME")
@@ -1346,47 +1374,51 @@ dnl
   fi
  fi
 
- if [[ "x$WANT_SDL_UI" = "xyes" ]]; then
-  if [[ "x$HAVE_SDL" = "xyes" ]]; then
-      GUI_DEP=gui-sdl
-      GUI_LIBS="$SDL_LIBS"
-      if [[ "x$OSDEP" = "xod-macosx" ]]; then
-        GUI_LIBS="${GUI_LIBS} -framework SDL_ttf -framework SDL_image"
-      else
-	GUI_LIBS="${GUI_LIBS} -lSDL_ttf -lSDL_image"
-      fi
-      GUI_NAME="SDL"
-      GUI_CFLAGS="$SDL_CFLAGS -DSDL_UI"
-      if [[ "x$WANT_SDLGL" = "xyes" ]]; then
-        GUI_CFLAGS="${GUI_CFLAGS} -DUSE_GL"
-        if [[ "x$OSDEP" = "xod-macosx" ]]; then
-          GUI_LIBS="${GUI_LIBS} -framework OpenGL"
-        else
-          GUI_LIBS="${GUI_LIBS} -lGL -lGLU"
-        fi
-      fi
-  fi
- fi
+dnl
+dnl SDL GUI
+dnl
+if [[ "x$WANT_SDL_UI" = "xyes" ]]; then
+	if [[ "x$HAVE_SDL" = "xyes" ]]; then
+		GUI_DEP=gui-sdl
+		GUI_LIBS="$SDL_LIBS"
+		GUI_NAME="SDL"
+		GUI_CFLAGS="$SDL_CFLAGS -DSDL_UI"
 
-  if [[ "$GUI_DEP" = "gui-none" ]]; then
-    if [[ "x$HAVE_GTK" = "xno" ]]; then
-      AC_MSG_WARN([UI wanted, but no UI useable target found])
-      NR_ERRORS=`expr $NR_ERRORS + 1`
-      WANT_UI=no
-    else
-      GUI_DEP=gui-gtk
-      GUI_LIBS="$GTK_LIBS"
-      GUI_NAME="GTK+"
-      GUI_CFLAGS="$CFLAGS"
-      NEED_THREAD_SUPPORT=yes
-      if [[ "x$WANT_THREADS" = "xno" ]]; then
-        AC_MSG_ERROR([Thread support disabled, but GTK+ UI requires threads])
-      fi
-    fi
-  fi
+		if [[ "x$OSDEP" = "xod-macosx" ]]; then
+			GUI_LIBS="${GUI_LIBS} -framework SDL_ttf -framework SDL_image"
+		else
+			GUI_LIBS="${GUI_LIBS} -lSDL_ttf -lSDL_image"
+		fi
+
+		if [[ "x$WANT_SDLGL" = "xyes" ]]; then
+			GUI_CFLAGS="${GUI_CFLAGS} -DUSE_GL"
+			if [[ "x$OSDEP" = "xod-macosx" ]]; then
+				GUI_LIBS="${GUI_LIBS} -framework OpenGL"
+			else
+				GUI_LIBS="${GUI_LIBS} -lGL -lGLU"
+			fi
+		fi
+	fi
+fi
+
+if [[ "$GUI_DEP" = "gui-none" ]]; then
+	if [[ "x$HAVE_GTK" = "xno" ]]; then
+		AC_MSG_WARN([UI wanted, but no UI useable target found])
+		NR_ERRORS=`expr $NR_ERRORS + 1`
+		WANT_UI=no
+	else
+		GUI_DEP=gui-gtk
+		GUI_LIBS="$GTK_LIBS"
+		GUI_NAME="GTK+"
+		GUI_CFLAGS="$CFLAGS"
+		NEED_THREAD_SUPPORT=yes
+		if [[ "x$WANT_THREADS" = "xno" ]]; then
+			AC_MSG_ERROR([Thread support disabled, but GTK+ UI requires threads])
+		fi
+	fi
+fi
 
 AC_MSG_RESULT("$GUI_NAME")
-
 
 dnl
 dnl  Do we want AMAX support
@@ -2192,6 +2224,7 @@ AC_CONFIG_FILES([Makefile
 		 src/gfx-pepper/Makefile
 		 src/gfx-x11/Makefile
 		 src/gfx-sdl/Makefile
+		 src/gfx-sdl2/Makefile
 		 src/gfx-curses/Makefile
 		 src/gfx-cocoa/Makefile
 		 src/sd-alsa/Makefile

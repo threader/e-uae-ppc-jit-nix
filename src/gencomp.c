@@ -26,7 +26,7 @@
 
 #define BOOL_TYPE "int"
 #define failure global_failure=1
-//REMOVEME: #define FAILURE global_failure=1
+// REMOVEME: #define FAILURE global_failure=1
 #define isjump  global_isjump=1
 #define is_const_jump global_iscjump=1;
 #define isaddx  global_isaddx=1

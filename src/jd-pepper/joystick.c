@@ -180,7 +180,7 @@ struct inputdevice_functions inputdevicefunc_joystick = {
 
 /* Set default inputdevice config for Pepper joysticks. */
 int input_get_default_joystick (struct uae_input_device *uid, int i,
-                                int port, int af, int mode) {
+                                int port, int af, int mode, bool joymouseswap) {
     if (i >= 2)
         return 0;
 

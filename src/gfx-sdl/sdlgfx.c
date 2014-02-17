@@ -2195,7 +2195,7 @@ void setcapslockstate (int state)
 /*
  * Default inputdevice config for SDL mouse
  */
-int input_get_default_mouse (struct uae_input_device *uid, int num, int port, int af, bool gp, bool wheel)
+int input_get_default_mouse (struct uae_input_device *uid, int num, int port, int af, bool gp, bool wheel, bool joymouseswap)
 {
 	/* SDL supports only one mouse */
 	setid (uid, num, ID_AXIS_OFFSET + 0, 0, port, port ? INPUTEVENT_MOUSE2_HORIZ : INPUTEVENT_MOUSE1_HORIZ);

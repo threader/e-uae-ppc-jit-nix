@@ -65,85 +65,85 @@
 #define ISTR_FE_FLG	(1<<0)	/* FIFO-Empty Flag */
 
 /* wd register names */
-#define WD_OWN_ID		0x00
-#define WD_CONTROL		0x01
-#define WD_TIMEOUT_PERIOD	0x02
-#define WD_CDB_1		0x03
-#define WD_CDB_2		0x04
-#define WD_CDB_3		0x05
-#define WD_CDB_4		0x06
-#define WD_CDB_5		0x07
-#define WD_CDB_6		0x08
-#define WD_CDB_7		0x09
-#define WD_CDB_8		0x0a
-#define WD_CDB_9		0x0b
-#define WD_CDB_10		0x0c
-#define WD_CDB_11		0x0d
-#define WD_CDB_12		0x0e
-#define WD_TARGET_LUN		0x0f
-#define WD_COMMAND_PHASE	0x10
-#define WD_SYNCHRONOUS_TRANSFER 0x11
+#define WD_OWN_ID				0x00
+#define WD_CONTROL				0x01
+#define WD_TIMEOUT_PERIOD		0x02
+#define WD_CDB_1				0x03
+#define WD_CDB_2				0x04
+#define WD_CDB_3				0x05
+#define WD_CDB_4				0x06
+#define WD_CDB_5				0x07
+#define WD_CDB_6				0x08
+#define WD_CDB_7				0x09
+#define WD_CDB_8				0x0a
+#define WD_CDB_9				0x0b
+#define WD_CDB_10				0x0c
+#define WD_CDB_11				0x0d
+#define WD_CDB_12				0x0e
+#define WD_TARGET_LUN			0x0f
+#define WD_COMMAND_PHASE		0x10
+#define WD_SYNCHRONOUS_TRANSFER	0x11
 #define WD_TRANSFER_COUNT_MSB	0x12
-#define WD_TRANSFER_COUNT	0x13
+#define WD_TRANSFER_COUNT		0x13
 #define WD_TRANSFER_COUNT_LSB	0x14
-#define WD_DESTINATION_ID	0x15
-#define WD_SOURCE_ID		0x16
-#define WD_SCSI_STATUS		0x17
-#define WD_COMMAND		0x18
-#define WD_DATA			0x19
-#define WD_QUEUE_TAG		0x1a
-#define WD_AUXILIARY_STATUS	0x1f
+#define WD_DESTINATION_ID		0x15
+#define WD_SOURCE_ID			0x16
+#define WD_SCSI_STATUS			0x17
+#define WD_COMMAND				0x18
+#define WD_DATA					0x19
+#define WD_QUEUE_TAG			0x1a
+#define WD_AUXILIARY_STATUS		0x1f
 /* WD commands */
-#define WD_CMD_RESET		0x00
-#define WD_CMD_ABORT		0x01
-#define WD_CMD_ASSERT_ATN	0x02
-#define WD_CMD_NEGATE_ACK	0x03
-#define WD_CMD_DISCONNECT	0x04
-#define WD_CMD_RESELECT		0x05
-#define WD_CMD_SEL_ATN		0x06
-#define WD_CMD_SEL		0x07
-#define WD_CMD_SEL_ATN_XFER	0x08
-#define WD_CMD_SEL_XFER		0x09
+#define WD_CMD_RESET			0x00
+#define WD_CMD_ABORT			0x01
+#define WD_CMD_ASSERT_ATN		0x02
+#define WD_CMD_NEGATE_ACK		0x03
+#define WD_CMD_DISCONNECT		0x04
+#define WD_CMD_RESELECT			0x05
+#define WD_CMD_SEL_ATN			0x06
+#define WD_CMD_SEL				0x07
+#define WD_CMD_SEL_ATN_XFER		0x08
+#define WD_CMD_SEL_XFER			0x09
 #define WD_CMD_RESEL_RECEIVE	0x0a
-#define WD_CMD_RESEL_SEND	0x0b
+#define WD_CMD_RESEL_SEND		0x0b
 #define WD_CMD_WAIT_SEL_RECEIVE	0x0c
-#define WD_CMD_TRANS_ADDR	0x18
-#define WD_CMD_TRANS_INFO	0x20
-#define WD_CMD_TRANSFER_PAD	0x21
-#define WD_CMD_SBT_MODE		0x80
+#define WD_CMD_TRANS_ADDR		0x18
+#define WD_CMD_TRANS_INFO		0x20
+#define WD_CMD_TRANSFER_PAD		0x21
+#define WD_CMD_SBT_MODE			0x80
 
 /* paused or aborted interrupts */
-#define CSR_MSGIN	    0x20
-#define CSR_SDP		    0x21
+#define CSR_MSGIN			0x20
+#define CSR_SDP				0x21
 #define CSR_SEL_ABORT	    0x22
 #define CSR_RESEL_ABORT	    0x25
-#define CSR_RESEL_ABORT_AM  0x27
-#define CSR_ABORT	    0x28
+#define CSR_RESEL_ABORT_AM 	0x27
+#define CSR_ABORT			0x28
 /* successful completion interrupts */
-#define CSR_RESELECT	    0x10
-#define CSR_SELECT	    0x11
-#define CSR_SEL_XFER_DONE   0x16
-#define CSR_XFER_DONE	    0x18
+#define CSR_RESELECT		0x10
+#define CSR_SELECT			0x11
+#define CSR_SEL_XFER_DONE	0x16
+#define CSR_XFER_DONE		0x18
 /* terminated interrupts */
-#define CSR_INVALID	    0x40
-#define CSR_UNEXP_DISC	    0x41
-#define CSR_TIMEOUT	    0x42
-#define CSR_PARITY	    0x43
-#define CSR_PARITY_ATN	    0x44
-#define CSR_BAD_STATUS	    0x45
-#define CSR_UNEXP	    0x48
+#define CSR_INVALID			0x40
+#define CSR_UNEXP_DISC		0x41
+#define CSR_TIMEOUT			0x42
+#define CSR_PARITY			0x43
+#define CSR_PARITY_ATN		0x44
+#define CSR_BAD_STATUS		0x45
+#define CSR_UNEXP			0x48
 /* service required interrupts */
-#define CSR_RESEL	    0x80
-#define CSR_RESEL_AM	    0x81
-#define CSR_DISC	    0x85
-#define CSR_SRV_REQ	    0x88
+#define CSR_RESEL			0x80
+#define CSR_RESEL_AM		0x81
+#define CSR_DISC			0x85
+#define CSR_SRV_REQ			0x88
 /* SCSI Bus Phases */
-#define PHS_DATA_OUT	    0x00
-#define PHS_DATA_IN	    0x01
-#define PHS_COMMAND	    0x02
-#define PHS_STATUS	    0x03
-#define PHS_MESS_OUT	    0x06
-#define PHS_MESS_IN	    0x07
+#define PHS_DATA_OUT		0x00
+#define PHS_DATA_IN			0x01
+#define PHS_COMMAND			0x02
+#define PHS_STATUS			0x03
+#define PHS_MESS_OUT		0x06
+#define PHS_MESS_IN			0x07
 
 /* Auxialiry status */
 #define ASR_INT			0x80	/* Interrupt pending */
@@ -172,11 +172,11 @@
 #define CTL_HSP			0x01	/* Halt on SCSI parity error */
 
 /* SCSI Messages */
-#define MSG_COMMAND_COMPLETE 0x00
-#define MSG_SAVE_DATA_POINTER 0x02
-#define MSG_RESTORE_DATA_POINTERS 0x03
-#define MSG_NOP 0x08
-#define MSG_IDENTIFY 0x80
+#define MSG_COMMAND_COMPLETE		0x00
+#define MSG_SAVE_DATA_POINTER		0x02
+#define MSG_RESTORE_DATA_POINTERS	0x03
+#define MSG_NOP 					0x08
+#define MSG_IDENTIFY 				0x80
 
 static int configured;
 static uae_u8 dmacmemory[100];
@@ -301,7 +301,7 @@ static void doscsistatus (uae_u8 status)
 		cdtv_scsi_int ();
 		return;
 	}
-	if (!currprefs.cs_a2091 && currprefs.cs_mbdmac != 1)
+	if (!currprefs.a2091 && currprefs.cs_mbdmac != 1)
 		return;
 	INT2();
 #if A2091_DEBUG > 2 || A3000_DEBUG > 2
@@ -1331,8 +1331,10 @@ static int REGPARAM2 dmac_check (uaecptr addr, uae_u32 size)
 
 static uae_u8 *REGPARAM2 dmac_xlate (uaecptr addr)
 {
-	addr &= rom_mask;
+	addr &= 0xffff;
 	addr += rombank * rom_size;
+	if (addr >= 0x8000)
+		addr = 0x8000;
 	return rom + addr;
 }
 
@@ -1822,9 +1824,9 @@ void a2091_reset (void)
 
 void a2091_init (void)
 {
-	int roms[5];
+	int roms[6];
+	int slotsize;
 	struct romlist *rl;
-	struct romdata *rd;
 
 	init_scsi ();
 	configured = 0;
@@ -1844,50 +1846,46 @@ void a2091_init (void)
 	ew (0x20, 0x00); /* ser.no. Byte 2 */
 	ew (0x24, 0x00); /* ser.no. Byte 3 */
 
-#if 1
 	roms[0] = 55; // 7.0
 	roms[1] = 54; // 6.6
 	roms[2] = 53; // 6.0
-	roms[3] = -1; //roms[3] = 56; // guru
-	roms[4] = -1;
-#else
-	roms[0] = 56; // guru
-	roms[1] = 55; // 7.0
-	roms[2] = 54; // 6.6
-	roms[3] = 53; // 6.0
-	roms[4] = -1;
-#endif
+	roms[3] = 56; // guru
+	roms[4] = 87;
+	roms[5] = -1;
 
 	rombankswitcher = 0;
 	rombank = 0;
-	struct zfile *z = read_rom_name (currprefs.a2091romfile);
-	if (!z) {
-		rl = getromlistbyids (roms);
-		if (rl) {
-			rd = rl->rd; 
-			z = read_rom (&rd);
-		}
-	}
-	if (z) {
-		int slotsize = 65536;
-		write_log (_T("A590/A2091 BOOT ROM '%s'\n"), zfile_getname (z));
-		rom_size = rd->size;
-		rom = xmalloc (uae_u8, slotsize);
-		zfile_fread (rom, rom_size, 1, z);
-		zfile_fclose (z);
-		if (rl->rd->id == 56) {
-			rombankswitcher = 1;
-			for (int i = rom_size - 1; i >= 0; i--) {
-				rom[i * 2 + 0] = rom[i];
-				rom[i * 2 + 1] = 0xff;
+	slotsize = 65536;
+	rom = xmalloc (uae_u8, slotsize);
+	rom_size = 16384;
+	rom_mask = rom_size - 1;
+	if (_tcscmp (currprefs.a2091romfile, _T(":NOROM"))) {
+		struct zfile *z = read_rom_name (currprefs.a2091romfile);
+		if (!z) {
+			rl = getromlistbyids (roms);
+			if (rl) {
+				z = read_rom (&rl->rd);
 			}
-		} else {
-			for (int i = 1; i < slotsize / rom_size; i++)
-				memcpy (rom + i * rom_size, rom, rom_size);
 		}
-		rom_mask = rom_size - 1;
-	} else {
-		romwarning (roms);
+		if (z) {
+			write_log (_T("A590/A2091 BOOT ROM '%s'\n"), zfile_getname (z));
+			rom_size = zfile_size (z);
+			zfile_fread (rom, rom_size, 1, z);
+			zfile_fclose (z);
+			if (rom_size == 32768) {
+				rombankswitcher = 1;
+				for (int i = rom_size - 1; i >= 0; i--) {
+					rom[i * 2 + 0] = rom[i];
+					rom[i * 2 + 1] = 0xff;
+				}
+			} else {
+				for (int i = 1; i < slotsize / rom_size; i++)
+					memcpy (rom + i * rom_size, rom, rom_size);
+			}
+			rom_mask = rom_size - 1;
+		} else {
+			romwarning (roms);
+		}
 	}
 	map_banks (&dmaca2091_bank, 0xe80000 >> 16, 0x10000 >> 16, 0x10000);
 }
@@ -1896,7 +1894,7 @@ uae_u8 *save_scsi_dmac (int *len, uae_u8 *dstptr)
 {
 	uae_u8 *dstbak, *dst;
 	
-	if (!currprefs.cs_a2091 && !currprefs.cs_mbdmac)
+	if (!currprefs.a2091 && !currprefs.cs_mbdmac)
 		return NULL;
 	if (dstptr)
 		dstbak = dst = dstptr;

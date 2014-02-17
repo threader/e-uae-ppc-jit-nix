@@ -36,7 +36,7 @@ SUBDIRS = \
 
 DIST_SUBDIRS = \
 	md-generic md-68k md-i386-gcc md-ppc md-ppc-gcc md-amd64-gcc \
-	gfx-amigaos gfx-beos gfx-x11 gfx-sdl gfx-curses gfx-svga gfx-cocoa gfx-pepper \
+	gfx-amigaos gfx-beos gfx-x11 gfx-sdl gfx-sdl2 gfx-curses gfx-svga gfx-cocoa gfx-pepper \
 	sd-none sd-alsa sd-amigaos sd-beos sd-sdl sd-solaris sd-uss sd-pepper \
 	jd-none jd-amigainput jd-amigaos jd-beos jd-linuxold jd-sdl jd-pepper \
 	gui-none gui-beos gui-cocoa gui-gtk gui-muirexx gui-sdl gui-html \

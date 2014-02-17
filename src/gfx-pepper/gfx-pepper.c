@@ -554,7 +554,7 @@ static int ppapi_keycode_to_dik(uint32_t key) {
 }
 
 int input_get_default_mouse (struct uae_input_device *uid, int num, int port,
-                             int af) {
+                             int af, bool joymouseswap) {
     /* Supports only one mouse */
     uid[0].eventid[ID_AXIS_OFFSET + 0][0]   = INPUTEVENT_MOUSE1_HORIZ;
     uid[0].eventid[ID_AXIS_OFFSET + 1][0]   = INPUTEVENT_MOUSE1_VERT;

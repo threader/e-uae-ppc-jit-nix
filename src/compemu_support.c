@@ -77,7 +77,7 @@ extern unsigned long foink;
    waste half the entries in this array
    UPDATE: We now use those entries to store the start of the linked
    lists that we maintain for each hash result. */
-cacheline cache_tags[TAGSIZE];
+static cacheline cache_tags[TAGSIZE];
 static int letit=0;
 static blockinfo* hold_bi[MAX_HOLD_BI];
 static blockinfo* active;
@@ -108,7 +108,7 @@ static void flush_icache_hard(uae_u32 ptr, int n);
 
 
 
-bigstate live;
+static bigstate live;
 static smallstate empty_ss;
 static smallstate default_ss;
 static int optlev;
@@ -5046,7 +5046,8 @@ STATIC_INLINE void writemem(int address, int source, int offset, int size, int t
 
 void writebyte(int address, int source, int tmp)
 {
-	int  distrust;
+	int distrust = currprefs.comptrustbyte;
+#if 0
 	switch (currprefs.comptrustbyte) {
 	case 0: distrust=0; break;
 	case 1: distrust=1; break;
@@ -5054,7 +5055,7 @@ void writebyte(int address, int source, int tmp)
 	case 3: distrust=!have_done_picasso; break;
 	default: abort();
 	}
-
+#endif
 	if ((special_mem&S_WRITE) || distrust)
 		writemem_special(address,source,20,1,tmp);
 	else
@@ -5064,7 +5065,8 @@ void writebyte(int address, int source, int tmp)
 STATIC_INLINE void writeword_general(int address, int source, int tmp,
 	int clobber)
 {
-	int  distrust;
+	int distrust = currprefs.comptrustword;
+#if 0
 	switch (currprefs.comptrustword) {
 	case 0: distrust=0; break;
 	case 1: distrust=1; break;
@@ -5072,7 +5074,7 @@ STATIC_INLINE void writeword_general(int address, int source, int tmp,
 	case 3: distrust=!have_done_picasso; break;
 	default: abort();
 	}
-
+#endif
 	if ((special_mem&S_WRITE) || distrust)
 		writemem_special(address,source,16,2,tmp);
 	else
@@ -5092,7 +5094,8 @@ void writeword(int address, int source, int tmp)
 STATIC_INLINE void writelong_general(int address, int source, int tmp,
 	int clobber)
 {
-	int  distrust;
+	int  distrust = currprefs.comptrustlong;
+#if 0
 	switch (currprefs.comptrustlong) {
 	case 0: distrust=0; break;
 	case 1: distrust=1; break;
@@ -5100,7 +5103,7 @@ STATIC_INLINE void writelong_general(int address, int source, int tmp,
 	case 3: distrust=!have_done_picasso; break;
 	default: abort();
 	}
-
+#endif
 	if ((special_mem&S_WRITE) || distrust)
 		writemem_special(address,source,12,4,tmp);
 	else
@@ -5173,7 +5176,8 @@ STATIC_INLINE void readmem(int address, int dest, int offset, int size, int tmp)
 
 void readbyte(int address, int dest, int tmp)
 {
-	int  distrust;
+	int distrust = currprefs.comptrustbyte;
+#if 0
 	switch (currprefs.comptrustbyte) {
 	case 0: distrust=0; break;
 	case 1: distrust=1; break;
@@ -5181,7 +5185,7 @@ void readbyte(int address, int dest, int tmp)
 	case 3: distrust=!have_done_picasso; break;
 	default: abort();
 	}
-
+#endif
 	if ((special_mem&S_READ) || distrust)
 		readmem_special(address,dest,8,1,tmp);
 	else
@@ -5190,7 +5194,8 @@ void readbyte(int address, int dest, int tmp)
 
 void readword(int address, int dest, int tmp)
 {
-	int  distrust;
+	int distrust = currprefs.comptrustword;
+#if 0
 	switch (currprefs.comptrustword) {
 	case 0: distrust=0; break;
 	case 1: distrust=1; break;
@@ -5198,7 +5203,7 @@ void readword(int address, int dest, int tmp)
 	case 3: distrust=!have_done_picasso; break;
 	default: abort();
 	}
-
+#endif
 	if ((special_mem&S_READ) || distrust)
 		readmem_special(address,dest,4,2,tmp);
 	else
@@ -5207,7 +5212,8 @@ void readword(int address, int dest, int tmp)
 
 void readlong(int address, int dest, int tmp)
 {
-	int  distrust;
+	int distrust = currprefs.comptrustlong;
+#if 0
 	switch (currprefs.comptrustlong) {
 	case 0: distrust=0; break;
 	case 1: distrust=1; break;
@@ -5215,7 +5221,7 @@ void readlong(int address, int dest, int tmp)
 	case 3: distrust=!have_done_picasso; break;
 	default: abort();
 	}
-
+#endif
 	if ((special_mem&S_READ) || distrust)
 		readmem_special(address,dest,0,4,tmp);
 	else
@@ -5253,7 +5259,8 @@ STATIC_INLINE void get_n_addr_real(int address, int dest, int tmp)
 
 void get_n_addr(int address, int dest, int tmp)
 {
-	int  distrust;
+	int distrust = currprefs.comptrustnaddr;
+#if 0
 	switch (currprefs.comptrustnaddr) {
 	case 0: distrust=0; break;
 	case 1: distrust=1; break;
@@ -5261,7 +5268,7 @@ void get_n_addr(int address, int dest, int tmp)
 	case 3: distrust=!have_done_picasso; break;
 	default: abort();
 	}
-
+#endif
 	if (special_mem || distrust)
 		get_n_addr_old(address,dest,tmp);
 	else

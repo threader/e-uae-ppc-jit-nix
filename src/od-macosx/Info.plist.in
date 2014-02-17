@@ -32,6 +32,6 @@
 	<key>CFBundleVersion</key>
 	<string>@PACKAGE_COMMIT@</string>
 	<key>NSHumanReadableCopyright</key>
-	<string>(c) 2006-2013 Mustafa 'GnoStiC' Tufan</string>
+	<string>(c) 2006-2014 Mustafa 'GnoStiC' Tufan</string>
 </dict>
 </plist>

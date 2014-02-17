@@ -89,11 +89,10 @@ case $host_cpu in
   i[[3456]]86*|x86_64*|amd64*) # use cpuid codes
      AX_GCC_X86_CPUID(0)
      AX_GCC_X86_CPUID(1)
-echo ----------------------
-echo $ax_cv_gcc_x86_cpuid_0
-echo ----------------------
-echo $ax_cv_gcc_x86_cpuid_1
-echo ----------------------
+#echo ----------------------
+#echo $ax_cv_gcc_x86_cpuid_0
+#echo $ax_cv_gcc_x86_cpuid_1
+#echo ----------------------
      case $ax_cv_gcc_x86_cpuid_0 in
        *:756e6547:*:*) # Intel
           case $ax_cv_gcc_x86_cpuid_1 in

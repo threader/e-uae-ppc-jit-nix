@@ -1,11 +1,11 @@
- /*
-  * UAE - The Un*x Amiga Emulator
-  *
-  * Miscellaneous machine dependent support functions and definitions
-  *
-  * Copyright 1996 Bernd Schmidt
-  * Copyright 2003-2005 Richard Drummond
-  */
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * Miscellaneous machine dependent support functions and definitions
+ *
+ * Copyright 1996 Bernd Schmidt
+ * Copyright 2003-2005 Richard Drummond
+ */
 
 #include "sysconfig.h"
 #include "sysdeps.h"
@@ -43,39 +43,38 @@ frame_time_t linux_get_tsc_freq (void);
  */
 frame_time_t linux_get_tsc_freq (void)
 {
-    int  cpuinfo_fd;
-    char buffer[1024];
-    static uae_s64 tsc_freq = 0;
-    if(tsc_freq) return tsc_freq;
+	int  cpuinfo_fd;
+	char buffer[1024];
+	static uae_s64 tsc_freq = 0;
+	if (tsc_freq) return tsc_freq;
 
-    cpuinfo_fd = open ("/proc/cpuinfo", O_RDONLY);
+	cpuinfo_fd = open ("/proc/cpuinfo", O_RDONLY);
 
-    if (cpuinfo_fd >= 0) {
-	char *ptr       = &buffer[0];
-	int   size_read = read (cpuinfo_fd, ptr, 1024);
+	if (cpuinfo_fd >= 0) {
+		*ptr = &buffer[0];
+		int size_read = read (cpuinfo_fd, ptr, 1024);
 
-	while (size_read > 0) {
-	   if (strncmp (ptr, "bogomips\t: ", 11) != 0) {
-		while ((size_read-- > 0) && (*ptr != '\n'))
-		    ptr++;
-		size_read--;
-		ptr++;
-		continue;
-	    } else {
-		ptr += 11;
-		tsc_freq = atoll (ptr) * 1000000 / 2;
-	    }
+		while (size_read > 0) {
+			if (strncmp (ptr, "bogomips\t: ", 11) != 0) {
+				while ((size_read-- > 0) && (*ptr != '\n'))
+					ptr++;
+				size_read--;
+				ptr++;
+				continue;
+			} else {
+				ptr += 11;
+				tsc_freq = atoll (ptr) * 1000000 / 2;
+			}
+		}
 	}
-   }
-   close (cpuinfo_fd);
+	close (cpuinfo_fd);
 
-   return tsc_freq;
+	return tsc_freq;
 }
 #endif
 
 #ifdef __BEOS__
-
-# include <be/kernel/OS.h>
+#include <be/kernel/OS.h>
 
 /*
  * Get timestamp counter frequency from the kernel

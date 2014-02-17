@@ -2861,7 +2861,7 @@ static void memory_map_dump_2 (int log)
 			if (a1->flags == ABFLAG_ROM && mirrored) {
 				TCHAR *p = txt + _tcslen (txt);
 				uae_u32 crc = get_crc32 (a1->xlateaddr(j << 16), (size * 1024) / mirrored);
-				struct romdata *rd = getromdatabycrc (crc);
+				struct romdata *rd = getromdatabycrc (crc, false);
 				_stprintf (p, _T(" (%08X)"), crc);
 				if (rd) {
 					tmp[0] = '=';
