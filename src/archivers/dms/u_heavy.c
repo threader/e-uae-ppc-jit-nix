@@ -33,49 +33,6 @@ USHORT dms_heavy_text_loc;
 
 static USHORT read_tree_c(void);
 static USHORT read_tree_p(void);
-INLINE USHORT decode_c(void);
-INLINE USHORT decode_p(void);
-
-
-
-USHORT Unpack_HEAVY(UCHAR *in, UCHAR *out, UCHAR flags, USHORT origsize){
-	USHORT j, i, c, bitmask;
-	UCHAR *outend;
-
-	/*  Heavy 1 uses a 4Kb dictionary,  Heavy 2 uses 8Kb  */
-
-	if (flags & 8) {
-		dms_np = 15;
-		bitmask = 0x1fff;
-	} else {
-		dms_np = 14;
-		bitmask = 0x0fff;
-	}
-
-	initbitbuf(in);
-
-	if (flags & 2) {
-		if (read_tree_c()) return 1;
-		if (read_tree_p()) return 2;
-	}
-
-	outend = out+origsize;
-
-	while (out<outend) {
-		c = decode_c();
-		if (c < 256) {
-			*out++ = dms_text[dms_heavy_text_loc++ & bitmask] = (UCHAR)c;
-		} else {
-			j = (USHORT) (c - OFFSET);
-			i = (USHORT) (dms_heavy_text_loc - decode_p() - 1);
-			while(j--) *out++ = dms_text[dms_heavy_text_loc++ & bitmask] = dms_text[i++ & bitmask];
-		}
-	}
-
-	return 0;
-}
-
-
 
 INLINE USHORT decode_c(void){
 	USHORT i, j, m;
@@ -129,6 +86,42 @@ INLINE USHORT decode_p(void){
 
 }
 
+USHORT Unpack_HEAVY(UCHAR *in, UCHAR *out, UCHAR flags, USHORT origsize){
+	USHORT j, i, c, bitmask;
+	UCHAR *outend;
+
+	/*  Heavy 1 uses a 4Kb dictionary,  Heavy 2 uses 8Kb  */
+
+	if (flags & 8) {
+		dms_np = 15;
+		bitmask = 0x1fff;
+	} else {
+		dms_np = 14;
+		bitmask = 0x0fff;
+	}
+
+	initbitbuf(in);
+
+	if (flags & 2) {
+		if (read_tree_c()) return 1;
+		if (read_tree_p()) return 2;
+	}
+
+	outend = out+origsize;
+
+	while (out<outend) {
+		c = decode_c();
+		if (c < 256) {
+			*out++ = dms_text[dms_heavy_text_loc++ & bitmask] = (UCHAR)c;
+		} else {
+			j = (USHORT) (c - OFFSET);
+			i = (USHORT) (dms_heavy_text_loc - decode_p() - 1);
+			while(j--) *out++ = dms_text[dms_heavy_text_loc++ & bitmask] = dms_text[i++ & bitmask];
+		}
+	}
+
+	return 0;
+}
 
 
 static USHORT read_tree_c(void){
