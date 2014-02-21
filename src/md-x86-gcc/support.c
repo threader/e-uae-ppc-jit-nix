@@ -51,7 +51,7 @@ frame_time_t linux_get_tsc_freq (void)
 	cpuinfo_fd = open ("/proc/cpuinfo", O_RDONLY);
 
 	if (cpuinfo_fd >= 0) {
-		*ptr = &buffer[0];
+		char *ptr = &buffer[0];
 		int size_read = read (cpuinfo_fd, ptr, 1024);
 
 		while (size_read > 0) {
