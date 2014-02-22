@@ -49,7 +49,7 @@ STATIC_INLINE uae_u32 from_single (double src)
 #endif
 
 #ifndef HAVE_to_exten
-STATIC_INLINE double to_exten(uae_u32 wrd1, uae_u32 wrd2, uae_u32 wrd3)
+STATIC_INLINE double to_exten(fpdata *fpd, uae_u32 wrd1, uae_u32 wrd2, uae_u32 wrd3)
 {
     double frac;
 
@@ -64,10 +64,11 @@ STATIC_INLINE double to_exten(uae_u32 wrd1, uae_u32 wrd2, uae_u32 wrd3)
 #endif
 
 #ifndef HAVE_from_exten
-STATIC_INLINE void from_exten(double src, uae_u32 * wrd1, uae_u32 * wrd2, uae_u32 * wrd3)
+STATIC_INLINE void from_exten(fpdata *fpd, uae_u32 * wrd1, uae_u32 * wrd2, uae_u32 * wrd3)
 {
     int expon;
     double frac;
+	fptype src = fpd->fp;
 
     if (src == 0.0) {
 		*wrd1 = 0;

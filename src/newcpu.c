@@ -603,7 +603,7 @@ static void cputracefunc_x_do_cycles_pre (unsigned long cycles)
 // -1 = rerun whole access
 static void cputracefunc2_x_do_cycles_pre (unsigned long cycles)
 {
-	if (cputrace.cyclecounter_pre == (unsigned long)-1) {
+	if (cputrace.cyclecounter_pre == -1) {
 		cputrace.cyclecounter_pre = 0;
 		check_trace ();
 		check_trace2 ();
@@ -4685,7 +4685,7 @@ void m68k_dumpstate2 (uaecptr pc, uaecptr *nextpc)
 	if (currprefs.fpu_model) {
 		uae_u32 fpsr;
 		for (i = 0; i < 8; i++){
-			console_out_f (_T("FP%d: %g "), i, regs.fp[i]);
+			console_out_f (_T("FP%d: %g "), i, regs.fp[i].fp);
 			if ((i & 3) == 3)
 				console_out_f (_T("\n"));
 		}

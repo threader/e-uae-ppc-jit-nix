@@ -169,8 +169,8 @@ struct regstruct
 	uae_u32 vbr, sfc, dfc;
 
 #ifdef FPUEMU
-	fptype fp[8];
-	fptype fp_result;
+	fpdata fp[8];
+	fpdata fp_result;
 	uae_u32 fpcr, fpsr, fpiar;
 	uae_u32 fpsr_highbyte;
 	uae_u32 fpu_state;
@@ -233,7 +233,7 @@ struct cputracestruct
 	uae_u32 startcycles;
 	int needendcycles;
 	int memoryoffset;
-	unsigned long cyclecounter, cyclecounter_pre, cyclecounter_post;
+	int cyclecounter, cyclecounter_pre, cyclecounter_post;
 	int readcounter, writecounter;
 	struct cputracememory ctm[MAX_CPUTRACESIZE];
 };
