@@ -657,8 +657,10 @@ if [[ "x$WANT_SDL" != "xno" ]]; then
 
     dnl Assume this is MacOS X and try to use SDL framework
 
-    SDL_CFLAGS="-I/Library/Frameworks/SDL.framework/Headers -D_REENTRANT"
-    SDL_LIBS="-framework Cocoa -framework SDL -lobjc"
+    #SDL_CFLAGS="-I/Library/Frameworks/SDL.framework/Headers -I/usr/local/include -D_REENTRANT"
+    #SDL_LIBS="-framework Cocoa -framework SDL -lobjc -lSDL
+    SDL_CFLAGS="-g -O2 -I/usr/local/include/SDL -D_GNU_SOURCE=1 -D_THREAD_SAFE -I/usr/X11R6/include -DHAVE_OPENGL" 
+    SDL_LIBS="-L/usr/local/lib -lSDLmain -lSDL -Wl,-framework,Cocoa"
 
     AC_MSG_CHECKING(for SDL framework)
 
@@ -670,7 +672,7 @@ if [[ "x$WANT_SDL" != "xno" ]]; then
     AC_TRY_LINK(
     [
       #include "confdefs.h"
-      #include <SDL.h>
+      #include <SDL/SDL.h>
       #undef main
     ],
     [
