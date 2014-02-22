@@ -73,8 +73,7 @@ static void tape_init (int unit, struct scsi_data_tape *tape, const TCHAR *tape_
 	if (my_existsdir (tape->tape_dir)) {
 		tape->realdir = true;
 	} else {
-		tape->zd = zfile_opendir_archive (tape_directory);
-		//tape->zd = zfile_opendir_archive (tape_directory, ZFD_ARCHIVE | ZFD_NORECURSE);
+		tape->zd = zfile_opendir_archive_flags (tape_directory, ZFD_ARCHIVE | ZFD_NORECURSE);
 		if (!tape->zd)
 			tape->nomedia = true;
 	}

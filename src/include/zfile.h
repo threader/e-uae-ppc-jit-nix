@@ -43,8 +43,8 @@ struct fs_filehandle
 };
 
 extern struct zfile *zfile_fopen (const TCHAR *, const TCHAR *, int mask);
-extern struct zfile *zfile_fopen2 (const TCHAR *, const TCHAR *);
-extern struct zfile *zfile_fopen4 (const TCHAR *, const TCHAR *, int mask, int index);
+//extern struct zfile *zfile_fopen2 (const TCHAR *, const TCHAR *);
+extern struct zfile *zfile_fopen_nmmi (const TCHAR *, const TCHAR *, int mask, int index);
 extern struct zfile *zfile_fopen_empty (struct zfile*, const TCHAR *name, uae_u64 size);
 extern struct zfile *zfile_fopen_empty2 (struct zfile*, const TCHAR *name);
 //extern struct zfile *zfile_fopen_data (const TCHAR *name, uae_u64 size, const uae_u8 *data);

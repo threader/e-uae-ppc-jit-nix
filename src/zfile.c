@@ -1752,12 +1752,12 @@ struct zfile *zfile_fopen (const TCHAR *name, const TCHAR *mode, int mask)
 {
 	return zfile_fopenx (name, mode, mask, 0);
 }
-struct zfile *zfile_fopen2 (const TCHAR *name, const TCHAR *mode)
+/*struct zfile *zfile_fopen_mode (const TCHAR *name, const TCHAR *mode)
 {
 	return zfile_fopenx (name, mode, 0, 0);
-}
+}*/
 
-struct zfile *zfile_fopen4 (const TCHAR *name, const TCHAR *mode, int mask, int index)
+struct zfile *zfile_fopen_nmmi (const TCHAR *name, const TCHAR *mode, int mask, int index)
 {
 	return zfile_fopenx (name, mode, mask, index);
 }

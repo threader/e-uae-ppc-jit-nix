@@ -381,6 +381,8 @@ bool preinit_shm (void)
 	if (os_64bit) {
 		max_allowed_mman = 2048;
 	}
+	if (maxmem > max_allowed_mman)
+		max_allowed_mman = maxmem;
 
 #ifdef __APPLE__
 //xaind
