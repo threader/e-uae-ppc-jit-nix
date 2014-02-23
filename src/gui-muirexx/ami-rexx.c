@@ -41,6 +41,9 @@
 /* this prevent a conflict between <rexx/rexxio.h> and <sys/dirent.h> */
 #undef DT_DIR
 
+/* This prevents a conflict between INSERT macro in MorphOS SDK and INSERT function here. */
+#undef INSERT
+
 /****************************************************************************/
 
 #include "sysconfig.h"
