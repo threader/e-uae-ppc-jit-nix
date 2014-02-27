@@ -20,6 +20,9 @@
 #include "fsdb.h"
 #include "misc.h"
 
+/* external prototypes */
+void my_trim (TCHAR *s);
+
 int log_tapeemu = 1;
 
 #define TAPE_INDEX _T("index.tape")

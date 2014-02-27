@@ -42,6 +42,7 @@
  * Much more work to do here . . .
  */
 
+#if 0
 int filesys_is_readonly (const char *path)
 {
     /* If we don't know, we'll claim it's read/write */
@@ -76,3 +77,4 @@ int filesys_is_readonly (const char *path)
     return readonly;
 
 }
+#endif //0

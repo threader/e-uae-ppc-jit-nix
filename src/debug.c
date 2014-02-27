@@ -41,6 +41,9 @@
 #include "misc.h"
 #include "ar.h"
 
+/* external prototypes */
+void my_trim (TCHAR *s);
+
 /* internal members */
 int debugger_active;
 static uaecptr skipaddr_start, skipaddr_end;

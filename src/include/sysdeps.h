@@ -89,7 +89,7 @@
 		} \
 	} else \
 		JITLOG("Can't dissassemble %s, start (0x%08lx) is larger than end (0x%08lx)", \
-				#udis_func, (uaecptr)udis_func, (uaecptr)udis_end) \
+				#udis_func, (uaecptr)udis_func, (uaecptr)udis_end); \
 }
 # else
 #   define UDISFN(...) {}

@@ -2136,7 +2136,7 @@ static void vec(int sig, siginfo_t* info, void* _ct)
 #if defined(USE_UDIS86)
 	UDISFN(src_addr, src_addr + 0x20)
 #else
-	write_log(_T("[JIT] No disassembler available, dumping..."))
+	write_log(_T("[JIT] No disassembler available, dumping..."));
 	for (int i = 0; i < 32; i += 0x10) {
 		write_log(_T("[JIT] %08x "), i);
 		for (int j = 0; j < 16; ++j)
