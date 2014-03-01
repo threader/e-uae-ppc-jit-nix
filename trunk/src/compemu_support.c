@@ -1352,8 +1352,8 @@ static void cache_miss(void)
 	if (!bi2 || bi == bi2)
 	{
 		write_log("JIT: Unexplained cache miss %p %p\n", bi, bi2);
-		abort();
-	}
+			abort();
+		}
 	raise_in_cl_list(bi);
 	return;
 }
@@ -1798,6 +1798,16 @@ void comp_ppc_bc(int bibo, int reference)
 	helper_schedule_branch(0x40000000 | (bibo << 16), reference, TRUE);
 }
 
+/* Compiles bctr instruction
+ * Parameters:
+ * 		none
+ */
+void comp_ppc_bctr()
+{
+	// ## bctr reg
+	comp_ppc_emit_word(0x4e800420);
+}
+
 /**
  * Schedule the specified branch opcode for a branch target.
  * Parameters:
@@ -1889,7 +1899,7 @@ void comp_ppc_bl(uae_u32 target)
  */
 void comp_ppc_blr()
 {
-	// ## mtlr reg
+	// ## blr reg
 	comp_ppc_emit_word(0x4e800020);
 }
 
@@ -2179,6 +2189,16 @@ void comp_ppc_mtcrf(int crreg, comp_ppc_reg regf)
 #else
 	comp_ppc_emit_word(0x7c000120 | (regf.r << 21) | (1 << (crreg + 12)));
 #endif
+}
+
+/* Compiles mtctr instruction
+ * Parameters:
+ * 		reg - source register
+ */
+void comp_ppc_mtctr(comp_ppc_reg reg)
+{
+	// ## mtctr reg
+	comp_ppc_emit_word(0x7c0903a6 | (reg.r << 21));
 }
 
 /* Compiles mtlr instruction
@@ -2710,8 +2730,8 @@ void comp_ppc_jump(uae_uintptr addr)
 	{
 		//No - offset is too large, indirect jump is used
 		comp_ppc_liw(PPCR_SPECTMP_MAPPED, addr);
-		comp_ppc_mtlr(PPCR_SPECTMP_MAPPED);
-		comp_ppc_blr();
+		comp_ppc_mtctr(PPCR_SPECTMP_MAPPED);
+		comp_ppc_bctr();
 	}
 }
 
