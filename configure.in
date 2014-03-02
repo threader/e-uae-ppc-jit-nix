@@ -657,10 +657,8 @@ if [[ "x$WANT_SDL" != "xno" ]]; then
 
     dnl Assume this is MacOS X and try to use SDL framework
 
-    #SDL_CFLAGS="-I/Library/Frameworks/SDL.framework/Headers -I/usr/local/include -D_REENTRANT"
-    #SDL_LIBS="-framework Cocoa -framework SDL -lobjc -lSDL
-    SDL_CFLAGS="-g -O2 -I/usr/local/include/SDL -D_GNU_SOURCE=1 -D_THREAD_SAFE -I/usr/X11R6/include -DHAVE_OPENGL" 
-    SDL_LIBS="-L/usr/local/lib -lSDLmain -lSDL -Wl,-framework,Cocoa"
+    SDL_CFLAGS="-I/Library/Frameworks/SDL.framework/Headers -D_REENTRANT"
+    SDL_LIBS="-framework Cocoa -framework SDL -lobjc"
 
     AC_MSG_CHECKING(for SDL framework)
 
@@ -672,7 +670,7 @@ if [[ "x$WANT_SDL" != "xno" ]]; then
     AC_TRY_LINK(
     [
       #include "confdefs.h"
-      #include <SDL/SDL.h>
+      #include <SDL.h>
       #undef main
     ],
     [
@@ -1450,8 +1448,8 @@ else
   AC_MSG_RESULT(no)
 fi
 
-LIBS="$GUI_LIBS $GFX_LIBS $SND_LIBS $JOY_LIBS $UAE_LIBS"
-CPPFLAGS="$UAE_CPPFLAGS $UAE_DEFINES $GFX_CPPFLAGS"
+LIBS="$LIBS $GUI_LIBS $GFX_LIBS $SND_LIBS $JOY_LIBS $UAE_LIBS"
+CPPFLAGS="$CPPFLAGS $UAE_CPPFLAGS $UAE_DEFINES $GFX_CPPFLAGS"
 CFLAGS="$CFLAGS $UAE_CFLAGS $GUI_CFLAGS $GFX_CFLAGS $SND_CFLAGS $JOY_CFLAGS"
 
 AC_CONFIG_LINKS(src/target.h:src/targets/$TARGETDEP)
