@@ -2149,7 +2149,7 @@ void comp_ppc_mfcr(comp_ppc_reg reg)
  * 		crreg - source flag register
  * 		reg - target register
  */
-void comp_ppc_mfocrf(int crreg, int reg)
+void comp_ppc_mfocrf(int crreg, comp_ppc_reg reg)
 {
 	// ## mf(o)crf reg
 	comp_ppc_emit_word(0x7c000826 | (reg.r << 21) | (1 << (crreg + 12)));
