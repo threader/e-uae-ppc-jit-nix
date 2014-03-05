@@ -223,14 +223,17 @@ void qemu_register_reset(QEMUResetHandler *func, void *opaque);
 #define CIRRUS_ID_CLGD5436  (0x2B<<2)
 #define CIRRUS_ID_CLGD5446  (0x2E<<2)
 
-typedef void (*cirrus_bitblt_rop_t) (struct CirrusVGAState *s,
+typedef struct CirrusVGAState CirrusVGAState;
+
+typedef void (*cirrus_bitblt_rop_t) (CirrusVGAState *s,
                                      uint8_t * dst, const uint8_t * src,
 				     int dstpitch, int srcpitch,
 				     int bltwidth, int bltheight);
-typedef void (*cirrus_fill_t)(struct CirrusVGAState *s,
+typedef void (*cirrus_fill_t)(CirrusVGAState *s,
                               uint8_t *dst, int dst_pitch, int width, int height);
 
-typedef struct CirrusVGAState {
+
+struct CirrusVGAState {
     VGACommonState vga;
 
     MemoryRegion cirrus_vga_io;
@@ -281,7 +284,7 @@ typedef struct CirrusVGAState {
     int device_id;
     int bustype;
 	int valid_memory_config;
-} CirrusVGAState;
+};
 
 void cirrus_init_common(CirrusVGAState * s, int device_id, int is_pci,
                                MemoryRegion *system_memory,
