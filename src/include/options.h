@@ -105,6 +105,17 @@ struct jport {
 #define TABLET_MOUSEHACK 1
 #define TABLET_REAL 2
 
+#ifdef WITH_SLIRP
+#define MAX_SLIRP_REDIRS 32
+struct slirp_redir
+{
+	int proto;
+	int srcport;
+	int dstport;
+	unsigned long addr;
+};
+#endif
+
 struct cdslot
 {
 	TCHAR name[MAX_DPATH];
@@ -571,7 +582,9 @@ struct uae_prefs {
 	int  amiga_use_grey;
 	int  amiga_use_dither;
 #endif
-
+#ifdef WITH_SLIRP
+	struct slirp_redir slirp_redirs[MAX_SLIRP_REDIRS]; 
+#endif
 #ifdef SAVESTATE
 	bool statecapture;
 	int statecapturerate, statecapturebuffersize;

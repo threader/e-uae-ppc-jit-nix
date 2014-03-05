@@ -8,6 +8,19 @@
   * Copyright 1996 Herman ten Brugge
   */
 
+#define FPCR_ROUNDING_MODE      0x00000030
+#define FPCR_ROUND_NEAR         0x00000000
+#define FPCR_ROUND_ZERO         0x00000010
+#define FPCR_ROUND_MINF         0x00000020
+#define FPCR_ROUND_PINF         0x00000030
+
+#define FPCR_ROUNDING_PRECISION 0x000000c0
+#define FPCR_PRECISION_SINGLE   0x00000040
+#define FPCR_PRECISION_DOUBLE   0x00000080
+#define FPCR_PRECISION_EXTENDED 0x00000000
+
+static double twoto32 = 4294967296.0;
+
 #ifndef HAVE_to_single
 STATIC_INLINE double to_single (uae_u32 value)
 {
@@ -49,48 +62,63 @@ STATIC_INLINE uae_u32 from_single (double src)
 #endif
 
 #ifndef HAVE_to_exten
-STATIC_INLINE double to_exten(fpdata *fpd, uae_u32 wrd1, uae_u32 wrd2, uae_u32 wrd3)
+STATIC_INLINE void to_exten(fpdata *fpd, uae_u32 wrd1, uae_u32 wrd2, uae_u32 wrd3)
 {
-    double frac;
+	double frac;
 
-    if ((wrd1 & 0x7fff0000) == 0 && wrd2 == 0 && wrd3 == 0)
-		return 0.0;
-    frac = (double) wrd2 / 2147483648.0 +
-	(double) wrd3 / 9223372036854775808.0;
-    if (wrd1 & 0x80000000)
+#ifdef USE_SOFT_LONG_DOUBLE
+	fpd->fpe = ((uae_u64)wrd2 << 32) | wrd3;
+	fpd->fpm = wrd1;
+	fpd->fpx = true;
+#endif
+	if ((wrd1 & 0x7fff0000) == 0 && wrd2 == 0 && wrd3 == 0) {
+		fpd->fp = 0.0;
+		return;
+	}
+	frac = ((double)wrd2 + ((double)wrd3 / twoto32)) / 2147483648.0;
+	if (wrd1 & 0x80000000)
 		frac = -frac;
-    return ldexp (frac, ((wrd1 >> 16) & 0x7fff) - 16383);
+
+	fpd->fp = ldexp (frac, ((wrd1 >> 16) & 0x7fff) - 16383);
 }
 #endif
 
 #ifndef HAVE_from_exten
 STATIC_INLINE void from_exten(fpdata *fpd, uae_u32 * wrd1, uae_u32 * wrd2, uae_u32 * wrd3)
 {
-    int expon;
-    double frac;
-	fptype src = fpd->fp;
+	int expon;
+	double frac;
 
-    if (src == 0.0) {
-		*wrd1 = 0;
-		*wrd2 = 0;
-		*wrd3 = 0;
-		return;
-    }
-    if (src < 0) {
-		*wrd1 = 0x80000000;
-		src = -src;
-    } else {
-		*wrd1 = 0;
-    }
-    frac = frexp (src, &expon);
-    frac += 0.5 / 18446744073709551616.0;
-    if (frac >= 1.0) {
-		frac /= 2.0;
-		expon++;
-    }
-    *wrd1 |= (((expon + 16383 - 1) & 0x7fff) << 16);
-    *wrd2 = (uae_u32) (frac * 4294967296.0);
-    *wrd3 = (uae_u32) (frac * 18446744073709551616.0 - *wrd2 * 4294967296.0);
+#ifdef USE_SOFT_LONG_DOUBLE
+	if (fpd->fpx) {
+		*wrd1 = fpd->fpm;
+		*wrd2 = fpd->fpe >> 32;
+		*wrd3 = (uae_u32)fpd->fpe;
+	} else
+#endif
+	{
+		if (fpd->fp == 0.0) {
+			*wrd1 = 0;
+			*wrd2 = 0;
+			*wrd3 = 0;
+			return;
+		}
+		if (fpd->fp < 0) {
+			*wrd1 = 0x80000000;
+			fpd->fp = -fpd->fp;
+		} else {
+			*wrd1 = 0;
+		}
+		frac = frexp (fpd->fp, &expon);
+		frac= 0.5 / (twoto32 * twoto32);
+		if (frac >= 1.0) {
+			frac /= 2.0;
+			expon++;
+		}
+		*wrd1 |= (((expon + 16383 - 1) & 0x7fff) << 16);
+		*wrd2 = (uae_u32) (frac * twoto32);
+		*wrd3 = (uae_u32) ((frac * twoto32 - *wrd2) * twoto32);
+	}
 }
 #endif
 

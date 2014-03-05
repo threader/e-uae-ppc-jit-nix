@@ -80,10 +80,6 @@ int inputdevice_logging = 0;
 #define ID_FLAG_CUSTOMEVENT_TOGGLED1 0x4000
 #define ID_FLAG_CUSTOMEVENT_TOGGLED2 0x8000
 
-#define ID_FLAG_SAVE_MASK_CONFIG 0x000000ff
-#define ID_FLAG_SAVE_MASK_QUALIFIERS ID_FLAG_QUALIFIER_MASK
-#define ID_FLAG_SAVE_MASK_FULL (ID_FLAG_SAVE_MASK_CONFIG | ID_FLAG_SAVE_MASK_QUALIFIERS)
-
 #define IE_INVERT 0x80
 #define IE_CDTV 0x100
 
@@ -91,19 +87,6 @@ int inputdevice_logging = 0;
 #define INPUTEVENT_JOY2_CD32_FIRST INPUTEVENT_JOY2_CD32_PLAY
 #define INPUTEVENT_JOY1_CD32_LAST INPUTEVENT_JOY1_CD32_BLUE
 #define INPUTEVENT_JOY2_CD32_LAST INPUTEVENT_JOY2_CD32_BLUE
-
-/* event masks */
-#define AM_KEY 1 /* keyboard allowed */
-#define AM_JOY_BUT 2 /* joystick buttons allowed */
-#define AM_JOY_AXIS 4 /* joystick axis allowed */
-#define AM_MOUSE_BUT 8 /* mouse buttons allowed */
-#define AM_MOUSE_AXIS 16 /* mouse direction allowed */
-#define AM_AF 32 /* supports autofire */
-#define AM_INFO 64 /* information data for gui */
-#define AM_DUMMY 128 /* placeholder */
-#define AM_CUSTOM 256 /* custom event */
-#define AM_K (AM_KEY|AM_JOY_BUT|AM_MOUSE_BUT|AM_AF) /* generic button/switch */
-#define AM_KK (AM_KEY|AM_JOY_BUT|AM_MOUSE_BUT)
 
 #define JOYMOUSE_CDTV 8
 
@@ -2776,6 +2759,7 @@ static bool inputdevice_handle_inputcode2 (int code, int state)
 {
 	static int swapperslot;
 	static int tracer_enable;
+	int newstate;
 
 	if (code == 0)
 		goto end;
@@ -2792,6 +2776,15 @@ static bool inputdevice_handle_inputcode2 (int code, int state)
 
 	if (vpos != 0)
 		write_log (_T("inputcode=%d but vpos = %d"), code, vpos);
+
+	if (state == SET_ONOFF_ON_VALUE)
+		newstate = 1;
+	else if (state == SET_ONOFF_OFF_VALUE)
+		newstate = 0;
+	else if (state)
+		newstate = -1;
+	else
+		newstate = 0;
 
 #ifdef ARCADIA
 	switch (code)
@@ -2870,10 +2863,10 @@ static bool inputdevice_handle_inputcode2 (int code, int state)
 		NMI_delayed ();
 		break;
 	case AKS_PAUSE:
-		pausemode (-1);
+		pausemode (newstate);
 		break;
 	case AKS_WARP:
-		warpmode (-1);
+		warpmode (newstate);
 		break;
 	case AKS_INHIBITSCREEN:
 		toggle_inhibit_frame (IHF_SCROLLLOCK);
@@ -2890,19 +2883,19 @@ static bool inputdevice_handle_inputcode2 (int code, int state)
 		break;
 #endif
 	case AKS_VOLDOWN:
-		sound_volume (-1);
+		sound_volume (newstate <= 0 ? -1 : 1);
 		break;
 	case AKS_VOLUP:
-		sound_volume (1);
+		sound_volume (newstate <= 0 ? 1 : -1);
 		break;
 	case AKS_VOLMUTE:
-		sound_mute (-1);
+		sound_mute (newstate);
 		break;
 	case AKS_MVOLDOWN:
-		master_sound_volume (-1);
+		master_sound_volume (newstate <= 0 ? -1 : 1);
 		break;
 	case AKS_MVOLUP:
-		master_sound_volume (1);
+		master_sound_volume (newstate <= 0 ? 1 : -1);
 		break;
 	case AKS_MVOLMUTE:
 		master_sound_volume (0);
@@ -2957,9 +2950,11 @@ static bool inputdevice_handle_inputcode2 (int code, int state)
 	case AKS_TOGGLEMOUSEGRAB:
 		toggle_mousegrab ();
 		break;
-//	case AKS_TOGGLERTG:
-//		toggle_rtg (-1);
-//		break;
+#if 0
+	case AKS_TOGGLERTG:
+		toggle_rtg (newstate);
+		break;
+#endif
 #ifdef DEBUGGER
 	case AKS_ENTERDEBUGGER:
 		activate_debugger ();
@@ -3937,6 +3932,8 @@ static void setbuttonstateall (struct uae_input_device *id, struct uae_input_dev
 		int toggle = (flags & ID_FLAG_TOGGLE) ? 1 : 0;
 		int inverttoggle = (flags & ID_FLAG_INVERTTOGGLE) ? 1 : 0;
 		int invert = (flags & ID_FLAG_INVERT) ? 1 : 0;
+		int setmode = (flags & ID_FLAG_SET_ONOFF) ? 1: 0;
+		int setval = (flags & ID_FLAG_SET_ONOFF_VAL) ? SET_ONOFF_ON_VALUE : SET_ONOFF_OFF_VALUE;
 		int state;
 
 		if (buttonstate < 0) {
@@ -3945,6 +3942,10 @@ static void setbuttonstateall (struct uae_input_device *id, struct uae_input_dev
 			state = buttonstate ? 0 : 1;
 		} else {
 			state = buttonstate;
+		}
+		if (setmode) {
+			if (state)
+				state = setval;
 		}
 
 		if (!state) {
@@ -5700,6 +5701,8 @@ static int inputdevice_translatekeycode_2 (int keyboard, int scancode, int keyst
 				int toggle = (flags & ID_FLAG_TOGGLE) ? 1 : 0;
 				int inverttoggle = (flags & ID_FLAG_INVERTTOGGLE) ? 1 : 0;
 				int invert = (flags & ID_FLAG_INVERT) ? 1 : 0;
+				int setmode = (flags & ID_FLAG_SET_ONOFF) ? 1: 0;
+				int setval = (flags & ID_FLAG_SET_ONOFF_VAL) ? SET_ONOFF_ON_VALUE : SET_ONOFF_OFF_VALUE;
 				int toggled;
 				int state;
 
@@ -5709,6 +5712,10 @@ static int inputdevice_translatekeycode_2 (int keyboard, int scancode, int keyst
 					state = keystate ? 0 : 1;
 				} else {
 					state = keystate;
+				}
+				if (setmode) {
+					if (state)
+						state = setval;
 				}
 
 				setqualifiers (evt, state > 0);
@@ -6287,6 +6294,10 @@ int inputdevice_get_mapping (int devnum, int num, uae_u64 *pflags, int *pport, T
 		flags |= IDEV_MAPPED_GAMEPORTSCUSTOM2;
 	if (flag & ID_FLAG_QUALIFIER_MASK)
 		flags |= flag & ID_FLAG_QUALIFIER_MASK;
+	if (flag & ID_FLAG_SET_ONOFF)
+		flags |= IDEV_MAPPED_SET_ONOFF;
+	if (flag & ID_FLAG_SET_ONOFF_VAL)
+		flags |= IDEV_MAPPED_SET_ONOFF_VAL;
 	if (pflags)
 		*pflags = flags;
 	if (pport)
@@ -6343,6 +6354,11 @@ int inputdevice_set_mapping (int devnum, int num, const TCHAR *name, TCHAR *cust
 		flag |= (flags & IDEV_MAPPED_GAMEPORTSCUSTOM1) ? ID_FLAG_GAMEPORTSCUSTOM1 : 0;
 		flag |= (flags & IDEV_MAPPED_GAMEPORTSCUSTOM2) ? ID_FLAG_GAMEPORTSCUSTOM2 : 0;
 		flag |= flags & IDEV_MAPPED_QUALIFIER_MASK;
+		flag &= ~(IDEV_MAPPED_SET_ONOFF | IDEV_MAPPED_SET_ONOFF_VAL);
+		if (amask & AM_SETTOGGLE) {
+			flag |= (flags & IDEV_MAPPED_SET_ONOFF) ? ID_FLAG_SET_ONOFF : 0;
+			flag |= (flags & IDEV_MAPPED_SET_ONOFF_VAL) ? ID_FLAG_SET_ONOFF_VAL : 0;
+		}
 		if (port >= 0)
 			portp = port;
 		put_event_data (idf, devindex, num, eid, custom, flag, portp, sub);
@@ -6848,7 +6864,7 @@ void setjoystickstate (int joy, int axis, int state, int max)
 			v2 = 1;
 		else if (v2 < 0)
 			v2 = -1;
-		if (v1 && v1 != v2) {
+		if (v1 && v1 != v2 && (axis == 0 || axis == 1)) {
 			static int prevdir;
 			static struct timeval tv1;
 			struct timeval tv2;
