@@ -7,6 +7,8 @@
  */
 
 #include <sys/timeb.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include "zfile.h"
 
 typedef int BOOL;

@@ -52,6 +52,7 @@ int disk_debug_track = -1;
 #include "misc.h"
 #include "inputrecord.h"
 #include <ctype.h>
+#include <unistd.h>
 
 #undef CATWEASEL
 

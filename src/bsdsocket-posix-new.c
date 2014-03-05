@@ -37,6 +37,7 @@
 #include "bsdsocket.h"
 
 #ifdef BSDSOCKET
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/select.h>

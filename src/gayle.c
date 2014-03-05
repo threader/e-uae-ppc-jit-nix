@@ -8,6 +8,7 @@
 
 #include "sysconfig.h"
 #include "sysdeps.h"
+#include <unistd.h>
 
 #include "options.h"
 
