@@ -1551,13 +1551,13 @@ void CIA_reset (void)
 
 void dumpcia (void)
 {
-	write_log (_T("A: CRA %02x CRB %02x ICR %02x IM %02x TA %04x (%04x) TB %04x (%04x)\n"),
+	write_log (_T("A: CRA %02x CRB %02x ICR %02x IM %02x TA %04lx (%04lx) TB %04lx (%04lx)\n"),
 		ciaacra, ciaacrb, ciaaicr, ciaaimask, ciaata, ciaala, ciaatb, ciaalb);
-	write_log (_T("TOD %06x (%06x) ALARM %06x %c%c CYC=%08X\n"),
+	write_log (_T("TOD %06lx (%06lx) ALARM %06lx %c%c CYC=%08lX\n"),
 		ciaatod, ciaatol, ciaaalarm, ciaatlatch ? 'L' : ' ', ciaatodon ? ' ' : 'S', get_cycles ());
-	write_log (_T("B: CRA %02x CRB %02x ICR %02x IM %02x TA %04x (%04x) TB %04x (%04x)\n"),
+	write_log (_T("B: CRA %02x CRB %02x ICR %02x IM %02x TA %04lx (%04lx) TB %04lx (%04lx)\n"),
 		ciabcra, ciabcrb, ciabicr, ciabimask, ciabta, ciabla, ciabtb, ciablb);
-	write_log (_T("TOD %06x (%06x) ALARM %06x %c%c CLK=%d\n"),
+	write_log (_T("TOD %06lx (%06lx) ALARM %06lx %c%c CLK=%d\n"),
 		ciabtod, ciabtol, ciabalarm, ciabtlatch ? 'L' : ' ', ciabtodon ? ' ' : 'S', div10 / CYCLE_UNIT);
 }
 

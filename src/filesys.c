@@ -2060,7 +2060,7 @@ static void recycle_aino (Unit *unit, a_inode *new_aino)
 		/* Still in use */
 		return;
 
-	TRACE3((_T("Recycling; cache size %d, total_locked %d\n"),
+	TRACE3((_T("Recycling; cache size %ld, total_locked %ld\n"),
 		unit->aino_cache_size, unit->total_locked_ainos));
 	if (unit->aino_cache_size > 5000 + unit->total_locked_ainos) {
 		/* Reap a few. */
@@ -3098,12 +3098,12 @@ static void
 	dumplock (Unit *unit, uaecptr lock)
 {
 	a_inode *a;
-	TRACE((_T("LOCK: 0x%lx"), lock));
+	TRACE((_T("LOCK: 0x%x"), lock));
 	if (!lock) {
 		TRACE((_T("\n")));
 		return;
 	}
-	TRACE((_T("{ next=0x%lx, mode=%ld, handler=0x%lx, volume=0x%lx, aino %lx "),
+	TRACE((_T("{ next=0x%x, mode=%d, handler=0x%x, volume=0x%x, aino %x "),
 		get_long (lock) << 2, get_long (lock + 8),
 		get_long (lock + 12), get_long (lock + 16),
 		get_long (lock + 4)));
@@ -3336,11 +3336,11 @@ static void
 	int err;
 
 	if (mode != SHARED_LOCK && mode != EXCLUSIVE_LOCK) {
-		TRACE((_T("Bad mode %d (should be %d or %d).\n"), mode, SHARED_LOCK, EXCLUSIVE_LOCK));
+		TRACE((_T("Bad mode %ld (should be %d or %d).\n"), mode, SHARED_LOCK, EXCLUSIVE_LOCK));
 		mode = SHARED_LOCK;
 	}
 
-	TRACE((_T("ACTION_LOCK(0x%08x, \"%s\", %d)\n"), lock, bstr (unit, name), mode));
+	TRACE((_T("ACTION_LOCK(0x%08x, \"%s\", %ld)\n"), lock, bstr (unit, name), mode));
 	DUMPLOCK(unit, lock);
 
 	a = find_aino (unit, lock, bstr (unit, name), &err);
@@ -3532,7 +3532,7 @@ static void action_free_lock (Unit *unit, dpacket packet)
 {
 	uaecptr lock = GET_PCK_ARG1 (packet) << 2;
 	a_inode *a;
-	TRACE((_T("ACTION_FREE_LOCK(0x%lx)\n"), lock));
+	TRACE((_T("ACTION_FREE_LOCK(0x%x)\n"), lock));
 	DUMPLOCK(unit, lock);
 
 	a = aino_from_lock (unit, lock);
@@ -3582,7 +3582,7 @@ static void
 	action_dup_lock (Unit *unit, dpacket packet)
 {
 	uaecptr lock = GET_PCK_ARG1 (packet) << 2;
-	TRACE((_T("ACTION_DUP_LOCK(0x%lx)\n"), lock));
+	TRACE((_T("ACTION_DUP_LOCK(0x%x)\n"), lock));
 	if (!lock) {
 		PUT_PCK_RES1 (packet, 0);
 		return;
@@ -3595,7 +3595,7 @@ static void
 	action_lock_from_fh (Unit *unit, dpacket packet)
 {
 	Key *k = lookup_key (unit, GET_PCK_ARG1 (packet));
-	TRACE((_T("ACTION_COPY_DIR_FH(0x%lx,'%s')\n"), GET_PCK_ARG1 (packet), k ? k->aino->aname : _T("<null>")));
+	TRACE((_T("ACTION_COPY_DIR_FH(0x%x,'%s')\n"), GET_PCK_ARG1 (packet), k ? k->aino->aname : _T("<null>")));
 	if (k == 0) {
 		PUT_PCK_RES1 (packet, DOS_FALSE);
 		return;
@@ -3606,7 +3606,7 @@ static void
 static void free_exkey (Unit *unit, ExamineKey *ek)
 {
 	if (--ek->aino->exnext_count == 0) {
-		TRACE ((_T("Freeing ExKey and reducing total_locked from %d by %d\n"),
+		TRACE ((_T("Freeing ExKey and reducing total_locked from %ld by %ld\n"),
 			unit->total_locked_ainos, ek->aino->locked_children));
 		unit->total_locked_ainos -= ek->aino->locked_children;
 		ek->aino->locked_children = 0;
@@ -4387,7 +4387,7 @@ static void action_examine_object (Unit *unit, dpacket packet)
 	uaecptr info = GET_PCK_ARG2 (packet) << 2;
 	a_inode *aino = 0;
 
-	TRACE((_T("ACTION_EXAMINE_OBJECT(0x%lx,0x%lx)\n"), lock, info));
+	TRACE((_T("ACTION_EXAMINE_OBJECT(0x%x,0x%x)\n"), lock, info));
 	DUMPLOCK(unit, lock);
 
 	if (lock != 0)
@@ -4421,7 +4421,7 @@ static void populate_directory (Unit *unit, a_inode *base)
 		base->locked_children++;
 		unit->total_locked_ainos++;
 	}
-	TRACE3((_T("Populating directory, child %p, locked_children %d\n"),
+	TRACE3((_T("Populating directory, child %p, locked_children %ld\n"),
 		base->child, base->locked_children));
 	for (;;) {
 		uae_u64 uniq = 0;
@@ -4481,7 +4481,7 @@ static void action_examine_next (Unit *unit, dpacket packet)
 	ExamineKey *ek;
 	uae_u32 uniq;
 
-	TRACE((_T("ACTION_EXAMINE_NEXT(0x%lx,0x%lx)\n"), lock, info));
+	TRACE((_T("ACTION_EXAMINE_NEXT(0x%x,0x%x)\n"), lock, info));
 	gui_flicker_led (UNIT_LED(unit), unit->unit, 1);
 	DUMPLOCK(unit, lock);
 
@@ -4672,7 +4672,7 @@ static void
 	mode_t openmode;
 	int mode;
 
-	TRACE((_T("ACTION_FH_FROM_LOCK(0x%lx,0x%lx)\n"), fh, lock));
+	TRACE((_T("ACTION_FH_FROM_LOCK(0x%x,0x%x)\n"), fh, lock));
 	DUMPLOCK(unit,lock);
 
 	if (!lock) {
@@ -4771,7 +4771,7 @@ static void
 	action_end (Unit *unit, dpacket packet)
 {
 	Key *k;
-	TRACE((_T("ACTION_END(0x%lx)\n"), GET_PCK_ARG1 (packet)));
+	TRACE((_T("ACTION_END(0x%x)\n"), GET_PCK_ARG1 (packet)));
 
 	k = lookup_key (unit, GET_PCK_ARG1 (packet));
 	if (k != 0) {
@@ -4803,7 +4803,7 @@ static void
 		/* PUT_PCK_RES2 (packet, EINVAL); */
 		return;
 	}
-	TRACE((_T("ACTION_READ(%s,0x%lx,%ld)\n"), k->aino->nname, addr, size));
+	TRACE((_T("ACTION_READ(%s,0x%x,%d)\n"), k->aino->nname, addr, size));
 	gui_flicker_led (UNIT_LED(unit), unit->unit, 1);
 
 	if (size == 0) {
@@ -4903,7 +4903,7 @@ static void
 	}
 
 	gui_flicker_led (UNIT_LED(unit), unit->unit, 2);
-	TRACE((_T("ACTION_WRITE(%s,0x%lx,%ld)\n"), k->aino->nname, addr, size));
+	TRACE((_T("ACTION_WRITE(%s,0x%x,%d)\n"), k->aino->nname, addr, size));
 
 	if (unit->ui.readonly || unit->ui.locked) {
 		PUT_PCK_RES1 (packet, DOS_FALSE);
@@ -4982,7 +4982,7 @@ static void
 		whence = SEEK_SET;
 
 	cur = k->file_pos;
-	TRACE((_T("ACTION_SEEK(%s,%d,%d)=%d\n"), k->aino->nname, pos, mode, cur));
+	TRACE((_T("ACTION_SEEK(%s,%ld,%ld)=%lld\n"), k->aino->nname, pos, mode, cur));
 	gui_flicker_led (UNIT_LED(unit), unit->unit, 1);
 
 	filesize = fs_fsize64 (k->fd);
@@ -5018,7 +5018,7 @@ static void
 	a_inode *a;
 	int err;
 
-	TRACE((_T("ACTION_SET_PROTECT(0x%lx,\"%s\",0x%lx)\n"), lock, bstr (unit, name), mask));
+	TRACE((_T("ACTION_SET_PROTECT(0x%x,\"%s\",0x%x)\n"), lock, bstr (unit, name), mask));
 
 	if (unit->ui.readonly || unit->ui.locked) {
 		PUT_PCK_RES1 (packet, DOS_FALSE);
@@ -5082,7 +5082,7 @@ static void action_set_comment (Unit * unit, dpacket packet)
 			commented = NULL;
 		}
 	}
-	TRACE ((_T("ACTION_SET_COMMENT(0x%lx,\"%s\")\n"), lock, commented));
+	TRACE ((_T("ACTION_SET_COMMENT(0x%x,\"%s\")\n"), lock, commented));
 
 	a = find_aino (unit, lock, bstr (unit, name), &err);
 	if (err != 0) {
@@ -5119,7 +5119,7 @@ static void
 	uaecptr lock1 = GET_PCK_ARG1 (packet) << 2;
 	uaecptr lock2 = GET_PCK_ARG2 (packet) << 2;
 
-	TRACE((_T("ACTION_SAME_LOCK(0x%lx,0x%lx)\n"), lock1, lock2));
+	TRACE((_T("ACTION_SAME_LOCK(0x%x,0x%x)\n"), lock1, lock2));
 	DUMPLOCK(unit, lock1); DUMPLOCK(unit, lock2);
 
 	if (!lock1 || !lock2) {
@@ -5146,7 +5146,7 @@ static void
 	a_inode *a = NULL;
 // REMOVEME: a_inode *olda = NULL;
 	int err = 0;
-	TRACE((_T("ACTION_CHANGE_MODE(0x%lx,%d,%d)\n"), object, type, mode));
+	TRACE((_T("ACTION_CHANGE_MODE(0x%x,%ld,%ld)\n"), object, type, mode));
 
 	if (! object || (type != CHANGE_FH && type != CHANGE_LOCK)) {
 		PUT_PCK_RES1 (packet, DOS_FALSE);
@@ -5235,7 +5235,7 @@ static void
 {
 	uaecptr lock = GET_PCK_ARG1 (packet) << 2;
 
-	TRACE((_T("ACTION_PARENT(0x%lx)\n"),lock));
+	TRACE((_T("ACTION_PARENT(0x%x)\n"),lock));
 
 	if (!lock) {
 		PUT_PCK_RES1 (packet, 0);
@@ -5254,7 +5254,7 @@ static void
 	a_inode *aino;
 	int err;
 
-	TRACE((_T("ACTION_CREATE_DIR(0x%lx,\"%s\")\n"), lock, bstr (unit, name)));
+	TRACE((_T("ACTION_CREATE_DIR(0x%x,\"%s\")\n"), lock, bstr (unit, name)));
 
 	if (unit->ui.readonly || unit->ui.locked) {
 		PUT_PCK_RES1 (packet, DOS_FALSE);
@@ -5303,7 +5303,7 @@ static void
 	a_inode *aino = 0;
 	uaecptr info = GET_PCK_ARG2 (packet) << 2;
 
-	TRACE((_T("ACTION_EXAMINE_FH(0x%lx,0x%lx)\n"),
+	TRACE((_T("ACTION_EXAMINE_FH(0x%x,0x%x)\n"),
 		GET_PCK_ARG1 (packet), GET_PCK_ARG2 (packet) ));
 
 	k = lookup_key (unit, GET_PCK_ARG1 (packet));
@@ -5336,7 +5336,7 @@ static void
 	if (mode < 0)
 		whence = SEEK_SET;
 
-	TRACE((_T("ACTION_SET_FILE_SIZE(0x%lx, %d, 0x%x)\n"), GET_PCK_ARG1 (packet), offset, mode));
+	TRACE((_T("ACTION_SET_FILE_SIZE(0x%x, %ld, 0x%lx)\n"), GET_PCK_ARG1 (packet), offset, mode));
 
 	k = lookup_key (unit, GET_PCK_ARG1 (packet));
 	if (k == 0) {
@@ -5435,7 +5435,7 @@ static void
 	a_inode *a;
 	int err;
 
-	TRACE((_T("ACTION_DELETE_OBJECT(0x%lx,\"%s\")\n"), lock, bstr (unit, name)));
+	TRACE((_T("ACTION_DELETE_OBJECT(0x%x,\"%s\")\n"), lock, bstr (unit, name)));
 
 	if (unit->ui.readonly || unit->ui.locked) {
 		PUT_PCK_RES1 (packet, DOS_FALSE);
@@ -5497,7 +5497,7 @@ static void
 	struct mytimeval tv;
 	int err;
 
-	TRACE((_T("ACTION_SET_DATE(0x%lx,\"%s\")\n"), lock, bstr (unit, name)));
+	TRACE((_T("ACTION_SET_DATE(0x%x,\"%s\")\n"), lock, bstr (unit, name)));
 
 	if (unit->ui.readonly || unit->ui.locked) {
 		PUT_PCK_RES1 (packet, DOS_FALSE);
@@ -5542,8 +5542,8 @@ static void
 	Key *k1, *knext;
 	int wehavekeys = 0;
 
-	TRACE((_T("ACTION_RENAME_OBJECT(0x%lx,\"%s\","), lock1, bstr (unit, name1)));
-	TRACE((_T("0x%lx,\"%s\")\n"), lock2, bstr (unit, name2)));
+	TRACE((_T("ACTION_RENAME_OBJECT(0x%x,\"%s\","), lock1, bstr (unit, name1)));
+	TRACE((_T("0x%x,\"%s\")\n"), lock2, bstr (unit, name2)));
 
 	if (unit->ui.readonly || unit->ui.locked) {
 		PUT_PCK_RES1 (packet, DOS_FALSE);
@@ -5742,7 +5742,7 @@ static void action_change_file_position64 (Unit *unit, dpacket packet)
 	if (mode < 0)
 		whence = SEEK_SET;
 
-	TRACE((_T("ACTION_CHANGE_FILE_POSITION64(%s,%lld,%d)\n"), k->aino->nname, pos, mode));
+	TRACE((_T("ACTION_CHANGE_FILE_POSITION64(%s,%lld,%ld)\n"), k->aino->nname, pos, mode));
 	gui_flicker_led (UNIT_LED(unit), unit->unit, 1);
 
 	cur = k->file_pos;
@@ -5773,7 +5773,7 @@ static void action_change_file_position64 (Unit *unit, dpacket packet)
 		PUT_PCK64_RES2 (packet, 0);
 		k->file_pos = fs_lseek64 (k->fd, 0, SEEK_CUR);
 	}
-	TRACE((_T("= oldpos %lld newpos %lld\n"), cur, k->file_pos));
+	TRACE((_T("= oldpos %lld newpos %lld\n"), cur, (long long) k->file_pos));
 
 }
 
@@ -5788,7 +5788,7 @@ static void action_get_file_position64 (Unit *unit, dpacket packet)
 		PUT_PCK64_RES2 (packet, ERROR_INVALID_LOCK);
 		return;
 	}
-	TRACE((_T("ACTION_GET_FILE_POSITION64(%s)=%lld\n"), k->aino->nname, k->file_pos));
+	TRACE((_T("ACTION_GET_FILE_POSITION64(%s)=%lld\n"), k->aino->nname, (long long) k->file_pos));
 	PUT_PCK64_RES1 (packet, k->file_pos);
 	PUT_PCK64_RES2 (packet, 0);
 }
@@ -5807,7 +5807,7 @@ static void action_change_file_size64 (Unit *unit, dpacket packet)
 	if (mode < 0)
 		whence = SEEK_SET;
 
-	TRACE((_T("ACTION_CHANGE_FILE_SIZE64(0x%lx, %lld, 0x%x)\n"), GET_PCK64_ARG1 (packet), offset, mode));
+	TRACE((_T("ACTION_CHANGE_FILE_SIZE64(0x%x, %lld, 0x%lx)\n"), GET_PCK64_ARG1 (packet), offset, mode));
 
 	k = lookup_key (unit, GET_PCK64_ARG1 (packet));
 	if (k == 0) {
@@ -6020,7 +6020,7 @@ static int handle_packet (Unit *unit, dpacket pck, uae_u32 msg)
 	uae_s32 type = GET_PCK_TYPE (pck);
 	PUT_PCK_RES2 (pck, 0);
 
-	TRACE((_T("unit=%x packet=%d\n"), unit, type));
+	TRACE((_T("unit=%p packet=%d\n"), unit, type));
 	if (unit->inhibited && filesys_isvolume (unit)
 		&& type != ACTION_INHIBIT && type != ACTION_MORE_CACHE
 		&& type != ACTION_DISK_INFO) {
@@ -6200,7 +6200,7 @@ error:
 		PUT_PCK_RES1 (packet_addr, DOS_FALSE);
 		PUT_PCK_RES2 (packet_addr, ERROR_ACTION_NOT_KNOWN);
 	}
-	TRACE((_T("reply: %8lx, %ld\n"), GET_PCK_RES1 (packet_addr), GET_PCK_RES2 (packet_addr)));
+	TRACE((_T("reply: %8x, %d\n"), GET_PCK_RES1 (packet_addr), GET_PCK_RES2 (packet_addr)));
 
 error2:
 
@@ -6713,7 +6713,7 @@ static void dump_partinfo (struct hardfiledata *hfd, uae_u8 *pp)
 
 		if ((uae_u64)highcyl * spt * surfaces * blocksize > hfd->virtsize) {
 			write_log (_T("RDB: WARNING: end of partition > size of disk! (%llu > %llu)\n"),
-				(uae_u64)highcyl * spt * surfaces * blocksize, hfd->virtsize);
+				(uae_u64)(highcyl * spt * surfaces * blocksize), hfd->virtsize);
 		}
 	}
 }
@@ -7805,7 +7805,7 @@ static uae_u8 *restore_key (UnitInfo *ui, Unit *u, uae_u8 *src)
 	openmode = ((k->dosmode & A_FIBF_READ) == 0 ? O_WRONLY
 		: (k->dosmode & A_FIBF_WRITE) == 0 ? O_RDONLY
 		: O_RDWR);
-	write_log (_T("FS: open file '%s' ('%s'), pos=%llu\n"), p, pn, k->file_pos);
+	write_log (_T("FS: open file '%s' ('%s'), pos=%llu\n"), p, pn, (long long) k->file_pos);
 	a = get_aino (u, &u->rootnode, p, &err);
 	if (!a)
 		write_log (_T("*** FS: Open file aino creation failed '%s'\n"), p);
@@ -7847,7 +7847,7 @@ static uae_u8 *restore_key (UnitInfo *ui, Unit *u, uae_u8 *src)
 			if (s != (uae_s64)savedsize)
 				write_log (_T("FS: restored file '%s' size changed! orig=%llu, now=%lld!!\n"), p, savedsize, s);
 			if (k->file_pos > s) {
-				write_log (_T("FS: restored filepos larger than size of file '%s'!! %llu > %lld\n"), p, k->file_pos, s);
+				write_log (_T("FS: restored filepos larger than size of file '%s'!! %llu > %lld\n"), p, (long long) k->file_pos, s);
 				k->file_pos = s;
 			}
 			fs_lseek64 (k->fd, k->file_pos, SEEK_SET);
@@ -8013,7 +8013,7 @@ static uae_u8 *save_key (uae_u8 *dst, Key *k)
 	save_u64 (k->file_pos);
 	save_u64 (size);
 	write_log (_T("'%s' uniq=%d size=%lld seekpos=%lld mode=%d dosmode=%d\n"),
-		fn, k->uniq, size, k->file_pos, k->createmode, k->dosmode);
+		fn, k->uniq, size, (long long) k->file_pos, k->createmode, k->dosmode);
 	xfree (fn);
 	return dst;
 }

@@ -516,7 +516,7 @@ struct my_openfile_s *my_open (const TCHAR *name, int flags) {
 				err = GetLastError();
 		}
 		if (h == INVALID_HANDLE_VALUE) {
-			write_log (_T("FS: failed to open '%s' %x %x err=%d\n"), namep, DesiredAccess, CreationDisposition, err);
+			write_log (_T("FS: failed to open '%s' %lx %lx err=%ld\n"), namep, (long)DesiredAccess, (long)CreationDisposition, (long)err);
 			xfree (mos);
 			mos = NULL;
 			goto err;
@@ -555,7 +555,7 @@ int my_truncate (const TCHAR *name, uae_u64 len) {
 		li.QuadPart = len;
 		li.LowPart = SetFilePointer (hFile, li.LowPart, &li.HighPart, FILE_BEGIN);
 		if (li.LowPart == INVALID_SET_FILE_POINTER && GetLastError () != NO_ERROR) {
-			write_log (_T("FS: truncate seek failure for %s to pos %d\n"), namep, len);
+			write_log (_T("FS: truncate seek failure for %s to pos %llu\n"), namep, len);
 		} else {
 			if (SetEndOfFile (hFile) == true)
 				result = 0;

@@ -1264,7 +1264,7 @@ int scsi_cd_emulate (int unitnum, uae_u8 *cmdbuf, int scsi_cmd_len,
 	sys_command_info (unitnum, &di, 1);
 
 	if (log_scsiemu) {
-		write_log (_T("SCSIEMU %d: %02X.%02X.%02X.%02X.%02X.%02X.%02X.%02X.%02X.%02X.%02X.%02X CMDLEN=%d DATA=%08X LEN=%d\n"), unitnum,
+		write_log (_T("SCSIEMU %d: %02X.%02X.%02X.%02X.%02X.%02X.%02X.%02X.%02X.%02X.%02X.%02X CMDLEN=%d DATA=%p LEN=%d\n"), unitnum,
 			cmdbuf[0], cmdbuf[1], cmdbuf[2], cmdbuf[3], cmdbuf[4], cmdbuf[5], cmdbuf[6], 
 			cmdbuf[7], cmdbuf[8], cmdbuf[9], cmdbuf[10], cmdbuf[11],
 			scsi_cmd_len, scsi_data, dlen);
@@ -1273,7 +1273,7 @@ int scsi_cd_emulate (int unitnum, uae_u8 *cmdbuf, int scsi_cmd_len,
 	// media changed and not inquiry
 	if (st->mediawaschanged && cmd != 0x12) {
 		if (log_scsiemu) {
-			write_log (_T("SCSIEMU %d: MEDIUM MAY HAVE CHANGED STATE\n"));
+			write_log (_T("SCSIEMU %d: MEDIUM MAY HAVE CHANGED STATE\n"), unitnum);
 		}
 		lr = -1;
 		status = 2; /* CHECK CONDITION */

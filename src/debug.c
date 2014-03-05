@@ -818,7 +818,7 @@ uaecptr dumpmem2 (uaecptr addr, TCHAR *out, int osize)
 
 	if (osize <= (9 + cols * 5 + 1 + 2 * cols))
 		return addr;
-	_stprintf (out, _T("%08lX "), addr);
+	_stprintf (out, _T("%08X "), addr);
 	for (i = 0; i < cols; i++) {
 		uae_u8 b1, b2;
 		b1 = b2 = 0;
@@ -1367,7 +1367,7 @@ static void decode_copper_insn (FILE* file, uae_u16 mword1, uae_u16 mword2, unsi
 	if (get_copper_address (-1) >= addr && get_copper_address(-1) <= addr + 3)
 		here = '*';
 
-	console_out_f (_T("%c%08lx: %04lx %04lx%s\t;%c "), here, addr, insn >> 16, insn & 0xFFFF, record, insn != ((mword1 << 16) | mword2) ? '!' : ' ');
+	console_out_f (_T("%c%08lx: %04x %04x%s\t;%c "), here, addr, insn >> 16, insn & 0xFFFF, record, insn != ((mword1 << 16) | mword2) ? '!' : ' ');
 
 	switch (insn_type) {
 	case 0x00010000: /* WAIT insn */
@@ -1395,9 +1395,9 @@ static void decode_copper_insn (FILE* file, uae_u16 mword1, uae_u16 mword2, unsi
 				i++;
 			}
 			if (custd[i].name)
-				console_out_f (_T("%s := 0x%04lx\n"), custd[i].name, insn & 0xffff);
+				console_out_f (_T("%s := 0x%04x\n"), custd[i].name, insn & 0xffff);
 			else
-				console_out_f (_T("%04x := 0x%04lx\n"), addr, insn & 0xffff);
+				console_out_f (_T("%04x := 0x%04x\n"), addr, insn & 0xffff);
 		}
 		break;
 
@@ -2176,7 +2176,7 @@ static int memwatch_func (uaecptr addr, int rwi, int size, uae_u32 *valp)
 					mask <<= shift;
 				}
 				*valp = (sval & mask) | ((*valp) & ~mask);
-				write_log (_T("%p %p %08x %08x %d\n"), addr, m->addr, *valp, mask, shift);
+				write_log (_T("%08x %08x %08x %08x %d\n"), addr, m->addr, *valp, mask, shift);
 				return 1;
 			}
 			return 0;
@@ -3873,7 +3873,7 @@ static bool debug_line (TCHAR *input)
 					debug_illegal_mask = debug_illegal ? 0 : -1;
 					debug_illegal_mask &= ~((uae_u64)255 << 24); // mask interrupts
 				}
-				console_out_f (_T("Exception breakpoint mask: %0I64X\n"), debug_illegal_mask);
+				console_out_f (_T("Exception breakpoint mask: %016llX\n"), debug_illegal_mask);
 				debug_illegal = debug_illegal_mask ? 1 : 0;
 			} else {
 				addr = 0xffffffff;
