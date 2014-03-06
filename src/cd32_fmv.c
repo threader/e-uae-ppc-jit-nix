@@ -385,7 +385,7 @@ void cd32_fmv_init (uaecptr start)
 	struct romdata *rd;
 	struct zfile *z;
 
-	write_log (_T("CD32 FMV mapped @$%lx\n"), start);
+	write_log (_T("CD32 FMV mapped @$%x\n"), start);
 	if (start != fmv_start)
 		return;
 	if (!rl)

@@ -290,14 +290,14 @@ void expamem_next (void)
 
 static uae_u32 REGPARAM2 expamem_lget (uaecptr addr)
 {
-	write_log (_T("warning: READ.L from address $%lx PC=%x\n"), addr, M68K_GETPC);
+	write_log (_T("warning: READ.L from address $%x PC=%x\n"), addr, M68K_GETPC);
 	return (expamem_wget (addr) << 16) | expamem_wget (addr + 2);
 }
 
 static uae_u32 REGPARAM2 expamem_wget (uaecptr addr)
 {
 	uae_u32 v = (expamem_bget (addr) << 8) | expamem_bget (addr + 1);
-	write_log (_T("warning: READ.W from address $%lx=%04x PC=%x\n"), addr, v & 0xffff, M68K_GETPC);
+	write_log (_T("warning: READ.W from address $%x=%04x PC=%x\n"), addr, v & 0xffff, M68K_GETPC);
 	return v;
 }
 
@@ -344,7 +344,7 @@ static void REGPARAM2 expamem_lput (uaecptr addr, uae_u32 value)
 #ifdef JIT
 	special_mem |= S_WRITE;
 #endif
-	write_log (_T("warning: WRITE.L to address $%lx : value $%lx\n"), addr, value);
+	write_log (_T("warning: WRITE.L to address $%x : value $%x\n"), addr, value);
 }
 
 static void REGPARAM2 expamem_wput (uaecptr addr, uae_u32 value)
@@ -359,7 +359,7 @@ static void REGPARAM2 expamem_wput (uaecptr addr, uae_u32 value)
 	if (ecard >= cardno)
 		return;
 	if (expamem_type () != zorroIII)
-		write_log (_T("warning: WRITE.W to address $%lx : value $%x\n"), addr, value);
+		write_log (_T("warning: WRITE.W to address $%x : value $%x\n"), addr, value);
 	else {
 		switch (addr & 0xff) {
 		case 0x44:
@@ -693,7 +693,7 @@ static void REGPARAM2 filesys_lput (uaecptr addr, uae_u32 l)
 #ifdef JIT
 	special_mem |= S_WRITE;
 #endif
-	write_log (_T("filesys_lput called PC=%p\n"), M68K_GETPC);
+	write_log (_T("filesys_lput called PC=%08x\n"), M68K_GETPC);
 }
 
 static void REGPARAM2 filesys_wput (uaecptr addr, uae_u32 w)
@@ -701,7 +701,7 @@ static void REGPARAM2 filesys_wput (uaecptr addr, uae_u32 w)
 #ifdef JIT
 	special_mem |= S_WRITE;
 #endif
-	write_log (_T("filesys_wput called PC=%p\n"), M68K_GETPC);
+	write_log (_T("filesys_wput called PC=%08x\n"), M68K_GETPC);
 }
 
 static void REGPARAM2 filesys_bput (uaecptr addr, uae_u32 b)
@@ -763,7 +763,7 @@ static void expamem_map_fastcard (void)
 	fastmem_bank.start = ((expamem_hi | (expamem_lo >> 4)) << 16);
 	if (fastmem_bank.start) {
 		map_banks (&fastmem_bank, fastmem_bank.start >> 16, fastmem_bank.allocated >> 16, 0);
-		write_log (_T("Fastcard: mapped @$%lx: %dMB fast memory\n"), fastmem_bank.start, fastmem_bank.allocated >> 20);
+		write_log (_T("Fastcard: mapped @$%x: %dMB fast memory\n"), fastmem_bank.start, fastmem_bank.allocated >> 20);
 	}
 }
 
@@ -817,7 +817,7 @@ static void expamem_map_filesys (void)
 
 	filesys_start = ((expamem_hi | (expamem_lo >> 4)) << 16);
 	map_banks (&filesys_bank, filesys_start >> 16, 1, 0);
-	write_log (_T("Filesystem: mapped memory @$%lx.\n"), filesys_start);
+	write_log (_T("Filesystem: mapped memory @$%x.\n"), filesys_start);
 	/* 68k code needs to know this. */
 	a = here ();
 	org (rtarea_base + RTAREA_FSBOARD);
@@ -968,7 +968,7 @@ static void expamem_map_gfxcard (void)
 	gfxmem_bank.start = (expamem_hi | (expamem_lo >> 4)) << 16;
 	if (gfxmem_bank.start) {
 		map_banks (&gfxmem_bank, gfxmem_bank.start >> 16, gfxmem_bank.allocated >> 16, gfxmem_bank.allocated);
-		write_log (_T("%sUAEGFX-card: mapped @$%lx, %d MB RTG RAM\n"), currprefs.rtgmem_type ? _T("Z3") : _T("Z2"), gfxmem_bank.baseaddr, gfxmem_bank.allocated / 0x100000);
+		write_log (_T("%sUAEGFX-card: mapped @$%p, %d MB RTG RAM\n"), currprefs.rtgmem_type ? _T("Z3") : _T("Z2"), gfxmem_bank.baseaddr, gfxmem_bank.allocated / 0x100000);
 	}
 }
 

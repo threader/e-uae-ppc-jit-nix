@@ -20,36 +20,6 @@
 */
 #include "sysconfig.h"
 
-/* For this to work the 64bit and [U]VAL64() defines must be first. */
-#undef uae_s64
-#undef uae_u64
-
-#if SIZEOF_LONG_LONG == 8
-# define uae_s64   long long
-# define uae_u64   unsigned long long
-# define VAL64(a)  (a ## LL)
-# define UVAL64(a) (a ## uLL)
-# ifndef HAS_uae_64
-#   define HAS_uae_64 1
-# endif
-#elif SIZEOF___INT64 == 8
-# define uae_s64   __int64
-# define uae_u64   unsigned __int64
-# define VAL64(a)  (a)
-# define UVAL64(a) (a)
-# ifndef HAS_uae_64
-#   define HAS_uae_64 1
-# endif
-#elif SIZEOF_LONG == 8
-# define uae_s64   long;
-# define uae_u64   unsigned long;
-# define VAL64(a)  (a ## l)
-# define UVAL64(a) (a ## ul)
-# ifndef HAS_uae_64
-#   define HAS_uae_64 1
-# endif
-#endif
-
 #if 0
 #if SIZEOF_VOID_P == 8
 typedef long int          uae_intptr;
@@ -63,6 +33,25 @@ typedef unsigned int      uae_uintptr;
 #if (SIZEOF_VOID_P != 8) && (SIZEOF_VOID_P != 4)
 # error "Unknown/unsupported pointer size"
 #endif
+
+#if SIZEOF_LONG_LONG == 8
+typedef long long uae_s64;
+typedef unsigned long long uae_u64;
+# define VAL64(a)  (a ## LL)
+# define UVAL64(a) (a ## uLL)
+#elif SIZEOF___INT64 == 8
+typedef __int64 long uae_s64;
+typedef unsigned __int64 uae_u64;
+# define VAL64(a)  (a)
+# define UVAL64(a) (a)
+#elif SIZEOF_LONG == 8
+#warning "if you reach this code probably something went wrong..."
+typedef long uae_s64;
+typedef unsigned long uae_u64;
+# define VAL64(a)  (a ## l)
+# define UVAL64(a) (a ## ul)
+#endif
+
 
 #ifdef HAVE_STDINT_H
 # undef uae_s64
@@ -78,11 +67,6 @@ typedef unsigned int      uae_uintptr;
   typedef  int16_t uae_s16;
   typedef uint32_t uae_u32;
   typedef  int32_t uae_s32;
-  typedef uint64_t uae_u64;
-  typedef  int64_t uae_s64;
-# ifndef HAS_uae_64
-#   define HAS_uae_64 1
-# endif
 #else
 
   /* If char has more then 8 bits, good night. */
@@ -113,12 +97,8 @@ typedef unsigned int      uae_uintptr;
 
 #endif /* ! HAVE_STDINT_H */
 
-// Unified pointer type. Please use this for everything address related.
-#if defined(__x86_64__) && defined(HAS_uae_64)
-  typedef uae_u64 uaecptr;
-# else
-  typedef uae_u32 uaecptr;
-# endif // __x86_64__
+// amiga internal pointer type. always 32 bit.
+typedef uae_u32 uaecptr;
 
 /* We can only rely on GNU C getting enums right. Mickeysoft VSC++ is known
  * to have problems, and it's likely that other compilers choke too. */

@@ -52,6 +52,7 @@ int disk_debug_track = -1;
 #include "misc.h"
 #include "inputrecord.h"
 #include <ctype.h>
+#include <unistd.h>
 
 #undef CATWEASEL
 
@@ -1286,8 +1287,8 @@ static void drive_step (drive * drv, int step_direction)
 		drv->dskchange = 0;
 	if (drv->steplimit && get_cycles() - drv->steplimitcycle < MIN_STEPLIMIT_CYCLE) {
 		if (disk_debug_logging > 1)
-			write_log (_T(" step ignored drive %d, %d"),
-			drv - floppy, (get_cycles() - drv->steplimitcycle) / CYCLE_UNIT);
+			write_log (_T(" step ignored drive %ld, %lld"),
+			drv - floppy, (long long)((get_cycles() - drv->steplimitcycle) / CYCLE_UNIT));
 		return;
 	}
 	/* A1200's floppy drive needs at least 30 raster lines between steps
@@ -1924,7 +1925,7 @@ static int decode_buffer (uae_u16 *mbuf, int cyl, int drvsec, int ddhd, int file
 
 		trackoffs = (id & 0xff00) >> 8;
 		if (trackoffs + 1 > drvsec) {
-			write_log (_T("Disk decode: weird sector number %d (%08X, %d)\n"), trackoffs, id, mbuf - mstart);
+			write_log (_T("Disk decode: weird sector number %d (%08X, %ld)\n"), trackoffs, id, mbuf - mstart);
 			if (filetype == ADF_EXT2)
 				return 2;
 			continue;
@@ -2287,7 +2288,7 @@ static void drive_eject (drive * drv)
 	drv->crc32 = 0;
 	drive_settype_id (drv); /* Back to 35 DD */
 	if (disk_debug_logging > 0)
-		write_log (_T("eject drive %d\n"), drv - &floppy[0]);
+		write_log (_T("eject drive %ld\n"), drv - &floppy[0]);
 	inprec_recorddiskchange (drv - floppy, NULL, false);
 }
 
@@ -2733,7 +2734,7 @@ void DISK_select (uae_u8 data)
 	}
 
 	if (disk_debug_logging > 1) {
-		write_log (_T(" %d%d%d%d% "), (selected & 1) ? 0 : 1, (selected & 2) ? 0 : 1, (selected & 4) ? 0 : 1, (selected & 8) ? 0 : 1);
+		write_log (_T(" %d%d%d%d "), (selected & 1) ? 0 : 1, (selected & 2) ? 0 : 1, (selected & 4) ? 0 : 1, (selected & 8) ? 0 : 1);
 		if ((prev_data & 0x80) != (data & 0x80))
 			write_log (_T(" dskmotor %d "), (data & 0x80) ? 1 : 0);
 		if ((prev_data & 0x02) != (data & 0x02))
@@ -4174,7 +4175,7 @@ int disk_prevnext_name (TCHAR *imgp, int dir)
 retry:
 	_tcscpy (imgl, img);
     for (i = 0; i < MAX_DPATH && imgl[i] != '\0'; i++)
-        tolower(imgl[i]);
+        imgl[i] = tolower(imgl[i]);
 	gotone = 0;
 	ret = 0;
 	ps = imgl;

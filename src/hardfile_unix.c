@@ -303,7 +303,7 @@ int hdf_open_target (struct hardfiledata *hfd, const char *pname)
 		}
 	}
 	if (hfd->handle_valid || hfd->drive_empty) {
-		hfd_log ("HDF '%s' opened, size=%dK mode=%d empty=%d\n",
+		hfd_log ("HDF '%s' opened, size=%lldK mode=%d empty=%d\n",
 			name, hfd->physsize / 1024, hfd->handle_valid, hfd->drive_empty);
 		return 1;
 	}
@@ -682,7 +682,7 @@ TCHAR *hdf_getnameharddrive (int index, int flags, int *sectorsize, int *dangero
 			if (size >= 1024 * 1024 * 1024)
 				_stprintf (tmp, "%.1fG", ((double)(uae_u32)(size / (1024 * 1024))) / 1024.0);
 			else if (size < 10 * 1024 * 1024)
-				_stprintf (tmp, "%dK", size / 1024);
+				_stprintf (tmp, "%lluK", size / 1024);
 			else
 				_stprintf (tmp, "%.1fM", ((double)(uae_u32)(size / (1024))) / 1024.0);
 		}

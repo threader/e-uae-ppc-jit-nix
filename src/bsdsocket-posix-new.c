@@ -37,6 +37,7 @@
 #include "bsdsocket.h"
 
 #ifdef BSDSOCKET
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/select.h>
@@ -606,7 +607,7 @@ static void copyProtoent (TrapContext *context, SB, const struct protoent *p)
     sb->protoent = uae_AllocMem (context, size, 0, sb->sysbase);
 
     if (!sb->protoent) {
-		write_log ("BSDSOCK: WARNING - copyProtoent() ran out of Amiga memory (couldn't allocate %d bytes)\n", size);
+		write_log ("BSDSOCK: WARNING - copyProtoent() ran out of Amiga memory (couldn't allocate %lu bytes)\n", (unsigned long) size);
 		bsdsocklib_seterrno (sb, 12); // ENOMEM
 		return;
     }
@@ -1349,7 +1350,7 @@ void host_getservbynameport (TrapContext *context, SB, uae_u32 name, uae_u32 pro
     sb->servent = uae_AllocMem (context, size, 0, sb->sysbase);
 
     if (!sb->servent) {
-		write_log ("BSDSOCK: WARNING - getservby%s() ran out of Amiga memory (couldn't allocate %d bytes)\n",type ? "port" : "name", size);
+		write_log ("BSDSOCK: WARNING - getservby%s() ran out of Amiga memory (couldn't allocate %lu bytes)\n",type ? "port" : "name", (unsigned long) size);
 		bsdsocklib_seterrno (sb, 12); // ENOMEM
 		return;
     }
@@ -1443,7 +1444,7 @@ uae_u32 host_Inet_NtoA (TrapContext *context, SB, uae_u32 in)
 
     *(uae_u32 *)&ina = htonl (in);
 
-    BSDTRACE (("Inet_NtoA(%lx) -> ", in));
+    BSDTRACE (("Inet_NtoA(%x) -> ", in));
 
     if ((addr = inet_ntoa(ina)) != NULL) {
 		buf = m68k_areg (regs, 6) + offsetof (struct UAEBSDBase, scratchbuf);
@@ -1467,7 +1468,7 @@ uae_u32 host_inet_addr (uae_u32 cp)
 
     addr = htonl (inet_addr (cp_rp));
 
-    BSDTRACE (("inet_addr(%s) -> 0x%08lx\n", cp_rp, addr));
+    BSDTRACE (("inet_addr(%s) -> 0x%08x\n", cp_rp, addr));
 
     return addr;
 }

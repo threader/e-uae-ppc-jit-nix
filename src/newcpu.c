@@ -280,7 +280,7 @@ static bool check_trace (void)
 		return true;
 	if (!cputrace.readcounter && !cputrace.writecounter && !cputrace.cyclecounter) {
 		if (cpu_tracer != -2) {
-			write_log (_T("CPU trace: dma_cycle() enabled. %08x %08x NOW=%08X\n"),
+			write_log (_T("CPU trace: dma_cycle() enabled. %08x %08x NOW=%08lX\n"),
 				cputrace.cyclecounter_pre, cputrace.cyclecounter_post, get_cycles ());
 			cpu_tracer = -2; // dma_cycle() allowed to work now
 		}
@@ -303,7 +303,7 @@ static bool check_trace (void)
 	x_do_cycles = x2_do_cycles;
 	x_do_cycles_pre = x2_do_cycles_pre;
 	x_do_cycles_post = x2_do_cycles_post;
-	write_log (_T("CPU tracer playback complete. STARTCYCLES=%08x NOWCYCLES=%08x\n"), cputrace.startcycles, get_cycles ());
+	write_log (_T("CPU tracer playback complete. STARTCYCLES=%08x NOWCYCLES=%08lx\n"), cputrace.startcycles, get_cycles ());
 	cputrace.needendcycles = 1;
 	cpu_tracer = 0;
 	return true;
@@ -316,7 +316,7 @@ static bool get_trace (uaecptr addr, int accessmode, int size, uae_u32 *data)
 		struct cputracememory *ctm = &cputrace.ctm[i];
 		if (ctm->addr == addr && ctm->mode == mode) {
 			ctm->mode = 0;
-			write_log (_T("CPU trace: GET %d: PC=%08x %08x=%08x %d %d %08x/%08x/%08x %d/%d (%08X)\n"),
+			write_log (_T("CPU trace: GET %d: PC=%08x %08x=%08x %d %d %08x/%08x/%08x %d/%d (%08lX)\n"),
 				i, cputrace.pc, addr, ctm->data, accessmode, size,
 				cputrace.cyclecounter, cputrace.cyclecounter_pre, cputrace.cyclecounter_post,
 				cputrace.readcounter, cputrace.writecounter, get_cycles ());
@@ -1475,7 +1475,7 @@ static uaecptr ShowEA (void *f, uaecptr pc, uae_u16 opcode, int reg, amodes mode
 			if (dp & 4) base += dispreg;
 
 			addr = base + outer;
-			_stprintf (buffer, _T("(%s%c%d.%c*%d+%ld)+%ld == $%08lx"), name,
+			_stprintf (buffer, _T("(%s%c%d.%c*%d+%d)+%d == $%08lx"), name,
 				dp & 0x8000 ? 'A' : 'D', (int)r, dp & 0x800 ? 'L' : 'W',
 				1 << ((dp >> 9) & 3),
 				disp, outer,
@@ -1520,7 +1520,7 @@ static uaecptr ShowEA (void *f, uaecptr pc, uae_u16 opcode, int reg, amodes mode
 			if (dp & 4) base += dispreg;
 
 			addr = base + outer;
-			_stprintf (buffer, _T("(%s%c%d.%c*%d+%ld)+%ld == $%08lx"), name,
+			_stprintf (buffer, _T("(%s%c%d.%c*%d+%d)+%d == $%08lx"), name,
 				dp & 0x8000 ? 'A' : 'D', (int)r, dp & 0x800 ? 'L' : 'W',
 				1 << ((dp >> 9) & 3),
 				disp, outer,
@@ -3453,7 +3453,7 @@ static void m68k_run_1_ce (void)
 cont:
 		if (cputrace.needendcycles) {
 			cputrace.needendcycles = 0;
-			write_log (_T("STARTCYCLES=%08x ENDCYCLES=%08x\n"), cputrace.startcycles, get_cycles ());
+			write_log (_T("STARTCYCLES=%08x ENDCYCLES=%08lx\n"), cputrace.startcycles, get_cycles ());
 #ifdef DEBUGGER
 			log_dma_record ();
 #endif
@@ -4645,11 +4645,11 @@ void m68k_dumpstate2 (uaecptr pc, uaecptr *nextpc)
 	int i, j;
 
 	for (i = 0; i < 8; i++){
-		console_out_f (_T("  D%d %08lX "), i, m68k_dreg (regs, i));
+		console_out_f (_T("  D%d %08X "), i, m68k_dreg (regs, i));
 		if ((i & 3) == 3) console_out_f (_T("\n"));
 	}
 	for (i = 0; i < 8; i++){
-		console_out_f (_T("  A%d %08lX "), i, m68k_areg (regs, i));
+		console_out_f (_T("  A%d %08X "), i, m68k_areg (regs, i));
 		if ((i & 3) == 3) console_out_f (_T("\n"));
 	}
 	if (regs.s == 0)
@@ -4711,7 +4711,7 @@ void m68k_dumpstate2 (uaecptr pc, uaecptr *nextpc)
 	if (pc != 0xffffffff) {
 		m68k_disasm (pc, nextpc, 1);
 		if (nextpc)
-			console_out_f (_T("Next PC: %08lx\n"), *nextpc);
+			console_out_f (_T("Next PC: %08x\n"), *nextpc);
 	}
 }
 void m68k_dumpstate (uaecptr *nextpc)

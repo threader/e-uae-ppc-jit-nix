@@ -7905,7 +7905,7 @@ void dumpcustom (void)
 {
 	write_log (_T("DMACON: %04x INTENA: %04x (%04x) INTREQ: %04x (%04x) VPOS: %x HPOS: %x\n"), DMACONR (current_hpos ()),
 		intena, intena_internal, intreq, intreq_internal, vpos, current_hpos ());
-	write_log (_T("COP1LC: %08lx, COP2LC: %08lx COPPTR: %08lx\n"), (unsigned long)cop1lc, (unsigned long)cop2lc, cop_state.ip);
+	write_log (_T("COP1LC: %08lx, COP2LC: %08lx COPPTR: %08x\n"), (unsigned long)cop1lc, (unsigned long)cop2lc, cop_state.ip);
 	write_log (_T("DIWSTRT: %04x DIWSTOP: %04x DDFSTRT: %04x DDFSTOP: %04x\n"),
 		(unsigned int)diwstrt, (unsigned int)diwstop, (unsigned int)ddfstrt, (unsigned int)ddfstop);
 	write_log (_T("BPLCON 0: %04x 1: %04x 2: %04x 3: %04x 4: %04x LOF=%d/%d HDIW=%d VDIW=%d\n"),
@@ -7913,7 +7913,7 @@ void dumpcustom (void)
 		lof_current, lof_store,
 		hdiwstate == DIW_waiting_start ? 0 : 1, diwstate == DIW_waiting_start ? 0 : 1);
 	if (timeframes) {
-		write_log (_T("Average frame time: %.2f ms [frames: %d time: %d]\n"),
+		write_log (_T("Average frame time: %.2f ms [frames: %ld time: %ld]\n"),
 			(double)frametime / timeframes, timeframes, frametime);
 		if (total_skipped)
 		    write_log (_T("Skipped frames: %d\n"), total_skipped);

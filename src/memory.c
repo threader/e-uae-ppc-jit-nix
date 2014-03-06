@@ -886,7 +886,7 @@ static void REGPARAM2 extendedkickmem_lput (uaecptr addr, uae_u32 b)
 	special_mem |= S_WRITE;
 #endif
 	if (currprefs.illegal_mem)
-		write_log (_T("Illegal extendedkickmem lput at %08lx\n"), addr);
+		write_log (_T("Illegal extendedkickmem lput at %08x\n"), addr);
 }
 static void REGPARAM2 extendedkickmem_wput (uaecptr addr, uae_u32 b)
 {
@@ -894,7 +894,7 @@ static void REGPARAM2 extendedkickmem_wput (uaecptr addr, uae_u32 b)
 	special_mem |= S_WRITE;
 #endif
 	if (currprefs.illegal_mem)
-		write_log (_T("Illegal extendedkickmem wput at %08lx\n"), addr);
+		write_log (_T("Illegal extendedkickmem wput at %08x\n"), addr);
 }
 static void REGPARAM2 extendedkickmem_bput (uaecptr addr, uae_u32 b)
 {
@@ -902,7 +902,7 @@ static void REGPARAM2 extendedkickmem_bput (uaecptr addr, uae_u32 b)
 	special_mem |= S_WRITE;
 #endif
 	if (currprefs.illegal_mem)
-		write_log (_T("Illegal extendedkickmem lput at %08lx\n"), addr);
+		write_log (_T("Illegal extendedkickmem lput at %08x\n"), addr);
 }
 
 

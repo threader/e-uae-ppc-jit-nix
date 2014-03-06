@@ -17,6 +17,7 @@
 #include "blkdev.h"
 #include "scsidev.h"
 #include "gui.h"
+#include <unistd.h>
 
 #ifdef SCSIEMU_LINUX_IOCTL
 

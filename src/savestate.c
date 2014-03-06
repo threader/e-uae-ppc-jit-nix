@@ -365,7 +365,7 @@ static void save_chunk (struct zfile *f, uae_u8 *chunk, size_t len, TCHAR *name,
 	if (len2)
 		zfile_fwrite (zero, 1, len2, f);
 
-	write_log (_T("Chunk '%s' chunk size %d (%d)\n"), name, chunklen, len);
+	write_log (_T("Chunk '%s' chunk size %ld (%ld)\n"), name, (long) chunklen, (long) len);
 }
 
 static uae_u8 *restore_chunk (struct zfile *f, TCHAR *name, size_t *len, size_t *totallen, size_t *filepos)
@@ -534,7 +534,7 @@ void restore_state (const TCHAR *filename)
 	for (;;) {
 		name[0] = 0;
 		chunk = end = restore_chunk (f, name, &len, &totallen, &filepos);
-		write_log (_T("Chunk '%s' size %d (%d)\n"), name, len, totallen);
+		write_log (_T("Chunk '%s' size %ld (%ld)\n"), name, (long) len, (long) totallen);
 		if (!_tcscmp (name, _T("END "))) {
 #ifdef _DEBUG
 			if (filesize > filepos + 8)
@@ -715,14 +715,14 @@ void restore_state (const TCHAR *filename)
 			end = restore_log (chunk);
 		else {
 			end = chunk + len;
-			write_log (_T("unknown chunk '%s' size %d bytes\n"), name, len);
+			write_log (_T("unknown chunk '%s' size %ld bytes\n"), name, (long) len);
 		}
 		if (end == NULL)
-			write_log (_T("Chunk '%s', size %d bytes was not accepted!\n"),
-			name, len);
+			write_log (_T("Chunk '%s', size %ld bytes was not accepted!\n"),
+			name, (long) len);
 		else if (totallen != (size_t)(end - chunk) )
-			write_log (_T("Chunk '%s' total size %d bytes but read %d bytes!\n"),
-			name, totallen, end - chunk);
+			write_log (_T("Chunk '%s' total size %ld bytes but read %ld bytes!\n"),
+			name, (long) totallen, (long) (end - chunk));
 		xfree (chunk);
 	}
 //	target_addtorecent (filename, 0);
@@ -1195,7 +1195,7 @@ int savestate_dorewind (int pos)
 		pos = replaycounter - 1;
 	if (canrewind (pos)) {
 		savestate_state = STATE_DOREWIND;
-		write_log (_T("dorewind %d (%010d/%03d) -> %d\n"), replaycounter - 1, hsync_counter, vsync_counter, pos);
+		write_log (_T("dorewind %d (%010ld/%03ld) -> %d\n"), replaycounter - 1, hsync_counter, vsync_counter, pos);
 		return 1;
 	}
 	return 0;
@@ -1316,7 +1316,7 @@ void savestate_rewind (void)
 		return;
 	}
 	inprec_setposition (st->inprecoffset, pos);
-	write_log (_T("state %d restored.  (%010d/%03d)\n"), pos, hsync_counter, vsync_counter);
+	write_log (_T("state %d restored.  (%010ld/%03ld)\n"), pos, hsync_counter, vsync_counter);
 	if (rewind) {
 		replaycounter--;
 		if (replaycounter < 0)
@@ -1695,7 +1695,7 @@ retry2:
 			staterecords_first -= staterecords_max;
 	}
 
-	write_log (_T("state capture %d (%010d/%03d,%d/%d) (%d bytes, alloc %d)\n"),
+	write_log (_T("state capture %d (%010ld/%03ld,%ld/%d) (%ld bytes, alloc %d)\n"),
 		replaycounter, hsync_counter, vsync_counter,
 		hsync_counter % current_maxvpos (), current_maxvpos (),
 		st->end - st->data, statefile_alloc);

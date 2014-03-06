@@ -26,6 +26,7 @@
 struct flag_struct regflags;
 
 #include <signal.h>
+#include <unistd.h>
 
 /* internal prototypes */
 void machdep_save_options (struct zfile *, const struct uae_prefs *);
