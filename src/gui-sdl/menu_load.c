@@ -9,7 +9,17 @@
  */
 
 #define _POSIX_C_SOURCE 200809L
+#ifdef __APPLE__
+#define _DARWIN_C_SOURCE
+#endif
+#include <sys/stat.h>
+#ifdef __APPLE__
+#define st_mtim st_mtimespec
+#undef _DARWIN_C_SOURCE
+#endif
+
 #include <sys/time.h>
+#include <unistd.h>
 #include "sysconfig.h"
 #include "sysdeps.h"
 
@@ -26,7 +36,6 @@
 #include <dirent.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
 #include "menu.h"
 
 
@@ -104,7 +113,7 @@ static int filez_comp_date(const void* a, const void* b) {
 	char ba[512], bb[512];
 	snprintf(ba, sizeof(ba), "%s/saves/%s", launchDir, *sa);
 	snprintf(bb, sizeof(bb), "%s/saves/%s", launchDir, *sb);
-	if(!stat(ba, &sta) && !stat(bb, &stb)) return ts_cmp(&sta.st_mtime, &stb.st_mtime);
+	if(!stat(ba, &sta) && !stat(bb, &stb)) return ts_cmp(&sta.st_mtim, &stb.st_mtim);
 	return strcmp(*sa, *sb);
 }
 
