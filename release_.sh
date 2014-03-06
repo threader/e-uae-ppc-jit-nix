@@ -34,6 +34,7 @@ rm -rf `find . -type f -name config.status`
 rm -rf `find . -type f -name .DS_Store`
 rm -rf `find . -type f -name sysconfig.h`
 rm -rf `find . -type f -name gmon.out`
+rm -rf `find . -type f -name *.uss`
 
 #
 rm -rf Makefile.in
