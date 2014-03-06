@@ -399,6 +399,9 @@ dnl default is to use no CPU-specific features
 HOST_CPU=generic
 MDFPP_H=fpp-unknown.h
 
+dnl quick hack for arm
+have_armcpu=no
+
 case $host_cpu in
      i[[3-7]]86)
        HOST_CPU=i386
@@ -415,6 +418,11 @@ case $host_cpu in
      m68k | m680[246]0)
        HOST_CPU=68k
        MDFPP_H=fpp-ieee.h
+       ;;
+     arm*)
+       HOST_CPU=generic
+       MDFPP_H=fpp-unknown.h
+       have_armcpu=yes
        ;;
 esac
 
@@ -825,6 +833,12 @@ if [[ "x$WANT_SDL" != "xno" ]]; then
     dnl Assume this is MacOS X and try to use SDL framework
     SDL_CFLAGS="-I/Library/Frameworks/SDL.framework/Headers -D_REENTRANT"
     SDL2_CFLAGS="-I/Library/Frameworks/SDL2.framework/Headers -D_REENTRANT"
+
+    SDLI_CFLAGS="-I/Library/Frameworks/SDL_image.framework/Headers -D_REENTRANT"
+    SDLI2_CFLAGS="-I/Library/Frameworks/SDL2_image.framework/Headers -D_REENTRANT"
+
+    SDLT_CFLAGS="-I/Library/Frameworks/SDL_ttf.framework/Headers -D_REENTRANT"
+    SDLT2_CFLAGS="-I/Library/Frameworks/SDL2_ttf.framework/Headers -D_REENTRANT"
     SDL_LIBS="-framework Cocoa -framework SDL -lobjc"
 
 
@@ -1386,6 +1400,7 @@ if [[ "x$WANT_SDL_UI" = "xyes" ]]; then
 
 		if [[ "x$OSDEP" = "xod-macosx" ]]; then
 			GUI_LIBS="${GUI_LIBS} -framework SDL_ttf -framework SDL_image"
+			GUI_CFLAGS="$SDL_CFLAGS -DSDLI_CFLAGS -DSDLT_CFLAGS"
 		else
 			GUI_LIBS="${GUI_LIBS} -lSDL_ttf -lSDL_image"
 		fi
@@ -2119,6 +2134,16 @@ if [[ "x$HAVE_GCC40" = "xyes" ]]; then
 OPTIMIZED_FLAGS="-O2 -ffast-math -ftree-vectorize"
 else
 OPTIMIZED_FLAGS="-O3 -ffast-math"
+fi
+
+dnl ARM
+dnl quick hack for my pcduino v2 -mtufan
+
+if [[ "x$have_armcpu" = "xyes" ]]; then
+    OPTIMIZED_FLAGS="-O3 -mcpu=arm7 -mtune=arm7 -ffast-math -fomit-frame-pointer -ftracer -fstrict-aliasing"
+    OPTIMIZED_FLAGS="$OPTIMIZED_FLAGS -mstructure-size-boundary=32 -fexpensive-optimizations"
+    OPTIMIZED_FLAGS="$OPTIMIZED_FLAGS -falign-functions=32 -falign-loops -falign-labels -falign-jumps"
+dnl    OPTIMIZED_FLAGS="$OPTIMIZED_FLAGS -finline -finline-functions -fno-builtin -funroll-loops -floop-optimize2"
 fi
 
 dnl INTEL

@@ -9,7 +9,11 @@
  */
 
 #include <SDL/SDL.h>
+#ifdef __APPLE__
+#include <SDL_image.h>
+#else
 #include <SDL/SDL_image.h>
+#endif
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -79,7 +83,7 @@ int gui_init (void) {
 #if 0
 	if (display == NULL) {
 		SDL_Init (SDL_INIT_VIDEO | SDL_INIT_JOYSTICK);
-		display = SDL_SetVideoMode(320,240,16,VIDEO_FLAGS);
+		display = SDL_SetVideoMode(640,480,16,VIDEO_FLAGS);
 #if SDL_UI_DEBUG > 0
 		write_log ("SDLUI: SDL_Init display init\n");
 #endif
@@ -89,6 +93,7 @@ int gui_init (void) {
 #endif
 	}
 #endif
+
 	SDL_JoystickEventState(SDL_ENABLE);
 	SDL_JoystickOpen(0);
 	SDL_ShowCursor(SDL_DISABLE);
@@ -183,8 +188,8 @@ void gui_exit (void){
 
 void gui_display (int shortcut){
 
-	void* stor = display ? malloc(display->h * display->pitch) : 0;
-	if(stor) memcpy(stor, display->pixels, display->h * display->pitch);
+//	void* stor = display ? malloc(display->h * display->pitch) : 0;
+//	if(stor) memcpy(stor, display->pixels, display->h * display->pitch);
 
 	if (tmpSDLScreen == NULL) {
 		tmpSDLScreen = SDL_DisplayFormat(display);
@@ -250,13 +255,17 @@ void gui_display (int shortcut){
 							toggle_fullscreen(0);
 							//SDL_Delay(100);
 							break;
+						} else {
+							// enter to select
+							ksel = 1; break;
 						}
 						case SDLK_ESCAPE:	mainloopdone = 1; break;
 					 	case SDLK_UP:		kup = 1; break;
 						case SDLK_DOWN:		kdown = 1; break;
 						case SDLK_LEFT:		kleft = 1; break;
 						case SDLK_RIGHT:	kright = 1; break;
-						case SDLK_b:		ksel = 1; break;
+						// space to run default
+						case SDLK_SPACE:	selected_item = menu_sel_run; ksel =1; break;
 						default: break;
 					}
 					break;
@@ -421,11 +430,13 @@ void gui_display (int shortcut){
 		need_redraw = 0;
 		SDL_Delay(20);
 	} //while done
-	if(stor) {
-		memcpy(display->pixels, stor, display->h * display->pitch);
-		free(stor);
+
+//	if(stor) {
+//		memcpy(display->pixels, stor, display->h * display->pitch);
+//		free(stor);
 		SDL_Flip(display);
-	}
+//	}
+
 	SDL_EnableKeyRepeat(0, 0); /* disable keyrepeat again */
 //	return menu_exitcode;
 }
@@ -597,4 +608,3 @@ SDL_Surface* icon_exit;
 TTF_Font *amiga_font;
 SDL_Color text_color;
 SDL_Rect rect;
-

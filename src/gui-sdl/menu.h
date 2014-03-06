@@ -12,7 +12,11 @@
 #define MENU_H
 #include <stdio.h>
 #include <SDL/SDL.h>
+#ifdef __APPLE__
+#include <SDL_ttf.h>
+#else
 #include <SDL/SDL_ttf.h>
+#endif
 
 #define iconsizex 100
 #define iconsizey 120

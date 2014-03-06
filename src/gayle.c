@@ -1540,7 +1540,7 @@ static uae_u32 REGPARAM2 gayle_lget (uaecptr addr)
 {
 	struct ide_hdf *ide = NULL;
 	int ide_reg;
-	uae_u32 v;
+	uae_u32 v = 0;
 #ifdef JIT
 	special_mem |= S_READ;
 #endif
@@ -1574,7 +1574,7 @@ static uae_u32 REGPARAM2 gayle_wget (uaecptr addr)
 {
 	struct ide_hdf *ide = NULL;
 	int ide_reg;
-	uae_u16 v;
+	uae_u16 v = 0;
 #ifdef JIT
 	special_mem |= S_READ;
 #endif

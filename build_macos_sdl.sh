@@ -5,7 +5,7 @@
 #
 #
 #
-base=" --with-sdl --with-sdl-gl --with-sdl-gfx --with-alsa --enable-drvsnd --with-sdl-gui"
+base=" --with-sdl --with-sdl-gl --with-sdl-gfx --with-sdl-sound --enable-drvsnd --with-sdl-gui"
 cd32=" --enable-cd32 "
 a600=" --enable-gayle "
 scsi=" --enable-scsi-device --enable-ncr --enable-a2091 "
@@ -14,5 +14,5 @@ debug=""
 #
 #
 ./bootstrap.sh
-./configure $debug $base $cd32 $a600 $scsi $other
+./configure $debug $base $cd32 $a600 $scsi $other CFLAGS="-m32" LDFLAGS="-m32" CPPFLAGS="-m32"
 make -j9

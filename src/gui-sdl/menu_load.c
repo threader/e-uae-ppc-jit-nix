@@ -15,8 +15,13 @@
 
 #include "options.h"
 #include <SDL/SDL.h>
+#ifdef __APPLE__
+#include <SDL_image.h>
+#include <SDL_ttf.h>
+#else
 #include <SDL/SDL_image.h>
 #include <SDL/SDL_ttf.h>
+#endif
 #include "button_mappings.h"
 #include <dirent.h>
 #include <stdlib.h>
@@ -99,7 +104,7 @@ static int filez_comp_date(const void* a, const void* b) {
 	char ba[512], bb[512];
 	snprintf(ba, sizeof(ba), "%s/saves/%s", launchDir, *sa);
 	snprintf(bb, sizeof(bb), "%s/saves/%s", launchDir, *sb);
-	if(!stat(ba, &sta) && !stat(bb, &stb)) return ts_cmp(&sta.st_mtim, &stb.st_mtim);
+	if(!stat(ba, &sta) && !stat(bb, &stb)) return ts_cmp(&sta.st_mtime, &stb.st_mtime);
 	return strcmp(*sa, *sb);
 }
 
