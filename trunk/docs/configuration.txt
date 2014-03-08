@@ -993,6 +993,12 @@ amiga.use_grey=<bool> (default=false)
   of 8 or less), output in greyscale rather than colour. This option is
   particularly useful when displaying on a public screen with few free pens.
 
+  
+amiga.use_overlay=<bool> (default=false)
+  Use overlay screen if available.
+  Currently the overlay screen feature is implemented on MorphOS Cybergraphix
+  target only.
+
 
 ALSA-specific options
 =====================
