@@ -56,6 +56,8 @@ Here are the differences between the original v0.8.29 and this version:
   
 * New configuration items are available for the new JIT implementation.
   (See docs/configuration.txt.)
+
+* Cybergraphix overlay screen support (for MorphOS only at the moment)
   
 * Some configuration items for JIT were removed.
   (See docs/configuration.txt.)
