@@ -121,6 +121,13 @@ uae_u8* compiled_branch_target[MAX_BRANCH_SCHEDULE];
 uae_u16* compiled_m68k_location;
 
 /**
+ * When this flag becomes TRUE then the block compiling cycle is aborted and the block
+ * is marked as interpretive-execution-only.
+ * See comp_compile_error() function.
+ */
+BOOL was_compile_error;
+
+/**
  * Reference to the kickstart memory start address
  */
 extern uae_u8* kickmemory;
@@ -543,6 +550,9 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 	//This flags indicate whether the last supported instruction was a branch/jump (TRUE)
 	BOOL last_supported_branch = FALSE;
 
+	//Clear previous compiling error
+	was_compile_error = FALSE;
+
 	//write_jit_log("JIT: compile code, pc: %08x, block length: %d, total cycles: %d\n",
 	//		pc_hist->pc, blocklen, totcycles);
 
@@ -616,7 +626,7 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 		comp_ppc_verify_pc((uae_u8*) pc_hist[0].location);
 
 		//Loop trough the previously collected instructions
-		for (i = 0; i < blocklen; i++)
+		for (i = 0; (i < blocklen) && (!was_compile_error); i++)
 		{
 			uaecptr nextpc;
 			m68k_disasm_str(str, (uaecptr) pc_hist[i].pc, &nextpc, 1);
@@ -685,8 +695,8 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 			}
 		}
 
-		//Were there any supported instructions?
-		if (!unsupported_only)
+		//Were there any supported instructions or a compiling error?
+		if ((!unsupported_only) && (!was_compile_error))
 		{
 			//Yes, there was at least one: compile the block
 
@@ -709,7 +719,11 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 					comp_macroblock_push_load_pc(&pc_hist[blocklen]);
 				}
 			}
+		}
 
+		//Are we still doing the block compiling? (Were there any error since we checked?)
+		if ((!unsupported_only) && (!was_compile_error))
+		{
 			//Optimize the collected macroblocks
 			comp_compiler_optimize_macroblocks();
 
@@ -757,9 +771,15 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 		}
 		else
 		{
-			//Block of unsupported instructions: this block won't be compiled anymore,
-			//the execution jumps to execute it under interpretive all the time
-			write_jit_log("Block of unsupported instructions 0x%08x: not compiled\n", bi->pc_p);
+			if (was_compile_error)
+			{
+				//There was a compiling error
+				write_jit_log("Compiling of block 0x%08x has failed, falling back to interpretive\n", bi->pc_p);
+			} else {
+				//Block of unsupported instructions: this block won't be compiled anymore,
+				//the execution jumps to execute it under interpretive all the time
+				write_jit_log("Block of unsupported instructions 0x%08x: not compiled\n", bi->pc_p);
+			}
 			bi->handler = bi->handler_to_use = exec_nostats_callback;
 		}
 
@@ -773,6 +793,18 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 	{
 //		write_jit_log("Compiling ignored\n");
 	}
+}
+
+/**
+ * This function can be called from the outside to abort the compiling of a block.
+ * It sets a flag to cancel the current block compiling and the compile_block() function
+ * will mark the block as interpretive-only.
+ * Ugly workaround for the missing exception handling in C. Back to the '80s...
+ */
+void comp_compile_error()
+{
+	//There. Now let's hope we can emerge to the surface from the nested functions...
+	was_compile_error = TRUE;
 }
 
 /**
