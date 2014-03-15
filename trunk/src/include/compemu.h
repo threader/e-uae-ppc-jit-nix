@@ -30,6 +30,7 @@ extern void comp_init(void);
 extern void comp_done(void);
 extern void build_comp(void);
 extern void compile_block(const cpu_history *pc_hist, int blocklen, int totcyles);
+extern void comp_compile_error(void);
 extern uae_u16* comp_current_m68k_location(void);
 
 extern cacheline cache_tags[];

@@ -36,7 +36,7 @@ union comp_compiler_mb_union macroblocks[MAXMACROBLOCKS];
  *   ir - input registers
  *   or - output registers
  */
-#define comp_mb_init(n, h, ir, or) union comp_compiler_mb_union* n = comp_compiler_get_next_macroblock(); n->base.handler=(h); n->base.input_registers=(ir); n->base.output_registers=(or); n->base.name = __func__; n->base.start = NULL; n->base.m68k_ptr = comp_current_m68k_location(); n->base.remove = FALSE;
+#define comp_mb_init(n, h, ir, or) union comp_compiler_mb_union* n = comp_compiler_get_next_macroblock(); if(n == NULL) { comp_compile_error(); return; } n->base.handler=(h); n->base.input_registers=(ir); n->base.output_registers=(or); n->base.name = __func__; n->base.start = NULL; n->base.m68k_ptr = comp_current_m68k_location(); n->base.remove = FALSE;
 
 //Pointer to the end of the macroblock buffer
 int macroblock_ptr;
@@ -154,14 +154,28 @@ void comp_compiler_done()
  * Push a macroblock to the next position of the buffer and increase the buffer top index
  * Parameters:
  *    macroblock - pointer to the macroblock that has to be pushed to buffer
+ * Returns:
+ *    pointer to the next available macroblock address in the buffer or
+ *    null if no free macroblock left.
+ * Note:
+ *    This function warns the user in the console output when the macroblock array runs out.
+ *    The warning is shown only once then it is suppressed.
  */
+BOOL macroblock_overflow_warning = TRUE;
 union comp_compiler_mb_union* comp_compiler_get_next_macroblock()
 {
 	if (macroblock_ptr == MAXMACROBLOCKS)
 	{
 		//Oops, we ran out of the array
-		write_log("Error: JIT macroblock array ran out of space, please enlarge the static array\n");
-		abort();
+		if (macroblock_overflow_warning)
+		{
+			write_log("Warning: JIT macroblock array ran out of space, your program might be doing something wrong\n");
+			macroblock_overflow_warning = FALSE;
+		}
+
+		write_jit_log("Warning: JIT macroblock array ran out of space\n");
+
+		return NULL;
 	}
 
 	union comp_compiler_mb_union* mb = &macroblocks[macroblock_ptr];
