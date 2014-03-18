@@ -273,6 +273,30 @@ case $host_os in
     linux*)
       HOST_OS=linux
       OSDEP=od-linux
+      if [[ "`cat /proc/cpuinfo | grep -o -m1 440EP`" = '440EP' ]]; then
+      AC_DEFINE(AMCC_CPU, 440ep, [AMCC PPC CPU])
+      elif [[ "`cat /proc/cpuinfo | grep -o -m1 460EX`" = '460EX' ]]; then
+      AC_DEFINE(AMCC_CPU, 460ex, [AMCC PPC CPU]) 
+      fi
+      cp confdefs.h src/include/config.h
+      ;;
+    darwin[0-7]*)
+      HOST_OS=darwin
+      OSDEP=od-macosx
+      AC_DEFINE_UNQUOTED(darwin0, $host_os, [Darwin 0-7])
+      cp confdefs.h src/include/config.h
+      ;;
+    darwin8*)
+      HOST_OS=darwin
+      OSDEP=od-macosx
+      AC_DEFINE_UNQUOTED(darwin8, $host_os, [Darwin 8])   
+      cp confdefs.h src/include/config.h
+      ;;
+    darwin9*)
+      HOST_OS=darwin
+      OSDEP=od-macosx
+      AC_DEFINE_UNQUOTED(darwin9, $host_os, [Darwin 9])
+      cp confdefs.h src/include/config.h
       ;;
     darwin*)
       HOST_OS=darwin
@@ -655,10 +679,20 @@ if [[ "x$WANT_SDL" != "xno" ]]; then
 
   if [[ "$HOST_OS" = "darwin" ]]; then
 
+if test -d "/Library/Frameworks/SDL.framework/Headers" ; then
     dnl Assume this is MacOS X and try to use SDL framework
 
+USE_SDL_FRAMEWORK=TRUE
     SDL_CFLAGS="-I/Library/Frameworks/SDL.framework/Headers -D_REENTRANT"
     SDL_LIBS="-framework Cocoa -framework SDL -lobjc"
+
+elif test -e "/usr/local/lib/libSDL.dylib" ; then
+    dnl Assume this is MacOS X and try to use /usr/local/lib/libSDL
+
+USE_SDL_FRAMEWORK=FALSE
+    SDL_CFLAGS="-g -O2 -I/usr/local/include/SDL -D_GNU_SOURCE=1 -D_THREAD_SAFE -DHAVE_OPENGL"
+    SDL_LIBS="-L/usr/local/lib -lSDLmain -lSDL -Wl,-framework,Cocoa"
+fi
 
     AC_MSG_CHECKING(for SDL framework)
 

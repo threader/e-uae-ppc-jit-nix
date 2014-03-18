@@ -318,14 +318,13 @@ For general notes for compiling please refer to the README_original file.
 
 To compile on Mac OSX 10.3.9 or earlier:
 
-Autoconf2.57 and automake1.6 screw up @OBJCFLAGS@ and is not really compatible. 
+Autoconf2.57 and automake1.6 mess up @OBJCFLAGS@ and is not really compatible. 
 
-Get the previous versions:
-http://ftp.gnu.org/gnu/autoconf/autoconf-2.61.tar.bz2
-./configure --bindir=/usr/bin --datarootdir=/usr/share 
-
+Get the correct versions - replacing the previous version :
+http://ftp.gnu.org/gnu/autoconf/autoconf-2.61.tar.bz2 
+./configure --bindir=/usr/bin --datarootdir=/usr/share && make install
 http://ftp.gnu.org/gnu/automake/automake-1.7.9.tar.bz2
-./configure --bindir=/usr/bin --datadir=/usr/share
+./configure --bindir=/usr/bin --datadir=/usr/share && make install
 
 For Mac OSX 10.4.x and 10.3.x: 
 Latest SDL.framework is not properly detected. 
@@ -333,8 +332,9 @@ Using the SDL.framework already in E-UAE.app/Content/Frameworks at
 http://www.rcdrummond.net/uae
 Copy SDL.framework/Headers from the latest SDL.framework and put the framework
 in /Library/Frameworks/
-./configure --enable-jit --without-x --withsdl-gl --with-cocoa-gui \ 
---with-sdl-prefix=/Library/Frameworks/SDL.framework
+./configure --enable-jit --without-x --with-sdl-gl --with-cocoa-gui
+
+Source installed SDL is also detected.
 
 For AmigaOS4:
 You need to link libamiga to the binary otherwise the TimeDelay macro won't
