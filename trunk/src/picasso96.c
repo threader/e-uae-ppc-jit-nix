@@ -43,6 +43,11 @@
 #include "picasso96.h"
 #include "uae_endian.h"
 
+#ifdef __amigaos4__
+#include <proto/expansion.h>
+#include <expansion/expansion.h>
+#endif
+
 #ifdef JIT
 int        have_done_picasso       = 0;         /* For the JIT compiler */
 # ifdef PICASSO96
