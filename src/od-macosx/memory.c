@@ -9,11 +9,12 @@
 #include "od-generic/memory.c"
 
 #ifdef JIT
-#if defined(tenfour) /* != 10.5 > */
+
+#if defined(darwin0) 			/* Darwin 0 - 7 */
+#include <cacheinvalidate.h> 
+#elif defined(darwin8)
 #include "OSCacheControl.h"
-#elif defined(allelsefailed)
-#include <cacheinvalidate.h>
-#else
+#else					/* Darwin 9< */
 #include <libkern/OSCacheControl.h>
 #endif
 
