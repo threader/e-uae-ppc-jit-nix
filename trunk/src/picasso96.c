@@ -3063,7 +3063,7 @@ void InitPicasso96 (void)
 #ifdef __amigaos4__
 	uint32 machine = MACHINETYPE_UNKNOWN;
 	GetMachineInfoTags(GMIT_Machine, &machine, TAG_DONE);
-	if (machine == MACHINETYPE_SAM440EP)) {
+	if (machine == MACHINETYPE_SAM440EP) {
 		//Workaround is removed for SAM440
 		need_workaround = 0;
     }
