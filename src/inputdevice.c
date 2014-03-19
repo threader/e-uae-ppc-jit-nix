@@ -72,6 +72,9 @@ extern uae_u32 uaerand (void);
 // 32 = vsync
 
 int inputdevice_logging = 0;
+#ifdef WITH_TABLETLIBRARY
+extern int tablet_log;
+#endif
 
 #define COMPA_RESERVED_FLAGS ID_FLAG_INVERT
 
@@ -1383,9 +1386,23 @@ void inputdevice_tablet (int x, int y, int z, int pressure, uae_u32 buttonbits, 
 	if (!memcmp (tmp, p + MH_START, MH_END - MH_START))
 		return;
 
+#ifdef WITH_TABLETLIBRARY
+	if (tablet_log & 1) {
+		static int obuttonbits, oinproximity;
+		if (inproximity != oinproximity || buttonbits != obuttonbits) {
+			obuttonbits = buttonbits;
+			oinproximity = inproximity;
+			write_log (_T("TABLET: B=%08x P=%d\n"), buttonbits, inproximity);
+		}
+	}
+	if (tablet_log & 2) {
+		write_log (_T("TABLET: X=%d Y=%d Z=%d AX=%d AY=%d AZ=%d\n"), x, y, z, ax, ay, az);
+	}
+#endif // WITH_TABLETLIBRARY
+
 	p[MH_E] = 0xc0 | 2;
 	p[MH_CNT]++;
-#endif
+#endif // FILESYS
 }
 
 void inputdevice_tablet_info (int maxx, int maxy, int maxz, int maxax, int maxay, int maxaz, int xres, int yres)
@@ -1417,7 +1434,7 @@ void inputdevice_tablet_info (int maxx, int maxy, int maxz, int maxax, int maxay
 	p[MH_MAXAY + 1] = maxay;
 	p[MH_MAXAZ] = maxaz >> 8;
 	p[MH_MAXAZ + 1] = maxaz;
-#endif
+#endif // FILESYS
 }
 
 
@@ -1438,7 +1455,7 @@ static void inputdevice_mh_abs (int x, int y, uae_u32 buttonbits)
 	x -= mouseoffset_x + 1;
 	y -= mouseoffset_y + 2;
 
-	//write_log (_T("%dx%d %08x\n"), x, y, buttonbits);
+	//write_log (_T("%04dx%04d %08x\n"), x, y, buttonbits);
 
 	p[MH_ABSX] = x >> 8;
 	p[MH_ABSX + 1] = x;
@@ -1455,7 +1472,15 @@ static void inputdevice_mh_abs (int x, int y, uae_u32 buttonbits)
 	p[MH_E] = 0xc0 | 1;
 	p[MH_CNT]++;
 	tablet_data = 1;
-#endif
+
+#ifdef WITH_TABLETLIBRARY
+	if (inputdevice_is_tablet () <= 0) {
+		tabletlib_tablet_info (1000, 1000, 0, 0, 0, 0, 1000, 1000);
+		tabletlib_tablet (x, y, 0, 0, buttonbits, -1, 0, 0, 0);
+	}
+#endif // WITH_TABLETLIBRARY
+
+#endif // FILESYS
 }
 
 #ifdef FILESYS

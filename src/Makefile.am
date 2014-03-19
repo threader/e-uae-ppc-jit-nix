@@ -11,6 +11,11 @@ if !ANDROID
 LIBS += -lpthread
 endif
 
+if BUILD_MACOSX_BUNDLE
+AM_CFLAGS += -mmacosx-version-min=10.7
+AM_CPPFLAGS += -mmacosx-version-min=10.7
+endif
+
 if IS_QT
 QT_INCPATH = $(shell qmake -query QT_INSTALL_HEADERS)
 QT_INSPATH = $(shell qmake -query QT_INSTALL_DATA)
@@ -67,11 +72,9 @@ DISTCLEANFILES = \
 	target.h md-fpp.h
 
 if TARGET_NACL # = Using Native Client/Pepper
-bin_PROGRAMS  = \
-	uae
+bin_PROGRAMS  = uae
 else
-bin_PROGRAMS  = \
-	uae readdisk make_hdf
+bin_PROGRAMS  = uae readdisk make_hdf
 endif
 
 if BUILD_MACOSX_BUNDLE
@@ -83,7 +86,11 @@ if TARGET_BIGENDIAN
 genlinetoscr_args = -b
 endif
 
-uae_extraLDFLAGS=-fwhole-program
+uae_extraLDFLAGS = -fwhole-program
+
+if BUILD_MACOSX_BUNDLE
+uae_extraLDFLAGS += -Wno-error=unused-command-line-argument-hard-error-in-future -mmacosx-version-min=10.7
+endif
 
 uae$(EXEEXT):	$(uae_OBJECTS) $(uae_DEPENDENCIES)
 		@rm -f uae$(EXEEXT)
@@ -184,7 +191,7 @@ uae_SOURCES = \
 	native2amiga.c disk.c crc32.c savestate.c arcadia.c cdtv.c cd32_fmv.c \
 	uaeexe.c uaelib.c uaeresource.c uaeserial.c fdi2raw.c hotkeys.c amax.c \
 	ar.c driveclick.c enforcer.c misc.c uaenet.c a2065.c gayle.c blkdev.c blkdev_cdimage.c scsi.c ncr_scsi.c \
-	missing.c readcpu.c hrtmon.rom.c events.c calc.c sana2.c \
+	missing.c readcpu.c hrtmon.rom.c events.c calc.c sana2.c scp.c \
 	specialmonitors.c gfxboard.c qemuvga/cirrus_vga.c qemuvga/qemuuaeglue.c qemuvga/vga.c qemuvga/lsi53c895a.c
 if !TARGET_NACL  # Do not include AROS ROM in Native Client. 
 uae_SOURCES += aros.rom.c

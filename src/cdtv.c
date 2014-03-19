@@ -1052,6 +1052,16 @@ static void dmac_start_dma (void)
 {
 	if (!(dmac_cntr & CNTR_PDMD)) { // non-scsi dma
 		write_comm_pipe_u32 (&requests, 0x0100, 1);
+	} else {
+		scsi_dmac_start_dma ();
+	}
+}
+static void dmac_stop_dma (void)
+{
+	if (!(dmac_cntr & CNTR_PDMD)) { // non-scsi dma
+		;
+	} else {
+		scsi_dmac_stop_dma ();
 	}
 }
 
@@ -1133,6 +1143,7 @@ void CDTV_hsync_handler (void)
 		cd_finished = 1;
 		cd_paused = 0;
 		//cd_error = 1;
+		write_log (_T("audio finished\n"));
 		activate_stch = 1;
 	}
 
@@ -1242,6 +1253,7 @@ static void cdtv_reset_int (void)
 	cd_finished = 0;
 	cd_led = 0;
 	stch = 1;
+	frontpanel = 1;
 }
 
 static uae_u32 dmac_bget2 (uaecptr addr)
@@ -1407,7 +1419,10 @@ static void dmac_bput2 (uaecptr addr, uae_u32 b)
 		break;
 	case 0xe2:
 	case 0xe3:
-		dmac_dma = 0;
+		if (dmac_dma) {
+			dmac_dma = 0;
+			dmac_stop_dma ();
+		}
 		dma_finished = 0;
 		break;
 	case 0xe4:
@@ -1685,7 +1700,6 @@ void cdtv_free (void)
 
 
 #ifdef ROMHACK2
-extern uae_u8 *extendedkickmemory, *cardmemory;
 static void romhack (void)
 {
 	struct zfile *z;
@@ -1754,6 +1768,7 @@ void cdtv_init (void)
 	/* KS autoconfig handles the rest */
 	map_banks (&dmac_bank, 0xe80000 >> 16, 0x10000 >> 16, 0x10000);
 	if (!savestate_state) {
+		cdtv_reset_int ();
 		configured = 0;
 		tp_a = tp_b = tp_c = tp_ad = tp_bd = tp_cd = 0;
 		tp_imask = tp_cr = tp_air = tp_ilatch = 0;
@@ -1766,6 +1781,8 @@ void cdtv_init (void)
 	cdtv_battram_reset ();
 	open_unit ();
 	gui_flicker_led (LED_CD, 0, -1);
+	if (currprefs.cs_cdtvscsi)
+		init_scsi ();
 }
 
 void cdtv_check_banks (void)

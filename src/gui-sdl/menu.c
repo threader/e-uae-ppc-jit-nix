@@ -188,8 +188,8 @@ void gui_exit (void){
 
 void gui_display (int shortcut){
 
-//	void* stor = display ? malloc(display->h * display->pitch) : 0;
-//	if(stor) memcpy(stor, display->pixels, display->h * display->pitch);
+	void* stor = display ? malloc(display->h * display->pitch) : 0;
+	if (stor) memcpy(stor, display->pixels, display->h * display->pitch);
 
 	if (tmpSDLScreen == NULL) {
 		tmpSDLScreen = SDL_DisplayFormat(display);
@@ -431,11 +431,11 @@ void gui_display (int shortcut){
 		SDL_Delay(20);
 	} //while done
 
-//	if(stor) {
-//		memcpy(display->pixels, stor, display->h * display->pitch);
-//		free(stor);
+	if (stor) {
+		memcpy(display->pixels, stor, display->h * display->pitch);
+		free(stor);
 		SDL_Flip(display);
-//	}
+	}
 
 	SDL_EnableKeyRepeat(0, 0); /* disable keyrepeat again */
 //	return menu_exitcode;
@@ -444,12 +444,12 @@ void gui_display (int shortcut){
 void write_text (int x, int y, const char* txt) {
 	char txtbuf[45];
 	size_t l = strlen(txt);
-	if(l > 44) {
-		memcpy(txtbuf, txt, 20);
-		memcpy(txtbuf + 20, "...", 3);
-		memcpy(txtbuf + 23, txt + l - 20, 21);
+	if (l > 44) {
+		memcpy (txtbuf, txt, 20);
+		memcpy (txtbuf + 20, "...", 3);
+		memcpy (txtbuf + 23, txt + l - 20, 21);
 	} else {
-		strcpy(txtbuf, txt);
+		strcpy (txtbuf, txt);
 	}
 	SDL_Surface* pText_Surface = TTF_RenderText_Solid(amiga_font, txtbuf, text_color);
 
@@ -459,7 +459,7 @@ void write_text (int x, int y, const char* txt) {
 	rect.h = pText_Surface->h;
 
 	SDL_BlitSurface (pText_Surface,NULL,tmpSDLScreen,&rect);
-	SDL_FreeSurface(pText_Surface);
+	SDL_FreeSurface (pText_Surface);
 }
 
 void blit_image (SDL_Surface* img, int x, int y) {
@@ -496,6 +496,25 @@ void gui_flicker_led (int led, int unitnum, int status)
 
 void gui_led (int led, int on)
 {
+	if (led >= LED_DF0 && led <= LED_DF3) {
+		//_stprintf (ptr , _T("%02d"), gui_data.drive_track[led - 1]);
+	} else if (led == LED_POWER) {
+	} else if (led == LED_HD) {
+	} else if (led == LED_CD) {
+	} else if (led == LED_FPS) {
+		/*double fps = (double)gui_data.fps / 10.0;
+		extern double p96vblank;
+		if (fps > 999.9)
+			fps = 999.9;
+		if (picasso_on)
+			_stprintf (ptr, _T("%.1f [%.1f]"), p96vblank, fps);
+		else
+			_stprintf (ptr, _T("FPS: %.1f"), fps);*/
+	} else if (led == LED_CPU) {
+		//_stprintf (ptr, _T("CPU: %.0f%%"), (double)((gui_data.idle) / 10.0));
+	} else if (led == LED_SND && gui_data.drive_disabled[3]) {
+	} else if (led == LED_MD) {
+	}
 }
 
 void gui_filename (int num, const char *name)

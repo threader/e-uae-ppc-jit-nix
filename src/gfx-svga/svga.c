@@ -30,6 +30,8 @@
 #include "gui.h"
 #include "picasso96.h"
 
+#define MAX_COLOR_MODES 5
+
 #define SCODE_CB_UP	103	/* Cursor key block. */
 #define SCODE_CB_LEFT	105
 #define SCODE_CB_RIGHT	106

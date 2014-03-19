@@ -211,6 +211,10 @@ AC_CHECK_SIZEOF(long long, 8)
 AC_CHECK_SIZEOF(__int64, 8)
 AC_CHECK_SIZEOF(void *)
 
+if test "${ac_cv_c_have_long_double}" = "yes" ; then
+	AC_CHECK_SIZEOF(long double, 12)
+fi
+
 TYPE_SOCKLEN_T
 
 dnl
@@ -604,6 +608,7 @@ WANT_COMPATIBLE=yes
 WANT_CYCLEEXACT=yes
 WANT_CAPS=no
 WANT_FDI=yes
+WANT_SCP=yes
 WANT_ENFORCER=dunno
 WANT_CATWEASEL=no
 WANT_SERIAL=no
@@ -692,9 +697,9 @@ AC_ARG_ENABLE(a2065,           AS_HELP_STRING([--enable-a2065],           [Enabl
 AC_ARG_ENABLE(a2091,           AS_HELP_STRING([--enable-a2091],           [Enable A2091 SCSI emulation (default no)]),                [WANT_A2091=$enableval],[])
 AC_ARG_ENABLE(action-replay,   AS_HELP_STRING([--enable-action-replay],   [Enable Action Replay cartridge emulation (default yes)]),  [WANT_ACTION_REPLAY=$enableval],[])
 AC_ARG_ENABLE(aga,             AS_HELP_STRING([--enable-aga],             [Enable AGA chipset emulation (default yes)]),              [WANT_AGA=$enableval],[])
+AC_ARG_ENABLE(amax,            AS_HELP_STRING([--enable-amax],            [Enable AMAX support (default no)]),                        [WANT_AMAX=$enableval],[])
 AC_ARG_ENABLE(autoconfig,      AS_HELP_STRING([--enable-autoconfig],      [Enable emulation of autoconfig devices (default auto)]),   [WANT_AUTOCONFIG=$enableval],[])
 AC_ARG_ENABLE(audio,	       AS_HELP_STRING([--enable-audio],           [Enable audio output (default auto)]),                      [WANT_AUDIO=$enableval],[])
-AC_ARG_ENABLE(amax,            AS_HELP_STRING([--enable-amax],            [Enable AMAX support (default no)]),                        [WANT_AMAX=$enableval],[])
 AC_ARG_ENABLE(bsdsock,         AS_HELP_STRING([--enable-bsdsock],         [Enable bsdsocket.library emulation]),                      [WANT_BSDSOCK=$enableval],[])
 AC_ARG_ENABLE(catweasel,       AS_HELP_STRING([--enable-catweasel],       [Enable Catweasel support (default no)]),                   [WANT_CATWEASEL=$enableval],[])
 AC_ARG_ENABLE(cdtv,            AS_HELP_STRING([--enable-cdtv],            [Enable CDTV emulation (default no)]),                      [WANT_CDTV=$enableval],[])
@@ -705,8 +710,8 @@ AC_ARG_ENABLE(debugger,        AS_HELP_STRING([--disable-debugger],       [Disab
 AC_ARG_ENABLE(dga,             AS_HELP_STRING([--enable-dga],             [X11 version: Use the DGA extension]),                      [WANT_DGA=$enableval],[])
 AC_ARG_ENABLE(drvsnd,	       AS_HELP_STRING([--enable-drvsnd],          [Enable Floppy Drive Sound Emulation (default no)]),	      [WANT_DRVSND=$enableval],[])
 AC_ARG_ENABLE(enforcer,	       AS_HELP_STRING([--enable-enforcer],        [Enable ersatz Enforcer support (default auto)]),           [WANT_ENFORCER=$enableval],[])
+AC_ARG_ENABLE(fdi,	       AS_HELP_STRING([--enable-fdi],             [Enable FDI support (default yes)]),                        [WANT_FDI=$enableval],[])
 AC_ARG_ENABLE(fpu,             AS_HELP_STRING([--enable-fpu],             [Enable FPU emulation (default yes)]),                      [WANT_FPU=$enableval],[])
-AC_ARG_ENABLE(fdi,	           AS_HELP_STRING([--enable-fdi],             [Enable FDI support (default yes)]),                        [WANT_FDI=$enableval],[])
 AC_ARG_ENABLE(gayle,           AS_HELP_STRING([--enable-gayle],           [Enable GAYLE IDE emulation (default no)]),                 [WANT_GAYLE=$enableval],[])
 AC_ARG_ENABLE(gccopt,	       AS_HELP_STRING([--enable-gccopt],          [Enable CPU Specific Optimizations (default no)]),	      [WANT_OPT=$enableval],[])
 AC_ARG_ENABLE(gccdebug,	       AS_HELP_STRING([--enable-gccdebug],        [Enable gcc debugging options (default no)]),               [WANT_GGDB=$enableval],[])
@@ -716,9 +721,10 @@ AC_ARG_ENABLE(mmu,             AS_HELP_STRING([--enable-mmu],             [Enabl
 AC_ARG_ENABLE(natmem,          AS_HELP_STRING([--enable-natmem],          [Enable JIT direct memory support (default auto)]),         [NATMEM=$enableval],[])
 AC_ARG_ENABLE(noflags,	       AS_HELP_STRING([--enable-noflags],         [Enable noflags support in JIT (default no)]),              [NOFLAGS=$enableval],[])
 AC_ARG_ENABLE(ncr,             AS_HELP_STRING([--enable-ncr],             [Enable NCR SCSI emulation (default no)]),                  [WANT_NCR=$enableval],[])
-AC_ARG_ENABLE(scsi-device,     AS_HELP_STRING([--enable-scsi-device],     [Enable emulation of SCSI devices (default no)]),           [WANT_SCSIEMU=$enableval],[])
 AC_ARG_ENABLE(save-state,      AS_HELP_STRING([--disable-save-state],     [Disable support for saving state snapshots (default no)]), [WANT_SAVESTATE=$enableval],[])
 AC_ARG_ENABLE(serial-port,     AS_HELP_STRING([--enable-serial-port],     [Enable serial port emulation (default no)]),               [WANT_SERIAL=$enableval],[])
+AC_ARG_ENABLE(scp,	       AS_HELP_STRING([--enable-scp],             [Enable SCP support (default yes)]),                        [WANT_SCP=$enableval],[])
+AC_ARG_ENABLE(scsi-device,     AS_HELP_STRING([--enable-scsi-device],     [Enable emulation of SCSI devices (default no)]),           [WANT_SCSIEMU=$enableval],[])
 AC_ARG_ENABLE(threads,         AS_HELP_STRING([--enable-threads],         [Enable thread support (default auto)]),                    [WANT_THREADS=$enableval],[])
 AC_ARG_ENABLE(ui,              AS_HELP_STRING([--enable-ui],              [Use a user interface if possible (default on)]),           [WANT_UI=$enableval],[])
 AC_ARG_ENABLE(vidmode,         AS_HELP_STRING([--enable-vidmode],         [X11 version: Use the XF86VidMode extension]),              [WANT_VIDMODE=$enableval],[])
@@ -840,7 +846,6 @@ if [[ "x$WANT_SDL" != "xno" ]]; then
     SDLT_CFLAGS="-I/Library/Frameworks/SDL_ttf.framework/Headers -D_REENTRANT"
     SDLT2_CFLAGS="-I/Library/Frameworks/SDL2_ttf.framework/Headers -D_REENTRANT"
     SDL_LIBS="-framework Cocoa -framework SDL -lobjc"
-
 
     SAVE_CPPFLAGS=$CPPFLAGS
     SAVE_LIBS=$LIBS
@@ -1400,7 +1405,7 @@ if [[ "x$WANT_SDL_UI" = "xyes" ]]; then
 
 		if [[ "x$OSDEP" = "xod-macosx" ]]; then
 			GUI_LIBS="${GUI_LIBS} -framework SDL_ttf -framework SDL_image"
-			GUI_CFLAGS="$SDL_CFLAGS -DSDLI_CFLAGS -DSDLT_CFLAGS"
+			GUI_CFLAGS="$SDL_CFLAGS $SDLI_CFLAGS $SDLT_CFLAGS"
 		else
 			GUI_LIBS="${GUI_LIBS} -lSDL_ttf -lSDL_image"
 		fi
@@ -1843,10 +1848,18 @@ fi
 
 
 dnl
-dnl  Check whether FDI support wanted
+dnl  Check whether FDI (FDI 1.0 and 2.x image) support wanted
 dnl
 if [[ "x$WANT_FDI" != "xno" ]]; then
   UAE_DEFINES="$UAE_DEFINES -DFDI2RAW"
+fi
+
+
+dnl
+dnl  Check whether SCP (SuperCardPro) support wanted
+dnl
+if [[ "x$WANT_SCP" != "xno" ]]; then
+  UAE_DEFINES="$UAE_DEFINES -DSCP"
 fi
 
 
@@ -2140,9 +2153,10 @@ dnl ARM
 dnl quick hack for my pcduino v2 -mtufan
 
 if [[ "x$have_armcpu" = "xyes" ]]; then
-    OPTIMIZED_FLAGS="-O3 -mcpu=arm7 -mtune=arm7 -ffast-math -fomit-frame-pointer -ftracer -fstrict-aliasing"
-    OPTIMIZED_FLAGS="$OPTIMIZED_FLAGS -mstructure-size-boundary=32 -fexpensive-optimizations"
+    OPTIMIZED_FLAGS="-O3 -march=armv7-a -mcpu=cortex-a8 -mtune=cortex-a8 -ffast-math -fomit-frame-pointer -ftracer -fstrict-aliasing"
+    OPTIMIZED_FLAGS="$OPTIMIZED_FLAGS -mstructure-size-boundary=32 -fexpensive-optimizations -ftree-vectorize"
     OPTIMIZED_FLAGS="$OPTIMIZED_FLAGS -falign-functions=32 -falign-loops -falign-labels -falign-jumps"
+    OPTIMIZED_FLAGS="$OPTIMIZED_FLAGS -mfpu=neon -mfloat-abi=softfp"
 dnl    OPTIMIZED_FLAGS="$OPTIMIZED_FLAGS -finline -finline-functions -fno-builtin -funroll-loops -floop-optimize2"
 fi
 
@@ -2340,7 +2354,7 @@ if [[ "x$cross_compiling" = "xyes" ]]; then
   export LDFLAGS=$LDFLAGS_FOR_BUILD
   export LIBS=$LIBS_FOR_BUILD
   mkdir -p src/tools
-  cd  src/tools && ../../"$srcdir"/src/tools/configure --cache-file=/dev/null --host=$build --target=$host
+  cd src/tools && ../../"$srcdir"/src/tools/configure --cache-file=/dev/null --host=$build --target=$host
 fi
 
 AC_DEFINE(ECS_DENISE,1,[we want ecs_denise])

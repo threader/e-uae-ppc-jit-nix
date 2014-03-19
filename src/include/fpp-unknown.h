@@ -6,6 +6,7 @@
   * Conversion routines for hosts with unknown floating point format.
   *
   * Copyright 1996 Herman ten Brugge
+  * Modified 2005 Peter Keunecke
   */
 
 #define FPCR_ROUNDING_MODE      0x00000030
@@ -19,49 +20,63 @@
 #define FPCR_PRECISION_DOUBLE   0x00000080
 #define FPCR_PRECISION_EXTENDED 0x00000000
 
-static double twoto32 = 4294967296.0;
-
 #ifndef HAVE_to_single
+#define HAVE_to_single
 STATIC_INLINE double to_single (uae_u32 value)
 {
-    double frac;
+	union {
+		float f;
+		uae_u32 u;
+	} val;
 
-    if ((value & 0x7fffffff) == 0)
-		return (0.0);
-    frac = (double) ((value & 0x7fffff) | 0x800000) / 8388608.0;
-    if (value & 0x80000000)
-		frac = -frac;
-    return (ldexp (frac, ((value >> 23) & 0xff) - 127));
+	val.u = value;
+	return val.f;
 }
 #endif
 
 #ifndef HAVE_from_single
+#define HAVE_from_single
 STATIC_INLINE uae_u32 from_single (double src)
 {
-    int expon;
-    uae_u32 tmp;
-    double frac;
+	union {
+		float f;
+		uae_u32 u;
+	} val;
 
-    if (src == 0.0)
-		return 0;
-    if (src < 0) {
-		tmp = 0x80000000;
-		src = -src;
-    } else {
-		tmp = 0;
-    }
-    frac = frexp (src, &expon);
-    frac += 0.5 / 16777216.0;
-    if (frac >= 1.0) {
-		frac /= 2.0;
-		expon++;
-    }
-    return (tmp | (((expon + 127 - 1) & 0xff) << 23) |
-	    (((int) (frac * 16777216.0)) & 0x7fffff));
+	val.f = (float) src;
+	return val.u;
 }
 #endif
 
+#ifndef HAVE_to_double
+#define HAVE_to_double
+STATIC_INLINE double to_double(uae_u32 wrd1, uae_u32 wrd2)
+{
+	union {
+		double d;
+		uae_u32 u[2];
+	} val;
+
+	val.u[0] = wrd2; // little endian
+	val.u[1] = wrd1;
+	return val.d;
+}
+#endif
+
+#ifndef HAVE_from_double
+#define HAVE_from_double
+STATIC_INLINE void from_double(double src, uae_u32 * wrd1, uae_u32 * wrd2)
+{
+	uae_u32 *longarray = (uae_u32 *)&src;
+
+	*wrd1 = longarray[1]; // little endian
+	*wrd2 = longarray[0];
+}
+#endif
+
+static const double twoto32 = 4294967296.0;
 #ifndef HAVE_to_exten
+#define HAVE_to_exten
 STATIC_INLINE void to_exten(fpdata *fpd, uae_u32 wrd1, uae_u32 wrd2, uae_u32 wrd3)
 {
 	double frac;
@@ -78,16 +93,17 @@ STATIC_INLINE void to_exten(fpdata *fpd, uae_u32 wrd1, uae_u32 wrd2, uae_u32 wrd
 	frac = ((double)wrd2 + ((double)wrd3 / twoto32)) / 2147483648.0;
 	if (wrd1 & 0x80000000)
 		frac = -frac;
-
 	fpd->fp = ldexp (frac, ((wrd1 >> 16) & 0x7fff) - 16383);
 }
 #endif
 
 #ifndef HAVE_from_exten
+#define HAVE_from_exten
 STATIC_INLINE void from_exten(fpdata *fpd, uae_u32 * wrd1, uae_u32 * wrd2, uae_u32 * wrd3)
 {
 	int expon;
 	double frac;
+	fptype v;
 
 #ifdef USE_SOFT_LONG_DOUBLE
 	if (fpd->fpx) {
@@ -97,20 +113,21 @@ STATIC_INLINE void from_exten(fpdata *fpd, uae_u32 * wrd1, uae_u32 * wrd2, uae_u
 	} else
 #endif
 	{
-		if (fpd->fp == 0.0) {
+		v = fpd->fp;
+		if (v == 0.0) {
 			*wrd1 = 0;
 			*wrd2 = 0;
 			*wrd3 = 0;
 			return;
 		}
-		if (fpd->fp < 0) {
+		if (v < 0) {
 			*wrd1 = 0x80000000;
-			fpd->fp = -fpd->fp;
+			v = -v;
 		} else {
 			*wrd1 = 0;
 		}
-		frac = frexp (fpd->fp, &expon);
-		frac= 0.5 / (twoto32 * twoto32);
+		frac = frexp (v, &expon);
+		frac += 0.5 / (twoto32 * twoto32);
 		if (frac >= 1.0) {
 			frac /= 2.0;
 			expon++;
@@ -119,50 +136,5 @@ STATIC_INLINE void from_exten(fpdata *fpd, uae_u32 * wrd1, uae_u32 * wrd2, uae_u
 		*wrd2 = (uae_u32) (frac * twoto32);
 		*wrd3 = (uae_u32) ((frac * twoto32 - *wrd2) * twoto32);
 	}
-}
-#endif
-
-#ifndef HAVE_to_double
-STATIC_INLINE double to_double(uae_u32 wrd1, uae_u32 wrd2)
-{
-    double frac;
-
-    if ((wrd1 & 0x7fffffff) == 0 && wrd2 == 0)
-		return 0.0;
-    frac = (double) ((wrd1 & 0xfffff) | 0x100000) / 1048576.0 +
-	(double) wrd2 / 4503599627370496.0;
-    if (wrd1 & 0x80000000)
-		frac = -frac;
-    return ldexp (frac, ((wrd1 >> 20) & 0x7ff) - 1023);
-}
-#endif
-
-#ifndef HAVE_from_double
-STATIC_INLINE void from_double(double src, uae_u32 * wrd1, uae_u32 * wrd2)
-{
-    int expon;
-    int tmp;
-    double frac;
-
-    if (src == 0.0) {
-		*wrd1 = 0;
-		*wrd2 = 0;
-		return;
-    }
-    if (src < 0) {
-		*wrd1 = 0x80000000;
-		src = -src;
-    } else {
-		*wrd1 = 0;
-    }
-    frac = frexp (src, &expon);
-    frac += 0.5 / 9007199254740992.0;
-    if (frac >= 1.0) {
-		frac /= 2.0;
-		expon++;
-    }
-    tmp = (uae_u32) (frac * 2097152.0);
-    *wrd1 |= (((expon + 1023 - 1) & 0x7ff) << 20) | (tmp & 0xfffff);
-    *wrd2 = (uae_u32) (frac * 9007199254740992.0 - tmp * 4294967296.0);
 }
 #endif

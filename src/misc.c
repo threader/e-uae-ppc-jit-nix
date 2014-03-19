@@ -1303,20 +1303,27 @@ uae_u32 getlocaltime (void)
 	return 0;
 }
 
-/*
-#ifndef HAVE_ISINF
-int isinf (double x)
-{
-        const int nClass = _fpclass (x);
-        int result;
-        if (nClass == _FPCLASS_NINF || nClass == _FPCLASS_PINF)
-                result = 1;
-        else
-                result = 0;
-        return result;
-}
+#ifndef isnan
+#define isnan(x) \
+	(sizeof (x) == sizeof (long double) ? isnan_ld (x) \
+	: sizeof (x) == sizeof (double) ? isnan_d (x) \
+	: isnan_f (x))
+
+static inline int isnan_f  (float       x) { return x != x; }
+static inline int isnan_d  (double      x) { return x != x; }
+static inline int isnan_ld (long double x) { return x != x; }
 #endif
-*/
+          
+#ifndef isinf
+#define isinf(x) \
+	(sizeof (x) == sizeof (long double) ? isinf_ld (x) \
+	: sizeof (x) == sizeof (double) ? isinf_d (x) \
+	: isinf_f (x))
+
+static inline int isinf_f  (float       x) { return !isnan (x) && isnan (x - x); }
+static inline int isinf_d  (double      x) { return !isnan (x) && isnan (x - x); }
+static inline int isinf_ld (long double x) { return !isnan (x) && isnan (x - x); }
+#endif
 
 //fsdb_mywin
 bool my_issamevolume(const TCHAR *path1, const TCHAR *path2, TCHAR *path)

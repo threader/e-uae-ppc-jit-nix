@@ -268,6 +268,31 @@ struct apmode
 #ifndef HAS_UAE_PREFS_STRUCT
 # define HAS_UAE_PREFS_STRUCT 1
 #endif // HAS_UAEPREFS_STRUCT
+
+
+struct gfx_filterdata
+{
+	int gfx_filter;
+	TCHAR gfx_filtershader[2 * MAX_FILTERSHADERS + 1][MAX_DPATH];
+	TCHAR gfx_filtermask[2 * MAX_FILTERSHADERS + 1][MAX_DPATH];
+	TCHAR gfx_filteroverlay[MAX_DPATH];
+	struct wh gfx_filteroverlay_pos;
+	int gfx_filteroverlay_overscan;
+	int gfx_filter_scanlines;
+	int gfx_filter_scanlineratio;
+	int gfx_filter_scanlinelevel;
+	float gfx_filter_horiz_zoom, gfx_filter_vert_zoom;
+	float gfx_filter_horiz_zoom_mult, gfx_filter_vert_zoom_mult;
+	float gfx_filter_horiz_offset, gfx_filter_vert_offset;
+	int gfx_filter_filtermode;
+	int gfx_filter_bilinear;
+	int gfx_filter_noise, gfx_filter_blur;
+	int gfx_filter_saturation, gfx_filter_luminance, gfx_filter_contrast, gfx_filter_gamma;
+	int gfx_filter_keep_aspect, gfx_filter_aspect;
+	int gfx_filter_autoscale;
+	int gfx_filter_keep_autoscale_aspect;
+};
+
 struct uae_prefs {
 
 	struct strlist *all_lines;
@@ -354,7 +379,7 @@ struct uae_prefs {
 	int gfx_resolution;
 	int gfx_vresolution;
 	int gfx_lores_mode;
-	int gfx_scanlines;
+	int gfx_pscanlines, gfx_iscanlines;
 	int gfx_xcenter, gfx_ycenter;
 	int gfx_xcenter_pos, gfx_ycenter_pos;
 	int gfx_xcenter_size, gfx_ycenter_size;
@@ -366,25 +391,7 @@ struct uae_prefs {
 	int gfx_extrawidth;
 	bool lightboost_strobo;
 
-	int gfx_filter;
-	TCHAR gfx_filtershader[2 * MAX_FILTERSHADERS + 1][MAX_DPATH];
-	TCHAR gfx_filtermask[2 * MAX_FILTERSHADERS + 1][MAX_DPATH];
-	TCHAR gfx_filteroverlay[MAX_DPATH];
-	struct wh gfx_filteroverlay_pos;
-	int gfx_filteroverlay_overscan;
-	int gfx_filter_scanlines;
-	int gfx_filter_scanlineratio;
-	int gfx_filter_scanlinelevel;
-	float gfx_filter_horiz_zoom, gfx_filter_vert_zoom;
-	float gfx_filter_horiz_zoom_mult, gfx_filter_vert_zoom_mult;
-	float gfx_filter_horiz_offset, gfx_filter_vert_offset;
-	int gfx_filter_filtermode;
-	int gfx_filter_bilinear;
-	int gfx_filter_noise, gfx_filter_blur;
-	int gfx_filter_saturation, gfx_filter_luminance, gfx_filter_contrast, gfx_filter_gamma;
-	int gfx_filter_keep_aspect, gfx_filter_aspect;
-	int gfx_filter_autoscale;
-	int gfx_filter_keep_autoscale_aspect;
+	struct gfx_filterdata gf[2];
 
 	float rtg_horiz_zoom_mult;
 	float rtg_vert_zoom_mult;
@@ -603,6 +610,7 @@ struct uae_prefs {
 	int input_autofire_linecnt;
 	int input_mouse_speed;
 	int input_tablet;
+	bool tablet_library;
 	bool input_magic_mouse;
 	int input_magic_mouse_cursor;
 	int input_keyboard_type;
@@ -675,6 +683,7 @@ extern void cfgfile_parse_lines (struct uae_prefs *p, const TCHAR *, int);
 extern int cfgfile_parse_option (struct uae_prefs *p, TCHAR *option, TCHAR *value, int);
 extern int cfgfile_get_description (const TCHAR *filename, TCHAR *description, TCHAR *hostlink, TCHAR *hardwarelink, int *type);
 extern void cfgfile_show_usage (void);
+extern int cfgfile_searchconfig(const TCHAR *in, int index, TCHAR *out, int outsize);
 extern uae_u32 cfgfile_uaelib (int mode, uae_u32 name, uae_u32 dst, uae_u32 maxlen);
 extern uae_u32 cfgfile_uaelib_modify (uae_u32 mode, uae_u32 parms, uae_u32 size, uae_u32 out, uae_u32 outsize);
 extern uae_u32 cfgfile_modify (uae_u32 index, TCHAR *parms, uae_u32 size, TCHAR *out, uae_u32 outsize);
@@ -703,85 +712,6 @@ extern void machdep_free (void);
 #undef __unix
 #define __unix
 #endif
-
-#define MAX_COLOR_MODES 5
-
-/* #define NEED_TO_DEBUG_BADLY */
-
-#if !defined(USER_PROGRAMS_BEHAVE)
-#define USER_PROGRAMS_BEHAVE 0
-#endif
-
-/* Some memsets which know that they can safely overwrite some more memory
- * at both ends and use that knowledge to align the pointers. */
-
-#define QUADRUPLIFY(c) (((c) | ((c) << 8)) | (((c) | ((c) << 8)) << 16))
-
-/* When you call this routine, bear in mind that it rounds the bounds and
- * may need some padding for the array. */
-
-#define fuzzy_memset(p, c, o, l) fuzzy_memset_1 ((p), QUADRUPLIFY (c), (o) & ~3, ((l) + 4) >> 2)
-STATIC_INLINE void fuzzy_memset_1 (void *p, uae_u32 c, int offset, int len)
-{
-    uae_u32 *p2 = (uae_u32 *)((TCHAR *)p + offset);
-    int a = len & 7;
-    len >>= 3;
-    switch (a) {
-     case 7: p2--; goto l1;
-     case 6: p2-=2; goto l2;
-     case 5: p2-=3; goto l3;
-     case 4: p2-=4; goto l4;
-     case 3: p2-=5; goto l5;
-     case 2: p2-=6; goto l6;
-     case 1: p2-=7; goto l7;
-     case 0: if (!--len) return; break;
-    }
-
-    for (;;) {
-	p2[0] = c;
-	l1:
-	p2[1] = c;
-	l2:
-	p2[2] = c;
-	l3:
-	p2[3] = c;
-	l4:
-	p2[4] = c;
-	l5:
-	p2[5] = c;
-	l6:
-	p2[6] = c;
-	l7:
-	p2[7] = c;
-
-	if (!len)
-	    break;
-	len--;
-	p2 += 8;
-    }
-}
-
-/* This one knows it will never be asked to clear more than 32 bytes.  Make sure you call this with a
-   constant for the length.  */
-#define fuzzy_memset_le32(p, c, o, l) fuzzy_memset_le32_1 ((p), QUADRUPLIFY (c), (o) & ~3, ((l) + 7) >> 2)
-STATIC_INLINE void fuzzy_memset_le32_1 (void *p, uae_u32 c, int offset, int len)
-{
-    uae_u32 *p2 = (uae_u32 *)((TCHAR *)p + offset);
-
-    switch (len) {
-     case 9: p2[0] = c; p2[1] = c; p2[2] = c; p2[3] = c; p2[4] = c; p2[5] = c; p2[6] = c; p2[7] = c; p2[8] = c; break;
-     case 8: p2[0] = c; p2[1] = c; p2[2] = c; p2[3] = c; p2[4] = c; p2[5] = c; p2[6] = c; p2[7] = c; break;
-     case 7: p2[0] = c; p2[1] = c; p2[2] = c; p2[3] = c; p2[4] = c; p2[5] = c; p2[6] = c; break;
-     case 6: p2[0] = c; p2[1] = c; p2[2] = c; p2[3] = c; p2[4] = c; p2[5] = c; break;
-     case 5: p2[0] = c; p2[1] = c; p2[2] = c; p2[3] = c; p2[4] = c; break;
-     case 4: p2[0] = c; p2[1] = c; p2[2] = c; p2[3] = c; break;
-     case 3: p2[0] = c; p2[1] = c; p2[2] = c; break;
-     case 2: p2[0] = c; p2[1] = c; break;
-     case 1: p2[0] = c; break;
-     case 0: break;
-     default: printf("Hit the programmer.\n"); break;
-    }
-}
 
 #if defined TARGET_AMIGAOS && defined(__GNUC__)
 #include "od-amiga/amiga-kludges.h"

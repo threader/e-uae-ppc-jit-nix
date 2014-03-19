@@ -1,6 +1,6 @@
 ACLOCAL_AMFLAGS = -I m4
 
-EXTRA_DIST = m4 amiga docs CHANGES README
+EXTRA_DIST = m4 amiga android debian docs CHANGES README uae_data
 
 SUBDIRS = src
 

@@ -177,6 +177,7 @@ void portio_list_add(PortioList *piolist,
                      uint32_t addr);
 void portio_list_del(PortioList *piolist);
 
+
 typedef struct IORangeOps IORangeOps;
 
 typedef struct IORange {
@@ -192,6 +193,7 @@ struct IORangeOps {
                   uint64_t data);
     void (*destructor)(IORange *iorange);
 };
+
 
 typedef void (IOPortWriteFunc)(void *opaque, uint32_t address, uint32_t data);
 typedef uint32_t (IOPortReadFunc)(void *opaque, uint32_t address);
@@ -226,12 +228,11 @@ void qemu_register_reset(QEMUResetHandler *func, void *opaque);
 typedef struct CirrusVGAState CirrusVGAState;
 
 typedef void (*cirrus_bitblt_rop_t) (CirrusVGAState *s,
-                                     uint8_t * dst, const uint8_t * src,
-				     int dstpitch, int srcpitch,
-				     int bltwidth, int bltheight);
+					uint8_t * dst, const uint8_t * src,
+					int dstpitch, int srcpitch,
+					int bltwidth, int bltheight);
 typedef void (*cirrus_fill_t)(CirrusVGAState *s,
                               uint8_t *dst, int dst_pitch, int width, int height);
-
 
 struct CirrusVGAState {
     VGACommonState vga;

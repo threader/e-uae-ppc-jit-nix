@@ -35,12 +35,9 @@
 #include "misc.h"
 #include "zfile.h"
 #include "gfxboard.h"
+#include <sys/mman.h>
 
 extern uae_u8 *natmem_offset, *natmem_offset_end;
-
-#ifdef USE_MAPPED_MEMORY
-#include <sys/mman.h>
-#endif
 
 bool canbang;
 int candirect = -1;

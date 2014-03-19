@@ -71,10 +71,6 @@ extern void REGPARAM3 op_unimpl (uae_u16) REGPARAM;
 typedef uae_u8 flagtype;
 
 #ifdef FPUEMU
-/* You can set this to long double to be more accurate. However, the
-   resulting alignment issues will cost a lot of performance in some
-   apps */
-#define USE_LONG_DOUBLE 0
 
 #if USE_LONG_DOUBLE
 typedef long double fptype;
@@ -171,9 +167,13 @@ struct regstruct
 #ifdef FPUEMU
 	fpdata fp[8];
 	fpdata fp_result;
+	uae_u32 fp_result_status;
 	uae_u32 fpcr, fpsr, fpiar;
-	uae_u32 fpsr_highbyte;
 	uae_u32 fpu_state;
+	uae_u32 fpu_exp_state;
+	fpdata exp_src1, exp_src2;
+	uae_u32 exp_pack[3];
+	uae_u16 exp_opcode, exp_extra, exp_type;
 	bool fp_exception;
 #endif
 #ifndef CPUEMU_68000_ONLY
@@ -183,8 +183,9 @@ struct regstruct
 	uae_u32 mmu_fslw;
 	uae_u32 mmu_fault_addr, mmu_effective_addr;
 	uae_u16 mmu_ssw;
+	uae_u32 wb2_address;
 	uae_u32 wb3_data;
-	uae_u16 wb3_status;
+	uae_u8 wb3_status, wb2_status;
 	int mmu_enabled;
 	int mmu_page_size;
 #endif

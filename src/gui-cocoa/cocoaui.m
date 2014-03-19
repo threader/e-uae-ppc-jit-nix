@@ -1014,7 +1014,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 	}
 
 	if (menuAction == @selector(changeGfxLineMode:)) {
-		v = changed_prefs.gfx_scanlines;
+		v = changed_prefs.gfx_iscanlines;
 		if (v == tag) [menuItem setState:NSOnState];
 		else [menuItem setState:NSOffState];
 	}
@@ -1780,7 +1780,7 @@ static BOOL wasFullscreen = NO; // used by ensureNotFullscreen() and restoreFull
 // gfx - line mode
 - (void)changeGfxLineMode:(id)sender
 {
-	changed_prefs.gfx_scanlines = [((NSMenuItem*)sender) tag];
+	changed_prefs.gfx_iscanlines = [((NSMenuItem*)sender) tag];
 	config_changed = 1;
 }
 

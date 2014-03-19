@@ -25,6 +25,8 @@
 #include "memory_uae.h"
 #include "audio.h"
 
+#define MAX_COLOR_MODES 5
+
 #define MAX_MENU_HEIGHT 15
 #define OPTION_COLUMN 3
 #define MENU_COL_OFFSET -2

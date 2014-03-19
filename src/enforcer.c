@@ -433,7 +433,7 @@ static uae_u32 REGPARAM2 chipmem_lget2 (uaecptr addr)
 
 	if (ISILLEGAL_LONG (addr))
 	{
-		enforcer_display_hit (_T("LONG READ from"),m68k_getpc(),addr);
+		enforcer_display_hit (_T("LONG READ from"), m68k_getpc (), addr);
 		if (enforcermode & 1)
 			set_special (SPCFLAG_TRAP);
 	}
@@ -450,7 +450,7 @@ static uae_u32 REGPARAM2 chipmem_wget2(uaecptr addr)
 
 	if (ISILLEGAL_WORD (addr))
 	{
-		enforcer_display_hit (_T("WORD READ from"),m68k_getpc(),addr);
+		enforcer_display_hit (_T("WORD READ from"), m68k_getpc (), addr);
 		if (enforcermode & 1)
 			set_special (SPCFLAG_TRAP);
 	}
@@ -464,7 +464,7 @@ static uae_u32 REGPARAM2 chipmem_bget2 (uaecptr addr)
 
 	if (ISILLEGAL_BYTE (addr))
 	{
-		enforcer_display_hit (_T("BYTE READ from"),m68k_getpc(),addr);
+		enforcer_display_hit (_T("BYTE READ from"), m68k_getpc (), addr);
 		if (enforcermode & 1)
 			set_special (SPCFLAG_TRAP);
 	}
@@ -482,7 +482,7 @@ static void REGPARAM2 chipmem_lput2 (uaecptr addr, uae_u32 l)
 
 	if (ISILLEGAL_LONG (addr))
 	{
-		enforcer_display_hit (_T("LONG WRITE to"),m68k_getpc(),addr);
+		enforcer_display_hit (_T("LONG WRITE to"), m68k_getpc (), addr);
 		if (enforcermode & 1)
 			if (addr != 0x100)
 				set_special (SPCFLAG_TRAP);
@@ -502,7 +502,7 @@ static void REGPARAM2 chipmem_wput2 (uaecptr addr, uae_u32 w)
 
 	if (ISILLEGAL_WORD (addr))
 	{
-		enforcer_display_hit (_T("WORD WRITE to"),m68k_getpc(),addr);
+		enforcer_display_hit (_T("WORD WRITE to"), m68k_getpc (), addr);
 		if (enforcermode & 1)
 			set_special (SPCFLAG_TRAP);
 	}
@@ -518,7 +518,7 @@ static void REGPARAM2 chipmem_bput2 (uaecptr addr, uae_u32 b)
 
 	if (ISILLEGAL_BYTE (addr))
 	{
-		enforcer_display_hit (_T("BYTE WRITE to"),m68k_getpc(),addr);
+		enforcer_display_hit (_T("BYTE WRITE to"), m68k_getpc (), addr);
 		if (enforcermode & 1)
 			set_special (SPCFLAG_TRAP);
 	}
@@ -544,7 +544,7 @@ static uae_u8 * REGPARAM2 chipmem_xlate2 (uaecptr addr)
 static uae_u32 REGPARAM2 dummy_lget2 (uaecptr addr)
 {
 	special_mem_r;
-	enforcer_display_hit (_T("LONG READ from"),m68k_getpc(), addr);
+	enforcer_display_hit (_T("LONG READ from"), m68k_getpc (), addr);
 	if (enforcermode & 1) {
 		set_special (SPCFLAG_TRAP);
 		return 0;
@@ -564,12 +564,12 @@ static uae_u32 REGPARAM2 dummy_wget2 (uaecptr addr)
 	if (addr >= 0x00F10000 && addr <= 0x00F7FFFF) {
 		if (!warned_JIT_0xF10000) {
 			warned_JIT_0xF10000 = 1;
-			enforcer_display_hit (_T("LONG READ from"),m68k_getpc(),addr);
+			enforcer_display_hit (_T("LONG READ from"), m68k_getpc (), addr);
 		}
 		return 0;
 	}
 #endif
-	enforcer_display_hit (_T("WORD READ from"),m68k_getpc(),addr);
+	enforcer_display_hit (_T("WORD READ from"), m68k_getpc (), addr);
 	if (enforcermode & 1) {
 		set_special (SPCFLAG_TRAP);
 		return 0;
@@ -580,7 +580,7 @@ static uae_u32 REGPARAM2 dummy_wget2 (uaecptr addr)
 static uae_u32	REGPARAM2 dummy_bget2 (uaecptr addr)
 {
 	special_mem_r;
-	enforcer_display_hit (_T("BYTE READ from"),m68k_getpc(),addr);
+	enforcer_display_hit (_T("BYTE READ from"), m68k_getpc (), addr);
 	if (enforcermode & 1) {
 		set_special (SPCFLAG_TRAP);
 		return 0;
@@ -591,7 +591,7 @@ static uae_u32	REGPARAM2 dummy_bget2 (uaecptr addr)
 static void REGPARAM2 dummy_lput2 (uaecptr addr, uae_u32 l)
 {
 	special_mem_w;
-	enforcer_display_hit (_T("LONG WRITE to"),m68k_getpc(),addr);
+	enforcer_display_hit (_T("LONG WRITE to"), m68k_getpc (), addr);
 	if (enforcermode & 1) {
 		set_special (SPCFLAG_TRAP);
 		return;
@@ -601,7 +601,7 @@ static void REGPARAM2 dummy_lput2 (uaecptr addr, uae_u32 l)
 static void REGPARAM2 dummy_wput2 (uaecptr addr, uae_u32 w)
 {
 	special_mem_w;
-	enforcer_display_hit (_T("WORD WRITE to"),m68k_getpc(),addr);
+	enforcer_display_hit (_T("WORD WRITE to"), m68k_getpc (), addr);
 	if (enforcermode & 1) {
 		set_special (SPCFLAG_TRAP);
 		return;
@@ -611,7 +611,7 @@ static void REGPARAM2 dummy_wput2 (uaecptr addr, uae_u32 w)
 static void REGPARAM2 dummy_bput2 (uaecptr addr, uae_u32 b)
 {
 	special_mem_w;
-	enforcer_display_hit (_T("BYTE WRITE to"),m68k_getpc(),addr);
+	enforcer_display_hit (_T("BYTE WRITE to"), m68k_getpc (), addr);
 	if (enforcermode & 1) {
 		set_special (SPCFLAG_TRAP);
 		return;
@@ -622,7 +622,7 @@ static void REGPARAM2 dummy_bput2 (uaecptr addr, uae_u32 b)
 static int REGPARAM2 dummy_check2 (uaecptr addr, uae_u32 size)
 {
 	special_mem_r;
-	enforcer_display_hit (_T("CHECK from "),m68k_getpc(),addr);
+	enforcer_display_hit (_T("CHECK from "), m68k_getpc (), addr);
 	return 0;
 }
 #endif //0
