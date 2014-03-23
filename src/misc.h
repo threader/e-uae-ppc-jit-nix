@@ -10,7 +10,7 @@
  * Copyright 2010-2013 Mustafa TUFAN
  */
 
-void getgfxoffset (int *dxp, int *dyp, int *mxp, int *myp);
+void getgfxoffset (float *dxp, float *dyp, float *mxp, float *myp);
 int isfullscreen (void);
 void fetch_configurationpath (TCHAR *out, int size);
 TCHAR* buf_out (TCHAR *buffer, int *bufsize, const TCHAR *format, ...);
