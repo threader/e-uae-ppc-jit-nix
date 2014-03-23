@@ -137,10 +137,10 @@ static uae_u32 REGPARAM2 lib_dofunc (TrapContext *context)
 	uaecptr td = m68k_areg (regs, 1);
 	filltags (td);
 	if (ksversion < 39)
-		return 1;
+		return 0;
 	td = get_long (im + 52);
 	if (!td)
-		return 1;
+		return 0;
 	return 1;
 }
 static uae_u32 REGPARAM2 lib_unkfunc (TrapContext *context)
