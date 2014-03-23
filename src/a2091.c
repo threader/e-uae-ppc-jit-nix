@@ -251,14 +251,14 @@ static void INT2 (void)
 		uae_int_requested |= 2;
 }
 
-static void scsi_dmac_start_dma (void)
+void scsi_dmac_start_dma (void)
 {
 #if A3000_DEBUG > 0 || A2091_DEBUG > 0
 	write_log (_T("DMAC DMA started, ADDR=%08X, LEN=%08X words\n"), dmac_acr, dmac_wtc);
 #endif
 	dmac_dma = 1;
 }
-static void scsi_dmac_stop_dma (void)
+void scsi_dmac_stop_dma (void)
 {
 	dmac_dma = 0;
 	dmac_istr &= ~ISTR_E_INT;
@@ -1657,7 +1657,7 @@ static void *scsi_thread (void *null)
 	return 0;
 }
 
-static void init_scsi (void)
+void init_scsi (void)
 {
 	if (!scsi_thread_running) {
 		scsi_thread_running = 1;

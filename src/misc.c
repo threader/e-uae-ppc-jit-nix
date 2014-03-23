@@ -92,7 +92,7 @@ extern int isvsync_chipset (void);
 extern int isvsync_rtg (void);
 
 
-void getgfxoffset (int *dxp, int *dyp, int *mxp, int *myp)
+void getgfxoffset (float *dxp, float *dyp, float *mxp, float *myp)
 {
 	*dxp = 0;
 	*dyp = 0;
