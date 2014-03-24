@@ -9328,7 +9328,7 @@ STATIC_INLINE void helper_MOVMEM2REG(const cpu_history* history, struct comptbl*
 		{
 		case 4:
 			comp_macroblock_push_copy_register_long(
-					COMP_COMPILER_MACROBLOCK_REG_NONE,
+					COMP_COMPILER_MACROBLOCK_TMP_REG_SPEC,
 					output_dep,
 					dest_reg->mapped_reg_num,
 					PPCR_SPECTMP_MAPPED);
@@ -9338,14 +9338,14 @@ STATIC_INLINE void helper_MOVMEM2REG(const cpu_history* history, struct comptbl*
 			{
 				//Result is inserted into data register
 				comp_macroblock_push_copy_register_word(
-						COMP_COMPILER_MACROBLOCK_REG_NONE,
+						output_dep | COMP_COMPILER_MACROBLOCK_TMP_REG_SPEC,
 						output_dep,
 						dest_reg->mapped_reg_num,
 						PPCR_SPECTMP_MAPPED);
 			} else {
 				//Result is sign-extended into address register
 				comp_macroblock_push_copy_register_word_extended(
-						COMP_COMPILER_MACROBLOCK_REG_NONE,
+						COMP_COMPILER_MACROBLOCK_TMP_REG_SPEC,
 						output_dep,
 						dest_reg->mapped_reg_num,
 						PPCR_SPECTMP_MAPPED,
@@ -9354,7 +9354,7 @@ STATIC_INLINE void helper_MOVMEM2REG(const cpu_history* history, struct comptbl*
 			break;
 		case 1:
 			comp_macroblock_push_copy_register_byte(
-					COMP_COMPILER_MACROBLOCK_REG_NONE,
+					output_dep | COMP_COMPILER_MACROBLOCK_TMP_REG_SPEC,
 					output_dep,
 					dest_reg->mapped_reg_num,
 					PPCR_SPECTMP_MAPPED);
