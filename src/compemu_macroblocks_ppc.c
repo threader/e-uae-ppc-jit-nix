@@ -9128,12 +9128,8 @@ STATIC_INLINE void helper_MOVIMMREG2MEM(const cpu_history* history, uae_u8 size,
 	if (immediate)
 	{
 		//Immediate: load the immediate into a temporary register as source
-		src_reg  = helper_allocate_tmp_reg();
-		input_dep |= src_reg->reg_usage_mapping;
-		comp_macroblock_push_load_register_long(
-				input_dep,
-				src_reg->mapped_reg_num,
-				src_immediate);
+		src_reg  = helper_allocate_tmp_reg_with_init(src_immediate);
+		input_dep |=  src_reg->reg_usage_mapping;
 
 		//Compile static flag settings
 		if (checkflags) helper_move_inst_static_flags(src_immediate);
