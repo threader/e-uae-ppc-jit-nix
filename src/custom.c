@@ -78,7 +78,7 @@ int is_bitplane_dma (int hpos);
 void init_hz_fullinit (bool fullinit);
 void init_hz (void);
 void INTREQ_nodelay (uae_u16 v);
-
+void do_cycles_ce020 (unsigned long cycles);
 
 STATIC_INLINE bool nocustom (void)
 {

@@ -35,7 +35,8 @@
 /* internal prototypes */
 uae_u32 get_fpsr (void);
 void fpp_setexcept (uae_u16 mask);
-
+void from_pack (fptype src, uae_u32 *wrd, int kfactor);
+uae_u32 get_ftag (fpdata *fp);
 
 STATIC_INLINE int isinrom (void)
 {
@@ -601,16 +602,28 @@ uae_u32 get_fpsr (void)
 	uae_u32 answer = regs.fpsr & 0x00ff00f8;
 
 	// exception status byte
+#ifdef FE_INEXACT
 	if (regs.fp_result_status & FE_INEXACT)
 		answer |= 1 << 9;
+#endif
+#ifdef FE_DIVBYZERO
 	if (regs.fp_result_status & FE_DIVBYZERO)
 		answer |= 1 << 10;
+#endif
+#ifdef FE_UNDERFLOW
 	if (regs.fp_result_status & FE_UNDERFLOW)
 		answer |= 1 << 11;
+#endif
+#ifdef FE_OVERFLOW
 	if (regs.fp_result_status & FE_OVERFLOW)
 		answer |= 1 << 12;
+#endif
+#ifdef FE_INVALID
 	if (regs.fp_result_status & FE_INVALID)
 		answer |= 1 << 13;
+#else
+#define FE_INVALID 0
+#endif
 
 	// accrued exception byte
 	if (answer & ((1 << 14)  | (1 << 13)))
@@ -748,7 +761,7 @@ void from_pack (fptype src, uae_u32 *wrd, int kfactor)
 #else
 	sprintf (str, "%#.17e", src);
 #endif
-	
+
 	// get exponent
 	cp = str;
 	while (*cp++ != 'e');
