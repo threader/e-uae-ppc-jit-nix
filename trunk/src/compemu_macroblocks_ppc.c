@@ -10905,7 +10905,7 @@ STATIC_INLINE comp_tmp_reg* helper_read_memory_mapped(uae_u64 regsin, const cpu_
 		{
 			//Store the destination register temporarily
 			comp_macroblock_push_save_register_to_context(
-					input_dep | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
+					input_dep | dest_mem_addrreg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
 					dest_mem_addrreg->mapped_reg_num);
 		}
 
