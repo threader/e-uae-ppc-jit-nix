@@ -1123,7 +1123,7 @@ void comp_opcode_MOVREG2REG(const cpu_history* history, struct comptbl* props) R
 		break;
 	case 2:
 		comp_macroblock_push_copy_register_word(
-				input_dep,
+				input_dep | output_dep,
 				output_dep,
 				dest_reg->mapped_reg_num,
 				src_reg->mapped_reg_num);
@@ -1132,7 +1132,7 @@ void comp_opcode_MOVREG2REG(const cpu_history* history, struct comptbl* props) R
 		break;
 	case 1:
 		comp_macroblock_push_copy_register_byte(
-				input_dep,
+				input_dep | output_dep,
 				output_dep,
 				dest_reg->mapped_reg_num,
 				src_reg->mapped_reg_num);
