@@ -1416,6 +1416,7 @@ void comp_opcode_PEAIND(const cpu_history* history, struct comptbl* props) REGPA
 
 	//The source memory mapped register is the source register for the memory operation
 	src_reg = src_mem_addrreg;
+	input_dep |= src_mem_addrreg->reg_usage_mapping;
 
 	//Store source address from the register using the A7 register into memory,
 	//skip the flag checking
@@ -1467,6 +1468,7 @@ void comp_opcode_SCCMEM(const cpu_history* history, struct comptbl* props) REGPA
 {
 	//Allocate a temp register for the calculated source byte
 	src_reg = helper_allocate_tmp_reg();
+	input_dep |= src_reg->reg_usage_mapping;
 
 	//Call the macroblock which produces the source byte into the temp register
 	comp_macroblock_push_set_byte_from_z_flag(
