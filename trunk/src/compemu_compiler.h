@@ -52,6 +52,7 @@ typedef void comp_compiler_macroblock_func (union comp_compiler_mb_union*) REGPA
 #define COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN	(1ULL << 24)
 
 //Non-volatile register dependency tracking
+#define COMP_COMPILER_MACROBLOCK_NONVOL_START	25
 #define COMP_COMPILER_MACROBLOCK_REG_NONVOL0	(1ULL << 25)
 #define COMP_COMPILER_MACROBLOCK_REG_NONVOL1	(1ULL << 26)
 
