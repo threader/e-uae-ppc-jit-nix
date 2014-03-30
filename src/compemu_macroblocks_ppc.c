@@ -9487,7 +9487,7 @@ STATIC_INLINE void helper_MOVEM2MEM(const cpu_history* history, struct comptbl* 
 
 		//Copy destination address register to the non-volatile register
 		comp_macroblock_push_copy_register_long(
-				output_dep,
+				input_dep | (update ? 0 : dest_mem_addrreg->reg_usage_mapping),
 				COMP_COMPILER_MACROBLOCK_REG_NONVOL0,
 				PPCR_TMP_NONVOL0_MAPPED,
 				update ? dest_reg->mapped_reg_num :  dest_mem_addrreg->mapped_reg_num);
@@ -9694,7 +9694,7 @@ STATIC_INLINE void helper_MOVEM2REG(const cpu_history* history, struct comptbl* 
 
 		//Copy source address register to the non-volatile register
 		comp_macroblock_push_copy_register_long(
-				input_dep,
+				input_dep | (update ? 0 : src_mem_addrreg->reg_usage_mapping),
 				COMP_COMPILER_MACROBLOCK_REG_NONVOL0,
 				PPCR_TMP_NONVOL0_MAPPED,
 				update ? src_reg->mapped_reg_num : src_mem_addrreg->mapped_reg_num);
