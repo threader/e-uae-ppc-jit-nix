@@ -1218,22 +1218,26 @@ void comp_dump_reg_usage(uae_u64 regs, char* str, char dump_control)
 	//Dump control flags if enabled
 	if (dump_control)
 	{
-		for(i = 63; i > COMP_COMPILER_MACROBLOCK_CONTROL_FLAGS_START - 1; i--) str[j++] = regs & (1UL << i) ? '1' : '0';
+		for(i = 63; i > COMP_COMPILER_MACROBLOCK_CONTROL_FLAGS_START - 1; i--) str[j++] = ((regs & (1ULL << i)) != 0) ? '1' : '0';
 		str[j++] = ' ';
 	}
 
 	//Dump temporary regs
-	for(i = COMP_COMPILER_MACROBLOCK_TMP_REGS_START + PPC_TMP_REGS_COUNT; i > COMP_COMPILER_MACROBLOCK_TMP_REGS_START - 1; i--) str[j++] = regs & (1UL << i) ? '1' : '0';
+	for(i = COMP_COMPILER_MACROBLOCK_TMP_REGS_START + PPC_TMP_REGS_COUNT; i > COMP_COMPILER_MACROBLOCK_TMP_REGS_START - 1; i--) str[j++] = ((regs & (1ULL << i)) != 0) ? '1' : '0';
 	str[j++] = ' ';
 
 	//Dump normal regs
-	for(i = COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGS_START - 1; i > COMP_COMPILER_MACROBLOCK_ADDR_REGS_START - 1; i--) str[j++] = regs & (1UL << i) ? '1' : '0';
+	for(i = COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGS_START - 1; i > COMP_COMPILER_MACROBLOCK_ADDR_REGS_START - 1; i--) str[j++] = ((regs & (1ULL << i)) != 0) ? '1' : '0';
 	str[j++] = ' ';
-	for(i = COMP_COMPILER_MACROBLOCK_ADDR_REGS_START - 1; i > COMP_COMPILER_MACROBLOCK_REGS_START - 1; i--) str[j++] = regs & (1UL << i) ? '1' : '0';
+	for(i = COMP_COMPILER_MACROBLOCK_ADDR_REGS_START - 1; i > COMP_COMPILER_MACROBLOCK_REGS_START - 1; i--) str[j++] = ((regs & (1ULL << i)) != 0) ? '1' : '0';
 	str[j++] = ' ';
 
 	//Dump flags
-	for(i = COMP_COMPILER_MACROBLOCK_REGS_START - 1; i > - 1; i--) str[j++] = regs & (1UL << i) ? '1' : '0';
+	for(i = COMP_COMPILER_MACROBLOCK_REGS_START - 1; i > - 1; i--) str[j++] = ((regs & (1ULL << i)) != 0) ? '1' : '0';
+	str[j++] = ' ';
+
+	//Dump internal flags
+	for(i = COMP_COMPILER_MACROBLOCK_NONVOL_START - 1; i > COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGS_START - 1; i--) str[j++] = ((regs & (1ULL << i)) != 0) ? '1' : '0';
 
 	str[j] = '\0';
 }
