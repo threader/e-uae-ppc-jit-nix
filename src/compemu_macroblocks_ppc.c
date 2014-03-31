@@ -5252,7 +5252,7 @@ void comp_opcode_CMPIMM2MEM(const cpu_history* history, struct comptbl* props) R
 
 		//Compile SUBFCO PPC opcode
 		comp_macroblock_push_sub_with_flags(
-				output_dep | immtempreg->reg_usage_mapping,
+				tempreg->reg_usage_mapping | immtempreg->reg_usage_mapping,
 				COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL,
 				immtempreg->mapped_reg_num,
 				immtempreg->mapped_reg_num,
