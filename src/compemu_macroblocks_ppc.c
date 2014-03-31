@@ -3575,7 +3575,7 @@ void comp_opcode_LSLREG2REG(const cpu_history* history, struct comptbl* props) R
 
 		//Shifting to the left
 		comp_macroblock_push_logic_shift_left_register_register(
-				input_dep | output_dep,
+				shiftreg->reg_usage_mapping | output_dep,
 				output_dep | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
 				dest_reg->mapped_reg_num,
 				dest_reg->mapped_reg_num,
@@ -3744,7 +3744,7 @@ void comp_opcode_LSRREG2REG(const cpu_history* history, struct comptbl* props) R
 
 		//Shifting to the right
 		comp_macroblock_push_logic_shift_right_register_register(
-				input_dep | output_dep,
+				shiftreg->reg_usage_mapping | output_dep,
 				output_dep | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
 				dest_reg->mapped_reg_num,
 				dest_reg->mapped_reg_num,
@@ -4441,7 +4441,7 @@ void comp_opcode_RORREG2REG(const cpu_history* history, struct comptbl* props) R
 
 		//Shifting to the left
 		comp_macroblock_push_rotate_and_mask_bits_register(
-				input_dep | output_dep,
+				shiftreg->reg_usage_mapping | output_dep,
 				output_dep | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
 				dest_reg->mapped_reg_num,
 				dest_reg->mapped_reg_num,
