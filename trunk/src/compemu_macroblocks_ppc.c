@@ -1704,7 +1704,7 @@ void comp_opcode_JMPIND(const cpu_history* history, struct comptbl* props) REGPA
 {
 	//Load target address to PC
 	comp_macroblock_push_load_pc_from_register(
-			input_dep,
+			src_mem_addrreg->reg_usage_mapping,
 			src_mem_addrreg->mapped_reg_num);
 }
 void comp_opcode_JSRIMM(const cpu_history* history, struct comptbl* props) REGPARAM
@@ -1744,7 +1744,7 @@ void comp_opcode_JSRIND(const cpu_history* history, struct comptbl* props) REGPA
 {
 	//Load target address to PC
 	comp_macroblock_push_load_pc_from_register(
-			input_dep,
+			src_mem_addrreg->reg_usage_mapping,
 			src_mem_addrreg->mapped_reg_num);
 
 	//Load the next address after the current instruction into a temp register
