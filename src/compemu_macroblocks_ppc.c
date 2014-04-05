@@ -5362,10 +5362,10 @@ void comp_opcode_ADDMEM2REG(const cpu_history* history, struct comptbl* props) R
 		//Prepare inputs: shift up to the highest word/byte
 		if (size == 2)
 		{
-			helper_pre_word_no_alloc(input_dep, tempreg->mapped_reg_num);
+			helper_pre_word_no_alloc(tempreg->reg_usage_mapping, tempreg->mapped_reg_num);
 			desttempreg = helper_pre_word(output_dep, dest_reg);
 		} else {
-			helper_pre_byte_no_alloc(input_dep, tempreg->mapped_reg_num);
+			helper_pre_byte_no_alloc(tempreg->reg_usage_mapping, tempreg->mapped_reg_num);
 			desttempreg = helper_pre_byte(output_dep, dest_reg);
 		}
 
@@ -5925,10 +5925,10 @@ void comp_opcode_SUBMEM2REG(const cpu_history* history, struct comptbl* props) R
 		//Prepare inputs: shift up to the highest word/byte
 		if (size == 2)
 		{
-			helper_pre_word_no_alloc(input_dep, tempreg->mapped_reg_num);
+			helper_pre_word_no_alloc(tempreg->reg_usage_mapping, tempreg->mapped_reg_num);
 			desttempreg = helper_pre_word(output_dep, dest_reg);
 		} else {
-			helper_pre_byte_no_alloc(input_dep, tempreg->mapped_reg_num);
+			helper_pre_byte_no_alloc(tempreg->reg_usage_mapping, tempreg->mapped_reg_num);
 			desttempreg = helper_pre_byte(output_dep, dest_reg);
 		}
 
