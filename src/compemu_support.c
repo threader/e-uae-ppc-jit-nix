@@ -1062,10 +1062,11 @@ comp_tmp_reg* comp_map_temp_register(uae_u8 reg_number, int needs_init, int need
 
 		if (needs_init)
 		{
-			//The register needs initialization from the interpretive M68k register array
+			//The register needs initialization from the interpretive M68k register array,
+			//this instruction produces both allocated register and temporary register as an output
 			comp_macroblock_push_load_memory_long(
 					COMP_COMPILER_MACROBLOCK_REG_NONE,
-					COMP_COMPILER_MACROBLOCK_REG_DX_OR_AX(reg_number),
+					COMP_COMPILER_MACROBLOCK_REG_DX_OR_AX(reg_number) | temp_reg->reg_usage_mapping,
 					temp_reg->mapped_reg_num,
 					PPCR_REGS_BASE_MAPPED,
 					reg_number * 4);
