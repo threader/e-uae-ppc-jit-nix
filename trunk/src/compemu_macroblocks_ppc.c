@@ -11488,7 +11488,7 @@ STATIC_INLINE void helper_bit_field_mem_opertion_flag_test(const cpu_history* hi
 	//TODO: if it would be possible to specify a target register to the helper then this step would not be needed
 	//Save result into the temporary storage
 	comp_macroblock_push_save_register_to_context(
-			result_reg->reg_usage_mapping,
+			result_reg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
 			result_reg->mapped_reg_num);
 
 	//Release result temp reg
