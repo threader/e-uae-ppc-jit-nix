@@ -6486,6 +6486,7 @@ void comp_opcode_MULLIMM2REG(const cpu_history* history, struct comptbl* props) 
 {
 	//Load immediate into a register
 	comp_tmp_reg* local_src_reg = helper_allocate_tmp_reg_with_init(src_immediate);
+	input_dep |= local_src_reg->reg_usage_mapping;
 
 	//Compile the multiplication
 	helper_mull(history, local_src_reg, TRUE);
@@ -6504,6 +6505,7 @@ void comp_opcode_MULLMEM2REG(const cpu_history* history, struct comptbl* props) 
 			src_mem_addrreg,
 			4,
 			FALSE);
+	input_dep |= local_src_reg->reg_usage_mapping;
 
 	//Compile the multiplication
 	helper_mull(history, local_src_reg, TRUE);
