@@ -534,7 +534,7 @@ STATIC_INLINE uae_u8 *pfield_xlateptr (uaecptr plpt, int bytecount)
 	return chipmem_xlate_indirect (plpt);
 }
 
-STATIC_INLINE void docols (struct color_entry *colentry)
+static void docols (struct color_entry *colentry)
 {
 	int i;
 
@@ -1254,7 +1254,7 @@ static void fetch_warn (int nr, int hpos)
 #endif
 }
 
-STATIC_INLINE void fetch (int nr, int fm, int hpos)
+static void fetch (int nr, int fm, int hpos)
 {
 	if ((unsigned int)nr < bplcon0_planes_limit) {
 		uaecptr p;
@@ -1675,7 +1675,7 @@ static void update_denise_shifter_planes (int hpos)
 	}
 }
 
-STATIC_INLINE void update_denise (int hpos)
+static void update_denise (int hpos)
 {
 	int res = GET_RES_DENISE (bplcon0d);
 	if (res != toscr_res)
@@ -1705,7 +1705,7 @@ STATIC_INLINE void fetch_start (int hpos)
 /* Called when all planes have been fetched, i.e. when a new block
 of data is available to be displayed.  The data in fetched[] is
 moved into todisplay[].  */
-STATIC_INLINE void beginning_of_plane_block (int hpos, int fm)
+static void beginning_of_plane_block (int hpos, int fm)
 {
 	int i;
 
@@ -2295,7 +2295,7 @@ STATIC_INLINE int get_ddfstop_to_test (int hpos)
 	return ddfstop_to_test;
 
 }
-STATIC_INLINE void update_fetch (int until, int fm)
+static void update_fetch (int until, int fm)
 {
 	int pos;
 	int dma = dmaen (DMA_BITPLANE);
@@ -2417,7 +2417,7 @@ static void update_fetch_0 (int hpos) { update_fetch (hpos, 0); }
 static void update_fetch_1 (int hpos) { update_fetch (hpos, 1); }
 static void update_fetch_2 (int hpos) { update_fetch (hpos, 2); }
 
-STATIC_INLINE void decide_fetch (int hpos)
+static void decide_fetch (int hpos)
 {
 	if (hpos > last_fetch_hpos) {
 		if (fetch_state != fetch_not_started) {
@@ -2956,7 +2956,7 @@ static void do_sprite_collisions (void)
 #endif
 }
 
-STATIC_INLINE void record_sprite_1 (int sprxp, uae_u16 *buf, uae_u32 datab, int num, int dbl,
+static void record_sprite_1 (int sprxp, uae_u16 *buf, uae_u32 datab, int num, int dbl,
 	unsigned int mask, int do_collisions, uae_u32 collision_mask)
 {
 	int j = 0;
@@ -3239,7 +3239,7 @@ static void decide_sprites (int hpos)
 #endif
 }
 
-STATIC_INLINE int sprites_differ (struct draw_info *dip, struct draw_info *dip_old)
+static int sprites_differ (struct draw_info *dip, struct draw_info *dip_old)
 {
 	struct sprite_entry *this_first = curr_sprite_entries + dip->first_sprite_entry;
 	struct sprite_entry *this_last = curr_sprite_entries + dip->last_sprite_entry;
@@ -3269,7 +3269,7 @@ STATIC_INLINE int sprites_differ (struct draw_info *dip, struct draw_info *dip_o
 	return 0;
 }
 
-STATIC_INLINE int color_changes_differ (struct draw_info *dip, struct draw_info *dip_old)
+static int color_changes_differ (struct draw_info *dip, struct draw_info *dip_old)
 {
 	if (dip->nr_color_changes != dip_old->nr_color_changes)
 		return 1;
@@ -4801,7 +4801,7 @@ static void BPLCON0 (int hpos, uae_u16 v)
 		BPLCON0_Denise (hpos, v, true);
 }
 
-STATIC_INLINE void BPLCON1 (int hpos, uae_u16 v)
+static void BPLCON1 (int hpos, uae_u16 v)
 {
 	if (!(currprefs.chipset_mask & CSMASK_AGA))
 		v &= 0xff;
@@ -4814,7 +4814,7 @@ STATIC_INLINE void BPLCON1 (int hpos, uae_u16 v)
 	bplcon1 = v;
 }
 
-STATIC_INLINE void BPLCON2 (int hpos, uae_u16 v)
+static void BPLCON2 (int hpos, uae_u16 v)
 {
 	if (!(currprefs.chipset_mask & CSMASK_AGA))
 		v &= 0x7f;
@@ -4826,7 +4826,7 @@ STATIC_INLINE void BPLCON2 (int hpos, uae_u16 v)
 }
 
 #ifdef ECS_DENISE
-STATIC_INLINE void BPLCON3 (int hpos, uae_u16 v)
+static void BPLCON3 (int hpos, uae_u16 v)
 {
 	if (!(currprefs.chipset_mask & CSMASK_ECS_DENISE))
 		return;
@@ -4847,7 +4847,7 @@ STATIC_INLINE void BPLCON3 (int hpos, uae_u16 v)
 }
 #endif
 #ifdef AGA
-STATIC_INLINE void BPLCON4 (int hpos, uae_u16 v)
+static void BPLCON4 (int hpos, uae_u16 v)
 {
 	if (!(currprefs.chipset_mask & CSMASK_AGA))
 		return;
@@ -5211,7 +5211,7 @@ STATIC_INLINE void sprstartstop (struct sprite *s)
 		s->dmastate = 0;
 }
 
-STATIC_INLINE void SPRxCTLPOS (int num)
+static void SPRxCTLPOS (int num)
 {
 	int sprxp;
 	struct sprite *s = &spr[num];
@@ -5245,7 +5245,7 @@ STATIC_INLINE void SPRxCTLPOS (int num)
 	sprstartstop (s);
 }
 
-STATIC_INLINE void SPRxCTL_1 (uae_u16 v, int num, int hpos)
+static void SPRxCTL_1 (uae_u16 v, int num, int hpos)
 {
 	struct sprite *s = &spr[num];
 	sprctl[num] = v;
@@ -5259,7 +5259,8 @@ STATIC_INLINE void SPRxCTL_1 (uae_u16 v, int num, int hpos)
 #endif
 
 }
-STATIC_INLINE void SPRxPOS_1 (uae_u16 v, int num, int hpos)
+
+static void SPRxPOS_1 (uae_u16 v, int num, int hpos)
 {
 	struct sprite *s = &spr[num];
 	sprpos[num] = v;
@@ -5271,7 +5272,8 @@ STATIC_INLINE void SPRxPOS_1 (uae_u16 v, int num, int hpos)
 	}
 #endif
 }
-STATIC_INLINE void SPRxDATA_1 (uae_u16 v, int num, int hpos)
+
+static void SPRxDATA_1 (uae_u16 v, int num, int hpos)
 {
 	sprdata[num][0] = v;
 #ifdef AGA
@@ -5287,7 +5289,8 @@ STATIC_INLINE void SPRxDATA_1 (uae_u16 v, int num, int hpos)
 	}
 #endif
 }
-STATIC_INLINE void SPRxDATB_1 (uae_u16 v, int num, int hpos)
+
+static void SPRxDATB_1 (uae_u16 v, int num, int hpos)
 {
 	sprdatb[num][0] = v;
 #ifdef AGA
@@ -6096,7 +6099,7 @@ static void cursorsprite (void)
 */
 }
 
-STATIC_INLINE uae_u16 sprite_fetch (struct sprite *s, int dma, int hpos, int cycle, int mode)
+static uae_u16 sprite_fetch (struct sprite *s, int dma, int hpos, int cycle, int mode)
 {
 	uae_u16 data = last_custom_value1;
 	if (dma) {
@@ -6112,14 +6115,15 @@ STATIC_INLINE uae_u16 sprite_fetch (struct sprite *s, int dma, int hpos, int cyc
 	s->pt += 2;
 	return data;
 }
-STATIC_INLINE uae_u16 sprite_fetch2 (struct sprite *s, int hpos, int cycle, int mode)
+
+static uae_u16 sprite_fetch2 (struct sprite *s, int hpos, int cycle, int mode)
 {
 	uae_u16 data = chipmem_wget_indirect (s->pt);
 	s->pt += 2;
 	return data;
 }
 
-STATIC_INLINE void do_sprites_1 (int num, int cycle, int hpos)
+static void do_sprites_1 (int num, int cycle, int hpos)
 {
 	struct sprite *s = &spr[num];
 	int dma, posctl = 0;
@@ -8035,7 +8039,7 @@ static uae_u32 REGPARAM2 custom_lgeti (uaecptr addr)
 	return custom_lget (addr);
 }
 
-STATIC_INLINE uae_u32 REGPARAM2 custom_wget_1 (int hpos, uaecptr addr, int noput, bool isbyte)
+static uae_u32 REGPARAM2 custom_wget_1 (int hpos, uaecptr addr, int noput, bool isbyte)
 {
 	uae_u16 v;
 	int missing;
@@ -8135,7 +8139,7 @@ writeonly:
 	return v;
 }
 
-STATIC_INLINE uae_u32 custom_wget2 (uaecptr addr, bool byte)
+static uae_u32 custom_wget2 (uaecptr addr, bool byte)
 {
 	uae_u32 v;
 	int hpos = current_hpos ();
@@ -9128,7 +9132,7 @@ STATIC_INLINE void decide_fetch_ce (int hpos)
 // blitter idle cycles do count!)
 
 extern int cpu_tracer;
-STATIC_INLINE int dma_cycle (void)
+static int dma_cycle (void)
 {
 	int hpos, hpos_old;
 

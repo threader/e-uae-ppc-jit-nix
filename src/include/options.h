@@ -571,7 +571,7 @@ struct uae_prefs {
 	int svga_no_linear;
 #endif
 
-	int win32_rtgvblankrate;
+//	int win32_rtgvblankrate;
 #ifdef USE_CURSES_GFX
 	int curses_reverse_video;
 #endif

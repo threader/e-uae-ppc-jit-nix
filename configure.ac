@@ -2153,10 +2153,20 @@ dnl ARM
 dnl quick hack for my pcduino v2 -mtufan
 
 if [[ "x$have_armcpu" = "xyes" ]]; then
+dnl pcduino v2
     OPTIMIZED_FLAGS="-O3 -march=armv7-a -mcpu=cortex-a8 -mtune=cortex-a8 -ffast-math -fomit-frame-pointer -ftracer -fstrict-aliasing"
-    OPTIMIZED_FLAGS="$OPTIMIZED_FLAGS -mstructure-size-boundary=32 -fexpensive-optimizations -ftree-vectorize"
+    OPTIMIZED_FLAGS="$OPTIMIZED_FLAGS -mfpu=neon -mfloat-abi=softfp -ftree-vectorize"
+
+dnl odroid xu
+    OPTIMIZED_FLAGS="-O3 -mcpu=cortex-a15 -mtune=cortex-a15 -ffast-math -fomit-frame-pointer -ftracer -fstrict-aliasing"
+    OPTIMIZED_FLAGS="$OPTIMIZED_FLAGS -mfpu=neon -mfloat-abi=hard -ftree-vectorize -mvectorize-with-neon-quad -fstack-protector --param=ssp-buffer-size=4"
+
+dnl odroid u3
+    OPTIMIZED_FLAGS="-O3 -march=armv7-a -mcpu=cortex-a9 -mtune=cortex-a9 -ffast-math -fomit-frame-pointer -ftracer -fstrict-aliasing"
+    OPTIMIZED_FLAGS="$OPTIMIZED_FLAGS -mfpu=neon -mfloat-abi=hard -ftree-vectorize -mvectorize-with-neon-quad -fstack-protector --param=ssp-buffer-size=4"
+
+    OPTIMIZED_FLAGS="$OPTIMIZED_FLAGS -mstructure-size-boundary=32 -fexpensive-optimizations"
     OPTIMIZED_FLAGS="$OPTIMIZED_FLAGS -falign-functions=32 -falign-loops -falign-labels -falign-jumps"
-    OPTIMIZED_FLAGS="$OPTIMIZED_FLAGS -mfpu=neon -mfloat-abi=softfp"
 dnl    OPTIMIZED_FLAGS="$OPTIMIZED_FLAGS -finline -finline-functions -fno-builtin -funroll-loops -floop-optimize2"
 fi
 

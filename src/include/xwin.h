@@ -154,6 +154,7 @@ STATIC_INLINE void unlockscr (void)
 
 int  graphics_setup        (void);
 void graphics_leave        (void);
+void graphics_reset        (void);
 int  graphics_init         (void);
 int  graphics_open         (void);
 void graphics_close        (void);

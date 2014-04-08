@@ -87,7 +87,7 @@ STATIC_INLINE void to_exten(fpdata *fpd, uae_u32 wrd1, uae_u32 wrd2, uae_u32 wrd
 	fpd->fpx = true;
 #endif
 	if ((wrd1 & 0x7fff0000) == 0 && wrd2 == 0 && wrd3 == 0) {
-		fpd->fp = 0.0;
+		fpd->fp = (wrd1 & 0x80000000) ? -0.0 : +0.0;
 		return;
 	}
 	frac = ((double)wrd2 + ((double)wrd3 / twoto32)) / 2147483648.0;

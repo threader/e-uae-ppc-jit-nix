@@ -24,14 +24,19 @@
 #include "endian.h"
 #endif
 
+#ifndef be16toh
 static uint16_t be16toh(uint16_t v)
 {
 	return (v << 8) | (v >> 8);
 }
+#endif
+
+#ifndef le32toh
 static uint32_t le32toh(uint32_t v)
 {
 	return v;
 }
+#endif
 
 #ifndef min
 #define min(a,b) (((a)<(b))?(a):(b))

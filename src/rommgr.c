@@ -92,7 +92,7 @@ struct romdata *getromdatabypath (const TCHAR *path)
 	return NULL;
 }
 
-#define NEXT_ROM_ID 88
+#define NEXT_ROM_ID 89
 
 static struct romheader romheaders[] = {
 	{ _T("Freezer Cartridges"), 1 },
@@ -176,7 +176,8 @@ static struct romdata roms[] = {
 	{ _T("Arcadia Ninja Mission"),                            0,  0,  0,   0, _T("ARCADIA\0"),                 0, 84, 0,     0, ROMTYPE_ARCADIAGAME, 0,  2, NULL,                     0, {          0,          0,          0,          0,          0 }, NULL },
 	{ _T("Arcadia Sidewinder"),                               0,  0,  0,   0, _T("ARCADIA\0"),                 0, 85, 0,     0, ROMTYPE_ARCADIAGAME, 0,  2, NULL,                     0, {          0,          0,          0,          0,          0 }, NULL },
 	{ _T("Arcadia Leader Board Golf v2.5"),                   0,  0,  0,   0, _T("ARCADIA\0"),                 0, 86, 0,     0, ROMTYPE_ARCADIAGAME, 0,  2, NULL,                     0, {          0,          0,          0,          0,          0 }, NULL },
-	{ _T(" ROM Disabled"),                                    0,  0,  0,  0, _T("NOROM\0"),                    0, 87, 0,     0, ROMTYPE_NONE,        0,  0, NULL,            0xffffffff, {          0,          0,          0,          0,          0 }, _T("NOROM") },
+	{ _T(" ROM Disabled"),                                    0,  0,  0,   0, _T("NOROM\0"),                   0, 87, 0,     0, ROMTYPE_NONE,        0,  0, NULL,            0xffffffff, {          0,          0,          0,          0,          0 }, _T("NOROM") },
+	{ _T("Arcadia Aaargh"),                                   0,  0,  0,   0, _T("ARCADIA\0"),                 0, 88, 0,     0, ROMTYPE_ARCADIAGAME, 0,  2, NULL,                     0, {          0,          0,          0,          0,          0 }, NULL },
 
 	{ _T("KS ROM v3.X (A4000)(Cloanto)"),                     3, 10, 45,  57, _T("A4000\0"),              524288, 46, 2 | 4, 0, ROMTYPE_KICK,        0,  0, NULL,            0x3ac99edc, { 0x3cbfc9e1, 0xfe396360, 0x157bd161, 0xde74fc90, 0x1abee7ec }, NULL },
 	{ _T("Freezer: Action Replay 1200"),                      0,  0,  0,   0, _T("AR\0"),                 262144, 47, 0,     0, ROMTYPE_AR,          0,  1, NULL,            0x8d760101, { 0x0F6AB834, 0x2810094A, 0xC0642F62, 0xBA42F78B, 0xC0B07E6A }, NULL },

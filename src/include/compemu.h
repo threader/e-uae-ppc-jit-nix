@@ -39,10 +39,11 @@ typedef uae_u32 uintptr;
 #define TAGMASK 0x000fffff
 #define TAGSIZE (TAGMASK+1)
 #define MAXRUN 1024
-#define cacheline(x) ((PTR_TO_UINT32(x)) & TAGMASK)
 
 extern uae_u8* start_pc_p;
 extern uae_u32 start_pc;
+
+#define cacheline(x) ((PTR_TO_UINT32(x)) & TAGMASK)
 
 typedef struct {
   uae_u16* location;
@@ -139,7 +140,9 @@ void alloc_cache (void);
 void compile_block (cpu_history *pc_hist, int blocklen, int totcyles);
 int check_for_cache_miss (void);
 
-#define scaled_cycles(x) (currprefs.m68k_speed==-1?(((x)/SCALE)?(((x)/SCALE<MAXCYCLES?((x)/SCALE):MAXCYCLES)):1):(x))
+
+#define scaled_cycles(x) (currprefs.m68k_speed<0?(((x)/SCALE)?(((x)/SCALE<MAXCYCLES?((x)/SCALE):MAXCYCLES)):1):(x))
+
 
 extern uae_u32 needed_flags;
 //extern cacheline cache_tags[];
@@ -486,10 +489,6 @@ DECLARE(fmovs_rm(FW r, MEMR m));
 DECLARE(fmovs_mr(MEMW m, FR r));
 DECLARE(fcuts_r(FRW r));
 DECLARE(fcut_r(FRW r));
-DECLARE(fmovl_ri(FW r, IMMS i));
-DECLARE(fmovs_ri(FW r, IMM i));
-DECLARE(fmov_ri(FW r, IMM i1, IMM i2));
-DECLARE(fmov_ext_ri(FW r, IMM i1, IMM i2, IMM i3));
 DECLARE(fmov_ext_mr(MEMW m, FR r));
 DECLARE(fmov_ext_rm(FW r, MEMR m));
 DECLARE(fmov_rr(FW d, FR s));
