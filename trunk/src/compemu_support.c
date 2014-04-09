@@ -212,11 +212,11 @@ static void alloc_cache(void)
 
 void set_cache_state(int enabled)
 {
-	write_log("JIT: Change cache emulation: %s\n", enabled ? "enabled" : "disabled");
-
 	//If the enabled state changed then flush the cahe
 	if (enabled != cache_enabled)
 	{
+		write_log("JIT: Change cache emulation: %s\n", enabled ? "enabled" : "disabled");
+
 		flush_icache_hard("cache state change");
 	}
 
