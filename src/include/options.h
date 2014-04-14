@@ -12,8 +12,8 @@
 #define OPTIONS_H
 
 #define UAEMAJOR 2
-#define UAEMINOR 7
-#define UAESUBREV 1
+#define UAEMINOR 8
+#define UAESUBREV 0
 
 #include "uae_types.h"
 
