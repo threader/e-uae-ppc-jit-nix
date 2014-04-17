@@ -3146,7 +3146,7 @@ generate_one_opcode (int rp, int noflags)
 	unsigned int k;
 	for (k = 0; lookuptab[i].name[k]; k++)
 		name[k] = lookuptab[i].name[k];*/
-	
+
 	if (aborted) {
 	    fprintf (stblfile, "{ NULL, %ld, 0x%08x }, /* %s */\n", opcode, flags, lookuptab[i].name);
 	    com_discard();
@@ -3250,7 +3250,7 @@ main (int argc, char **argv)
 		"extern const struct comptbl op_smalltbl_0_comp_nf[];\n" \
 		"extern const struct comptbl op_smalltbl_0_comp_ff[];\n" \
 		"");
-	
+
 	stblfile = fopen ("compstbl.c", "wb");
 	if (freopen ("compemu.c", "wb", stdout))
 		generate_includes (stdout, 1);

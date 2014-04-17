@@ -1268,7 +1268,7 @@ static bool load_extendedkickstart (const TCHAR *romextfile, int type)
 			extendedkickmem_type = EXTENDED_ROM_CD32;
 		} else if (need_uae_boot_rom () != 0xf00000) {
 			extendedkickmem_type = EXTENDED_ROM_CDTV;
-		}	
+		}
 	} else {
 		extendedkickmem_type = type;
 	}
@@ -1374,7 +1374,7 @@ extern unsigned int arosrom_len;
 static bool load_kickstart_replacement (void)
 {
 	struct zfile *f = NULL;
-	
+
 	f = zfile_fopen_data (_T("aros.gz"), arosrom_len, arosrom);
 	if (!f) {
 		write_log ("kickstart replacement aros.gz not found.\n");

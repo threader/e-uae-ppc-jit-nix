@@ -86,7 +86,7 @@ STATIC_INLINE void clear_sound_buffers (void)
 }
 
 STATIC_INLINE void set_sound_buffers (void)
-{ 
+{
 }
 
 #define AUDIO_NAME "oss"

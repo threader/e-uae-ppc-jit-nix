@@ -145,7 +145,7 @@ static ALWAYS_INLINE uae_u8 uae_mmu030_get_byte(uaecptr addr)
 static ALWAYS_INLINE void uae_mmu030_put_long(uaecptr addr, uae_u32 val)
 {
     uae_u32 fc = (regs.s ? 4 : 0) | 1;
-    
+
 	if (unlikely(is_unaligned(addr, 4)))
 		mmu030_put_long_unaligned(addr, val, fc, 0);
 	else

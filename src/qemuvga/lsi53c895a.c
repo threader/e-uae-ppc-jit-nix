@@ -1820,7 +1820,7 @@ static void lsi_reg_writeb(LSIState *s, int offset, uint8_t val)
 		s->ctest7 = val;
 		break;
     CASE_SET_REG32(temp, 0x1c)
-	
+
 	case 0x21: /* ISTAT */
         s->istat = (s->istat & 0x0f) | (val & 0xf0);
         if (val & LSI_ISTAT_ABRT) {
@@ -1842,7 +1842,7 @@ static void lsi_reg_writeb(LSIState *s, int offset, uint8_t val)
 	case 0x23: /* LCRC */
 		s->lcrc = 0;
 	break;
- 
+
     CASE_SET_REG24(dbc, 0x24)
     CASE_SET_REG32(dnad, 0x28)
     case 0x2c: /* DSP[0:7] */

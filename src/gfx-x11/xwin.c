@@ -1747,7 +1747,7 @@ int target_checkcapslock (int scancode, int *state)
                 *state = SDL_GetModState() & KMOD_NUM;
         if (scancode == DIK_SCROLL)
                 *state = host_scrolllockstate;
-        return 1;  
+        return 1;
         */
         return 0;
 }

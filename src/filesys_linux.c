@@ -403,7 +403,7 @@ static DWORD SetFilePointer(HANDLE hFile, int32_t lDistanceToMove, int32_t *lpDi
 uae_s64 my_lseek (struct my_openfile_s *mos, uae_s64 offset, int whence) {
 	off_t result = lseek(mos->h, offset, whence);
 	return result;
-    
+
 	LARGE_INTEGER li, old;
 
 	old.QuadPart = 0;
@@ -547,7 +547,7 @@ int my_truncate (const TCHAR *name, uae_u64 len) {
 	HANDLE hFile;
 	int result = -1;
 	const TCHAR *namep;
-	
+
 	namep = name;
 
 	if ((hFile = CreateFile (namep, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0 ) ) != INVALID_HANDLE_VALUE ) {

@@ -1,7 +1,7 @@
 /*
  * PUAE - The Un*x Amiga Emulator
  *
- * Interface to the SDL GUI                
+ * Interface to the SDL GUI
  * (initially was for GP2X)
  *
  */
@@ -21,7 +21,7 @@ static SDL_Surface *ksur;
 int volumecontrol_init(void) {
 	return 0;
 }
-	
+
 // OSD volume
 void volumecontrol_redraw(void) {
 /*

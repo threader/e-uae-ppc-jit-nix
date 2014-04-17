@@ -81,7 +81,7 @@ SCSIRequest *scsi_req_new(SCSIDevice *d, uint32_t tag, uint32_t lun, uint8_t *bu
 	req->hba_private = hba_private;
 	req->bus = &scsibus;
 	req->bus->qbus.parent = &devobject;
-	
+
 	memcpy (sd->cmd, buf, len);
 	sd->cmd_len = len;
 	return req;
@@ -94,7 +94,7 @@ int32_t scsi_req_enqueue(SCSIRequest *req)
 	scsi_start_transfer (sd);
 	scsi_emulate_analyze (sd);
 	//write_log (_T("%02x.%02x.%02x.%02x.%02x.%02x\n"), sd->cmd[0], sd->cmd[1], sd->cmd[2], sd->cmd[3], sd->cmd[4], sd->cmd[5]);
-	
+
 	if (sd->direction < 0)
 		scsi_emulate_cmd(sd);
 	if (sd->direction == 0)
@@ -443,7 +443,7 @@ void ncr_reset (void)
 static int add_scsi_hd (int ch, struct hd_hardfiledata *hfd, struct uaedev_config_info *ci, int scsi_level)
 {
 	void *handle;
-	
+
 	freescsi (scsid[ch]);
 	scsid[ch] = NULL;
 	if (!hfd) {

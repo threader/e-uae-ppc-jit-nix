@@ -775,16 +775,22 @@ static void pfield_init_linetoscr (bool border)
 	// Sprite hpos don't include DIW_DDF_OFFSET and can appear 1 lores pixel
 	// before first bitplane pixel appears.
 	// This means "bordersprite" condition is possible under OCS/ECS too. Argh!
-	if (dip_for_drawing->nr_sprites && !colors_for_drawing.borderblank) {
-		/* bordersprite off or not supported: sprites are visible until diw_end */
-		if (playfield_end < linetoscr_diw_end && hblank_right_stop > playfield_end) {
-			playfield_end = linetoscr_diw_end;
-		}
-		int left = coord_hw_to_window_x (dp_for_drawing->plfleft * 2);
-		if (left < visible_left_border)
-			left = visible_left_border;
-		if (left < playfield_start && left >= linetoscr_diw_start) {
-			playfield_start = left;
+	if (dip_for_drawing->nr_sprites) {
+		if (!colors_for_drawing.borderblank) {
+			/* bordersprite off or not supported: sprites are visible until diw_end */
+			if (playfield_end < linetoscr_diw_end && hblank_right_stop > playfield_end) {
+				playfield_end = linetoscr_diw_end;
+			}
+			int left = coord_hw_to_window_x (dp_for_drawing->plfleft * 2);
+			if (left < visible_left_border)
+				left = visible_left_border;
+			if (left < playfield_start && left >= linetoscr_diw_start) {
+				playfield_start = left;
+			}
+		} else {
+			if (playfield_end < linetoscr_diw_end && hblank_right_stop > playfield_end) {
+				playfield_end = linetoscr_diw_end;
+			}
 		}
 	}
 
@@ -1035,7 +1041,7 @@ STATIC_INLINE uae_u8 render_sprites (int pos, int dualpf, uae_u8 apixel, int aga
 		pairs 01 and 23 cleared, and pairs 45 and 67 set, so OFFS will
 		have a value of 4.
 		2 * OFFS is the bit number in V of the sprite pair, and it also
-		happens to be the color offset for that pair. 
+		happens to be the color offset for that pair.
 		*/
 		int offs;
 		if (v1 == 0)
@@ -1103,7 +1109,7 @@ STATIC_INLINE uae_u32 shsprite (int dpix, uae_u32 spix_val, uae_u32 v, int spr)
 	sprcol = render_sprites (dpix, 0, spix_val, 0);
 	if (!sprcol)
 		return v;
-	/* good enough for now.. */ 
+	/* good enough for now.. */
 	scol = colors_for_drawing.color_regs_ecs[sprcol] & 0xccc;
 	scol |= scol >> 2;
 	return xcolors[scol];
@@ -1967,7 +1973,7 @@ void init_row_map (void)
 	}
 	if (!row_map)
 		row_map = xmalloc (uae_u8*, MAX_UAE_HEIGHT + 1);
-	
+
 	if (oldbufmem && oldbufmem == gfxvidinfo.bufmem &&
 		oldheight == gfxvidinfo.height_allocated &&
 		oldpitch == gfxvidinfo.rowbytes)
@@ -2605,9 +2611,6 @@ static void init_drawing_frame (void)
 	static int frame_res_old;
 
 	if (lines_count > 0) {
-		int frame_res_detected;
-		int frame_res_lace_detected = frame_res_lace;
-
 		int largest_count = 0;
 		int largest_count_res = 0;
 		int largest_res = 0;
@@ -2645,6 +2648,8 @@ static void init_drawing_frame (void)
 		}
 
 		if (currprefs.gfx_autoresolution) {
+			int frame_res_detected;
+			int frame_res_lace_detected = frame_res_lace;
 
 			if (currprefs.gfx_autoresolution == 1 || currprefs.gfx_autoresolution >= 100)
 				frame_res_detected = largest_res;
@@ -3133,7 +3138,7 @@ bool vsync_handle_check (void)
 		notice_screen_contents_lost ();
 		notice_new_xcolors ();
 	}
-#ifdef SCSI	
+#ifdef SCSI
 	check_prefs_changed_cd ();
 #endif
 	check_prefs_changed_audio ();

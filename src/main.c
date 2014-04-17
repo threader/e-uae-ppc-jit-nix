@@ -382,7 +382,7 @@ void fixup_prefs (struct uae_prefs *p)
 			p->rtgmem_size = 0;
 		err = 1;
 	}
-	
+
 	if (p->z3fastmem_size > max_z3fastmem) {
 		error_log (_T("Zorro III fastmem size %d (0x%x) larger than max reserved %d (0x%x)."), p->z3fastmem_size, p->z3fastmem_size, max_z3fastmem, max_z3fastmem);
 		p->z3fastmem_size = max_z3fastmem;

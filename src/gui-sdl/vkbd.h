@@ -12,7 +12,7 @@
 #define VKBD_Y 200
 
 #define VKBD_LEFT	1
-#define VKBD_RIGHT	2	
+#define VKBD_RIGHT	2
 #define VKBD_UP		4
 #define VKBD_DOWN	8
 #define VKBD_BUTTON	16

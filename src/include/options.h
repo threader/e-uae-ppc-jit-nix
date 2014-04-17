@@ -590,7 +590,7 @@ struct uae_prefs {
 	int  amiga_use_dither;
 #endif
 #ifdef WITH_SLIRP
-	struct slirp_redir slirp_redirs[MAX_SLIRP_REDIRS]; 
+	struct slirp_redir slirp_redirs[MAX_SLIRP_REDIRS];
 #endif
 #ifdef SAVESTATE
 	bool statecapture;

@@ -2,7 +2,7 @@
 #
 # copy those files that are necessary to use the libscg
 # in UAE
-# 
+#
 # Patrick Ohly, 9.4.2000, GPL
 #
 # Updated for cdrtools 2.0.x Richard Drummond 15.2.2004
@@ -22,7 +22,7 @@ fi
 cdrecinc="$cdrecorddir"/include
 
 #
-# try to find machine type 
+# try to find machine type
 #
 if [ "$2"x != x ]; then
     machine="$2"
@@ -56,4 +56,4 @@ case $machine in
     ranlib -a "$uaedir/libschily.a"
     ;;
 esac
-											
+

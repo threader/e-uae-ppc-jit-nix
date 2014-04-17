@@ -120,7 +120,7 @@ static bool graffiti(struct vidbuf_description *src, struct vidbuf_description *
 
 		x = xstart;
 		while (x < xend) {
-			
+
 			uae_u8 mask = 0x80;
 			uae_u8 chunky[4] = { 0, 0, 0, 0 };
 			while (mask) {
@@ -189,15 +189,15 @@ static bool graffiti(struct vidbuf_description *src, struct vidbuf_description *
 				dstp += dst->pixbytes * 4 * 2;
 
 			} else if (waitline) {
-			
+
 				memset(dstp, 0, dst->pixbytes * 4 * 2);
 				dstp += dst->pixbytes * 4 * 2;
-			
+
 			} else {
 
 				for (int pix = 0; pix < 4; pix++) {
 					uae_u8 r, g, b, c;
-					
+
 					c = chunky[pix] & read_mask;
 					r = graffiti_palette[c * 4 + 0];
 					g = graffiti_palette[c * 4 + 1];
@@ -206,7 +206,7 @@ static bool graffiti(struct vidbuf_description *src, struct vidbuf_description *
 					dstp += dst->pixbytes;
 					PRGB(dst, dstp, r, g, b);
 					dstp += dst->pixbytes;
-					
+
 					if (gfxvidinfo.xchange == 1 && !hires) {
 						PRGB(dst, dstp, r, g, b);
 						dstp += dst->pixbytes;
@@ -251,7 +251,7 @@ static bool a2024(struct vidbuf_description *src, struct vidbuf_description *dst
 	bool hires, ntsc, found;
 	int idline;
 	int total_width, total_height;
-	
+
 	dbl = gfxvidinfo.ychange == 1 ? 2 : 1;
 	doff = (128 * 2 / gfxvidinfo.xchange) * src->pixbytes;
 	found = false;
@@ -353,7 +353,7 @@ static bool a2024(struct vidbuf_description *src, struct vidbuf_description *dst
 			panel_width_draw -= 16;
 	}
 	total_height = panel_height * dbl;
-	
+
 	srcbuf = src->bufmem + (((44 << VRES_MAX) - src->yoffset) / gfxvidinfo.ychange) * src->rowbytes + (((srcxoffset << RES_MAX) - src->xoffset) / gfxvidinfo.xchange) * src->pixbytes;
 	dstbuf = dst->bufmem + py * (panel_height / gfxvidinfo.ychange) * dst->rowbytes + px * ((panel_width * 2) / gfxvidinfo.xchange) * dst->pixbytes;
 

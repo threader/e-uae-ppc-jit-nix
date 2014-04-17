@@ -974,7 +974,7 @@ ASMOBJS=
 
 dnl
 dnl CPUEMU_0 : generic 680x0 emulation
-dnl 
+dnl
 UAE_DEFINES="$UAE_DEFINES -DCPUEMU_0"
 CPUOBJS='cpuemu_0.$(OBJEXT)'
 
@@ -1160,15 +1160,15 @@ if [[ "x$WANT_PEPPER" = "xyes" ]]; then
 	GFX_DEP="gfx-pepper"
 	GFX_LIBS="-lppapi -lppapi_gles2"
 	GFX_NAME="Pepper (PPAPI)"
-	
+
 	SND_DEP="sd-pepper"
 	SND_LIBS="-lppapi"
 	SND_NAME="Pepper (PPAPI)"
-	
+
 	JOY_DEP="jd-pepper"
 	JOY_LIBS="-lppapi"
 	JOY_NAME="Pepper (PPAPI)"
-	
+
 	NEED_THREAD_SUPPORT=yes
 	THREADDEP="td-posix"
 	THREADNAME="POSIX"
@@ -1376,7 +1376,7 @@ fi
     fi
   fi
 
-dnl 
+dnl
 dnl QT GUI
 dnl
  if [[ "x$WANT_QT" = "xyes" ]]; then

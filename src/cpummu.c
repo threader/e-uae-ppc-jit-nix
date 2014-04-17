@@ -2,7 +2,7 @@
  * cpummu.cpp -  MMU emulation
  *
  * Copyright (c) 2001-2004 Milan Jurik of ARAnyM dev team (see AUTHORS)
- * 
+ *
  * Inspired by UAE MMU patch
  *
  * This file is part of the ARAnyM project which builds a new and powerful
@@ -63,7 +63,7 @@ static void mmu_dump_ttr(const TCHAR * label, uae_u32 ttr)
 	from_addr = ttr & MMU_TTR_LOGICAL_BASE;
 	to_addr = (ttr & MMU_TTR_LOGICAL_MASK) << 8;
 
-	
+
 #if MMUDEBUG > 0
 	write_log(_T("%s: [%08lx] %08lx - %08lx enabled=%d supervisor=%d wp=%d cm=%02d\n"),
 			label, ttr,
@@ -522,7 +522,7 @@ static uaecptr REGPARAM2 mmu_lookup_pagetable(uaecptr addr, bool super, bool wri
 	desc = phys_get_long(desc_addr);
 	if ((desc & 2) == 0) {
 #if MMUDEBUG > 1
-		write_log(_T("MMU: invalid ptr descriptor %s for %x desc at %x desc=%x\n"), super ? _T("srp"):_T("urp"), 
+		write_log(_T("MMU: invalid ptr descriptor %s for %x desc at %x desc=%x\n"), super ? _T("srp"):_T("urp"),
 				addr, desc_addr, desc);
 #endif
 		*status |= MMU_FSLW_PTB;
@@ -555,7 +555,7 @@ static uaecptr REGPARAM2 mmu_lookup_pagetable(uaecptr addr, bool super, bool wri
 			*status |= MMU_FSLW_IL;
 #if MMUDEBUG > 1
 			write_log(_T("MMU: double indirect descriptor log=%0lx desc=%08x @%08x\n"), addr, desc, desc_addr);
-#endif	
+#endif
 		} else {
 			*status |= MMU_FSLW_PF;
 		}
@@ -1046,7 +1046,7 @@ void REGPARAM2 mmu_op_real(uae_u32 opcode, uae_u16 extra)
 			uae_u32 desc;
 			bool data = (regs.dfc & 3) != 2;
 
-			if (mmu_match_ttr(addr,super,data, false)!=TTR_NO_MATCH) 
+			if (mmu_match_ttr(addr,super,data, false)!=TTR_NO_MATCH)
 				regs.mmusr = MMU_MMUSR_T | MMU_MMUSR_R;
 			else {
 				uae_u32 status;
@@ -1102,12 +1102,12 @@ void REGPARAM2 mmu_flush_atc(uaecptr addr, bool super, bool global)
 		for (way=0;way<ATC_WAYS;way++) {
 			if (!global && mmu_atc_array[type][way][index].global)
 				continue;
-			// if we have this 
+			// if we have this
 			if ((tag == mmu_atc_array[type][way][index].tag) && (mmu_atc_array[type][way][index].valid)) {
 				mmu_atc_array[type][way][index].valid=false;
 			}
 		}
-	}	
+	}
 }
 
 void REGPARAM2 mmu_flush_atc_all(bool global)

@@ -226,8 +226,8 @@ void getchsgeometry_hdf (struct hardfiledata *hfd, uae_u64 size, int *pcyl, int 
 				for (i = 0; i < 512; i += 4)
 					chk += (block[i] << 24) | (block[i + 1] << 16) | (block[i + 2] << 8) | (block[i + 3] << 0);
 				if (!chk && block[0] == 0 && block[1] == 0 && block[2] == 0 && block[3] == 2 &&
-					block[4] == 0 && block[5] == 0 && block[6] == 0 && block[7] == 0 && 
-					block[8] == 0 && block[9] == 0 && block[10] == 0 && block[11] == 0 && 
+					block[4] == 0 && block[5] == 0 && block[6] == 0 && block[7] == 0 &&
+					block[8] == 0 && block[9] == 0 && block[10] == 0 && block[11] == 0 &&
 					block[508] == 0 && block[509] == 0 && block[510] == 0 && block[511] == 1) {
 						return;
 				}

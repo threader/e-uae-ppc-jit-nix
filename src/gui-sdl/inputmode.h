@@ -1,7 +1,7 @@
 /*
  * PUAE - The Un*x Amiga Emulator
  *
- * Interface to the SDL GUI                
+ * Interface to the SDL GUI
  * (initially was for GP2X)
  *
  */

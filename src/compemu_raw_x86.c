@@ -2510,7 +2510,7 @@ static void raw_init_cpu(void)
 		align_loops = x86_alignments[c->x86_processor].align_loop;
 		align_jumps = x86_alignments[c->x86_processor].align_jump;
 	}
-	{ 
+	{
 		TCHAR *s = au (c->x86_vendor_id);
 		write_log (_T("CPUID level=%d, Family=%d, Model=%d, Mask=%d, Vendor=%s [%d]\n"),
 			c->cpuid_level, c->x86, c->x86_model, c->x86_mask, s, c->x86_vendor);

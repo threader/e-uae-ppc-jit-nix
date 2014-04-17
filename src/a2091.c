@@ -629,7 +629,7 @@ static void wd_cmd_sel_xfer (bool atn)
 		scsi_start_transfer (scsi);
 		wdregs[WD_COMMAND_PHASE] = 0x45;
 	}
-		
+
 	if (wdregs[WD_COMMAND_PHASE] == 0x45) {
 		settc (tmp_tc);
 		wd_dataoffset = 0;
@@ -818,7 +818,7 @@ static void wd_cmd_sel (bool atn)
 	} else {
 		wdregs[WD_COMMAND_PHASE] = 0x10; // connected as an initiator
 		set_status (CSR_SRV_REQ | PHS_COMMAND, 4);
-	} 
+	}
 }
 
 static void wd_cmd_reset (bool irq)
@@ -1893,7 +1893,7 @@ void a2091_init (void)
 uae_u8 *save_scsi_dmac (int *len, uae_u8 *dstptr)
 {
 	uae_u8 *dstbak, *dst;
-	
+
 	if (!currprefs.a2091 && !currprefs.cs_mbdmac)
 		return NULL;
 	if (dstptr)

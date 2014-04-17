@@ -15,7 +15,7 @@
  *    Gwenole Beauchesne
  *
  *  Basilisk II (C) 1997-2008 Christian Bauer
- *  
+ *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2 of the License, or
@@ -73,7 +73,7 @@
 /* Define to optimize absolute addresses for RIP relative addressing.  */
 #ifndef X86_RIP_RELATIVE_ADDR
 #define X86_RIP_RELATIVE_ADDR	1
-#endif 
+#endif
 
 
 /* --- Macros -------------------------------------------------------------- */

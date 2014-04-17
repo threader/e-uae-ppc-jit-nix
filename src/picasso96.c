@@ -960,7 +960,7 @@ void picasso_refresh (void)
 	}
 
 	/* Make sure that the first time we show a Picasso video mode, we don't blit any crap.
-	* We can do this by checking if we have an Address yet. 
+	* We can do this by checking if we have an Address yet.
 	*/
 	if (picasso96_state.Address) {
 // REMOVEME: unsigned int width, height;
@@ -1013,7 +1013,7 @@ void picasso_refresh (void)
 #include "p96_blit.c"
 #define BLT_NAME BLIT_NOTSRC_32
 #define BLT_FUNC(s,d) *d = ~(*s)
-#include "p96_blit.c" 
+#include "p96_blit.c"
 #define BLT_NAME BLIT_ONLYSRC_32
 #define BLT_FUNC(s,d) *d = (*s) & ~(*d)
 #include "p96_blit.c"
@@ -1067,7 +1067,7 @@ void picasso_refresh (void)
 #include "p96_blit.c"
 #define BLT_NAME BLIT_NOTSRC_24
 #define BLT_FUNC(s,d) *d = ~(*s)
-#include "p96_blit.c" 
+#include "p96_blit.c"
 #define BLT_NAME BLIT_ONLYSRC_24
 #define BLT_FUNC(s,d) *d = (*s) & ~(*d)
 #include "p96_blit.c"
@@ -1122,7 +1122,7 @@ void picasso_refresh (void)
 #include "p96_blit.c"
 #define BLT_NAME BLIT_NOTSRC_16
 #define BLT_FUNC(s,d) *d = ~(*s)
-#include "p96_blit.c" 
+#include "p96_blit.c"
 #define BLT_NAME BLIT_ONLYSRC_16
 #define BLT_FUNC(s,d) *d = (*s) & ~(*d)
 #include "p96_blit.c"
@@ -1176,7 +1176,7 @@ void picasso_refresh (void)
 #include "p96_blit.c"
 #define BLT_NAME BLIT_NOTSRC_8
 #define BLT_FUNC(s,d) *d = ~(*s)
-#include "p96_blit.c" 
+#include "p96_blit.c"
 #define BLT_NAME BLIT_ONLYSRC_8
 #define BLT_FUNC(s,d) *d = (*s) & ~(*d)
 #include "p96_blit.c"
@@ -1831,7 +1831,7 @@ bool picasso_is_vram_dirty (uaecptr addr, int size)
 	}
 	return false;
 }
-	
+
 
 
 static void init_alloc (TrapContext *ctx, int size)
@@ -1943,7 +1943,7 @@ static void picasso96_alloc2 (TrapContext *ctx)
 			if (missmodes[misscnt * 2] >= 0) {
 				int w = DisplayModes[i].res.width;
 				int h = DisplayModes[i].res.height;
-				if (w > missmodes[misscnt * 2 + 0] || (w == missmodes[misscnt * 2 + 0] && h > missmodes[misscnt * 2 + 1])) {	
+				if (w > missmodes[misscnt * 2 + 0] || (w == missmodes[misscnt * 2 + 0] && h > missmodes[misscnt * 2 + 1])) {
 					struct PicassoResolution *pr = &newmodes[cnt];
 					memcpy (pr, &DisplayModes[i], sizeof (struct PicassoResolution));
 					pr->res.width = missmodes[misscnt * 2 + 0];
@@ -4010,7 +4010,7 @@ bool picasso_flushpixels (uae_u8 *src, int off)
 		}
 		full_refresh = 0;
 	}
-	return lock != 0; 
+	return lock != 0;
 }
 
 MEMORY_FUNCTIONS(gfxmem);

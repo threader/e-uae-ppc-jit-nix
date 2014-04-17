@@ -11,7 +11,7 @@
 
 #include "machdep/rpt.h"
 #include "options.h"
- 
+
 /* These are the masks that are ORed together in the chipset_mask option.
  * If CSMASK_AGA is set, the ECS bits are guaranteed to be set as well.  */
 #define CSMASK_ECS_AGNUS 1

@@ -223,8 +223,6 @@ static int diw_hcounter;
 
 #define HSYNCTIME (maxhpos * CYCLE_UNIT);
 
-/* This is but an educated guess. It seems to be correct, but this stuff
-* isn't documented well. */
 struct sprite {
 	uaecptr pt;
 	int xpos;
@@ -235,6 +233,7 @@ struct sprite {
 	int dmastate;
 	int dmacycle;
 	int ptxhpos;
+	int ptxhpos2, ptxvpos2;
 };
 
 static struct sprite spr[MAX_SPRITES];
@@ -256,6 +255,7 @@ static uae_u16 sprdata[MAX_SPRITES][1], sprdatb[MAX_SPRITES][1];
 static int sprite_last_drawn_at[MAX_SPRITES];
 static int last_sprite_point, nr_armed;
 static int sprite_width, sprres;
+static int sprite_sprctlmask;
 int sprite_buffer_res;
 
 #ifdef CPUEMU_13
@@ -521,6 +521,12 @@ static void update_mirrors (void)
 {
 	aga_mode = (currprefs.chipset_mask & CSMASK_AGA) != 0;
 	direct_rgb = aga_mode;
+	if (currprefs.chipset_mask & CSMASK_AGA)
+		sprite_sprctlmask = 0x01 | 0x08 | 0x10;
+	else if (currprefs.chipset_mask & CSMASK_ECS_DENISE)
+		sprite_sprctlmask = 0x01 | 0x10;
+	else
+		sprite_sprctlmask = 0x01;
 }
 
 STATIC_INLINE uae_u8 *pfield_xlateptr (uaecptr plpt, int bytecount)
@@ -696,7 +702,7 @@ static void reset_dbplh_all (int hpos)
 			reset_dbplh (hpos, i);
 		}
 		dbplpth_on2 = 0;
-	}	
+	}
 }
 
 static void reset_bplldelays (void)
@@ -709,7 +715,7 @@ static void reset_bplldelays (void)
 			}
 		}
 		dbplptl_on2 = 0;
-	}	
+	}
 }
 
 static void reset_moddelays (void)
@@ -1383,7 +1389,7 @@ STATIC_INLINE void do_delays_3_ecs (int nbits)
 				dp -= (maxhpos * 2) << toscr_res;
 			dp &= fetchmode_mask;
 			do_tosrc (oddeven, 2, 1, 0);
-			
+
 
 			if (todisplay_fetched[oddeven] && dp == delay) {
 				for (int i = oddeven; i < toscr_nr_planes_shifter; i += 2) {
@@ -2123,7 +2129,7 @@ static void finish_final_fetch (void)
 	// workaround for too long fetches that don't pass plf_passed_stop2 before end of scanline
 	if (aga_plf_passed_stop2 && plf_state >= plf_passed_stop)
 		plf_state = plf_end;
-	
+
 	// This is really the end of scanline, we can finally flush all remaining data.
 	thisline_decision.plfright += flush_plane_data (fetchmode);
 	thisline_decision.plflinelen = out_offs;
@@ -2506,7 +2512,7 @@ static void start_bpl_dma (int hpos, int hstart)
 		bpldmawasactive = true;
 
 	} else {
-		
+
 		flush_display (fetchmode);
 		// Calculate difference between last end to new start
 		int diff = (hstart - thisline_decision.plfright) << (1 + toscr_res);
@@ -3155,11 +3161,11 @@ static void calcsprite (void)
 	}
 }
 
-static void decide_sprites (int hpos)
+static void decide_spritesu (int hpos, bool usepointx)
 {
 	int nrs[MAX_SPRITES * 2], posns[MAX_SPRITES * 2];
 	int count, i;
-	int point = hpos * 2 + 1;
+	int point = hpos * 2 + 0;
 	int width = sprite_width;
 	int sscanmask = 0x100 << sprite_buffer_res;
 	int gotdata = 0;
@@ -3178,6 +3184,7 @@ static void decide_sprites (int hpos)
 	for (i = 0; i < MAX_SPRITES; i++) {
 		int sprxp = (fmode & 0x8000) ? (spr[i].xpos & ~sscanmask) : spr[i].xpos;
 		int hw_xp = sprxp >> sprite_buffer_res;
+		int pointx = usepointx && (sprctl[i] & sprite_sprctlmask) ? 0 : 1;
 
 		if (spr[i].xpos < 0)
 			continue;
@@ -3190,15 +3197,17 @@ static void decide_sprites (int hpos)
 		if (! spr[i].armed)
 			continue;
 
-		if (hw_xp > last_sprite_point && hw_xp <= point)
+		if (hw_xp > last_sprite_point && hw_xp <= point + pointx) {
 			add_sprite (&count, i, sprxp, posns, nrs);
+		}
 
 		/* SSCAN2-bit is fun.. */
 		if ((fmode & 0x8000) && !(sprxp & sscanmask)) {
 			sprxp |= sscanmask;
 			hw_xp = sprxp >> sprite_buffer_res;
-			if (hw_xp > last_sprite_point && hw_xp <= point)
+			if (hw_xp > last_sprite_point && hw_xp <= point + pointx) {
 				add_sprite (&count, MAX_SPRITES + i, sprxp, posns, nrs);
+			}
 		}
 	}
 
@@ -3237,6 +3246,11 @@ static void decide_sprites (int hpos)
 			plflastline_total = vpos;
 	}
 #endif
+}
+
+static void decide_sprites (int hpos)
+{
+	decide_spritesu (hpos, false);
 }
 
 static int sprites_differ (struct draw_info *dip, struct draw_info *dip_old)
@@ -3701,13 +3715,13 @@ void compute_framesync (void)
 		int res = GET_RES_AGNUS (bplcon0);
 		int vres = islace ? 1 : 0;
 		int res2, vres2;
-			
+
 		res2 = currprefs.gfx_resolution;
 		if (doublescan > 0)
 			res2++;
 		if (res2 > RES_MAX)
 			res2 = RES_MAX;
-		
+
 		vres2 = currprefs.gfx_vresolution;
 		if (doublescan > 0 && !islace)
 			vres2--;
@@ -3722,7 +3736,7 @@ void compute_framesync (void)
 
 		gfxvidinfo.inwidth = ((maxhpos - (maxhpos - start + DISPLAY_LEFT_SHIFT / 2) + 1) * 2) << res2;
 		gfxvidinfo.inxoffset = stop * 2;
-		
+
 		gfxvidinfo.extrawidth = 0;
 		gfxvidinfo.inwidth2 = gfxvidinfo.inwidth;
 
@@ -3869,7 +3883,7 @@ void init_hz_fullinit (bool fullinit)
 		vblank_hz_lof = 227.0 * 313.0 * 50.0 / (maxvpos * maxhpos);;
 		vblank_hz_lace = 227.0 * 312.5 * 50.0 / (maxvpos * maxhpos);;
 		minfirstline = vsstop > vbstop ? vsstop : vbstop;
-		if (minfirstline > maxvpos / 2) 
+		if (minfirstline > maxvpos / 2)
 			minfirstline = vsstop > vbstop ? vbstop : vsstop;
 		if (minfirstline < 2)
 			minfirstline = 2;
@@ -3998,7 +4012,7 @@ static void calcdiw (void)
 
 	diwfirstword = coord_diw_to_window_x (hstrt);
 	diwlastword = coord_diw_to_window_x (hstop);
-	
+
 	if (diwfirstword >= diwlastword) {
 		diwfirstword = min_diwlastword;
 		diwlastword = max_diwlastword;
@@ -5309,25 +5323,64 @@ static void SPRxDATB_1 (uae_u16 v, int num, int hpos)
 #endif
 }
 
-// hpos - 1 is a hack! There is 1 cycle delay before SPRxPOS matches and DATx are copied to
-// shift register, it is easier and much faster to emulate this way, than to separate
-// decide_sprites() in two parts.
-// Shed Tears / Ozone scroller
+/*
+ SPRxDATA and SPRxDATB is moved to shift register when SPRxPOS matches.
+
+ When copper writes to SPRxDATx exactly when SPRxPOS matches:
+ - If sprite low x bit (SPRCTL bit 0) is not set, shift register copy
+   is done first (previously loaded SPRxDATx value is shown) and then
+   new SPRxDATx gets stored for future use.
+ - If sprite low x bit is set, new SPRxDATx is stored, then SPRxPOS
+   matches and value written to SPRxDATx is visible.
+
+ - Writing to SPRxPOS when SPRxPOS matches: shift register
+   copy is always done first, then new SPRxPOS value is stored
+   for future use. (SPRxCTL not tested)
+*/
+
 static void SPRxDATA (int hpos, uae_u16 v, int num)
 {
-	int hp = hpos == 0 ? 0 : hpos - 1;
-	decide_sprites (hp);
-	SPRxDATA_1 (v, num, hp);
+	decide_spritesu (hpos, true);
+	SPRxDATA_1 (v, num, hpos);
 }
 static void SPRxDATB (int hpos, uae_u16 v, int num)
 {
-	int hp = hpos;
-	decide_sprites (hp);
-	SPRxDATB_1 (v, num, hp);
+	decide_spritesu (hpos, true);
+	SPRxDATB_1 (v, num, hpos);
 }
 
-static void SPRxCTL (int hpos, uae_u16 v, int num) { decide_sprites (hpos); SPRxCTL_1 (v, num, hpos); }
-static void SPRxPOS (int hpos, uae_u16 v, int num) { decide_sprites (hpos); SPRxPOS_1 (v, num, hpos); }
+static void SPRxCTL (int hpos, uae_u16 v, int num)
+{
+#if SPRITE_DEBUG > 0
+	if (vpos >= SPRITE_DEBUG_MINY && vpos <= SPRITE_DEBUG_MAXY && (SPRITE_DEBUG & (1 << num))) {
+		write_log(_T("%d:%d:SPR%dCTLC %06X\n"), vpos, hpos, num, spr[num].pt);
+	}
+#endif
+
+	decide_sprites(hpos);
+	SPRxCTL_1(v, num, hpos);
+}
+static void SPRxPOS (int hpos, uae_u16 v, int num)
+{
+	struct sprite *s = &spr[num];
+	int oldvpos;
+#if SPRITE_DEBUG > 0
+	if (vpos >= SPRITE_DEBUG_MINY && vpos <= SPRITE_DEBUG_MAXY && (SPRITE_DEBUG & (1 << num))) {
+		write_log(_T("%d:%d:SPR%dPOSC %06X\n"), vpos, hpos, num, s->pt);
+	}
+#endif
+	decide_sprites(hpos);
+	oldvpos = s->vstart;
+	SPRxPOS_1(v, num, hpos);
+	// Superfrog flashing intro bees fix.
+	// if SPRxPOS is written one cycle before sprite's first DMA slot and sprite's vstart matches after
+	// SPRxPOS write, current line's DMA slot's stay idle. DMA decision seems to be done 4 cycles earlier.
+	if (hpos >= SPR0_HPOS + num * 4 - 4 && hpos <= SPR0_HPOS + num * 4 - 1 && oldvpos != vpos) {
+		s->ptxvpos2 = vpos;
+		s->ptxhpos2 = hpos + 4;
+	}
+}
+
 static void SPRxPTH (int hpos, uae_u16 v, int num)
 {
 	decide_sprites (hpos);
@@ -5618,8 +5671,12 @@ static int customdelay[]= {
 	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, /* 16 */
 	/* SPRxPTH/SPRxPTL */
 	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1, /* 16 */
+
 	/* SPRxPOS/SPRxCTL/SPRxDATA/SPRxDATB */
 	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+//	1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,
+//	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+
 	/* COLORxx */
 	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 	/* RESERVED */
@@ -5850,12 +5907,7 @@ static void update_copper (int until_hpos)
 						cop_state.movedata = data;
 						cop_state.movedelay = customdelay[cop_state.moveaddr / 2];
 					} else {
-						int hpos2 = old_hpos;
-						custom_wput_copper (hpos2, reg, data, 0);
-						hpos2++;
-						if (!nocustom () && reg >= 0x140 && reg < 0x180 && hpos2 >= SPR0_HPOS && hpos2 < SPR0_HPOS + 4 * MAX_SPRITES) {
-							do_sprites (hpos2);
-						}
+						custom_wput_copper (old_hpos, reg, data, 0);
 					}
 #endif
 				}
@@ -5915,7 +5967,7 @@ static void update_copper (int until_hpos)
 				int ch_comp = c_hpos;
 				if (ch_comp & 1)
 					ch_comp = 0;
-		
+
 				if (copper_cant_read (old_hpos, 0))
 					continue;
 
@@ -6153,6 +6205,8 @@ static void do_sprites_1 (int num, int cycle, int hpos)
 			write_log (_T("%d:%d:SPR%d START\n"), vpos, hpos, num);
 #endif
 		s->dmastate = 1;
+		if (s->ptxvpos2 == vpos && hpos < s->ptxhpos2)
+			return;
 		if (num == 0 && cycle == 0)
 			cursorsprite ();
 	}
@@ -6162,19 +6216,10 @@ static void do_sprites_1 (int num, int cycle, int hpos)
 			write_log (_T("%d:%d:SPR%d STOP\n"), vpos, hpos, num);
 #endif
 		s->dmastate = 0;
-#if 0
-		// roots 2.0 flower zoomer bottom part missing if this enabled
-		if (vpos == s->vstop) {
-			spr_arm (num, 0);
-			//return;
-		}
-#endif
 	}
 
 	if (!isdma)
 		return;
-	if (cycle && !s->dmacycle)
-		return; /* Superfrog intro flashing bee fix */
 
 	dma = hpos < plfstrt_sprite || diwstate != DIW_waiting_stop;
 	if (vpos == s->vstop || vpos == sprite_vblank_endline) {
@@ -6366,7 +6411,7 @@ static void init_hardware_frame (void)
 	}
 	first_planes_vpos_old = first_planes_vpos;
 	last_planes_vpos_old = last_planes_vpos;
-	
+
 	if (diwfirstword_total != diwfirstword_total_old ||
 		diwlastword_total != diwlastword_total_old ||
 		ddffirstword_total != ddffirstword_total_old ||
@@ -6389,8 +6434,10 @@ static void init_hardware_frame (void)
 	first_bplcon0 = 0;
 	autoscale_bordercolors = 0;
 
-	for (i = 0; i < MAX_SPRITES; i++)
+	for (i = 0; i < MAX_SPRITES; i++) {
 		spr[i].ptxhpos = MAXHPOS;
+		spr[i].ptxvpos2 = -1;
+	}
 	plf_state = plf_end;
 }
 
@@ -6555,7 +6602,7 @@ static bool framewait (void)
 
 		int freetime;
 		extern int extraframewait;
-		
+
 		if (!vblank_hz_state)
 			return status != 0;
 
@@ -6565,7 +6612,7 @@ static bool framewait (void)
 			int max, adjust, flipdelay = 0, val;
 			frame_time_t now;
 			static struct mavg_data ma_skip, ma_adjust;
-			
+
 			val = 0;
 
 			if (!frame_rendered && !picasso_on) {
@@ -6586,7 +6633,7 @@ static bool framewait (void)
 				adjust = 0;
 			if (adjust > vsynctimebase * 2 / 3)
 				adjust = vsynctimebase * 2 / 3;
-			
+
 			int adjust_avg = mavg (&ma_adjust, adjust, MAVG_VSYNC_SIZE);
 
 			val += adjust_avg;
@@ -6715,7 +6762,7 @@ static bool framewait (void)
 
 		if (0)
 			write_log (_T("%06d:%06d/%06d\n"), adjust, vsynctimeperline, vstb);
-	
+
 	} else {
 
 		int t = 0;
@@ -6749,7 +6796,7 @@ static bool framewait (void)
 			vsynctimeperline = 0;
 		else if (vsynctimeperline > vstb / 3)
 			vsynctimeperline = vstb / 3;
-		
+
 		frame_shown = true;
 
 	}
@@ -6869,7 +6916,7 @@ static void vsync_handler_pre (void)
 	}
 
 	bool frameok = framewait ();
-	
+
 	if (!picasso_on) {
 		if (!frame_rendered && vblank_hz_state) {
 			frame_rendered = render_screen (false);
@@ -8123,7 +8170,7 @@ writeonly:
 			decide_fetch_safe (hpos);
 			debug_wputpeek (0xdff000 + addr, l);
 			r = custom_wput_1 (hpos, addr, l, 1);
-			
+
 			// cpu gets back
 			// - if last cycle was DMA cycle: DMA cycle data
 			// - if last cycle was not DMA cycle: FFFF or some ANDed old data.
@@ -9025,7 +9072,7 @@ uae_u8 *save_custom_event_delay (int *len, uae_u8 *dstptr)
 			save_u8 (1);
 			save_u64 (e->evtime - get_cycles ());
 			save_u32 (e->data);
-		
+
 		}
 	}
 
@@ -9070,7 +9117,7 @@ void check_prefs_changed_custom (void)
 	currprefs.gfx_framerate = changed_prefs.gfx_framerate;
 	if (currprefs.turbo_emulation != changed_prefs.turbo_emulation)
 		warpmode (changed_prefs.turbo_emulation);
-	if (inputdevice_config_change_test ()) 
+	if (inputdevice_config_change_test ())
 		inputdevice_copyconfig (&changed_prefs, &currprefs);
 	currprefs.immediate_blits = changed_prefs.immediate_blits;
 	currprefs.waiting_blits = changed_prefs.waiting_blits;

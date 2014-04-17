@@ -30,7 +30,7 @@ extern int screen_is_picasso;
 #endif
 // -----
 @implementation PUAE_GLView
- 
+
 - (void)commonGLSetup
 {
     glDisable (GL_ALPHA_TEST);
@@ -44,27 +44,27 @@ extern int screen_is_picasso;
     glClearColor (0.0f, 0.0f, 0.0f, 0.0f);
     glDisable (GL_BLEND);
     glHint (GL_TRANSFORM_HINT_APPLE, GL_FASTEST);
-    
+
     glEnable(GL_TEXTURE_RECTANGLE_EXT);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 }
- 
+
 // prepare open gl: called by view
 - (void)prepareOpenGL
 {
     glContext = [self openGLContext];
     cglContext = [glContext CGLContextObj];
-    
+
     CGLLockContext(cglContext);
- 
+
     // sync to VBlank
     GLint swapInt = 1;
     [glContext setValues:&swapInt forParameter:NSOpenGLCPSwapInterval];
 
     [self commonGLSetup];
-    
+
     CGLUnlockContext(cglContext);
-        
+
     isOpenGLReady = true;
 }
 

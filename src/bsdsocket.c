@@ -1092,11 +1092,11 @@ static uae_u32 herrnotextptrs[sizeof (herrortexts) / sizeof (*herrortexts)];
 static const uae_u32 number_host_error = sizeof (herrortexts) / sizeof (*herrortexts);
 
 
-static const TCHAR *sana2io_errlist[] = 
+static const TCHAR *sana2io_errlist[] =
 {
   _T("No error"),				/* S2ERR_NO_ERROR */
   _T("Resource allocation failure"),	/* S2ERR_NO_RESOURCES */
-  _T("Unknown error code (2)"), 
+  _T("Unknown error code (2)"),
   _T("Invalid argument"),			/* S2ERR_BAD_ARGUMENT */
   _T("Inappropriate state"),		/* S2ERR_BAD_STATE */
   _T("Invalid address"),			/* S2ERR_BAD_ADDRESS */
@@ -1112,7 +1112,7 @@ static uae_u32 sana2iotextptrs[sizeof (sana2io_errlist) / sizeof (*sana2io_errli
 static const uae_u32 number_sana2io_error = sizeof (sana2io_errlist) / sizeof (*sana2io_errlist);
 
 
-static const TCHAR *sana2wire_errlist[] = 
+static const TCHAR *sana2wire_errlist[] =
 {
   _T("Generic error: 0"),                   /* S2WERR_GENERIC_ERROR */
   _T("Unit not configured"),		/* S2WERR_NOT_CONFIGURED */
@@ -1139,8 +1139,8 @@ static uae_u32 sana2wiretextptrs[sizeof (sana2wire_errlist) / sizeof (*sana2wire
 static const uae_u32 number_sana2wire_error = sizeof (sana2wire_errlist) / sizeof (*sana2wire_errlist);
 
 
-static const TCHAR *io_errlist[] = 
-{ 
+static const TCHAR *io_errlist[] =
+{
   _T("Unknown error"),			/* 0 */
   _T("Device or unit failed to open"),	/* IOERR_OPENFAIL */
   _T("Request aborted"),			/* IOERR_ABORTED */

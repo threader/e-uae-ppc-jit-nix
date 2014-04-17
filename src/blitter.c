@@ -770,7 +770,7 @@ static void decide_blitter_line (int hsync, int hpos)
 
 			// final 2 idle cycles? does not need free bus
 			// in line mode idle cycles also use line mode cycle sequence (every other cycle)
-			if (blit_final) { 
+			if (blit_final) {
 				blit_cyclecounter++;
 				blit_totalcyclecounter++;
 				if (blit_cyclecounter >= 4) {
@@ -1566,8 +1566,8 @@ static void do_blitter2 (int hpos, int copper)
 			blitter_doit ();
 		return;
 	}
-	
-	blit_cyclecounter = cycles * (blit_dmacount2 + (blit_nod ? 0 : 1)); 
+
+	blit_cyclecounter = cycles * (blit_dmacount2 + (blit_nod ? 0 : 1));
 	event2_newevent (ev2_blitter, blit_cyclecounter, 0);
 
 	if (dmaen (DMA_BLITTER) && (currprefs.cpu_model >= 68020 || !currprefs.cpu_cycle_exact)) {
@@ -1953,7 +1953,7 @@ uae_u8 *save_blitter_new (int *len, uae_u8 *dstptr)
 	save_u8 (blt_delayed_irq);
 	save_u8 (blt_info.blitzero);
 	save_u8 (blt_info.got_cycle);
-	
+
 	save_u8 (blit_frozen);
 	save_u8 (blit_faulty);
 	save_u8 (original_ch);

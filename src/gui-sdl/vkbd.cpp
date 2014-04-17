@@ -1,7 +1,7 @@
 /*
  * PUAE - The Un*x Amiga Emulator
  *
- * Interface to the SDL GUI                
+ * Interface to the SDL GUI
  * (initially was for GP2X)
  *
  */
@@ -58,13 +58,13 @@ static t_vkbd_rect vkbd_rect[]=
 	{{ 28, 3, 6, 6 },90,14, 1, 3, SDLK_F3},	// 2
 	{{ 38, 3, 6, 6 },90,15, 2, 4, SDLK_F4},	// 3
 	{{ 48, 3, 6, 6 },90,17, 3, 5, SDLK_F5},	// 4
-	{{ 58, 3, 6, 6 },90,18, 4, 6, SDLK_F6},	// 5 
+	{{ 58, 3, 6, 6 },90,18, 4, 6, SDLK_F6},	// 5
 	{{ 69, 3, 6, 6 },90,20, 5, 7, SDLK_F7},	// 6
-	{{ 79, 3, 6, 6 },90,22, 6, 8, SDLK_F8},	// 7 
-	{{ 90, 3, 6, 6 },90,23, 7, 9, SDLK_F9},	// 8 
-	{{100, 3, 6, 6 },91,24, 8, 0, SDLK_F10},// 9 
+	{{ 79, 3, 6, 6 },90,22, 6, 8, SDLK_F8},	// 7
+	{{ 90, 3, 6, 6 },90,23, 7, 9, SDLK_F9},	// 8
+	{{100, 3, 6, 6 },91,24, 8, 0, SDLK_F10},// 9
 
-	{{  2,12, 6, 6 }, 0,31,30,11, SDLK_ESCAPE}, // 10 
+	{{  2,12, 6, 6 }, 0,31,30,11, SDLK_ESCAPE}, // 10
 	{{  9,12, 6, 6 }, 0,32,10,12, SDLK_1},	// 11
 	{{ 16,12, 6, 6 }, 1,33,11,13, SDLK_2},	// 12
 	{{ 23,12, 6, 6 }, 2,34,12,14, SDLK_3},	// 13
@@ -86,8 +86,8 @@ static t_vkbd_rect vkbd_rect[]=
 	{{145,12, 6, 6 },93,50,28,30, SDLK_KP_DIVIDE},	// 29
 	{{152,12, 6, 6 },88,51,29,10, SDLK_KP_MULTIPLY},	// 30
 
-	{{  2,17,10, 6 },10,52,51,32, SDLK_TAB},	// 31 
-	{{ 12,17, 6, 6 },11,53,31,33, SDLK_q},	// 32 
+	{{  2,17,10, 6 },10,52,51,32, SDLK_TAB},	// 31
+	{{ 12,17, 6, 6 },11,53,31,33, SDLK_q},	// 32
 	{{ 19,17, 6, 6 },12,54,32,34, SDLK_w},	// 33
 	{{ 25,17, 6, 6 },13,55,33,35, SDLK_e},	// 34
 	{{ 32,17, 6, 6 },14,56,34,36, SDLK_r},	// 35
@@ -230,7 +230,7 @@ SDLKey vkbd_process(void)
 	SDL_Rect r;
 	int canmove=(now-last_time>MIN_VKBD_TIME);
 #ifndef VKBD_ALWAYS
-	if (vkbd_move) 
+	if (vkbd_move)
 #endif
 		vkbd_redraw();
 	if (vkbd_move&VKBD_BUTTON)

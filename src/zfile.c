@@ -154,7 +154,7 @@ static void zcache_check (void)
 static struct zcache *zcache_put (const TCHAR *name, struct zdiskimage *data)
 {
 	struct zcache *zc;
-	
+
 	zcache_check ();
 	zc = xcalloc (struct zcache, 1);
 	zc->next = zcachedata;
@@ -1789,7 +1789,7 @@ struct zfile *zfile_dup (struct zfile *zf)
 		memcpy (nzf->data, zf->data, zf->size);
 		nzf->size = zf->size;
 		nzf->datasize = zf->datasize;
-	} else { 
+	} else {
 		if (zf->zipname) {
 			nzf = openzip (zf->name);
 			if (nzf)
@@ -1911,7 +1911,7 @@ uae_u8 *zfile_load_data (const TCHAR *name, const uae_u8 *data,int datalen, int 
 	struct zfile *zf, *f;
 	int size;
 	uae_u8 *out;
-	
+
 	zf = zfile_fopen_data (name, datalen, data);
 	f = zfile_gunzip (zf, NULL);
 	size = f->datasize;

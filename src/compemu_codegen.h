@@ -7,7 +7,7 @@
  *    Gwenole Beauchesne
  *
  *  Basilisk II (C) 1997-2008 Christian Bauer
- *  
+ *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2 of the License, or
@@ -191,7 +191,7 @@ typedef struct {
   double val;
   uae_u8 status;
   uae_s8 realreg; /* gb-- realreg can hold -1 */
-  uae_u8 realind;  
+  uae_u8 realind;
   uae_u8 needflush;
 } freg_status;
 
@@ -289,11 +289,11 @@ extern int touchcnt;
 #define FRW  uae_u32
 
 #define MIDFUNC(nargs,func,args) void func args
-#define MENDFUNC(nargs,func,args) 
+#define MENDFUNC(nargs,func,args)
 #define COMPCALL(func) func
 
 #define LOWFUNC(flags,mem,nargs,func,args) static __inline__ void func args
-#define LENDFUNC(flags,mem,nargs,func,args) 
+#define LENDFUNC(flags,mem,nargs,func,args)
 
 /* What we expose to the outside */
 #define DECLARE_MIDFUNC(func) extern void func
@@ -548,37 +548,37 @@ typedef struct blockinfo_t {
     cpuop_func* handler_to_use;
     /* The direct handler does not check for the correct address */
 
-    cpuop_func* handler; 
+    cpuop_func* handler;
     cpuop_func* direct_handler;
 
     cpuop_func* direct_pen;
     cpuop_func* direct_pcc;
 
     uae_u8* pc_p;
-    
-    uae_u32 c1;     
+
+    uae_u32 c1;
     uae_u32 c2;
 #if USE_CHECKSUM_INFO
     checksum_info *csi;
 #else
     uae_u32 len;
-    uae_u32 min_pcp; 
+    uae_u32 min_pcp;
 #endif
 
     struct blockinfo_t* next_same_cl;
-    struct blockinfo_t** prev_same_cl_p;  
+    struct blockinfo_t** prev_same_cl_p;
     struct blockinfo_t* next;
-    struct blockinfo_t** prev_p; 
+    struct blockinfo_t** prev_p;
 
-    uae_u8 optlevel;  
-    uae_u8 needed_flags;  
-    uae_u8 status;  
+    uae_u8 optlevel;
+    uae_u8 needed_flags;
+    uae_u8 status;
     uae_u8 havestate;
-    
+
     dependency  dep[2];  /* Holds things we depend on */
     dependency* deplist; /* List of things that depend on this */
     smallstate  env;
-	
+
 #if JIT_DEBUG
 	/* (gb) size of the compiled block (direct handler) */
 	uae_u32 direct_handler_size;

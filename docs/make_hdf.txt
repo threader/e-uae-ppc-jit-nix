@@ -13,10 +13,10 @@ make_hdf accepts the following parameters:
 
 make_hdf <path> <size> [<device>]
 
-<path>   The path to the file to create. Note that any directories 
+<path>   The path to the file to create. Note that any directories
          included in this path must already exist; make_hdf will not
          create them for you.
-       
+
 <size>   The size of the hard disk image to create in MB. Add a trailing
          'G' to the size to specify a size in GB or a 'K' for a size
          in KB.

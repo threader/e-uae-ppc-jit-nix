@@ -29,7 +29,7 @@
 #define ISOFS_SB(x) (&x->ei)
 #define IS_ERR(x) (x == NULL)
 
-#define XS_IFDIR        0x4000 
+#define XS_IFDIR        0x4000
 #define XS_IFCHR        0x2000
 #define XS_IFIFO        0x1000
 #define XS_IFREG        0x8000
@@ -184,7 +184,7 @@ static struct inode *find_inode(struct super_block *sb, uae_u64 uniq)
 static buffer_head *sb_bread(struct super_block *sb, uae_u32 block)
 {
 	struct buffer_head *bh;
-	
+
 	bh = sb->buffer_heads;
 	while (bh) {
 		if (bh->b_blocknr == block) {
@@ -328,8 +328,8 @@ static int make_date(int year, int month, int day, int hour, int minute, int sec
 		/* sign extend */
 		if (tz & 0x80)
 			tz |= (-1 << 8);
-		
-		/* 
+
+		/*
 		 * The timezone offset is unreliable on some disks,
 		 * so we make a sanity check.  In no case is it ever
 		 * more than 13 hours from GMT, which is 52*15min.
@@ -360,7 +360,7 @@ static int make_date(int year, int month, int day, int hour, int minute, int sec
 	return crtime;
 }
 
-/* 
+/*
  * We have to convert from a MM/DD/YY format to the Unix ctime format.
  * We have to take into account leap years and all of that good stuff.
  * Unfortunately, the kernel does not have the information on hand to
@@ -382,7 +382,7 @@ static int iso_date(char * p, int flag)
 	second = p[5];
 	if (flag == 0) tz = p[6]; /* High sierra has no time zone */
 	else tz = 0;
-	
+
 	return make_date(year, month, day, hour, minute, second, tz);
 }
 
@@ -1625,7 +1625,7 @@ static struct buffer_head *isofs_bread(struct inode *inode, uae_u32 block)
 {
 	struct buffer_head dummy[1];
 	int error;
-	
+
 	error = isofs_get_blocks(inode, block, dummy, 1);
 	if (error < 0)
 		return NULL;
@@ -2211,7 +2211,7 @@ int get_acorn_filename(struct iso_directory_record *de, char *retname, struct in
 	return retnamlen;
 }
 
-struct file 
+struct file
 {
 	uae_u32 f_pos;
 };
@@ -2382,7 +2382,7 @@ static int do_isofs_readdir(struct inode *inode, struct file *filp, char *tmpnam
 void *isofs_mount(int unitnum, uae_u64 *uniq)
 {
 	struct super_block *sb;
-	
+
 	sb = xcalloc(struct super_block, 1);
 	sb->s_blocksize = 2048;
 	sb->s_blocksize_bits = 11;
@@ -2421,7 +2421,7 @@ void isofs_unmount(void *sbp)
 bool isofs_mediainfo(void *sbp, struct isofs_info *ii)
 {
 	struct super_block *sb = (struct super_block*)sbp;
-	
+
 	memset (ii, 0, sizeof (struct isofs_info));
 
 	if (!sb)

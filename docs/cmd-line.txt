@@ -24,14 +24,14 @@ This document (like the rest of the documentation) is a work-in-progress.
 
 -s <option>
  Specify an option in configuration file (<key>=<value>) format. For
- example, use 
- 
+ example, use
+
  -s ntsc=true
- 
+
  to start PUAE in NTSC mode.
- 
+
  See configuration.txt for supported options.
- 
+
 
 -0 <path>
 -1 <path>

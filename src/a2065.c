@@ -244,7 +244,7 @@ static int mungepacket (uae_u8 *packet, int len)
 				if (sum == 0)
 					sum = 0xffff;
 				data[6] = sum >> 8;
-				data[7] = sum >> 0;	
+				data[7] = sum >> 0;
 				ret |= 1;
 			}
 			// this all just to translate single DHCP MAC..
@@ -583,7 +583,7 @@ static void chip_init (void)
 
 	prom = (am_mode & MODE_PROM) ? 1 : 0;
 	fakeprom = a2065_promiscuous ? 1 : 0;
-	
+
 	fakemac[0] = p[3];
 	fakemac[1] = p[2];
 	fakemac[2] = p[5];
@@ -747,7 +747,7 @@ static uae_u32 REGPARAM2 a2065_wget (uaecptr addr)
 	} else {
 		v = a2065_bget2 (addr + 0) << 8;
 		v |= a2065_bget2 (addr + 1);
-	} 
+	}
 	return v;
 }
 

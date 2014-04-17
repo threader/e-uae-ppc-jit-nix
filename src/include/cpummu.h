@@ -2,7 +2,7 @@
  * cpummu.h - MMU emulation
  *
  * Copyright (c) 2001-2004 Milan Jurik of ARAnyM dev team (see AUTHORS)
- * 
+ *
  * Inspired by UAE MMU patch
  *
  * This file is part of the ARAnyM project which builds a new and powerful
@@ -213,12 +213,12 @@ static ALWAYS_INLINE bool mmu_lookup(uaecptr addr, bool data, bool write,
 		index=(addr & 0x0000F000)>>12;
 	for (i = 0; i < ATC_WAYS; i++) {
 		way = mmu_atc_ways;
-		// if we have this 
+		// if we have this
 		if ((tag == mmu_atc_array[data][way][index].tag) && (mmu_atc_array[data][way][index].valid)) {
 			*cl=&mmu_atc_array[data][way][index];
 			// if first write to this take slow path (but modify this slot)
 			if ((!mmu_atc_array[data][way][index].modified & write) || (mmu_atc_array[data][way][index].write_protect & write))
-				return false; 
+				return false;
 			return true;
 		}
 		mmu_atc_ways++;
@@ -246,12 +246,12 @@ static ALWAYS_INLINE bool mmu_user_lookup(uaecptr addr, bool super, bool data,
 		index=(addr & 0x0000F000)>>12;
 	for (i = 0; i < ATC_WAYS; i++) {
 		way = mmu_atc_ways;
-		// if we have this 
+		// if we have this
 		if ((tag == mmu_atc_array[data][way][index].tag) && (mmu_atc_array[data][way][index].valid)) {
 			*cl=&mmu_atc_array[data][way][index];
 			// if first write to this take slow path (but modify this slot)
 			if ((!mmu_atc_array[data][way][index].modified & write) || (mmu_atc_array[data][way][index].write_protect & write))
-				return false; 
+				return false;
 			return true;
 		}
 		mmu_atc_ways++;

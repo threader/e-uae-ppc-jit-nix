@@ -120,7 +120,7 @@ static uae_u32 dskpt;
 static bool fifo_filled;
 static uae_u16 fifo[3];
 static int fifo_inuse[3];
-static int dma_enable, bitoffset; 
+static int dma_enable, bitoffset;
 //REMOVEME: syncoffset;
 static uae_u16 word, dsksync;
 static unsigned long dsksync_cycles;
@@ -979,7 +979,7 @@ static bool isrecognizedext (const TCHAR *name)
 {
 	const TCHAR *ext = _tcsrchr (name, '.');
 	if (ext) {
-		if (!_tcsicmp (ext + 1, _T("adf")) || !_tcsicmp (ext + 1, _T("adz")) || !_tcsicmp (ext + 1, _T("st")) || !_tcsicmp (ext + 1, _T("ima")) || !_tcsicmp (ext + 1, _T("img"))) 
+		if (!_tcsicmp (ext + 1, _T("adf")) || !_tcsicmp (ext + 1, _T("adz")) || !_tcsicmp (ext + 1, _T("st")) || !_tcsicmp (ext + 1, _T("ima")) || !_tcsicmp (ext + 1, _T("img")))
 			return true;
 	}
 	return false;
@@ -1042,7 +1042,7 @@ static int drive_insert (drive * drv, struct uae_prefs *p, int dnum, const TCHAR
 	}
 
 	canauto = 0;
-	if (isrecognizedext (fname)) 
+	if (isrecognizedext (fname))
 		canauto = 1;
 	if (!canauto && drv->diskfile && isrecognizedext (zfile_getname (drv->diskfile)))
 		canauto = 1;
@@ -2853,7 +2853,7 @@ uae_u8 DISK_status (void)
 #ifdef AMAX
 		if (drv->amax) {
 			st = amax_disk_status ();
-		} else 
+		} else
 #endif
 		if (!((selected | disabled) & (1 << dr))) {
 			if (drive_running (drv)) {

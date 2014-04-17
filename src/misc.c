@@ -365,7 +365,7 @@ int target_cfgfile_load (struct uae_prefs *p, const TCHAR *filename, int type, i
 	if (type == 0) {
 		default_prefs (p, type);
 	}
-		
+
 	//regqueryint (NULL, "ConfigFile_NoAuto", &ct2);
 	v = cfgfile_load (p, fname, &type2, ct2, isdefault ? 0 : 1);
 	if (!v)
@@ -1006,8 +1006,8 @@ dm.dmPelsHeight = 1024;
 dm.dmBitsPerPel = 32;
 dm.dmDisplayFrequency = 50;
 //dm.dmDisplayFlags =
-//dm.dmPosition = 
-//dm.dmDisplayOrientation = 
+//dm.dmPosition =
+//dm.dmDisplayOrientation =
 //			while (EnumDisplaySettingsEx (md->adapterid, idx, &dm, mode ? EDS_RAWMODE : 0)) {
 				int found = 0;
 				int idx2 = 0;
@@ -1078,7 +1078,7 @@ void updatedisplayarea (void)
 				S2X_refresh ();
 #endif
 			DirectDraw_Flip (0);
-		} 
+		}
 */
 }
 
@@ -1272,7 +1272,7 @@ bool vsync_busywait_do (int *freetime, bool lace, bool oddeven)
 // parser.c
 ///////////////////////////////////////////////////
 
-unsigned int flashscreen;   
+unsigned int flashscreen;
 
 void doflashscreen (void)
 {
@@ -1313,7 +1313,7 @@ static inline int isnan_f  (float       x) { return x != x; }
 static inline int isnan_d  (double      x) { return x != x; }
 static inline int isnan_ld (long double x) { return x != x; }
 #endif
-          
+
 #ifndef isinf
 #define isinf(x) \
 	(sizeof (x) == sizeof (long double) ? isinf_ld (x) \

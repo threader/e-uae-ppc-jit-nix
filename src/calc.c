@@ -28,7 +28,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
- 
+
 #define STACK_SIZE 32
 #define MAX_VALUES 32
 #define IOBUFFERS 256
@@ -55,7 +55,7 @@ static int op_preced(const TCHAR c)
     }
     return 0;
 }
- 
+
 static bool op_left_assoc(const TCHAR c)
 {
     switch(c)    {
@@ -68,7 +68,7 @@ static bool op_left_assoc(const TCHAR c)
     }
     return false;
 }
- 
+
 static unsigned int op_arg_count(const TCHAR c)
 {
     switch(c)  {
@@ -81,20 +81,20 @@ static unsigned int op_arg_count(const TCHAR c)
     }
     return 0;
 }
- 
+
 #define is_operator(c)  (c == '+' || c == '-' || c == '/' || c == '*' || c == '!' || c == '%' || c == '=')
 #define is_function(c)  (c >= 'A' && c <= 'Z')
 #define is_ident(c)     ((c >= '0' && c <= '9') || (c >= 'a' && c <= 'z'))
- 
+
 static bool shunting_yard(const TCHAR *input, TCHAR *output)
 {
     const TCHAR *strpos = input, *strend = input + _tcslen(input);
     TCHAR c, *outpos = output;
- 
+
     TCHAR stack[STACK_SIZE];       // operator stack
     unsigned int sl = 0;  // stack length
     TCHAR    sc;          // used for record stack element
- 
+
     while(strpos < strend)   {
 		if (sl >= STACK_SIZE)
 			return false;
@@ -123,7 +123,7 @@ static bool shunting_yard(const TCHAR *input, TCHAR *output)
                     else  {
                         // Until the token at the top of the stack is a left parenthesis,
                         // pop operators off the stack onto the output queue.
-                        *outpos = sc; 
+                        *outpos = sc;
                         ++outpos;
                         sl--;
                     }
@@ -146,7 +146,7 @@ static bool shunting_yard(const TCHAR *input, TCHAR *output)
                         ((op_left_assoc(c) && (op_preced(c) <= op_preced(sc))) ||
                            (!op_left_assoc(c) && (op_preced(c) < op_preced(sc)))))   {
                         // Pop o2 off the stack, onto the output queue;
-                        *outpos = sc; 
+                        *outpos = sc;
                         ++outpos;
                         sl--;
                     }
@@ -175,7 +175,7 @@ static bool shunting_yard(const TCHAR *input, TCHAR *output)
                         break;
                     }
                     else  {
-                        *outpos = sc; 
+                        *outpos = sc;
                         ++outpos;
                         sl--;
                     }
@@ -191,7 +191,7 @@ static bool shunting_yard(const TCHAR *input, TCHAR *output)
                 if(sl > 0)   {
                     sc = stack[sl - 1];
                     if(is_function(sc))   {
-                        *outpos = sc; 
+                        *outpos = sc;
                         ++outpos;
                         sl--;
                     }
@@ -212,14 +212,14 @@ static bool shunting_yard(const TCHAR *input, TCHAR *output)
             printf("Error: parentheses mismatched\n");
             return false;
         }
-        *outpos = sc; 
+        *outpos = sc;
         ++outpos;
         --sl;
     }
     *outpos = 0; // Null terminator
     return true;
 }
- 
+
 
 struct calcstack
 {
@@ -377,7 +377,7 @@ static bool execution_order(const TCHAR *input, double *outval)
 		}
 		for (i = 0; i < STACK_SIZE; i++)
 			xfree (stack[i].s);
- 
+
 		// If there are more values in the stack
         // (Error) The user input has too many values.
 

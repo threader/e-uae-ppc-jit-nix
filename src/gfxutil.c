@@ -332,7 +332,7 @@ void alloc_colors_rgb (int rw, int gw, int bw, int rs, int gs, int bs, int aw, i
 
 		if (currprefs.gfx_blackerthanblack) {
 			j = i * 15 / 16 + 15;
-		} else {  
+		} else {
 			j = i;
 		}
 		j += 256;
@@ -662,9 +662,9 @@ void setup_greydither_maxcol (int maxcol, allocfunc_type allocfunc)
 	    for (b = 0; b < 16; ++b) {
 			int rgb = (r << 8) | (g << 4) | b;
 			int c,p,q;
-	
+
 			c = (77 * r + 151 * g + 28 * b) / 15; /* c in 0..256 */
-	
+
 			k = maxcol-1;
 			p = (c * k) / 256;
 			q = (c * k) % 256;

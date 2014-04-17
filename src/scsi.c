@@ -4,7 +4,7 @@
  * SCSI emulation (not uaescsi.device)
  *
  * Copyright 2007 Toni Wilen
- * 
+ *
  */
 
 #include "sysconfig.h"

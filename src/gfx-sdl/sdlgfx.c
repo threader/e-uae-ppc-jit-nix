@@ -267,11 +267,11 @@ unsigned int findString(char* in, char* list)
   while (*list != 0)
   {
     int length = strcspn(list," ");
-    
+
     if( thisLength == length )
       if (!strncmp(in,list,length))
         return 1;
-        
+
     list += length + 1;
   }
   return 0;

@@ -84,7 +84,7 @@ typedef struct {
         bool cache_inhibit;
         bool bus_error;
     } physical;
-    
+
     struct {
         uaecptr addr;
         uae_u32 fc;
@@ -97,33 +97,33 @@ typedef struct {
 
 /* MMU struct for 68030 */
 struct {
-    
+
     /* Translation tables */
     struct {
         struct {
             uae_u32 mask;
             uae_u8 shift;
         } table[4];
-        
+
         struct {
             uae_u32 mask;
 			uae_u32 imask;
             uae_u8 size;
         } page;
-        
+
         uae_u8 init_shift;
         uae_u8 last_table;
     } translation;
-    
+
     /* Transparent translation */
     struct {
         TT_info tt0;
         TT_info tt1;
     } transparent;
-    
+
     /* Address translation cache */
     MMU030_ATC_LINE atc[ATC030_NUM_ENTRIES];
-    
+
     /* Condition */
     bool enabled;
     uae_u16 status;
@@ -180,7 +180,7 @@ void mmu_op30_pmove (uaecptr pc, uae_u32 opcode, uae_u16 next, uaecptr extra)
 	int preg = (next >> 10) & 31;
 	int rw = (next >> 9) & 1;
 	int fd = (next >> 8) & 1;
-    
+
 #if MMU030_OP_DBG_MSG
     switch (preg) {
         case 0x10:
@@ -216,7 +216,7 @@ void mmu_op30_pmove (uaecptr pc, uae_u32 opcode, uae_u16 next, uaecptr extra)
         write_log(_T("PMOVE: flush ATC\n"));
     }
 #endif
-    
+
 	switch (preg)
 	{
         case 0x10: // TC
@@ -274,7 +274,7 @@ void mmu_op30_pmove (uaecptr pc, uae_u32 opcode, uae_u16 next, uaecptr extra)
             op_illg (opcode);
             return;
 	}
-    
+
     if (!fd && !rw && !(preg==0x18)) {
         mmu030_flush_atc_all();
     }
@@ -284,17 +284,17 @@ void mmu_op30_pmove (uaecptr pc, uae_u32 opcode, uae_u16 next, uaecptr extra)
 void mmu_op30_ptest (uaecptr pc, uae_u32 opcode, uae_u16 next, uaecptr extra)
 {
     mmu030.status = mmusr_030 = 0;
-    
+
     int level = (next&0x1C00)>>10;
     int rw = (next >> 9) & 1;
     int a = (next >> 8) & 1;
     int areg = (next&0xE0)>>5;
     uae_u32 fc = mmu_op30_helper_get_fc(next);
-        
+
     bool write = rw ? false : true;
 
     uae_u32 ret = 0;
-    
+
     /* Check this - datasheet says:
      * "When the instruction specifies an address translation cache search
      *  with an address register operand, the MC68030 takes an F-line
@@ -305,7 +305,7 @@ void mmu_op30_ptest (uaecptr pc, uae_u32 opcode, uae_u16 next, uaecptr extra)
         Exception(11); /* F-line unimplemented instruction exception */
         return;
     }
-        
+
 #if MMU030_OP_DBG_MSG
     write_log(_T("PTEST%c: addr = %08X, fc = %i, level = %i, "),
               rw?'R':'W', extra, fc, level);
@@ -315,7 +315,7 @@ void mmu_op30_ptest (uaecptr pc, uae_u32 opcode, uae_u16 next, uaecptr extra)
         write_log(_T("do not return descriptor\n"));
     }
 #endif
-    
+
     if (!level) {
         mmu030_ptest_atc_search(extra, fc, write);
     } else {
@@ -325,7 +325,7 @@ void mmu_op30_ptest (uaecptr pc, uae_u32 opcode, uae_u16 next, uaecptr extra)
         }
     }
     mmusr_030 = mmu030.status;
-    
+
 #if MMU030_OP_DBG_MSG
     write_log(_T("PTEST status: %04X, B = %i, L = %i, S = %i, W = %i, I = %i, M = %i, T = %i, N = %i\n"),
               mmusr_030, (mmusr_030&MMUSR_BUS_ERROR)?1:0, (mmusr_030&MMUSR_LIMIT_VIOLATION)?1:0,
@@ -339,7 +339,7 @@ void mmu_op30_pload (uaecptr pc, uae_u32 opcode, uae_u16 next, uaecptr extra)
 {
     int rw = (next >> 9) & 1;
     uae_u32 fc = mmu_op30_helper_get_fc(next);
-    
+
     bool write = rw ? false : true;
 
 #if 0
@@ -355,7 +355,7 @@ void mmu_op30_pflush (uaecptr pc, uae_u32 opcode, uae_u16 next, uaecptr extra)
     uae_u16 mode = (next&0x1C00)>>10;
     uae_u32 fc_mask = (uae_u32)(next&0x00E0)>>5;
     uae_u32 fc_base = mmu_op30_helper_get_fc(next);
-    
+
 #if 0
     switch (mode) {
         case 0x1:
@@ -374,7 +374,7 @@ void mmu_op30_pflush (uaecptr pc, uae_u32 opcode, uae_u16 next, uaecptr extra)
             break;
     }
 #endif
-    
+
     switch (mode) {
         case 0x1:
             mmu030_flush_atc_all();
@@ -385,7 +385,7 @@ void mmu_op30_pflush (uaecptr pc, uae_u32 opcode, uae_u16 next, uaecptr extra)
         case 0x6:
             mmu030_flush_atc_page_fc(extra, fc_base, fc_mask);
             break;
-            
+
         default:
             write_log(_T("PFLUSH ERROR: bad mode! (%i)\n"),mode);
             break;
@@ -510,14 +510,14 @@ void mmu030_flush_atc_all(void) {
 #define TT_NO_WRITE	0x8
 
 TT_info mmu030_decode_tt(uae_u32 TT) {
-    
+
     TT_info ret;
 
     ret.fc_mask = ~((TT&TT_FC_MASK)|0xFFFFFFF8);
     ret.fc_base = (TT&TT_FC_BASE)>>4;
     ret.addr_base = TT & TT_ADDR_BASE;
     ret.addr_mask = ~(((TT&TT_ADDR_MASK)<<8)|0x00FFFFFF);
-    
+
 #if 0
     if ((TT&TT_ENABLE) && !(TT&TT_RWM)) {
         write_log(_T("MMU Warning: Transparent translation of read-modify-write cycle is not correctly handled!\n"));
@@ -528,7 +528,7 @@ TT_info mmu030_decode_tt(uae_u32 TT) {
     write_log(_T("\n"));
     write_log(_T("TRANSPARENT TRANSLATION: %08X\n"), TT);
     write_log(_T("\n"));
-    
+
     write_log(_T("TT: transparent translation "));
     if (TT&TT_ENABLE) {
         write_log(_T("enabled\n"));
@@ -552,7 +552,7 @@ TT_info mmu030_decode_tt(uae_u32 TT) {
     write_log(_T("TT: address mask: %08X\n"), ret.addr_mask);
     write_log(_T("\n"));
 #endif
-    
+
     return ret;
 }
 
@@ -563,7 +563,7 @@ int mmu030_match_ttr(uaecptr addr, uae_u32 fc, bool write)
     int tt0, tt1;
 
     bool cache_inhibit = false; /* TODO: pass to memory access function */
-    
+
     tt0 = mmu030_do_match_ttr(tt0_030, mmu030.transparent.tt0, addr, fc, write);
     if (tt0&TT_OK_MATCH) {
         cache_inhibit = (tt0_030&TT_CI) ? true : false;
@@ -574,7 +574,7 @@ int mmu030_match_ttr(uaecptr addr, uae_u32 fc, bool write)
             cache_inhibit = (tt1_030&TT_CI) ? true : false;
         }
     }
-    
+
     return (tt0|tt1);
 }
 int mmu030_match_ttr_access(uaecptr addr, uae_u32 fc, bool write)
@@ -609,13 +609,13 @@ static int mmu030_match_lrmw_ttr_access(uaecptr addr, uae_u32 fc)
 int mmu030_do_match_ttr(uae_u32 tt, TT_info comp, uaecptr addr, uae_u32 fc, bool write)
 {
 	if (tt & TT_ENABLE)	{	/* transparent translation enabled */
-        
+
         /* Compare actual function code with function code base using mask */
         if ((comp.fc_base&comp.fc_mask)==(fc&comp.fc_mask)) {
-            
+
             /* Compare actual address with address base using mask */
             if ((comp.addr_base&comp.addr_mask)==(addr&comp.addr_mask)) {
-                
+
                 if (tt&TT_RWM) {  /* r/w field disabled */
                     return TT_OK_MATCH;
                 } else {
@@ -634,13 +634,13 @@ int mmu030_do_match_ttr(uae_u32 tt, TT_info comp, uaecptr addr, uae_u32 fc, bool
 int mmu030_do_match_lrmw_ttr(uae_u32 tt, TT_info comp, uaecptr addr, uae_u32 fc)
 {
 	if ((tt & TT_ENABLE) && (tt & TT_RWM))	{	/* transparent translation enabled */
-        
+
         /* Compare actual function code with function code base using mask */
         if ((comp.fc_base&comp.fc_mask)==(fc&comp.fc_mask)) {
-            
+
             /* Compare actual address with address base using mask */
             if ((comp.addr_base&comp.addr_mask)==(addr&comp.addr_mask)) {
-                
+
 				return TT_OK_MATCH;
             }
 		}
@@ -704,8 +704,8 @@ int mmu030_do_match_lrmw_ttr(uae_u32 tt, TT_info comp, uaecptr addr, uae_u32 fc)
 
 
 void mmu030_decode_tc(uae_u32 TC) {
-        
-    /* Set MMU condition */    
+
+    /* Set MMU condition */
     if (TC & TC_ENABLE_TRANSLATION) {
         mmu030.enabled = true;
     } else {
@@ -714,7 +714,7 @@ void mmu030_decode_tc(uae_u32 TC) {
         mmu030.enabled = false;
         return;
     }
-    
+
     /* Note: 0 = Table A, 1 = Table B, 2 = Table C, 3 = Table D */
     int i, j;
     uae_u8 TI_bits[4] = {0,0,0,0};
@@ -724,14 +724,14 @@ void mmu030_decode_tc(uae_u32 TC) {
         mmu030.translation.table[i].mask = 0;
         mmu030.translation.table[i].shift = 0;
     }
-    
-    
+
+
     /* Extract initial shift and page size values from TC register */
     mmu030.translation.page.size = (TC & TC_PS_MASK) >> 20;
     mmu030.translation.init_shift = (TC & TC_IS_MASK) >> 16;
 	regs.mmu_page_size = 1 << mmu030.translation.page.size;
 
-    
+
 	write_log(_T("68030 MMU enabled. Page size = %d\n"), regs.mmu_page_size);
 
 	if (mmu030.translation.page.size<8) {
@@ -742,10 +742,10 @@ void mmu030_decode_tc(uae_u32 TC) {
     }
 	mmu030.translation.page.mask = regs.mmu_page_size - 1;
 	mmu030.translation.page.imask = ~mmu030.translation.page.mask;
-    
+
     /* Calculate masks and shifts for later extracting table indices
      * from logical addresses using: index = (addr&mask)>>shift */
-    
+
     /* Get number of bits for each table index */
     for (i = 0; i < 4; i++) {
         j = (3-i)*4;
@@ -766,10 +766,10 @@ void mmu030_decode_tc(uae_u32 TC) {
         /* Update until reaching the last table */
         mmu030.translation.last_table = i;
     }
-    
+
 #if MMU030_REG_DBG_MSG
     /* At least one table has to be defined using at least
-     * 1 bit for the index. At least 2 bits are necessary 
+     * 1 bit for the index. At least 2 bits are necessary
      * if there is no second table. If these conditions are
      * not met, it will automatically lead to a sum <32
      * and cause an exception (see below). */
@@ -780,7 +780,7 @@ void mmu030_decode_tc(uae_u32 TC) {
         write_log(_T("MMU Configuration Exception: Bad value in TC register! (only 1 bit for first table index)\n"));
     }
 #endif
-    
+
     /* TI fields are summed up until a zero field is reached (see above
      * loop). The sum of all TI field values plus page size and initial
      * shift has to be 32: IS + PS + TIA + TIB + TIC + TID = 32 */
@@ -789,7 +789,7 @@ void mmu030_decode_tc(uae_u32 TC) {
         Exception(56); /* MMU Configuration Exception */
         return;
     }
-    
+
 #if MMU030_REG_DBG_MSG /* enable or disable debugging output */
     write_log(_T("\n"));
     write_log(_T("TRANSLATION CONTROL: %08X\n"), TC);
@@ -798,11 +798,11 @@ void mmu030_decode_tc(uae_u32 TC) {
     write_log(_T("TC: supervisor root pointer %s\n"), (TC&TC_ENABLE_SUPERVISOR ? _T("enabled") : _T("disabled")));
     write_log(_T("TC: function code lookup %s\n"), (TC&TC_ENABLE_FCL ? _T("enabled") : _T("disabled")));
     write_log(_T("\n"));
-    
+
     write_log(_T("TC: Initial Shift: %i\n"), mmu030.translation.init_shift);
     write_log(_T("TC: Page Size: %i byte\n"), (1<<mmu030.translation.page.size));
     write_log(_T("\n"));
-    
+
     for (i = 0; i <= mmu030.translation.last_table; i++) {
         write_log(_T("TC: Table %c: mask = %08X, shift = %i\n"), table_letter[i], mmu030.translation.table[i].mask, mmu030.translation.table[i].shift);
     }
@@ -845,7 +845,7 @@ void mmu030_decode_tc(uae_u32 TC) {
 #define RP_ZERO_BITS 0x0000FFFC /* These bits in upper longword of RP must be 0 */
 
 void mmu030_decode_rp(uae_u64 RP) {
-    
+
     uae_u8 descriptor_type = (RP & RP_DESCR_MASK) >> 32;
     if (!descriptor_type) { /* If descriptor type is invalid */
         write_log(_T("MMU Configuration Exception: Root Pointer is invalid!\n"));
@@ -855,11 +855,11 @@ void mmu030_decode_rp(uae_u64 RP) {
 #if MMU030_REG_DBG_MSG /* enable or disable debugging output */
     uae_u32 table_limit = (RP & RP_LIMIT_MASK) >> 48;
     uae_u32 first_addr = (RP & RP_ADDR_MASK);
-    
+
     write_log(_T("\n"));
     write_log(_T("ROOT POINTER: %08X%08X\n"), (uae_u32)(RP>>32)&0xFFFFFFFF, (uae_u32)(RP&0xFFFFFFFF));
     write_log(_T("\n"));
-    
+
     write_log(_T("RP: descriptor type = %i "), descriptor_type);
     switch (descriptor_type) {
         case 0:
@@ -875,9 +875,9 @@ void mmu030_decode_rp(uae_u64 RP) {
             write_log(_T("(valid 8 byte descriptor)\n"));
             break;
     }
-    
+
     write_log(_T("RP: %s limit = %i\n"), (RP&RP_LOWER_MASK) ? _T("lower") : _T("upper"), table_limit);
-    
+
     write_log(_T("RP: first table address = %08X\n"), first_addr);
     write_log(_T("\n"));
 #endif
@@ -1041,7 +1041,7 @@ void mmu030_decode_rp(uae_u64 RP) {
 
 
 
-/* This functions searches through the translation tables. It can be used 
+/* This functions searches through the translation tables. It can be used
  * for PTEST (levels 1 to 7). Using level 0 creates an ATC entry. */
 
 uae_u32 mmu030_table_search(uaecptr addr, uae_u32 fc, bool write, int level) {
@@ -1061,9 +1061,9 @@ uae_u32 mmu030_table_search(uaecptr addr, uae_u32 fc, bool write, int level) {
         bool write_protect = false;
         bool cache_inhibit = false;
         bool descr_modified = false;
-        
+
         mmu030.status = 0; /* Reset status */
-        
+
         /* Initial values for condition variables.
          * Note: Root pointer is long descriptor. */
         int t = 0;
@@ -1072,9 +1072,9 @@ uae_u32 mmu030_table_search(uaecptr addr, uae_u32 fc, bool write, int level) {
         int descr_size = 8;
         int descr_num = 0;
         bool early_termination = false;
-        
+
         int i;
-    
+
     TRY(prb) {
         /* Use super user root pointer if enabled in TC register and access is in
          * super user mode, else use cpu root pointer. */
@@ -1091,14 +1091,14 @@ uae_u32 mmu030_table_search(uaecptr addr, uae_u32 fc, bool write, int level) {
             write_log(_T("CPU Root Pointer: %08X%08X\n"),descr[0],descr[1]);
 #endif
 		}
-                
+
         if (descr[0]&RP_ZERO_BITS) {
 #if MMU030_REG_DBG_MSG
 			write_log(_T("MMU Warning: Root pointer reserved bits are non-zero! %08X\n"), descr[0]);
 #endif
 			descr[0] &= (~RP_ZERO_BITS);
         }
-        
+
         /* Check descriptor type of root pointer */
         descr_type = descr[0]&DESCR_TYPE_MASK;
         switch (descr_type) {
@@ -1117,22 +1117,22 @@ uae_u32 mmu030_table_search(uaecptr addr, uae_u32 fc, bool write, int level) {
                 next_size = 8;
                 break;
         }
-        
+
         /* If function code lookup is enabled in TC register use function code as
          * index for top level table, limit check not required */
-        
+
         if (tc_030&TC_ENABLE_FCL) {
             write_log(_T("Function code lookup enabled, FC = %i\n"), fc);
-            
+
             addr_position = (descr_size==4) ? 0 : 1;
             table_addr = descr[addr_position]&DESCR_TD_ADDR_MASK;
             table_index = fc; /* table index is function code */
             write_log(_T("Table FCL at %08X: index = %i, "),table_addr,table_index);
-            
+
             /* Fetch next descriptor */
             descr_num++;
             descr_addr[descr_num] = table_addr+(table_index*next_size);
-            
+
             if (next_size==4) {
                 descr[0] = phys_get_long(descr_addr[descr_num]);
 #if MMU030_REG_DBG_MSG
@@ -1145,9 +1145,9 @@ uae_u32 mmu030_table_search(uaecptr addr, uae_u32 fc, bool write, int level) {
                 write_log(_T("Next descriptor: %08X%08X\n"),descr[0],descr[1]);
 #endif
             }
-            
+
             descr_size = next_size;
-            
+
             /* Check descriptor type */
             descr_type = descr[0]&DESCR_TYPE_MASK;
             switch (descr_type) {
@@ -1170,8 +1170,8 @@ uae_u32 mmu030_table_search(uaecptr addr, uae_u32 fc, bool write, int level) {
                     break;
             }
         }
-        
-        
+
+
         /* Upper level tables */
         do {
             if (descr_num) { /* if not root pointer */
@@ -1189,13 +1189,13 @@ uae_u32 mmu030_table_search(uaecptr addr, uae_u32 fc, bool write, int level) {
                     mmu030.status |= (descr[0]&DESCR_WP) ? MMUSR_WRITE_PROTECTED : 0;
                     write_protect = true;
                 }
-                
+
                 /* Check if ptest level is reached */
                 if (level && (level==descr_num)) {
                     goto stop_search;
                 }
             }
-            
+
             addr_position = (descr_size==4) ? 0 : 1;
             table_addr = descr[addr_position]&DESCR_TD_ADDR_MASK;
             table_index = (addr&mmu030.translation.table[t].mask)>>mmu030.translation.table[t].shift;
@@ -1203,7 +1203,7 @@ uae_u32 mmu030_table_search(uaecptr addr, uae_u32 fc, bool write, int level) {
             write_log(_T("Table %c at %08X: index = %i, "),table_letter[t],table_addr,table_index);
 #endif // MMU030_REG_DBG_MSG
             t++; /* Proceed to the next table */
-            
+
             /* Perform limit check */
             if (descr_size==8) {
                 limit = (descr[0]&DESCR_LIMIT_MASK)>>16;
@@ -1218,11 +1218,11 @@ uae_u32 mmu030_table_search(uaecptr addr, uae_u32 fc, bool write, int level) {
                     goto stop_search;
                 }
             }
-            
+
             /* Fetch next descriptor */
             descr_num++;
             descr_addr[descr_num] = table_addr+(table_index*next_size);
-            
+
             if (next_size==4) {
                 descr[0] = phys_get_long(descr_addr[descr_num]);
 #if MMU030_REG_DBG_MSG
@@ -1235,9 +1235,9 @@ uae_u32 mmu030_table_search(uaecptr addr, uae_u32 fc, bool write, int level) {
                 write_log(_T("Next descriptor: %08X%08X\n"),descr[0],descr[1]);
 #endif
             }
-            
+
             descr_size = next_size;
-            
+
             /* Check descriptor type */
             descr_type = descr[0]&DESCR_TYPE_MASK;
             switch (descr_type) {
@@ -1265,15 +1265,15 @@ uae_u32 mmu030_table_search(uaecptr addr, uae_u32 fc, bool write, int level) {
                     break;
             }
         } while (t<=mmu030.translation.last_table);
-        
-        
+
+
         /* Handle indirect descriptor */
-        
+
         /* Check if ptest level is reached */
         if (level && (level==descr_num)) {
             goto stop_search;
         }
-        
+
         addr_position = (descr_size==4) ? 0 : 1;
         indirect_addr = descr[addr_position]&DESCR_ID_ADDR_MASK;
 #if MMU030_REG_DBG_MSG
@@ -1283,7 +1283,7 @@ uae_u32 mmu030_table_search(uaecptr addr, uae_u32 fc, bool write, int level) {
         /* Fetch indirect descriptor */
         descr_num++;
         descr_addr[descr_num] = indirect_addr;
-        
+
         if (next_size==4) {
             descr[0] = phys_get_long(descr_addr[descr_num]);
 #if MMU030_REG_DBG_MSG
@@ -1296,18 +1296,18 @@ uae_u32 mmu030_table_search(uaecptr addr, uae_u32 fc, bool write, int level) {
             write_log(_T("descr = %08X%08X"),descr[0],descr[1]);
 #endif
 		}
-        
+
         descr_size = next_size;
-        
+
         /* Check descriptor type, only page descriptor is valid */
         descr_type = descr[0]&DESCR_TYPE_MASK;
         if (descr_type!=DESCR_TYPE_PAGE) {
             mmu030.status |= MMUSR_INVALID;
             goto stop_search;
         }
-        
+
     handle_page_descriptor:
-        
+
         if (descr_num) { /* if not root pointer */
             if (!level && !(mmu030.status&MMUSR_SUPER_VIOLATION)) {
                 /* set modified bit */
@@ -1325,14 +1325,14 @@ uae_u32 mmu030_table_search(uaecptr addr, uae_u32 fc, bool write, int level) {
                     phys_put_long(descr_addr[descr_num], descr[0]);
                 }
             }
-            
+
             if ((descr_size==8) && (descr[0]&DESCR_S)) {
                 mmu030.status |= super ? 0 : MMUSR_SUPER_VIOLATION;
             }
-            
+
             /* check if caching is inhibited */
             cache_inhibit = descr[0]&DESCR_CI ? true : false;
-            
+
             /* check write protection */
             if (descr[0]&DESCR_WP) {
                 mmu030.status |= (descr[0]&DESCR_WP) ? MMUSR_WRITE_PROTECTED : 0;
@@ -1341,7 +1341,7 @@ uae_u32 mmu030_table_search(uaecptr addr, uae_u32 fc, bool write, int level) {
             /* TODO: check if this is handled at correct point (maybe before updating descr?) */
             mmu030.status |= (descr[0]&DESCR_M) ? MMUSR_MODIFIED : 0;
         }
-        
+
         /* Check limit using next index field of logical address.
          * Limit is only checked on early termination. If we are
          * still at root pointer level, only check limit, if FCL
@@ -1383,7 +1383,7 @@ uae_u32 mmu030_table_search(uaecptr addr, uae_u32 fc, bool write, int level) {
 #if MMU030_REG_DBG_MSG
         write_log(_T("Page at %08X\n"),page_addr);
 #endif // MMU030_REG_DBG_MSG
-        
+
     stop_search:
         ; /* Make compiler happy */
     } CATCH(prb) {
@@ -1396,7 +1396,7 @@ uae_u32 mmu030_table_search(uaecptr addr, uae_u32 fc, bool write, int level) {
         write_log(_T("MMU: Bus error while %s descriptor!\n"),
                   bBusErrorReadWrite?_T("reading"):_T("writing"));
     } ENDTRY
-    
+
     /* check if we have to handle ptest */
     if (level) {
         if (mmu030.status&MMUSR_INVALID) {
@@ -1408,7 +1408,7 @@ uae_u32 mmu030_table_search(uaecptr addr, uae_u32 fc, bool write, int level) {
         /* If root pointer is page descriptor (descr_num 0), return 0 */
         return descr_num ? descr_addr[descr_num] : 0;
     }
-    
+
     /* Find an ATC entry to replace */
     /* Search for invalid entry */
     for (i=0; i<ATC030_NUM_ENTRIES; i++) {
@@ -1434,7 +1434,7 @@ uae_u32 mmu030_table_search(uaecptr addr, uae_u32 fc, bool write, int level) {
 	}
 
     mmu030_atc_handle_history_bit(i);
-    
+
     /* Create ATC entry */
     mmu030.atc[i].logical.addr = addr & mmu030.translation.page.imask; /* delete page index bits */
     mmu030.atc[i].logical.fc = fc;
@@ -1453,7 +1453,7 @@ uae_u32 mmu030_table_search(uaecptr addr, uae_u32 fc, bool write, int level) {
     mmu030.atc[i].physical.cache_inhibit = cache_inhibit;
     mmu030.atc[i].physical.write_protect = write_protect;
 
-#if MMU030_ATC_DBG_MSG    
+#if MMU030_ATC_DBG_MSG
     write_log(_T("ATC create entry(%i): logical = %08X, physical = %08X, FC = %i\n"), i,
               mmu030.atc[i].logical.addr, mmu030.atc[i].physical.addr,
               mmu030.atc[i].logical.fc);
@@ -1463,7 +1463,7 @@ uae_u32 mmu030_table_search(uaecptr addr, uae_u32 fc, bool write, int level) {
               mmu030.atc[i].physical.write_protect?1:0,
               mmu030.atc[i].physical.modified?1:0);
 #endif // MMU030_ATC_DBG_MSG
-    
+
     return 0;
 }
 
@@ -1471,12 +1471,12 @@ uae_u32 mmu030_table_search(uaecptr addr, uae_u32 fc, bool write, int level) {
 void mmu030_ptest_atc_search(uaecptr logical_addr, uae_u32 fc, bool write) {
     int i;
     mmu030.status = 0;
-        
+
     if (mmu030_match_ttr(logical_addr, fc, write)&TT_OK_MATCH) {
         mmu030.status |= MMUSR_TRANSP_ACCESS;
         return;
     }
-    
+
     for (i = 0; i < ATC030_NUM_ENTRIES; i++) {
         if ((mmu030.atc[i].logical.fc == fc) &&
             (mmu030.atc[i].logical.addr == logical_addr) &&
@@ -1484,12 +1484,12 @@ void mmu030_ptest_atc_search(uaecptr logical_addr, uae_u32 fc, bool write) {
             break;
         }
     }
-    
+
     if (i==ATC030_NUM_ENTRIES) {
         mmu030.status |= MMUSR_INVALID;
         return;
     }
-    
+
     mmu030.status |= mmu030.atc[i].physical.bus_error ? (MMUSR_BUS_ERROR|MMUSR_INVALID) : 0;
     mmu030.status |= mmu030.atc[i].physical.write_protect ? MMUSR_WRITE_PROTECTED : 0;
     mmu030.status |= mmu030.atc[i].physical.modified ? MMUSR_MODIFIED : 0;
@@ -1565,7 +1565,7 @@ void mmu030_page_fault(uaecptr addr, bool read, int flags, uae_u32 fc) {
 	regs.mmu_ssw |= read ? MMU030_SSW_RW : 0;
 	regs.mmu_ssw |= flags;
 	regs.mmu_ssw |= fc;
-    bBusErrorReadWrite = read; 
+    bBusErrorReadWrite = read;
 	mm030_stageb_address = addr;
 #if MMUDEBUG
 	write_log(_T("MMU: page fault (logical addr=%08X SSW=%04x read=%d size=%d fc=%d pc=%08x ob=%08x ins=%04X)\n"),
@@ -1579,14 +1579,14 @@ void mmu030_page_fault(uaecptr addr, bool read, int flags, uae_u32 fc) {
 void mmu030_put_long_atc(uaecptr addr, uae_u32 val, int l, uae_u32 fc) {
     uae_u32 page_index = addr & mmu030.translation.page.mask;
     uae_u32 addr_mask = mmu030.translation.page.imask;
-    
+
     uae_u32 physical_addr = mmu030.atc[l].physical.addr&addr_mask;
 #if MMU030_ATC_DBG_MSG
     write_log(_T("ATC match(%i): page addr = %08X, index = %08X (lput %08X)\n"),
               l, physical_addr, page_index, val);
 #endif
     physical_addr += page_index;
-    
+
     if (mmu030.atc[l].physical.bus_error || mmu030.atc[l].physical.write_protect) {
         mmu030_page_fault(addr, false, MMU030_SSW_SIZE_L, fc);
         return;
@@ -1598,14 +1598,14 @@ void mmu030_put_long_atc(uaecptr addr, uae_u32 val, int l, uae_u32 fc) {
 void mmu030_put_word_atc(uaecptr addr, uae_u16 val, int l, uae_u32 fc) {
     uae_u32 page_index = addr & mmu030.translation.page.mask;
     uae_u32 addr_mask = mmu030.translation.page.imask;
-    
+
     uae_u32 physical_addr = mmu030.atc[l].physical.addr&addr_mask;
 #if MMU030_ATC_DBG_MSG
     write_log(_T("ATC match(%i): page addr = %08X, index = %08X (wput %04X)\n"),
               l, physical_addr, page_index, val);
 #endif
     physical_addr += page_index;
-    
+
     if (mmu030.atc[l].physical.bus_error || mmu030.atc[l].physical.write_protect) {
         mmu030_page_fault(addr, false, MMU030_SSW_SIZE_W, fc);
         return;
@@ -1617,14 +1617,14 @@ void mmu030_put_word_atc(uaecptr addr, uae_u16 val, int l, uae_u32 fc) {
 void mmu030_put_byte_atc(uaecptr addr, uae_u8 val, int l, uae_u32 fc) {
     uae_u32 page_index = addr & mmu030.translation.page.mask;
     uae_u32 addr_mask = mmu030.translation.page.imask;
-    
+
     uae_u32 physical_addr = mmu030.atc[l].physical.addr&addr_mask;
 #if MMU030_ATC_DBG_MSG
     write_log(_T("ATC match(%i): page addr = %08X, index = %08X (bput %02X)\n"),
               l, physical_addr, page_index, val);
 #endif
     physical_addr += page_index;
-    
+
     if (mmu030.atc[l].physical.bus_error || mmu030.atc[l].physical.write_protect) {
         mmu030_page_fault(addr, false, MMU030_SSW_SIZE_B, fc);
         return;
@@ -1636,14 +1636,14 @@ void mmu030_put_byte_atc(uaecptr addr, uae_u8 val, int l, uae_u32 fc) {
 uae_u32 mmu030_get_long_atc(uaecptr addr, int l, uae_u32 fc) {
     uae_u32 page_index = addr & mmu030.translation.page.mask;
     uae_u32 addr_mask = mmu030.translation.page.imask;
-    
+
     uae_u32 physical_addr = mmu030.atc[l].physical.addr&addr_mask;
 #if MMU030_ATC_DBG_MSG
     write_log(_T("ATC match(%i): page addr = %08X, index = %08X (lget %08X)\n"), l,
               physical_addr, page_index, phys_get_long(physical_addr+page_index));
 #endif
     physical_addr += page_index;
-    
+
     if (mmu030.atc[l].physical.bus_error) {
         mmu030_page_fault(addr, true, MMU030_SSW_SIZE_L, fc);
         return 0;
@@ -1655,33 +1655,33 @@ uae_u32 mmu030_get_long_atc(uaecptr addr, int l, uae_u32 fc) {
 uae_u16 mmu030_get_word_atc(uaecptr addr, int l, uae_u32 fc) {
     uae_u32 page_index = addr & mmu030.translation.page.mask;
     uae_u32 addr_mask = mmu030.translation.page.imask;
-    
+
     uae_u32 physical_addr = mmu030.atc[l].physical.addr&addr_mask;
 #if MMU030_ATC_DBG_MSG
     write_log(_T("ATC match(%i): page addr = %08X, index = %08X (wget %04X)\n"), l,
               physical_addr, page_index, phys_get_word(physical_addr+page_index));
 #endif
     physical_addr += page_index;
-    
+
     if (mmu030.atc[l].physical.bus_error) {
         mmu030_page_fault(addr, true, MMU030_SSW_SIZE_W, fc);
         return 0;
     }
-    
+
     return phys_get_word(physical_addr);
 }
 
 uae_u8 mmu030_get_byte_atc(uaecptr addr, int l, uae_u32 fc) {
     uae_u32 page_index = addr & mmu030.translation.page.mask;
     uae_u32 addr_mask = mmu030.translation.page.imask;
-    
+
     uae_u32 physical_addr = mmu030.atc[l].physical.addr&addr_mask;
 #if MMU030_ATC_DBG_MSG
     write_log(_T("ATC match(%i): page addr = %08X, index = %08X (bget %02X)\n"), l,
               physical_addr, page_index, phys_get_byte(physical_addr+page_index));
 #endif
     physical_addr += page_index;
-    
+
     if (mmu030.atc[l].physical.bus_error) {
         mmu030_page_fault(addr, true, MMU030_SSW_SIZE_B, fc);
         return 0;
@@ -1694,14 +1694,14 @@ uae_u8 mmu030_get_byte_atc(uaecptr addr, int l, uae_u32 fc) {
 static void mmu030_put_atc_generic(uaecptr addr, uae_u32 val, int l, uae_u32 fc, int size, int flags) {
     uae_u32 page_index = addr & mmu030.translation.page.mask;
     uae_u32 addr_mask = mmu030.translation.page.imask;
-    
+
     uae_u32 physical_addr = mmu030.atc[l].physical.addr & addr_mask;
 #if MMU030_ATC_DBG_MSG
     write_log(_T("ATC match(%i): page addr = %08X, index = %08X (bput %02X)\n"),
               l, physical_addr, page_index, val);
 #endif
     physical_addr += page_index;
-    
+
     if (mmu030.atc[l].physical.write_protect || mmu030.atc[l].physical.bus_error) {
 		mmu030_page_fault(addr, false, flags, fc);
         return;
@@ -1717,14 +1717,14 @@ static void mmu030_put_atc_generic(uaecptr addr, uae_u32 val, int l, uae_u32 fc,
 static uae_u32 mmu030_get_atc_generic(uaecptr addr, int l, uae_u32 fc, int size, int flags, bool checkwrite) {
     uae_u32 page_index = addr & mmu030.translation.page.mask;
     uae_u32 addr_mask = mmu030.translation.page.imask;
-    
+
     uae_u32 physical_addr = mmu030.atc[l].physical.addr & addr_mask;
 #if MMU030_ATC_DBG_MSG
     write_log(_T("ATC match(%i): page addr = %08X, index = %08X (bget %02X)\n"), l,
               physical_addr, page_index, phys_get_byte(physical_addr+page_index));
 #endif
     physical_addr += page_index;
-    
+
 	if (mmu030.atc[l].physical.bus_error || (checkwrite && mmu030.atc[l].physical.write_protect)) {
         mmu030_page_fault(addr, true, flags, fc);
         return 0;
@@ -1737,7 +1737,7 @@ static uae_u32 mmu030_get_atc_generic(uaecptr addr, int l, uae_u32 fc, int size,
 }
 
 
-/* This function checks if a certain logical address is in the ATC 
+/* This function checks if a certain logical address is in the ATC
  * by comparing the logical address and function code to the values
  * stored in the ATC entries. If a matching entry is found it sets
  * the history bit and returns the cache index of the entry. */
@@ -1799,11 +1799,11 @@ void mmu030_atc_handle_history_bit(int entry_num) {
  * If the address matches one of the transparent translation registers
  * use it directly as physical address, else check ATC for the
  * logical address. If the logical address is not resident in the ATC
- * create a new ATC entry and then look up the physical address. 
+ * create a new ATC entry and then look up the physical address.
  */
 
 void mmu030_put_long(uaecptr addr, uae_u32 val, uae_u32 fc) {
-    
+
 	//                                        addr,super,write
 	if ((!mmu030.enabled) || (mmu030_match_ttr_access(addr,fc,true)) || (fc==7)) {
 		phys_put_long(addr,val);
@@ -1821,15 +1821,15 @@ void mmu030_put_long(uaecptr addr, uae_u32 val, uae_u32 fc) {
 }
 
 void mmu030_put_word(uaecptr addr, uae_u16 val, uae_u32 fc) {
-    
+
 	//                                        addr,super,write
 	if ((!mmu030.enabled) || (mmu030_match_ttr_access(addr,fc,true)) || (fc==7)) {
 		phys_put_word(addr,val);
 		return;
     }
-    
+
     int atc_line_num = mmu030_logical_is_in_atc(addr, fc, true);
-    
+
     if (atc_line_num>=0) {
         mmu030_put_word_atc(addr, val, atc_line_num, fc);
     } else {
@@ -1839,13 +1839,13 @@ void mmu030_put_word(uaecptr addr, uae_u16 val, uae_u32 fc) {
 }
 
 void mmu030_put_byte(uaecptr addr, uae_u8 val, uae_u32 fc) {
-    
+
 	//                                        addr,super,write
 	if ((!mmu030.enabled) || (mmu030_match_ttr_access(addr, fc, true)) || (fc==7)) {
 		phys_put_byte(addr,val);
 		return;
     }
-    
+
     int atc_line_num = mmu030_logical_is_in_atc(addr, fc, true);
 
     if (atc_line_num>=0) {
@@ -1857,12 +1857,12 @@ void mmu030_put_byte(uaecptr addr, uae_u8 val, uae_u32 fc) {
 }
 
 uae_u32 mmu030_get_long(uaecptr addr, uae_u32 fc) {
-    
+
 	//                                        addr,super,write
 	if ((!mmu030.enabled) || (mmu030_match_ttr_access(addr,fc,false)) || (fc==7)) {
 		return phys_get_long(addr);
     }
-    
+
     int atc_line_num = mmu030_logical_is_in_atc(addr, fc, false);
 
     if (atc_line_num>=0) {
@@ -1874,12 +1874,12 @@ uae_u32 mmu030_get_long(uaecptr addr, uae_u32 fc) {
 }
 
 uae_u16 mmu030_get_word(uaecptr addr, uae_u32 fc) {
-    
+
 	//                                        addr,super,write
 	if ((!mmu030.enabled) || (mmu030_match_ttr_access(addr,fc,false)) || (fc==7)) {
 		return phys_get_word(addr);
     }
-    
+
     int atc_line_num = mmu030_logical_is_in_atc(addr, fc, false);
 
     if (atc_line_num>=0) {
@@ -1891,12 +1891,12 @@ uae_u16 mmu030_get_word(uaecptr addr, uae_u32 fc) {
 }
 
 uae_u8 mmu030_get_byte(uaecptr addr, uae_u32 fc) {
-    
+
 	//                                        addr,super,write
 	if ((!mmu030.enabled) || (mmu030_match_ttr_access(addr,fc,false)) || (fc==7)) {
 		return phys_get_byte(addr);
     }
-    
+
     int atc_line_num = mmu030_logical_is_in_atc(addr, fc, false);
 
     if (atc_line_num>=0) {
@@ -1910,7 +1910,7 @@ uae_u8 mmu030_get_byte(uaecptr addr, uae_u32 fc) {
 
 /* Not commonly used access function */
 static void mmu030_put_generic(uaecptr addr, uae_u32 val, uae_u32 fc, int size, int accesssize, int flags) {
-    
+
 	//                                        addr,super,write
 	if ((!mmu030.enabled) || (mmu030_match_ttr_access(addr, fc, true)) || (fc==7)) {
 		if (size == sz_byte)
@@ -1921,7 +1921,7 @@ static void mmu030_put_generic(uaecptr addr, uae_u32 val, uae_u32 fc, int size, 
 			phys_put_long(addr, val);
 		return;
     }
-    
+
     int atc_line_num = mmu030_logical_is_in_atc(addr, fc, true);
     if (atc_line_num>=0) {
         mmu030_put_atc_generic(addr, val, atc_line_num, fc, size, flags);
@@ -1936,7 +1936,7 @@ static void mmu030_put_generic(uaecptr addr, uae_u32 val, uae_u32 fc, int size, 
     }
 }
 static uae_u32 mmu030_get_generic_lrmw(uaecptr addr, uae_u32 fc, int size, int accesssize, int flags) {
-    
+
 	//                                        addr,super,write
 	if ((!mmu030.enabled) || (mmu030_match_lrmw_ttr_access(addr,fc)) || (fc==7)) {
 		if (size == sz_byte)
@@ -1945,7 +1945,7 @@ static uae_u32 mmu030_get_generic_lrmw(uaecptr addr, uae_u32 fc, int size, int a
 			return phys_get_word(addr);
 		return phys_get_long(addr);
     }
-    
+
     int atc_line_num = mmu030_logical_is_in_atc(addr, fc, true);
     if (atc_line_num>=0) {
         return mmu030_get_atc_generic(addr, atc_line_num, fc, size, flags, true);
@@ -1971,7 +1971,7 @@ uae_u32 mmu030_get_generic(uaecptr addr, uae_u32 fc, int size, int accesssize, i
 			return phys_get_word(addr);
 		return phys_get_long(addr);
     }
-    
+
     int atc_line_num = mmu030_logical_is_in_atc(addr, fc, false);
     if (atc_line_num>=0) {
         return mmu030_get_atc_generic(addr, atc_line_num, fc, size, flags, false);
@@ -2025,7 +2025,7 @@ void uae_mmu030_put_lrmw(uaecptr addr, uae_u32 val, int size)
 uae_u16 REGPARAM2 mmu030_get_word_unaligned(uaecptr addr, uae_u32 fc, int flags)
 {
 	uae_u16 res;
-    
+
 	res = (uae_u16)mmu030_get_generic(addr, fc, sz_byte, sz_word, flags) << 8;
 	SAVE_EXCEPTION;
 	TRY(prb) {
@@ -2042,7 +2042,7 @@ uae_u16 REGPARAM2 mmu030_get_word_unaligned(uaecptr addr, uae_u32 fc, int flags)
 uae_u32 REGPARAM2 mmu030_get_long_unaligned(uaecptr addr, uae_u32 fc, int flags)
 {
 	uae_u32 res;
-    
+
 	if (likely(!(addr & 1))) {
 		res = (uae_u32)mmu030_get_generic(addr, fc, sz_word, sz_long, flags) << 16;
 		SAVE_EXCEPTION;
@@ -2114,10 +2114,10 @@ void REGPARAM2 mmu030_put_word_unaligned(uaecptr addr, uae_u16 val, uae_u32 fc, 
 static uaecptr mmu030_get_addr_atc(uaecptr addr, int l, uae_u32 fc, bool write) {
     uae_u32 page_index = addr & mmu030.translation.page.mask;
     uae_u32 addr_mask = mmu030.translation.page.imask;
-    
+
     uae_u32 physical_addr = mmu030.atc[l].physical.addr&addr_mask;
     physical_addr += page_index;
-    
+
 	if (mmu030.atc[l].physical.bus_error || (write && mmu030.atc[l].physical.write_protect)) {
         mmu030_page_fault(addr, write == 0, MMU030_SSW_SIZE_B, fc);
         return 0;
@@ -2271,7 +2271,7 @@ uae_u32 REGPARAM2 get_disp_ea_020_mmu030 (uae_u32 base, int idx)
 	oldidx = mmu030_idx;
 	dp = next_iword_mmu030_state ();
 	pcadd += 1;
-	
+
 	reg = (dp >> 12) & 15;
 	uae_s32 regd = regs.regs[reg];
 	if ((dp & 0x800) == 0)

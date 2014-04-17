@@ -258,14 +258,14 @@ NSString *finderLaunchFilename = nil;
 	 */
 	if (gFinishedLaunching)
 		return NO;
-		
+
     if (filename != nil) {
 	if (finderLaunchFilename != nil)
 	    [finderLaunchFilename release];
 	finderLaunchFilename = [[NSString alloc] initWithString:filename];
 	return YES;
     }
-	
+
     return NO;
 }
 
@@ -276,7 +276,7 @@ NSString *finderLaunchFilename = nil;
     [self setupWorkingDirectory:gFinderLaunch];
 
 	gFinishedLaunching = YES;
-	
+
 #ifdef USE_SDL
     setenv ("SDL_ENABLEAPPEVENTS", "1", 1);
 
@@ -285,7 +285,7 @@ NSString *finderLaunchFilename = nil;
 #endif
     {
 	/* Hand off to main application code */
-		
+
 		/* If the application was launched by double-clicking a file in the
 		 * Finder, then create a fake argc and argv to pass to real_main that
 		 * contains the appropriate arguments for UAE to load that file.
@@ -293,31 +293,31 @@ NSString *finderLaunchFilename = nil;
 		if (gFinderLaunch) {
 			char *myArgv[3];
 			char arg1[3] = { '-', 'f', '\0' };
-			char arg2[MAX_PATH]; 
-			
+			char arg2[MAX_PATH];
+
 			myArgv[0] = gArgv[0];
 			myArgv[1] = &arg1[0];
 			myArgv[2] = &arg2[0];
-				
+
 			/* If we were launched from the Finder, but without a config file
 			 * being selected, we need to ask for one now.
 			 */
 			if (finderLaunchFilename == nil) {
 				// Try to use the same directory the user used last time they loaded a config file
 				NSString *configPath = [[NSUserDefaults standardUserDefaults] stringForKey:@"LastUsedConfigFilePath"];
-				
+
 				NSOpenPanel *oPanel = [NSOpenPanel openPanel];
 				[oPanel setTitle:[NSString stringWithFormat:@"%@: Open Configuration File",getApplicationName()]];
-				
+
 				if ([oPanel respondsToSelector:@selector(setMessage:)])
 					[oPanel setMessage:@"Select a Configuration File:"];
 				[oPanel setPrompt:@"Choose"];
-				
+
 				int result = [oPanel runModalForDirectory:configPath file:nil types:[NSArray arrayWithObjects:@"uaerc", nil]];
-				
+
 				if (result == NSOKButton) {
 					finderLaunchFilename = [[oPanel filenames] objectAtIndex:0];
-					[[NSUserDefaults standardUserDefaults] setObject:[finderLaunchFilename stringByDeletingLastPathComponent] 
+					[[NSUserDefaults standardUserDefaults] setObject:[finderLaunchFilename stringByDeletingLastPathComponent]
 						forKey:@"LastUsedConfigFilePath"];
 				}
 				else {
@@ -325,23 +325,23 @@ NSString *finderLaunchFilename = nil;
 					exit(EXIT_SUCCESS);
 				}
 			}
-			
+
 			/* Check the extension of the file that was double-clicked.
 			 * If it's ".uaerc" then we keep the switch argument set to "-f",
 			 * otherwise it must be a disk image, so we change it to "-0"
 			 */
 			NSString *ext = [[finderLaunchFilename pathExtension] lowercaseString];
-			if ([ext compare:@"uaerc"] != NSOrderedSame) 
+			if ([ext compare:@"uaerc"] != NSOrderedSame)
 				myArgv[1][1] = '0';
-				
+
 			/* Copy in the filename */
 			NSData *data = [finderLaunchFilename dataUsingEncoding:NSASCIIStringEncoding allowLossyConversion:YES];
 			[data getBytes:myArgv[2] length:MAX_PATH];
 			NSUInteger len = [data length];
 			myArgv[2][(len >= MAX_PATH) ? (MAX_PATH - 1) : len] = '\0';
-			
+
 			real_main(3, myArgv);
-		} 
+		}
 		else {
 			real_main (gArgc, gArgv);
 		}

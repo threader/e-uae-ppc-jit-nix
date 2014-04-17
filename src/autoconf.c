@@ -186,7 +186,7 @@ uae_u32 ds (const TCHAR *str)
 uae_u32 ds_bstr_ansi (const uae_char *str)
 {
 	int len;
- 
+
 	len = strlen (str) + 2;
 	rt_straddr -= len;
 	while (rt_straddr & 3)

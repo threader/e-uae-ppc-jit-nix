@@ -9,7 +9,7 @@
  *  Basilisk II (C) 1997-2008 Christian Bauer
  *
  *  Portions related to CPU detection come from linux/arch/i386/kernel/setup.c
- *  
+ *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2 of the License, or
@@ -145,8 +145,8 @@ static const uae_u8 need_to_preserve[]={0,0,0,1,0,1,1,1};
 #define CLOBBER_SHRL clobber_flags()
 #define CLOBBER_SHRA clobber_flags()
 #define CLOBBER_TEST clobber_flags()
-#define CLOBBER_CL16 
-#define CLOBBER_CL8  
+#define CLOBBER_CL16
+#define CLOBBER_CL8
 #define CLOBBER_SE32
 #define CLOBBER_SE16
 #define CLOBBER_SE8
@@ -929,23 +929,23 @@ LOWFUNC(RMW,RMW,2,raw_adc_l_mi,(MEMRW d, IMM s))
 }
 LENDFUNC(RMW,RMW,2,raw_adc_l_mi,(MEMRW d, IMM s))
 
-LOWFUNC(WRITE,RMW,2,raw_add_l_mi,(IMM d, IMM s)) 
+LOWFUNC(WRITE,RMW,2,raw_add_l_mi,(IMM d, IMM s))
 {
 	ADDLim(s, d, X86_NOREG, X86_NOREG, 1);
 }
-LENDFUNC(WRITE,RMW,2,raw_add_l_mi,(IMM d, IMM s)) 
+LENDFUNC(WRITE,RMW,2,raw_add_l_mi,(IMM d, IMM s))
 
-LOWFUNC(WRITE,RMW,2,raw_add_w_mi,(IMM d, IMM s)) 
+LOWFUNC(WRITE,RMW,2,raw_add_w_mi,(IMM d, IMM s))
 {
 	ADDWim(s, d, X86_NOREG, X86_NOREG, 1);
 }
-LENDFUNC(WRITE,RMW,2,raw_add_w_mi,(IMM d, IMM s)) 
+LENDFUNC(WRITE,RMW,2,raw_add_w_mi,(IMM d, IMM s))
 
-LOWFUNC(WRITE,RMW,2,raw_add_b_mi,(IMM d, IMM s)) 
+LOWFUNC(WRITE,RMW,2,raw_add_b_mi,(IMM d, IMM s))
 {
 	ADDBim(s, d, X86_NOREG, X86_NOREG, 1);
 }
-LENDFUNC(WRITE,RMW,2,raw_add_b_mi,(IMM d, IMM s)) 
+LENDFUNC(WRITE,RMW,2,raw_add_b_mi,(IMM d, IMM s))
 
 LOWFUNC(WRITE,NONE,2,raw_test_l_ri,(R4 d, IMM i))
 {
@@ -1766,7 +1766,7 @@ LOWFUNC(READ,NONE,3,raw_cmov_b_rr,(RW1 d, R1 s, IMM cc))
 {
 	/* replacement using branch and mov */
 	int uncc=(cc^1);
-	emit_byte(0x70+uncc); 
+	emit_byte(0x70+uncc);
 	emit_byte(3);  /* skip next 2 bytes if not cc=true */
     emit_byte(0x88);
     emit_byte(0xc0+8*s+d);
@@ -1783,7 +1783,7 @@ LOWFUNC(READ,NONE,3,raw_cmov_w_rr,(RW2 d, R2 s, IMM cc))
     }
     else { /* replacement using branch and mov */
 	int uncc=(cc^1);
-	emit_byte(0x70+uncc); 
+	emit_byte(0x70+uncc);
 	emit_byte(3);  /* skip next 3 bytes if not cc=true */
 	emit_byte(0x66);
 	emit_byte(0x89);
@@ -1801,7 +1801,7 @@ LOWFUNC(READ,NONE,3,raw_cmov_l_rr,(RW4 d, R4 s, IMM cc))
     }
     else { /* replacement using branch and mov */
 	int uncc=(cc^1);
-	emit_byte(0x70+uncc); 
+	emit_byte(0x70+uncc);
 	emit_byte(2);  /* skip next 2 bytes if not cc=true */
 	emit_byte(0x89);
 	emit_byte(0xc0+8*s+d);
@@ -1905,7 +1905,7 @@ LOWFUNC(NONE,READ,4,raw_mov_l_rrm_indexed,(W4 d,R4 baser, R4 index, IMM factor))
 {
     int isebp=(baser==5)?0x40:0;
     int fi;
-    
+
     switch(factor) {
      case 1: fi=0; break;
      case 2: fi=1; break;
@@ -1927,7 +1927,7 @@ LOWFUNC(NONE,READ,4,raw_mov_w_rrm_indexed,(W2 d, R4 baser, R4 index, IMM factor)
 {
     int fi;
     int isebp;
-    
+
     switch(factor) {
      case 1: fi=0; break;
      case 2: fi=1; break;
@@ -1936,7 +1936,7 @@ LOWFUNC(NONE,READ,4,raw_mov_w_rrm_indexed,(W2 d, R4 baser, R4 index, IMM factor)
      default: abort();
     }
     isebp=(baser==5)?0x40:0;
-    
+
     emit_byte(0x66);
     emit_byte(0x8b);
     emit_byte(0x04+8*d+isebp);
@@ -1981,7 +1981,7 @@ LOWFUNC(NONE,WRITE,4,raw_mov_l_mrr_indexed,(R4 baser, R4 index, IMM factor, R4 s
   default: abort();
   }
 
-  
+
   isebp=(baser==5)?0x40:0;
 
     emit_byte(0x89);
@@ -2161,7 +2161,7 @@ LOWFUNC(NONE,READ,4,raw_mov_l_rm_indexed,(W4 d, IMM base, R4 index, IMM factor))
   case 2: fi=1; break;
   case 4: fi=2; break;
   case 8: fi=3; break;
-  default: 
+  default:
     fprintf(stderr,"Bad factor %d in mov_l_rm_indexed!\n",factor);
     abort();
   }
@@ -2180,7 +2180,7 @@ LOWFUNC(NONE,READ,5,raw_cmov_l_rm_indexed,(W4 d, IMM base, R4 index, IMM factor,
      case 2: fi=1; break;
      case 4: fi=2; break;
      case 8: fi=3; break;
-     default: 
+     default:
 	fprintf(stderr,"Bad factor %d in mov_l_rm_indexed!\n",factor);
 	abort();
     }
@@ -2193,7 +2193,7 @@ LOWFUNC(NONE,READ,5,raw_cmov_l_rm_indexed,(W4 d, IMM base, R4 index, IMM factor,
     }
     else { /* replacement using branch and mov */
 	int uncc=(cond^1);
-	emit_byte(0x70+uncc); 
+	emit_byte(0x70+uncc);
 	emit_byte(7);  /* skip next 7 bytes if not cc=true */
 	emit_byte(0x8b);
 	emit_byte(0x04+8*d);
@@ -2213,7 +2213,7 @@ LOWFUNC(NONE,READ,3,raw_cmov_l_rm,(W4 d, IMM mem, IMM cond))
     }
     else { /* replacement using branch and mov */
 	int uncc=(cond^1);
-	emit_byte(0x70+uncc); 
+	emit_byte(0x70+uncc);
 	emit_byte(6);  /* skip next 6 bytes if not cc=true */
 	emit_byte(0x8b);
 	emit_byte(0x05+8*d);
@@ -2352,7 +2352,7 @@ LENDFUNC(NONE,NONE,3,raw_lea_l_brr,(W4 d, R4 s, IMM offset))
 LOWFUNC(NONE,NONE,5,raw_lea_l_brr_indexed,(W4 d, R4 s, R4 index, IMM factor, IMM offset))
 {
   int fi;
-  
+
   switch(factor) {
   case 1: fi=0; break;
   case 2: fi=1; break;
@@ -2380,7 +2380,7 @@ LOWFUNC(NONE,NONE,4,raw_lea_l_rr_indexed,(W4 d, R4 s, R4 index, IMM factor))
 {
   int isebp=(s==5)?0x40:0;
   int fi;
-  
+
   switch(factor) {
   case 1: fi=0; break;
   case 2: fi=1; break;
@@ -2532,7 +2532,7 @@ LOWFUNC(RMW,RMW,2,raw_adc_l_mi,(MEMRW d, IMM s))
 }
 LENDFUNC(RMW,RMW,2,raw_adc_l_mi,(MEMRW d, IMM s))
 
-LOWFUNC(WRITE,RMW,2,raw_add_l_mi,(IMM d, IMM s)) 
+LOWFUNC(WRITE,RMW,2,raw_add_l_mi,(IMM d, IMM s))
 {
 	if (optimize_imm8 && isbyte(s)) {
     emit_byte(0x83);
@@ -2547,9 +2547,9 @@ LOWFUNC(WRITE,RMW,2,raw_add_l_mi,(IMM d, IMM s))
     emit_long(s);
 	}
 }
-LENDFUNC(WRITE,RMW,2,raw_add_l_mi,(IMM d, IMM s)) 
+LENDFUNC(WRITE,RMW,2,raw_add_l_mi,(IMM d, IMM s))
 
-LOWFUNC(WRITE,RMW,2,raw_add_w_mi,(IMM d, IMM s)) 
+LOWFUNC(WRITE,RMW,2,raw_add_w_mi,(IMM d, IMM s))
 {
     emit_byte(0x66);
     emit_byte(0x81);
@@ -2557,16 +2557,16 @@ LOWFUNC(WRITE,RMW,2,raw_add_w_mi,(IMM d, IMM s))
     emit_long(d);
     emit_word(s);
 }
-LENDFUNC(WRITE,RMW,2,raw_add_w_mi,(IMM d, IMM s)) 
+LENDFUNC(WRITE,RMW,2,raw_add_w_mi,(IMM d, IMM s))
 
-LOWFUNC(WRITE,RMW,2,raw_add_b_mi,(IMM d, IMM s)) 
+LOWFUNC(WRITE,RMW,2,raw_add_b_mi,(IMM d, IMM s))
 {
     emit_byte(0x80);
     emit_byte(0x05);
     emit_long(d);
     emit_byte(s);
 }
-LENDFUNC(WRITE,RMW,2,raw_add_b_mi,(IMM d, IMM s)) 
+LENDFUNC(WRITE,RMW,2,raw_add_b_mi,(IMM d, IMM s))
 
 LOWFUNC(WRITE,NONE,2,raw_test_l_ri,(R4 d, IMM i))
 {
@@ -2947,7 +2947,7 @@ LENDFUNC(WRITE,NONE,2,raw_cmp_b,(R1 d, R1 s))
 LOWFUNC(WRITE,READ,4,raw_cmp_l_rm_indexed,(R4 d, IMM offset, R4 index, IMM factor))
 {
     int fi;
-    
+
     switch(factor) {
      case 1: fi=0; break;
      case 2: fi=1; break;
@@ -3173,24 +3173,24 @@ static __inline__ void raw_jnz(uae_u32 t)
 
 static __inline__ void raw_jnz_l_oponly(void)
 {
-    emit_byte(0x0f); 
-    emit_byte(0x85); 
+    emit_byte(0x0f);
+    emit_byte(0x85);
 }
 
 static __inline__ void raw_jcc_l_oponly(int cc)
 {
-    emit_byte(0x0f); 
-    emit_byte(0x80+cc); 
+    emit_byte(0x0f);
+    emit_byte(0x80+cc);
 }
 
 static __inline__ void raw_jnz_b_oponly(void)
 {
-    emit_byte(0x75); 
+    emit_byte(0x75);
 }
 
 static __inline__ void raw_jz_b_oponly(void)
 {
-    emit_byte(0x74); 
+    emit_byte(0x74);
 }
 
 static __inline__ void raw_jcc_b_oponly(int cc)
@@ -3200,17 +3200,17 @@ static __inline__ void raw_jcc_b_oponly(int cc)
 
 static __inline__ void raw_jmp_l_oponly(void)
 {
-    emit_byte(0xe9); 
+    emit_byte(0xe9);
 }
 
 static __inline__ void raw_jmp_b_oponly(void)
 {
-    emit_byte(0xeb); 
+    emit_byte(0xeb);
 }
 
 static __inline__ void raw_ret(void)
 {
-    emit_byte(0xc3);  
+    emit_byte(0xc3);
 }
 
 static __inline__ void raw_nop(void)
@@ -3325,8 +3325,8 @@ static __inline__ void raw_flags_to_reg_FLAGREG(int r)
 {
   raw_lahf(0);  /* Most flags in AH */
   //raw_setcc(r,0); /* V flag in AL */
-  raw_setcc_m((uintptr)live.state[FLAGTMP].mem,0); 
-  
+  raw_setcc_m((uintptr)live.state[FLAGTMP].mem,0);
+
 #if 1   /* Let's avoid those nasty partial register stalls */
   //raw_mov_b_mr((uintptr)live.state[FLAGTMP].mem,r);
   raw_mov_b_mr(((uintptr)live.state[FLAGTMP].mem)+1,AH_INDEX);
@@ -3523,11 +3523,11 @@ static void vec(int x, struct sigcontext sc)
     int dir=-1;
     int len=0;
     int j;
-    
+
     write_log("fault address is %08x at %08x\n",sc.cr2,sc.eip);
-    if (!canbang) 
+    if (!canbang)
 	write_log("Not happy! Canbang is 0 in SIGSEGV handler!\n");
-    if (in_handler) 
+    if (in_handler)
 	write_log("Argh --- Am already in a handler. Shouldn't happen!\n");
 
     if (canbang && i>=compiled_code && i<=current_compile_p) {
@@ -3536,7 +3536,7 @@ static void vec(int x, struct sigcontext sc)
 	    size=2;
 	    len++;
 	}
-	
+
 	switch(i[0]) {
 	 case 0x8a:
                                   	    if ((i[1]&0xc0)==0x80) {
@@ -3584,13 +3584,13 @@ static void vec(int x, struct sigcontext sc)
 		break;
 	    }
 	    break;
-	}	
+	}
     }
 
-    if (r!=-1) { 
+    if (r!=-1) {
 	void* pr=NULL;
 	write_log("register was %d, direction was %d, size was %d\n",r,dir,size);
-	
+
 	switch(r) {
 	 case 0: pr=&(sc.eax); break;
 	 case 1: pr=&(sc.ecx); break;
@@ -3643,25 +3643,25 @@ static void vec(int x, struct sigcontext sc)
 		void* tmp=target;
 		int i;
 		uae_u8 vecbuf[5];
-		
+
 		addr-=NATMEM_OFFSET;
-		
+
 		if ((addr>=0x10000000 && addr<0x40000000) ||
 		    (addr>=0x50000000)) {
 		    write_log("Suspicious address in %x SEGV handler.\n",addr);
 		}
-		
+
 		target=(uae_u8*)sc.eip;
 		for (i=0;i<5;i++)
 		    vecbuf[i]=target[i];
 		emit_byte(0xe9);
 		emit_long((uintptr)veccode-(uintptr)target-4);
 		write_log("Create jump to %p\n",veccode);
-	    
+
 		write_log("Handled one access!\n");
 		fflush(stdout);
 		segvcount++;
-		
+
 		target=veccode;
 
 		if (dir==SIG_READ) {
@@ -3690,7 +3690,7 @@ static void vec(int x, struct sigcontext sc)
 	    }
 	    bi=active;
 	    while (bi) {
-		if (bi->handler && 
+		if (bi->handler &&
 		    (uae_u8*)bi->direct_handler<=i &&
 		    (uae_u8*)bi->nexthandler>i) {
 		    write_log("deleted trigger (%p<%p<%p) %p\n",
@@ -3709,7 +3709,7 @@ static void vec(int x, struct sigcontext sc)
 	       is in the dormant list */
 	    bi=dormant;
 	    while (bi) {
-		if (bi->handler && 
+		if (bi->handler &&
 		    (uae_u8*)bi->direct_handler<=i &&
 		    (uae_u8*)bi->nexthandler>i) {
 		    write_log("deleted trigger (%p<%p<%p) %p\n",
@@ -3892,7 +3892,7 @@ raw_init_cpu(void)
   c->x86_model = c->x86_mask = 0;	/* So far unknown... */
   c->x86_vendor_id[0] = '\0';		/* Unset */
   c->x86_hwcap = 0;
-  
+
   /* Get vendor name */
   c->x86_vendor_id[12] = '\0';
   cpuid(0x00000000,
@@ -3935,7 +3935,7 @@ raw_init_cpu(void)
 		  have_lahf_lm = true;
 	}
   }
-	  
+
   /* Canonicalize processor ID */
   switch (c->x86) {
   case 3:
@@ -4049,7 +4049,7 @@ static bool target_check_bsf(void)
 static __inline__ void raw_fp_init(void)
 {
     int i;
-    
+
     for (i=0;i<N_FREGS;i++)
 	live.spos[i]=-2;
     live.tos=-1;  /* Stack is empty */
@@ -4159,7 +4159,7 @@ static __inline__ void tos_make(int r)
 	return;
     }
     emit_byte(0xdd);
-    emit_byte(0xd8+(live.tos+1)-live.spos[r]);  /* store top of stack in reg, 
+    emit_byte(0xd8+(live.tos+1)-live.spos[r]);  /* store top of stack in reg,
 					 and pop it*/
 }
 
@@ -4255,7 +4255,7 @@ LOWFUNC(NONE,WRITE,2,raw_fmov_ext_mr,(MEMW m, FR r))
 {
     int rs;
 
-    /* Stupid x87 can't write a long double to mem without popping the 
+    /* Stupid x87 can't write a long double to mem without popping the
        stack! */
     usereg(r);
     rs=stackpos(r);
@@ -4379,7 +4379,7 @@ LOWFUNC(NONE,NONE,2,raw_fsqrt_rr,(FW d, FR s))
 	make_tos(d);
 	emit_byte(0xd9);
 	emit_byte(0xfa); /* take square root */
-    }	
+    }
 }
 LENDFUNC(NONE,NONE,2,raw_fsqrt_rr,(FW d, FR s))
 
@@ -4400,7 +4400,7 @@ LOWFUNC(NONE,NONE,2,raw_fabs_rr,(FW d, FR s))
 	make_tos(d);
 	emit_byte(0xd9);
 	emit_byte(0xe1); /* take fabs */
-    }	
+    }
 }
 LENDFUNC(NONE,NONE,2,raw_fabs_rr,(FW d, FR s))
 
@@ -4421,7 +4421,7 @@ LOWFUNC(NONE,NONE,2,raw_frndint_rr,(FW d, FR s))
 	make_tos(d);
 	emit_byte(0xd9);
 	emit_byte(0xfc); /* take frndint */
-    }	
+    }
 }
 LENDFUNC(NONE,NONE,2,raw_frndint_rr,(FW d, FR s))
 
@@ -4442,7 +4442,7 @@ LOWFUNC(NONE,NONE,2,raw_fcos_rr,(FW d, FR s))
 	make_tos(d);
 	emit_byte(0xd9);
 	emit_byte(0xff); /* take cos */
-    }	
+    }
 }
 LENDFUNC(NONE,NONE,2,raw_fcos_rr,(FW d, FR s))
 
@@ -4463,7 +4463,7 @@ LOWFUNC(NONE,NONE,2,raw_fsin_rr,(FW d, FR s))
 	make_tos(d);
 	emit_byte(0xd9);
 	emit_byte(0xfe); /* take sin */
-    }	
+    }
 }
 LENDFUNC(NONE,NONE,2,raw_fsin_rr,(FW d, FR s))
 
@@ -4527,7 +4527,7 @@ LOWFUNC(NONE,NONE,2,raw_fetox_rr,(FW d, FR s))
     tos_make(d); /* store to destination */
 }
 LENDFUNC(NONE,NONE,2,raw_fetox_rr,(FW d, FR s))
- 
+
 LOWFUNC(NONE,NONE,2,raw_flog2_rr,(FW d, FR s))
 {
     int ds;
@@ -4564,7 +4564,7 @@ LOWFUNC(NONE,NONE,2,raw_fneg_rr,(FW d, FR s))
 	make_tos(d);
 	emit_byte(0xd9);
 	emit_byte(0xe0); /* take fchs */
-    }	
+    }
 }
 LENDFUNC(NONE,NONE,2,raw_fneg_rr,(FW d, FR s))
 
@@ -4574,7 +4574,7 @@ LOWFUNC(NONE,NONE,2,raw_fadd_rr,(FRW d, FR s))
 
     usereg(s);
     usereg(d);
-    
+
     if (live.spos[s]==live.tos) {
 	/* Source is on top of stack */
 	ds=stackpos(d);
@@ -4584,7 +4584,7 @@ LOWFUNC(NONE,NONE,2,raw_fadd_rr,(FRW d, FR s))
     else {
 	make_tos(d);
 	ds=stackpos(s);
-	
+
 	emit_byte(0xd8);
 	emit_byte(0xc0+ds); /* add source to dest*/
     }
@@ -4597,7 +4597,7 @@ LOWFUNC(NONE,NONE,2,raw_fsub_rr,(FRW d, FR s))
 
     usereg(s);
     usereg(d);
-    
+
     if (live.spos[s]==live.tos) {
 	/* Source is on top of stack */
 	ds=stackpos(d);
@@ -4607,7 +4607,7 @@ LOWFUNC(NONE,NONE,2,raw_fsub_rr,(FRW d, FR s))
     else {
 	make_tos(d);
 	ds=stackpos(s);
-	
+
 	emit_byte(0xd8);
 	emit_byte(0xe0+ds); /* sub src from dest */
     }
@@ -4620,7 +4620,7 @@ LOWFUNC(NONE,NONE,2,raw_fcmp_rr,(FR d, FR s))
 
     usereg(s);
     usereg(d);
-    
+
     make_tos(d);
     ds=stackpos(s);
 
@@ -4635,7 +4635,7 @@ LOWFUNC(NONE,NONE,2,raw_fmul_rr,(FRW d, FR s))
 
     usereg(s);
     usereg(d);
-    
+
     if (live.spos[s]==live.tos) {
 	/* Source is on top of stack */
 	ds=stackpos(d);
@@ -4645,7 +4645,7 @@ LOWFUNC(NONE,NONE,2,raw_fmul_rr,(FRW d, FR s))
     else {
 	make_tos(d);
 	ds=stackpos(s);
-	
+
 	emit_byte(0xd8);
 	emit_byte(0xc8+ds); /* mul dest by source*/
     }
@@ -4658,7 +4658,7 @@ LOWFUNC(NONE,NONE,2,raw_fdiv_rr,(FRW d, FR s))
 
     usereg(s);
     usereg(d);
-    
+
     if (live.spos[s]==live.tos) {
 	/* Source is on top of stack */
 	ds=stackpos(d);
@@ -4668,7 +4668,7 @@ LOWFUNC(NONE,NONE,2,raw_fdiv_rr,(FRW d, FR s))
     else {
 	make_tos(d);
 	ds=stackpos(s);
-	
+
 	emit_byte(0xd8);
 	emit_byte(0xf0+ds); /* div dest by source*/
     }
@@ -4681,7 +4681,7 @@ LOWFUNC(NONE,NONE,2,raw_frem_rr,(FRW d, FR s))
 
     usereg(s);
     usereg(d);
-    
+
     make_tos2(d,s);
     ds=stackpos(s);
 
@@ -4700,7 +4700,7 @@ LOWFUNC(NONE,NONE,2,raw_frem1_rr,(FRW d, FR s))
 
     usereg(s);
     usereg(d);
-    
+
     make_tos2(d,s);
     ds=stackpos(s);
 

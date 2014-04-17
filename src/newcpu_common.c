@@ -720,7 +720,7 @@ void divbyzero_special (bool issigned, uae_s32 dst)
 	if (currprefs.cpu_model == 68020 || currprefs.cpu_model == 68030) {
 		CLEAR_CZNV ();
 		if (issigned == false) {
-			if (dst < 0) 
+			if (dst < 0)
 				SET_NFLG (1);
 			SET_ZFLG (!GET_NFLG ());
 			SET_VFLG (1);

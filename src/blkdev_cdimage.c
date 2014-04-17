@@ -602,7 +602,7 @@ static void *cdda_play_func (void *v)
 					dofinish = 1;
 
 			}
-	
+
 			if (idleframes <= 0)
 				cdu->cd_last_pos = cdda_pos;
 
@@ -1025,7 +1025,7 @@ static int readval (const TCHAR *s)
 #define MDS_MEDIUM_CD_RW        0x02 /* CD-RW */
 #define MDS_MEDIUM_DVD          0x10 /* DVD-ROM */
 #define MDS_MEDIUM_DVD_MINUS_R  0x12 /* DVD-R */
- 
+
 #define MDS_TRACKMODE_UNKNOWN       0x00
 #define MDS_TRACKMODE_AUDIO         0xA9 /* sector size = 2352 */
 #define MDS_TRACKMODE_MODE1         0xAA /* sector size = 2048 */
@@ -1076,14 +1076,14 @@ typedef struct {
     uae_u8 adr_ctl; /* Adr/Ctl */
     uae_u8 __dummy2__; /* Track flags? */
     uae_u8 point; /* Track number. (>0x99 is lead-in track) */
-    
+
     uae_u32 __dummy3__;
     uae_u8 min; /* Min */
     uae_u8 sec; /* Sec */
     uae_u8 frame; /* Frame */
     uae_u32 extra_offset; /* Start offset of this track's extra block. */
     uae_u16 sector_size; /* Sector size. */
-    
+
     uae_u8 __dummy4__[18];
     uae_u32 start_sector; /* Track start sector (PLBA). */
     uae_u64 start_offset; /* Track start offset. */
@@ -1221,7 +1221,7 @@ static int parsechd (struct cdunit *cdu, struct zfile *zcue, const TCHAR *img)
 	}
 	cdu->chd_f = cf;
 	cdu->chd_cdf = cdf;
-	
+
 	const cdrom_toc *stoc = cdrom_get_toc (cdf);
 	cdu->tracks = stoc->numtrks;
 	uae_u32 hunkcnt = cf->hunk_count ();
@@ -1296,7 +1296,7 @@ static int parseccd (struct cdunit *cdu, struct zfile *zcue, const TCHAR *img)
 	struct cdtoc *t;
 	struct zfile *zimg, *zsub;
 	TCHAR fname[MAX_DPATH];
-	
+
 	write_log (_T("CCD TOC: '%s'\n"), img);
 	_tcscpy (fname, img);
 	TCHAR *ext = _tcsrchr (fname, '.');
@@ -1354,7 +1354,7 @@ static int parseccd (struct cdunit *cdu, struct zfile *zcue, const TCHAR *img)
 		}
 		if (cdu->tracks <= 0)
 			break;
-		
+
 		if (mode == 2) {
 
 			if (!_tcsnicmp (p, _T("SESSION="), 8)) {
@@ -1410,7 +1410,7 @@ static int parseccd (struct cdunit *cdu, struct zfile *zcue, const TCHAR *img)
 				trackmode = _tstol (p + 5);
 			if (trackmode < 0 || trackmode > 2)
 				continue;
-			
+
 		}
 
 	}
@@ -1488,7 +1488,7 @@ static int parsecue (struct cdunit *cdu, struct zfile *zcue, const TCHAR *img)
 		} else if (!_tcsnicmp (p, _T("TRACK"), 5)) {
 			int size;
 			TCHAR *tracktype;
-			
+
 			p += 5;
 			index0 = -1;
 			lastpregap = 0;
@@ -1787,7 +1787,7 @@ static int parse_image (struct cdunit *cdu, const TCHAR *img)
 
 	cdu->blocksize = 2048;
 	cdu->cdsize = (uae_u64)cdu->toc[cdu->tracks].address * cdu->blocksize;
-	
+
 
 	zfile_fclose (zcue);
 	return 1;

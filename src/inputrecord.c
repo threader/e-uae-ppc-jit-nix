@@ -494,7 +494,7 @@ bool inprec_prepare_record (const TCHAR *statefilename)
 			_tcscpy (state, changed_prefs.inprecfile);
 		}
 		_tcscat (state, _T(".uss"));
-		savestate_initsave (state, 1, 1, true); 
+		savestate_initsave (state, 1, 1, true);
 		save_state (state, _T("input recording test"));
 		mode = 2;
 	}

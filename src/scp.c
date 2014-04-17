@@ -1,7 +1,7 @@
 /*
  *
  * Support for reading .SCP (Supercard Pro) disk flux dumps.
- * 
+ *
  * By Keir Fraser in 2014.
  *
  * This file is free and unencumbered software released into the public domain.
@@ -145,7 +145,7 @@ int scp_loadtrack(
     xfree(d->dat);
     d->dat = NULL;
     d->datsz = 0;
-    
+
     hdr_offset = 0x10 + track*sizeof(uint32_t);
 
     zfile_fseek(d->zf, hdr_offset, SEEK_SET);

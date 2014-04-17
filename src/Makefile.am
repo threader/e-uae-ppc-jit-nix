@@ -4,7 +4,7 @@ AM_CPPFLAGS += -I$(top_srcdir)/src/include -I$(top_builddir)/src -I$(top_srcdir)
 AM_CXXFLAGS  = @UAE_CXXFLAGS@
 
 LIBS = -lstdc++
-if !TARGET_NACL  # Native Client can only use its own versions of the libraries. 
+if !TARGET_NACL  # Native Client can only use its own versions of the libraries.
 LIBS += -L/usr/lib
 endif
 if !ANDROID
@@ -28,7 +28,7 @@ AM_CPPFLAGS += -I/System/Library/Frameworks/CarbonCore.framework/Headers
 AM_CPPFLAGS += -F$(QT_INSLIBS)
 AM_CPPFLAGS += -I$(QT_INSLIBS)/QtCore.framework/Versions/4/Headers
 AM_CPPFLAGS += -I$(QT_INSLIBS)/QtGui.framework/Versions/4/Headers
-LIBS += -F$(QT_INSLIBS) -L$(QT_INSLIBS) -framework QtGui -framework QtCore 
+LIBS += -F$(QT_INSLIBS) -L$(QT_INSLIBS) -framework QtGui -framework QtCore
 else
 LIBS += -L$(QT_INSLIBS) -lQtGui -lQtCore
 endif
@@ -193,7 +193,7 @@ uae_SOURCES = \
 	ar.c driveclick.c enforcer.c misc.c uaenet.c a2065.c gayle.c blkdev.c blkdev_cdimage.c scsi.c ncr_scsi.c \
 	missing.c readcpu.c hrtmon.rom.c events.c calc.c sana2.c scp.c \
 	specialmonitors.c gfxboard.c qemuvga/cirrus_vga.c qemuvga/qemuuaeglue.c qemuvga/vga.c qemuvga/lsi53c895a.c
-if !TARGET_NACL  # Do not include AROS ROM in Native Client. 
+if !TARGET_NACL  # Do not include AROS ROM in Native Client.
 uae_SOURCES += aros.rom.c
 endif
 

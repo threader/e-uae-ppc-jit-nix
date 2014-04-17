@@ -493,7 +493,7 @@ static void set_hd_state (void)
                 strncpy (texts[HDLIST_DEVICE], devname, 255);
 		if (volname)
 		    strncpy (texts[HDLIST_VOLUME], volname, 255);
-	
+
 	    sprintf (texts[HDLIST_HEADS],   "%d", surfaces);
 	    sprintf (texts[HDLIST_CYLS],    "%d", cylinders);
 	    sprintf (texts[HDLIST_SECS],    "%d", secspertrack);
@@ -520,9 +520,9 @@ static void set_floppy_state( void )
     unsigned int i;
     switch (currprefs.floppy_speed) {
 	case 0:   i = 0;
-        case 100: i = 1; 
-        case 200: i = 2; 
-        case 400: i = 3; 
+        case 100: i = 1;
+        case 200: i = 2;
+        case 400: i = 3;
         case 800: i = 4;
         default:  i = 1;
     }
@@ -746,11 +746,11 @@ static void p96size_changed (void)
 static void drvspeed_changed (void)
 {
 	switch (find_current_toggle (sound_widget, 5)) {
-		case 0: changed_prefs.floppy_speed = 0; 
-		case 1: changed_prefs.floppy_speed = 100; 
-		case 2: changed_prefs.floppy_speed = 200; 
-		case 3: changed_prefs.floppy_speed = 400; 
-		case 4: changed_prefs.floppy_speed = 800; 
+		case 0: changed_prefs.floppy_speed = 0;
+		case 1: changed_prefs.floppy_speed = 100;
+		case 2: changed_prefs.floppy_speed = 200;
+		case 3: changed_prefs.floppy_speed = 400;
+		case 4: changed_prefs.floppy_speed = 800;
 	}
 }
 
@@ -1668,7 +1668,7 @@ static void newdir_ok (void)
 	unsigned int secspertrack = 0;
 	unsigned int surfaces = 0;
 	unsigned int reserved = 0;
-	unsigned int blocksize = 0; 
+	unsigned int blocksize = 0;
 	unsigned int flags = 0;
 	unsigned int donotmount = 0;
 	unsigned int autoboot = 129;
@@ -2038,7 +2038,7 @@ static void on_menu_saveconfig (void)
 	write_comm_pipe_int (&from_gui_pipe, UAECMD_SAVE_CONFIG, 1);
 }
 
-void on_vstat_toggle(GtkWidget *widget, gpointer statusbar) 
+void on_vstat_toggle(GtkWidget *widget, gpointer statusbar)
 {
   if (gtk_check_menu_item_get_active(GTK_CHECK_MENU_ITEM(widget))) {
     gtk_widget_show(statusbar);

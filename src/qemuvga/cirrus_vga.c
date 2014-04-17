@@ -39,7 +39,7 @@
 #include "qemuuaeglue.h"
 #endif
 #include <string.h> /* memmove */
- 
+
 /*
  * TODO:
  *    - destination write mask support not complete (bits 5..7)
@@ -1116,8 +1116,8 @@ static void cirrus_get_resolution(VGACommonState *s, int *pwidth, int *pheight)
 		width *= 2;
 		break;
 		}
-	}	
-	
+	}
+
 	height = s->cr[0x12] |
         ((s->cr[0x07] & 0x02) << 7) |
         ((s->cr[0x07] & 0x40) << 3);
@@ -1324,7 +1324,7 @@ static void cirrus_vga_write_sr(CirrusVGAState * s, uint32_t val)
     case 0x0f:			// DRAM Control
 	s->vga.sr[s->vga.sr_index] = val;
 	cirrus_valid_memory_config(s);
-	break;		
+	break;
 	case 0x07:			// Extended Sequencer Mode
     cirrus_update_memory_access(s);
     case 0x08:			// EEPROM Control
@@ -3039,7 +3039,7 @@ static void isa_cirrus_vga_class_init(ObjectClass *klass, void *data)
 
 static const TypeInfo isa_cirrus_vga_info = {
     .name          = TYPE_ISA_CIRRUS_VGA,
-    .parent        = TYPE_ISA_DEVICE,mun 
+    .parent        = TYPE_ISA_DEVICE,mun
     .instance_size = sizeof(ISACirrusVGAState),
     .class_init = isa_cirrus_vga_class_init,
 };

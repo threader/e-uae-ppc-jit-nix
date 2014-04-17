@@ -32,7 +32,7 @@ static TCHAR evilchars[NUM_EVILCHARS] = { '\\', '*', '?', '\"', '<', '>', '|' };
 * Offset 600, 4 bytes, Windows-side mode
 *
 * 1.6.0+ Unicode data
-* 
+*
 * Offset  604, 257 * 2 bytes, aname
 * Offset 1118, 257 * 2 bytes, nname
 *        1632

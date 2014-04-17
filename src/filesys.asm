@@ -114,7 +114,7 @@ residenthack
 .rsh
 	movem.l (sp)+,d0-d2/a0-a2/a6
 	rts
-	
+
 myafterdos
 	move.l (sp),a0
 	move.l 2(a0),a0
@@ -211,7 +211,7 @@ FSIN_nextsub:
 	addq.w #1,d6
 	swap d6
 	bra.s FSIN_nextsub
-FSIN_nomoresub:	
+FSIN_nomoresub:
 	move.l (sp)+,d6
 	addq.w #1,d6
 	bra.b FSIN_init_units
@@ -273,7 +273,7 @@ FSIN_scanchip:
 	move.l 20(a0),d1 ; mh_Lower
 	clr.w d1
 	tst.l d1
-	bne.s FSIN_scanchip	
+	bne.s FSIN_scanchip
 	move.w 14(a0),d1 ; attributes
 	bmi.s FSIN_scanchip
 	and #2,d1 ; MEMF_CHIP?
@@ -372,7 +372,7 @@ fsmounttask
 	moveq #15,d0
 	move.l #8000,d1
 	bsr.w createproc
-	bra.s .fsm1	
+	bra.s .fsm1
 
 	; dummy process here because can't mount devices with ADNF_STARTPROC from task..
 	; (AddDosNode() internally calls GetDeviceProc() which accesses ExecBase->ThisTask->pr_GlobVec)
@@ -450,7 +450,7 @@ EXTS_done:
 	move.w #$FF50,d0 ;exter_int_helper
 	bsr.w getrtbase
 	moveq.l #4,d0
-	jsr (a0)	
+	jsr (a0)
 	moveq.l #1,d0 ; clear Z - it was for us.
 exter_server_exit:
 	movem.l (sp)+,a2
@@ -645,11 +645,11 @@ r9	move.l (a3)+,d2 ;offset
 r13
 	cmp.l #$3f2,d3 ;end
 	bne.s ree
-	
+
 	addq.l #1,d6
 	cmp.l d6,d7
 	bne.w r3
-	
+
 	moveq #1,d7
 	move.l (a4),a0
 r0	move.l d7,d0
@@ -748,7 +748,7 @@ addvolumenode
 	bsr.w adddosentry13
 .ndev13	jsr -$008a(a6) ;Permit
 .end	movem.l (sp)+,d7/a6
-	rts	
+	rts
 
 remvolumenode
 	movem.l d7/a2/a6,-(sp)
@@ -901,7 +901,7 @@ dodiskchange
 	moveq #0,d0
 	bsr.w diskinsertremove
 .end
-	rts	
+	rts
 
 action_inhibit
 	tst.l 20(a4) ;dp_Arg1
@@ -1492,7 +1492,7 @@ FSML_ReplyOne2:
 	moveq #0,d0 ; exall
 	jsr (a0)
 	bra.s .exaretry
-	
+
 FSML_ReplyOne3:
 	move.l (a4),a1  ; dp_Link
 	move.l 4(a4),a0 ; dp_Port
@@ -1873,7 +1873,7 @@ mousehack_task:
 	sub.l a1,a1
 	jsr -$0126(a6) ;FindTask
 	move.l d0,a4
-	
+
 	moveq #20,d0
 	move.l a4,a1
 	jsr -$012c(a6) ;SetTaskPri
@@ -2042,7 +2042,7 @@ mhloop
 	move.l d0,(a1)+
 	move.l #TABLETA_ButtonBits,(a1)+
 	move.l MH_BUTTONBITS+MH_DATA(a5),(a1)+
-	
+
 	moveq #0,d0
 
 	move.w MH_RESX+MH_DATA(a5),d0
@@ -2089,7 +2089,7 @@ mhloop
 	asl.l #8,d0
 	move.l d0,(a1)+
 .noaz
-	
+
 	moveq #0,d0
 	move.w MH_INPROXIMITY+MH_DATA(a5),d0
 	bmi.s .noproxi
@@ -2099,7 +2099,7 @@ mhloop
 	clr.l (a1) ;TAG_DONE
 
 	bsr.w mhdoio
-	
+
 	;create mouse button events if button state changed
 	move.w #$68,d3 ;IECODE_LBUTTON->IECODE_RBUTTON->IECODE_MBUTTON
 	moveq #1,d2
@@ -2111,7 +2111,7 @@ mhloop
 	and.l d2,d1
 	cmp.l d0,d1
 	beq.s .nobut
-	
+
 	clr.l (a2)
 	move.w #$0200,4(a2) ;ie_Class=IECLASS_RAWMOUSE,ie_SubClass=0
 	clr.l 10(a2)	;ie_Addr/X+Y
@@ -2287,7 +2287,7 @@ clipdie:
 .cd2
 	move.l a5,a1
 	move.l #CLIP_END,d0
-	jsr FreeMem(a6)	
+	jsr FreeMem(a6)
 .cd1
 	moveq #0,d0
 	rts
@@ -2318,11 +2318,11 @@ prefsread:
 	move.l a2,d2
 	moveq #4,d3
 	move.l d4,d1
-	jsr -$002a(a6) ;Read	
+	jsr -$002a(a6) ;Read
 	move.l a2,d2
 	moveq #32,d3
 	move.l d4,d1
-	jsr -$002a(a6) ;Read	
+	jsr -$002a(a6) ;Read
 	cmp.l d0,d3
 	bne.s .pr1
 	tst.w 16(a2) ;pp_Which
@@ -2355,7 +2355,7 @@ prefshook:
 	move.b d0,20(a2) ;nr_SignalNum
 	lea pointer_prefs(pc),a0
 	move.l a0,(a2) ;nr_Name
-	move.l #NRF_SEND_SIGNAL|NRF_NOTIFY_INITIAL,12(a2) ;nr_Flags 
+	move.l #NRF_SEND_SIGNAL|NRF_NOTIFY_INITIAL,12(a2) ;nr_Flags
 	move.l CLIP_TASK(a5),16(a2) ;nr_Task
 	move.l CLIP_DOS(a5),a6
 	move.l a2,d1
@@ -2410,7 +2410,7 @@ clipboard_proc:
 	beq.w clipdie
 	move.l d0,d1
 	jsr -$005a(a6) ;Unlock
-	
+
 	move.l CLIP_EXEC(a5),a6
 
 	bsr.w createport
@@ -2419,13 +2419,13 @@ clipboard_proc:
 	bsr.w createio
 	move.l d0,a4
 	tst.l d0
-	beq.w clipdie	
+	beq.w clipdie
 
 cfloop2
 	moveq #0,d0
 	bset #13,d0
 	jsr -$013e(a6) ;Wait
-	
+
 	moveq #0,d1
 	move.l CLIP_UNIT(a5),d0
 	lea clip_dev(pc),a0
@@ -2442,7 +2442,7 @@ cfloop3
 	moveq #0,d0
 	jsr -$013e(a6) ;Wait
 	bra.s cfloop3
-	
+
 cfversion
 	bsr.w prefshook
 
@@ -2518,7 +2518,7 @@ clipsignal
 	bra.w cfloop
 
 clipread:
-  ; read first 8 bytes	
+  ; read first 8 bytes
 	move.w #2,28(a4) ;CMD_READ
 	lea CLIP_BUF(a5),a0
 	clr.l (a0)
@@ -2624,8 +2624,8 @@ consolehook:
 	jsr -$008a(a6) ;Permit
 .ch2
 	move.l d2,d0
-	rts	
-	
+	rts
+
 chook:
 	subq.l #4,sp ; native code fills with original return address
 	movem.l d0-d1/a0,-(sp)

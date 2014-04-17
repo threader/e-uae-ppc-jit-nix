@@ -1,7 +1,7 @@
 /*
  * PUAE - The Un*x Amiga Emulator
  *
- * Interface to the SDL GUI                
+ * Interface to the SDL GUI
  * (only for GP2X: tweaks/overclocks cpu/ram settings)
  *
  * Copyright 2006 Mustafa TUFAN
@@ -170,10 +170,10 @@ int tweakz (int parametre) {
 			write_text (10,skipper+25+(sira*10),tweaks[q]); //
 			if (q <10) {
 				if (q == 8) {
-					if (defaults[8] == 0) {	
+					if (defaults[8] == 0) {
 						sprintf(tmp,"%s","FPLL");
-					} else {		
-						sprintf(tmp,"%s","UPLL"); 
+					} else {
+						sprintf(tmp,"%s","UPLL");
 					}
 				} else {
 					sprintf(tmp,"%d",defaults[q]);

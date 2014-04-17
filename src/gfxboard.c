@@ -1530,7 +1530,7 @@ void gfxboard_reset (void)
 	if (board) {
 		if (board->z3)
 			gfxboard_bank_memory.wput = gfxboard_wput_mem_autoconfig;
-		if (reset_func) 
+		if (reset_func)
 			reset_func (reset_parm);
 	}
 }
@@ -2047,7 +2047,7 @@ void gfxboard_init_memory (void)
 	gfxboard_init ();
 
 	memset (automemory, 0xff, GFXBOARD_AUTOCONFIG_SIZE);
-	
+
 	z2_flags = 0x05; // 1M
 	z3_flags = 0x06; // 1M
 	bank = board->banksize;
