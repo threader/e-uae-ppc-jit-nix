@@ -496,12 +496,14 @@ void memory_region_set_enabled(MemoryRegion *mr, bool enabled)
 void memory_region_reset_dirty(MemoryRegion *mr, hwaddr addr,
                                hwaddr size, unsigned client)
 {
+	//write_log (_T("memory_region_reset_dirty %08x %08x\n"), addr, size);
 }
 bool memory_region_get_dirty(MemoryRegion *mr, hwaddr addr,
                              hwaddr size, unsigned client)
 {
 	if (mr->opaque != &vgavramregionptr)
 		return false;
+	//write_log (_T("memory_region_get_dirty %08x %08x\n"), addr, size);
 	if (fullrefresh)
 		return true;
 	return picasso_is_vram_dirty (addr + gfxmem_bank.start, size);

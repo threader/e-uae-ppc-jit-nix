@@ -1631,14 +1631,23 @@ static void cia_wait_post (uae_u32 value)
 	}
 }
 
+static bool iscia (uaecptr addr)
+{
+	uaecptr mask = addr & 0xf000;
+	return mask == 0xe000 || mask == 0xd000;
+}
+
 static bool isgaylenocia (uaecptr addr)
 {
-	// gayle CIA region is only 4096 bytes at 0xbfd000 and 0xbfe000
 	if (!isgayle ())
 		return true;
-	uaecptr mask = addr & 0xf000;
-	bool cia = mask == 0xe000 || mask == 0xd000;
-	return cia;
+	// gayle CIA region is only 4096 bytes at 0xbfd000 and 0xbfe000
+	return iscia(addr);
+}
+
+static bool isgarynocia (uaecptr addr)
+{
+	return !iscia(addr) && currprefs.cs_fatgaryrev >= 0;
 }
 
 static uae_u32 REGPARAM2 cia_bget (uaecptr addr)
@@ -1649,6 +1658,9 @@ static uae_u32 REGPARAM2 cia_bget (uaecptr addr)
 #ifdef JIT
 	special_mem |= S_READ;
 #endif
+
+	if (isgarynocia(addr))
+		return dummy_get(addr, 1, false);
 
 	if (!isgaylenocia (addr))
 		return v;
@@ -1693,6 +1705,9 @@ static uae_u32 REGPARAM2 cia_wget (uaecptr addr)
 #ifdef JIT
 	special_mem |= S_READ;
 #endif
+
+	if (isgarynocia(addr))
+		return dummy_get(addr, 2, false);
 
 	if (!isgaylenocia (addr))
 		return v;
@@ -1752,6 +1767,11 @@ static void REGPARAM2 cia_bput (uaecptr addr, uae_u32 value)
 	special_mem |= S_WRITE;
 #endif
 
+	if (isgarynocia(addr)) {
+		dummy_put(addr, 1, false);
+		return;
+	}
+
 	if (!isgaylenocia (addr))
 		return;
 
@@ -1776,6 +1796,11 @@ static void REGPARAM2 cia_wput (uaecptr addr, uae_u32 value)
 #ifdef JIT
 	special_mem |= S_WRITE;
 #endif
+
+	if (isgarynocia(addr)) {
+		dummy_put(addr, 2, false);
+		return;
+	}
 
 	if (!isgaylenocia (addr))
 		return;
@@ -1961,11 +1986,17 @@ void rtc_hardreset (void)
 
 static uae_u32 REGPARAM2 clock_lget (uaecptr addr)
 {
+	if ((addr & 0xffff) >= 0x8000 && currprefs.cs_fatgaryrev >= 0)
+		return dummy_get(addr, 4, false);
+
 	return (clock_wget (addr) << 16) | clock_wget (addr + 2);
 }
 
 static uae_u32 REGPARAM2 clock_wget (uaecptr addr)
 {
+	if ((addr & 0xffff) >= 0x8000 && currprefs.cs_fatgaryrev >= 0)
+		return dummy_get(addr, 2, false);
+
 	return (clock_bget (addr) << 8) | clock_bget (addr + 1);
 }
 
@@ -1978,10 +2009,15 @@ static uae_u32 REGPARAM2 clock_bget (uaecptr addr)
 #ifdef JIT
 	special_mem |= S_READ;
 #endif
+
+	if ((addr & 0xffff) >= 0x8000 && currprefs.cs_fatgaryrev >= 0)
+		return dummy_get(addr, 1, false);
+
 #ifdef CDTV
-	if (currprefs.cs_cdtvram && addr >= 0xdc8000)
+	if (currprefs.cs_cdtvram && (addr & 0xffff) >= 0x8000)
 		return cdtv_battram_read (addr);
 #endif
+
 	addr &= 0x3f;
 	if ((addr & 3) == 2 || (addr & 3) == 0 || currprefs.cs_rtc == 0) {
 		if (currprefs.cpu_model == 68000 && currprefs.cpu_compatible)
@@ -1997,12 +2033,22 @@ static uae_u32 REGPARAM2 clock_bget (uaecptr addr)
 
 static void REGPARAM2 clock_lput (uaecptr addr, uae_u32 value)
 {
+	if ((addr & 0xffff) >= 0x8000 && currprefs.cs_fatgaryrev >= 0) {
+		dummy_put(addr, 4, value);
+		return;
+	}
+
 	clock_wput (addr, value >> 16);
 	clock_wput (addr + 2, value);
 }
 
 static void REGPARAM2 clock_wput (uaecptr addr, uae_u32 value)
 {
+	if ((addr & 0xffff) >= 0x8000 && currprefs.cs_fatgaryrev >= 0) {
+		dummy_put(addr, 2, value);
+		return;
+	}
+
 	clock_bput (addr, value >> 8);
 	clock_bput (addr + 1, value);
 }
@@ -2013,12 +2059,19 @@ static void REGPARAM2 clock_bput (uaecptr addr, uae_u32 value)
 	special_mem |= S_WRITE;
 #endif
 //	write_log(_T("W: %x (%x): %x, PC=%08x\n"), addr, (addr & 0xff) >> 2, value & 0xff, M68K_GETPC);
+
+	if ((addr & 0xffff) >= 0x8000 && currprefs.cs_fatgaryrev >= 0) {
+		dummy_put(addr, 1, value);
+		return;
+	}
+
 #ifdef CDTV
-	if (currprefs.cs_cdtvram && addr >= 0xdc8000) {
+	if (currprefs.cs_cdtvram && (addr & 0xffff) >= 0x8000) {
 		cdtv_battram_write (addr, value);
 		return;
 	}
 #endif
+
 	addr &= 0x3f;
 	if ((addr & 1) != 1 || currprefs.cs_rtc == 0)
 		return;

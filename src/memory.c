@@ -230,18 +230,53 @@ static void dummylog (int rw, uaecptr addr, int size, uae_u32 val, int ins)
 	}
 }
 
-static void dummy_put (uaecptr addr, int size)
+// 250ms delay
+static void gary_wait(uaecptr addr, int size)
 {
-	if (gary_toenb && currprefs.mmu_model)
-		exception2 (addr, true, size, regs.s ? 4 : 0);
+	static int cnt = 50;
+
+	if (cnt > 0) {
+		write_log (_T("Gary timeout: %08x %d\n"), addr, size);
+		cnt--;
+	}
 }
 
-static uae_u32 dummy_get (uaecptr addr, int size, bool inst)
+static bool gary_nonrange(uaecptr addr)
+{
+	if (currprefs.cs_fatgaryrev < 0)
+		return false;
+	if (addr < 0xb80000)
+		return false;
+	if (addr >= 0xd00000 && addr < 0xdc0000)
+		return true;
+	if (addr >= 0xdd0000 && addr < 0xde0000)
+		return true;
+	if (addr >= 0xdf8000 && addr < 0xe00000)
+		return false;
+	if (addr >= 0xe80000 && addr < 0xf80000)
+		return false;
+	return true;
+}
+
+void dummy_put (uaecptr addr, int size, uae_u32 val)
+{
+	if (gary_nonrange(addr) || (size > 1 && gary_nonrange(addr + size - 1))) {
+		if (gary_timeout)
+			gary_wait (addr, size);
+		if (gary_toenb && currprefs.mmu_model)
+			exception2 (addr, true, size, regs.s ? 4 : 0);
+	}
+}
+
+uae_u32 dummy_get (uaecptr addr, int size, bool inst)
 {
 	uae_u32 v = NONEXISTINGDATA;
 
-	if (gary_toenb && currprefs.mmu_model) {
-		exception2 (addr, false, size, (regs.s ? 4 : 0) | (inst ? 0 : 1));
+	if (gary_nonrange(addr) || (size > 1 && gary_nonrange(addr + size - 1))) {
+		if (gary_timeout)
+			gary_wait (addr, size);
+		if (gary_toenb && currprefs.mmu_model)
+			exception2 (addr, false, size, (regs.s ? 4 : 0) | (inst ? 0 : 1));
 		return v;
 	}
 
@@ -253,20 +288,22 @@ static uae_u32 dummy_get (uaecptr addr, int size, bool inst)
 		addr &= 0x00ffffff;
 	if (addr >= 0x10000000)
 		return v;
-	if (currprefs.cpu_model == 68000) {
+	if ((currprefs.cpu_model <= 68010) || (currprefs.cpu_model == 68020 && (currprefs.chipset_mask & CSMASK_AGA) && currprefs.address_space_24)) {
 		if (size == 4) {
-			v = (regs.db << 16) | regs.db;
+			v = regs.db & 0xffff;
+			if (addr & 1)
+				v = (v << 8) | (v >> 8);
+			v = (v << 16) | v;
 		} else if (size == 2) {
 			v = regs.db & 0xffff;
+			if (addr & 1)
+				v = (v << 8) | (v >> 8);
 		} else {
 			v = regs.db;
 			v = (addr & 1) ? (v & 0xff) : ((v >> 8) & 0xff);
 		}
 	}
-#if 0
-	if (addr >= 0x10000000)
-		write_log (_T("%08X %d = %08x\n"), addr, size, v);
-#endif
+
 	return v;
 }
 
@@ -325,7 +362,7 @@ static void REGPARAM2 dummy_lput (uaecptr addr, uae_u32 l)
 #endif
 	if (currprefs.illegal_mem)
 		dummylog (1, addr, 4, l, 0);
-	dummy_put (addr, 4);
+	dummy_put (addr, 4, l);
 }
 static void REGPARAM2 dummy_wput (uaecptr addr, uae_u32 w)
 {
@@ -334,7 +371,7 @@ static void REGPARAM2 dummy_wput (uaecptr addr, uae_u32 w)
 #endif
 	if (currprefs.illegal_mem)
 		dummylog (1, addr, 2, w, 0);
-	dummy_put (addr, 2);
+	dummy_put (addr, 2, w);
 }
 static void REGPARAM2 dummy_bput (uaecptr addr, uae_u32 b)
 {
@@ -343,7 +380,7 @@ static void REGPARAM2 dummy_bput (uaecptr addr, uae_u32 b)
 #endif
 	if (currprefs.illegal_mem)
 		dummylog (1, addr, 1, b, 0);
-	dummy_put (addr, 1);
+	dummy_put (addr, 1, b);
 }
 
 static int REGPARAM2 dummy_check (uaecptr addr, uae_u32 size)

@@ -956,7 +956,7 @@ static void pfield_do_fill_line (int start, int stop, bool blank)
 	}
 }
 
-STATIC_INLINE void fill_line2 (int startpos, int len)
+static void fill_line2 (int startpos, int len)
 {
 	int shift;
 	int nints, nrem;
@@ -1004,18 +1004,36 @@ STATIC_INLINE void fill_line2 (int startpos, int len)
 	}
 }
 
-static void fill_line (void)
+static void fill_line_border (void)
 {
-	int hs = coord_hw_to_window_x (hsyncstartpos * 2);
+	int lastpos = visible_left_border;
+	int endpos = visible_left_border + gfxvidinfo.inwidth;
+
+	// full hblank
 	if (hposblank) {
 		hposblank = 3;
-		fill_line2 (visible_left_border, gfxvidinfo.inwidth);
-	} else if (hs >= gfxvidinfo.inwidth) {
-		fill_line2 (visible_left_border, gfxvidinfo.inwidth);
-	} else {
-		fill_line2 (visible_left_border, hs);
-		hposblank = 2;
-		fill_line2 (visible_left_border + hs, gfxvidinfo.inwidth);
+		fill_line2(lastpos, gfxvidinfo.inwidth);
+		return;
+	}
+	// hblank not visible
+	if (hblank_left_start <= lastpos && hblank_right_stop >= endpos) {
+		fill_line2(lastpos, gfxvidinfo.inwidth);
+		return;
+	}
+
+	// left, right or both hblanks visible
+	if (lastpos < hblank_left_start) {
+		int t = hblank_left_start < endpos ? hblank_left_start : endpos;
+		pfield_do_fill_line(lastpos, t, true);
+		lastpos = t;
+	}
+	if (lastpos < hblank_right_stop) {
+		int t = hblank_right_stop < endpos ? hblank_right_stop : endpos;
+		pfield_do_fill_line(lastpos, t, false);
+		lastpos = t;
+	}
+	if (lastpos < endpos) {
+		pfield_do_fill_line(lastpos, endpos, true);
 	}
 }
 
@@ -2359,11 +2377,6 @@ static void pfield_draw_line (int lineno, int gfx_ypos, int follow_ypos)
 		break;
 	}
 
-#if 0
-	if (border && dp_for_drawing->plfleft < -1)
-		border = -1; // blank last "missing" line
-#endif
-
 	dh = dh_line;
 	xlinebuffer = gfxvidinfo.linemem;
 	if (xlinebuffer == 0 && do_double
@@ -2438,8 +2451,9 @@ static void pfield_draw_line (int lineno, int gfx_ypos, int follow_ypos)
 
 		if (dip_for_drawing->nr_sprites)
 			pfield_erase_hborder_sprites ();
-	} else if (border > 0) {
-		// border > 0: top or bottom border
+
+	} else if (border > 0) { // border > 0: top or bottom border
+
 		bool dosprites = false;
 
 		adjust_drawing_colors (dp_for_drawing->ctable, 0);
@@ -2453,14 +2467,22 @@ static void pfield_draw_line (int lineno, int gfx_ypos, int follow_ypos)
 		}
 #endif
 
-		if (!dosprites && dip_for_drawing->nr_color_changes == 0) {
-			fill_line ();
-			do_flush_line (gfx_ypos);
-
+		if (!dosprites && (dip_for_drawing->nr_color_changes == 0 || (dip_for_drawing->nr_color_changes == 1 && curr_color_changes[dip_for_drawing->first_color_change].regno == -1))) {
+			if (dp_for_drawing->plfleft < -1) {
+				// blanked border line
+				int tmp = hposblank;
+				hposblank = 1;
+				fill_line_border ();
+				hposblank = tmp;
+			} else {
+				// normal border line
+				fill_line_border ();
+			}
+			do_flush_line (vb, gfx_ypos);
 			if (do_double) {
 				if (dh == dh_buf) {
 					xlinebuffer = row_map[follow_ypos] - linetoscr_x_adjust_bytes;
-					fill_line ();
+					fill_line_border ();
 				}
 				/* If dh == dh_line, do_flush_line will re-use the rendered line
 				 * from linemem.  */
@@ -2473,7 +2495,6 @@ static void pfield_draw_line (int lineno, int gfx_ypos, int follow_ypos)
 		if (dosprites) {
 
 			int i;
-
 			for (i = 0; i < dip_for_drawing->nr_sprites; i++)
 				draw_sprites_aga (curr_sprite_entries + dip_for_drawing->first_sprite_entry + i, 1);
 			do_color_changes (pfield_do_linetoscr_bordersprite_aga, pfield_do_linetoscr_bordersprite_aga, lineno);
@@ -2506,7 +2527,7 @@ static void pfield_draw_line (int lineno, int gfx_ypos, int follow_ypos)
 		// top or bottom blanking region
 		int tmp = hposblank;
 		hposblank = 1;
-		fill_line ();
+		fill_line_border ();
 		do_flush_line (gfx_ypos);
 		hposblank = tmp;
 
@@ -2623,7 +2644,7 @@ static void init_drawing_frame (void)
 			}
 		}
 
-		if (programmedmode && gfxvidinfo.gfx_resolution_reserved >= RES_HIRES && gfxvidinfo.gfx_vresolution_reserved >= VRES_DOUBLE) {
+		if (currprefs.gfx_autoresolution_vga && programmedmode && gfxvidinfo.gfx_resolution_reserved >= RES_HIRES && gfxvidinfo.gfx_vresolution_reserved >= VRES_DOUBLE) {
 			if (largest_res == RES_SUPERHIRES && (gfxvidinfo.gfx_resolution_reserved < RES_SUPERHIRES || gfxvidinfo.gfx_vresolution_reserved < 1)) {
 				// enable full doubling/superhires support if programmed mode. It may be "half-width" only and may fit in normal display window.
 				gfxvidinfo.gfx_resolution_reserved = RES_SUPERHIRES;
