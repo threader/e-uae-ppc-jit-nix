@@ -2478,7 +2478,7 @@ static void pfield_draw_line (int lineno, int gfx_ypos, int follow_ypos)
 				// normal border line
 				fill_line_border ();
 			}
-			do_flush_line (vb, gfx_ypos);
+			do_flush_line (gfx_ypos);
 			if (do_double) {
 				if (dh == dh_buf) {
 					xlinebuffer = row_map[follow_ypos] - linetoscr_x_adjust_bytes;

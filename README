@@ -18,8 +18,7 @@ http://github.com/GnoStiC/PUAE
 PUAE Binaries
 ---------------------------------------------------
 I don't supply binaries for any OS
-but you can find compiled versions on net
-(e.g. chiark creates dmg and posts here http://www.binarydevotion.com)
+but you may find compiled versions on net
 
 You should also check FS-UAE: http://fengestad.no/wp/fs-uae
                   and WinUAE: http://www.winuae.net
@@ -32,10 +31,10 @@ XBOX360    : http://lantus360.com
 Android    : http://droidpuae.blogspot.com
            : https://github.com/pelya/commandergenius/tree/sdl_android/project/jni/application/puae
 PS3        : http://metaneutrons.blogspot.com/2011/07/porting-puae-to-playstation-3.html
-Raspbery PI: http://www.valvers.com/raspberry-pi#toc-amiga-emulation-puae
+Raspberry  : http://www.valvers.com/raspberry-pi#toc-amiga-emulation-puae
 PNaCl      : http://pnacl-amiga-emulator.appspot.com
 AROS       : http://aminet.net/package/misc/emu/p-uae.i386-aros
-
+Retroarch  : https://github.com/libretro/libretro-uae
 
 Using PUAE
 ---------------------------------------------------
@@ -47,7 +46,7 @@ Compiling PUAE
 See the docs/compiling.txt
 
 i use
-macbook pro, xcode 5.0.2, sdl 1.2.15, macosx 10.9.1
+macbook pro, xcode 5.1, sdl 1.2.15, macosx 10.9.2
 (build_macos_cocoa)
 
 
