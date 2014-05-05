@@ -219,7 +219,7 @@ typedef struct {
 #endif
 } drive;
 
-#define MIN_STEPLIMIT_CYCLE (CYCLE_UNIT * 210)
+#define MIN_STEPLIMIT_CYCLE (CYCLE_UNIT * 140)
 
 static uae_u16 bigmfmbufw[0x4000 * DDHDMULT];
 static drive floppy[MAX_FLOPPY_DRIVES];
@@ -649,6 +649,8 @@ static void drive_image_free (drive *drv)
 	case ADF_EXT2:
 	case ADF_CATWEASEL:
 	case ADF_PCDOS:
+	case ADF_KICK:
+	case ADF_SKICK:
 		break;
 	}
 	drv->filetype = ADF_NONE;
@@ -1319,7 +1321,7 @@ static void drive_step (drive * drv, int step_direction)
 		drv->dskchange = 0;
 	if (drv->steplimit && get_cycles() - drv->steplimitcycle < MIN_STEPLIMIT_CYCLE) {
 		if (disk_debug_logging > 1)
-			write_log (_T(" step ignored drive %ld, %lld"),
+			write_log (_T(" step ignored drive %ld, %lld\n"),
 			drv - floppy, (long long)((get_cycles() - drv->steplimitcycle) / CYCLE_UNIT));
 		return;
 	}
@@ -2310,6 +2312,9 @@ static void drive_write_data (drive * drv)
 	case ADF_NONE:
 	case ADF_FDI:
 	case ADF_CATWEASEL:
+	case ADF_KICK:
+	case ADF_SKICK:
+	case ADF_SCP:
 		break;
 	}
 	drv->tracktiming[0] = 0;
@@ -2378,6 +2383,7 @@ static void floppy_get_rootblock (uae_u8 *dst, int block, const TCHAR *disk_name
 
 /* type: 0=regular, 1=ext2adf */
 /* adftype: 0=DD,1=HD,2=DD PC,3=HD PC,4=525SD */
+// DRV_NONE = -1, DRV_35_DD = 0, DRV_35_HD, DRV_525_SD, DRV_35_DD_ESCOM
 bool disk_creatediskfile (const TCHAR *name, int type, drive_type adftype, const TCHAR *disk_name, bool ffs, bool bootable, struct zfile *copyfrom)
 {
 	int size = 32768;
@@ -3000,6 +3006,8 @@ static void fetchnextrevolution (drive *drv)
 	case ADF_EXT2:
 	case ADF_CATWEASEL:
 	case ADF_PCDOS:
+	case ADF_KICK:
+	case ADF_SKICK:
 		break;
 	}
 }

@@ -46,8 +46,8 @@
 #include <signal.h>
 #else
 /* Need to have these somewhere */
-STATIC_INLINE void build_comp (void) {}
-STATIC_INLINE bool check_prefs_changed_comp (void) { return false; }
+static void build_comp (void) {}
+bool check_prefs_changed_comp (void) { return false; }
 #endif
 /* For faster JIT cycles handling */
 signed long pissoff = 0;

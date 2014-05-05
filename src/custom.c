@@ -3540,7 +3540,7 @@ void compute_vsynctime (void)
 	}
 #endif
 	if (currprefs.produce_sound > 1) {
-		double svpos = maxvpos;
+		double svpos = maxvpos_nom;
 		double shpos = maxhpos_short;
 		if (islinetoggle ()) {
 			shpos += 0.5;

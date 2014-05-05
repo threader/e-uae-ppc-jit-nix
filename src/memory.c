@@ -260,18 +260,21 @@ static bool gary_nonrange(uaecptr addr)
 
 void dummy_put (uaecptr addr, int size, uae_u32 val)
 {
+#ifdef GAYLE
 	if (gary_nonrange(addr) || (size > 1 && gary_nonrange(addr + size - 1))) {
 		if (gary_timeout)
 			gary_wait (addr, size);
 		if (gary_toenb && currprefs.mmu_model)
 			exception2 (addr, true, size, regs.s ? 4 : 0);
 	}
+#endif
 }
 
 uae_u32 dummy_get (uaecptr addr, int size, bool inst)
 {
 	uae_u32 v = NONEXISTINGDATA;
 
+#ifdef GAYLE
 	if (gary_nonrange(addr) || (size > 1 && gary_nonrange(addr + size - 1))) {
 		if (gary_timeout)
 			gary_wait (addr, size);
@@ -279,6 +282,7 @@ uae_u32 dummy_get (uaecptr addr, int size, bool inst)
 			exception2 (addr, false, size, (regs.s ? 4 : 0) | (inst ? 0 : 1));
 		return v;
 	}
+#endif
 
 	if (currprefs.cpu_model >= 68040)
 		return v;
