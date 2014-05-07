@@ -999,7 +999,6 @@ static int save_state_internal (struct zfile *f, const TCHAR *description, int c
 		xfree (dst);
 	}
 #endif
-
 #ifdef ACTION_REPLAY
 	dst = save_action_replay (&len, NULL);
 	save_chunk (f, dst, len, _T("ACTR"), comp);

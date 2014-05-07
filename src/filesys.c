@@ -1656,7 +1656,7 @@ static uae_u32 filesys_media_change_reply (TrapContext *ctx, int mode)
 	} else if (u->mount_changed > 0) {
 		if (mode == 0) {
 			// insert
-			struct mytimeval ctime = { 0 };
+			struct mytimeval ctime = { 0, 0 };
 			bool emptydrive = false;
 			struct uaedev_config_data *uci = NULL;
 
@@ -2841,7 +2841,7 @@ static uae_u32 REGPARAM2 startup_handler (TrapContext *context)
 	int ed = 0, ef = 0;
 	uae_u64 uniq = 0;
 	uae_u32 cdays;
-	struct mytimeval ctime = { 0 };
+	struct mytimeval ctime = { 0, 0 };
 
 	for (nr = 0; nr < MAX_FILESYSTEM_UNITS; nr++) {
 		/* Hardfile volume name? */
@@ -4141,10 +4141,15 @@ end:
 	return ret;
 }
 
+static bool filesys_name_invalid (const TCHAR *fn)
+{
+	return _tcslen (fn) > currprefs.filesys_max_name;
+}
+
 static int action_examine_all_do (Unit *unit, uaecptr lock, ExAllKey *eak, uaecptr exalldata, uae_u32 exalldatasize, uae_u32 type, uaecptr control)
 {
 	a_inode *aino, *base = NULL;
-        struct dirent *ok = NULL;
+	struct dirent *ok = NULL;
 	uae_u32 err;
 	struct fs_dirhandle *d;
 	TCHAR fn[MAX_DPATH];
@@ -4161,16 +4166,16 @@ static int action_examine_all_do (Unit *unit, uaecptr lock, ExAllKey *eak, uaecp
 				if (d->fstype == FS_ARCHIVE)
 					/*fixme*/ ok = zfile_readdir_archive (d->zd, fn);
 				else if (d->fstype == FS_DIRECTORY)
-					ok = readdir (d->od);
+					/*fixme*/ ok = readdir (d->od);
 				/*else if (d->fstype == FS_CDFS)
 					ok = isofs_readdir (d->isod, fn, &uniq);*/
 				else
 					ok = 0;
-			} while (ok && d->fstype  == FS_DIRECTORY && fsdb_name_invalid (ok->d_name));
+			} while (ok && d->fstype == FS_DIRECTORY && (filesys_name_invalid (ok->d_name) || fsdb_name_invalid (ok->d_name)));
 			if (!ok)
 				return 0;
 		} else {
-			//_tcscpy (ok->d_name, eak->fn);
+			_tcscpy (ok->d_name, eak->fn);
 			xfree (eak->fn);
 			eak->fn = NULL;
 		}
@@ -4180,7 +4185,7 @@ static int action_examine_all_do (Unit *unit, uaecptr lock, ExAllKey *eak, uaecp
 		eak->id = unit->exallid++;
 		put_long (control + 4, eak->id);
 		if (!exalldo (exalldata, exalldatasize, type, control, unit, aino)) {
-			//eak->fn = my_strdup (ok->d_name); /* no space in exallstruct, save current entry */
+			eak->fn = my_strdup (ok->d_name); /* no space in exallstruct, save current entry */
 			break;
 		}
 	}
@@ -4435,12 +4440,12 @@ static void populate_directory (Unit *unit, a_inode *base)
 			if (d->fstype == FS_ARCHIVE)
 				/*fixme*/ok = zfile_readdir_archive (d->zd, fn);
 			else if (d->fstype == FS_DIRECTORY)
-				ok = readdir (d->od);
+				/*fixme*/ok = readdir (d->od);
 			else if (d->fstype == FS_CDFS)
 			;//	ok = isofs_readdir (d->isod, fn, &uniq);
 			else
 				ok = 0;
-		} while (ok && d->fstype == FS_DIRECTORY && fsdb_name_invalid (ok->d_name));
+		} while (ok && d->fstype == FS_DIRECTORY && (filesys_name_invalid (ok->d_name) || fsdb_name_invalid (ok->d_name)));
 		if (!ok)
 			break;
 		/* This calls init_child_aino, which will notice that the parent is
@@ -4847,7 +4852,7 @@ static void
 				PUT_PCK_RES1 (packet, 0);
 				PUT_PCK_RES2 (packet, dos_errno ());
 			} else {
-				int i;
+				unsigned int i;
 				PUT_PCK_RES1 (packet, actual);
 				for (i = 0; i < actual; i++)
 					put_byte (addr + i, buf[i]);
@@ -4873,7 +4878,7 @@ static void
 		if (actual == 0) {
 			PUT_PCK_RES1 (packet, 0);
 			PUT_PCK_RES2 (packet, 0);
-		} else if (actual < 0) {
+		} else if ((uae_s32)actual < 0) {
 			PUT_PCK_RES1 (packet, 0);
 			PUT_PCK_RES2 (packet, dos_errno ());
 		} else {

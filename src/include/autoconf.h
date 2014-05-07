@@ -33,7 +33,6 @@ struct uaedev_config_data;
 
 struct uaedev_mount_info;
 
-
 /* external prototypes */
 uae_u32 addr (int);
 void db (uae_u8);
@@ -73,7 +72,7 @@ uaecptr need_uae_boot_rom (void);
 
 struct mountedinfo
 {
-	uae_u64 size;
+	uae_s64 size;
 	bool ismounted;
 	bool ismedia;
 	int nrcyls;
@@ -92,7 +91,7 @@ int filesys_eject (int nr);
 int filesys_media_change (const TCHAR *rootdir, int inserted, struct uaedev_config_data *uci);
 
 char *filesys_createvolname (const char *volname, const char *rootdir, const char *def);
-int target_get_volume_name(struct uaedev_mount_info *mtinf, const char *volumepath, char *volumename, int size, int inserted, int fullcheck);
+int target_get_volume_name(struct uaedev_mount_info *mtinf, const char *volumepath, char *volumename, int size, bool inserted, bool fullcheck);
 
 int sprintf_filesys_unit (char *buffer, int num);
 
