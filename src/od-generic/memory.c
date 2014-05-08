@@ -14,7 +14,7 @@
 
 #include "options.h"
 #include "autoconf.h"
-#if !defined(ANDROID) && !defined(__native_client__)
+#ifdef __GLIBC__
 #include <sys/sysctl.h>
 #endif
 #include "include/memory_uae.h"
