@@ -27,17 +27,17 @@ STATIC_INLINE void comp_reset_tmp_register(comp_tmp_reg* temp_reg);
  * calling function comp_get_gpr_for_temp_register().
  * Make sure that the first register is always R3, this allows
  * some internal optimizations on returned values from GCC function calls. */
-const int PPC_TMP_REGS[PPC_TMP_REGS_COUNT] = {  PPCR_TMP0,
-												PPCR_TMP1,
-												PPCR_TMP2,
-												PPCR_TMP3,
-												PPCR_TMP4,
-												PPCR_TMP5,
-												PPCR_TMP6,
-												PPCR_TMP7,
-												PPCR_TMP8,
-												PPCR_TMP9,
-												PPCR_TMP10 };
+const int PPC_TMP_REGS[PPC_TMP_REGS_COUNT] = { PPCR_TMP0,
+PPCR_TMP1,
+PPCR_TMP2,
+PPCR_TMP3,
+PPCR_TMP4,
+PPCR_TMP5,
+PPCR_TMP6,
+PPCR_TMP7,
+PPCR_TMP8,
+PPCR_TMP9,
+PPCR_TMP10 };
 
 /**
  *  List of temporary register usage,
@@ -49,10 +49,10 @@ comp_tmp_reg used_tmp_regs[PPC_TMP_REGS_COUNT];
 
 /* Structure for the M68k register mapping to the temporary registers */
 struct m68k_register {
-	comp_tmp_reg* tmpreg;	//Pointer to the descriptor structure for the linked temporary register or null
+	comp_tmp_reg* tmpreg;//Pointer to the descriptor structure for the linked temporary register or null
 	uae_u8 regnum;			//The number of the M68K register (D0-D7: 0-7, A0-A7: 8-15)
-	BOOL needs_flush;		//FALSE - no need to flush this register, TRUE - compile code for writing back the register out to the interpretive regs structure
-	BOOL locked;			//FALSE - this register is mapped but not used in the recent instruction, TRUE - this register is locked, cannot be flushed automatically
+	BOOL needs_flush;//FALSE - no need to flush this register, TRUE - compile code for writing back the register out to the interpretive regs structure
+	BOOL locked;//FALSE - this register is mapped but not used in the recent instruction, TRUE - this register is locked, cannot be flushed automatically
 };
 
 /* M68k register mapping to the temp registers */
@@ -107,7 +107,7 @@ uae_u16* current_block_pc_p;
  */
 struct {
 	uae_u8* address;					//Instruction address
-	BOOL is_16bit_instruction;		//If TRUE then the instruction uses 16 bits for the address offset, 26 bits otherwise
+	BOOL is_16bit_instruction;//If TRUE then the instruction uses 16 bits for the address offset, 26 bits otherwise
 } compiled_branch_instruction[MAX_BRANCH_SCHEDULE];
 
 /**
@@ -147,6 +147,11 @@ cacheline cache_tags[TAGSIZE];
 //TODO: do we need preallocated blockinfo?
 blockinfo* hold_bi[MAX_HOLD_BI];
 
+/* List of all active blocks */
+blockinfo* active;
+
+/* List of all dormant blocks (previously active or in ROM) */
+blockinfo* dormant;
 
 static void free_cache(void)
 {
@@ -279,7 +284,7 @@ void comp_init(void)
 	write_jit_log("Init compiling\n");
 
 	/* Initialize branch compiling: both pointers must be zero */
-	for(i = 0; i < MAX_BRANCH_SCHEDULE; i++)
+	for (i = 0; i < MAX_BRANCH_SCHEDULE; i++)
 	{
 		compiled_branch_instruction[i].address = compiled_branch_target[i] = NULL;
 	}
@@ -297,7 +302,7 @@ void comp_done(void)
 
 	write_jit_log("Done compiling\n");
 
-	for(i = 0; i < MAX_BRANCH_SCHEDULE; i++)
+	for (i = 0; i < MAX_BRANCH_SCHEDULE; i++)
 	{
 		if (compiled_branch_instruction[i].address != NULL)
 		{
@@ -426,7 +431,7 @@ void build_comp(void)
 
 	write_log("JIT: Building compiler function table.\n");
 
-    for (opcode = 0; opcode < 65536; opcode++)
+	for (opcode = 0; opcode < 65536; opcode++)
 	{
 		//TODO: remove instructions that are not supported by the processor
 
@@ -451,25 +456,20 @@ void flush_icache_hard(const char* callsrc)
 
 	write_jit_log("Flush icache hard (%s/%x/%p)\n", callsrc, regs.pc, regs.pc_p);
 
-	//!TODO: should we go trough the lists to free up cache lines? It might be faster
-	//    bi=active;
-	//    while(bi) {
-	//	cache_tags[cacheline(bi->pc_p)].handler=(void*)popall_execute_normal;
-	//	cache_tags[cacheline(bi->pc_p)+1].bi=NULL;
-	//	bi=bi->next;
-	//    }
-	//    bi=dormant;
-	//    while(bi) {
-	//	cache_tags[cacheline(bi->pc_p)].handler=(void*)popall_execute_normal;
-	//	cache_tags[cacheline(bi->pc_p)+1].bi=NULL;
-	//	bi=bi->next;
-	//    }
-
-	//Reset cache tags
-	for (i = 0; i < TAGSIZE; i += 2)
+	//Reset cache lines for the handled blockinfos only
+	bi = active;
+	while (bi)
 	{
-		cache_tags[i].handler = execute_normal_callback;
-		cache_tags[i + 1].bi = NULL;
+		cache_tags[cacheline(bi->pc_p)].handler = execute_normal_callback;
+		cache_tags[cacheline(bi->pc_p) + 1].bi = NULL;
+		bi = bi->next;
+	}
+	bi = dormant;
+	while (bi)
+	{
+		cache_tags[cacheline(bi->pc_p)].handler = execute_normal_callback;
+		cache_tags[cacheline(bi->pc_p) + 1].bi = NULL;
+		bi = bi->next;
 	}
 
 	reset_lists();
@@ -483,7 +483,7 @@ void flush_icache(int n)
 	write_jit_log("Flush icache soft (%d/%x/%p)\n", n, regs.pc, regs.pc_p);
 
 	//!TODO: is soft cache flush needed? It is retargeted to hard cache flush for now
-	flush_icache_hard("soft cache flush");
+		flush_icache_hard("soft cache flush");
 
 	//	uae_u32 i;
 	//	blockinfo* bi;
@@ -619,7 +619,7 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 		comp_ppc_prolog(PPCR_REG_USED_NONVOLATILE);
 
 		//Set up Regs pointer register
-		comp_ppc_liw(PPCR_REGS_BASE_MAPPED, (uae_u32)&regs);
+		comp_ppc_liw(PPCR_REGS_BASE_MAPPED, (uae_u32) &regs);
 
 		//Compile verification of 68k PC against the expected PC and call
 		//cache miss function if these were not matching
@@ -758,11 +758,14 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 			//Calculate checksum
 			if (isinrom(min_pcp) && isinrom(max_pcp))
 			{
-				bi->dormant = TRUE; /* No need to checksum it on cache flush. */
+				//No need to checksum it on cache flush,
+				//but move the block to the dormant list
+				add_to_dormant(bi);
 			}
 			else
 			{
-				bi->dormant = FALSE;
+				//No need to add to the active list, the block was added
+				//when it was created, but we need a checksum
 				calc_checksum(bi, &(bi->c1), &(bi->c2));
 			}
 
@@ -835,7 +838,7 @@ STATIC_INLINE comp_tmp_reg* comp_find_unlocked_temp_register(void)
 	//Turns around at the end of the array
 	if (i == PPC_TMP_REGS_COUNT) i = 0;
 
-	for(; i != last_unmapped_register;)
+	for (; i != last_unmapped_register;)
 	{
 		reg = used_tmp_regs[i].allocated_for;
 
@@ -893,7 +896,7 @@ comp_tmp_reg* comp_allocate_temp_register(struct m68k_register* allocate_for, co
 	if (preferred.r != PPC_TMP_REG_NOTUSED_MAPPED.r)
 	{
 		//Preferred register is specified, let's check whether it was available
-		for(i = 0; i < PPC_TMP_REGS_COUNT; i++)
+		for (i = 0; i < PPC_TMP_REGS_COUNT; i++)
 		{
 			//Is this the preferred one?
 			if (used_tmp_regs[i].mapped_reg_num.r == preferred.r)
@@ -915,7 +918,7 @@ comp_tmp_reg* comp_allocate_temp_register(struct m68k_register* allocate_for, co
 	if (reg == NULL)
 	{
 		//No: allocate the next free temporary register
-		for(i = 0; i < PPC_TMP_REGS_COUNT; i++)
+		for (i = 0; i < PPC_TMP_REGS_COUNT; i++)
 			if (!used_tmp_regs[i].allocated) break;
 
 		if (i != PPC_TMP_REGS_COUNT)
@@ -953,7 +956,7 @@ void comp_free_temp_register(comp_tmp_reg* temp_reg)
 		//Wasn't allocated
 		int i;
 
-		for(i = 0; i < PPC_TMP_REGS_COUNT; i++)
+		for (i = 0; i < PPC_TMP_REGS_COUNT; i++)
 		{
 			if ((&used_tmp_regs[i]) == temp_reg) {
 				write_jit_log("Warning: Temporary register %d was not allocated, but now it is free'd\n", i);
@@ -1065,8 +1068,8 @@ comp_tmp_reg* comp_map_temp_register(uae_u8 reg_number, int needs_init, int need
 			//The register needs initialization from the interpretive M68k register array,
 			//this instruction produces both allocated register and temporary register as an output
 			comp_macroblock_push_load_memory_long(
-					COMP_COMPILER_MACROBLOCK_REG_NONE,
-					COMP_COMPILER_MACROBLOCK_REG_DX_OR_AX(reg_number) | temp_reg->reg_usage_mapping,
+			COMP_COMPILER_MACROBLOCK_REG_NONE,
+			COMP_COMPILER_MACROBLOCK_REG_DX_OR_AX(reg_number) | temp_reg->reg_usage_mapping,
 					temp_reg->mapped_reg_num,
 					PPCR_REGS_BASE_MAPPED,
 					reg_number * 4);
@@ -1139,7 +1142,7 @@ void comp_unmap_temp_register(struct m68k_register* reg)
 		{
 			//Register must be written back to the regs array
 			comp_macroblock_push_save_memory_long(
-					COMP_COMPILER_MACROBLOCK_REG_DX_OR_AX(reg->regnum),
+			COMP_COMPILER_MACROBLOCK_REG_DX_OR_AX(reg->regnum),
 					COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
 					reg->tmpreg->mapped_reg_num,
 					PPCR_REGS_BASE_MAPPED,
@@ -1161,7 +1164,7 @@ void comp_unlock_all_temp_registers()
 {
 	int i;
 
-	for(i = 0; i < 16; i++)
+	for (i = 0; i < 16; i++)
 		comp_m68k_registers[i].locked = FALSE;
 }
 
@@ -1262,6 +1265,13 @@ unsigned long exec_nostats_callback(uae_u32 ignored1, struct regstruct *ignored2
 	return 0;
 }
 
+unsigned long check_checksum_callback(uae_u32 ignored1, struct regstruct *ignored2)
+{
+	check_checksum();
+
+	return 0;
+}
+
 void do_cycles_callback(unsigned int cycles_to_add)
 {
 	do_cycles(cycles_to_add);
@@ -1314,6 +1324,35 @@ STATIC_INLINE void raise_in_cl_list(blockinfo* bi)
 	add_to_cl_list(bi);
 }
 
+STATIC_INLINE void add_to_active(blockinfo* bi)
+{
+	remove_blockinfo_from_list(bi);
+	add_blockinfo_to_list(active, bi);
+	active = bi;
+}
+
+STATIC_INLINE void add_to_dormant(blockinfo* bi)
+{
+	remove_blockinfo_from_list(bi);
+	add_blockinfo_to_list(dormant, bi);
+	dormant = bi;
+}
+
+STATIC_INLINE void add_blockinfo_to_list(blockinfo* list, blockinfo* bi)
+{
+	bi->next = list;
+	bi->prev = NULL;
+	if (bi->next) bi->next->prev = bi;
+}
+
+STATIC_INLINE void remove_blockinfo_from_list(blockinfo* bi)
+{
+	if (bi->prev) bi->prev->next = bi->next;
+	if (bi->next) bi->next->prev = bi->prev;
+	if (active == bi) active = bi->next;
+	if (dormant == bi) dormant = bi->next;
+}
+
 STATIC_INLINE void invalidate_block(blockinfo* bi)
 {
 	bi->count = currprefs.optcount[0] - 1;
@@ -1335,7 +1374,9 @@ STATIC_INLINE blockinfo* get_blockinfo_addr_new(void* addr, int setstate)
 				bi = hold_bi[i];
 				hold_bi[i] = NULL;
 				bi->pc_p = addr;
+				bi->prev = bi->next = NULL;
 				invalidate_block(bi);
+				add_to_active(bi);
 				add_to_cl_list(bi);
 			}
 		}
@@ -1372,8 +1413,8 @@ STATIC_INLINE void reset_lists(void)
 
 	for (i = 0; i < MAX_HOLD_BI; i++)
 		hold_bi[i] = NULL;
-	//	active = NULL;
-	//	dormant = NULL;
+	active = NULL;
+	dormant = NULL;
 }
 
 static void cache_miss(void)
@@ -1390,23 +1431,23 @@ static void cache_miss(void)
 	{
 		write_log("JIT: Unexplained cache miss %p %p\n", bi, bi2);
 			abort();
-		}
+	}
 	raise_in_cl_list(bi);
 	return;
 }
 
 int check_for_cache_miss(void)
 {
-    blockinfo* bi=get_blockinfo_addr(regs.pc_p);
+	blockinfo* bi = get_blockinfo_addr(regs.pc_p);
 
     if (bi) {
-	int cl=cacheline(regs.pc_p);
-	if (bi!=cache_tags[cl+1].bi) {
-	    raise_in_cl_list(bi);
-	    return 1;
+		int cl = cacheline(regs.pc_p);
+		if (bi!=cache_tags[cl+1].bi) {
+			raise_in_cl_list(bi);
+			return 1;
+		}
 	}
-    }
-    return 0;
+	return 0;
 }
 
 static void calc_checksum(blockinfo* bi, uae_u32* c1, uae_u32* c2)
@@ -1594,7 +1635,7 @@ void comp_ppc_emit_word(uae_u32 word)
 /* Returns true if the compiling reached the top of the compiled code buffer */
 int comp_ppc_check_top(void)
 {
-	 return (current_compile_p >= max_compile_start);
+	return (current_compile_p >= max_compile_start);
 }
 
 /* Pushes two halfwords to the code cache and updates the pointer */
@@ -2660,15 +2701,15 @@ void comp_ppc_subfic(comp_ppc_reg regd, comp_ppc_reg rega, uae_u16 imm)
 	comp_ppc_emit_halfwords(0x2000 | ((regd.r) << 5) | rega.r, imm);
 }
 
- /* Compiles trap instruction
-  * Parameters:
-  * 		none
-  */
+/* Compiles trap instruction
+ * Parameters:
+ * 		none
+ */
 void comp_ppc_trap()
- {
- 	// ## trap
- 	comp_ppc_emit_word(0x7fe00008);
- }
+{
+	// ## trap
+	comp_ppc_emit_word(0x7fe00008);
+}
 
 /* Compiles xor instruction
  * Parameters:
@@ -2743,8 +2784,8 @@ void comp_ppc_call(comp_ppc_reg reg, uae_uintptr addr)
  */
 void comp_ppc_call_reg(comp_ppc_reg addrreg)
 {
-		comp_ppc_mtlr(addrreg);
-		comp_ppc_blrl();
+	comp_ppc_mtlr(addrreg);
+	comp_ppc_blrl();
 }
 
 
@@ -2797,7 +2838,7 @@ void comp_ppc_prolog(uae_u32 save_regs)
 
 	//Save registers
 	regnum = 8;
-	for(i = 0; i < 32; i++)
+	for (i = 0; i < 32; i++)
 	{
 		if (save_regs & (1 << i))
 		{
@@ -2820,7 +2861,7 @@ void comp_ppc_prolog(uae_u32 save_regs)
 	}
 
 	comp_ppc_mflr(PPCR_TMP0_MAPPED); //Read LR
-	comp_ppc_stw(PPCR_TMP0_MAPPED, 8, PPCR_SP_MAPPED); //Store in linkage area
+	comp_ppc_stw(PPCR_TMP0_MAPPED, 8, PPCR_SP_MAPPED);//Store in linkage area
 
 	//Save registers
 	for(i = 0; i < 32; i++)
@@ -2849,7 +2890,7 @@ void comp_ppc_epilog(uae_u32 restore_regs)
 
 	//Restore registers
 	int regnum = 8;
-	for(i = 0; i < 32; i++)
+	for (i = 0; i < 32; i++)
 	{
 		if (restore_regs & (1 << i))
 		{
@@ -2869,8 +2910,8 @@ void comp_ppc_epilog(uae_u32 restore_regs)
 	int i;
 
 	comp_ppc_lwz(PPCR_SP_MAPPED, 0, PPCR_SP_MAPPED); //Read the pointer to the previous stack frame and free up stack space by using the backchain pointer
-	comp_ppc_lwz(PPCR_SPECTMP_MAPPED, 8, PPCR_SP_MAPPED); //Read LR from the stackframe
-	comp_ppc_mtlr(PPCR_SPECTMP_MAPPED); //Restore LR
+	comp_ppc_lwz(PPCR_SPECTMP_MAPPED, 8, PPCR_SP_MAPPED);//Read LR from the stackframe
+	comp_ppc_mtlr(PPCR_SPECTMP_MAPPED);//Restore LR
 
 	//Restore registers
 	int r = -4;
@@ -2900,7 +2941,7 @@ uae_u32 comp_ppc_save_temp_regs(uae_u32 exceptions)
 	uae_u32 saved_regs = 0;
 	int i, count = 0;
 
-	for(i = 0; i < PPC_TMP_REGS_COUNT; i++)
+	for (i = 0; i < PPC_TMP_REGS_COUNT; i++)
 	{
 		uae_u32 reg = 1 << PPC_TMP_REGS[i];
 
@@ -2923,7 +2964,7 @@ uae_u32 comp_ppc_save_temp_regs(uae_u32 exceptions)
 
 	//Walk through the list of registers again and save the marked ones
 	count = 0;
-	for(i = 0; i < PPC_TMP_REGS_COUNT; i++)
+	for (i = 0; i < PPC_TMP_REGS_COUNT; i++)
 	{
 		int reg = PPC_TMP_REGS[i];
 		if ((saved_regs & (1 << reg)) != 0)
@@ -2953,15 +2994,15 @@ void comp_ppc_restore_temp_regs(uae_u32 saved_regs)
 	int i, count = 0;
 
 	//Walk through the list of registers and restore the marked ones
-	for(i = 0; i < PPC_TMP_REGS_COUNT; i++)
+	for (i = 0; i < PPC_TMP_REGS_COUNT; i++)
 	{
 		int reg = PPC_TMP_REGS[i];
 		if ((saved_regs & (1 << reg)) != 0)
 		{
 			comp_macroblock_push_load_memory_long(
-					COMP_COMPILER_MACROBLOCK_REG_NONE,
-					COMP_COMPILER_MACROBLOCK_REG_NONE | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-					PPCR_MAPPED_REG(reg),
+			COMP_COMPILER_MACROBLOCK_REG_NONE,
+			COMP_COMPILER_MACROBLOCK_REG_NONE | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
+			PPCR_MAPPED_REG(reg),
 					PPCR_SP_MAPPED,
 					count * 4);
 			count++;
@@ -2998,21 +3039,21 @@ void comp_ppc_return_to_caller(uae_u32 restore_regs)
 	comp_ppc_blr();
 }
 
- /* Compile verification of 68k PC against the expected PC and call
-  * cache miss function if these were not matching
-  *
-  * Note: this function cannot be called after collecting of macroblocks
-  * started. There is no handling of temporary registers properly, because
-  * this instruction block is not scheduled for compiling.
-  * Also this function needs a previously loaded PPCR_REGS_BASE register.
-  *
-  * Parameters:
-  *      pc_addr_exp - expected 68k PC address (value)
-  */
+/* Compile verification of 68k PC against the expected PC and call
+ * cache miss function if these were not matching
+ *
+ * Note: this function cannot be called after collecting of macroblocks
+ * started. There is no handling of temporary registers properly, because
+ * this instruction block is not scheduled for compiling.
+ * Also this function needs a previously loaded PPCR_REGS_BASE register.
+ *
+ * Parameters:
+ *      pc_addr_exp - expected 68k PC address (value)
+ */
 void comp_ppc_verify_pc(uae_u8* pc_addr_exp)
 {
 	comp_ppc_liw(PPCR_TMP0_MAPPED, (uae_u32) pc_addr_exp);	//Load original PC address into tempreg1
-	comp_ppc_lwz(PPCR_TMP1_MAPPED, COMP_GET_OFFSET_IN_REGS(pc_p), PPCR_REGS_BASE_MAPPED);	//Load the recent PC into tempreg2 from regs structure
+	comp_ppc_lwz(PPCR_TMP1_MAPPED, COMP_GET_OFFSET_IN_REGS(pc_p), PPCR_REGS_BASE_MAPPED);//Load the recent PC into tempreg2 from regs structure
 	comp_ppc_cmplw(PPCR_CR_TMP0, PPCR_TMP0_MAPPED, PPCR_TMP1_MAPPED);	//Compare registers
 	comp_ppc_bc(PPC_B_CR_TMP0_EQ, 0);	//beq skip
 
@@ -3096,7 +3137,7 @@ void comp_ppc_save_mapped_registers_from_list(uae_s8* mapped_regs)
 		if (mapped_regs[i] != -1)
 		{
 			//TODO: it would be better to use the comp_ppc_reg structure in the list, but it is not possible to mark an item as unmapped
-			comp_ppc_stw((comp_ppc_reg){.r = mapped_regs[i]}, i * 4, PPCR_REGS_BASE_MAPPED);
+			comp_ppc_stw((comp_ppc_reg ) { .r = mapped_regs[i] }, i * 4, PPCR_REGS_BASE_MAPPED);
 		}
 	}
 }
@@ -3157,20 +3198,20 @@ void comp_ppc_load_pc(uae_u32 pc_address, uae_u32 location)
 int comp_signed_divide_64_bit(uae_s32 divisor,  uae_u32 dividend_high_regnum, uae_u32 dividend_low_regnum)
 {
 	uae_s64 quotient64;
-	uae_s64 divisor64 = (uae_s64)divisor;
+	uae_s64 divisor64 = (uae_s64) divisor;
 
 	uae_s64 dividend64 = ((uae_s64)(uae_s32)regs.regs[dividend_high_regnum]) << 32 | ((uae_s64)(uae_s32)regs.regs[dividend_low_regnum]);
 
 	quotient64 = dividend64 / divisor64;
 
 	int overflow = ((quotient64 & UVAL64(0xffffffff80000000)) != 0
-		    && (quotient64 & UVAL64(0xffffffff80000000)) != UVAL64(0xffffffff80000000));
+			&& (quotient64 & UVAL64(0xffffffff80000000)) != UVAL64(0xffffffff80000000));
 
 	if (!overflow)
 	{
 		//Modify emulated registers only if there was no overflow
-		regs.regs[dividend_low_regnum] = (uae_u32)quotient64 & 0xffffffffu;
-		regs.regs[dividend_high_regnum] = (uae_u32)(dividend64 % divisor64) & 0xffffffffu;
+		regs.regs[dividend_low_regnum] = (uae_u32) quotient64 & 0xffffffffu;
+		regs.regs[dividend_high_regnum] = (uae_u32) (dividend64 % divisor64) & 0xffffffffu;
 	}
 
 	return overflow;
@@ -3189,7 +3230,7 @@ int comp_signed_divide_64_bit(uae_s32 divisor,  uae_u32 dividend_high_regnum, ua
 int comp_unsigned_divide_64_bit(uae_u32 divisor, uae_u32 dividend_high_regnum, uae_u32 dividend_low_regnum)
 {
 	uae_u64 quotient64;
-	uae_u64 divisor64 = (uae_u64)divisor;
+	uae_u64 divisor64 = (uae_u64) divisor;
 
 	uae_u64 dividend64 = ((uae_u64)regs.regs[dividend_high_regnum]) << 32 | ((uae_s64)(uae_s32)regs.regs[dividend_low_regnum]);
 
@@ -3200,8 +3241,8 @@ int comp_unsigned_divide_64_bit(uae_u32 divisor, uae_u32 dividend_high_regnum, u
 	if (!overflow)
 	{
 		//Modify emulated registers only if there was no overflow
-		regs.regs[dividend_low_regnum] = (uae_u32)quotient64 & 0xffffffffu;
-		regs.regs[dividend_high_regnum] = (uae_u32)(dividend64 % divisor64) & 0xffffffffu;
+		regs.regs[dividend_low_regnum] = (uae_u32) quotient64 & 0xffffffffu;
+		regs.regs[dividend_high_regnum] = (uae_u32) (dividend64 % divisor64) & 0xffffffffu;
 	}
 
 	return overflow;

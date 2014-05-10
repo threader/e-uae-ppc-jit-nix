@@ -51,10 +51,11 @@ typedef struct blockinfo_t
 	uae_u32 c1;					/* Code checksum 1 */
 	uae_u32 c2;					/* Code checksum 2 */
 
-	int dormant;				/* Dormant block if true (no need to calculate checksum) */
-
 	struct blockinfo_t* next_same_cl;		/* Cache line pointer */
 	struct blockinfo_t** prev_same_cl_p;	/* Cache line pointer */
+
+    struct blockinfo_t* next;		/* Pointer to the next block in active/dormant list */
+    struct blockinfo_t* prev;		/* Pointer to the previous block in active/dormant list */
 } blockinfo;
 
 /* Mapped PowerPC register type
@@ -283,6 +284,10 @@ STATIC_INLINE blockinfo* get_blockinfo_addr_new(void* addr, int setstate);
 STATIC_INLINE void alloc_blockinfos(void);
 STATIC_INLINE blockinfo* get_blockinfo_addr(void* addr);
 STATIC_INLINE void raise_in_cl_list(blockinfo* bi);
+STATIC_INLINE void add_to_active(blockinfo* bi);
+STATIC_INLINE void add_to_dormant(blockinfo* bi);
+STATIC_INLINE void add_blockinfo_to_list(blockinfo* list, blockinfo* bi);
+STATIC_INLINE void remove_blockinfo_from_list(blockinfo* bi);
 STATIC_INLINE void compile_return_block(void);
 STATIC_INLINE void reset_lists(void);
 static void calc_checksum(blockinfo* bi, uae_u32* c1, uae_u32* c2);
@@ -291,6 +296,7 @@ int check_for_cache_miss(void);
 
 unsigned long execute_normal_callback(uae_u32 ignored1, struct regstruct *ignored2);
 unsigned long exec_nostats_callback(uae_u32 ignored1, struct regstruct *ignored2);
+unsigned long check_checksum_callback(uae_u32 ignored1, struct regstruct *ignored2);
 unsigned long do_nothing_callback(uae_u32 ignored1, struct regstruct *ignored2);
 
 int comp_is_spec_memory_read_byte(uae_u32 pc, int specmem_flags);
