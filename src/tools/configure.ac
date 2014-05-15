@@ -1,7 +1,7 @@
 dnl
 
 AC_PREREQ(2.55)
-AC_INIT(PUAE, 2.8.0, mustafa.tufan@gmail.com, puae)
+AC_INIT(PUAE, 2.8.1, mustafa.tufan@gmail.com, puae)
 AC_CONFIG_HEADER(sysconfig.h)
 AC_CANONICAL_TARGET
 

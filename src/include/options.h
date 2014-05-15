@@ -13,7 +13,7 @@
 
 #define UAEMAJOR 2
 #define UAEMINOR 8
-#define UAESUBREV 0
+#define UAESUBREV 1
 
 #include "uae_types.h"
 
