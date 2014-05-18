@@ -7520,7 +7520,7 @@ void comp_opcode_BFCLR2MEM(const cpu_history* history, struct comptbl* props) RE
 			NULL, NULL,
 			TRUE, FALSE);
 
-	//Exclusive or the mask to the target register on higher 32 bits
+	//And the mask to the target register on higher 32 bits
 	comp_macroblock_push_and_register_complement_register(
 			data_reg_high->reg_usage_mapping | mask_reg_high->reg_usage_mapping,
 			data_reg_high->reg_usage_mapping,
@@ -7529,7 +7529,7 @@ void comp_opcode_BFCLR2MEM(const cpu_history* history, struct comptbl* props) RE
 			mask_reg_high->mapped_reg_num,
 			FALSE);
 
-	//Exclusive or the mask to the target register on lower 8 bits
+	//And the mask to the target register on lower 8 bits
 	comp_macroblock_push_and_register_complement_register(
 			data_reg_low->reg_usage_mapping | mask_reg_low->reg_usage_mapping,
 			data_reg_low->reg_usage_mapping,
@@ -8204,7 +8204,7 @@ void comp_opcode_BFSET2MEM(const cpu_history* history, struct comptbl* props) RE
 			NULL, NULL,
 			TRUE, FALSE);
 
-	//Exclusive or the mask to the target register on higher 32 bits
+	//Or the mask to the target register on higher 32 bits
 	comp_macroblock_push_or_register_register(
 			data_reg_high->reg_usage_mapping | mask_reg_high->reg_usage_mapping,
 			data_reg_high->reg_usage_mapping,
@@ -8213,7 +8213,7 @@ void comp_opcode_BFSET2MEM(const cpu_history* history, struct comptbl* props) RE
 			mask_reg_high->mapped_reg_num,
 			FALSE);
 
-	//Exclusive or the mask to the target register on lower 8 bits
+	//Or the mask to the target register on lower 8 bits
 	comp_macroblock_push_or_register_register(
 			data_reg_low->reg_usage_mapping | mask_reg_low->reg_usage_mapping,
 			data_reg_low->reg_usage_mapping,
@@ -11774,12 +11774,11 @@ STATIC_INLINE comp_tmp_reg* helper_extract_bitfield_offset(signed int extword)
 
 		uae_u8 offset_reg_num = ((uae_u8) (extword >> 6) & 7);
 
-		comp_macroblock_push_and_low_register_imm(
+		comp_macroblock_push_copy_register_long(
 				COMP_COMPILER_MACROBLOCK_REG_DX(offset_reg_num),
 				bit_field_offset->reg_usage_mapping,
 				bit_field_offset->mapped_reg_num,
-				comp_map_temp_register(COMP_COMPILER_REGS_DATAREG(offset_reg_num), TRUE, FALSE)->mapped_reg_num,
-				31);
+				comp_map_temp_register(COMP_COMPILER_REGS_DATAREG(offset_reg_num), TRUE, FALSE)->mapped_reg_num);
 	}
 
 	return bit_field_offset;
