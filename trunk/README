@@ -1,4 +1,4 @@
-E-UAE PowerPC JIT project 0.8.29-PPCJITBETA02
+E-UAE PowerPC JIT project 0.8.29-PPCJITBETA03
 =============================================
 
 This project is a fork of the E-UAE Amiga emulation project. You can find the
@@ -29,18 +29,24 @@ http://amigabounty.net/index.php?function=viewproject&projectid=35
 Thank you!
 
 
-Beta release #2 (PPCJITBETA02)
+Beta release #3 (PPCJITBETA03)
 ===================================
-After the initial beta release here comes a more complete and significantly
-improved version of the JIT compiler.
+The most important features of the 3rd beta version are:
 
-This release also includes new features, like SAM440EP/Flex support and
-CGX overlay support for MorphOS.
+ * Register and flag flow optimization is working now - it gives a significant
+   boost to the emulation speed (15-30% speedup, depending on the executed
+   instructions).
+   To turn the optimization on: set comp_optimize=true in the configuration.
 
-Lots of various bugs were fixed in this release, hopefully it is more stable
-and more usable on the various supported platforms. Yet there is a big chunk of
-outstanding work to be done, you can find more details about the missing pieces
-by looking at the tickets in the SourceForge repository:
+ * Emulated cache flush takes less effort so the emulation will be less jiggery
+   when the cache is flushed too often.
+
+ * Some more bug fixes to improve the overall stability of the emulation.
+
+
+Yet there is a big chunk of outstanding work to be done, you can find more
+details about the missing pieces by looking at the tickets in the SourceForge
+repository:
 
 https://sourceforge.net/p/euaeppcjit/tickets
 
@@ -100,86 +106,77 @@ All other aspects of the emulation remained the same as it was available
 already in E-UAE v0.8.29 (as of 20/08/2008).
 
 
-Changes since the last release (JITPPCBETA01)
+Changes since the last release (JITPPCBETA02)
 =============================================
 
 New/Changed:
 ------------
-* JIT support for all planned instructions is finised.
-  Added the implementation of
-   NBCD.B mem, NBCD.B dx, SBCD.B -(Ax),-(Ay), SBCD.B dx,dy, ABCD.B -(Ax),-(Ay),
-   ABCD.B dx,dy, UNPK -(Ax),-(Ay),#imm, UNPK dx,dy,#imm, PACK -(Ax),-(Ay),#imm,
-   PACK dx,dy,#imm, MULU.L/MULS.L mem,Dx:Dy, MULU.L/MULS.L reg,Dx:Dy,
-   MULU.L/MULS.L #imm,Dx:Dy, DIVU(L).L/DIVS(L).L mem,Dx:Dy,
-   DIVU(L).L/DIVS(L).L Dx,Dy:Dz, DIVU(L).L/DIVS(L).L #imm,Dx:Dy
-  instructions.
+* Hard cache flush is limited to the used blocks.
 
-* Removed CMP2/CHK2 instruction from the list of the potentially supported
-  opcodes and created Ticket#8 for the missing instruction implementation.
-
-* Removed conditional branch hinting, it might cause more trouble than good on
-  certain PPC processors.
-
-* Merged changes from Soft3 (Massimiliano Tretene) for supporting SAM440EP and
-  SAM440EP-Flex. (Ticket#20)
-
-* Merged Overlay window implementation for MorphOS CGX.
-  (See docs/configuration.txt amiga.use_overlay for more details.)
 
 Improved:
---------- 
-* Introduced the possibility of preferred temporary register allocation and
-  added the preferred registers to the memory read function to avoid register
-  swaps on memory write.
+---------
+* Removed unnecessary logging of the cache mode access.
+
+* Added warning instead of leaving the emulation when the macroblock array runs
+  out of space. (Ticket#16)
+
 
 Fixed:
 ------
-* Added Mike Blackburn's MacOSX PPC and LinuxPPC fixes.
+* Removed the 5 bits limit on the bitfield instruction offset registers.
+  (Ticket #36)
 
-* Fixed wrong data preparation for ROR.B instructions. (Ticket#5)
+* Fixed missing dependency on immediate and memory register in MULS/U.L
+  instructions.
 
-* Fixed indAd16 addressing modes: mapped 68k registers were released without
-  unmapping when the displacement was zero. (Ticket#6)
+* Fixed missing do-not-remove dependency for saving a register into the context
+  in various bitfield instructions.
 
-* Fixed wrong order of registers in the subtraction for SUBA.W mem,Ax.
-  (Ticket#17)
+* Fixed syntax error when compiling for SDL and P96. (Thanks to MickJT for
+  reporting.)
 
-* Fixed trashed LR register when the target address is outside of the 32k range
-  and indirect jump is generated. (Ticket #30)
+* Mike Blackburn's MacOSX PPC and LinuxPPC fixes: MacOS configure script
+  cleanup and PPC 440/460 detection for Linux.
 
-* Fixed warning on released, but not allocated temporary register in the
-  MOVEM instructions.
+* Added missing includes for AmigaOS4 machine detection. (Thanks to MickJT for
+  the report.)
 
-* Fixed warning message for allocated but not released temporary registers.
+* Fixed register dependencies in SUB/ADD.B/W mem,reg instructions.
 
-* Fixed offset masking for PPC branch instructions. Wrong bit masking caused
-  jumping to wrong addresses when the conditional branch was prepared with
-  negative offset.
+* Fixed dependency on allocated temporary register init when a new emulated
+  register is allocated.
 
-* Fixed number of extension words and the source addressing mode for the
-  immediate variants of DIV.L and MUL.L instructions.
+* Fixed dependency in CMP.W/B #imm,mem instruction.
 
-* Fixed word alignment of the stack pointer (A7) for incrementing and
-  decrementing byte-sized addressing modes.
+* Fixed missing dependency on the shift register in various shifting
+  instructions.
 
-* Removed enable_jit configuration from documentation: this configuration does
-  not exist.
+* Fixed wrong dependency in indirect JSR/JMP instructions.
 
-* Fixed configure script to take the LIBS and CPPFLAGS variables from command
-  line.
+* Added missing input register dependency into PEA and Scc instructions.
 
-* Rolled back changes for TimeDelay macro for AmigaOS4, let's use libamiga
-  instead.
+* Added missing dependency on source/destination register into MOVEM
+  instructions when no update is done.
 
-* The conflict with the INSERT macro in the MorphOS SDK is workarounded.
+* Added dependency to the saved destination memory register into
+  helper_read_memory_mapped() function, it is needed by absolute addressing
+  modes.
 
-* Changed DIV.L and MUL.L instruction macroblock names to avoid confusion with
-  the similar word sized instructions.
+* Added missing dependency for output register to MOVE.W/MOVE.B reg,reg
+  instructions.
 
-* Removed duplicate macroblock for and immediate operation.
+* Fixed missing Z flag output dependency for
+  helper_extract_c_clear_nzvx_flags() function.
 
-* Check reference number against the array length for branch scheduling to
-  avoid running out of the array.
+* Fixed register dependency debug output to use the full 64bit register and
+  added internal flags to the output.
+
+* Fixed destination register dependency tracking for memory to register moving
+  instructions.
+
+* Fixed destination register dependency tracking for immediate to memory moving
+  instructions.
 
 
 How to test
@@ -198,7 +195,7 @@ the configuration exactly as listed below:
 	cpu_compatible=false
 	cpu_cycle_exact=false
 	blitter_cycle_exact=false
-	comp_optimize=no (see Known issues)
+	comp_optimize=true
 	cachesize=8192 (or higher)
 	comp_constjump=yes
 	comp_trustbyte=indirect (see Known issues)
@@ -219,11 +216,17 @@ configuration: turn on the JIT LED. (See show_leds in docs/configuration.txt.)
 If the JIT was set up properly then the JIT LED will blink green on the screen.
 
 For G5 (PowerPC 970/FX/GX/MP) users:
-(Applicable to MacOSX and MorphOS only at the moment.)
-Please use the binary from the archive which is tagged with "G5": E-UAE_G5 or
-uae_G5.
+(Applicable to MacOSX only at the moment.)
+Please use the binary from the archive which is tagged with "G5": E-UAE_G5.
 The generic build is running on G5, but it is much slower due to missing
 instructions which are emulated by the operating system.
+
+For MorphOS G5 (PowerPC 970/FX/GX/MP) users:
+G5 processor is not supported in this beta release. Currently the PPC970 target
+is not supported by the official SDK, as soon as this situation is improved
+I will release a special build for G5 processors.
+The current build will not perform well on G5 due to the missing instructions
+on the G5 architecture.
 
 
 How to report a bug
@@ -242,26 +245,29 @@ sure you follow these steps:
    line, this will be the very first output from the program.
 
    The version number includes a tag for the beta releases, for example:
-   0.8.29-PPCJITBETA02
+   0.8.29-PPCJITBETA03
 
 3. Make sure the JIT compiling is running, read through the How to test
    section and follow the instructions regarding the configuration.
 
-4. Try to reproduce the bug without JIT compiling: turn off the JIT compiling
-   in the configuration and try to reproduce the bug.
+4. Try to reproduce the bug without optimization: turn off the optimization
+   in the configuration and try to reproduce the bug. (comp_optimize=false)
 
-5. If you were able to reproduce the bug without JIT compiling then try to
+5. Try to reproduce the bug without JIT compiling: turn off the JIT compiling
+   in the configuration and try to reproduce the bug. (cachesize=0)
+
+6. If you were able to reproduce the bug without JIT compiling then try to
    reproduce it on the previous version of E-UAE.
    If you are able to reproduce it then it is a generic E-UAE bug. Fixing
    these issues is not a goal for the E-UAE PPC JIT project. You might still
    report it, but most likely it won't be fixed in this project.
 
-6. If you think you had found a bug related to the JIT compiling then try to
+7. If you think you had found a bug related to the JIT compiling then try to
    make sure you can reproduce the bug consistently (or often enough) and
    please describe the exact details, provide the software that triggers the
    problem.
 
-7. See the Contacts section for getting in touch with me. Gather all the
+8. See the Contacts section for getting in touch with me. Gather all the
    information and send it to me by email.
 
 
@@ -291,9 +297,6 @@ Known issues
   (Ticket#12) As it is stated in the original configuration documentation:
   the 68060 emulation is incomplete, therefore it is not useful yet.
 
-* (Ticket#14) The register/flag flow optimization is not working properly at
-  the moment, therefore it should be turned off: comp_optimize=no
-  
 * (Ticket#15) The direct memory access is not completed yet, theoretically it
   might work for certain software, but I suggest to turn it off by adding these
   lines to the configuration: 
@@ -321,7 +324,7 @@ To compile on Mac OSX 10.3.9 or earlier:
 Autoconf2.57 and automake1.6 mess up @OBJCFLAGS@ and is not really compatible. 
 
 Get the correct versions - replacing the previous version :
-http://ftp.gnu.org/gnu/autoconf/autoconf-2.61.tar.bz2 
+http://ftp.gnu.org/gnu/autoconf/autoconf-2.61.tar.bz2
 ./configure --bindir=/usr/bin --datarootdir=/usr/share && make install
 http://ftp.gnu.org/gnu/automake/automake-1.7.9.tar.bz2
 ./configure --bindir=/usr/bin --datadir=/usr/share && make install
@@ -353,7 +356,7 @@ http://euaejit.blogspot.com
 
 Special thanks
 ==============
-I would like to thank the support to
+I would like to thank the constant support to
 
   Thunder, kas1e, MickJT, Fab, Tobias Netzel and Mike Blackburn
 
