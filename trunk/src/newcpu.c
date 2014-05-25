@@ -1889,15 +1889,23 @@ typedef void compiled_handler(void);
 static void m68k_run_2a (void)
 {
 	for (;;) {
-		compiled_handler* handler = (compiled_handler*)cache_tags[cacheline(regs.pc_p)].handler;
-		if ((handler != (compiled_handler*)execute_normal_callback) &&
-						(handler != (compiled_handler*)exec_nostats_callback))
+		compiled_handler* handler;
+
+		if (regs.spcflags & SPCFLAG_DOTRACE)
 		{
-			//This is a JIT compiled block: none of the known static handler functions are called
-			jit_indicator_compiled_executed++;
+			//Processor is set to TRACE mode, no JIT compiled code will be executed
+			handler = (compiled_handler*)exec_nostats_callback;
 		} else {
-			//This is an interpreted block
-			jit_indicator_interpreted_executed++;
+			handler = (compiled_handler*)cache_tags[cacheline(regs.pc_p)].handler;
+			if ((handler != (compiled_handler*)execute_normal_callback) &&
+							(handler != (compiled_handler*)exec_nostats_callback))
+			{
+				//This is a JIT compiled block: none of the known static handler functions are called
+				jit_indicator_compiled_executed++;
+			} else {
+				//This is an interpreted block
+				jit_indicator_interpreted_executed++;
+			}
 		}
 
 		handler();
