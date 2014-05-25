@@ -4330,7 +4330,7 @@ void comp_opcode_ROXLMEM(const cpu_history* history, struct comptbl* props) REGP
 			tmpreg->reg_usage_mapping,
 			tmpreg->mapped_reg_num,
 			tmpreg->mapped_reg_num,
-			src_immediate,
+			1,
 			16, 31, FALSE);
 
 	//Check flags on result
