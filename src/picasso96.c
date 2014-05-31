@@ -43,11 +43,6 @@
 #include "picasso96.h"
 #include "uae_endian.h"
 
-#ifdef __amigaos4__
-#include <proto/expansion.h>
-#include <expansion/expansion.h>
-#endif
-
 #ifdef JIT
 int        have_done_picasso       = 0;         /* For the JIT compiler */
 # ifdef PICASSO96
@@ -3057,27 +3052,12 @@ void InitPicasso96 (void)
 	 * palette emulation issues. Tell the world we have a
 	 * a BGRA mode instead (and we'll byte-swap all pixels output).
 	 */
-
-	//Do we need the workaround for the A8R8G8B8 modes?
-	uae_u32 need_workaround = 1;
-#ifdef __amigaos4__
-	uint32 machine = MACHINETYPE_UNKNOWN;
-	GetMachineInfoTags(GMIT_Machine, &machine, TAG_DONE);
-	if (machine == MACHINETYPE_SAM440EP) {
-		//Workaround is removed for SAM440
-		need_workaround = 0;
-    }
-#endif
-
-	if (need_workaround)
-	{
-		if (picasso_vidinfo.rgbformat == RGBFB_A8R8G8B8) {
-			picasso_vidinfo.rgbformat = RGBFB_B8G8R8A8;
-			picasso96_pixel_format &= RGBFF_CHUNKY;
-			picasso96_pixel_format |= 1 << picasso_vidinfo.rgbformat;
-			need_argb32_hack = 1;
-		   write_log ("Enabling argb32 byte-swapping for P96.\n");
-		}
+	if (picasso_vidinfo.rgbformat == RGBFB_A8R8G8B8) {
+	    picasso_vidinfo.rgbformat = RGBFB_B8G8R8A8;
+	    picasso96_pixel_format &= RGBFF_CHUNKY;
+	    picasso96_pixel_format |= 1 << picasso_vidinfo.rgbformat;
+	    need_argb32_hack = 1;
+	   write_log ("Enabling argb32 byte-swapping for P96.\n");
 	}
 
 	for (i = 0; i < mode_count; i++) {
