@@ -1998,7 +1998,7 @@ void comp_macroblock_impl_arithmetic_left_shift_extract_v_flag(union comp_compil
 
 	//If the result is negative then the overflow happens while shifting
 	//V flag should be set according to the MSB
-	comp_ppc_rlwimi(PPCR_FLAGS_MAPPED, temp_reg, 22, 9, 9, FALSE);
+	comp_ppc_rlwimi(PPCR_FLAGS_MAPPED, temp_reg, 23, 9, 9, FALSE);
 }
 
 /**
