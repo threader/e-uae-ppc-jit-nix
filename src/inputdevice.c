@@ -2996,6 +2996,12 @@ static bool inputdevice_handle_inputcode2 (int code, int state)
 		toggle_rtg (newstate);
 		break;
 #endif
+	case AKS_SWITCHINTERPOL:
+		changed_prefs.sound_interpol++;
+		if (changed_prefs.sound_interpol > 4)
+			changed_prefs.sound_interpol = 0;
+		set_config_changed ();
+		break;
 #ifdef DEBUGGER
 	case AKS_ENTERDEBUGGER:
 		activate_debugger ();
