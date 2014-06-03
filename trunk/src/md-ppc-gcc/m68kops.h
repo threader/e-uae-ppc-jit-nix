@@ -34,11 +34,14 @@
 #ifdef _ARCH_PWR4
 #define optflag_testl(regs, v) 				\
     do { 						\
+	uae_u32 tmp; 					\
 	asm (						\
-		"cmpi cr0, %1, 0	\n\t" 		\
-		"mfocrf %0,0x80		\n\t" 		\
+		"cmpi cr0, %2, 0	\n\t" 		\
+		"mfocrf %1,0x80		\n\t" 		\
+		"rlwinm %0, %1, 0, 0, 3 \n\t" 		\
 							\
 		: "=r" ((regs)->ccrflags.cznv)		\
+		  "=r" (tmp)				\
 		:  "r" (v)				\
 		: "cr0"					\
 	);						\
