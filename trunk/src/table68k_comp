@@ -3,7 +3,7 @@
 ;***
 ;*** Opcode table
 ;***
-;*** Lists all JIT supported instuctions with the required flags.
+;*** Lists all JIT supported instructions with the required flags.
 ;*** If an instruction was not listed here then it is not supported
 ;*** by the JIT compiling and the execution falls back to the
 ;*** interpretive emulation.
