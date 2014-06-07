@@ -351,7 +351,6 @@ struct copper {
 	int vcmp, hcmp;
 
 	int strobe; /* COPJMP1 / COPJMP2 accessed */
-	int last_write, last_write_hpos;
 	int moveaddr, movedata, movedelay;
 };
 
@@ -5921,8 +5920,6 @@ static void update_copper (int until_hpos)
 				if (cop_state.ignore_next)
 					reg = 0x1fe;
 
-				cop_state.last_write = reg;
-				cop_state.last_write_hpos = old_hpos;
 				if (reg == 0x88) {
 					cop_state.strobe = 1;
 					cop_state.state = COP_strobe_delay1;
@@ -7659,7 +7656,6 @@ static void hsync_handler_post (bool onvsync)
 	plfstrt_sprite = 0xff;
 	/* See if there's a chance of a copper wait ending this line.  */
 	cop_state.hpos = 0;
-	cop_state.last_write = 0;
 	compute_spcflag_copper (maxhpos);
 
 #ifdef CUSTOM_SIMPLE
@@ -7911,6 +7907,9 @@ void custom_reset (bool hardreset, bool keyboardreset)
 	memset (&spixstate, 0, sizeof spixstate);
 
 	cop_state.state = COP_stop;
+	cop_state.movedelay = 0;
+	cop_state.strobe = 0;
+	cop_state.ignore_next = 0;
 	diwstate = DIW_waiting_start;
 
 	dmal = 0;
