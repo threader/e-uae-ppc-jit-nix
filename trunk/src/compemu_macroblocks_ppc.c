@@ -3209,7 +3209,7 @@ void comp_opcode_ASLREG2REG(const cpu_history* history, struct comptbl* props) R
 			modulo);
 
 	//Extract C and X flag
-	helper_extract_cx_clear_v_flags(output_dep, dest_reg, shiftreg, TRUE);
+	helper_extract_cx_clear_v_flags(output_dep | shiftreg->reg_usage_mapping, dest_reg, shiftreg, TRUE);
 
 	//Extract V flag
 	comp_macroblock_push_arithmetic_left_shift_extract_v_flag(
@@ -3409,7 +3409,7 @@ void comp_opcode_ASRREG2REG(const cpu_history* history, struct comptbl* props) R
 			32);
 
 	//Extract C and X flag, always clear V
-	helper_extract_cx_clear_v_flags(output_dep, dest_reg, tmpreg, FALSE);
+	helper_extract_cx_clear_v_flags(output_dep | tmpreg->reg_usage_mapping, dest_reg, tmpreg, FALSE);
 
 	comp_free_temp_register(tmpreg);
 
