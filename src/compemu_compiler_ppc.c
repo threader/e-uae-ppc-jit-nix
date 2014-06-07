@@ -2413,7 +2413,7 @@ void comp_macroblock_push_set_byte_from_z_flag(uae_u64 regsout, comp_ppc_reg out
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_set_byte_from_z_flag,
-				COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
+				regsout | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
 				regsout);
 	mb->set_byte_from_z_flag.negate = negate;
 	mb->set_byte_from_z_flag.output_reg = output_reg;
