@@ -100,7 +100,7 @@ STATIC_INLINE comp_tmp_reg* helper_create_bitfield_mask(signed int extword, comp
 STATIC_INLINE comp_tmp_reg* helper_bit_field_extract_reg(signed int extword, uae_u64* returned_dependency, BOOL is_src_reg);
 STATIC_INLINE void helper_mov16(const cpu_history* history, uae_u64 local_src_dep, comp_tmp_reg* local_src_reg, BOOL update_src, uae_u64 local_dest_dep, comp_tmp_reg* local_dest_reg, BOOL update_dest);
 STATIC_INLINE void helper_divl(const cpu_history* history, comp_tmp_reg* local_src_reg, BOOL free_reg);
-STATIC_INLINE void helper_mull(const cpu_history* history, comp_tmp_reg* local_src_reg, BOOL free_reg);
+STATIC_INLINE void helper_mull(const cpu_history* history, comp_tmp_reg* local_src_reg, uae_s8 src_reg_num, BOOL free_reg);
 STATIC_INLINE void helper_ABCD_SBCD_MEM(const cpu_history* history, BOOL subtraction);
 STATIC_INLINE void helper_extract_flags_for_decimal(comp_tmp_reg* flagc_reg, comp_tmp_reg* local_dest_reg);
 STATIC_INLINE comp_tmp_reg* helper_copy_x_flag_to_register(void);
@@ -6489,12 +6489,12 @@ void comp_opcode_MULLIMM2REG(const cpu_history* history, struct comptbl* props) 
 	input_dep |= local_src_reg->reg_usage_mapping;
 
 	//Compile the multiplication
-	helper_mull(history, local_src_reg, TRUE);
+	helper_mull(history, local_src_reg, -1, TRUE);
 }
 void comp_opcode_MULLREG2REG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
 	//Compile the multiplication
-	helper_mull(history, src_reg, FALSE);
+	helper_mull(history, src_reg, props->srcreg, FALSE);
 }
 void comp_opcode_MULLMEM2REG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
@@ -6508,7 +6508,7 @@ void comp_opcode_MULLMEM2REG(const cpu_history* history, struct comptbl* props) 
 	input_dep |= local_src_reg->reg_usage_mapping;
 
 	//Compile the multiplication
-	helper_mull(history, local_src_reg, TRUE);
+	helper_mull(history, local_src_reg, -1, TRUE);
 }
 void comp_opcode_DIVSIMM2REG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
@@ -12205,9 +12205,10 @@ STATIC_INLINE void helper_divl(const cpu_history* history, comp_tmp_reg* local_s
  * Parameters:
  *   history - pointer to the execution history
  *   local_src_reg - mapped source register
+ *   src_reg_num - 68k source register number or -1
  *   free_reg - if TRUE then the local_src_reg will be free'd as temporary register after the multiplication is finished
  */
-STATIC_INLINE void helper_mull(const cpu_history* history, comp_tmp_reg* local_src_reg, BOOL free_reg)
+STATIC_INLINE void helper_mull(const cpu_history* history, comp_tmp_reg* local_src_reg, uae_s8 src_reg_num, BOOL free_reg)
 {
 	//Read the extension word
 	unsigned int extword = *((signed short*)(history->location + 1));
@@ -12230,15 +12231,26 @@ STATIC_INLINE void helper_mull(const cpu_history* history, comp_tmp_reg* local_s
 		//Extract the high order register from extension word
 		int reg_dh = extword & 7;
 
+		//Set this flag to true if the registers for the following operations are overlapping
+		BOOL is_same_reg = (reg_dh == reg_dl) || (reg_dh == src_reg_num);
+
 		//Map high order destination register
-		comp_tmp_reg* local_dest_high_reg = comp_map_temp_register(COMP_COMPILER_REGS_DATAREG(reg_dh), TRUE, TRUE);
+		comp_tmp_reg* local_dest_high_reg = comp_map_temp_register(COMP_COMPILER_REGS_DATAREG(reg_dh), FALSE, TRUE);
 		uae_u64 local_output_dep = COMP_COMPILER_MACROBLOCK_REG_DX(reg_dh);
+
+		comp_tmp_reg* tempreg;
+
+		//Allocate temporary register for high order destination result if needed
+		if (is_same_reg)
+		{
+			tempreg = helper_allocate_tmp_reg();
+		}
 
 		//Multiply the registers: high order
 		comp_macroblock_push_multiply_registers_high(
 				input_dep | output_dep,
-				local_output_dep,
-				local_dest_high_reg->mapped_reg_num,
+				is_same_reg ? tempreg->reg_usage_mapping : local_output_dep,
+				is_same_reg ? tempreg->mapped_reg_num : local_dest_high_reg->mapped_reg_num,
 				local_src_reg->mapped_reg_num,
 				local_dest_low_reg->mapped_reg_num,
 				is_signed,
@@ -12252,6 +12264,20 @@ STATIC_INLINE void helper_mull(const cpu_history* history, comp_tmp_reg* local_s
 				local_src_reg->mapped_reg_num,
 				local_dest_low_reg->mapped_reg_num,
 				FALSE);
+
+		//Copy temporary register to the final register if needed
+		if (is_same_reg)
+		{
+			//TODO: probably this situation could be resolved without copy by using the register swapping, but it is complicated to maintain the register dependency then
+			comp_macroblock_push_copy_register_long(
+					tempreg->reg_usage_mapping,
+					local_output_dep,
+					local_dest_high_reg->mapped_reg_num,
+					tempreg->mapped_reg_num);
+
+			//Release temp register
+			helper_free_tmp_reg(tempreg);
+		}
 
 		//Set internal Z flag from the two outputs
 		comp_macroblock_push_or_register_register(
