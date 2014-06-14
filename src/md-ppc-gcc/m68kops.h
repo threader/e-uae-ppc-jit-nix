@@ -40,7 +40,7 @@
 		"mfocrf %1,0x80		\n\t" 		\
 		"rlwinm %0, %1, 0, 0, 3 \n\t" 		\
 							\
-		: "=r" ((regs)->ccrflags.cznv)		\
+		: "=r" ((regs)->ccrflags.cznv),		\
 		  "=r" (tmp)				\
 		:  "r" (v)				\
 		: "cr0"					\
