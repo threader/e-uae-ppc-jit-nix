@@ -2230,7 +2230,7 @@ void comp_ppc_mfcr(comp_ppc_reg reg)
 void comp_ppc_mfocrf(int crreg, comp_ppc_reg reg)
 {
 	// ## mf(o)crf reg
-	comp_ppc_emit_word(0x7c000826 | (reg.r << 21) | (1 << (7 - crreg + 12)));
+	comp_ppc_emit_word(0x7c100026 | (reg.r << 21) | (1 << (7 - crreg + 12)));
 }
 #endif
 
@@ -2263,7 +2263,7 @@ void comp_ppc_mtcrf(int crreg, comp_ppc_reg regf)
 {
 	// ## mtcrf reg
 #ifdef _ARCH_PWR4
-	comp_ppc_emit_word(0x7c000920 | (regf.r << 21) | (1 << (7 - crreg + 12)));
+	comp_ppc_emit_word(0x7c100120 | (regf.r << 21) | (1 << (7 - crreg + 12)));
 #else
 	comp_ppc_emit_word(0x7c000120 | (regf.r << 21) | (1 << (7 - crreg + 12)));
 #endif
