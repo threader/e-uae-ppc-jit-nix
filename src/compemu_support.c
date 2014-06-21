@@ -3200,7 +3200,7 @@ int comp_signed_divide_64_bit(uae_s32 divisor,  uae_u32 dividend_high_regnum, ua
 	uae_s64 quotient64;
 	uae_s64 divisor64 = (uae_s64) divisor;
 
-	uae_s64 dividend64 = ((uae_s64)(uae_s32)regs.regs[dividend_high_regnum]) << 32 | ((uae_s64)(uae_s32)regs.regs[dividend_low_regnum]);
+	uae_s64 dividend64 = ((uae_s64)(uae_s32)regs.regs[dividend_high_regnum]) << 32 | regs.regs[dividend_low_regnum];
 
 	quotient64 = dividend64 / divisor64;
 
@@ -3232,7 +3232,7 @@ int comp_unsigned_divide_64_bit(uae_u32 divisor, uae_u32 dividend_high_regnum, u
 	uae_u64 quotient64;
 	uae_u64 divisor64 = (uae_u64) divisor;
 
-	uae_u64 dividend64 = ((uae_u64)regs.regs[dividend_high_regnum]) << 32 | ((uae_s64)(uae_s32)regs.regs[dividend_low_regnum]);
+	uae_u64 dividend64 = ((uae_u64)regs.regs[dividend_high_regnum]) << 32 | regs.regs[dividend_low_regnum];
 
 	quotient64 = dividend64 / divisor64;
 
