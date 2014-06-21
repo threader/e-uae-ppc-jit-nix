@@ -16,6 +16,8 @@
 
 #include "signal.h"
 
+#include "version.h"
+
 #define  __USE_BASETYPE__
 #include <proto/exec.h>
 #undef   __USE_BASETYPE__
@@ -48,6 +50,11 @@ struct Library *ExpansionBase;
 struct TimerIFace *ITimer;
 struct ExpansionIFace *IExpansion;
 #endif
+
+//Version tag string for AmigaOS version command
+//Not perfect: format of date supposed to be: dd.MM.yyyy, but that format is not available
+//at compile time. Could be resolved using a clever define in the makefile...
+char* AMIGAOS_VERSION_TAG = "$VER: " UAE_VERSION_STRING " (" __DATE__ ")";
 
 static void free_libs (void)
 {
