@@ -162,6 +162,9 @@ static void free_cache(void)
 		compiled_code = NULL;
 
 		write_log("JIT: Deallocated translation cache.\n");
+
+		//Release macroblock buffer after code cache is released
+		comp_free_macroblock_buffer();
 	}
 }
 
@@ -213,6 +216,13 @@ static void alloc_cache(void)
 	gui_data.jiton = 1;
 
 	write_log("JIT: Allocated %d KB translation cache.\n", currprefs.cachesize);
+
+	//Allocate macroblock buffer
+	if (!comp_alloc_macroblock_buffer())
+	{
+		write_log("Error: failed to allocate macroblock buffer\n");
+		abort();
+	}
 }
 
 void set_cache_state(int enabled)
