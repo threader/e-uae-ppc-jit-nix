@@ -10,6 +10,7 @@
 #include "sysdeps.h"
 #include "options.h"
 #include "events.h"
+#include "uae_malloc.h"
 #include "include/memory.h"
 #include "custom.h"
 #include "newcpu.h"
@@ -26,7 +27,7 @@
 
 /* Collection of pre-compiled macroblocks
  */
-union comp_compiler_mb_union macroblocks[MAXMACROBLOCKS];
+union comp_compiler_mb_union* macroblocks;
 
 /**
  * Macro for initializing the basic macroblock structure
@@ -132,6 +133,38 @@ STATIC_INLINE void helper_access_memory_spec(union comp_compiler_mb_union* mb, i
 STATIC_INLINE void helper_map_physical_mem(comp_ppc_reg inreg, comp_ppc_reg outreg, comp_ppc_reg tmpreg);
 STATIC_INLINE void helper_division_by_zero_check(BOOL signed_division, comp_ppc_reg dividend_reg, comp_exception_data* exception_data);
 STATIC_INLINE void helper_divide_32_bit(BOOL signed_division, comp_ppc_reg quotient_reg, comp_ppc_reg dividend_reg, comp_ppc_reg divisor_reg, BOOL check_overflow);
+
+/**
+ * Allocate macroblock buffer
+ *
+ * Returns:
+ *   TRUE if the allocation was successful, FALSE when failed.
+ */
+BOOL comp_alloc_macroblock_buffer()
+{
+	if (!macroblocks)
+	{
+		macroblocks = xcalloc(MAXMACROBLOCKS, sizeof(union comp_compiler_mb_union));
+
+		write_log("JIT: allocated %d KB macroblock buffer.\n", (sizeof(union comp_compiler_mb_union) * MAXMACROBLOCKS) / 1024);
+	}
+
+	return (macroblocks != NULL);
+}
+
+/**
+ * Free macroblock buffer
+ */
+void comp_free_macroblock_buffer()
+{
+	if (macroblocks)
+	{
+		xfree(macroblocks);
+		macroblocks = NULL;
+
+		write_log("JIT: Deallocated macroblock buffer.\n");
+	}
+}
 
 /**
  * Initialization of the code compiler

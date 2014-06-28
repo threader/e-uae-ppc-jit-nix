@@ -5,10 +5,10 @@
 //Macroblock base description structure
 struct comp_compiler_mb
 {
-	comp_compiler_macroblock_func* handler;	//Handler function for compiling the macroblock
 	uae_u64 input_registers;				//Input registers, each register is marked with one bit, see COMP_COMPILER_MACROBLOCK_* constants
 	uae_u64 output_registers;				//Output registers, each register is marked with one bit, see COMP_COMPILER_MACROBLOCK_* constants
 	uae_u64 carry_registers;				//Carry of the register usage optimization for this macroblock
+	comp_compiler_macroblock_func* handler;	//Handler function for compiling the macroblock
 	const char* name;						//Name of the macroblock
 	uae_u16* m68k_ptr;						//Pointer to the instruction that was compiled
 	void* start;							//Start address of the compiled code (or NULL)

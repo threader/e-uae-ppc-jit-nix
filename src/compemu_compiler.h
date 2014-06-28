@@ -92,6 +92,8 @@ typedef void comp_compiler_macroblock_func (union comp_compiler_mb_union*) REGPA
 #define COMP_GET_CURRENT_PC (((uae_u32)history->pc) + ((uae_u32)pc_ptr - (uae_u32)history->location))
 
 //Prototypes for functions
+BOOL comp_alloc_macroblock_buffer(void);
+void comp_free_macroblock_buffer(void);
 void comp_compiler_init(void);
 void comp_compiler_done(void);
 union comp_compiler_mb_union* comp_compiler_get_next_macroblock(void);
