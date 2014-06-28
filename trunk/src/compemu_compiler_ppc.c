@@ -20,10 +20,11 @@
 #include "debug.h"
 
 /* Number of maximum macroblocks we handle
- * Note: we assume that each instruction consists of 4 macroblocks in average,
+ * Note: we assume that each instruction consists of 20 macroblocks in average,
  * this might be a wrong assumtion...
+ * TODO: is there a better way to handle buffering of macroblocks?
  */
-#define MAXMACROBLOCKS (MAXRUN*4)
+#define MAXMACROBLOCKS (MAXRUN*20)
 
 /* Collection of pre-compiled macroblocks
  */
