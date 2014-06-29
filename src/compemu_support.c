@@ -794,6 +794,9 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 				write_jit_log("Block of unsupported instructions 0x%08x: not compiled\n", bi->pc_p);
 			}
 			bi->handler = bi->handler_to_use = exec_nostats_callback;
+
+			//Remove emitted code for this block from code cache
+			current_compile_p = compile_p_at_start;
 		}
 
 		//Raise block in cache list
