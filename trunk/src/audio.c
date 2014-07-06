@@ -21,11 +21,11 @@
 #include "custom_private.h"
 #include "newcpu.h"
 #include "gensound.h"
+#include "driveclick.h"
 #include "sounddep/sound.h"
 #include "events.h"
 #include "audio.h"
 #include "savestate.h"
-#include "driveclick.h"
 #ifdef AVIOUTPUT
 # include "avioutput.h"
 #endif

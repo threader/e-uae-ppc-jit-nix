@@ -11363,6 +11363,9 @@ if [ "x$WANT_AUDIO" != "xno" ]; then
 
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: \"$SND_NAME\"" >&5
 $as_echo "\"$SND_NAME\"" >&6; }
+
+  UAE_DEFINES="$UAE_DEFINES -DDRIVESOUND"
+
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: \"sound support disabled\"" >&5
 $as_echo "\"sound support disabled\"" >&6; }

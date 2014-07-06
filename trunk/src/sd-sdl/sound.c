@@ -12,6 +12,11 @@
 
 #include "options.h"
 #include "gensound.h"
+
+#ifdef DRIVESOUND
+# include "driveclick.h"
+#endif
+
 #include "sounddep/sound.h"
 #include "threaddep/thread.h"
 #include <SDL_audio.h>
@@ -179,6 +184,10 @@ int init_sound (void)
     write_comm_pipe_int (&to_sound_pipe, 0, 1);
     uae_sem_wait (&sound_init_sem);
     SDL_PauseAudio (0);
+
+#ifdef DRIVESOUND
+    driveclick_init();
+#endif
 
     return have_sound;
 }

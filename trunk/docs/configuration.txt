@@ -512,6 +512,43 @@ floppy<drive>type=<type> (default=0 for drives 0 and 1, -1 for drives 2 and 3)
   This option may also be set to -1 to disable the drive.
 
 
+floppy<drive>sound=<type> (default=1)
+
+  Specifies floppy drive sound emulation type.
+  <type> may have the following values
+  
+  Type    Sound type
+  ----    ----------
+  -1      Floppy sound emulation is on: use external samples.
+          See floppy<drive>soundext configuration below.
+   0      Floppy sound emulation is off.
+   1      Floppy sound emulation is on: use internal samples.
+
+
+floppy<drive>soundext=<package>
+
+  These configuration items have effect only if floppy<drive>sound is set
+  to -1 for the same drive. (See above.)
+  
+  The format of the provided sample files is: WAV.
+
+  <package> specifies the name of the sample package:
+
+  On AmigaOS4:
+    Specifies the directory path to the external floppy sound samples.
+
+    Sample names for the floppy sound emulation are:
+      drive_click.wav, drive_spin.wav, drive_spinnd.wav,
+      drive_startup.wav, drive_snatch.wav
+  
+  On other operating systems:
+    Specifies the suffix to the sample file names. The sample files must be
+    copied into the startup directory, under "uae_data" folder.
+
+    The base name of the sample files (without any suffix) are:
+      drive_click_, drive_spin_, drive_spinnd_, drive_startup_, drive_snatch_
+
+   
 floppy_speed=<speed> (default=100)
 
   E-UAE's floppy drive emulation will work at <speed> per cent of a real

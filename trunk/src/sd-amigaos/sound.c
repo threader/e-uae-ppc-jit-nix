@@ -12,6 +12,11 @@
 
 #include "options.h"
 #include "gensound.h"
+
+#ifdef DRIVESOUND
+# include "driveclick.h"
+#endif
+
 #include "sounddep/sound.h"
 
 #include <exec/memory.h>
@@ -148,6 +153,9 @@ int init_sound (void)
 	       rate, sndbufsize);
 
     sound_available = 1;
+#ifdef DRIVESOUND
+    driveclick_init();
+#endif
     return 1;
 fail:
     sound_available = 0;

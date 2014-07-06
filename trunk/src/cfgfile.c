@@ -21,6 +21,11 @@
 #include "inputdevice.h"
 #include "gfxfilter.h"
 #include "gfxdep/gfx.h"
+
+#ifdef DRIVESOUND
+# include "driveclick.h"
+#endif
+
 #include "sounddep/sound.h"
 #include "savestate.h"
 #include "memory.h"

@@ -1040,8 +1040,14 @@ if [[ "x$WANT_AUDIO" != "xno" ]]; then
       NEED_THREAD_SUPPORT=yes
     fi
   fi
-
+  
   AC_MSG_RESULT("$SND_NAME")
+
+  dnl
+  dnl  Enable floppy sound emulation if audio emulation is available
+  dnl
+  UAE_DEFINES="$UAE_DEFINES -DDRIVESOUND"
+
 else
   AC_MSG_RESULT("sound support disabled")
   SND_DEP=sd-none

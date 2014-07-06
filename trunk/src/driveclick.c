@@ -13,13 +13,17 @@
 
 #include "uae.h"
 #include "options.h"
+#include "driveclick.h"
 #include "sounddep/sound.h"
 #include "zfile.h"
 #include "events.h"
 
-#include "driveclick.h"
-
 #include "fsdb.h"
+
+#include "resource/drive_click.c"
+#include "resource/drive_snatch.c"
+#include "resource/drive_spin.c"
+#include "resource/drive_startup.c"
 
 static struct drvsample drvs[4][DS_END];
 static int freq = 44100;
@@ -51,7 +55,18 @@ uae_s16 *decodewav (uae_u8 *s, int *lenp)
 	    s += 4;
 	    len = s[0] | (s[1] << 8) | (s[2] << 16) | (s[3] << 24);
 	    dst = xmalloc (len);
+#ifdef WORDS_BIGENDIAN
+	    {
+ 		int i;
+		uae_u8* d = (uae_u8*) dst;
+		for (i = 0; i < len; i+= 2) {
+			d[i] = s[i + 5];
+			d[i+1] = s[i + 4];
+		}
+	    }
+#else
 	    memcpy (dst, s + 4, len);
+#endif
 	    *lenp = len / 2;
 	    return dst;
 	}
@@ -83,6 +98,42 @@ static int loadsample (const char *path, struct drvsample *ds)
     return 1;
 }
 
+//The same function as load sample, but the wav data is already in memory.
+//No read, just decode.
+static int loadsample_resource(int resId, struct drvsample *ds) {
+	uae_u8* buf  = NULL;
+	int size;
+	switch (resId) {
+	case DS_CLICK: {
+		buf = res_drive_click;
+		size = res_drive_click_size;
+	} break;
+	case DS_SPIN :
+	case DS_SPINND: {
+		buf = res_drive_spin;
+		size = res_drive_spin_size;
+	} break;
+	case DS_START: {
+		buf = res_drive_startup;
+		size = res_drive_startup_size;
+	} break;
+	case DS_SNATCH: {
+		buf = res_drive_snatch;
+		size = res_drive_snatch_size;
+	} break;
+	
+	default: return 0;
+	} //end of switch
+
+
+	//write_log("loading click resource %i \n", resId); 
+	ds->len = size;
+	ds->p = decodewav (buf, &ds->len);
+    
+    return 1;
+	
+}
+
 static void freesample (struct drvsample *s)
 {
     free (s->p);
@@ -94,47 +145,73 @@ extern char *start_path;
 void driveclick_init (void)
 {
     int v, vv, i, j;
-    char tmp[1000];
+    static char tmp_path[1024];
 
     driveclick_free ();
     vv = 0;
+
+    write_log("Driveclick init...\n");
+
     for (i = 0; i < 4; i++) {
 	if (currprefs.dfxclick[i]) {
 	    /* TODO: Implement location of sample data */
-#if 0
-	    if (currprefs.dfxclick[i] > 0) {
-		v = 0;
-		if (driveclick_loadresource (drvs[i], currprefs.dfxclick[i]))
-		    v = 3;
-	    } else if (currprefs.dfxclick[i] == -1) {
-		sprintf (tmp, "%suae_data%cdrive_click_%s", start_path, FSDB_DIR_SEPARATOR, currprefs.dfxclickexternal[i]);
-		v = loadsample (tmp, &drvs[i][DS_CLICK]);
-		sprintf (tmp, "%suae_data%cdrive_spin_%s", start_path, FSDB_DIR_SEPARATOR, currprefs.dfxclickexternal[i]);
-		v += loadsample (tmp, &drvs[i][DS_SPIN]);
-		sprintf (tmp, "%suae_data%cdrive_spinnd_%s", start_path, FSDB_DIR_SEPARATOR, currprefs.dfxclickexternal[i]);
-		v += loadsample (tmp, &drvs[i][DS_SPINND]);
-		sprintf (tmp, "%suae_data%cdrive_startup_%s", start_path, FSDB_DIR_SEPARATOR, currprefs.dfxclickexternal[i]);
-		v += loadsample (tmp, &drvs[i][DS_START]);
-		sprintf (tmp, "%suae_data%cdrive_snatch_%s", start_path, FSDB_DIR_SEPARATOR, currprefs.dfxclickexternal[i]);
-		v += loadsample (tmp, &drvs[i][DS_SNATCH]);
+		//load from resource
+	    if (currprefs.dfxclick[i] > 0) { // > 0
+			v  = loadsample_resource(DS_CLICK, &drvs[i][DS_CLICK]);
+			v += loadsample_resource(DS_SPIN, &drvs[i][DS_SPIN]);
+			v += loadsample_resource(DS_SPINND, &drvs[i][DS_SPINND]);
+			v += loadsample_resource(DS_SNATCH, &drvs[i][DS_SNATCH]);
+			v += loadsample_resource(DS_START, &drvs[i][DS_START]);
+			
+	    } else 
+	    //load from file
+	    if (currprefs.dfxclick[i] == -1) {
+#ifdef __amigaos4__
+			//currprefs.dfxclickexternal[i] is the path to the wav directory (path contains trailing separator)
+			sprintf (tmp_path, "%sdrive_click.wav", currprefs.dfxclickexternal[i]);
+			v = loadsample (tmp_path, &drvs[i][DS_CLICK]);
+			sprintf (tmp_path, "%sdrive_spin.wav", currprefs.dfxclickexternal[i]);
+			v += loadsample (tmp_path, &drvs[i][DS_SPIN]);
+			sprintf (tmp_path, "%sdrive_spinnd.wav", currprefs.dfxclickexternal[i]);
+			v += loadsample (tmp_path, &drvs[i][DS_SPINND]);
+			sprintf (tmp_path, "%sdrive_startup.wav", currprefs.dfxclickexternal[i]);
+			v += loadsample (tmp_path, &drvs[i][DS_START]);
+			sprintf (tmp_path, "%sdrive_snatch.wav", currprefs.dfxclickexternal[i]);
+			v += loadsample (tmp_path, &drvs[i][DS_SNATCH]);
+#else
+			char * start_path = "."; //TODO - ??? set correct path
+			sprintf (tmp_path, "%suae_data%cdrive_click_%s", start_path, FSDB_DIR_SEPARATOR, currprefs.dfxclickexternal[i]);
+			v = loadsample (tmp_path, &drvs[i][DS_CLICK]);
+			sprintf (tmp_path, "%suae_data%cdrive_spin_%s", start_path, FSDB_DIR_SEPARATOR, currprefs.dfxclickexternal[i]);
+			v += loadsample (tmp_path, &drvs[i][DS_SPIN]);
+			sprintf (tmp_path, "%suae_data%cdrive_spinnd_%s", start_path, FSDB_DIR_SEPARATOR, currprefs.dfxclickexternal[i]);
+			v += loadsample (tmp_path, &drvs[i][DS_SPINND]);
+			sprintf (tmp_path, "%suae_data%cdrive_startup_%s", start_path, FSDB_DIR_SEPARATOR, currprefs.dfxclickexternal[i]);
+			v += loadsample (tmp_path, &drvs[i][DS_START]);
+			sprintf (tmp_path, "%suae_data%cdrive_snatch_%s", start_path, FSDB_DIR_SEPARATOR, currprefs.dfxclickexternal[i]);
+			v += loadsample (tmp_path, &drvs[i][DS_SNATCH]);
+#endif	/* __amigaos4__ */
 	    }
 	    if (v == 0) {
-		int j;
-		for (j = 0; j < DS_END; j++)
-		    freesample (&drvs[i][j]);
-		currprefs.dfxclick[i] = changed_prefs.dfxclick[i] = 0;
+			int j;
+			for (j = 0; j < DS_END; j++) {
+		    	freesample (&drvs[i][j]);
+		    }
+			currprefs.dfxclick[i] = changed_prefs.dfxclick[i] = 0;
 	    }
-	    for (j = 0; j < DS_END; j++)
-		drvs[i][j].len <<= DS_SHIFT;
+	    for (j = 0; j < DS_END; j++) {
+			drvs[i][j].len <<= DS_SHIFT;
+		}
 	    drvs[i][DS_CLICK].pos = drvs[i][DS_CLICK].len;
 	    drvs[i][DS_SNATCH].pos = drvs[i][DS_SNATCH].len;
 	    vv += currprefs.dfxclick[i];
-#endif
+
 	}
     }
     if (vv > 0) {
-	driveclick_reset ();
-	click_initialized = 1;
+    	write_log("Reset driveclick \n");
+		driveclick_reset ();
+		click_initialized = 1;
     }
 }
 
