@@ -2343,7 +2343,7 @@ void default_prefs (struct uae_prefs *p, int type)
     p->comptrustlong = 1;
     p->comptrustnaddr= 1;
 # endif
-    p->compoptim = 0;
+    p->compoptim = 1;
     p->complog = 0;
     p->complogcompiled = 0;
     p->comp_hardflush = 0;
