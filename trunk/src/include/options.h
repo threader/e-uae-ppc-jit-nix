@@ -78,16 +78,12 @@ struct uae_prefs {
     int comptrustbyte;
     int comptrustword;
     int comptrustlong;
-    int comptrustnaddr;
     int compoptim;
     int complog;
     int complogcompiled;
-    int compforcesettings;
-    int compfpu;
 
     int comp_hardflush;
     int comp_constjump;
-    int comp_oldsegv;
 
     int cachesize;
     int optcount[10];

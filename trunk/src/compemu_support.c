@@ -246,14 +246,11 @@ void check_prefs_changed_comp(void)
 	currprefs.comptrustbyte = changed_prefs.comptrustbyte;
 	currprefs.comptrustword = changed_prefs.comptrustword;
 	currprefs.comptrustlong = changed_prefs.comptrustlong;
-	currprefs.comptrustnaddr = changed_prefs.comptrustnaddr;
 	currprefs.compoptim = changed_prefs.compoptim;
 	currprefs.complog = changed_prefs.complog;
 	currprefs.complogcompiled = changed_prefs.complogcompiled;
 	currprefs.comp_hardflush = changed_prefs.comp_hardflush;
 	currprefs.comp_constjump = changed_prefs.comp_constjump;
-	currprefs.comp_oldsegv = changed_prefs.comp_oldsegv;
-	currprefs.compfpu = changed_prefs.compfpu;
 
 	if (currprefs.cachesize != changed_prefs.cachesize)
 	{
@@ -266,18 +263,14 @@ void check_prefs_changed_comp(void)
 //	if ((!canbang || !currprefs.cachesize) && currprefs.comptrustbyte != 1)
 //	{
 //		// Set all of these to indirect when canbang == 0
-//		// Basically, set the  compforcesettings option...
+//		// Basically, set the comptrust options...
 //		currprefs.comptrustbyte = 1;
 //		currprefs.comptrustword = 1;
 //		currprefs.comptrustlong = 1;
-//		currprefs.comptrustnaddr = 1;
-//		currprefs.compforcesettings = 1;
 //
 //		changed_prefs.comptrustbyte = 1;
 //		changed_prefs.comptrustword = 1;
 //		changed_prefs.comptrustlong = 1;
-//		changed_prefs.comptrustnaddr = 1;
-//		changed_prefs.compforcesettings = 1;
 //
 //		if (currprefs.cachesize) write_log(
 //				"JIT: Reverting to \"indirect\" access, because canbang is zero!\n");

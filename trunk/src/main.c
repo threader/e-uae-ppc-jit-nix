@@ -189,11 +189,6 @@ static void fix_options (void)
 	currprefs.comptrustlong = 1;
 	err = 1;
     }
-    if (currprefs.comptrustnaddr < 0 || currprefs.comptrustnaddr > 3) {
-	write_log ("Bad value for comptrustnaddr parameter: value must be within 0..2\n");
-	currprefs.comptrustnaddr = 1;
-	err = 1;
-    }
     if (currprefs.compoptim < 0 || currprefs.compoptim > 1) {
 	write_log ("Bad value for comp_optimize parameter: value must be within 0..1\n");
 	currprefs.compoptim = 0;
@@ -217,11 +212,6 @@ static void fix_options (void)
     if (currprefs.comp_constjump < 0 || currprefs.comp_constjump > 1) {
 	write_log ("Bad value for comp_constjump parameter: value must be within 0..1\n");
 	currprefs.comp_constjump = 1;
-	err = 1;
-    }
-    if (currprefs.comp_oldsegv < 0 || currprefs.comp_oldsegv > 1) {
-	write_log ("Bad value for comp_oldsegv parameter: value must be within 0..1\n");
-	currprefs.comp_oldsegv = 1;
 	err = 1;
     }
     if (currprefs.cachesize < 0 || currprefs.cachesize > 16384) {
