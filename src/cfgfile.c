@@ -93,8 +93,6 @@ static const struct cfg_lines opttable[] =
     {"comp_trustword", "How to access words in compiler (direct/indirect/indirectKS/afterPic" },
     {"comp_trustlong", "How to access longs in compiler (direct/indirect/indirectKS/afterPic" },
     {"comp_optimize", "Whether to optimize away native code generation where possible" },
-    {"comp_fpu", "Whether to provide JIT FPU emulation" },
-    {"compforcesettings", "Whether to force the JIT compiler settings" },
     {"cachesize", "How many KB memory to use to buffer translated instructions"},
 #endif
     {"parallel_on_demand", "" },
@@ -419,16 +417,12 @@ void save_options (FILE *f, const struct uae_prefs *p, int type)
     cfgfile_write (f, "comp_trustbyte=%s\n", compmode[p->comptrustbyte]);
     cfgfile_write (f, "comp_trustword=%s\n", compmode[p->comptrustword]);
     cfgfile_write (f, "comp_trustlong=%s\n", compmode[p->comptrustlong]);
-    cfgfile_write (f, "comp_trustnaddr=%s\n", compmode[p->comptrustnaddr]);
     cfgfile_write (f, "comp_optimize=%s\n", p->compoptim ? "true" : "false");
     cfgfile_write (f, "comp_constjump=%s\n", p->comp_constjump ? "true" : "false");
-    cfgfile_write (f, "comp_oldsegv=%s\n", p->comp_oldsegv ? "true" : "false");
     cfgfile_write (f, "comp_log=%s\n", p->complog ? "true" : "false");
     cfgfile_write (f, "comp_log_compiled=%s\n", p->complogcompiled ? "true" : "false");
 
     cfgfile_write (f, "comp_flushmode=%s\n", flushmode[p->comp_hardflush]);
-    cfgfile_write (f, "compforcesettings=%s\n", p->compforcesettings ? "true" : "false");
-    cfgfile_write (f, "compfpu=%s\n", p->compfpu ? "true" : "false");
     cfgfile_write (f, "cachesize=%d\n", p->cachesize);
 #endif
 
@@ -1096,9 +1090,6 @@ static int cfgfile_parse_hardware (struct uae_prefs *p, char *option, char *valu
 	|| cfgfile_yesno (option, value, "comp_log", &p->complog)
 	|| cfgfile_yesno (option, value, "comp_log_compiled", &p->complogcompiled)
 	|| cfgfile_yesno (option, value, "comp_constjump", &p->comp_constjump)
-	|| cfgfile_yesno (option, value, "comp_oldsegv", &p->comp_oldsegv)
-	|| cfgfile_yesno (option, value, "compforcesettings", &p->compforcesettings)
-	|| cfgfile_yesno (option, value, "compfpu", &p->compfpu)
 #endif
 	|| cfgfile_yesno (option, value, "scsi", &p->scsi))
 	return 1;
@@ -1122,7 +1113,6 @@ static int cfgfile_parse_hardware (struct uae_prefs *p, char *option, char *valu
 	|| cfgfile_strval (option, value, "comp_trustbyte",  &p->comptrustbyte,  compmode, 1)
 	|| cfgfile_strval (option, value, "comp_trustword",  &p->comptrustword,  compmode, 1)
 	|| cfgfile_strval (option, value, "comp_trustlong",  &p->comptrustlong,  compmode, 1)
-	|| cfgfile_strval (option, value, "comp_trustnaddr", &p->comptrustnaddr, compmode, 1)
 	|| cfgfile_strval (option, value, "comp_flushmode", &p->comp_hardflush, flushmode, 0))
 	return 1;
 #endif
@@ -2336,21 +2326,16 @@ void default_prefs (struct uae_prefs *p, int type)
     p->comptrustbyte = 0;
     p->comptrustword = 0;
     p->comptrustlong = 0;
-    p->comptrustnaddr= 0;
 # else
     p->comptrustbyte = 1;
     p->comptrustword = 1;
     p->comptrustlong = 1;
-    p->comptrustnaddr= 1;
 # endif
     p->compoptim = 1;
     p->complog = 0;
     p->complogcompiled = 0;
     p->comp_hardflush = 1;
     p->comp_constjump = 1;
-    p->comp_oldsegv = 0;
-    p->compfpu = 1;
-    p->compforcesettings = 0;
     p->cachesize = 0;
     {
 	int i;
