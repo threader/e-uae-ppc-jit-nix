@@ -2346,7 +2346,7 @@ void default_prefs (struct uae_prefs *p, int type)
     p->compoptim = 1;
     p->complog = 0;
     p->complogcompiled = 0;
-    p->comp_hardflush = 0;
+    p->comp_hardflush = 1;
     p->comp_constjump = 1;
     p->comp_oldsegv = 0;
     p->compfpu = 1;
