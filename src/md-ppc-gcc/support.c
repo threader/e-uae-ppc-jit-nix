@@ -112,20 +112,12 @@ static frame_time_t machdep_mach_gettimebase (void)
  */
 #ifdef __amigaos4__
 # include <proto/timer.h>
-# include <proto/expansion.h>
-# include <expansion/expansion.h>
 
 static frame_time_t machdep_amigaos4_gettimebase (void)
 {
-    uae_u32 result = 0;
-    uint32 machine = MACHINETYPE_UNKNOWN;
-
-    GetMachineInfoTags(GMIT_Machine, &machine, TAG_DONE);
-
-    if ((machine == MACHINETYPE_AMIGAONE) || (machine == MACHINETYPE_SAM440EP)) {
 	struct EClockVal etime;
-	result = ReadEClock (&etime);
-    }
+	uae_u32 result = ReadEClock (&etime);
+
     return result;
 }
 
