@@ -1,4 +1,4 @@
-E-UAE PowerPC JIT project 0.8.29-PPCJITBETA03
+E-UAE PowerPC JIT project 0.8.29-PPCJITBETA04
 =============================================
 
 This project is a fork of the E-UAE Amiga emulation project. You can find the
@@ -29,24 +29,15 @@ http://amigabounty.net/index.php?function=viewproject&projectid=35
 Thank you!
 
 
-Beta release #3 (PPCJITBETA03)
+Beta release #4 (PPCJITBETA04)
 ===================================
-The most important features of the 3rd beta version are:
+The most important features of the fourth beta version are:
 
- * Register and flag flow optimization is working now - it gives a significant
-   boost to the emulation speed (15-30% speedup, depending on the executed
-   instructions).
-   To turn the optimization on: set comp_optimize=true in the configuration.
+ * Lots of bug fixes improve the overall stability of the emulation.
+ 
+ * All SAM440EP/Flex-related issues are sorted out (hopefully).
 
- * Emulated cache flush takes less effort so the emulation will be less jiggery
-   when the cache is flushed too often.
-
- * Some more bug fixes to improve the overall stability of the emulation.
-
-
-Yet there is a big chunk of outstanding work to be done, you can find more
-details about the missing pieces by looking at the tickets in the SourceForge
-repository:
+You can get an idea of the remaining work by looking at the tickets:
 
 https://sourceforge.net/p/euaeppcjit/tickets
 
@@ -106,77 +97,87 @@ All other aspects of the emulation remained the same as it was available
 already in E-UAE v0.8.29 (as of 20/08/2008).
 
 
-Changes since the last release (JITPPCBETA02)
-=============================================
+Changes since the previous release (JITPPCBETA03)
+=================================================
 
 New/Changed:
 ------------
-* Hard cache flush is limited to the used blocks.
+* Removed machine type check on AmigaOS4 when timebase register is read.
+ (Ticket #32)
 
+* Reverted all SAM440EP/Flex-related changes for Picasso96 native modes.
+ (Ticket #42)
+
+* Turn on comp_optimize setting by default. It seems to be stable enough by
+  now.
+
+* Added hotkeys for state saving and function for switching to full screen for
+  the AmigaOS target. (Thanks to MickJT for the patch.)
+
+* Re-added floppy drive sound emulation. (Thanks to MickJT for the patch and
+  Ole for the original source changes for the PS3 port.)
+
+* Removed some unused configuration items:
+    comp_fpu - FPU emulation won't be configurable separately
+    comp_oldsegv - meaning less for PowerPC JIT
+    comp_trustnaddr - unused setting for native memory address
+    compforcesettings - weird, useless setting for native memory access support
+
+* Added version tag for AmigaOS version command. (Ticket #46)
+
+* Set cache flush mode to hard flush by default. Safer option than soft flush,
+  although this setting has no effect on the JIT compiling at the moment.
+
+* Added missing configuration to the documentation (comp_flushmode), removed
+  documentation for removed configuration (comp_fpu). (Ticket #4)
+
+* Changed documentation for comp_optimize to reflect the current default
+  setting change.
 
 Improved:
 ---------
-* Removed unnecessary logging of the cache mode access.
 
-* Added warning instead of leaving the emulation when the macroblock array runs
-  out of space. (Ticket#16)
+* Compiled code is removed from code cache when the block is not used
+ (compiling runs out of space in macroblock buffer or the block consists
+  of unsupported instructions only).
 
+* Macroblock buffer is allocated only when the JIT is enabled, size will be a
+  tiny bit smaller due to changed field order in the macroblock base structure.
 
 Fixed:
 ------
-* Removed the 5 bits limit on the bitfield instruction offset registers.
-  (Ticket #36)
 
-* Fixed missing dependency on immediate and memory register in MULS/U.L
-  instructions.
+* Reverted back change for the SDL sound buffer enlarging which was merged
+  from Soft3's special SAM440EP/Flex version.
+  (Thanks to MickJT to follow it up with Max.)
 
-* Fixed missing do-not-remove dependency for saving a register into the context
-  in various bitfield instructions.
+* Increased the size of the macroblock buffer: as it seems it was too low for
+  some programs which have unrolled processing loops, like AMPlifier and many
+  chunky-to-planar coverters. (Ticket #40 and #49)
+  The assumed 20 macroblocks per 68k instruction might be an overkill for most
+  cases, but the size of the buffer in memory is still acceptable.
 
-* Fixed syntax error when compiling for SDL and P96. (Thanks to MickJT for
-  reporting.)
+* Avoid sign-extension of lower longword part of the 64 bit number in 64 bit
+  division instructions. (Ticket #39)
 
-* Mike Blackburn's MacOSX PPC and LinuxPPC fixes: MacOS configure script
-  cleanup and PPC 440/460 detection for Linux.
+* Fixed processor flag handling for PPC 970.
+ (Ticket #43 - Thanks to Tobias Netzel.)
 
-* Added missing includes for AmigaOS4 machine detection. (Thanks to MickJT for
-  the report.)
+* Added detection of register overlapping into MULU/MULS.L Dx,Dy:Dz
+  instructions. (Ticket #39)
 
-* Fixed register dependencies in SUB/ADD.B/W mem,reg instructions.
+* Added missing dependency on shift register into ASL/ASR.L Dx,Dy.
+ (Ticket #41)
 
-* Fixed dependency on allocated temporary register init when a new emulated
-  register is allocated.
+* Fixed dependency on input data in SCC instructions. (Ticket #45 and #47)
 
-* Fixed dependency in CMP.W/B #imm,mem instruction.
+* Fixed wrong number of steps when extracting V flag for ASL instructions.
+ (Ticket #44)
 
-* Fixed missing dependency on the shift register in various shifting
-  instructions.
+* Fixed wrong rotation source for ROXL.W mem instruction. (Ticket #38)
 
-* Fixed wrong dependency in indirect JSR/JMP instructions.
-
-* Added missing input register dependency into PEA and Scc instructions.
-
-* Added missing dependency on source/destination register into MOVEM
-  instructions when no update is done.
-
-* Added dependency to the saved destination memory register into
-  helper_read_memory_mapped() function, it is needed by absolute addressing
-  modes.
-
-* Added missing dependency for output register to MOVE.W/MOVE.B reg,reg
-  instructions.
-
-* Fixed missing Z flag output dependency for
-  helper_extract_c_clear_nzvx_flags() function.
-
-* Fixed register dependency debug output to use the full 64bit register and
-  added internal flags to the output.
-
-* Fixed destination register dependency tracking for memory to register moving
-  instructions.
-
-* Fixed destination register dependency tracking for immediate to memory moving
-  instructions.
+* JIT compiling and compiled block execution is suspended while the TRACE
+  processor flag is active. (Ticket #29)
 
 
 How to test
@@ -190,23 +191,26 @@ that were already working with the previous E-UAE version.
 
 However, for testing the JIT implementation please make sure you set up
 the configuration exactly as listed below:
-	cpu_speed=max
-	cpu_type=68020 (or 68EC020, 68040, see Known issues)
-	cpu_compatible=false
-	cpu_cycle_exact=false
-	blitter_cycle_exact=false
-	comp_optimize=true
-	cachesize=8192 (or higher)
-	comp_constjump=yes
-	comp_trustbyte=indirect (see Known issues)
-	comp_trustword=indirect
-	comp_trustlong=indirect
+    cpu_speed=max
+    cpu_type=68020 (or 68EC020, 68040, see Known issues)
+    cpu_compatible=false
+    cpu_cycle_exact=false
+    blitter_cycle_exact=false
+    comp_optimize=true
+    cachesize=8192 (or higher)
+    comp_constjump=yes
+    comp_trustbyte=indirect (see Known issues)
+    comp_trustword=indirect
+    comp_trustlong=indirect
 
 These settings will make sure you get the best performance from the JIT
 compiled code and workaround the known issues.
 
+Please have a look at the docs/configuration.txt file for the details of
+these settings.
+
 Regarding the processor settings please note: the JIT implementation is
-depending on the availibility of the processor cache, any software that turns
+depending on the availability of the processor cache, any software that turns
 the cache off won't be JIT compiled.
 Same applies to the processor type: those processors which don't have cache
 cannot be used together with the JIT compiling (these are: 68000, 68010).
@@ -244,8 +248,11 @@ sure you follow these steps:
    You can check the version of your emulator when you start it from command
    line, this will be the very first output from the program.
 
+   On AmigaOS(-like) systems you can also use the standard version command to
+   get the version of the uae executable.
+
    The version number includes a tag for the beta releases, for example:
-   0.8.29-PPCJITBETA03
+   0.8.29-PPCJITBETA04
 
 3. Make sure the JIT compiling is running, read through the How to test
    section and follow the instructions regarding the configuration.
@@ -276,33 +283,34 @@ Known issues
 * The following instructions are planned, but not implemented yet for the
   JIT compiling at the moment:
 
-  - (Ticket#8) compare against bounds instructions (CMP2);
+  - (Ticket #8) compare against bounds instructions (CMP2);
 
-  - (Ticket#10) the FPU instructions were not implemented yet, these are coming
+  - (Ticket #10) the FPU instructions were not implemented yet, these are coming
     at a later stage of the project.
 
-  Even though these instructions are not compiled, a fallback mechanism kicks
+  Even though these instructions are not compiled, a fall-back mechanism kicks
   in and these will be executed by the interpretive emulation.
   Any software that is relying on these instructions will be still working.
 
 * This is a debug version, so probably it is a little bit slower than the 
   release version will be (including the non-JIT code).
   
-* (Ticket#11) E-UAE does not support 68030 processor type, if this processor
+* (Ticket #11) E-UAE does not support 68030 processor type, if this processor
   was selected then it falls back to 68010.
 
-* (Ticket#3) A bug in the original E-UAE code prevents enabling of the
+* (Ticket #3) A bug in the original E-UAE code prevents enabling of the
   processor cache when the processor type is set to 68060. (In this case the
   JIT compiling won't be enabled.)
-  (Ticket#12) As it is stated in the original configuration documentation:
+
+* (Ticket #12) As it is stated in the original configuration documentation:
   the 68060 emulation is incomplete, therefore it is not useful yet.
 
-* (Ticket#15) The direct memory access is not completed yet, theoretically it
+* (Ticket #15) The direct memory access is not completed yet, theoretically it
   might work for certain software, but I suggest to turn it off by adding these
   lines to the configuration: 
-	comp_trustbyte=indirect
-	comp_trustword=indirect
-	comp_trustlong=indirect
+    comp_trustbyte=indirect
+    comp_trustword=indirect
+    comp_trustlong=indirect
 
 * (Ticket#19) On-screen LEDs are not visible on the Picasso96 RTG screens,
   so the JIT LED indicator is not useful on these screen modes.
@@ -358,7 +366,8 @@ Special thanks
 ==============
 I would like to thank the constant support to
 
-  Thunder, kas1e, MickJT, Fab, Tobias Netzel and Mike Blackburn
+  Thunder, kas1e, MickJT, Fab, Luigi,
+  Tobias Netzel, Mike Blackburn and Chris Handley
 
 for helping me with lots of things regarding bug finding, fixing,
 platform support and constantly watching out for the updates on the repository.
