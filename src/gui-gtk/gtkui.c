@@ -96,7 +96,7 @@ static GtkWidget *compbyte_widget[4], *compword_widget[4], *complong_widget[4];
 static GtkWidget *compaddr_widget[4];
 #endif
 static GtkWidget *compnf_widget[2];
-static GtkWidget *compfpu_widget[2], *comp_hardflush_widget[2];
+static GtkWidget *comp_hardflush_widget[2];
 static GtkWidget *comp_constjump_widget[2];
 static GtkAdjustment *cachesize_adj;
 #endif
@@ -307,8 +307,6 @@ static void set_comp_state (void)
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (compnf_widget[currprefs.compoptim]), 1);
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (comp_hardflush_widget[currprefs.comp_hardflush]), 1);
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (comp_constjump_widget[currprefs.comp_constjump]), 1);
-
-    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (compfpu_widget[currprefs.compfpu]), 1);
 }
 #endif
 
@@ -1365,10 +1363,6 @@ static void make_comp_widgets (GtkWidget *vbox)
     add_centered_to_vbox (vbox, newbox);
 
     newbox = make_radio_group_box ("Compile through uncond branch", complabels9, comp_constjump_widget, 1, comp_changed);
-    gtk_widget_show (newbox);
-    add_centered_to_vbox (vbox, newbox);
-
-    newbox = make_radio_group_box ("JIT FPU compiler", complabels7, compfpu_widget, 1, comp_changed);
     gtk_widget_show (newbox);
     add_centered_to_vbox (vbox, newbox);
 
