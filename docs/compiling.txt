@@ -125,9 +125,9 @@ Building the SCSI emulation
 ---------------------------
 
 E-UAE's SCSI emulation may use libscg, the SCSI transport layer from
-the cdrtools project (see http://cdrecord.berlios.de). Note, however,
-due to a license change in the cdrtools project, only versions of
-cdrtools up to 2.01.01a08 inclusive may be used.
+the cdrtools project (see http://cdrtools.sourceforge.net/). Note,
+however, to a license change in the cdrtools project, only versions
+of up to 2.01.01a08 inclusive may be used.
 
 If libscg is not available on your build system, download a recent
 version of cdrecord and compile it. Then run the ./src/install_libscg
