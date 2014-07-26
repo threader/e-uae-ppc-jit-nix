@@ -273,12 +273,17 @@ case $host_os in
     linux*)
       HOST_OS=linux
       OSDEP=od-linux
+      if [[ "$HOST_CPU = 'ppc'" ]]; then 
+
       if [[ "`cat /proc/cpuinfo | grep -o -m1 440EP`" = '440EP' ]]; then
       AC_DEFINE(AMCC_CPU, 440ep, [AMCC PPC CPU])
       elif [[ "`cat /proc/cpuinfo | grep -o -m1 460EX`" = '460EX' ]]; then
       AC_DEFINE(AMCC_CPU, 460ex, [AMCC PPC CPU]) 
       fi
+
+      AC_DEFINE_UNQUOTED(ppclnx, $host_os, [Linux PPC])
       cp confdefs.h src/include/config.h
+      fi
       ;;
     darwin[0-7]*)
       HOST_OS=darwin

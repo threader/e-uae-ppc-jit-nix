@@ -7,3 +7,5 @@ aclocal -I m4 \
 cd src/tools
 aclocal
 autoconf
+
+chmod 755 configure
