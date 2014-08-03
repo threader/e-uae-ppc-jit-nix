@@ -280,10 +280,9 @@ void comp_compiler_generate_code()
 		return;
 	}
 
-	//Run thru the collected macroblocks and call the code generator handler for each,
-	//also check the compiling buffer top to avoid running out of the buffer
+	//Run thru the collected macroblocks and call the code generator handler for each
 	union comp_compiler_mb_union* mb = macroblocks;
-	for(i = 0; (i < macroblock_ptr) && (!comp_ppc_check_top()); i++ , mb++)
+	for(i = 0; i < macroblock_ptr; i++ , mb++)
 	{
 		comp_compiler_macroblock_func* handler = mb->base.handler;
 

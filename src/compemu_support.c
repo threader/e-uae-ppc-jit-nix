@@ -208,7 +208,7 @@ static void alloc_cache(void)
 	if (compiled_code)
 	{
 		compiled_code_top = compiled_code + currprefs.cachesize * 1024;
-		max_compile_start = compiled_code_top - BYTES_PER_INST;
+		max_compile_start = compiled_code_top - BYTES_PER_BLOCK;
 		current_compile_p = compiled_code;
 	}
 
@@ -738,15 +738,6 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 
 			//Compile calling the do_cycles function at the end of the block with the pre-calculated cycles
 			comp_ppc_return_from_block(scaled_cycles(totcycles));
-
-			//Check whether we ran out of the compiling buffer
-			if (current_compile_p >= max_compile_start)
-			{
-				//Ooops, let's leave the party early and reset the buffer
-				comp_done();
-				flush_icache_hard("compiling - buffer is full");
-				return;
-			}
 
 			//PowerPC cache flush at the end of the compiling
 			ppc_cacheflush(compile_p_at_start, current_compile_p - compile_p_at_start);

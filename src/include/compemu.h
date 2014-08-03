@@ -5,8 +5,8 @@
 #define BOOL int
 #endif
 
-/* Margin for one instruction compiled code */
-#define BYTES_PER_INST 10240
+/* Margin for one block of compiled code */
+#define BYTES_PER_BLOCK 10240
 
 /**
  * The maximum size we calculate checksums for.
