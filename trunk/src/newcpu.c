@@ -1910,9 +1910,11 @@ static void m68k_run_2a (void)
 
 		handler();
 
-		/* Whenever we return from that, we should check spcflags */
+		// Whenever we return from that, we should check spcflags
 		if (regs.spcflags) {
-			if (do_specialties (0, &regs)) {
+			// Do specialties with an abitrary number of cycles,
+			// we don't have the right number of cycles, but something must be provided 
+			if (do_specialties (CYCLE_UNIT * 2, &regs)) {
 				return;
 			}
 		}
