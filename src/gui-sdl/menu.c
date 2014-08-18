@@ -73,7 +73,12 @@ void menu_load_surface(SDL_Surface *newmenu) {
 	pMenu_Surface = newmenu;
 }
 
-//
+static void init_vsync(void) {
+	changed_prefs.gfx_framerate = 1;
+	changed_prefs.gfx_apmode[0].gfx_vsync = 1;
+	changed_prefs.gfx_apmode[0].gfx_vsyncmode = 1;
+}
+
 extern SDL_Surface *screen;
 #ifndef GP2X
 #define prSDLScreen screen
@@ -162,6 +167,8 @@ int gui_init (void) {
 		abort();
 	}
 //	icon_tweaks			= SDL_LoadBMP("guidep/images/icon-tweaks.bmp");
+
+	init_vsync();
 
 	return 1;
 }
