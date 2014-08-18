@@ -83,6 +83,45 @@ void prefz_set_chipset(int val) {
 	int i = 0;
 	for(; i < ARRAYSIZE(masks) && i <= val; i++) changed_prefs.chipset_mask |= masks[i];
 }
+/* return index into p_cpu array */
+static int prefz_get_cpumodel(void) {
+	//static const char* p_cpu[]      = {"68000", "68010", "68020", "68020/68881", "68ec020", "68ec020/68881"};
+	switch(changed_prefs.cpu_model) {
+		case 68000: return 0;
+		case 68010: return 1;
+		case 68020:
+			if(changed_prefs.fpu_model == 68881 || changed_prefs.fpu_model == 68882) {
+				if(changed_prefs.address_space_24) return 5;
+				else return 3;
+			}
+			if(changed_prefs.address_space_24) return 4;
+			return 2;
+		default: return -1;
+	}
+}
+
+static void prefz_set_cpumodel(int value) {
+	switch (value) {
+		case 0:
+		case 1:
+		case 2:	changed_prefs.cpu_model= 68000 + value*10;
+			changed_prefs.fpu_model = 0;
+			changed_prefs.address_space_24 = 0;
+			break;
+		case 3:	changed_prefs.cpu_model=68020;
+			changed_prefs.address_space_24 = 0;
+			changed_prefs.fpu_model = 68881;
+			break;
+		case 4:	changed_prefs.cpu_model=68020;
+			changed_prefs.fpu_model = 0;
+			changed_prefs.address_space_24 = 1;
+			break;
+		case 5:	changed_prefs.cpu_model=68020;
+			changed_prefs.fpu_model = 68881;
+			changed_prefs.address_space_24 = 1; break;
+		default: break;
+	}
+}
 
 static SDL_Surface* pPrefzMenu_Surface;
 int prefz (int parameter) {
@@ -145,11 +184,6 @@ int prefz (int parameter) {
 		[PI_SOUND] = S(p_sound), [PI_FRAMESKIP] = S(p_frame),
 		[PI_FLOPPYSPEED] = S(p_floppy)};
 #undef S
-	defaults[0] = currprefs.cpu_model;
-	if (currprefs.address_space_24 != 0) {
-		if (currprefs.cpu_model == 2) { defaults[0] = 4; }
-		if (currprefs.cpu_model == 3) { defaults[0] = 5; }
-	}
 	char tmp[32];
 
 #define DEF(IDX, ARR, VAL) do { snprintf(tmp, sizeof tmp, "%d", (int) (VAL)); \
@@ -190,7 +224,9 @@ int prefz (int parameter) {
 		if(!need_redraw) { SDL_Delay(20); continue; }
 		defaults[PI_SOUND] = prefz_get_sound_settings();
 		defaults[PI_CHIPSET] = prefz_get_chipset();
-		//DEF(PI_CPUSPEED, p_speed, /*currprefs.m68k_speed*/0);
+		defaults[PI_CPUSPEED] = changed_prefs.m68k_speed + 1;
+		defaults[PI_CPU] = prefz_get_cpumodel();
+		//DEF(PI_CPUSPEED, p_speed, currprefs.m68k_speed + 1);
 		//DEF(PI_CPU, p_cpu, /*currprefs.m68k_speed*/0);
 		DEF(PI_CHIPMEM, p_ram, changed_prefs.chipmem_size / 1024);
 		DEF(PI_FASTMEM, p_ram, changed_prefs.fastmem_size / 1024);
@@ -216,7 +252,11 @@ int prefz (int parameter) {
 					changed_prefs.floppy_speed = atoi(p_floppy[defaults[selected_item]]);
 					break;
 				case PI_CPU:
+					prefz_set_cpumodel(defaults[selected_item]);
+					break;
 				case PI_CPUSPEED:
+					/* m68k_speed: -1 : max, 0: real , >0 : "finegrain_cpu_speed" */
+					changed_prefs.m68k_speed = defaults[PI_CPUSPEED] - 1;
 					break;
 				case PI_CHIPSET:
 					prefz_set_chipset(defaults[PI_CHIPSET]);
