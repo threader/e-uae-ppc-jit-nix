@@ -1406,6 +1406,26 @@ void comp_opcode_PEAIND(const cpu_history* history, struct comptbl* props) REGPA
 	dest_mem_addrreg = dest_reg = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(7), TRUE, TRUE);
 	input_dep |= COMP_COMPILER_MACROBLOCK_REG_AX(7);
 
+	//The source memory mapped register is the source register for the memory operation
+	//Is A7 the source register?
+	if (src_mem_addrreg == dest_mem_addrreg)
+	{
+		//We need a temporary register with the unchanged content of A7 as source
+		src_reg = helper_allocate_tmp_reg();
+		input_dep |= src_reg->reg_usage_mapping;
+
+		//Copy the content of A7 to the temp register
+		comp_macroblock_push_copy_register_long(
+				dest_reg->reg_usage_mapping,
+				src_reg->reg_usage_mapping,
+				src_reg->mapped_reg_num,
+				dest_reg->mapped_reg_num);
+	} else {
+		//Use the source memory register as source
+		src_reg = src_mem_addrreg;
+		input_dep |= src_mem_addrreg->reg_usage_mapping;
+	}
+
 	//Decrease A7 register by 4
 	comp_macroblock_push_add_register_imm(
 			COMP_COMPILER_MACROBLOCK_REG_AX(7),
@@ -1413,10 +1433,6 @@ void comp_opcode_PEAIND(const cpu_history* history, struct comptbl* props) REGPA
 			dest_reg->mapped_reg_num,
 			dest_reg->mapped_reg_num,
 			-4);
-
-	//The source memory mapped register is the source register for the memory operation
-	src_reg = src_mem_addrreg;
-	input_dep |= src_mem_addrreg->reg_usage_mapping;
 
 	//Store source address from the register using the A7 register into memory,
 	//skip the flag checking
