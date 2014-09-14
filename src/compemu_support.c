@@ -585,20 +585,6 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 			}
 		}
 
-		//TODO: we need to do something about the tiny blocks, the overhead of calling these is just too high. For now ignoring of tiny blocks is removed.
-		//Is the block long enough (more than 3 instructions)?
-		//if (blocklen <= 3)
-		//{
-		//	//No: not worth compiling, hardwire to interpretive execution
-		//	write_jit_log("Block 0x%08x is too short: %d, not compiled\n", bi->pc_p, blocklen);
-		//	bi->handler = bi->handler_to_use = exec_nostats_callback;
-		//
-		//	//Raise block in cache list
-		//	raise_in_cl_list(bi);
-		//
-		//	return;
-		//}
-
 		//Do we still counting back on block execution?
 		if (bi->count > -1)
 		{
