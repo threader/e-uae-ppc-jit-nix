@@ -541,7 +541,6 @@ uae_u16* comp_current_m68k_location()
 
 void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 {
-	const cpu_history * inst_history;
 	char str[200];
 
 	//This flag indicates if in the current block consists of unsupported instructions only
@@ -629,7 +628,7 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 			struct comptbl* props = &compprops[opcode];
 
 			//Get the actual pc history, each handler needs it
-			inst_history = &pc_hist[i];
+			const cpu_history * inst_history = &pc_hist[i];
 
 			//Is this instruction supported? (handler is not NULL)
 			if (props->instr_handler != NULL)
