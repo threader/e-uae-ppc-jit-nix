@@ -592,7 +592,7 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 			return;
 		}
 
-		//Add the pointer to the fist compiled instruction as the begging of the block
+		//Add the pointer to the fist compiled instruction as the beginning of the block
 		bi->pc_p = (uae_u8*) pc_hist[0].location;
 
 		//Initialize compiling
