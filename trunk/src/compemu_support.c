@@ -292,6 +292,9 @@ void comp_init(void)
 		compiled_branch_instruction[i].address = compiled_branch_target[i] = NULL;
 	}
 
+	/* Reset temporary register assignments */
+	comp_reset_temp_registers();
+
 	/* Initialize macroblock compiler */
 	comp_compiler_init();
 }
@@ -950,6 +953,38 @@ void comp_free_temp_register(comp_tmp_reg* temp_reg)
 	comp_reset_tmp_register(temp_reg);
 
 //	write_jit_log("Temp register free'd: %d\n", (int)temp_reg);
+}
+
+/**
+ * Reset all the allocated temporary registers (except base register),
+ * reset allocation state without flushing content of the registers back to memory.
+ */
+void comp_reset_temp_registers()
+{
+	int i;
+
+	/* Flush temporary registers list */
+	for (i = 0; i < PPC_TMP_REGS_COUNT; i++)
+	{
+		comp_tmp_reg* reg = &used_tmp_regs[i];
+		if (reg->allocated)
+		{
+			write_jit_log("Warning: Temporary register %d was allocated, but it was not released\n", i);
+			if (reg->allocated_for)
+			{
+				//Release mapping between temporary register and emulated register
+				//without generating flush code for it
+				reg->allocated_for->needs_flush = FALSE;
+				comp_unmap_temp_register(reg->allocated_for);
+			}
+			else
+			{
+				//Temporary register was not allocated for an emulated register,
+				//can be released directly
+				comp_reset_tmp_register(reg);
+			}
+		}
+	}
 }
 
 /**
