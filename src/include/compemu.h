@@ -313,6 +313,7 @@ comp_tmp_reg* comp_map_temp_register(uae_u8 reg_number, int needs_init, int need
 void comp_unmap_temp_register(struct m68k_register* reg);
 void comp_swap_temp_register_mapping(comp_tmp_reg* tmpreg1, comp_tmp_reg* tmpreg2);
 comp_tmp_reg* comp_get_mapped_temp_register(uae_u8 reg_number);
+void comp_reset_temp_registers(void);
 void comp_flush_temp_registers(int supresswarning);
 void comp_get_changed_mapped_regs_list(uae_s8* mapped_regs);
 void comp_unlock_all_temp_registers(void);
