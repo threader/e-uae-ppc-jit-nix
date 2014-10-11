@@ -223,7 +223,7 @@ JIT compiler options
 
   3) You must emulate a 68ec020 CPU or better to be able to use the JIT
      compiler. The JIT compiler is depending on the availibility of the
-     processor cache.
+	 processor cache.
 
   4) To enable direct memory access in compiled code, you must emulate a
      32-bit CPU, e.g., a full 68020, or a 68040. Currently direct memory
@@ -249,7 +249,7 @@ comp_constjump=<boolean> (default=true)
   If true, use indirect jumping for constant jumps (slower).
   Please note: this must be set to true at the moment.
 
-
+  
 comp_trustbyte=<access mode> (default=indirect)
 comp_trustword=<access mode> (default=indirect)
 comp_trustlong=<access mode> (default=indirect)
@@ -261,36 +261,37 @@ comp_trustlong=<access mode> (default=indirect)
 
    indirect -   use indirect memory access, slow, but safe. The indirect memory
                 access makes sure that the custom chips are getting the required
-                emulated access when needed.
-                It also makes sure that the emulator won' try to access any random
-                address on the host machine (and probably crash instantly).
+				emulated access when needed.
+				It also makes sure that the emulator won' try to access any random
+				address on the host machine (and probably crash instantly).
 
    indirectKS - same as the indirect mode, except for the Kickstart addresses
                 which will access memory directly. Same problems might apply
-                as the direct memory access.
+				as the direct memory access.
 
    afterPic -   use direct memory access after Picasso96 was initialized.
-
+	
 
 comp_flushmode=<flush mode> (default=hard)
 
-   Specifies how the already compiled blocks should be handled, when the processor
-   cache flush mode is executed on the emulated processor:
+   Specifies how already compiled blocks should be handled, when processor instruction
+   cache flush is executed on the emulated processor:
    
-   soft - mark all compiled blocks for recalculating the checksum and recompile only
-          if the checksum has changed when the block is executed next time.
+   soft - mark all previously compiled blocks for recalculating the checksum when the
+          block is executed next time and recompile it only if the checksum has changed.
 
    hard - remove all previously compiled block and reset the code cache.
 
-   By setting the flush mode to soft it is possible to avoid the recompiling of all
-   blocks when the blocks were not changed after the cache flush. Some programs execute
-   global cache flush too regularly, the soft-flush mode might help gain some performance.
+   By setting the flush mode to soft it is possible to avoid recompiling of all
+   blocks when the blocks have not changed since the previous compiled state.
+   Some programs execute global cache flush regularly and thus the compiled code cache
+   is dropped too often. In this case soft-flush mode might help improving performance.
    
-   On the other hand, the checksum calculation is very simple to lower the effort for
-   producing checksum for each block. It could happen that the block is changed in a
-   specific way and the new checksum matches the previously calculated one. In this
-   case the block won't be recompiled according to the new memory content and the
-   program will misbehave.
+   Please note: the checksum calculation is very simple to minimize the effort
+   of producing checksum for each block. It could happen that the block is changed
+   in a specific way and the new checksum matches the previously calculated one while
+   the actual program code have been changed. In this case the block won't be
+   recompiled according to the new memory content and the program will misbehave.
 
    Please note: this option has no effect on the current PowerPC JIT implementation.
 
