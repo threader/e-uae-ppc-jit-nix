@@ -4405,7 +4405,7 @@ void comp_opcode_RORIMM2REG(const cpu_history* history, struct comptbl* props) R
 				32 - src_immediate,
 				size == 2 ? 16 : 24, 31, FALSE);
 
-		//Copy result to the destination register
+		//Check result in destination register
 		if (size == 2)
 		{
 		    comp_macroblock_push_check_word_register(
@@ -4483,18 +4483,17 @@ void comp_opcode_RORREG2REG(const cpu_history* history, struct comptbl* props) R
 		//Shifting to the left
 		comp_macroblock_push_rotate_and_mask_bits_register(
 				shiftreg->reg_usage_mapping | tmpreg->reg_usage_mapping,
-				tmpreg->reg_usage_mapping,
-				tmpreg->mapped_reg_num,
+				output_dep,
+				dest_reg->mapped_reg_num,
 				tmpreg->mapped_reg_num,
 				shiftreg->mapped_reg_num,
-				0, 31, FALSE);
+				size == 2 ? 16 : 24, 31, FALSE);
 
+		//Check result in destination register
 		if (size == 2)
 		{
-			helper_post_word(output_dep, tmpreg, dest_reg);
 		    comp_macroblock_push_check_word_register(output_dep, dest_reg->mapped_reg_num);
 		} else {
-			helper_post_byte(output_dep, tmpreg, dest_reg);
 		    comp_macroblock_push_check_byte_register(output_dep, dest_reg->mapped_reg_num);
 		}
 	}
