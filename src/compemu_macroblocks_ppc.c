@@ -3582,8 +3582,8 @@ void comp_opcode_LSLREG2REG(const cpu_history* history, struct comptbl* props) R
 
 	if (size == 4)
 	{
-		//Extract C flag, clear V flag
-		helper_extract_c_clear_v_flags(
+		//Extract C and X flag, clear V flag
+		helper_extract_cx_clear_v_flags(
 				shiftreg->reg_usage_mapping | output_dep,
 				dest_reg,
 				shiftreg,
@@ -3606,8 +3606,8 @@ void comp_opcode_LSLREG2REG(const cpu_history* history, struct comptbl* props) R
 			tmpreg = helper_pre_byte(output_dep, dest_reg);
 		}
 
-		//Extract C flag, clear V flag
-		helper_extract_c_clear_v_flags(
+		//Extract C and X flag, clear V flag
+		helper_extract_cx_clear_v_flags(
 				shiftreg->reg_usage_mapping | tmpreg->reg_usage_mapping,
 				tmpreg,
 				shiftreg,
@@ -3751,9 +3751,9 @@ void comp_opcode_LSRREG2REG(const cpu_history* history, struct comptbl* props) R
 
 	if (size == 4)
 	{
-		//Extract C flag, clear V flag
-		helper_extract_c_clear_v_flags(
-				shiftreg->reg_usage_mapping | output_dep,
+		//Extract C and X flag, clear V flag
+		helper_extract_cx_clear_v_flags(
+				tmpreg->reg_usage_mapping | output_dep,
 				dest_reg,
 				tmpreg,
 				FALSE);
@@ -3766,9 +3766,9 @@ void comp_opcode_LSRREG2REG(const cpu_history* history, struct comptbl* props) R
 				dest_reg->mapped_reg_num,
 				shiftreg->mapped_reg_num, TRUE);
 	} else {
-		//Extract C flag, clear V flag
-		helper_extract_c_clear_v_flags(
-				shiftreg->reg_usage_mapping | output_dep,
+		//Extract C and X flag, clear V flag
+		helper_extract_cx_clear_v_flags(
+				tmpreg->reg_usage_mapping | output_dep,
 				dest_reg,
 				tmpreg,
 				FALSE);
