@@ -39,6 +39,7 @@ STATIC_INLINE void helper_check_nzcv_flags(BOOL invertc);
 STATIC_INLINE void helper_copy_x_flag_to_c_flag(void);
 STATIC_INLINE void helper_copy_x_flag_to_internal_c_flag(BOOL invertX);
 STATIC_INLINE void helper_extract_c_clear_nzvx_flags(uae_u64 regsin, comp_tmp_reg* input_reg, int input_bit);
+STATIC_INLINE void helper_extract_c_clear_nzv_flags(uae_u64 regsin, comp_tmp_reg* input_reg, int input_bit);
 STATIC_INLINE void helper_extract_cx_clear_nzv_flags(uae_u64 regsin, comp_tmp_reg* input_reg, int input_bit);
 STATIC_INLINE void helper_extract_c_clear_v_flags(uae_u64 regsin, comp_tmp_reg* input_reg, comp_tmp_reg* rotation_reg, BOOL left_shift);
 STATIC_INLINE void helper_extract_cx_clear_v_flags(uae_u64 regsin, comp_tmp_reg* input_reg, comp_tmp_reg* rotation_reg, BOOL left_shift);
@@ -3224,7 +3225,7 @@ void comp_opcode_ASLREG2REG(const cpu_history* history, struct comptbl* props) R
 			src_reg->mapped_reg_num,
 			modulo);
 
-	//Extract C and X flag
+	//Extract C and X flag, clear V flag
 	helper_extract_cx_clear_v_flags(output_dep | shiftreg->reg_usage_mapping, dest_reg, shiftreg, TRUE);
 
 	//Extract V flag
@@ -3853,7 +3854,7 @@ void comp_opcode_ROLIMM2REG(const cpu_history* history, struct comptbl* props) R
 	if (src_immediate == 0) src_immediate = 8;
 
 	//Extract C, clear V flag
-	helper_extract_c_clear_nzvx_flags(output_dep, dest_reg, (size * 8) - src_immediate);
+	helper_extract_c_clear_nzv_flags(output_dep, dest_reg, (size * 8) - src_immediate);
 
 	if (size == 4)
 	{
@@ -4375,7 +4376,7 @@ void comp_opcode_RORIMM2REG(const cpu_history* history, struct comptbl* props) R
 	if (src_immediate == 0) src_immediate = 8;
 
 	//Extract C, clear V flag
-	helper_extract_cx_clear_nzv_flags(output_dep, dest_reg, src_immediate - 1);
+	helper_extract_c_clear_nzv_flags(output_dep, dest_reg, src_immediate - 1);
 
 	if (size == 4)
 	{
@@ -4514,7 +4515,7 @@ void comp_opcode_RORMEM(const cpu_history* history, struct comptbl* props) REGPA
 			TRUE);
 
 	//Extract C, clear V flag
-	helper_extract_cx_clear_nzv_flags(tmpreg->reg_usage_mapping, tmpreg, 1 - 1);
+	helper_extract_c_clear_nzv_flags(tmpreg->reg_usage_mapping, tmpreg, 1 - 1);
 
 	//Prepare the source for arithmetic operation
 	helper_prepare_word_shift_no_alloc(tmpreg->reg_usage_mapping, tmpreg);
@@ -8626,6 +8627,15 @@ STATIC_INLINE void helper_update_flags(uae_u16 flagscheck, uae_u16 flagsclear, u
 				PPCR_FLAGS_MAPPED,
 				0, 11, 1, FALSE);
 			break;
+		case (COMP_COMPILER_MACROBLOCK_REG_FLAGN | COMP_COMPILER_MACROBLOCK_REG_FLAGZ | COMP_COMPILER_MACROBLOCK_REG_FLAGV):
+			//Clear flags: N, Z and V: mask out these registers and keep C and X
+			comp_macroblock_push_rotate_and_mask_bits(
+				COMP_COMPILER_MACROBLOCK_REG_NONE,
+				COMP_COMPILER_MACROBLOCK_REG_FLAGN | COMP_COMPILER_MACROBLOCK_REG_FLAGZ | COMP_COMPILER_MACROBLOCK_REG_FLAGV,
+				PPCR_FLAGS_MAPPED,
+				PPCR_FLAGS_MAPPED,
+				0, 10, 31, FALSE);
+			break;
 		case (COMP_COMPILER_MACROBLOCK_REG_FLAGN | COMP_COMPILER_MACROBLOCK_REG_FLAGZ):
 			//Clear flags: N and Z: mask out these registers and keep C, V and X
 			comp_macroblock_push_rotate_and_mask_bits(
@@ -8858,6 +8868,34 @@ STATIC_INLINE void helper_extract_c_clear_nzvx_flags(uae_u64 regsin, comp_tmp_re
 
 	//Extract C flag
 	comp_macroblock_push_rotate_and_mask_bits(
+			regsin,
+			COMP_COMPILER_MACROBLOCK_REG_FLAGC | COMP_COMPILER_MACROBLOCK_REG_FLAGV | COMP_COMPILER_MACROBLOCK_REG_FLAGN | COMP_COMPILER_MACROBLOCK_REG_FLAGZ | COMP_COMPILER_MACROBLOCK_REG_FLAGX,
+			PPCR_FLAGS_MAPPED,
+			input_reg->mapped_reg_num,
+			shift, 10, 10, FALSE);
+}
+
+/* Extract C flag from the specified register using the specified bit,
+ * clear N, Z, and V flags, X flag will be preserved.
+ * Note: use helper_extract_c_clear_nzvx_flags() if X flag will be overwritten, that function generates
+ *       less instructions. */
+STATIC_INLINE void helper_extract_c_clear_nzv_flags(uae_u64 regsin, comp_tmp_reg* input_reg, int input_bit)
+{
+	//C flag is at bit 21
+	int shift = 21 - input_bit;
+
+	//Right direction instead of left
+	if (shift < 0) shift += 32;
+
+	//Clear N, Z and V flags
+	helper_update_flags(
+			COMP_COMPILER_MACROBLOCK_REG_NONE,
+			COMP_COMPILER_MACROBLOCK_REG_FLAGN | COMP_COMPILER_MACROBLOCK_REG_FLAGZ | COMP_COMPILER_MACROBLOCK_REG_FLAGV,
+			COMP_COMPILER_MACROBLOCK_REG_NONE,
+			FALSE);
+
+	//Extract C flag and insert it into the flag register
+	comp_macroblock_push_rotate_and_copy_bits(
 			regsin,
 			COMP_COMPILER_MACROBLOCK_REG_FLAGC | COMP_COMPILER_MACROBLOCK_REG_FLAGV | COMP_COMPILER_MACROBLOCK_REG_FLAGN | COMP_COMPILER_MACROBLOCK_REG_FLAGZ | COMP_COMPILER_MACROBLOCK_REG_FLAGX,
 			PPCR_FLAGS_MAPPED,
