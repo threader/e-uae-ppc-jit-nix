@@ -10586,14 +10586,6 @@ STATIC_INLINE void helper_complete_complex_addressing(uae_u64 regsin, uae_u64 re
 	int indexing_enabled = FALSE;
 	int preindex = TRUE;
 
-	//Filter out invalid forms
-	if (((ext & (1 << 3)) != 0) || ((ext & (1 << 4 | 1 << 5)) == 0))
-	{
-		//Bit 3 must be 0, base displacement size bits (4 and 5) must not be zero
-		write_log("JIT error: wrong complex addressing extension word: %04x\n", ext);
-		abort();
-	}
-
 	//Is base displacement enabled?
 	if ((ext & (1 << 5)) != 0)
 	{
@@ -10668,10 +10660,6 @@ STATIC_INLINE void helper_complete_complex_addressing(uae_u64 regsin, uae_u64 re
 		//Indexing enabled
 		switch (ext & 7)
 		{
-		case 0:	//000
-			//No memory indirect action
-			memory_indirect = FALSE;
-			break;
 		case 1:	//001
 			//Indirect pre-indexed without outer displacement
 			memory_indirect = TRUE;
@@ -10711,9 +10699,8 @@ STATIC_INLINE void helper_complete_complex_addressing(uae_u64 regsin, uae_u64 re
 			pc_ptr += 2;
 			break;
 		default:
-			//Unknown format
-			write_log("JIT error: wrong complex addressing extension word: %04x\n", ext);
-			abort();
+			//No memory indirect action
+			memory_indirect = FALSE;
 		}
 
 		//Is pre-indexing enabled?
@@ -10736,10 +10723,6 @@ STATIC_INLINE void helper_complete_complex_addressing(uae_u64 regsin, uae_u64 re
 		//Indexing suppressed
 		switch (ext & 7)
 		{
-		case 0:	//000
-			//No memory indirect action
-			memory_indirect = FALSE;
-			break;
 		case 1:	//001
 			//Indirect without outer displacement
 			memory_indirect = TRUE;
@@ -10757,9 +10740,9 @@ STATIC_INLINE void helper_complete_complex_addressing(uae_u64 regsin, uae_u64 re
 			pc_ptr += 2;
 			break;
 		default:
-			//Unknown format
-			write_log("JIT error: wrong complex addressing extension word: %04x\n", ext);
-			abort();
+			//No memory indirect action
+			memory_indirect = FALSE;
+			break;
 		}
 	}
 
