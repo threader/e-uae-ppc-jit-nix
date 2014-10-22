@@ -315,7 +315,7 @@ void comp_compiler_debug_dump_compiled()
 	uae_u16* prev_68k_inst = NULL;
 
 	//Dump the compiled only if it was enabled in the config
-	if (!currprefs.complogcompiled) return;
+	if (!currprefs.complogcompiled || !currprefs.complog) return;
 
 	//Run thru the collected macroblocks and dump the compiled native code for the
 	//console using disassembler routine
