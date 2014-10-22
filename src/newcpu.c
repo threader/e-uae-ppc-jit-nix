@@ -1038,7 +1038,7 @@ int m68k_move2c (int regno, uae_u32 *regp)
 	case 0: regs.sfc = *regp & 7; break;
 	case 1: regs.dfc = *regp & 7; break;
 	case 2:
-	    cacr = *regp & (currprefs.cpu_level < 4 ? 0x3 : (currprefs.cpu_level == 4 ? 0x80008000 : 0xf8800e00));
+	    cacr = *regp & (currprefs.cpu_level < 4 ? 0x3 :  0x80008000);
 #ifdef JIT
 	    if (currprefs.cpu_level < 4) {
 		set_cache_state (cacr & 1);
