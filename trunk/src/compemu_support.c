@@ -620,8 +620,10 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 		for (i = 0; (i < blocklen) && (!was_compile_error); i++)
 		{
 			uaecptr nextpc;
-			m68k_disasm_str(str, (uaecptr) pc_hist[i].pc, &nextpc, 1);
-			write_jit_log("Comp: %s", str);
+			if (currprefs.complog) {
+				m68k_disasm_str(str, (uaecptr) pc_hist[i].pc, &nextpc, 1);
+				write_jit_log("Comp: %s", str);
+			}
 
 			//Set actually compiled M68k instruction pointer
 			compiled_m68k_location = (uae_u16*) pc_hist[i].pc;
