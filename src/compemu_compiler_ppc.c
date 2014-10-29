@@ -126,6 +126,7 @@ void comp_macroblock_impl_nop(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_null_operation(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_load_pc_from_immediate_conditional(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_load_pc_from_immediate_conditional_decrement_register(union comp_compiler_mb_union* mb);
+void comp_macroblock_impl_check_word_in_memory(union comp_compiler_mb_union* mb);
 
 /**
  * Prototypes for local helper functions
@@ -508,6 +509,56 @@ void comp_macroblock_push_load_pc(const cpu_history * inst_history)
 	comp_free_temp_register(temp_reg);
 }
 
+/**
+ * Macroblock: compare content of a word-sized data in physical memory to
+ * a reference constant word and set consistency error flag if did not match.
+ * Parameters:
+ *    location - physical memory address
+ *    content - reference word for the comparison
+ */
+void comp_macroblock_push_check_word_in_memory(uae_u16* location, uae_u16 content)
+{
+	//TODO: this macroblock is more like a helper function, must be moved out
+	comp_tmp_reg* tmpreg = comp_allocate_temp_register(NULL, PPC_TMP_REG_NOTUSED_MAPPED);
+	comp_tmp_reg* locreg = comp_allocate_temp_register(NULL, PPC_TMP_REG_NOTUSED_MAPPED);
+
+	comp_mb_init(mb,
+				comp_macroblock_impl_check_word_in_memory,
+				COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
+				COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM);
+	mb->check_word_in_memory.location = (uae_u32) location;
+	mb->check_word_in_memory.content = content;
+	mb->check_word_in_memory.locreg = locreg->mapped_reg_num;
+	mb->check_word_in_memory.tmpreg = tmpreg->mapped_reg_num;
+
+	comp_free_temp_register(tmpreg);
+	comp_free_temp_register(locreg);
+}
+
+void comp_macroblock_impl_check_word_in_memory(union comp_compiler_mb_union* mb)
+{
+	comp_ppc_reg locreg = mb->check_word_in_memory.locreg;
+	comp_ppc_reg tmpreg = mb->check_word_in_memory.tmpreg;
+
+	//Load address into location register
+	comp_ppc_liw(locreg, mb->check_word_in_memory.location);
+
+	//Read word into temp register
+	comp_ppc_lhz(tmpreg, 0, locreg);
+
+	//Compare to reference word
+	comp_ppc_cmplwi(PPCR_CR_TMP0, tmpreg, mb->check_word_in_memory.content);
+
+	//if it matches then skip to the end
+	comp_ppc_bc(PPC_B_CR_TMP0_EQ, 0);
+
+	//Set cache incoherent flag
+	comp_ppc_li(tmpreg, -1);
+	comp_ppc_stw(tmpreg, COMP_GET_OFFSET_IN_REGS(jit_cache_inconsistent), PPCR_REGS_BASE_MAPPED);
+
+	//Branch target 0 is reached
+	comp_ppc_branch_target(0);
+}
 
 /**
  * Macroblock: Adds two registers then copies the result into a third and updates all

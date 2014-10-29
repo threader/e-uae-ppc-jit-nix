@@ -1910,6 +1910,14 @@ static void m68k_run_2a (void)
 
 		handler();
 
+		//Have the JIT code cache consistency check failed?
+		if (regs.jit_cache_inconsistent) {
+			//Stop the emulator, there is no point in going on
+			write_log("JIT: cache consistency error, memory changed since code was compiled\n");
+			uae_quit();
+			return;
+		}
+
 		// Whenever we return from that, we should check spcflags
 		if (regs.spcflags) {
 			// Do specialties with an abitrary number of cycles,

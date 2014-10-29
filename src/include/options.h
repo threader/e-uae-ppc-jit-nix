@@ -81,6 +81,7 @@ struct uae_prefs {
     int compoptim;
     int complog;
     int complogcompiled;
+    int comptestconsistency;
 
     int comp_hardflush;
     int comp_constjump;

@@ -421,6 +421,7 @@ void save_options (FILE *f, const struct uae_prefs *p, int type)
     cfgfile_write (f, "comp_constjump=%s\n", p->comp_constjump ? "true" : "false");
     cfgfile_write (f, "comp_log=%s\n", p->complog ? "true" : "false");
     cfgfile_write (f, "comp_log_compiled=%s\n", p->complogcompiled ? "true" : "false");
+    cfgfile_write (f, "comp_test_consistency=%s\n", p->comptestconsistency ? "true" : "false");
 
     cfgfile_write (f, "comp_flushmode=%s\n", flushmode[p->comp_hardflush]);
     cfgfile_write (f, "cachesize=%d\n", p->cachesize);
@@ -1090,6 +1091,7 @@ static int cfgfile_parse_hardware (struct uae_prefs *p, char *option, char *valu
 	|| cfgfile_yesno (option, value, "comp_log", &p->complog)
 	|| cfgfile_yesno (option, value, "comp_log_compiled", &p->complogcompiled)
 	|| cfgfile_yesno (option, value, "comp_constjump", &p->comp_constjump)
+	|| cfgfile_yesno (option, value, "comp_test_consistency", &p->comptestconsistency)
 #endif
 	|| cfgfile_yesno (option, value, "scsi", &p->scsi))
 	return 1;
@@ -2337,6 +2339,7 @@ void default_prefs (struct uae_prefs *p, int type)
     p->comp_hardflush = 1;
     p->comp_constjump = 1;
     p->cachesize = 0;
+    p->comptestconsistency = 0;
     {
 	int i;
 	for (i = 0;i < 10; i++)

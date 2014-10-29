@@ -204,6 +204,11 @@ static void fix_options (void)
 	currprefs.complogcompiled = 0;
 	err = 1;
     }
+    if (currprefs.comptestconsistency < 0 || currprefs.comptestconsistency > 1) {
+	write_log ("Bad value for comp_test_consistency parameter: value must be within 0..1\n");
+	currprefs.comptestconsistency = 0;
+	err = 1;
+    }
     if (currprefs.comp_hardflush < 0 || currprefs.comp_hardflush > 1) {
 	write_log ("Bad value for comp_hardflush parameter: value must be within 0..1\n");
 	currprefs.comp_hardflush = 1;

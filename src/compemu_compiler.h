@@ -188,4 +188,5 @@ void comp_macroblock_push_null_operation(uae_u64 regsin, uae_u64 regsout);
 void comp_macroblock_push_load_flags(void);
 void comp_macroblock_push_save_flags(void);
 void comp_macroblock_push_load_pc(const cpu_history * inst_history);
+void comp_macroblock_push_check_word_in_memory(uae_u16* location, uae_u16 content);
 
