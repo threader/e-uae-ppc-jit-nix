@@ -178,6 +178,7 @@ extern struct regstruct
     uae_u32 panic_pc, panic_addr;
 
 #ifdef JIT
+    uae_u32 jit_cache_inconsistent;
     uae_u32 regslots[COMP_REGS_ALLOCATED_SLOTS];
 #endif
 } regs, lastint_regs;

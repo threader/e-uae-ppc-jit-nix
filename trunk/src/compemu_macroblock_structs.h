@@ -246,6 +246,17 @@ struct comp_compiler_mb_division_64_bit_opcode
 	BOOL signed_division;				//If TRUE then this division is a signed operation, unsigned otherwise
 };
 
+//Structure for comparing a word from memory to a reference word
+struct comp_compiler_mb_check_word_in_memory
+{
+	struct comp_compiler_mb mb;
+	comp_ppc_reg tmpreg;				//Temporary register for the operation
+	comp_ppc_reg locreg;				//Temporary register for the location
+	uae_u32 location;					//Memory address for the location of the word
+	uae_u16 content;					//Reference content word
+};
+
+
 //Union of all macroblock descriptor structures
 union comp_compiler_mb_union
 {
@@ -273,4 +284,5 @@ union comp_compiler_mb_union
 	struct comp_compiler_mb_division_two_reg_opcode division_two_reg_opcode;
 	struct comp_compiler_mb_division_three_reg_opcode division_three_reg_opcode;
 	struct comp_compiler_mb_division_64_bit_opcode division_64_bit_opcode;
+	struct comp_compiler_mb_check_word_in_memory check_word_in_memory;
 };

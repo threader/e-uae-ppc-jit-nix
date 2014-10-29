@@ -304,11 +304,30 @@ comp_log=<boolean> (default=false)
 
 comp_log_compiled=<boolean> (default=false)
 
-   if true, dump the macroblock data and the compiled code to the console.
+   If true, dump the macroblock data and the compiled code to the console.
    Please note: HUGE amount of logs will be dumped to the console, I suggest to
    redirect it into a file. The logging will slow down the emulation significantly.
-   
 
+comp_test_consistency=<boolean> (default=false)
+
+   If true, compile comparison of instruction words for each instructions into the
+   compiled block and detect when the emulated code is changed in memory after
+   compilation.
+   This setting can be used for detecting whether an emulated program is modifying
+   the executed code without proper instruction cache flush.
+   When the modification is detected then the emulator quits with the following error
+   message in the log output:
+   "JIT: cache consistency error, memory changed since code was compiled"
+   
+   Self-modifying code without instruction cache flush is not working together with
+   the current JIT compiling implementation, so this option can be used for verifying
+   whether self-modifying is the reason when a program is misbehaving under JIT
+   compiling.
+
+   Please note: this option is for diagnostic purposes, setting it to true will slow
+   down the emulation. Do not turn it on unless you need to test a program.
+   
+   
 Chipset options
 ===============
 

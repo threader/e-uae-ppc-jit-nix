@@ -251,6 +251,7 @@ void check_prefs_changed_comp(void)
 	currprefs.complogcompiled = changed_prefs.complogcompiled;
 	currprefs.comp_hardflush = changed_prefs.comp_hardflush;
 	currprefs.comp_constjump = changed_prefs.comp_constjump;
+	currprefs.comptestconsistency = changed_prefs.comptestconsistency;
 
 	if (currprefs.cachesize != changed_prefs.cachesize)
 	{
@@ -620,8 +621,12 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 		for (i = 0; (i < blocklen) && (!was_compile_error); i++)
 		{
 			uaecptr nextpc;
-			if (currprefs.complog) {
+			int instrlen = 0;
+
+			//Use disassembly function to emit logs and/or tell the length of an instruction
+			if (currprefs.complog || currprefs.comptestconsistency) {
 				m68k_disasm_str(str, (uaecptr) pc_hist[i].pc, &nextpc, 1);
+				instrlen = (int)nextpc - (int)pc_hist[i].pc;
 				write_jit_log("Comp: %s", str);
 			}
 
@@ -634,6 +639,15 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 
 			//Get the actual pc history, each handler needs it
 			const cpu_history * inst_history = &pc_hist[i];
+
+			//Compile code cache consistency check for each instruction
+			if (currprefs.comptestconsistency) {
+				uae_u16* loc = pc_hist[i].location, j = 0;
+				for(; j < instrlen; loc++, j+=2)
+				{
+					comp_macroblock_push_check_word_in_memory(loc, do_get_mem_word(loc));
+				}
+			}
 
 			//Is this instruction supported? (handler is not NULL)
 			if (props->instr_handler != NULL)
