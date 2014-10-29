@@ -201,7 +201,7 @@ static void fix_options (void)
     }
     if (currprefs.complogcompiled < 0 || currprefs.complogcompiled > 1) {
 	write_log ("Bad value for comp_log_compiled parameter: value must be within 0..1\n");
-	currprefs.complog = 0;
+	currprefs.complogcompiled = 0;
 	err = 1;
     }
     if (currprefs.comp_hardflush < 0 || currprefs.comp_hardflush > 1) {
