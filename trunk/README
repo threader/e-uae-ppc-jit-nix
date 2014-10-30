@@ -1,4 +1,4 @@
-E-UAE PowerPC JIT project 0.8.29-PPCJITBETA04
+E-UAE PowerPC JIT project 0.8.29-PPCJITBETA05
 =============================================
 
 This project is a fork of the E-UAE Amiga emulation project. You can find the
@@ -29,14 +29,20 @@ http://amigabounty.net/index.php?function=viewproject&projectid=35
 Thank you!
 
 
-Beta release #4 (PPCJITBETA04)
+Beta release #5 (PPCJITBETA05)
 ===================================
-The most important features of the fourth beta version are:
+The most important features of the fifth beta version are:
 
- * Lots of bug fixes improve the overall stability of the emulation.
+ * Lots of bug fixes again.
  
- * All SAM440EP/Flex-related issues are sorted out (hopefully).
+ * 68060 processor emulation can use of JIT (cache handling is fixed) - lots
+   of the scene demos are checking for the processor type.
 
+ * Diagnostic configuration option is implemented for detecting
+   non-JIT-compatible self-modifying programs.
+
+This is the final beta version before the first public release.
+   
 You can get an idea of the remaining work by looking at the tickets:
 
 https://sourceforge.net/p/euaeppcjit/tickets
@@ -97,88 +103,69 @@ All other aspects of the emulation remained the same as it was available
 already in E-UAE v0.8.29 (as of 20/08/2008).
 
 
-Changes since the previous release (JITPPCBETA03)
+Changes since the previous release (JITPPCBETA04)
 =================================================
 
 New/Changed:
 ------------
-* Removed machine type check on AmigaOS4 when timebase register is read.
- (Ticket #32)
 
-* Reverted all SAM440EP/Flex-related changes for Picasso96 native modes.
- (Ticket #42)
+* Implemented "comp_test_consistency" option for detecting self-modifying
+  code which is not compatible with the JIT compiler.
 
-* Turn on comp_optimize setting by default. It seems to be stable enough by
-  now.
-
-* Added hotkeys for state saving and function for switching to full screen for
-  the AmigaOS target. (Thanks to MickJT for the patch.)
-
-* Re-added floppy drive sound emulation. (Thanks to MickJT for the patch and
-  Ole for the original source changes for the PS3 port.)
-
-* Removed some unused configuration items:
-    comp_fpu - FPU emulation won't be configurable separately
-    comp_oldsegv - meaning less for PowerPC JIT
-    comp_trustnaddr - unused setting for native memory address
-    compforcesettings - weird, useless setting for native memory access support
-
-* Added version tag for AmigaOS version command. (Ticket #46)
-
-* Set cache flush mode to hard flush by default. Safer option than soft flush,
-  although this setting has no effect on the JIT compiling at the moment.
-
-* Added missing configuration to the documentation (comp_flushmode), removed
-  documentation for removed configuration (comp_fpu). (Ticket #4)
-
-* Changed documentation for comp_optimize to reflect the current default
-  setting change.
 
 Improved:
 ---------
 
-* Compiled code is removed from code cache when the block is not used
- (compiling runs out of space in macroblock buffer or the block consists
-  of unsupported instructions only).
+* Some speed-up for block compiling: debug output is not generated into a
+  string unless logging is turned on.
 
-* Macroblock buffer is allocated only when the JIT is enabled, size will be a
-  tiny bit smaller due to changed field order in the macroblock base structure.
+* Checking for enabled compiler log (comp_log setting) added to the dump of
+  the compiled code (comp_log_compiled) to avoid slowdowns when compiled code
+  dumping is enabled without enabling compiler log.
+
+* Invalid complex addressing mode bits are ignored. (Ticket #48)
+
+* Removed useless checking of buffer overrun from the code. The overrun
+  margin will be checked at the beginning of compiling for each block.
+
+* Adjusted cache line sizes for inval_icache_range. (Estimated/maybe spotted
+  a 0.00002% speed up - Thanks to Mike Blackburn.)
+
+* cdrtools URL is updated in the documentation (Thanks to Mike Blackburn.)
+
+* Removed TODO and commented out code for detecting small blocks. (Ticket #35)
+
 
 Fixed:
 ------
 
-* Reverted back change for the SDL sound buffer enlarging which was merged
-  from Soft3's special SAM440EP/Flex version.
-  (Thanks to MickJT to follow it up with Max.)
+* Removed explicit check for 68040 in cache register handling to unblock
+  turning on the instruction cache for 68060. (Ticket #3)
 
-* Increased the size of the macroblock buffer: as it seems it was too low for
-  some programs which have unrolled processing loops, like AMPlifier and many
-  chunky-to-planar coverters. (Ticket #40 and #49)
-  The assumed 20 macroblocks per 68k instruction might be an overkill for most
-  cases, but the size of the buffer in memory is still acceptable.
+* Wrong field name for comp_log_compiled option in fix_options() function is
+  fixed.
 
-* Avoid sign-extension of lower longword part of the 64 bit number in 64 bit
-  division instructions. (Ticket #39)
+* Fixed accidental modification of X flag in some ROR/ROL instructions.
 
-* Fixed processor flag handling for PPC 970.
- (Ticket #43 - Thanks to Tobias Netzel.)
+* Fixed missing calculation of X flag in LSR/LSL reg,reg and wrong register
+  dependency in LSR reg,reg instructions. (Ticket #64)
 
-* Added detection of register overlapping into MULU/MULS.L Dx,Dy:Dz
-  instructions. (Ticket #39)
+* Fixed result copying in ROR.B/W Dx,Dy. (Ticket #63)
 
-* Added missing dependency on shift register into ASL/ASR.L Dx,Dy.
- (Ticket #41)
+* Reset temporary register assignments at the beginning of each block
+  compiling. (Ticket #52)
 
-* Fixed dependency on input data in SCC instructions. (Ticket #45 and #47)
+* PEA (A7) is fixed to use the original A7 content before it is decreased as
+  the source. (Ticket #51)
 
-* Fixed wrong number of steps when extracting V flag for ASL instructions.
- (Ticket #44)
+* Specialties (chipset steps) were not executed every time after returning
+  from compiled code. (Ticket #53)
 
-* Fixed wrong rotation source for ROXL.W mem instruction. (Ticket #38)
+* Fixed bootstraping - AC_CONFIGS_LINKS cannot find libscg & libschilly thus
+  failed to properly generate build files. (Thanks to Mike Blackburn.)
 
-* JIT compiling and compiled block execution is suspended while the TRACE
-  processor flag is active. (Ticket #29)
-
+* Removed unused option from GTK GUI. (Thanks to Mike Blackburn.)
+  
 
 How to test
 ===========
@@ -192,7 +179,7 @@ that were already working with the previous E-UAE version.
 However, for testing the JIT implementation please make sure you set up
 the configuration exactly as listed below:
     cpu_speed=max
-    cpu_type=68020 (or 68EC020, 68040, see Known issues)
+    cpu_type=68020 (or 68EC020, 68040, 68060, see Known issues)
     cpu_compatible=false
     cpu_cycle_exact=false
     blitter_cycle_exact=false
@@ -249,32 +236,43 @@ sure you follow these steps:
    line, this will be the very first output from the program.
 
    On AmigaOS(-like) systems you can also use the standard version command to
-   get the version of the uae executable.
+   get the version of the UAE executable.
 
    The version number includes a tag for the beta releases, for example:
-   0.8.29-PPCJITBETA04
+   0.8.29-PPCJITBETA05
 
 3. Make sure the JIT compiling is running, read through the How to test
    section and follow the instructions regarding the configuration.
+   
+4. Try to run the emulated program with this diagnostic option in the
+   emulation configuration:
+   
+   comp_test_consistency=true
+   
+   If the emulator quits with this error message:
+   "JIT: cache consistency error, memory changed since code was compiled"
+   
+   Then the emulated program is not compatible with the current implementation
+   of JIT compiling.
 
-4. Try to reproduce the bug without optimization: turn off the optimization
+5. Try to reproduce the bug without optimization: turn off the optimization
    in the configuration and try to reproduce the bug. (comp_optimize=false)
 
-5. Try to reproduce the bug without JIT compiling: turn off the JIT compiling
-   in the configuration and try to reproduce the bug. (cachesize=0)
+6. Try to reproduce the bug without JIT compiling: turn off the JIT compiling
+   in the configuration and try to reproduce the bug. (Option: cachesize=0)
 
-6. If you were able to reproduce the bug without JIT compiling then try to
+7. If you were able to reproduce the bug without JIT compiling then try to
    reproduce it on the previous version of E-UAE.
    If you are able to reproduce it then it is a generic E-UAE bug. Fixing
    these issues is not a goal for the E-UAE PPC JIT project. You might still
    report it, but most likely it won't be fixed in this project.
 
-7. If you think you had found a bug related to the JIT compiling then try to
+8. If you think you had found a bug related to the JIT compiling then try to
    make sure you can reproduce the bug consistently (or often enough) and
    please describe the exact details, provide the software that triggers the
    problem.
 
-8. See the Contacts section for getting in touch with me. Gather all the
+9. See the Contacts section for getting in touch with me. Gather all the
    information and send it to me by email.
 
 
@@ -298,12 +296,8 @@ Known issues
 * (Ticket #11) E-UAE does not support 68030 processor type, if this processor
   was selected then it falls back to 68010.
 
-* (Ticket #3) A bug in the original E-UAE code prevents enabling of the
-  processor cache when the processor type is set to 68060. (In this case the
-  JIT compiling won't be enabled.)
-
 * (Ticket #12) As it is stated in the original configuration documentation:
-  the 68060 emulation is incomplete, therefore it is not useful yet.
+  the 68060 emulation is incomplete, therefore it might not work properly.
 
 * (Ticket #15) The direct memory access is not completed yet, theoretically it
   might work for certain software, but I suggest to turn it off by adding these
@@ -366,7 +360,7 @@ Special thanks
 ==============
 I would like to thank the constant support to
 
-  Thunder, kas1e, MickJT, Fab, Luigi,
+  Thunder, kas1e, MickJT, Fab, Luigi Burdo, Samir Hawamdeh,
   Tobias Netzel, Mike Blackburn and Chris Handley
 
 for helping me with lots of things regarding bug finding, fixing,
