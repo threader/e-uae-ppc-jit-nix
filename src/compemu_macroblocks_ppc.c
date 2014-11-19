@@ -1509,8 +1509,8 @@ void comp_opcode_MOVCCR2REG(const cpu_history* history, struct comptbl* props) R
 			tempreg->mapped_reg_num,
 			PPCR_FLAGS_MAPPED);
 
-    comp_macroblock_push_copy_register_byte(
-			tempreg->reg_usage_mapping,
+    comp_macroblock_push_copy_register_word(
+			tempreg->reg_usage_mapping | output_dep,
 			output_dep,
 			dest_reg->mapped_reg_num,
 			tempreg->mapped_reg_num);
