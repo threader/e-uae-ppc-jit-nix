@@ -12402,7 +12402,7 @@ STATIC_INLINE void helper_mull(const cpu_history* history, comp_tmp_reg* local_s
 		//Check flags
 		comp_macroblock_push_or_register_register(
 				output_dep,
-				COMP_COMPILER_MACROBLOCK_REG_FLAGN | COMP_COMPILER_MACROBLOCK_REG_FLAGZ,
+				COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
 				local_dest_low_reg->mapped_reg_num,
 				local_dest_low_reg->mapped_reg_num,
 				local_dest_low_reg->mapped_reg_num,
