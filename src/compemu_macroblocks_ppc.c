@@ -2551,14 +2551,18 @@ void comp_opcode_ANDIMM2CCR(const cpu_history* history, struct comptbl* props) R
 {
 	//Convert CCR to internal flag format and return it as an immediate
 	uae_u32 ccr = helper_convert_ccr_to_internal_static(src_immediate);
+	uae_u64 flag_dep = helper_calculate_ccr_flag_dependency(src_immediate);
 
 	//Preload immediate to a temp register
 	comp_tmp_reg* tempreg = helper_allocate_tmp_reg_with_init(ccr);
 
-	//And operation between the source and the flag register
+	//And operation between the source and the flag register,
+	//all flags are affected by this operation:
+	//affected flags are produced (cleared) by the operation,
+	//which set is the inverse of the specified flags
 	comp_macroblock_push_and_register_register(
 			tempreg->reg_usage_mapping,
-			helper_calculate_ccr_flag_dependency(src_immediate),
+			COMP_COMPILER_MACROBLOCK_REG_FLAG_ALL & (~flag_dep),
 			PPCR_FLAGS_MAPPED,
 			PPCR_FLAGS_MAPPED,
 			tempreg->mapped_reg_num,
@@ -2572,7 +2576,8 @@ void comp_opcode_ORIMM2CCR(const cpu_history* history, struct comptbl* props) RE
 	uae_u32 ccr = helper_convert_ccr_to_internal_static(src_immediate);
 	uae_u64 flag_dep = helper_calculate_ccr_flag_dependency(src_immediate);
 
-	//Or operation between the source and the flag register for the lower word
+	//Or operation between the source and the flag register for the lower word,
+	//only X flag is affected by this operation, which will be overwritten
 	if ((ccr & 0xffff) != 0)
 	{
 		comp_macroblock_push_or_low_register_imm(
@@ -2584,6 +2589,8 @@ void comp_opcode_ORIMM2CCR(const cpu_history* history, struct comptbl* props) RE
 	}
 
 	//Or operation between the source and the flag register for the higher word
+	//N, Z, C and V flags are affected by this operation,
+	//affected flags are produced (set) by the operation
 	if (((ccr >> 16) & 0xffff) != 0)
 	{
 		comp_macroblock_push_or_high_register_imm(
@@ -2603,22 +2610,28 @@ void comp_opcode_EORIMM2CCR(const cpu_history* history, struct comptbl* props) R
 	uae_u32 ccr = helper_convert_ccr_to_internal_static(src_immediate);
 	uae_u64 flag_dep = helper_calculate_ccr_flag_dependency(src_immediate);
 
-	//Exclusive or operation between the source and the flag register for the lower word
+	//Exclusive or operation between the source and the flag register for the lower word,
+	//only X flag is affected by this operation, which will be inverted
 	if ((ccr & 0xffff) != 0)
 	{
 		comp_macroblock_push_xor_low_register_imm(
-				COMP_COMPILER_MACROBLOCK_REG_NONE,
+				COMP_COMPILER_MACROBLOCK_REG_FLAGX & flag_dep,
 				COMP_COMPILER_MACROBLOCK_REG_FLAGX & flag_dep,
 				PPCR_FLAGS_MAPPED,
 				PPCR_FLAGS_MAPPED,
 				ccr & 0xffff);
 	}
 
-	//Exclusive or operation between the source and the flag register for the higher word
+	//Exclusive or operation between the source and the flag register for the higher word,
+	//N, Z, C and V flags are affected by this operation,
+	//affected flags are required and produced by the operation
 	if (((ccr >> 16) & 0xffff) != 0)
 	{
 		comp_macroblock_push_xor_high_register_imm(
-				COMP_COMPILER_MACROBLOCK_REG_NONE,
+				(COMP_COMPILER_MACROBLOCK_REG_FLAGC |
+				  COMP_COMPILER_MACROBLOCK_REG_FLAGV |
+				  COMP_COMPILER_MACROBLOCK_REG_FLAGN |
+				  COMP_COMPILER_MACROBLOCK_REG_FLAGZ) & flag_dep,
 				(COMP_COMPILER_MACROBLOCK_REG_FLAGC |
 				  COMP_COMPILER_MACROBLOCK_REG_FLAGV |
 				  COMP_COMPILER_MACROBLOCK_REG_FLAGN |
