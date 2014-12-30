@@ -11,13 +11,12 @@
 
 #ifdef JIT
 
-#if defined(ppclnx) /* Linux PPC */
+#if defined(PPC_CPU)
 void ppc_cacheflush(void* start, int length)
 {
-	unsigned long stop;
-  	stop = ((unsigned long)start + length);
+  unsigned long stop = ((unsigned long)start + length);
 
-  inval_icache_range(start, stop);
+  inval_icache_range((unsigned long)start, stop);
 }
 #endif
 

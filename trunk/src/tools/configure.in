@@ -46,7 +46,7 @@ AC_SUBST(top_srcdir)
 dnl Do we want a possible optimization for bigendian targets?
 dnl So far, this has proved beneifical only on OS X (and probably Dawrwin), so we
 dnl only enable it there. Should really check compiler version too.
-if [[ "$target_cpu" = "powerpc" ]]; then
+if [[ "$target_cpu" = "powerpc*" ]]; then
   case $target_os in
     darwin*)
       CFLAGS="$CFLAGS -DUSE_DUBIOUS_BIGENDIAN_OPTIMIZATION"

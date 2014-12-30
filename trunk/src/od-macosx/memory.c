@@ -26,10 +26,9 @@ void ppc_cacheflush(void* start, int length)
 #ifndef darwin0
     sys_icache_invalidate(start, length);
 #else
-        unsigned long stop;
-  	stop = ((unsigned long)start + length);
+  unsigned long stop = ((unsigned long)start + length);
 
-    inval_icache_range(start, stop);
+  inval_icache_range((unsigned long)start, stop);
 #endif
 }
 #endif
