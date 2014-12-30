@@ -38,6 +38,10 @@ selecting what features are built into UAE. Here's a selection:
   Build CPU emulation with support for optional emulation of
   instruction prefetch. Defaults to true.
 
+--disable-optimizations 
+  Build UAE without local CPU specific options, useful when compiling
+  for other targets. (Linux and MacOSX, currently) Defaults to false.
+
 --enable-cycle-exact-cpu
   Build CPU/custom chip emulation with support for optional
   cycle-exact emulation of interactions between the CPU and Amiga chip
