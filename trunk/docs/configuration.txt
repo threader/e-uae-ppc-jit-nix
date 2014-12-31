@@ -240,9 +240,6 @@ comp_optimize=<boolean> (default=true)
 
   If true, try to optimize the compiled code and remove the unused instructions,
   flag emulation code.
-  Please note: the optimization is not working properly, it might or might not 
-  work at the moment.
-
 
 comp_constjump=<boolean> (default=true)
 
