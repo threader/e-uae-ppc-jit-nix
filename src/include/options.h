@@ -79,8 +79,10 @@ struct uae_prefs {
     int comptrustword;
     int comptrustlong;
     int compoptim;
+#ifdef JIT_DEBUG
     int complog;
     int complogcompiled;
+#endif
     int comptestconsistency;
 
     int comp_hardflush;

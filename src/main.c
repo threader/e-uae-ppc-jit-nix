@@ -194,6 +194,7 @@ static void fix_options (void)
 	currprefs.compoptim = 0;
 	err = 1;
     }
+#ifdef JIT_DEBUG
     if (currprefs.complog < 0 || currprefs.complog > 1) {
 	write_log ("Bad value for comp_log parameter: value must be within 0..1\n");
 	currprefs.complog = 0;
@@ -204,6 +205,7 @@ static void fix_options (void)
 	currprefs.complogcompiled = 0;
 	err = 1;
     }
+#endif
     if (currprefs.comptestconsistency < 0 || currprefs.comptestconsistency > 1) {
 	write_log ("Bad value for comp_test_consistency parameter: value must be within 0..1\n");
 	currprefs.comptestconsistency = 0;

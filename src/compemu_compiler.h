@@ -99,7 +99,9 @@ void comp_compiler_done(void);
 union comp_compiler_mb_union* comp_compiler_get_next_macroblock(void);
 void comp_compiler_optimize_macroblocks(void);
 void comp_compiler_generate_code(void);
+#ifdef JIT_DEBUG
 void comp_compiler_debug_dump_compiled(void);
+#endif
 
 //Macroblock compiling handler prototypes
 void comp_macroblock_push_opcode_unsupported(uae_u16 opcode);

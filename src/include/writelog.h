@@ -19,7 +19,13 @@
 #endif
 
 extern void write_log   (const char *, ...) PRINTF_FORMAT;
-extern void write_jit_log   (const char *, ...) PRINTF_FORMAT;
+
+//JIT debug logging is available only if JIT_DEBUG define was set
+#ifdef JIT_DEBUG
+  extern void write_jit_log   (const char *, ...) PRINTF_FORMAT;
+#else
+# define write_jit_log(x, ...) do {} while (0)
+#endif
 extern void flush_log   (void);
 extern void set_logfile (const char *logfile_name);
 

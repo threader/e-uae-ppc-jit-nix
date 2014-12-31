@@ -145,3 +145,36 @@ configure script to specify where these are installed.
 
 On Linux systems, if libscg is not available, E-UAE tries to use a
 Linux-specific SCSI emulation that is based on some ioctl() commands.
+
+
+Building for JIT compiling debugging
+------------------------------------
+
+By default all debugging features (e.g. dumping JIT compiler log items)
+is turned off in the build to minimize any unnecessary overhead in
+the emulation.
+
+If you want to debug the JIT compiling or the results of the compiling
+then you might need to turn on JIT logging by setting this define while
+compiling the emulator:
+
+ JIT_DEBUG
+
+You can use CPPFLAGS parameter to the configure script to set the
+define:
+
+CPPFLAGS=-DJIT_DEBUG
+
+In case you need even more information about the state of the compiling
+then set this define in addition to the previous one:
+
+ JIT_DEBUG_VEROBSE
+
+Be prepared to *lots* of log output to the console when you turn the
+logging on by setting these two configuration items in .uaerc file
+to true:
+
+comp_log and comp_log_compiled
+
+(See configuration documentation for more details.)
+
