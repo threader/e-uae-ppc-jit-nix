@@ -419,8 +419,10 @@ void save_options (FILE *f, const struct uae_prefs *p, int type)
     cfgfile_write (f, "comp_trustlong=%s\n", compmode[p->comptrustlong]);
     cfgfile_write (f, "comp_optimize=%s\n", p->compoptim ? "true" : "false");
     cfgfile_write (f, "comp_constjump=%s\n", p->comp_constjump ? "true" : "false");
+#ifdef JIT_DEBUG
     cfgfile_write (f, "comp_log=%s\n", p->complog ? "true" : "false");
     cfgfile_write (f, "comp_log_compiled=%s\n", p->complogcompiled ? "true" : "false");
+#endif
     cfgfile_write (f, "comp_test_consistency=%s\n", p->comptestconsistency ? "true" : "false");
 
     cfgfile_write (f, "comp_flushmode=%s\n", flushmode[p->comp_hardflush]);
@@ -1088,8 +1090,10 @@ static int cfgfile_parse_hardware (struct uae_prefs *p, char *option, char *valu
 	|| cfgfile_yesno (option, value, "serial_direct", &p->serial_direct)
 #ifdef JIT
 	|| cfgfile_yesno (option, value, "comp_optimize", &p->compoptim)
+#ifdef JIT_DEBUG
 	|| cfgfile_yesno (option, value, "comp_log", &p->complog)
 	|| cfgfile_yesno (option, value, "comp_log_compiled", &p->complogcompiled)
+#endif
 	|| cfgfile_yesno (option, value, "comp_constjump", &p->comp_constjump)
 	|| cfgfile_yesno (option, value, "comp_test_consistency", &p->comptestconsistency)
 #endif
@@ -2334,8 +2338,10 @@ void default_prefs (struct uae_prefs *p, int type)
     p->comptrustlong = 1;
 # endif
     p->compoptim = 1;
+#ifdef JIT_DEBUG
     p->complog = 0;
     p->complogcompiled = 0;
+#endif
     p->comp_hardflush = 1;
     p->comp_constjump = 1;
     p->cachesize = 0;

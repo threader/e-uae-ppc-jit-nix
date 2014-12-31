@@ -1709,7 +1709,7 @@ void debug (void)
     inputdevice_acquire ();
 }
 
-#ifdef JIT
+#ifdef JIT_DEBUG
 void disassemble_compiled(void* startaddress, void* endaddress)
 {
 	struct DisasmPara_PPC params;

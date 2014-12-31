@@ -302,6 +302,7 @@ void comp_compiler_generate_code()
 	}
 }
 
+#ifdef JIT_DEBUG
 /**
  * Dump the compiled code with the macroblocks to the console
  */
@@ -350,6 +351,7 @@ void comp_compiler_debug_dump_compiled()
 		}
 	}
 }
+#endif
 
 /***********************************************************************
  * Macroblock compiling handlers

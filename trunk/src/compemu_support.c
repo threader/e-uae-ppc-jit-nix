@@ -247,8 +247,10 @@ void check_prefs_changed_comp(void)
 	currprefs.comptrustword = changed_prefs.comptrustword;
 	currprefs.comptrustlong = changed_prefs.comptrustlong;
 	currprefs.compoptim = changed_prefs.compoptim;
+#ifdef JIT_DEBUG
 	currprefs.complog = changed_prefs.complog;
 	currprefs.complogcompiled = changed_prefs.complogcompiled;
+#endif
 	currprefs.comp_hardflush = changed_prefs.comp_hardflush;
 	currprefs.comp_constjump = changed_prefs.comp_constjump;
 	currprefs.comptestconsistency = changed_prefs.comptestconsistency;
@@ -285,7 +287,9 @@ void comp_init(void)
 {
 	int i;
 
+#ifdef JIT_DEBUG
 	write_jit_log("Init compiling\n");
+#endif
 
 	/* Initialize branch compiling: both pointers must be zero */
 	for (i = 0; i < MAX_BRANCH_SCHEDULE; i++)
@@ -307,7 +311,9 @@ void comp_done(void)
 {
 	int i;
 
+#ifdef JIT_DEBUG
 	write_jit_log("Done compiling\n");
+#endif
 
 	for (i = 0; i < MAX_BRANCH_SCHEDULE; i++)
 	{
@@ -559,12 +565,16 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 	//Clear previous compiling error
 	was_compile_error = FALSE;
 
-	//write_jit_log("JIT: compile code, pc: %08x, block length: %d, total cycles: %d\n",
-	//		pc_hist->pc, blocklen, totcycles);
+#ifdef JIT_DEBUG_VERBOSE
+	write_jit_log("JIT: compile code, pc: %08x, block length: %d, total cycles: %d\n",
+			pc_hist->pc, blocklen, totcycles);
+#endif
 
 	if (cache_enabled && compiled_code && currprefs.cpu_level >= 2)
 	{
-		//write_jit_log("Compiling enabled, block length: %d\n", blocklen);
+#ifdef JIT_DEBUG_VERBOS
+		write_jit_log("Compiling enabled, block length: %d\n", blocklen);
+#endif
 
 		int i;
 
@@ -605,7 +615,9 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 		//Main loop of compiling
 		uae_u8* compile_p_at_start = current_compile_p;
 
+#ifdef JIT_DEBUG_VERBOSE
 		write_jit_log("Compiled code start: %08x\n", current_compile_p);
+#endif
 
 		//Compile prolog (stackframe preparing) to the buffer, saving non-volatile registers
 		comp_ppc_prolog(PPCR_REG_USED_NONVOLATILE);
@@ -624,7 +636,11 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 			int instrlen = 0;
 
 			//Use disassembly function to emit logs and/or tell the length of an instruction
+#ifdef JIT_DEBUG
 			if (currprefs.complog || currprefs.comptestconsistency) {
+#else
+			if (currprefs.comptestconsistency) {
+#endif
 				m68k_disasm_str(str, (uaecptr) pc_hist[i].pc, &nextpc, 1);
 				instrlen = (int)nextpc - (int)pc_hist[i].pc;
 				write_jit_log("Comp: %s", str);
@@ -737,8 +753,10 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 			//Generate the PPC code from the macroblocks
 			comp_compiler_generate_code();
 
+#ifdef JIT_DEBUG
 			//Dump compiled code to the console
 			comp_compiler_debug_dump_compiled();
+#endif
 
 			//Compile calling the do_cycles function at the end of the block with the pre-calculated cycles
 			comp_ppc_return_from_block(scaled_cycles(totcycles));
@@ -772,6 +790,7 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 		}
 		else
 		{
+#ifdef JIT_DEBUG
 			if (was_compile_error)
 			{
 				//There was a compiling error
@@ -781,6 +800,8 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 				//the execution jumps to execute it under interpretive all the time
 				write_jit_log("Block of unsupported instructions 0x%08x: not compiled\n", bi->pc_p);
 			}
+#endif
+
 			bi->handler = bi->handler_to_use = exec_nostats_callback;
 
 			//Remove emitted code for this block from code cache
@@ -795,7 +816,9 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 	}
 	else
 	{
-//		write_jit_log("Compiling ignored\n");
+#ifdef JIT_DEBUG_VERBOSE
+		write_jit_log("Compiling ommitted\n");
+#endif
 	}
 }
 
@@ -940,7 +963,9 @@ comp_tmp_reg* comp_allocate_temp_register(struct m68k_register* allocate_for, co
 	reg->allocated = TRUE;
 	reg->allocated_for = allocate_for;
 
-//	write_jit_log("Temp register allocated: %d\n", (int)i);
+#ifdef JIT_DEBUG_VERBOSE
+	write_jit_log("Temp register allocated: %d\n", (int)i);
+#endif
 
 	return reg;
 }
@@ -954,6 +979,7 @@ void comp_free_temp_register(comp_tmp_reg* temp_reg)
 {
 	if (!temp_reg->allocated)
 	{
+#ifdef JIT_DEBUG
 		//Wasn't allocated
 		int i;
 
@@ -963,12 +989,16 @@ void comp_free_temp_register(comp_tmp_reg* temp_reg)
 				write_jit_log("Warning: Temporary register %d was not allocated, but now it is free'd\n", i);
 			}
 		}
+#endif
+
 		return;
 	}
 
 	comp_reset_tmp_register(temp_reg);
 
-//	write_jit_log("Temp register free'd: %d\n", (int)temp_reg);
+#ifdef JIT_DEBUG_VERBOSE
+	write_jit_log("Temp register free'd: %d\n", (int)temp_reg);
+#endif
 }
 
 /**
@@ -1023,10 +1053,13 @@ void comp_flush_temp_registers(int supresswarning)
 			}
 			else
 			{
+#ifdef JIT_DEBUG
 				if (!supresswarning)
 				{
 					write_jit_log("Warning: Temporary register %d allocated but not free'd\n", i);
 				}
+#endif
+
 				comp_reset_tmp_register(reg);
 			}
 		}

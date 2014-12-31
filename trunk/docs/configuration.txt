@@ -295,13 +295,21 @@ comp_flushmode=<flush mode> (default=hard)
 
 comp_log=<boolean> (default=false)
 
+   This configuration is available only if JIT_DEBUG define was set while the emulator
+   was built.
+   
    If true, additional JIT compiling related logs will be emitted to the console.
    Please note: excessive amount of logs will be dumped to the console, I suggest to
    redirect it into a file. The logging will slow down the emulation.
 
 comp_log_compiled=<boolean> (default=false)
 
+   This configuration is available only if JIT_DEBUG define was set while the emulator
+   was built.
+   
    If true, dump the macroblock data and the compiled code to the console.
+   The configuration will be activated only when comp_log is also set to true.
+   
    Please note: HUGE amount of logs will be dumped to the console, I suggest to
    redirect it into a file. The logging will slow down the emulation significantly.
 

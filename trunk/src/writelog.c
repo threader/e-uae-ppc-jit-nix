@@ -40,7 +40,7 @@ void set_logfile (const char *logfile_name)
     }
 }
 
-#ifdef JIT
+#ifdef JIT_DEBUG
 
 /**
  * Writing JIT compiling-related log, can be retargeted to a file
