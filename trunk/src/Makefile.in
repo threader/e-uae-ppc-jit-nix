@@ -41,7 +41,7 @@ build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
 LIBOBJDIR =
-bin_PROGRAMS = uae$(EXEEXT) readdisk$(EXEEXT)
+bin_PROGRAMS = uae$(EXEEXT) readdisk$(EXEEXT) make_hdf$(EXEEXT)
 subdir = src
 DIST_COMMON = $(dist_noinst_DATA) $(dist_noinst_SCRIPTS) \
 	$(noinst_HEADERS) $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
@@ -57,8 +57,8 @@ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = sysconfig.h
-CONFIG_CLEAN_FILES = libscg.a libschily.a target.h machdep md-fpp.h \
-	osdep gfxdep sounddep threaddep joydep guidep
+CONFIG_CLEAN_FILES = target.h machdep md-fpp.h osdep gfxdep sounddep \
+	threaddep joydep guidep
 LIBRARIES = $(noinst_LIBRARIES)
 ARFLAGS = cru
 libcpuemu_a_AR = $(AR) $(ARFLAGS)
@@ -67,22 +67,24 @@ libcpuemu_a_OBJECTS = $(am_libcpuemu_a_OBJECTS)
 am__installdirs = "$(DESTDIR)$(bindir)"
 binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 PROGRAMS = $(bin_PROGRAMS)
+am_make_hdf_OBJECTS = make_hdf.$(OBJEXT)
+make_hdf_OBJECTS = $(am_make_hdf_OBJECTS)
+make_hdf_LDADD = $(LDADD)
 am_readdisk_OBJECTS = readdisk.$(OBJEXT) missing.$(OBJEXT)
 readdisk_OBJECTS = $(am_readdisk_OBJECTS)
 readdisk_LDADD = $(LDADD)
-am_uae_OBJECTS = main.$(OBJEXT) newcpu.$(OBJEXT) fpp.$(OBJEXT) \
-	memory.$(OBJEXT) events.$(OBJEXT) custom.$(OBJEXT) \
-	serial.$(OBJEXT) cia.$(OBJEXT) blitter.$(OBJEXT) \
-	autoconf.$(OBJEXT) traps.$(OBJEXT) ersatz.$(OBJEXT) \
-	keybuf.$(OBJEXT) expansion.$(OBJEXT) zfile.$(OBJEXT) \
-	cfgfile.$(OBJEXT) picasso96.$(OBJEXT) inputdevice.$(OBJEXT) \
-	gfxutil.$(OBJEXT) audio.$(OBJEXT) sinctable.$(OBJEXT) \
-	drawing.$(OBJEXT) native2amiga.$(OBJEXT) disk.$(OBJEXT) \
-	crc32.$(OBJEXT) savestate.$(OBJEXT) unzip.$(OBJEXT) \
-	uaeexe.$(OBJEXT) uaelib.$(OBJEXT) fdi2raw.$(OBJEXT) \
-	hotkeys.$(OBJEXT) ar.$(OBJEXT) driveclick.$(OBJEXT) \
-	enforcer.$(OBJEXT) misc.$(OBJEXT) missing.$(OBJEXT) \
-	readcpu.$(OBJEXT)
+am_uae_OBJECTS = main.$(OBJEXT) newcpu.$(OBJEXT) memory.$(OBJEXT) \
+	events.$(OBJEXT) custom.$(OBJEXT) serial.$(OBJEXT) \
+	cia.$(OBJEXT) blitter.$(OBJEXT) autoconf.$(OBJEXT) \
+	traps.$(OBJEXT) ersatz.$(OBJEXT) keybuf.$(OBJEXT) \
+	expansion.$(OBJEXT) zfile.$(OBJEXT) cfgfile.$(OBJEXT) \
+	picasso96.$(OBJEXT) inputdevice.$(OBJEXT) gfxutil.$(OBJEXT) \
+	audio.$(OBJEXT) sinctable.$(OBJEXT) drawing.$(OBJEXT) \
+	native2amiga.$(OBJEXT) disk.$(OBJEXT) crc32.$(OBJEXT) \
+	savestate.$(OBJEXT) unzip.$(OBJEXT) uaeexe.$(OBJEXT) \
+	uaelib.$(OBJEXT) fdi2raw.$(OBJEXT) hotkeys.$(OBJEXT) \
+	ar.$(OBJEXT) driveclick.$(OBJEXT) enforcer.$(OBJEXT) \
+	misc.$(OBJEXT) missing.$(OBJEXT) readcpu.$(OBJEXT)
 uae_OBJECTS = $(am_uae_OBJECTS)
 SCRIPTS = $(dist_noinst_SCRIPTS)
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I.
@@ -92,10 +94,10 @@ COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-SOURCES = $(libcpuemu_a_SOURCES) $(readdisk_SOURCES) $(uae_SOURCES) \
-	$(EXTRA_uae_SOURCES)
-DIST_SOURCES = $(libcpuemu_a_SOURCES) $(readdisk_SOURCES) \
-	$(uae_SOURCES) $(EXTRA_uae_SOURCES)
+SOURCES = $(libcpuemu_a_SOURCES) $(make_hdf_SOURCES) \
+	$(readdisk_SOURCES) $(uae_SOURCES) $(EXTRA_uae_SOURCES)
+DIST_SOURCES = $(libcpuemu_a_SOURCES) $(make_hdf_SOURCES) \
+	$(readdisk_SOURCES) $(uae_SOURCES) $(EXTRA_uae_SOURCES)
 RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
 	html-recursive info-recursive install-data-recursive \
 	install-exec-recursive install-info-recursive \
@@ -200,11 +202,14 @@ TARGET_BEOS_FALSE = @TARGET_BEOS_FALSE@
 TARGET_BEOS_TRUE = @TARGET_BEOS_TRUE@
 TARGET_BIGENDIAN_FALSE = @TARGET_BIGENDIAN_FALSE@
 TARGET_BIGENDIAN_TRUE = @TARGET_BIGENDIAN_TRUE@
+TARGET_LINUX_FALSE = @TARGET_LINUX_FALSE@
+TARGET_LINUX_TRUE = @TARGET_LINUX_TRUE@
 TARGET_WIN32_FALSE = @TARGET_WIN32_FALSE@
 TARGET_WIN32_TRUE = @TARGET_WIN32_TRUE@
 THREADDEP = @THREADDEP@
 UAE_CFLAGS = @UAE_CFLAGS@
 UAE_CPPFLAGS = @UAE_CPPFLAGS@
+UAE_CXXFLAGS = @UAE_CXXFLAGS@
 UAE_LIBS = @UAE_LIBS@
 UAE_RSRCFILE = @UAE_RSRCFILE@
 VERSION = @VERSION@
@@ -269,9 +274,9 @@ target_alias = @target_alias@
 target_cpu = @target_cpu@
 target_os = @target_os@
 target_vendor = @target_vendor@
-INCLUDES = \
-	-I$(top_srcdir)/src/include -I$(top_builddir)/src -I$(top_srcdir)/src -I$(top_srcdir)
-
+AM_CFLAGS = @UAE_CFLAGS@
+AM_CPPFLAGS = @UAE_CPPFLAGS@ -I$(top_srcdir)/src/include \
+	-I$(top_builddir)/src -I$(top_srcdir)/src -I$(top_srcdir)
 SUBDIRS = \
 	tools @MACHDEP@ @THREADDEP@ @GFX_DEP@ @SND_DEP@ @JOY_DEP@ @GUI_DEP@ \
 	@OSDEP@ keymap dms caps
@@ -372,7 +377,7 @@ EXTRA_DIST = \
 	test/test_optflag.c test/Makefile.in test/Makefile.am
 
 uae_SOURCES = \
-	main.c newcpu.c fpp.c memory.c events.c custom.c serial.c cia.c \
+	main.c newcpu.c memory.c events.c custom.c serial.c cia.c \
 	blitter.c autoconf.c traps.c ersatz.c keybuf.c expansion.c \
 	zfile.c cfgfile.c picasso96.c inputdevice.c \
 	gfxutil.c audio.c sinctable.c drawing.c \
@@ -383,7 +388,7 @@ uae_SOURCES = \
 
 EXTRA_uae_SOURCES = \
 	bsdsocket.c bsdsocket-posix-new.c build68k.c catweasel.c cdrom.c \
-	compemu_support.c compemu_macroblocks_ppc.c compemu_compiler_ppc.c \
+	fpp.c compemu_support.c compemu_macroblocks_ppc.c compemu_compiler_ppc.c \
 	debug.c identify.c filesys.c filesys_bootrom.c fsdb.c fsdb_unix.c fsusage.c genblitter.c \
 	gencpu.c gengenblitter.c gencomp.c genlinetoscr.c hardfile.c \
 	hardfile_unix.c scsi-none.c \
@@ -414,30 +419,18 @@ uae_DEPENDENCIES = \
 	@THREADDEP@/libthreaddep.a	\
 	@OSDEP@/libosdep.a
 
-uae_LDADD = \
-	@MACHDEP@/libmachdep.a		\
-	@JOY_DEP@/libjoydep.a		\
-	@SND_DEP@/libsnddep.a		\
-	@GFX_DEP@/libgfxdep.a		\
-	@GUI_DEP@/libguidep.a		\
-	keymap/libkeymap.a		\
-	dms/libdms.a			\
-	caps/libcaps.a			\
-	blitfunc.o blittable.o		\
-	cpustbl.o cpudefs.o		\
-	libcpuemu.a			\
-	@EXTRAOBJS@			\
-	@FILESYSOBJS@			\
-	@BSDSOCKOBJS@			\
-	@SCSIOBJS@			\
-	@CDOBJS@			\
-	@DEBUGOBJS@			\
-	@ASMOBJS@			\
-	@THREADDEP@/libthreaddep.a	\
-	@OSDEP@/libosdep.a
-
+uae_LDADD = @MACHDEP@/libmachdep.a @JOY_DEP@/libjoydep.a \
+	@SND_DEP@/libsnddep.a @GFX_DEP@/libgfxdep.a \
+	@GUI_DEP@/libguidep.a keymap/libkeymap.a dms/libdms.a \
+	caps/libcaps.a blitfunc.o blittable.o cpustbl.o cpudefs.o \
+	libcpuemu.a @EXTRAOBJS@ @FILESYSOBJS@ @BSDSOCKOBJS@ @SCSIOBJS@ \
+	@CDOBJS@ @DEBUGOBJS@ @ASMOBJS@ @THREADDEP@/libthreaddep.a \
+	@OSDEP@/libosdep.a @UAE_LIBS@ @MATHLIB@
 readdisk_SOURCES = \
 	readdisk.c missing.c
+
+make_hdf_SOURCES = \
+	make_hdf.c
 
 libcpuemu_a_SOURCES = 
 libcpuemu_a_LIBADD = @CPUOBJS@ @JITOBJS@
@@ -523,6 +516,9 @@ uninstall-binPROGRAMS:
 
 clean-binPROGRAMS:
 	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
+make_hdf$(EXEEXT): $(make_hdf_OBJECTS) $(make_hdf_DEPENDENCIES) 
+	@rm -f make_hdf$(EXEEXT)
+	$(LINK) $(make_hdf_LDFLAGS) $(make_hdf_OBJECTS) $(make_hdf_LDADD) $(LIBS)
 readdisk$(EXEEXT): $(readdisk_OBJECTS) $(readdisk_DEPENDENCIES) 
 	@rm -f readdisk$(EXEEXT)
 	$(LINK) $(readdisk_LDFLAGS) $(readdisk_OBJECTS) $(readdisk_LDADD) $(LIBS)
@@ -582,6 +578,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/inputdevice.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/keybuf.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/make_hdf.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/memory.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/misc.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/missing.Po@am__quote@
@@ -930,7 +927,7 @@ compstbl.c:	tools/gencomp table68k_comp
 comptbl.h:	compstbl.c
 
 cpuemu_%.o: cpuemu_%.c
-	$(CC) $(INCLUDES) -c $(CPPFLAGS) $(CFLAGS) $(DEBUGFLAGS) $(NO_SCHED_CFLAGS) $< -o $@
+	$(COMPILE)  $< -c -o $@
 
 blit.h:		tools/genblitter
 		./tools/genblitter i >blit.h

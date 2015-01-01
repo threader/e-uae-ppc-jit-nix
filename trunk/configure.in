@@ -6,9 +6,9 @@ dnl Modified for JIT compiling implementation for PowerPC by Almos Rajnai
 
 AC_PREREQ(2.55)
 
-m4_define(uae_version_major, 0)
-m4_define(uae_version_minor, 8)
-m4_define(uae_version_revision, 29)
+m4_define(uae_version_major, 1)
+m4_define(uae_version_minor, 0)
+m4_define(uae_version_revision, 0)
 
 AC_INIT([E-UAE], uae_version_major.uae_version_minor.uae_version_revision, ,[e-uae])
 AC_CONFIG_SRCDIR([bootstrap.sh])
