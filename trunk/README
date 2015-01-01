@@ -1,5 +1,5 @@
-E-UAE PowerPC JIT project 0.8.29-PPCJITBETA05
-=============================================
+E-UAE PowerPC JIT project v1.0.0
+================================
 
 This project is a fork of the E-UAE Amiga emulation project. You can find the
 original project's pages here:
@@ -29,33 +29,25 @@ http://amigabounty.net/index.php?function=viewproject&projectid=35
 Thank you!
 
 
-Beta release #5 (PPCJITBETA05)
-===================================
+Stable Release v1.0.0
+=====================
 The most important features of the fifth beta version are:
 
- * Lots of bug fixes again.
+ * Final bug fixes for the release.
  
- * 68060 processor emulation can use of JIT (cache handling is fixed) - lots
-   of the scene demos are checking for the processor type.
-
- * Diagnostic configuration option is implemented for detecting
-   non-JIT-compatible self-modifying programs.
-
-This is the final beta version before the first public release.
+This is the first public stable release of the project.
    
-You can get an idea of the remaining work by looking at the tickets:
+You can get an idea of what is coming in the next release by peeking into the
+tickets at the project SourceForge page:
 
 https://sourceforge.net/p/euaeppcjit/tickets
 
-Please read the How to test and the Known issues sections carefully before
+Please read the How to use and the Known issues sections carefully before
 you start using the release.
 
 You can also find a comparison of the original E-UAE v0.8.29 and this version
 in the What is the difference section.
 
-Please note: the tools for the emulator are not included in this beta package.
-If you need these tools (for example: mousehack, make-hdf, rtg.library, etc.)
-then please use them from a previous E-UAE release.
 This emulator is backward compatible with the original v0.8.29, you can use
 the same tools or even the same configuration files with some JIT compiling-
 related changes.
@@ -65,8 +57,11 @@ Files in this package
 =====================
 You can find the following directories and files in the package:
 
+  amiga      - Amiga binary tools (see docs)
   docs       - documentation from the original E-UAE sources with adjustments
   COPYING    - license document
+  make_hdf   - Make HDF file tool for creating hard disk images (see docs)
+  readdisk   - Disk image reading tool (see docs)
   README     - this file what you are reading now
   README_original - original README file that came with v0.8.29
   uae        - Generic E-UAE executable compiled for running in an Amiga window
@@ -78,9 +73,9 @@ Here are the differences between the original v0.8.29 and this version:
 
 * Some minor fixes were applied on certain files when it was necessary.
 
-* The x86 JIT compiling were removed completely.
+* The x86 JIT compiling was removed completely.
 
-* The PowerPC JIT compiling were implemented from scratch, some support 
+* The PowerPC JIT compiling was implemented from scratch, some support 
   functions were reused from the x86 implementation.
   
 * New configuration items are available for the new JIT implementation.
@@ -94,7 +89,7 @@ Here are the differences between the original v0.8.29 and this version:
 * An indicator LED were introduced for the JIT compiler state.
   (See docs/configuration.txt.)
 
-* Collected the various fixes from different individual forked releases of the
+* Collected various fixes from different individual forked releases of the
   original E-UAE versions.
 
 * G5 (PowerPC 970/FX/GX/MP) support.
@@ -103,73 +98,44 @@ All other aspects of the emulation remained the same as it was available
 already in E-UAE v0.8.29 (as of 20/08/2008).
 
 
-Changes since the previous release (JITPPCBETA04)
+Changes since the previous release (JITPPCBETA05)
 =================================================
 
 New/Changed:
 ------------
-
-* Implemented "comp_test_consistency" option for detecting self-modifying
-  code which is not compatible with the JIT compiler.
+* Changed version number to v1.0.0 to match the release number, beta tags
+  won't be used anymore. (Ticket [#70])
 
 
 Improved:
 ---------
-
-* Some speed-up for block compiling: debug output is not generated into a
-  string unless logging is turned on.
-
-* Checking for enabled compiler log (comp_log setting) added to the dump of
-  the compiled code (comp_log_compiled) to avoid slowdowns when compiled code
-  dumping is enabled without enabling compiler log.
-
-* Invalid complex addressing mode bits are ignored. (Ticket #48)
-
-* Removed useless checking of buffer overrun from the code. The overrun
-  margin will be checked at the beginning of compiling for each block.
-
-* Adjusted cache line sizes for inval_icache_range. (Estimated/maybe spotted
-  a 0.00002% speed up - Thanks to Mike Blackburn.)
-
-* cdrtools URL is updated in the documentation (Thanks to Mike Blackburn.)
-
-* Removed TODO and commented out code for detecting small blocks. (Ticket #35)
+* Introduced JIT_DEBUG and JIT_DEBUG_VERBOSE compile time defines for
+  separating a debug build from a release. This change will improve the
+  speed of the release binary slightly. (Ticket [#71])
 
 
 Fixed:
 ------
 
-* Removed explicit check for 68040 in cache register handling to unblock
-  turning on the instruction cache for 68060. (Ticket #3)
+* Fixed register dependency AND #imm,CCR and XOR #imm,CCR instructions.
+ (Ticket #68)
 
-* Wrong field name for comp_log_compiled option in fix_options() function is
-  fixed.
+* Fixed flag dependency in MULL.W instruction. (Ticket #67)
 
-* Fixed accidental modification of X flag in some ROR/ROL instructions.
+* Fixed operand size and register dependency in MOVE.W CCR,Dx. (Ticket #66)
 
-* Fixed missing calculation of X flag in LSR/LSL reg,reg and wrong register
-  dependency in LSR reg,reg instructions. (Ticket #64)
+* Fixes from Mike Blackburn for Linux/MacOS builds:
+  - Some fixes from P-UAE (various detections, typos, etc.)
+  - A few minor changes to CPU specific options and the way these are
+    handled:
+     o Amcc 440/460 hopefully now works, running under linux.
+     o Try to determine cache sizes.
+     o CPU specific compiler options, currently Linux only.
+	 
 
-* Fixed result copying in ROR.B/W Dx,Dy. (Ticket #63)
-
-* Reset temporary register assignments at the beginning of each block
-  compiling. (Ticket #52)
-
-* PEA (A7) is fixed to use the original A7 content before it is decreased as
-  the source. (Ticket #51)
-
-* Specialties (chipset steps) were not executed every time after returning
-  from compiled code. (Ticket #53)
-
-* Fixed bootstraping - AC_CONFIGS_LINKS cannot find libscg & libschilly thus
-  failed to properly generate build files. (Thanks to Mike Blackburn.)
-
-* Removed unused option from GTK GUI. (Thanks to Mike Blackburn.)
-  
-
-How to test
-===========
-First of all: please read the available configuration items in the
+How to use
+==========
+First of all: please read the list of available configuration items in the
 docs/configuration.txt file, especially regarding the JIT compiling
 configuration.
 
@@ -183,7 +149,6 @@ the configuration exactly as listed below:
     cpu_compatible=false
     cpu_cycle_exact=false
     blitter_cycle_exact=false
-    comp_optimize=true
     cachesize=8192 (or higher)
     comp_constjump=yes
     comp_trustbyte=indirect (see Known issues)
@@ -191,33 +156,42 @@ the configuration exactly as listed below:
     comp_trustlong=indirect
 
 These settings will make sure you get the best performance from the JIT
-compiled code and workaround the known issues.
+compiled code and workaround any known issues.
 
 Please have a look at the docs/configuration.txt file for the details of
 these settings.
 
 Regarding the processor settings please note: the JIT implementation is
 depending on the availability of the processor cache, any software that turns
-the cache off won't be JIT compiled.
-Same applies to the processor type: those processors which don't have cache
-cannot be used together with the JIT compiling (these are: 68000, 68010).
+the code cache off won't be JIT compiled.
+Same applies to the processor type: those processors types which don't have
+cache cannot be used together with the JIT compiling (these are: 68000, 68010).
 
 In case you are not sure whether the JIT compiling works or not with your
 configuration: turn on the JIT LED. (See show_leds in docs/configuration.txt.)
 If the JIT was set up properly then the JIT LED will blink green on the screen.
+This feature is available only on standard Amiga (non-RTG) screens.
 
-For G5 (PowerPC 970/FX/GX/MP) users:
+* For AmigaOne X1000 (PWRficient PA6T-1682M) users:
+Please use the binary from the archive which is tagged with "X1000":
+E-UAE_X1000.
+The current build is an experimental version, there is no final support for
+PA6T processor yet.
+
+* For G5 (PowerPC 970/FX/GX/MP) users:
 (Applicable to MacOSX only at the moment.)
 Please use the binary from the archive which is tagged with "G5": E-UAE_G5.
 The generic build is running on G5, but it is much slower due to missing
 instructions which are emulated by the operating system.
 
-For MorphOS G5 (PowerPC 970/FX/GX/MP) users:
-G5 processor is not supported in this beta release. Currently the PPC970 target
+* For MorphOS G5 (PowerPC 970/FX/GX/MP) users:
+G5 processor is not supported in this release. Currently the PPC970 target
 is not supported by the official SDK, as soon as this situation is improved
 I will release a special build for G5 processors.
 The current build will not perform well on G5 due to the missing instructions
 on the G5 architecture.
+Please look for G5-compatible builds for the same E-UAE version from other
+developers.
 
 
 How to report a bug
@@ -239,9 +213,9 @@ sure you follow these steps:
    get the version of the UAE executable.
 
    The version number includes a tag for the beta releases, for example:
-   0.8.29-PPCJITBETA05
+   1.0.0.
 
-3. Make sure the JIT compiling is running, read through the How to test
+3. Make sure JIT compiling is running, read through the How to use
    section and follow the instructions regarding the configuration.
    
 4. Try to run the emulated program with this diagnostic option in the
@@ -259,7 +233,7 @@ sure you follow these steps:
    in the configuration and try to reproduce the bug. (comp_optimize=false)
 
 6. Try to reproduce the bug without JIT compiling: turn off the JIT compiling
-   in the configuration and try to reproduce the bug. (Option: cachesize=0)
+   in the configuration and try to reproduce the bug. (cachesize=0)
 
 7. If you were able to reproduce the bug without JIT compiling then try to
    reproduce it on the previous version of E-UAE.
@@ -269,11 +243,11 @@ sure you follow these steps:
 
 8. If you think you had found a bug related to the JIT compiling then try to
    make sure you can reproduce the bug consistently (or often enough) and
-   please describe the exact details, provide the software that triggers the
-   problem.
+   please describe the exact details at reporting, provide the software that
+   triggers the problem.
 
-9. See the Contacts section for getting in touch with me. Gather all the
-   information and send it to me by email.
+9. See Contacts section for getting in touch with me. Gather all information
+   and send it to me by email.
 
 
 Known issues
@@ -290,9 +264,6 @@ Known issues
   in and these will be executed by the interpretive emulation.
   Any software that is relying on these instructions will be still working.
 
-* This is a debug version, so probably it is a little bit slower than the 
-  release version will be (including the non-JIT code).
-  
 * (Ticket #11) E-UAE does not support 68030 processor type, if this processor
   was selected then it falls back to 68010.
 
@@ -306,8 +277,15 @@ Known issues
     comp_trustword=indirect
     comp_trustlong=indirect
 
-* (Ticket#19) On-screen LEDs are not visible on the Picasso96 RTG screens,
+* (Ticket #19) On-screen LEDs are not visible on the Picasso96 RTG screens,
   so the JIT LED indicator is not useful on these screen modes.
+
+* (Ticket #62 and related tickets) Some programs are relying on precise
+  emulation of chipset timing. JIT compiled code is not able to provide this
+  level of precision, because it is more optimized to have better performance.
+  The result of slips in chipset timing might show up as flickering or
+  inconsistent behavior of the emulated program. These programs are not
+  compatible with the current JIT implementation.
 
 
 Where to get the sources
