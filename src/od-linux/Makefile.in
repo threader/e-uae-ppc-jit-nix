@@ -166,11 +166,14 @@ TARGET_BEOS_FALSE = @TARGET_BEOS_FALSE@
 TARGET_BEOS_TRUE = @TARGET_BEOS_TRUE@
 TARGET_BIGENDIAN_FALSE = @TARGET_BIGENDIAN_FALSE@
 TARGET_BIGENDIAN_TRUE = @TARGET_BIGENDIAN_TRUE@
+TARGET_LINUX_FALSE = @TARGET_LINUX_FALSE@
+TARGET_LINUX_TRUE = @TARGET_LINUX_TRUE@
 TARGET_WIN32_FALSE = @TARGET_WIN32_FALSE@
 TARGET_WIN32_TRUE = @TARGET_WIN32_TRUE@
 THREADDEP = @THREADDEP@
 UAE_CFLAGS = @UAE_CFLAGS@
 UAE_CPPFLAGS = @UAE_CPPFLAGS@
+UAE_CXXFLAGS = @UAE_CXXFLAGS@
 UAE_LIBS = @UAE_LIBS@
 UAE_RSRCFILE = @UAE_RSRCFILE@
 VERSION = @VERSION@
@@ -241,17 +244,6 @@ AM_CFLAGS = @UAE_CFLAGS@
 noinst_LIBRARIES = libosdep.a
 libosdep_a_SOURCES = main.c memory.c blkdev-linux.c
 noinst_HEADERS = memory.h hrtimer.h
-
-ifeq ($(host_triplet),powerpc-unknown-linux-gnu) # Linux ppc 
-needicacheflush = true
-else
-needicacheflush = false
-endif
-
-ifeq ($(needicacheflush),true)
-CPPFLAGS += -Dppclnx
-endif
-
 all: all-am
 
 .SUFFIXES:

@@ -172,11 +172,14 @@ TARGET_BEOS_FALSE = @TARGET_BEOS_FALSE@
 TARGET_BEOS_TRUE = @TARGET_BEOS_TRUE@
 TARGET_BIGENDIAN_FALSE = @TARGET_BIGENDIAN_FALSE@
 TARGET_BIGENDIAN_TRUE = @TARGET_BIGENDIAN_TRUE@
+TARGET_LINUX_FALSE = @TARGET_LINUX_FALSE@
+TARGET_LINUX_TRUE = @TARGET_LINUX_TRUE@
 TARGET_WIN32_FALSE = @TARGET_WIN32_FALSE@
 TARGET_WIN32_TRUE = @TARGET_WIN32_TRUE@
 THREADDEP = @THREADDEP@
 UAE_CFLAGS = @UAE_CFLAGS@
 UAE_CPPFLAGS = @UAE_CPPFLAGS@
+UAE_CXXFLAGS = @UAE_CXXFLAGS@
 UAE_LIBS = @UAE_LIBS@
 UAE_RSRCFILE = @UAE_RSRCFILE@
 VERSION = @VERSION@
@@ -418,7 +421,7 @@ distclean-tags:
 distdir: $(DISTFILES)
 	$(am__remove_distdir)
 	mkdir $(distdir)
-	$(mkdir_p) $(distdir)/m4 $(distdir)/src $(distdir)/src/od-macosx
+	$(mkdir_p) $(distdir)/m4 $(distdir)/src/od-macosx
 	@srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`; \
 	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's|.|.|g'`; \
 	list='$(DISTFILES)'; for file in $$list; do \
