@@ -268,20 +268,6 @@ extern void chipmem_lput_ce2 (uaecptr, uae_u32) REGPARAM;
 extern void chipmem_wput_ce2 (uaecptr, uae_u32) REGPARAM;
 extern void chipmem_bput_ce2 (uaecptr, uae_u32) REGPARAM;
 
-#ifdef NATMEM_OFFSET
-
-typedef struct shmpiece_reg {
-    uae_u8 *native_address;
-    int id;
-    uae_u32 size;
-    struct shmpiece_reg *next;
-    struct shmpiece_reg *prev;
-} shmpiece;
-
-extern shmpiece *shm_start;
-
-#endif
-
 extern uae_u8 *mapped_malloc (size_t, const char *);
 extern void mapped_free (uae_u8 *);
 extern void clearexec (void);

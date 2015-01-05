@@ -1200,8 +1200,6 @@ static int load_kickstart (void)
     return 1;
 }
 
-#ifndef NATMEM_OFFSET
-
 uae_u8 *mapped_malloc (size_t s, const char *file)
 {
     return malloc (s);
@@ -1212,226 +1210,11 @@ void mapped_free (uae_u8 *p)
     free (p);
 }
 
-#else
-
-#include <sys/ipc.h>
-#include <sys/shm.h>
-#include <unistd.h>
-#include <sys/mman.h>
-
-shmpiece *shm_start;
-
-static void dumplist(void)
-{
-    shmpiece *x = shm_start;
-    write_log ("Start Dump:\n");
-    while (x) {
-	write_log ("this=%p,Native %p,id %d,prev=%p,next=%p,size=0x%08x\n",
-		x, x->native_address, x->id, x->prev, x->next, x->size);
-	x = x->next;
-    }
-    write_log ("End Dump:\n");
-}
-
-/*
- * find_shmpiece()
- *
- * Locate the shmpiece node describing the block of memory mapped
- * at the *host* address <base>.
- * Returns a pointer to shmpiece describing that block if found.
- * If nothing is mapped at <base> then, direct memory access will
- * be disabled for the VM and 0 will be returned.
- */
-static shmpiece *find_shmpiece (uae_u8 *base)
-{
-    shmpiece *x = shm_start;
-
-    while (x && x->native_address != base)
-	x = x->next;
-    if (!x) {
-	write_log ("NATMEM: Failure to find mapping at %p\n",base);
-//	dumplist ();
-	canbang = 0;
-	return 0;
-    }
-    return x;
-}
-
-/*
- * delete_shmmaps()
- *
- * Unmap any memory blocks remapped in the VM address range
- * <start> to <start+size> via add_shmmaps().
- * Any anomalies found when processing this range, will cause direct
- * memory access to be disabled in the VM.
- */
-static void delete_shmmaps (uae_u32 start, uae_u32 size)
-{
-    if (!canbang)
-	return;
-
-    while (size) {
-	uae_u8 *base = mem_banks[bankindex (start)]->baseaddr; // find host address of start of this block of memory
-	if (base) {
-	    shmpiece *x;
-	    base = ((uae_u8*)NATMEM_OFFSET)+start; // get host address it has been remapped at
-
-	    x = find_shmpiece (base); // and locate the corresponding shmpiece node
-	    if (!x)
-		return;
-
-	    if (x->size > size) {
-		// Bail out: the memory mapped here isn't the size we were expecting
-		write_log ("NATMEM: Failure to delete mapping at %08x(size %08x, delsize %08x)\n",start,x->size,size);
-		dumplist ();
-		canbang = 0;
-		return;
-	    }
-	    shmdt (x->native_address);
-	    size -= x->size;
-	    start += x->size;
-	    if (x->next)
-		x->next->prev = x->prev;	/* remove this one from the list */
-	    if (x->prev)
-		x->prev->next = x->next;
-	    else
-		shm_start = x->next;
-	    free (x);
-	} else {
-	    /* no host memory mapped at that address - try next bank */
-	    size -= 0x10000;
-	    start += 0x10000;
-	}
-    }
-}
-
-/* add_shmmaps()
- *
- * Map the block of shared memory attached to bank <what> in host
- * memory so that it can be accessed by the VM using direct memory
- * access at the VM address <start>.
- */
-static void add_shmmaps (uae_u32 start, addrbank *what)
-{
-    shmpiece *x = shm_start;
-    shmpiece *y;
-    uae_u8 *base = what->baseaddr; // Host address of memory in this bank
-
-    if (!canbang)
-	return;
-    if (!base)
-	return; // Nothing to do. There is no actual host memory attached to this bank.
-
-    x = find_shmpiece (base); // Find the block's current shmpiece node.
-    if (!x)
-	return;
-    y = malloc (sizeof (shmpiece)); // Create another shmpiece node for the new mapping
-    *y = *x;
-    base = ((uae_u8 *) NATMEM_OFFSET) + start;
-    y->native_address = shmat (y->id, base, 0);
-    if (y->native_address == (void *) -1) {
-	write_log ("NATMEM: Failure to map existing at %08x(%p):%d\n",start,base,errno);
-	dumplist ();
-	canbang = 0;
-	return;
-    }
-    y->next = shm_start;
-    y->prev = NULL;
-    if (y->next)
-	y->next->prev = y;
-    shm_start = y;
-}
-
-/*
- * mapped_malloc()
- *
- * Allocate <size> bytes of memory for the VM.
- * If VM supports direct memory access, allocate the memory
- * in such a way (using shared memory) that it can later be
- * remapped to a different host address and thus support direct
- * access via the VM.
- * This will also create a valid shmpiece node describing
- * this block of memory, and add to the global list of shared memory
- * blocks.
- * If allocation of remappable shared memory fails for some reason,
- * direct memory access will be disabled and memory allocated via
- * malloc().
- */
-uae_u8 *mapped_malloc (size_t s, const char *file)
-{
-    int id;
-    void *answer;
-    shmpiece *x;
-
-    if (!canbang)
-	return malloc (s);
-
-#ifdef WIN32
-    id = shmget (IPC_PRIVATE, s, 0x1ff, file);
-#else
-    id = shmget (IPC_PRIVATE, s, 0x1ff);
-#endif
-    if (id == -1) {
-	// Failed to allocate new shared mem segment, so turn
-	// off direct memory access and fall back on regular malloc()
-	write_log ("NATMEM: shmget() failed with size 0x%08lx. Disabling direct memory access.\n", s);
-	canbang = 0;
-	return mapped_malloc (s, file);
-    }
-    answer = shmat (id, 0, 0); // Attach this segment at an arbitrary address - use
-			       // add_shmmap() to map it where it needs to be later.
-    shmctl (id, IPC_RMID, NULL);
-    if (answer != (void *) -1) {
-	x = malloc (sizeof (shmpiece));
-	x->native_address = answer;
-	x->id = id;
-	x->size = s;
-	x->next = shm_start;
-	x->prev = NULL;
-	if (x->next)
-	    x->next->prev = x;
-	shm_start = x;
-    } else {
-	// Failed to attach segment - turn off direct memory
-	// access for the VM and fall back on malloc().
-	canbang = 0;
-	answer = mapped_malloc (s, file);
-    }
-    return answer;
-}
-
-#ifndef WIN32
-void mapped_free (uae_u8 *base)
-{
-    shmpiece *x;
-
-    if (shm_start && (x = find_shmpiece (base))) {
-	shmdt (x->native_address); /* shm segment is already marked as destroyed */
-	if (x->next)
-	    x->next->prev = x->prev;        /* remove this one from the list */
-	if (x->prev)
-	    x->prev->next = x->next;
-	else
-	    shm_start = x->next;
-	free (x);
-     }
-     else
-	/* No shmpiece corresponding to address <base> so assume
-	 * it was allocated via malloc(). */
-	free (base);
-}
-#endif
-#endif
-
 static void init_mem_banks (void)
 {
     int i;
     for (i = 0; i < MEMORY_BANKS; i++)
 	put_mem_bank (i << 16, &dummy_bank, 0);
-// This won't work here after deleting all the bank information - Rich.
-//#ifdef NATMEM_OFFSET
-//    delete_shmmaps (0, 0xFFFF0000);
-//#endif
 }
 
 void clearexec (void)
@@ -1529,10 +1312,6 @@ void map_overlay (int chip)
 void memory_reset (void)
 {
     unsigned int bnk;
-
-#ifdef NATMEM_OFFSET
-    delete_shmmaps (0, 0xFFFF0000);
-#endif
 
     be_cnt = 0;
     currprefs.chipmem_size = changed_prefs.chipmem_size;
@@ -1714,10 +1493,6 @@ void memory_init (void)
 
 void memory_cleanup (void)
 {
-#ifdef NATMEM_OFFSET
-    delete_shmmaps (0, 0xFFFF0000);
-#endif
-
 #ifdef AUTOCONFIG
     if (a3000memory)
 	mapped_free (a3000memory);
@@ -1759,9 +1534,6 @@ void map_banks (addrbank *bank, int start, int size, int realsize)
     uae_u32 realstart = start;
 
     flush_icache (1);		/* Sure don't want to keep any old mappings around! */
-#ifdef NATMEM_OFFSET
-    delete_shmmaps (start << 16, size << 16);
-#endif
 
     if (!realsize)
 	realsize = size << 16;
@@ -1781,9 +1553,6 @@ void map_banks (addrbank *bank, int start, int size, int realsize)
 	    if (!real_left) {
 		realstart = bnr;
 		real_left = realsize >> 16;
-#ifdef NATMEM_OFFSET
-		add_shmmaps (realstart << 16, bank);
-#endif
 	    }
 	    put_mem_bank (bnr << 16, bank, realstart << 16);
 	    real_left--;
@@ -1802,9 +1571,6 @@ void map_banks (addrbank *bank, int start, int size, int realsize)
 	    if (!real_left) {
 		realstart = bnr + hioffs;
 		real_left = realsize >> 16;
-#ifdef NATMEM_OFFSET
-		add_shmmaps (realstart << 16, bank);
-#endif
 	    }
 	    put_mem_bank ((bnr + hioffs) << 16, bank, realstart << 16);
 	    real_left--;

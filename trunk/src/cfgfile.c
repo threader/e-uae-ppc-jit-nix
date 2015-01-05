@@ -2328,15 +2328,9 @@ void default_prefs (struct uae_prefs *p, int type)
     p->sound_interpol = 0;
 
 #ifdef JIT
-# ifdef NATMEM_OFFSET
-    p->comptrustbyte = 0;
-    p->comptrustword = 0;
-    p->comptrustlong = 0;
-# else
     p->comptrustbyte = 1;
     p->comptrustword = 1;
     p->comptrustlong = 1;
-# endif
     p->compoptim = 1;
 #ifdef JIT_DEBUG
     p->complog = 0;
