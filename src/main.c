@@ -567,10 +567,6 @@ static int do_preinit_machine (int argc, char **argv)
 	fix_options ();
     }
 
-#ifdef NATMEM_OFFSET
-    init_shm ();
-#endif
-
 #ifdef FILESYS
     rtarea_init ();
     hardfile_install ();

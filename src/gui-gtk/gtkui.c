@@ -91,10 +91,6 @@ static GtkWidget *sound_widget[4], *sound_freq_widget[3], *sound_ch_widget[3];
 
 #ifdef JIT
 static GtkWidget *jit_page;
-#ifdef NATMEM_OFFSET
-static GtkWidget *compbyte_widget[4], *compword_widget[4], *complong_widget[4];
-static GtkWidget *compaddr_widget[4];
-#endif
 static GtkWidget *compnf_widget[2];
 static GtkWidget *comp_hardflush_widget[2];
 static GtkWidget *comp_constjump_widget[2];
@@ -299,11 +295,6 @@ static void set_mem_state (void)
 #ifdef JIT
 static void set_comp_state (void)
 {
-#ifdef NATMEM_OFFSET
-    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (compbyte_widget[currprefs.comptrustbyte]), 1);
-    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (compword_widget[currprefs.comptrustword]), 1);
-    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (complong_widget[currprefs.comptrustlong]), 1);
-#endif
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (compnf_widget[currprefs.compoptim]), 1);
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (comp_hardflush_widget[currprefs.comp_hardflush]), 1);
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (comp_constjump_widget[currprefs.comp_constjump]), 1);
@@ -675,11 +666,6 @@ static void sound_changed (void)
 static void comp_changed (void)
 {
     changed_prefs.cachesize=cachesize_adj->value;
-#ifdef NATMEM_OFFSET
-    changed_prefs.comptrustbyte = find_current_toggle (compbyte_widget, 4);
-    changed_prefs.comptrustword = find_current_toggle (compword_widget, 4);
-    changed_prefs.comptrustlong = find_current_toggle (complong_widget, 4);
-#endif
     changed_prefs.compoptim = find_current_toggle (compnf_widget, 2);
     changed_prefs.comp_hardflush = find_current_toggle (comp_hardflush_widget, 2);
     changed_prefs.comp_constjump = find_current_toggle (comp_constjump_widget, 2);
@@ -1338,21 +1324,6 @@ static void make_comp_widgets (GtkWidget *vbox)
     GtkWidget *thing;
 
     add_empty_vbox (vbox);
-
-#ifdef NATMEM_OFFSET
-    newbox = make_radio_group_box ("Byte access", complabels1, compbyte_widget, 1, comp_changed);
-    gtk_widget_show (newbox);
-    add_centered_to_vbox (vbox, newbox);
-    newbox = make_radio_group_box ("Word access", complabels2, compword_widget, 1, comp_changed);
-    gtk_widget_show (newbox);
-    add_centered_to_vbox (vbox, newbox);
-    newbox = make_radio_group_box ("Long access", complabels3, complong_widget, 1, comp_changed);
-    gtk_widget_show (newbox);
-    add_centered_to_vbox (vbox, newbox);
-    newbox = make_radio_group_box ("Address lookup", complabels3a, compaddr_widget, 1, comp_changed);
-    gtk_widget_show (newbox);
-    add_centered_to_vbox (vbox, newbox);
-#endif
 
     newbox = make_radio_group_box ("Flags", complabels4, compnf_widget, 1, comp_changed);
     gtk_widget_show (newbox);

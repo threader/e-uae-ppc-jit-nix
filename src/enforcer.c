@@ -33,8 +33,6 @@
 
 #define ISILLEGAL(addr) (addr < 4 || (addr > 4 && addr < ENFORCESIZE))
 
-extern uae_u32 natmem_offset;
-
 int flashscreen = 0;
 static int enforcer_installed = 0;
 static int enforcer_hit = 0; /* set to 1 if displaying the hit */
