@@ -11,7 +11,7 @@
 #ifdef JIT
 
 #if defined(darwin0) 			/* Darwin 0 - 7 */
-#include <cacheinvalidate.h> 
+#include <cache.h>
 #elif defined(darwin8)
 #include "OSCacheControl.h"
 #else					/* Darwin 9< */
@@ -28,7 +28,7 @@ void ppc_cacheflush(void* start, int length)
 #else
   unsigned long stop = ((unsigned long)start + length);
 
-  inval_icache_range((unsigned long)start, stop);
+  flush_cache_range((unsigned long)start, stop);
 #endif
 }
 #endif
