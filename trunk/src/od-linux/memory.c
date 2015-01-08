@@ -7,7 +7,7 @@
   */
 
 #include "od-generic/memory.c"
-#include <cacheinvalidate.h> 
+#include <cache.h>
 
 #ifdef JIT
 
@@ -16,7 +16,7 @@ void ppc_cacheflush(void* start, int length)
 {
   unsigned long stop = ((unsigned long)start + length);
 
-  inval_icache_range((unsigned long)start, stop);
+  flush_cache_range((unsigned long)start, stop);
 }
 #endif
 

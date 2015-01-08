@@ -12,7 +12,7 @@ m4_define(uae_version_revision, 0)
 
 AC_INIT([E-UAE], uae_version_major.uae_version_minor.uae_version_revision, ,[e-uae])
 AC_CONFIG_SRCDIR([bootstrap.sh])
-AM_CONFIG_HEADER([src/sysconfig.h])
+AC_CONFIG_HEADER([src/sysconfig.h])
 AC_CANONICAL_TARGET
 AM_INIT_AUTOMAKE(1.7 dist-bzip2 foreign)
 
@@ -41,6 +41,7 @@ dnl
 AC_PROG_CC
 AC_PROG_CPP
 AC_PROG_CXX
+AC_PROG_OBJC
 AS_PROG_OBJC
 AM_PROG_AS
 AC_PROG_MAKE_SET
@@ -61,6 +62,7 @@ NR_ERRORS=0
 ADDITIONAL_CFLAGS=
 OPTIMIZE_CFLAGS=
 WARNING_CFLAGS=
+WARNING_CXXFLAGS=
 DEBUG_CFLAGS=
 NO_SCHED_CFLAGS=
 
@@ -126,6 +128,10 @@ AC_CHECK_SIZEOF(long, 4)
 AC_CHECK_SIZEOF(long long, 8)
 AC_CHECK_SIZEOF(__int64, 8)
 AC_CHECK_SIZEOF(void *)
+
+if test "${ac_cv_c_have_long_double}" = "yes" ; then
+	AC_CHECK_SIZEOF(long double, 12)
+fi
 
 TYPE_SOCKLEN_T
 
@@ -560,44 +566,53 @@ if [[ "$HOST_OS" = "linux" ]]; then
   JOY_DEP=jd-linuxold
   JOY_NAME="linux"
 else if [[ "$OSDEP" = "od-beos" ]]; then
-  TARGET=beos
-  TARGETDEP=t-beos.h
-  THREADDEP=td-beos
-  THREADNAME="native BeOS"
-  GFX_DEP=gfx-beos
-  GFX_NAME="native BeOS"
-  GFX_LIBS="-lgame"
-  GUI_DEP="gui-beos"
-  GUI_NAME="native BeOS"
-  GUI_LIBS="-lbe -ltracker"
-  JOY_DEP=jd-beos
-  JOY_NAME="native BeOS"
-  JOY_LIBS="-ldevice"
-  SND_DEP=sd-beos
-  SND_NAME="native BeOS"
-  SND_LIBS="-lmedia"
-  WANT_BSDSOCK=no
-  MATHLIB=""
-  UAE_RSRCFILE="$OSDEP/uae.rsrc"
+	TARGET=beos
+	TARGETDEP=t-beos.h
+	THREADDEP=td-beos
+	THREADNAME="native BeOS"
+
+	GFX_DEP=gfx-beos
+	GFX_NAME="native BeOS"
+	GFX_LIBS="-lgame"
+
+	GUI_DEP="gui-beos"
+	GUI_NAME="native BeOS"
+	GUI_LIBS="-lbe -ltracker"
+
+	JOY_DEP=jd-beos
+	JOY_NAME="native BeOS"
+	JOY_LIBS="-ldevice"
+
+	SND_DEP=sd-beos
+	SND_NAME="native BeOS"
+	SND_LIBS="-lmedia"
+
+	WANT_BSDSOCK=no
+	MATHLIB=""
+	UAE_RSRCFILE="$OSDEP/uae.rsrc"
 else if [[ "$OSDEP" = "od-amiga" ]]; then
-  TARGET=amiga
-  TARGETDEP=t-amiga.h
-  THREADDEP=td-amigaos
-  THREADNAME="native AmigaOS"
-  GFX_DEP=gfx-amigaos
-  GFX_NAME="native AmigaOS"
-  GUI_DEP=gui-muirexx
-  GUI_NAME="MUIRexx"
-  SND_DEP=sd-amigaos
-  SND_NAME="native AmigaOS/AHI"
-  if [[ "x$HAVE_AMIGAINPUT" = "xyes" ]]; then
-   JOY_DEP=jd-amigainput
-   JOY_NAME="AmigaInput"
-  else
-   JOY_DEP=jd-amigaos
-   JOY_NAME="Amiga lowlevel.library"
-  fi
-  WANT_BSDSOCK=no
+	TARGET=amiga
+	TARGETDEP=t-amiga.h
+	THREADDEP=td-amigaos
+	THREADNAME="native AmigaOS"
+
+	GFX_DEP=gfx-amigaos
+	GFX_NAME="native AmigaOS"
+
+	GUI_DEP=gui-muirexx
+	GUI_NAME="MUIRexx"
+
+	SND_DEP=sd-amigaos
+	SND_NAME="native AmigaOS/AHI"
+
+	if [[ "x$HAVE_AMIGAINPUT" = "xyes" ]]; then
+		JOY_DEP=jd-amigainput
+		JOY_NAME="AmigaInput"
+	else
+		JOY_DEP=jd-amigaos
+		JOY_NAME="Amiga lowlevel.library"
+	fi
+	WANT_BSDSOCK=no
 else if [[ "$OSDEP" = "od-win32" ]]; then
   TARGET=win32
   TARGETDEP=t-win32.h
@@ -802,8 +817,7 @@ fi
 UAE_CFLAGS="$OPTIMIZE_CFLAGS $DEBUG_CFLAGS $WARNING_CFLAGS"
 UAE_CXXFLAGS="$OPTIMIZE_CFLAGS $DEBUG_CFLAGS $WARNING_CXXFLAGS"
 
-
-dnl
+dnl -----------------------------------------------
 dnl  Check CPU emulation options
 dnl
 
@@ -861,7 +875,7 @@ fi
 dnl
 dnl  Check whether to build JIT
 dnl
-AC_MSG_CHECKING([whether to build JIT compiler])
+AC_MSG_CHECKING([whether to build PPC JIT compiler])
 JITOBJS=""
 if [[ "x$WANT_JIT" != "xno" -a "$HOST_CPU" = "ppc" ]]; then
   UAE_DEFINES="$UAE_DEFINES -DJIT"
@@ -1062,10 +1076,14 @@ dnl See if we can at least compile SHM support
   GFX_LIBS="$X_LIBS $X_PRE_LIBS -lXext -lX11 $X_EXTRA_LIBS"
 fi
 
+dnl
+dnl
+dnl
+AC_MSG_NOTICE([================================================================])
 
 dnl
-dnl
 dnl  Check which sound target to use
+dnl
 AC_MSG_CHECKING([for sound target to build])
 
 if [[ "x$WANT_AUDIO" != "xno" ]]; then
@@ -1172,7 +1190,7 @@ fi
 dnl
 dnl  Do we want Autoconfig?
 dnl
-AC_MSG_CHECKING([whether to build support for Autconfig devices])
+AC_MSG_CHECKING([whether to build support for Autoconfig devices])
 if [[ "x$WANT_AUTOCONFIG" != "xno" ]]; then
   UAE_DEFINES="$UAE_DEFINES -DAUTOCONFIG"
 
@@ -1542,7 +1560,7 @@ fi
 
 
 dnl
-dnl  Include keymapping for X-Aracde joysticks
+dnl  Include keymapping for X-Arcade joysticks
 dnl
 AC_MSG_CHECKING([whether to include keymaps for X-Arcade joysticks])
 if [[ "x$WANT_XARCADE" != "xno" ]]; then
@@ -1575,8 +1593,8 @@ AC_MSG_CHECKING([whether CPU is 32bit])
 if [[ "$HOST_CPU" = "ppc" ]]; then
 is_32bit=yes
 AC_DEFINE(HAVE_PPC32,1,[CPU is PPC32])
-AC_DEFINE(ICACHE_SIZE,32,[CPU ICACHE_SIZE 32])
-AC_DEFINE(DCACHE_SIZE,32,[CPU DCACHE_SIZE 32])
+AC_DEFINE(ICACHE_SIZE,32,[CPU ICACHE_SIZE])
+AC_DEFINE(DCACHE_SIZE,32,[CPU DCACHE_SIZE])
 fi
 AC_MSG_RESULT([$is_32bit])
 
@@ -1584,9 +1602,10 @@ is_64bit=no
 AC_MSG_CHECKING([whether CPU is 64bit])
 if [[ "$HOST_CPU" = "ppc64" ]]; then
 is_64bit=yes
+dnl Generally the case 
 AC_DEFINE(HAVE_PPC64,1,[CPU is PPC64])
-AC_DEFINE(ICACHE_SIZE,64,[CPU ICACHE_SIZE 64])
-AC_DEFINE(DCACHE_SIZE,64,[CPU DCACHE_SIZE 64])
+AC_DEFINE(ICACHE_SIZE,64,[CPU ICACHE_SIZE])
+AC_DEFINE(DCACHE_SIZE,64,[CPU DCACHE_SIZE])
 fi
 AC_MSG_RESULT([$is_64bit])
 
@@ -1599,11 +1618,11 @@ have_460ex=no
 dnl -- macos
 if [[ "x$OSDEP" = "xod-macosx" ]]; then
 
-AC_MSG_CHECKING([host cpu Altivec support])
+AC_MSG_CHECKING([host cpu Altivec(tm) support])
 CPUFLAGS=`sysctl -a hw | grep hw.optional.altivec: | awk '{print $2}'`
 if test "$CPUFLAGS" = "1"; then
 have_altivec=yes
-CPUCFLAG="-maltivec"
+CPUFLAGS="-maltivec"
 AC_DEFINE(HAVE_ALTIVEC,1,[CPU supports Altivec])
 fi
 AC_MSG_RESULT([$have_altivec])
@@ -1621,7 +1640,7 @@ AC_MSG_CHECKING([host cpu Altivec(tm) support])
     fi
     if test "$_altivec" = "yes"; then
 AC_MSG_RESULT([$proc altivec])
-CPUCFLAG="-maltivec -mabi=altivec"
+CPUFLAGS="-maltivec -mabi=altivec"
     else
         _altivec=no
 AC_MSG_RESULT([$proc"])
@@ -1643,9 +1662,15 @@ AC_MSG_CHECKING([host cpu is ])
             POWER3) _march='-mcpu=power3' _mcpu='-mtune=power3' ;;
             7400*|7410*) _march='-mcpu=7400' _mcpu='-mtune=7400' have_g4='yes' ;;
             7447*|7450*|7455*) _march='-mcpu=7450' _mcpu='-mtune=7450' have_g4='yes' ;;
-            970*|PPC970*) _march='-mcpu=970' _mcpu='-mtune=970' have_g5='yes' ;;
+            970*|PPC970*) _march='-mcpu=970' _mcpu='-mtune=970' have_g5='yes'
+				AC_DEFINE(DCACHE_SIZE,128,[CPU DCACHE_SIZE])
+				AC_DEFINE(ICACHE_SIZE,128,[CPU ICACHE_SIZE])
+			;;
             POWER4) _march='-mcpu=power4' _mcpu='-mtune=power4' have_g4='yes' ;;
-            POWER5*) _march='-mcpu=power5' _mcpu='-mtune=power5' have_g5='yes' ;;
+            POWER5*) _march='-mcpu=power5' _mcpu='-mtune=power5' have_g5='yes'
+				AC_DEFINE(DCACHE_SIZE,128,[CPU DCACHE_SIZE])
+				AC_DEFINE(ICACHE_SIZE,128,[CPU ICACHE_SIZE])
+			;;
 			POWER6*) _march='-mcpu=power6' _mcpu='-mtune=power6' ;;
 			POWER7*) _march='-mcpu=power7' _mcpu='-mtune=power7' ;;
 			POWER8*) _march='-mcpu=power8' _mcpu='-mtune=power8' ;;
@@ -1672,16 +1697,16 @@ AC_MSG_RESULT(["$_optimizing"])
 AC_MSG_RESULT(["none"])
     fi
 
-CPUCFLAG="$_march $_mcpu $CPUCFLAG"
+CPUFLAGS="$_march $_mcpu $CPUFLAGS"
 
 fi
 dnl -- linux
 
 cp confdefs.h src/include/config.h
 
-CFLAGS="$CFLAGS $CPUCFLAG"
-CXXFLAGS="$CXXFLAGS $CPUCFLAG"
-CPPFLAGS="$CPPFLAGS $CPUCFLAG"
+CFLAGS="$CFLAGS $CPUCFLAGS"
+CXXFLAGS="$CXXFLAGS $CPUCFLAGS"
+CPPFLAGS="$CPPFLAGS $CPUCFLAGS"
 
 
 else
