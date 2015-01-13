@@ -1,5 +1,8 @@
 /*
  * General implementation of PowerPC cache flush functions
+ *
+ * Cache line sizes:
+ * G2-G4(PPC32) = 32, PPC64 generally = 64, 970*(G5`s) = 128.
  */
 
 #include <stdint.h>
@@ -14,18 +17,8 @@
 #define ICACHE_SIZE 32
 #endif
 
-struct cache_conf {
-    unsigned long dcache_bsize;
-    unsigned long icache_bsize;
-};
-
-/*
- *  Cache line sizes, G2-G4(PPC32) = 32, PPC64 generally = 64, 970*(G5`s) = 128.
- */
-struct cache_conf cache_conf = {
-    .dcache_bsize = DCACHE_SIZE,
-    .icache_bsize = ICACHE_SIZE
-};
+static size_t dcache_bsize = DCACHE_SIZE;
+static size_t icache_bsize = ICACHE_SIZE;
 
 static inline void isync(void)
 {
@@ -45,29 +38,29 @@ static inline void presync(void)
 #endif
 }
 
-static inline void cflush(unsigned long p)
+static inline void cflush(uintptr_t p)
 {
 	__asm__ __volatile__ ("dcbf 0,%0" : : "r" (p));
 }
 
-static inline void cinval(unsigned long p)
+static inline void cinval(uintptr_t p)
 {
         __asm__ __volatile__ ("icbi 0,%0" : : "r" (p));
 }
 
-static inline void flush_cache_range(unsigned long start, unsigned long stop)
+static inline void flush_cache_range(uintptr_t start, uintptr_t stop)
 {
-    unsigned long p, start1, stop1;
-    unsigned long isize = cache_conf.icache_bsize;
-    unsigned long dsize = cache_conf.dcache_bsize;
+	uintptr_t p, start1, stop1;
+	size_t isize = icache_bsize;
+    size_t dsize = dcache_bsize;
 
     start1 = start & ~(isize - 1);
     stop1 = (stop + isize - 1) & ~(isize - 1);
 
-    presync();
+	presync();
 
     for (p = start1; p < stop1; p += isize) {
-		cflush(p);
+	cflush(p);
     }
 
     start1 = start & ~(dsize - 1);
@@ -77,5 +70,5 @@ static inline void flush_cache_range(unsigned long start, unsigned long stop)
         cinval(p);
     }
 
-    isync();
+isync();
 }
