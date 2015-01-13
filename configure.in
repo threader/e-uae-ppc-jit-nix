@@ -1619,13 +1619,52 @@ dnl -- macos
 if [[ "x$OSDEP" = "xod-macosx" ]]; then
 
 AC_MSG_CHECKING([host cpu Altivec(tm) support])
-CPUFLAGS=`sysctl -a hw | grep hw.optional.altivec: | awk '{print $2}'`
-if test "$CPUFLAGS" = "1"; then
+GETFLAGS=`sysctl -a hw | grep hw.optional.altivec: | awk '{print $2}'`
+if test "$GETFLAGS" = "1"; then
 have_altivec=yes
-CPUFLAGS="-maltivec"
+CPUCFLAGS="-maltivec -mabi=altivec -faltivec"
 AC_DEFINE(HAVE_ALTIVEC,1,[CPU supports Altivec])
+else
+have_altivec=no
 fi
 AC_MSG_RESULT([$have_altivec])
+
+dnl detecting cpu for osx ppc, since march=native does not work, get cpusubtype, check mach/machine.h for list.
+dnl 9 = g3 (750) 10 = g4 (7400) 11 = g4 (7450) 100 = g5 (970)
+AC_MSG_CHECKING([host cpu type])
+GETFLAGS=`sysctl -a hw | grep hw.cpusubtype:  | awk '{print $2}'`
+if test "$GETFLAGS" =  "9" ; then
+CPUCFLAGS="-mcpu=750 -mtune=750" 
+elif test  "$GETFLAGS" =  "10" ; then
+CPUCFLAGS="$CPUCFLAGS -mcpu=7400 -mtune=7400"
+elif test  "$GETFLAGS" =  "11" ; then
+CPUCFLAGS="$CPUCFLAGS -mcpu=7450 -mtune=7450"
+elif test  "$GETFLAGS" =  "100" ; then
+CPUCFLAGS="$CPUCFLAGS -mcpu=970 -mtune=970"
+fi
+AC_MSG_RESULT([$GETFLAGS using $CPUCFLAGS])
+
+AC_MSG_CHECKING([host cpu L1 icache size support])
+GETFLAGS=`sysctl -a hw | grep hw.l1icachesize: | awk '{print $2}'`
+if test "$GETFLAGS" = "32768" ; then
+AC_DEFINE(ICACHE_SIZE,32,[CPU ICACHE_SIZE])
+elif  test "$GETFLAGS" = "65526" ; then
+AC_DEFINE(ICACHE_SIZE,64,[CPU ICACHE_SIZE])
+elif  test "$GETFLAGS" = "131072" ; then
+AC_DEFINE(ICACHE_SIZE,128,[CPU ICACHE_SIZE])
+fi
+AC_MSG_RESULT([$GETFLAGS])
+
+AC_MSG_CHECKING([host cpu L1 dcache size support])
+GETFLAGS=`sysctl -a hw | grep hw.l1dcachesize: | awk '{print $2}'`
+if test "$GETFLAGS" = "32768" ; then
+AC_DEFINE(DCACHE_SIZE,32,[CPU DCACHE_SIZE])
+elif  test "$GETFLAGS" = "65526" ; then
+AC_DEFINE(DCACHE_SIZE,64,[CPU DCACHE_SIZE])
+elif  test "$GETFLAGS" = "131072" ; then
+AC_DEFINE(DCACHE_SIZE,128,[CPU DCACHE_SIZE])
+fi
+AC_MSG_RESULT([$GETFLAGS])
 
 fi 
 dnl -- macos
