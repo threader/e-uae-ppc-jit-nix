@@ -10,8 +10,11 @@
 #include <unistd.h>
 #include <string.h>
 
+#include "gcc_warnings.h"
+GCC_DIAG_OFF(strict-prototypes)
 #include <gdk/gdkkeysyms.h>
 #include <gtk/gtk.h>
+GCC_DIAG_ON(strict-prototypes)
 
 #include "chipsettypepanel.h"
 #include "chooserwidget.h"
@@ -29,9 +32,10 @@ static void on_chipsettype_changed (GtkWidget *w, ChipsetTypePanel *panel);
 static void on_frequency_changed (GtkWidget *w, ChipsetTypePanel *panel);
 
 
-guint chipsettypepanel_get_type (void)
+GtkType chipsettypepanel_get_type (void)
 {
-    static guint chipsettypepanel_type = 0;
+	static bool    hasChipset = false;
+    static GtkType chipsettypepanel_type = 0;
 
     if (!chipsettypepanel_type) {
 	static const GtkTypeInfo chipsettypepanel_info = {

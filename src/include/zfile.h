@@ -6,6 +6,10 @@
   * (c) 1996 Samuel Devulder
   */
 
+#pragma once
+#ifndef ZFILE_H
+#define ZFILE_H
+
 struct zfile;
 extern int is_zlib;
 
@@ -33,3 +37,5 @@ extern uae_u32 zfile_crc32 (struct zfile *f);
 #define ZFILE_HDF 5
 #define ZFILE_STATEFILE 6
 #define ZFILE_NVR 7
+
+#endif // ZFILE_H

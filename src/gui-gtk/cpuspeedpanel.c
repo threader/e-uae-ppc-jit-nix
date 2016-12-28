@@ -4,13 +4,17 @@
  * Copyright 2003-2005 Richard Drummond
  */
 
+#include "sysdeps.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <string.h>
 
+#include "gcc_warnings.h"
+GCC_DIAG_OFF(strict-prototypes)
 #include <gdk/gdkkeysyms.h>
 #include <gtk/gtk.h>
+GCC_DIAG_ON(strict-prototypes)
 
 #include "cpuspeedpanel.h"
 #include "chooserwidget.h"
@@ -24,9 +28,10 @@ static void on_adjust_changed   (GtkWidget *w, CpuSpeedPanel *cspanel);
 static void on_idleenabled_toggled (GtkWidget *w, CpuSpeedPanel *cspanel);
 static void on_idlerate_changed (GtkWidget *w, CpuSpeedPanel *cspanel);
 
-guint cpuspeedpanel_get_type ()
+GtkType cpuspeedpanel_get_type ()
 {
-    static guint cpuspeedpanel_type = 0;
+	static bool    hasCpuspeed = false;
+    static GtkType cpuspeedpanel_type = 0;
 
     if (!cpuspeedpanel_type) {
 	static const GtkTypeInfo cpuspeedpanel_info = {
@@ -40,6 +45,7 @@ guint cpuspeedpanel_get_type ()
 	    (GtkClassInitFunc) NULL
 	};
 	cpuspeedpanel_type = gtk_type_unique (gtk_frame_get_type (), &cpuspeedpanel_info);
+		hasCpuspeed = true;
     }
     return cpuspeedpanel_type;
 }
@@ -65,7 +71,7 @@ static void cpuspeedpanel_class_init (CpuSpeedPanelClass *class)
 
 static void cpuspeedpanel_init (CpuSpeedPanel *cspanel)
 {
-    GtkWidget *table;
+   // GtkWidget *table;
 /*    GtkWidget *hbuttonbox, *button1, *button2; */
 
     gtk_frame_set_label (GTK_FRAME(cspanel), "Emulation speed");

@@ -7,6 +7,12 @@
   * Copyright 1995-2001 Bernd Schmidt
   */
 
+#pragma once
+#ifndef OPTIONS_H
+#define OPTIONS_H
+
+#include "uae_types.h"
+
 typedef enum { KBD_LANG_US, KBD_LANG_DK, KBD_LANG_DE, KBD_LANG_SE, KBD_LANG_FR, KBD_LANG_IT, KBD_LANG_ES } KbdLang;
 
 struct uaedev_mount_info;
@@ -147,9 +153,7 @@ struct uae_prefs {
 #endif
     char prtname[256];
     char sername[256];
-#ifndef WIN32
     char scsi_device[256];
-#endif
 
     int m68k_speed;
     int cpu_level;
@@ -191,27 +195,6 @@ struct uae_prefs {
 
 #ifdef USE_SVGALIB_GFX
     int svga_no_linear;
-#endif
-
-#ifdef _WIN32
-    int win32_middle_mouse;
-    int win32_logfile;
-
-    int win32_active_priority;
-    int win32_inactive_priority;
-    int win32_inactive_pause;
-    int win32_inactive_nosound;
-    int win32_iconified_priority;
-    int win32_iconified_pause;
-    int win32_iconified_nosound;
-
-    int win32_no_overlay; /* If this is set, we won't try and use any RGB overlays */
-    int win32_ctrl_F11_is_quit;
-    int win32_automount_drives;
-    int win32_midioutdev;
-    int win32_midiindev;
-    int win32_aspi;
-    int win32_soundcard;
 #endif
 
 #ifdef USE_CURSES_GFX
@@ -401,3 +384,5 @@ STATIC_INLINE void fuzzy_memset_le32_1 (void *p, uae_u32 c, int offset, int len)
 #if defined TARGET_AMIGAOS && defined(__GNUC__)
 #include "od-amiga/amiga-kludges.h"
 #endif
+
+#endif // OPTIONS_H

@@ -6,6 +6,11 @@
   * Copyright 1997 Bernd Schmidt
   */
 
+#pragma once
+#ifndef FILESYS_H
+#define FILESYS_H
+
+
 struct hardfiledata {
     uae_u64 size;
     uae_u64 offset;
@@ -91,3 +96,5 @@ extern int hdf_init (void);
 extern int isspecialdrive (const char *name);
 extern void filesys_cleanup (void);
 extern int filesys_is_readonly (const char *path);
+
+#endif // FILESYS_H

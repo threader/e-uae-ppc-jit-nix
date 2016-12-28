@@ -1,10 +1,13 @@
- /*
-  * UAE - The Un*x Amiga Emulator
-  *
-  * Sound emulation stuff
-  *
-  * Copyright 1995, 1996, 1997 Bernd Schmidt
-  */
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * Sound emulation stuff
+ *
+ * Copyright 1995, 1996, 1997 Bernd Schmidt
+ */
+
+#ifndef UAE_AUDIO_H
+#define UAE_AUDIO_H
 
 #define PERIOD_MAX ULONG_MAX
 
@@ -40,3 +43,5 @@ extern void audio_volume (int);
 void switch_audio_interpol (void);
 
 extern int sound_available;
+
+#endif  // UAE_AUDIO_H

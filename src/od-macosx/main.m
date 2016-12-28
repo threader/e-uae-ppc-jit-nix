@@ -20,7 +20,7 @@
 #import "uae.h"
 
 #ifdef USE_SDL
-# import "SDL.h"
+# import "SDL/SDL.h"
 #endif
 
 #import "main.h"

@@ -1,3 +1,20 @@
+/*
+ *  include/compemu.h - Public interface and definitions
+ *
+ *  Original 68040 JIT compiler for UAE, copyright 2000-2002 Bernd Meyer
+ *
+ *  Adaptation for Basilisk II and improvements, copyright 2000-2005
+ *    Gwenole Beauchesne
+ *
+ *  Basilisk II (C) 1997-2008 Christian Bauer
+ *
+ * Updated to a unified interface (C) 2013 Sven Eden
+ */
+
+#pragma once
+#ifndef COMPEMU_H
+#define COMPEMU_H
+
 #ifdef JIT
 
 /* If BOOL is not defined then define it here using int */
@@ -442,3 +459,5 @@ void execute_normal(void);
 void exec_nostats(void);
 void do_nothing(void);
 void do_cycles_callback(unsigned int cycles_to_add);
+
+#endif // COMPEMU_H

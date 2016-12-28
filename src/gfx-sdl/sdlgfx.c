@@ -20,10 +20,12 @@
 #include "sysconfig.h"
 #include "sysdeps.h"
 
-#include <SDL.h>
-#include <SDL_endian.h>
+#include <SDL/SDL.h>
+#include <SDL/SDL_endian.h>
+
 #ifdef USE_GL
-# include <SDL_opengl.h>
+#define NO_SDL_GLEXT
+# include <SDL/SDL_opengl.h>
 /* These are not defined in the current version of SDL_opengl.h. */
 # ifndef GL_TEXTURE_STORAGE_HINT_APPLE
 #  define GL_TEXTURE_STORAGE_HINT_APPLE 0x85BC
@@ -55,8 +57,8 @@
 #define DEBUG_LOG(...) do {} while(0)
 #endif
 
-static SDL_Surface *display;
-static SDL_Surface *screen;
+SDL_Surface *display = NULL;
+SDL_Surface *screen = NULL;
 
 /* Standard P96 screen modes */
 #define MAX_SCREEN_MODES 12
@@ -1879,9 +1881,9 @@ static int get_kb_widget_first (unsigned int kb, int type)
 
 static int get_kb_widget_type (unsigned int kb, unsigned int num, char *name, uae_u32 *code)
 {
-    // fix me
-    *code = num;
-    return IDEV_WIDGET_KEY;
+	if (code)
+		*code = num;
+	return IDEV_WIDGET_KEY;
 }
 
 static int init_kb (void)
@@ -1993,7 +1995,7 @@ int gfx_parse_option (struct uae_prefs *p, const char *option, const char *value
 {
     int result = (cfgfile_yesno (option, value, "map_raw_keys", &p->map_raw_keys));
 #ifdef USE_GL
-    result = result || (cfgfile_yesno (option, value, "use_gl", &p->use_gl));
+	result = result || (cfgfile_yesno (option, value, "use_gl", &(p->use_gl)));
 #endif /* USE_GL */
     return result;
 }

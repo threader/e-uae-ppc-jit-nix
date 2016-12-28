@@ -217,7 +217,7 @@ GtkWidget *gtkutil_make_radio_group (GSList *group, GtkWidget **buttons, ...)
     GtkWidget *hbox;
     va_list labels;
     const char *label;
-    int i = 0;
+//    int i = 0;
 
     hbox = gtk_hbox_new (TRUE, 0);
 

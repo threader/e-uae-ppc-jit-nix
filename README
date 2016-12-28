@@ -299,6 +299,31 @@ Notes for compiling the sources
 ===============================
 For general notes for compiling please refer to the README_original file.
 
+For AmigaOS4:
+You need to link libamiga to the binary otherwise the TimeDelay macro won't
+work. To do so add this parameter to the configure script:
+./configure LIBS=-lamiga
+
+For Linux and similar: 
+Checkout docs/compiling.txt 
+If your distribution has uae or e-uae in repo, and it's Debian derived, 
+do "apt-get build-dep uae" before compiling do get the required dependencies.
+
+"sh bootstrap.sh" to generate the build files.
+
+Notes on certain configurations.
+Depending on hardware architecture specifically the PowerPC ISA, 
+you may or may not have luck in compiling with: 
+"--disable-optimization" or with "CFLAGS=-DPPC_ISA_203".
+Like so:
+./configure --disable-optimization or ./configure CFLAGS=-DPPC_ISA_203
+
+For packaging for a distro, in this case with SPE like the Amiga 1220 Tabor. 
+SPE: ./configure CFLAGS=-DPPC_ISA_203 CFLAGS="-D_gnuspe=yes -mcpu=8548 -mtune=8548 -mspe=yes -mabi=spe -mhard-float -mfloat-gprs=double" 
+
+otherwise try this if the configure scripts fails to detect your hardware properly, try;
+./configure CFLAGS=-DPPC_ISA_203
+ 
 To compile on Mac OSX 10.3.9 or earlier:
 
 Autoconf2.57 and automake1.6 mess up @OBJCFLAGS@ and is not really compatible. 
@@ -310,20 +335,14 @@ http://ftp.gnu.org/gnu/automake/automake-1.7.9.tar.bz2
 ./configure --bindir=/usr/bin --datadir=/usr/share && make install
 
 For Mac OSX 10.4.x and 10.3.x: 
-Latest SDL.framework is not properly detected. 
+Latest SDL.framework might not be properly detected. 
 Using the SDL.framework already in E-UAE.app/Content/Frameworks at
 http://www.rcdrummond.net/uae
 Copy SDL.framework/Headers from the latest SDL.framework and put the framework
 in /Library/Frameworks/
-./configure --enable-jit --without-x --with-sdl-gl --with-cocoa-gui
+./configure --enable-jit --without-x --with-sdl-sound --with-sdl-gl --with-cocoa-gui
 
-Source installed SDL is also detected.
-
-For AmigaOS4:
-You need to link libamiga to the binary otherwise the TimeDelay macro won't
-work. To do so add this parameter to the configure script:
-./configure LIBS=-lamiga
-
+Source installed SDL is detected for all posix systems.
 
 Contact
 =======

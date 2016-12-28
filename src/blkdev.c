@@ -15,29 +15,7 @@
 static struct device_functions *device_func[2];
 static int have_ioctl;
 
-#ifdef WIN32
 
-#include "od-win32/win32.h"
-
-extern struct device_functions devicefunc_win32_aspi;
-extern struct device_functions devicefunc_win32_spti;
-extern struct device_functions devicefunc_win32_ioctl;
-
-static void install_driver (int flags)
-{
-    device_func[DF_SCSI] = &devicefunc_win32_aspi;
-#ifdef WINDDK
-    if (os_winnt && os_winnt_admin) {
-	device_func[DF_IOCTL] = &devicefunc_win32_ioctl;
-	device_func[DF_SCSI]  = &devicefunc_win32_spti;
-    }
-    if (currprefs.win32_aspi) {
-	device_func[DF_SCSI]  = &devicefunc_win32_aspi;
-	device_func[DF_IOCTL] = 0;
-    }
-#endif
-}
-#else
 # ifdef TARGET_AMIGAOS
 
 extern struct device_functions devicefunc_scsi_amiga;

@@ -30,7 +30,7 @@ AC_CHECK_SIZEOF(__int64, 8)
 AC_CHECK_SIZEOF(void *)
 
 if test $ac_cv_prog_gcc = yes; then
-  CFLAGS="$CFLAGS -Wall -W -Wno-unused" 
+  CFLAGS="$CFLAGS -Wall -W -Wno-unused -std=gnu99  -I../../src"
 fi
 
 dnl Checks for library functions.
@@ -44,7 +44,7 @@ AC_SUBST(SET_MAKE)
 AC_SUBST(top_srcdir)
 
 dnl Do we want a possible optimization for bigendian targets?
-dnl So far, this has proved beneifical only on OS X (and probably Dawrwin), so we
+dnl So far, this has proved benefical only on OS X (and probably Dawrwin), so we
 dnl only enable it there. Should really check compiler version too.
 if [[ "$target_cpu" = "powerpc*" ]]; then
   case $target_os in

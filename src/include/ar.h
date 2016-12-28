@@ -1,3 +1,10 @@
+/*
+ * UAE Action Replay 1/2/3/1200 and HRTMon support
+ *
+ * (c) 2000-2006 Toni Wilen <twilen@arabuusimiehet.com>
+ * (c) 2003 Mark Cox <markcox@email.com>
+ *
+ */
 
 /* disable HRTMon support by commenting this out */
 #define ACTION_REPLAY_HRTMON

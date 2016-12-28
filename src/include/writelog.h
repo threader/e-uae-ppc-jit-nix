@@ -18,6 +18,9 @@
 # define PRINTF_FORMAT
 #endif
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
 extern void write_log   (const char *, ...) PRINTF_FORMAT;
 
 //JIT debug logging is available only if JIT_DEBUG define was set
@@ -28,5 +31,8 @@ extern void write_log   (const char *, ...) PRINTF_FORMAT;
 #endif
 extern void flush_log   (void);
 extern void set_logfile (const char *logfile_name);
+#if defined(__cplusplus)
+}
+#endif
 
 #endif /* WRITELOG_H */

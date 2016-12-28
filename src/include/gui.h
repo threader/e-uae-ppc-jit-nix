@@ -6,6 +6,9 @@
   * Copyright 1996 Bernd Schmidt
   */
 
+#ifndef INCLUDE_GUI_H
+#define INCLUDE_GUI_H
+
 extern void gui_init (int argc, char **argv);
 extern int gui_open (void);
 extern int gui_update (void);
@@ -45,3 +48,5 @@ struct gui_info
 #define NUM_LEDS (1 + 1 + 1 + 1 + 1 + 4 + 1)
 #endif
 extern struct gui_info gui_data;
+
+#endif  // INCLUDE_GUI_H

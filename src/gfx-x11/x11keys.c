@@ -449,6 +449,8 @@ int xkeysym2amiga (KeySym ks)
 		as = decode_it (ks); break;
 	    case KBD_LANG_ES:
 		as = decode_es (ks); break;
+			default:
+			break;
 	}
     }
     return as;

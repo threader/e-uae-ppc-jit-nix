@@ -4,13 +4,17 @@
  * Copyright 2003-2004 Richard Drummond
  */
 
+#include "sysdeps.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <string.h>
 
+#include "gcc_warnings.h"
+GCC_DIAG_OFF(strict-prototypes)
 #include <gdk/gdkkeysyms.h>
 #include <gtk/gtk.h>
+GCC_DIAG_ON(strict-prototypes)
 
 #include "chooserwidget.h"
 #include "util.h"
@@ -20,9 +24,10 @@ static void chooserwidget_class_init (ChooserWidgetClass *class);
 static guint chooser_get_choice_num (ChooserWidget *chooser);
 static void on_choice_changed (GtkWidget *w, ChooserWidget *chooser);
 
-guint chooserwidget_get_type ()
+GtkType chooserwidget_get_type ()
 {
-    static guint chooserwidget_type = 0;
+	static bool    hasChooser = false;
+    static GtkType chooserwidget_type = 0;
 
     if (!chooserwidget_type) {
 	static const GtkTypeInfo chooserwidget_info = {
@@ -36,6 +41,7 @@ guint chooserwidget_get_type ()
 	    (GtkClassInitFunc) NULL
 	};
 	chooserwidget_type = gtk_type_unique (gtk_combo_get_type (), &chooserwidget_info);
+		hasChooser = true;
     }
     return chooserwidget_type;
 }

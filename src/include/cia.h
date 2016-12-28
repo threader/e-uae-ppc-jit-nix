@@ -6,6 +6,10 @@
   * (c) 1995 Bernd Schmidt
   */
 
+#pragma once
+#ifndef CIA_H
+#define CIA_H
+
 extern void CIA_reset (void);
 extern void CIA_vsync_handler (void);
 extern void CIA_hsync_handler (void);
@@ -23,3 +27,5 @@ extern int parallel_direct_write_status (uae_u8, uae_u8);
 extern int parallel_direct_read_status (uae_u8*);
 
 extern void CIA_inprec_prepare (void);
+
+#endif // CIA_H

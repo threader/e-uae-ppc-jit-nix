@@ -1,11 +1,18 @@
- /*
-  * UAE - The Un*x Amiga Emulator
-  *
-  * Interface to the graphics system (X, SVGAlib)
-  *
-  * Copyright 1995-1997 Bernd Schmidt
-  * Copyright 2005 Richard Drummond
-  */
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * Interface to the graphics system (X, SVGAlib)
+ *
+ * Copyright 1995-1997 Bernd Schmidt
+ * Copyright 2005 Richard Drummond
+ */
+
+#pragma once
+#ifndef XWIN_H
+#define XWIN_H
+
+#define MAX_UAE_WIDTH 8192
+#define MAX_UAE_HEIGHT 8192
 
 typedef uae_u32 xcolnr;
 
@@ -121,3 +128,5 @@ extern void toggle_mousegrab      (void);
 /* For ports using tui.c, this should be built by graphics_setup(). */
 extern struct bstring *video_mode_menu;
 extern void vidmode_menu_selected(int);
+
+#endif // XWIN_H

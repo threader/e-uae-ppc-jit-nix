@@ -19,7 +19,8 @@
 
 #include "sounddep/sound.h"
 #include "threaddep/thread.h"
-#include <SDL_audio.h>
+#include <SDL/SDL.h>
+#include <SDL/SDL_audio.h>
 
 static int have_sound = 0;
 
@@ -126,7 +127,7 @@ static void *sound_thread (void *dummy)
 {
     for (;;) {
 	int cmd = read_comm_pipe_int_blocking (&to_sound_pipe);
-	int n;
+	//int n;
 
 	switch (cmd) {
 	case 0:
@@ -194,13 +195,17 @@ int init_sound (void)
 
 void pause_sound (void)
 {
-    SDL_PauseAudio (1);
+	if (!have_sound)
+		return;
+	SDL_PauseAudio (1);
 }
 
 void resume_sound (void)
 {
-    clearbuffer();
-    SDL_PauseAudio (0);
+	if (!have_sound)
+		return;
+	clearbuffer();
+	SDL_PauseAudio (0);
 }
 
 void reset_sound (void)

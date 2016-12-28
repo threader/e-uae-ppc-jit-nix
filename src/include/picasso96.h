@@ -1,9 +1,3 @@
-
-#if 0//def WIN32
-
-#include "picasso96_win.h"
-
-#else
 /*
  * UAE - The U*nix Amiga Emulator
  *
@@ -12,14 +6,17 @@
  * Copyright 1997 Brian King <Brian_King@Mitel.com, Brian_King@Cloanto.com>
  */
 
+#pragma once
+#ifndef PICASSO96_H
+#define PICASSO96_H
+
 #if defined PICASSO96_SUPPORTED
 
 #define PICASSO96
 
-
 /* Seems the same routines copy back and forth ;-) */
-#define PIC_READ  (SPECIAL_MEM_READ|SPECIAL_MEM_WRITE)
-#define PIC_WRITE (SPECIAL_MEM_READ|SPECIAL_MEM_WRITE)
+#define PIC_READ	(SPECIAL_MEM_READ | SPECIAL_MEM_WRITE)
+#define PIC_WRITE	(SPECIAL_MEM_READ | SPECIAL_MEM_WRITE)
 
 #define JAM1 0
 #define JAM2 1
@@ -532,9 +529,7 @@ extern int uaegfx_card_found;
 
 extern struct picasso96_state_struct picasso96_state;
 
-#ifdef _WIN32
-extern unsigned int timer_id;
-#endif
+#include "traps.h"
 
 extern int DX_Fill (int dstx, int dsty, int width, int height, uae_u32 color, RGBFTYPE rgbtype);
 extern int DX_Blit (int srcx, int srcy, int dstx, int dsty, int width, int height, BLIT_OPCODE opcode);
@@ -588,4 +583,4 @@ extern int p96hack_vpos2;
 extern int p96refresh_active;
 #endif
 
-#endif
+#endif // PICASSO96_H

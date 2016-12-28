@@ -26,9 +26,9 @@ void ppc_cacheflush(void* start, int length)
 #ifndef darwin0
     sys_icache_invalidate(start, length);
 #else
-  uintptr_t stop = ((uintptr_t)start + length);
+  intptr_t stop = ((intptr_t)start + (size_t)length);
 
-  flush_cache_range((uintptr_t)start, stop);
+  flush_cache_range((intptr_t)start, stop);
 #endif
 }
 #endif

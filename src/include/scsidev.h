@@ -8,6 +8,10 @@
   * (c) 2001-2002 Toni Wilen
   */
 
+#pragma once
+#ifndef SCSIDEV_H
+#define SCSIDEV_H
+
 uaecptr scsidev_startup (uaecptr resaddr);
 void scsidev_install (void);
 void scsidev_exit (void);
@@ -16,3 +20,5 @@ void scsidev_start_threads (void);
 void scsi_do_disk_change (int device_id, int insert);
 
 extern int log_scsi;
+
+#endif // SCSIDEV_H

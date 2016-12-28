@@ -7,12 +7,16 @@
   * Copyright 2006 Richard Drummond
   */
 
+#include "sysdeps.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <string.h>
 
+#include "gcc_warnings.h"
+GCC_DIAG_OFF(strict-prototypes)
 #include <gtk/gtk.h>
+GCC_DIAG_ON(strict-prototypes)
 
 #include "led.h"
 
@@ -29,9 +33,10 @@ static void led_size_request (GtkWidget *widget, GtkRequisition *requisition);
 static void led_size_allocate (GtkWidget *widget, GtkAllocation *allocation);
 
 
-guint led_get_type ()
+GtkType led_get_type ()
 {
-    static guint led_type = 0;
+	static bool hasLed = false;
+    static GtkType led_type = 0;
 
     if (!led_type) {
 	static const GtkTypeInfo led_info = {
@@ -45,6 +50,7 @@ guint led_get_type ()
 	    (GtkClassInitFunc) NULL
 	};
 	led_type = gtk_type_unique (gtk_misc_get_type (), &led_info);
+		hasLed = true;
     }
     return led_type;
 }

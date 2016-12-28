@@ -13,7 +13,7 @@
 
 #include "options.h"
 #include "inputdevice.h"
-#include <SDL.h>
+#include <SDL/SDL.h>
 
 static unsigned int nr_joysticks;
 static int initialized;

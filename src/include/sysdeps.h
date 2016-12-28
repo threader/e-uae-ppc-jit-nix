@@ -12,23 +12,62 @@
   * Copyright 1996, 1997 Bernd Schmidt
   */
 
+#ifndef UAE_SYSDEPS_H
+#define UAE_SYSDEPS_H
+
+#if defined(__cplusplus)
+#include <cstddef>
+#include <cstdbool>
+#else
+#include <stddef.h>
+/* Note: stdbool.h has a __cplusplus section, but as it is stated in
+ * GNU gcc stdbool.h:
+ * "Supporting <stdbool.h> in C++ is a GCC extension."
+ */
+#if defined(HAVE_STDBOOL_H)
+#    include <stdbool.h>
+#  else
+#    ifndef HAVE__BOOL
+#      define _Bool signed char
+#    endif
+#    define bool _Bool
+#    define false 0
+#    define true 1
+#    define __bool_true_false_are_defined 1
+#  endif // HAVE_STDBOOL_H
+#endif // __cplusplus
+
 #if defined __AMIGA__ || defined __amiga__
 #include <devices/timer.h>
 #endif
 
+#if defined(__cplusplus)
+#include <cstdio>
+#include <cstdlib>
+#include <cerrno>
+#include <cassert>
+#include <climits>
+#else
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <assert.h>
 #include <limits.h>
+#endif // __cplusplus
 
 #ifndef __STDC__
-#ifndef _MSC_VER
+#  ifdef _MSC_VER
+#    error "M$ is no longer supported. Use WinUAE instead, it's great!"
+#  else
 #error "Your compiler is not ANSI. Get a real one."
 #endif
 #endif
 
+#if defined(__cplusplus)
+#include <cstdarg>
+#else
 #include <stdarg.h>
+#endif // __cplusplus
 
 #ifdef HAVE_SYS_TYPES_H
 #include <sys/types.h>
@@ -53,16 +92,27 @@
 
 #ifdef HAVE_SYS_STAT_H
 #include <sys/stat.h>
+#ifndef stat64
+#define stat64 stat
+#endif
 #endif
 
 #if TIME_WITH_SYS_TIME
 # include <sys/time.h>
+#  if defined(__cplusplus)
+#    include <ctime>
+#  else
 # include <time.h>
+#  endif // __cplusplus
 #else
 # if HAVE_SYS_TIME_H
 #  include <sys/time.h>
 # else
+#    if defined(__cplusplus)
+#      include <ctime>
+#    else
 #  include <time.h>
+#    endif // __cplusplus
 # endif
 #endif
 
@@ -105,20 +155,28 @@ struct utimbuf
 #endif
 
 #include "uae_types.h"
-
 #include "uae_malloc.h"
-
 #include "writelog.h"
+
+/* The following macro allows to execute machine code directly
+ * without the need of (illegal) object<->function pointer conversions.
+ */
+/// @todo : Add compiler/OS checks
+#ifdef __GNUC__
+#  define CALL_CODE_DIRECT(ptr) __asm__("call *%0" : : "a" (ptr));
+#else
+#  define CALL_CODE_DIRECT(ptr) ((compop_func*)ptr)(0);
+#endif // __GNUC__
+
 
 #ifdef __GNUC__
 /* While we're here, make abort more useful.  */
 #ifndef __MORPHOS__
 /* This fails to compile on Morphos - not sure why yet */
-#define abort() \
-  do { \
-    write_log ("Internal error; file %s, line %d\n", __FILE__, __LINE__); \
-    exit (0); \
-} while (0)
+#    define abort() { \
+			write_log ("Internal error; file %s, line %d\n", __FILE__, __LINE__); \
+			exit (0); \
+		} // no need for a do-while!
 #else
 #define abort() exit(0)
 #endif
@@ -137,16 +195,6 @@ struct utimbuf
 #undef DONT_HAVE_STDIO
 #undef DONT_HAVE_MALLOC
 
-#if defined _WIN32
-
-#if defined __WATCOMC__
-
-#define O_NDELAY 0
-#include <direct.h>
-#define dirent direct
-#define mkdir(a,b) mkdir(a)
-
-#elif defined __MINGW32__
 
 #define FILEFLAG_DIR     0x1
 #define FILEFLAG_ARCHIVE 0x2
@@ -156,84 +204,14 @@ struct utimbuf
 #define FILEFLAG_SCRIPT  0x20
 #define FILEFLAG_PURE    0x40
 
-#define O_NDELAY 0
-#define mkdir(a,b) mkdir(a)
+//#define O_NDELAY 0
+//#define mkdir(a,b) mkdir(a)
 
-#elif defined _MSC_VER
-
-#ifdef HAVE_GETTIMEOFDAY
-#include <winsock.h> // for 'struct timeval' definition
-extern void gettimeofday( struct timeval *tv, void *blah );
-#endif
-
-#define O_NDELAY 0
-
-#define FILEFLAG_DIR     0x1
-#define FILEFLAG_ARCHIVE 0x2
-#define FILEFLAG_WRITE   0x4
-#define FILEFLAG_READ    0x8
-#define FILEFLAG_EXECUTE 0x10
-#define FILEFLAG_SCRIPT  0x20
-#define FILEFLAG_PURE    0x40
-
-
-#include <io.h>
-#define O_BINARY _O_BINARY
-#define O_WRONLY _O_WRONLY
-#define O_RDONLY _O_RDONLY
-#define O_RDWR   _O_RDWR
-#define O_CREAT  _O_CREAT
-#define O_TRUNC  _O_TRUNC
-#define W_OK 0x2
-#define R_OK 0x4
-#define STAT struct stat
-#define DIR struct DIR
-struct direct
-{
-    char d_name[1];
-};
-#include <sys/utime.h>
-#define utimbuf _utimbuf
-#define USE_ZFILE
-
-#undef S_ISDIR
-#undef S_IWUSR
-#undef S_IRUSR
-#undef S_IXUSR
-#define S_ISDIR(a) (a&FILEFLAG_DIR)
-#define S_ISARC(a) (a&FILEFLAG_ARCHIVE)
-#define S_IWUSR FILEFLAG_WRITE
-#define S_IRUSR FILEFLAG_READ
-#define S_IXUSR FILEFLAG_EXECUTE
-
-/* These are prototypes for functions from the Win32 posixemu file */
-extern void get_time(time_t t, long* days, long* mins, long* ticks);
-extern time_t put_time (long days, long mins, long ticks);
-extern DWORD getattr(const char *name, LPFILETIME lpft, size_t *size);
-
-/* #define DONT_HAVE_POSIX - don't need all of Mathias' posixemu_functions, just a subset (below) */
-#define chmod(a,b) posixemu_chmod ((a), (b))
-extern int posixemu_chmod (const char *, int);
-#define stat(a,b) posixemu_stat ((a), (b))
-extern int posixemu_stat (const char *, struct stat *);
-#define mkdir(x,y) mkdir(x)
-#define truncate posixemu_truncate
-extern int posixemu_truncate (const char *, long int);
-#define utime posixemu_utime
-extern int posixemu_utime (const char *, struct utimbuf *);
-#define opendir posixemu_opendir
-extern DIR * posixemu_opendir (const char *);
-#define readdir posixemu_readdir
-extern struct dirent* posixemu_readdir (DIR *);
-#define closedir posixemu_closedir
-extern void posixemu_closedir (DIR *);
-
-#endif
-
-#endif /* _WIN32 */
+#  if defined(__cplusplus)
+extern "C" {
+#  endif
 
 #ifdef DONT_HAVE_POSIX
-
 #define access posixemu_access
 extern int posixemu_access (const char *, int);
 #define open posixemu_open
@@ -312,8 +290,10 @@ extern void mallocemu_free (void *ptr);
 #endif
 
 #include "target.h"
+#if !defined(RECUR) && !defined(NO_MACHDEP)
 #include "machdep/machdep.h"
 #include "gfxdep/gfx.h"
+#endif
 
 extern void console_out (const char *, ...);
 extern void console_flush (void);
@@ -323,8 +303,24 @@ extern void gui_message (const char *,...);
 extern int gui_message_multibutton (int flags, const char *format,...);
 #define write_log_err write_log
 
+#if defined(__cplusplus)
+}
+#endif
+
 #ifndef O_BINARY
 #define O_BINARY 0
+#endif
+
+#ifndef STATIC_INLINE
+#if __GNUC__ - 1 > 1 && __GNUC_MINOR__ - 1 >= 0
+#define STATIC_INLINE static __inline__ __attribute__ ((always_inline))
+#define NOINLINE __attribute__ ((noinline))
+#define NORETURN __attribute__ ((noreturn))
+#else
+#define STATIC_INLINE static __inline__
+#define NOINLINE
+#define NORETURN
+#endif
 #endif
 
 #ifndef MAX_PATH
@@ -333,3 +329,68 @@ extern int gui_message_multibutton (int flags, const char *format,...);
 #ifndef MAX_DPATH
 # define MAX_DPATH        512
 #endif
+
+
+#define DBLEQU(f, i) (abs ((f) - (i)) < 0.000001)
+
+#define TCHAR char
+#define REGPARAM3
+#define uae_char char
+#define _tcslen strlen
+#define _tcscpy strcpy
+#define _tcscmp strcmp
+#define _tcsncat strncat
+#define _tcsncmp strncmp
+#define _tstol atol
+#define _totupper toupper
+#define _stprintf sprintf
+#define _tcscat strcat
+#define _tcsicmp strcasecmp
+#define _tcsnicmp strncasecmp
+#define _tcsstr strstr
+#define _tcsrchr strrchr
+#define _tcsncpy strncpy
+#define _tcschr strchr
+#define _tstof atof
+#define _istdigit isdigit
+#define _istspace isspace
+#define _tstoi atoi
+#define _tcstol strtol
+#define _wunlink unlink
+#define _tcsftime strftime
+#define vsntprintf vsnprint
+#define _tcsspn strspn
+#define _istupper isupper
+#define _totlower tolower
+#define _tcstok strtok
+#define _wunlink unlink
+#define _tfopen fopen
+#define _vsntprintf vsnprintf
+#define max(a,b) ((a) > (b) ? (a) : (b))
+#define _tcstod strtod
+#define _T
+#define sleep_millis uae_msleep
+#define _istalnum iswalnum
+#define ULONG unsigned long
+#define _strtoui64 strtoul
+#define _tcscspn(wcs, reject) wcscspn((const wchar_t*)(wcs), (const wchar_t*)(reject))
+#define stricmp strcasecmp
+#define strnicmp strncasecmp
+
+#ifndef _stat64
+#define _stat64 stat64
+#endif /* _stat64 */
+
+#ifndef offsetof
+#  define offsetof(type, member)  __builtin_offsetof (type, member)
+#endif /* offsetof */
+
+typedef int HANDLE;
+typedef unsigned long DWORD;
+typedef unsigned short WORD;
+typedef long long LONGLONG;
+typedef int64_t off64_t;
+
+DWORD GetLastError(void);
+
+#endif // UAE_SYSDEPS_H

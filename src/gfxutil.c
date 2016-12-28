@@ -1,10 +1,12 @@
- /*
-  * UAE - The Un*x Amiga Emulator
-  *
-  * Common code needed by all the various graphics systems.
-  *
-  * (c) 1996 Bernd Schmidt, Ed Hanway, Samuel Devulder
-  */
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * Common code needed by all the various graphics systems.
+ *
+ * (c) 1996 Bernd Schmidt, Ed Hanway, Samuel Devulder
+ */
+
+#include <math.h>
 
 #include "sysconfig.h"
 #include "sysdeps.h"
@@ -52,12 +54,14 @@ int bits_in_mask (unsigned long mask)
 
 int mask_shift (unsigned long mask)
 {
-    int n = 0;
-    while (!(mask & 1)) {
-	n++;
-	mask >>= 1;
-    }
-    return n;
+	int n = 0;
+	if (!mask)
+		return 0;
+	while (!(mask & 1)) {
+		n++;
+		mask >>= 1;
+	}
+	return n;
 }
 
 unsigned int doMask256 (int p, int bits, int shift)
@@ -65,9 +69,11 @@ unsigned int doMask256 (int p, int bits, int shift)
     /* p is a value from 0 to 255 (Amiga color value)
      * shift to align msb with mask, and apply mask */
 
-    unsigned int val = p * 0x01010101UL;
-    val >>= (32 - bits);
-    val <<= shift;
+	unsigned long val = p * 0x01010101UL;
+	if (bits == 0)
+		return 0;
+	val >>= (32 - bits);
+	val <<= shift;
 
     return val;
 }

@@ -1,6 +1,11 @@
 AM_CFLAGS    = @UAE_CFLAGS@
 AM_CPPFLAGS  = @UAE_CPPFLAGS@
 AM_CPPFLAGS += -I$(top_srcdir)/src/include -I$(top_builddir)/src -I$(top_srcdir)/src -I$(top_srcdir)
+AM_CXXFLAGS  = @UAE_CXXFLAGS@
+
+INCLUDES = \
+	-I$(top_srcdir)/src/include -I$(top_builddir)/src -I$(top_srcdir)/src -I$(top_srcdir)
+LIBS += -L/usr/lib -lstdc++ -lpthread
 
 SUBDIRS = \
 	tools @MACHDEP@ @THREADDEP@ @GFX_DEP@ @SND_DEP@ @JOY_DEP@ @GUI_DEP@ \
@@ -12,8 +17,8 @@ DIST_SUBDIRS = \
 	sd-none sd-alsa sd-amigaos sd-beos sd-sdl sd-solaris sd-uss \
 	jd-none jd-amigainput jd-amigaos jd-beos jd-linuxold jd-sdl \
 	gui-none gui-beos gui-cocoa gui-gtk gui-muirexx \
-	od-generic od-amiga od-beos od-linux od-macosx od-win32 \
-	td-none td-amigaos td-beos td-posix td-sdl td-win32 \
+	od-generic od-amiga od-beos od-linux od-macosx \
+	td-none td-amigaos td-beos td-posix td-sdl \
 	keymap \
 	caps dms
 
@@ -36,8 +41,7 @@ DISTCLEANFILES = \
 	machdep osdep threaddep gfxdep sounddep joydep guidep \
 	target.h md-fpp.h
 
-bin_PROGRAMS  = \
-	uae readdisk make_hdf
+bin_PROGRAMS  = uae readdisk make_hdf
 
 if BUILD_MACOSX_BUNDLE
 bundle = @PACKAGE_NAME@.app
@@ -60,8 +64,10 @@ if BUILD_MACOSX_BUNDLE
 		rm -fr $(bundle)
 		mkdir -p $(bundle_contents)/MacOS
 		mkdir -p $(bundle_contents)/Resources
+		mkdir -p $(bundle_contents)/Frameworks
 		$(INSTALL_DATA) od-macosx/Info.plist $(bundle_contents)
 		$(INSTALL_PROGRAM) uae$(EXEEXT) $(bundle_contents)/MacOS/
+		cp -R /Library/Frameworks/SDL.framework $(bundle_contents)/Frameworks
 		$(INSTALL_DATA) $(srcdir)/od-macosx/euae.icns $(bundle_contents)/Resources/
 endif
 
@@ -116,13 +122,13 @@ noinst_HEADERS = \
 	include/writelog.h \
 	include/xwin.h		include/zfile.h		\
 	targets/t-amiga.h	targets/t-beos.h        \
-	targets/t-unix.h	targets/t-win32.h
+	targets/t-unix.h	include/gcc_warnings.h
 
 dist_noinst_SCRIPTS = \
 	filesys.sh install_libscg
 
 EXTRA_DIST = \
-	tools/configure.in tools/configure tools/sysconfig.h.in \
+	tools/configure.ac tools/configure tools/sysconfig.h.in \
 	tools/target.h tools/Makefile.in \
 	test/test_optflag.c test/Makefile.in test/Makefile.am
 
@@ -249,6 +255,7 @@ tools/genlinetoscr:
 	$(MAKE) -C tools genlinetoscr
 
 cpudefs.c:	tools/build68k @top_srcdir@/src/table68k
+		sleep 1s
 		./tools/build68k <@top_srcdir@/src/table68k >cpudefs.c
 
 machdep/libmachdep.a:

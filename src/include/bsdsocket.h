@@ -1,11 +1,15 @@
- /*
-  * UAE - The Un*x Amiga Emulator
-  *
-  * bsdsocket.library emulation
-  *
-  * Copyright 1997,98 Mathias Ortmann
-  *
-  */
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * bsdsocket.library emulation
+ *
+ * Copyright 1997,98 Mathias Ortmann
+ *
+ */
+
+#pragma once
+#ifndef BSDSOCKET_H
+#define BSDSOCKET_H
 
 //#define TRACING_ENABLED
 
@@ -55,14 +59,6 @@ struct socketbase {
     int eventindex;		/* current socket looked at by GetSocketEvents() to prevent starvation */
 
     /* host-specific fields below */
-#ifdef _WIN32
-    unsigned int sockAbort;	/* for aborting WinSock2 select() (damn Microsoft) */
-    unsigned int sockAsync;	/* for aborting WSBAsyncSelect() in window message handler */
-    int needAbort;		/* abort flag */
-    void *hAsyncTask;		/* async task handle */
-    void *hEvent;		/* thread event handle */
-    unsigned int *mtable;	/* window messages allocated for asynchronous event notification */
-#else
     uae_sem_t sem;		/* semaphore to notify the socket thread of work */
     uae_thread_id thread;	/* socket thread */
     int  sockabort[2];		/* pipe used to tell the thread to abort a select */
@@ -79,7 +75,6 @@ struct socketbase {
     uae_u32 sets [3];
     uae_u32 timeout;
     uae_u32 sigmp;
-#endif
 } *socketbases;
 
 
@@ -125,10 +120,8 @@ extern uae_u32 strncpyha (uae_u32, const char *, int);
 
 #define SB struct socketbase *sb
 
-#ifndef _WIN32
 typedef int SOCKET;
 #define INVALID_SOCKET -1
-#endif
 
 extern void bsdsocklib_seterrno (SB, int);
 extern void bsdsocklib_setherrno (SB, int);
@@ -198,3 +191,5 @@ extern uae_u32 host_gethostname (uae_u32, uae_u32);
 
 extern void bsdlib_install (void);
 extern void bsdlib_reset (void);
+
+#endif // BSDSOCKET_H

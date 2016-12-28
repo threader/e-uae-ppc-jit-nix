@@ -1,3 +1,14 @@
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * Read 68000 CPU specs from file "table68k"
+ *
+ * Copyright 1995,1996 Bernd Schmidt
+ */
+
+#ifndef READCPU_H
+#define READCPU_H
+
 ENUMDECL {
   Dreg, Areg, Aind, Aipi, Apdi, Ad16, Ad8r,
   absw, absl, PC16, PC8r, imm, imm0, imm1, imm2, immi, am_unknown, am_illg
@@ -100,3 +111,4 @@ extern void do_merges (void);
 extern int get_no_mismatches (void);
 extern int nr_cpuop_funcs;
 
+#endif /* READCPU_H */

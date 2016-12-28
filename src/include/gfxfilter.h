@@ -12,7 +12,9 @@ extern void S2X_init (int dw, int dh, int aw, int ah, int mult, int ad, int dd);
 typedef unsigned char uint8;
 typedef unsigned short uint16;
 typedef unsigned long uint32;
+#ifndef __cplusplus
 typedef int bool;
+#endif
 
 extern void S2X_configure (int rb, int gb, int bb, int rs, int gs, int bs);
 extern int Init_2xSaI(int rb, int gb, int bb, int rs, int gs, int bs);

@@ -10,8 +10,11 @@
 #include <unistd.h>
 #include <string.h>
 
+#include "gcc_warnings.h"
+GCC_DIAG_OFF(strict-prototypes)
 #include <gdk/gdkkeysyms.h>
 #include <gtk/gtk.h>
+GCC_DIAG_ON(strict-prototypes)
 
 #include "chipsetspeedpanel.h"
 #include "chooserwidget.h"
@@ -20,6 +23,7 @@
 #include "sysconfig.h"
 #include "sysdeps.h"
 
+#include "options.h"
 #include "custom.h"
 
 static void chipsetspeedpanel_init (ChipsetSpeedPanel *pathent);
@@ -30,9 +34,9 @@ static void on_framerate_changed (GtkWidget *w, ChipsetSpeedPanel *panel);
 static void on_sprite_collisions_changed (GtkWidget *w, ChipsetSpeedPanel *panel);
 static void on_immediate_blits_changed (GtkWidget *w, ChipsetSpeedPanel *panel);
 
-guint chipsetspeedpanel_get_type (void)
+GtkType chipsetspeedpanel_get_type (void)
 {
-    static guint chipsetspeedpanel_type = 0;
+    static GtkType chipsetspeedpanel_type = 0;
 
     if (!chipsetspeedpanel_type) {
 	static const GtkTypeInfo chipsetspeedpanel_info = {

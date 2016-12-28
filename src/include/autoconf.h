@@ -6,6 +6,10 @@
   * (c) 1996 Ed Hanway
   */
 
+#pragma once
+#ifndef AUTOCONF_H
+#define AUTOCONF_H
+
 extern uae_u32 addr (int);
 extern void db (uae_u8);
 extern void dw (uae_u16);
@@ -22,7 +26,7 @@ extern uae_u32 here (void);
 # define deftrap2(f, mode, str) define_trap((f), (mode), "")
 #endif
 
-extern void align (int);
+void align (int);
 
 extern volatile int uae_int_requested;
 extern void set_uae_int_flag (void);
@@ -53,3 +57,6 @@ extern void expansion_cleanup (void);
 extern uae_u8 *rtarea;
 
 #define RTAREA_BASE 0xF00000
+
+#endif // AUTOCONF_H
+

@@ -10,6 +10,8 @@
   * and some of it needs thread support.
   */
 
+#include "traps.h"
+
 /*
  * The following functions do exactly the same thing as their
  * Amiga counterpart, but can be called in situation where calling
@@ -57,5 +59,5 @@ extern smp_comm_pipe native2amiga_pending;
 
 STATIC_INLINE void do_uae_int_requested (void)
 {
-    uae_int_requested = 1;
+    uae_int_requested |= 1;
 }

@@ -15,14 +15,18 @@
    along with this program; if not, write to the Free Software Foundation,
    Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.  */
 
+#pragma once
+#ifndef FSUSAGE_H
+#define FSUSAGE_H
+
 /* Space usage statistics for a filesystem.  Blocks are 512-byte. */
 struct fs_usage
 {
-  long fsu_blocks;		/* Total blocks. */
-  long fsu_bfree;		/* Free blocks available to superuser. */
-  long fsu_bavail;		/* Free blocks available to non-superuser. */
-  long fsu_files;		/* Total file nodes. */
-  long fsu_ffree;		/* Free file nodes. */
+  unsigned long fsu_blocks;		/* Total blocks. */
+  unsigned long fsu_bfree;		/* Free blocks available to superuser. */
+  unsigned long fsu_bavail;		/* Free blocks available to non-superuser. */
+  unsigned long fsu_files;		/* Total file nodes. */
+  unsigned long fsu_ffree;		/* Free file nodes. */
 };
 
 #ifndef __P
@@ -35,3 +39,5 @@ struct fs_usage
 
 int get_fs_usage __P ((const char *path, const char *disk,
 		       struct fs_usage *fsp));
+
+#endif // FSUSAGE_H

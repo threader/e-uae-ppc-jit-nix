@@ -2297,6 +2297,7 @@ static void default_prefs_mini (struct uae_prefs *p, int type)
 
 void default_prefs (struct uae_prefs *p, int type)
 {
+	int i;
     memset (p, 0, sizeof (*p));
     strcpy (p->description, "UAE default configuration");
 
@@ -2341,7 +2342,7 @@ void default_prefs (struct uae_prefs *p, int type)
     p->cachesize = 0;
     p->comptestconsistency = 0;
     {
-	int i;
+
 	for (i = 0;i < 10; i++)
 	    p->optcount[i] = -1;
 	p->optcount[0] = 4; /* How often a block has to be executed before it

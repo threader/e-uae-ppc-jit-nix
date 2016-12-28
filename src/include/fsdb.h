@@ -7,6 +7,10 @@
   * Copyright 1999 Bernd Schmidt
   */
 
+#pragma once
+#ifndef FSDB_H
+#define FSDB_H
+
 #ifndef FSDB_FILE
 #define FSDB_FILE "_UAEFSDB.___"
 #endif
@@ -116,3 +120,5 @@ extern int fsdb_mode_representable_p (const a_inode *);
 extern char *fsdb_create_unique_nname (a_inode *base, const char *);
 
 extern int dos_errno (void);
+
+#endif // FSDB_H

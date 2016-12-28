@@ -219,11 +219,11 @@ void UAEWindow::InitColors (color_space colorspace)
     if (colorspace == B_CMAP8) {
 	// clut color modes
 	BScreen screen (this);
-	int i = 0;
+	int i = 0, r, g, b;
 
-	for (int r = 0;r < 16;r++) {
-	    for (int g = 0;g < 16;g++) {
-		for (int b = 0;b < 16;b++)
+	for (r = 0;r < 16;r++) {
+	    for (g = 0;g < 16;g++) {
+		for (b = 0;b < 16;b++)
 		    xcolors[i++] = screen.IndexForColor(r << 4 | r, g << 4 | g, b << 4 | b);
 	    }
 	}

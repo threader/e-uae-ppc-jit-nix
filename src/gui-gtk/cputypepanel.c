@@ -4,13 +4,17 @@
  * Copyright 2003-2004 Richard Drummond
  */
 
+#include "sysdeps.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <string.h>
 
+#include "gcc_warnings.h"
+GCC_DIAG_OFF(strict-prototypes)
 #include <gdk/gdkkeysyms.h>
 #include <gtk/gtk.h>
+GCC_DIAG_ON(strict-prototypes)
 
 #include "cputypepanel.h"
 #include "chooserwidget.h"
@@ -24,9 +28,10 @@ static void on_addr24bit_toggled (GtkWidget *w, CpuTypePanel *ctpanel);
 static void on_fpuenabled_toggled (GtkWidget *w, CpuTypePanel *ctpanel);
 static void on_accuracy_changed (GtkWidget *w, CpuTypePanel *ctpanel);
 
-guint cputypepanel_get_type ()
+GtkType cputypepanel_get_type ()
 {
-    static guint cputypepanel_type = 0;
+	static bool    hasCputype = false;
+    static GtkType cputypepanel_type = 0;
 
     if (!cputypepanel_type) {
 	static const GtkTypeInfo cputypepanel_info = {
@@ -40,6 +45,7 @@ guint cputypepanel_get_type ()
 	    (GtkClassInitFunc) NULL
 	};
 	cputypepanel_type = gtk_type_unique (gtk_frame_get_type (), &cputypepanel_info);
+		hasCputype = true;
     }
     return cputypepanel_type;
 }
@@ -200,7 +206,8 @@ GtkWidget *cputypepanel_new (void)
 
 void cputypepanel_set_cpulevel (CpuTypePanel *ctpanel, guint cpulevel)
 {
-    guint cputype; guint fpu = ctpanel->fpuenabled;
+    guint cputype;
+	guint fpu = ctpanel->fpuenabled;
 
     switch (cpulevel) {
 	case 0:  cputype = 0; break;

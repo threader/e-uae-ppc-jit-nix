@@ -52,7 +52,7 @@
 #define VidMode_MINMINOR 0
 #endif
 
-#include <X11/extensions/xf86dga.h>
+#include <X11/extensions/Xxf86dga.h>
 #define DGA_MINMAJOR 0
 #define DGA_MINMINOR 0
 
@@ -76,6 +76,7 @@
     XPutImage (display, mywin, mygc, (IMG), (SRCX), (SRCY), (DSTX), (DSTY), (WIDTH), (HEIGHT))
 #endif
 
+/* internal types */
 struct disp_info {
     XImage *ximg;
     char *image_mem;
@@ -84,6 +85,8 @@ struct disp_info {
 #endif
 };
 
+
+/* internal members */
 static Display *display;
 static int screen;
 static Window rootwin, mywin;
@@ -151,6 +154,8 @@ static int inwindow;
 static int shmerror;
 static int (*oldshmerrorhandler) (Display *, XErrorEvent *);
 
+
+/* implementations */
 static int shmerrorhandler (Display *dsp, XErrorEvent *ev)
 {
     if (ev->error_code == BadAccess)
@@ -320,7 +325,7 @@ static void enter_dga_mode (void)
     switch_to_best_mode ();
 
     gfxvidinfo.rowbytes = fb_width*gfxvidinfo.pixbytes;
-    gfxvidinfo.bufmem = fb_addr;
+    gfxvidinfo.bufmem = (unsigned char*)fb_addr;
     gfxvidinfo.linemem = 0;
     gfxvidinfo.emergmem = malloc (gfxvidinfo.rowbytes);
     gfxvidinfo.maxblocklines = MAXBLOCKLINES_MAX;
@@ -360,7 +365,7 @@ static void x11_flush_screen (struct vidbuf_description *gfxinfo, int first_line
 }
 
 /*
- * Template for flush_line() buffer method in low-bandwith mode
+ * Template for flush_line() buffer method in low-bandwidth mode
  *
  * In low-bandwidth mode, we don't flush the complete line. For each line we try
  * to find the smallest line segment that contains modified pixels and flush only
@@ -1470,7 +1475,7 @@ void gfx_set_picasso_state (int on)
     /* We can get called by drawing_init() when there's
      * no window opened yet... */
     if (mywin == 0)
-	return
+	return;
 
     write_log ("set_picasso_state:%d\n", on);
     graphics_subshutdown ();
@@ -1493,7 +1498,7 @@ uae_u8 *gfx_lock_picasso (void)
 {
 #ifdef USE_DGA_EXTENSION
     if (dgamode)
-	return fb_addr;
+		return (uae_u8 *)fb_addr;
     else
 #endif
 	return (uae_u8 *)pic_dinfo.ximg->data;
@@ -1667,7 +1672,7 @@ static int get_kb_widget_first (unsigned int kb, int type)
 static int get_kb_widget_type (unsigned int kb, unsigned int num, char *name, uae_u32 *code)
 {
     // fix me
-    *code = num;
+    if(code) *code = num;
     return IDEV_WIDGET_KEY;
 }
 

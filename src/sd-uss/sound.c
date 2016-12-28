@@ -25,7 +25,7 @@
 #endif
 
 int sound_fd;
-static int have_sound = 0;
+unsigned int have_sound = 0;
 static unsigned long formats;
 
 uae_u16 sndbuffer[44100];

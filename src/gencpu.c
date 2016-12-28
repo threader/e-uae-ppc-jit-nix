@@ -28,6 +28,10 @@
 #include "uae_string.h"
 #include "uae_types.h"
 #include "uae_malloc.h"
+
+#define NO_MACHDEP 1
+#include "sysdeps.h"
+
 #include <ctype.h>
 
 #include "readcpu.h"

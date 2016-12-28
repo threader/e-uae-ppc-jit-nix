@@ -60,9 +60,7 @@
 #include "audio.h"
 #include "version.h"
 
-#ifndef _WIN32
 #define console_out printf
-#endif
 
 #ifdef SAVESTATE
 
@@ -456,8 +454,8 @@ void restore_state (const char *filename)
 	else if (!strcmp (name, "ROM "))
 	    end = restore_rom (chunk);
 #ifdef PICASSO96
-	else if (!strcmp (name, "P96 "))
-	    end = restore_p96 (chunk);
+	//else if (!strcmp (name, "P96 "))
+	 //   end = restore_p96 (chunk);
 #endif
 #ifdef ACTION_REPLAY
 	else if (!strcmp (name, "ACTR"))
@@ -524,8 +522,8 @@ static void save_rams (struct zfile *f, int comp)
 #ifdef PICASSO96
     dst = save_pram (&len);
     save_chunk (f, dst, len, "PRAM", comp);
-    dst = save_p96 (&len, 0);
-    save_chunk (f, dst, len, "P96 ", comp);
+   // dst = save_p96 (&len, 0);
+   // save_chunk (f, dst, len, "P96 ", comp);
 #endif
 }
 

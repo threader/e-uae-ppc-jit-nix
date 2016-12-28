@@ -11,11 +11,18 @@
 #include "uae_string.h"
 #include "uae_types.h"
 #include "uae_malloc.h"
+
+#define NO_MACHDEP 1
+#include "sysdeps.h"
+
 #include "writelog.h"
 #include <ctype.h>
 
 #include "readcpu.h"
 
+#ifndef _T
+# define _T
+#endif // _T
 /*
  * You can specify numbers from 0 to 5 here. It is possible that higher
  * numbers will make the CPU emulation slightly faster, but if the setting
@@ -278,6 +285,7 @@ static void build_insn (int insn)
 	int mnp = 0;
 	int bitno = 0;
 	char mnemonic[10];
+		int mnemo;
 
 	wordsizes sz = sz_long;
 	int srcgather = 0, dstgather = 0;
@@ -328,33 +336,33 @@ static void build_insn (int insn)
 		pos++;
 		switch (opcstr[pos]) {
 
-		case 'B': sz = sz_byte; break;
-		case 'W': sz = sz_word; break;
-		case 'L': sz = sz_long; break;
-		case 'z':
-		    switch (bitval[bitz]) {
-		    case 0: sz = sz_byte; break;
-		    case 1: sz = sz_word; break;
-		    case 2: sz = sz_long; break;
-		    default: abort();
-		    }
-		    break;
-		default: abort();
+				case 'B': sz = sz_byte; break;
+				case 'W': sz = sz_word; break;
+				case 'L': sz = sz_long; break;
+				case 'z':
+					switch (bitval[bitz]) {
+					case 0: sz = sz_byte; break;
+					case 1: sz = sz_word; break;
+					case 2: sz = sz_long; break;
+					default: abort();
+					}
+					break;
+				default: abort();
+				}
+			} else {
+				mnemonic[mnp] = opcstr[pos];
+				if (mnemonic[mnp] == 'f') {
+					find = -1;
+					switch (bitval[bitf]) {
+					case 0: mnemonic[mnp] = 'R'; break;
+					case 1: mnemonic[mnp] = 'L'; break;
+					default: abort();
+					}
+				}
+				mnp++;
+			}
+			pos++;
 		}
-	    } else {
-		mnemonic[mnp] = opcstr[pos];
-		if (mnemonic[mnp] == 'f') {
-		    find = -1;
-		    switch (bitval[bitf]) {
-		    case 0: mnemonic[mnp] = 'R'; break;
-		    case 1: mnemonic[mnp] = 'L'; break;
-		    default: abort();
-		    }
-		}
-		mnp++;
-	    }
-	    pos++;
-	}
 	mnemonic[mnp] = 0;
 
 	/* now, we have read the mnemonic and the size */
@@ -616,39 +624,38 @@ static void build_insn (int insn)
 		    dstgather = 1; dstpos = bitpos[bitD];
 		}
 
-	    if (opcstr[pos] == '[') {
-		pos++;
-		if (opcstr[pos] == '!') {
-		    /* exclusion */
-		    do {
-			pos++;
-			if (mode_from_str(opcstr+pos) == destmode)
-			    goto nomatch;
-			pos += 4;
-		    } while (opcstr[pos] == ',');
-		    pos++;
-		} else {
-		    if (opcstr[pos+4] == '-') {
-			/* replacement */
-			if (mode_from_str(opcstr+pos) == destmode)
-			    destmode = mode_from_str(opcstr+pos+5);
-			else
-			    goto nomatch;
-			pos += 10;
-		    } else {
-			/* normal */
-			while(mode_from_str(opcstr+pos) != destmode) {
-			    pos += 4;
-			    if (opcstr[pos] == ']')
-				goto nomatch;
-			    pos++;
-			}
-			while(opcstr[pos] != ']') pos++;
-			pos++;
-			break;
-		    }
+			if (opcstr[pos] == '[') {
+				pos++;
+				if (opcstr[pos] == '!') {
+					/* exclusion */
+					do {
+						pos++;
+						if (mode_from_str(opcstr+pos) == destmode)
+							goto nomatch;
+						pos += 4;
+					} while (opcstr[pos] == ',');
+					pos++;
+				} else {
+					if (opcstr[pos+4] == '-') {
+						/* replacement */
+						if (mode_from_str(opcstr+pos) == destmode)
+							destmode = mode_from_str(opcstr+pos+5);
+						else
+							goto nomatch;
+						pos += 10;
+					} else {
+						/* normal */
+						while(mode_from_str(opcstr+pos) != destmode) {
+							pos += 4;
+							if (opcstr[pos] == ']')
+								goto nomatch;
+							pos++;
+						}
+						while(opcstr[pos] != ']') pos++;
+						pos++;
+					}
+				}
 		}
-	    }
 	    /* Some addressing modes are invalid as destination */
 	    if (destmode == imm || destmode == PC16 || destmode == PC8r)
 		goto nomatch;
@@ -734,11 +741,12 @@ static void build_insn (int insn)
 	    table68k[opc].mnemo = lookuptab[find].mnemo;
 	}
 	table68k[opc].cc = bitval[bitc];
-	if (table68k[opc].mnemo == i_BTST
-	    || table68k[opc].mnemo == i_BSET
-	    || table68k[opc].mnemo == i_BCLR
-	    || table68k[opc].mnemo == i_BCHG)
-	    {
+		mnemo = table68k[opc].mnemo;
+		if (mnemo == i_BTST
+			|| mnemo == i_BSET
+			|| mnemo == i_BCLR
+			|| mnemo == i_BCHG)
+		{
 		sz = destmode == Dreg ? sz_long : sz_byte;
 	    }
 	table68k[opc].size = sz;
@@ -793,40 +801,40 @@ static void handle_merges (long int opcode)
     int sbitdst, dstend;
     int srcreg, dstreg;
 
-    if (table68k[opcode].spos == -1) {
-	sbitdst = 1; smsk = 0;
-    } else {
-	switch (table68k[opcode].stype) {
-	 case 0:
-	    smsk = 7; sbitdst = 8; break;
-	 case 1:
-	    smsk = 255; sbitdst = 256; break;
-	 case 2:
-	    smsk = 15; sbitdst = 16; break;
-	 case 3:
-	    smsk = 7; sbitdst = 8; break;
-	 case 4:
-	    smsk = 7; sbitdst = 8; break;
-	 case 5:
-	    smsk = 63; sbitdst = 64; break;
-	 case 7:
-	    smsk = 3; sbitdst = 4; break;
-	 default:
-	    smsk = 0; sbitdst = 0;
-	    abort();
-	    break;
+	if (table68k[opcode].spos == -1) {
+		sbitdst = 1; smsk = 0;
+	} else {
+		switch (table68k[opcode].stype) {
+		case 0:
+			smsk = 7; sbitdst = 8; break;
+		case 1:
+			smsk = 255; sbitdst = 256; break;
+		case 2:
+			smsk = 15; sbitdst = 16; break;
+		case 3:
+			smsk = 7; sbitdst = 8; break;
+		case 4:
+			smsk = 7; sbitdst = 8; break;
+		case 5:
+			smsk = 63; sbitdst = 64; break;
+		case 7:
+			smsk = 3; sbitdst = 4; break;
+		default:
+			smsk = 0; sbitdst = 0;
+			abort();
+			break;
+		}
+		smsk <<= table68k[opcode].spos;
 	}
-	smsk <<= table68k[opcode].spos;
-    }
-    if (table68k[opcode].dpos == -1) {
-	dstend = 1; dmsk = 0;
-    } else {
-	dmsk = 7 << table68k[opcode].dpos;
-	dstend = 8;
-    }
-    for (srcreg=0; srcreg < sbitdst; srcreg++) {
-	for (dstreg=0; dstreg < dstend; dstreg++) {
-	    uae_u16 code = (uae_u16)opcode;
+	if (table68k[opcode].dpos == -1) {
+		dstend = 1; dmsk = 0;
+	} else {
+		dmsk = 7 << table68k[opcode].dpos;
+		dstend = 8;
+	}
+	for (srcreg=0; srcreg < sbitdst; srcreg++) {
+		for (dstreg=0; dstreg < dstend; dstreg++) {
+			uae_u16 code = (uae_u16)opcode;
 
 	    code = (code & ~smsk) | (srcreg << table68k[opcode].spos);
 	    code = (code & ~dmsk) | (dstreg << table68k[opcode].dpos);
@@ -855,10 +863,10 @@ static void handle_merges (long int opcode)
 		mismatch++; continue;
 	    }
 
-	    if (code != opcode)
-		table68k[code].handler = opcode;
+			if (code != opcode)
+				table68k[code].handler = opcode;
+		}
 	}
-    }
 }
 
 void do_merges (void)

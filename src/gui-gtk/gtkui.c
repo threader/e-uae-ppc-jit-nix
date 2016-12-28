@@ -33,9 +33,12 @@
 #include "picasso96.h"
 #include "version.h"
 
+#include "gcc_warnings.h"
+GCC_DIAG_OFF(strict-prototypes)
 #include <gtk/gtk.h>
 #include <gdk/gdk.h>
 #include <gdk/gdkkeysyms.h>
+GCC_DIAG_ON(strict-prototypes)
 
 #include "gui-gtk/cputypepanel.h"
 #include "gui-gtk/cpuspeedpanel.h"
@@ -49,9 +52,10 @@
 #ifdef  GUI_DEBUG
 #define DEBUG_LOG write_log ( "%s: ", __func__); write_log
 #else
-#define DEBUG_LOG(...) do {} while(0)
+#define DEBUG_LOG(...) { }
 #endif
 
+/* internal types */
 static int gui_active;
 
 static int gui_available;
@@ -186,6 +190,8 @@ static uae_sem_t gui_quit_sem;   // For the GUI thread to tell UAE that it's qui
 
 static volatile int quit_gui = 0, quitted_gui = 0;
 
+
+/* internal prototypes */
 static void create_guidlg (void);
 
 static void do_message_box (const gchar *title, const gchar *message, gboolean modal, gboolean wait);
@@ -199,7 +205,7 @@ static void set_mem32_widgets_state (void)
     int enable = changed_prefs.cpu_level >= 2 && ! changed_prefs.address_space_24;
 
 #ifdef AUTOCONFIG
-    int i;
+    unsigned int i;
 
     for (i = 0; i < 10; i++)
 	gtk_widget_set_sensitive (z3size_widget[i], enable);
@@ -392,11 +398,12 @@ static void set_hd_state (void)
     gtk_clist_freeze (GTK_CLIST (hdlist_widget));
     gtk_clist_clear (GTK_CLIST (hdlist_widget));
 
-    for (i = 0; i < nr; i++) {
-	int     secspertrack, surfaces, reserved, blocksize, bootpri;
-	uae_u64 size;
-	int     cylinders, readonly, flags;
-	char   *devname, *volname, *rootdir, *filesysdir;
+		for (i = 0; i < nr; i++) {
+			int     secspertrack=0, surfaces=0, reserved=0, blocksize=0, bootpri=0;
+			uae_u64 size = 0;
+			int     cylinders=0, readonly=0, flags=0;
+			char   	*devname=NULL, *volname=NULL, *rootdir=NULL, *filesysdir=NULL;
+			int	ret = 0;
 	const char *failure;
 
 	/* We always use currprefs.mountinfo for the GUI.  The filesystem
@@ -560,7 +567,7 @@ static int my_idle (void)
 static int leds_callback (void)
 {
     unsigned int leds = gui_ledstate;
-    unsigned int i;
+    unsigned int i = 0;
 
     if (!quit_gui) {
 	for (i = 0; i < 5; i++) {
@@ -998,7 +1005,7 @@ static GtkWidget *make_file_widget (GtkWidget *buttonbox)
 static void make_floppy_disks (GtkWidget *vbox)
 {
     char buf[5];
-    int i;
+    unsigned int i;
 
     add_empty_vbox (vbox);
 
@@ -1624,10 +1631,10 @@ static void did_newhdf (void)
 
 static void did_hdchange (void)
 {
-    int secspertrack, surfaces, reserved, blocksize, bootpri;
-    uae_u64 size;
-    int cylinders, readonly, flags;
-    char *devname, *volname, *rootdir, *filesysdir;
+    int secspertrack=0, surfaces=0, reserved=0, blocksize=0, bootpri=0;
+    uae_u64 size=0;
+    int cylinders=0, readonly=0, flags=0;
+    char *devname=NULL, *volname=NULL, *rootdir=NULL, *filesysdir=NULL;
     const char *failure;
 
     failure = get_filesys_unit (currprefs.mountinfo, selected_hd_row,
@@ -2238,7 +2245,7 @@ void gui_notify_state (int state)
  */
 static void do_message_box (const gchar *title, const gchar *message, gboolean modal, gboolean wait )
 {
-    uae_sem_t msg_quit_sem;
+    uae_sem_t msg_quit_sem = {0};
 
     // If we a need reply, then this semaphore which will be used
     // to signal us when the dialog has been exited.

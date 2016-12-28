@@ -24,14 +24,6 @@ extern void uae_save_config (void);
 
 extern void setup_brkhandler (void);
 
-#ifdef WIN32
-extern char warning_buffer[256];
-extern char *start_path;
-
-void logging_init (void);
-void filesys_init (void);
-#endif
-
 #ifdef USE_SDL
 int init_sdl (void);
 #endif

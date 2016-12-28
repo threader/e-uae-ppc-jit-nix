@@ -10,7 +10,6 @@
 #include <pthread.h>
 #include <semaphore.h>
 
-
 #ifndef USE_NAMED_SEMAPHORES
 
 typedef struct {
@@ -88,13 +87,22 @@ typedef pthread_t uae_thread_id;
 
 STATIC_INLINE int uae_start_thread (void *(*f) (void *), void *arg, uae_thread_id *foo)
 {
-    return pthread_create (foo, 0, f, arg);
+	int result;
+	result = pthread_create (foo, 0, f, arg);
+
+	return 0 == result;
 }
 
 STATIC_INLINE int uae_wait_thread (uae_thread_id thread)
 {
     return pthread_join (thread, (void**)0);
 }
+
+STATIC_INLINE void uae_kill_thread (uae_thread_id* thread)
+{
+	pthread_detach(*thread);
+}
+
 
 #define UAE_THREAD_EXIT pthread_exit(0)
 

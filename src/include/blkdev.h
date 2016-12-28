@@ -1,3 +1,14 @@
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * lowlevel cd device glue, scsi emulator
+ *
+ * Copyright 2009-2013 Toni Wilen
+ *
+ */
+
+#ifndef BLKDEV_H
+#define BLKDEV_H
 
 #define MAX_TOTAL_DEVICES 8
 #define DEVICE_SCSI_BUFSIZE 4096
@@ -105,3 +116,6 @@ void scsi_atapi_fixup_post (uae_u8 *scsi_cmd, int len, uae_u8 *olddata, uae_u8 *
 
 void scsi_log_before (const uae_u8 *cdb,  int cdblen,  const uae_u8 *data,  int datalen);
 void scsi_log_after  (const uae_u8 *data, int datalen, const uae_u8 *sense, int senselen);
+
+
+#endif /* BLKDEV_H */

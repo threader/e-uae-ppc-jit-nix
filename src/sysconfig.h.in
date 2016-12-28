@@ -1,10 +1,22 @@
-/* src/sysconfig.h.in.  Generated from configure.in by autoheader.  */
+/* src/sysconfig.h.in.  Generated from configure.ac by autoheader.  */
 
 /* Define if building universal (internal helper macro) */
 #undef AC_APPLE_UNIVERSAL_BUILD
 
+/* AMCC PPC CPU */
+#undef AMCC_CPU
+
+/* CPU DCACHE_SIZE */
+#undef DCACHE_SIZE
+
+/* E500 PPC CPU */
+#undef E500_CPU
+
 /* Define to 1 if you have the `alarm' function. */
 #undef HAVE_ALARM
+
+/* CPU supports Altivec */
+#undef HAVE_ALTIVEC
 
 /* Define to 1 if you have the 'bswap_16' function. */
 #undef HAVE_BSWAP_16
@@ -31,7 +43,7 @@
    */
 #undef HAVE_DIRENT_H
 
-/* "Define to 1 if you have 'dlopen' function */
+/* "Define to 1 if you have 'dlopen' function" */
 #undef HAVE_DLOPEN
 
 /* Define to 1 if you have the <dustat.h> header file. */
@@ -255,6 +267,9 @@
 /* Define to 1 if the system has the type `_Bool'. */
 #undef HAVE__BOOL
 
+/* CPU ICACHE_SIZE */
+#undef ICACHE_SIZE
+
 /* Define to 1 if your CPU profitably supports multiplication. */
 #undef MULTIPLICATION_PROFITABLE
 
@@ -279,6 +294,12 @@
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
+/* PPC CPU */
+#undef PPC_CPU
+
+/* PA6T PPC CPU */
+#undef PPC_ISA_203
+
 /* Define to the necessary symbol if this constant uses a non-standard name on
    your system. */
 #undef PTHREAD_CREATE_JOINABLE
@@ -294,6 +315,9 @@
 
 /* The size of `long', as computed by sizeof. */
 #undef SIZEOF_LONG
+
+/* The size of `long double', as computed by sizeof. */
+#undef SIZEOF_LONG_DOUBLE
 
 /* The size of `long long', as computed by sizeof. */
 #undef SIZEOF_LONG_LONG
@@ -425,6 +449,15 @@
 
 /* Define to empty if `const' does not conform to ANSI C. */
 #undef const
+
+/* Darwin 0-7 */
+#undef darwin0
+
+/* Darwin 8 */
+#undef darwin8
+
+/* Darwin 9 */
+#undef darwin9
 
 /* Define to `__inline__' or `__inline' if that's what the C compiler
    calls it, or to nothing if 'inline' is not supported under any name.  */

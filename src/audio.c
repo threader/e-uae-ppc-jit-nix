@@ -31,6 +31,9 @@
 #endif
 #include "sinctable.h"
 #include "gui.h" /* for gui_ledstate */
+#include "threaddep/thread.h"
+
+#include <math.h>
 
 #define MAX_EV ~0ul
 //#define DEBUG_AUDIO
