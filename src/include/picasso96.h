@@ -529,7 +529,6 @@ extern int uaegfx_card_found;
 
 extern struct picasso96_state_struct picasso96_state;
 
-#include "traps.h"
 
 extern int DX_Fill (int dstx, int dsty, int width, int height, uae_u32 color, RGBFTYPE rgbtype);
 extern int DX_Blit (int srcx, int srcy, int dstx, int dsty, int width, int height, BLIT_OPCODE opcode);
