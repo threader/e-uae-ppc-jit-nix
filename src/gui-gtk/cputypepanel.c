@@ -33,7 +33,7 @@ GtkType cputypepanel_get_type ()
 	static bool    hasCputype = false;
     static GtkType cputypepanel_type = 0;
 
-    if (!cputypepanel_type) {
+    if (!hasCputype) {
 	static const GtkTypeInfo cputypepanel_info = {
 	    (char *) "CpuTypePanel",
 	    sizeof (CpuTypePanel),

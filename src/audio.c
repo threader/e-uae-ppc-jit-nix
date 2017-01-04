@@ -35,6 +35,9 @@
 
 #include <math.h>
 
+/* internal prototypes */
+int is_vsync (void);
+
 #define MAX_EV ~0ul
 //#define DEBUG_AUDIO
 #define DEBUG_CHANNEL_MASK 15
@@ -649,8 +652,14 @@ void schedule_audio (void)
  * since it was common to all.
  * Needs further cleaning up and a better name - or replacing entirely.
  */
+
+extern unsigned int have_sound;
+
 void update_sound (unsigned int freq)
 {
+	if (!have_sound)
+		return;
+
     if (obtainedfreq) {
 	if (is_vsync ()) {
 	    if (currprefs.ntscmode)

@@ -4,13 +4,17 @@
  * Copyright 2003-2004 Richard Drummond
  */
 
+#include "sysdeps.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <string.h>
 
+#include "gcc_warnings.h"
+GCC_DIAG_OFF(strict-prototypes)
 #include <gdk/gdkkeysyms.h>
 #include <gtk/gtk.h>
+GCC_DIAG_ON(strict-prototypes)
 
 #include "util.h"
 #include "chooserwidget.h"

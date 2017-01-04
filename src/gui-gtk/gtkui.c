@@ -327,10 +327,10 @@ static int map_jsem_to_widget (int jsem)
 {
     int widget = 0;
 
-    if (jsem >= JSEM_END)
-	widget = 0;
-    else if (jsem >= JSEM_MICE)
-	widget = 3;
+    if (jsem == JSEM_END)
+		widget = 0;
+    else if (jsem == JSEM_MICE)
+		widget = 3;
     else if (jsem == JSEM_JOYS || jsem == JSEM_JOYS + 1 )
 	widget = jsem - JSEM_JOYS + 1;
     else if (jsem >= JSEM_KBDLAYOUT)
@@ -1990,6 +1990,9 @@ void gui_led (int num, int on)
  */
 void gui_filename (int num, const char *name)
 {
+    if (!gui_available)
+	    return;
+
     DEBUG_LOG ("Entered with drive:%d name:%s\n", num, name);
 
     if (gui_available) {

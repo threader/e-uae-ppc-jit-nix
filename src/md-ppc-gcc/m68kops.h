@@ -35,7 +35,7 @@
 #define optflag_testl(regs, v) 				\
     do { 						\
 	uae_u32 tmp; 					\
-	asm (						\
+	__asm__ __volatile__ (						\
 		"cmpi cr0, %2, 0	\n\t" 		\
 		"mfocrf %1,0x80		\n\t" 		\
 		"rlwinm %0, %1, 0, 0, 3 \n\t" 		\
@@ -50,7 +50,7 @@
 #define optflag_testl(regs, v) 				\
     do { 						\
 	uae_u32 tmp; 					\
-	asm (						\
+	__asm__ __volatile__ (						\
 		"cmpi cr0, %2, 0	\n\t" 		\
 		"mfcr %1		\n\t" 		\
 		"rlwinm %0, %1, 0, 0, 3 \n\t" 		\
@@ -75,7 +75,7 @@
 #define optflag_addl(regs, v, s, d)			\
     do {						\
 	uae_s32 tmp; 					\
-	asm (						\
+	__asm__ __volatile__ (						\
 		"addco. %2, %3, %4	\n\t"		\
 		"mfxer %1		\n\t"		\
 		"mfocrf %0,0x80		\n\t"		\
@@ -92,7 +92,7 @@
 #else
 #define optflag_addl(regs, v, s, d)			\
     do {						\
-	asm (						\
+	__asm__ __volatile__ (						\
 		"addco. %1, %2, %3	\n\t"		\
 		"mcrxr  cr2		\n\t"		\
 		"mfcr   %0		\n\t"		\
@@ -118,7 +118,7 @@
 #define optflag_subl(regs, v, s, d)			\
     do {						\
 	uae_s32 tmp; 					\
-	asm (						\
+	__asm__ __volatile__ (						\
 		"subfco. %2, %3, %4	\n\t"		\
 		"mfxer %1		\n\t"		\
 		"mfocrf %0,0x80		\n\t"		\
@@ -137,7 +137,7 @@
 #else
 #define optflag_subl(regs, v, s, d)			\
     do {						\
-	asm (						\
+	__asm__ __volatile__ (						\
 		"subfco. %1, %2, %3	\n\t"		\
 		"mcrxr  cr2		\n\t"		\
 		"mfcr   %0		\n\t"		\
@@ -160,7 +160,7 @@
 #define optflag_cmpl(regs, s, d) 			\
     do { 						\
 	uae_s32 tmp; 					\
-	asm (						\
+	__asm__ __volatile__ (						\
 		"subfco. %1, %2, %3	\n\t"		\
 		"mfxer %1		\n\t"		\
 		"mfocrf %0,0x80		\n\t"		\
@@ -178,7 +178,7 @@
 #define optflag_cmpl(regs, s, d) 			\
     do { 						\
 	uae_s32 tmp; 					\
-	asm (						\
+	__asm__ __volatile__ (						\
 		"subfco. %1, %2, %3	\n\t"		\
 		"mcrxr  cr2		\n\t"		\
 		"mfcr   %0		\n\t"		\

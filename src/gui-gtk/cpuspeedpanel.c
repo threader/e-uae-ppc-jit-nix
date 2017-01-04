@@ -33,7 +33,7 @@ GtkType cpuspeedpanel_get_type ()
 	static bool    hasCpuspeed = false;
     static GtkType cpuspeedpanel_type = 0;
 
-    if (!cpuspeedpanel_type) {
+    if (!hasCpuspeed) {
 	static const GtkTypeInfo cpuspeedpanel_info = {
 	    (char *) "CpuSpeedPanel",
 	    sizeof (CpuSpeedPanel),

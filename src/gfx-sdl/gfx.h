@@ -9,3 +9,4 @@
 #define GFX_NAME "sdl"
 #define USE_SDL_GFX
 #define PICASSO96_SUPPORTED
+#define PICASSO96

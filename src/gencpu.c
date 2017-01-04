@@ -75,9 +75,8 @@ static void read_counts (void)
     memset (counts, 0, 65536 * sizeof *counts);
 
 	count = 0;
-    file = fopen ("frequent.68k", "r");
-    if (file) {
-	fscanf (file, "Total: %lu\n", &total);
+	file = fopen ("frequent.68k", "r");
+	if (file && (1 == fscanf (file, "Total: %lu\n", &total))) {
 	while (fscanf (file, "%lx: %lu %s\n", &opcode, &count, name) == 3) {
 	    opcode_next_clev[nr] = 4;
 	    opcode_last_postfix[nr] = -1;

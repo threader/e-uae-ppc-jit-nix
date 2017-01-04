@@ -5,13 +5,17 @@
  * Copyright 2004 Richard Drummond
  */
 
+#include "sysdeps.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <string.h>
 
+#include "gcc_warnings.h"
+GCC_DIAG_OFF(strict-prototypes)
 #include <gdk/gdkkeysyms.h>
 #include <gtk/gtk.h>
+GCC_DIAG_ON(strict-prototypes)
 
 #include "util.h"
 #include "floppyfileentry.h"
@@ -22,11 +26,12 @@ static void floppyfileentry_class_init (FloppyFileEntryClass *class);
 static void on_eject (GtkWidget *w, FloppyFileEntry *ffe);
 static void on_insert (GtkWidget *w, FloppyFileEntry *ffe);
 
-guint floppyfileentry_get_type ()
+GtkType floppyfileentry_get_type ()
 {
-    static guint floppyfileentry_type = 0;
+	static bool    hasFloppy = false;
+    static GtkType floppyfileentry_type = 0;
 
-    if (!floppyfileentry_type) {
+    if (!hasFloppy) {
 	static const GtkTypeInfo floppyfileentry_info = {
 	    (char *) "FloppyFileEntry",
 	    sizeof (FloppyFileEntry),
@@ -38,6 +43,7 @@ guint floppyfileentry_get_type ()
 	    (GtkClassInitFunc) NULL
 	};
 	floppyfileentry_type = gtk_type_unique (gtk_frame_get_type (), &floppyfileentry_info);
+		hasFloppy = true;
     }
     return floppyfileentry_type;
 }
@@ -243,8 +249,8 @@ void floppyfileentry_set_currentdir (FloppyFileEntry *ffe, const gchar *pathname
      * Make sure it has a trailing path separator so the file dialog
      * actually believes it's a directory
      */
-    ffe_currentdir = g_strconcat ((gchar *)pathname,
-				  (pathname[len-1] != '/') ? "/" : NULL,
+    ffe_currentdir = g_strconcat ((gchar *)(len ? pathname : "."),
+				  (!len || pathname[len-1] != '/') ? "/" : NULL,
 				   NULL);
 }
 

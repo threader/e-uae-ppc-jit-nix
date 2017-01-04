@@ -199,7 +199,11 @@ STATIC_INLINE fptype to_pack (uae_u32 wrd1, uae_u32 wrd2, uae_u32 wrd3)
     *cp++ = ((wrd1 >> 20) & 0xf) + '0';
     *cp++ = ((wrd1 >> 16) & 0xf) + '0';
     *cp = 0;
-    sscanf (str, "%le", &d);
+#if USE_LONG_DOUBLE
+	sscanf (str, "%Le", &d);
+#else
+	sscanf (str, "%le", &d);
+#endif
     return d;
 }
 

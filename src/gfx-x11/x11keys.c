@@ -22,6 +22,12 @@
 #include "keyboard.h"
 #include "hotkeys.h"
 
+/* internal prototypes */
+const char *get_xkb_keycodes (Display *);
+int xkeysym2amiga (KeySym);
+struct uae_hotkeyseq *get_x11_default_hotkeys (void);
+
+
 #ifdef USE_XKB
 # include <X11/XKBlib.h>
 # include <X11/extensions/XKBrules.h>

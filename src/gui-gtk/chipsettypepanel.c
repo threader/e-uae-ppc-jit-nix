@@ -23,6 +23,7 @@ GCC_DIAG_ON(strict-prototypes)
 #include "sysconfig.h"
 #include "sysdeps.h"
 
+#include "options.h"
 #include "custom.h"
 
 static void chipsettypepanel_init (ChipsetTypePanel *pathent);
@@ -37,7 +38,7 @@ GtkType chipsettypepanel_get_type (void)
 	static bool    hasChipset = false;
     static GtkType chipsettypepanel_type = 0;
 
-    if (!chipsettypepanel_type) {
+    if (!hasChipset) {
 	static const GtkTypeInfo chipsettypepanel_info = {
 	    (char *) "ChipsetTypePanel",
 	    sizeof (ChipsetTypePanel),
@@ -49,6 +50,7 @@ GtkType chipsettypepanel_get_type (void)
 	    (GtkClassInitFunc) NULL
 	};
 	chipsettypepanel_type = gtk_type_unique (gtk_frame_get_type (), &chipsettypepanel_info);
+		hasChipset = true;
     }
     return chipsettypepanel_type;
 }

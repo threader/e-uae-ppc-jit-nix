@@ -38,7 +38,7 @@ GtkType led_get_type ()
 	static bool hasLed = false;
     static GtkType led_type = 0;
 
-    if (!led_type) {
+    if (!hasLed) {
 	static const GtkTypeInfo led_info = {
 	    (char *) "Led",
 	    sizeof (Led),

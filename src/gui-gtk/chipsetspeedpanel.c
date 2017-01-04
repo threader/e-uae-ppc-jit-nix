@@ -36,9 +36,10 @@ static void on_immediate_blits_changed (GtkWidget *w, ChipsetSpeedPanel *panel);
 
 GtkType chipsetspeedpanel_get_type (void)
 {
+	static bool    hasChipspeed = false;
     static GtkType chipsetspeedpanel_type = 0;
 
-    if (!chipsetspeedpanel_type) {
+    if (!hasChipspeed) {
 	static const GtkTypeInfo chipsetspeedpanel_info = {
 	    (char *) "ChipsetSpeedPanel",
 	    sizeof (ChipsetSpeedPanel),
@@ -50,6 +51,7 @@ GtkType chipsetspeedpanel_get_type (void)
 	    (GtkClassInitFunc) NULL
 	};
 	chipsetspeedpanel_type = gtk_type_unique (gtk_frame_get_type (), &chipsetspeedpanel_info);
+		hasChipspeed = true;
     }
     return chipsetspeedpanel_type;
 }

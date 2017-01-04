@@ -29,7 +29,7 @@ GtkType chooserwidget_get_type ()
 	static bool    hasChooser = false;
     static GtkType chooserwidget_type = 0;
 
-    if (!chooserwidget_type) {
+    if (!hasChooser) {
 	static const GtkTypeInfo chooserwidget_info = {
 	    (char *) "ChooserWidget",
 	    sizeof (ChooserWidget),
