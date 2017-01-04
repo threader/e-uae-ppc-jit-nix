@@ -48,6 +48,7 @@
 #ifdef TARGET_AMIGAOS
 # include <dos/dos.h>
 # include <proto/dos.h>
+# include <dos/obsolete.h>
 #endif
 
 #define TRACING_ENABLED 0
@@ -541,8 +542,8 @@ struct hardfiledata *get_hardfile_data (int nr)
 #define ACTION_END		1007
 #define ACTION_SEEK		1008
 #define ACTION_IS_FILESYSTEM	1027
-#define ACTION_READ		'R'
-#define ACTION_WRITE		'W'
+#define ACTION_READ		82 /* 'R' */
+#define ACTION_WRITE		87 /* 'W' */
 
 /* 2.0+ packet types */
 #define ACTION_INHIBIT		31
