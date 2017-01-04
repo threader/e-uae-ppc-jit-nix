@@ -2002,11 +2002,12 @@ STATIC_INLINE int sprites_differ (struct draw_info *dip, struct draw_info *dip_o
     if (dip->nr_sprites == 0)
 	return 0;
 
-    for (i = 0; i < dip->nr_sprites; i++)
-	if (this_first[i].pos != prev_first[i].pos
-	    || this_first[i].max != prev_first[i].max
-	    || this_first[i].has_attached != prev_first[i].has_attached)
-	    return 1;
+	for (i = 0; i < dip->nr_sprites; i++) {
+		if (this_first[i].pos != prev_first[i].pos
+			|| this_first[i].max != prev_first[i].max
+			|| this_first[i].has_attached != prev_first[i].has_attached)
+			return 1;
+	}
 
     npixels = this_last->first_pixel + (this_last->max - this_last->pos) - this_first->first_pixel;
     if (memcmp (spixels + this_first->first_pixel, spixels + prev_first->first_pixel,

@@ -22,7 +22,7 @@
 #include <SDL/SDL.h>
 #include <SDL/SDL_audio.h>
 
-static int have_sound = 0;
+int have_sound = 0;
 
 uae_u16 sndbuffer[44100];
 uae_u16 *sndbufpt;
