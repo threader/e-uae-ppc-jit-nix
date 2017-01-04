@@ -46,6 +46,8 @@
 #include <proto/dos.h>
 #endif
 
+#include <dos/obsolete.h>
+
 /****************************************************************************/
 
 #include <ctype.h>
