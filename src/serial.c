@@ -18,6 +18,7 @@
 #include "newcpu.h"
 #include "cia.h"
 #include "serial.h"
+#include "gcc_warnings.h"
 
 #ifdef SERIAL_PORT
 # ifndef WIN32

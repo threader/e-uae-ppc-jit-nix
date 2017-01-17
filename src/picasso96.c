@@ -34,6 +34,8 @@
 #include "sysconfig.h"
 #include "sysdeps.h"
 
+#if defined(PICASSO96)
+
 #include "options.h"
 #include "uae.h"
 #include "memory.h"
@@ -42,6 +44,7 @@
 #include "xwin.h"
 #include "picasso96.h"
 #include "uae_endian.h"
+#include "gcc_warnings.h"
 
 #ifdef JIT
 int        have_done_picasso       = 0;         /* For the JIT compiler */
@@ -216,7 +219,7 @@ static void DumpLibResolutionStructure (uaecptr amigalibresptr)
     }
 }
 
-static char binary_byte[9];
+static char binary_byte[9] = { 0,0,0,0,0,0,0,0,0 };
 
 static char *BuildBinaryString (uae_u8 value)
 {
@@ -267,7 +270,7 @@ int picasso_nr_resolutions (void)
 
 static void ShowSupportedResolutions (void)
 {
-    int i;
+	int i = 0;
 
     return;
 
@@ -2068,7 +2071,7 @@ uae_u32 REGPARAM2 picasso_BlitRect (struct regstruct *regs)
     P96TRACE (("P96: BlitRect(%d, %d, %d, %d, %d, %d, 0x%x)\n", srcx, srcy,
 	       dstx, dsty, width, height, Mask));
 
-    result = BlitRect (renderinfo, 0, srcx, srcy, dstx, dsty,
+    result = BlitRect (renderinfo, (uaecptr)0, srcx, srcy, dstx, dsty,
 		       width, height, Mask, BLIT_SRC);
 
     return result;
@@ -2153,10 +2156,10 @@ STATIC_INLINE void PixelWrite (uae_u8 * mem, int bits, uae_u32 fgpen, uae_u8 Bpp
     case 1:
 	if (mask != 0xFF)
 	    fgpen = (fgpen & mask) | (do_get_mem_byte (mem + bits) & ~mask);
-	do_put_mem_byte (mem + bits, fgpen);
+	do_put_mem_byte (mem + bits, (uae_u8)fgpen);
 	break;
     case 2:
-	do_put_mem_word (((uae_u16 *) mem) + bits, fgpen);
+	do_put_mem_word (((uae_u16 *) mem) + bits, (uae_u16)fgpen);
 	break;
     case 3:
 	do_put_mem_byte (mem + bits * 3, fgpen & 0x000000FF);
@@ -2554,12 +2557,10 @@ static void PlanarToChunky (struct RenderInfo *ri, struct BitMap *bm,
 {
     int j;
 
-    uae_u8 *PLANAR[8];
-    uae_u8 *image = ri->Memory + dstx * GetBytesPerPixel (ri->RGBFormat)
-		  + dsty * ri->BytesPerRow;
-    int Depth = bm->Depth;
-    unsigned long rows, bitoffset = srcx & 7;
-    long eol_offset;
+	uae_u8 *PLANAR[8], *image = ri->Memory + dstx * GetBytesPerPixel (ri->RGBFormat) + dsty * ri->BytesPerRow;
+	int Depth = bm->Depth;
+	unsigned long rows, bitoffset = srcx & 7;
+	long eol_offset;
 
     /* Set up our bm->Planes[] pointers to the right horizontal offset */
     for (j = 0; j < Depth; j++) {
@@ -3098,3 +3099,4 @@ void InitPicasso96 (void)
 }
 
 #endif
+#endif //picasso96

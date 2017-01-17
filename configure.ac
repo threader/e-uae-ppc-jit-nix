@@ -1653,7 +1653,7 @@ AC_MSG_CHECKING([host CPU is ])
 				AC_DEFINE(ICACHE_SIZE,32,[CPU ICACHE_SIZE])
 			;;
             e6500*) _march='-mcpu=e6500' _mcpu='-mtune=e6500'
-				AC_DEFINE_UNQUOTED(E500_CPU, "$host_cpu"-freescale-e500, [E500 PPC CPU])
+				AC_DEFINE_UNQUOTED(E6500_CPU, "$host_cpu"-freescale-e6500, [E6500 PPC CPU])
 				AC_DEFINE(DCACHE_SIZE,32,[CPU DCACHE_SIZE])
 				AC_DEFINE(ICACHE_SIZE,32,[CPU ICACHE_SIZE])
 			;;

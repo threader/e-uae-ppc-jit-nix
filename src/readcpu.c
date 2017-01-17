@@ -653,6 +653,7 @@ static void build_insn (int insn)
 						}
 						while(opcstr[pos] != ']') pos++;
 						pos++;
+						break;
 					}
 				}
 		}

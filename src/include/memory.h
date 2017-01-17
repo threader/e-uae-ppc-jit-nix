@@ -1,10 +1,17 @@
- /*
-  * UAE - The Un*x Amiga Emulator
-  *
-  * memory management
-  *
-  * Copyright 1995 Bernd Schmidt
-  */
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * memory management
+ *
+ * Copyright 1995 Bernd Schmidt
+ */
+
+#ifndef MEMORY_UAE_H
+#define MEMORY_UAE_H
+
+#ifndef HAS_UAE_PREFS_STRUCT
+struct uae_prefs;
+#endif // HAS_UAEPREFS_STRUCT
 
 extern void memory_reset (void);
 extern void a1000_reset (void);
@@ -272,3 +279,5 @@ extern uae_u8 *mapped_malloc (size_t, const char *);
 extern void mapped_free (uae_u8 *);
 extern void clearexec (void);
 extern void mapkick (void);
+
+#endif /* MEMORY_H */
