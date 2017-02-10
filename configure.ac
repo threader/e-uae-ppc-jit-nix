@@ -1540,7 +1540,7 @@ AC_MSG_CHECKING([host CPU supports Altivec(tm)])
 GETFLAGS=`sysctl -a hw | grep hw.optional.altivec: | awk '{print $2}'`
 if test "$GETFLAGS" = "1"; then
 have_altivec=yes
-CPUFLAGS="-maltivec -mabi=altivec -faltivec"
+CPUFLAGS="-O3 -maltivec -mabi=altivec -faltivec -funroll-loops"
 AC_DEFINE(HAVE_ALTIVEC,1,[CPU supports Altivec])
 else
 have_altivec=no
