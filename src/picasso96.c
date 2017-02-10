@@ -119,11 +119,27 @@ static int need_argb32_hack = 0;
      || defined __PPC__) && defined __GNUC__
 STATIC_INLINE void memcpy_bswap32 (void *dst, void *src, int n)
 {
+#if (defined HAVE_ALTIVEC && defined HAVE_BSWAP_32)
+/*
+ * Dishonorably borrow neug's memcpy_bswap32 and fall back to gcc bswap
+ * when -O3 -funroll-loops -maltivec - because of segfault.
+ */
+#include <byteswap.h>
+  uint32_t *q = (uint32_t *)dst;
+
+  n >>= 2;
+
+  while (n--)
+    q[n] = bswap_32 (((uint32_t *)src)[n]); /* bswap32 is GCC extention */
+}
+#else
+
+//#endif
     int words = n / 4;
 
     if (words > 1) {
 	uae_u32 tmp;
-	asm volatile (
+	__asm__ __volatile__ (
 	    "addi    %2, %2, -1		\n\
 	     mtctr   %2			\n\
 	     lwz     %3, 0(%1)		\n\
@@ -137,7 +153,7 @@ STATIC_INLINE void memcpy_bswap32 (void *dst, void *src, int n)
 	:  "ctr", "memory");
    } else {
 	uae_u32 tmp;
-	asm volatile (
+	__asm__ __volatile__ (
 	    "lwz     %2, 0(%1)		\n\
 	     stwbrx  %2, 0, %0"
 	: "+r" (dst), "+r" (src), "=r" (tmp)
@@ -145,6 +161,8 @@ STATIC_INLINE void memcpy_bswap32 (void *dst, void *src, int n)
 	: "memory");
    }
 }
+#endif
+
 #else
 STATIC_INLINE void memcpy_bswap32 (void *dst, void *src, int n)
 {

@@ -1596,11 +1596,13 @@ AC_MSG_CHECKING([host CPU supports Altivec(tm)])
 dnl make option 
 if test -n "$($_cpuinfo | grep altivec)"; then
 _altivec=yes
+AC_DEFINE(HAVE_ALTIVEC,1,[CPU supports Altivec])
 fi
 
 if test "$_altivec" = "yes"; then
 AC_MSG_RESULT([$proc altivec])
-CPUFLAGS="-maltivec -mabi=altivec"
+dnl assume we are going flying
+CPUFLAGS="-maltivec -mabi=altivec -O3 -maltivec -funroll-loops"
 else
 _altivec=no
 AC_MSG_RESULT(["$proc"])
@@ -1702,6 +1704,7 @@ dnl -- End, Do we want local cpu optimazions
 fi
 dnl -- End, PPC
 
+dnl cleaning this up breaks lots of kittens on various platforms
 LIBS="$LIBS $GUI_LIBS $GFX_LIBS $SND_LIBS $JOY_LIBS $UAE_LIBS"
 CPPFLAGS="$CPPFLAGS $UAE_CPPFLAGS $UAE_DEFINES $GFX_CPPFLAGS"
 CFLAGS="$OPTIMIZED_FLAGS $CFLAGS $UAE_CFLAGS $UAE_CFLAGS $GUI_CFLAGS $GFX_CFLAGS $SND_CFLAGS $JOY_CFLAGS -std=gnu99"
