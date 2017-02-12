@@ -119,22 +119,23 @@ static int need_argb32_hack = 0;
      || defined __PPC__) && defined __GNUC__
 STATIC_INLINE void memcpy_bswap32 (void *dst, void *src, int n)
 {
-#if (defined HAVE_ALTIVEC && defined HAVE_BSWAP_32)
+#if (defined HAVE_ALTIVEC && defined HAVE_BSWAP_32) && __GNUC_PREREQ (4,3)
 /*
  * Dishonorably borrow neug's memcpy_bswap32 and fall back to gcc bswap
  * when -O3 -funroll-loops -maltivec - because of segfault.
+ * Why can we not use swab() here? 
  */
 #include <byteswap.h>
-  uint32_t *q = (uint32_t *)dst;
+  uae_u32 *q = (uae_u32 *)dst;
 
-  n >>= 2;
+  int i = n / 4;
 
-  while (n--)
-    q[n] = bswap_32 (((uint32_t *)src)[n]); /* bswap32 is GCC extention */
+  while (i--) {
+    q[i] = __builtin_bswap32 (((uae_u32 *)src)[i]); /* bswap32 - GCC extention */
+	};
 }
 #else
 
-//#endif
     int words = n / 4;
 
     if (words > 1) {
