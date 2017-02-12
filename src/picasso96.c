@@ -1812,7 +1812,7 @@ uae_u32 REGPARAM2 picasso_FillRect (struct regstruct *regs)
     uae_u32 Height     = (uae_u16)m68k_dreg (regs, 3);
     uae_u32 Pen        =          m68k_dreg (regs, 4);
     uae_u8 Mask        = (uae_u8) m68k_dreg (regs, 5);
-    RGBFTYPE RGBFormat =          m68k_dreg (regs, 7);
+    RGBFTYPE RGBFormat = (RGBFTYPE)m68k_dreg (regs, 7);
 
     uae_u8 *src;
     uae_u8 *oldstart;
@@ -2036,21 +2036,20 @@ STATIC_INLINE int BlitRect (uaecptr ri, uaecptr dstri,
     CopyRenderInfoStructureA2U (ri, &blitrectdata.ri_struct);
     blitrectdata.ri = &blitrectdata.ri_struct;
 
-    if (dstri) {
-	CopyRenderInfoStructureA2U( dstri, &blitrectdata.dstri_struct );
-	blitrectdata.dstri = &blitrectdata.dstri_struct;
-    } else
-	blitrectdata.dstri = NULL;
-
-    blitrectdata.srcx   = srcx;
-    blitrectdata.srcy   = srcy;
-    blitrectdata.dstx   = dstx;
-    blitrectdata.dsty   = dsty;
-    blitrectdata.width  = width;
-    blitrectdata.height = height;
-    blitrectdata.mask   = mask;
-    blitrectdata.opcode = opcode;
-
+	if(dstri) {
+		CopyRenderInfoStructureA2U(dstri, &blitrectdata.dstri_struct);
+		blitrectdata.dstri = &blitrectdata.dstri_struct;
+	} else {
+		blitrectdata.dstri = NULL;
+	}
+	blitrectdata.srcx = srcx;
+	blitrectdata.srcy = srcy;
+	blitrectdata.dstx = dstx;
+	blitrectdata.dsty = dsty;
+	blitrectdata.width = width;
+	blitrectdata.height = height;
+	blitrectdata.mask = mask;
+	blitrectdata.opcode = opcode;
     return BlitRectHelper();
 }
 
@@ -2124,7 +2123,7 @@ uae_u32 REGPARAM2 picasso_BlitRectNoMaskComplete (struct regstruct *regs)
     unsigned long dsty   = (uae_u16)m68k_dreg (regs, 3);
     unsigned long width  = (uae_u16)m68k_dreg (regs, 4);
     unsigned long height = (uae_u16)m68k_dreg (regs, 5);
-    uae_u8 OpCode        =          m68k_dreg (regs, 6);
+    BLIT_OPCODE OpCode = (BLIT_OPCODE)(m68k_dreg (regs, 6) & 0xff);
 /*    uae_u32 RGBFmt       =          m68k_dreg (regs, 7); */
 
     int result = 0;
