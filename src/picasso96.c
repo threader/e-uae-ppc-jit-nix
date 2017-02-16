@@ -134,7 +134,7 @@ STATIC_INLINE void memcpy_bswap32 (void *dst, void *src, int n)
   int words = n / 4;
 
   while (i--) {
-#if __GNUC_PREREQ (9, 3)
+#if __GNUC_PREREQ (4, 3)
     q[i] = __builtin_bswap32 (((uae_u32 *)srcp)[i]); /* bswap32 - GCC extention */
 #else 
 	q[i] = bswap_32 (((uae_u32 *)srcp)[i]);
@@ -497,10 +497,18 @@ static void do_fillrect (uae_u8 *src, int x, int y, int width, int height,
 #	ifndef WORDS_BIGENDIAN
 	    if (Bpp > 1)
 		if (!(Bpp == 4 && need_argb32_hack))
+#if __GNUC_PREREQ (4, 3)
+			pen = __builtin_bswap32 (pen);
+#else
 		    pen = bswap_32 (pen);
+#endif
 #	else
 	    if (Bpp == 4 && need_argb32_hack)
-		pen = bswap_32 (pen);
+#if __GNUC_PREREQ (4, 3)
+			pen = __builtin_bswap32 (pen);
+#else
+		    pen = bswap_32 (pen);
+#endif
 #	endif
 
 	if (DX_Fill (x, y, width, height, pen, rgbtype))
