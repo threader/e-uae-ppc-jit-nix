@@ -121,7 +121,7 @@ STATIC_INLINE void memcpy_bswap32 (void *dst, void *src, int n)
 {
   uae_u32 *q = (uae_u32 *)dst;
   uae_u32 *srcp = (uae_u32 *)src;
-  uae_u32 tmpp;
+  uae_u32 tmp;
 
   int i = n >>= 2;
   int words = n / 4;
