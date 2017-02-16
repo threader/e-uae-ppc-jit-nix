@@ -20,7 +20,7 @@ static size_t icache_bsize = ICACHE_SIZE;
 static inline void isync(void)
 {
 #if defined(_ARCH_PWR4) && !defined(E500_CPU) && !defined(AMCC_CPU)
- 		__asm__ __volatile__ ("lwsync");
+ 		__asm__ __volatile__ ("lwsync"); /* may result in sync; isync */
 #elif defined(AMCC_CPU) || defined(E500_CPU) || defined(PPC_ISA_203)
         __asm__ __volatile__ ("msync; isync");
 #else
@@ -30,7 +30,9 @@ static inline void isync(void)
 
 static inline void dsync(void)
 {
-#if defined(AMCC_CPU) || defined(E500_CPU) || defined(PPC_ISA_203)
+#if defined(_ARCH_PWR4) && !defined(E500_CPU) && !defined(AMCC_CPU)
+ 		__asm__ __volatile__ ("lwsync");
+#elif defined(AMCC_CPU) || defined(E500_CPU) || defined(PPC_ISA_203)
         __asm__ __volatile__ ("msync");
 #else
         __asm__ __volatile__ ("sync");

@@ -1602,7 +1602,7 @@ fi
 if test "$_altivec" = "yes"; then
 AC_MSG_RESULT([$proc altivec])
 dnl assume we are going flying
-CPUFLAGS="-maltivec -mabi=altivec -O3 -maltivec -funroll-loops"
+CPUFLAGS="-O3 -maltivec -mabi=altivec -funroll-loops -frename-registers"
 else
 _altivec=no
 AC_MSG_RESULT(["$proc"])
@@ -1650,7 +1650,7 @@ AC_MSG_CHECKING([host CPU is ])
 			 ;;
 		dnl Amiga X2000, X5000 - Freescale e5500 - E500mc core
 	    e5500*) _march='-mcpu=e5500' _mcpu='-mtune=e5500'
-            			AC_DEFINE_UNQUOTED(E500_CPU, "$host_cpu"-freescale-e500, [E500 PPC CPU])
+            	AC_DEFINE_UNQUOTED(E500_CPU, "$host_cpu"-freescale-e500, [E500 PPC CPU])
 				AC_DEFINE(DCACHE_SIZE,32,[CPU DCACHE_SIZE])
 				AC_DEFINE(ICACHE_SIZE,32,[CPU ICACHE_SIZE])
 			;;
@@ -1666,9 +1666,9 @@ AC_MSG_CHECKING([host CPU is ])
                 else 
                 _march='-mcpu=8548' _mcpu='-mtune=8548'
                 fi
-		                AC_DEFINE_UNQUOTED(E500_CPU, "$host_cpu"-freescale-e500, [E500 PPC CPU])
-        		        AC_DEFINE(DCACHE_SIZE,32,[CPU DCACHE_SIZE])
-        		        AC_DEFINE(ICACHE_SIZE,32,[CPU ICACHE_SIZE])
+		         AC_DEFINE_UNQUOTED(E500_CPU, "$host_cpu"-freescale-e500, [E500 PPC CPU])
+        		 AC_DEFINE(DCACHE_SIZE,32,[CPU DCACHE_SIZE])
+        		 AC_DEFINE(ICACHE_SIZE,32,[CPU ICACHE_SIZE])
                		;;
             *) ;;
         esac

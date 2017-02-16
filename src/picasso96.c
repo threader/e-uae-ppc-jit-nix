@@ -119,7 +119,7 @@ static int need_argb32_hack = 0;
      || defined __PPC__) && defined __GNUC__
 STATIC_INLINE void memcpy_bswap32 (void *dst, void *src, int n)
 {
-#if (defined HAVE_ALTIVEC && defined HAVE_BSWAP_32) && __GNUC_PREREQ (4,3)
+#if (defined HAVE_ALTIVEC && defined HAVE_BSWAP_32) 
 /*
  * Dishonorably borrow neug's memcpy_bswap32 and fall back to gcc bswap
  * when -O3 -funroll-loops -maltivec - because of segfault.
@@ -127,11 +127,18 @@ STATIC_INLINE void memcpy_bswap32 (void *dst, void *src, int n)
  */
 #include <byteswap.h>
   uae_u32 *q = (uae_u32 *)dst;
+  uae_u32 *srcp = (uae_u32 *)src;
+	uae_u32 tmpp;
 
-  int i = n / 4;
+  int i = n >>= 2;
+  int words = n / 4;
 
   while (i--) {
-    q[i] = __builtin_bswap32 (((uae_u32 *)src)[i]); /* bswap32 - GCC extention */
+#if __GNUC_PREREQ (9, 3)
+    q[i] = __builtin_bswap32 (((uae_u32 *)srcp)[i]); /* bswap32 - GCC extention */
+#else 
+	q[i] = bswap_32 (((uae_u32 *)srcp)[i]);
+#endif
 	};
 }
 #else
