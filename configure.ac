@@ -1646,7 +1646,7 @@ AC_MSG_CHECKING([host CPU is ])
             CELL*) _march='-mcpu=cell' _mcpu='-mtune=cell' ;;
 		dnl Amiga X1000 - P.a semi Pa6t-1682m
 	    PA6T*) _march='-mcpu=pa6t' _mcpu='-mtune=pa6t'
-				AC_DEFINE_UNQUOTED(PPC_ISA_203, "$host_cpu"-pae6t, [PA6T PPC CPU])
+				AC_DEFINE_UNQUOTED(PPC_ISA_203, "$host_cpu"-pa6t, [PA6T PPC CPU])
 			 ;;
 		dnl Amiga X2000, X5000 - Freescale e5500 - E500mc core
 	    e5500*) _march='-mcpu=e5500' _mcpu='-mtune=e5500'

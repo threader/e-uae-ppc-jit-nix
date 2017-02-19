@@ -44,8 +44,6 @@
 #include "xwin.h"
 #include "picasso96.h"
 #include "uae_endian.h"
-#include "cache.h"
-#include "byteorder.h"
 #include "gcc_warnings.h"
 
 #ifdef JIT
@@ -115,26 +113,6 @@ static uae_u32 p2ctab[256][2];
  * and byte-swapping each pixel when output to the real screen
  */
 static int need_argb32_hack = 0;
-
-/* This stuff should probably be moved elsewhere */
-#if (defined __powerpc__ || defined __ppc__ || defined __POWERPC__ \
-     || defined __PPC__) && defined __GNUC__
-STATIC_INLINE void memcpy_bswap32 (void *dst, void *src, int n)
-{
-  uae_u32 *q = (uae_u32 *)dst;
-  uae_u32 *srcp = (uae_u32 *)src;
-  uint32_t i = n >>=2;
-
-	//dsync();
-
-    while (i--) {
-		ld_swap32(srcp+i,q[i]);
- 		//st_swap32(srcp[i], q+i);
-	}
-
-}
-#endif
-
 
 /*
  * Debugging dumps
@@ -447,23 +425,13 @@ static void do_fillrect (uae_u8 *src, int x, int y, int width, int height,
      * sure we adjust for the pen values if we're doing 8-bit
      * display-emulation on a 16-bit or higher screen. */
     if (picasso_vidinfo.rgbformat == picasso96_state.RGBFormat) {
-
-#	ifndef WORDS_BIGENDIAN
+ #	ifndef WORDS_BIGENDIAN
 	    if (Bpp > 1)
 		if (!(Bpp == 4 && need_argb32_hack == 1))
-#if __GNUC_PREREQ (4, 3)
-			pen = __builtin_bswap32 (pen);
-#else
-		    pen = bswap_32 (pen);
-#endif
-
+		    pen = uae_swap_32 (pen);
 #	else
 	    if (Bpp == 4 && need_argb32_hack == 1)
-#if __GNUC_PREREQ (4, 3)
-			pen = __builtin_bswap32 (pen);
-#else
-		    pen = bswap_32 (pen);
-#endif
+		pen = uae_swap32 (pen);
 #	endif
 
 	if (DX_Fill (x, y, width, height, pen, rgbtype))
