@@ -1540,7 +1540,7 @@ AC_MSG_CHECKING([host CPU supports Altivec(tm)])
 GETFLAGS=`sysctl -a hw | grep hw.optional.altivec: | awk '{print $2}'`
 if test "$GETFLAGS" = "1"; then
 have_altivec=yes
-CPUFLAGS="-O3 -maltivec -mabi=altivec -faltivec -funroll-loops"
+CPUFLAGS="-maltivec -mabi=altivec -faltivec -funroll-loops"
 AC_DEFINE(HAVE_ALTIVEC,1,[CPU supports Altivec])
 else
 have_altivec=no
@@ -1602,7 +1602,7 @@ fi
 if test "$_altivec" = "yes"; then
 AC_MSG_RESULT([$proc altivec])
 dnl assume we are going flying
-CPUFLAGS="-O3 -maltivec -mabi=altivec -funroll-loops -frename-registers"
+CPUFLAGS="-maltivec -mabi=altivec -funroll-loops -frename-registers"
 else
 _altivec=no
 AC_MSG_RESULT(["$proc"])
@@ -1692,9 +1692,9 @@ OPTIMIZED_FLAGS="$OPTIMIZED_FLAGS -pipe"
 
 cp confdefs.h src/include/config.h
 
-CFLAGS="$CFLAGS $CPUFLAGS"
-CXXFLAGS="$CXXFLAGS $CPUFLAGS"
-CPPFLAGS="$CPPFLAGS $CPUFLAGS"
+CFLAGS="$CFLAGS -O3 $CPUFLAGS"
+CXXFLAGS="$CXXFLAGS -O3 $CPUFLAGS"
+CPPFLAGS="$CPPFLAGS -O3 $CPUFLAGS"
 
 else
   AC_MSG_RESULT(no)

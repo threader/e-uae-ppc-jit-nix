@@ -44,6 +44,8 @@
 #include "xwin.h"
 #include "picasso96.h"
 #include "uae_endian.h"
+#include "cache.h"
+#include "byteorder.h"
 #include "gcc_warnings.h"
 
 #ifdef JIT
@@ -121,58 +123,15 @@ STATIC_INLINE void memcpy_bswap32 (void *dst, void *src, int n)
 {
   uae_u32 *q = (uae_u32 *)dst;
   uae_u32 *srcp = (uae_u32 *)src;
-  uae_u32 tmp;
+  uint32_t i = n >>=2;
 
-  int i = n >>= 2;
-  int words = n / 4;
-#if (defined HAVE_ALTIVEC && defined HAVE_BSWAP_32) 
-/*
- * Dishonorably borrow neug's memcpy_bswap32 and fall back to gcc bswap
- * when -O3 -funroll-loops -maltivec - because of segfault.
- * Why can we not use swab() here? 
- */
+	dsync();
 
-  while (i--) {
-#if __GNUC_PREREQ (4, 3)
-    q[i] = __builtin_bswap32 (((uae_u32 *)srcp)[i]);
-#else 
-	q[i] = bswap_32 (((uae_u32 *)srcp)[i]);
-#endif
-	};
-}
-#else
-    if (words > 1) {
-	__asm__ __volatile__ (
-	    "addi    %2, %2, -1		\n\
-	     mtctr   %2			\n\
-	     lwz     %3, 0(%1)		\n\
-	1:   stwbrx  %3, 0, %0		\n\
-	     addi    %0, %0, 4  	\n\
-	     lwzu    %3, 4(%1)		\n\
-	     bdnz    1b         	\n\
-	     stwbrx  %3, 0, %0"
-	: "+r" (q), "+r" (srcp), "+r" (words), "=r" (tmp)
-	:
-	:  "ctr", "memory");
-   } else {
-	__asm__ __volatile__ (
-	    "lwz     %2, 0(%1)		\n\
-	     stwbrx  %2, 0, %0"
-	: "+r" (q), "+r" (srcp), "=r" (tmp)
-	:
-	: "memory");
-   }
-}
-#endif
+    while (i--) {
+		ld_swap32(srcp+i,q[i]);
+ 		st_swap32(srcp[i], q+i);
+	}
 
-#else
-STATIC_INLINE void memcpy_bswap32 (void *dst, void *src, int n)
-{
-    int i = n / 4;
-    uae_u32 *dstp = (uae_u32 *)dst;
-    uae_u32 *srcp = (uae_u32 *)src;
-    for ( ; i; i--)
-	*dstp++ = bswap_32 (*srcp++);
 }
 #endif
 
@@ -488,6 +447,7 @@ static void do_fillrect (uae_u8 *src, int x, int y, int width, int height,
      * sure we adjust for the pen values if we're doing 8-bit
      * display-emulation on a 16-bit or higher screen. */
     if (picasso_vidinfo.rgbformat == picasso96_state.RGBFormat) {
+
 #	ifndef WORDS_BIGENDIAN
 	    if (Bpp > 1)
 		if (!(Bpp == 4 && need_argb32_hack == 1))
@@ -496,6 +456,7 @@ static void do_fillrect (uae_u8 *src, int x, int y, int width, int height,
 #else
 		    pen = bswap_32 (pen);
 #endif
+
 #	else
 	    if (Bpp == 4 && need_argb32_hack == 1)
 #if __GNUC_PREREQ (4, 3)
