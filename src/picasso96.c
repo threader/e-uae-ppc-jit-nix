@@ -125,11 +125,11 @@ STATIC_INLINE void memcpy_bswap32 (void *dst, void *src, int n)
   uae_u32 *srcp = (uae_u32 *)src;
   uint32_t i = n >>=2;
 
-	dsync();
+	//dsync();
 
     while (i--) {
 		ld_swap32(srcp+i,q[i]);
- 		st_swap32(srcp[i], q+i);
+ 		//st_swap32(srcp[i], q+i);
 	}
 
 }
