@@ -2,6 +2,7 @@
  * ld/st_swap by:
  * $Id: byteorder.h 81 2010-05-30 08:22:23Z joern $
  * (c) 2009 jorn.amundsen@ntnu.no
+ * swap16/32 from SDL. 
  */ 
 
 /*

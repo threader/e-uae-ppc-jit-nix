@@ -35,14 +35,6 @@
 	| (((x) & 0x000000ffu) << 24) ) 
 # endif
 #endif
-#endif
-
-#ifndef uae_swap32
-#if __GNUC_PREREQ (4, 3)
-#define		uae_swap32(x) __builtin_bswap32(x)
-#else
-#define		uae_swap32(x) bswap_32(x)
-#endif
 
 #if defined(__PPC__) || defined(_ARCH_PPC)
 static __inline__ void memcpy_bswap32 (void *dst, void *src, int n)
@@ -66,6 +58,16 @@ STATIC_INLINE void memcpy_bswap32 (void *dst, void *src, int n)
     for ( ; i; i--)
 	*dstp++ = bswap_32 (*srcp++);
 }
+
+#ifndef uae_swap32(x)
+#warning "uae_swap32 not defined!"
+#if __GNUC_PREREQ (4,3)
+#define		uae_swap32(x) __builtin_bswap32(x)
+#else
+#define		uae_swap32(x) bswap_32(x)
+#endif
+#endif
+
 #endif
 
 #endif /* UAE_ENDIAN_H */

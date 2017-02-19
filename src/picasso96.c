@@ -428,7 +428,7 @@ static void do_fillrect (uae_u8 *src, int x, int y, int width, int height,
  #	ifndef WORDS_BIGENDIAN
 	    if (Bpp > 1)
 		if (!(Bpp == 4 && need_argb32_hack == 1))
-		    pen = uae_swap_32 (pen);
+		    pen = uae_swap32 (pen);
 #	else
 	    if (Bpp == 4 && need_argb32_hack == 1)
 		pen = uae_swap32 (pen);
