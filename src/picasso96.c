@@ -272,12 +272,13 @@ static int CopyRenderInfoStructureA2U (uaecptr amigamemptr,
 {
     uaecptr memp = get_long (amigamemptr + PSSO_RenderInfo_Memory);
 
-    if (valid_address (memp, PSSO_RenderInfo_sizeof)) {
+    if (valid_address (amigamemptr, PSSO_RenderInfo_sizeof)) {
 	ri->AMemory     = memp;
 	ri->Memory      = get_real_address (memp);
 	ri->BytesPerRow = get_word (amigamemptr + PSSO_RenderInfo_BytesPerRow);
-	ri->RGBFormat   = get_long (amigamemptr + PSSO_RenderInfo_RGBFormat);
-	return 1;
+	ri->RGBFormat   = (RGBFTYPE)get_long (amigamemptr + PSSO_RenderInfo_RGBFormat);
+		if (valid_address (memp, ri->BytesPerRow))
+			return 1;
     }
     write_log ("P96: ERROR - Invalid RenderInfo memory area.\n");
     return 0;
@@ -296,7 +297,8 @@ static int CopyPatternStructureA2U (uaecptr amigamemptr,
 	pattern->BgPen    = get_long (amigamemptr + PSSO_Pattern_BgPen);
 	pattern->Size     = get_byte (amigamemptr + PSSO_Pattern_Size);
 	pattern->DrawMode = get_byte (amigamemptr + PSSO_Pattern_DrawMode);
-	return 1;
+		if (valid_address (memp, 2))
+			return 1;
     }
     write_log ("P96: ERROR - Invalid Pattern memory area.\n");
     return 0;
@@ -305,10 +307,12 @@ static int CopyPatternStructureA2U (uaecptr amigamemptr,
 static void CopyColorIndexMappingA2U (uaecptr amigamemptr,
 				      struct ColorIndexMapping *cim)
 {
-    int i;
-    cim->ColorMask = get_long (amigamemptr);
-    for (i = 0; i < 256; i++, amigamemptr += 4)
-	cim->Colors[i] = get_long (amigamemptr + 4);
+	int i;
+	cim->ColorMask = get_long (amigamemptr);
+	for (i = 0; i < 256; i++, amigamemptr += 4) {
+		uae_u32 v = get_long (amigamemptr + 4);
+		cim->Colors[i] = v;
+	}
 }
 
 static int CopyBitMapStructureA2U (uaecptr amigamemptr, struct BitMap *bm)
@@ -460,7 +464,7 @@ static void do_fillrect (uae_u8 *src, int x, int y, int width, int height,
 		dst += picasso_vidinfo.rowbytes;
 	    }
 	} else {
-	    if (Bpp == 4 && need_argb32_hack) {
+	    if (Bpp == 4 && need_argb32_hack== 1) {
 		while (height-- > 0) {
 		    memcpy_bswap32 (dst, src, width);
 		    dst += picasso_vidinfo.rowbytes;
@@ -581,7 +585,7 @@ static void do_blit (struct RenderInfo *ri, int Bpp, int srcx, int srcy,
 
     if (picasso_vidinfo.rgbformat == picasso96_state.RGBFormat) {
 	width *= Bpp;
-	if (Bpp == 4 && need_argb32_hack) {
+	if (Bpp == 4 && need_argb32_hack== 1) {
 	    while (height-- > 0) {
 		memcpy_bswap32 (dstp, srcp, width);
 		srcp += ri->BytesPerRow;
@@ -692,7 +696,7 @@ STATIC_INLINE void write_currline (uae_u8 *srcp, int line_no, int first_byte, in
 	if (picasso_vidinfo.rgbformat == picasso96_state.RGBFormat) {
 	    dstp += line_no * picasso_vidinfo.rowbytes + first_byte;
 
-	    if (need_argb32_hack && Bpp == 4)
+	    if (need_argb32_hack == 1 && Bpp == 4)
 		memcpy_bswap32 (dstp, srcp, byte_count);
 	    else
 		memcpy (dstp, srcp, byte_count);
@@ -2167,11 +2171,10 @@ uae_u32 REGPARAM picasso_BlitPattern (struct regstruct *regs)
     struct RenderInfo ri;
     struct Pattern pattern;
     unsigned long rows;
-    uae_u32 fgpen;
     uae_u8 *uae_mem;
     int xshift;
     unsigned long ysize_mask;
-    int result = 0;
+    uae_u32 result = 0;
 
 #ifdef JIT
     special_mem |= picasso_is_special_read | picasso_is_special;
@@ -2190,8 +2193,13 @@ uae_u32 REGPARAM picasso_BlitPattern (struct regstruct *regs)
 	pattern.DrawMode &= 0x03;
 
 	if (Mask != 0xFF) {
-	    if( Bpp > 1 )
-		Mask = 0xFF;
+		if (Mask != 0xFF) {
+			if(Bpp > 1)
+				Mask = 0xFF;
+			result = 1;
+		} else {
+			result = 1;
+		}
 
 	    if( pattern.DrawMode == COMP)
 		 P96TRACE (("P96: WARNING - BlitPattern() has unhandled mask 0x%x with"\
@@ -2202,12 +2210,14 @@ uae_u32 REGPARAM picasso_BlitPattern (struct regstruct *regs)
 	    result = 1;
 
 	if (result) {
-#           ifdef P96TRACING_ENABLED
+			uae_u32 fgpen, bgpen;
+#           if P96TRACING_ENABLED
 		DumpPattern (&pattern);
 #           endif
 	    ysize_mask = (1 << pattern.Size) - 1;
 	    xshift = pattern.XOffset & 15;
-
+		fgpen = pattern.FgPen;
+		bgpen = pattern.BgPen;
 	    for (rows = 0; rows < H; rows++, uae_mem += ri.BytesPerRow) {
 		unsigned long prow = (rows + pattern.YOffset) & ysize_mask;
 		unsigned int d = do_get_mem_word (((uae_u16 *)pattern.Memory) + prow);
@@ -2233,15 +2243,15 @@ uae_u32 REGPARAM picasso_BlitPattern (struct regstruct *regs)
 				if (inversion)
 				    bit_set = !bit_set;
 				if (bit_set)
-				    PixelWrite (uae_mem2, bits, pattern.FgPen, Bpp, Mask);
+				    PixelWrite (uae_mem2, bits, fgpen, Bpp, Mask);
 				break;
 			    case JAM2:
 				if (inversion)
 				    bit_set = !bit_set;
 				if (bit_set)
-				    PixelWrite (uae_mem2, bits, pattern.FgPen, Bpp, Mask);
+				    PixelWrite (uae_mem2, bits, fgpen, Bpp, Mask);
 				else
-				    PixelWrite (uae_mem2, bits, pattern.BgPen, Bpp, Mask);
+				    PixelWrite (uae_mem2, bits, bgpen, Bpp, Mask);
 				break;
 			    case COMP:
 				if (bit_set) {
@@ -2348,9 +2358,6 @@ uae_u32 REGPARAM2 picasso_BlitTemplate (struct regstruct *regs)
 	    if (tmp.DrawMode == COMP) {
 		P96TRACE (("P96: WARNING - BlitTemplate() has unhandled mask 0x%x with"\
 			   " COMP DrawMode. Using fall-back routine.\n", Mask));
-#		if 0 //def _WIN32
-		    flushpixels();  //only need in the windows Version
-#		endif
 		return 0;
 	    } else
 		result = 1;
@@ -2360,14 +2367,12 @@ uae_u32 REGPARAM2 picasso_BlitTemplate (struct regstruct *regs)
 #if 1
 	if (tmp.DrawMode == COMP) {
 	    /* workaround, let native blitter handle COMP mode */
-#	    if 0 //def _WIN32
-		flushpixels();
-#	    endif
 	    return 0;
 	}
 #endif
 
 	if (result) {
+			uae_u32 fgpen, bgpen;
 	    P96TRACE (("P96: BlitTemplate() xy(%d,%d), wh(%d,%d) draw 0x%x fg 0x%x bg 0x%x\n",
 		X, Y, W, H, tmp.DrawMode, tmp.FgPen, tmp.BgPen));
 
@@ -2379,6 +2384,8 @@ uae_u32 REGPARAM2 picasso_BlitTemplate (struct regstruct *regs)
 
 	    tmpl_base = tmp.Memory + tmp.XOffset / 8;
 
+		fgpen = tmp.FgPen;
+		bgpen = tmp.BgPen;
 	    for (rows = 0; rows < H; rows++, uae_mem += ri.BytesPerRow, tmpl_base += tmp.BytesPerRow) {
 		unsigned long cols;
 		uae_u8 *tmpl_mem = tmpl_base;
@@ -2756,7 +2763,7 @@ uae_u32 REGPARAM2 picasso_BlitPlanar2Direct (struct regstruct *regs)
     struct RenderInfo local_ri;
     struct BitMap local_bm;
     struct ColorIndexMapping local_cim;
-    int result = 0;
+    uae_u32 result = 0;
 
 #ifdef JIT
     special_mem |= picasso_is_special_read | picasso_is_special;

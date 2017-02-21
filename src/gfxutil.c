@@ -105,9 +105,9 @@ void alloc_colors64k (int rw, int gw, int bw, int rs, int gs, int bs, int aw, in
 
 	if (byte_swap) {
 	    if (bpp <= 16)
-		xcolors[i] = bswap_16 (xcolors[i]);
+		xcolors[i] = uae_swap16 (xcolors[i]);
 	    else
-		xcolors[i] = bswap_32 (xcolors[i]);
+		xcolors[i] = uae_swap32 (xcolors[i]);
 	}
 
 	if (bpp <= 16) {
@@ -126,13 +126,13 @@ void alloc_colors64k (int rw, int gw, int bw, int rs, int gs, int bs, int aw, in
 
 	if (byte_swap) {
 	    if (bpp <= 16) {
-		xredcolors  [i] = bswap_16 (xredcolors[i]);
-		xgreencolors[i] = bswap_16 (xgreencolors[i]);
-		xbluecolors [i] = bswap_16 (xbluecolors[i]);
+		xredcolors  [i] = uae_swap16 (xredcolors[i]);
+		xgreencolors[i] = uae_swap16 (xgreencolors[i]);
+		xbluecolors [i] = uae_swap16 (xbluecolors[i]);
 	    } else {
-		xredcolors  [i] = bswap_32 (xredcolors[i]);
-		xgreencolors[i] = bswap_32 (xgreencolors[i]);
-		xbluecolors [i] = bswap_32 (xbluecolors[i]);
+		xredcolors  [i] = uae_swap32 (xredcolors[i]);
+		xgreencolors[i] = uae_swap32 (xgreencolors[i]);
+		xbluecolors [i] = uae_swap32 (xbluecolors[i]);
 	    }
 	}
 
