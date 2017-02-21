@@ -14,7 +14,7 @@
 
 #include "byteorder.h"
 
-# if !(defined(__PPC__) || defined(_ARCH_PPC))
+# if !((defined(__PPC__) || defined(_ARCH_PPC)))
 /* Try to use system bswap_16/bswap_32 functions. */
 #if defined HAVE_BSWAP_16 && defined HAVE_BSWAP_32
 # ifdef HAVE_BYTESWAP_H
