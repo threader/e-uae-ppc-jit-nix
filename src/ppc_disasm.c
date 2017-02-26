@@ -248,7 +248,7 @@ static void trapi(struct DisasmPara_PPC *dp,ppc_word in,unsigned char dmode)
 {
   char *cnd;
 
-  if (cnd = trap_condition[PPCGETD(in)]) {
+  if ((cnd = trap_condition[PPCGETD(in)])) {
     dp->flags |= dmode;
     sprintf(dp->opcode,"t%c%s",dmode?'d':'w',cnd);
     imm(dp,in,0,2);
@@ -267,7 +267,7 @@ static void cmpi(struct DisasmPara_PPC *dp,ppc_word in,int uimm)
     if (i)
       dp->flags |= PPCF_64;
     sprintf(dp->opcode,"%si",cmpname[uimm*2+i]);
-    if (i = (int)PPCGETCRD(in)) {
+    if ((i = (int)PPCGETCRD(in))) {
       sprintf(oper,"cr%c,",'0'+i);
       dp->operands += 4;
     }
@@ -348,7 +348,7 @@ static void bc(struct DisasmPara_PPC *dp,ppc_word in)
 
   if (d >= 0x8000)
     d -= 0x10000;
-  if (offs = branch(dp,in,"",(in&2)?1:0,d)) {
+  if ((offs = branch(dp,in,"",(in&2)?1:0,d))) {
     oper += offs;
     *oper++ = ',';
   }
@@ -461,7 +461,7 @@ static void cmp(struct DisasmPara_PPC *dp,ppc_word in)
     if (i)
       dp->flags |= PPCF_64;
     strcpy(dp->opcode,cmpname[((in&PPCIDX2MASK)?2:0)+i]);
-    if (i = (int)PPCGETCRD(in))
+    if ((i = (int)PPCGETCRD(in)))
       oper += sprintf(oper,"cr%c,",'0'+i);
     ra_rb(oper,in);
   }
@@ -475,7 +475,7 @@ static void trap(struct DisasmPara_PPC *dp,ppc_word in,unsigned char dmode)
   char *cnd;
   int to = (int)PPCGETD(in);
 
-  if (cnd = trap_condition[to]) {
+  if ((cnd = trap_condition[to])) {
     dp->flags |= dmode;
     sprintf(dp->opcode,"t%c%s",dmode?'d':'w',cnd);
     ra_rb(dp->operands,in);

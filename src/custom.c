@@ -1996,11 +1996,13 @@ STATIC_INLINE int sprites_differ (struct draw_info *dip, struct draw_info *dip_o
     int npixels;
     int i;
 
-    if (dip->nr_sprites != dip_old->nr_sprites)
+    if (dip->nr_sprites != dip_old->nr_sprites) {
 	return 1;
+	}
 
-    if (dip->nr_sprites == 0)
+    if (dip->nr_sprites == 0) {
 	return 0;
+	}
 
 	for (i = 0; i < dip->nr_sprites; i++) {
 		if (this_first[i].pos != prev_first[i].pos
