@@ -481,7 +481,7 @@ struct BoardInfo {
 /************************************************************************/
 struct picasso96_state_struct
 {
-    uae_u32		RGBFormat;   /* true-colour, CLUT, hi-colour, etc. */
+    RGBFTYPE		RGBFormat;   /* true-colour, CLUT, hi-colour, etc. */
     struct MyCLUTEntry	CLUT[256];   /* Duh! */
     uaecptr		Address;     /* Active screen address (Amiga-side) */
     uaecptr		Extent;	     /* End address of screen (Amiga-side) */
@@ -560,7 +560,7 @@ struct picasso_vidbuf_description {
 
 extern struct picasso_vidbuf_description picasso_vidinfo;
 
-extern void gfx_set_picasso_modeinfo (int w, int h, int d, int rgbfmt);
+extern void gfx_set_picasso_modeinfo (uae_u32 w, uae_u32 h, uae_u32 d, RGBFTYPE rgbfmt);
 extern void gfx_set_picasso_baseaddr (uaecptr);
 extern void gfx_set_picasso_state (int on);
 extern uae_u8 *gfx_lock_picasso (void);

@@ -2445,7 +2445,7 @@ int DX_FillResolutions (uae_u16 *ppixel_format)
     return 0;
 }
 
-void gfx_set_picasso_modeinfo (int w, int h, int depth)
+void gfx_set_picasso_modeinfo (uae_u32 w, uae_u32 h, int rgbfmt)
 {
 }
 

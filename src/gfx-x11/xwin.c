@@ -1456,7 +1456,7 @@ static void set_window_for_picasso (void)
 #endif
 }
 
-void gfx_set_picasso_modeinfo (int w, int h, int depth, int rgbfmt)
+void gfx_set_picasso_modeinfo (uae_u32 w, uae_u32 h, uae_u32 depth, RGBFTYPE rgbfmt)
 {
     picasso_vidinfo.width = w;
     picasso_vidinfo.height = h;

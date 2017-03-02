@@ -1,21 +1,21 @@
- /*
-  * UAE - The Un*x Amiga Emulator
-  *
-  * SDL graphics support
-  *
-  * Copyright 2001 Bernd Lachner (EMail: dev@lachner-net.de)
-  * Copyright 2003-2007 Richard Drummond
-  * Copyright 2006 Jochen Becher
-  *
-  * Partialy based on the UAE X interface (xwin.c)
-  *
-  * Copyright 1995, 1996 Bernd Schmidt
-  * Copyright 1996 Ed Hanway, Andre Beck, Samuel Devulder, Bruno Coste
-  * Copyright 1998 Marcus Sundberg
-  * DGA support by Kai Kollmorgen
-  * X11/DGA merge, hotkeys and grabmouse by Marcus Sundberg
-  * OpenGL support by Jochen Becher, Richard Drummond
-  */
+/*
+ * UAE - The Un*x Amiga Emulator
+ *
+ * SDL graphics support
+ *
+ * Copyright 2001 Bernd Lachner (EMail: dev@lachner-net.de)
+ * Copyright 2003-2007 Richard Drummond
+ * Copyright 2006 Jochen Becher
+ *
+ * Partially based on the UAE X interface (xwin.c)
+ *
+ * Copyright 1995, 1996 Bernd Schmidt
+ * Copyright 1996 Ed Hanway, Andre Beck, Samuel Devulder, Bruno Coste
+ * Copyright 1998 Marcus Sundberg
+ * DGA support by Kai Kollmorgen
+ * X11/DGA merge, hotkeys and grabmouse by Marcus Sundberg
+ * OpenGL support by Jochen Becher, Richard Drummond
+ */
 
 #include "sysconfig.h"
 #include "sysdeps.h"
@@ -33,6 +33,42 @@
 # ifndef GL_STORAGE_SHARED_APPLE
 #  define GL_STORAGE_SHARED_APPLE 0x85BF
 # endif
+
+#ifdef GL_SHADER
+#ifdef __APPLE__
+  #include <OpenGL/glu.h>
+  #include <OpenGL/glext.h>
+  void setupExtensions(void)
+  { shading_enabled = 1; } // OS X already has these extensions
+#elifdef __X11__
+  #include <GL/glx.h>
+  #include <GL/glxext.h>
+  #define uglGetProcAddress(x) (*glXGetProcAddressARB)((const GLubyte*)(x))
+  #define X11_GL
+#else
+  void setupExtensions(void)
+  { shading_enabled = 0; } // just fail otherwise?
+#endif
+#endif
+
+struct gl_buffer_t
+{
+    GLuint   texture;
+    GLsizei  texture_width;
+    GLsizei  texture_height;
+
+    GLenum   target;
+    GLenum   format;
+    GLenum   type;
+
+    uae_u8  *pixels;
+    uae_u32  width;
+    uae_u32  pitch;
+};
+
+void flush_gl_buffer (const struct gl_buffer_t *buffer, int first_line, int last_line);
+void render_gl_buffer (const struct gl_buffer_t *buffer, int first_line, int last_line);
+
 #endif /* USE_GL */
 
 #include "options.h"
@@ -54,7 +90,7 @@
 #ifdef DEBUG
 #define DEBUG_LOG write_log
 #else
-#define DEBUG_LOG(...) do {} while(0)
+#define DEBUG_LOG(...) { }
 #endif
 
 SDL_Surface *display = NULL;
@@ -384,22 +420,7 @@ static long find_screen_modes (struct SDL_PixelFormat *vfmt, SDL_Rect *mode_list
  **       to a new module shareable by all graphics drivers.
  **/
 
-struct gl_buffer_t
-{
-    GLuint   texture;
-    GLsizei  texture_width;
-    GLsizei  texture_height;
-
-    GLenum   target;
-    GLenum   format;
-    GLenum   type;
-
-    uae_u8  *pixels;
-    uae_u32  width;
-    uae_u32  pitch;
-};
-
-static struct gl_buffer_t glbuffer;
+struct gl_buffer_t glbuffer;
 static int have_texture_rectangles;
 static int have_apple_client_storage;
 static int have_apple_texture_range;
@@ -1145,7 +1166,7 @@ void graphics_notify_state (int state)
 
 void handle_events (void)
 {
-    SDL_Event rEvent;
+    SDL_Event rEvent = { SDL_NOEVENT };
 
     while (SDL_PollEvent (&rEvent)) {
 	switch (rEvent.type) {
@@ -1635,7 +1656,7 @@ static void set_window_for_picasso (void)
     graphics_subinit();
 }
 
-void gfx_set_picasso_modeinfo (int w, int h, int depth, int rgbfmt)
+void gfx_set_picasso_modeinfo (uae_u32 w, uae_u32 h, uae_u32 depth, RGBFTYPE rgbfmt)
 {
     DEBUG_LOG ("Function: gfx_set_picasso_modeinfo w: %i h: %i depth: %i rgbfmt: %i\n", w, h, depth, rgbfmt);
 
