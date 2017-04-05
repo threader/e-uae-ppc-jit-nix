@@ -1611,10 +1611,23 @@ fi
 AC_MSG_CHECKING([host CPU is ])
     if test -n "$proc"; then
         case "$proc" in
-            601) _march='-mcpu=601' _mcpu='-mtune=601' ;;
-            603) _march='-mcpu=603' _mcpu='-mtune=603' ;;
-            603e|603ev) _march='-mcpu=603e' _mcpu='-mtune=603e' ;;
-            604|604e|604r|604ev) _march='-mcpu=604' _mcpu='-mtune=604' ;;
+            601) _march='-mcpu=601' _mcpu='-mtune=601'
+		AC_DEFINE(DCACHE_SIZE,16,[CPU DCACHE_SIZE])
+		AC_DEFINE(ICACHE_SIZE,16,[CPU ICACHE_SIZE])
+ ;;
+            603) _march='-mcpu=603' _mcpu='-mtune=603'
+		AC_DEFINE(DCACHE_SIZE,8,[CPU DCACHE_SIZE])
+		AC_DEFINE(ICACHE_SIZE,8,[CPU ICACHE_SIZE])
+ ;;
+            603e|603ev) _march='-mcpu=603e' _mcpu='-mtune=603e'
+		AC_DEFINE(DCACHE_SIZE,16,[CPU DCACHE_SIZE])
+		AC_DEFINE(ICACHE_SIZE,16,[CPU ICACHE_SIZE])
+ ;;
+            604) _march='-mcpu=604' _mcpu='-mtune=604'
+		AC_DEFINE(DCACHE_SIZE,16,[CPU DCACHE_SIZE])
+		AC_DEFINE(ICACHE_SIZE,16,[CPU ICACHE_SIZE])
+ ;;
+	    604e|604r|604ev) _march='-mcpu=604' _mcpu='-mtune=604' ;;
             740|740/750|745/755) _march='-mcpu=740' _mcpu='-mtune=740' ;;
             750|750CX) _march='-mcpu=750' _mcpu='-mtune=750' ;;
             POWER)  _march='-mcpu=power'  _mcpu='-mtune=power'  ;;
@@ -1623,42 +1636,43 @@ AC_MSG_CHECKING([host CPU is ])
             7400*|7410*) _march='-mcpu=7400' _mcpu='-mtune=7400' ;;
             7447*|7450*|7455*) _march='-mcpu=7450' _mcpu='-mtune=7450' ;;
             970*|PPC970*) _march='-mcpu=970' _mcpu='-mtune=970'
-				AC_DEFINE(DCACHE_SIZE,128,[CPU DCACHE_SIZE])
-				AC_DEFINE(ICACHE_SIZE,128,[CPU ICACHE_SIZE])
-			;;
+		AC_DEFINE(DCACHE_SIZE,32,[CPU DCACHE_SIZE])
+		AC_DEFINE(ICACHE_SIZE,32,[CPU ICACHE_SIZE])
+ ;;
+            970MP*|PPC970*|970FX*) _march='-mcpu=970' _mcpu='-mtune=970'
+		AC_DEFINE(DCACHE_SIZE,32,[CPU DCACHE_SIZE])
+		AC_DEFINE(ICACHE_SIZE,64,[CPU ICACHE_SIZE])
+ ;;
             POWER4) _march='-mcpu=power4' _mcpu='-mtune=power4' ;;
-            POWER5*) _march='-mcpu=power5' _mcpu='-mtune=power5'
-				AC_DEFINE(DCACHE_SIZE,128,[CPU DCACHE_SIZE])
-				AC_DEFINE(ICACHE_SIZE,128,[CPU ICACHE_SIZE])
-			;;
-			POWER6*) _march='-mcpu=power6' _mcpu='-mtune=power6' ;;
-			POWER7*) _march='-mcpu=power7' _mcpu='-mtune=power7' ;;
-			POWER8*) _march='-mcpu=power8' _mcpu='-mtune=power8' ;;
+            POWER5*) _march='-mcpu=power5' _mcpu='-mtune=power5';;
+	    POWER6*) _march='-mcpu=power6' _mcpu='-mtune=power6' ;;
+	    POWER7*) _march='-mcpu=power7' _mcpu='-mtune=power7' ;;
+	    POWER8*) _march='-mcpu=power8' _mcpu='-mtune=power8' ;;
             440EP*) _march='-mcpu=440fp' _mcpu='-mtune=440fp' have_440ep='yes'
-				AC_DEFINE_UNQUOTED(AMCC_CPU, "$host_cpu"-amcc-440ep, [AMCC PPC CPU])
-			;;
+		AC_DEFINE_UNQUOTED(AMCC_CPU, "$host_cpu"-amcc-440ep, [AMCC PPC CPU])
+ ;;
             440G* ) _march='-mcpu=440'   _mcpu='-mtune=440' have_440ep='yes'
-				AC_DEFINE_UNQUOTED(AMCC_CPU, "$host_cpu"-amcc-440g, [AMCC PPC CPU])
-			;;
+		AC_DEFINE_UNQUOTED(AMCC_CPU, "$host_cpu"-amcc-440g, [AMCC PPC CPU])
+ ;;
             460EX*) _march='-mcpu=440fp' _mcpu='-mtune=440fp' have_440ep='yes'
-				AC_DEFINE_UNQUOTED(AMCC_CPU, "$host_cpu"-amcc-460ex, [AMCC PPC CPU])
-			;;
+		AC_DEFINE_UNQUOTED(AMCC_CPU, "$host_cpu"-amcc-460ex, [AMCC PPC CPU])
+ ;;
             CELL*) _march='-mcpu=cell' _mcpu='-mtune=cell' ;;
 		dnl Amiga X1000 - P.a semi Pa6t-1682m
 	    PA6T*) _march='-mcpu=pa6t' _mcpu='-mtune=pa6t'
-				AC_DEFINE_UNQUOTED(PPC_ISA_203, "$host_cpu"-pa6t, [PA6T PPC CPU])
-			 ;;
+		AC_DEFINE_UNQUOTED(PPC_ISA_203, "$host_cpu"-pa6t, [PA6T PPC CPU])
+ ;;
 		dnl Amiga X2000, X5000 - Freescale e5500 - E500mc core
 	    e5500*) _march='-mcpu=e5500' _mcpu='-mtune=e5500'
             	AC_DEFINE_UNQUOTED(E500_CPU, "$host_cpu"-freescale-e500, [E500 PPC CPU])
-				AC_DEFINE(DCACHE_SIZE,32,[CPU DCACHE_SIZE])
-				AC_DEFINE(ICACHE_SIZE,32,[CPU ICACHE_SIZE])
-			;;
+		AC_DEFINE(DCACHE_SIZE,32,[CPU DCACHE_SIZE])
+		AC_DEFINE(ICACHE_SIZE,32,[CPU ICACHE_SIZE])
+ ;;
             e6500*) _march='-mcpu=e6500' _mcpu='-mtune=e6500'
-				AC_DEFINE_UNQUOTED(E6500_CPU, "$host_cpu"-freescale-e6500, [E6500 PPC CPU])
-				AC_DEFINE(DCACHE_SIZE,32,[CPU DCACHE_SIZE])
-				AC_DEFINE(ICACHE_SIZE,32,[CPU ICACHE_SIZE])
-			;;
+		AC_DEFINE_UNQUOTED(E6500_CPU, "$host_cpu"-freescale-e6500, [E6500 PPC CPU])
+		AC_DEFINE(DCACHE_SIZE,32,[CPU DCACHE_SIZE])
+		AC_DEFINE(ICACHE_SIZE,32,[CPU ICACHE_SIZE])
+ ;;
 		dnl Amiga X1220 - Freescale p2020 - E500v2 core 
             e500v2*) 
                 if test "$_gnuspe" = "yes"; then
@@ -1666,10 +1680,10 @@ AC_MSG_CHECKING([host CPU is ])
                 else 
                 _march='-mcpu=8548' _mcpu='-mtune=8548'
                 fi
-		         AC_DEFINE_UNQUOTED(E500_CPU, "$host_cpu"-freescale-e500, [E500 PPC CPU])
-        		 AC_DEFINE(DCACHE_SIZE,32,[CPU DCACHE_SIZE])
-        		 AC_DEFINE(ICACHE_SIZE,32,[CPU ICACHE_SIZE])
-               		;;
+		 AC_DEFINE_UNQUOTED(E500_CPU, "$host_cpu"-freescale-e500, [E500 PPC CPU])
+        	 AC_DEFINE(DCACHE_SIZE,32,[CPU DCACHE_SIZE])
+        	 AC_DEFINE(ICACHE_SIZE,32,[CPU ICACHE_SIZE])
+ ;;
             *) ;;
         esac
 	fi
