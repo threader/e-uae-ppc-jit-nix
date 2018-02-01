@@ -23,6 +23,14 @@
 #include <SDL/SDL.h>
 #include <SDL/SDL_endian.h>
 
+
+/* internal members */
+unsigned int shading_enabled = 0;
+
+
+/* internal prototypes */
+void setupExtensions(void);
+
 #ifdef USE_GL
 #define NO_SDL_GLEXT
 # include <SDL/SDL_opengl.h>
@@ -560,7 +568,7 @@ static int alloc_gl_buffer (struct gl_buffer_t *buffer, int width, int height, i
 
 
 
-STATIC_INLINE void flush_gl_buffer (const struct gl_buffer_t *buffer, int first_line, int last_line)
+void flush_gl_buffer (const struct gl_buffer_t *buffer, int first_line, int last_line)
 {
     glTexSubImage2D (buffer->target, 0,
 		     0, first_line, buffer->texture_width, last_line - first_line + 1,
@@ -568,7 +576,7 @@ STATIC_INLINE void flush_gl_buffer (const struct gl_buffer_t *buffer, int first_
 		     buffer->pixels + buffer->pitch * first_line);
 }
 
-STATIC_INLINE void render_gl_buffer (const struct gl_buffer_t *buffer, int first_line, int last_line)
+void render_gl_buffer (const struct gl_buffer_t *buffer, int first_line, int last_line)
 {
     float tx0, ty0;
     float tx1, ty1;
