@@ -1854,7 +1854,8 @@ void execute_normal(void)
 	total_cycles = 0;
 	blocklen = 0;
 
-	for (;;) {
+	do
+	{
 		/* Take note: This is the do-it-normal loop */
 		opcode = get_iword (r, 0);
 
@@ -1871,13 +1872,18 @@ void execute_normal(void)
 		pc_hist[blocklen].specmem = special_mem;
 		blocklen++;
 
-		if (end_block (opcode) || blocklen >= MAXRUN) {
-			compile_block (pc_hist, blocklen, total_cycles);
-			return; /* We will deal with the spcflags in the caller */
-		}
-
 		//TODO: removed spcflag checking from breaking the JIT compile pre-charge loop, it must be investigated on what conditions we MUST stop the cycle. At the moment I don't see any reason why the actual loop cannot be completed.
-	} 
+		//} while (!end_block(opcode) && (blocklen < MAXRUN - 1) && (!r->spcflags));
+	} while (!end_block(opcode) && (blocklen < MAXRUN - 1));
+
+	//Put the PC data at the end of the execution history, in case the block has ended with a supported instruction
+	pc_hist[blocklen].location = (uae_u16*) r->pc_p;
+	pc_hist[blocklen].pc = m68k_getpc(r);
+
+	//Call the block compile service
+	compile_block(pc_hist, blocklen, total_cycles);
+
+	/* We will deal with the spcflags in the caller */
 }
 
 typedef void compiled_handler(void);

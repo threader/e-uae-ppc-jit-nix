@@ -184,7 +184,7 @@ static char *BuildBinaryString (uae_u8 value)
     for (i = 0; i < 8; i++) {
 	binary_byte[i] = (value & (1 << (7 - i))) ? '#' : '.';
     }
-    binary_byte[8] = '\0';
+   // binary_byte[8] = '\0';
     return binary_byte;
 }
 
@@ -355,7 +355,7 @@ static int CopyTemplateStructureA2U (uaecptr amigamemptr,
 {
     uaecptr memp = get_long (amigamemptr + PSSO_Template_Memory);
 
-    if (valid_address (memp, 1 /* FIXME */ )) {
+    if (valid_address (memp, sizeof(struct Template))) {
 	tmpl->Memory      = get_real_address (memp);
 	tmpl->BytesPerRow = get_word (amigamemptr + PSSO_Template_BytesPerRow);
 	tmpl->XOffset     = get_byte (amigamemptr + PSSO_Template_XOffset);
