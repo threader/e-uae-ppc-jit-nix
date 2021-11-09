@@ -35,7 +35,7 @@ static INLINE USHORT decode_p(void);
 
 
 
-static USHORT Unpack_HEAVY(UCHAR *in, UCHAR *out, UCHAR flags, USHORT origsize){
+USHORT Unpack_HEAVY(UCHAR *in, UCHAR *out, UCHAR flags, USHORT origsize){
 	USHORT j, i, c, bitmask;
 	UCHAR *outend;
 
