@@ -75,8 +75,7 @@ struct socketbase {
     uae_u32 sets [3];
     uae_u32 timeout;
     uae_u32 sigmp;
-} *socketbases;
-
+};
 
 #define LIBRARY_SIZEOF 36
 

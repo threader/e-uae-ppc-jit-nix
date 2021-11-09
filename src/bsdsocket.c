@@ -29,6 +29,7 @@
 # include <winsock2.h>
 #endif
 
+struct socketbase *socketbases;
 static uae_u32 SockLibBase;
 
 #define SOCKPOOLSIZE 128

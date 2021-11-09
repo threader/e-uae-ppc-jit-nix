@@ -1039,7 +1039,6 @@ void audio_evhandler (void)
 #ifdef CPUEMU_6
 extern uae_u8 cycle_line[];
 #endif
-uae_u16	dmacon;
 
 void audio_hsync (int dmaaction)
 {
