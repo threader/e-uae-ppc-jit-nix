@@ -48,10 +48,6 @@
 #include "SDL/SDL.h"
 #endif
 
-#ifdef WIN32
-//FIXME: This shouldn't be necessary
-#include "windows.h"
-#endif
 
 struct uae_prefs currprefs, changed_prefs;
 
@@ -298,9 +294,6 @@ static void fix_options (void)
 #endif
 #if !defined (SCSIEMU)
     currprefs.scsi = 0;
-#ifdef _WIN32
-    currprefs.win32_aspi = 0;
-#endif
 #endif
 
     fixup_prefs_joysticks (&currprefs);
@@ -393,9 +386,6 @@ static void parse_cmdline (int argc, char **argv)
 static void parse_cmdline_and_init_file (int argc, char **argv)
 {
     char *home;
-#ifdef _WIN32
-    extern char *start_path;
-#endif
 
     strcpy (optionsfile, "");
 
@@ -408,9 +398,6 @@ static void parse_cmdline_and_init_file (int argc, char **argv)
     }
 #endif
 
-#ifdef _WIN32
-    sprintf( optionsfile, "%s\\Configurations\\", start_path );
-#endif
 
     strcat (optionsfile, OPTIONSFILENAME);
 
@@ -600,10 +587,6 @@ static int do_init_machine (void)
 	canbang = 0;
 #endif
 
-#ifdef _WIN32
-    logging_init(); /* Yes, we call this twice - the first case handles when the user has loaded
-		       a config using the cmd-line.  This case handles loads through the GUI. */
-#endif
 
 #ifdef SAVESTATE
     savestate_init ();
@@ -654,11 +637,6 @@ static int do_init_machine (void)
 		activate_debugger ();
 #endif
 
-#ifdef WIN32
-#ifdef FILESYS
-	    filesys_init (); /* New function, to do 'add_filesys_unit()' calls at start-up */
-#endif
-#endif
 	    if (sound_available && currprefs.produce_sound > 1 && ! audio_init ()) {
 		write_log ("Sound driver unavailable: Sound output disabled\n");
 		currprefs.produce_sound = 0;
@@ -791,9 +769,6 @@ void real_main (int argc, char **argv)
     currprefs.mountinfo = changed_prefs.mountinfo = &options_mountinfo;
 #endif
     restart_program = 1;
-#ifdef _WIN32
-    sprintf (restart_config, "%sConfigurations\\", start_path);
-#endif
     strcat (restart_config, OPTIONSFILENAME);
 
     /* Initial state is stopped */

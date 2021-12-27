@@ -21,11 +21,7 @@
 #include "gcc_warnings.h"
 
 #ifdef SERIAL_PORT
-# ifndef WIN32
 #  include "osdep/serial.h"
-# else
-#  include "od-win32/parser.h"
-# endif
 #endif
 
 #define SERIALDEBUG	0 /* 0, 1, 2 3 */

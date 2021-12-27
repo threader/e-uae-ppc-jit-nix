@@ -151,7 +151,7 @@ static const char *filtermode2[] = { "0x", "1x", "2x", "3x", "4x", 0 };
 
 static const char *obsolete[] = {
     "accuracy","gfx_opengl","gfx_32bit_blits","32bit_blits",
-    "gfx_immediate_blits","gfx_ntsc","win32",
+    "gfx_immediate_blits","gfx_ntsc",
     "sound_pri_cutoff", "sound_pri_time",
     "avoid_dga", "override_dga_address", "avoid_vid", "avoid_cmov",
     "comp_midopt", "comp_lowopt",
@@ -348,9 +348,7 @@ void save_options (FILE *f, const struct uae_prefs *p, int type)
     cfgfile_write_path_option (f, "savestate_path");
 #endif
 
-#ifndef _WIN32
     cfgfile_write (f, "%s.cpu_idle=%d\n", TARGET_NAME, p->cpu_idle);
-#endif
 
     machdep_save_options (f, p);
     target_save_options (f, p);
@@ -398,9 +396,7 @@ void save_options (FILE *f, const struct uae_prefs *p, int type)
     cfgfile_write (f, "serial_hardware_ctsrts=%s\n", p->serial_hwctsrts ? "true" : "false");
     cfgfile_write (f, "serial_direct=%s\n", p->serial_direct ? "true" : "false");
     cfgfile_write (f, "scsi=%s\n", p->scsi ? "true" : "false");
-#ifndef WIN32
     cfgfile_write (f, "scsi_device=%s\n", p->scsi_device);
-#endif
 
     cfgfile_write (f, "sound_output=%s\n", soundmode1[p->produce_sound]);
     cfgfile_write (f, "sound_channels=%s\n", stereomode[p->sound_stereo]);
@@ -787,10 +783,9 @@ static int cfgfile_parse_host (struct uae_prefs *p, char *option, char *value)
 	    if (cfgfile_path (option, value, "savestate_path"))
 		return 1;
 #endif
-#ifndef _WIN32
 	    if (cfgfile_intval (option, value, "cpu_idle", &p->cpu_idle, 1))
 		return 1;
-#endif
+
 	    if (target_parse_option (p, option, value))
 		return 1;
 	}
@@ -1131,9 +1126,7 @@ static int cfgfile_parse_hardware (struct uae_prefs *p, char *option, char *valu
 #ifdef ACTION_REPLAY
 	|| cfgfile_string (option, value, "cart_file", p->cartfile, 256)
 #endif
-#ifndef WIN32
 	|| cfgfile_string (option, value, "scsi_device", p->scsi_device, 256)
-#endif
 	)
 	return 1;
 

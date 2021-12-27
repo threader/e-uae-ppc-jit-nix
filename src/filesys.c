@@ -271,33 +271,15 @@ static const char *set_filesys_unit_1 (struct uaedev_mount_info *mountinfo, int 
 	struct stat statbuf;
 	memset (&statbuf, 0, sizeof (statbuf));
 	ui->volname = my_strdup (volname);
-#if defined(WIN32) && !defined(__MINGW32__)
-	v = isspecialdrive (rootdir);
-	if (v < 0) {
-	    sprintf (errmsg, "invalid drive '%s'", rootdir);
-	    return errmsg;
-	}
-	if (v == 0) {
-#endif
 	    if (stat (rootdir, &statbuf) < 0) {
 		sprintf (errmsg, "directory '%s' not found", rootdir);
 		return errmsg;
 	    }
-#ifdef WIN32
-	    if (!(statbuf.st_mode & FILEFLAG_WRITE)) {
-		write_log ("'%s' set to read-only\n", rootdir);
-		readonly = 1;
-	    }
-#else
 	    /* Check if the filesystem which contains rootdir is read-only */
 	    if (filesys_is_readonly (rootdir) && !readonly) {
 		write_log ("Mounting '%s' as read-only\n", rootdir);
 		readonly = 1;
 	}
-#endif
-#if defined(WIN32) && !defined(__MINGW32__)
-	}
-#endif
     } else {
 	ui->hf.secspertrack = secspertrack;
 	ui->hf.surfaces = surfaces;

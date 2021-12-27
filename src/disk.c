@@ -37,11 +37,7 @@
 #include "driveclick.h"
 #include "fsdb.h"
 #ifdef CAPS
-#ifdef _WIN32
-#include "caps/caps_win32.h"
-#else
 #include "caps.h"
-#endif
 #endif
 #include "crc32.h"
 
