@@ -19,8 +19,6 @@
 
 static inline USHORT DecodeChar(void);
 static inline USHORT DecodePosition(void);
-static inline void update(USHORT c);
-static inline void reconst(void);
 
 
 USHORT deep_text_loc;
@@ -95,27 +93,6 @@ USHORT Unpack_DEEP(UCHAR *in, UCHAR *out, USHORT origsize){
 	return 0;
 }
 
-
-
-INLINE USHORT DecodeChar(void){
-	USHORT c;
-
-	c = son[R];
-
-	/* travel from root to leaf, */
-	/* choosing the smaller child node (son[]) if the read bit is 0, */
-	/* the bigger (son[]+1} if 1 */
-	while (c < T) {
-		c = son[c + GETBITS(1)];
-		DROPBITS(1);
-	}
-	c -= T;
-	update(c);
-	return c;
-}
-
-
-
 INLINE USHORT DecodePosition(void){
 	USHORT i, j, c;
 
@@ -170,7 +147,7 @@ static void reconst(void){
 
 /* increment frequency of given code by one, and update tree */
 
-INLINE void update(USHORT c){
+static INLINE void update(USHORT c){
 	USHORT i, j, k, l;
 
 	if (freq[R] == MAX_FREQ) {
@@ -201,6 +178,23 @@ INLINE void update(USHORT c){
 			c = l;
 		}
 	} while ((c = prnt[c]) != 0); /* repeat up to root */
+}
+
+static INLINE USHORT DecodeChar(void){
+	USHORT c;
+
+	c = son[R];
+
+	/* travel from root to leaf, */
+	/* choosing the smaller child node (son[]) if the read bit is 0, */
+	/* the bigger (son[]+1} if 1 */
+	while (c < T) {
+		c = son[c + GETBITS(1)];
+		DROPBITS(1);
+	}
+	c -= T;
+	update(c);
+	return c;
 }
 
 
