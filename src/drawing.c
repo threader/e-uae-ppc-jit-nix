@@ -1311,7 +1311,7 @@ enum double_how {
     dh_emerg
 };
 
-STATIC_INLINE void pfield_draw_line (int lineno, int gfx_ypos, int follow_ypos)
+static void pfield_draw_line (int lineno, int gfx_ypos, int follow_ypos)
 {
     static int warned = 0;
     int border = 0;

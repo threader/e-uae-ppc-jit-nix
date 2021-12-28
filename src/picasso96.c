@@ -63,7 +63,7 @@ int p96hack_vpos, p96hack_vpos2, p96refresh_active;
 
 #define P96TRACING_ENABLED 0
 #if P96TRACING_ENABLED
-#define P96TRACE(x)	do { write_log x; } while(0)
+#define P96TRACE(x) do { write_log (_T("P96: ")); write_log x; } while(0)
 #else
 #define P96TRACE(x)     do { ; } while(0)
 #endif
@@ -184,7 +184,6 @@ static char *BuildBinaryString (uae_u8 value)
     for (i = 0; i < 8; i++) {
 	binary_byte[i] = (value & (1 << (7 - i))) ? '#' : '.';
     }
-   // binary_byte[8] = '\0';
     return binary_byte;
 }
 
@@ -235,7 +234,7 @@ static void ShowSupportedResolutions (void)
 	write_log ("%s\n", DisplayModes[i].name);
 }
 
-STATIC_INLINE uae_u8 GetBytesPerPixel (uae_u32 RGBfmt)
+static uae_u8 GetBytesPerPixel (uae_u32 RGBfmt)
 {
     switch (RGBfmt) {
     case RGBFB_CLUT:
@@ -429,7 +428,7 @@ static void do_fillrect (uae_u8 *src, int x, int y, int width, int height,
      * sure we adjust for the pen values if we're doing 8-bit
      * display-emulation on a 16-bit or higher screen. */
     if (picasso_vidinfo.rgbformat == picasso96_state.RGBFormat) {
- #	ifndef WORDS_BIGENDIAN
+#	ifndef WORDS_BIGENDIAN
 	    if (Bpp > 1)
 		if (!(Bpp == 4 && need_argb32_hack == 1))
 		    pen = uae_swap32 (pen);
@@ -2171,6 +2170,7 @@ uae_u32 REGPARAM picasso_BlitPattern (struct regstruct *regs)
     struct RenderInfo ri;
     struct Pattern pattern;
     unsigned long rows;
+    uae_u32 fgpen, bgpen;
     uae_u8 *uae_mem;
     int xshift;
     unsigned long ysize_mask;
@@ -2210,7 +2210,6 @@ uae_u32 REGPARAM picasso_BlitPattern (struct regstruct *regs)
 	    result = 1;
 
 	if (result) {
-			uae_u32 fgpen, bgpen;
 #           if P96TRACING_ENABLED
 		DumpPattern (&pattern);
 #           endif
