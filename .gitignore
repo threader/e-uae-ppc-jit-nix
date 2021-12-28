@@ -16,6 +16,7 @@ autom4te.cache
 /install-sh
 /src/.deps/
 /*/.deps/
+/src/tools/configure
 *.lo
 log
 *.log
