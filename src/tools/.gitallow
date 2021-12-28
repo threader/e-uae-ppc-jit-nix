@@ -1,0 +1,4 @@
+configure.ac
+Makefile.in
+sysconfig.h.in
+target.h
