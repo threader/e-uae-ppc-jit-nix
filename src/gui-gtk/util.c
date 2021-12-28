@@ -115,7 +115,7 @@ GtkWidget *make_xtable( int width, int height )
 {
     GtkWidget *table;
 
-    table = gtk_table_new (height,width, FALSE);
+    table = gtk_table_new (height,width, false);
     gtk_widget_show (table);
 
     gtk_container_set_border_width (GTK_CONTAINER (table), TABLE_BORDER_WIDTH);
@@ -133,9 +133,9 @@ void add_box_padding (GtkWidget *box)
 {
     GtkWidget *vbox;
 
-    vbox = gtk_vbox_new (FALSE, 0);
+    vbox = gtk_vbox_new (false, 0);
     gtk_widget_show (vbox);
-    gtk_box_pack_start (GTK_BOX (box), vbox, TRUE, TRUE, 0);
+    gtk_box_pack_start (GTK_BOX (box), vbox, true, true, 0);
 }
 
 /*
@@ -145,7 +145,7 @@ void add_box_padding (GtkWidget *box)
 void add_table_padding (GtkWidget *table, int x, int y)
 {
     GtkWidget *vbox;
-    vbox = gtk_vbox_new (FALSE, 0);
+    vbox = gtk_vbox_new (false, 0);
     gtk_widget_show (vbox);
     gtk_table_attach (GTK_TABLE (table), vbox, x, x+1, y, y+1,
 		     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
@@ -181,7 +181,7 @@ GtkWidget *gtkutil_add_table (GtkWidget *container, ...)
     int col, width;
     int flags;
 
-    table = gtk_table_new (3, 3, FALSE);
+    table = gtk_table_new (3, 3, false);
     gtk_container_set_border_width (GTK_CONTAINER (table), TABLE_BORDER_WIDTH);
     gtk_table_set_row_spacings (GTK_TABLE (table), TABLE_ROW_SPACING);
     gtk_table_set_col_spacings (GTK_TABLE (table), TABLE_COL_SPACING);
@@ -223,7 +223,7 @@ GtkWidget *gtkutil_make_radio_group (GSList *group, GtkWidget **buttons, ...)
     const char *label;
 //    int i = 0;
 
-    hbox = gtk_hbox_new (TRUE, 0);
+    hbox = gtk_hbox_new (true, 0);
 
     va_start (labels, buttons);
     label = va_arg (labels, const char *);
@@ -231,7 +231,7 @@ GtkWidget *gtkutil_make_radio_group (GSList *group, GtkWidget **buttons, ...)
     while (label != NULL) {
 	GtkWidget *radiobutton = gtk_radio_button_new_with_label (group, label);
 	group = gtk_radio_button_group (GTK_RADIO_BUTTON (radiobutton));
-	gtk_box_pack_start (GTK_BOX (hbox), radiobutton, FALSE, FALSE, 0);
+	gtk_box_pack_start (GTK_BOX (hbox), radiobutton, false, false, 0);
 
 	*buttons++ = radiobutton;
 

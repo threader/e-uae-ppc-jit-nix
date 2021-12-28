@@ -78,26 +78,26 @@ static void floppyfileentry_init (FloppyFileEntry *ffe)
     gtk_frame_set_label_align (GTK_FRAME (ffe), 0.01, 0.5);
 
     ffe->led = led_new ();
-    ledbox = gtk_vbox_new (FALSE, 0);
-    gtk_container_add (GTK_CONTAINER (ledbox), gtk_hbox_new (FALSE, 0));
+    ledbox = gtk_vbox_new (false, 0);
+    gtk_container_add (GTK_CONTAINER (ledbox), gtk_hbox_new (false, 0));
     gtk_container_add (GTK_CONTAINER (ledbox), ffe->led);
-    gtk_container_add (GTK_CONTAINER (ledbox), gtk_hbox_new (FALSE, 0));
+    gtk_container_add (GTK_CONTAINER (ledbox), gtk_hbox_new (false, 0));
 
     ffe->path_widget = gtk_entry_new ();
     GTK_WIDGET_UNSET_FLAGS (ffe->path_widget, GTK_CAN_FOCUS);
-    gtk_editable_set_editable (GTK_EDITABLE (ffe->path_widget), FALSE);
+    gtk_editable_set_editable (GTK_EDITABLE (ffe->path_widget), false);
 
-    bbox = gtk_hbox_new (TRUE, 2);
+    bbox = gtk_hbox_new (true, 2);
     ffe->insert_button = gtk_button_new_with_label ("Insert...");
     ffe->eject_button  = gtk_button_new_with_label ("Eject");
-    gtk_widget_set_sensitive (ffe->eject_button, FALSE);
-    gtk_box_pack_start (GTK_BOX (bbox), ffe->eject_button, TRUE, TRUE, 2);
-    gtk_box_pack_start (GTK_BOX (bbox), ffe->insert_button, TRUE, TRUE, 2);
+    gtk_widget_set_sensitive (ffe->eject_button, false);
+    gtk_box_pack_start (GTK_BOX (bbox), ffe->eject_button, true, true, 2);
+    gtk_box_pack_start (GTK_BOX (bbox), ffe->insert_button, true, true, 2);
 
-    hbox = gtk_hbox_new (FALSE, 3);
-    gtk_box_pack_start (GTK_BOX (hbox), ledbox, FALSE, FALSE, 2);
-    gtk_box_pack_start (GTK_BOX (hbox), ffe->path_widget, TRUE, TRUE, 2);
-    gtk_box_pack_start (GTK_BOX (hbox), bbox, FALSE, FALSE, 2);
+    hbox = gtk_hbox_new (false, 3);
+    gtk_box_pack_start (GTK_BOX (hbox), ledbox, false, false, 2);
+    gtk_box_pack_start (GTK_BOX (hbox), ffe->path_widget, true, true, 2);
+    gtk_box_pack_start (GTK_BOX (hbox), bbox, false, false, 2);
 
     gtk_signal_connect (GTK_OBJECT (ffe->eject_button), "clicked",
 			GTK_SIGNAL_FUNC (on_eject),

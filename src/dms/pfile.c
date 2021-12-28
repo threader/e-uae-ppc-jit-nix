@@ -289,31 +289,36 @@ static USHORT Process_Track(struct zfile *fi, struct zfile *fo, UCHAR *b1, UCHAR
 
 	if ((cmd == CMD_UNPACK) && (number<80) && (unpklen>2048)) {
 		r = Unpack_Track(b1, b2, pklen2, unpklen, cmode, flags);
-		if (r != NO_PROBLEM)
+		if (r != NO_PROBLEM) {
 			if (pwd)
 				return ERR_BADPASSWD;
 			else
 				return r;
-		if (usum != Calc_CheckSum(b2,(ULONG)unpklen))
+		}
+		if (usum != Calc_CheckSum(b2,(ULONG)unpklen)) {
 			if (pwd)
 				return ERR_BADPASSWD;
 			else
 				return ERR_CSUM;
+		}
 		if (zfile_fwrite(b2,1,(size_t)unpklen,fo) != unpklen) return ERR_CANTWRITE;
 	}
 
-	if ((cmd == CMD_SHOWBANNER) && (number == 0xffff)){
+	if ((cmd == CMD_SHOWBANNER) && (number == 0xffff)) {
 		r = Unpack_Track(b1, b2, pklen2, unpklen, cmode, flags);
-		if (r != NO_PROBLEM)
+		if (r != NO_PROBLEM) {
 			if (pwd)
 				return ERR_BADPASSWD;
 			else
 				return r;
-		if (usum != Calc_CheckSum(b2,(ULONG)unpklen))
-			if (pwd)
+		}
+		if (usum != Calc_CheckSum(b2,(ULONG)unpklen)) {
+			if (pwd) {
 				return ERR_BADPASSWD;
-			else
+			} else {
 				return ERR_CSUM;
+			}
+		}
 		printbandiz(b2,unpklen);
 	}
 

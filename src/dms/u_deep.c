@@ -17,15 +17,14 @@
 #include "getbits.h"
 
 
-INLINE USHORT DecodeChar(void);
-INLINE USHORT DecodePosition(void);
-INLINE void update(USHORT c);
-static void reconst(void);
+static inline USHORT DecodeChar(void);
+static inline USHORT DecodePosition(void);
+static inline void update(USHORT c);
+static inline void reconst(void);
 
 
 USHORT deep_text_loc;
 int init_deep_tabs=1;
-
 
 
 #define DBITMASK 0x3fff   /*  uses 16Kb dictionary  */
@@ -48,7 +47,7 @@ USHORT son[T];   /* pointers to child nodes (son[], son[] + 1) */
 
 
 
-void Init_DEEP_Tabs(void){
+static void Init_DEEP_Tabs(void){
 	USHORT i, j;
 
 	for (i = 0; i < N_CHAR; i++) {
