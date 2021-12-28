@@ -357,6 +357,13 @@ case $host_cpu in
      powerpc64*)
        HOST_CPU=ppc64
        MDFPP_H=fpp-ieee.h
+if [[ "x$WANT_JIT" != "xno" ]];  then
+AC_MSG_WARN([Compiling a 32 bit uae with JIT!])
+       CFLAGS="$CFLAGS -m32"
+fi
+if [[ "x$WANT_JIT" != "xyes" ]];  then
+AC_MSG_WARN([Compiling a 64 bit uae without JIT! Force "WANT_JIT" to build a 32 bit binary with JIT])
+fi
        ;;
      m68k | m680[246]0)
        HOST_CPU=68k
