@@ -357,13 +357,6 @@ case $host_cpu in
      powerpc64*)
        HOST_CPU=ppc64
        MDFPP_H=fpp-ieee.h
-if [[ "x$WANT_JIT" != "xno" ]];  then
-AC_MSG_WARN([Compiling a 32 bit uae with JIT!])
-       CFLAGS="$CFLAGS -m32"
-fi
-if [[ "x$WANT_JIT" != "xyes" ]];  then
-AC_MSG_WARN([Compiling a 64 bit uae without JIT! Force "WANT_JIT" to build a 32 bit binary with JIT])
-fi
        ;;
      m68k | m680[246]0)
        HOST_CPU=68k
@@ -395,6 +388,9 @@ dnl
 HAVE_GCC27=no
 HAVE_GCC30=no
 HAVE_GCC40=no
+HAVE_GCC46=no
+HAVE_GCC47=no
+HAVE_GCC48=no
 HAVE_GLIBC2=no
 
 AC_MSG_CHECKING([for GCC 2.7 or higher])
@@ -417,6 +413,28 @@ AC_EGREP_CPP(yes,
   yes
 #endif
 ], [AC_MSG_RESULT(yes); HAVE_GCC40=yes], AC_MSG_RESULT(no))
+
+AC_MSG_CHECKING([for GCC 4.6 or higher])
+AC_EGREP_CPP(yes,
+[#if (__GNUC__ > 3 && __GNUC_MINOR__ > 5)
+  yes
+#endif
+], [AC_MSG_RESULT(yes); HAVE_GCC46=yes], AC_MSG_RESULT(no))
+
+AC_MSG_CHECKING([for GCC 4.7 or higher])
+AC_EGREP_CPP(yes,
+[#if (__GNUC__ > 3 && __GNUC_MINOR__ > 6)
+  yes
+#endif
+], [AC_MSG_RESULT(yes); HAVE_GCC47=yes], AC_MSG_RESULT(no))
+
+AC_MSG_CHECKING([for GCC 4.8 or higher])
+AC_EGREP_CPP(yes,
+[#if (__GNUC__ > 3 && __GNUC_MINOR__ > 7)
+  yes
+#endif
+], [AC_MSG_RESULT(yes); HAVE_GCC48=yes;AC_MSG_WARN([Version 4.8/4.9 of GCC is recommended, at least 6.x and onward runs like dogshit and crashes])
+], AC_MSG_RESULT(no))
 
 if test $ac_cv_prog_gcc = yes; then
   if test $HAVE_GCC27 != yes; then
@@ -483,11 +501,17 @@ SND_NAME=none
 JOY_DEP=jd-none
 JOY_NAME=none
 DO_PROFILING=no
-
 if [[ "$HOST_CPU" = "ppc" ]]; then
   WANT_JIT=yes
 else
   WANT_JIT=no
+AC_MSG_WARN([Compiling uae without JIT! Only 32bit PowerPC supported])
+fi
+
+if [[ "$HOST_CPU" = "ppc64" ]]; then
+AC_MSG_WARN([Compiling a 32 bit uae with JIT!])
+       CFLAGS="$CFLAGS -m32"
+	UAE_DEFINES="$UAE_DEFINES -DJIT"
 fi
 
 WANT_DGA=no
@@ -568,7 +592,6 @@ else if [[ "$OSDEP" = "od-amiga" ]]; then
 fi
 fi
 fi
-dnl fi
 
 dnl
 dnl writelog is needed almost everywhere
@@ -839,7 +862,16 @@ if [[ "x$WANT_JIT" != "xno" -a "$HOST_CPU" = "ppc" ]]; then
   UAE_DEFINES="$UAE_DEFINES -DJIT"
   JITOBJS='compstbl.$(OBJEXT) compemu_macroblocks_ppc.$(OBJEXT) compemu_compiler_ppc.$(OBJEXT) compemu_support.$(OBJEXT)'
   AC_MSG_RESULT(yes)
+
+  AC_MSG_CHECKING([whether assembler supports --execstack option])
   SAVE_CFLAGS="$CFLAGS"
+  CFLAGS="-Wa,--execstack $CFLAGS"
+  AC_TRY_COMPILE([], [int main (void) {return 0;}],
+    [AC_MSG_RESULT(yes)
+    UAE_CFLAGS="-Wa,--execstack $UAE_CFLAGS"],
+    AC_MSG_RESULT(no)
+  )
+  CFLAGS="$SAVE_CFLAGS"
 else
   AC_MSG_RESULT(no)
 fi
@@ -1713,9 +1745,10 @@ OPTIMIZED_FLAGS="$OPTIMIZED_FLAGS -pipe"
 
 cp confdefs.h src/include/config.h
 
-CFLAGS="$CFLAGS $CPUFLAGS"
-CXXFLAGS="$CXXFLAGS $CPUFLAGS"
-CPPFLAGS="$CPPFLAGS $CPUFLAGS"
+CFLAGS="$CFLAGS -O3 $CPUFLAGS"
+CXXFLAGS="$CXXFLAGS -O3 $CPUFLAGS"
+CPPFLAGS="$CPPFLAGS -O3 $CPUFLAGS"
+LDFLAGS="$LDFLAGS"
 
 else
   AC_MSG_RESULT(no)
@@ -1726,12 +1759,12 @@ fi
 dnl -- End, PPC
 
 dnl cleaning this up breaks lots of kittens on various platforms
-UAE_LIBS="$LIBS $GUI_LIBS $GFX_LIBS $SND_LIBS $JOY_LIBS $UAE_LIBS"
+UAE_LIBS="$LIBS $UAE_LIBS $GUI_LIBS $GFX_LIBS $SND_LIBS $JOY_LIBS"
 LIBS="$UAE_LIBS"
 UAE_CXXFLAGS="$CPPFLAGS $UAE_CXXFLAGS $UAE_CFLAGS"
 CPPFLAGS="$UAE_CXXFLAGS $UAE_DEFINES $GFX_CPPFLAGS"
-UAE_CFLAGS="$CFLAGS $UAE_CFLAGS"
-CFLAGS="$OPTIMIZED_FLAGS $UAE_CFLAGS $GUI_CFLAGS $GFX_CFLAGS $SND_CFLAGS $JOY_CFLAGS -std=gnu99"
+UAE_CFLAGS="$OPTIMIZED_FLAGS $CFLAGS $UAE_CFLAGS"
+CFLAGS="$UAE_CFLAGS $GUI_CFLAGS $GFX_CFLAGS $SND_CFLAGS $JOY_CFLAGS -std=gnu99"
 
 AC_CONFIG_LINKS(src/target.h:src/targets/$TARGETDEP)
 AC_CONFIG_LINKS(src/machdep:src/$MACHDEP)
