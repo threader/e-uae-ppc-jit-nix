@@ -115,20 +115,23 @@ STATIC_INLINE uae_u32 get_fpsr (const struct regstruct *regs)
 {
     uae_u32 answer = regs->fpsr & 0x00ffffff;
 #ifdef HAVE_ISNAN
-    if (isnan (regs->fp_result))
+    if (isnan (regs->fp_result)) {
 	answer |= 0x01000000;
-    else
+    } else {
 #endif
     {
-	if (regs->fp_result == 0)
+	if (regs->fp_result == 0) {
 	    answer |= 0x04000000;
-	else if (regs->fp_result < 0)
+	} else {
+	if (regs->fp_result < 0)
 	    answer |= 0x08000000;
+	}
 #ifdef HAVE_ISINF
 	if (isinf (regs->fp_result))
 	    answer |= 0x02000000;
 #endif
     }
+		}
     return answer;
 }
 

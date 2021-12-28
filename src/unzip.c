@@ -135,7 +135,6 @@ typedef struct
    IN assertion: the stream s has been sucessfully opened for reading.
 */
 
-
 local int unzlocal_getByte(fin,pi)
 	struct zfile *fin;
 	int *pi;
@@ -636,11 +635,13 @@ local int unzlocal_GetCurrentFileInfoInternal (file,
 		else
 			uSizeRead = commentBufferSize;
 
-		if (lSeek!=0)
-			if (zfile_fseek(s->file,lSeek,SEEK_CUR)==0)
+		if (lSeek!=0) {
+			if (zfile_fseek(s->file,lSeek,SEEK_CUR)==0) {
 				lSeek=0;
-			else
+			} else {
 				err=UNZ_ERRNO;
+			}
+		}
 		if ((file_info.size_file_comment>0) && (commentBufferSize>0))
 			if (zfile_fread(szComment,(uInt)uSizeRead,1,s->file)!=1)
 				err=UNZ_ERRNO;
