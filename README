@@ -304,7 +304,9 @@ You need to link libamiga to the binary otherwise the TimeDelay macro won't
 work. To do so add this parameter to the configure script:
 ./configure LIBS=-lamiga
 
-For Linux and similar: 
+For Linux and similar:
+Late GCC-5.x and at least gcc-6.x break JIT.I suggest something like this:
+./configure CC=gcc-4.8 CXX=g++-4.8 AR=gcc-ar-4.8 RANLIB=gcc-ranlib-4.8
 Checkout docs/compiling.txt 
 If your distribution has uae or e-uae in repo, and it's Debian derived, 
 do "apt-get build-dep uae" before compiling do get the required dependencies.
