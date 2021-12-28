@@ -391,6 +391,7 @@ HAVE_GCC40=no
 HAVE_GCC46=no
 HAVE_GCC47=no
 HAVE_GCC48=no
+HAVE_GCC50=no
 HAVE_GLIBC2=no
 
 AC_MSG_CHECKING([for GCC 2.7 or higher])
@@ -433,8 +434,15 @@ AC_EGREP_CPP(yes,
 [#if (__GNUC__ > 3 && __GNUC_MINOR__ > 7)
   yes
 #endif
-], [AC_MSG_RESULT(yes); HAVE_GCC48=yes;AC_MSG_WARN([Version 4.8/4.9 of GCC is recommended, at least 6.x and onward runs like dogshit and crashes])
-], AC_MSG_RESULT(no))
+], [AC_MSG_RESULT(yes); HAVE_GCC48=yes; AC_MSG_WARN([Version 4.8/4.9 of GCC is recommended, at least 6.x and onward runs like dogshit and crashes.You probably want to compile with something like ./configure CC=gcc-6 CXX=g++-6 AR=gcc-ar-6 RANLIB=gcc-ranlib-6])], AC_MSG_RESULT(no))
+
+AC_MSG_CHECKING([for GCC 5.0 or higher])
+AC_EGREP_CPP(yes,
+[#if (__GNUC__ > 4 && __GNUC_MINOR__ > 0)
+  yes
+#endif
+], [AC_MSG_RESULT(yes); HAVE_GCC50=yes; AC_MSG_WARN([Version 4.8/4.9 of GCC is recommended, at least 6.x and onward runs like dogshit and crashes.You probably want to compile with something like ./configure CC=gcc-6 CXX=g++-6 AR=gcc-ar-6 RANLIB=gcc-ranlib-6])], AC_MSG_RESULT(no))
+
 
 if test $ac_cv_prog_gcc = yes; then
   if test $HAVE_GCC27 != yes; then
