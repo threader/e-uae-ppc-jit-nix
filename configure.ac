@@ -1500,14 +1500,14 @@ dnl
 dnl  Build debugger?
 dnl
 AC_MSG_CHECKING([whether to build JIT_DEBUG])
-if [[ "x$WANT_JITDEBUG" != "xno" ]]; then
+if [[ "x$WANT_JITDEBUG" != "xyes" ]]; then
+  AC_MSG_RESULT(no)
+  else
   AC_MSG_RESULT(yes)
   CPPFLAGS="$CPPFLAGS -DJIT_DEBUG -DJIT_DEBUG_VERBOSE"
   AC_MSG_WARN(See documentation! 
   JIT_DEBUG_VERBOSE is also defined!
   Add comp_log and or comp_log_compile to your config.)
-  else
-  AC_MSG_RESULT(no)
 fi
 
 
