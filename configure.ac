@@ -434,14 +434,16 @@ AC_EGREP_CPP(yes,
 [#if (__GNUC__ > 3 && __GNUC_MINOR__ > 7)
   yes
 #endif
-], [AC_MSG_RESULT(yes); HAVE_GCC48=yes; AC_MSG_WARN([Version 4.8/4.9 of GCC is recommended, at least 6.x and onward runs like dogshit and crashes.You probably want to compile with something like ./configure CC=gcc-6 CXX=g++-6 AR=gcc-ar-6 RANLIB=gcc-ranlib-6])], AC_MSG_RESULT(no))
+], [AC_MSG_RESULT(yes); HAVE_GCC48=yes; AC_MSG_WARN([Version 4.8/4.9 of GCC is recommended, at least 6.x and onward runs like dogshit and crashes.
+You probably want to compile with something like ./configure CC=gcc-4.8 CXX=g++-4.8 AR=gcc-ar-4.8 RANLIB=gcc-ranlib-4.8])], AC_MSG_RESULT(no))
 
 AC_MSG_CHECKING([for GCC 5.0 or higher])
 AC_EGREP_CPP(yes,
 [#if (__GNUC__ > 4 && __GNUC_MINOR__ > 0)
   yes
 #endif
-], [AC_MSG_RESULT(yes); HAVE_GCC50=yes; AC_MSG_WARN([Version 4.8/4.9 of GCC is recommended, at least 6.x and onward runs like dogshit and crashes.You probably want to compile with something like ./configure CC=gcc-6 CXX=g++-6 AR=gcc-ar-6 RANLIB=gcc-ranlib-6])], AC_MSG_RESULT(no))
+], [AC_MSG_RESULT(yes); HAVE_GCC50=yes; AC_MSG_WARN([Version 4.8/4.9 of GCC is recommended, at least 6.x and onward runs like dogshit and crashes.
+You probably want to compile with something like ./configure CC=gcc-4.8 CXX=g++-4.8 AR=gcc-ar-4.8 RANLIB=gcc-ranlib-4.8])], AC_MSG_RESULT(no))
 
 
 if test $ac_cv_prog_gcc = yes; then
@@ -462,7 +464,7 @@ if test $ac_cv_prog_gcc = yes; then
   fi
 fi
 
-dnl on OS X, we don't want position-independent code, so
+dnl on OS X, we dont want position-independent code, so
 dnl include the option -mdynamic-no-pic.
 dnl
 if [[ "$HOST_OS" = "darwin" ]]; then
@@ -624,6 +626,8 @@ AC_ARG_ENABLE(autoconfig,      AS_HELP_STRING([--enable-autoconfig],      [Enabl
 AC_ARG_ENABLE(scsi-device,     AS_HELP_STRING([--enable-scsi-device],     [Enable emulaton of SCSI devices (default no)]),            [WANT_SCSIEMU=$enableval],[])
 AC_ARG_ENABLE(bsdsock,         AS_HELP_STRING([--enable-bsdsock],         [Enable bsdsocket.library emulation]),                      [WANT_BSDSOCK=$enableval],[])
 AC_ARG_ENABLE(debugger,        AS_HELP_STRING([--disable-debugger],       [Disable internal debugger/monitor (default no)]),          [WANT_DEBUGGER=$enableval],[])
+AC_ARG_ENABLE(jitdebug,        AS_HELP_STRING([--enable-jitdebug],        [Enable JIT debuging, see docs (default no)]),          [WANT_DEBUGGER=$enableval],[])
+AC_ARG_ENABLE(state-saving,    AS_HELP_STRING([--disable-state-saving],   [Disable support for saving state snapshots (default no)]),   [WANT_STATESAVING=$enableval],[])
 AC_ARG_ENABLE(state-saving,    AS_HELP_STRING([--disable-state-saving],   [Disable support for saving state snapshots (default no)]),   [WANT_STATESAVING=$enableval],[])
 AC_ARG_ENABLE(enforcer,	       AS_HELP_STRING([--enable-enforcer],        [Enable ersatz Enforcer support (default auto)]),           [WANT_ENFORCER=$enableval],[])
 AC_ARG_ENABLE(action-replay,   AS_HELP_STRING([--enable-action-replay],   [Enable Action Replay cartridge emulation (default yes)]),  [WANT_ACTION_REPLAY=$enableval],[])
@@ -799,7 +803,7 @@ if [[ "x$DO_PROFILING" = "xyes" ]]; then
     LDFLAGS="-pg"
   else
     DO_PROFILING=no
-    AC_MSG_WARN([Don't know how to set up profiling for your compiler])
+    AC_MSG_WARN([Dont know how to set up profiling for your compiler])
     NR_ERRORS=`expr $NR_ERRORS + 1`
   fi
 fi
@@ -912,7 +916,7 @@ if [[ "x$WANT_NCURSES" = "xyes" ]]; then
 fi
 
 dnl  Check whether we actually wanted to use SDL or whether
-dnl  we need to use SDL because we couldn't find any other
+dnl  we need to use SDL because we couldnt find any other
 dnl  graphics support
 dnl
 if [[ "x$WANT_SDL" = "xyes" -o "x$GFX_DEP" = "x" ]]; then
@@ -936,7 +940,7 @@ if [[ "x$WANT_SDL" = "xyes" -o "x$GFX_DEP" = "x" ]]; then
   fi
 fi
 
-dnl  If we got here and we still haven't found a graphics target
+dnl  If we got here and we still havent found a graphics target
 dnl  then bail out.
 dnl
 if [[ "x$GFX_DEP" = "x" ]]; then
@@ -947,7 +951,7 @@ fi
 AC_MSG_RESULT("$GFX_NAME")
 
 dnl
-dnl  If we're using X, find out what extensions are wanted/available
+dnl  If were using X, find out what extensions are wanted/available
 dnl
 if [[ "$GFX_DEP" = "gfx-x11" ]]; then
   dnl If the user wants DGA, see if we have it.
@@ -1493,6 +1497,21 @@ else
 fi
 
 dnl
+dnl  Build debugger?
+dnl
+AC_MSG_CHECKING([whether to build JIT_DEBUG])
+if [[ "x$WANT_JITDEBUG" != "xno" ]]; then
+  AC_MSG_RESULT(yes)
+  CPPFLAGS="$CPPFLAGS -DJIT_DEBUG -DJIT_DEBUG_VERBOSE"
+  AC_MSG_WARN(See documentation! 
+  JIT_DEBUG_VERBOSE is also defined!
+  Add comp_log and or comp_log_compile to your config.)
+  else
+  AC_MSG_RESULT(no)
+fi
+
+
+dnl
 dnl  Support state saving/loading?
 dnl
 AC_MSG_CHECKING([whether to build support for saving/loading emulator state])
@@ -1756,7 +1775,7 @@ cp confdefs.h src/include/config.h
 CFLAGS="$CFLAGS $CPUFLAGS"
 CXXFLAGS="$CXXFLAGS $CPUFLAGS"
 CPPFLAGS="$CPPFLAGS $CPUFLAGS"
-LDFLAGS="$LDFLAGS"
+LDFLAGS="$LDFLAGS $GNU_LDFLAGS"
 
 else
   AC_MSG_RESULT(no)
@@ -1769,10 +1788,20 @@ dnl -- End, PPC
 dnl cleaning this up breaks lots of kittens on various platforms
 UAE_LIBS="$LIBS $UAE_LIBS $GUI_LIBS $GFX_LIBS $SND_LIBS $JOY_LIBS"
 LIBS="$UAE_LIBS"
-UAE_CXXFLAGS="$CPPFLAGS $UAE_CXXFLAGS $UAE_CFLAGS"
-CPPFLAGS="$UAE_CXXFLAGS $UAE_DEFINES $GFX_CPPFLAGS"
+UAE_CXXFLAGS="$CXXFLAGS $UAE_CXXFLAGS $UAE_CFLAGS"
+CPPFLAGS="$CPPFLAGS $UAE_CPPFLAGS $UAE_DEFINES $GFX_CPPFLAGS"
 UAE_CFLAGS="$OPTIMIZED_FLAGS $CFLAGS $UAE_CFLAGS"
 CFLAGS="$UAE_CFLAGS $GUI_CFLAGS $GFX_CFLAGS $SND_CFLAGS $JOY_CFLAGS -std=gnu99"
+
+AC_MSG_WARN(
+	------------------------
+	Compiling with:
+		CFLAGS:[$CFLAGS]
+		CXXFLAGS:[$CXXFLAGS]
+		CPPFLAGS:[$CPPFLAGS]
+		LDFLAGS:[$LDFLAGS]
+		LIBS:[$UAE_LIBS]
+	         ------------------------) 
 
 AC_CONFIG_LINKS(src/target.h:src/targets/$TARGETDEP)
 AC_CONFIG_LINKS(src/machdep:src/$MACHDEP)
@@ -1870,7 +1899,7 @@ AC_SUBST(SET_MAKE)
 AC_SUBST(MATHLIB)
 AC_SUBST(top_srcdir)
 
-dnl  If we're not cross-compiling then, the config script in src/tools
+dnl  If were not cross-compiling then, the config script in src/tools
 dnl  can be called by config.status as normal
 dnl
 if [[ "x$cross_compiling" != "xyes" ]]; then
