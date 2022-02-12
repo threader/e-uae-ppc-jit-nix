@@ -55,6 +55,12 @@ struct m68k_register comp_m68k_registers[16];
  */
 int last_unmapped_register;
 
+/* The start offset for the non-volatile registers in the stack frame.
+ * Initialized by the prolog stack frame preparing function.
+ * From this offset the non-volatile registers can be stored.
+ */
+int nonvolatile_regs_in_stackframe;
+
 /**
  * Compiled code cache memory start address
  */
@@ -483,12 +489,12 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 	//This flag signs the unsupported opcodes in a row, some initialization/cleanup is skipped if there was multiple unsupported opcode
 	int unsupported_in_a_row = TRUE;
 
-	//write_jit_log("JIT: compile code, pc: %08x, block length: %d, total cycles: %d\n",
-	//		pc_hist->pc, blocklen, totcycles);
+	write_jit_log("JIT: compile code, pc: %08x, block length: %d, total cycles: %d\n",
+			pc_hist->pc, blocklen, totcycles);
 
 	if (cache_enabled && compiled_code && currprefs.cpu_level >= 2)
 	{
-		//write_jit_log("Compiling enabled, block length: %d\n", blocklen);
+		write_jit_log("Compiling enabled, block length: %d\n", blocklen);
 
 		int i;
 
@@ -815,31 +821,6 @@ uae_u8 comp_get_gpr_for_temp_register(uae_u8 tmpreg)
 }
 
 /**
- * Returns the temporary register index that is mapped to the specified GPR register
- */
-uae_u8 comp_get_temp_for_gpr_register(uae_u8 reg_mapped)
-{
-	int i;
-
-	for(i = 0; i <PPC_TMP_REGS_COUNT; i++)
-	{
-		if (PPC_TMP_REGS[i] == reg_mapped)
-		{
-			if (used_tmp_regs[i] == PPC_TMP_REG_NOTUSED)
-			{
-				write_log("ERROR: JIT temporary register '%d' is not allocated, but reverse mapping info is requested\n");
-				abort();
-			}
-
-			return i;
-		}
-	}
-
-	write_log("ERROR: JIT GPR '%d' cannot be mapped to temporary register index\n", reg_mapped);
-	abort();
-}
-
-/**
  * Flush all the allocated temporary registers (except base register),
  * reset allocation state.
  */
@@ -917,37 +898,6 @@ uae_u8 comp_map_temp_register(uae_u8 reg_number, int needs_init, int needs_flush
 	reg->locked = TRUE;
 
 	return ppc_reg;
-}
-
-/**
- * Swaps the temporary register mapping for the emulated registers.
- * Parameters:
- *   tmpreg1 - number of the first temporary register
- *   tmpreg2 - number of the second temporary register
- * Note: The registers must be mapped before the swap, all register mapping flags are preserved (not swapped).
- * Make sure other references are also swapped if it is necessary.
- */
-void comp_swap_temp_register_mapping(uae_u8 tmpreg1, uae_u8 tmpreg2)
-{
-	if ((used_tmp_regs[tmpreg1] == PPC_TMP_REG_NOTUSED) || (used_tmp_regs[tmpreg2] == PPC_TMP_REG_NOTUSED))
-	{
-		write_log("ERROR: JIT temporary register swap on not mapped registers, reg1: %d, reg2: %d\n", tmpreg1, tmpreg2);
-		abort();
-	}
-
-	int tmp = used_tmp_regs[tmpreg1];
-	used_tmp_regs[tmpreg1] = used_tmp_regs[tmpreg2];
-	used_tmp_regs[tmpreg2] = tmp;
-
-	//We have to check the temp register mapping in the associated m68k_register structure too and swap it
-	if (used_tmp_regs[tmpreg1] != PPC_TMP_REG_ALLOCATED)
-	{
-		comp_m68k_registers[used_tmp_regs[tmpreg1]].tmpreg = tmpreg1;
-	}
-	if (used_tmp_regs[tmpreg2] != PPC_TMP_REG_ALLOCATED)
-	{
-		comp_m68k_registers[used_tmp_regs[tmpreg2]].tmpreg = tmpreg2;
-	}
 }
 
 /**
@@ -2149,20 +2099,6 @@ void comp_ppc_subfe(int regd, int rega, int regb, int updateflags)
 			0x0110 | (regb << 11) | (updateflags ? 1 : 0));
 }
 
-/* Compiles subf instruction
- * Parameters:
- * 		regd - target register
- * 		rega - source register 1
- * 		regb - source register 2
- * 		updateflags - compiles the flag updating version if TRUE
- */
-void comp_ppc_subf(int regd, int rega, int regb, int updateflags)
-{
-	// ## subf(x) regd, rega, regb
-	comp_ppc_emit_halfwords(0x7c00 | ((regd) << 5) | rega,
-			0x0050 | (regb << 11) | (updateflags ? 1 : 0));
-}
-
  /* Compiles trap instruction
   * Parameters:
   * 		none
@@ -2276,7 +2212,8 @@ void comp_ppc_jump(uae_uintptr addr)
 }
 
 /* Compiles prolog to the beginnig of the function call (stackframe preparing)
- * Note: emitted code uses PPCR_TMP0 register, it is not restored.
+ * Note: emitted code uses PPCR_TMP0 register, it is not restored. Three additional
+ * longwords are available in the stack frame for storing registers temporarily.
  * Parameters:
  *   save_regs - save the PPC registers to the stack that are marked with a high
  *   bit in this longword (e.g. R4 and R6 = (1 << 4) | (1 <<6) = %101000)
@@ -2285,7 +2222,7 @@ void comp_ppc_jump(uae_uintptr addr)
 void comp_ppc_prolog(uae_u32 save_regs)
 {
 	int i;
-	int regnum = 0;
+	int regnum = COMP_STACKFRAME_ALLOCATED_SLOTS;	//Additional free longwords for temporary register storage
 
 	//How many registers do we want to save?
 	for(i = 0; i < 32; i++) regnum += (save_regs & (1 << i)) ? 1 : 0;
@@ -2308,6 +2245,9 @@ void comp_ppc_prolog(uae_u32 save_regs)
 			regnum += 4;
 		}
 	}
+
+	//Store offset for the non-volatile register slots
+	nonvolatile_regs_in_stackframe = regnum;
 }
 #else
 //Prolog for MacOSX Darwin ABI
@@ -2315,7 +2255,7 @@ void comp_ppc_prolog(uae_u32 save_regs)
 {
 	int i;
 	int offset = -4;
-	int regnum = 0;
+	int regnum = COMP_STACKFRAME_ALLOCATED_SLOTS;	//Additional free longwords for temporary register storage
 
 	//How many registers do we want to save?
 	for(i = 0; i < 32; i++) {
@@ -2336,6 +2276,9 @@ void comp_ppc_prolog(uae_u32 save_regs)
 	}
 
 	comp_ppc_stwu(PPCR_SP, ((-24 - (regnum * 4) + 15) & (-16)), PPCR_SP); //Calculate new stack frame; 16 byte aligned, no parameter area!!! Set real stack pointer
+
+	//Store offset for the non-volatile register slots
+	nonvolatile_regs_in_stackframe = 20 - offset;
 }
 #endif
 
@@ -2388,32 +2331,33 @@ void comp_ppc_epilog(uae_u32 restore_regs)
 }
 #endif
 
-/* Saves a specified register to a slot in the Regs structure. */
+/* Saves a specified register to a slot in the stack frame. */
 void comp_ppc_save_to_slot(int reg, int slot)
 {
-	//Check for the available slots
-	if (slot > COMP_REGS_ALLOCATED_SLOTS)
+	//Subtract the used stack frames from prolog
+	if (slot > COMP_STACKFRAME_ALLOCATED_SLOTS - PPCR_REG_USED_NONVOLATILE_NUM)
 	{
 		//Oops, the specified slot is not available
-		write_log("Error: slot #%d is not available in Regs structure for saving register\n", slot);
+		write_log("Error: slot #%d is not available in JIT stack frame for saving register\n", slot);
 		abort();
 	}
 
-	comp_ppc_stw(reg, COMP_GET_OFFSET_IN_REGS(regslots) + (slot * 4), PPCR_REGS_BASE);
+	comp_ppc_stw(reg, nonvolatile_regs_in_stackframe + (slot * 4), PPCR_SP);
 }
 
-/* Restores the specified register from the Regs structure. */
+/* Restores the specified non-volatile register from the stack frame.
+ * See PPCR_TMP_NONVOL... defines for more information. */
 void comp_ppc_restore_from_slot(int reg, int slot)
 {
-	//Check for the available slots
-	if (slot > COMP_REGS_ALLOCATED_SLOTS)
+	//Subtract the used stack frames from prolog
+	if (slot > COMP_STACKFRAME_ALLOCATED_SLOTS - PPCR_REG_USED_NONVOLATILE_NUM)
 	{
 		//Oops, the specified slot is not available
-		write_log("Error: slot #%d is not available in Regs structure for restoring register\n", slot);
+		write_log("Error: slot #%d is not available in JIT stack frame for restoring register\n", slot);
 		abort();
 	}
 
-	comp_ppc_lwz(reg, COMP_GET_OFFSET_IN_REGS(regslots) + (slot * 4), PPCR_REGS_BASE);
+	comp_ppc_lwz(reg, nonvolatile_regs_in_stackframe + (slot * 4), PPCR_SP);
 }
 
 /* Saves allocated temporary registers to the stack.

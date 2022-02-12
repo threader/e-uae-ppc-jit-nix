@@ -60,7 +60,6 @@ void comp_macroblock_impl_save_memory_word_update(union comp_compiler_mb_union* 
 void comp_macroblock_impl_save_memory_byte(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_add_with_flags(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_add(union comp_compiler_mb_union* mb);
-void comp_macroblock_impl_sub(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_sub_with_flags(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_add_register_imm(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_add_high_register_imm(union comp_compiler_mb_union* mb);
@@ -91,12 +90,11 @@ void comp_macroblock_impl_rotate_and_copy_bits(union comp_compiler_mb_union* mb)
 void comp_macroblock_impl_rotate_and_mask_bits(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_arithmetic_shift_right_register(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_arithmetic_left_shift_extract_v_flag(union comp_compiler_mb_union* mb);
-void comp_macroblock_impl_save_reg_slot(union comp_compiler_mb_union* mb);
-void comp_macroblock_impl_load_reg_slot(union comp_compiler_mb_union* mb);
+void comp_macroblock_impl_save_reg_stack(union comp_compiler_mb_union* mb);
+void comp_macroblock_impl_load_reg_stack(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_set_byte_from_z_flag(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_stop(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_nop(union comp_compiler_mb_union* mb);
-void comp_macroblock_impl_null_operation(union comp_compiler_mb_union* mb);
 
 /**
  * Prototypes for local helper functions
@@ -472,39 +470,17 @@ void comp_macroblock_impl_add(union comp_compiler_mb_union* mb)
 }
 
 /**
- * Macroblock: Subtracts a register from another register then copies the result into a third without flag update.
- */
-void comp_macroblock_push_sub(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 subtrahend_input_reg1, uae_u8 minuend_input_reg2)
-{
-	comp_mb_init(mb,
-				comp_macroblock_impl_sub,
-				regsin, regsout);
-	mb->three_regs_opcode.output_reg = output_reg;
-	mb->three_regs_opcode.input_reg1 = subtrahend_input_reg1;
-	mb->three_regs_opcode.input_reg2 = minuend_input_reg2;
-}
-
-void comp_macroblock_impl_sub(union comp_compiler_mb_union* mb)
-{
-	comp_ppc_subf(
-			mb->three_regs_opcode.output_reg,
-			mb->three_regs_opcode.input_reg1,
-			mb->three_regs_opcode.input_reg2,
-			FALSE);
-}
-
-/**
  * Macroblock: Subtracts a register from another register then copies
  * the result into a third and updates all the flags in PPC flag registers (NZCVX)
  */
-void comp_macroblock_push_sub_with_flags(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 subtrahend_input_reg1, uae_u8 minuend_input_reg2)
+void comp_macroblock_push_sub_with_flags(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg1, uae_u8 input_reg2)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_sub_with_flags,
 				regsin, regsout);
 	mb->three_regs_opcode.output_reg = output_reg;
-	mb->three_regs_opcode.input_reg1 = subtrahend_input_reg1;
-	mb->three_regs_opcode.input_reg2 = minuend_input_reg2;
+	mb->three_regs_opcode.input_reg1 = input_reg1;
+	mb->three_regs_opcode.input_reg2 = input_reg2;
 }
 
 void comp_macroblock_impl_sub_with_flags(union comp_compiler_mb_union* mb)
@@ -1118,6 +1094,27 @@ void comp_macroblock_impl_and_register_register(union comp_compiler_mb_union* mb
 }
 
 /**
+ * Macroblock: OR an immediate to a register
+ */
+void comp_macroblock_push_or_immed_register(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, uae_u16 immediate)
+{
+	comp_mb_init(mb,
+				comp_macroblock_impl_or_immed_register,
+				regsin, regsout);
+	mb->two_regs_imm_opcode.output_reg = output_reg;
+	mb->two_regs_imm_opcode.input_reg = input_reg;
+	mb->two_regs_imm_opcode.immediate = immediate;
+}
+
+void comp_macroblock_impl_or_immed_register(union comp_compiler_mb_union* mb)
+{
+	comp_ppc_ori(
+			mb->two_regs_imm_opcode.output_reg,
+			mb->two_regs_imm_opcode.input_reg,
+			mb->two_regs_imm_opcode.immediate);
+}
+
+/**
  * Macroblock: XOR a register to another register
  */
 void comp_macroblock_push_xor_register_register(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg1, uae_u8 input_reg2, char updateflags)
@@ -1628,66 +1625,47 @@ void comp_macroblock_impl_nop(union comp_compiler_mb_union* mb)
 }
 
 /**
- * Macroblock: null operation.
- * This macroblock has no output in the compiled code, can be used for
- * specific tweaking on the register flow optimizations.
- */
-void comp_macroblock_push_null_operation(uae_u64 regsin, uae_u64 regsout)
-{
-	//There is no real macroblock behind this, only input/output register specification
-	comp_mb_init(mb,
-				comp_macroblock_impl_null_operation,
-				regsin,
-				regsout);
-}
-
-void comp_macroblock_impl_null_operation(union comp_compiler_mb_union* mb)
-{
-	//Do nothing
-}
-
-/**
- * Macroblock: save the specified register into the specified slot in the Regs structure
- * Slot specifies the target longword in Regs structure (see COMP_REGS_ALLOCATED_SLOTS).
+ * Macroblock: save the specified register into the specified slot in the stack frame
+ * Slot specifies the target longword in stack frame (see COMP_STACKFRAME_ALLOCATED_SLOTS).
  * Note: there is no checking for the allocation of the slots, make sure you know
  * which one is in use.
  */
-void comp_macroblock_push_save_reg_slot(uae_u64 regsin, uae_u8 input_reg, unsigned int slot)
+void comp_macroblock_push_save_reg_stack(uae_u64 regsin, uae_u8 input_reg, unsigned int slot)
 {
 	//Registers are not required for input to avoid any interfere with the optimization
 	comp_mb_init(mb,
-				comp_macroblock_impl_save_reg_slot,
+				comp_macroblock_impl_save_reg_stack,
 				regsin,
 				COMP_COMPILER_MACROBLOCK_REG_NONE);
-	mb->reg_in_slot.slot = slot;
-	mb->reg_in_slot.reg = input_reg;
+	mb->reg_in_stackframe.slot = slot;
+	mb->reg_in_stackframe.reg = input_reg;
 }
 
-void comp_macroblock_impl_save_reg_slot(union comp_compiler_mb_union* mb)
+void comp_macroblock_impl_save_reg_stack(union comp_compiler_mb_union* mb)
 {
-	comp_ppc_save_to_slot(mb->reg_in_slot.reg, mb->reg_in_slot.slot);
+	comp_ppc_save_to_slot(mb->reg_in_stackframe.reg, mb->reg_in_stackframe.slot);
 }
 
 /**
- * Macroblock: load the specified register from the specified slot in the Regs structure
- * Slot specifies the target longword in Regs structure (see COMP_REGS_ALLOCATED_SLOTS).
+ * Macroblock: load the specified register from the specified slot in the stack frame
+ * Slot specifies the target longword in stack frame (see COMP_STACKFRAME_ALLOCATED_SLOTS).
  * Note: there is no checking for the allocation of the slots, make sure you know
  * which one is in use.
  */
-void comp_macroblock_push_load_reg_slot(uae_u64 regsout, uae_u8 output_reg, unsigned int slot)
+void comp_macroblock_push_load_reg_stack(uae_u64 regsout, uae_u8 output_reg, unsigned int slot)
 {
 	//Registers are not required for input to avoid any interfere with the optimization
 	comp_mb_init(mb,
-				comp_macroblock_impl_load_reg_slot,
+				comp_macroblock_impl_load_reg_stack,
 				COMP_COMPILER_MACROBLOCK_REG_NONE,
 				regsout);
-	mb->reg_in_slot.slot = slot;
-	mb->reg_in_slot.reg = output_reg;
+	mb->reg_in_stackframe.slot = slot;
+	mb->reg_in_stackframe.reg = output_reg;
 }
 
-void comp_macroblock_impl_load_reg_slot(union comp_compiler_mb_union* mb)
+void comp_macroblock_impl_load_reg_stack(union comp_compiler_mb_union* mb)
 {
-	comp_ppc_restore_from_slot(mb->reg_in_slot.reg, mb->reg_in_slot.slot);
+	comp_ppc_restore_from_slot(mb->reg_in_stackframe.reg, mb->reg_in_stackframe.slot);
 }
 
 void comp_macroblock_push_set_byte_from_z_flag(uae_u64 regsout, uae_u8 output_reg, int negate)

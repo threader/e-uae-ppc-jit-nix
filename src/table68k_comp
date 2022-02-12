@@ -1,21 +1,19 @@
 ;***
 ;*** E-UAE JIT compiling
 ;***
-;*** Opcode table
+;*** Opcode tables
 ;***
-;*** Lists all JIT supported instuctions with the required flags.
-;*** If an instruction was not listed here then it is not supported
-;*** by the JIT compiling and the execution falls back to the
-;*** interpretive emulation.
 
 ;*** Format:
-;*** opcode_name implemented binary_code_in_4_parts jump constjump srcaddr destaddr
+;*** opcode_name implemented binary_code_in_4_parts jump constjump flagsin flagsout srcaddr destaddr
 ;***   implemented - this instruction was implemented or not (1/0)
 ;***   binary code - contains "S" and "s" as source addr/reg, 
 ;***                          "D" and "d" as destination bits addr/reg
 ;***                          "x" for ignoring that bit
 ;***   jump - compile stopping opcode (branch mostly) (1/0)
 ;***   constjump - constant jump opcode (1/0)
+;***   flagsin - flags required (1/0, XNZVC)
+;***   flagsout - flags overwritten (1/0, XNZVC)
 ;***   srcaddr - source addressing
 ;***   destaddr - destination addressing
 ;***
@@ -67,7 +65,7 @@ absL        111    001
 indAcp      110    rrr
 indPCcp     111    011
 
-;Conditional code bits
+;Conditional codes
 CC_cc   0    100
 CC_cs   0    101
 CC_eq   0    111
@@ -85,7 +83,7 @@ CC_vs   1    001
 CC_t    0    000
 CC_f    0    001
 
-;FPU Conditional code bits
+;FPU Conditional codes
 FCC_f      000    000
 FCC_eq     000    001
 FCC_ogt    000    010
@@ -134,9 +132,9 @@ MOVAREG2REGL 1   0010 dddD DDSS Ssss   0 0     regD,regA    regA
 MOVAREG2REGW 1   0011 dddD DDSS Ssss   0 0     regD,regA    regA
 
 ;*** Move memory to memory
-MOVMEM2MEML  0   0010 dddD DDSS Ssss   0 0     indA,indApL,indmAL,indAd16,indAcp,indPCcp,indPCd16,absW,absL    indA,indApL,indmAL,indAd16,indAcp,absW,absL
-MOVMEM2MEMW  0   0011 dddD DDSS Ssss   0 0     indA,indApW,indmAW,indAd16,indAcp,indPCcp,indPCd16,absW,absL    indA,indApW,indmAW,indAd16,indAcp,absW,absL
-MOVMEM2MEMB  0   0001 dddD DDSS Ssss   0 0     indA,indApB,indmAB,indAd16,indAcp,indPCcp,indPCd16,absW,absL    indA,indApB,indmAB,indAd16,indAcp,absW,absL
+MOVMEM2MEML  1   0010 dddD DDSS Ssss   0 0     indA,indApL,indmAL,indAd16,indAcp,indPCcp,indPCd16,absW,absL    indA,indApL,indmAL,indAd16,indAcp,absW,absL
+MOVMEM2MEMW  1   0011 dddD DDSS Ssss   0 0     indA,indApW,indmAW,indAd16,indAcp,indPCcp,indPCd16,absW,absL    indA,indApW,indmAW,indAd16,indAcp,absW,absL
+MOVMEM2MEMB  1   0001 dddD DDSS Ssss   0 0     indA,indApB,indmAB,indAd16,indAcp,indPCcp,indPCd16,absW,absL    indA,indApB,indmAB,indAd16,indAcp,absW,absL
 
 ;*** Move register to memory
 MOVREG2MEML  1   0010 dddD DDSS Ssss   0 0     regD,regA    indA,indApL,indmAL,indAd16,indAcp,absW,absL
@@ -207,7 +205,7 @@ MOVAIMM2REGW 1   0011 dddD DDSS Ssss   0 0     immedW    regA
 ;*** Move quick
 MOVEQ        1   0111 ddd0 ssss ssss   0 0     immedQ    regD
 
-;*** Move multiple registers to memory
+;*** Moveregs to mem
 MOVEM2MEML   0   0100 1000 11DD Dddd   0 0     none    indA,indAd16,indAcp,absW,absL
 MOVEM2MEMW   0   0100 1000 10DD Dddd   0 0     none    indA,indAd16,indAcp,absW,absL
 
@@ -222,13 +220,13 @@ MOVEM2MEMUW  1   0100 1000 1010 0ddd   0 0     none    regA
 MOVEM2REGUL  0   0100 1100 1101 1sss   0 0     regA    none
 MOVEM2REGUW  0   0100 1100 1001 1sss   0 0     regA    none
 
-;*** Move immediate to memory
+;*** Move immediate to mem
 ;move.z #y,dx
 MOVIMM2MEML  1   0010 dddD DDSS Ssss   0 0     immedL    indA,indApL,indmAL,indAd16,indAcp,absW,absL
 MOVIMM2MEMW  1   0011 dddD DDSS Ssss   0 0     immedW    indA,indApW,indmAW,indAd16,indAcp,absW,absL
 MOVIMM2MEMB  1   0001 dddD DDSS Ssss   0 0     immedB    indA,indApB,indmAB,indAd16,indAcp,absW,absL
 
-;*** Move16 (MC68040 only)
+;*** Move16
 MOV16REG2REGU 0   1111 0110 0010 0sss   0 0    regA    none
 MOV16REG2MEMU 0   1111 0110 0000 0sss   0 0    regA    immedL
 MOV16MEM2REGU 0   1111 0110 0000 1ddd   0 0    immedL  regA
@@ -257,6 +255,12 @@ PEAIMML      1   0100 1000 0111 1001   0 0     immedL    none
 PEAIMMW      1   0100 1000 0111 1000   0 0     immedW    none
 PEAIND       1   0100 1000 01SS Ssss   0 0     indA,indPCd16,indAd16,indAcp,indPCcp    none
 
+;*** Move Peripherials
+MOVPREG2MEML 0   0000 sss1 1100 1ddd   0 0     regD    indAd16
+MOVPREG2MEMW 0   0000 sss1 1000 1ddd   0 0     regD    indAd16
+MOVPMEM2REGL 0   0000 ddd1 0100 1sss   0 0     indAd16    regD
+MOVPMEM2REGW 0   0000 ddd1 0000 1sss   0 0     indAd16    regD
+
 ;---------------------------------------------------------------------
 ;*** Special data moving instructions
 ;*** Set Conditional
@@ -275,6 +279,22 @@ MOVCCR2MEMW  0   0100 0010 11DD Dddd   0 0     none    indA,indApW,indmAW,indAd1
 MOVIMM2CCRW  0   0100 0100 11SS Ssss   0 0     immedW  none
 MOVREG2CCRW  0   0100 0100 11SS Ssss   0 0     regD    none
 MOVMEM2CCRW  0   0100 0100 11SS Ssss   0 0     indA,indApW,indmAW,indAd16,indAcp,indPCcp,indPCd16,absW,absL    none
+
+;*** Status Register moving
+MOVSR2REGW   0   0100 0000 11DD Dddd   0 0     none    regD
+MOVSR2MEMW   0   0100 0000 11DD Dddd   0 0     none    indA,indApW,indmAW,indAd16,indAcp,absW,absL
+
+MOVIMM2SRW   0   0100 0110 11SS Ssss   0 0     immedW  none
+MOVREG2SRW   0   0100 0110 11SS Ssss   0 0     regD    none
+MOVMEM2SRW   0   0100 0110 11SS Ssss   0 0     indA,indApW,indmAW,indAd16,indAcp,indPCcp,indPCd16,absW,absL    none
+
+;*** Move USP
+MOVUSP2REGL  0   0100 1110 0110 1ddd   0 0     none    regA
+MOVREG2USPL  0   0100 1110 0110 0sss   0 0     regA    regA
+
+;*** Move control register
+MOVCREG2CTRL 0   0100 1110 0111 1011   0 0     none    none
+MOVCCTR2REGL 0   0100 1110 0111 1010   0 0     none    none
 
 ;---------------------------------------------------------------------
 ;*** Branch instructions
@@ -311,8 +331,8 @@ JSRIND       0   0100 1110 10SS Ssss   1 0     indAd16,indPCd16,indAcp,indPCcp,i
 
 RTS          0   0100 1110 0111 0101   1 0     none    none
 RTD          0   0100 1110 0111 0100   1 0     immedW    none
-RTM          0   0000 0110 1100 0SSS   1 0     regD    none
-RTM          0   0000 0110 1100 1SSS   1 0     regA    none
+RTR          0   0100 1110 0111 0111   1 0     none    none
+RTE          0   0100 1110 0111 0011   1 0     none    none
 
 ;---------------------------------------------------------------------
 ;*** Logic instructions
@@ -325,9 +345,9 @@ EORIMM2MEML  0   0000 1010 10DD Dddd   0 0     immedL    indA,indApL,indmAL,indA
 EORIMM2MEMW  0   0000 1010 01DD Dddd   0 0     immedW    indA,indApW,indmAW,indAd16,indAcp,absW,absL
 EORIMM2MEMB  0   0000 1010 00DD Dddd   0 0     immedB    indA,indApB,indmAB,indAd16,indAcp,absW,absL
 
-EORREG2REGL  1   1011 sss1 10DD Dddd   0 0     regD    regD
-EORREG2REGW  1   1011 sss1 01DD Dddd   0 0     regD    regD
-EORREG2REGB  1   1011 sss1 00DD Dddd   0 0     regD    regD
+EORREG2REGL  0   1011 sss1 10DD Dddd   0 0     regD    regD
+EORREG2REGW  0   1011 sss1 01DD Dddd   0 0     regD    regD
+EORREG2REGB  0   1011 sss1 00DD Dddd   0 0     regD    regD
 
 EORREG2MEML  0   1011 sss1 10DD Dddd   0 0     regD    indA,indApL,indmAL,indAd16,indAcp,absW,absL
 EORREG2MEMW  0   1011 sss1 01DD Dddd   0 0     regD    indA,indApW,indmAW,indAd16,indAcp,absW,absL
@@ -343,9 +363,9 @@ ANDIMM2MEML  0   0000 0010 10DD Dddd   0 0     immedL    indA,indApL,indmAL,indA
 ANDIMM2MEMW  0   0000 0010 01DD Dddd   0 0     immedW    indA,indApW,indmAW,indAd16,indAcp,absW,absL
 ANDIMM2MEMB  0   0000 0010 00DD Dddd   0 0     immedB    indA,indApB,indmAB,indAd16,indAcp,absW,absL
 
-ANDREG2REGL  1   1100 ddd0 10SS Ssss   0 0     regD,regA    regD
-ANDREG2REGW  1   1100 ddd0 01SS Ssss   0 0     regD,regA    regD
-ANDREG2REGB  1   1100 ddd0 00SS Ssss   0 0     regD,regA    regD
+ANDREG2REGL  0   1100 ddd0 10SS Ssss   0 0     regD,regA    regD
+ANDREG2REGW  0   1100 ddd0 01SS Ssss   0 0     regD,regA    regD
+ANDREG2REGB  0   1100 ddd0 00SS Ssss   0 0     regD,regA    regD
 
 ANDREG2MEML  0   1100 sss1 10DD Dddd   0 0     regD    indA,indApL,indmAL,indAd16,indAcp,absW,absL
 ANDREG2MEMW  0   1100 sss1 01DD Dddd   0 0     regD    indA,indApW,indmAW,indAd16,indAcp,absW,absL
@@ -401,6 +421,11 @@ ANDIMM2CCRB  0   0000 0010 0011 1100   0 0     immedB    none
 ORIMM2CCRB   0   0000 0000 0011 1100   0 0     immedB    none
 EORIMM2CCRB  0   0000 1010 0011 1100   0 0     immedB    none
 
+;*** Status Register bit logic
+ANDIMM2SRW   0   0000 0010 0111 1100   1 0     immedW    none
+ORIMM2SRW    0   0000 0000 0111 1100   1 0     immedW    none
+EORIMM2SRW   0   0000 1010 0111 1100   1 0     immedW    none
+
 ;*** Btst
 BTSTIMM2MEM  0   0000 1000 00DD Dddd   0 0     immedW    indA,indApB,indmAB,indAd16,indAcp,indPCcp,absW,absL,indPCd16
 BTSTREG2MEM  0   0000 sss1 00DD Dddd   0 0     regD    indA,indApB,indmAB,indAd16,indAcp,indPCcp,absW,absL,indPCd16
@@ -411,13 +436,13 @@ BTSTREG2IMM  0   0000 sss1 00DD Dddd   0 0     regD    immedB
 ;*** Bset
 BSETIMM2MEM  0   0000 1000 11DD Dddd   0 0     immedW    indA,indApB,indmAB,indAd16,indAcp,absW,absL
 BSETREG2MEM  0   0000 sss1 11DD Dddd   0 0     regD    indA,indApB,indmAB,indAd16,indAcp,absW,absL
-BSETIMM2REG  1   0000 1000 11DD Dddd   0 0     immedW    regD
+BSETIMM2REG  0   0000 1000 11DD Dddd   0 0     immedW    regD
 BSETREG2REG  0   0000 sss1 11DD Dddd   0 0     regD    regD
 
 ;*** Bclr
 BCLRIMM2MEM  0   0000 1000 10DD Dddd   0 0     immedW    indA,indApB,indmAB,indAd16,indAcp,absW,absL
 BCLRREG2MEM  0   0000 sss1 10DD Dddd   0 0     regD    indA,indApB,indmAB,indAd16,indAcp,absW,absL
-BCLRIMM2REG  1   0000 1000 10DD Dddd   0 0     immedW    regD
+BCLRIMM2REG  0   0000 1000 10DD Dddd   0 0     immedW    regD
 BCLRREG2REG  0   0000 sss1 10DD Dddd   0 0     regD    regD
 
 ;*** Bchg
@@ -552,10 +577,27 @@ CMPIMM2REGL  1   1011 ddd0 10SS Ssss   0 0     immedL    regD
 CMPIMM2REGW  1   1011 ddd0 01SS Ssss   0 0     immedW    regD
 CMPIMM2REGB  1   1011 ddd0 00SS Ssss   0 0     immedB    regD
 
-;*** CMP2
+;*** CMP2/CHK2
 CMP2MEM2REGL 0   0000 0100 11SS Ssss   0 0     indA,indPCd16,indAd16,indAcp,indPCcp,absW,absL    none
 CMP2MEM2REGW 0   0000 0010 11SS Ssss   0 0     indA,indPCd16,indAd16,indAcp,indPCcp,absW,absL    none
 CMP2MEM2REGB 0   0000 0000 11SS Ssss   0 0     indA,indPCd16,indAd16,indAcp,indPCcp,absW,absL    none
+
+;*** CAS/CAS2
+CASREG2MEML  0   0000 1110 11SS Ssss   0 0     indA,indApL,indmAL,indPCd16,indAd16,indAcp,indPCcp,absW,absL    none
+CASREG2MEMW  0   0000 1100 11SS Ssss   0 0     indA,indApW,indmAW,indPCd16,indAd16,indAcp,indPCcp,absW,absL    none
+CASREG2MEMB  0   0000 1010 11SS Ssss   0 0     indA,indApB,indmAB,indPCd16,indAd16,indAcp,indPCcp,absW,absL    none
+
+CAS2REG2MEML 0   0000 1110 1111 1100   0 0     none    none
+CAS2REG2MEMW 0   0000 1100 1111 1100   0 0     none    none
+
+;*** CHK
+CHKREG2REGW  0   0100 ddd1 10SS Ssss   1 0     regD    regD
+CHKIMM2REGW  0   0100 ddd1 10SS Ssss   1 0     immedW    regD
+CHKMEM2REGW  0   0100 ddd1 10SS Ssss   1 0     indA,indApW,indmAW,indAd16,indAcp,indPCcp,absW,absL    regD
+
+CHKREG2REGL  0   0100 ddd1 00SS Ssss   1 0     regD    regD
+CHKIMM2REGL  0   0100 ddd1 00SS Ssss   1 0     immedL    regD
+CHKMEM2REGL  0   0100 ddd1 00SS Ssss   1 0     indA,indApL,indmAL,indAd16,indAcp,indPCcp,absW,absL    regD
 
 ;---------------------------------------------------------------------
 ;*** Arithmetic instructions
@@ -608,7 +650,7 @@ ADDQ2MEMB    0   0101 sss0 00DD Dddd   0 0     immedQ    indA,indApB,indmAB,indA
 ADDAMEM2REGL 0   1101 ddd1 11SS Ssss   0 0     indA,indApL,indmAL,indAd16,indAcp,indPCcp,indPCd16,absW,absL    regA
 
 ;Address registers are always longword-sized, doesn't matter what is the specified size,
-;word sized data will be sign-extended to longword before the operation
+;immediate word sized data will be sign-extended to longword
 ADDAMEM2REGW 0   1101 ddd0 11SS Ssss   0 0     indA,indApW,indmAW,indAd16,indAcp,indPCcp,indPCd16,absW,absL    regA
 ADDAREG2REGL 1   1101 ddd1 11SS Ssss   0 0     regA,regD    regA
 ADDAREG2REGW 1   1101 ddd0 11SS Ssss   0 0     regA,regD    regA
@@ -660,7 +702,7 @@ SUBQ2REGB    0   0101 sss1 00DD Dddd   0 0     immedQ    regD
 SUBAQ2REGL   0   0101 sss1 10DD Dddd   0 0     immedQ    regA
 
 ;Address registers are always longword-sized, doesn't matter what is the specified size,
-;word sized data will be sign-extended to longword before the operation
+;immediate word sized data will be sign-extended to longword
 SUBAQ2REGL   0   0101 sss1 01DD Dddd   0 0     immedQ    regA
 
 SUBQ2MEML    0   0101 sss1 10DD Dddd   0 0     immedQ    indA,indApL,indmAL,indAd16,indAcp,absW,absL
@@ -672,12 +714,12 @@ SUBQ2MEMB    0   0101 sss1 00DD Dddd   0 0     immedQ    indA,indApB,indmAB,indA
 SUBAMEM2REGL 0   1001 ddd1 11SS Ssss   0 0     indA,indApL,indmAL,indPCd16,indAd16,indAcp,indPCcp,absW,absL    regA
 
 ;Address registers are always longword-sized, doesn't matter what is the specified size,
-;word sized data will be sign-extended to longword before the operation
+;immediate word sized data will be sign-extended to longword
 SUBAMEM2REGW 0   1001 ddd0 11SS Ssss   0 0     indA,indApW,indmAW,indPCd16,indAd16,indAcp,indPCcp,absW,absL    regA
-SUBAIMM2REGL 1   1001 ddd1 11SS Ssss   0 0     immedL    regA
-SUBAIMM2REGW 1   1001 ddd0 11SS Ssss   0 0     immedW    regA
-SUBAREG2REGL 1   1001 ddd1 11SS Ssss   0 0     regA,regD    regA
-SUBAREG2REGW 1   1001 ddd0 11SS Ssss   0 0     regA,regD    regA
+SUBAIMM2REGL 0   1001 ddd1 11SS Ssss   0 0     immedL    regA
+SUBAIMM2REGW 0   1001 ddd0 11SS Ssss   0 0     immedW    regA
+SUBAREG2REGL 0   1001 ddd1 11SS Ssss   0 0     regA,regD    regA
+SUBAREG2REGW 0   1001 ddd0 11SS Ssss   0 0     regA,regD    regA
 
 ;*** SUBX
 SUBXREG2REGL 0   1001 ddd1 1000 0sss   0 0     regD    regD
@@ -756,9 +798,9 @@ UNPKMEM2MEMB 0   1000 ddd1 1000 1sss   0 0     indmAB    indmAW
 SWAP         1   0100 1000 0100 0ddd   0 0     none    regD
 
 ;*** Exchange
-EXGD         1   1100 sss1 0100 0ddd   0 0     regD    regD
-EXGA         1   1100 sss1 0100 1ddd   0 0     regA    regA
-EXGD         1   1100 sss1 1000 1ddd   0 0     regD    regA
+EXG          0   1100 sss1 0100 0ddd   0 0     regD    regD
+EXG          0   1100 sss1 0100 1ddd   0 0     regA    regA
+EXG          0   1100 sss1 1000 1ddd   0 0     regD    regA
 
 ;*** EXT
 EXTBW        0   0100 1000 1000 0ddd   0 0     none    regD
@@ -766,7 +808,7 @@ EXTWL        0   0100 1000 1100 0ddd   0 0     none    regD
 EXTBL        0   0100 1001 1100 0ddd   0 0     none    regD
 
 ;*** Other
-NOP          1   0100 1110 0111 0001   0 0     none    none
+NOP          0   0100 1110 0111 0001   0 0     none    none
 
 ;*** Testing
 TSTREGL      1   0100 1010 10SS Ssss   0 0     regD,regA    none
@@ -781,6 +823,33 @@ TSTMEMB      0   0100 1010 00SS Ssss   0 0     indA,indApB,indmAB,indPCd16,indAd
 LINKW        0   0100 1110 0101 0ddd   0 0     immedW    regA
 LINKL        0   0100 1000 0000 1ddd   0 0     immedL    regA
 UNLINK       0   0100 1110 0101 1sss   0 0     regA    none
+
+;*** Trap
+TRAP         0   0100 1110 0100 ssss   1 0     immedQ    none
+
+;without data
+TRAPCC       0   0101 Ssss 1111 1100   1 0     CC_cc,CC_cs,CC_eq,CC_ge,CC_gt,CC_hi,CC_le,CC_ls,CC_lt,CC_mi,CC_ne,CC_pl,CC_vc,CC_vs    none
+
+;with word sized data
+TRAPCC       0   0101 Ssss 1111 1010   1 0     CC_cc,CC_cs,CC_eq,CC_ge,CC_gt,CC_hi,CC_le,CC_ls,CC_lt,CC_mi,CC_ne,CC_pl,CC_vc,CC_vs    none
+
+;with long sized data
+TRAPCC       0   0101 Ssss 1111 1011   1 0     CC_cc,CC_cs,CC_eq,CC_ge,CC_gt,CC_hi,CC_le,CC_ls,CC_lt,CC_mi,CC_ne,CC_pl,CC_vc,CC_vs    none
+
+;*** TRAPV
+TRAPCC       0   0100 1110 0111 0110   1 0     CC_vs    none
+
+;*** STOP
+STOP         0   0100 1110 0111 0010   1 0     none    none
+
+;*** RESET
+RESET        0   0100 1110 0111 0000   1 0     none    none
+
+;*** BKPT
+BKPT         0   0100 1000 0100 1sss   1 0     immedQ    none
+
+;*** ILLEGAL
+ILLEGAL      0   0100 1010 1111 1100   1 0     none    none
 
 ;---------------------------------------------------------------------
 ;*** Bitfield instructions
@@ -838,6 +907,11 @@ FRESTOREMEMUP 0   1111 0011 0101 1sss   0 0    regA    none
 ;cpScc
 FSCCREGB     0   1111 0010 01DD Dddd   0 0     none    regD
 FSCCMEMB     0   1111 0010 01DD Dddd   0 0     none    indA,indAd16,indPCd16,absW,absL,indAcp,indApB,indmAB
+
+;cpTRAPcc
+FTRAPCC      0   1111 0010 0111 1100   1 0     none    none
+FTRAPCC      0   1111 0010 0111 1010   1 0     none    none
+FTRAPCC      0   1111 0010 0111 1011   1 0     none    none
 
 ;FNOP
 FNOP         0   1111 0010 1000 0000   0 0     none    none
