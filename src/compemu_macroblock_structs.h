@@ -148,14 +148,6 @@ struct comp_compiler_mb_reg_in_stackframe
 	uae_u8 reg;							//Input/output register
 };
 
-//Structure for setting a byte in a register from CRF0 Z flag
-struct comp_compiler_mb_set_byte_from_z_flag
-{
-	struct comp_compiler_mb mb;			//Default macroblock descriptor
-	int negate;							//Flag must be negated before use
-	uae_u8 output_reg;					//Output register
-};
-
 //Union of all macroblock descriptor structures
 union comp_compiler_mb_union
 {
@@ -174,5 +166,4 @@ union comp_compiler_mb_union
 	struct comp_compiler_mb_map_physical_mem map_physical_mem;
 	struct comp_compiler_mb_reg_in_stackframe reg_in_stackframe;
 	struct comp_compiler_mb_extract_v_flag_arithmetic_left_shift extract_v_flag_arithmetic_left_shift;
-	struct comp_compiler_mb_set_byte_from_z_flag set_byte_from_z_flag;
 };

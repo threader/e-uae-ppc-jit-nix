@@ -51,7 +51,7 @@ STATIC_INLINE void helper_allocate_2_ax_dest_mem_regs(struct comptbl* props, int
 STATIC_INLINE void helper_allocate_2_ax_dest_mem_regs_copy(struct comptbl* props, int modified);
 STATIC_INLINE void helper_addr_indmAk_dest(struct comptbl* props, uae_u8 size);
 STATIC_INLINE void helper_addr_indApk_dest(struct comptbl* props, uae_u8 size);
-STATIC_INLINE void helper_MOVIMMREG2MEM(const cpu_history* history, uae_u8 size, int immediate, int checkflags);
+STATIC_INLINE void helper_MOVREG2MEM(const cpu_history* history, uae_u8 size);
 STATIC_INLINE void helper_MOVMEM2REG(const cpu_history* history, struct comptbl* props, uae_u8 size, int dataregmode);
 STATIC_INLINE void helper_MOVEM2MEMU(const cpu_history* history, struct comptbl* props, uae_u8 size);
 STATIC_INLINE void helper_MOVMEM2MEM(const cpu_history* history, struct comptbl* props, uae_u8 size);
@@ -93,12 +93,6 @@ int src_reg;
 //Source register (allocated temporary register mapped to PPC register) for the opcode
 //Initialized and released by the addressing mode
 uae_u8 src_reg_mapped;
-
-//Flag for negate the value of the evaluated condition code before use
-//This boolean variable is used by the condition code addressing modes
-//and the depending instruction handlers. If it is set to TRUE then
-//the condition will be negated before use.
-int src_condition_negate;
 
 //Destination register (allocated temporary register) for the opcode
 //Initialized and released by the addressing mode
@@ -149,7 +143,6 @@ void comp_opcode_init(const cpu_history* history)
 	//Reset variables
 	input_dep = output_dep = COMP_COMPILER_MACROBLOCK_REG_NONE;
 	src_mem_addrreg = dest_mem_addrreg = PPC_TMP_REG_NOTUSED;
-	src_condition_negate = FALSE;
 }
 
 /**
@@ -569,21 +562,15 @@ void comp_addr_pre_indApBk_dest(const cpu_history* history, struct comptbl* prop
 }
 void comp_addr_pre_immedL_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Invalid addressing mode
-	write_log("JIT error: invalid addressing mode - immedL as destination\n");
-	abort();
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_addr_pre_immedW_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Invalid addressing mode
-	write_log("JIT error: invalid addressing mode - immedW as destination\n");
-	abort();
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_addr_pre_immedB_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Invalid addressing mode
-	write_log("JIT error: invalid addressing mode - immedB as destination\n");
-	abort();
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_addr_pre_immedQ_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
@@ -758,15 +745,15 @@ void comp_addr_post_indApBk_dest(const cpu_history* history, struct comptbl* pro
 }
 void comp_addr_post_immedL_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//We won't come here anyway, this addressing mode is not supported
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_addr_post_immedW_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//We won't come here anyway, this addressing mode is not supported
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_addr_post_immedB_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//We won't come here anyway, this addressing mode is not supported
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_addr_post_immedQ_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
@@ -811,168 +798,67 @@ void comp_addr_post_indPCcp_dest(const cpu_history* history, struct comptbl* pro
  */
 void comp_cond_pre_CC_cc_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Z <= if !C
-	src_condition_negate = TRUE;
-	comp_cond_pre_CC_cs_src(history, props);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_cond_pre_CC_cs_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Z <= if C
-	comp_macroblock_push_rotate_and_mask_bits(
-			COMP_COMPILER_MACROBLOCK_REG_FLAGC,
-			COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-			PPCR_SPECTMP,
-			PPCR_FLAGS,
-			0, PPC_FLAGBIT_C, PPC_FLAGBIT_C, TRUE);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_cond_pre_CC_eq_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Z <= if Z
-	comp_macroblock_push_rotate_and_mask_bits(
-			COMP_COMPILER_MACROBLOCK_REG_FLAGZ,
-			COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-			PPCR_SPECTMP,
-			PPCR_FLAGS,
-			0, PPC_FLAGBIT_Z, PPC_FLAGBIT_Z, TRUE);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_cond_pre_CC_ge_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Z <= if !(N^V)
-	src_condition_negate = TRUE;
-	comp_cond_pre_CC_lt_src(history, props);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_cond_pre_CC_gt_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Z <= if !((N^V)|Z)
-	src_condition_negate = TRUE;
-	comp_cond_pre_CC_le_src(history, props);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_cond_pre_CC_hi_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Z <= if !(C|Z)
-	src_condition_negate = TRUE;
-	comp_cond_pre_CC_ls_src(history, props);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_cond_pre_CC_le_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	uae_u8 tmp_reg = helper_allocate_tmp_reg();
-	uae_u8 tmp_reg_mapped = comp_get_gpr_for_temp_register(tmp_reg);
-
-	//Z <= if (N^V)|Z
-	//Mask out N and Z flag to temp register
-	comp_macroblock_push_and_high_register_imm(
-			COMP_COMPILER_MACROBLOCK_REG_FLAGN | COMP_COMPILER_MACROBLOCK_REG_FLAGZ,
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tmp_reg),
-			tmp_reg_mapped,
-			PPCR_FLAGS,
-			(1 << (FLAGBIT_N - 16)) | (1 << (FLAGBIT_Z - 16)));
-
-	//Rotate V flag to N flag position to R0
-	comp_macroblock_push_rotate_and_mask_bits(
-			COMP_COMPILER_MACROBLOCK_REG_FLAGV,
-			COMP_COMPILER_MACROBLOCK_TMP_REG_SPEC,
-			PPCR_SPECTMP,
-			PPCR_FLAGS,
-			PPC_FLAGBIT_V - PPC_FLAGBIT_N, PPC_FLAGBIT_N, PPC_FLAGBIT_N, FALSE);
-
-	//Exclusive OR N and repositioned V flag, Z flag left unchanged (OR'ed to the result)
-	comp_macroblock_push_xor_register_register(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tmp_reg) | COMP_COMPILER_MACROBLOCK_TMP_REG_SPEC,
-			COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-			PPCR_SPECTMP,
-			PPCR_SPECTMP,
-			tmp_reg_mapped, TRUE);
-
-	comp_free_temp_register(tmp_reg);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_cond_pre_CC_ls_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Z <= if C|Z
-	//Mask out C flag to temp register
-	comp_macroblock_push_rotate_and_mask_bits(
-			COMP_COMPILER_MACROBLOCK_REG_FLAGC,
-			COMP_COMPILER_MACROBLOCK_TMP_REG_SPEC,
-			PPCR_SPECTMP,
-			PPCR_FLAGS,
-			0, PPC_FLAGBIT_C, PPC_FLAGBIT_C, FALSE);
-
-	//Insert Z flag to the temp register
-	comp_macroblock_push_rotate_and_copy_bits(
-			COMP_COMPILER_MACROBLOCK_REG_FLAGZ | COMP_COMPILER_MACROBLOCK_TMP_REG_SPEC,
-			COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-			PPCR_SPECTMP,
-			PPCR_FLAGS,
-			0, PPC_FLAGBIT_Z, PPC_FLAGBIT_Z, TRUE);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_cond_pre_CC_lt_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	uae_u8 tmp_reg = helper_allocate_tmp_reg();
-	uae_u8 tmp_reg_mapped = comp_get_gpr_for_temp_register(tmp_reg);
-
-	//Z <= if N^V
-	//Mask out N flag to temp register
-	comp_macroblock_push_rotate_and_mask_bits(
-			COMP_COMPILER_MACROBLOCK_REG_FLAGN,
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tmp_reg),
-			tmp_reg_mapped,
-			PPCR_FLAGS,
-			0, PPC_FLAGBIT_N, PPC_FLAGBIT_N, FALSE);
-
-	//Rotate V flag to N flag position to R0
-	comp_macroblock_push_rotate_and_mask_bits(
-			COMP_COMPILER_MACROBLOCK_REG_FLAGV,
-			COMP_COMPILER_MACROBLOCK_TMP_REG_SPEC,
-			PPCR_SPECTMP,
-			PPCR_FLAGS,
-			PPC_FLAGBIT_V - PPC_FLAGBIT_N, PPC_FLAGBIT_N, PPC_FLAGBIT_N, FALSE);
-
-	//Exclusive OR N and repositioned V flag
-	comp_macroblock_push_xor_register_register(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tmp_reg) | COMP_COMPILER_MACROBLOCK_TMP_REG_SPEC,
-			COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-			PPCR_SPECTMP,
-			PPCR_SPECTMP,
-			tmp_reg_mapped, TRUE);
-
-	comp_free_temp_register(tmp_reg);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_cond_pre_CC_mi_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Z <= if N
-	comp_macroblock_push_rotate_and_mask_bits(
-			COMP_COMPILER_MACROBLOCK_REG_FLAGN,
-			COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-			PPCR_SPECTMP,
-			PPCR_FLAGS,
-			0, PPC_FLAGBIT_N, PPC_FLAGBIT_N, TRUE);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_cond_pre_CC_ne_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Z <= if !Z
-	src_condition_negate = TRUE;
-	comp_cond_pre_CC_eq_src(history, props);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_cond_pre_CC_pl_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Z <= if !N
-	src_condition_negate = TRUE;
-	comp_cond_pre_CC_mi_src(history, props);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_cond_pre_CC_vc_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Z <= if !V
-	src_condition_negate = TRUE;
-	comp_cond_pre_CC_vs_src(history, props);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_cond_pre_CC_vs_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Z <= if V
-	comp_macroblock_push_rotate_and_mask_bits(
-			COMP_COMPILER_MACROBLOCK_REG_FLAGV,
-			COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-			PPCR_SPECTMP,
-			PPCR_FLAGS,
-			0, PPC_FLAGBIT_V, PPC_FLAGBIT_V, TRUE);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
+}
+void comp_cond_pre_CC_t_src(const cpu_history* history, struct comptbl* props) REGPARAM
+{
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
+}
+void comp_cond_pre_CC_f_src(const cpu_history* history, struct comptbl* props) REGPARAM
+{
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_cond_pre_FCC_f_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
@@ -1179,15 +1065,15 @@ void comp_opcode_MOVMEM2MEMB(const cpu_history* history, struct comptbl* props) 
 }
 void comp_opcode_MOVREG2MEML(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	helper_MOVIMMREG2MEM(history, 4, FALSE, TRUE);
+	helper_MOVREG2MEM(history, 4);
 }
 void comp_opcode_MOVREG2MEMW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	helper_MOVIMMREG2MEM(history, 2, FALSE, TRUE);
+	helper_MOVREG2MEM(history, 2);
 }
 void comp_opcode_MOVREG2MEMB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	helper_MOVIMMREG2MEM(history, 1, FALSE, TRUE);
+	helper_MOVREG2MEM(history, 1);
 }
 void comp_opcode_MOVMEM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
@@ -1282,15 +1168,15 @@ void comp_opcode_MOVEM2REGUW(const cpu_history* history, struct comptbl* props) 
 }
 void comp_opcode_MOVIMM2MEML(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	helper_MOVIMMREG2MEM(history, 4, TRUE, TRUE);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_opcode_MOVIMM2MEMW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	helper_MOVIMMREG2MEM(history, 2, TRUE, TRUE);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_opcode_MOVIMM2MEMB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	helper_MOVIMMREG2MEM(history, 1, TRUE, TRUE);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_opcode_MOV16REG2REGU(const cpu_history* history, struct comptbl* props) REGPARAM
 {
@@ -1314,116 +1200,51 @@ void comp_opcode_MOV16MEM2REG(const cpu_history* history, struct comptbl* props)
 }
 void comp_opcode_CLRREGL(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Load zero as immediate and call normal MOVE.L #imm,reg instruction
-	src_immediate = 0;
-	helper_MOVIMM2REG(4);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_opcode_CLRREGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Load zero as immediate and call normal MOVE.W #imm,reg instruction
-	src_immediate = 0;
-	helper_MOVIMM2REG(2);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_opcode_CLRREGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Load zero as immediate and call normal MOVE.B #imm,reg instruction
-	src_immediate = 0;
-	helper_MOVIMM2REG(1);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_opcode_CLRMEML(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Load zero as immediate and call normal MOVE.L #imm,mem instruction
-	src_immediate = 0;
-	helper_MOVIMMREG2MEM(history, 4, TRUE, TRUE);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_opcode_CLRMEMW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Load zero as immediate and call normal MOVE.W #imm,mem instruction
-	src_immediate = 0;
-	helper_MOVIMMREG2MEM(history, 2, TRUE, TRUE);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_opcode_CLRMEMB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Load zero as immediate and call normal MOVE.B #imm,mem instruction
-	src_immediate = 0;
-	helper_MOVIMMREG2MEM(history, 1, TRUE, TRUE);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_opcode_LEAIMML(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Load the immediate value to the destination register
-	comp_macroblock_push_load_register_long(
-			output_dep,
-			dest_reg_mapped,
-			src_immediate);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_opcode_LEAIMMW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Load the immediate value to the destination register
-	//sign-extended to longword size
-	comp_macroblock_push_load_register_word_extended(
-			output_dep,
-			dest_reg_mapped,
-			src_immediate);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_opcode_LEAIND(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//TODO: this useless move instruction could be removed if the registers could be swapped
-	//Move temporary register to the destination address register
-	comp_macroblock_push_copy_register_long(
-			input_dep | (src_mem_addrreg == PPC_TMP_REG_NOTUSED ? 0 : COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg)),
-			output_dep,
-			dest_reg_mapped,
-			src_mem_addrreg_mapped);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_opcode_PEAIMML(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Save immediate address to the stack:
-	//decrease stack pointer (A7) and store the longword to the pointed address
-
-	//Map A7 register as destination
-	dest_mem_addrreg_mapped = dest_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(7), TRUE, TRUE);
-	input_dep |= COMP_COMPILER_MACROBLOCK_REG_AX(7);
-
-	//Decrease A7 register by 4
-	comp_macroblock_push_add_register_imm(
-			COMP_COMPILER_MACROBLOCK_REG_AX(7),
-			COMP_COMPILER_MACROBLOCK_REG_AX(7),
-			dest_reg_mapped,
-			dest_reg_mapped,
-			-4);
-
-	//Store immediate using the A7 register into memory, skip the flag checking
-	helper_MOVIMMREG2MEM(history, 4, TRUE, FALSE);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_opcode_PEAIMMW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Immediate is sign-extended at loading (addresses are always longwords)
-	//everything else is the same as the longword variant
-	comp_opcode_PEAIMML(history, props);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_opcode_PEAIND(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Save immediate address to the stack:
-	//decrease stack pointer (A7) and store the longword to the pointed address
-
-	//Map A7 register as destination
-	dest_mem_addrreg_mapped = dest_reg_mapped = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(7), TRUE, TRUE);
-	input_dep |= COMP_COMPILER_MACROBLOCK_REG_AX(7);
-
-	//Decrease A7 register by 4
-	comp_macroblock_push_add_register_imm(
-			COMP_COMPILER_MACROBLOCK_REG_AX(7),
-			COMP_COMPILER_MACROBLOCK_REG_AX(7),
-			dest_reg_mapped,
-			dest_reg_mapped,
-			-4);
-
-	//The source memory mapped register is the source register for the memory operation
-	src_reg_mapped = src_mem_addrreg_mapped;
-
-	//Store source address from the register using the A7 register into memory,
-	//skip the flag checking
-	helper_MOVIMMREG2MEM(history, 4, FALSE, FALSE);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_opcode_MOVPREG2MEML(const cpu_history* history, struct comptbl* props) REGPARAM
 {
@@ -1443,62 +1264,27 @@ void comp_opcode_MOVPMEM2REGW(const cpu_history* history, struct comptbl* props)
 }
 void comp_opcode_STREGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Set lowest byte to 0xff (Scc with the condition of TRUE)
-	comp_macroblock_push_or_low_register_imm(
-			output_dep,
-			output_dep,
-			dest_reg_mapped,
-			dest_reg_mapped,
-			0xff);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_opcode_SFREGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Set lowest byte to 0 (Scc with the condition of FALSE)
-	comp_macroblock_push_rotate_and_mask_bits(
-			output_dep,
-			output_dep,
-			dest_reg_mapped,
-			dest_reg_mapped,
-			0, 0, 23, FALSE);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_opcode_SCCREGB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//This instruction was implemented in one macroblock for simplicity
-	comp_macroblock_push_set_byte_from_z_flag(
-			output_dep,
-			dest_reg_mapped,
-			src_condition_negate);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_opcode_STMEMB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Load -1 as immediate and call normal MOVE.B #imm,mem instruction
-	//flag checking is skipped
-	src_immediate = -1;
-	helper_MOVIMMREG2MEM(history, 1, TRUE, FALSE);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_opcode_SFMEMB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Load zero as immediate and call normal MOVE.B #imm,mem instruction
-	//flag checking is skipped
-	src_immediate = 0;
-	helper_MOVIMMREG2MEM(history, 1, TRUE, FALSE);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_opcode_SCCMEMB(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Allocate a temp register for the calculated source byte
-	src_reg = helper_allocate_tmp_reg();
-	src_reg_mapped = comp_get_gpr_for_temp_register(src_reg);
-
-	//Call the macroblock which produces the source byte into the temp register
-	comp_macroblock_push_set_byte_from_z_flag(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(src_reg),
-			src_reg_mapped,
-			src_condition_negate);
-
-	//Call normal MOVE.B reg,mem instruction
-	helper_MOVIMMREG2MEM(history, 1, FALSE, FALSE);
-
-	comp_free_temp_register(src_reg);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_opcode_MOVCCR2REGW(const cpu_history* history, struct comptbl* props) REGPARAM
 {
@@ -3091,11 +2877,12 @@ void comp_opcode_FNOP(const cpu_history* history, struct comptbl* props) REGPARA
 /**
  * Unsupported opcode handler: compile a direct call to the interpretive emulator
  * Parameters:
+ *    cpu_history - execution history item for the instruction
  *    opcode - unsupported opcode number
  */
-void comp_opcode_unsupported(uae_u16 opcode)
+void comp_opcode_unsupported(const const cpu_history* history, uae_u16 opcode)
 {
-	comp_macroblock_push_opcode_unsupported(opcode);
+	comp_macroblock_push_opcode_unsupported(history->location, opcode);
 }
 
 /**
@@ -3791,14 +3578,12 @@ STATIC_INLINE void helper_add_imm_to_dest_ax(struct comptbl* props, uae_u16 imme
 }
 
 /**
- * Implementation of all MOVIMM2MEM and MOVREG2MEM instruction
+ * Implementation of all MOVREG2MEM instruction
  * Parameters:
  *    history - pointer to cpu execution history
  *    size - size of the operation: byte (1), word (2) or long (4)
- *    immediate - use src_immediate instead of register if TRUE, src_reg otherwise
- *    checkflags - check the moved data and set flags accordingly if TRUE, skip flag checking otherwise
  */
-STATIC_INLINE void helper_MOVIMMREG2MEM(const cpu_history* history, uae_u8 size, int immediate, int checkflags)
+STATIC_INLINE void helper_MOVREG2MEM(const cpu_history* history, uae_u8 size)
 {
 	int spec;
 	int tmpregaddr;
@@ -3809,39 +3594,23 @@ STATIC_INLINE void helper_MOVIMMREG2MEM(const cpu_history* history, uae_u8 size,
 	{
 	case 4:
 		spec = comp_is_spec_memory_write_long(history->pc, history->specmem);
-		if ((!immediate) && checkflags) comp_macroblock_push_check_long_register(input_dep, src_reg_mapped);
+		comp_macroblock_push_check_long_register(input_dep, src_reg_mapped);
 		break;
 	case 2:
 		spec = comp_is_spec_memory_write_word(history->pc, history->specmem);
-		if ((!immediate) && checkflags) comp_macroblock_push_check_word_register(input_dep, src_reg_mapped);
+		comp_macroblock_push_check_word_register(input_dep, src_reg_mapped);
 		break;
 	case 1:
 		spec = comp_is_spec_memory_write_byte(history->pc, history->specmem);
-		if ((!immediate) && checkflags) comp_macroblock_push_check_byte_register(input_dep, src_reg_mapped);
+		comp_macroblock_push_check_byte_register(input_dep, src_reg_mapped);
 		break;
 	default:
-		write_log("Error: wrong operation size for MOVIMMREG2MEM\n");
+		write_log("Error: wrong operation size for MOVREG2MEM\n");
 		abort();
 	}
 
-	//Is it immediate mode?
-	if (immediate)
-	{
-		//Immediate: load the immediate into a temporary register as source
-		src_reg  = helper_allocate_tmp_reg();
-		src_reg_mapped = comp_get_gpr_for_temp_register(src_reg);
-		input_dep |= COMP_COMPILER_MACROBLOCK_REG_TMP(src_reg);
-		comp_macroblock_push_load_register_long(
-				input_dep,
-				src_reg_mapped,
-				src_immediate);
-
-		//Compile static flag settings
-		if (checkflags) helper_move_inst_static_flags(src_immediate);
-	} else {
-		//Not immediate: check source register for flags
-		if (checkflags) helper_check_nz_clear_cv_flags();
-	}
+	//Save flags
+	helper_check_nz_clear_cv_flags();
 
 	if (spec)
 	{
@@ -3855,11 +3624,7 @@ STATIC_INLINE void helper_MOVIMMREG2MEM(const cpu_history* history, uae_u8 size,
 
 		//The previous will kill all temporary register mappings,
 		//because it calls a GCC function
-		src_mem_addrreg = dest_mem_addrreg = PPC_TMP_REG_NOTUSED;
-		if (immediate)
-		{
-			src_reg = PPC_TMP_REG_NOTUSED;
-		}
+		dest_mem_addrreg = PPC_TMP_REG_NOTUSED;
 	}
 	else
 	{
@@ -3904,12 +3669,6 @@ STATIC_INLINE void helper_MOVIMMREG2MEM(const cpu_history* history, uae_u8 size,
 		}
 
 		comp_free_temp_register(tmpregaddr);
-
-		//If immediate mode was activated then the locally allocated source register must be released
-		if (immediate)
-		{
-			comp_free_temp_register(src_reg);
-		}
 	}
 }
 
@@ -3929,49 +3688,36 @@ STATIC_INLINE void helper_MOVIMM2REG(uae_u8 size)
 				src_immediate);
 	} else {
 		//Word or byte sized: needs an additional bit insert
+		uae_u8 tmpreg = helper_allocate_tmp_reg();
+		uae_u8 tmpreg_mapped = comp_get_gpr_for_temp_register(tmpreg);
 
-		//Is the immediate zero?
-		if (src_immediate)
+		//Load the immediate value to the temporary register
+		comp_macroblock_push_load_register_long(
+				COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
+				tmpreg_mapped,
+				src_immediate);
+
+		if (size == 2)
 		{
-			uae_u8 tmpreg = helper_allocate_tmp_reg();
-			uae_u8 tmpreg_mapped = comp_get_gpr_for_temp_register(tmpreg);
-
-			//Load the immediate value to the temporary register
-			comp_macroblock_push_load_register_long(
+			//Copy the lower word into the destination register
+			comp_macroblock_push_copy_register_word(
 					COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-					tmpreg_mapped,
-					src_immediate);
-
-			if (size == 2)
-			{
-				//Copy the lower word into the destination register
-				comp_macroblock_push_copy_register_word(
-						output_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-						output_dep,
-						dest_reg_mapped,
-						tmpreg_mapped);
-			} else {
-				//We assume that this must be byte size, lazy-lazy...
-
-				//Copy the lowest byte into the destination register
-				comp_macroblock_push_copy_register_byte(
-						output_dep | COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
-						output_dep,
-						dest_reg_mapped,
-						tmpreg_mapped);
-			}
-
-			//Done with the temp register
-			comp_free_temp_register(tmpreg);
+					output_dep,
+					dest_reg_mapped,
+					tmpreg_mapped);
 		} else {
-			//Immediate is zero: no need for additional register, we can simply clear the bits
-			comp_macroblock_push_rotate_and_mask_bits(
-					output_dep,
+			//We assume that this must be byte size, lazy-lazy...
+
+			//Copy the lowest byte into the destination register
+			comp_macroblock_push_copy_register_byte(
+					COMP_COMPILER_MACROBLOCK_REG_TMP(tmpreg),
 					output_dep,
 					dest_reg_mapped,
-					dest_reg_mapped,
-					0, 0, size == 2 ? 15 : 23 , FALSE);
+					tmpreg_mapped);
 		}
+
+		//Done with the temp register
+		comp_free_temp_register(tmpreg);
 	}
 
 	helper_move_inst_static_flags(src_immediate);

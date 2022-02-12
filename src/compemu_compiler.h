@@ -50,10 +50,7 @@ typedef void comp_compiler_macroblock_func (union comp_compiler_mb_union*) REGPA
 #define COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGV	(1ULL << 22)
 #define COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ	(1ULL << 23)
 #define COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN	(1ULL << 24)
-
-//R0 register dependency tracking
-#define COMP_COMPILER_MACROBLOCK_TMP_REG_SPEC	(1ULL << 25)
-#define COMP_COMPILER_MACROBLOCK_TMP_REGS_START	26
+#define COMP_COMPILER_MACROBLOCK_TMP_REGS_START	25
 
 //No register dependency
 #define COMP_COMPILER_MACROBLOCK_REG_NONE	0
@@ -92,7 +89,7 @@ void comp_compiler_generate_code(void);
 void comp_compiler_debug_dump_compiled(void);
 
 //Macroblock compiling handler prototypes
-void comp_macroblock_push_opcode_unsupported(uae_u16 opcode);
+void comp_macroblock_push_opcode_unsupported(uae_u16* location, uae_u16 opcode);
 void comp_macroblock_push_add_with_flags(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg1, uae_u8 input_reg2);
 void comp_macroblock_push_add(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg1, uae_u8 input_reg2);
 void comp_macroblock_push_add_register_imm(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, uae_u16 imm);
@@ -143,7 +140,6 @@ void comp_macroblock_push_arithmetic_shift_right_register(uae_u64 regsin, uae_u6
 void comp_macroblock_push_arithmetic_left_shift_extract_v_flag(uae_u64 regsin, uae_u8 input_reg, uae_u8 shift_reg, uae_u8 tmp_reg);
 void comp_macroblock_push_save_reg_stack(uae_u64 regsin, uae_u8 input_reg, unsigned int slot);
 void comp_macroblock_push_load_reg_stack(uae_u64 regsout, uae_u8 output_reg, unsigned int slot);
-void comp_macroblock_push_set_byte_from_z_flag(uae_u64 regsout, uae_u8 output_reg, int negate);
 void comp_macroblock_push_stop(void);
 void comp_macroblock_push_nop(void);
 void comp_macroblock_push_load_flags(void);
