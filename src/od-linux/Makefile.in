@@ -226,16 +226,6 @@ HEADERS = $(noinst_HEADERS)
 DIST_COMMON = $(noinst_HEADERS) $(srcdir)/Makefile.in Makefile.am
 SOURCES = $(libosdep_a_SOURCES)
 
-ifeq ($(host_triplet),powerpc-unknown-linux-gnu) # Linux ppc 
-needicacheflush = true
-else
-needicacheflush = false
-endif
-
-ifeq ($(needicacheflush),true)
-CPPFLAGS += -Dppclnx
-endif
-
 all: all-am
 
 .SUFFIXES:
