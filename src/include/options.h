@@ -81,7 +81,6 @@ struct uae_prefs {
     int comptrustlong;
     int comptrustnaddr;
     int compnf;
-    int complog;
     int compforcesettings;
     int compfpu;
 

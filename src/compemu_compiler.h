@@ -69,9 +69,6 @@ typedef void comp_compiler_macroblock_func (union comp_compiler_mb_union*) REGPA
 #define COMP_COMPILER_MACROBLOCK_REG_AX(x)	(1ULL << (x + 13))
 #define COMP_COMPILER_MACROBLOCK_REG_TMP(x)	(1ULL << (x + 26))
 
-/* Getting an offset inside the regs structure for a specified field */
-#define COMP_GET_OFFSET_IN_REGS(x) (((void*)&(regs.x)) - ((void*)&regs))
-
 //Prototypes for functions
 void comp_compiler_init(void);
 void comp_compiler_done(void);
@@ -82,19 +79,10 @@ void comp_compiler_generate_code(void);
 //Macroblock compiling handler prototypes
 void comp_macroblock_push_opcode_unsupported(uae_u16* location, uae_u16 opcode);
 void comp_macroblock_push_add_with_flags(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg1, uae_u8 input_reg2);
-void comp_macroblock_push_add_register_imm(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, uae_u16 imm);
-void comp_macroblock_push_copy_register_long_with_flags(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg);
-void comp_macroblock_push_copy_register_long(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg);
-void comp_macroblock_push_copy_register_word(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg);
-void comp_macroblock_push_copy_register_byte(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg);
 void comp_macroblock_push_load_register_long(uae_u64 regsout, uae_u8 output_reg, uae_u32 imm);
 void comp_macroblock_push_load_memory_long(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u32 base_reg, uae_u32 offset);
-void comp_macroblock_push_map_physical_mem(uae_u64 regsin, uae_u64 regsout, uae_u8 source_reg, uae_u8 dest_mem_reg);
-void comp_macroblock_push_save_memory_spec(uae_u64 regsin, uae_u64 regsout, uae_u8 source_reg, uae_u8 dest_mem_reg, uae_u8 size);
 void comp_macroblock_push_save_memory_long(uae_u64 regsin, uae_u64 regsout, uae_u8 source_reg, uae_u32 base_reg, uae_u32 offset);
 void comp_macroblock_push_save_memory_word(uae_u64 regsin, uae_u64 regsout, uae_u8 source_reg, uae_u32 base_reg, uae_u32 offset);
-void comp_macroblock_push_save_memory_word_update(uae_u64 regsin, uae_u64 regsout, uae_u8 source_reg, uae_u32 base_reg, uae_u32 offset);
-void comp_macroblock_push_save_memory_byte(uae_u64 regsin, uae_u64 regsout, uae_u8 source_reg, uae_u32 base_reg, uae_u32 offset);
 void comp_macroblock_push_or_high_register_imm(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, uae_u16 imm);
 void comp_macroblock_push_or_low_register_imm(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, uae_u16 imm);
 void comp_macroblock_push_and_register_imm(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, uae_u16 imm);
@@ -102,9 +90,6 @@ void comp_macroblock_push_and_registers(uae_u64 regsin, uae_u64 regsout, uae_u8 
 void comp_macroblock_push_copy_nzcv_flags_to_register(uae_u64 regsout, uae_u8 output_reg);
 void comp_macroblock_push_copy_nz_flags_to_register(uae_u64 regsout, uae_u8 output_reg);
 void comp_macroblock_push_copy_cv_flags_to_register(uae_u64 regsout, uae_u8 output_reg);
-void comp_macroblock_push_check_long_register(uae_u64 regsin, uae_u8 input_reg);
-void comp_macroblock_push_check_word_register(uae_u64 regsin, uae_u8 input_reg);
-void comp_macroblock_push_check_byte_register(uae_u64 regsin, uae_u8 input_reg);
 void comp_macroblock_push_rotate_and_copy_bits(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, uae_u8 shift, uae_u8 maskb, uae_u8 maske, int updateflags);
 void comp_macroblock_push_rotate_and_mask_bits(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, uae_u8 shift, uae_u8 maskb, uae_u8 maske, int updateflags);
 void comp_macroblock_push_stop(void);

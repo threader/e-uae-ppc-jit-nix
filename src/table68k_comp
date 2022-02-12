@@ -123,9 +123,9 @@ FCC_st     011    111
 ;---------------------------------------------------------------------
 ;*** Data moving instructions
 ;*** Move register-register
-MOVREG2REGL  1   0010 dddD DDSS Ssss   0 0     regD,regA    regD
-MOVREG2REGW  1   0011 dddD DDSS Ssss   0 0     regD,regA    regD
-MOVREG2REGB  1   0001 dddD DDSS Ssss   0 0     regD     regD
+MOVREG2REGL  0   0010 dddD DDSS Ssss   0 0     regD,regA    regD
+MOVREG2REGW  0   0011 dddD DDSS Ssss   0 0     regD,regA    regD
+MOVREG2REGB  0   0001 dddD DDSS Ssss   0 0     regD     regD
 
 ;If the target is an address register, then flags kept unchanged
 MOVAREG2REGL 0   0010 dddD DDSS Ssss   0 0     regD,regA    regA
@@ -137,9 +137,9 @@ MOVMEM2MEMW  0   0011 dddD DDSS Ssss   0 0     indA,indApW,indmAW,indAd16,indAcp
 MOVMEM2MEMB  0   0001 dddD DDSS Ssss   0 0     indA,indApB,indmAB,indAd16,indAcp,indPCcp,indPCd16,absW,absL    indA,indApB,indmAB,indAd16,indAcp,absW,absL
 
 ;*** Move register to memory
-MOVREG2MEML  1   0010 dddD DDSS Ssss   0 0     regD,regA    indA,indApL,indmAL,indAd16,indAcp,absW,absL
-MOVREG2MEMW  1   0011 dddD DDSS Ssss   0 0     regD,regA    indA,indApW,indmAW,indAd16,indAcp,absW,absL
-MOVREG2MEMB  1   0001 dddD DDSS Ssss   0 0     regD    indA,indApB,indmAB,indAd16,indAcp,absW,absL
+MOVREG2MEML  0   0010 dddD DDSS Ssss   0 0     regD,regA    indA,indApL,indmAL,indAd16,indAcp,absW,absL
+MOVREG2MEMW  0   0011 dddD DDSS Ssss   0 0     regD,regA    indA,indApW,indmAW,indAd16,indAcp,absW,absL
+MOVREG2MEMB  0   0001 dddD DDSS Ssss   0 0     regD    indA,indApB,indmAB,indAd16,indAcp,absW,absL
 
 ;*** Move reg to mem with the same register
 ;a0
@@ -642,7 +642,7 @@ ADDIMM2REGW  0   1101 ddd0 01SS Ssss   0 0     immedW    regD
 ADDIMM2REGB  0   1101 ddd0 00SS Ssss   0 0     immedB    regD
 
 ;*** ADDQ
-ADDQ2REGL    1   0101 sss0 10DD Dddd   0 0     immedQ    regD
+ADDQ2REGL    0   0101 sss0 10DD Dddd   0 0     immedQ    regD
 ADDQ2REGW    0   0101 sss0 01DD Dddd   0 0     immedQ    regD
 ADDQ2REGB    0   0101 sss0 00DD Dddd   0 0     immedQ    regD
 

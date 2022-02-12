@@ -2018,112 +2018,86 @@ static const char * const ccnames[] =
 { "T","F","HI","LS","CC","CS","NE","EQ",
   "VC","VS","PL","MI","GE","LT","GT","LE" };
 
-static void m68k_disasm_2(char* s, uaecptr addr, uaecptr *nextpc, int cnt, uae_u32 *seaddr, uae_u32 *deaddr, int safemode)
+static void m68k_disasm_2 (void *f, uaecptr addr, uaecptr *nextpc, int cnt, uae_u32 *seaddr, uae_u32 *deaddr, int safemode)
 {
-	char tmpstr[200];
-	*s = '\0';
+    uaecptr newpc = 0;
+    m68kpc_offset = addr - m68k_getpc (&regs);
 
-	uaecptr newpc = 0;
-	m68kpc_offset = addr - m68k_getpc(&regs);
+    while (cnt-- > 0) {
+	char instrname[100], *ccpt;
+	int i;
+	uae_u32 opcode;
+	struct mnemolookup *lookup;
+	struct instr *dp;
+	int oldpc;
 
-	while (cnt-- > 0)
-	{
-		char instrname[100], *ccpt;
-		int i;
-		uae_u32 opcode;
-		struct mnemolookup *lookup;
-		struct instr *dp;
-		int oldpc;
-
-		oldpc = m68kpc_offset;
-		opcode = get_iword_1 (&regs, m68kpc_offset);
-		if (cpufunctbl[opcode] == op_illg_1)
-		{
-			opcode = 0x4AFC;
-		}
-		dp = table68k + opcode;
-		for (lookup = lookuptab; lookup->mnemo != dp->mnemo; lookup++)
-			;
-
-		sprintf(tmpstr, "%08x ", m68k_getpc(&regs) + m68kpc_offset);
-		strcat(s, tmpstr);
-		m68kpc_offset += 2;
-
-		strcpy(instrname, lookup->name);
-		ccpt = strstr(instrname, "cc");
-		if (ccpt != 0)
-		{
-			strncpy(ccpt, ccnames[dp->cc], 2);
-		}
-		switch (dp->size)
-		{
-		case sz_byte:
-			strcat(instrname, ".B ");
-			break;
-		case sz_word:
-			strcat(instrname, ".W ");
-			break;
-		case sz_long:
-			strcat(instrname, ".L ");
-			break;
-		default:
-			strcat(instrname, "   ");
-			break;
-		}
-
-		if (dp->suse)
-		{
-			newpc = m68k_getpc(&regs) + m68kpc_offset;
-			newpc += ShowEA(0, opcode, dp->sreg, dp->smode, dp->size, instrname, seaddr, safemode);
-		}
-		if (dp->suse && dp->duse) strcat(instrname, ",");
-		if (dp->duse)
-		{
-			newpc = m68k_getpc(&regs) + m68kpc_offset;
-			newpc += ShowEA(0, opcode, dp->dreg, dp->dmode, dp->size, instrname, deaddr, safemode);
-		}
-
-		for (i = 0; i < (m68kpc_offset - oldpc) / 2; i++)
-		{
-			sprintf(tmpstr, "%04x ", get_iword_1 (&regs, oldpc + i * 2));
-			strcat(s, tmpstr);
-		}
-		while (i++ < 5)
-			strcat(s, "     ");
-		strcat(s, instrname);
-
-		if (ccpt != 0)
-		{
-			if (deaddr) *deaddr = newpc;
-			sprintf(tmpstr, " == %08x (%s)", newpc, cctrue(&regs.ccrflags, dp->cc) ? "TRUE" : "FALSE");
-			strcat(s, tmpstr);
-		}
-		else if ((opcode & 0xff00) == 0x6100)
-		{ /* BSR */
-			if (deaddr) *deaddr = newpc;
-			sprintf(tmpstr, " == %08x", newpc);
-			strcat(s, tmpstr);
-		}
-		strcat(s, "\n");
+	oldpc = m68kpc_offset;
+	opcode = get_iword_1 (&regs, m68kpc_offset);
+	if (cpufunctbl[opcode] == op_illg_1) {
+	    opcode = 0x4AFC;
 	}
-	if (nextpc) *nextpc = m68k_getpc(&regs) + m68kpc_offset;
+	dp = table68k + opcode;
+	for (lookup = lookuptab;lookup->mnemo != dp->mnemo; lookup++)
+	    ;
+
+	f_out (f, "%08x ", m68k_getpc (&regs) + m68kpc_offset);
+	m68kpc_offset += 2;
+
+	strcpy (instrname, lookup->name);
+	ccpt = strstr (instrname, "cc");
+	if (ccpt != 0) {
+	    strncpy (ccpt, ccnames[dp->cc], 2);
+	}
+	switch (dp->size){
+	 case sz_byte: strcat (instrname, ".B "); break;
+	 case sz_word: strcat (instrname, ".W "); break;
+	 case sz_long: strcat (instrname, ".L "); break;
+	 default: strcat (instrname, "   "); break;
+	}
+
+	if (dp->suse) {
+	    newpc = m68k_getpc (&regs) + m68kpc_offset;
+	    newpc += ShowEA (0, opcode, dp->sreg, dp->smode, dp->size, instrname, seaddr, safemode);
+	}
+	if (dp->suse && dp->duse)
+	    strcat (instrname, ",");
+	if (dp->duse) {
+	    newpc = m68k_getpc (&regs) + m68kpc_offset;
+	    newpc += ShowEA (0, opcode, dp->dreg, dp->dmode, dp->size, instrname, deaddr, safemode);
+	}
+
+	for (i = 0; i < (m68kpc_offset - oldpc) / 2; i++) {
+	    f_out (f, "%04x ", get_iword_1 (&regs, oldpc + i * 2));
+	}
+	while (i++ < 5)
+	    f_out (f, "     ");
+	f_out (f, instrname);
+
+	if (ccpt != 0) {
+	    if (deaddr)
+		*deaddr = newpc;
+	    if (cctrue (&regs.ccrflags, dp->cc))
+		f_out (f, " == %08x (TRUE)", newpc);
+	    else
+		f_out (f, " == %08x (FALSE)", newpc);
+	} else if ((opcode & 0xff00) == 0x6100) { /* BSR */
+	    if (deaddr)
+		*deaddr = newpc;
+	    f_out (f, " == %08x", newpc);
+	}
+	f_out (f, "\n");
+    }
+    if (nextpc)
+	*nextpc = m68k_getpc (&regs) + m68kpc_offset;
 }
 
 void m68k_disasm_ea (void *f, uaecptr addr, uaecptr *nextpc, int cnt, uae_u32 *seaddr, uae_u32 *deaddr)
 {
-	char str[200];
-    m68k_disasm_2 (str, addr, nextpc, cnt, seaddr, deaddr, 1);
-    f_out(f, str);
+    m68k_disasm_2 (f, addr, nextpc, cnt, seaddr, deaddr, 1);
 }
 void m68k_disasm (void *f, uaecptr addr, uaecptr *nextpc, int cnt)
 {
-	char str[200];
-    m68k_disasm_2 (str, addr, nextpc, cnt, NULL, NULL, 0);
-    f_out(f, str);
-}
-void m68k_disasm_str (char* str, uaecptr addr, uaecptr *nextpc, int cnt)
-{
-    m68k_disasm_2 (str, addr, nextpc, cnt, NULL, NULL, 0);
+    m68k_disasm_2 (f, addr, nextpc, cnt, NULL, NULL, 0);
 }
 
 /*************************************************************

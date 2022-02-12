@@ -13,7 +13,6 @@
 #include "uae_string.h"
 #include "uae_types.h"
 #include "writelog.h"
-#include "options.h"
 
 static FILE *logfile;
 
@@ -40,32 +39,28 @@ void set_logfile (const char *logfile_name)
     }
 }
 
-#ifdef JIT
-
 /**
  * Writing JIT compiling-related log, can be retargeted to a file
  */
-void write_jit_log(const char *fmt, ...)
+void write_jit_log (const char *fmt, ...)
 {
-	va_list ap;
-	va_start (ap, fmt);
-
-	if (currprefs.complog)
-	{
-		int x1, x2, x3, x4, x5, x6, x7, x8;
-		x1 = va_arg (ap, int);
-		x2 = va_arg (ap, int);
-		x3 = va_arg (ap, int);
-		x4 = va_arg (ap, int);
-		x5 = va_arg (ap, int);
-		x6 = va_arg (ap, int);
-		x7 = va_arg (ap, int);
-		x8 = va_arg (ap, int);
-		fprintf(stdout, "JIT: ");
-		fprintf(stdout, fmt, x1, x2, x3, x4, x5, x6, x7, x8);
-	}
+	//TODO: implement write_jit_log function
+//    va_list ap;
+//    va_start (ap, fmt);
+//
+//    {
+//	int x1, x2, x3, x4, x5, x6, x7, x8;
+//	x1 = va_arg (ap, int);
+//	x2 = va_arg (ap, int);
+//	x3 = va_arg (ap, int);
+//	x4 = va_arg (ap, int);
+//	x5 = va_arg (ap, int);
+//	x6 = va_arg (ap, int);
+//	x7 = va_arg (ap, int);
+//	x8 = va_arg (ap, int);
+//	fprintf (stdout, fmt, x1, x2, x3, x4, x5, x6, x7, x8);
+//    }
 }
-#endif
 
 void write_log (const char *fmt, ...)
 {

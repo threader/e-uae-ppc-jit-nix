@@ -37,21 +37,12 @@ struct comp_compiler_mb_two_regs_imm_opcode
 	uae_u8	output_reg;					//Output register
 };
 
-//Structure for normal two register input
-//For example: mr output_reg, input_reg
-struct comp_compiler_mb_two_regs_opcode
-{
-	struct comp_compiler_mb mb;			//Default macroblock descriptor
-	uae_u8	input_reg;					//Input register
-	uae_u8	output_reg;					//Output register
-};
-
 //Structure for normal one register input
-//For example: mfcr reg
+//For example: mfcr output_reg
 struct comp_compiler_mb_one_reg_opcode
 {
 	struct comp_compiler_mb mb;			//Default macroblock descriptor
-	uae_u8	reg;						//Handled register
+	uae_u8	output_reg;					//Output register
 };
 
 //Structure for loading an immediate value into a register
@@ -63,15 +54,6 @@ struct comp_compiler_mb_load_register
 	uae_u8 output_reg;					//Output register
 };
 
-//Structure for getting physical memory mapping into a register
-struct comp_compiler_mb_map_physical_mem
-{
-	struct comp_compiler_mb mb;			//Default macroblock descriptor
-	uae_u8 output_reg;					//Destination register
-	uae_u8 input_reg;					//Source register
-	uae_u8 temp_reg;						//Preallocated temporary register
-};
-
 //Structure for accessing data on a memory address using
 //target/source register, a base register and an offset
 struct comp_compiler_mb_access_memory
@@ -80,16 +62,6 @@ struct comp_compiler_mb_access_memory
 	uae_u16 offset;						//offset to the base register
 	uae_u8 output_reg;					//Output register
 	uae_u8 base_reg;					//Register for the base memory address
-};
-
-//Structure for accessing data on a memory address using
-//target/source register and access size
-struct comp_compiler_mb_access_memory_size
-{
-	struct comp_compiler_mb mb;			//Default macroblock descriptor
-	uae_u8 output_reg;					//Output register
-	uae_u8 base_reg;					//Register for the base memory address
-	uae_u8 size;						//Access size: 1 - byte, 2 - word, 4 - longword
 };
 
 //Structure for shift opcode with AND mask specified
@@ -109,13 +81,10 @@ union comp_compiler_mb_union
 {
 	struct comp_compiler_mb base;
 	struct comp_compiler_mb_unsupported unsupported;
-	struct comp_compiler_mb_one_reg_opcode one_reg_opcode;
-	struct comp_compiler_mb_two_regs_opcode two_regs_opcode;
-	struct comp_compiler_mb_two_regs_imm_opcode two_regs_imm_opcode;
 	struct comp_compiler_mb_three_regs_opcode three_regs_opcode;
+	struct comp_compiler_mb_two_regs_imm_opcode two_regs_imm_opcode;
+	struct comp_compiler_mb_one_reg_opcode one_reg_opcode;
 	struct comp_compiler_mb_shift_opcode_with_mask shift_opcode_with_mask;
 	struct comp_compiler_mb_load_register load_register;
 	struct comp_compiler_mb_access_memory access_memory;
-	struct comp_compiler_mb_access_memory_size access_memory_size;
-	struct comp_compiler_mb_map_physical_mem map_physical_mem;
 };
