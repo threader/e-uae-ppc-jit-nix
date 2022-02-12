@@ -1859,13 +1859,10 @@ void execute_normal(void)
 		pc_hist[blocklen].specmem = special_mem;
 		blocklen++;
 
-		} while (!end_block(opcode) && (blocklen < MAXRUN - 1) && (!r->spcflags));
+		//TODO: removed spcflag checking from breaking the JIT compile pre-charge loop, it must be investigated on what conditions we MUST stop the cycle. At the moment I don't see any reason why the actual loop cannot be completed.
+		//} while (!end_block(opcode) && (blocklen < MAXRUN) && (!r->spcflags));
+	} while (!end_block(opcode) && (blocklen < MAXRUN));
 
-	//Put the PC data at the end of the execution history, in case the block has ended with a supported instruction
-	pc_hist[blocklen].location = (uae_u16*) r->pc_p;
-	pc_hist[blocklen].pc = m68k_getpc(r);
-
-	//Call the block compile service
 	compile_block(pc_hist, blocklen, total_cycles);
 
 	/* We will deal with the spcflags in the caller */

@@ -758,10 +758,6 @@ static void do_exit_machine (void)
     graphics_leave ();
     inputdevice_close ();
 
-#ifdef JIT
-    compemu_cleanup();
-#endif
-
 #ifdef SCSIEMU
     scsidev_exit ();
 #endif

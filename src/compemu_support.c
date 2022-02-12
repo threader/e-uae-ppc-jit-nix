@@ -273,15 +273,10 @@ void comp_done(void)
 		abort();
 	}
 
-	comp_compiler_done();
-}
+	//Flush all temp registers
+	comp_flush_temp_registers(FALSE);
 
-/**
- * Leave the compiling gracefully: release all allocated resources
- */
-void compemu_cleanup(void)
-{
-	free_cache();
+	comp_compiler_done();
 }
 
 STATIC_INLINE int isinrom(uae_uintptr addr)
@@ -502,7 +497,7 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 		void* specflags = (void*) &regs.spcflags;
 		blockinfo* bi = NULL;
 
-		if (comp_ppc_check_top()) flush_icache_hard("compiling - buffer is full");
+		if (current_compile_p >= max_compile_start) flush_icache_hard("compiling - buffer is full");
 
 		alloc_blockinfos();
 
@@ -516,14 +511,6 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 						cache_tags[cl].handler);
 				abort();
 			}
-		}
-
-		//Is the block long enough (more than 3 instructions)?
-		if (blocklen <= 3)
-		{
-			//No: not worth to compile it, hardwire to interpretiv execution
-			bi->handler = exec_nostats_callback;
-			return;
 		}
 
 		//Do we still counting back on block execution?
@@ -556,7 +543,7 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 		comp_ppc_verify_pc((uae_u8*) pc_hist[0].location);
 
 		//Loop trough the previously collected instructions
-		for (i = 0; i < blocklen; i++)
+		for (i = 0; i < blocklen && current_compile_p < max_compile_start; i++)
 		{
 			uaecptr nextpc;
 			m68k_disasm_str(str, (uaecptr) pc_hist[i].pc, &nextpc, 1);
@@ -614,7 +601,7 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 					comp_macroblock_push_save_flags();
 
 					//Update M68k PC
-					comp_macroblock_push_load_pc(inst_history);
+					comp_macroblock_push_load_pc(inst_history->location);
 				}
 
 				unsupported_in_a_row = TRUE;
@@ -626,17 +613,10 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 		//Reset actually compiled M68k instruction pointer
 		compiled_m68k_location = NULL;
 
-		//Flush all temp registers
-		comp_flush_temp_registers(FALSE);
-
-		//Last block: save flags/changed registers back to memory from register, if it was loaded before
+		//Last block: save flags back to memory from register, if it was loaded before
 		if (!unsupported_in_a_row)
 		{
-			//Save back flags to the regs structure
 			comp_macroblock_push_save_flags();
-
-			//Reload the PC at the end of the block from the additional virtual history item at the end
-			comp_macroblock_push_load_pc(&pc_hist[blocklen]);
 		}
 
 		//Optimize the collected macroblocks
@@ -653,15 +633,6 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 
 		//Return to the caller from the compiled block, restore non-volatile registers
 		comp_ppc_return_to_caller(PPCR_REG_USED_NONVOLATILE);
-
-		//Check whether we ran out of the compiling buffer
-		if (current_compile_p >= max_compile_start)
-		{
-			//Ooops, let's leave the party early and reset the buffer
-			comp_done();
-			flush_icache_hard("compiling - buffer is full");
-			return;
-		}
 
 		//PowerPC cache flush at the end of the compiling
 		ppc_cacheflush(compile_p_at_start, current_compile_p - compile_p_at_start);
@@ -1343,12 +1314,6 @@ void comp_ppc_emit_word(uae_u32 word)
 {
 	*((uae_u32*) current_compile_p) = word;
 	current_compile_p += 4;
-}
-
-/* Returns true if the compiling reached the top of the compiled code buffer */
-int comp_ppc_check_top(void)
-{
-	 return (current_compile_p >= max_compile_start);
 }
 
 /* Pushes two halfwords to the code cache and updates the pointer */
@@ -2304,9 +2269,10 @@ void comp_ppc_epilog(uae_u32 restore_regs)
 		}
 	}
 
-	comp_ppc_lwz(PPCR_SP, 0, PPCR_SP); //Read the pointer to the previous stack frame and free up stack space by using the backchain pointer
-	comp_ppc_lwz(PPCR_SPECTMP, -4, PPCR_SP); //Read LR from the stackframe
+	comp_ppc_lwz(PPCR_TMP0, 0, PPCR_SP); //Read the pointer to the previous stack frame
+	comp_ppc_lwz(PPCR_SPECTMP, 4, PPCR_TMP0); //Read LR from the stackframe
 	comp_ppc_mtlr(PPCR_SPECTMP); //Restore LR
+	comp_ppc_mr(PPCR_SP, PPCR_TMP0, FALSE); //Free up stack space by using the backchain pointer
 }
 #else
 //Epilog for MacOSX Darwin ABI

@@ -313,7 +313,6 @@ void comp_ppc_xoris(int rega, int regs, uae_u16 imm);
 void* comp_ppc_buffer_top(void);
 void comp_ppc_emit_halfwords(uae_u16 halfword_high, uae_u16 halfword_low);
 void comp_ppc_emit_word(uae_u32 word);
-int comp_ppc_check_top(void);
 void comp_ppc_call(int reg, uae_uintptr addr);
 void comp_ppc_call_reg(int addrreg);
 void comp_ppc_jump(uae_uintptr addr);

@@ -200,10 +200,9 @@ void comp_compiler_generate_code()
 		return;
 	}
 
-	//Run thru the collected macroblocks and call the code generator handler for each,
-	//also check the compiling buffer top to avoid running out of the buffer
+	//Run thru the collected macroblocks and call the code generator handler for each
 	union comp_compiler_mb_union* mb = macroblocks;
-	for(i = 0; (i < macroblock_ptr) && (!comp_ppc_check_top()); i++ , mb++)
+	for(i = 0; i < macroblock_ptr; i++ , mb++)
 	{
 		comp_compiler_macroblock_func* handler = mb->base.handler;
 
@@ -382,15 +381,14 @@ void comp_macroblock_push_save_flags()
  * Macroblock: Loads the M68k PC
  * Note: this macroblock won't be optimized away
  */
-void comp_macroblock_push_load_pc(const cpu_history * inst_history)
+void comp_macroblock_push_load_pc(uae_u16* location)
 {
 	uae_u8 temp_reg = comp_allocate_temp_register(PPC_TMP_REG_ALLOCATED);
 
-	//Load real memory pointer for the executed instruction
 	comp_macroblock_push_load_register_long(
 			COMP_COMPILER_MACROBLOCK_REG_TMP(temp_reg) | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
 			comp_get_gpr_for_temp_register(temp_reg),
-			(uae_u32)inst_history->location);
+			(uae_u32)location);
 
 	comp_macroblock_push_save_memory_long(
 			COMP_COMPILER_MACROBLOCK_REG_TMP(temp_reg),
@@ -398,27 +396,6 @@ void comp_macroblock_push_load_pc(const cpu_history * inst_history)
 			comp_get_gpr_for_temp_register(temp_reg),
 			PPCR_REGS_BASE,
 			COMP_GET_OFFSET_IN_REGS(pc_p));
-
-	//Synchronize the executed instruction pointer from the block start to the actual
-	comp_macroblock_push_save_memory_long(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(temp_reg),
-			COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-			comp_get_gpr_for_temp_register(temp_reg),
-			PPCR_REGS_BASE,
-			COMP_GET_OFFSET_IN_REGS(pc_oldp));
-
-	//Load emulated instruction pointer (PC register)
-	comp_macroblock_push_load_register_long(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(temp_reg) | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-			comp_get_gpr_for_temp_register(temp_reg),
-			(uae_u32)inst_history->pc);
-
-	comp_macroblock_push_save_memory_long(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(temp_reg),
-			COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-			comp_get_gpr_for_temp_register(temp_reg),
-			PPCR_REGS_BASE,
-			COMP_GET_OFFSET_IN_REGS(pc));
 
 	comp_free_temp_register(temp_reg);
 }

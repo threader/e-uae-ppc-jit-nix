@@ -148,5 +148,5 @@ void comp_macroblock_push_stop(void);
 void comp_macroblock_push_nop(void);
 void comp_macroblock_push_load_flags(void);
 void comp_macroblock_push_save_flags(void);
-void comp_macroblock_push_load_pc(const cpu_history * inst_history);
+void comp_macroblock_push_load_pc(uae_u16* location);
 
