@@ -31,19 +31,6 @@
  *
  * Evaluate operand and set Z and N flags. Always clear C and V.
  */
-#ifdef _ARCH_PWR4
-#define optflag_testl(regs, v) 				\
-    do { 						\
-	asm (						\
-		"cmpi cr0, %1, 0	\n\t" 		\
-		"mfocrf %0,0x80		\n\t" 		\
-							\
-		: "=r" ((regs)->ccrflags.cznv)		\
-		:  "r" (v)				\
-		: "cr0"					\
-	);						\
-    } while (0)
-#else
 #define optflag_testl(regs, v) 				\
     do { 						\
 	uae_u32 tmp; 					\
@@ -58,7 +45,6 @@
 		: "cr0"					\
 	);						\
     } while (0)
-#endif
 
 #define optflag_testw(regs, v) optflag_testl(regs, (uae_s32)(v))
 #define optflag_testb(regs, v) optflag_testl(regs, (uae_s32)(v))
@@ -68,25 +54,6 @@
  *
  * Perform v = s + d and set ZNCV accordingly
  */
-#ifdef _ARCH_PWR4
-#define optflag_addl(regs, v, s, d)			\
-    do {						\
-	uae_s32 tmp; 					\
-	asm (						\
-		"addco. %2, %3, %4	\n\t"		\
-		"mfxer %1		\n\t"		\
-		"mfocrf %0,0x80		\n\t"		\
-		"rlwimi %0,%1,24,8,11	\n\t"		\
-							\
-		: "=r" ((regs)->ccrflags.cznv),		\
-		  "=r" (tmp),				\
-		  "=r" (v)				\
-		: "r" (s), "r" (d)			\
-		: "cr0"					\
-	);						\
-	COPY_CARRY(&(regs)->ccrflags);			\
-    } while (0)
-#else
 #define optflag_addl(regs, v, s, d)			\
     do {						\
 	asm (						\
@@ -94,14 +61,12 @@
 		"mcrxr  cr2		\n\t"		\
 		"mfcr   %0		\n\t"		\
 							\
-		: "=r" ((regs)->ccrflags.cznv),		\
-		  "=r" (v)				\
+		: "=r" ((regs)->ccrflags.cznv), "=r" (v)	\
 		: "r" (s), "r" (d)			\
 		: "cr0", "cr2"  DEP_XER			\
 	);						\
 	COPY_CARRY(&(regs)->ccrflags);			\
     } while (0)
-#endif
 
 #define optflag_addw(regs, v, s, d) do { optflag_addl(regs, (v), (s) << 16, (d) << 16); v = v >> 16; } while (0)
 #define optflag_addb(regs, v, s, d) do { optflag_addl(regs, (v), (s) << 24, (d) << 24); v = v >> 24; } while (0)
@@ -111,28 +76,7 @@
  *
  * Perform v = d - s and set ZNCV accordingly
  */
-#ifdef _ARCH_PWR4
-#define optflag_subl(regs, v, s, d)			\
-    do {						\
-	uae_s32 tmp; 					\
-	asm (						\
-		"subfco. %2, %3, %4	\n\t"		\
-		"mfxer %1		\n\t"		\
-		"mfocrf %0,0x80		\n\t"		\
-		"rlwimi %0,%1,24,8,11	\n\t"		\
-		"xoris  %0,%0,32	\n\t"		\
-							\
-		: "=r" ((regs)->ccrflags.cznv),		\
-		  "=r" (tmp),				\
-		  "=r" (v)				\
-		:  "r" (s),				\
-		   "r" (d)				\
-		: "cr0"					\
-	);						\
-	COPY_CARRY(&(regs)->ccrflags);			\
-    } while (0)
-#else
-#define optflag_subl(regs, v, s, d)			\
+#define optflag_subl(regs, v, s, d)				\
     do {						\
 	asm (						\
 		"subfco. %1, %2, %3	\n\t"		\
@@ -140,7 +84,7 @@
 		"mfcr   %0		\n\t"		\
 		"xoris  %0,%0,32	\n\t"		\
 							\
-		: "=r" ((regs)->ccrflags.cznv),		\
+		: "=r" ((regs)->ccrflags.cznv),			\
 		  "=r" (v)				\
 		:  "r" (s),				\
 		   "r" (d)				\
@@ -148,31 +92,11 @@
 	);						\
 	COPY_CARRY(&(regs)->ccrflags);			\
     } while (0)
-#endif
 
 #define optflag_subw(regs, v, s, d) do { optflag_subl(regs, v, (s) << 16, (d) << 16); v = v >> 16; } while (0)
 #define optflag_subb(regs, v, s, d) do { optflag_subl(regs, v, (s) << 24, (d) << 24); v = v >> 24; } while (0)
 
-#ifdef _ARCH_PWR4
-#define optflag_cmpl(regs, s, d) 			\
-    do { 						\
-	uae_s32 tmp; 					\
-	asm (						\
-		"subfco. %1, %2, %3	\n\t"		\
-		"mfxer %1		\n\t"		\
-		"mfocrf %0,0x80		\n\t"		\
-		"rlwimi %0,%1,24,8,11	\n\t"		\
-		"xoris  %0,%0,32	\n\t"		\
-							\
-		: "=r" ((regs)->ccrflags.cznv),		\
-		  "=r" (tmp)				\
-		:  "r" (s),				\
-		   "r" (d) 				\
-		: "cr0"					\
-	);						\
-    } while (0)
-#else
-#define optflag_cmpl(regs, s, d) 			\
+#define optflag_cmpl(regs, s, d) 				\
     do { 						\
 	uae_s32 tmp; 					\
 	asm (						\
@@ -181,14 +105,13 @@
 		"mfcr   %0		\n\t"		\
 		"xoris  %0,%0,32	\n\t"		\
 							\
-		: "=r" ((regs)->ccrflags.cznv),		\
+		: "=r" ((regs)->ccrflags.cznv),			\
 		  "=r" (tmp)				\
 		:  "r" (s),				\
 		   "r" (d) 				\
 		: "cr0", "cr2"  DEP_XER			\
 	);						\
     } while (0)
-#endif
 
 #define optflag_cmpw(regs, s, d) optflag_cmpl(regs, (s) << 16, (d) << 16)
 #define optflag_cmpb(regs, s, d) optflag_cmpl(regs, (s) << 24, (d) << 24)

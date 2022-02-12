@@ -616,7 +616,7 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 		//Last block: save flags back to memory from register, if it was loaded before
 		if (!unsupported_in_a_row)
 		{
-			comp_macroblock_push_save_flags();
+		comp_macroblock_push_save_flags();
 		}
 
 		//Optimize the collected macroblocks
@@ -1729,25 +1729,12 @@ void comp_ppc_lwzx(int regd, int rega, int regb)
 
 /* Compiles mcrxr instruction
  * Parameters:
- * 		crreg - target flag register
+ * 		reg - target flag register
  */
 void comp_ppc_mcrxr(int crreg)
 {
 	// ## mcrxr crreg
-#ifdef _ARCH_PWR4
-	// Rotate the XER bits into the right slot in the temp register.
-	comp_ppc_mfxer(PPCR_SPECTMP);
-	comp_ppc_rlwinm(PPCR_SPECTMP, PPCR_SPECTMP, (4*(8-crreg)), 0, 31, FALSE);
-	// Copy to that CR field.
-	// Our mt(o)crf mask is based on the condreg we're after. 128 = cr0
-	comp_ppc_mtcrf(crreg, PPCR_SPECTMP);
-	// Now rotate back and clear out the XER fields we need to erase.
-	comp_ppc_rlwinm(PPCR_SPECTMP, PPCR_SPECTMP, (32-(4*(8-crreg))), (31-(4*crreg)), (31-(4*(7-crreg))), FALSE);
-	// And do the write back to the XER
-	comp_ppc_mtxer(PPCR_SPECTMP);
-#else
 	comp_ppc_emit_word(0x7c000400 | (crreg << 23));
-#endif
 }
 
 /* Compiles mfcr instruction
@@ -1756,22 +1743,9 @@ void comp_ppc_mcrxr(int crreg)
  */
 void comp_ppc_mfcr(int reg)
 {
-	// ## mfcr reg
+	// ## mflr reg
 	comp_ppc_emit_word(0x7c000026 | (reg << 21));
 }
-
-#ifdef _ARCH_PWR4
-/* Compiles mf(o)crf instruction
- * Parameters:
- * 		crreg - source flag register
- * 		reg - target register
- */
-void comp_ppc_mfocrf(int crreg, int reg)
-{
-	// ## mf(o)crf reg
-	comp_ppc_emit_word(0x7c000826 | (reg << 21) | (1 << (crreg + 12)));
-}
-#endif
 
 /* Compiles mflr instruction
  * Parameters:
@@ -1789,23 +1763,8 @@ void comp_ppc_mflr(int reg)
  */
 void comp_ppc_mfxer(int reg)
 {
-	// ## mfxer reg
+	// ## mflr reg
 	comp_ppc_emit_word(0x7c0102a6 | (reg << 21));
-}
-
-/* Compiles mt(o)crf instruction
- * Parameters:
- * 		crreg - target flag register
- * 		regf - register containing the flags
- */
-void comp_ppc_mtcrf(int crreg, int regf)
-{
-	// ## mtcrf reg
-#ifdef _ARCH_PWR4
-	comp_ppc_emit_word(0x7c000920 | (regf << 21) | (1 << (crreg + 12)));
-#else
-	comp_ppc_emit_word(0x7c000120 | (regf << 21) | (1 << (crreg + 12)));
-#endif
 }
 
 /* Compiles mtlr instruction
@@ -1816,16 +1775,6 @@ void comp_ppc_mtlr(int reg)
 {
 	// ## mtlr reg
 	comp_ppc_emit_word(0x7c0803a6 | (reg << 21));
-}
-
-/* Compiles mtxer instruction
- * Parameters:
- * 		reg - source register
- */
-void comp_ppc_mtxer(int reg)
-{
-	// ## mtxer reg
-	comp_ppc_emit_word(0x7c0103a6 | (reg << 21));
 }
 
 /* Compiles mr instruction
