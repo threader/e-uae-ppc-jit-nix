@@ -107,16 +107,6 @@ struct comp_compiler_mb_access_memory_size
 	uae_u8 size;						//Access size: 1 - byte, 2 - word, 4 - longword
 };
 
-//Structure for shift opcode
-struct comp_compiler_mb_shift_opcode
-{
-	struct comp_compiler_mb mb;			//Default macroblock descriptor
-	int update_flags;					//N and Z flags are updated if TRUE
-	uae_u8 output_reg;					//Target register
-	uae_u8 input_reg;					//Input register
-	uae_u8 shift;						//Shift steps
-};
-
 //Structure for shift opcode with AND mask specified
 struct comp_compiler_mb_shift_opcode_with_mask
 {
@@ -127,15 +117,6 @@ struct comp_compiler_mb_shift_opcode_with_mask
 	uae_u8 shift;						//Shift steps to the left
 	uae_u8 begin_mask;					//Beginning of the mask (bit#)
 	uae_u8 end_mask;					//End of the mask (bit#)
-};
-
-//Structure for extracting V flag for an arithmetic left shift instruction
-struct comp_compiler_mb_extract_v_flag_arithmetic_left_shift
-{
-	struct comp_compiler_mb mb;			//Default macroblock descriptor
-	uae_u8 input_reg;					//Input register
-	uae_u8 shift_reg;					//Shift steps to the left
-	uae_u8 temp_reg;					//Temporary register for the operation
 };
 
 //Structure for stack slot operations
@@ -156,12 +137,10 @@ union comp_compiler_mb_union
 	struct comp_compiler_mb_two_regs_imm_opcode two_regs_imm_opcode;
 	struct comp_compiler_mb_three_regs_opcode three_regs_opcode;
 	struct comp_compiler_mb_three_regs_opcode_flags three_regs_opcode_flags;
-	struct comp_compiler_mb_shift_opcode shift_opcode;
 	struct comp_compiler_mb_shift_opcode_with_mask shift_opcode_with_mask;
 	struct comp_compiler_mb_load_register load_register;
 	struct comp_compiler_mb_access_memory access_memory;
 	struct comp_compiler_mb_access_memory_size access_memory_size;
 	struct comp_compiler_mb_map_physical_mem map_physical_mem;
 	struct comp_compiler_mb_reg_in_stackframe reg_in_stackframe;
-	struct comp_compiler_mb_extract_v_flag_arithmetic_left_shift extract_v_flag_arithmetic_left_shift;
 };

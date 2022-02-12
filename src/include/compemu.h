@@ -121,16 +121,9 @@ typedef struct blockinfo_t
 #define PPC_B_TAKEN			0x0020	//0b0000100000
 #define PPC_B_NONTAKEN		0x0000	//0b0000000000
 
-/**
- * Not used temporary register
- * Note: must be a negative number
- */
+/* Not used temporary register */
 #define PPC_TMP_REG_NOTUSED -1
-
-/**
- * Allocated temporary register that is not mapped to an M68k register
- * Note: must be a negative number
- */
+/* Allocated temporary register that is not mapped to an M68k register */
 #define PPC_TMP_REG_ALLOCATED -2
 
 /* Emulated M68k flag bit definitions for PPCR_FLAGS register:
@@ -195,11 +188,9 @@ uae_u8 comp_map_temp_register(uae_u8 reg_number, int needs_init, int needs_flush
 void comp_unmap_temp_register(uae_u8 reg_number);
 void comp_flush_temp_registers(int supresswarning);
 uae_u8 comp_get_gpr_for_temp_register(uae_u8 tmpreg);
-void comp_unlock_all_temp_registers(void);
 
 /* PowerPC instruction compiler functions */
 void comp_ppc_add(int regd, int rega, int regb, int updateflags);
-void comp_ppc_addc(int regd, int rega, int regb, int updateflags);
 void comp_ppc_addco(int regd, int rega, int regb, int updateflags);
 void comp_ppc_addi(int regd, int rega, uae_u16 imm);
 void comp_ppc_addis(int regd, int rega, uae_u16 imm);
@@ -213,7 +204,6 @@ void comp_ppc_bl(uae_u32 target);
 void comp_ppc_blr(void);
 void comp_ppc_blrl(void);
 void comp_ppc_cmplw(int regcrfd, int rega, int regb);
-void comp_ppc_cntlwz(int rega, int regs, int updateflags);
 void comp_ppc_extsb(int rega, int regs, int updateflags);
 void comp_ppc_extsh(int rega, int regs, int updateflags);
 void comp_ppc_lbz(int regd, uae_u16 delta, int rega);
@@ -230,25 +220,17 @@ void comp_ppc_mflr(int reg);
 void comp_ppc_mfxer(int reg);
 void comp_ppc_mr(int rega, int regs, int updateflags);
 void comp_ppc_mtlr(int reg);
-void comp_ppc_mullwo(int regd, int rega, int regb, int updateflags);
 void comp_ppc_nop(void);
-void comp_ppc_nor(int rega, int regs, int regb, int updateflags);
 void comp_ppc_or(int rega, int regs, int regb, int updateflags);
 void comp_ppc_ori(int rega, int regs, uae_u16 imm);
 void comp_ppc_oris(int rega, int regs, uae_u16 imm);
 void comp_ppc_rlwimi(int rega, int regs, int shift, int maskb, int maske, int updateflags);
 void comp_ppc_rlwinm(int rega, int regs, int shift, int maskb, int maske, int updateflags);
 void comp_ppc_trap(void);
-void comp_ppc_srawi(int rega, int regs, int shift, int updateflags);
-void comp_ppc_stb(int regs, uae_u16 delta, int rega);
 void comp_ppc_sth(int regs, uae_u16 delta, int rega);
+void comp_ppc_stb(int regs, uae_u16 delta, int rega);
 void comp_ppc_sthu(int regs, uae_u16 delta, int rega);
 void comp_ppc_stw(int regs, uae_u16 delta, int rega);
-void comp_ppc_subfco(int regd, int rega, int regb, int updateflags);
-void comp_ppc_subfe(int regd, int rega, int regb, int updateflags);
-void comp_ppc_xor(int rega, int regs, int regb, int updateflags);
-void comp_ppc_xori(int rega, int regs, uae_u16 imm);
-void comp_ppc_xoris(int rega, int regs, uae_u16 imm);
 
 void* comp_ppc_buffer_top(void);
 void comp_ppc_emit_halfwords(uae_u16 halfword_high, uae_u16 halfword_low);

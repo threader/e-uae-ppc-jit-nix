@@ -59,35 +59,23 @@ void comp_macroblock_impl_save_memory_word_update(union comp_compiler_mb_union* 
 void comp_macroblock_impl_save_memory_byte(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_add_with_flags(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_add(union comp_compiler_mb_union* mb);
-void comp_macroblock_impl_sub_with_flags(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_add_register_imm(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_copy_register_long_with_flags(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_copy_register_long(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_opcode_unsupported(union comp_compiler_mb_union* mb);
-void comp_macroblock_impl_and_low_register_imm(union comp_compiler_mb_union* mb);
-void comp_macroblock_impl_and_high_register_imm(union comp_compiler_mb_union* mb);
-void comp_macroblock_impl_and_register_register(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_or_low_register_imm(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_or_high_register_imm(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_or_register_register(union comp_compiler_mb_union* mb);
-void comp_macroblock_impl_or_immed_register(union comp_compiler_mb_union* mb);
-void comp_macroblock_impl_xor_register_register(union comp_compiler_mb_union* mb);
-void comp_macroblock_impl_xor_low_register_imm(union comp_compiler_mb_union* mb);
-void comp_macroblock_impl_xor_high_register_imm(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_and_register_imm(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_and_registers(union comp_compiler_mb_union* mb);
-void comp_macroblock_impl_multiply_registers_with_flags(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_copy_nzcv_flags_to_register(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_copy_nz_flags_to_register(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_copy_cv_flags_to_register(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_check_byte_register(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_check_word_register(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_copy_register_word_extended(union comp_compiler_mb_union* mb);
-void comp_macroblock_impl_copy_register_byte_extended(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_rotate_and_copy_bits(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_rotate_and_mask_bits(union comp_compiler_mb_union* mb);
-void comp_macroblock_impl_arithmetic_shift_right_register(union comp_compiler_mb_union* mb);
-void comp_macroblock_impl_arithmetic_left_shift_extract_v_flag(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_save_reg_stack(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_load_reg_stack(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_stop(union comp_compiler_mb_union* mb);
@@ -395,29 +383,6 @@ void comp_macroblock_impl_add(union comp_compiler_mb_union* mb)
 			mb->three_regs_opcode.input_reg1,
 			mb->three_regs_opcode.input_reg2,
 			0);
-}
-
-/**
- * Macroblock: Subtracts a register from another register then copies
- * the result into a third and updates all the flags in PPC flag registers (NZCVX)
- */
-void comp_macroblock_push_sub_with_flags(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg1, uae_u8 input_reg2)
-{
-	comp_mb_init(mb,
-				comp_macroblock_impl_sub_with_flags,
-				regsin, regsout);
-	mb->three_regs_opcode.output_reg = output_reg;
-	mb->three_regs_opcode.input_reg1 = input_reg1;
-	mb->three_regs_opcode.input_reg2 = input_reg2;
-}
-
-void comp_macroblock_impl_sub_with_flags(union comp_compiler_mb_union* mb)
-{
-	comp_ppc_subfco(
-			mb->three_regs_opcode.output_reg,
-			mb->three_regs_opcode.input_reg1,
-			mb->three_regs_opcode.input_reg2,
-			1);
 }
 
 /**
@@ -929,157 +894,6 @@ void comp_macroblock_impl_or_register_register(union comp_compiler_mb_union* mb)
 }
 
 /**
- * Macroblock: AND a 16 bit immediate to the lower half word of a register and put it into a new register
- */
-void comp_macroblock_push_and_low_register_imm(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, uae_u16 immediate)
-{
-	comp_mb_init(mb,
-				comp_macroblock_impl_and_low_register_imm,
-				regsin, regsout);
-	mb->two_regs_imm_opcode.output_reg = output_reg;
-	mb->two_regs_imm_opcode.input_reg = input_reg;
-	mb->two_regs_imm_opcode.immediate = immediate;
-}
-
-void comp_macroblock_impl_and_low_register_imm(union comp_compiler_mb_union* mb)
-{
-	comp_ppc_andi(
-			mb->two_regs_imm_opcode.output_reg,
-			mb->two_regs_imm_opcode.input_reg,
-			mb->two_regs_imm_opcode.immediate);
-}
-
-/**
- * Macroblock: AND a 16 bit immediate to the higher half word of a register and put it into a new register
- */
-void comp_macroblock_push_and_high_register_imm(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, uae_u16 immediate)
-{
-	comp_mb_init(mb,
-				comp_macroblock_impl_and_high_register_imm,
-				regsin, regsout);
-	mb->two_regs_imm_opcode.output_reg = output_reg;
-	mb->two_regs_imm_opcode.input_reg = input_reg;
-	mb->two_regs_imm_opcode.immediate = immediate;
-}
-
-void comp_macroblock_impl_and_high_register_imm(union comp_compiler_mb_union* mb)
-{
-	comp_ppc_andi(
-			mb->two_regs_imm_opcode.output_reg,
-			mb->two_regs_imm_opcode.input_reg,
-			mb->two_regs_imm_opcode.immediate);
-}
-
-/**
- * Macroblock: AND a register to another register
- */
-void comp_macroblock_push_and_register_register(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg1, uae_u8 input_reg2, char updateflags)
-{
-	comp_mb_init(mb,
-				comp_macroblock_impl_and_register_register,
-				regsin, regsout);
-	mb->three_regs_opcode_flags.output_reg = output_reg;
-	mb->three_regs_opcode_flags.input_reg1 = input_reg1;
-	mb->three_regs_opcode_flags.input_reg2 = input_reg2;
-	mb->three_regs_opcode_flags.updateflags = updateflags;
-}
-
-void comp_macroblock_impl_and_register_register(union comp_compiler_mb_union* mb)
-{
-	comp_ppc_and(
-			mb->three_regs_opcode_flags.output_reg,
-			mb->three_regs_opcode_flags.input_reg1,
-			mb->three_regs_opcode_flags.input_reg2,
-			mb->three_regs_opcode_flags.updateflags);
-}
-
-/**
- * Macroblock: OR an immediate to a register
- */
-void comp_macroblock_push_or_immed_register(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, uae_u16 immediate)
-{
-	comp_mb_init(mb,
-				comp_macroblock_impl_or_immed_register,
-				regsin, regsout);
-	mb->two_regs_imm_opcode.output_reg = output_reg;
-	mb->two_regs_imm_opcode.input_reg = input_reg;
-	mb->two_regs_imm_opcode.immediate = immediate;
-}
-
-void comp_macroblock_impl_or_immed_register(union comp_compiler_mb_union* mb)
-{
-	comp_ppc_ori(
-			mb->two_regs_imm_opcode.output_reg,
-			mb->two_regs_imm_opcode.input_reg,
-			mb->two_regs_imm_opcode.immediate);
-}
-
-/**
- * Macroblock: XOR a register to another register
- */
-void comp_macroblock_push_xor_register_register(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg1, uae_u8 input_reg2, char updateflags)
-{
-	comp_mb_init(mb,
-				comp_macroblock_impl_xor_register_register,
-				regsin, regsout);
-	mb->three_regs_opcode_flags.output_reg = output_reg;
-	mb->three_regs_opcode_flags.input_reg1 = input_reg1;
-	mb->three_regs_opcode_flags.input_reg2 = input_reg2;
-	mb->three_regs_opcode_flags.updateflags = updateflags;
-}
-
-void comp_macroblock_impl_xor_register_register(union comp_compiler_mb_union* mb)
-{
-	comp_ppc_xor(
-			mb->three_regs_opcode_flags.output_reg,
-			mb->three_regs_opcode_flags.input_reg1,
-			mb->three_regs_opcode_flags.input_reg2,
-			mb->three_regs_opcode_flags.updateflags);
-}
-
-/**
- * Macroblock: XOR an immediate to the low half word of a register
- */
-void comp_macroblock_push_xor_low_register_imm(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, uae_u16 immediate)
-{
-	comp_mb_init(mb,
-				comp_macroblock_impl_xor_low_register_imm,
-				regsin, regsout);
-	mb->two_regs_imm_opcode.output_reg = output_reg;
-	mb->two_regs_imm_opcode.input_reg = input_reg;
-	mb->two_regs_imm_opcode.immediate = immediate;
-}
-
-void comp_macroblock_impl_xor_low_register_imm(union comp_compiler_mb_union* mb)
-{
-	comp_ppc_xori(
-			mb->two_regs_imm_opcode.output_reg,
-			mb->two_regs_imm_opcode.input_reg,
-			mb->two_regs_imm_opcode.immediate);
-}
-
-/**
- * Macroblock: XOR an immediate to the high half word of a register
- */
-void comp_macroblock_push_xor_high_register_imm(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, uae_u16 immediate)
-{
-	comp_mb_init(mb,
-				comp_macroblock_impl_xor_high_register_imm,
-				regsin, regsout);
-	mb->two_regs_imm_opcode.output_reg = output_reg;
-	mb->two_regs_imm_opcode.input_reg = input_reg;
-	mb->two_regs_imm_opcode.immediate = immediate;
-}
-
-void comp_macroblock_impl_xor_high_register_imm(union comp_compiler_mb_union* mb)
-{
-	comp_ppc_xoris(
-			mb->two_regs_imm_opcode.output_reg,
-			mb->two_regs_imm_opcode.input_reg,
-			mb->two_regs_imm_opcode.immediate);
-}
-
-/**
  * Macroblock: Add a word immediate to a register and put it into a new register
  * Note: the immediate is sign extended to 32 bit.
  */
@@ -1143,29 +957,6 @@ void comp_macroblock_impl_and_registers(union comp_compiler_mb_union* mb)
 			mb->three_regs_opcode.output_reg,
 			mb->three_regs_opcode.input_reg1,
 			mb->three_regs_opcode.input_reg2, 0);
-}
-
-/**
- * Macroblock: multiply the low half word of a register by the low half word
- * of another register and set the arithmetic flags
- */
-void comp_macroblock_push_multiply_registers_with_flags(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg1, uae_u8 input_reg2)
-{
-	comp_mb_init(mb,
-				comp_macroblock_impl_multiply_registers_with_flags,
-				regsin, regsout);
-	mb->three_regs_opcode.output_reg = output_reg;
-	mb->three_regs_opcode.input_reg1 = input_reg1;
-	mb->three_regs_opcode.input_reg2 = input_reg2;
-}
-
-void comp_macroblock_impl_multiply_registers_with_flags(union comp_compiler_mb_union* mb)
-{
-	comp_ppc_mullwo(
-			mb->three_regs_opcode.output_reg,
-			mb->three_regs_opcode.input_reg1,
-			mb->three_regs_opcode.input_reg2,
-			1);
 }
 
 /**
@@ -1278,25 +1069,6 @@ void comp_macroblock_impl_copy_register_word_extended(union comp_compiler_mb_uni
 }
 
 /**
- * Macroblock: Sign-extend lowest byte content of the specified register
- * into another register.
- */
-void comp_macroblock_push_copy_register_byte_extended(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg)
-{
-	comp_mb_init(mb,
-				comp_macroblock_impl_copy_register_byte_extended,
-				regsin,
-				regsout);
-	mb->two_regs_opcode.input_reg = input_reg;
-	mb->two_regs_opcode.output_reg = output_reg;
-}
-
-void comp_macroblock_impl_copy_register_byte_extended(union comp_compiler_mb_union* mb)
-{
-	comp_ppc_extsb(mb->two_regs_opcode.output_reg, mb->two_regs_opcode.input_reg, 0);
-}
-
-/**
  * Macroblock: Check byte-sized register value and set the PPC N and Z flag according
  * to the content of the register half word.
  */
@@ -1376,80 +1148,6 @@ void comp_macroblock_impl_rotate_and_mask_bits(union comp_compiler_mb_union* mb)
 			mb->shift_opcode_with_mask.begin_mask,
 			mb->shift_opcode_with_mask.end_mask,
 			mb->shift_opcode_with_mask.update_flags);
-}
-
-/**
- * Macroblock: Arithmetic shift to the right of the register
- * Note: when flag update is specified then the output registers will specify
- * internal flag update
- */
-void comp_macroblock_push_arithmetic_shift_right_register(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, uae_u8 shift, int updateflags)
-{
-	comp_mb_init(mb,
-				comp_macroblock_impl_arithmetic_shift_right_register,
-				regsin,
-				regsout | (updateflags ?
-								COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ :
-								COMP_COMPILER_MACROBLOCK_REG_NONE));
-	mb->shift_opcode.output_reg = output_reg;
-	mb->shift_opcode.input_reg = input_reg;
-	mb->shift_opcode.shift = shift;
-	mb->shift_opcode.update_flags = updateflags;
-}
-
-void comp_macroblock_impl_arithmetic_shift_right_register(union comp_compiler_mb_union* mb)
-{
-	comp_ppc_srawi(
-			mb->shift_opcode.output_reg,
-			mb->shift_opcode.input_reg,
-			mb->shift_opcode.shift,
-			mb->shift_opcode.update_flags);
-}
-
-/**
- * Macroblock: Calculate V flag for arithmetic left shift, inserts the V flag directly
- * into the flag emulation register
- */
-void comp_macroblock_push_arithmetic_left_shift_extract_v_flag(uae_u64 regsin, uae_u8 input_reg, uae_u8 shift_reg, uae_u8 tmp_reg)
-{
-	comp_mb_init(mb,
-				comp_macroblock_impl_arithmetic_left_shift_extract_v_flag,
-				regsin,
-				COMP_COMPILER_MACROBLOCK_REG_FLAGV);
-	mb->extract_v_flag_arithmetic_left_shift.input_reg = input_reg;
-	mb->extract_v_flag_arithmetic_left_shift.shift_reg = shift_reg;
-	mb->extract_v_flag_arithmetic_left_shift.temp_reg = tmp_reg;
-}
-
-void comp_macroblock_impl_arithmetic_left_shift_extract_v_flag(union comp_compiler_mb_union* mb)
-{
-	uae_u8 input_reg = mb->extract_v_flag_arithmetic_left_shift.input_reg;
-	uae_u8 temp_reg = mb->extract_v_flag_arithmetic_left_shift.temp_reg;
-	uae_u8 shift_reg = mb->extract_v_flag_arithmetic_left_shift.shift_reg;
-
-	//Count leading 0 bits to R0
-	comp_ppc_cntlwz(PPCR_SPECTMP, input_reg, 0);
-
-	//Invert the source register into the temp register
-	comp_ppc_nor(temp_reg, input_reg, input_reg, 0);
-
-	//Count leading 0 bits again to the temp register
-	//(counting leading 1 bits by using the result from the previous inversion)
-	comp_ppc_cntlwz(temp_reg, temp_reg, 0);
-
-	//Calculate the distance of the first changing bit to temp register,
-	//also clear XER[CA] (Carry flag) for the next instruction
-	comp_ppc_addc(temp_reg, temp_reg, PPCR_SPECTMP, 0);
-
-	//Subtract the number of shifting steps from the calculated distance
-	//and decrease it by one (tmpreg = tmpreg - shift - 1).
-	//By this we get a negative number if the number of the steps is
-	//equal or less than the distance of the first bit change.
-	comp_ppc_subfe(temp_reg, shift_reg, temp_reg, 0);
-
-	//If the result is negative then the overflow happens while shifting
-	//V flag should be set according to the MSB
-	comp_ppc_rlwimi(PPCR_FLAGS, temp_reg, 22, 9, 9, 0);
 }
 
 /**
