@@ -93,7 +93,6 @@ void comp_macroblock_push_opcode_unsupported(uae_u16* location, uae_u16 opcode);
 void comp_macroblock_push_add_with_flags(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg1, uae_u8 input_reg2);
 void comp_macroblock_push_add(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg1, uae_u8 input_reg2);
 void comp_macroblock_push_add_register_imm(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, uae_u16 imm);
-void comp_macroblock_push_add_high_register_imm(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, uae_u16 imm);
 void comp_macroblock_push_sub_with_flags(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg1, uae_u8 input_reg2);
 void comp_macroblock_push_copy_register_long_with_flags(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg);
 void comp_macroblock_push_copy_register_long(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg);
@@ -102,7 +101,6 @@ void comp_macroblock_push_copy_register_byte(uae_u64 regsin, uae_u64 regsout, ua
 void comp_macroblock_push_load_register_long(uae_u64 regsout, uae_u8 output_reg, uae_u32 imm);
 void comp_macroblock_push_load_register_word_extended(uae_u64 regsout, uae_u8 output_reg, uae_u16 imm);
 void comp_macroblock_push_load_memory_spec(uae_u64 regsin, uae_u64 regsout, uae_u8 src_mem_reg, uae_u8 dest_reg, uae_u8 size);
-void comp_macroblock_push_load_memory_spec_save_temps(uae_u64 regsin, uae_u64 regsout, uae_u8 src_mem_reg, uae_u8 dest_reg, uae_u8 size);
 void comp_macroblock_push_load_memory_long(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u32 base_reg, uae_u32 offset);
 void comp_macroblock_push_load_memory_word(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u32 base_reg, uae_u32 offset);
 void comp_macroblock_push_load_memory_word_extended(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u32 base_reg, uae_u32 offset);

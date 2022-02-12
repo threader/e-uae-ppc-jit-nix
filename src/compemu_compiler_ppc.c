@@ -47,7 +47,6 @@ int macroblock_ptr;
 void comp_macroblock_impl_load_register_long(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_load_register_word_extended(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_load_memory_spec(union comp_compiler_mb_union* mb);
-void comp_macroblock_impl_load_memory_spec_save_temps(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_load_memory_long(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_load_memory_word(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_load_memory_word_extended(union comp_compiler_mb_union* mb);
@@ -62,7 +61,6 @@ void comp_macroblock_impl_add_with_flags(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_add(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_sub_with_flags(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_add_register_imm(union comp_compiler_mb_union* mb);
-void comp_macroblock_impl_add_high_register_imm(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_copy_register_long_with_flags(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_copy_register_long(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_opcode_unsupported(union comp_compiler_mb_union* mb);
@@ -806,34 +804,6 @@ void comp_macroblock_impl_load_memory_spec(union comp_compiler_mb_union* mb)
 }
 
 /**
- * Macroblock: Reads a value into a specified register from emulated memory
- * using the special memory bank handlers.
- * Note: this function preserves all allocated temporary registers,
- * because it calls an external function.
- * If possible then use comp_macroblock_push_load_memory_spec() instead.
- */
-void comp_macroblock_push_load_memory_spec_save_temps(uae_u64 regsin, uae_u64 regsout, uae_u8 src_mem_reg, uae_u8 dest_reg, uae_u8 size)
-{
-	//Save the allocated temporary register, except the destination register
-	uae_u32 saved_regs = comp_ppc_save_temp_regs(1 << dest_reg);
-
-	comp_mb_init(mb,
-				comp_macroblock_impl_load_memory_spec_save_temps,
-				regsin, regsout);
-	mb->access_memory_size.base_reg = src_mem_reg;
-	mb->access_memory_size.output_reg = dest_reg;	//Copy the result into this register
-	mb->access_memory_size.size = size;
-
-	//Restore the saved temporary registers
-	comp_ppc_restore_temp_regs(saved_regs);
-}
-
-void comp_macroblock_impl_load_memory_spec_save_temps(union comp_compiler_mb_union* mb)
-{
-	helper_access_memory_spec(mb, FALSE);
-}
-
-/**
  * Helper function for compiling special memory access
  * Parameters:
  *    mb - pointer to the actual macroblock descriptor
@@ -1173,29 +1143,6 @@ void comp_macroblock_push_add_register_imm(uae_u64 regsin, uae_u64 regsout, uae_
 void comp_macroblock_impl_add_register_imm(union comp_compiler_mb_union* mb)
 {
 	comp_ppc_addi(
-			mb->two_regs_imm_opcode.output_reg,
-			mb->two_regs_imm_opcode.input_reg,
-			mb->two_regs_imm_opcode.immediate);
-}
-
-/**
- * Macroblock: Add a word immediate to the high half word of a register and
- * put it into a new register
- * Note: the immediate is sign extended to 32 bit.
- */
-void comp_macroblock_push_add_high_register_imm(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, uae_u16 imm)
-{
-	comp_mb_init(mb,
-				comp_macroblock_impl_add_high_register_imm,
-				regsin, regsout);
-	mb->two_regs_imm_opcode.output_reg = output_reg;
-	mb->two_regs_imm_opcode.input_reg = input_reg;
-	mb->two_regs_imm_opcode.immediate = imm;
-}
-
-void comp_macroblock_impl_add_high_register_imm(union comp_compiler_mb_union* mb)
-{
-	comp_ppc_addis(
 			mb->two_regs_imm_opcode.output_reg,
 			mb->two_regs_imm_opcode.input_reg,
 			mb->two_regs_imm_opcode.immediate);

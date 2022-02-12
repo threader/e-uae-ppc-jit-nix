@@ -78,9 +78,6 @@ STATIC_INLINE uae_u8 helper_pre_byte(uae_u64 regsin, uae_u8 input_reg_mapped);
 STATIC_INLINE void helper_post_byte(uae_u64 regsout, uae_u8 tmpreg, uae_u8 output_reg_mapped);
 STATIC_INLINE uae_u8 helper_prepare_word_shift(uae_u64 regsin, uae_u8 input_reg_mapped);
 STATIC_INLINE uae_u8 helper_prepare_byte_shift(uae_u64 regsin, uae_u8 input_reg_mapped);
-STATIC_INLINE void helper_complex_addressing(uae_u64 regsin, uae_u64 regsout, const cpu_history* history, uae_u8 output_mem_reg, uae_u8 base_reg, uae_u32 base_address);
-STATIC_INLINE void helper_complete_complex_addressing(uae_u64 regsin, uae_u64 regsout, const cpu_history* history, uae_u8 output_mem_reg, uae_u8 base_reg, uae_u32 base_address, uae_u16 ext);
-STATIC_INLINE uae_u8 helper_calculate_complex_index(uae_u16 ext);
 
 /**
  * Local variables
@@ -330,32 +327,11 @@ void comp_addr_pre_absL_src(const cpu_history* history, struct comptbl* props) R
 }
 void comp_addr_pre_indAcp_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	helper_allocate_2_ax_src_mem_regs(props, FALSE);
-
-	//Process the extension word, result is coming back in src_mem_addrreg_mapped
-	helper_complex_addressing(
-			COMP_COMPILER_MACROBLOCK_REG_AX(props->srcreg),
-			COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg),
-			history,
-			src_mem_addrreg_mapped,
-			src_reg_mapped, 0);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_addr_pre_indPCcp_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Load the current PC to the address variable
-	uae_u32 address = ((uae_u32)history->pc) + ((uae_u32)pc_ptr - (uae_u32)history->location);
-
-	//Map registers
-	helper_allocate_2_ax_src_mem_regs(props, FALSE);
-
-	//Process the extension word, result is coming back in src_mem_addrreg_mapped
-	helper_complex_addressing(
-			COMP_COMPILER_MACROBLOCK_REG_NONE,
-			COMP_COMPILER_MACROBLOCK_REG_TMP(src_mem_addrreg),
-			history,
-			src_mem_addrreg_mapped,
-			COMP_COMPILER_MACROBLOCK_REG_NONE,
-			address);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 
 /**
@@ -465,13 +441,11 @@ void comp_addr_post_absL_src(const cpu_history* history, struct comptbl* props) 
 }
 void comp_addr_post_indAcp_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Release temp register
-	helper_free_src_mem_addr_temp_reg();
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_addr_post_indPCcp_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Release temp register
-	helper_free_src_mem_addr_temp_reg();
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 
 /**
@@ -637,32 +611,11 @@ void comp_addr_pre_absL_dest(const cpu_history* history, struct comptbl* props) 
 }
 void comp_addr_pre_indAcp_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	helper_allocate_2_ax_dest_mem_regs(props, FALSE);
-
-	//Process the extension word, result is coming back in dest_mem_addrreg_mapped
-	helper_complex_addressing(
-			COMP_COMPILER_MACROBLOCK_REG_AX(props->destreg),
-			COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
-			history,
-			dest_mem_addrreg_mapped,
-			dest_reg_mapped, 0);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_addr_pre_indPCcp_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Load the current PC to the address variable
-	uae_u32 address = ((uae_u32)history->pc) + ((uae_u32)pc_ptr - (uae_u32)history->location);
-
-	//Map registers
-	helper_allocate_2_ax_dest_mem_regs(props, FALSE);
-
-	//Process the extension word, result is coming back in dest_mem_addrreg_mapped
-	helper_complex_addressing(
-			COMP_COMPILER_MACROBLOCK_REG_NONE,
-			COMP_COMPILER_MACROBLOCK_REG_TMP(dest_mem_addrreg),
-			history,
-			dest_mem_addrreg_mapped,
-			COMP_COMPILER_MACROBLOCK_REG_NONE,
-			address);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 
 /**
@@ -781,13 +734,11 @@ void comp_addr_post_absL_dest(const cpu_history* history, struct comptbl* props)
 }
 void comp_addr_post_indAcp_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Release temp register
-	helper_free_dest_mem_addr_temp_reg();
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_addr_post_indPCcp_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Release temp register
-	helper_free_dest_mem_addr_temp_reg();
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 
 /**
@@ -5282,7 +5233,7 @@ STATIC_INLINE uae_u8 helper_pre_byte(uae_u64 regsin, uae_u8 input_reg_mapped)
  * register.
  * Note: Must be in pair with helper_pre_byte() function.
  * Parameters:
- *    regsout - output register dependency
+ *    regsout - input register dependency
  *    input_reg_mapped - input register for the copy
  */
 STATIC_INLINE void helper_post_byte(uae_u64 regsout, uae_u8 tmpreg, uae_u8 output_reg_mapped)
@@ -5295,450 +5246,5 @@ STATIC_INLINE void helper_post_byte(uae_u64 regsout, uae_u8 tmpreg, uae_u8 outpu
 			8, 24, 31, FALSE);
 
 	comp_free_temp_register(tmpreg);
-}
-
-/**
- * Complex (68020) addressing mode implementation, handles the processing
- * of the extension word for the non-scaled base-displaced 68000 instruction
- * up to the 68020 base-displaced, memory indirect addressing modes.
- * The final address is returned in the register specified in the output_mem_reg
- * parameter.
- * Note: this function also changes the current instruction PC
- *
- * Parameters:
- *    regsin - input register dependency
- *    regsout - output register dependency
- *    history - pointer to the execution history
- *    output_mem_reg - mapped output memory address register
- *    base_reg - mapped base register (address register) or COMP_COMPILER_MACROBLOCK_REG_NONE
- *    base_address - pre-calculated base address or 0 (for PC indirect addressing)
- *
- * Note: parameters base_reg and base_address are mutually exclusive.
- */
-STATIC_INLINE void helper_complex_addressing(uae_u64 regsin, uae_u64 regsout, const cpu_history* history, uae_u8 output_mem_reg, uae_u8 base_reg, uae_u32 base_address)
-{
-	//Load address extension word
-	uae_u16 ext = *pc_ptr;
-	pc_ptr++;
-
-	//Is it complete complex addressing?
-	if ((ext & (1 << 8)) != 0)
-	{
-		// Complete complex addressing with displacement and indexing/indirect referencing
-		helper_complete_complex_addressing(regsin, regsout, history, output_mem_reg, base_reg, base_address, ext);
-	} else {
-		// Simple base-displaced addressing
-		uae_u8 scaled_index_reg = helper_calculate_complex_index(ext);
-		uae_u8 scaled_index_reg_mapped = comp_get_gpr_for_temp_register(scaled_index_reg);
-
-		//Get the displacement from the extension word
-		uae_u32 displacement = ext & 255;
-
-		//Sign extend it
-		if (displacement & 128) displacement |= 0xffffff00;
-
-		//Is base register not specified (meaning: there should be base address instead)
-		if (base_reg == COMP_COMPILER_MACROBLOCK_REG_NONE)
-		{
-			//Summarize the constant data
-			base_address += displacement;
-
-			//Load it to the output register
-			comp_macroblock_push_load_register_long(
-					regsout,
-					output_mem_reg,
-					base_address);
-
-			//Add the index * scale to the output register
-			comp_macroblock_push_add(
-					regsout | COMP_COMPILER_MACROBLOCK_REG_TMP(scaled_index_reg),
-					regsout,
-					output_mem_reg,
-					output_mem_reg,
-					scaled_index_reg_mapped);
-		} else {
-			//No base address
-
-			//Add the displacement to the output only if it is non-zero
-			if (displacement)
-			{
-				comp_macroblock_push_add_register_imm(
-						regsin,
-						regsout,
-						output_mem_reg,
-						base_reg,
-						displacement);
-
-				//Add the index * scale to the output register
-				comp_macroblock_push_add(
-						regsout | COMP_COMPILER_MACROBLOCK_REG_TMP(scaled_index_reg),
-						regsout,
-						output_mem_reg,
-						output_mem_reg,
-						scaled_index_reg_mapped);
-			} else {
-				//There is no displacement: add base and index * scale to the output register
-				//Add the index * scale to the output register
-				comp_macroblock_push_add(
-						regsin | COMP_COMPILER_MACROBLOCK_REG_TMP(scaled_index_reg),
-						regsout,
-						output_mem_reg,
-						base_reg,
-						scaled_index_reg_mapped);
-			}
-		}
-
-		comp_free_temp_register(scaled_index_reg);
-	}
-}
-
-/**
- * Complex (68020) addressing mode implementation, complete complex addressing
- * (full extension word) with base and outer displacement and indexing/indirect
- * referencing.
- * The final address is returned in the register specified in the output_mem_reg
- * parameter.
- * Note: this function also changes the current instruction PC
- *
- * Parameters:
- *    regsin - input register dependency
- *    regsout - output register dependency
- *    history - pointer to the execution history
- *    output_mem_reg - mapped output memory address register
- *    base_reg - mapped base register (address register) or COMP_COMPILER_MACROBLOCK_REG_NONE
- *    base_address - pre-calculated base address or 0 (for PC indirect addressing)
- *    ext - preloaded addressing extension word
- *
- * Note: parameters base_reg and base_address are mutually exclusive.
- */
-STATIC_INLINE void helper_complete_complex_addressing(uae_u64 regsin, uae_u64 regsout, const cpu_history* history, uae_u8 output_mem_reg, uae_u8 base_reg, uae_u32 base_address, uae_u16 ext)
-{
-	uae_u32 base_displacement = 0;
-	uae_u32 outer_displacement = 0;
-	int memory_indirect = FALSE;
-	int indexing_enabled = FALSE;
-	int preindex = TRUE;
-
-	//Filter out invalid forms
-	if (((ext & (1 << 3)) != 0) || ((ext & (1 << 4 | 1 << 5)) == 0))
-	{
-		//Bit 3 must be 0, base displacement size bits (4 and 5) must not be zero
-		write_log("JIT error: wrong complex addressing extension word: %04x\n", ext);
-		abort();
-	}
-
-	//Is base displacement enabled?
-	if ((ext & (1 << 5)) != 0)
-	{
-		//Get base displacement from the next word(s)
-		if ((ext & (1 << 4)) == 0)
-		{
-			//BD is word sized (sign extended)
-			base_displacement = (uae_s32)*(uae_s16*)pc_ptr;
-			pc_ptr++;
-		} else {
-			//BD is longword sized
-			base_displacement = *(uae_u32*)pc_ptr;
-			pc_ptr += 2;
-		}
-	}
-
-	//Is base register enabled? (Bit is set if suppressed)
-	if ((ext & (1 << 7)) == 0)
-	{
-		//Is base register specified?
-		if (base_reg == COMP_COMPILER_MACROBLOCK_REG_NONE)
-		{
-			//Not specified, base address is used: summarize BD and base address
-			base_address += base_displacement;
-
-			//Load it to the output register
-			comp_macroblock_push_load_register_long(
-					regsout,
-					output_mem_reg,
-					base_address);
-		} else {
-			//Base register is specified: add base displacement to it
-
-			//Add lower half word of BD to the base register
-			comp_macroblock_push_add_register_imm(
-					regsin,
-					regsout,
-					output_mem_reg,
-					base_reg,
-					base_displacement & 0xffff);
-
-			//Can we use word-sized immediate?
-			//(Highest bit in the lower word is the same as all the bits in the higher word.)
-			uae_u32 tmp = base_displacement & 0xffff8000;
-			if (tmp != 0 && tmp != 0xffff8000)
-			{
-				//No, add the high half word too
-				//If the lower half can be extended to negative then we have to compensate
-				//it by adding 1 to the upper half
-				comp_macroblock_push_add_high_register_imm(
-						regsout,
-						regsout,
-						output_mem_reg,
-						output_mem_reg,
-						((base_displacement >> 16) + (base_displacement & 0x8000 ? 1 : 0)) & 0xffff);
-			}
-		}
-	} else {
-		//Base register is suppressed, we still need to initialize the output register
-		//TODO: remove the unnecessary initialization of the output register
-		comp_macroblock_push_load_register_long(
-				regsout,
-				output_mem_reg,
-				base_displacement);
-	}
-
-	//Is the indexing enabled? (Bit is set if suppressed)
-	indexing_enabled = ((ext & (1 << 6)) == 0);
-
-	if (indexing_enabled)
-	{
-		//Indexing enabled
-		switch (ext & 7)
-		{
-		case 0:	//000
-			//No memory indirect action
-			memory_indirect = FALSE;
-			break;
-		case 1:	//001
-			//Indirect pre-indexed without outer displacement
-			memory_indirect = TRUE;
-			preindex = TRUE;
-			break;
-		case 2:	//010
-			//Indirect pre-indexed with word sized outer displacement (sign extended)
-			memory_indirect = TRUE;
-			preindex = TRUE;
-			outer_displacement = (uae_s32)*(uae_s16*)pc_ptr;
-			pc_ptr++;
-			break;
-		case 3:	//011
-			//Indirect pre-indexed with longword sized outer displacement
-			memory_indirect = TRUE;
-			preindex = TRUE;
-			outer_displacement = *(uae_u32*)pc_ptr;
-			pc_ptr += 2;
-			break;
-		case 5:	//101
-			//Indirect post-indexed without outer displacement
-			memory_indirect = TRUE;
-			preindex = FALSE;
-			break;
-		case 6:	//110
-			//Indirect post-indexed with word sized outer displacement (sign extended)
-			memory_indirect = TRUE;
-			preindex = FALSE;
-			outer_displacement = (uae_s32)*(uae_s16*)pc_ptr;
-			pc_ptr++;
-			break;
-		case 7:	//111
-			//Indirect post-indexed with longword outer displacement
-			memory_indirect = TRUE;
-			preindex = FALSE;
-			outer_displacement = *(uae_u32*)pc_ptr;
-			pc_ptr += 2;
-			break;
-		default:
-			//Unknown format
-			write_log("JIT error: wrong complex addressing extension word: %04x\n", ext);
-			abort();
-		}
-
-		//Is pre-indexing enabled?
-		if (preindex)
-		{
-			//Yes, add the index register to the output
-			uae_u8 scaled_index_reg = helper_calculate_complex_index(ext);
-			uae_u8 scaled_index_reg_mapped = comp_get_gpr_for_temp_register(scaled_index_reg);
-
-			//Add the index * scale to the output register
-			comp_macroblock_push_add(
-					regsout | COMP_COMPILER_MACROBLOCK_REG_TMP(scaled_index_reg),
-					regsout,
-					output_mem_reg,
-					output_mem_reg,
-					scaled_index_reg_mapped);
-
-			comp_free_temp_register(scaled_index_reg);
-		}
-	} else {
-		//Indexing suppressed
-		switch (ext & 7)
-		{
-		case 0:	//000
-			//No memory indirect action
-			memory_indirect = FALSE;
-			break;
-		case 1:	//001
-			//Indirect without outer displacement
-			memory_indirect = TRUE;
-			break;
-		case 2:	//010
-			//Indirect with word sized outer displacement (sign extended)
-			memory_indirect = TRUE;
-			outer_displacement = (uae_s32)*(uae_s16*)pc_ptr;
-			pc_ptr++;
-			break;
-		case 3:	//011
-			//Indirect with longword sized outer displacement
-			memory_indirect = TRUE;
-			outer_displacement = *(uae_u32*)pc_ptr;
-			pc_ptr += 2;
-			break;
-		default:
-			//Unknown format
-			write_log("JIT error: wrong complex addressing extension word: %04x\n", ext);
-			abort();
-		}
-	}
-
-	//Is indirect action enabled?
-	if (memory_indirect)
-	{
-		//Read target address into the output register
-		int spec = comp_is_spec_memory_read_long(history->pc, history->specmem);
-
-		if (spec)
-		{
-			//TODO: purge the mapped registers - no need to save these, but source/destination mapped register must be reloaded
-			//Special memory access, saves all allocated temporary registers
-			comp_macroblock_push_load_memory_spec_save_temps(
-					regsout,
-					COMP_COMPILER_MACROBLOCK_REG_NONE | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-					output_mem_reg,
-					output_mem_reg,
-					4);
-		} else {
-			//Get memory address into the target temp register
-			comp_macroblock_push_map_physical_mem(
-					regsout,
-					regsout,
-					output_mem_reg,
-					output_mem_reg);
-		}
-	}
-
-	//Is indexing and post-indexing enabled (not pre-indexing)?
-	if (indexing_enabled && !preindex)
-	{
-		//Calculate scaled index register
-		uae_u8 scaled_index_reg = helper_calculate_complex_index(ext);
-		uae_u8 scaled_index_reg_mapped = comp_get_gpr_for_temp_register(scaled_index_reg);
-
-		//Add the index * scale to the output register
-		comp_macroblock_push_add(
-				regsout | COMP_COMPILER_MACROBLOCK_REG_TMP(scaled_index_reg),
-				regsout,
-				output_mem_reg,
-				output_mem_reg,
-				scaled_index_reg_mapped);
-
-		comp_free_temp_register(scaled_index_reg);
-	}
-
-	//Is there any outer displacement?
-	if (outer_displacement != 0)
-	{
-		//Add lower half word of OD to the output register
-		comp_macroblock_push_add_register_imm(
-				regsout,
-				regsout,
-				output_mem_reg,
-				output_mem_reg,
-				outer_displacement & 0xffff);
-
-		//Can we use word-sized immediate?
-		//(Highest bit in the lower word is the same as all the bits in the higher word.)
-		uae_u32 tmp = outer_displacement & 0xffff8000;
-		if (tmp != 0 && tmp != 0xffff8000)
-		{
-			//No, add the high half word too
-			//If the lower half can be extended to negative then we have to compensate
-			//it by adding 1 to the upper half
-			comp_macroblock_push_add_high_register_imm(
-					regsout,
-					regsout,
-					output_mem_reg,
-					output_mem_reg,
-					((outer_displacement >> 16) + (outer_displacement & 0x8000 ? 1 : 0)) & 0xffff);
-		}
-	}
-}
-
-/**
- * Calculates the scaled index from a complex addressing extension word.
- *
- * Parameters:
- *    ext - extension word for the complex addressing
- *
- * Returns:
- * Allocated temporary register populated with the calculated index.
- * The returned temporary register must be released by the caller.
- */
-STATIC_INLINE uae_u8 helper_calculate_complex_index(uae_u16 ext)
-{
-	uae_u64 index_reg_dep;
-
-	//Get the number of the register from the extension word
-	uae_u8 index_reg = (ext >> 12) & 7;
-
-	//Get the real register number: if bit 15 == 1 then address reg else data reg
-	if (ext & (1 << 15))
-	{
-		index_reg_dep = COMP_COMPILER_MACROBLOCK_REG_AX(index_reg);
-		index_reg = COMP_COMPILER_REGS_ADDRREG(index_reg);
-	} else {
-		index_reg_dep = COMP_COMPILER_MACROBLOCK_REG_DX(index_reg);
-		index_reg = COMP_COMPILER_REGS_DATAREG(index_reg);
-	}
-
-	//Map register
-	uae_u8 index_reg_mapped = comp_map_temp_register(index_reg, TRUE, FALSE);
-
-	//Allocate temporary register for manipulating the content of the index register
-	uae_u8 scaled_index_reg = helper_allocate_tmp_reg();
-	uae_u8 scaled_index_reg_mapped = comp_get_gpr_for_temp_register(scaled_index_reg);
-
-	//Is the index register word sized?
-	if (ext & (1 << 11))
-	{
-		//TODO: this copy is not necessary, but we must preserve the content of the original register, because it can be written back later on
-		//Long sized: simply copy to the temp register
-		comp_macroblock_push_copy_register_long(
-				index_reg_dep,
-				COMP_COMPILER_MACROBLOCK_REG_TMP(scaled_index_reg),
-				scaled_index_reg_mapped,
-				index_reg_mapped);
-	} else {
-		//Word sized: extend to long sized to the temp register
-		comp_macroblock_push_copy_register_word_extended(
-				index_reg_dep,
-				COMP_COMPILER_MACROBLOCK_REG_TMP(scaled_index_reg),
-				scaled_index_reg_mapped,
-				index_reg_mapped);
-	}
-
-	//Get scaling
-	int scaling = (ext >> 9) & 3;
-
-	//Scale it if necessary
-	if (scaling != 0)
-	{
-		//Scale copied index register by 2, 4 or 8
-		comp_macroblock_push_rotate_and_mask_bits(
-				COMP_COMPILER_MACROBLOCK_REG_TMP(scaled_index_reg),
-				COMP_COMPILER_MACROBLOCK_REG_TMP(scaled_index_reg),
-				scaled_index_reg_mapped,
-				scaled_index_reg_mapped,
-				scaling,
-				0, 31 - scaling, 0);
-	}
-
-	return scaled_index_reg;
 }
 
