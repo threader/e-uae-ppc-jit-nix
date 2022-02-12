@@ -737,7 +737,19 @@ static void do_reset_machine (int hardreset)
  */
 static void do_run_machine (void)
 {
+#if defined (NATMEM_OFFSET) && defined( _WIN32 ) && !defined( NO_WIN32_EXCEPTION_HANDLER )
+    extern int EvalException ( LPEXCEPTION_POINTERS blah, int n_except );
+    __try
+#endif
+    {
 	m68k_go (1);
+    }
+#if defined (NATMEM_OFFSET) && defined( _WIN32 ) && !defined( NO_WIN32_EXCEPTION_HANDLER )
+    __except( EvalException( GetExceptionInformation(), GetExceptionCode() ) )
+    {
+	// EvalException does the good stuff...
+    }
+#endif
 }
 
 /*
