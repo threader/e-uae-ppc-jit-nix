@@ -62,7 +62,6 @@ void comp_macroblock_impl_add_with_flags(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_add(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_sub(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_sub_with_flags(union comp_compiler_mb_union* mb);
-void comp_macroblock_impl_sub_register_from_immediate(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_add_register_imm(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_add_high_register_imm(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_negate_with_overflow(union comp_compiler_mb_union* mb);
@@ -95,10 +94,7 @@ void comp_macroblock_impl_rotate_and_copy_bits(union comp_compiler_mb_union* mb)
 void comp_macroblock_impl_rotate_and_mask_bits(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_rotate_and_mask_bits_register(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_arithmetic_shift_right_register(union comp_compiler_mb_union* mb);
-void comp_macroblock_impl_logic_shift_left_register(union comp_compiler_mb_union* mb);
-void comp_macroblock_impl_logic_shift_right_register(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_arithmetic_left_shift_extract_v_flag(union comp_compiler_mb_union* mb);
-void comp_macroblock_impl_left_shift_extract_c_flag(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_save_reg_slot(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_load_reg_slot(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_set_byte_from_z_flag(union comp_compiler_mb_union* mb);
@@ -525,27 +521,6 @@ void comp_macroblock_impl_sub_with_flags(union comp_compiler_mb_union* mb)
 			mb->three_regs_opcode.input_reg1,
 			mb->three_regs_opcode.input_reg2,
 			TRUE);
-}
-
-/**
- * Macroblock: Subtracts a register from an immediate then copies the result into a second register.
- */
-void comp_macroblock_push_sub_register_from_immediate(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 subtrahend_input_reg, uae_u8 minuend_input_imm)
-{
-	comp_mb_init(mb,
-				comp_macroblock_impl_sub_register_from_immediate,
-				regsin, regsout);
-	mb->two_regs_imm_opcode.output_reg = output_reg;
-	mb->two_regs_imm_opcode.input_reg = subtrahend_input_reg;
-	mb->two_regs_imm_opcode.immediate = minuend_input_imm;
-}
-
-void comp_macroblock_impl_sub_register_from_immediate(union comp_compiler_mb_union* mb)
-{
-	comp_ppc_subfic(
-			mb->two_regs_imm_opcode.output_reg,
-			mb->two_regs_imm_opcode.input_reg,
-			mb->two_regs_imm_opcode.immediate);
 }
 
 /**
@@ -1690,62 +1665,6 @@ void comp_macroblock_impl_arithmetic_shift_right_register(union comp_compiler_mb
 }
 
 /**
- * Macroblock: Logic shift to the left of the register
- * Note: when flag update is specified then the output registers will specify
- * internal flag update
- */
-void comp_macroblock_push_logic_shift_left_register(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, uae_u8 shift, int updateflags)
-{
-	comp_mb_init(mb,
-				comp_macroblock_impl_logic_shift_left_register,
-				regsin,
-				regsout | (updateflags ?
-								COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ :
-								COMP_COMPILER_MACROBLOCK_REG_NONE));
-	mb->shift_opcode.output_reg = output_reg;
-	mb->shift_opcode.input_reg = input_reg;
-	mb->shift_opcode.shift = shift;
-	mb->shift_opcode.update_flags = updateflags;
-}
-
-void comp_macroblock_impl_logic_shift_left_register(union comp_compiler_mb_union* mb)
-{
-	comp_ppc_slw(
-			mb->shift_opcode.output_reg,
-			mb->shift_opcode.input_reg,
-			mb->shift_opcode.shift,
-			mb->shift_opcode.update_flags);
-}
-
-/**
- * Macroblock: Logic shift to the right of the register
- * Note: when flag update is specified then the output registers will specify
- * internal flag update
- */
-void comp_macroblock_push_logic_shift_right_register(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, uae_u8 shift, int updateflags)
-{
-	comp_mb_init(mb,
-				comp_macroblock_impl_logic_shift_right_register,
-				regsin,
-				regsout | (updateflags ?
-								COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ :
-								COMP_COMPILER_MACROBLOCK_REG_NONE));
-	mb->shift_opcode.output_reg = output_reg;
-	mb->shift_opcode.input_reg = input_reg;
-	mb->shift_opcode.shift = shift;
-	mb->shift_opcode.update_flags = updateflags;
-}
-
-void comp_macroblock_impl_logic_shift_right_register(union comp_compiler_mb_union* mb)
-{
-	comp_ppc_srw(
-			mb->shift_opcode.output_reg,
-			mb->shift_opcode.input_reg,
-			mb->shift_opcode.shift,
-			mb->shift_opcode.update_flags);
-}
-
-/**
  * Macroblock: Calculate V flag for arithmetic left shift, inserts the V flag directly
  * into the flag emulation register
  */
@@ -1789,50 +1708,6 @@ void comp_macroblock_impl_arithmetic_left_shift_extract_v_flag(union comp_compil
 	//If the result is negative then the overflow happens while shifting
 	//V flag should be set according to the MSB
 	comp_ppc_rlwimi(PPCR_FLAGS, temp_reg, 22, 9, 9, FALSE);
-}
-
-/**
- * Macroblock: Calculate C flag for shift, inserts the C flag directly
- * into the flag emulation register.
- * If shift equals to 0 and left_shift is TRUE, or shift equals to 32 and left_shift is FALSE,
- * then the C flag cleared (no bit shift was done).
- * Note: this macroblock uses CRF0 for comparison.
- */
-void comp_macroblock_push_left_shift_extract_c_flag(uae_u64 regsin, uae_u8 input_reg, uae_u8 shift_reg, BOOL left_shift)
-{
-	comp_mb_init(mb,
-				comp_macroblock_impl_left_shift_extract_c_flag,
-				regsin,
-				COMP_COMPILER_MACROBLOCK_REG_FLAGC);
-	mb->extract_c_flag_shift.input_reg = input_reg;
-	mb->extract_c_flag_shift.shift_reg = shift_reg;
-	mb->extract_c_flag_shift.left_shift = left_shift;
-}
-
-void comp_macroblock_impl_left_shift_extract_c_flag(union comp_compiler_mb_union* mb)
-{
-	//Is the shift register equals to zero (left shift) or 32 (right shift)?
-	comp_ppc_cmplwi(PPCR_CR_TMP0,
-				    mb->extract_c_flag_shift.shift_reg,
-				    mb->extract_c_flag_shift.left_shift ? 0 : 32);
-
-	//Then skip the extraction
-	comp_ppc_bc(PPC_B_CR_TMP0_EQ | PPC_B_NONTAKEN, 0);
-
-	//Extract C flag from lowest bit to temp reg
-	comp_ppc_rlwnm(PPCR_SPECTMP,
-				  mb->extract_c_flag_shift.input_reg,
-				  mb->extract_c_flag_shift.shift_reg,
-				  0, 31, FALSE);
-
-	//Copy to flag register
-	comp_ppc_rlwimi(PPCR_FLAGS,
-				  PPCR_SPECTMP,
-				  mb->extract_c_flag_shift.left_shift ? 21 : 22,
-				  10, 10, FALSE);
-
-	//Branch target 0 is reached
-	comp_ppc_branch_target(0);
 }
 
 /**
