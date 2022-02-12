@@ -80,7 +80,6 @@ typedef void compop_func (const cpu_history*, struct comptbl*) REGPARAM;
 struct comptbl {
     compop_func* instr_handler;	//Instruction compiler handler
     uae_u8 extension;			//Number of extension words
-    uae_u8 size;				//Operation size
     uae_u8 srcreg;				//Source register number (or immediate data)
     uae_u8 destreg;				//Destination register number
     uae_u8 src_addr;			//Source addressing mode index for the jump table

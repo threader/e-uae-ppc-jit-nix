@@ -1796,15 +1796,15 @@ void comp_ppc_cmplwi(int regcrfd, comp_ppc_reg rega, uae_u16 imm)
 	comp_ppc_emit_halfwords(0x2800 | regcrfd << 7 | rega.r, imm);
 }
 
-/* Compiles cntlzw instruction
+/* Compiles cntlwz instruction
  * Parameters:
  * 		rega - target register
  * 		regs - source register
  * 		updateflags - compiles the flag updating version if TRUE
  */
-void comp_ppc_cntlzw(comp_ppc_reg rega, comp_ppc_reg regs, BOOL updateflags)
+void comp_ppc_cntlwz(comp_ppc_reg rega, comp_ppc_reg regs, BOOL updateflags)
 {
-	// ## cntlzw(x) rega, regs
+	// ## cntlwz(x) rega, regs
 	comp_ppc_emit_halfwords(0x7C00 | regs.r << 5 | rega.r, 0x0034 | (updateflags ? 1 : 0));
 }
 
@@ -2134,20 +2134,6 @@ void comp_ppc_or(comp_ppc_reg rega, comp_ppc_reg regs, comp_ppc_reg regb, BOOL u
 	// ## or(x) rega, regs, regb
 	comp_ppc_emit_halfwords(0x7c00 | ((regs.r) << 5) | rega.r,
 			0x0378 | (regb.r << 11) | (updateflags ? 1 : 0));
-}
-
-/* Compiles orc instruction
- * Parameters:
- * 		rega - target register
- * 		regs - source register 1
- * 		regb - source register 2
- * 		updateflags - compiles the flag updating version if TRUE
- */
-void comp_ppc_orc(comp_ppc_reg rega, comp_ppc_reg regs, comp_ppc_reg regb, BOOL updateflags)
-{
-	// ## orc(x) rega, regs, regb
-	comp_ppc_emit_halfwords(0x7c00 | ((regs.r) << 5) | rega.r,
-			0x0338 | (regb.r << 11) | (updateflags ? 1 : 0));
 }
 
 /* Compiles ori instruction
