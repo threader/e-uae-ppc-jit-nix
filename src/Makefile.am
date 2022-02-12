@@ -136,7 +136,7 @@ uae_SOURCES = \
 
 EXTRA_uae_SOURCES = \
 	bsdsocket.c bsdsocket-posix-new.c build68k.c catweasel.c cdrom.c \
-	compemu_support.c compemu_macroblocks_ppc.c compemu_compiler_ppc.c \
+	compemu_support.c compemu_macroblocks_ppc.c \
 	debug.c identify.c filesys.c filesys_bootrom.c fsdb.c fsdb_unix.c fsusage.c genblitter.c \
 	gencpu.c gengenblitter.c gencomp.c genlinetoscr.c hardfile.c \
 	hardfile_unix.c scsi-none.c \

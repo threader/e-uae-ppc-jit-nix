@@ -69,21 +69,19 @@ typedef void compop_func (uae_u16*, struct comptbl*) REGPARAM;
 
 //Structure for instruction compiling function parameters
 struct comptbl {
-    compop_func* instr_handler;	//Instruction compiler handler
-    uae_u8 srcreg;				//Source register number (or immediate data)
-    uae_u8 destreg;				//Destination register number
-    uae_u8 src_addr;			//Source addressing mode index for the jump table
-    uae_u8 dest_addr;			//Destination addressing mode index for the jump table
-    uae_u8 specific;			//Instruction specific additional flags (see COMPTBL_SPEC_* constants)
+    compop_func* instr_handler;
+    uae_u8 srcreg;
+    uae_u8 destreg;
+    uae_u8 src_addr;
+    uae_u8 dest_addr;
+    uae_u8 src_flags;
+    uae_u8 dest_flags;
+    uae_u8 specific;
 };
 
-//Instruction description specific flag: not implemented (specific value is 0)
 #define COMPTBL_SPEC_ISNOTIMPLEMENTED 0
-//Instruction description specific flag: implemented
 #define COMPTBL_SPEC_ISIMPLEMENTED 1
-//Instruction description specific flag: it is a jump instruction
 #define COMPTBL_SPEC_ISJUMP 2
-//Instruction description specific flag: it is a constant jump instruction (not conditional)
 #define COMPTBL_SPEC_ISCONSTJUMP 4
 
 extern struct comptbl compprops[65536];

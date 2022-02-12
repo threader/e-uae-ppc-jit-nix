@@ -1,6 +1,12 @@
-/**
- * Header file for the JIT macroblock emitter implementation
- */
+#include "sysconfig.h"
+#include "sysdeps.h"
+#include "options.h"
+#include "events.h"
+#include "include/memory.h"
+#include "custom.h"
+#include "newcpu.h"
+#include "compemu.h"
+#include "uae_endian.h"
 
 /* Prototypes for the compiling functions */
 
@@ -567,10 +573,3 @@ void comp_opcode_FSCCREGB(uae_u16* pc_p, struct comptbl* props) REGPARAM;
 void comp_opcode_FSCCMEMB(uae_u16* pc_p, struct comptbl* props) REGPARAM;
 void comp_opcode_FTRAPCC(uae_u16* pc_p, struct comptbl* props) REGPARAM;
 void comp_opcode_FNOP(uae_u16* pc_p, struct comptbl* props) REGPARAM;
-
-//Support compiling functions
-void comp_opcode_unsupported(uae_u16* location, uae_u16 opcode);
-STATIC_INLINE uae_u8 comp_macroblock_allocate_tmp_reg(void);
-STATIC_INLINE uae_u8 comp_macroblock_allocate_tmp_reg_with_init(uae_u32 immed);
-STATIC_INLINE void comp_macroblock_free_tmp_reg(uae_u8 reg);
-STATIC_INLINE void comp_macroblock_update_flags(uae_u16 flagscheck, uae_u16 flagsset, uae_u16 flagsclear);

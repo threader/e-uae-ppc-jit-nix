@@ -41,6 +41,8 @@ struct opcode
 	int jump; //*** Jump instruction (stop compiling)
 	int constjump; //*** Constant jump instruction
 	char code[20]; //*** Binary code of the opcode word
+	char flagsin[9]; //*** Flag input
+	char flagsout[9]; //*** Flag output
 };
 
 //*** Structure of a node in the address linked list
@@ -63,7 +65,7 @@ void dealloc(struct list* head);
 unsigned int bindec(char* s);
 void decbin(char* s, unsigned int i);
 void selectstr(char* s, char* t, char c, int i);
-void insertopcode(int opcode, char* code, struct address* src, struct address* dest, int implemented, int jump, int constjump);
+void insertopcode(int opcode, char* code, struct address* src, struct address* dest, int implemented, char* fin, char* fout, int jump, int constjump);
 void readfromtablefile(void);
 void buildaddresslist(void);
 void buildopcodelist(void);
@@ -154,7 +156,7 @@ int main(int argc, char *argv[])
 
 	printf("%lu opcodes generated\n", instruction_count);
 
-	return (EXIT_SUCCESS);
+	return (0);
 
 }
 
@@ -305,7 +307,7 @@ void selectstr(char* s, char* t, char c, int i)
 
 }
 
-void insertopcode(int opcode, char* code, struct address* src, struct address* dest, int implemented, int jump, int constjump)
+void insertopcode(int opcode, char* code, struct address* src, struct address* dest, int implemented, char* fin, char* fout, int jump, int constjump)
 {
 	struct opcode* act;
 	int i, j;
@@ -319,6 +321,8 @@ void insertopcode(int opcode, char* code, struct address* src, struct address* d
 	ophead = act;
 	act->opcode = opcode;
 	strcpy(act->code, code);
+	strcpy(act->flagsin, fin);
+	strcpy(act->flagsout, fout);
 	act->implemented = implemented;
 	act->jump = jump;
 	act->constjump = constjump;
@@ -434,6 +438,8 @@ void buildopcodelist(void)
 {
 	struct address* adact;
 	char code[50];
+	char fin[10];
+	char fout[10];
 	char c1[20];
 	char c2[10];
 	char c3[10];
@@ -452,9 +458,9 @@ void buildopcodelist(void)
 		readfromtablefile();
 		if ((s[0] != ';') && (strlen(s) > 4))
 		{
-			/* format: opcode impl code1 code2 code3 code4 jump constjump srcaddr destaddr */
+			/* format: opcode impl code1 code2 code3 code4 jump constjump flagsin flagsout srcaddr destaddr */
 
-			sscanf(s, "%s %d %s %s %s %s %d %d %s %s", name, &implemented, c1, c2, c3, c4, &jump, &constjump, src, dest);
+			sscanf(s, "%s %d %s %s %s %s %d %d %s %s %s %s", name, &implemented, c1, c2, c3, c4, &jump, &constjump, fin, fout, src, dest);
 
 			for (i = 0; (i < opcodenamecount) && (strcmp(opcodename[i], name)); i++);
 
@@ -528,12 +534,12 @@ void buildopcodelist(void)
 			{
 				if (destadr[0] == NULL)
 				{
-					insertopcode(num, code, NULL, NULL, implemented, jump, constjump);
+					insertopcode(num, code, NULL, NULL, implemented, fin, fout, jump, constjump);
 				}
 				else
 				{
 					for (i = 0; destadr[i] != NULL; i++)
-						insertopcode(num, code, NULL, destadr[i], implemented, jump, constjump);
+						insertopcode(num, code, NULL, destadr[i], implemented, fin, fout, jump, constjump);
 				}
 			}
 			else
@@ -541,13 +547,13 @@ void buildopcodelist(void)
 				if (destadr[0] == NULL)
 				{
 					for (i = 0; srcadr[i] != NULL; i++)
-						insertopcode(num, code, srcadr[i], NULL, implemented, jump, constjump);
+						insertopcode(num, code, srcadr[i], NULL, implemented, fin, fout, jump, constjump);
 				}
 				else
 				{
 					for (j = 0; srcadr[j] != NULL; j++)
 						for (i = 0; destadr[i] != NULL; i++)
-							insertopcode(num, code, srcadr[j], destadr[i], implemented, jump, constjump);
+							insertopcode(num, code, srcadr[j], destadr[i], implemented, fin, fout, jump, constjump);
 				}
 			}
 		}
@@ -573,13 +579,6 @@ unsigned long generatecfile(void)
 	char specstr[200];
 
 	//Start with includes
-	fprintf(cfile, "#include \"sysconfig.h\"\n");
-	fprintf(cfile, "#include \"sysdeps.h\"\n");
-	fprintf(cfile, "#include \"options.h\"\n");
-	fprintf(cfile, "#include \"include/memory.h\"\n");
-	fprintf(cfile, "#include \"custom.h\"\n");
-	fprintf(cfile, "#include \"newcpu.h\"\n");
-	fprintf(cfile, "#include \"compemu.h\"\n");
 	fprintf(cfile, "#include \"compemu_macroblocks.h\"\n\n");
 
 	//Generate compile properties table
@@ -631,12 +630,14 @@ unsigned long generatecfile(void)
 			c2[sr] = '\0';
 			c3[de] = '\0';
 
-			fprintf(cfile, "\t{comp_opcode_%s, %d, %d, %d, %d, %s}",
+			fprintf(cfile, "\t{comp_opcode_%s, %d, %d, %d, %d, %d, %d, %s}",
 					opcodename[act->opcode],
 					bindec(c2),
 					bindec(c3),
 					act->op1,
 					act->op2,
+					bindec(act->flagsin),
+					bindec(act->flagsout),
 					specstr);
 
 			count++;
@@ -645,7 +646,7 @@ unsigned long generatecfile(void)
 		{
 			//Not implemented/illegal opcode: null filled
 
-			fprintf(cfile, "\t{NULL, 0, 0, 0, 0, %s}", specstr);
+			fprintf(cfile, "\t{NULL, 0, 0, 0, 0, 0, 0, %s}", specstr);
 		}
 
 		if (i != 65535) fprintf(cfile, ",");

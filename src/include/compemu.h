@@ -68,40 +68,36 @@ typedef struct blockinfo_t
  * Non-usable registers:
  *    r2 (rtoc),
  *    r31 (reserved for possible OS use),
- *    CR2-4 (NOTE: actually, CR2 is used by the interpretive)
+ *    CR2-4
  */
 
 #define	PPCR_SPECTMP	0	// r0 - special temporary register, cannot be used for every operation
 #define	PPCR_SP			1	// r1 - stack pointer
 #define	PPCR_RTOC		2	// r2 - rtoc register, must be preserved
 
-/* PowerPC function call parameter registers
- * Please note: the parameter registers are reused as temporary registers */
+/* PowerPC function call parameter registers */
 #define PPCR_PARAM1		3	// r3
 #define PPCR_PARAM2		4	// r4
 #define PPCR_PARAM3		5	// r5
 
-/* Temporary registers, free to use, no need to preserve */
-#define PPCR_TMP0	3	// r3
-#define PPCR_TMP1	4	// r4
-#define PPCR_TMP2	5	// r5
-#define PPCR_TMP3	6	// r6
-#define PPCR_TMP4	7	// r7
-#define PPCR_TMP5	8	// r8
-#define PPCR_TMP6	9	// r9
-#define PPCR_TMP7	10	// r10
-#define PPCR_TMP8	11	// r11
-#define PPCR_TMP9	12	// r12
 
-/* M68k flags register: while the flags are emulated those are stored
- * in this register, the layout is detailed in PPCR_FLAG_* constants.
- * IMPORTANT: the state of the other bits are not defined, at every usage of
- * the flags the other bits must be masked out. */
-#define PPCR_FLAGS	13	// r13
+/* Compiled function parameters */
+#define PPCR_CONTEXT	PPCR_PARAM1	// r3 - helper context pointer
+#define M68KR_PC		PPCR_PARAM2	// r4 - 68k program counter
+#define M68KR_FLAGS		PPCR_PARAM3	// r5 - 68k flags, flag layout: XNZVC (X is at bit 4, C is at bit 0)
+
+/* Temporary registers, free to use, no need to preserve */
+#define PPCR_TMP0	6	// r6
+#define PPCR_TMP1	7	// r7
+#define PPCR_TMP2	8	// r8
+#define PPCR_TMP3	9	// r9
+#define PPCR_TMP4	10	// r10
+#define PPCR_TMP5	11	// r11
+#define PPCR_TMP6	12	// r12
+#define PPCR_TMP7	13	// r13
 
 #define PPCR_CR_TMP0	0	//CR0
 #define PPCR_CR_TMP1	1	//CR1
-#define PPCR_CR_TMP2	2	//CR2 - NOTE: this supposed to be preserved, but the interpretive emulator is using it already
 
 /* Conditional branch BO and BI operands (together)
  * Please note: stupid old GCC does not allow binary constants. Pff. */
@@ -113,35 +109,6 @@ typedef struct blockinfo_t
 //These two constants for hinting the branch if it was more likely taken or not
 #define PPC_B_TAKEN			0x0020	//0b0000100000
 #define PPC_B_NONTAKEN		0x0000	//0b0000000000
-
-/* Not used temporary register */
-#define PPC_TMP_REG_NOTUSED -1
-/* Allocated temporary register that is not mapped to an M68k register */
-#define PPC_TMP_REG_ALLOCATED -2
-/* Allocated temporary register that is mapped to the regs base register,
- * this temporary register won't be free'd automatically. */
-#define PPC_TMP_REG_BASEREG -3
-
-/* Emulated M68k flag bit definitions for PPCR_FLAGS register:
- * We assume the PPC GCC environment, the flags are the same
- * except X flag which is stored in the same register but
- * shifted to the right by 16 bits (lower half word, same position). */
-//N = 31
-#define PPCR_FLAG_N	FLAGBIT_N
-//Z = 29
-#define PPCR_FLAG_Z	FLAGBIT_Z
-//V = 22
-#define PPCR_FLAG_V	FLAGBIT_V
-//C = 21
-#define PPCR_FLAG_C	FLAGBIT_C
-//X = 5
-#define PPCR_FLAG_X	(FLAGBIT_X - 16)
-
-#define FLAGBIT_N	31
-#define FLAGBIT_Z	29
-#define FLAGBIT_V	22
-#define FLAGBIT_C	21
-#define FLAGBIT_X	21
 
 /* Some function protos */
 STATIC_INLINE blockinfo* get_blockinfo(uae_u32 cl);
@@ -166,59 +133,26 @@ void readword(int address, int dest, int tmp);
 void readlong(int address, int dest, int tmp);
 
 void comp_not_implemented(uae_u16 opcode);
-uae_u8 comp_allocate_temp_register(int allocate_for);
-void comp_free_temp_register(uae_u8 temp_reg);
-uae_u8 comp_map_temp_register(uae_u8 reg_number, int needs_init, int needs_flush);
-void comp_unmap_temp_register(uae_u8 reg_number);
-void comp_flush_temp_registers(void);
-uae_u8 comp_get_regs_base_register(void);
-void comp_free_regs_base_register(void);
-uae_u8 comp_get_gpr_for_temp_register(uae_u8 tmpreg);
+
 
 /* PowerPC instruction compiler functions */
-void comp_ppc_addco(int regd, int rega, int regb, int updateflags);
-void comp_ppc_addi(int regd, int rega, uae_u16 imm);
-void comp_ppc_addis(int regd, int rega, uae_u16 imm);
-void comp_ppc_and(int rega, int regs, int regb, int updateflags);
-void comp_ppc_andi(int rega, int regs, uae_u16 imm);
-void comp_ppc_andis(int rega, int regs, uae_u16 imm);
-void comp_ppc_branch_target(void);
-void comp_ppc_b(uae_u32 target);
-void comp_ppc_bc(int bibo);
-void comp_ppc_bl(uae_u32 target);
-void comp_ppc_blr(void);
-void comp_ppc_blrl(void);
-void comp_ppc_cmplw(int regcrfd, int rega, int regb);
-void comp_ppc_li(int rega, uae_u16 imm);
-void comp_ppc_lis(int rega, uae_u16 imm);
-void comp_ppc_liw(int reg, uae_u32 value);
-void comp_ppc_lwz(int regd, uae_u16 delta, int rega);
-void comp_ppc_mcrxr(int crreg);
-void comp_ppc_mfcr(int reg);
-void comp_ppc_mflr(int reg);
-void comp_ppc_mfxer(int reg);
-void comp_ppc_mr(int rega, int regs, int updateflags);
-void comp_ppc_mtlr(int reg);
-void comp_ppc_nop(void);
-void comp_ppc_or(int rega, int regs, int regb, int updateflags);
-void comp_ppc_ori(int rega, int regs, uae_u16 imm);
-void comp_ppc_oris(int rega, int regs, uae_u16 imm);
-void comp_ppc_rlwimi(int rega, int regs, int shift, int maskb, int maske, int updateflags);
-void comp_ppc_rlwinm(int rega, int regs, int shift, int maskb, int maske, int updateflags);
-void comp_ppc_trap(void);
-void comp_ppc_sth(int regs, uae_u16 delta, int rega);
-void comp_ppc_stw(int regs, uae_u16 delta, int rega);
+STATIC_INLINE void comp_ppc_branch_target(void);
+STATIC_INLINE void comp_ppc_bc(int bibo);
+STATIC_INLINE void comp_ppc_blr(void);
+STATIC_INLINE void comp_ppc_blrl(void);
+STATIC_INLINE void comp_ppc_cmplw(int regcrfd, int rega, int regb);
+STATIC_INLINE void comp_ppc_liw(int reg, uae_u32 value);
+STATIC_INLINE void comp_ppc_or(int rega, int regs, int regb, BOOL updateflags);
+STATIC_INLINE void comp_ppc_ori(int rega, int regs, uae_u16 imm);
+STATIC_INLINE void comp_ppc_trap(void);
 
-void comp_ppc_emit_halfwords(uae_u16 halfword_high, uae_u16 halfword_low);
-void comp_ppc_emit_word(uae_u32 word);
-void comp_ppc_call(int reg, uae_uintptr addr);
-void comp_ppc_jump(int reg, uae_uintptr addr);
-void comp_ppc_prolog(void);
-void comp_ppc_epilog(void);
-void comp_ppc_return_to_caller(void);
-void comp_ppc_do_cycles(int totalcycles);
-void comp_ppc_verify_pc(uae_u8* pc_addr_exp, uae_u8** pc_addr_act);
-void comp_ppc_reload_pc_p(uae_u8* new_pc_p, uae_u8** regs_pc_p);
+STATIC_INLINE void comp_ppc_call(int reg, uae_uintptr addr);
+STATIC_INLINE void comp_ppc_prolog(void);
+STATIC_INLINE void comp_ppc_epilog(void);
+STATIC_INLINE void comp_ppc_return_to_caller(void);
+STATIC_INLINE void comp_ppc_do_cycles(int totalcycles);
+STATIC_INLINE void comp_ppc_verify_pc(uae_u8* pc_addr_exp, uae_u8** pc_addr_act);
+STATIC_INLINE void comp_ppc_reload_pc_p(uae_u8* new_pc_p, uae_u8** regs_pc_p);
 #endif
 
 /* Some more function protos */
