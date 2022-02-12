@@ -208,7 +208,7 @@ cpuemu_5.c:	cpuemu_0.c
 
 cpuemu_6.c:	cpuemu_0.c
 
-compstbl.c:	tools/gencomp table68k_comp
+compstbl.c:	tools/gencomp
 		./tools/gencomp
 
 comptbl.h:	compstbl.c
