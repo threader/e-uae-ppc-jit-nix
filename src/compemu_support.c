@@ -41,8 +41,8 @@ int used_tmp_regs[PPC_TMP_REGS_COUNT];
 /* Structure for the M68k register mapping to the temporary registers */
 struct m68k_register {
 	int tmpreg;		//Mapped temporary register number or PPC_TMP_REG_NOTUSED
-	char needs_flush;	//FALSE - no need to flush this register, TRUE - compile code for writing back the register out to the interpretive regs structure
-	char locked;		//FALSE - this register is mapped but not used in the recent instruction, TRUE - this register is locked, cannot be flushed automatically
+	char needs_flush;	//0 - no need to flush this register, 1 - compile code for writing back the register out to the interpretive regs structure
+	char locked;		//0 - this register is mapped but not used in the recent instruction, 1 - this register is locked, cannot be flushed automatically
 };
 
 /* M68k register mapping to the temp registers */
@@ -80,7 +80,7 @@ uae_u8* current_compile_p = NULL;
 /**
  * Cache enabled state
  */
-int cache_enabled = FALSE;
+int cache_enabled = 0;
 
 /**
  * The highest start addess for code compiling when the compiling starts
@@ -139,7 +139,7 @@ static void free_cache(void)
 	{
 		flush_icache_hard("free cache");
 		cache_free(compiled_code);
-		compiled_code = NULL;
+		compiled_code = 0;
 
 		write_log("JIT: Deallocated translation cache.\n");
 	}
@@ -149,7 +149,7 @@ static void alloc_cache(void)
 {
 	write_log("JIT: Allocation of translation cache...\n");
 
-	if (compiled_code != NULL)
+	if (compiled_code != 0)
 	{
 		write_log("JIT: Translation cache is already allocated, leaving.\n");
 	}
@@ -274,7 +274,7 @@ void comp_done(void)
 	}
 
 	//Flush all temp registers
-	comp_flush_temp_registers(FALSE);
+	comp_flush_temp_registers(0);
 
 	comp_compiler_done();
 }
@@ -339,7 +339,7 @@ void compemu_reset(void)
 	write_log("JIT: Compiling reset\n");
 
 	//Disable cache emulation
-	set_cache_state(FALSE);
+	set_cache_state(0);
 
 	/* Clear used temporary registers list */
 	for (i = 0; i < PPC_TMP_REGS_COUNT; i++)
@@ -349,7 +349,7 @@ void compemu_reset(void)
 	for (i = 0; i < 16; i++)
 	{
 		comp_m68k_registers[i].tmpreg = PPC_TMP_REG_NOTUSED;
-		comp_m68k_registers[i].locked = FALSE;
+		comp_m68k_registers[i].locked = 0;
 	}
 
 	//Reset the unmapped register round-robin counter
@@ -482,7 +482,7 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 	char str[200];
 
 	//This flag signs the unsupported opcodes in a row, some initialization/cleanup is skipped if there was multiple unsupported opcode
-	int unsupported_in_a_row = TRUE;
+	int unsupported_in_a_row = 1;
 
 	write_jit_log("JIT: compile code, pc: %08x, block length: %d, total cycles: %d\n",
 			pc_hist->pc, blocklen, totcycles);
@@ -501,7 +501,7 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 
 		alloc_blockinfos();
 
-		bi = get_blockinfo_addr_new(pc_hist[0].location, FALSE);
+		bi = get_blockinfo_addr_new(pc_hist[0].location, 0);
 
 		if (bi->handler)
 		{
@@ -569,7 +569,7 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 					comp_macroblock_push_load_flags();
 				}
 
-				unsupported_in_a_row = FALSE;
+				unsupported_in_a_row = 0;
 
 				//Init opcode compiling
 				comp_opcode_init(inst_history);
@@ -604,7 +604,7 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 					comp_macroblock_push_load_pc(inst_history->location);
 				}
 
-				unsupported_in_a_row = TRUE;
+				unsupported_in_a_row = 1;
 
 				comp_opcode_unsupported(inst_history, opcode);
 			}
@@ -616,7 +616,7 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 		//Last block: save flags back to memory from register, if it was loaded before
 		if (!unsupported_in_a_row)
 		{
-		comp_macroblock_push_save_flags();
+			comp_macroblock_push_save_flags();
 		}
 
 		//Optimize the collected macroblocks
@@ -627,12 +627,12 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 
 		//Dump compiled code to the console
 		comp_compiler_debug_dump_compiled();
-
 		//Compile calling the do_cycles function at the end of the block with the pre-calculated cycles
 		comp_ppc_do_cycles(scaled_cycles(totcycles));
 
 		//Return to the caller from the compiled block, restore non-volatile registers
 		comp_ppc_return_to_caller(PPCR_REG_USED_NONVOLATILE);
+
 
 		//PowerPC cache flush at the end of the compiling
 		ppc_cacheflush(compile_p_at_start, current_compile_p - compile_p_at_start);
@@ -826,8 +826,8 @@ void comp_flush_temp_registers(int supresswarning)
  * Maps a temporary register to a M68k register
  * Parameters:
  *   reg_number - number of the M68k register for the mapping
- *   needs_init - if TRUE then the register must be initialized in the compiled code with the register from the regs array
- *   needs_flush - if TRUE then the register must be written back to the regs array on releasing
+ *   needs_init - if 1 then the register must be initialized in the compiled code with the register from the regs array
+ *   needs_flush - if 1 then the register must be written back to the regs array on releasing
  * Returns the mapped physical PPC register number.
  */
 uae_u8 comp_map_temp_register(uae_u8 reg_number, int needs_init, int needs_flush)
@@ -866,7 +866,7 @@ uae_u8 comp_map_temp_register(uae_u8 reg_number, int needs_init, int needs_flush
 	}
 
 	//Lock the register for this instruction
-	reg->locked = TRUE;
+	reg->locked = 1;
 
 	return ppc_reg;
 }
@@ -916,7 +916,7 @@ void comp_unmap_temp_register(uae_u8 reg_number)
 		}
 		used_tmp_regs[reg->tmpreg] = PPC_TMP_REG_NOTUSED;
 		reg->tmpreg = PPC_TMP_REG_NOTUSED;
-		reg->locked = FALSE;
+		reg->locked = 0;
 	}
 }
 
@@ -931,7 +931,7 @@ void comp_unlock_all_temp_registers()
 	int i;
 
 	for(i = 0; i < 16; i++)
-		comp_m68k_registers[i].locked = FALSE;
+		comp_m68k_registers[i].locked = 0;
 }
 
 /**
@@ -1165,10 +1165,10 @@ STATIC_INLINE int comp_is_spec_memory_read(uae_u32 pc, int specmem_flags, int tr
 	{
 	default:
 	case 0:
-		distrust = FALSE;
+		distrust = 0;
 		break;
 	case 1:
-		distrust = TRUE;
+		distrust = 1;
 		break;
 	case 2:
 		distrust = ((pc & 0xF80000) == 0xF80000);
@@ -1227,10 +1227,10 @@ STATIC_INLINE int comp_is_spec_memory_write(uae_u32 pc, int specmem_flags, int t
 	{
 	default:
 	case 0:
-		distrust = FALSE;
+		distrust = 0;
 		break;
 	case 1:
-		distrust = TRUE;
+		distrust = 1;
 		break;
 	case 2:
 		distrust = ((pc & 0xF80000) == 0xF80000);
@@ -1461,8 +1461,8 @@ void comp_ppc_branch_target()
 		//Calculate the offset to the target from the previously scheduled branch instruction
 		uae_u32 offset = ((uae_u32) current_compile_p) - ((uae_u32) compiled_branch_instruction);
 
-		//Is the offset to the target address less than 0x02000000 or more than 0xfdffffff?
-		if ((offset < 0x02000000) || (offset > 0xfdffffff))
+		//Is the offset to the target address less than 0x02000000 or more than 0xfdfffff?
+		if ((offset < 0x02000000) || (offset > 0xfdfffff))
 		{
 			// complete already pre-compiled branch instruction in memory
 			*((uae_u32*) compiled_branch_instruction) |= (offset & 0x3fffffc);
@@ -1510,8 +1510,8 @@ void comp_ppc_bc(int bibo)
 		//Calculate the offset to the target from the actual PC address
 		uae_u32 offset = ((uae_u32) compiled_branch_target) - ((uae_u32) current_compile_p);
 
-		//Is the offset to the target address less than 0x02000000 or more than 0xfdffffff?
-		if ((offset < 0x02000000) || (offset > 0xfdffffff))
+		//Is the offset to the target address less than 0x02000000 or more than 0xfdfffff?
+		if ((offset < 0x02000000) || (offset > 0xfdfffff))
 		{
 			// ## bcc target
 			comp_ppc_emit_word(opcode | (offset & 0x3fffffc));
@@ -1959,18 +1959,6 @@ void comp_ppc_stw(int regs, uae_u16 delta, int rega)
 	comp_ppc_emit_halfwords(0x9000 | ((regs) << 5) | rega, delta);
 }
 
-/* Compiles stwu instruction
- * Parameters:
- * 		regs - source register
- * 		delta - offset for the source address register
- * 		rega - source register
- */
-void comp_ppc_stwu(int regs, uae_u16 delta, int rega)
-{
-	// ## stw regs, delta(rega)
-	comp_ppc_emit_halfwords(0x9400 | ((regs) << 5) | rega, delta);
-}
-
 /* Compiles subfco instruction
  * Parameters:
  * 		regd - target register
@@ -2062,8 +2050,8 @@ void comp_ppc_call(int reg, uae_uintptr addr)
 	//Calculate the offset to the target from the actual PC address
 	uae_u32 offset = ((uae_u32) addr) - ((uae_u32) current_compile_p);
 
-	//Is the offset to the target address less than 0x02000000 or more than 0xfdffffff?
-	if ((offset < 0x02000000) || (offset > 0xfdffffff))
+	//Is the offset to the target address less than 0x02000000 or more than 0xfdfffff?
+	if ((offset < 0x02000000) || (offset > 0xfdfffff))
 	{
 		//Yes - we can use relative branch instruction
 		comp_ppc_bl(offset);
@@ -2096,8 +2084,8 @@ void comp_ppc_jump(uae_uintptr addr)
 	//Calculate the offset to the target from the actual PC address
 	uae_u32 offset = ((uae_u32) addr) - ((uae_u32) current_compile_p);
 
-	//Is the offset to the target address less than 0x02000000 or more than 0xfdffffff?
-	if ((offset < 0x02000000) || (offset > 0xfdffffff))
+	//Is the offset to the target address less than 0x02000000 or more than 0xfdfffff?
+	if ((offset < 0x02000000) || (offset > 0xfdfffff))
 	{
 		//Yes - we can use relative branch instruction
 		comp_ppc_b(offset);
@@ -2118,7 +2106,6 @@ void comp_ppc_jump(uae_uintptr addr)
  *   save_regs - save the PPC registers to the stack that are marked with a high
  *   bit in this longword (e.g. R4 and R6 = (1 << 4) | (1 <<6) = %101000)
  */
-#ifndef __APPLE__
 void comp_ppc_prolog(uae_u32 save_regs)
 {
 	int i;
@@ -2149,38 +2136,6 @@ void comp_ppc_prolog(uae_u32 save_regs)
 	//Store offset for the non-volatile register slots
 	nonvolatile_regs_in_stackframe = regnum;
 }
-#else
-//Prolog for MacOSX Darwin ABI
-void comp_ppc_prolog(uae_u32 save_regs)
-{
-	int i;
-	int offset = -4;
-	int regnum = COMP_STACKFRAME_ALLOCATED_SLOTS;	//Additional free longwords for temporary register storage
-
-	//How many registers do we want to save?
-	for(i = 0; i < 32; i++) {
-		regnum += (save_regs & (1 << i)) ? 1 : 0;
-	}
-
-	comp_ppc_mflr(PPCR_TMP0); //Read LR
-	comp_ppc_stw(PPCR_TMP0, 8, PPCR_SP); //Store in linkage area
-
-	//Save registers
-	for(i = 0; i < 32; i++)
-	{
-		if (save_regs & (1 << i))
-		{
-			comp_ppc_stw(i, offset, PPCR_SP);
-			offset -= 4;
-		}
-	}
-
-	comp_ppc_stwu(PPCR_SP, ((-24 - (regnum * 4) + 15) & (-16)), PPCR_SP); //Calculate new stack frame; 16 byte aligned, no parameter area!!! Set real stack pointer
-
-	//Store offset for the non-volatile register slots
-	nonvolatile_regs_in_stackframe = 20 - offset;
-}
-#endif
 
 /* Compiles epilog to the end of the function call (stackframe freeing)
  * Note: emitted code uses PPCR_TMP0 and PPCR_SPECTMP registers, these are not restored
@@ -2188,7 +2143,6 @@ void comp_ppc_prolog(uae_u32 save_regs)
  *   restore_regs - restore the PPC registers from the stack that are marked with a high
  *   bit in this longword (e.g. R4 and R6 = (1 << 4) | (1 <<6) = %101000)
  */
-#ifndef __APPLE__
 void comp_ppc_epilog(uae_u32 restore_regs)
 {
 	int i;
@@ -2209,28 +2163,6 @@ void comp_ppc_epilog(uae_u32 restore_regs)
 	comp_ppc_mtlr(PPCR_SPECTMP); //Restore LR
 	comp_ppc_mr(PPCR_SP, PPCR_TMP0, FALSE); //Free up stack space by using the backchain pointer
 }
-#else
-//Epilog for MacOSX Darwin ABI
-void comp_ppc_epilog(uae_u32 restore_regs)
-{
-	int i;
-
-	comp_ppc_lwz(PPCR_SP, 0, PPCR_SP); //Read the pointer to the previous stack frame and free up stack space by using the backchain pointer
-	comp_ppc_lwz(PPCR_SPECTMP, 8, PPCR_SP); //Read LR from the stackframe
-	comp_ppc_mtlr(PPCR_SPECTMP); //Restore LR
-
-	//Restore registers
-	int regnum = -4;
-	for(i = 0; i < 32; i++)
-	{
-		if (restore_regs & (1 << i))
-		{
-			comp_ppc_lwz(i, regnum, PPCR_SP);
-			regnum -= 4;
-		}
-	}
-}
-#endif
 
 /* Saves a specified register to a slot in the stack frame. */
 void comp_ppc_save_to_slot(int reg, int slot)
