@@ -1,9 +1,0 @@
-Some simple test "Kickstarts" for E-UAE.
-
-You can build the Kickstart file from these test sources by using the tools
-in the build_kick directory one step up.
-
-Files in this directory:
-
-iamalive.asm - a very basic test that shows some colors when the machine starts
-mandel_hw.asm - a Mandelbrot set calculator for speed testing
