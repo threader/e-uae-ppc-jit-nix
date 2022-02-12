@@ -80,7 +80,7 @@ struct uae_prefs {
     int comptrustword;
     int comptrustlong;
     int comptrustnaddr;
-    int compoptim;
+    int compnf;
     int complog;
     int complogcompiled;
     int compforcesettings;

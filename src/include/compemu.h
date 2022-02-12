@@ -210,11 +210,9 @@ uae_u8 comp_allocate_temp_register(int allocate_for);
 void comp_free_temp_register(uae_u8 temp_reg);
 uae_u8 comp_map_temp_register(uae_u8 reg_number, int needs_init, int needs_flush);
 void comp_unmap_temp_register(uae_u8 reg_number);
-int comp_get_mapped_temp_register(uae_u8 reg_number);
 void comp_flush_temp_registers(int supresswarning);
 uae_u8 comp_get_gpr_for_temp_register(uae_u8 tmpreg);
 void comp_unlock_all_temp_registers(void);
-void comp_dump_reg_usage(uae_u64 regs, char* str, char dump_control);
 
 /* PowerPC instruction compiler functions */
 void comp_ppc_add(int regd, int rega, int regb, int updateflags);

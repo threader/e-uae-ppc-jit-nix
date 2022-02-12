@@ -194,9 +194,9 @@ static void fix_options (void)
 	currprefs.comptrustnaddr = 1;
 	err = 1;
     }
-    if (currprefs.compoptim < 0 || currprefs.compoptim > 1) {
-	write_log ("Bad value for comp_optimize parameter: value must be within 0..1\n");
-	currprefs.compoptim = 0;
+    if (currprefs.compnf < 0 || currprefs.compnf > 1) {
+	write_log ("Bad value for compnf parameter: value must be within 0..1\n");
+	currprefs.compnf = 1;
 	err = 1;
     }
     if (currprefs.complog < 0 || currprefs.complog > 1) {

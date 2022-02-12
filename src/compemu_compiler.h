@@ -23,7 +23,6 @@ typedef void comp_compiler_macroblock_func (union comp_compiler_mb_union*) REGPA
 #define COMP_COMPILER_MACROBLOCK_REG_FLAGX	(1ULL << 4)
 
 //Register mapping to bits for data registers
-#define COMP_COMPILER_MACROBLOCK_REGS_START	5
 #define COMP_COMPILER_MACROBLOCK_REG_D0		(1ULL << 5)
 #define COMP_COMPILER_MACROBLOCK_REG_D1		(1ULL << 6)
 #define COMP_COMPILER_MACROBLOCK_REG_D2		(1ULL << 7)
@@ -34,7 +33,6 @@ typedef void comp_compiler_macroblock_func (union comp_compiler_mb_union*) REGPA
 #define COMP_COMPILER_MACROBLOCK_REG_D7		(1ULL << 12)
 
 //Register mapping to bits for address registers
-#define COMP_COMPILER_MACROBLOCK_ADDR_REGS_START	13
 #define COMP_COMPILER_MACROBLOCK_REG_A0		(1ULL << 13)
 #define COMP_COMPILER_MACROBLOCK_REG_A1		(1ULL << 14)
 #define COMP_COMPILER_MACROBLOCK_REG_A2		(1ULL << 15)
@@ -45,37 +43,31 @@ typedef void comp_compiler_macroblock_func (union comp_compiler_mb_union*) REGPA
 #define COMP_COMPILER_MACROBLOCK_REG_A7		(1ULL << 20)
 
 //Internal flag register mapping to bits that are used for native PPC flag dependency tracking
-#define COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGS_START 21
 #define COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGC	(1ULL << 21)
 #define COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGV	(1ULL << 22)
 #define COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ	(1ULL << 23)
 #define COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN	(1ULL << 24)
-#define COMP_COMPILER_MACROBLOCK_TMP_REGS_START	25
 
 //No register dependency
 #define COMP_COMPILER_MACROBLOCK_REG_NONE	0
 
 //Do not optimize away this block
-#define COMP_COMPILER_MACROBLOCK_CONTROL_FLAGS_START	63
 #define COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM (1ULL << 63)
 
-//All control flags for the optimization
-#define COMP_COMPILER_MACROBLOCK_CONTROL_FLAGS (COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM)
-
 //All registers in one constant
-#define COMP_COMPILER_MACROBLOCK_REG_ALL	((1ULL << COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGS_START) - 1)
+#define COMP_COMPILER_MACROBLOCK_REG_ALL	((1ULL << 21) - 1)
 
 //All flag registers in one constant
-#define COMP_COMPILER_MACROBLOCK_REG_FLAG_ALL	((1ULL << COMP_COMPILER_MACROBLOCK_REGS_START) - 1)
+#define COMP_COMPILER_MACROBLOCK_REG_FLAG_ALL	((1ULL << 5) - 1)
 
 //All flag internal registers in one constant
 #define COMP_COMPILER_MACROBLOCK_INTERNAL_FLAG_ALL	(COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGC | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGV | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN)
 
 //Get a specific register mapping
-#define COMP_COMPILER_MACROBLOCK_REG_DX_OR_AX(x) (1ULL << (x + COMP_COMPILER_MACROBLOCK_REGS_START))
-#define COMP_COMPILER_MACROBLOCK_REG_DX(x)	(1ULL << (x + COMP_COMPILER_MACROBLOCK_REGS_START))
-#define COMP_COMPILER_MACROBLOCK_REG_AX(x)	(1ULL << (x + COMP_COMPILER_MACROBLOCK_ADDR_REGS_START))
-#define COMP_COMPILER_MACROBLOCK_REG_TMP(x)	(1ULL << (x + COMP_COMPILER_MACROBLOCK_TMP_REGS_START))
+#define COMP_COMPILER_MACROBLOCK_REG_DX_OR_AX(x) (1ULL << (x + 5))
+#define COMP_COMPILER_MACROBLOCK_REG_DX(x)	(1ULL << (x + 5))
+#define COMP_COMPILER_MACROBLOCK_REG_AX(x)	(1ULL << (x + 13))
+#define COMP_COMPILER_MACROBLOCK_REG_TMP(x)	(1ULL << (x + 26))
 
 /* Getting an offset inside the regs structure for a specified field */
 #define COMP_GET_OFFSET_IN_REGS(x) (((void*)&(regs.x)) - ((void*)&regs))
@@ -105,7 +97,7 @@ void comp_macroblock_push_load_memory_long(uae_u64 regsin, uae_u64 regsout, uae_
 void comp_macroblock_push_load_memory_word(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u32 base_reg, uae_u32 offset);
 void comp_macroblock_push_load_memory_word_extended(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u32 base_reg, uae_u32 offset);
 void comp_macroblock_push_load_memory_byte(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u32 base_reg, uae_u32 offset);
-void comp_macroblock_push_map_physical_mem(uae_u64 regsin, uae_u64 regsout, uae_u8 dest_mem_reg, uae_u8 source_reg);
+void comp_macroblock_push_map_physical_mem(uae_u64 regsin, uae_u64 regsout, uae_u8 source_reg, uae_u8 dest_mem_reg);
 void comp_macroblock_push_save_memory_spec(uae_u64 regsin, uae_u64 regsout, uae_u8 source_reg, uae_u8 dest_mem_reg, uae_u8 size);
 void comp_macroblock_push_save_memory_long(uae_u64 regsin, uae_u64 regsout, uae_u8 source_reg, uae_u32 base_reg, uae_u32 offset);
 void comp_macroblock_push_save_memory_word(uae_u64 regsin, uae_u64 regsout, uae_u8 source_reg, uae_u32 base_reg, uae_u32 offset);

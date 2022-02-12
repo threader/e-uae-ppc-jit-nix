@@ -2111,13 +2111,13 @@ static void m68k_disasm_2(char* s, uaecptr addr, uaecptr *nextpc, int cnt, uae_u
 
 void m68k_disasm_ea (void *f, uaecptr addr, uaecptr *nextpc, int cnt, uae_u32 *seaddr, uae_u32 *deaddr)
 {
-	char str[2000];
+	char str[200];
     m68k_disasm_2 (str, addr, nextpc, cnt, seaddr, deaddr, 1);
     f_out(f, str);
 }
 void m68k_disasm (void *f, uaecptr addr, uaecptr *nextpc, int cnt)
 {
-	char str[2000];
+	char str[200];
     m68k_disasm_2 (str, addr, nextpc, cnt, NULL, NULL, 0);
     f_out(f, str);
 }

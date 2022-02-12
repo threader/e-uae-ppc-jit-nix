@@ -213,8 +213,8 @@ MOVEM2REGL   0   0100 1100 11SS Ssss   0 0     indA,indAd16,indAcp,indPCd16,indP
 MOVEM2REGW   0   0100 1100 10SS Ssss   0 0     indA,indAd16,indAcp,indPCd16,indPCcp,absW,absL none
 
 ;movem.x dx-ay,-(az)
-MOVEM2MEMUL  1   0100 1000 1110 0ddd   0 0     none    regA
-MOVEM2MEMUW  1   0100 1000 1010 0ddd   0 0     none    regA
+MOVEM2MEMUL  0   0100 1000 1110 0ddd   0 0     none    regA
+MOVEM2MEMUW  0   0100 1000 1010 0ddd   0 0     none    regA
 
 ;movem.x (az)+,dx-ay
 MOVEM2REGUL  0   0100 1100 1101 1sss   0 0     regA    none

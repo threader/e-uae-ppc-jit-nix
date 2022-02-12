@@ -301,7 +301,7 @@ static void set_comp_state (void)
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (complong_widget[currprefs.comptrustlong]), 1);
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (compaddr_widget[currprefs.comptrustnaddr]), 1);
 #endif
-    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (compnf_widget[currprefs.compoptim]), 1);
+    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (compnf_widget[currprefs.compnf]), 1);
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (comp_hardflush_widget[currprefs.comp_hardflush]), 1);
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (comp_constjump_widget[currprefs.comp_constjump]), 1);
 
@@ -677,7 +677,7 @@ static void comp_changed (void)
     changed_prefs.comptrustlong = find_current_toggle (complong_widget, 4);
     changed_prefs.comptrustnaddr = find_current_toggle (compaddr_widget, 4);
 #endif
-    changed_prefs.compoptim = find_current_toggle (compnf_widget, 2);
+    changed_prefs.compnf = find_current_toggle (compnf_widget, 2);
     changed_prefs.comp_hardflush = find_current_toggle (comp_hardflush_widget, 2);
     changed_prefs.comp_constjump = find_current_toggle (comp_constjump_widget, 2);
     changed_prefs.compfpu= find_current_toggle (compfpu_widget, 2);

@@ -88,7 +88,7 @@ static const struct cfg_lines opttable[] =
     {"comp_trustbyte", "How to access bytes in compiler (direct/indirect/indirectKS/afterPic" },
     {"comp_trustword", "How to access words in compiler (direct/indirect/indirectKS/afterPic" },
     {"comp_trustlong", "How to access longs in compiler (direct/indirect/indirectKS/afterPic" },
-    {"comp_optimize", "Whether to optimize away native code generation where possible" },
+    {"comp_nf", "Whether to optimize away flag generation where possible" },
     {"comp_fpu", "Whether to provide JIT FPU emulation" },
     {"compforcesettings", "Whether to force the JIT compiler settings" },
     {"cachesize", "How many MB to use to buffer translated instructions"},
@@ -417,7 +417,7 @@ void save_options (FILE *f, const struct uae_prefs *p, int type)
     cfgfile_write (f, "comp_trustword=%s\n", compmode[p->comptrustword]);
     cfgfile_write (f, "comp_trustlong=%s\n", compmode[p->comptrustlong]);
     cfgfile_write (f, "comp_trustnaddr=%s\n", compmode[p->comptrustnaddr]);
-    cfgfile_write (f, "comp_optimize=%s\n", p->compoptim ? "true" : "false");
+    cfgfile_write (f, "comp_nf=%s\n", p->compnf ? "true" : "false");
     cfgfile_write (f, "comp_constjump=%s\n", p->comp_constjump ? "true" : "false");
     cfgfile_write (f, "comp_oldsegv=%s\n", p->comp_oldsegv ? "true" : "false");
     cfgfile_write (f, "comp_log=%s\n", p->complog ? "true" : "false");
@@ -1090,7 +1090,7 @@ static int cfgfile_parse_hardware (struct uae_prefs *p, char *option, char *valu
 	|| cfgfile_yesno (option, value, "serial_hardware_ctsrts", &p->serial_hwctsrts)
 	|| cfgfile_yesno (option, value, "serial_direct", &p->serial_direct)
 #ifdef JIT
-	|| cfgfile_yesno (option, value, "comp_optimize", &p->compoptim)
+	|| cfgfile_yesno (option, value, "comp_nf", &p->compnf)
 	|| cfgfile_yesno (option, value, "comp_log", &p->complog)
 	|| cfgfile_yesno (option, value, "comp_log_compiled", &p->complogcompiled)
 	|| cfgfile_yesno (option, value, "comp_constjump", &p->comp_constjump)
@@ -2342,7 +2342,7 @@ void default_prefs (struct uae_prefs *p, int type)
     p->comptrustlong = 1;
     p->comptrustnaddr= 1;
 # endif
-    p->compoptim = 0;
+    p->compnf = 1;
     p->complog = 0;
     p->complogcompiled = 0;
     p->comp_hardflush = 0;

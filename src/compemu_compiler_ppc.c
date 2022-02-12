@@ -36,7 +36,7 @@ union comp_compiler_mb_union macroblocks[MAXMACROBLOCKS];
  *   ir - input registers
  *   or - output registers
  */
-#define comp_mb_init(n, h, ir, or) union comp_compiler_mb_union* n = comp_compiler_get_next_macroblock(); n->base.handler=(h); n->base.input_registers=(ir); n->base.output_registers=(or); n->base.name = __func__; n->base.start = NULL; n->base.m68k_ptr = comp_current_m68k_location(); n->base.remove = 0;
+#define comp_mb_init(n, h, ir, or) union comp_compiler_mb_union* n = comp_compiler_get_next_macroblock(); n->base.handler=(h); n->base.input_registers=(ir); n->base.output_registers=(or); n->base.name = __func__; n->base.start = NULL; n->base.m68k_ptr = comp_current_m68k_location();
 
 //Pointer to the end of the macroblock buffer
 int macroblock_ptr;
@@ -140,47 +140,7 @@ union comp_compiler_mb_union* comp_compiler_get_next_macroblock()
  */
 void comp_compiler_optimize_macroblocks()
 {
-	int i;
-
-	//Optimize the compiled code only if it was enabled in the config
-	if (!currprefs.compoptim) return;
-
-	//Run thru the collected macroblocks in reverse order and calculate
-	//registration usage flags
-	union comp_compiler_mb_union* mb = macroblocks + (macroblock_ptr - 1);
-
-	//At the end of the block we depend on all registers and flags, except internal flags
-	uae_u64 carry = COMP_COMPILER_MACROBLOCK_REG_ALL;
-	uae_u64 flagsin, flagsout;
-	char remove;
-
-	for(i = macroblock_ptr; i > 0; i-- , mb--)
-	{
-		flagsin = (mb->base.input_registers & (~COMP_COMPILER_MACROBLOCK_CONTROL_FLAGS));
-		flagsout = (mb->base.output_registers & (~COMP_COMPILER_MACROBLOCK_CONTROL_FLAGS));
-
-		//Remove the registers from the output that is not needed by the following instructions
-		flagsout &= carry;
-
-		//If no registers left in the output then this instruction is useless,
-		//unless the "no optim" control flag was specified
-		remove = mb->base.remove = (flagsout == 0) &&
-					(((mb->base.output_registers & COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM) == 0) &&
-						((mb->base.input_registers & COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM) == 0));
-
-		//Which registers are not overwritten by this instruction must remain in the carry
-		carry &= ~flagsout;
-
-		//Should we keep this macroblock?
-		if (!remove)
-		{
-			//Then add the registers which are required by this instruction to the carry
-			carry |= flagsin;
-		}
-
-		//This step is only for the debug logging, it can be removed later on
-		mb->base.carry_registers = carry;
-	}
+	//TODO: implement optimization of the macroblocks
 }
 
 /**
@@ -204,7 +164,7 @@ void comp_compiler_generate_code()
 		comp_compiler_macroblock_func* handler = mb->base.handler;
 
 		//If there is a handler then call it
-		if ((handler) && (!mb->base.remove))
+		if (handler)
 		{
 			//Store the start of the compiled code
 			mb->base.start = comp_ppc_buffer_top();
@@ -219,16 +179,13 @@ void comp_compiler_generate_code()
 }
 
 /**
- * Dump the compiled code with the macroblocks to the console
+ * Dump the compiled code to with the macroblocks to the console
  */
 void comp_compiler_debug_dump_compiled()
 {
 	int i;
 	uaecptr nextpc;
 	char str[200];
-	char inputregs_str[200];
-	char outputregs_str[200];
-	char carry_str[200];
 	uae_u16* prev_68k_inst = NULL;
 
 	//Dump the compiled only if it was enabled in the config
@@ -252,11 +209,7 @@ void comp_compiler_debug_dump_compiled()
 			}
 
 			//Dump the name of the macroblock (bit of a hack: skip the function suffix)
-			write_jit_log("Mblk: %s%s\n", mb->base.name + 21, (mb->base.remove ? " *rem*": ""));
-			comp_dump_reg_usage(mb->base.input_registers, inputregs_str, 1);
-			comp_dump_reg_usage(mb->base.output_registers, outputregs_str, 1);
-			comp_dump_reg_usage(mb->base.carry_registers, carry_str, 0);
-			write_jit_log("Flg: %s:%s:%s\n", carry_str, inputregs_str, outputregs_str);
+			write_jit_log("Mblk: %s\n", mb->base.name + 21);
 
 			//Dump disassembled code only if there was a start address for the compiled code
 			if (mb->base.start)
@@ -286,8 +239,8 @@ void comp_macroblock_push_opcode_unsupported(uae_u16* location, uae_u16 opcode)
 
 	comp_mb_init(mb,
 				comp_macroblock_impl_opcode_unsupported,
-				COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-				COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM);
+				COMP_COMPILER_MACROBLOCK_REG_ALL,
+				COMP_COMPILER_MACROBLOCK_REG_ALL);
 	mb->unsupported.opcode = opcode;
 }
 
@@ -329,7 +282,7 @@ void comp_macroblock_push_load_flags()
 	//Load flag_struct.x to a temp register
 	comp_macroblock_push_load_memory_long(
 			COMP_COMPILER_MACROBLOCK_REG_NONE,
-			COMP_COMPILER_MACROBLOCK_REG_TMP(tempreg),
+			COMP_COMPILER_MACROBLOCK_REG_FLAGN | COMP_COMPILER_MACROBLOCK_REG_FLAGZ | COMP_COMPILER_MACROBLOCK_REG_FLAGC | COMP_COMPILER_MACROBLOCK_REG_FLAGV,
 			comp_get_gpr_for_temp_register(tempreg),
 			PPCR_REGS_BASE,
 			COMP_GET_OFFSET_IN_REGS(ccrflags.x));
@@ -716,7 +669,7 @@ void comp_macroblock_impl_save_memory_byte(union comp_compiler_mb_union* mb)
 /**
  * Macroblock: Loads the physical address of a mapped memory address into a register
  */
-void comp_macroblock_push_map_physical_mem(uae_u64 regsin, uae_u64 regsout, uae_u8 dest_mem_reg, uae_u8 source_reg)
+void comp_macroblock_push_map_physical_mem(uae_u64 regsin, uae_u64 regsout, uae_u8 source_reg, uae_u8 dest_mem_reg)
 {
 	uae_u8 tmpreg = comp_allocate_temp_register(PPC_TMP_REG_ALLOCATED);
 
