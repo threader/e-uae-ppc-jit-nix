@@ -136,7 +136,7 @@ struct comp_compiler_mb_shift_opcode_with_mask
 	int update_flags;					//N and Z flags are updated if TRUE
 	uae_u8 output_reg;					//Target register
 	uae_u8 input_reg;					//Input register
-	uae_u8 shift;						//Shift steps to the left (immediate or register number)
+	uae_u8 shift;						//Shift steps to the left
 	uae_u8 begin_mask;					//Beginning of the mask (bit#)
 	uae_u8 end_mask;					//End of the mask (bit#)
 };
@@ -166,18 +166,6 @@ struct comp_compiler_mb_set_byte_from_z_flag
 	uae_u8 output_reg;					//Output register
 };
 
-//Structure for setting the emulated PC if CRF0 Z flag is set
-struct comp_compiler_mb_set_pc_on_z_flag
-{
-	struct comp_compiler_mb mb;			//Default macroblock descriptor
-	BOOL negate;						//Flag must be negated before use
-	uae_u32 target_address;				//Target address as an immediate
-	uae_u32 skip_address;				//Skipping to this address if condition is false
-	uae_u8 address_reg;					//Mapped address register
-	uae_u8 tmp_reg;						//Mapped temporary register
-	uae_u8 decrement_reg;				//Mapped decrement register (optional)
-};
-
 //Union of all macroblock descriptor structures
 union comp_compiler_mb_union
 {
@@ -198,5 +186,4 @@ union comp_compiler_mb_union
 	struct comp_compiler_mb_reg_in_slot reg_in_slot;
 	struct comp_compiler_mb_extract_v_flag_arithmetic_left_shift extract_v_flag_arithmetic_left_shift;
 	struct comp_compiler_mb_set_byte_from_z_flag set_byte_from_z_flag;
-	struct comp_compiler_mb_set_pc_on_z_flag set_pc_on_z_flag;
 };

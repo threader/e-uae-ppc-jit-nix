@@ -71,7 +71,6 @@ void comp_macroblock_impl_opcode_unsupported(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_and_low_register_imm(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_and_high_register_imm(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_and_register_register(union comp_compiler_mb_union* mb);
-void comp_macroblock_impl_and_register_complement_register(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_or_low_register_imm(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_or_high_register_imm(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_or_register_register(union comp_compiler_mb_union* mb);
@@ -92,7 +91,6 @@ void comp_macroblock_impl_copy_register_word_extended(union comp_compiler_mb_uni
 void comp_macroblock_impl_copy_register_byte_extended(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_rotate_and_copy_bits(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_rotate_and_mask_bits(union comp_compiler_mb_union* mb);
-void comp_macroblock_impl_rotate_and_mask_bits_register(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_arithmetic_shift_right_register(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_arithmetic_left_shift_extract_v_flag(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_save_reg_slot(union comp_compiler_mb_union* mb);
@@ -101,14 +99,11 @@ void comp_macroblock_impl_set_byte_from_z_flag(union comp_compiler_mb_union* mb)
 void comp_macroblock_impl_stop(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_nop(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_null_operation(union comp_compiler_mb_union* mb);
-void comp_macroblock_impl_load_pc_from_immediate_conditional(union comp_compiler_mb_union* mb);
-void comp_macroblock_impl_load_pc_from_immediate_conditional_decrement_register(union comp_compiler_mb_union* mb);
 
 /**
  * Prototypes for local helper functions
  */
-STATIC_INLINE void helper_access_memory_spec(union comp_compiler_mb_union* mb, int iswrite);
-STATIC_INLINE void helper_map_physical_mem(uae_u8 inreg, uae_u8 outreg, uae_u8 tmpreg);
+void helper_access_memory_spec(union comp_compiler_mb_union* mb, int iswrite);
 
 /**
  * Initialization of the code compiler
@@ -788,23 +783,10 @@ void comp_macroblock_push_map_physical_mem(uae_u64 regsin, uae_u64 regsout, uae_
 
 void comp_macroblock_impl_map_physical_mem(union comp_compiler_mb_union* mb)
 {
-	helper_map_physical_mem(
-			mb->map_physical_mem.input_reg,
-			mb->map_physical_mem.output_reg,
-			mb->map_physical_mem.temp_reg);
-}
+	uae_u8 tmpreg = mb->map_physical_mem.temp_reg;
+	uae_u8 inreg = mb->map_physical_mem.input_reg;
+	uae_u8 outreg = mb->map_physical_mem.output_reg;
 
-/** Macroblock helper: implementation of the physical address mapping
- *  Parameters:
- *     inreg - source 68k address
- *     outreg - output register for the result (physical address)
- *     tmpreg - temporary register for the calculation
- *  Note: inreg and outreg can be the same, but the tmpreg must be an independent
- *  register which is trashed.
- *  PPCR_SPECTMP (R0) is used by this function, it cannot be specified as any of the parameter registers.
- */
-STATIC_INLINE void helper_map_physical_mem(uae_u8 inreg, uae_u8 outreg, uae_u8 tmpreg)
-{
 	//TODO: preload base address array start into a GPR
 	//Load base address array address to tmp reg
 	comp_ppc_liw(tmpreg, (uae_u32)baseaddr);
@@ -906,7 +888,7 @@ void comp_macroblock_impl_load_memory_spec_save_temps(union comp_compiler_mb_uni
  *    mb - pointer to the actual macroblock descriptor
  *    iswrite - if TRUE then it is a write operation otherwise it is read
  */
-STATIC_INLINE void helper_access_memory_spec(union comp_compiler_mb_union* mb, int iswrite)
+void helper_access_memory_spec(union comp_compiler_mb_union* mb, int iswrite)
 {
 	uae_u8 srcreg = mb->access_memory_size.output_reg;
 	uae_u8 basereg = mb->access_memory_size.base_reg;
@@ -1154,29 +1136,6 @@ void comp_macroblock_push_and_register_register(uae_u64 regsin, uae_u64 regsout,
 void comp_macroblock_impl_and_register_register(union comp_compiler_mb_union* mb)
 {
 	comp_ppc_and(
-			mb->three_regs_opcode_flags.output_reg,
-			mb->three_regs_opcode_flags.input_reg1,
-			mb->three_regs_opcode_flags.input_reg2,
-			mb->three_regs_opcode_flags.updateflags);
-}
-
-/**
- * Macroblock: AND a register to another register's complement
- */
-void comp_macroblock_push_and_register_complement_register(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg1, uae_u8 input_compl_reg2, char updateflags)
-{
-	comp_mb_init(mb,
-				comp_macroblock_impl_and_register_complement_register,
-				regsin, regsout);
-	mb->three_regs_opcode_flags.output_reg = output_reg;
-	mb->three_regs_opcode_flags.input_reg1 = input_reg1;
-	mb->three_regs_opcode_flags.input_reg2 = input_compl_reg2;
-	mb->three_regs_opcode_flags.updateflags = updateflags;
-}
-
-void comp_macroblock_impl_and_register_complement_register(union comp_compiler_mb_union* mb)
-{
-	comp_ppc_andc(
 			mb->three_regs_opcode_flags.output_reg,
 			mb->three_regs_opcode_flags.input_reg1,
 			mb->three_regs_opcode_flags.input_reg2,
@@ -1573,7 +1532,7 @@ void comp_macroblock_impl_rotate_and_copy_bits(union comp_compiler_mb_union* mb)
 }
 
 /**
- * Macroblock: Rotate by immediate and mask specified bits
+ * Macroblock: Rotate and mask specified bits
  * Note: when flag update is specified then the output registers will specify
  * internal flag update
  */
@@ -1596,38 +1555,6 @@ void comp_macroblock_push_rotate_and_mask_bits(uae_u64 regsin, uae_u64 regsout, 
 void comp_macroblock_impl_rotate_and_mask_bits(union comp_compiler_mb_union* mb)
 {
 	comp_ppc_rlwinm(
-			mb->shift_opcode_with_mask.output_reg,
-			mb->shift_opcode_with_mask.input_reg,
-			mb->shift_opcode_with_mask.shift,
-			mb->shift_opcode_with_mask.begin_mask,
-			mb->shift_opcode_with_mask.end_mask,
-			mb->shift_opcode_with_mask.update_flags);
-}
-
-/**
- * Macroblock: Rotate by register and mask specified bits
- * Note: when flag update is specified then the output registers will specify
- * internal flag update
- */
-void comp_macroblock_push_rotate_and_mask_bits_register(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, uae_u8 shift_reg, uae_u8 maskb, uae_u8 maske, int updateflags)
-{
-	comp_mb_init(mb,
-				comp_macroblock_impl_rotate_and_mask_bits_register,
-				regsin,
-				regsout | (updateflags ?
-								COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ :
-								COMP_COMPILER_MACROBLOCK_REG_NONE));
-	mb->shift_opcode_with_mask.output_reg = output_reg;
-	mb->shift_opcode_with_mask.input_reg = input_reg;
-	mb->shift_opcode_with_mask.shift = shift_reg;
-	mb->shift_opcode_with_mask.begin_mask = maskb;
-	mb->shift_opcode_with_mask.end_mask = maske;
-	mb->shift_opcode_with_mask.update_flags = updateflags;
-}
-
-void comp_macroblock_impl_rotate_and_mask_bits_register(union comp_compiler_mb_union* mb)
-{
-	comp_ppc_rlwnm(
 			mb->shift_opcode_with_mask.output_reg,
 			mb->shift_opcode_with_mask.input_reg,
 			mb->shift_opcode_with_mask.shift,
@@ -1809,222 +1736,6 @@ void comp_macroblock_impl_load_reg_slot(union comp_compiler_mb_union* mb)
 	comp_ppc_restore_from_slot(mb->reg_in_slot.reg, mb->reg_in_slot.slot);
 }
 
-/**
- * Macroblock: load the specified 68k address into the PC register.
- * The specified address is in the 68k emulated address space which is translated
- * to the physical memory address and load into the emulated PC register.
- */
-void comp_macroblock_push_load_pc_from_register(uae_u64 regsin, uae_u8 address_reg)
-{
-	uae_u8 temp_reg = comp_allocate_temp_register(PPC_TMP_REG_ALLOCATED);
-	uae_u8 temp_reg_mapped = comp_get_gpr_for_temp_register(temp_reg);
-
-	//TODO: odd address must trigger exception
-
-	//Save it to emulated instruction pointer (PC register)
-	comp_macroblock_push_save_memory_long(
-			regsin,
-			COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-			address_reg,
-			PPCR_REGS_BASE,
-			COMP_GET_OFFSET_IN_REGS(pc));
-
-	//Get memory address into the temp register
-	comp_macroblock_push_map_physical_mem(
-			regsin,
-			COMP_COMPILER_MACROBLOCK_REG_TMP(temp_reg),
-			temp_reg_mapped,
-			address_reg);
-
-	//Save physical memory pointer for the executed instruction
-	comp_macroblock_push_save_memory_long(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(temp_reg),
-			COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-			temp_reg_mapped,
-			PPCR_REGS_BASE,
-			COMP_GET_OFFSET_IN_REGS(pc_p));
-
-	//Synchronize the executed instruction pointer from the block start to the actual
-	comp_macroblock_push_save_memory_long(
-			COMP_COMPILER_MACROBLOCK_REG_TMP(temp_reg),
-			COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-			temp_reg_mapped,
-			PPCR_REGS_BASE,
-			COMP_GET_OFFSET_IN_REGS(pc_oldp));
-
-	comp_free_temp_register(temp_reg);
-}
-
-/**
- * Macroblock: load the specified 68k address into the PC register
- * or do nothing according to the Z flag state.
- * Target address is loaded to the PC when PPC Z flag is set and negate is FALSE or
- * PPC Z flag is not set and negate is TRUE.
- * The specified address is in the 68k emulated address space which is translated
- * to the physical memory address and load into the emulated PC register.
- * Skip address is loaded if the condition was false.
- * This macroblock needs two preallocated temporary registers.
- * Parameters:
- *    target_address - target address for emulated PC if evaluation came up as TRUE
- *    skip_address - skip address for emulated PC if evaluation came up as FALSE
- *    negate - if TRUE then the condition evaluation is negated (will be TRUE if Z flag is FALSE)
- *    address_reg - mapped temporary register for the operation
- *    tmp_reg - mapped temporary register for the operation
- */
-void comp_macroblock_push_load_pc_from_immediate_conditional(uae_u32 target_address, uae_u32 skip_address, BOOL negate, uae_u8 address_reg, uae_u8 tmp_reg)
-{
-	comp_mb_init(mb,
-				comp_macroblock_impl_load_pc_from_immediate_conditional,
-				COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-				COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM);
-	mb->set_pc_on_z_flag.negate = negate;
-	mb->set_pc_on_z_flag.target_address = target_address;
-	mb->set_pc_on_z_flag.skip_address = skip_address;
-	mb->set_pc_on_z_flag.address_reg = address_reg;
-	mb->set_pc_on_z_flag.tmp_reg = tmp_reg;
-}
-
-void comp_macroblock_impl_load_pc_from_immediate_conditional(union comp_compiler_mb_union* mb)
-{
-	uae_u8 address_reg = mb->set_pc_on_z_flag.address_reg;
-	uae_u8 tmp_reg = mb->set_pc_on_z_flag.tmp_reg;
-
-	//Condition is evaluated into the CRF0 Z flag by the source address mode handler or
-	//any other previous evaluation process.
-	//Branch accordingly to the previously calculated flag.
-	//If Z flag was set then the condition was evaluated to FALSE.
-	//Check negate option and invert the branch instruction if it was set.
-	comp_ppc_bc(
-			(mb->set_pc_on_z_flag.negate ?
-					PPC_B_CR_TMP0_NE : PPC_B_CR_TMP0_EQ) | PPC_B_TAKEN, 0);
-
-	//Load target address immediate into the address register
-	comp_ppc_liw(address_reg, mb->set_pc_on_z_flag.target_address);
-
-	//Skip to the storing
-	comp_ppc_b(0, 1);
-
-	//Branch target #0 reached, set it
-	comp_ppc_branch_target(0);
-
-	//Load skip address immediate into the address register
-	comp_ppc_liw(address_reg, mb->set_pc_on_z_flag.skip_address);
-
-	//Branch target #1 is reached, set it
-	comp_ppc_branch_target(1);
-
-	//Save it to emulated instruction pointer (PC register)
-	comp_ppc_stw(address_reg, COMP_GET_OFFSET_IN_REGS(pc), PPCR_REGS_BASE);
-
-	//Get memory address into the address register
-	helper_map_physical_mem(address_reg, address_reg, tmp_reg);
-
-	//Save physical memory pointer for the executed instruction
-	comp_ppc_stw(address_reg, COMP_GET_OFFSET_IN_REGS(pc_p), PPCR_REGS_BASE);
-
-	//Synchronize the executed instruction pointer from the block start to the actual
-	comp_ppc_stw(address_reg, COMP_GET_OFFSET_IN_REGS(pc_oldp), PPCR_REGS_BASE);
-}
-
-/**
- * Macroblock: load the specified 68k address into the PC register
- * or do nothing according to the Z flag state and when decremented register reaches -1.
- * Skip address is loaded to the PC when PPC Z flag is not set and negate is FALSE or
- * PPC Z flag is set and negate is TRUE.
- * If the previous condition was FALSE then the specified decrement register will be
- * decremented, Z flag set to TRUE when it reaches -1. Condition is
- * evaluated again, and skip address loaded if Z flag is FALSE or target address otherwise.
- * The specified address is in the 68k emulated address space which is translated
- * to the physical memory address and load into the emulated PC register.
- * Skip address is loaded if the condition was false.
- * This macroblock needs two preallocated temporary registers.
- *
- * Note: if this macroblock seems to be confusing then have a look on
- * the behavior of M68k DBcc.W instruction.
- *
- * Parameters:
- *    regsin - input and output register dependency (register to decrement)
- *    decrement_reg - mapped register to decrement
- *    target_address - target address for emulated PC if evaluation came up as TRUE
- *    skip_address - skip address for emulated PC if evaluation came up as FALSE
- *    negate - if TRUE then the condition evaluation is negated (will be TRUE if Z flag is FALSE)
- *    address_reg - mapped temporary register for the operation
- *    tmp_reg - mapped temporary register for the operation
- */
-void comp_macroblock_push_load_pc_from_immediate_conditional_decrement_register(uae_u64 regsin, uae_u8 decrement_reg, uae_u32 target_address, uae_u32 skip_address, BOOL negate, uae_u8 address_reg, uae_u8 tmp_reg)
-{
-	comp_mb_init(mb,
-				comp_macroblock_impl_load_pc_from_immediate_conditional_decrement_register,
-				regsin | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-				regsin | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM);
-	mb->set_pc_on_z_flag.negate = negate;
-	mb->set_pc_on_z_flag.target_address = target_address;
-	mb->set_pc_on_z_flag.skip_address = skip_address;
-	mb->set_pc_on_z_flag.address_reg = address_reg;
-	mb->set_pc_on_z_flag.tmp_reg = tmp_reg;
-	mb->set_pc_on_z_flag.decrement_reg = decrement_reg;
-}
-
-void comp_macroblock_impl_load_pc_from_immediate_conditional_decrement_register(union comp_compiler_mb_union* mb)
-{
-	uae_u8 address_reg = mb->set_pc_on_z_flag.address_reg;
-	uae_u8 tmp_reg = mb->set_pc_on_z_flag.tmp_reg;
-	uae_u8 decrement_reg = mb->set_pc_on_z_flag.decrement_reg;
-
-	//Condition is evaluated into the CRF0 Z flag by the source address mode handler or
-	//any other previous evaluation process.
-	//Branch accordingly to the previously calculated flag.
-	//If Z flag was set then the condition was evaluated to FALSE.
-	//Check negate option and invert the branch instruction if it was set.
-	comp_ppc_bc(
-			(mb->set_pc_on_z_flag.negate ?
-					PPC_B_CR_TMP0_EQ : PPC_B_CR_TMP0_NE) | PPC_B_NONTAKEN, 0);
-
-	//Condition evaluated to FALSE, decrement register
-	//Word sized operation: mask out lowest word from target register
-	//This will also set the Z flag on PPC
-	comp_ppc_andi(tmp_reg, decrement_reg, 0xffff);
-
-	//Decrease target register
-	comp_ppc_addi(tmp_reg, tmp_reg, -1);
-
-	//Insert result back to source register
-	comp_ppc_rlwimi(decrement_reg, tmp_reg, 0, 16, 31, FALSE);
-
-	//Jump if Z flag is set (decremented register was 0 before the operation)
-	comp_ppc_bc(PPC_B_CR_TMP0_EQ | PPC_B_NONTAKEN, 1);
-
-	//Load target address immediate into the address register
-	comp_ppc_liw(address_reg, mb->set_pc_on_z_flag.target_address);
-
-	//Skip to the storing
-	comp_ppc_b(0, 2);
-
-	//Branch target #1 reached, set it
-	comp_ppc_branch_target(1);
-
-	//Branch target #0 reached, set it
-	comp_ppc_branch_target(0);
-
-	//Load skip address immediate into the address register
-	comp_ppc_liw(address_reg, mb->set_pc_on_z_flag.skip_address);
-
-	//Branch target #2 reached, set it
-	comp_ppc_branch_target(2);
-
-	//Save it to emulated instruction pointer (PC register)
-	comp_ppc_stw(address_reg, COMP_GET_OFFSET_IN_REGS(pc), PPCR_REGS_BASE);
-
-	//Get memory address into the address register
-	helper_map_physical_mem(address_reg, address_reg, tmp_reg);
-
-	//Save physical memory pointer for the executed instruction
-	comp_ppc_stw(address_reg, COMP_GET_OFFSET_IN_REGS(pc_p), PPCR_REGS_BASE);
-
-	//Synchronize the executed instruction pointer from the block start to the actual
-	comp_ppc_stw(address_reg, COMP_GET_OFFSET_IN_REGS(pc_oldp), PPCR_REGS_BASE);
-}
-
 void comp_macroblock_push_set_byte_from_z_flag(uae_u64 regsout, uae_u8 output_reg, int negate)
 {
 	comp_mb_init(mb,
@@ -2049,11 +1760,11 @@ void comp_macroblock_impl_set_byte_from_z_flag(union comp_compiler_mb_union* mb)
 	//Check negate option and invert the branch instruction if it was set.
 	comp_ppc_bc(
 			(mb->set_byte_from_z_flag.negate ?
-					PPC_B_CR_TMP0_NE : PPC_B_CR_TMP0_EQ) | PPC_B_TAKEN, 0);
+					PPC_B_CR_TMP0_NE : PPC_B_CR_TMP0_EQ) | PPC_B_TAKEN);
 
 	//Set byte to 0xff (true)
 	comp_ppc_ori(output_reg, output_reg, 0xff);
 
 	//Branch target reached, set it
-	comp_ppc_branch_target(0);
+	comp_ppc_branch_target();
 }
