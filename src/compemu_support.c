@@ -12,7 +12,6 @@
 
 /* Local function protos */
 STATIC_INLINE void helper_schedule_branch(uae_u32 opcode, int reference);
-STATIC_INLINE void comp_reset_tmp_register(comp_tmp_reg* temp_reg);
 
 /* Number of temporary registers */
 #define PPC_TMP_REGS_COUNT 11
@@ -43,14 +42,13 @@ const int PPC_TMP_REGS[PPC_TMP_REGS_COUNT] = {  PPCR_TMP0,
  *    PPC_TMP_REG_NOTUSED - temporary register is not mapped
  *    PPC_TMP_REG_ALLOCATED - temporary register is allocated for other purpose than M68k register emulation
  *    other - temporary register is allocated and mapped for a M68k register, the item contains the M68k register number */
-comp_tmp_reg used_tmp_regs[PPC_TMP_REGS_COUNT];
+int used_tmp_regs[PPC_TMP_REGS_COUNT];
 
 /* Structure for the M68k register mapping to the temporary registers */
 struct m68k_register {
-	comp_tmp_reg* tmpreg;	//Pointer to the descriptor structure for the linked temporary register or null
-	uae_u8 regnum;			//The number of the M68K register (D0-D7: 0-7, A0-A7: 8-15)
-	BOOL needs_flush;		//FALSE - no need to flush this register, TRUE - compile code for writing back the register out to the interpretive regs structure
-	BOOL locked;			//FALSE - this register is mapped but not used in the recent instruction, TRUE - this register is locked, cannot be flushed automatically
+	int tmpreg;		//Mapped temporary register number or PPC_TMP_REG_NOTUSED
+	char needs_flush;	//FALSE - no need to flush this register, TRUE - compile code for writing back the register out to the interpretive regs structure
+	char locked;		//FALSE - this register is mapped but not used in the recent instruction, TRUE - this register is locked, cannot be flushed automatically
 };
 
 /* M68k register mapping to the temp registers */
@@ -355,22 +353,15 @@ void compemu_reset(void)
 	//Disable cache emulation
 	set_cache_state(FALSE);
 
-	/* Init used temporary registers list */
+	/* Clear used temporary registers list */
 	for (i = 0; i < PPC_TMP_REGS_COUNT; i++)
-	{
-		used_tmp_regs[i].mapped_reg_num = PPC_TMP_REGS[i];
-		used_tmp_regs[i].reg_usage_mapping = COMP_COMPILER_MACROBLOCK_REG_TMP(i);
-		comp_reset_tmp_register(&used_tmp_regs[i]);
-	}
+		used_tmp_regs[i] = PPC_TMP_REG_NOTUSED;
 
 	/* Clear M68k - PPC temp register mapping */
 	for (i = 0; i < 16; i++)
 	{
-		struct m68k_register* reg = &comp_m68k_registers[i];
-
-		reg->regnum = i;
-		reg->tmpreg = NULL;
-		reg->locked = FALSE;
+		comp_m68k_registers[i].tmpreg = PPC_TMP_REG_NOTUSED;
+		comp_m68k_registers[i].locked = FALSE;
 	}
 
 	//Reset the unmapped register round-robin counter
@@ -747,15 +738,6 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 }
 
 /**
- * Resets the fields of the specified temporary register descriptor
- */
-STATIC_INLINE void comp_reset_tmp_register(comp_tmp_reg* temp_reg)
-{
-	temp_reg->allocated = FALSE;
-	temp_reg->allocated_for = NULL;
-}
-
-/**
  * Find an unlocked temp register for unmapping.
  * The best choice for the to be unmapped register is one that needs
  * no flushing. If that was not available then one that needs flushing.
@@ -763,7 +745,7 @@ STATIC_INLINE void comp_reset_tmp_register(comp_tmp_reg* temp_reg)
  * Although it is theoretically impossible, but if there is no unlocked
  * register then the emulation stops with an error.
  */
-STATIC_INLINE comp_tmp_reg* comp_find_unlocked_temp_register(void)
+STATIC_INLINE int comp_find_unlocked_temp_register(void)
 {
 	int i;
 	struct m68k_register* reg;
@@ -775,11 +757,10 @@ STATIC_INLINE comp_tmp_reg* comp_find_unlocked_temp_register(void)
 		//Round-robin: turns around at the end of the array
 		if (i == PPC_TMP_REGS_COUNT) i = 0;
 
-		reg = used_tmp_regs[i].allocated_for;
-
-		//If the register is linked to a M68k register then it is a candidate
-		if (reg != NULL)
+		//If the register mapping is not negative then it is mapped to an emulated register
+		if (used_tmp_regs[i] > -1)
 		{
+			reg = &comp_m68k_registers[used_tmp_regs[i]];
 			if (!reg->locked)
 			{
 				if (!reg->needs_flush)
@@ -804,7 +785,7 @@ STATIC_INLINE comp_tmp_reg* comp_find_unlocked_temp_register(void)
 
 	last_unmapped_register = found;
 
-	return &used_tmp_regs[found];
+	return found;
 }
 
 /**
@@ -812,37 +793,31 @@ STATIC_INLINE comp_tmp_reg* comp_find_unlocked_temp_register(void)
  * Parameters:
  *   allocate_for - the M68k register number that was mapped to the temp
  *                  register, or one of the PPC_TMP_REG_* constants.
- * Returns a pointer to a descriptor structure for the temporary register that was allocated
+ * Returns the index of the PPC temporary register that was allocated
  */
-comp_tmp_reg* comp_allocate_temp_register(struct m68k_register* allocate_for)
+uae_u8 comp_allocate_temp_register(int allocate_for)
 {
 	uae_u8 i;
-	comp_tmp_reg* reg;
 
 	//Allocate the next free temporary register
 	for(i = 0; i < PPC_TMP_REGS_COUNT; i++)
-		if (!used_tmp_regs[i].allocated) break;
+		if (used_tmp_regs[i] == PPC_TMP_REG_NOTUSED) break;
 
-	if (i != PPC_TMP_REGS_COUNT)
-	{
-		reg = &used_tmp_regs[i];
-	}
-	else
+	if (i == PPC_TMP_REGS_COUNT)
 	{
 		//All registers are allocated: find an unlocked register for unmapping
-		reg = comp_find_unlocked_temp_register();
+		i = comp_find_unlocked_temp_register();
 
 		//Unmap the register and reuse the temporary register
-		comp_unmap_temp_register(reg->allocated_for);
+		comp_unmap_temp_register(used_tmp_regs[i]);
 	}
 
 	//Set allocated state for the register
-	reg->allocated = TRUE;
-	reg->allocated_for = allocate_for;
+	used_tmp_regs[i] = allocate_for;
 
 //	write_jit_log("Temp register allocated: %d\n", (int)i);
 
-	return reg;
+	return i;
 }
 
 /**
@@ -850,18 +825,62 @@ comp_tmp_reg* comp_allocate_temp_register(struct m68k_register* allocate_for)
  * Parameters:
  *    temp_reg - index of the temporary register that needs to be free'd
  */
-void comp_free_temp_register(comp_tmp_reg* temp_reg)
+void comp_free_temp_register(uae_u8 temp_reg)
 {
-	if (!temp_reg->allocated)
+	if (used_tmp_regs[temp_reg] == PPC_TMP_REG_NOTUSED)
 	{
 		//Wasn't allocated
 		write_jit_log("Warning: Temporary register %d was not allocated, but now it is free'd\n", temp_reg);
 		return;
 	}
 
-	comp_reset_tmp_register(temp_reg);
+	used_tmp_regs[temp_reg] = PPC_TMP_REG_NOTUSED;
 
 //	write_jit_log("Temp register free'd: %d\n", (int)temp_reg);
+}
+
+/**
+ * Returns the GPR register that is mapped to a temporary register index
+ */
+uae_u8 comp_get_gpr_for_temp_register(uae_u8 tmpreg)
+{
+	if (tmpreg >= PPC_TMP_REGS_COUNT)
+	{
+		write_log("ERROR: JIT temporary register index '%d' cannot be mapped to GPR\n", tmpreg);
+	}
+
+	if (used_tmp_regs[tmpreg] == PPC_TMP_REG_NOTUSED)
+	{
+		write_log("ERROR: JIT temporary register '%d' is not allocated, but mapping info is requested\n");
+		abort();
+	}
+
+	return PPC_TMP_REGS[tmpreg];
+}
+
+/**
+ * Returns the temporary register index that is mapped to the specified GPR register
+ */
+uae_u8 comp_get_temp_for_gpr_register(uae_u8 reg_mapped)
+{
+	int i;
+
+	for(i = 0; i <PPC_TMP_REGS_COUNT; i++)
+	{
+		if (PPC_TMP_REGS[i] == reg_mapped)
+		{
+			if (used_tmp_regs[i] == PPC_TMP_REG_NOTUSED)
+			{
+				write_log("ERROR: JIT temporary register '%d' is not allocated, but reverse mapping info is requested\n");
+				abort();
+			}
+
+			return i;
+		}
+	}
+
+	write_log("ERROR: JIT GPR '%d' cannot be mapped to temporary register index\n", reg_mapped);
+	abort();
 }
 
 /**
@@ -875,21 +894,22 @@ void comp_flush_temp_registers(int supresswarning)
 	/* Flush temporary registers list */
 	for (i = 0; i < PPC_TMP_REGS_COUNT; i++)
 	{
-		comp_tmp_reg* reg = &used_tmp_regs[i];
-		if (reg->allocated)
+		switch (used_tmp_regs[i])
 		{
-			if (reg->allocated_for)
+		case PPC_TMP_REG_NOTUSED:
+			break;
+		case PPC_TMP_REG_ALLOCATED:
+			//This register is allocated for temporary operations, must be deallocated, but let it slip with a warning
+			if (!supresswarning)
 			{
-				comp_unmap_temp_register(reg->allocated_for);
+				write_jit_log("Warning: Temporary register %d allocated but not free'd\n", i);
 			}
-			else
-			{
-				if (!supresswarning)
-				{
-					write_jit_log("Warning: Temporary register %d allocated but not free'd\n", i);
-				}
-				comp_reset_tmp_register(reg);
-			}
+			used_tmp_regs[i] = PPC_TMP_REG_NOTUSED;
+			break;
+		default:
+			//Temp register is mapped to a M68k register
+			comp_unmap_temp_register(used_tmp_regs[i]);
+			break;
 		}
 	}
 }
@@ -902,26 +922,28 @@ void comp_flush_temp_registers(int supresswarning)
  *   needs_flush - if TRUE then the register must be written back to the regs array on releasing
  * Returns the mapped physical PPC register number.
  */
-comp_tmp_reg* comp_map_temp_register(uae_u8 reg_number, int needs_init, int needs_flush)
+uae_u8 comp_map_temp_register(uae_u8 reg_number, int needs_init, int needs_flush)
 {
-	comp_tmp_reg* temp_reg;
+	uae_u8 tmpreg;
+	uae_u8 ppc_reg;
 	struct m68k_register* reg = &comp_m68k_registers[reg_number];
 
 	//Check for already mapped register
-	if (reg->tmpreg != NULL)
+	if (reg->tmpreg != PPC_TMP_REG_NOTUSED)
 	{
 		//It is already mapped, but we need to make sure that if flush is
 		//requested for this mapping and wasn't for the previous mapping then
 		//still it will be done at the end
 		reg->needs_flush |= needs_flush;
-		temp_reg = reg->tmpreg;
+		ppc_reg = comp_get_gpr_for_temp_register(reg->tmpreg);
 	} else {
 		//Allocate a temp register for the mapping
-		temp_reg = comp_allocate_temp_register(reg);
+		tmpreg = comp_allocate_temp_register(reg_number);
 
 		//Map the temp register
-		reg->tmpreg = temp_reg;
+		reg->tmpreg = tmpreg;
 		reg->needs_flush = needs_flush;
+		ppc_reg = comp_get_gpr_for_temp_register(tmpreg);
 
 		if (needs_init)
 		{
@@ -929,7 +951,7 @@ comp_tmp_reg* comp_map_temp_register(uae_u8 reg_number, int needs_init, int need
 			comp_macroblock_push_load_memory_long(
 					COMP_COMPILER_MACROBLOCK_REG_NONE,
 					COMP_COMPILER_MACROBLOCK_REG_DX_OR_AX(reg_number),
-					temp_reg->mapped_reg_num,
+					ppc_reg,
 					PPCR_REGS_BASE,
 					reg_number * 4);
 		}
@@ -938,7 +960,7 @@ comp_tmp_reg* comp_map_temp_register(uae_u8 reg_number, int needs_init, int need
 	//Lock the register for this instruction
 	reg->locked = TRUE;
 
-	return temp_reg;
+	return ppc_reg;
 }
 
 /**
@@ -949,27 +971,26 @@ comp_tmp_reg* comp_map_temp_register(uae_u8 reg_number, int needs_init, int need
  * Note: The registers must be mapped before the swap, all register mapping flags are preserved (not swapped).
  * Make sure other references are also swapped if it is necessary.
  */
-void comp_swap_temp_register_mapping(comp_tmp_reg* tmpreg1, comp_tmp_reg* tmpreg2)
+void comp_swap_temp_register_mapping(uae_u8 tmpreg1, uae_u8 tmpreg2)
 {
-	if ((!tmpreg1->allocated) || (!tmpreg2->allocated))
+	if ((used_tmp_regs[tmpreg1] == PPC_TMP_REG_NOTUSED) || (used_tmp_regs[tmpreg2] == PPC_TMP_REG_NOTUSED))
 	{
 		write_log("ERROR: JIT temporary register swap on not mapped registers, reg1: %d, reg2: %d\n", tmpreg1, tmpreg2);
 		abort();
 	}
 
-	//Swap M68K register structure pointers
-	struct m68k_register* tmp = tmpreg1->allocated_for;
-	tmpreg1->allocated_for = tmpreg2->allocated_for;
-	tmpreg2->allocated_for = tmp;
+	int tmp = used_tmp_regs[tmpreg1];
+	used_tmp_regs[tmpreg1] = used_tmp_regs[tmpreg2];
+	used_tmp_regs[tmpreg2] = tmp;
 
 	//We have to check the temp register mapping in the associated m68k_register structure too and swap it
-	if (tmpreg1->allocated_for != NULL)
+	if (used_tmp_regs[tmpreg1] != PPC_TMP_REG_ALLOCATED)
 	{
-		tmpreg1->allocated_for->tmpreg = tmpreg1;
+		comp_m68k_registers[used_tmp_regs[tmpreg1]].tmpreg = tmpreg1;
 	}
-	if (tmpreg2->allocated_for != NULL)
+	if (used_tmp_regs[tmpreg2] != PPC_TMP_REG_ALLOCATED)
 	{
-		tmpreg2->allocated_for->tmpreg = tmpreg2;
+		comp_m68k_registers[used_tmp_regs[tmpreg2]].tmpreg = tmpreg2;
 	}
 }
 
@@ -979,9 +1000,16 @@ void comp_swap_temp_register_mapping(comp_tmp_reg* tmpreg1, comp_tmp_reg* tmpreg
  *   reg_number - number of the M68k register for the mapping
  * Returns the mapped physical PPC register number, or PPC_TMP_REG_NOTUSED if it was not mapped yet.
  */
-comp_tmp_reg* comp_get_mapped_temp_register(uae_u8 reg_number)
+int comp_get_mapped_temp_register(uae_u8 reg_number)
 {
-	return comp_m68k_registers[reg_number].tmpreg;
+	struct m68k_register* reg = &comp_m68k_registers[reg_number];
+
+	if (reg->tmpreg == PPC_TMP_REG_NOTUSED)
+	{
+		return PPC_TMP_REG_NOTUSED;
+	} else {
+		return comp_get_gpr_for_temp_register(reg->tmpreg);
+	}
 }
 
 /**
@@ -989,11 +1017,13 @@ comp_tmp_reg* comp_get_mapped_temp_register(uae_u8 reg_number)
  * Parameters:
  *    reg_number - M68k register number that is mapped
  */
-void comp_unmap_temp_register(struct m68k_register* reg)
+void comp_unmap_temp_register(uae_u8 reg_number)
 {
-	if (reg->tmpreg == NULL)
+	struct m68k_register* reg = &comp_m68k_registers[reg_number];
+
+	if (reg->tmpreg == PPC_TMP_REG_NOTUSED)
 	{
-		write_jit_log("Warning: Free'd M68k register %d is not mapped to a temp register\n", reg->regnum);
+		write_jit_log("Warning: Free'd M68k register %d is not mapped to a temp register\n", reg_number);
 	}
 	else
 	{
@@ -1001,14 +1031,14 @@ void comp_unmap_temp_register(struct m68k_register* reg)
 		{
 			//Register must be written back to the regs array
 			comp_macroblock_push_save_memory_long(
-					COMP_COMPILER_MACROBLOCK_REG_DX_OR_AX(reg->regnum),
+					COMP_COMPILER_MACROBLOCK_REG_DX_OR_AX(reg_number),
 					COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-					reg->tmpreg->mapped_reg_num,
+					comp_get_gpr_for_temp_register(reg->tmpreg),
 					PPCR_REGS_BASE,
-					reg->regnum * 4);
+					reg_number * 4);
 		}
-		comp_reset_tmp_register(reg->tmpreg);
-		reg->tmpreg = NULL;
+		used_tmp_regs[reg->tmpreg] = PPC_TMP_REG_NOTUSED;
+		reg->tmpreg = PPC_TMP_REG_NOTUSED;
 		reg->locked = FALSE;
 	}
 }
@@ -2572,7 +2602,7 @@ uae_u32 comp_ppc_save_temp_regs(uae_u32 exceptions)
 		uae_u32 reg = 1 << PPC_TMP_REGS[i];
 
 		//If the register is allocated and not on the exceptions list
-		if ((used_tmp_regs[i].allocated) && ((exceptions & reg) == 0))
+		if ((used_tmp_regs[i] != PPC_TMP_REG_NOTUSED) && ((exceptions & reg) == 0))
 		{
 			//Then save it
 			saved_regs |= reg;
