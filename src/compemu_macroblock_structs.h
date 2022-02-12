@@ -209,18 +209,6 @@ struct comp_compiler_mb_set_pc_on_z_flag
 	comp_ppc_reg decrement_reg;			//Mapped decrement register (optional)
 };
 
-struct comp_compiler_mb_division_two_reg_opcode
-{
-	struct comp_compiler_mb mb;			//Default macroblock descriptor
-	comp_exception_data exception_data;	//Data for the exception triggering
-	BOOL signed_division;				//If TRUE then this division is a signed operation, unsigned otherwise
-	comp_ppc_reg output_reg;			//Mapped output register
-	comp_ppc_reg divisor_reg;			//Mapped divisor register
-	comp_ppc_reg dividend_reg;			//Mapped dividend register
-	comp_ppc_reg temp_reg1;				//Mapped temporary#1 register
-	comp_ppc_reg temp_reg2;				//Mapped temporary#2 register
-};
-
 //Union of all macroblock descriptor structures
 union comp_compiler_mb_union
 {
@@ -245,5 +233,4 @@ union comp_compiler_mb_union
 	struct comp_compiler_mb_extract_c_flag_shift extract_c_flag_shift;
 	struct comp_compiler_mb_set_byte_from_z_flag set_byte_from_z_flag;
 	struct comp_compiler_mb_set_pc_on_z_flag set_pc_on_z_flag;
-	struct comp_compiler_mb_division_two_reg_opcode division_two_reg_opcode;
 };

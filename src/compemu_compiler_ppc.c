@@ -59,7 +59,6 @@ void comp_macroblock_impl_save_memory_word(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_save_memory_word_update(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_save_memory_byte(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_add_with_flags(union comp_compiler_mb_union* mb);
-void comp_macroblock_impl_add_register_register(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_add_extended_with_flags(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_add(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_sub(union comp_compiler_mb_union* mb);
@@ -111,7 +110,6 @@ void comp_macroblock_impl_set_byte_from_z_flag(union comp_compiler_mb_union* mb)
 void comp_macroblock_impl_or_negative_mask_if_n_flag_set(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_convert_ccr_to_internal(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_convert_internal_to_ccr(union comp_compiler_mb_union* mb);
-void comp_macroblock_impl_division_32_16bit(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_stop(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_nop(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_null_operation(union comp_compiler_mb_union* mb);
@@ -378,8 +376,6 @@ void comp_macroblock_push_load_flags()
  * We assume the GCC PPC target, there are two fields in the structure: cznv and x
  * These two fields both have to be saved, but no other operation is needed to separate the flags.
  * Have a look on md-ppc-gcc/m68k.h for the details.
- * Note: this is the same implementation as comp_ppc_save_flags() function, but
- *       prepares macroblocks instead of direct code emitting.
  */
 void comp_macroblock_push_save_flags()
 {
@@ -406,9 +402,7 @@ void comp_macroblock_push_save_flags()
 
 /**
  * Macroblock: Loads the M68k PC
- * Note: this macroblock won't be optimized away.
- * 		 Same implementation as comp_ppc_load_pc() function, but it pushes macroblocks
- * 		 instead of emitting code directly.
+ * Note: this macroblock won't be optimized away
  */
 void comp_macroblock_push_load_pc(const cpu_history * inst_history)
 {
@@ -474,30 +468,6 @@ void comp_macroblock_impl_add_with_flags(union comp_compiler_mb_union* mb)
 			mb->three_regs_opcode.input_reg1,
 			mb->three_regs_opcode.input_reg2,
 			TRUE);
-}
-
-/**
- * Macroblock: Adds two registers then copies the result into a third, updates only
- * the flags in PPC flag register for negative and zero (NZ)
- */
-void comp_macroblock_push_add_register_register(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg1, comp_ppc_reg input_reg2, BOOL updateflags)
-{
-	comp_mb_init(mb,
-				comp_macroblock_impl_add_register_register,
-				regsin, regsout);
-	mb->three_regs_opcode_flags.output_reg = output_reg;
-	mb->three_regs_opcode_flags.input_reg1 = input_reg1;
-	mb->three_regs_opcode_flags.input_reg2 = input_reg2;
-	mb->three_regs_opcode_flags.updateflags = updateflags;
-}
-
-void comp_macroblock_impl_add_register_register(union comp_compiler_mb_union* mb)
-{
-	comp_ppc_add(
-			mb->three_regs_opcode_flags.output_reg,
-			mb->three_regs_opcode_flags.input_reg1,
-			mb->three_regs_opcode_flags.input_reg2,
-			mb->three_regs_opcode_flags.updateflags);
 }
 
 /**
@@ -2487,150 +2457,4 @@ void comp_macroblock_impl_convert_internal_to_ccr(union comp_compiler_mb_union* 
 
 	//Insert the X flag
 	comp_ppc_rlwimi(output_reg, input_reg, 31, 27, 27, FALSE);
-}
-
-/**
- * Division of 32 bit register by 16 bit register, output is quotient (lower 16 bit) and remainder (higher 16 bit).
- * Flags are also set according to the inputs and result.
- * This macroblock can cause a division by zero exception.
- */
-void comp_macroblock_push_division_32_16bit(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg dividend_reg, comp_ppc_reg divisor_reg, BOOL signed_division, uae_u32 next_address, uae_u32 next_location)
-{
-	comp_tmp_reg* tempreg1 = comp_allocate_temp_register(NULL);
-	comp_tmp_reg* tempreg2 = comp_allocate_temp_register(NULL);
-
-	comp_mb_init(mb,
-				comp_macroblock_impl_division_32_16bit,
-				regsin,
-				regsout | COMP_COMPILER_MACROBLOCK_REG_FLAGN | COMP_COMPILER_MACROBLOCK_REG_FLAGZ | COMP_COMPILER_MACROBLOCK_REG_FLAGC | COMP_COMPILER_MACROBLOCK_REG_FLAGV);
-	mb->division_two_reg_opcode.output_reg = output_reg;
-	mb->division_two_reg_opcode.dividend_reg = dividend_reg;
-	mb->division_two_reg_opcode.divisor_reg = divisor_reg;
-	mb->division_two_reg_opcode.signed_division = signed_division;
-	mb->division_two_reg_opcode.temp_reg1 = tempreg1->mapped_reg_num;
-	mb->division_two_reg_opcode.temp_reg2 = tempreg2->mapped_reg_num;
-
-	//Get the list of mapped registers directly into the list array
-	comp_get_changed_mapped_regs_list(mb->division_two_reg_opcode.exception_data.mapped_regs);
-
-	 //Next instruction will be used for the return address
-	mb->division_two_reg_opcode.exception_data.next_address = next_address;
-	mb->division_two_reg_opcode.exception_data.next_location = next_location;
-
-	comp_free_temp_register(tempreg1);
-	comp_free_temp_register(tempreg2);
-}
-
-void comp_macroblock_impl_division_32_16bit(union comp_compiler_mb_union* mb)
-{
-	//TODO: optimize register/flag compiling according to the calculated input/output for the macroblock
-
-	comp_ppc_reg output_reg = mb->division_two_reg_opcode.output_reg;
-	comp_ppc_reg dividend_reg = mb->division_two_reg_opcode.dividend_reg;
-	comp_ppc_reg divisor_reg = mb->division_two_reg_opcode.divisor_reg;
-	comp_ppc_reg temp_reg1 = mb->division_two_reg_opcode.temp_reg1;
-	comp_ppc_reg temp_reg2 = mb->division_two_reg_opcode.temp_reg2;
-	BOOL signed_division = mb->division_two_reg_opcode.signed_division;
-
-	//Load next address into PC
-	comp_ppc_load_pc(mb->division_two_reg_opcode.exception_data.next_address, mb->division_two_reg_opcode.exception_data.next_location);
-
-	//Clear N, Z, C and V flags
-	//This is not defined in the processor documentation and there are side-effects,
-	//but the interpretive emulation is doing this.
-	comp_ppc_andi(PPCR_FLAGS_MAPPED, PPCR_FLAGS_MAPPED, 0xffff);
-
-	//Copy 16 bits of the dividend into the temp register#1
-	if (signed_division)
-	{
-		//Signed division: sign extend
-		comp_ppc_extsh(temp_reg1, divisor_reg, TRUE);
-	} else {
-		//Unsigned division: mask out higher 16 bit
-		comp_ppc_andi(temp_reg1, divisor_reg, 0xFFFF);
-	}
-
-	//Check for division by zero (dividend is zero - Z flag is coming from previous instruction)
-	//Skip exception if it is non-zero
-	comp_ppc_bc(PPC_B_CR_TMP0_NE | PPC_B_TAKEN, 0);
-
-	//According to the processor documentation N, Z and V flags are undefined at the exception,
-	//but the interpretive sets these flags too, so I copied the steps.
-	if (signed_division)
-	{
-		//Set Z and V flags
-		comp_ppc_oris(PPCR_FLAGS_MAPPED, PPCR_FLAGS_MAPPED, (1 << (PPCR_FLAG_Z - 16)) | (1 << (PPCR_FLAG_V - 16)));
-	} else {
-		//Set V flag
-		comp_ppc_oris(PPCR_FLAGS_MAPPED, PPCR_FLAGS_MAPPED, (1 << (PPCR_FLAG_V - 16)));
-
-		//If unsigned operation then N flag is set when dividend is negative
-		comp_ppc_andis(PPCR_SPECTMP_MAPPED, dividend_reg, 0x8000);
-		comp_ppc_or(PPCR_FLAGS_MAPPED, PPCR_FLAGS_MAPPED, PPCR_SPECTMP_MAPPED, FALSE);
-	}
-
-	//Trigger exception (leaves the block)
-	comp_ppc_exception(5, &mb->division_two_reg_opcode.exception_data);
-
-	//Continue after the exception code
-	comp_ppc_branch_target(0);
-
-	//Execute division, quotient goes to the temp register#2
-	if (signed_division)
-	{
-		comp_ppc_divwo(temp_reg2, dividend_reg, temp_reg1, TRUE);
-	} else {
-		comp_ppc_divwuo(temp_reg2, dividend_reg, temp_reg1, TRUE);
-	}
-
-	//Check for overflow
-	if (signed_division)
-	{
-		//Extend result to 32 bit
-		comp_ppc_extsh(PPCR_SPECTMP_MAPPED, temp_reg2, FALSE);
-
-		//If it is the same as the original then there is no overflow
-		comp_ppc_cmplw(PPCR_CR_TMP1, PPCR_SPECTMP_MAPPED, temp_reg2);
-	} else {
-		//Extract higher 16 bits
-		comp_ppc_rlwinm(PPCR_SPECTMP_MAPPED, temp_reg2, 16, 16, 31, FALSE);
-
-		//Is it zero?
-		comp_ppc_cmplwi(PPCR_CR_TMP1, PPCR_SPECTMP_MAPPED, 0);
-	}
-
-	//Skip setting V flag and leaving early
-	comp_ppc_bc(PPC_B_CR_TMP1_EQ | PPC_B_TAKEN, 0);
-
-	//Set V and N flags (again: N flag supposed to be undefined, but the interpretive sets it)
-	comp_ppc_oris(PPCR_FLAGS_MAPPED, PPCR_FLAGS_MAPPED, (1 << (PPCR_FLAG_V - 16)) | (1 << (PPCR_FLAG_N - 16)));
-
-	//Leave the instruction without any other changes
-	comp_ppc_b(0, 1);
-
-	//Continue
-	comp_ppc_branch_target(0);
-
-	//Save N and Z flags
-#ifdef _ARCH_PWR4
-	comp_ppc_mfocrf(PPCR_CR_TMP0, PPCR_SPECTMP_MAPPED);
-#else
-	comp_ppc_mfcr(PPCR_SPECTMP_MAPPED);
-#endif
-	comp_ppc_rlwimi(PPCR_FLAGS_MAPPED, PPCR_SPECTMP_MAPPED, 0, 0, 2, FALSE);
-
-	//Calculate remainder: multiply the result by the divisor
-	comp_ppc_mullwo(PPCR_SPECTMP_MAPPED, temp_reg2, temp_reg1, FALSE);
-
-	//Then subtract from dividend
-	comp_ppc_subf(PPCR_SPECTMP_MAPPED, PPCR_SPECTMP_MAPPED, dividend_reg, FALSE);
-
-	//Copy quotient to the output register
-	comp_ppc_mr(output_reg, temp_reg2, FALSE);
-
-	//Insert remainder into the higher 16 bits
-	comp_ppc_rlwimi(output_reg, PPCR_SPECTMP_MAPPED, 16, 0, 15, FALSE);
-
-	//End of the instruction, in case of overflow this is where the execution continues
-	comp_ppc_branch_target(1);
 }

@@ -52,10 +52,7 @@ STATIC_INLINE void helper_allocate_ax_dest_mem_reg(struct comptbl* props, int mo
 STATIC_INLINE void helper_add_imm_to_dest_ax(struct comptbl* props, uae_u16 immediate);
 STATIC_INLINE void helper_allocate_2_ax_dest_mem_regs(struct comptbl* props, int modified);
 STATIC_INLINE comp_tmp_reg* helper_read_memory(uae_u64 regsin, const cpu_history* history, comp_tmp_reg* target_reg, uae_u8 size, BOOL preservedestreg);
-STATIC_INLINE comp_tmp_reg* helper_read_memory_mapped(uae_u64 regsin, const cpu_history* history, comp_ppc_reg target_reg_mapped, uae_u8 size, BOOL preservedestreg);
 STATIC_INLINE void helper_write_memory(uae_u64 regsin, const cpu_history* history, comp_tmp_reg* target_mem, comp_tmp_reg* input_reg, uae_u8 size);
-STATIC_INLINE void helper_write_memory_mapped(uae_u64 regsin, const cpu_history* history, comp_ppc_reg target_reg_mapped, comp_tmp_reg* input_reg, uae_u8 size);
-STATIC_INLINE BOOL helper_write_memory_mapped_no_free(uae_u64 regsin, const cpu_history* history, comp_ppc_reg target_reg_mapped, comp_ppc_reg input_reg_mapped, uae_u8 size);
 STATIC_INLINE void helper_check_result_set_flags(uae_u64 regsin, comp_ppc_reg input_reg, uae_u8 size);
 STATIC_INLINE void helper_copy_result_set_flags(comp_tmp_reg* src_reg, uae_u8 size);
 STATIC_INLINE void helper_MOVIMMREG2MEM(const cpu_history* history, uae_u8 size, int immediate, int checkflags);
@@ -91,12 +88,8 @@ STATIC_INLINE comp_tmp_reg* helper_test_bit_register_register(uae_u64 regsbit, u
 STATIC_INLINE uae_u32 helper_convert_ccr_to_internal_static(uae_u8 ccr);
 STATIC_INLINE uae_u64 helper_calculate_ccr_flag_dependency(uae_u8 ccr);
 STATIC_INLINE void helper_bit_field_reg_opertion_flag_test(signed int extword, comp_tmp_reg** returned_mask_reg, comp_tmp_reg** returned_summary_offset_reg);
-STATIC_INLINE void helper_bit_field_mem_opertion_flag_test(const cpu_history* history, signed int extword, comp_tmp_reg** returned_data_reg_combined, comp_tmp_reg** returned_data_reg_high, comp_tmp_reg** returned_data_reg_low, comp_tmp_reg** returned_mask_reg_high, comp_tmp_reg** returned_mask_reg_low, comp_tmp_reg** returned_summary_offset_reg, comp_tmp_reg** returned_complement_width, BOOL return_adjusted_dest_address, BOOL return_offset);
-STATIC_INLINE void helper_bit_field_mem_save(const cpu_history* history, comp_tmp_reg* data_reg_low, comp_tmp_reg* data_reg_high);
 STATIC_INLINE comp_tmp_reg* helper_extract_bitfield_offset(signed int extword);
-STATIC_INLINE comp_tmp_reg* helper_create_bitfield_mask(signed int extword, comp_tmp_reg* summary_offset_reg, uae_u64 bit_field_offset_dep, comp_ppc_reg bit_field_offset_mapped, comp_tmp_reg** returned_bit_field_complement_width);
-STATIC_INLINE comp_tmp_reg* helper_bit_field_extract_reg(signed int extword, uae_u64* returned_dependency, BOOL is_src_reg);
-STATIC_INLINE void helper_mov16(const cpu_history* history, uae_u64 local_src_dep, comp_tmp_reg* local_src_reg, BOOL update_src, uae_u64 local_dest_dep, comp_tmp_reg* local_dest_reg, BOOL update_dest);
+STATIC_INLINE comp_tmp_reg* helper_create_bitfield_mask(signed int extword, comp_tmp_reg* summary_offset_reg, comp_tmp_reg* bit_field_offset, comp_tmp_reg** returned_bit_field_width);
 
 /**
  * Local variables
@@ -273,7 +266,7 @@ void comp_addr_pre_indPCd16_src(const cpu_history* history, struct comptbl* prop
 	//The next word after the instruction is the word offset,
 	//load it with sign extension and add it to the current PC
 	//(also taking account the previous steps for the PC)
-	uae_u32 address = COMP_GET_CURRENT_PC + *((signed short*)pc_ptr);
+	uae_u32 address = ((uae_u32)history->pc) + ((uae_u32)pc_ptr - (uae_u32)history->location) + *((signed short*)pc_ptr);
 	pc_ptr++;
 
 	src_mem_addrreg = helper_allocate_tmp_reg();
@@ -325,7 +318,7 @@ void comp_addr_pre_indAcp_src(const cpu_history* history, struct comptbl* props)
 void comp_addr_pre_indPCcp_src(const cpu_history* history, struct comptbl* props) REGPARAM
 {
 	//Load the current PC to the address variable
-	uae_u32 address = COMP_GET_CURRENT_PC;
+	uae_u32 address = ((uae_u32)history->pc) + ((uae_u32)pc_ptr - (uae_u32)history->location);
 
 	//Map registers
 	helper_allocate_2_ax_src_mem_regs(props, FALSE);
@@ -566,7 +559,7 @@ void comp_addr_pre_indPCd16_dest(const cpu_history* history, struct comptbl* pro
 	//The next word after the instruction is the word offset,
 	//load it with sign extension and add it to the current PC
 	//(also taking account the previous steps for the PC)
-	uae_u32 address = COMP_GET_CURRENT_PC + *((signed short*)pc_ptr);
+	uae_u32 address = ((uae_u32)history->pc) + ((uae_u32)pc_ptr - (uae_u32)history->location) + *((signed short*)pc_ptr);
 	pc_ptr++;
 
 	dest_mem_addrreg = helper_allocate_tmp_reg();
@@ -618,7 +611,7 @@ void comp_addr_pre_indAcp_dest(const cpu_history* history, struct comptbl* props
 void comp_addr_pre_indPCcp_dest(const cpu_history* history, struct comptbl* props) REGPARAM
 {
 	//Load the current PC to the address variable
-	uae_u32 address = COMP_GET_CURRENT_PC - (uae_u32)history->location;
+	uae_u32 address = ((uae_u32)history->pc) + ((uae_u32)pc_ptr - (uae_u32)history->location);
 
 	//Map registers
 	helper_allocate_2_ax_dest_mem_regs(props, FALSE);
@@ -1213,74 +1206,23 @@ void comp_opcode_MOVIMM2MEM(const cpu_history* history, struct comptbl* props) R
 }
 void comp_opcode_MOV16REG2REGU(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Get extension word
-	signed int extword = *((signed short*)(history->location + 1));
-
-	//Extract destination register
-	int regnum = (extword >> 12) & 7;
-
-	//Map destination register
-	comp_tmp_reg* local_dest_reg = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(regnum), TRUE, TRUE);
-	uae_u64 local_dest_reg_dep = COMP_COMPILER_MACROBLOCK_REG_AX(regnum);
-
-	//Remap source register for update
-	src_reg = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->srcreg), TRUE, TRUE);
-	input_dep = COMP_COMPILER_MACROBLOCK_REG_AX(props->srcreg);
-
-	//Copy memory line
-	helper_mov16(history, input_dep, src_reg, TRUE, local_dest_reg_dep, local_dest_reg, TRUE);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_opcode_MOV16REG2MEMU(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Remap source register for update
-	src_reg = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->srcreg), TRUE, TRUE);
-	input_dep = COMP_COMPILER_MACROBLOCK_REG_AX(props->srcreg);
-
-	//Allocate memory address register for destination and init with the address
-	//TODO: this can be optimized by pre-loading the immediate directly into the address register used in the helper
-	comp_tmp_reg* local_dest_reg = helper_allocate_tmp_reg_with_init(dest_immediate);
-
-	//Copy memory line
-	helper_mov16(history,
-				 input_dep, src_reg, TRUE,
-				 local_dest_reg->reg_usage_mapping, local_dest_reg, FALSE);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_opcode_MOV16MEM2REGU(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Remap destination register for update
-	dest_reg = comp_map_temp_register(COMP_COMPILER_REGS_ADDRREG(props->destreg), TRUE, TRUE);
-	output_dep = COMP_COMPILER_MACROBLOCK_REG_AX(props->destreg);
-
-	//Allocate memory address register for source and init with the address
-	//TODO: this can be optimized by pre-loading the immediate directly into the address register used in the helper
-	comp_tmp_reg* local_src_reg = helper_allocate_tmp_reg_with_init(src_immediate);
-
-	//Copy memory line
-	helper_mov16(history,
-				 local_src_reg->reg_usage_mapping, local_src_reg, FALSE,
-				 output_dep, dest_reg, TRUE);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_opcode_MOV16REG2MEM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Allocate memory address register for destination and init with the address
-	//TODO: this can be optimized by pre-loading the immediate directly into the address register used in the helper
-	comp_tmp_reg* local_dest_reg = helper_allocate_tmp_reg_with_init(dest_immediate);
-
-	//Copy memory line
-	helper_mov16(history,
-				 input_dep, src_reg, FALSE,
-				 local_dest_reg->reg_usage_mapping, local_dest_reg, FALSE);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_opcode_MOV16MEM2REG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Allocate memory address register for source and init with the address
-	//TODO: this can be optimized by pre-loading the immediate directly into the address register used in the helper
-	comp_tmp_reg* local_src_reg = helper_allocate_tmp_reg_with_init(src_immediate);
-
-	//Copy memory line
-	helper_mov16(history,
-				 local_src_reg->reg_usage_mapping, local_src_reg, FALSE,
-				 output_dep, dest_reg, FALSE);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_opcode_CLRREG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
@@ -1841,7 +1783,7 @@ void comp_opcode_EORIMM2MEM(const cpu_history* history, struct comptbl* props) R
 				src_immediate);
 
 		//Check flags
-		helper_check_result_set_flags(tempreg->reg_usage_mapping, tempreg->mapped_reg_num, size);
+		helper_check_result_set_flags(output_dep, dest_reg->mapped_reg_num, size);
 	}
 
 	//Save flags
@@ -2027,7 +1969,7 @@ void comp_opcode_ANDIMM2MEM(const cpu_history* history, struct comptbl* props) R
 				src_immediate);
 
 		//Check flags
-		helper_check_result_set_flags(tempreg->reg_usage_mapping, tempreg->mapped_reg_num, size);
+		helper_check_result_set_flags(output_dep, tempreg->mapped_reg_num, size);
 	}
 
 	//Save flags
@@ -2242,7 +2184,7 @@ void comp_opcode_ORIMM2MEM(const cpu_history* history, struct comptbl* props) RE
 				src_immediate);
 
 		//Check flags
-		helper_check_result_set_flags(tempreg->reg_usage_mapping, tempreg->mapped_reg_num, size);
+		helper_check_result_set_flags(output_dep, tempreg->mapped_reg_num, size);
 	}
 
 	//Save flags
@@ -2451,7 +2393,7 @@ void comp_opcode_NOTMEM(const cpu_history* history, struct comptbl* props) REGPA
 				0xffff);
 
 		//Check result
-		comp_macroblock_push_check_word_register(tempreg->reg_usage_mapping, tempreg->mapped_reg_num);
+		comp_macroblock_push_check_word_register(output_dep, dest_reg->mapped_reg_num);
 		break;
 	case 1:
 		comp_macroblock_push_xor_low_register_imm(
@@ -2462,7 +2404,7 @@ void comp_opcode_NOTMEM(const cpu_history* history, struct comptbl* props) REGPA
 				0xff);
 
 		//Check result
-		comp_macroblock_push_check_byte_register(tempreg->reg_usage_mapping, tempreg->mapped_reg_num);
+		comp_macroblock_push_check_byte_register(output_dep, dest_reg->mapped_reg_num);
 		break;
 	default:
 		write_log("Error: wrong operation size for NOTMEM\n");
@@ -6449,121 +6391,27 @@ void comp_opcode_MULMEM2REG(const cpu_history* history, struct comptbl* props) R
 }
 void comp_opcode_DIVSIMM2REG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//TODO: this implementation can be improved by detecting the zero immediate while compiling
-
-	//Load immediate into a register
-	comp_tmp_reg* local_src_reg = helper_allocate_tmp_reg_with_init(src_immediate);
-
-	//TODO: pre-loaded immediate needs no processing (e.g. masking), but the implementation is a generic macroblock
-	comp_macroblock_push_division_32_16bit(
-			local_src_reg->reg_usage_mapping | output_dep,
-			output_dep,
-			dest_reg->mapped_reg_num,
-			dest_reg->mapped_reg_num,
-			local_src_reg->mapped_reg_num,
-			TRUE,
-			COMP_GET_CURRENT_PC,
-			(uae_u32)pc_ptr);
-
-	//Release temp register
-	helper_free_tmp_reg(local_src_reg);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_opcode_DIVSREG2REG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_macroblock_push_division_32_16bit(
-			input_dep | output_dep,
-			output_dep,
-			dest_reg->mapped_reg_num,
-			dest_reg->mapped_reg_num,
-			src_reg->mapped_reg_num,
-			TRUE,
-			COMP_GET_CURRENT_PC,
-			(uae_u32)pc_ptr);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_opcode_DIVSMEM2REG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Read memory from source
-	comp_tmp_reg* local_src_reg = helper_read_memory(
-			src_mem_addrreg->reg_usage_mapping,
-			history,
-			src_mem_addrreg,
-			2,
-			FALSE);
-
-	//Re-map destination register
-	dest_reg = comp_map_temp_register(COMP_COMPILER_REGS_DATAREG(props->destreg), TRUE, TRUE);
-
-	comp_macroblock_push_division_32_16bit(
-			local_src_reg->reg_usage_mapping | output_dep,
-			output_dep,
-			dest_reg->mapped_reg_num,
-			dest_reg->mapped_reg_num,
-			local_src_reg->mapped_reg_num,
-			TRUE,
-			COMP_GET_CURRENT_PC,
-			(uae_u32)pc_ptr);
-
-	//Release temp register
-	helper_free_tmp_reg(local_src_reg);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_opcode_DIVUIMM2REG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//TODO: this implementation can be improved by detecting the zero immediate while compiling
-
-	//Load immediate into a register
-	comp_tmp_reg* local_src_reg = helper_allocate_tmp_reg_with_init(src_immediate);
-
-	//TODO: pre-loaded immediate needs no processing (e.g. masking), but the implementation is a generic macroblock
-	comp_macroblock_push_division_32_16bit(
-			local_src_reg->reg_usage_mapping | output_dep,
-			output_dep,
-			dest_reg->mapped_reg_num,
-			dest_reg->mapped_reg_num,
-			local_src_reg->mapped_reg_num,
-			FALSE,
-			COMP_GET_CURRENT_PC,
-			(uae_u32)pc_ptr);
-
-	//Release temp register
-	helper_free_tmp_reg(local_src_reg);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_opcode_DIVUREG2REG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_macroblock_push_division_32_16bit(
-			input_dep | output_dep,
-			output_dep,
-			dest_reg->mapped_reg_num,
-			dest_reg->mapped_reg_num,
-			src_reg->mapped_reg_num,
-			FALSE,
-			COMP_GET_CURRENT_PC,
-			(uae_u32)pc_ptr);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_opcode_DIVUMEM2REG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	//Read memory from source
-	comp_tmp_reg* local_src_reg = helper_read_memory(
-			src_mem_addrreg->reg_usage_mapping,
-			history,
-			src_mem_addrreg,
-			2,
-			FALSE);
-
-	//Re-map destination register
-	dest_reg = comp_map_temp_register(COMP_COMPILER_REGS_DATAREG(props->destreg), TRUE, TRUE);
-
-	comp_macroblock_push_division_32_16bit(
-			local_src_reg->reg_usage_mapping | output_dep,
-			output_dep,
-			dest_reg->mapped_reg_num,
-			dest_reg->mapped_reg_num,
-			local_src_reg->mapped_reg_num,
-			FALSE,
-			COMP_GET_CURRENT_PC,
-			(uae_u32)pc_ptr);
-
-	//Release temp register
-	helper_free_tmp_reg(local_src_reg);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_opcode_DIVIMM2REG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
@@ -7156,47 +7004,7 @@ void comp_opcode_BFCHG2REG(const cpu_history* history, struct comptbl* props) RE
 }
 void comp_opcode_BFCHG2MEM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_tmp_reg* mask_reg_low = NULL;
-	comp_tmp_reg* mask_reg_high = NULL;
-	comp_tmp_reg* data_reg_low = NULL;
-	comp_tmp_reg* data_reg_high = NULL;
-
-	//Get data from memory, mask, adjusted destination address, set flags
-	helper_bit_field_mem_opertion_flag_test(
-			history,
-			*((signed short*)(history->location + 1)),
-			NULL,
-			&data_reg_high,
-			&data_reg_low,
-			&mask_reg_high,
-			&mask_reg_low,
-			NULL, NULL,
-			TRUE, FALSE);
-
-	//Exclusive or the mask to the target register on higher 32 bits
-	comp_macroblock_push_xor_register_register(
-			data_reg_high->reg_usage_mapping | mask_reg_high->reg_usage_mapping,
-			data_reg_high->reg_usage_mapping,
-			data_reg_high->mapped_reg_num,
-			data_reg_high->mapped_reg_num,
-			mask_reg_high->mapped_reg_num,
-			FALSE);
-
-	//Exclusive or the mask to the target register on lower 8 bits
-	comp_macroblock_push_xor_register_register(
-			data_reg_low->reg_usage_mapping | mask_reg_low->reg_usage_mapping,
-			data_reg_low->reg_usage_mapping,
-			data_reg_low->mapped_reg_num,
-			data_reg_low->mapped_reg_num,
-			mask_reg_low->mapped_reg_num,
-			FALSE);
-
-	//Release mask registers
-	helper_free_tmp_reg(mask_reg_low);
-	helper_free_tmp_reg(mask_reg_high);
-
-	//Save result back to memory, also release temporary registers
-	helper_bit_field_mem_save(history, data_reg_high, data_reg_low);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_opcode_BFCLR2REG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
@@ -7220,86 +7028,40 @@ void comp_opcode_BFCLR2REG(const cpu_history* history, struct comptbl* props) RE
 }
 void comp_opcode_BFCLR2MEM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_tmp_reg* mask_reg_low = NULL;
-	comp_tmp_reg* mask_reg_high = NULL;
-	comp_tmp_reg* data_reg_low = NULL;
-	comp_tmp_reg* data_reg_high = NULL;
-
-	//Get data from memory, mask, adjusted destination address, set flags
-	helper_bit_field_mem_opertion_flag_test(
-			history,
-			*((signed short*)(history->location + 1)),
-			NULL,
-			&data_reg_high,
-			&data_reg_low,
-			&mask_reg_high,
-			&mask_reg_low,
-			NULL, NULL,
-			TRUE, FALSE);
-
-	//Exclusive or the mask to the target register on higher 32 bits
-	comp_macroblock_push_and_register_complement_register(
-			data_reg_high->reg_usage_mapping | mask_reg_high->reg_usage_mapping,
-			data_reg_high->reg_usage_mapping,
-			data_reg_high->mapped_reg_num,
-			data_reg_high->mapped_reg_num,
-			mask_reg_high->mapped_reg_num,
-			FALSE);
-
-	//Exclusive or the mask to the target register on lower 8 bits
-	comp_macroblock_push_and_register_complement_register(
-			data_reg_low->reg_usage_mapping | mask_reg_low->reg_usage_mapping,
-			data_reg_low->reg_usage_mapping,
-			data_reg_low->mapped_reg_num,
-			data_reg_low->mapped_reg_num,
-			mask_reg_low->mapped_reg_num,
-			FALSE);
-
-	//Release mask registers
-	helper_free_tmp_reg(mask_reg_low);
-	helper_free_tmp_reg(mask_reg_high);
-
-	//Save result back to memory, also release temporary registers
-	helper_bit_field_mem_save(history, data_reg_high, data_reg_low);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_opcode_BFEXTS2REG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
 	comp_tmp_reg* offset_reg;
 	comp_tmp_reg* mask_reg;
-	uae_u64 dest_reg_dep = 0ULL;
-
-	signed int extword = *((signed short*)(history->location + 1));
 
 	helper_bit_field_reg_opertion_flag_test(
 			*((signed short*)(history->location + 1)),
 			&mask_reg,
 			&offset_reg);
 
-	//Extract destination register
-	comp_tmp_reg* local_dest_reg = helper_bit_field_extract_reg(extword, &dest_reg_dep, FALSE);
-
 	//And the mask to the target register
 	comp_macroblock_push_and_register_register(
 			output_dep | mask_reg->reg_usage_mapping,
-			dest_reg_dep,
-			local_dest_reg->mapped_reg_num,
+			output_dep,
+			dest_reg->mapped_reg_num,
 			dest_reg->mapped_reg_num,
 			mask_reg->mapped_reg_num,
 			FALSE);
 
 	//Set the rest of the bits according to the N flag
 	comp_macroblock_push_or_negative_mask_if_n_flag_set(
-			dest_reg_dep | mask_reg->reg_usage_mapping,
-			dest_reg_dep,
-			local_dest_reg->mapped_reg_num,
+			output_dep | mask_reg->reg_usage_mapping,
+			output_dep,
+			dest_reg->mapped_reg_num,
 			mask_reg->mapped_reg_num);
 
 	//Rotate result to the bottom of the register using the offset
 	comp_macroblock_push_rotate_and_mask_bits_register(
-			dest_reg_dep | offset_reg->reg_usage_mapping,
-			dest_reg_dep,
-			local_dest_reg->mapped_reg_num,
-			local_dest_reg->mapped_reg_num,
+			output_dep | offset_reg->reg_usage_mapping,
+			output_dep,
+			dest_reg->mapped_reg_num,
+			dest_reg->mapped_reg_num,
 			offset_reg->mapped_reg_num,
 			0, 31, FALSE);
 
@@ -7309,68 +7071,33 @@ void comp_opcode_BFEXTS2REG(const cpu_history* history, struct comptbl* props) R
 }
 void comp_opcode_BFEXTS2MEM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_tmp_reg* data_reg = NULL;
-	comp_tmp_reg* complement_width_reg = NULL;
-	uae_u64 dest_reg_dep = 0ULL;
-
-	signed int extword = *((signed short*)(history->location + 1));
-
-	//Get data from memory, mask, adjusted destination address, set flags
-	helper_bit_field_mem_opertion_flag_test(
-			history,
-			extword,
-			&data_reg,
-			NULL, NULL, NULL, NULL, NULL,
-			&complement_width_reg,
-			FALSE, FALSE);
-
-	//Extract destination register
-	comp_tmp_reg* local_dest_reg = helper_bit_field_extract_reg(extword, &dest_reg_dep, FALSE);
-
-	//Rotate result to the bottom of the register using the width
-	comp_macroblock_push_arithmetic_shift_right_register_register(
-			data_reg->reg_usage_mapping | complement_width_reg->reg_usage_mapping,
-			dest_reg_dep,
-			local_dest_reg->mapped_reg_num,
-			data_reg->mapped_reg_num,
-			complement_width_reg->mapped_reg_num,
-			FALSE);
-
-	//Release registers
-	helper_free_tmp_reg(data_reg);
-	helper_free_tmp_reg(complement_width_reg);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_opcode_BFEXTU2REG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
 	comp_tmp_reg* offset_reg;
 	comp_tmp_reg* mask_reg;
-	uae_u64 dest_reg_dep = 0ULL;
-
-	signed int extword = *((signed short*)(history->location + 1));
 
 	helper_bit_field_reg_opertion_flag_test(
 			*((signed short*)(history->location + 1)),
 			&mask_reg,
 			&offset_reg);
 
-	//Extract destination register
-	comp_tmp_reg* local_dest_reg = helper_bit_field_extract_reg(extword, &dest_reg_dep, FALSE);
-
 	//And the mask to the target register
 	comp_macroblock_push_and_register_register(
 			output_dep | mask_reg->reg_usage_mapping,
-			dest_reg_dep,
-			local_dest_reg->mapped_reg_num,
+			output_dep,
+			dest_reg->mapped_reg_num,
 			dest_reg->mapped_reg_num,
 			mask_reg->mapped_reg_num,
 			FALSE);
 
- 	//Rotate result to the bottom of the register using the offset
+	//Rotate result to the bottom of the register using the offset
 	comp_macroblock_push_rotate_and_mask_bits_register(
-			dest_reg_dep | offset_reg->reg_usage_mapping,
-			dest_reg_dep,
-			local_dest_reg->mapped_reg_num,
-			local_dest_reg->mapped_reg_num,
+			output_dep | offset_reg->reg_usage_mapping,
+			output_dep,
+			dest_reg->mapped_reg_num,
+			dest_reg->mapped_reg_num,
 			offset_reg->mapped_reg_num,
 			0, 31, FALSE);
 
@@ -7380,55 +7107,29 @@ void comp_opcode_BFEXTU2REG(const cpu_history* history, struct comptbl* props) R
 }
 void comp_opcode_BFEXTU2MEM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_tmp_reg* data_reg = NULL;
-	comp_tmp_reg* complement_width_reg = NULL;
-	uae_u64 dest_reg_dep = 0ULL;
-
-	signed int extword = *((signed short*)(history->location + 1));
-
-	//Get data from memory, mask, adjusted destination address, set flags
-	helper_bit_field_mem_opertion_flag_test(
-			history,
-			extword,
-			&data_reg,
-			NULL, NULL, NULL, NULL, NULL,
-			&complement_width_reg,
-			FALSE, FALSE);
-
-	//Extract destination register
-	comp_tmp_reg* local_dest_reg = helper_bit_field_extract_reg(extword, &dest_reg_dep, FALSE);
-
-	//Rotate result to the bottom of the register using the width
-	comp_macroblock_push_logic_shift_right_register_register(
-			data_reg->reg_usage_mapping | complement_width_reg->reg_usage_mapping,
-			dest_reg_dep,
-			local_dest_reg->mapped_reg_num,
-			data_reg->mapped_reg_num,
-			complement_width_reg->mapped_reg_num,
-			FALSE);
-
-	//Release registers
-	helper_free_tmp_reg(data_reg);
-	helper_free_tmp_reg(complement_width_reg);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_opcode_BFFFO2REG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
 	comp_tmp_reg* offset_reg;
 	comp_tmp_reg* mask_reg;
-	uae_u64 dest_reg_dep = 0ULL;
 
 	//Read the extension word
 	signed int extword = *((signed short*)(history->location + 1));
 
 	helper_bit_field_reg_opertion_flag_test(extword, &mask_reg, &offset_reg);
 
-	//Extract destination register
-	comp_tmp_reg* local_dest_reg = helper_bit_field_extract_reg(extword, &dest_reg_dep, FALSE);
+	//Get real destination register number from the extension word
+	uae_u8 local_dest_reg_num = (extword >> 12) & 7;
+
+	//Map register for overwriting
+	comp_tmp_reg* local_dest_reg = comp_map_temp_register(COMP_COMPILER_REGS_DATAREG(local_dest_reg_num), FALSE, TRUE);
+	uae_u64 local_dest_reg_dep = COMP_COMPILER_MACROBLOCK_REG_DX(local_dest_reg_num);
 
 	//And the mask to the destination register
 	comp_macroblock_push_and_register_register(
 			output_dep | mask_reg->reg_usage_mapping,
-			dest_reg_dep,
+			local_dest_reg_dep,
 			local_dest_reg->mapped_reg_num,
 			dest_reg->mapped_reg_num,
 			mask_reg->mapped_reg_num,
@@ -7451,8 +7152,8 @@ void comp_opcode_BFFFO2REG(const cpu_history* history, struct comptbl* props) RE
 
 	//Or mask into destination register
 	comp_macroblock_push_or_register_register(
-			dest_reg_dep | mask_reg->reg_usage_mapping,
-			dest_reg_dep,
+			local_dest_reg_dep | mask_reg->reg_usage_mapping,
+			local_dest_reg_dep,
 			local_dest_reg->mapped_reg_num,
 			local_dest_reg->mapped_reg_num,
 			mask_reg->mapped_reg_num,
@@ -7460,8 +7161,8 @@ void comp_opcode_BFFFO2REG(const cpu_history* history, struct comptbl* props) RE
 
 	//Count leading zero bits, this will be the result of the instruction
 	comp_macroblock_push_count_leading_zeroes_register(
-			dest_reg_dep,
-			dest_reg_dep,
+			local_dest_reg_dep,
+			local_dest_reg_dep,
 			local_dest_reg->mapped_reg_num,
 			local_dest_reg->mapped_reg_num,
 			FALSE);
@@ -7472,98 +7173,33 @@ void comp_opcode_BFFFO2REG(const cpu_history* history, struct comptbl* props) RE
 }
 void comp_opcode_BFFFO2MEM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_tmp_reg* data_reg = NULL;
-	comp_tmp_reg* complement_width_reg = NULL;
-	uae_u64 dest_reg_dep = 0ULL;
-
-	signed int extword = *((signed short*)(history->location + 1));
-
-	//Get data from memory, mask, adjusted destination address, set flags
-	helper_bit_field_mem_opertion_flag_test(
-			history,
-			extword,
-			&data_reg,
-			NULL, NULL, NULL, NULL, NULL,
-			&complement_width_reg, FALSE, TRUE);
-
-	//Extract destination register
-	comp_tmp_reg* local_dest_reg = helper_bit_field_extract_reg(extword, &dest_reg_dep, FALSE);
-
-	//Prepare stop bit for the counting to the end of the data
-	comp_tmp_reg* stop_bit_reg = helper_allocate_tmp_reg_with_init(0x80000000);
-
-	//Shift stop bit register to the left until it reaches the end of the data width
-	//If the complement width is 0 then no need for stop bit (highest bit is masked out)
-	comp_macroblock_push_rotate_and_mask_bits_register(
-			stop_bit_reg->reg_usage_mapping | complement_width_reg->reg_usage_mapping,
-			stop_bit_reg->reg_usage_mapping,
-			stop_bit_reg->mapped_reg_num,
-			stop_bit_reg->mapped_reg_num,
-			complement_width_reg->mapped_reg_num,
-			1, 31, FALSE);
-
-	//Or mask into destination register
-	comp_macroblock_push_or_register_register(
-			data_reg->reg_usage_mapping | stop_bit_reg->reg_usage_mapping,
-			data_reg->reg_usage_mapping,
-			data_reg->mapped_reg_num,
-			data_reg->mapped_reg_num,
-			stop_bit_reg->mapped_reg_num,
-			FALSE);
-
-	//Count leading zero bits, this will be the result of the instruction
-	comp_macroblock_push_count_leading_zeroes_register(
-			data_reg->reg_usage_mapping,
-			dest_reg_dep,
-			local_dest_reg->mapped_reg_num,
-			data_reg->mapped_reg_num,
-			FALSE);
-
-	//Summarize counted leading zero bits and the full offset
-	comp_macroblock_push_add_register_register(
-			COMP_COMPILER_MACROBLOCK_REG_NONVOL0 | dest_reg_dep,
-			dest_reg_dep,
-			local_dest_reg->mapped_reg_num,
-			local_dest_reg->mapped_reg_num,
-			PPCR_TMP_NONVOL0_MAPPED,
-			FALSE);
-
-	//Release registers
-	helper_free_tmp_reg(data_reg);
-	helper_free_tmp_reg(stop_bit_reg);
-	helper_free_tmp_reg(complement_width_reg);
-
-	//Restore non-volatile register #0 (see helper_bit_field_mem_opertion_flag_test function)
-	comp_macroblock_push_restore_register_from_context(
-			COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-			PPCR_TMP_NONVOL0_MAPPED);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_opcode_BFINS2REG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
 	comp_tmp_reg* bit_field_width;
-	uae_u64 src_reg_dep = 0ULL;
 
 	//Read the extension word
 	signed int extword = *((signed short*)(history->location + 1));
-
-	//Extract destination register
-	comp_tmp_reg* local_src_reg = helper_bit_field_extract_reg(extword, &src_reg_dep, TRUE);
 
 	//Get the offset
 	comp_tmp_reg* bit_field_offset = helper_extract_bitfield_offset(extword);
 
 	//Get the mask and the width
-	comp_tmp_reg* bit_field_mask = helper_create_bitfield_mask(extword, NULL, bit_field_offset->reg_usage_mapping, bit_field_offset->mapped_reg_num, &bit_field_width);
+	comp_tmp_reg* bit_field_mask = helper_create_bitfield_mask(extword, NULL, bit_field_offset, &bit_field_width);
 
 	//Allocate temporary register for the result
 	comp_tmp_reg* tmpreg = helper_allocate_tmp_reg();
 
+	//Get source register from extension word
+	uae_u8 local_src_reg_num = ((uae_u8) (extword >> 12) & 7);
+
 	//Rotate source data to the top using complement width
 	comp_macroblock_push_logic_shift_left_register_register(
-			src_reg_dep | bit_field_width->reg_usage_mapping,
+			COMP_COMPILER_MACROBLOCK_REG_DX(local_src_reg_num) | bit_field_width->reg_usage_mapping,
 			tmpreg->reg_usage_mapping,
 			tmpreg->mapped_reg_num,
-			local_src_reg->mapped_reg_num,
+			comp_map_temp_register(COMP_COMPILER_REGS_DATAREG(local_src_reg_num), TRUE, FALSE)->mapped_reg_num,
 			bit_field_width->mapped_reg_num,
 			FALSE);
 
@@ -7624,263 +7260,7 @@ void comp_opcode_BFINS2REG(const cpu_history* history, struct comptbl* props) RE
 }
 void comp_opcode_BFINS2MEM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_tmp_reg* local_src_reg_low;
-	comp_tmp_reg* local_src_reg_high;
-	comp_tmp_reg* data_reg_low;
-	comp_tmp_reg* data_reg_high;
-	comp_tmp_reg* mask_reg_low;
-	comp_tmp_reg* mask_reg_high;
-	comp_tmp_reg* bit_field_complement_width;
-	comp_tmp_reg* bit_field_summary_offset;
-	uae_u64 src_reg_dep = 0ULL;
-
-	//Read the extension word
-	signed int extword = *((signed short*)(history->location + 1));
-
-	//TODO: the special case can be handled a more optimized way when both the offset and the width is specified in the extension word
-	//Get the offset from the extension word
-	comp_tmp_reg* bit_field_offset = helper_extract_bitfield_offset(extword);
-
-	//TODO: preserving of data in non-volatile registers is not necessary when direct memory access is used
-	//Save non-volatile register #0
-	comp_macroblock_push_save_register_to_context(
-			COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-			PPCR_TMP_NONVOL0_MAPPED);
-
-	//Calculate byte offset in memory into non-volatile register #0
-	comp_macroblock_push_arithmetic_shift_right_register_imm(
-			bit_field_offset->reg_usage_mapping,
-			COMP_COMPILER_MACROBLOCK_REG_NONVOL0,
-			PPCR_TMP_NONVOL0_MAPPED,
-			bit_field_offset->mapped_reg_num,
-			3, FALSE);
-
-	//Summarize original memory address and offset into non-volatile register #0
-	comp_macroblock_push_add(
-			COMP_COMPILER_MACROBLOCK_REG_NONVOL0 | dest_mem_addrreg->reg_usage_mapping,
-			COMP_COMPILER_MACROBLOCK_REG_NONVOL0,
-			PPCR_TMP_NONVOL0_MAPPED,
-			PPCR_TMP_NONVOL0_MAPPED,
-			dest_mem_addrreg->mapped_reg_num);
-
-	//Save non-volatile register #1
-	comp_macroblock_push_save_register_to_context(
-			COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-			PPCR_TMP_NONVOL1_MAPPED);
-
-	//Calculate remaining bits from the offset into non-volatile register #1
-	comp_macroblock_push_and_low_register_imm(
-			bit_field_offset->reg_usage_mapping,
-			COMP_COMPILER_MACROBLOCK_REG_NONVOL1,
-			PPCR_TMP_NONVOL1_MAPPED,
-			bit_field_offset->mapped_reg_num,
-			7);
-
-	//Free offset temp register
-	helper_free_tmp_reg(bit_field_offset);
-
-	//Read high 32 bit into a register from memory
-	comp_tmp_reg* result_reg = helper_read_memory_mapped(
-			COMP_COMPILER_MACROBLOCK_REG_NONVOL0,
-			history,
-			PPCR_TMP_NONVOL0_MAPPED,
-			4, FALSE);
-
-	//TODO: if it would be possible to specify a target register to the helper then this step would not be needed
-	//Save result into the temporary storage
-	comp_macroblock_push_save_register_to_context(
-			result_reg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-			result_reg->mapped_reg_num);
-
-	//Release result temp reg
-	helper_free_tmp_reg(result_reg);
-
-	//Calculate next address for lower 8 bit into spec temp reg (R0)
-	comp_macroblock_push_add_register_imm(
-			COMP_COMPILER_MACROBLOCK_REG_NONVOL0,
-			COMP_COMPILER_MACROBLOCK_TMP_REG_SPEC,
-			PPCR_SPECTMP_MAPPED,
-			PPCR_TMP_NONVOL0_MAPPED,
-			4);
-
-	//Read lower 8 bit into temp reg
-	data_reg_low = helper_read_memory_mapped(
-			COMP_COMPILER_MACROBLOCK_TMP_REG_SPEC,
-			history,
-			PPCR_SPECTMP_MAPPED,
-			1, FALSE);
-
-	//Reallocate higher data reg
-	data_reg_high = helper_allocate_tmp_reg();
-
-	//Restore previously read data
-	comp_macroblock_push_restore_register_from_context(
-			data_reg_high->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-			data_reg_high->mapped_reg_num);
-
-	//Allocate temp register for low 8 bit shifting steps
-	comp_tmp_reg* bit_field_offset_low = helper_allocate_tmp_reg();
-
-	//Calculate shifting for low bits: 8 - offset into offset
-	comp_macroblock_push_sub_register_from_immediate(
-			COMP_COMPILER_MACROBLOCK_REG_NONVOL1,
-			bit_field_offset_low->reg_usage_mapping,
-			bit_field_offset_low->mapped_reg_num,
-			PPCR_TMP_NONVOL1_MAPPED,
-			8);
-
-	//Allocate summary offset register
-	bit_field_summary_offset = helper_allocate_tmp_reg();
-
-	//Get the mask and the complement width
-	mask_reg_high = helper_create_bitfield_mask(extword, bit_field_summary_offset, COMP_COMPILER_MACROBLOCK_REG_NONVOL1, PPCR_TMP_NONVOL1_MAPPED, &bit_field_complement_width);
-
-	//Calculate complement of summary offset for rotation to the left
-	comp_macroblock_push_sub_register_from_immediate(
-			bit_field_summary_offset->reg_usage_mapping,
-			bit_field_summary_offset->reg_usage_mapping,
-			bit_field_summary_offset->mapped_reg_num,
-			bit_field_summary_offset->mapped_reg_num,
-			32);
-
-	//Allocate new temporary register for the low 8 bit mask
-	mask_reg_low = helper_allocate_tmp_reg();
-
-	//Rotate mask to the final position and keep the lowest byte only
-	comp_macroblock_push_logic_shift_left_register_register(
-			mask_reg_high->reg_usage_mapping | bit_field_offset_low->reg_usage_mapping,
-			mask_reg_low->reg_usage_mapping,
-			mask_reg_low->mapped_reg_num,
-			mask_reg_high->mapped_reg_num,
-			bit_field_offset_low->mapped_reg_num,
-			FALSE);
-
-	//Keep only the lowest 8 bit
-	comp_macroblock_push_and_low_register_imm(
-			mask_reg_low->reg_usage_mapping,
-			mask_reg_low->reg_usage_mapping,
-			mask_reg_low->mapped_reg_num,
-			mask_reg_low->mapped_reg_num,
-			0xff);
-
-	//Rotate mask to the right position for the higher 32 bit using the offset for the bit field operation
-	comp_macroblock_push_logic_shift_right_register_register(
-			mask_reg_high->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_REG_NONVOL1,
-			mask_reg_high->reg_usage_mapping,
-			mask_reg_high->mapped_reg_num,
-			mask_reg_high->mapped_reg_num,
-			PPCR_TMP_NONVOL1_MAPPED,
-			FALSE);
-
-	//Extract destination register
-	comp_tmp_reg* local_src_reg = helper_bit_field_extract_reg(extword, &src_reg_dep, TRUE);
-
-	//Rotate source data to the top into local src high using complement width, update N and Z internal flags
-	comp_macroblock_push_logic_shift_left_register_register(
-			src_reg_dep | bit_field_complement_width->reg_usage_mapping,
-			COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-			PPCR_SPECTMP_MAPPED,
-			local_src_reg->mapped_reg_num,
-			bit_field_complement_width->mapped_reg_num,
-			TRUE);
-
-	//Complement width register is not needed anymore
-	helper_free_tmp_reg(bit_field_complement_width);
-
-	//Save N and Z flags, clear C and V
-	helper_check_nz_clear_cv_flags();
-
-	//Allocate new temporary register for the low 8 bit source register
-	local_src_reg_low = helper_allocate_tmp_reg();
-
-	//Rotate source data to the final position for lower 8 bit
-	comp_macroblock_push_logic_shift_left_register_register(
-			src_reg_dep | bit_field_offset_low->reg_usage_mapping,
-			local_src_reg_low->reg_usage_mapping,
-			local_src_reg_low->mapped_reg_num,
-			local_src_reg->mapped_reg_num,
-			bit_field_offset_low->mapped_reg_num,
-			FALSE);
-
-	//Keep only the masked part from the 8 bit
-	comp_macroblock_push_and_register_register(
-			local_src_reg_low->reg_usage_mapping | mask_reg_low->reg_usage_mapping,
-			local_src_reg_low->reg_usage_mapping,
-			local_src_reg_low->mapped_reg_num,
-			local_src_reg_low->mapped_reg_num,
-			mask_reg_low->mapped_reg_num,
-			FALSE);
-
-	local_src_reg_high = helper_allocate_tmp_reg();
-
-	//Rotate source data to the final position for higher 32 bit
-	comp_macroblock_push_rotate_and_mask_bits_register(
-			src_reg_dep | bit_field_summary_offset->reg_usage_mapping,
-			local_src_reg_high->reg_usage_mapping,
-			local_src_reg_high->mapped_reg_num,
-			local_src_reg->mapped_reg_num,
-			bit_field_summary_offset->mapped_reg_num,
-			0, 31, FALSE);
-
-	//Summary offset is not needed anymore
-	helper_free_tmp_reg(bit_field_summary_offset);
-
-	//Keep only the masked part from the 32 bit
-	comp_macroblock_push_and_register_register(
-			local_src_reg_high->reg_usage_mapping | mask_reg_high->reg_usage_mapping,
-			local_src_reg_high->reg_usage_mapping,
-			local_src_reg_high->mapped_reg_num,
-			local_src_reg_high->mapped_reg_num,
-			mask_reg_high->mapped_reg_num,
-			FALSE);
-
-	//And complement of the mask to the high data register
-	comp_macroblock_push_and_register_complement_register(
-			data_reg_high->reg_usage_mapping | mask_reg_high->reg_usage_mapping,
-			data_reg_high->reg_usage_mapping,
-			data_reg_high->mapped_reg_num,
-			data_reg_high->mapped_reg_num,
-			mask_reg_high->mapped_reg_num,
-			FALSE);
-
-	//And complement of the mask to the low data register
-	comp_macroblock_push_and_register_complement_register(
-			data_reg_low->reg_usage_mapping | mask_reg_low->reg_usage_mapping,
-			data_reg_low->reg_usage_mapping,
-			data_reg_low->mapped_reg_num,
-			data_reg_low->mapped_reg_num,
-			mask_reg_low->mapped_reg_num,
-			FALSE);
-
-	//Release mask
-	helper_free_tmp_reg(mask_reg_low);
-	helper_free_tmp_reg(mask_reg_high);
-
-	//Or source high into the data high
-	comp_macroblock_push_or_register_register(
-			data_reg_high->reg_usage_mapping | local_src_reg_high->reg_usage_mapping,
-			data_reg_high->reg_usage_mapping,
-			data_reg_high->mapped_reg_num,
-			data_reg_high->mapped_reg_num,
-			local_src_reg_high->mapped_reg_num,
-			FALSE);
-
-	//Or source low into the data low
-	comp_macroblock_push_or_register_register(
-			data_reg_low->reg_usage_mapping | local_src_reg_low->reg_usage_mapping,
-			data_reg_low->reg_usage_mapping,
-			data_reg_low->mapped_reg_num,
-			data_reg_low->mapped_reg_num,
-			local_src_reg_low->mapped_reg_num,
-			FALSE);
-
-	//Free temp registers
-	helper_free_tmp_reg(bit_field_offset_low);
-	helper_free_tmp_reg(local_src_reg_high);
-	helper_free_tmp_reg(local_src_reg_low);
-
-	//Save result back to memory, also release temporary registers
-	helper_bit_field_mem_save(history, data_reg_high, data_reg_low);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_opcode_BFSET2REG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
@@ -7904,47 +7284,7 @@ void comp_opcode_BFSET2REG(const cpu_history* history, struct comptbl* props) RE
 }
 void comp_opcode_BFSET2MEM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	comp_tmp_reg* mask_reg_low = NULL;
-	comp_tmp_reg* mask_reg_high = NULL;
-	comp_tmp_reg* data_reg_low = NULL;
-	comp_tmp_reg* data_reg_high = NULL;
-
-	//Get data from memory, mask, adjusted destination address, set flags
-	helper_bit_field_mem_opertion_flag_test(
-			history,
-			*((signed short*)(history->location + 1)),
-			NULL,
-			&data_reg_high,
-			&data_reg_low,
-			&mask_reg_high,
-			&mask_reg_low,
-			NULL, NULL,
-			TRUE, FALSE);
-
-	//Exclusive or the mask to the target register on higher 32 bits
-	comp_macroblock_push_or_register_register(
-			data_reg_high->reg_usage_mapping | mask_reg_high->reg_usage_mapping,
-			data_reg_high->reg_usage_mapping,
-			data_reg_high->mapped_reg_num,
-			data_reg_high->mapped_reg_num,
-			mask_reg_high->mapped_reg_num,
-			FALSE);
-
-	//Exclusive or the mask to the target register on lower 8 bits
-	comp_macroblock_push_or_register_register(
-			data_reg_low->reg_usage_mapping | mask_reg_low->reg_usage_mapping,
-			data_reg_low->reg_usage_mapping,
-			data_reg_low->mapped_reg_num,
-			data_reg_low->mapped_reg_num,
-			mask_reg_low->mapped_reg_num,
-			FALSE);
-
-	//Release mask registers
-	helper_free_tmp_reg(mask_reg_low);
-	helper_free_tmp_reg(mask_reg_high);
-
-	//Save result back to memory, also release temporary registers
-	helper_bit_field_mem_save(history, data_reg_high, data_reg_low);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_opcode_BFTST2REG(const cpu_history* history, struct comptbl* props) REGPARAM
 {
@@ -7952,11 +7292,7 @@ void comp_opcode_BFTST2REG(const cpu_history* history, struct comptbl* props) RE
 }
 void comp_opcode_BFTST2MEM(const cpu_history* history, struct comptbl* props) REGPARAM
 {
-	helper_bit_field_mem_opertion_flag_test(
-			history,
-			*((signed short*)(history->location + 1)),
-			NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-			FALSE, FALSE);
+	comp_not_implemented(*(history->location)); /* TODO: addressing mode */
 }
 void comp_opcode_FBCOND(const cpu_history* history, struct comptbl* props) REGPARAM
 {
@@ -10521,29 +9857,13 @@ STATIC_INLINE comp_tmp_reg* helper_calculate_complex_index(uae_u16 ext)
  * Parameters:
  *    regsin - input register dependency
  *    history - pointer to the execution history
- *    target_reg - target memory address in register
+ *    target_mem - target memory address in a mapped register
  *    size - size of the operation (1,2 or 4)
  *    preservedestreg - if TRUE then the destination memory adddress register is saved to a store slot and restored after the memory reading
  * Returns:
- *    allocated temporary register for output
+ *    number of allocated temporary register
  */
 STATIC_INLINE comp_tmp_reg* helper_read_memory(uae_u64 regsin, const cpu_history* history, comp_tmp_reg* target_reg, uae_u8 size, BOOL preservedestreg)
-{
-	return helper_read_memory_mapped(regsin, history, target_reg->mapped_reg_num, size, preservedestreg);
-}
-
-/**
- * Allocate temporary register and read data into it from source memory address
- * Parameters:
- *    regsin - input register dependency
- *    history - pointer to the execution history
- *    target_reg_mapped - target memory address in a mapped register
- *    size - size of the operation (1,2 or 4)
- *    preservedestreg - if TRUE then the destination memory adddress register is saved to a store slot and restored after the memory reading
- * Returns:
- *    allocated temporary register for output
- */
-STATIC_INLINE comp_tmp_reg* helper_read_memory_mapped(uae_u64 regsin, const cpu_history* history, comp_ppc_reg target_reg_mapped, uae_u8 size, BOOL preservedestreg)
 {
 	int specread;
 	comp_tmp_reg* tmpreg;
@@ -10579,7 +9899,7 @@ STATIC_INLINE comp_tmp_reg* helper_read_memory_mapped(uae_u64 regsin, const cpu_
 		comp_macroblock_push_load_memory_spec(
 				regsin,
 				COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-				target_reg_mapped,
+				target_reg->mapped_reg_num,
 				PPCR_PARAM1_MAPPED,
 				size);
 
@@ -10588,6 +9908,7 @@ STATIC_INLINE comp_tmp_reg* helper_read_memory_mapped(uae_u64 regsin, const cpu_
 		src_reg = NULL;
 		dest_reg = NULL;
 		src_mem_addrreg = NULL;
+
 
 		//Allocate temporary register for the result
 		//(if the destination mem reg reallocated then due to the order of the temp registers this will be R4)
@@ -10634,7 +9955,7 @@ STATIC_INLINE comp_tmp_reg* helper_read_memory_mapped(uae_u64 regsin, const cpu_
 				src_mem_addrreg == NULL ? input_dep : src_mem_addrreg->reg_usage_mapping,
 				tmpregaddr->reg_usage_mapping,
 				tmpregaddr->mapped_reg_num,
-				target_reg_mapped);
+				target_reg->mapped_reg_num);
 
 		//Save long to memory, prevent from optimizing away
 		switch (size)
@@ -10676,47 +9997,11 @@ STATIC_INLINE comp_tmp_reg* helper_read_memory_mapped(uae_u64 regsin, const cpu_
  * Parameters:
  *    regsin - input register dependency
  *    history - pointer to the execution history
- *    target_reg - target memory address in a register
+ *    target_mem - target memory address in a mapped register
  *    input_reg - source register to be written into memory (or NULL)
  *    size - size of the operation (1,2 or 4)
  */
-STATIC_INLINE void helper_write_memory(uae_u64 regsin, const cpu_history* history, comp_tmp_reg* target_reg, comp_tmp_reg* input_reg, uae_u8 size)
-{
-	helper_write_memory_mapped(regsin, history, target_reg->mapped_reg_num, input_reg, size);
-}
-
-/**
- * Write data from register to the destination address in memory and free input register if specified pre-mapped.
- * Parameters:
- *    regsin - input register dependency
- *    history - pointer to the execution history
- *    target_reg_mapped - target memory address in a mapped register
- *    input_reg - source register to be written into memory
- *    size - size of the operation (1,2 or 4)
- */
-STATIC_INLINE void helper_write_memory_mapped(uae_u64 regsin, const cpu_history* history, comp_ppc_reg target_reg_mapped, comp_tmp_reg* input_reg, uae_u8 size)
-{
-	BOOL specwrite = helper_write_memory_mapped_no_free(regsin, history, target_reg_mapped, input_reg->mapped_reg_num, size);
-
-	//Free the input register if it was a normal write (not free'ed automatically)
-	if (!specwrite)
-	{
-		comp_free_temp_register(input_reg);
-	}
-}
-
-/**
- * Write data from register to the destination address in memory.
- * Parameters:
- *    regsin - input register dependency
- *    history - pointer to the execution history
- *    target_reg_mapped - target memory address in a mapped register
- *    input_reg_mapped - mapped source register to be written into memory
- *    size - size of the operation (1,2 or 4)
- * Returns:
- *    TRUE if the write operation was a special write, FALSE otherwise.
- */
-STATIC_INLINE BOOL helper_write_memory_mapped_no_free(uae_u64 regsin, const cpu_history* history, comp_ppc_reg target_reg_mapped, comp_ppc_reg input_reg_mapped, uae_u8 size)
+STATIC_INLINE void helper_write_memory(uae_u64 regsin, const cpu_history* history, comp_tmp_reg* target_mem, comp_tmp_reg* input_reg, uae_u8 size)
 {
 	int specwrite;
 	comp_tmp_reg* tmpregaddr = NULL;
@@ -10744,14 +10029,15 @@ STATIC_INLINE BOOL helper_write_memory_mapped_no_free(uae_u64 regsin, const cpu_
 		comp_macroblock_push_save_memory_spec(
 				regsin,
 				COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-				input_reg_mapped,
-				target_reg_mapped,
+				input_reg->mapped_reg_num,
+				target_mem->mapped_reg_num,
 				size);
 
 		//The previous will kill all temporary register mappings,
 		//because it calls a GCC function
 		src_mem_addrreg = NULL;
 		dest_mem_addrreg = NULL;
+		input_reg = NULL;
 	}
 	else
 	{
@@ -10765,7 +10051,7 @@ STATIC_INLINE BOOL helper_write_memory_mapped_no_free(uae_u64 regsin, const cpu_
 				regsin,
 				tmpregaddr->reg_usage_mapping,
 				tmpregaddr->mapped_reg_num,
-				target_reg_mapped);
+				target_mem->mapped_reg_num);
 
 		//Save long to memory, prevent from optimizing away
 		switch (size)
@@ -10774,7 +10060,7 @@ STATIC_INLINE BOOL helper_write_memory_mapped_no_free(uae_u64 regsin, const cpu_
 			comp_macroblock_push_save_memory_long(
 					regsin | tmpregaddr->reg_usage_mapping,
 					COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-					input_reg_mapped,
+					input_reg->mapped_reg_num,
 					tmpregaddr->mapped_reg_num,
 					0);
 			break;
@@ -10782,7 +10068,7 @@ STATIC_INLINE BOOL helper_write_memory_mapped_no_free(uae_u64 regsin, const cpu_
 			comp_macroblock_push_save_memory_word(
 					regsin | tmpregaddr->reg_usage_mapping,
 					COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-					input_reg_mapped,
+					input_reg->mapped_reg_num,
 					tmpregaddr->mapped_reg_num,
 					0);
 			break;
@@ -10790,7 +10076,7 @@ STATIC_INLINE BOOL helper_write_memory_mapped_no_free(uae_u64 regsin, const cpu_
 			comp_macroblock_push_save_memory_byte(
 					regsin | tmpregaddr->reg_usage_mapping,
 					COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-					input_reg_mapped,
+					input_reg->mapped_reg_num,
 					tmpregaddr->mapped_reg_num,
 					0);
 			break;
@@ -10798,7 +10084,11 @@ STATIC_INLINE BOOL helper_write_memory_mapped_no_free(uae_u64 regsin, const cpu_
 		comp_free_temp_register(tmpregaddr);
 	}
 
-	return specwrite;
+	//Input register specified: free it
+	if (input_reg)
+	{
+		comp_free_temp_register(input_reg);
+	}
 }
 
 /**
@@ -10986,7 +10276,7 @@ STATIC_INLINE uae_u64 helper_calculate_ccr_flag_dependency(uae_u8 ccr)
 }
 
 /**
- * Prepares the flags and the mask for all register accessing bit field instructions.
+ * Prepares the flags and the mask for all bit field instructions.
  * Parameters:
  *    extword - extension word for the instruction
  *    returned_mask_reg - if it is not NULL then it points to a variable for returning the mask register
@@ -11021,7 +10311,7 @@ STATIC_INLINE void helper_bit_field_reg_opertion_flag_test(signed int extword, c
 	comp_tmp_reg* bit_field_mask = helper_create_bitfield_mask(
 			extword,
 			returned_summary_offset_reg != NULL ? *returned_summary_offset_reg : NULL,
-			bit_field_offset->reg_usage_mapping, bit_field_offset->mapped_reg_num,
+			bit_field_offset,
 			NULL);
 
 	//Mask out bits from the target register, all we need is the flags
@@ -11060,355 +10350,6 @@ STATIC_INLINE void helper_bit_field_reg_opertion_flag_test(signed int extword, c
 
 	//Free up offset register
 	helper_free_tmp_reg(bit_field_offset);
-}
-
-/**
- * Prepares the flags and the mask for all memory accessing bit field instructions.
- * Parameters:
- *    history - pointer to the execution history
- *    extword - extension word for the instruction
- *    returned_data_reg_combined - if not NULL then it points to a variable for returning the data register as combined from memory and shifted to the top of the longword
- *    returned_data_reg_high - if not NULL then it points to a variable for returning the higher 32 bit data register
- *    returned_data_reg_low - if not NULL then it points to a variable for returning the lower 8 bit data register
- *    returned_mask_reg_high - if not NULL then it points to a variable for returning the higher 32 bit mask register
- *    returned_mask_reg_low - if not NULL then it points to a variable for returning the lower 8 bit mask register
- *    returned_summary_offset_reg - if not NULL then it points to a variable for returning the summary of the offset and the mask length in a temporary register
- *    returned_complement_width - if not NULL then it points to a variable for returning the complement width (32-width) in a temporary register
- *    return_adjusted_dest_address - if TRUE then the offset-adjusted destination address will be returned in non-volatile register #0, otherwise non-volatile registers are restored at the end of the function.
- *    return_offset - if TRUE then the full offset will be returned through non-volatile register #0, otherwise non-volatile registers are restored at the end of the function. Must be free'd by the caller. (See BFFFO2MEM implementation.)
- *    Notes:
- *       This function call must match with helper_bit_field_mem_save() function call, if any registers were returned. That function will release the allocated
- *       registers which are provided as parameter to that function and clean up the non-volatile registers. The other returned temporary registers must be free'd by the caller.
- *
- *       When adjusted destination address is returned then non-volatile register #1 is also preserved,
- *       so the memory saving function can make use of it.
- *
- *       When offset bytes are returned then the caller function must restore non-volatile register #0 from the context.
- *
- *       Parameters return_adjusted_dest_address and return_offset_bytes are mutually exclusive.
- *
- *       I am sorry about this mess, this is very bad design, but I ran out of ideas.
- */
-STATIC_INLINE void helper_bit_field_mem_opertion_flag_test(const cpu_history* history, signed int extword, comp_tmp_reg** returned_data_reg_combined, comp_tmp_reg** returned_data_reg_high, comp_tmp_reg** returned_data_reg_low, comp_tmp_reg** returned_mask_reg_high, comp_tmp_reg** returned_mask_reg_low, comp_tmp_reg** returned_summary_offset_reg, comp_tmp_reg** returned_complement_width, BOOL return_adjusted_dest_address, BOOL return_offset)
-{
-	comp_tmp_reg* data_reg_low;
-	comp_tmp_reg* data_reg_high;
-
-	//TODO: the special case can be handled a more optimized way when both the offset and the width is specified in the extension word
-	//Get the offset from the extension word
-	comp_tmp_reg* bit_field_offset = helper_extract_bitfield_offset(extword);
-
-	//TODO: preserving of data in non-volatile registers is not necessary when direct memory access is used
-	//Save non-volatile register #0 and #1 to the context
-	comp_macroblock_push_save_register_to_context(
-			COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-			PPCR_TMP_NONVOL0_MAPPED);
-
-	comp_macroblock_push_save_register_to_context(
-			COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-			PPCR_TMP_NONVOL1_MAPPED);
-
-	//Calculate byte offset in memory into non-volatile register #0
-	comp_macroblock_push_arithmetic_shift_right_register_imm(
-			bit_field_offset->reg_usage_mapping,
-			COMP_COMPILER_MACROBLOCK_REG_NONVOL0,
-			PPCR_TMP_NONVOL0_MAPPED,
-			bit_field_offset->mapped_reg_num,
-			3, FALSE);
-
-	if (return_offset)
-	{
-		//Full offset must be returned: save it to the context for now
-		comp_macroblock_push_save_register_to_context(
-				bit_field_offset->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-				bit_field_offset->mapped_reg_num);
-	}
-
-	//Summarize original memory address and offset into non-volatile register #0
-	comp_macroblock_push_add(
-			COMP_COMPILER_MACROBLOCK_REG_NONVOL0 | dest_mem_addrreg->reg_usage_mapping,
-			COMP_COMPILER_MACROBLOCK_REG_NONVOL0,
-			PPCR_TMP_NONVOL0_MAPPED,
-			PPCR_TMP_NONVOL0_MAPPED,
-			dest_mem_addrreg->mapped_reg_num);
-
-	//Calculate remaining bits from the offset into non-volatile register #1
-	comp_macroblock_push_and_low_register_imm(
-			bit_field_offset->reg_usage_mapping,
-			COMP_COMPILER_MACROBLOCK_REG_NONVOL1,
-			PPCR_TMP_NONVOL1_MAPPED,
-			bit_field_offset->mapped_reg_num,
-			7);
-
-	//Free offset temp register
-	helper_free_tmp_reg(bit_field_offset);
-
-	//Read high 32 bit into a register from memory
-	comp_tmp_reg* result_reg = helper_read_memory_mapped(
-			COMP_COMPILER_MACROBLOCK_REG_NONVOL0,
-			history,
-			PPCR_TMP_NONVOL0_MAPPED,
-			4, FALSE);
-
-	//TODO: if it would be possible to specify a target register to the helper then this step would not be needed
-	//Save result into the temporary storage
-	comp_macroblock_push_save_register_to_context(
-			result_reg->reg_usage_mapping,
-			result_reg->mapped_reg_num);
-
-	//Release result temp reg
-	helper_free_tmp_reg(result_reg);
-
-	//Calculate next address for lower 8 bit into spec temp reg (R0)
-	comp_macroblock_push_add_register_imm(
-			COMP_COMPILER_MACROBLOCK_REG_NONVOL0,
-			COMP_COMPILER_MACROBLOCK_TMP_REG_SPEC,
-			PPCR_SPECTMP_MAPPED,
-			PPCR_TMP_NONVOL0_MAPPED,
-			4);
-
-	//Read lower 8 bit into temp reg
-	data_reg_low = helper_read_memory_mapped(
-			COMP_COMPILER_MACROBLOCK_TMP_REG_SPEC,
-			history,
-			PPCR_SPECTMP_MAPPED,
-			1, FALSE);
-
-	//Reallocate higher data reg
-	data_reg_high = helper_allocate_tmp_reg();
-
-	//Restore previously read data
-	comp_macroblock_push_restore_register_from_context(
-			data_reg_high->reg_usage_mapping,
-			data_reg_high->mapped_reg_num);
-
-	//Allocate temporary register for the result
-	comp_tmp_reg* tmpreg = helper_allocate_tmp_reg();
-
-	//Rotate the high 32 bits to the left by the remaining offset bits, copy result into the temp reg
-	comp_macroblock_push_logic_shift_left_register_register(
-			data_reg_high->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_REG_NONVOL1,
-			tmpreg->reg_usage_mapping,
-			tmpreg->mapped_reg_num,
-			data_reg_high->mapped_reg_num,
-			PPCR_TMP_NONVOL1_MAPPED,
-			FALSE);
-
-	//Calculate shifting for low bits: 8 - offset into spec temp (R0)
-	comp_macroblock_push_sub_register_from_immediate(
-			COMP_COMPILER_MACROBLOCK_REG_NONVOL1,
-			COMP_COMPILER_MACROBLOCK_TMP_REG_SPEC,
-			PPCR_SPECTMP_MAPPED,
-			PPCR_TMP_NONVOL1_MAPPED,
-			8);
-
-	//Rotate the low 8 bits to the right by 8 minus the remaining offset bits, copy result into spec temp (R0)
-	comp_macroblock_push_logic_shift_right_register_register(
-			data_reg_low->reg_usage_mapping |COMP_COMPILER_MACROBLOCK_TMP_REG_SPEC,
-			COMP_COMPILER_MACROBLOCK_TMP_REG_SPEC,
-			PPCR_SPECTMP_MAPPED,
-			data_reg_low->mapped_reg_num,
-			PPCR_SPECTMP_MAPPED,
-			FALSE);
-
-	//Put the final data together into temp reg
-	comp_macroblock_push_or_register_register(
-			tmpreg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_TMP_REG_SPEC,
-			tmpreg->reg_usage_mapping,
-			tmpreg->mapped_reg_num,
-			tmpreg->mapped_reg_num,
-			PPCR_SPECTMP_MAPPED,
-			FALSE);
-
-	if (returned_data_reg_high != NULL)
-	{
-		//We have to return the data high 32 bit in a register
-		*returned_data_reg_high = data_reg_high;
-	} else {
-		//Free data high register
-		helper_free_tmp_reg(data_reg_high);
-	}
-
-	if (returned_data_reg_low != NULL)
-	{
-		//We have to return the data low 8 bit in a register
-		*returned_data_reg_low = data_reg_low;
-	} else {
-		//Free data low register
-		helper_free_tmp_reg(data_reg_low);
-	}
-
-	if (returned_summary_offset_reg != NULL)
-	{
-		//We have to return the offset+width in a register
-		*returned_summary_offset_reg = helper_allocate_tmp_reg();
-	}
-
-	//Create mask for the field and also get the summary of the offset and the width in the offset_reg
-	comp_tmp_reg* bit_field_mask = helper_create_bitfield_mask(
-			extword,
-			returned_summary_offset_reg != NULL ? *returned_summary_offset_reg : NULL,
-			COMP_COMPILER_MACROBLOCK_REG_NONVOL1,
-			PPCR_TMP_NONVOL1_MAPPED,
-			returned_complement_width != NULL ? returned_complement_width : NULL);
-
-	//Mask out bits from the target register
-	comp_macroblock_push_and_register_register(
-			tmpreg->reg_usage_mapping | bit_field_mask->reg_usage_mapping,
-			tmpreg->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ,
-			tmpreg->mapped_reg_num,
-			tmpreg->mapped_reg_num,
-			bit_field_mask->mapped_reg_num,
-			TRUE);
-
-	if (returned_data_reg_combined != NULL)
-	{
-		//We have to return the combined data register
-		*returned_data_reg_combined = tmpreg;
-	} else {
-		//Temp register is not needed anymore
-		helper_free_tmp_reg(tmpreg);
-	}
-
-	//Save N and Z flags, clear C and V
-	helper_check_nz_clear_cv_flags();
-
-	//Do we need to return the lower mask?
-	if (returned_mask_reg_low != NULL)
-	{
-		//Calculate rotation steps into the spec temp
-		comp_macroblock_push_sub_register_from_immediate(
-				COMP_COMPILER_MACROBLOCK_REG_NONVOL1,
-				COMP_COMPILER_MACROBLOCK_TMP_REG_SPEC,
-				PPCR_SPECTMP_MAPPED,
-				PPCR_TMP_NONVOL1_MAPPED,
-				8);
-
-		//Allocate new temporary register for the result
-		comp_tmp_reg* mask_reg_low = helper_allocate_tmp_reg();
-
-		//Rotate mask to the final position and keep the lowest byte only
-		comp_macroblock_push_logic_shift_left_register_register(
-				bit_field_mask->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_TMP_REG_SPEC,
-				mask_reg_low->reg_usage_mapping,
-				mask_reg_low->mapped_reg_num,
-				bit_field_mask->mapped_reg_num,
-				PPCR_SPECTMP_MAPPED,
-				FALSE);
-
-		//Keep only the lowest 8 bit
-		comp_macroblock_push_and_low_register_imm(
-				mask_reg_low->reg_usage_mapping,
-				mask_reg_low->reg_usage_mapping,
-				mask_reg_low->mapped_reg_num,
-				mask_reg_low->mapped_reg_num,
-				0xff);
-
-		*returned_mask_reg_low = mask_reg_low;
-	}
-
-	//Do we need to return the higher mask?
-	if (returned_mask_reg_high != NULL)
-	{
-		//Rotate mask to the right position for the higher 32 bit using the offset for the bit field operation
-		comp_macroblock_push_logic_shift_right_register_register(
-				bit_field_mask->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_REG_NONVOL1,
-				bit_field_mask->reg_usage_mapping,
-				bit_field_mask->mapped_reg_num,
-				bit_field_mask->mapped_reg_num,
-				PPCR_TMP_NONVOL1_MAPPED,
-				FALSE);
-
-		//Return mask register
-		*returned_mask_reg_high = bit_field_mask;
-	} else {
-		//No need to return the mask: free up temp register
-		helper_free_tmp_reg(bit_field_mask);
-	}
-
-	if (return_offset)
-	{
-		//Full offset must be returned: restore it from the context into non-volatile register #0
-		comp_macroblock_push_restore_register_from_context(
-				COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-				PPCR_TMP_NONVOL0_MAPPED);
-
-		//Restore non-volatile register #1
-		comp_macroblock_push_restore_register_from_context(
-				COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-				PPCR_TMP_NONVOL1_MAPPED);
-
-		//Non-volatile register #0 remained in the context, will be restored by the caller
-	} else if (!return_adjusted_dest_address)
-	{
-		//No need to return the adjusted destination address: there will be no saving back
-		//to the memory, we can restore the non-volatile registers
-		comp_macroblock_push_restore_register_from_context(
-				COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-				PPCR_TMP_NONVOL1_MAPPED);
-
-		comp_macroblock_push_restore_register_from_context(
-				COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-				PPCR_TMP_NONVOL0_MAPPED);
-	}
-}
-
-/**
- * Saves the result of a bit field operation into memory.
- * Parameters:
- *    history - pointer to the execution history
- *    data_reg_high - register with the low part of the bit field operation result in a register
- *    data_reg_low - register with the low part of the bit field operation result in a register
- *  Note:
- *    The function expects the target memory address in non-volatile register #0 and it also
- *    uses non-volatile register #1 for storing the data temporarily.
- *    All registers will be free'd, non-volatile registers will be restored from
- *    context.
- */
-STATIC_INLINE void helper_bit_field_mem_save(const cpu_history* history, comp_tmp_reg* data_reg_high, comp_tmp_reg* data_reg_low)
-{
-	//Copy low data register to non-volatile #1 (otherwise it would be lost)
-	comp_macroblock_push_copy_register_long(
-			data_reg_low->reg_usage_mapping,
-			COMP_COMPILER_MACROBLOCK_REG_NONVOL1,
-			PPCR_TMP_NONVOL1_MAPPED,
-			data_reg_low->mapped_reg_num);
-
-	//Release low data register
-	helper_free_tmp_reg(data_reg_low);
-
-	//Write back high 32 bit data
-	helper_write_memory_mapped(
-			data_reg_high->reg_usage_mapping | COMP_COMPILER_MACROBLOCK_REG_NONVOL0,
-			history,
-			PPCR_TMP_NONVOL0_MAPPED,
-			data_reg_high,
-			4);
-
-	//Increment target address by 4 bytes
-	comp_macroblock_push_add_register_imm(
-			COMP_COMPILER_MACROBLOCK_REG_NONVOL0,
-			COMP_COMPILER_MACROBLOCK_REG_NONVOL0,
-			PPCR_TMP_NONVOL0_MAPPED,
-			PPCR_TMP_NONVOL0_MAPPED,
-			4);
-
-	//Write back high 8 bit data
-	helper_write_memory_mapped_no_free(
-			COMP_COMPILER_MACROBLOCK_REG_NONVOL1 | COMP_COMPILER_MACROBLOCK_REG_NONVOL0,
-			history,
-			PPCR_TMP_NONVOL0_MAPPED,
-			PPCR_TMP_NONVOL1_MAPPED,
-			1);
-
-	//Restore non-volatile registers
-	comp_macroblock_push_restore_register_from_context(
-			COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-			PPCR_TMP_NONVOL1_MAPPED);
-
-	comp_macroblock_push_restore_register_from_context(
-			COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-			PPCR_TMP_NONVOL0_MAPPED);
 }
 
 /**
@@ -11453,14 +10394,13 @@ STATIC_INLINE comp_tmp_reg* helper_extract_bitfield_offset(signed int extword)
  * Parameters:
  *   extword - extension word for the instruction
  *   summary_offset_reg - target register for calculating the summary of the width and the offset or NULL
- *   bit_field_offset_dep - dependency of the offset register
- *   bit_field_offset_mapped - extracted offset in a mapped register
+ *   bit_field_offset - extracted offset in a register
  *   returned_bit_field_complement_width - if it is not NULL then it points to a variable for returning the complement (subtracted from 32) field width in a temporary register
  * Returns:
  *   the allocated temporary register with the mask.
  * Note: the returned temporary registers must be free'ed by the caller.
  */
-STATIC_INLINE comp_tmp_reg* helper_create_bitfield_mask(signed int extword, comp_tmp_reg* summary_offset_reg, uae_u64 bit_field_offset_dep, comp_ppc_reg bit_field_offset_mapped, comp_tmp_reg** returned_bit_field_complement_width)
+STATIC_INLINE comp_tmp_reg* helper_create_bitfield_mask(signed int extword, comp_tmp_reg* summary_offset_reg, comp_tmp_reg* bit_field_offset, comp_tmp_reg** returned_bit_field_complement_width)
 {
 	comp_tmp_reg* bit_field_mask;
 
@@ -11484,17 +10424,6 @@ STATIC_INLINE comp_tmp_reg* helper_create_bitfield_mask(signed int extword, comp
 		//Calculate mask: shift up to the top by that many bits what is left after the width
 		//and load it into a new temp register
 		bit_field_mask = helper_allocate_tmp_reg_with_init(0xffffffffUL << (32 - width));
-
-		if (summary_offset_reg != NULL)
-		{
-			//We need to return the summary of offset and width
-			comp_macroblock_push_add_register_imm(
-					bit_field_offset_dep,
-					summary_offset_reg->reg_usage_mapping,
-					summary_offset_reg->mapped_reg_num,
-					bit_field_offset_mapped,
-					width);
-		}
 	} else {
 		//Set: the width is coming from the register specified in the width bits,
 		//copy the width into a new temp register and mask the relevant part only
@@ -11532,10 +10461,10 @@ STATIC_INLINE comp_tmp_reg* helper_create_bitfield_mask(signed int extword, comp
 		{
 			//We need to return the summary of offset and width
 			comp_macroblock_push_add(
-					bit_field_width->reg_usage_mapping | bit_field_offset_dep,
+					summary_offset_reg->reg_usage_mapping | bit_field_width->reg_usage_mapping | bit_field_offset->reg_usage_mapping,
 					summary_offset_reg->reg_usage_mapping,
 					summary_offset_reg->mapped_reg_num,
-					bit_field_offset_mapped,
+					bit_field_offset->mapped_reg_num,
 					bit_field_width->mapped_reg_num);
 		}
 
@@ -11571,211 +10500,4 @@ STATIC_INLINE comp_tmp_reg* helper_create_bitfield_mask(signed int extword, comp
 	}
 
 	return bit_field_mask;
-}
-
-/**
- * Extract and map destination register for BFEXTU and BFEXTS bit field instructions.
- * Parameters:
- *   extword - extension word for the instruction
- *   returned_dependency - pointer to a long-long register where the dependency can be returned
- *   is_src_reg - if TRUE then the register is initialized using the emulated register, otherwise it will be saved back after modification
- * Returns:
- *   The mapped temporary register and the dependency via the sent variable.
- */
-STATIC_INLINE comp_tmp_reg* helper_bit_field_extract_reg(signed int extword, uae_u64* returned_dependency, BOOL is_src_reg)
-{
-	int regnum = (extword >> 12) & 7;
-
-	*returned_dependency = COMP_COMPILER_MACROBLOCK_REG_DX(regnum);
-	return comp_map_temp_register(COMP_COMPILER_REGS_DATAREG(regnum), is_src_reg, !is_src_reg);
-}
-
-/**
- * Copies one memory line (16 bytes) from the source address to the destination.
- * Source and destination registers will be aligned to 16 byte boundary before the copy operation.
- *
- * Parameters:
- *   history - pointer to the execution history
- *   local_src_dep - dependency for source register
- *   local_src_reg - mapped source register
- *   update_src - if TRUE then the source register is increased by 16, unchanged otherwise
- *   local_dest_dep - dependency for source register
- *   local_dest_reg - mapped source register
- *   update_dest - if TRUE then the source register is increased by 16, unchanged otherwise
- */
-STATIC_INLINE void helper_mov16(const cpu_history* history, uae_u64 local_src_dep, comp_tmp_reg* local_src_reg, BOOL update_src, uae_u64 local_dest_dep, comp_tmp_reg* local_dest_reg, BOOL update_dest)
-{
-	BOOL spec = comp_is_spec_memory_read_long(history->pc, history->specmem) ||
-				comp_is_spec_memory_write_long(history->pc, history->specmem);
-	comp_tmp_reg* srcregaddr = NULL;
-	comp_tmp_reg* destregaddr = NULL;
-	int i;
-
-	//Does this operation require special read/write?
-	if (spec)
-	{
-		//Special memory access
-
-		//Save non-volatile reg #0 and #1 to the context
-		comp_macroblock_push_save_register_to_context(
-				COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-				PPCR_TMP_NONVOL0_MAPPED);
-
-		comp_macroblock_push_save_register_to_context(
-				COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-				PPCR_TMP_NONVOL1_MAPPED);
-
-		//Copy source address register into non-volatile register #0 and align it to 16 byte boundary
-		comp_macroblock_push_rotate_and_mask_bits(
-				local_src_dep,
-				COMP_COMPILER_MACROBLOCK_REG_NONVOL0,
-				PPCR_TMP_NONVOL0_MAPPED,
-				local_src_reg->mapped_reg_num,
-				0, 0, 27, FALSE);
-
-		//Copy destination address register into non-volatile register #1 and align it to 16 byte boundary
-		comp_macroblock_push_rotate_and_mask_bits(
-				local_dest_dep,
-				COMP_COMPILER_MACROBLOCK_REG_NONVOL1,
-				PPCR_TMP_NONVOL1_MAPPED,
-				local_dest_reg->mapped_reg_num,
-				0, 0, 27, FALSE);
-	} else {
-		//Direct memory access
-
-		//Allocate address calculation temporary registers
-		comp_tmp_reg* srcregaddr = helper_allocate_tmp_reg();
-		comp_tmp_reg* destregaddr = helper_allocate_tmp_reg();
-
-		//Copy source address register into local temp register and align it to 16 byte boundary
-		comp_macroblock_push_rotate_and_mask_bits(
-				local_src_dep,
-				srcregaddr->reg_usage_mapping,
-				srcregaddr->mapped_reg_num,
-				local_src_reg->mapped_reg_num,
-				0, 0, 27, FALSE);
-
-		//Get physical source memory address into temp register
-		comp_macroblock_push_map_physical_mem(
-				srcregaddr->reg_usage_mapping,
-				srcregaddr->reg_usage_mapping,
-				srcregaddr->mapped_reg_num,
-				srcregaddr->mapped_reg_num);
-
-		//Copy destination address register into local temp register and align it to 16 byte boundary
-		comp_macroblock_push_rotate_and_mask_bits(
-				local_dest_dep,
-				destregaddr->reg_usage_mapping,
-				destregaddr->mapped_reg_num,
-				local_dest_reg->mapped_reg_num,
-				0, 0, 27, FALSE);
-
-		//Get physical destination memory address into temp register
-		comp_macroblock_push_map_physical_mem(
-				destregaddr->reg_usage_mapping,
-				destregaddr->reg_usage_mapping,
-				destregaddr->mapped_reg_num,
-				destregaddr->mapped_reg_num);
-	}
-
-	//Update source register if needed
-	if (update_src)
-	{
-		comp_macroblock_push_add_register_imm(
-				local_src_dep,
-				local_src_dep,
-				local_src_reg->mapped_reg_num,
-				local_src_reg->mapped_reg_num,
-				16);
-	}
-
-	//Update destination register if needed
-	if (update_dest)
-	{
-		comp_macroblock_push_add_register_imm(
-				local_dest_dep,
-				local_dest_dep,
-				local_dest_reg->mapped_reg_num,
-				local_dest_reg->mapped_reg_num,
-				16);
-	}
-
-	//Does this operation require special read/write?
-	if (spec)
-	{
-		//Special memory access
-
-		//Copy memory in an unrolled loop
-		for(i = 0; i < 4; i++)
-		{
-			//Load longword into spec temp from memory address specified in non-volatile reg #0
-			comp_macroblock_push_load_memory_spec(
-					COMP_COMPILER_MACROBLOCK_REG_NONVOL0,
-					COMP_COMPILER_MACROBLOCK_TMP_REG_SPEC | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-					PPCR_TMP_NONVOL0_MAPPED,
-					PPCR_SPECTMP_MAPPED,
-					4);
-
-			//Save longword from spec temp into memory address specified in non-volatile reg #1
-			comp_macroblock_push_save_memory_spec(
-					COMP_COMPILER_MACROBLOCK_REG_NONVOL1 | COMP_COMPILER_MACROBLOCK_TMP_REG_SPEC,
-					COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-					PPCR_SPECTMP_MAPPED,
-					PPCR_TMP_NONVOL1_MAPPED,
-					4);
-
-			if (i < 3)
-			{
-				//This is not the last iteration yet: step to the next source and destination address
-				comp_macroblock_push_add_register_imm(
-						COMP_COMPILER_MACROBLOCK_REG_NONVOL0,
-						COMP_COMPILER_MACROBLOCK_REG_NONVOL0,
-						PPCR_TMP_NONVOL0_MAPPED,
-						PPCR_TMP_NONVOL0_MAPPED,
-						4);
-
-				comp_macroblock_push_add_register_imm(
-						COMP_COMPILER_MACROBLOCK_REG_NONVOL1,
-						COMP_COMPILER_MACROBLOCK_REG_NONVOL1,
-						PPCR_TMP_NONVOL1_MAPPED,
-						PPCR_TMP_NONVOL1_MAPPED,
-						4);
-			}
-		}
-
-		//Restore non-volatile regs from the context
-		comp_macroblock_push_restore_register_from_context(
-				COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-				PPCR_TMP_NONVOL1_MAPPED);
-
-		comp_macroblock_push_restore_register_from_context(
-				COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-				PPCR_TMP_NONVOL0_MAPPED);
-	} else {
-		//Direct memory access
-
-		//Copy memory in an unrolled loop
-		for(i = 0; i < 16; i += 4)
-		{
-			//Read long from memory into spec temp, prevent from optimizing away
-			comp_macroblock_push_load_memory_long(
-					srcregaddr->reg_usage_mapping,
-					COMP_COMPILER_MACROBLOCK_TMP_REG_SPEC | COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-					PPCR_SPECTMP_MAPPED,
-					srcregaddr->mapped_reg_num,
-					i);
-
-			//Save long to memory from spec temp, prevent from optimizing away
-			comp_macroblock_push_save_memory_long(
-					COMP_COMPILER_MACROBLOCK_TMP_REG_SPEC | destregaddr->reg_usage_mapping,
-					COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-					PPCR_SPECTMP_MAPPED,
-					destregaddr->mapped_reg_num,
-					i);
-		}
-
-		//Release temp registers
-		helper_free_tmp_reg(srcregaddr);
-		helper_free_tmp_reg(destregaddr);
-	}
 }
