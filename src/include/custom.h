@@ -181,9 +181,3 @@ extern void misc_hsync_stuff (void);
 extern void hsync_handler (void);
 extern void copper_handler (void);
 #define HSYNCTIME (maxhpos * CYCLE_UNIT)
-
-#ifdef JIT
-//JIT compiled code executed indicators, defined in newcpu.c
-extern uae_u32 jit_indicator_compiled_executed;
-extern uae_u32 jit_indicator_interpreted_executed;
-#endif
