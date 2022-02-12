@@ -131,7 +131,6 @@ MOVREG2REGB  1   0001 dddD DDSS Ssss   0 0     regD     regD
 
 ;If the target is an address register, then flags kept unchanged
 MOVAREG2REGL 1   0010 dddD DDSS Ssss   0 0     regD,regA    regA
-;Source data must be sign-extended to longword
 MOVAREG2REGW 1   0011 dddD DDSS Ssss   0 0     regD,regA    regA
 
 ;*** Move memory to memory
@@ -224,7 +223,7 @@ MOVEM2REGUL  0   0100 1100 1101 1sss   0 0     regA    none
 MOVEM2REGUW  0   0100 1100 1001 1sss   0 0     regA    none
 
 ;*** Move immediate to memory
-;move.z #y,mem
+;move.z #y,dx
 MOVIMM2MEML  1   0010 dddD DDSS Ssss   0 0     immedL    indA,indApL,indmAL,indAd16,indAcp,absW,absL
 MOVIMM2MEMW  1   0011 dddD DDSS Ssss   0 0     immedW    indA,indApW,indmAW,indAd16,indAcp,absW,absL
 MOVIMM2MEMB  1   0001 dddD DDSS Ssss   0 0     immedB    indA,indApB,indmAB,indAd16,indAcp,absW,absL
