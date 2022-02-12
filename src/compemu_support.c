@@ -63,12 +63,6 @@ struct m68k_register comp_m68k_registers[16];
  */
 int last_unmapped_register;
 
-/* Index of the next empty register slot in the context for register saving.
- * This index is used for a stack-like approach for saving and restoring
- * registers in the context.
- */
-int next_empty_register_slot;
-
 /**
  * Compiled code cache memory start address
  */
@@ -124,6 +118,11 @@ extern uae_u8* kickmemory;
  * Reference to picasso initialization flag
  */
 extern int have_done_picasso;
+
+/**
+ * Reference to compile opcode table
+ */
+extern const struct comptbl compopcodetbl[];
 
 /* The 68k only ever executes from even addresses. So right now, we
  waste half the entries in this array
@@ -283,13 +282,6 @@ void comp_done(void)
 			abort();
 		}
 	}
-
-	if (next_empty_register_slot != 0)
-	{
-		write_log("Compiling error: Register was not restored from the context before the end of the compiled block.\n");
-		abort();
-	}
-
 	comp_compiler_done();
 }
 
@@ -386,9 +378,6 @@ void compemu_reset(void)
 
 	//Reset actually compiled M68k instruction pointer
 	compiled_m68k_location = NULL;
-
-	//Reset register slot index
-	next_empty_register_slot = 0;
 }
 
 void build_comp(void)
@@ -626,7 +615,7 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 				last_supported_branch = ((props->specific & (COMPTBL_SPEC_ISJUMP | COMPTBL_SPEC_ISCONSTJUMP)) != 0);
 
 				//Init opcode compiling
-				comp_opcode_init(inst_history, props->extension);
+				comp_opcode_init(inst_history);
 
 				//Call addressing pre functions, if not null
 				if (compsrc_pre_func[props->src_addr]) compsrc_pre_func[props->src_addr](inst_history, props);
@@ -1036,46 +1025,6 @@ void comp_unlock_all_temp_registers()
 
 	for(i = 0; i < 16; i++)
 		comp_m68k_registers[i].locked = FALSE;
-}
-
-/**
- * Returns the next free slot in the context for register saving and adjusts the index.
- * Returns:
- *    The slot number for the next register saving
- */
-int comp_next_free_register_slot()
-{
-	int slot = next_empty_register_slot++;
-
-	//Check for the available slots
-	if (slot == COMP_REGS_ALLOCATED_SLOTS)
-	{
-		//Oops, we ran out of free slots
-		write_log("Compiling error: Out of free slots in the Regs structure, number of required slots: %d\n", slot);
-		abort();
-	}
-
-	return slot;
-}
-
-/**
- * Returns the slot number for the last saved register and adjusts the index.
- * Returns:
- *    The slot number for the last register saving
- */
-int comp_last_register_slot()
-{
-	int slot = --next_empty_register_slot;
-
-	//Check for underrun
-	if (slot < 0)
-	{
-		//Oops, stack underrun
-		write_log("Compiling error: requested for slot number for non-existing register slot\n");
-		abort();
-	}
-
-	return slot;
 }
 
 /**
@@ -1516,20 +1465,6 @@ void comp_ppc_addco(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOO
 	// ## addco(x) rega, regs, regb
 	comp_ppc_emit_halfwords(0x7c00 | ((regd.r) << 5) | rega.r,
 			0x0414 | (regb.r << 11) | (updateflags ? 1 : 0));
-}
-
-/* Compiles addeo instruction
- * Parameters:
- * 		regd - target register
- * 		rega - source register 1
- * 		regb - source register 2
- * 		updateflags - compiles the flag updating version if TRUE
- */
-void comp_ppc_addeo(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags)
-{
-	// ## addeo(x) rega, regs, regb
-	comp_ppc_emit_halfwords(0x7c00 | ((regd.r) << 5) | rega.r,
-			0x0514 | (regb.r << 11) | (updateflags ? 1 : 0));
 }
 
 /* Compiles addi instruction
@@ -2222,20 +2157,6 @@ void comp_ppc_slw(comp_ppc_reg rega, comp_ppc_reg regs, comp_ppc_reg regb, BOOL 
 			0x0030 | (regb.r << 11) | (updateflags ? 1 : 0));
 }
 
-/* Compiles sraw instruction
- * Parameters:
- * 		rega - target register
- * 		regs - source register
- * 		regb - shift amount
- * 		updateflags - compiles the flag updating version if TRUE
- */
-void comp_ppc_sraw(comp_ppc_reg rega, comp_ppc_reg regs, comp_ppc_reg regb, BOOL updateflags)
-{
-	// ## sraw(x) rega, regs, regb
-	comp_ppc_emit_halfwords(0x7C00 | ((regs.r) << 5) | rega.r,
-			0x0630 | (regb.r << 11) | (updateflags ? 1 : 0));
-}
-
 /* Compiles srawi instruction
  * Parameters:
  * 		rega - target register
@@ -2350,20 +2271,6 @@ void comp_ppc_subfco(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BO
 	// ## subfco(x) regd, rega, regb
 	comp_ppc_emit_halfwords(0x7c00 | ((regd.r) << 5) | rega.r,
 			0x0410 | (regb.r << 11) | (updateflags ? 1 : 0));
-}
-
-/* Compiles subfeo instruction
- * Parameters:
- * 		regd - target register
- * 		rega - source register 1
- * 		regb - source register 2
- * 		updateflags - compiles the flag updating version if TRUE
- */
-void comp_ppc_subfeo(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags)
-{
-	// ## subfeo(x) regd, rega, regb
-	comp_ppc_emit_halfwords(0x7c00 | ((regd.r) << 5) | rega.r,
-			0x0510 | (regb.r << 11) | (updateflags ? 1 : 0));
 }
 
 /* Compiles subfe instruction
@@ -2616,6 +2523,34 @@ void comp_ppc_epilog(uae_u32 restore_regs)
 	}
 }
 #endif
+
+/* Saves a specified register to a slot in the Regs structure. */
+void comp_ppc_save_to_slot(comp_ppc_reg reg, uae_u8 slot)
+{
+	//Check for the available slots
+	if (slot > COMP_REGS_ALLOCATED_SLOTS)
+	{
+		//Oops, the specified slot is not available
+		write_log("Error: slot #%d is not available in Regs structure for saving register\n", slot);
+		abort();
+	}
+
+	comp_ppc_stw(reg, COMP_GET_OFFSET_IN_REGS(regslots) + (slot * 4), PPCR_REGS_BASE_MAPPED);
+}
+
+/* Restores the specified register from the Regs structure. */
+void comp_ppc_restore_from_slot(comp_ppc_reg reg, uae_u8 slot)
+{
+	//Check for the available slots
+	if (slot > COMP_REGS_ALLOCATED_SLOTS)
+	{
+		//Oops, the specified slot is not available
+		write_log("Error: slot #%d is not available in Regs structure for restoring register\n", slot);
+		abort();
+	}
+
+	comp_ppc_lwz(reg, COMP_GET_OFFSET_IN_REGS(regslots) + (slot * 4), PPCR_REGS_BASE_MAPPED);
+}
 
 /* Saves allocated temporary registers to the stack.
  * Parameters:

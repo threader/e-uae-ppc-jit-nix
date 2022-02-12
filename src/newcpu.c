@@ -27,6 +27,8 @@
 #include "sleep.h"
 
 #ifdef JIT
+extern uae_u8* compiled_code;
+
 //JIT compiled code executed indicators
 uae_u32 jit_indicator_compiled_executed = 0;
 uae_u32 jit_indicator_interpreted_executed = 0;

@@ -51,13 +51,9 @@ typedef void comp_compiler_macroblock_func (union comp_compiler_mb_union*) REGPA
 #define COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ	(1ULL << 23)
 #define COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN	(1ULL << 24)
 
-//Non-volatile register dependency tracking
-#define COMP_COMPILER_MACROBLOCK_REG_NONVOL0	(1ULL << 25)
-#define COMP_COMPILER_MACROBLOCK_REG_NONVOL1	(1ULL << 26)
-
 //R0 register dependency tracking
-#define COMP_COMPILER_MACROBLOCK_TMP_REG_SPEC	(1ULL << 27)
-#define COMP_COMPILER_MACROBLOCK_TMP_REGS_START	28
+#define COMP_COMPILER_MACROBLOCK_TMP_REG_SPEC	(1ULL << 25)
+#define COMP_COMPILER_MACROBLOCK_TMP_REGS_START	26
 
 //No register dependency
 #define COMP_COMPILER_MACROBLOCK_REG_NONE	0
@@ -98,13 +94,11 @@ void comp_compiler_debug_dump_compiled(void);
 //Macroblock compiling handler prototypes
 void comp_macroblock_push_opcode_unsupported(uae_u16 opcode);
 void comp_macroblock_push_add_with_flags(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg1, comp_ppc_reg input_reg2);
-void comp_macroblock_push_add_extended_with_flags(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg1, comp_ppc_reg input_reg2);
 void comp_macroblock_push_add(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg1, comp_ppc_reg input_reg2);
 void comp_macroblock_push_add_register_imm(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, uae_u16 imm);
 void comp_macroblock_push_add_high_register_imm(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, uae_u16 imm);
 void comp_macroblock_push_sub(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg subtrahend_input_reg1, comp_ppc_reg minuend_input_reg2);
 void comp_macroblock_push_sub_with_flags(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg subtrahend_input_reg1, comp_ppc_reg minuend_input_reg2);
-void comp_macroblock_push_sub_extended_with_flags(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg subtrahend_input_reg1, comp_ppc_reg minuend_input_reg2);
 void comp_macroblock_push_sub_register_from_immediate(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg subtrahend_input_reg, uae_u8 minuend_input_imm);
 void comp_macroblock_push_negate_with_overflow(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, BOOL updateflags);
 void comp_macroblock_push_copy_register_long_with_flags(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg);
@@ -142,7 +136,6 @@ void comp_macroblock_push_multiply_registers_with_flags(uae_u64 regsin, uae_u64 
 void comp_macroblock_push_copy_nzcv_flags_to_register(uae_u64 regsout, comp_ppc_reg output_reg);
 void comp_macroblock_push_copy_nz_flags_to_register(uae_u64 regsout, comp_ppc_reg output_reg);
 void comp_macroblock_push_copy_cv_flags_to_register(uae_u64 regsout, comp_ppc_reg output_reg);
-void comp_macroblock_push_copy_register_to_cv_flags(uae_u64 regsin, comp_ppc_reg input_reg);
 void comp_macroblock_push_check_long_register(uae_u64 regsin, comp_ppc_reg input_reg);
 void comp_macroblock_push_check_word_register(uae_u64 regsin, comp_ppc_reg input_reg);
 void comp_macroblock_push_copy_register_word_extended(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, BOOL updateflags);
@@ -151,21 +144,17 @@ void comp_macroblock_push_check_byte_register(uae_u64 regsin, comp_ppc_reg input
 void comp_macroblock_push_rotate_and_copy_bits(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, uae_u8 shift, uae_u8 maskb, uae_u8 maske, BOOL updateflags);
 void comp_macroblock_push_rotate_and_mask_bits(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, uae_u8 shift, uae_u8 maskb, uae_u8 maske, BOOL updateflags);
 void comp_macroblock_push_rotate_and_mask_bits_register(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, comp_ppc_reg shift_reg, uae_u8 maskb, uae_u8 maske, BOOL updateflags);
-void comp_macroblock_push_arithmetic_shift_right_register_imm(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, uae_u8 shift, BOOL updateflags);
-void comp_macroblock_push_logic_shift_left_register_register(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, comp_ppc_reg shift_reg, BOOL updateflags);
-void comp_macroblock_push_logic_shift_right_register_register(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, comp_ppc_reg shift_reg, BOOL updateflags);
-void comp_macroblock_push_arithmetic_shift_right_register_register(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, comp_ppc_reg shift_reg, BOOL updateflags);
+void comp_macroblock_push_arithmetic_shift_right_register(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, uae_u8 shift, BOOL updateflags);
+void comp_macroblock_push_logic_shift_left_register(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, comp_ppc_reg shift_reg, BOOL updateflags);
+void comp_macroblock_push_logic_shift_right_register(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, comp_ppc_reg shift_reg, BOOL updateflags);
 void comp_macroblock_push_arithmetic_left_shift_extract_v_flag(uae_u64 regsin, comp_ppc_reg input_reg, comp_ppc_reg shift_reg, comp_ppc_reg tmp_reg);
-void comp_macroblock_push_shift_extract_c_flag(uae_u64 regsin, comp_ppc_reg input_reg, comp_ppc_reg shift_reg, BOOL left_shift);
-void comp_macroblock_push_shift_extract_cx_flag(uae_u64 regsin, comp_ppc_reg input_reg, comp_ppc_reg shift_reg, BOOL left_shift);
-void comp_macroblock_push_save_register_to_context(uae_u64 regsin, comp_ppc_reg input_reg);
-void comp_macroblock_push_restore_register_from_context(uae_u64 regsout, comp_ppc_reg output_reg);
+void comp_macroblock_push_left_shift_extract_c_flag(uae_u64 regsin, comp_ppc_reg input_reg, comp_ppc_reg shift_reg, BOOL left_shift);
+void comp_macroblock_push_save_reg_slot(uae_u64 regsin, comp_ppc_reg input_reg, uae_u8 slot);
+void comp_macroblock_push_load_reg_slot(uae_u64 regsout, comp_ppc_reg output_reg, uae_u8 slot);
 void comp_macroblock_push_load_pc_from_register(uae_u64 regsin, comp_ppc_reg address_reg);
 void comp_macroblock_push_load_pc_from_immediate_conditional(uae_u32 target_address, uae_u32 skip_address, BOOL negate, comp_ppc_reg address_reg, comp_ppc_reg tmp_reg);
 void comp_macroblock_push_load_pc_from_immediate_conditional_decrement_register(uae_u64 regsin, comp_ppc_reg decrement_reg, uae_u32 target_address, uae_u32 skip_address, BOOL negate, comp_ppc_reg address_reg, comp_ppc_reg tmp_reg);
 void comp_macroblock_push_set_byte_from_z_flag(uae_u64 regsout, comp_ppc_reg output_reg, BOOL negate);
-void comp_macroblock_push_convert_ccr_to_internal(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg);
-void comp_macroblock_push_convert_internal_to_ccr(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg);
 void comp_macroblock_push_stop(void);
 void comp_macroblock_push_nop(void);
 void comp_macroblock_push_null_operation(uae_u64 regsin, uae_u64 regsout);

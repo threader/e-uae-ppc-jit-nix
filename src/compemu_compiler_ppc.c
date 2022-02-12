@@ -59,11 +59,9 @@ void comp_macroblock_impl_save_memory_word(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_save_memory_word_update(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_save_memory_byte(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_add_with_flags(union comp_compiler_mb_union* mb);
-void comp_macroblock_impl_add_extended_with_flags(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_add(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_sub(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_sub_with_flags(union comp_compiler_mb_union* mb);
-void comp_macroblock_impl_sub_extended_with_flags(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_sub_register_from_immediate(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_add_register_imm(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_add_high_register_imm(union comp_compiler_mb_union* mb);
@@ -79,6 +77,7 @@ void comp_macroblock_impl_or_low_register_imm(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_or_high_register_imm(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_or_register_register(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_not_or_register_register(union comp_compiler_mb_union* mb);
+void comp_macroblock_impl_or_immed_register(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_xor_register_register(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_xor_low_register_imm(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_xor_high_register_imm(union comp_compiler_mb_union* mb);
@@ -88,7 +87,6 @@ void comp_macroblock_impl_multiply_registers_with_flags(union comp_compiler_mb_u
 void comp_macroblock_impl_copy_nzcv_flags_to_register(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_copy_nz_flags_to_register(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_copy_cv_flags_to_register(union comp_compiler_mb_union* mb);
-void comp_macroblock_impl_copy_register_to_cv_flags(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_check_byte_register(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_check_word_register(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_copy_register_word_extended(union comp_compiler_mb_union* mb);
@@ -96,18 +94,14 @@ void comp_macroblock_impl_copy_register_byte_extended(union comp_compiler_mb_uni
 void comp_macroblock_impl_rotate_and_copy_bits(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_rotate_and_mask_bits(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_rotate_and_mask_bits_register(union comp_compiler_mb_union* mb);
-void comp_macroblock_impl_arithmetic_shift_right_register_imm(union comp_compiler_mb_union* mb);
-void comp_macroblock_impl_logic_shift_left_register_register(union comp_compiler_mb_union* mb);
-void comp_macroblock_impl_logic_shift_right_register_register(union comp_compiler_mb_union* mb);
-void comp_macroblock_impl_arithmetic_shift_right_register_register(union comp_compiler_mb_union* mb);
+void comp_macroblock_impl_arithmetic_shift_right_register(union comp_compiler_mb_union* mb);
+void comp_macroblock_impl_logic_shift_left_register(union comp_compiler_mb_union* mb);
+void comp_macroblock_impl_logic_shift_right_register(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_arithmetic_left_shift_extract_v_flag(union comp_compiler_mb_union* mb);
-void comp_macroblock_impl_shift_extract_c_flag(union comp_compiler_mb_union* mb);
-void comp_macroblock_impl_shift_extract_cx_flag(union comp_compiler_mb_union* mb);
-void comp_macroblock_impl_save_register_to_context(union comp_compiler_mb_union* mb);
-void comp_macroblock_impl_restore_register_from_context(union comp_compiler_mb_union* mb);
+void comp_macroblock_impl_left_shift_extract_c_flag(union comp_compiler_mb_union* mb);
+void comp_macroblock_impl_save_reg_slot(union comp_compiler_mb_union* mb);
+void comp_macroblock_impl_load_reg_slot(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_set_byte_from_z_flag(union comp_compiler_mb_union* mb);
-void comp_macroblock_impl_convert_ccr_to_internal(union comp_compiler_mb_union* mb);
-void comp_macroblock_impl_convert_internal_to_ccr(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_stop(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_nop(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_null_operation(union comp_compiler_mb_union* mb);
@@ -447,7 +441,7 @@ void comp_macroblock_push_load_pc(const cpu_history * inst_history)
 
 /**
  * Macroblock: Adds two registers then copies the result into a third and updates all
- * the flags in PPC flag registers (NZCV)
+ * the flags in PPC flag registers (NZCVX)
  */
 void comp_macroblock_push_add_with_flags(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg1, comp_ppc_reg input_reg2)
 {
@@ -462,29 +456,6 @@ void comp_macroblock_push_add_with_flags(uae_u64 regsin, uae_u64 regsout, comp_p
 void comp_macroblock_impl_add_with_flags(union comp_compiler_mb_union* mb)
 {
 	comp_ppc_addco(
-			mb->three_regs_opcode.output_reg,
-			mb->three_regs_opcode.input_reg1,
-			mb->three_regs_opcode.input_reg2,
-			TRUE);
-}
-
-/**
- * Macroblock: Adds two registers plus the C flag then copies the result into a third and updates all
- * the flags in PPC flag registers (NZCV)
- */
-void comp_macroblock_push_add_extended_with_flags(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg1, comp_ppc_reg input_reg2)
-{
-	comp_mb_init(mb,
-				comp_macroblock_impl_add_extended_with_flags,
-				regsin, regsout);
-	mb->three_regs_opcode.output_reg = output_reg;
-	mb->three_regs_opcode.input_reg1 = input_reg1;
-	mb->three_regs_opcode.input_reg2 = input_reg2;
-}
-
-void comp_macroblock_impl_add_extended_with_flags(union comp_compiler_mb_union* mb)
-{
-	comp_ppc_addeo(
 			mb->three_regs_opcode.output_reg,
 			mb->three_regs_opcode.input_reg1,
 			mb->three_regs_opcode.input_reg2,
@@ -552,29 +523,6 @@ void comp_macroblock_push_sub_with_flags(uae_u64 regsin, uae_u64 regsout, comp_p
 void comp_macroblock_impl_sub_with_flags(union comp_compiler_mb_union* mb)
 {
 	comp_ppc_subfco(
-			mb->three_regs_opcode.output_reg,
-			mb->three_regs_opcode.input_reg1,
-			mb->three_regs_opcode.input_reg2,
-			TRUE);
-}
-
-/**
- * Macroblock: Subtracts a register plus the C flag from another register then copies
- * the result into a third and updates all the flags in PPC flag registers (NZCVX)
- */
-void comp_macroblock_push_sub_extended_with_flags(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg subtrahend_input_reg1, comp_ppc_reg minuend_input_reg2)
-{
-	comp_mb_init(mb,
-				comp_macroblock_impl_sub_extended_with_flags,
-				regsin, regsout);
-	mb->three_regs_opcode.output_reg = output_reg;
-	mb->three_regs_opcode.input_reg1 = subtrahend_input_reg1;
-	mb->three_regs_opcode.input_reg2 = minuend_input_reg2;
-}
-
-void comp_macroblock_impl_sub_extended_with_flags(union comp_compiler_mb_union* mb)
-{
-	comp_ppc_subfeo(
 			mb->three_regs_opcode.output_reg,
 			mb->three_regs_opcode.input_reg1,
 			mb->three_regs_opcode.input_reg2,
@@ -1530,26 +1478,6 @@ void comp_macroblock_impl_copy_cv_flags_to_register(union comp_compiler_mb_union
 }
 
 /**
- * Macroblock: Copy GPR register to C and V PowerPC flag register (overwrite XER register)
- * Note: this macroblock overwrites these internal PPC flags: C and V,
- * the previous content is not preserved. There is no check for the content in the rest of the register,
- * on some PowerPC implementations masking of the required flags might be needed.
- */
-void comp_macroblock_push_copy_register_to_cv_flags(uae_u64 regsin, comp_ppc_reg input_reg)
-{
-	comp_mb_init(mb,
-				comp_macroblock_impl_copy_register_to_cv_flags,
-				regsin,
-				COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGC | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGV);
-	mb->one_reg_opcode.reg = input_reg;
-}
-
-void comp_macroblock_impl_copy_register_to_cv_flags(union comp_compiler_mb_union* mb)
-{
-	comp_ppc_mtxer(mb->one_reg_opcode.reg);
-}
-
-/**
  * Macroblock: Check long-sized register value and set the PPC N and Z flag according
  * to the content of the register half word.
  */
@@ -1737,14 +1665,14 @@ void comp_macroblock_impl_rotate_and_mask_bits_register(union comp_compiler_mb_u
 }
 
 /**
- * Macroblock: Arithmetic shift to the right of the register using immediate for the steps
+ * Macroblock: Arithmetic shift to the right of the register
  * Note: when flag update is specified then the output registers will specify
  * internal flag update
  */
-void comp_macroblock_push_arithmetic_shift_right_register_imm(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, uae_u8 shift, BOOL updateflags)
+void comp_macroblock_push_arithmetic_shift_right_register(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, uae_u8 shift, BOOL updateflags)
 {
 	comp_mb_init(mb,
-				comp_macroblock_impl_arithmetic_shift_right_register_imm,
+				comp_macroblock_impl_arithmetic_shift_right_register,
 				regsin,
 				regsout | (updateflags ?
 								COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ :
@@ -1755,7 +1683,7 @@ void comp_macroblock_push_arithmetic_shift_right_register_imm(uae_u64 regsin, ua
 	mb->shift_opcode_imm.update_flags = updateflags;
 }
 
-void comp_macroblock_impl_arithmetic_shift_right_register_imm(union comp_compiler_mb_union* mb)
+void comp_macroblock_impl_arithmetic_shift_right_register(union comp_compiler_mb_union* mb)
 {
 	comp_ppc_srawi(
 			mb->shift_opcode_imm.output_reg,
@@ -1765,14 +1693,14 @@ void comp_macroblock_impl_arithmetic_shift_right_register_imm(union comp_compile
 }
 
 /**
- * Macroblock: Logic shift to the left of the register using a register for the steps
+ * Macroblock: Logic shift to the left of the register
  * Note: when flag update is specified then the output registers will specify
  * internal flag update
  */
-void comp_macroblock_push_logic_shift_left_register_register(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, comp_ppc_reg shift_reg, BOOL updateflags)
+void comp_macroblock_push_logic_shift_left_register(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, comp_ppc_reg shift_reg, BOOL updateflags)
 {
 	comp_mb_init(mb,
-				comp_macroblock_impl_logic_shift_left_register_register,
+				comp_macroblock_impl_logic_shift_left_register,
 				regsin,
 				regsout | (updateflags ?
 								COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ :
@@ -1783,7 +1711,7 @@ void comp_macroblock_push_logic_shift_left_register_register(uae_u64 regsin, uae
 	mb->shift_opcode_reg.update_flags = updateflags;
 }
 
-void comp_macroblock_impl_logic_shift_left_register_register(union comp_compiler_mb_union* mb)
+void comp_macroblock_impl_logic_shift_left_register(union comp_compiler_mb_union* mb)
 {
 	comp_ppc_slw(
 			mb->shift_opcode_reg.output_reg,
@@ -1793,14 +1721,14 @@ void comp_macroblock_impl_logic_shift_left_register_register(union comp_compiler
 }
 
 /**
- * Macroblock: Logic shift to the right of the register using a register for the steps
+ * Macroblock: Logic shift to the right of the register
  * Note: when flag update is specified then the output registers will specify
  * internal flag update
  */
-void comp_macroblock_push_logic_shift_right_register_register(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, comp_ppc_reg shift_reg, BOOL updateflags)
+void comp_macroblock_push_logic_shift_right_register(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, comp_ppc_reg shift_reg, BOOL updateflags)
 {
 	comp_mb_init(mb,
-				comp_macroblock_impl_logic_shift_right_register_register,
+				comp_macroblock_impl_logic_shift_right_register,
 				regsin,
 				regsout | (updateflags ?
 								COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ :
@@ -1811,37 +1739,9 @@ void comp_macroblock_push_logic_shift_right_register_register(uae_u64 regsin, ua
 	mb->shift_opcode_reg.update_flags = updateflags;
 }
 
-void comp_macroblock_impl_logic_shift_right_register_register(union comp_compiler_mb_union* mb)
+void comp_macroblock_impl_logic_shift_right_register(union comp_compiler_mb_union* mb)
 {
 	comp_ppc_srw(
-			mb->shift_opcode_reg.output_reg,
-			mb->shift_opcode_reg.input_reg,
-			mb->shift_opcode_reg.shift_reg,
-			mb->shift_opcode_reg.update_flags);
-}
-
-/**
- * Macroblock: Arithmetic shift to the right of the register using a register for the steps
- * Note: when flag update is specified then the output registers will specify
- * internal flag update
- */
-void comp_macroblock_push_arithmetic_shift_right_register_register(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, comp_ppc_reg shift_reg, BOOL updateflags)
-{
-	comp_mb_init(mb,
-				comp_macroblock_impl_arithmetic_shift_right_register_register,
-				regsin,
-				regsout | (updateflags ?
-								COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ :
-								COMP_COMPILER_MACROBLOCK_REG_NONE));
-	mb->shift_opcode_reg.output_reg = output_reg;
-	mb->shift_opcode_reg.input_reg = input_reg;
-	mb->shift_opcode_reg.shift_reg = shift_reg;
-	mb->shift_opcode_reg.update_flags = updateflags;
-}
-
-void comp_macroblock_impl_arithmetic_shift_right_register_register(union comp_compiler_mb_union* mb)
-{
-	comp_ppc_sraw(
 			mb->shift_opcode_reg.output_reg,
 			mb->shift_opcode_reg.input_reg,
 			mb->shift_opcode_reg.shift_reg,
@@ -1901,10 +1801,10 @@ void comp_macroblock_impl_arithmetic_left_shift_extract_v_flag(union comp_compil
  * then the C flag cleared (no bit shift was done).
  * Note: this macroblock uses CRF0 for comparison.
  */
-void comp_macroblock_push_shift_extract_c_flag(uae_u64 regsin, comp_ppc_reg input_reg, comp_ppc_reg shift_reg, BOOL left_shift)
+void comp_macroblock_push_left_shift_extract_c_flag(uae_u64 regsin, comp_ppc_reg input_reg, comp_ppc_reg shift_reg, BOOL left_shift)
 {
 	comp_mb_init(mb,
-				comp_macroblock_impl_shift_extract_c_flag,
+				comp_macroblock_impl_left_shift_extract_c_flag,
 				regsin,
 				COMP_COMPILER_MACROBLOCK_REG_FLAGC);
 	mb->extract_c_flag_shift.input_reg = input_reg;
@@ -1912,7 +1812,7 @@ void comp_macroblock_push_shift_extract_c_flag(uae_u64 regsin, comp_ppc_reg inpu
 	mb->extract_c_flag_shift.left_shift = left_shift;
 }
 
-void comp_macroblock_impl_shift_extract_c_flag(union comp_compiler_mb_union* mb)
+void comp_macroblock_impl_left_shift_extract_c_flag(union comp_compiler_mb_union* mb)
 {
 	//Is the shift register equals to zero (left shift) or 32 (right shift)?
 	comp_ppc_cmplwi(PPCR_CR_TMP0,
@@ -1933,54 +1833,6 @@ void comp_macroblock_impl_shift_extract_c_flag(union comp_compiler_mb_union* mb)
 				  PPCR_SPECTMP_MAPPED,
 				  mb->extract_c_flag_shift.left_shift ? 21 : 22,
 				  10, 10, FALSE);
-
-	//Branch target 0 is reached
-	comp_ppc_branch_target(0);
-}
-
-/**
- * Macroblock: Calculate C and X flag for shift, inserts both flags directly
- * into the flag emulation register.
- * If shift equals to 0 and left_shift is TRUE, or shift equals to 32 and left_shift is FALSE,
- * then the C flag cleared (no bit shift was done), X flag will be unchanged.
- * Note: this macroblock uses CRF0 for comparison.
- */
-void comp_macroblock_push_shift_extract_cx_flag(uae_u64 regsin, comp_ppc_reg input_reg, comp_ppc_reg shift_reg, BOOL left_shift)
-{
-	comp_mb_init(mb,
-				comp_macroblock_impl_shift_extract_cx_flag,
-				regsin | COMP_COMPILER_MACROBLOCK_REG_FLAGC,
-				COMP_COMPILER_MACROBLOCK_REG_FLAGX);
-	mb->extract_c_flag_shift.shift_reg = shift_reg;
-	mb->extract_c_flag_shift.left_shift = left_shift;
-}
-
-void comp_macroblock_impl_shift_extract_cx_flag(union comp_compiler_mb_union* mb)
-{
-	//Is the shift register equals to zero (left shift) or 32 (right shift)?
-	comp_ppc_cmplwi(PPCR_CR_TMP0,
-				    mb->extract_c_flag_shift.shift_reg,
-				    mb->extract_c_flag_shift.left_shift ? 0 : 32);
-
-	//Then skip the extraction
-	comp_ppc_bc(PPC_B_CR_TMP0_EQ | PPC_B_NONTAKEN, 0);
-
-	//Extract C flag from lowest bit to temp reg
-	comp_ppc_rlwnm(PPCR_SPECTMP_MAPPED,
-				  mb->extract_c_flag_shift.input_reg,
-				  mb->extract_c_flag_shift.shift_reg,
-				  0, 31, FALSE);
-
-	//Copy to flag register
-	comp_ppc_rlwimi(PPCR_FLAGS_MAPPED,
-				  PPCR_SPECTMP_MAPPED,
-				  mb->extract_c_flag_shift.left_shift ? 21 : 22,
-				  10, 10, FALSE);
-
-	//Copy C flag to X flag in flag register
-	comp_ppc_rlwimi(PPCR_FLAGS_MAPPED,
-					PPCR_FLAGS_MAPPED,
-					16, 26, 26, FALSE);
 
 	//Branch target 0 is reached
 	comp_ppc_branch_target(0);
@@ -2042,49 +1894,47 @@ void comp_macroblock_impl_null_operation(union comp_compiler_mb_union* mb)
 }
 
 /**
- * Macroblock: saves the specified register into the next slot in the Regs structure.
+ * Macroblock: save the specified register into the specified slot in the Regs structure
+ * Slot specifies the target longword in Regs structure (see COMP_REGS_ALLOCATED_SLOTS).
+ * Note: there is no checking for the allocation of the slots, make sure you know
+ * which one is in use.
  */
-void comp_macroblock_push_save_register_to_context(uae_u64 regsin, comp_ppc_reg input_reg)
+void comp_macroblock_push_save_reg_slot(uae_u64 regsin, comp_ppc_reg input_reg, uae_u8 slot)
 {
-	int slot = comp_next_free_register_slot();
-
 	//Registers are not required for input to avoid any interfere with the optimization
 	comp_mb_init(mb,
-				comp_macroblock_impl_save_register_to_context,
+				comp_macroblock_impl_save_reg_slot,
 				regsin,
 				COMP_COMPILER_MACROBLOCK_REG_NONE);
 	mb->reg_in_slot.slot = slot;
 	mb->reg_in_slot.reg = input_reg;
 }
 
-void comp_macroblock_impl_save_register_to_context(union comp_compiler_mb_union* mb)
+void comp_macroblock_impl_save_reg_slot(union comp_compiler_mb_union* mb)
 {
-	comp_ppc_stw(mb->reg_in_slot.reg,
-					COMP_GET_OFFSET_IN_REGS(regslots) + (mb->reg_in_slot.slot * 4),
-					PPCR_REGS_BASE_MAPPED);
+	comp_ppc_save_to_slot(mb->reg_in_slot.reg, mb->reg_in_slot.slot);
 }
 
 /**
- * Macroblock: restores the specified register from the last slot in the Regs structure.
+ * Macroblock: load the specified register from the specified slot in the Regs structure
+ * Slot specifies the target longword in Regs structure (see COMP_REGS_ALLOCATED_SLOTS).
+ * Note: there is no checking for the allocation of the slots, make sure you know
+ * which one is in use.
  */
-void comp_macroblock_push_restore_register_from_context(uae_u64 regsout, comp_ppc_reg output_reg)
+void comp_macroblock_push_load_reg_slot(uae_u64 regsout, comp_ppc_reg output_reg, uae_u8 slot)
 {
-	int slot = comp_last_register_slot();
-
 	//Registers are not required for input to avoid any interfere with the optimization
 	comp_mb_init(mb,
-				comp_macroblock_impl_restore_register_from_context,
+				comp_macroblock_impl_load_reg_slot,
 				COMP_COMPILER_MACROBLOCK_REG_NONE,
 				regsout);
 	mb->reg_in_slot.slot = slot;
 	mb->reg_in_slot.reg = output_reg;
 }
 
-void comp_macroblock_impl_restore_register_from_context(union comp_compiler_mb_union* mb)
+void comp_macroblock_impl_load_reg_slot(union comp_compiler_mb_union* mb)
 {
-	comp_ppc_lwz(mb->reg_in_slot.reg,
-					COMP_GET_OFFSET_IN_REGS(regslots) + (mb->reg_in_slot.slot * 4),
-					PPCR_REGS_BASE_MAPPED);
+	comp_ppc_restore_from_slot(mb->reg_in_slot.reg, mb->reg_in_slot.slot);
 }
 
 /**
@@ -2334,69 +2184,4 @@ void comp_macroblock_impl_set_byte_from_z_flag(union comp_compiler_mb_union* mb)
 
 	//Branch target reached, set it
 	comp_ppc_branch_target(0);
-}
-
-/**
- * Converts the CCR (68k flag register) format to the intermediate flag format which can be
- * stored in the PPCR_FLAGS register.
- * The bits which are not involved in the operation will be ignored.
- */
-void comp_macroblock_push_convert_ccr_to_internal(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg)
-{
-	comp_mb_init(mb,
-				comp_macroblock_impl_convert_ccr_to_internal,
-				regsin,
-				regsout);
-	mb->two_regs_opcode.input_reg = input_reg;
-	mb->two_regs_opcode.output_reg = output_reg;
-}
-
-void comp_macroblock_impl_convert_ccr_to_internal(union comp_compiler_mb_union* mb)
-{
-	comp_ppc_reg input_reg = mb->two_regs_opcode.input_reg;
-	comp_ppc_reg output_reg = mb->two_regs_opcode.output_reg;
-
-	//Copy V and C flags to the right place, clear the rest of the bits in the target register
-	comp_ppc_rlwinm(output_reg, input_reg, 21, 9, 10, FALSE);
-
-	//Insert the N flag
-	comp_ppc_rlwimi(output_reg, input_reg, 28, 0, 0, FALSE);
-
-	//Insert the Z flag
-	comp_ppc_rlwimi(output_reg, input_reg, 27, 2, 2, FALSE);
-
-	//Insert the X flag
-	comp_ppc_rlwimi(output_reg, input_reg, 1, 26, 26, FALSE);
-}
-
-/**
- * Converts the intermediate flag format to the CCR (68k flag register).
- * The bits which are not involved in the operation will be cleared in the target register.
- */
-void comp_macroblock_push_convert_internal_to_ccr(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg)
-{
-	comp_mb_init(mb,
-				comp_macroblock_impl_convert_internal_to_ccr,
-				regsin,
-				regsout);
-	mb->two_regs_opcode.input_reg = input_reg;
-	mb->two_regs_opcode.output_reg = output_reg;
-}
-
-void comp_macroblock_impl_convert_internal_to_ccr(union comp_compiler_mb_union* mb)
-{
-	comp_ppc_reg input_reg = mb->two_regs_opcode.input_reg;
-	comp_ppc_reg output_reg = mb->two_regs_opcode.output_reg;
-
-	//Copy V and C flags to the right place, clear the rest of the bits in the target register
-	comp_ppc_rlwinm(output_reg, input_reg, 11, 30, 31, FALSE);
-
-	//Insert the N flag
-	comp_ppc_rlwimi(output_reg, input_reg, 4, 28, 28, FALSE);
-
-	//Insert the Z flag
-	comp_ppc_rlwimi(output_reg, input_reg, 5, 29, 29, FALSE);
-
-	//Insert the X flag
-	comp_ppc_rlwimi(output_reg, input_reg, 31, 27, 27, FALSE);
 }

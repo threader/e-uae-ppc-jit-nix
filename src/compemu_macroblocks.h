@@ -200,7 +200,7 @@ void comp_opcode_JSRIMM(const cpu_history* history, struct comptbl* props) REGPA
 void comp_opcode_JSRIND(const cpu_history* history, struct comptbl* props) REGPARAM;
 void comp_opcode_RTS(const cpu_history* history, struct comptbl* props) REGPARAM;
 void comp_opcode_RTD(const cpu_history* history, struct comptbl* props) REGPARAM;
-void comp_opcode_RTR(const cpu_history* history, struct comptbl* props) REGPARAM;
+void comp_opcode_RTM(const cpu_history* history, struct comptbl* props) REGPARAM;
 void comp_opcode_EORIMM2REGL(const cpu_history* history, struct comptbl* props) REGPARAM;
 void comp_opcode_EORIMM2REGW(const cpu_history* history, struct comptbl* props) REGPARAM;
 void comp_opcode_EORIMM2REGB(const cpu_history* history, struct comptbl* props) REGPARAM;
@@ -506,5 +506,5 @@ void comp_opcode_FSCCMEMB(const cpu_history* history, struct comptbl* props) REG
 void comp_opcode_FNOP(const cpu_history* history, struct comptbl* props) REGPARAM;
 
 //Support compiling functions
-void comp_opcode_init(const cpu_history* history, uae_u8 extension);
+void comp_opcode_init(const cpu_history* history);
 void comp_opcode_unsupported(uae_u16 opcode);
