@@ -613,11 +613,8 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 		//Reset actually compiled M68k instruction pointer
 		compiled_m68k_location = NULL;
 
-		//Last block: save flags back to memory from register, if it was loaded before
-		if (!unsupported_in_a_row)
-		{
-			comp_macroblock_push_save_flags();
-		}
+		//Last block: save flags back to memory from register
+		comp_macroblock_push_save_flags();
 
 		//Optimize the collected macroblocks
 		comp_compiler_optimize_macroblocks();
@@ -627,12 +624,12 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 
 		//Dump compiled code to the console
 		comp_compiler_debug_dump_compiled();
+
 		//Compile calling the do_cycles function at the end of the block with the pre-calculated cycles
 		comp_ppc_do_cycles(scaled_cycles(totcycles));
 
 		//Return to the caller from the compiled block, restore non-volatile registers
 		comp_ppc_return_to_caller(PPCR_REG_USED_NONVOLATILE);
-
 
 		//PowerPC cache flush at the end of the compiling
 		ppc_cacheflush(compile_p_at_start, current_compile_p - compile_p_at_start);
@@ -666,7 +663,7 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 	}
 	else
 	{
-//		write_jit_log("Compiling ignored\n");
+		write_jit_log("Compiling ignored\n");
 	}
 }
 
