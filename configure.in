@@ -1358,7 +1358,7 @@ AC_MSG_CHECKING([whether to build internal debugger/monitor])
 if [[ "x$WANT_DEBUGGER" != "xno" ]]; then
   AC_MSG_RESULT(yes)
   UAE_DEFINES="$UAE_DEFINES -DDEBUGGER"
-  DEBUGOBJS="debug.o ppc_disasm.o identify.o"
+  DEBUGOBJS="debug.o identify.o"
 else
   AC_MSG_RESULT(no)
 fi

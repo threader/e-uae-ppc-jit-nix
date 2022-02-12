@@ -154,11 +154,6 @@ typedef struct blockinfo_t
 /* The used non-volatile registers in a bit masp for saving/restoring */
 #define PPCR_REG_USED_NONVOLATILE	(PPCR_REG_BIT(PPCR_REGS_BASE) | PPCR_REG_BIT(PPCR_FLAGS))
 
-/* The number of additional longwords in the stackframe that are allocated
- * for the temporary register saving.
- */
-#define COMP_STACKFRAME_ALLOCATED_SLOTS 3
-
 /* Some function protos */
 STATIC_INLINE blockinfo* get_blockinfo(uae_u32 cl);
 STATIC_INLINE blockinfo* get_blockinfo_addr_new(void* addr, int setstate);
@@ -206,9 +201,6 @@ void comp_ppc_blrl(void);
 void comp_ppc_cmplw(int regcrfd, int rega, int regb);
 void comp_ppc_extsb(int rega, int regs, int updateflags);
 void comp_ppc_extsh(int rega, int regs, int updateflags);
-void comp_ppc_lbz(int regd, uae_u16 delta, int rega);
-void comp_ppc_lha(int regd, uae_u16 delta, int rega);
-void comp_ppc_lhz(int regd, uae_u16 delta, int rega);
 void comp_ppc_li(int rega, uae_u16 imm);
 void comp_ppc_lis(int rega, uae_u16 imm);
 void comp_ppc_liw(int reg, uae_u32 value);

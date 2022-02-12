@@ -31,17 +31,6 @@ struct comp_compiler_mb_three_regs_opcode
 	uae_u8	output_reg;					//Output register
 };
 
-//Structure for normal three register input: two input and one output registers, plus specify if flag update needed
-//For example: or(x) output_reg, input_reg1, input_reg2
-struct comp_compiler_mb_three_regs_opcode_flags
-{
-	struct comp_compiler_mb mb;			//Default macroblock descriptor
-	uae_u8	input_reg1;					//Input register #1
-	uae_u8	input_reg2;					//Input register #2
-	uae_u8	output_reg;					//Output register
-	char	updateflags;				//Flags are updated (1) or not (0)
-};
-
 //Structure for normal two register and one immediate value input
 //For example: addis. output_reg, input_reg, immediate
 struct comp_compiler_mb_two_regs_imm_opcode
@@ -119,14 +108,6 @@ struct comp_compiler_mb_shift_opcode_with_mask
 	uae_u8 end_mask;					//End of the mask (bit#)
 };
 
-//Structure for stack slot operations
-struct comp_compiler_mb_reg_in_stackframe
-{
-	struct comp_compiler_mb mb;			//Default macroblock descriptor
-	int slot;							//Target longword slot in stackframe
-	uae_u8 reg;							//Input/output register
-};
-
 //Union of all macroblock descriptor structures
 union comp_compiler_mb_union
 {
@@ -136,11 +117,9 @@ union comp_compiler_mb_union
 	struct comp_compiler_mb_two_regs_opcode two_regs_opcode;
 	struct comp_compiler_mb_two_regs_imm_opcode two_regs_imm_opcode;
 	struct comp_compiler_mb_three_regs_opcode three_regs_opcode;
-	struct comp_compiler_mb_three_regs_opcode_flags three_regs_opcode_flags;
 	struct comp_compiler_mb_shift_opcode_with_mask shift_opcode_with_mask;
 	struct comp_compiler_mb_load_register load_register;
 	struct comp_compiler_mb_access_memory access_memory;
 	struct comp_compiler_mb_access_memory_size access_memory_size;
 	struct comp_compiler_mb_map_physical_mem map_physical_mem;
-	struct comp_compiler_mb_reg_in_stackframe reg_in_stackframe;
 };

@@ -132,9 +132,9 @@ MOVAREG2REGL 1   0010 dddD DDSS Ssss   0 0     regD,regA    regA
 MOVAREG2REGW 1   0011 dddD DDSS Ssss   0 0     regD,regA    regA
 
 ;*** Move memory to memory
-MOVMEM2MEML  1   0010 dddD DDSS Ssss   0 0     indA,indApL,indmAL,indAd16,indAcp,indPCcp,indPCd16,absW,absL    indA,indApL,indmAL,indAd16,indAcp,absW,absL
-MOVMEM2MEMW  1   0011 dddD DDSS Ssss   0 0     indA,indApW,indmAW,indAd16,indAcp,indPCcp,indPCd16,absW,absL    indA,indApW,indmAW,indAd16,indAcp,absW,absL
-MOVMEM2MEMB  1   0001 dddD DDSS Ssss   0 0     indA,indApB,indmAB,indAd16,indAcp,indPCcp,indPCd16,absW,absL    indA,indApB,indmAB,indAd16,indAcp,absW,absL
+MOVMEM2MEML  0   0010 dddD DDSS Ssss   0 0     indA,indApL,indmAL,indAd16,indAcp,indPCcp,indPCd16,absW,absL    indA,indApL,indmAL,indAd16,indAcp,absW,absL
+MOVMEM2MEMW  0   0011 dddD DDSS Ssss   0 0     indA,indApW,indmAW,indAd16,indAcp,indPCcp,indPCd16,absW,absL    indA,indApW,indmAW,indAd16,indAcp,absW,absL
+MOVMEM2MEMB  0   0001 dddD DDSS Ssss   0 0     indA,indApB,indmAB,indAd16,indAcp,indPCcp,indPCd16,absW,absL    indA,indApB,indmAB,indAd16,indAcp,absW,absL
 
 ;*** Move register to memory
 MOVREG2MEML  1   0010 dddD DDSS Ssss   0 0     regD,regA    indA,indApL,indmAL,indAd16,indAcp,absW,absL
@@ -178,16 +178,13 @@ MOVREG2MEMW  1   0011 111D DDSS S111   0 0     regA    indApWk,indmAWk
 
 ;*** Move memory to register
 ;move.z x.w,dy
-MOVMEM2REGL  1   0010 dddD DDSS Ssss   0 0     indA,indApL,indmAL,indAd16,indAcp,indPCcp,indPCd16,absW,absL    regD
-MOVMEM2REGW  1   0011 dddD DDSS Ssss   0 0     indA,indApW,indmAW,indAd16,indAcp,indPCcp,indPCd16,absW,absL    regD
-MOVMEM2REGB  1   0001 dddD DDSS Ssss   0 0     indA,indApB,indmAB,indAd16,indAcp,indPCcp,indPCd16,absW,absL    regD
+MOVMEM2REGL  0   0010 dddD DDSS Ssss   0 0     indA,indApL,indmAL,indAd16,indAcp,indPCcp,indPCd16,absW,absL    regD
+MOVMEM2REGW  0   0011 dddD DDSS Ssss   0 0     indA,indApW,indmAW,indAd16,indAcp,indPCcp,indPCd16,absW,absL    regD
+MOVMEM2REGB  0   0001 dddD DDSS Ssss   0 0     indA,indApB,indmAB,indAd16,indAcp,indPCcp,indPCd16,absW,absL    regD
 
 ;If the target is an address register, then flags kept unchanged
-MOVAMEM2REGL 1   0010 dddD DDSS Ssss   0 0     indA,indApL,indmAL,indAd16,indAcp,indPCcp,indPCd16,absW,absL    regA
-
-;Address registers are always longword-sized, doesn't matter what is the specified size,
-;immediate word sized data will be sign-extended to longword
-MOVAMEM2REGW 1   0011 dddD DDSS Ssss   0 0     indA,indApW,indmAW,indAd16,indAcp,indPCcp,indPCd16,absW,absL    regA
+MOVAMEM2REGL 0   0010 dddD DDSS Ssss   0 0     indA,indApL,indmAL,indAd16,indAcp,indPCcp,indPCd16,absW,absL    regA
+MOVAMEM2REGW 0   0011 dddD DDSS Ssss   0 0     indA,indApW,indmAW,indAd16,indAcp,indPCcp,indPCd16,absW,absL    regA
 
 ;*** Load immediate to a register
 ;move.z #y,dx
@@ -197,9 +194,6 @@ MOVIMM2REGB  1   0001 dddD DDSS Ssss   0 0     immedB    regD
 
 ;If the target is an address register, then flags kept unchanged
 MOVAIMM2REGL 1   0010 dddD DDSS Ssss   0 0     immedL    regA
-
-;Address registers are always longword-sized, doesn't matter what is the specified size,
-;immediate word sized data will be sign-extended to longword
 MOVAIMM2REGW 1   0011 dddD DDSS Ssss   0 0     immedW    regA
 
 ;*** Move quick
@@ -244,9 +238,6 @@ CLRMEMB      0   0100 0010 00DD Dddd   0 0     none    indA,indApB,indmAB,indAd1
 
 ;*** Load Effective Address
 LEAIMML      0   0100 ddd1 1111 1001   0 0     immedL    regA
-
-;Address registers are always longword-sized, doesn't matter what is the specified size,
-;immediate word sized data will be sign-extended to longword
 LEAIMMW      0   0100 ddd1 1111 1000   0 0     immedW    regA
 LEAIND       0   0100 ddd1 11SS Ssss   0 0     indA,indPCd16,indAd16,indAcp,indPCcp    regA
 
@@ -283,26 +274,26 @@ SCCREGB      0   0101 Ssss 11DD Dddd   0 0     CC_vs   regD
 
 STMEMB       0   0101 0000 11DD Dddd   0 0     none    indA,indApB,indmAB,indAd16,indAcp,absW,absL
 SFMEMB       0   0101 0001 11DD Dddd   0 0     none    indA,indApB,indmAB,indAd16,indAcp,absW,absL
-SCCMEMB      0   0101 Ssss 11DD Dddd   0 0     CC_cc   indA,indApB,indmAB,indAd16,indAcp,absW,absL
-SCCMEMB      0   0101 Ssss 11DD Dddd   0 0     CC_cs   indA,indApB,indmAB,indAd16,indAcp,absW,absL
-SCCMEMB      0   0101 Ssss 11DD Dddd   0 0     CC_eq   indA,indApB,indmAB,indAd16,indAcp,absW,absL
-SCCMEMB      0   0101 Ssss 11DD Dddd   0 0     CC_ge   indA,indApB,indmAB,indAd16,indAcp,absW,absL
-SCCMEMB      0   0101 Ssss 11DD Dddd   0 0     CC_gt   indA,indApB,indmAB,indAd16,indAcp,absW,absL
-SCCMEMB      0   0101 Ssss 11DD Dddd   0 0     CC_hi   indA,indApB,indmAB,indAd16,indAcp,absW,absL
-SCCMEMB      0   0101 Ssss 11DD Dddd   0 0     CC_le   indA,indApB,indmAB,indAd16,indAcp,absW,absL
-SCCMEMB      0   0101 Ssss 11DD Dddd   0 0     CC_ls   indA,indApB,indmAB,indAd16,indAcp,absW,absL
-SCCMEMB      0   0101 Ssss 11DD Dddd   0 0     CC_lt   indA,indApB,indmAB,indAd16,indAcp,absW,absL
-SCCMEMB      0   0101 Ssss 11DD Dddd   0 0     CC_mi   indA,indApB,indmAB,indAd16,indAcp,absW,absL
-SCCMEMB      0   0101 Ssss 11DD Dddd   0 0     CC_ne   indA,indApB,indmAB,indAd16,indAcp,absW,absL
-SCCMEMB      0   0101 Ssss 11DD Dddd   0 0     CC_pl   indA,indApB,indmAB,indAd16,indAcp,absW,absL
-SCCMEMB      0   0101 Ssss 11DD Dddd   0 0     CC_vc   indA,indApB,indmAB,indAd16,indAcp,absW,absL
-SCCMEMB      0   0101 Ssss 11DD Dddd   0 0     CC_vs   indA,indApB,indmAB,indAd16,indAcp,absW,absL
+SCCMEMB      0   0101 Ssss 11DD Dddd   0 0     CC_cc    indA,indApB,indmAB,indAd16,indAcp,absW,absL
+SCCMEMB      0   0101 Ssss 11DD Dddd   0 0     CC_cs    indA,indApB,indmAB,indAd16,indAcp,absW,absL
+SCCMEMB      0   0101 Ssss 11DD Dddd   0 0     CC_eq    indA,indApB,indmAB,indAd16,indAcp,absW,absL
+SCCMEMB      0   0101 Ssss 11DD Dddd   0 0     CC_ge    indA,indApB,indmAB,indAd16,indAcp,absW,absL
+SCCMEMB      0   0101 Ssss 11DD Dddd   0 0     CC_gt    indA,indApB,indmAB,indAd16,indAcp,absW,absL
+SCCMEMB      0   0101 Ssss 11DD Dddd   0 0     CC_hi    indA,indApB,indmAB,indAd16,indAcp,absW,absL
+SCCMEMB      0   0101 Ssss 11DD Dddd   0 0     CC_le    indA,indApB,indmAB,indAd16,indAcp,absW,absL
+SCCMEMB      0   0101 Ssss 11DD Dddd   0 0     CC_ls    indA,indApB,indmAB,indAd16,indAcp,absW,absL
+SCCMEMB      0   0101 Ssss 11DD Dddd   0 0     CC_lt    indA,indApB,indmAB,indAd16,indAcp,absW,absL
+SCCMEMB      0   0101 Ssss 11DD Dddd   0 0     CC_mi    indA,indApB,indmAB,indAd16,indAcp,absW,absL
+SCCMEMB      0   0101 Ssss 11DD Dddd   0 0     CC_ne    indA,indApB,indmAB,indAd16,indAcp,absW,absL
+SCCMEMB      0   0101 Ssss 11DD Dddd   0 0     CC_pl    indA,indApB,indmAB,indAd16,indAcp,absW,absL
+SCCMEMB      0   0101 Ssss 11DD Dddd   0 0     CC_vc    indA,indApB,indmAB,indAd16,indAcp,absW,absL
+SCCMEMB      0   0101 Ssss 11DD Dddd   0 0     CC_vs    indA,indApB,indmAB,indAd16,indAcp,absW,absL
 
 ;*** Condition Code Register moving
 MOVCCR2REGW  0   0100 0010 11DD Dddd   0 0     none    regD
 MOVCCR2MEMW  0   0100 0010 11DD Dddd   0 0     none    indA,indApW,indmAW,indAd16,indAcp,absW,absL
 
-MOVIMM2CCRW  0   0100 0100 11SS Ssss   0 0     immedW  none
+MOVIMM2CCRW  0   0100 0100 11SS Ssss   0 0     immedW    none
 MOVREG2CCRW  0   0100 0100 11SS Ssss   0 0     regD    none
 MOVMEM2CCRW  0   0100 0100 11SS Ssss   0 0     indA,indApW,indmAW,indAd16,indAcp,indPCcp,indPCd16,absW,absL    none
 
@@ -310,7 +301,7 @@ MOVMEM2CCRW  0   0100 0100 11SS Ssss   0 0     indA,indApW,indmAW,indAd16,indAcp
 MOVSR2REGW   0   0100 0000 11DD Dddd   0 0     none    regD
 MOVSR2MEMW   0   0100 0000 11DD Dddd   0 0     none    indA,indApW,indmAW,indAd16,indAcp,absW,absL
 
-MOVIMM2SRW   0   0100 0110 11SS Ssss   0 0     immedW  none
+MOVIMM2SRW   0   0100 0110 11SS Ssss   0 0     immedW    none
 MOVREG2SRW   0   0100 0110 11SS Ssss   0 0     regD    none
 MOVMEM2SRW   0   0100 0110 11SS Ssss   0 0     indA,indApW,indmAW,indAd16,indAcp,indPCcp,indPCd16,absW,absL    none
 
@@ -413,9 +404,9 @@ ORIMM2MEML   0   0000 0000 10DD Dddd   0 0     immedL    indA,indApL,indmAL,indA
 ORIMM2MEMW   0   0000 0000 01DD Dddd   0 0     immedW    indA,indApW,indmAW,indAd16,indAcp,absW,absL
 ORIMM2MEMB   0   0000 0000 00DD Dddd   0 0     immedB    indA,indApB,indmAB,indAd16,indAcp,absW,absL
 
-ORREG2REGL   1   1000 ddd0 10SS Ssss   0 0     regD,regA    regD
-ORREG2REGW   1   1000 ddd0 01SS Ssss   0 0     regD,regA    regD
-ORREG2REGB   1   1000 ddd0 00SS Ssss   0 0     regD,regA    regD
+ORREG2REGL   0   1000 ddd0 10SS Ssss   0 0     regD,regA    regD
+ORREG2REGW   0   1000 ddd0 01SS Ssss   0 0     regD,regA    regD
+ORREG2REGB   0   1000 ddd0 00SS Ssss   0 0     regD,regA    regD
 
 ORREG2MEML   0   1000 sss1 10DD Dddd   0 0     regD    indA,indApL,indmAL,indAd16,indAcp,absW,absL
 ORREG2MEMW   0   1000 sss1 01DD Dddd   0 0     regD    indA,indApW,indmAW,indAd16,indAcp,absW,absL
@@ -652,15 +643,12 @@ ADDIMM2REGB  0   1101 ddd0 00SS Ssss   0 0     immedB    regD
 
 ;*** ADDQ
 ADDQ2REGL    1   0101 sss0 10DD Dddd   0 0     immedQ    regD
-ADDQ2REGW    1   0101 sss0 01DD Dddd   0 0     immedQ    regD
-ADDQ2REGB    1   0101 sss0 00DD Dddd   0 0     immedQ    regD
+ADDQ2REGW    0   0101 sss0 01DD Dddd   0 0     immedQ    regD
+ADDQ2REGB    0   0101 sss0 00DD Dddd   0 0     immedQ    regD
 
 ;If the target is an address register, then flags kept unchanged
-ADDAQ2REGL   1   0101 sss0 10DD Dddd   0 0     immedQ    regA
-
-;Address registers are always longword-sized, doesn't matter what is the specified size,
-;immediate word sized data will be sign-extended to longword
-ADDAQ2REGL   1   0101 sss0 01DD Dddd   0 0     immedQ    regA
+ADDAQ2REGL   0   0101 sss0 10DD Dddd   0 0     immedQ    regA
+ADDAQ2REGL   0   0101 sss0 01DD Dddd   0 0     immedQ    regA
 
 ADDQ2MEML    0   0101 sss0 10DD Dddd   0 0     immedQ    indA,indApL,indmAL,indAd16,indAcp,absW,absL
 ADDQ2MEMW    0   0101 sss0 01DD Dddd   0 0     immedQ    indA,indApW,indmAW,indAd16,indAcp,absW,absL
@@ -669,14 +657,11 @@ ADDQ2MEMB    0   0101 sss0 00DD Dddd   0 0     immedQ    indA,indApB,indmAB,indA
 ;*** ADDA
 ;If the target is an address register, then flags kept unchanged
 ADDAMEM2REGL 0   1101 ddd1 11SS Ssss   0 0     indA,indApL,indmAL,indAd16,indAcp,indPCcp,indPCd16,absW,absL    regA
-
-;Address registers are always longword-sized, doesn't matter what is the specified size,
-;immediate word sized data will be sign-extended to longword
 ADDAMEM2REGW 0   1101 ddd0 11SS Ssss   0 0     indA,indApW,indmAW,indAd16,indAcp,indPCcp,indPCd16,absW,absL    regA
 ADDAREG2REGL 0   1101 ddd1 11SS Ssss   0 0     regA,regD    regA
 ADDAREG2REGW 0   1101 ddd0 11SS Ssss   0 0     regA,regD    regA
-ADDAIMM2REGL 1   1101 ddd1 11SS Ssss   0 0     immedL    regA
-ADDAIMM2REGW 1   1101 ddd0 11SS Ssss   0 0     immedW    regA
+ADDAIMM2REGL 0   1101 ddd1 11SS Ssss   0 0     immedL    regA
+ADDAIMM2REGW 0   1101 ddd0 11SS Ssss   0 0     immedW    regA
 
 ;*** ADDX
 ADDXREG2REGL 0   1101 ddd1 1000 0sss   0 0     regD    regD
@@ -721,9 +706,6 @@ SUBQ2REGB    0   0101 sss1 00DD Dddd   0 0     immedQ    regD
 
 ;If the target is an address register, then flags kept unchanged
 SUBAQ2REGL   0   0101 sss1 10DD Dddd   0 0     immedQ    regA
-
-;Address registers are always longword-sized, doesn't matter what is the specified size,
-;immediate word sized data will be sign-extended to longword
 SUBAQ2REGL   0   0101 sss1 01DD Dddd   0 0     immedQ    regA
 
 SUBQ2MEML    0   0101 sss1 10DD Dddd   0 0     immedQ    indA,indApL,indmAL,indAd16,indAcp,absW,absL
@@ -733,9 +715,6 @@ SUBQ2MEMB    0   0101 sss1 00DD Dddd   0 0     immedQ    indA,indApB,indmAB,indA
 ;*** SUBA
 ;If the target is an address register, then flags kept unchanged
 SUBAMEM2REGL 0   1001 ddd1 11SS Ssss   0 0     indA,indApL,indmAL,indPCd16,indAd16,indAcp,indPCcp,absW,absL    regA
-
-;Address registers are always longword-sized, doesn't matter what is the specified size,
-;immediate word sized data will be sign-extended to longword
 SUBAMEM2REGW 0   1001 ddd0 11SS Ssss   0 0     indA,indApW,indmAW,indPCd16,indAd16,indAcp,indPCcp,absW,absL    regA
 SUBAIMM2REGL 0   1001 ddd1 11SS Ssss   0 0     immedL    regA
 SUBAIMM2REGW 0   1001 ddd0 11SS Ssss   0 0     immedW    regA
@@ -816,7 +795,7 @@ UNPKMEM2MEMB 0   1000 ddd1 1000 1sss   0 0     indmAB    indmAW
 ;---------------------------------------------------------------------
 ;*** Misc instructions
 ;*** Swap
-SWAP         1   0100 1000 0100 0ddd   0 0     none    regD
+SWAP         0   0100 1000 0100 0sss   0 0     regD    none
 
 ;*** Exchange
 EXG          0   1100 sss1 0100 0ddd   0 0     regD    regD
@@ -824,9 +803,9 @@ EXG          0   1100 sss1 0100 1ddd   0 0     regA    regA
 EXG          0   1100 sss1 1000 1ddd   0 0     regD    regA
 
 ;*** EXT
-EXTBW        0   0100 1000 1000 0ddd   0 0     none    regD
-EXTWL        0   0100 1000 1100 0ddd   0 0     none    regD
-EXTBL        0   0100 1001 1100 0ddd   0 0     none    regD
+EXTBW        0   0100 1000 1000 0sss   0 0     regD    none
+EXTWL        0   0100 1000 1100 0sss   0 0     regD    none
+EXTBL        0   0100 1001 1100 0sss   0 0     regD    none
 
 ;*** Other
 NOP          0   0100 1110 0111 0001   0 0     none    none
@@ -916,22 +895,22 @@ ILLEGAL      0   0100 1010 1111 1100   1 0     none    none
 
 ;---------------------------------------------------------------------
 ;*** Bitfield instructions
-BFCHG2REG    0   1110 1010 11DD Dddd   0 0     none     regD
-BFCHG2MEM    0   1110 1010 11DD Dddd   0 0     none     indA,indAd16,indAcp,absW,absL
-BFCLR2REG    0   1110 1100 11DD Dddd   0 0     none     regD
-BFCLR2MEM    0   1110 1100 11DD Dddd   0 0     none     indA,indAd16,indAcp,absW,absL
-BFEXTS2REG   0   1110 1011 11DD Dddd   0 0     none     regD
-BFEXTS2MEM   0   1110 1011 11DD Dddd   0 0     none     indA,indAd16,indAcp,indPCd16,indPCcp,absW,absL
-BFEXTU2REG   0   1110 1001 11DD Dddd   0 0     none     regD
-BFEXTU2MEM   0   1110 1001 11DD Dddd   0 0     none     indA,indAd16,indAcp,indPCd16,indPCcp,absW,absL
-BFFFO2REG    0   1110 1101 11DD Dddd   0 0     none     regD
-BFFFO2MEM    0   1110 1101 11DD Dddd   0 0     none     indA,indAd16,indAcp,indPCd16,indPCcp,absW,absL
-BFINS2REG    0   1110 1111 11DD Dddd   0 0     none     regD
-BFINS2MEM    0   1110 1111 11DD Dddd   0 0     none     indA,indAd16,indAcp,absW,absL
-BFSET2REG    0   1110 1110 11DD Dddd   0 0     none     regD
-BFSET2MEM    0   1110 1110 11DD Dddd   0 0     none     indA,indAd16,indAcp,absW,absL
-BFTST2REG    0   1110 1000 11DD Dddd   0 0     none     regD
-BFTST2MEM    0   1110 1000 11DD Dddd   0 0     none     indA,indAd16,indAcp,indPCd16,indPCcp,absW,absL
+BFCHG2REG    0   1110 1010 11SS Ssss   0 0     regD    none
+BFCHG2MEM    0   1110 1010 11SS Ssss   0 0     indA,indAd16,indAcp,absW,absL none
+BFCLR2REG    0   1110 1100 11SS Ssss   0 0     regD    none
+BFCLR2MEM    0   1110 1100 11SS Ssss   0 0     indA,indAd16,indAcp,absW,absL none
+BFEXTS2REG   0   1110 1011 11SS Ssss   0 0     regD    none
+BFEXTS2MEM   0   1110 1011 11SS Ssss   0 0     indA,indAd16,indAcp,indPCd16,indPCcp,absW,absL none
+BFEXTU2REG   0   1110 1001 11SS Ssss   0 0     regD    none
+BFEXTU2MEM   0   1110 1001 11SS Ssss   0 0     indA,indAd16,indAcp,indPCd16,indPCcp,absW,absL none
+BFFFO2REG    0   1110 1101 11SS Ssss   0 0     regD    none
+BFFFO2MEM    0   1110 1101 11SS Ssss   0 0     indA,indAd16,indAcp,indPCd16,indPCcp,absW,absL none
+BFINS2REG    0   1110 1111 11DD Dddd   0 0     none    regD
+BFINS2MEM    0   1110 1111 11DD Dddd   0 0     none    indA,indAd16,indAcp,absW,absL
+BFSET2REG    0   1110 1110 11SS Ssss   0 0     regD    none
+BFSET2MEM    0   1110 1110 11SS Ssss   0 0     indA,indAd16,indAcp,absW,absL none
+BFTST2REG    0   1110 1000 11SS Ssss   0 0     regD    none
+BFTST2MEM    0   1110 1000 11SS Ssss   0 0     indA,indAd16,indAcp,indPCd16,indPCcp,absW,absL none
 
 ;---------------------------------------------------------------------
 ;*** Basic FPU instructions
