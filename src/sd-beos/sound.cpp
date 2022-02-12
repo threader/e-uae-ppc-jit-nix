@@ -62,24 +62,6 @@ static sem_id sound_sync_sem;
 void stream_func8  (void *user, void *buffer, size_t size, const media_raw_audio_format &format);
 void stream_func16 (void *user, void *buffer, size_t size, const media_raw_audio_format &format);
 
-static int exact_log2 (int v)
-{
-    int l = 0;
-    while ((v >>= 1) != 0)
-	l++;
-    return l;
-}
-
-static int get_nearest_power_of_2 (int v)
-{
-    int low = 1 << exact_log2 (v);
-    int hi  = low << 1;
-
-    if ((v - low) < (hi - v))
-	return low;
-    else
-	return hi;
-}
 
 int init_sound (void)
 {
@@ -88,9 +70,9 @@ int init_sound (void)
 
     media_raw_audio_format audioFormat;
 
-    gSoundBufferSize = currprefs.sound_freq * currprefs.sound_latency *
+    gSoundBufferSize = currprefs.sound_freq * currprefs.sound_latency * (currprefs.sound_bits / 8) *
 		       (currprefs.sound_stereo ? 2 : 1) / 1000;
-    gSoundBufferSize = get_nearest_power_of_2 (gSoundBufferSize);
+    gSoundBufferSize = (gSoundBufferSize + 7) & ~8;
 
     audioFormat.frame_rate    = currprefs.sound_freq;
     audioFormat.channel_count = currprefs.sound_stereo ? 2 : 1;
@@ -98,7 +80,8 @@ int init_sound (void)
     audioFormat.byte_order    = B_MEDIA_HOST_ENDIAN;
     audioFormat.buffer_size   = gSoundBufferSize * sizeof(float);
 
-    gSoundPlayer = new BSoundPlayer (&audioFormat, "UAE SoundPlayer", stream_func16);
+    gSoundPlayer = new BSoundPlayer (&audioFormat, "UAE SoundPlayer",
+				     currprefs.sound_bits == 8 ? stream_func8 : stream_func16);
     sound_ready = (gSoundPlayer != NULL);
 
     if (!currprefs.produce_sound)
@@ -113,19 +96,24 @@ int init_sound (void)
     memset (buffer, 0, 4 * gSoundBufferSize);
     sndbufpt = sndbuffer = buffer;
 
-    sndbufsize = sizeof (uae_u16) * gSoundBufferSize;
-    if (currprefs.sound_stereo)
-	sample_handler = sample16s_handler;
-    else
-	sample_handler = sample16_handler;
-    init_sound_table16 ();
+    if (currprefs.sound_bits == 8) {
+	sndbufsize = sizeof (uae_u8) * gSoundBufferSize;
+	sample_handler = currprefs.sound_stereo ? sample8s_handler : sample8_handler;
+	init_sound_table8 ();
+    } else {
+	sndbufsize = sizeof (uae_u16) * gSoundBufferSize;
+	if (currprefs.sound_stereo)
+	    sample_handler = sample16s_handler;
+	else
+	    sample_handler = sample16_handler;
+	init_sound_table16 ();
+    }
 
     sound_available = 1;
     obtainedfreq = currprefs.sound_freq;
 
-    write_log ("BeOS sound driver found and configured at %d Hz, buffer is %d samples (%d ms)\n",
-	       currprefs.sound_freq, gSoundBufferSize / audioFormat.channel_count,
-	       (gSoundBufferSize / audioFormat.channel_count) * 1000 / currprefs.sound_freq);
+    write_log ("BeOS sound driver found and configured for %d bits at %d Hz, buffer is %d samples\n",
+	       currprefs.sound_bits, currprefs.sound_freq, gSoundBufferSize);
 
     if (gSoundPlayer) {
 	gSoundPlayer->Start ();
@@ -235,19 +223,51 @@ void stream_func16 (void *user, void *buffer, size_t size,const media_raw_audio_
 	*(dest++) = 0.f;
 }
 
+void stream_func8 (void *user, void *buffer, size_t size,const media_raw_audio_format &format)
+{
+    int32 max_read_sample, avail_sample;
+    uae_u8 *buf;
+
+    float *dest = (float *)buffer;
+    int32 dest_sample = (int32)(size / sizeof (float));
+    float *enddest = dest + dest_sample;
+
+    max_read_sample = gSoundBufferSize;
+    if (dest_sample < max_read_sample)
+	max_read_sample = dest_sample;
+
+    buf = (uae_u8 *)gDoubleBufferRead + gBufferReadPos;
+    avail_sample = gSoundBufferSize - gBufferReadPos;
+    if (avail_sample < max_read_sample)
+	max_read_sample = avail_sample;
+    if (max_read_sample)
+	gBufferReadPos += max_read_sample;
+
+    const float ratio = 1.f / 128.f;
+    while (max_read_sample--)
+	*(dest++) = ((float)*(buf++) - 128) * ratio;
+
+    if (gBufferReadPos == gSoundBufferSize) {
+	gBufferReadPos = 0;
+	if (gLastBuffer != gDoubleBufferRead) {
+	    gLastBuffer = gDoubleBufferRead;
+	    release_sem (sound_sync_sem);
+	}
+    }
+
+    while (dest < enddest)
+	*(dest++) = 0.f;
+}
+
 void pause_sound (void)
 {
-    if (gSoundPlayer)
-	gSoundPlayer->Stop ();
-
+    close_sound ();
     return;
 }
 
 void resume_sound (void)
 {
-    if (gSoundPlayer)
-	gSoundPlayer->Start ();
-
+    init_sound ();
     return;
 }
 

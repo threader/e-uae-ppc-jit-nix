@@ -127,9 +127,9 @@ extern uae_u8 *baseaddr[MEMORY_BANKS];
 # define put_mem_bank(addr, b, realstart) do { \
     (mem_banks[bankindex(addr)] = (b)); \
     if ((b)->baseaddr) \
-	baseaddr[bankindex(addr)] = (b)->baseaddr - (realstart); \
+        baseaddr[bankindex(addr)] = (b)->baseaddr - (realstart); \
     else \
-	baseaddr[bankindex(addr)] = (uae_u8*)(((long)b)+1); \
+        baseaddr[bankindex(addr)] = (uae_u8*)(((long)b)+1); \
 } while (0)
 #else
 # define put_mem_bank(addr, b, realstart) \
@@ -148,17 +148,17 @@ extern void map_overlay (int chip);
 #define wordput(addr,w) (call_mem_put_func(get_mem_bank(addr).wput, addr, w))
 #define byteput(addr,b) (call_mem_put_func(get_mem_bank(addr).bput, addr, b))
 
-STATIC_INLINE uae_u32 get_long (uaecptr addr)
+STATIC_INLINE uae_u32 get_long(uaecptr addr)
 {
     addr &= MEMORY_RANGE_MASK;
     return longget(addr);
 }
-STATIC_INLINE uae_u32 get_word (uaecptr addr)
+STATIC_INLINE uae_u32 get_word(uaecptr addr)
 {
     addr &= MEMORY_RANGE_MASK;
     return wordget(addr);
 }
-STATIC_INLINE uae_u32 get_byte (uaecptr addr)
+STATIC_INLINE uae_u32 get_byte(uaecptr addr)
 {
     addr &= MEMORY_RANGE_MASK;
     return byteget(addr);
@@ -167,7 +167,7 @@ STATIC_INLINE uae_u32 get_byte (uaecptr addr)
  * Read a host pointer from addr
  */
 #if SIZEOF_VOID_P == 4
-# define get_pointer(addr) ((void *)get_long (addr))
+# define get_pointer(addr) ((void *)get_long(addr))
 #else
 # if SIZEOF_VOID_P == 8
 STATIC_INLINE void *get_pointer (uaecptr addr)
@@ -192,17 +192,17 @@ STATIC_INLINE void *get_pointer (uaecptr addr)
 #  error "Unknown or unsupported pointer size."
 # endif
 #endif
-STATIC_INLINE void put_long (uaecptr addr, uae_u32 l)
+STATIC_INLINE void put_long(uaecptr addr, uae_u32 l)
 {
     addr &= MEMORY_RANGE_MASK;
     longput(addr, l);
 }
-STATIC_INLINE void put_word (uaecptr addr, uae_u32 w)
+STATIC_INLINE void put_word(uaecptr addr, uae_u32 w)
 {
     addr &= MEMORY_RANGE_MASK;
     wordput(addr, w);
 }
-STATIC_INLINE void put_byte (uaecptr addr, uae_u32 b)
+STATIC_INLINE void put_byte(uaecptr addr, uae_u32 b)
 {
     addr &= MEMORY_RANGE_MASK;
     byteput(addr, b);
@@ -211,7 +211,7 @@ STATIC_INLINE void put_byte (uaecptr addr, uae_u32 b)
  * Store host pointer v at addr
  */
 #if SIZEOF_VOID_P == 4
-# define put_pointer(addr, p) (put_long ((addr), (uae_u32)(p)))
+# define put_pointer(addr, p) (put_long((addr), (uae_u32)(p)))
 #else
 # if SIZEOF_VOID_P == 8
 STATIC_INLINE void put_pointer (uaecptr addr, void *v)
@@ -235,7 +235,7 @@ STATIC_INLINE void put_pointer (uaecptr addr, void *v)
 }
 # endif
 #endif
-STATIC_INLINE uae_u8 *get_real_address (uaecptr addr)
+STATIC_INLINE uae_u8 *get_real_address(uaecptr addr)
 {
     addr &= MEMORY_RANGE_MASK;
     return get_mem_bank(addr).xlateaddr(addr);

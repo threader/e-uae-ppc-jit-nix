@@ -56,7 +56,7 @@
 #ifdef DEBUG_BSDSOCKET
 #define DEBUG_LOG write_log
 #else
-#define DEBUG_LOG(...) do {} while(0)
+#define DEBUG_LOG(...) do ; while(0)
 #endif
 
 #define WAITSIGNAL	waitsig (context, sb)
@@ -67,8 +67,8 @@
 //#define SETSIGNAL	addtosigqueue (sb, 0)
 #define SETSIGNAL \
     do { \
-	uae_Signal (sb->ownertask, sb->sigstosend | ((uae_u32) 1) << sb->signal); \
-	sb->dosignal = 1; \
+        uae_Signal (sb->ownertask, sb->sigstosend | ((uae_u32) 1) << sb->signal); \
+        sb->dosignal = 1; \
     } while (0)
 
 
@@ -285,7 +285,7 @@ static int mapsockoptname (int level, int optname)
 	    }
 	    break;
 
-	default:
+        default:
 	    DEBUG_LOG ("Unknown level %d\n", level);
 	    return -1;
     }
@@ -305,10 +305,10 @@ static void mapsockoptreturn(int level, int optname, uae_u32 optval, void *buf)
 		case SO_ACCEPTCONN:
 		case SO_REUSEADDR:
 		case SO_KEEPALIVE:
-		case SO_DONTROUTE:
-		case SO_BROADCAST:
+	        case SO_DONTROUTE:
+	        case SO_BROADCAST:
 #ifdef SO_USELOOPBACK
-		case SO_USELOOPBACK:
+	        case SO_USELOOPBACK:
 #endif
 		case SO_LINGER:
 		case SO_OOBINLINE:
@@ -322,12 +322,12 @@ static void mapsockoptreturn(int level, int optname, uae_u32 optval, void *buf)
 		case SO_SNDTIMEO:
 		case SO_RCVTIMEO:
 		case SO_TYPE:
-		    put_long (optval, *(int *)buf);
+		    put_long(optval, *(int *)buf);
 		    break;
 
 		case SO_ERROR:
 		    DEBUG_LOG("New errno is %d\n", mapErrno(*(int *)buf));
-		    put_long (optval, mapErrno(*(int *)buf));
+		    put_long(optval, mapErrno(*(int *)buf));
 		    break;
 		default:
 		    break;
@@ -347,7 +347,7 @@ static void mapsockoptreturn(int level, int optname, uae_u32 optval, void *buf)
 		case IP_MULTICAST_TTL:
 		case IP_MULTICAST_LOOP:
 		case IP_ADD_MEMBERSHIP:
-		    put_long (optval, *(int *)buf);
+		    put_long(optval, *(int *)buf);
 		    break;
 
 		default:
@@ -359,7 +359,7 @@ static void mapsockoptreturn(int level, int optname, uae_u32 optval, void *buf)
 	    switch (optname) {
 		case TCP_NODELAY:
 		case TCP_MAXSEG:
-		    put_long (optval,*(int *)buf);
+		    put_long(optval,*(int *)buf);
 		    break;
 
 		default:
@@ -367,7 +367,7 @@ static void mapsockoptreturn(int level, int optname, uae_u32 optval, void *buf)
 	    }
 	    break;
 
-	default:
+        default:
 	    break;
     }
 }
@@ -385,10 +385,10 @@ static void mapsockoptvalue(int level, int optname, uae_u32 optval, void *buf)
 		case SO_ACCEPTCONN:
 		case SO_REUSEADDR:
 		case SO_KEEPALIVE:
-		case SO_DONTROUTE:
-		case SO_BROADCAST:
+	        case SO_DONTROUTE:
+	        case SO_BROADCAST:
 #ifdef SO_USELOOPBACK
-		case SO_USELOOPBACK:
+	        case SO_USELOOPBACK:
 #endif
 		case SO_LINGER:
 		case SO_OOBINLINE:
@@ -402,8 +402,8 @@ static void mapsockoptvalue(int level, int optname, uae_u32 optval, void *buf)
 		case SO_SNDTIMEO:
 		case SO_RCVTIMEO:
 		case SO_TYPE:
-		case SO_ERROR:
-		    *((int *)buf) = get_long (optval);
+	        case SO_ERROR:
+		    *((int *)buf) = get_long(optval);
 		    break;
 		default:
 		    break;
@@ -423,7 +423,7 @@ static void mapsockoptvalue(int level, int optname, uae_u32 optval, void *buf)
 		case IP_MULTICAST_TTL:
 		case IP_MULTICAST_LOOP:
 		case IP_ADD_MEMBERSHIP:
-		    *((int *)buf) = get_long (optval);
+		    *((int *)buf) = get_long(optval);
 		    break;
 
 		default:
@@ -435,7 +435,7 @@ static void mapsockoptvalue(int level, int optname, uae_u32 optval, void *buf)
 	    switch (optname) {
 		case TCP_NODELAY:
 		case TCP_MAXSEG:
-		    *((int *)buf) = get_long (optval);
+		    *((int *)buf) = get_long(optval);
 		    break;
 
 		default:
@@ -443,7 +443,7 @@ static void mapsockoptvalue(int level, int optname, uae_u32 optval, void *buf)
 	    }
 	    break;
 
-	default:
+        default:
 	    break;
     }
 }
@@ -690,7 +690,7 @@ uae_u32 bsdthr_WaitSelect (SB)
 		bsd_amigaside_FD_ZERO (sb->sets [set]);
 	    clearsockabort (sb);
 	}
-	else
+        else
 	/* This is perhaps slightly inefficient, but I don't care.. */
 	for (set = 0; set < 3; set++) {
 	    a_set = sb->sets [set];
@@ -709,7 +709,7 @@ uae_u32 bsdthr_WaitSelect (SB)
 	}
 	}
     } else if (r == 0) {         /* Timeout. I think we're supposed to clear the sets.. */
-	for (set = 0; set < 3; set++)
+        for (set = 0; set < 3; set++)
 	    if (sb->sets [set] != 0)
 		bsd_amigaside_FD_ZERO (sb->sets [set]);
     }
@@ -731,7 +731,7 @@ uae_u32 bsdthr_Accept_2 (SB)
 	s2 = getsd (sb, s);
 	sb->ftable[s2-1] = sb->ftable[sb->len];	/* new socket inherits the old socket's properties */
 	DEBUG_LOG ("Accept: AmigaSide %d, NativeSide %d, len %d(%d)",
-		   sb->resultval, s, &hlen, get_long (sb->a_addrlen));
+		   sb->resultval, s, &hlen, get_long(sb->a_addrlen));
 	printSockAddr (&addr);
 	foo = get_long (sb->a_addrlen);
 	if (foo > 16)
@@ -919,7 +919,7 @@ static void *bsdlib_threadfunc (void *arg)
 
 	    case 6:       /* Accept */
 		sb->resultval = bsdthr_SendRecvAcceptConnect (bsdthr_Accept_2, sb);
-		break;
+	        break;
 
 	    case 7: {
 		struct hostent *tmphostent = gethostbyaddr (get_real_address (sb->name), sb->a_addrlen, sb->flags);
@@ -1128,7 +1128,7 @@ void host_WaitSelect (TrapContext *context, SB, uae_u32 nfds, uae_u32 readfds, u
     }
 
     if (nfds == 0) {
-	/* No sockets - Just wait on signals */
+        /* No sockets - Just wait on signals */
 	m68k_dreg (&context->regs, 0) = wssigs;
 	sigs = CallLib (context, get_long (4), -0x13e);	// Wait()
 
@@ -1156,7 +1156,7 @@ void host_WaitSelect (TrapContext *context, SB, uae_u32 nfds, uae_u32 readfds, u
     sigs = CallLib (context, get_long (4), -0x13e); // Wait()
 
     if (sigmp)
-	put_long (sigmp, sigs & (sb->eintrsigs | wssigs));
+        put_long (sigmp, sigs & (sb->eintrsigs | wssigs));
 
     if (sigs & wssigs) {
 	/* Received the signals we were waiting on */
@@ -1226,7 +1226,7 @@ int host_socket (SB, int af, int type, int protocol)
 	return -1;
     } else {
 	int arg = 1;
-	sd = getsd (sb, s);
+        sd = getsd (sb, s);
 	setsockopt (s, SOL_SOCKET, SO_REUSEADDR, &arg, sizeof(arg));
     }
 
@@ -1323,9 +1323,9 @@ void host_getservbynameport (TrapContext *context, SB, uae_u32 name, uae_u32 pro
     int i;
 
     if (type) {
-	DEBUG_LOG("Getservbyport(%d, %s) = %lx\n", name, get_real_address (proto), s);
+	DEBUG_LOG("Getservbyport(%d, %s) = %lx\n", name, get_real_address(proto), s);
     } else {
-	DEBUG_LOG("Getservbyname(%s, %s) = %lx\n", get_real_address (name), get_real_address (proto), s);
+	DEBUG_LOG("Getservbyname(%s, %s) = %lx\n", get_real_address(name), get_real_address(proto), s);
     }
 
     if (s == NULL) {
@@ -1520,11 +1520,11 @@ int host_dup2socket (SB, int fd1, int fd2) {
 	    fd2 = getsd (sb, 1);
 		if (fd2 != -1) {
 	    setsd (sb, fd2, dup (s1));
-			TRACE (("%d(%d)\n", fd2, getsock (sb, fd2)));
+		   	TRACE (("%d(%d)\n", fd2, getsock (sb, fd2)));
 	    return (fd2 - 1);
 		} else {
-			TRACE(("-1\n"));
-			return -1;
+		  	TRACE(("-1\n"));
+		   	return -1;
 		}
 	}
     }
@@ -1628,7 +1628,7 @@ uae_u32 host_IoctlSocket (SB, uae_u32 sd, uae_u32 request, uae_u32 arg)
 	case 0x4004667F: /* FIONREAD */
 	    r = ioctl (sock, FIONREAD, &flags);
 	    if (r >= 0) {
-		put_long (arg, flags);
+		put_long(arg, flags);
 	    }
 	    return r;
 

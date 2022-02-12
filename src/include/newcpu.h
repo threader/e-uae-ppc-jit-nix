@@ -334,7 +334,7 @@ extern void fill_prefetch_slow (struct regstruct *regs);
 STATIC_INLINE int notinrom (void)
 {
     if (munge24 (m68k_getpc (&regs)) < 0xe0000)
-	return 1;
+        return 1;
     return 0;
 }
 

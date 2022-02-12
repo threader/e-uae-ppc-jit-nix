@@ -293,7 +293,7 @@ static void CIA_calctimers (void)
 	ciabtimeb = (DIV10 - div10) + DIV10 * ciabtb;
     }
     eventtab[ev_cia].active = (ciaatimea != (unsigned long int)-1 || ciaatimeb != (unsigned long int)-1
-			    || ciabtimea != (unsigned long int)-1 || ciabtimeb != (unsigned long int)-1);
+	                    || ciabtimea != (unsigned long int)-1 || ciabtimeb != (unsigned long int)-1);
     if (eventtab[ev_cia].active) {
 	unsigned long int ciatime = ~0L;
 	if (ciaatimea != (unsigned long int)-1)                        ciatime = ciaatimea;
@@ -351,7 +351,7 @@ STATIC_INLINE void ciab_checkalarm (int inc)
 STATIC_INLINE void ciaa_checkalarm (int inc)
 {
     if (checkalarm (ciaatod, ciaaalarm, inc)) {
-	ciaaicr |= 4;
+        ciaaicr |= 4;
 	RethinkICRA ();
     }
 }

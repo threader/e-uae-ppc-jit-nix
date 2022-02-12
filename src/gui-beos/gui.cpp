@@ -1,9 +1,9 @@
  /*
-  * E-UAE - The portable Amiga emulator.
+  * UAE - The Un*x Amiga Emulator
   *
   * BeOS UI - or the beginnings of one
   *
-  * Copyright 2004-2007 Richard Drummond
+  * Copyright 2004 Richard Drummond
   */
 
 extern "C" {
@@ -14,7 +14,6 @@ extern "C" {
 #include "gui.h"
 #include "xwin.h"
 #include "disk.h"
-#include "gensound.h"
 }
 
 #include <AppKit.h>
@@ -177,8 +176,6 @@ void gui_cd_led (int led)
 
 void gui_display (int shortcut)
 {
-    pause_sound ();
-
     if (shortcut >=0 && shortcut < 4) {
 	/* If we're running full-screen, we must toggle
 	 * to windowed mode before opening the dialog */
@@ -186,10 +183,8 @@ void gui_display (int shortcut)
 
 	if (was_fullscreen = is_fullscreen ()) {
 	    toggle_fullscreen ();
-	    if (is_fullscreen ()) {
-		resume_sound ();
-		return;
-	    }
+	    if (is_fullscreen ())
+	        return;
 	}
 
 	(new floppyFilePanel (shortcut))->run ();
@@ -197,7 +192,6 @@ void gui_display (int shortcut)
 	if (was_fullscreen)
 	    toggle_fullscreen ();
     }
-    resume_sound ();
 }
 
 void gui_message (const char *format,...)

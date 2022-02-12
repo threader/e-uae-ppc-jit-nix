@@ -280,7 +280,7 @@ int main (void)
 	    result = test_test (dstval, 16, 1);
 	    count += 2;
 	}
-	{
+        {
 	    result = test_test (dstval, 32, 0);
 	    result = test_test (dstval, 32, 1);
 	    count += 2;

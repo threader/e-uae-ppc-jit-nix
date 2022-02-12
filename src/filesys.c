@@ -657,7 +657,7 @@ static char *char1 (uaecptr addr)
     static char buf[1024];
     unsigned int i = 0;
     do {
-	buf[i] = get_byte (addr);
+	buf[i] = get_byte(addr);
 	addr++;
     } while (buf[i++] && i < sizeof(buf));
     return buf;
@@ -667,11 +667,11 @@ static char *bstr1 (uaecptr addr)
 {
     static char buf[256];
     int i;
-    int n = get_byte (addr);
+    int n = get_byte(addr);
     addr++;
 
     for (i = 0; i < n; i++, addr++)
-	buf[i] = get_byte (addr);
+	buf[i] = get_byte(addr);
     buf[i] = 0;
     return buf;
 }
@@ -679,11 +679,11 @@ static char *bstr1 (uaecptr addr)
 static char *bstr (Unit *unit, uaecptr addr)
 {
     int i;
-    int n = get_byte (addr);
+    int n = get_byte(addr);
 
     addr++;
     for (i = 0; i < n; i++, addr++)
-	unit->tmpbuf3[i] = get_byte (addr);
+	unit->tmpbuf3[i] = get_byte(addr);
     unit->tmpbuf3[i] = 0;
     return unit->tmpbuf3;
 }
@@ -696,7 +696,7 @@ static char *bstr_cut (Unit *unit, uaecptr addr)
 
     addr++;
     for (i = 0; i < n; i++, addr++) {
-	uae_u8 c = get_byte (addr);
+	uae_u8 c = get_byte(addr);
 	unit->tmpbuf3[i] = c;
 	if (c == '/' || (c == ':' && colon_seen++ == 0))
 	    p = unit->tmpbuf3 + i + 1;
@@ -1963,12 +1963,12 @@ put_time (long days, long mins, long ticks)
 #  if defined HAVE_GMTIME_R && defined HAVE_LOCALTIME_R
     {
 	struct tm tm;
-	struct tm now_tm;
-	time_t now_t;
+        struct tm now_tm;
+        time_t now_t;
 
 	gmtime_r (&t, &tm);
 
-	/*
+        /*
 	 * tm now contains the desired time in local time zone, not taking account
 	 * of DST. To fix this, we determine if DST is in effect now and stuff that
 	 * into tm.
@@ -2106,41 +2106,41 @@ get_fileinfo (Unit *unit, dpacket packet, uaecptr info, a_inode *aino)
 	put_byte (info + i, 0), i++;
 
     put_long (info + 116, aino->amigaos_mode);
-
+   
 #if defined TARGET_AMIGAOS && defined WORDS_BIGENDIAN
      {
-	 BPTR lock;
-	struct FileInfoBlock fib __attribute__((aligned(4)));
-
-	 if ((lock = Lock (aino->nname, SHARED_LOCK))) {
+         BPTR lock;
+        struct FileInfoBlock fib __attribute__((aligned(4)));
+   
+         if ((lock = Lock (aino->nname, SHARED_LOCK))) {
 	     Examine (lock, &fib);
 	     UnLock (lock);
-	 }
+         }
 	 put_long (info + 124, fib.fib_Size);
 	 put_long (info + 128, fib.fib_NumBlocks);
 	 put_long (info + 132, fib.fib_Date.ds_Days);
 	 put_long (info + 136, fib.fib_Date.ds_Minute);
 	 put_long (info + 140, fib.fib_Date.ds_Tick);
-    }
+    }		   
 #else
     {
-	struct stat statbuf;
-	long days, mins, ticks;
-
-	/* No error checks - this had better work. */
-	stat (aino->nname, &statbuf);
-
-	put_long (info + 124, statbuf.st_size);
+        struct stat statbuf;
+        long days, mins, ticks;
+       
+        /* No error checks - this had better work. */
+        stat (aino->nname, &statbuf);       
+   
+        put_long (info + 124, statbuf.st_size);
 # ifdef HAVE_ST_BLOCKS
-	put_long (info + 128, statbuf.st_blocks);
+        put_long (info + 128, statbuf.st_blocks);
 # else
-	put_long (info + 128, statbuf.st_size / 512 + 1);
+        put_long (info + 128, statbuf.st_size / 512 + 1);
 # endif
-	get_time (statbuf.st_mtime, &days, &mins, &ticks);
-	put_long (info + 132, days);
-	put_long (info + 136, mins);
-	put_long (info + 140, ticks);
-    }
+        get_time (statbuf.st_mtime, &days, &mins, &ticks);
+        put_long (info + 132, days);
+        put_long (info + 136, mins);
+        put_long (info + 140, ticks);
+    }   
 #endif
     if (aino->comment == 0)
 	put_long (info + 144, 0);
@@ -2396,7 +2396,7 @@ static void do_find (Unit *unit, dpacket packet, int mode, int create, int fallb
     k->notifyactive = create ? 1 : 0;
 
     if (create)
-	fsdb_set_file_attrs (aino);
+        fsdb_set_file_attrs (aino);
 
     put_long (fh+36, k->uniq);
     if (create == 2)
@@ -2412,7 +2412,7 @@ action_lock_from_fh (Unit *unit, dpacket packet)
 {
     Key *k = lookup_key (unit, GET_PCK_ARG1 (packet));
     uaecptr lock;
-
+   
     TRACE (("ACTION_LOCK_FROM_FH(%p)\n", k));
 
     if (k == 0) {
@@ -2531,7 +2531,7 @@ static void updatedirtime (a_inode *a1, int now)
     } else {
 	utime (a1->parent->nname, NULL);
     }
-#endif
+#endif   
 }
 
 static void
@@ -2627,7 +2627,7 @@ action_read (Unit *unit, dpacket packet)
 	    int i;
 	    PUT_PCK_RES1 (packet, actual);
 	    for (i = 0; i < actual; i++)
-		put_byte (addr + i, buf[i]);
+		put_byte(addr + i, buf[i]);
 	    k->file_pos += actual;
 	}
 	xfree (buf);
@@ -2669,7 +2669,7 @@ action_write (Unit *unit, dpacket packet)
     }
 
     for (i = 0; i < size; i++)
-	buf[i] = get_byte (addr + i);
+	buf[i] = get_byte(addr + i);
 
     actual = write (k->fd, buf, size);
     TRACE(("=%d\n", actual));
@@ -3083,8 +3083,8 @@ static int relock_do(Unit *unit, a_inode *a1)
     int wehavekeys = 0;
 
     for (k1 = unit->keys; k1; k1 = knext) {
-	knext = k1->next;
-	if (k1->aino == a1 && k1->fd >= 0) {
+        knext = k1->next;
+        if (k1->aino == a1 && k1->fd >= 0) {
 	    wehavekeys++;
 	    close (k1->fd);
 	    write_log ("handle %p freed\n", k1->fd);
@@ -3098,16 +3098,16 @@ static void relock_re(Unit *unit, a_inode *a1, a_inode *a2, int failed)
     Key *k1, *knext;
 
     for (k1 = unit->keys; k1; k1 = knext) {
-	knext = k1->next;
-	if (k1->aino == a1 && k1->fd >= 0) {
+        knext = k1->next;
+        if (k1->aino == a1 && k1->fd >= 0) {
 	    int mode = (k1->dosmode & A_FIBF_READ) == 0 ? O_WRONLY : (k1->dosmode & A_FIBF_WRITE) == 0 ? O_RDONLY : O_RDWR;
 	    mode |= O_BINARY;
 	    if (failed) {
-		/* rename still failed, restore fd */
-		k1->fd = open (a1->nname, mode, 0777);
-		write_log ("restoring old handle '%s' %d\n", a1->nname, k1->dosmode);
+	        /* rename still failed, restore fd */
+	        k1->fd = open (a1->nname, mode, 0777);
+	        write_log ("restoring old handle '%s' %d\n", a1->nname, k1->dosmode);
 	    } else {
-		/* transfer fd to new name */
+	        /* transfer fd to new name */
 		if (a2) {
 		    k1->aino = a2;
 		    k1->fd = open (a2->nname, mode, 0777);
@@ -3120,7 +3120,7 @@ static void relock_re(Unit *unit, a_inode *a1, a_inode *a2, int failed)
 		write_log ("relocking failed '%s' -> '%s'\n", a1->nname, a2->nname);
 		free_key (unit, k1);
 	    } else {
-		lseek (k1->fd, k1->file_pos, SEEK_SET);
+	        lseek (k1->fd, k1->file_pos, SEEK_SET);
 	    }
 	}
     }
@@ -3204,11 +3204,11 @@ action_set_date (Unit *unit, dpacket packet)
 	return;
     }
 
-    a = find_aino (unit, lock, bstr (unit, name), &err);
+    a = find_aino (unit, lock, bstr (unit, name), &err);   
 #if defined TARGET_AMIGAOS && defined WORDS_BIGENDIAN
     if (err == 0 && SetFileDate (a->nname, (struct DateStamp *) date) == DOSFALSE)
-	err = IoErr ();
-#else
+        err = IoErr ();
+#else   
     ut.actime = ut.modtime = put_time(get_long (date), get_long (date + 4),
 				      get_long (date + 8));
     if (err == 0 && utime (a->nname, &ut) == -1)
@@ -3253,7 +3253,7 @@ action_rename_object (Unit *unit, dpacket packet)
 
     /* rename always fails if file is open for writing */
     for (k1 = unit->keys; k1; k1 = knext) {
-	knext = k1->next;
+        knext = k1->next;
 	if (k1->aino == a1 && k1->fd >= 0 && k1->createmode == 2) {
 	    PUT_PCK_RES1 (packet, DOS_FALSE);
 	    PUT_PCK_RES2 (packet, ERROR_OBJECT_IN_USE);
@@ -3968,7 +3968,7 @@ static char *device_dupfix (uaecptr expbase, const char *devname)
 	while (get_long (bnode)) {
 	    dnode = get_long (bnode + 16); /* device node */
 	    name = get_long (dnode + 40) << 2; /* device name BSTR */
-	    len = get_byte (name);
+	    len = get_byte(name);
 	    for (i = 0; i < len; i++)
 		dname[i] = get_byte (name + 1 + i);
 	    dname[len] = 0;

@@ -14,11 +14,7 @@ struct hardfiledata {
     int surfaces;
     int reservedblocks;
     unsigned int blocksize;
-#ifdef WIN32
     void *handle;
-#else
-    int handle;
-#endif
     int readonly;
     int flags;
     uae_u8 *cache;

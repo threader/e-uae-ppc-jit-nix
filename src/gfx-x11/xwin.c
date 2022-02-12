@@ -223,12 +223,12 @@ static int get_best_visual (Display *display, int screen, XVisualInfo *vi)
     } else if (XMatchVisualInfo (display, screen, 24, TrueColor,   vi)) {
     } else if (XMatchVisualInfo (display, screen, 32, TrueColor,   vi)) {
     } else if (XMatchVisualInfo (display, screen, 8,  PseudoColor, vi)) {
-	/* for our HP boxes */
+        /* for our HP boxes */
     } else if (XMatchVisualInfo (display, screen, 8,  GrayScale,   vi)) {
     } else if (XMatchVisualInfo (display, screen, 4,  PseudoColor, vi)) {
-	/* VGA16 server. Argh. */
+        /* VGA16 server. Argh. */
     } else if (XMatchVisualInfo (display, screen, 1,  StaticGray,  vi)) {
-	/* Mono server. Yuk */
+        /* Mono server. Yuk */
     } else {
 	write_log ("Can't obtain appropriate X visual.\n");
 	return 0;
@@ -376,7 +376,7 @@ static void x11_flush_screen (struct vidbuf_description *gfxinfo, int first_line
     int      len;								\
     pixtype *newp = (pixtype *)gfxinfo->linemem;				\
     pixtype *oldp = (pixtype *)((uae_u8 *)ami_dinfo.image_mem +			\
-				line_no * ami_dinfo.ximg->bytes_per_line);	\
+			        line_no * ami_dinfo.ximg->bytes_per_line);	\
 										\
     /* Find first modified pixel on this line */				\
     while (newp[xs] == oldp[xs]) {						\
@@ -809,13 +809,13 @@ static void graphics_subinit (void)
     gfxvidinfo.flush_screen = x11_flush_screen;
     gfxvidinfo.lockscr      = x11_lock;
     gfxvidinfo.unlockscr    = x11_unlock;
-
+    
 
     if (need_dither) {
 	gfxvidinfo.maxblocklines = 0;
 	gfxvidinfo.rowbytes = gfxvidinfo.pixbytes * currprefs.gfx_width_win;
 	gfxvidinfo.linemem = malloc (gfxvidinfo.rowbytes);
-	gfxvidinfo.flush_line  = x11_flush_line_dither;
+        gfxvidinfo.flush_line  = x11_flush_line_dither;
     } else if (! dgamode) {
 	gfxvidinfo.emergmem = 0;
 	gfxvidinfo.linemem = 0;
@@ -1066,7 +1066,7 @@ void handle_events (void)
 		case 4:  if (state) record_key (0x7a << 1); break;
 		case 5:  if (state) record_key (0x7b << 1); break;
 	    }
-	    if (buttonno >=0)
+            if (buttonno >=0)
 		setmousebuttonstate(0, buttonno, state);
 	    break;
 	 }
@@ -1149,11 +1149,11 @@ void handle_events (void)
 	 case Expose:
 	    refresh_necessary = 1;
 	    break;
-	 case ClientMessage:
-	    if (((Atom)event.xclient.data.l[0]) == delete_win) {
+         case ClientMessage:
+            if (((Atom)event.xclient.data.l[0]) == delete_win) {
 		uae_stop ();
-	    }
-	    break;
+            }
+            break;
 	}
     }
 
@@ -1466,24 +1466,24 @@ void gfx_set_picasso_state (int on)
 {
     if (on == screen_is_picasso)
 	return;
-
+   
     /* We can get called by drawing_init() when there's
      * no window opened yet... */
     if (mywin == 0)
 	return
 
-    write_log ("set_picasso_state:%d\n", on);
+    write_log("set_picasso_state:%d\n", on);
     graphics_subshutdown ();
     screen_is_picasso = on;
     if (on) {
 	current_width = picasso_vidinfo.width;
 	current_height = picasso_vidinfo.height;
-	graphics_subinit ();
+        graphics_subinit ();
     } else {
 	current_width = gfxvidinfo.width;
 	current_height = gfxvidinfo.height;
-	graphics_subinit ();
-	reset_drawing ();
+        graphics_subinit ();
+        reset_drawing ();
     }
     if (on)
 	DX_SetPalette_real (0, 256);
@@ -1601,10 +1601,10 @@ static unsigned int get_mouse_widget_num (unsigned int mouse)
 static int get_mouse_widget_first (unsigned int mouse, int type)
 {
     switch (type) {
-	case IDEV_WIDGET_BUTTON:
-	    return FIRST_BUTTON;
-	case IDEV_WIDGET_AXIS:
-	    return FIRST_AXIS;
+        case IDEV_WIDGET_BUTTON:
+            return FIRST_BUTTON;
+        case IDEV_WIDGET_AXIS:
+            return FIRST_AXIS;
     }
     return -1;
 }
@@ -1612,13 +1612,13 @@ static int get_mouse_widget_first (unsigned int mouse, int type)
 static int get_mouse_widget_type (unsigned int mouse, unsigned int num, char *name, uae_u32 *code)
 {
     if (num >= MAX_AXES && num < MAX_AXES + MAX_BUTTONS) {
-	if (name)
-	    sprintf (name, "Button %d", num + 1 + MAX_AXES);
-	return IDEV_WIDGET_BUTTON;
+        if (name)
+            sprintf (name, "Button %d", num + 1 + MAX_AXES);
+        return IDEV_WIDGET_BUTTON;
     } else if (num < MAX_AXES) {
-	if (name)
-	    sprintf (name, "Axis %d", num + 1);
-	return IDEV_WIDGET_AXIS;
+        if (name)
+            sprintf (name, "Axis %d", num + 1);
+        return IDEV_WIDGET_AXIS;
     }
     return IDEV_WIDGET_NONE;
 }

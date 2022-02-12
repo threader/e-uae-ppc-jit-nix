@@ -14,19 +14,47 @@
 #include "gensound.h"
 #include "sounddep/sound.h"
 
+#include <hardware/custom.h>
+#include <hardware/cia.h>
+#include <devices/audio.h>
 #include <exec/memory.h>
+#include <dos/dos.h>
+#include <dos/dosextens.h>
 #include <graphics/gfxbase.h>
 
+#ifdef USE_AHIDEVICE
 struct MsgPort    *AHImp    = NULL;
 struct AHIRequest *AHIio[2] = {NULL, NULL};
 struct AHIRequest *linkio   = NULL;
+#endif
 
+#if !defined __amigaos4__ && !defined __MORPHOS__ && !defined __AROS__
+# define CIAAPRA 0xBFE001
+# define CUSTOM  0xDFF000
+
+static struct Custom *custom = (struct Custom*) CUSTOM;
+static struct CIA    *cia    = (struct CIA *)   CIAAPRA;
+
+static int oldledstate;
+#endif
+
+/*
+ * Compared to Linux, AF_SOUND, and mac above, the AMIGA sound processing
+ * with OS routines is awfull. (sam). But with AHI DOSDriver it is far more
+ * easier (but it is still a mess here !).
+ */
+
+uae_u8 whichchannel[] = {1, 2, 4, 8};
+
+struct IOAudio *AudioIO  = NULL;
+struct MsgPort *AudioMP  = NULL;
+struct Message *AudioMSG = NULL;
 
 unsigned char *buffers[2];
 uae_u16 *sndbuffer;
 uae_u16 *sndbufpt;
 int sndbufsize;
-int bufidx;
+int bufidx, devopen, ahiopen;
 
 int have_sound;
 int clockval;
@@ -40,26 +68,29 @@ int setup_sound (void)
     return 1;
 }
 
-static BOOL open_AHI (void)
+static const char *open_AHI (void)
 {
+#ifdef USE_AHIDEVICE
     if ((AHImp = CreateMsgPort())) {
 	if ((AHIio[0] = (struct AHIRequest *)
 		CreateIORequest (AHImp, sizeof (struct AHIRequest)))) {
 	    AHIio[0]->ahir_Version = 4;
 
 	    if (!OpenDevice (AHINAME, 0, (struct IORequest *)AHIio[0], 0)) {
-		if ((AHIio[1] = malloc (sizeof(struct AHIRequest)))) {
+	        if ((AHIio[1] = malloc (sizeof(struct AHIRequest)))) {
 		    memcpy (AHIio[1], AHIio[0], sizeof(struct AHIRequest));
-		    return TRUE;
+		    return AHINAME;
 		}
 	    }
 	}
     }
-    return FALSE;
+#endif
+    return NULL;
 }
 
 static void close_AHI (void)
 {
+#ifdef USE_AHIDEVICE
     if (!CheckIO ((struct IORequest *)AHIio[0]))
 	WaitIO ((struct IORequest *)AHIio[0]);
 
@@ -74,6 +105,7 @@ static void close_AHI (void)
     AHIio[0] = NULL;
     AHIio[1] = NULL;
     linkio   = NULL;
+#endif
 }
 
 static int get_clockval (void)
@@ -99,6 +131,7 @@ int init_sound (void)
     /* it would have been far less painfull if AmigaOS provided a */
     /* SOUND: device handler */
     int rate;
+    const char *devname = NULL;
 
     atexit (close_sound); /* if only amiga os had resource tracking */
 
@@ -117,32 +150,78 @@ int init_sound (void)
     rate   = currprefs.sound_freq;
     period = (uae_u16)(clockval / rate);
 
-    if (!open_AHI ())
-	goto fail;
+
+    devname = open_AHI ();
+    if (devname)
+	ahiopen = 1;
+    else
+	ahiopen = 0;
+
+    if (!ahiopen) {
+	/* Use the plain old audio.device */
+
+	/* We support only 8-bit mono sound */
+	changed_prefs.sound_stereo = currprefs.sound_stereo = 0;
+	changed_prefs.sound_bits = currprefs.sound_bits = 8;
+
+	/* setup the stuff */
+	AudioMP = CreateMsgPort ();
+	if (!AudioMP)
+	    goto fail;
+	AudioIO = (struct IOAudio *) CreateIORequest (AudioMP,
+						      sizeof(struct IOAudio));
+	if (!AudioIO)
+	    goto fail;
+
+	AudioIO->ioa_Request.io_Message.mn_Node.ln_Pri /*pfew!!*/ = 85;
+	AudioIO->ioa_Data     = whichchannel;
+	AudioIO->ioa_Length   = sizeof(whichchannel);
+	AudioIO->ioa_AllocKey = 0;
+
+	if (OpenDevice (devname = AUDIONAME, 0, (void*)AudioIO, 0))
+	    goto fail;
+	devopen = 1;
+    }
 
     /* calculate buffer size */
-    sndbufsize = rate * currprefs.sound_latency * 2 * (currprefs.sound_stereo ? 2 : 1) / 1000;
+    sndbufsize = rate * currprefs.sound_latency * (currprefs.sound_bits / 8) * (currprefs.sound_stereo ? 2 : 1) / 1000;
     sndbufsize = (sndbufsize + 1) & ~1;
 
     /* get the buffers */
-    buffers[0] = (void*) AllocMem (sndbufsize,MEMF_PUBLIC | MEMF_CLEAR);
-    buffers[1] = (void*) AllocMem (sndbufsize,MEMF_PUBLIC | MEMF_CLEAR);
-    if (!buffers[0] || !buffers[1])
-	goto fail;
-
+    if (ahiopen) {
+	buffers[0] = (void*) AllocMem (sndbufsize,MEMF_PUBLIC | MEMF_CLEAR);
+	buffers[1] = (void*) AllocMem (sndbufsize,MEMF_PUBLIC | MEMF_CLEAR);
+	if (!buffers[0] || !buffers[1])
+	    goto fail;
+    } else {
+	buffers[0] = (void*) AllocMem (sndbufsize, MEMF_CHIP | MEMF_CLEAR);
+	buffers[1] = (void*) AllocMem (sndbufsize, MEMF_CHIP | MEMF_CLEAR);
+	if (!buffers[0] || !buffers[1])
+	    goto fail;
+    }
     bufidx    = 0;
     sndbuffer = sndbufpt = (uae_u16*) buffers[bufidx];
 
-    init_sound_table16 ();
-    sample_handler = currprefs.sound_stereo ? sample16s_handler : sample16_handler;
+#if !defined __amigaos4__ && !defined __MORPHOS__ && !defined __AROS__
+    oldledstate  = cia->ciapra & (1 << CIAB_LED);
+    cia->ciapra |= (1 << CIAB_LED);
+#endif
+
+    if (currprefs.sound_bits == 16) {
+	init_sound_table16 ();
+	sample_handler = currprefs.sound_stereo ? sample16s_handler : sample16_handler;
+    } else {
+	init_sound_table8 ();
+	sample_handler = currprefs.sound_stereo ? sample8s_handler : sample8_handler;
+    }
 
     have_sound = 1;
     obtainedfreq = rate;
 
-    write_log ("Sound driver found and configured for %s "
-	       "at %d Hz, buffer is %d bytes.\n",
-	       currprefs.sound_stereo ? "stereo" : "mono",
-	       rate, sndbufsize);
+    write_log ("Sound driver found and configured for %d bits %s "
+	       "at %d Hz, buffer is %d bytes (%s)\n",
+	       currprefs.sound_bits, currprefs.sound_stereo ? "stereo" : "mono",
+	       rate, sndbufsize, devname);
 
     sound_available = 1;
     return 1;
@@ -153,8 +232,24 @@ fail:
 
 void close_sound (void)
 {
-    close_AHI ();
-
+#ifdef USE_AHIDEVICE
+    if (ahiopen) {
+	close_AHI ();
+	ahiopen = 0;
+    }
+#endif
+    if (devopen) {
+	CloseDevice ((void*) AudioIO);
+	devopen = 0;
+    }
+    if (AudioIO) {
+	DeleteIORequest ((void*) AudioIO);
+	AudioIO = NULL;
+    }
+    if (AudioMP) {
+	DeleteMsgPort ((void*) AudioMP);
+	AudioMP = NULL;
+    }
     if (buffers[0]) {
 	FreeMem ((APTR) buffers[0], sndbufsize);
 	buffers[0] = 0;
@@ -164,6 +259,9 @@ void close_sound (void)
 	buffers[1] = 0;
     }
     if (sound_available) {
+#if !defined __amigaos4__ && !defined __MORPHOS__ && !defined __AROS__
+	cia->ciapra = (cia->ciapra & ~(1 << CIAB_LED)) | oldledstate;
+#endif
 	sound_available = 0;
     }
 }

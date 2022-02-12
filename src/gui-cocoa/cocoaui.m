@@ -81,11 +81,7 @@ extern BOOL gFinderLaunch; /* Set to YES by SDLMain.m if app launched from the f
     if (self) {
         applicationName = [[NSString alloc] initWithString:getApplicationName()];
         diskImageTypes =[[NSArray alloc] initWithObjects:@"adf", @"adz",
-            @"zip", @"dms", @"fdi", 
-#ifdef CAPS        
-            @"ipf",
-#endif
-            nil]; // Note: Use lowercase for these
+            @"zip", @"dms", @"fdi", nil]; // Note: Use lowercase for these
     }
 
     return self;
@@ -418,6 +414,9 @@ int gui_open (void)
                     changed_prefs.df[0][255] = '\0';
                 }
             }
+
+            [finderLaunchFilename release];
+            finderLaunchFilename = nil;
         }
     }
 
@@ -452,6 +451,10 @@ void gui_exit (void)
     if (currentFloppyPath != nil) {
         [currentFloppyPath release];
         currentFloppyPath = nil;
+    }
+    if (finderLaunchFilename != nil) {
+        [finderLaunchFilename release];
+        finderLaunchFilename = nil;
     }
 }
 

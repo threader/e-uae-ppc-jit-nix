@@ -249,7 +249,7 @@ static int QUERY (const char *line)
     else if (matchstr (&line, "DISPLAY"))      res = inhibit_frame ? "0" : "1";
     else if (matchstr (&line, "FRAMERATE")) {
 	sprintf (RESULT, "%d", currprefs.gfx_framerate);
-	return RC_OK;
+        return RC_OK;
     } else if (matchstr (&line, "FRAMENUM")) {
 #ifdef USE_AMIGA_GFX
 	sprintf (RESULT, "%u", frame_num);
@@ -341,7 +341,7 @@ static int FAKEJOYSTICK (const char *line)
 /*    if     (matchstr(&line,"ON"))     changed_prefs.fake_joystick = 2;
     else if(matchstr(&line,"OFF"))    changed_prefs.fake_joystick = 0;
     else if(matchstr(&line,"TOGGLE")) changed_prefs.fake_joystick =
-				      currprefs.fake_joystick?0:2;
+                                      currprefs.fake_joystick?0:2;
     else return RC_ERROR;
     return RC_OK; */
 
@@ -624,7 +624,7 @@ static int matchnum (const char **line)
 
 #ifdef POWERUP
 /* sam: those function should be in the ppc version of the unexisting
-	libamiga.a */
+        libamiga.a */
 #define NEWLIST(l) ((l)->lh_Head = (struct Node *)&(l)->lh_Tail, \
 		    /*(l)->lh_Tail = NULL,*/ \
 		    (l)->lh_TailPred = (struct Node *)&(l)->lh_Head)

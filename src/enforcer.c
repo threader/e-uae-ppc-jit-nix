@@ -97,7 +97,7 @@ static uae_u8 *amiga2native (uae_u32 aptr, int size)
 *************************************************************/
 static int enforcer_decode_hunk_and_offset (char *buf, uae_u32 pc)
 {
-    uae_u32 sysbase = get_long (4);
+    uae_u32 sysbase = get_long(4);
     uae_u32 semaphore_list = sysbase + 532;
 
     /* First step is searching for the SegTracker semaphore */
@@ -151,7 +151,7 @@ static int enforcer_decode_hunk_and_offset (char *buf, uae_u32 pc)
 		    sprintf (buf, "----> %08lx - \"%s\" Hunk %04lx Offset %08lx\n", pc,
 			native_name, hunk, offset);
 		    return 1;
-		}
+	        }
 		seg_entry += 8;
 		hunk++;
 	    }

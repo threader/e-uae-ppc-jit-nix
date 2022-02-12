@@ -432,7 +432,7 @@ static void flush_clear_screen_gfxlib (struct vidbuf_description *gfxinfo)
 			     W->Width - W->BorderLeft - W->BorderRight,
 			     W->Height - W->BorderTop - W->BorderBottom,
 			     0);
-	else
+        else
 #endif
 	{
 	    SetAPen  (RP, get_nearest_color (0,0,0));
@@ -441,7 +441,7 @@ static void flush_clear_screen_gfxlib (struct vidbuf_description *gfxinfo)
 	}
     }
     if (use_delta_buffer)
-	memset (oldpixbuf, 0, gfxinfo->rowbytes * gfxinfo->height);
+        memset (oldpixbuf, 0, gfxinfo->rowbytes * gfxinfo->height);
 }
 
 /****************************************************************************/
@@ -1141,9 +1141,9 @@ static char *get_num (char *s, int *n)
      ++s;
      if(*s=='x' || *s=='X') {
        do {char c=*++s;
-	   if(c>='0' && c<='9') {i*=16; i+= c-'0';}    else
-	   if(c>='a' && c<='f') {i*=16; i+= c-'a'+10;} else
-	   if(c>='A' && c<='F') {i*=16; i+= c-'A'+10;} else break;
+           if(c>='0' && c<='9') {i*=16; i+= c-'0';}    else
+           if(c>='a' && c<='f') {i*=16; i+= c-'a'+10;} else
+           if(c>='A' && c<='F') {i*=16; i+= c-'A'+10;} else break;
        } while(1);
      } else while(*s>='0' && *s<='7') {i*=8; i+= *s++ - '0';}
    } else {
@@ -1200,8 +1200,8 @@ static int setup_userscreen (void)
 	}
 #ifdef __amigaos4__
     } else {
-	IAsl->Obtain ();
-	release_asl = 1;
+        IAsl->Obtain ();
+        release_asl = 1;
 #endif
     }
 
@@ -1396,11 +1396,11 @@ int graphics_setup (void)
 
 #ifdef USE_CYBERGFX
     if (!CyberGfxBase) {
-	CyberGfxBase = OpenLibrary ("cybergraphics.library", 40);
+        CyberGfxBase = OpenLibrary ("cybergraphics.library", 40);
 #ifdef __amigaos4__
-	if (CyberGfxBase) {
+        if (CyberGfxBase) {
 	   ICyberGfx = (struct CyberGfxIFace *) GetInterface (CyberGfxBase, "main", 1, NULL);
-	   if (!ICyberGfx) {
+           if (!ICyberGfx) {
 	       CloseLibrary (CyberGfxBase);
 	       CyberGfxBase = 0;
 	   }
@@ -1512,8 +1512,8 @@ int graphics_init (void)
 
 /* We'll ignore color_mode for now.
     if (currprefs.color_mode > 5) {
-	write_log ("Bad color mode selected. Using default.\n");
-	currprefs.color_mode = 0;
+        write_log ("Bad color mode selected. Using default.\n");
+        currprefs.color_mode = 0;
     }
 */
 
@@ -1630,7 +1630,7 @@ int graphics_init (void)
     gfxvidinfo.flush_clear_screen = flush_clear_screen_gfxlib;
     gfxvidinfo.flush_screen       = dummy_flush_screen;
     gfxvidinfo.lockscr            = dummy_lock;
-    gfxvidinfo.unlockscr          = dummy_unlock;
+    gfxvidinfo.unlockscr          = dummy_unlock;     
 
     if (!use_cyb) {
 	/*
@@ -1687,7 +1687,7 @@ void graphics_leave (void)
 # ifdef USE_CYBERGFX_V41
     if (CybBuffer) {
 	FreeVec (CybBuffer);
-	CybBuffer = NULL;
+        CybBuffer = NULL;
     }
 # else
     if (CybBitMap) {
@@ -1916,7 +1916,7 @@ void handle_events(void)
 	    default:
 		write_log ("Unknown event class: %x\n", class);
 		break;
-	}
+        }
     }
 
     appw_events();
@@ -2000,15 +2000,15 @@ static void set_title (void)
 
     if (!*ScreenTitle) {
 	sprintf (ScreenTitle,
-		 "UAE-%d.%d.%d (%s%s%s)  by Bernd Schmidt & contributors, "
-		 "Amiga Port by Samuel Devulder.",
+                 "UAE-%d.%d.%d (%s%s%s)  by Bernd Schmidt & contributors, "
+                 "Amiga Port by Samuel Devulder.",
 		  UAEMAJOR, UAEMINOR, UAESUBREV,
 		  currprefs.cpu_level==0?"68000":
 		  currprefs.cpu_level==1?"68010":
 		  currprefs.cpu_level==2?"68020":"68020/68881",
 		  currprefs.address_space_24?" 24bits":"",
 		  currprefs.cpu_compatible?" compat":"");
-	SetWindowTitles(W, title, ScreenTitle);
+        SetWindowTitles(W, title, ScreenTitle);
     } else SetWindowTitles(W, title, (char*)-1);
 #endif
 
@@ -2032,7 +2032,7 @@ void main_window_led (int led, int on)                /* is used in amigui.c */
  * Routines for OS2.0 (code taken out of mpeg_play by Michael Balzer)
  */
 static struct BitMap *myAllocBitMap(ULONG sizex, ULONG sizey, ULONG depth,
-				    ULONG flags, struct BitMap *friend_bitmap)
+                                    ULONG flags, struct BitMap *friend_bitmap)
 {
     struct BitMap *bm;
 
@@ -2096,8 +2096,8 @@ static LONG ObtainColor (ULONG r,ULONG g,ULONG b)
 		pen[maxpen++] = i;
 	    else
 		i = -1;
-	}
-	return i;
+        }
+        return i;
     }
 
     colors = is_halfbrite ? 32 : (1 << RPDepth (RP));
@@ -2254,33 +2254,33 @@ static void ham_conv (UWORD *src, UBYTE *buf, UWORD len)
 #endif
     rgb.all = 0;
     while(len--) {
-	UBYTE c,t;
-	RGB.all = *src++;
-	c = d_cmd[RGB.all];
-	/* cowabonga! */
-	t = h_buf[16912 + RGB.all - rgb.all];
+        UBYTE c,t;
+        RGB.all = *src++;
+        c = d_cmd[RGB.all];
+        /* cowabonga! */
+        t = h_buf[16912 + RGB.all - rgb.all];
 #ifndef USE_BITFIELDS
-	if(t<=d_dst[RGB.all]) {
+        if(t<=d_dst[RGB.all]) {
 	    static int ht[]={32+10,48+5,16+0}; ULONG m;
 	    t &= 3; m = 0x1F<<(ht[t]&15);
-	    m = ~m; rgb.all &= m;
-	    m = ~m; m &= RGB.all;rgb.all |= m;
+            m = ~m; rgb.all &= m;
+            m = ~m; m &= RGB.all;rgb.all |= m;
 	    m >>= ht[t]&15;
 	    c = (ht[t]&~15) | m;
-	} else {
+        } else {
 	    rgb.all = c;
 	    rgb.all <<= 5; rgb.all |= c;
 	    rgb.all <<= 5; rgb.all |= c;
-	}
+        }
 #else
-	if(t<=d_dst[RGB.all]) {
-	    t&=3;
-	    if(!t)        {c = 32; c |= (rgb._.r = RGB._.r);}
-	    else {--t; if(!t) {c = 48; c |= (rgb._.g = RGB._.g);}
-	    else              {c = 16; c |= (rgb._.b = RGB._.b);} }
-	} else rgb._.r = rgb._.g = rgb._.b = c;
+        if(t<=d_dst[RGB.all]) {
+            t&=3;
+            if(!t)        {c = 32; c |= (rgb._.r = RGB._.r);}
+            else {--t; if(!t) {c = 48; c |= (rgb._.g = RGB._.g);}
+            else              {c = 16; c |= (rgb._.b = RGB._.b);} }
+        } else rgb._.r = rgb._.g = rgb._.b = c;
 #endif
-	*buf++ = c;
+        *buf++ = c;
     }
 }
 
@@ -2314,7 +2314,7 @@ int is_vsync (void)
 {
     return 0;
 }
-
+   
 void toggle_fullscreen (void)
 {
 }
@@ -2372,10 +2372,10 @@ static unsigned int get_mouse_widget_num (unsigned int mouse)
 static int get_mouse_widget_first (unsigned int mouse, int type)
 {
     switch (type) {
-	case IDEV_WIDGET_BUTTON:
-	    return FIRST_BUTTON;
-	case IDEV_WIDGET_AXIS:
-	    return FIRST_AXIS;
+        case IDEV_WIDGET_BUTTON:
+            return FIRST_BUTTON;
+        case IDEV_WIDGET_AXIS:
+            return FIRST_AXIS;
     }
     return -1;
 }
@@ -2383,13 +2383,13 @@ static int get_mouse_widget_first (unsigned int mouse, int type)
 static int get_mouse_widget_type (unsigned int mouse, unsigned int num, char *name, uae_u32 *code)
 {
     if (num >= MAX_AXES && num < MAX_AXES + MAX_BUTTONS) {
-	if (name)
-	    sprintf (name, "Button %d", num + 1 + MAX_AXES);
-	return IDEV_WIDGET_BUTTON;
+        if (name)
+            sprintf (name, "Button %d", num + 1 + MAX_AXES);
+        return IDEV_WIDGET_BUTTON;
     } else if (num < MAX_AXES) {
-	if (name)
-	    sprintf (name, "Axis %d", num + 1);
-	return IDEV_WIDGET_AXIS;
+        if (name)
+            sprintf (name, "Axis %d", num + 1);
+        return IDEV_WIDGET_AXIS;
     }
     return IDEV_WIDGET_NONE;
 }
@@ -2535,8 +2535,8 @@ int gfx_parse_option (struct uae_prefs *p, const char *option, const char *value
 {
     return (cfgfile_yesno  (option, value, "use_dither",   &p->amiga_use_dither)
 	 || cfgfile_yesno  (option, value, "use_grey",	 &p->amiga_use_grey)
-	 || cfgfile_strval (option, value, "screen_type",  &p->amiga_screen_type, screen_type, 0)
-	 || cfgfile_string (option, value, "publicscreen", &p->amiga_publicscreen[0], 256)
+         || cfgfile_strval (option, value, "screen_type",  &p->amiga_screen_type, screen_type, 0)
+         || cfgfile_string (option, value, "publicscreen", &p->amiga_publicscreen[0], 256)
     );
 }
 

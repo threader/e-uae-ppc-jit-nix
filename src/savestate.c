@@ -258,8 +258,8 @@ static uae_u8 *restore_chunk (struct zfile *f, char *name, size_t *len, size_t *
     src = tmp;
     len2 = restore_u32 ();
     if (len2 < 12) {
-	*len = 0;
-	return 0;
+        *len = 0;
+        return 0;
     }
     len2 -= 4 + 4 + 4;
     *len = len2;
@@ -371,7 +371,7 @@ void restore_state (const char *filename)
     prevchunk[0] = 0;
     for (;;) {
 	chunk = restore_chunk (f, name, &len, &totallen, &filepos);
-	end = chunk;
+        end = chunk;
 	if (!strcmp (name, prevchunk))
 	    break;
 	strcpy (prevchunk, name);

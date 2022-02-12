@@ -1,38 +1,14 @@
 dnl Process this file with autoconf to produce a configure script.
 dnl Written 1996, 1997, 1998 Bernd Schmidt
 dnl
-dnl Updated, re-written and generally mauled 2003-2008 by Richard Drummond
-dnl Modified for JIT compiling implementation for PowerPC by Almos Rajnai
+dnl Updated, re-written and generally mauled 2003 Richard Drummond
 
 AC_PREREQ(2.55)
-
-m4_define(uae_version_major, 0)
-m4_define(uae_version_minor, 8)
-m4_define(uae_version_revision, 29)
-
-AC_INIT([E-UAE], uae_version_major.uae_version_minor.uae_version_revision, ,[e-uae])
+AC_INIT(E-UAE, 0.8.29-WIP4, ,e-uae)
 AC_CONFIG_SRCDIR([bootstrap.sh])
 AM_CONFIG_HEADER([src/sysconfig.h])
 AC_CANONICAL_TARGET
 AM_INIT_AUTOMAKE(1.7 dist-bzip2 foreign)
-
-AC_ARG_WITH(version-tag,
-  AS_HELP_STRING([--with-version-tag], [Optional tag to append to version number]),
-  [UAE_VERSION_TAG=$withval],[])
-
-UAE_VERSION_MAJOR=uae_version_major()
-UAE_VERSION_MINOR=uae_version_minor()
-UAE_VERSION_REVISION=uae_version_revision()
-
-if test -n "$UAE_VERSION_TAG"; then
-  VERSION=$VERSION-$UAE_VERSION_TAG
-fi
-
-AC_DEFINE_UNQUOTED([UAE_VERSION_MAJOR],    [$UAE_VERSION_MAJOR],    [Define to the UAE major version number])
-AC_DEFINE_UNQUOTED([UAE_VERSION_MINOR],    [$UAE_VERSION_MINOR],    [Define to the UAE minor version number])
-AC_DEFINE_UNQUOTED([UAE_VERSION_REVISION], [$UAE_VERSION_REVISION], [Define to the UAE revision number])
-AC_DEFINE_UNQUOTED([UAE_VERSION_TAG],      ["$UAE_VERSION_TAG"],    [Define to the optional UAE version tag])
-AC_DEFINE_UNQUOTED([UAE_VERSION],          ["$VERSION"],            [Define to the UAE version])
 
 dnl
 dnl  Checks for programs.
@@ -136,12 +112,11 @@ AC_PROG_GCC_TRADITIONAL
 AC_FUNC_MEMCMP
 AC_TYPE_SIGNAL
 AC_FUNC_UTIME_NULL
-AC_CHECK_FUNCS(gettimeofday sigaction)
-AC_CHECK_FUNCS(select strerror isnan isinf setitimer alarm sync)
-AC_CHECK_FUNCS(readdir_r)
-AC_CHECK_FUNCS(strdup strstr strcasecmp stricmp strcmpi)
+AC_CHECK_FUNCS(getcwd getopt strdup gettimeofday sigaction mkdir rmdir)
+AC_CHECK_FUNCS(select strerror strstr isnan isinf setitimer alarm sync)
+AC_CHECK_FUNCS(tcgetattr cfmakeraw readdir_r vprintf vsprintf vfprintf)
+AC_CHECK_FUNCS(strcasecmp stricmp strcmpi)
 AC_CHECK_FUNCS(nanosleep usleep sleep)
-AC_CHECK_FUNCS(vprintf vsprintf vfprintf)
 
 dnl AC_CHECK_FUNCS(statvfs statfs)
 dnl AC_VAR_TIMEZONE_EXTERNALS - broken on *BSD
@@ -195,14 +170,8 @@ AC_CACHE_SAVE
 dnl
 dnl  Check for libz
 dnl
-AC_CHECK_LIB(z, inflateEnd, [zlib_cv_libz=yes], [zlib_cv_libz=no])
-AC_CHECK_HEADER(zlib.h, [zlib_cv_zlib_h=yes], [zlib_cv_zlib_h=no])
-if test "$zlib_cv_libz" = "yes" -a "$zlib_cv_zlib_h" = "yes"
-then
-    UAE_LIBS="-lz $UAE_LIBS"
-else
-    AC_MSG_ERROR(Check for libz failed)
-fi
+CHECK_ZLIB
+
 
 dnl
 dnl  Check for pthreads
@@ -224,10 +193,13 @@ fi
 dnl
 dnl  Check for dlopen
 dnl
+SAVE_LIBS="$LIBS"
+LIBS="$LIBS -ldl"
 AC_CHECK_LIB(dl, dlopen, [
-    UAE_LIBS="-ldl $UAE_LIBS"
     AC_DEFINE(HAVE_DLOPEN, 1, "Define to 1 if you have 'dlopen' function)
-  ],
+  ], [
+    LIBS="$SAVE_LIBS"
+  ]
 )
 
 dnl
@@ -313,11 +285,11 @@ MDFPP_H=fpp-unknown.h
 case $host_cpu in
      i[[3-6]]86)
        HOST_CPU=i386
-       MDFPP_H=fpp-ieee.h
+       MDFPP_H=fpp-ieee.h       
        ;;
      amd64 | x86_64)
        HOST_CPU=amd64
-       MDFPP_H=fpp-ieee.h
+       MDFPP_H=fpp-ieee.h       
        ;;
      powerpc)
        HOST_CPU=ppc
@@ -471,7 +443,6 @@ WANT_CDTV=dunno
 WANT_BSDSOCK=dunno
 WANT_UI=dunno
 WANT_AUDIO=dunno
-WANT_FPU=yes
 WANT_COMPATIBLE=yes
 WANT_CYCLEEXACT=yes
 WANT_CAPS=no
@@ -538,7 +509,7 @@ dnl
 dnl Win32 build has its own writelog.c
 dnl
 if [[ "$OSDEP" != "od-win32" ]]; then
-   EXTRAOBJS='writelog.$(OBJEXT)'
+   EXTRAOBJS=writelog.o
 fi
 
 
@@ -553,8 +524,7 @@ AC_ARG_ENABLE(cdtv,            AS_HELP_STRING([--enable-cdtv],            [Enabl
 AC_ARG_ENABLE(cd32,            AS_HELP_STRING([--enable-cd32],            [Enable CD32 emulation (default no)]),                      [WANT_CD32=$enableval],[])
 AC_ARG_ENABLE(cycle-exact-cpu, AS_HELP_STRING([--enable-cycle-exact-cpu], [Enable cycle-exact CPU emulation (default yes)]),          [WANT_CYCLEEXACT=$enableval],[])
 AC_ARG_ENABLE(compatible-cpu,  AS_HELP_STRING([--enable-compatible-cpu],  [Enable compatible CPU emulation (default yes)]),           [WANT_COMPATIBLE=$enableval],[])
-AC_ARG_ENABLE(fpu,             AS_HELP_STRING([--enable-fpu],             [Enable FPU emulation (default yes)]),                      [WANT_FPU=$enableval],[])
-AC_ARG_ENABLE(jit,             AS_HELP_STRING([--enable-jit],             [Enable JIT compiler (currently PPC only)]),                [WANT_JIT=$enableval],[])
+AC_ARG_ENABLE(jit,             AS_HELP_STRING([--enable-jit],             [Enable JIT compiler (PPC only)]),                          [WANT_JIT=$enableval],[])
 AC_ARG_ENABLE(threads,         AS_HELP_STRING([--enable-threads],         [Enable thread support (default auto)]),                    [WANT_THREADS=$enableval],[])
 AC_ARG_ENABLE(autoconfig,      AS_HELP_STRING([--enable-autoconfig],      [Enable emulaton of autoconfig devices (default auto)]),    [WANT_AUTOCONFIG=$enableval],[])
 AC_ARG_ENABLE(scsi-device,     AS_HELP_STRING([--enable-scsi-device],     [Enable emulaton of SCSI devices (default no)]),            [WANT_SCSIEMU=$enableval],[])
@@ -563,7 +533,6 @@ AC_ARG_ENABLE(debugger,        AS_HELP_STRING([--disable-debugger],       [Disab
 AC_ARG_ENABLE(state-saving,    AS_HELP_STRING([--disable-state-saving],   [Disable support for saving state snapshots (default no)]),   [WANT_STATESAVING=$enableval],[])
 AC_ARG_ENABLE(enforcer,	       AS_HELP_STRING([--enable-enforcer],        [Enable ersatz Enforcer support (default auto)]),           [WANT_ENFORCER=$enableval],[])
 AC_ARG_ENABLE(action-replay,   AS_HELP_STRING([--enable-action-replay],   [Enable Action Replay cartridge emulation (default yes)]),  [WANT_ACTION_REPLAY=$enableval],[])
-AC_ARG_ENABLE(xarcade,         AS_HELP_STRING([--disable-xarcade],        [Disable keymaps for X-Aracde joysticks (default: enabled)]),  [WANT_XARCADE=$enableval],[WANT_XARCADE=yes])
 AC_ARG_ENABLE(dga,             AS_HELP_STRING([--enable-dga],             [X11 version: Use the DGA extension]),                      [WANT_DGA=$enableval],[])
 AC_ARG_ENABLE(vidmode,         AS_HELP_STRING([--enable-vidmode],         [X11 version: Use the XF86VidMode extension]),              [WANT_VIDMODE=$enableval],[])
 AC_ARG_ENABLE(ui,              AS_HELP_STRING([--enable-ui],              [Use a user interface if possible (default on)]),           [WANT_UI=$enableval],[])
@@ -665,7 +634,7 @@ if [[ "x$WANT_SDL" != "xno" ]]; then
     SAVE_CPPFLAGS=$CPPFLAGS
     SAVE_LIBS=$LIBS
     CPPFLAGS="$CPPFLAGS $SDL_CFLAGS"
-    LIBS="$SDL_LIBS $LIBS"
+    LIBS="$LIBS $SDL_LIBS"
 
     AC_TRY_LINK(
     [
@@ -722,23 +691,19 @@ dnl
 
 dnl  Now configure the CPU emulation proper
 ASMOBJS=
-UAE_DEFINES="$UAE_DEFINES -DCPUEMU_0"
-CPUOBJS='cpuemu_0.$(OBJEXT)'
+UAE_DEFINES="$UAE_DEFINES -DFPUEMU -DCPUEMU_0"
+CPUOBJS="cpuemu_0.o"
 
 if [[ "x$WANT_COMPATIBLE" != "xno" ]]; then
   UAE_DEFINES="$UAE_DEFINES -DCPUEMU_5"
-  CPUOBJS="$CPUOBJS cpuemu_5.\$(OBJEXT)"
+  CPUOBJS="$CPUOBJS cpuemu_5.o"
 fi
 
 if [[ "x$WANT_CYCLEEXACT" != "xno" ]]; then
   UAE_DEFINES="$UAE_DEFINES -DCPUEMU_6"
-  CPUOBJS="$CPUOBJS cpuemu_6.\$(OBJEXT)"
+  CPUOBJS="$CPUOBJS cpuemu_6.o"
 fi
 
-if [[ "x$WANT_FPU" != "xno" ]]; then
-  UAE_DEFINES="$UAE_DEFINES -DFPUEMU"
-  CPUOBJS="$CPUOBJS fpp.\$(OBJEXT)"
-fi
 
 if [[ "x$HAVE_GCC27" = "xyes" -a "$HOST_CPU" = "i386" -a "x$DO_PROFILING" = "xno" ]]; then
   dnl strength-reduce is turned off not because of paranoia, but because it
@@ -778,8 +743,18 @@ AC_MSG_CHECKING([whether to build JIT compiler])
 JITOBJS=""
 if [[ "x$WANT_JIT" != "xno" -a "$HOST_CPU" = "ppc" ]]; then
   UAE_DEFINES="$UAE_DEFINES -DJIT"
-  JITOBJS='compstbl.$(OBJEXT) compemu_macroblocks_ppc.$(OBJEXT) compemu_compiler_ppc.$(OBJEXT) compemu_support.$(OBJEXT)'
+  JITOBJS="compstbl.o compemu_macroblocks_ppc.o compemu_compiler_ppc.o compemu_support.o"
   AC_MSG_RESULT(yes)
+
+  AC_MSG_CHECKING([whether assembler supports --execstack option])
+  SAVE_CFLAGS="$CFLAGS"
+  CFLAGS="-Wa,--execstack $CFLAGS"
+  AC_TRY_COMPILE(, int main (void) {return 0;},
+    [AC_MSG_RESULT(yes)
+    UAE_CFLAGS="-Wa,--execstack $UAE_CFLAGS"],
+    AC_MSG_RESULT(no)
+  )
+  CFLAGS="$SAVE_CFLAGS"
 else
   AC_MSG_RESULT(no)
 fi
@@ -859,6 +834,7 @@ if [[ "$GFX_DEP" = "gfx-x11" ]]; then
     TMP_SAVE_LIBS=$LIBS
     LIBS="$X_LIBS $LIBS"
     AC_CHECK_LIB(Xxf86dga, XF86DGAQueryExtension, HAVE_DGA=yes, HAVE_DGA=no, [ $X_PRE_LIBS -lXext -lX11 $X_EXTRA_LIBS ])
+    echo $LIBS
     LIBS=$TMP_SAVE_LIBS
     if [[ "x$HAVE_DGA" = "xno" ]]; then
       AC_MSG_WARN([Could not find DGA extension, ignoring --enable-dga])
@@ -1076,9 +1052,11 @@ if [[ "x$WANT_AUTOCONFIG" != "xno" ]]; then
   dnl  Configure hard disk emulation
   UAE_DEFINES="$UAE_DEFINES -DFILESYS"
   NEED_THREAD_SUPPORT=yes
-  FILESYSOBJS='filesys.$(OBJEXT) fsdb.$(OBJEXT) fsusage.$(OBJEXT) hardfile.$(OBJEXT)'
+  FILESYSOBJS="filesys.o fsdb.o fsusage.o hardfile.o"
   if [[ "x$HOST_OS" != "xwin32" ]]; then
-    FILESYSOBJS="$FILESYSOBJS filesys_unix.\$(OBJEXT) fsdb_unix.\$(OBJEXT) hardfile_unix.\$(OBJEXT)"
+    FILESYSOBJS="$FILESYSOBJS filesys_unix.o fsdb_unix.o hardfile_unix.o"
+  else
+    FILESYSOBJS="$FILESYSOBJS"
   fi
   dnl  Filesys support currently requires threads, because hardfile
   dnl  support requires threads and we can't currently separate the
@@ -1109,7 +1087,7 @@ if [[ "x$WANT_SCSIEMU" = "xyes" ]]; then
   else
     if [[ "$OSDEP" = "od-amiga" ]]; then
       AC_MSG_RESULT(yes)
-      SCSIOBJS='scsiemul.$(OBJEXT) blkdev.$(OBJEXT)'
+      SCSIOBJS="scsiemul.o blkdev.o"
       UAE_DEFINES="$UAE_DEFINES -DSCSIEMU"
       NEED_THREAD_SUPPORT=yes
     else
@@ -1143,10 +1121,10 @@ typedef int BOOL;
 [{SCSI *scgp = scg_open (0, 0, 0, 0, 0);}],
     [
       AC_MSG_RESULT(yes)
-      SCSIOBJS='scsiemul.$(OBJEXT) blkdev.$(OBJEXT) blkdev-libscg.$(OBJEXT)'
+      SCSIOBJS="scsiemul.o blkdev.o blkdev-libscg.o"
       UAE_DEFINES="$UAE_DEFINES -DSCSIEMU"
       UAE_CPPFLAGS="$UAE_CPPFLAGS $LIBSCG_CPPFLAGS"
-      UAE_LIBS="$LIBSCG_LIBS $UAE_LIBS"
+      UAE_LIBS="$UAE_LIBS $LIBSCG_LIBS"
       NEED_THREAD_SUPPORT=yes
     ],
     [
@@ -1164,15 +1142,15 @@ typedef int BOOL;
 [{SCSI *scgp = scg_open (0, 0, 0, 0, 0);}],
       [
         AC_MSG_RESULT(yes)
-        SCSIOBJS='scsiemul.$(OBJEXT) blkdev.$(OBJEXT) blkdev-libscg.$(OBJEXT)'
+        SCSIOBJS="scsiemul.o blkdev.o blkdev-libscg.o"
         UAE_DEFINES="$UAE_DEFINES -DSCSIEMU"
         NEED_THREAD_SUPPORT=yes
         if [[ "$srcdir" != "." ]]; then
           AC_CONFIG_LINKS(src/libscg.a:src/libscg.a)
           AC_CONFIG_LINKS(src/libschily.a:src/libschily.a)
-	  UAE_LIBS="$LIBSCG_LIBS $UAE_LIBS"
+	  UAE_LIBS="$UAE_LIBS $LIBSCG_LIBS"
         else
-          UAE_LIBS="-L. $SCGLIBS $UAE_LIBS"
+          UAE_LIBS="$UAE_LIBS -L. $SCGLIBS"
         fi
       ],
       [
@@ -1186,7 +1164,7 @@ typedef int BOOL;
 [{struct cdrom_generic_command cmd; ioctl (0, CDROM_SEND_PACKET, &cmd);}],
 	[
 	   AC_MSG_RESULT(yes)
-	   SCSIOBJS='scsiemul.$(OBJEXT) blkdev.$(OBJEXT)'
+	   SCSIOBJS="scsiemul.o blkdev.o"
 	   UAE_DEFINES="$UAE_DEFINES -DSCSIEMU -DSCSIEMU_LINUX_IOCTL"
 	   NEED_THREAD_SUPPORT=yes
 	],
@@ -1207,7 +1185,7 @@ else
   AC_MSG_RESULT(no)
 fi
 if [[ "x$WANT_SCSIEMU" != "xyes" ]]; then
-  SCSIOBJS='scsi-none.$(OBJEXT)'
+  SCSIOBJS="scsi-none.o"
   AC_MSG_RESULT(no)
 fi
 
@@ -1227,7 +1205,7 @@ if [[ "x$WANT_CDTV" != "xno" ]]; then
     WANT_CDTV=no
   else
     UAE_DEFINES="$UAE_DEFINES -DCDTV"
-    CDOBJS='cdrom.$(OBJEXT)'
+    CDOBJS="cdrom.o"
   fi
 else
   AC_MSG_RESULT(no)
@@ -1257,9 +1235,9 @@ if [[ "x$WANT_CD32" != "xno" ]]; then
     else
       UAE_DEFINES="$UAE_DEFINES -DCD32"
       if [[ "x$WANT_CDTV" = "xno" ]]; then
-        CDOBJS='cdrom.$(OBJEXT)'
+        CDOBJS="cdrom.o"
       fi
-      CDOBJS="$CDOBJS akiko.\$(OBJEXT)"
+      CDOBJS="$CDOBJS akiko.o"
     fi
   fi
 else
@@ -1279,12 +1257,12 @@ if [[ "x$WANT_BSDSOCK" != "xno" ]]; then
   else
     NEED_THREAD_SUPPORT=yes
     UAE_DEFINES="$UAE_DEFINES -DBSDSOCKET"
-    BSDSOCKOBJS='bsdsocket-posix-new.$(OBJEXT) bsdsocket.$(OBJEXT)'
+    BSDSOCKOBJS="bsdsocket-posix-new.o bsdsocket.o"
     AC_MSG_RESULT(yes)
   fi
 else
   AC_MSG_RESULT(no)
-  BSDSOCKOBJS='bsdsocket.$(OBJEXT)'
+  BSDSOCKOBJS="bsdsocket.o"
 fi
 
 
@@ -1311,7 +1289,7 @@ if [[ "x$WANT_THREADS" = "xyes" -o "x$NEED_THREAD_SUPPORT" = "xyes" ]]; then
   if [[ "$THREADDEP" = "td-posix" ]]; then
     CC="$PTHREAD_CC"
     UAE_CFLAGS="$UAE_CFLAGS $PTHREAD_CFLAGS"
-    UAE_LIBS="$PTHREAD_LIBS $UAE_LIBS"
+    UAE_LIBS="$UAE_LIBS $PTHREAD_LIBS"
 
     dnl Hack to use named semaphores on OS X/darwin
     dnl This needs to be properly checked when detecting pthreads!
@@ -1334,7 +1312,7 @@ dnl
 if [[ "x$WANT_SDL" = "xyes" ]]; then
    UAE_DEFINES="$UAE_DEFINES -DUSE_SDL"
    JOY_DEP=jd-sdl
-   UAE_LIBS="$SDL_LIBS $UAE_LIBS"
+   UAE_LIBS="$UAE_LIBS $SDL_LIBS"
    UAE_CPPFLAGS="$UAE_CPPFLAGS $SDL_CFLAGS"
 fi
 
@@ -1362,16 +1340,6 @@ if [[ "x$WANT_CAPS" != "xno" ]]; then
     fi
   fi
   CPPFLAGS="$SAVE_CPPFLAGS"
-
-  if [[ "$HAVE_CAPS" = "yes" ]]; then
-    dnl Check for CAPSImage framework on OS X.
-    SAVE_LIBS="$LIBS"
-    AC_CHECK_FRAMEWORK(CAPSImage, CAPSInit, [
-      UAE_LIBS="$UAE_LIBS -weak_framework CAPSImage"
-      AC_DEFINE(HAVE_FRAMEWORK_CAPSIMAGE, 1, [Define to 1 if you have the CAPS framework.])
-    ])
-    LIBS="$SAVE_LIBS"
-  fi
 fi
 
 
@@ -1390,7 +1358,7 @@ AC_MSG_CHECKING([whether to build internal debugger/monitor])
 if [[ "x$WANT_DEBUGGER" != "xno" ]]; then
   AC_MSG_RESULT(yes)
   UAE_DEFINES="$UAE_DEFINES -DDEBUGGER"
-  DEBUGOBJS='debug.$(OBJEXT) ppc_disasm.$(OBJEXT) identify.$(OBJEXT)'
+  DEBUGOBJS="debug.o ppc_disasm.o identify.o"
 else
   AC_MSG_RESULT(no)
 fi
@@ -1437,19 +1405,8 @@ else
 fi
 
 
-dnl
-dnl  Include keymapping for X-Aracde joysticks
-dnl
-AC_MSG_CHECKING([whether to include keymaps for X-Arcade joysticks])
-if [[ "x$WANT_XARCADE" != "xno" ]]; then
-  AC_MSG_RESULT(yes)
-  UAE_DEFINES="$UAE_DEFINES -DXARCADE"
-else
-  AC_MSG_RESULT(no)
-fi
-
-LIBS="$GUI_LIBS $GFX_LIBS $SND_LIBS $JOY_LIBS $UAE_LIBS"
-CPPFLAGS="$UAE_CPPFLAGS $UAE_DEFINES $GFX_CPPFLAGS"
+LIBS="$LIBS $UAE_LIBS $GUI_LIBS $GFX_LIBS $SND_LIBS $JOY_LIBS $MATHLIB"
+CPPFLAGS="$CPPFLAGS $UAE_DEFINES $UAE_CPPFLAGS $GFX_CPPFLAGS"
 CFLAGS="$CFLAGS $UAE_CFLAGS $GUI_CFLAGS $GFX_CFLAGS $SND_CFLAGS $JOY_CFLAGS"
 
 AC_CONFIG_LINKS(src/target.h:src/targets/$TARGETDEP)
@@ -1517,10 +1474,6 @@ AM_CONDITIONAL(TARGET_BIGENDIAN, test x$ac_cv_c_bigendian = xyes)
 AM_CONDITIONAL(TARGET_BEOS,  test x$OSDEP = xod-beos)
 AM_CONDITIONAL(TARGET_WIN32, test x$OSDEP = xod-win32)
 AM_CONDITIONAL(BUILD_MACOSX_BUNDLE, test x$OSDEP = xod-macosx)
-
-AC_SUBST(UAE_CFLAGS)
-AC_SUBST(UAE_CPPFLAGS)
-AC_SUBST(UAE_LIBS)
 
 AC_SUBST(ac_cv_c_inline)
 AC_SUBST(WRCPRG)

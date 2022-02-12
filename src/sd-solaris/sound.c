@@ -66,33 +66,38 @@ int setup_sound (void)
 
 int init_sound (void)
 {
-    int rate;
+    int rate, dspbits;
 
     struct audio_info sfd_info;
 
     rate = currprefs.sound_freq;
+    dspbits = currprefs.sound_bits;
     AUDIO_INITINFO(&sfd_info);
     sfd_info.play.sample_rate = rate;
     sfd_info.play.channels = 1;
-    sfd_info.play.precision = 16;
-    sfd_info.play.encoding = AUDIO_ENCODING_LINEAR;
+    sfd_info.play.precision = dspbits;
+    sfd_info.play.encoding = (dspbits == 8 ) ? AUDIO_ENCODING_ULAW : AUDIO_ENCODING_LINEAR;
     if (ioctl (sound_fd, AUDIO_SETINFO, &sfd_info)) {
-	write_log ("Can't use sample rate %d.\n", rate);
+	write_log ("Can't use sample rate %d with %d bits, %s.\n", rate, dspbits, (dspbits == 8) ? "ulaw" : "linear");
 	return 0;
     }
 
     init_sound_table16 ();
-    sample_handler = sample16_handler;
+
+    if (dspbits == 8)
+	sample_handler = sample_ulaw_handler;
+    else
+	sample_handler = sample16_handler;
 
     sndbufpt = sndbuffer;
     obtainedfreq = rate;
 
     sound_available = 1;
-    sndbufsize = rate * currprefs.sound_latency * 2 * (currprefs.sound_stereo ? 2 : 1) / 1000;
+    sndbufsize = rate * currprefs.sound_latency * (dspbits / 8) * (currprefs.sound_stereo ? 2 : 1) / 1000;
     sndbufsize = (sndbufsize + 1) & ~1;
 
-    write_log ("Sound driver found and configured at %d Hz, buffer is %d bytes.\n",
-	       rate, sndbufsize);
+    write_log ("Sound driver found and configured for %d bits, %s at %d Hz, buffer is %d bytes.\n",
+	       dspbits, (dspbits ==8) ? "ulaw" : "linear", rate, sndbufsize);
     return 1;
 }
 

@@ -187,11 +187,11 @@ MOVIMM2MEM   1    0   2   0011 dddD DDSS Ssss   0 0     immedW    indA,indApW,in
 MOVIMM2MEM   1    0   1   0001 dddD DDSS Ssss   0 0     immedB    indA,indApB,indmAB,indAd16,indAcp,absW,absL
 
 ;*** Move16 (MC68040 only)
-MOV16REG2REGU 1   1  16   1111 0110 0010 0sss   0 0    regA    none
-MOV16REG2MEMU 1   0  16   1111 0110 0000 0sss   0 0    regA    immedL
-MOV16MEM2REGU 1   0  16   1111 0110 0000 1ddd   0 0    immedL  regA
-MOV16REG2MEM  1   0  16   1111 0110 0001 0sss   0 0    regA    immedL
-MOV16MEM2REG  1   0  16   1111 0110 0001 1ddd   0 0    immedL  regA
+MOV16REG2REGU 0   1  16   1111 0110 0010 0sss   0 0    regA    none
+MOV16REG2MEMU 0   0  16   1111 0110 0000 0sss   0 0    regA    immedL
+MOV16MEM2REGU 0   0  16   1111 0110 0000 1ddd   0 0    immedL  regA
+MOV16REG2MEM  0   0  16   1111 0110 0001 0sss   0 0    regA    immedL
+MOV16MEM2REG  0   0  16   1111 0110 0001 1ddd   0 0    immedL  regA
 
 ;*** Clear
 CLRREG        1   0   4   0100 0010 10DD Dddd   0 0     none    regD
@@ -662,19 +662,19 @@ MULREG2REG    0   1   4   0100 1100 00SS Ssss   0 0     regD    none
 MULMEM2REG    0   1   4   0100 1100 00SS Ssss   0 0     indA,indApL,indmAL,indAd16,indAcp,indPCcp,indPCd16,absW,absL    none
 
 ;*** DIVS.W
-DIVSIMM2REG   1   0   2   1000 ddd1 11SS Ssss   1 0     immedW    regD
-DIVSREG2REG   1   0   2   1000 ddd1 11SS Ssss   1 0     regD    regD
-DIVSMEM2REG   1   0   2   1000 ddd1 11SS Ssss   1 0     indA,indApW,indmAW,indAd16,indAcp,indPCcp,indPCd16,absW,absL    regD
+DIVSIMM2REG   0   0   2   1000 ddd1 11SS Ssss   0 0     immedW    regD
+DIVSREG2REG   0   0   2   1000 ddd1 11SS Ssss   0 0     regD    regD
+DIVSMEM2REG   0   0   2   1000 ddd1 11SS Ssss   0 0     indA,indApW,indmAW,indAd16,indAcp,indPCcp,indPCd16,absW,absL    regD
 
 ;*** DIVU.W
-DIVUIMM2REG   1   0   2   1000 ddd0 11SS Ssss   1 0     immedW    regD
-DIVUREG2REG   1   0   2   1000 ddd0 11SS Ssss   1 0     regD    regD
-DIVUMEM2REG   1   0   2   1000 ddd0 11SS Ssss   1 0     indA,indApW,indmAW,indAd16,indAcp,indPCcp,indPCd16,absW,absL    regD
+DIVUIMM2REG   0   0   2   1000 ddd0 11SS Ssss   0 0     immedW    regD
+DIVUREG2REG   0   0   2   1000 ddd0 11SS Ssss   0 0     regD    regD
+DIVUMEM2REG   0   0   2   1000 ddd0 11SS Ssss   0 0     indA,indApW,indmAW,indAd16,indAcp,indPCcp,indPCd16,absW,absL    regD
 
 ;*** DIVU.L/DIVS.L
-DIVIMM2REG    0   3   4   0100 1100 0111 1100   1 0     none    none
-DIVREG2REG    0   1   4   0100 1100 01SS Ssss   1 0     regD    none
-DIVMEM2REG    0   1   4   0100 1100 01SS Ssss   1 0     indA,indApL,indmAL,indAd16,indAcp,indPCcp,indPCd16,absW,absL    none
+DIVIMM2REG    0   3   4   0100 1100 0111 1100   0 0     none    none
+DIVREG2REG    0   1   4   0100 1100 01SS Ssss   0 0     regD    none
+DIVMEM2REG    0   1   4   0100 1100 01SS Ssss   0 0     indA,indApL,indmAL,indAd16,indAcp,indPCcp,indPCd16,absW,absL    none
 
 ;*** NEG
 NEGREG        1   0   4   0100 0100 10DD Dddd   0 0     none    regD
@@ -743,21 +743,21 @@ UNLINK        1   0   4   0100 1110 0101 1sss   0 0     regA      none
 ;---------------------------------------------------------------------
 ;*** Bitfield instructions
 BFCHG2REG     1   1   0   1110 1010 11DD Dddd   0 0     none     regD
-BFCHG2MEM     1   1   0   1110 1010 11DD Dddd   0 0     none     indA,indAd16,indAcp,absW,absL
+BFCHG2MEM     0   1   0   1110 1010 11DD Dddd   0 0     none     indA,indAd16,indAcp,absW,absL
 BFCLR2REG     1   1   0   1110 1100 11DD Dddd   0 0     none     regD
-BFCLR2MEM     1   1   0   1110 1100 11DD Dddd   0 0     none     indA,indAd16,indAcp,absW,absL
+BFCLR2MEM     0   1   0   1110 1100 11DD Dddd   0 0     none     indA,indAd16,indAcp,absW,absL
 BFEXTS2REG    1   1   0   1110 1011 11DD Dddd   0 0     none     regD
-BFEXTS2MEM    1   1   0   1110 1011 11DD Dddd   0 0     none     indA,indAd16,indAcp,indPCd16,indPCcp,absW,absL
+BFEXTS2MEM    0   1   0   1110 1011 11DD Dddd   0 0     none     indA,indAd16,indAcp,indPCd16,indPCcp,absW,absL
 BFEXTU2REG    1   1   0   1110 1001 11DD Dddd   0 0     none     regD
-BFEXTU2MEM    1   1   0   1110 1001 11DD Dddd   0 0     none     indA,indAd16,indAcp,indPCd16,indPCcp,absW,absL
+BFEXTU2MEM    0   1   0   1110 1001 11DD Dddd   0 0     none     indA,indAd16,indAcp,indPCd16,indPCcp,absW,absL
 BFFFO2REG     1   1   0   1110 1101 11DD Dddd   0 0     none     regD
-BFFFO2MEM     1   1   0   1110 1101 11DD Dddd   0 0     none     indA,indAd16,indAcp,indPCd16,indPCcp,absW,absL
+BFFFO2MEM     0   1   0   1110 1101 11DD Dddd   0 0     none     indA,indAd16,indAcp,indPCd16,indPCcp,absW,absL
 BFINS2REG     1   1   0   1110 1111 11DD Dddd   0 0     none     regD
-BFINS2MEM     1   1   0   1110 1111 11DD Dddd   0 0     none     indA,indAd16,indAcp,absW,absL
+BFINS2MEM     0   1   0   1110 1111 11DD Dddd   0 0     none     indA,indAd16,indAcp,absW,absL
 BFSET2REG     1   1   0   1110 1110 11DD Dddd   0 0     none     regD
-BFSET2MEM     1   1   0   1110 1110 11DD Dddd   0 0     none     indA,indAd16,indAcp,absW,absL
+BFSET2MEM     0   1   0   1110 1110 11DD Dddd   0 0     none     indA,indAd16,indAcp,absW,absL
 BFTST2REG     1   1   0   1110 1000 11DD Dddd   0 0     none     regD
-BFTST2MEM     1   1   0   1110 1000 11DD Dddd   0 0     none     indA,indAd16,indAcp,indPCd16,indPCcp,absW,absL
+BFTST2MEM     0   1   0   1110 1000 11DD Dddd   0 0     none     indA,indAd16,indAcp,indPCd16,indPCcp,absW,absL
 
 ;---------------------------------------------------------------------
 ;*** Basic FPU instructions

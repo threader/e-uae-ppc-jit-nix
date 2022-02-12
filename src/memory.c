@@ -608,13 +608,13 @@ static void a1000_handle_kickstart (int mode)
     if (mode == 0) {
 	a1000_kickstart_mode = 0;
 	memcpy (kickmemory, kickmemory + 262144, 262144);
-	kickstart_version = (kickmemory[262144 + 12] << 8) | kickmemory[262144 + 13];
+        kickstart_version = (kickmemory[262144 + 12] << 8) | kickmemory[262144 + 13];
     } else {
 	a1000_kickstart_mode = 1;
 	memset (kickmemory, 0, 262144);
 	memcpy (kickmemory, a1000_bootrom, 65536);
 	memcpy (kickmemory + 131072, a1000_bootrom, 65536);
-	kickstart_version = 0;
+        kickstart_version = 0;
     }
 }
 
@@ -987,25 +987,25 @@ static int decode_cloanto_rom (uae_u8 *mem, int size, int real_size)
 	return 0;
     } else {
 	keyf = zfile_fopen (currprefs.keyfile, "rb");
-	if (keyf == 0)  {
+        if (keyf == 0)  {
 #ifdef WIN32
-	    keyf = zfile_fopen( "..\\shared\\rom\\rom.key", "rb" );
-	    if( keyf == 0 ) {
+            keyf = zfile_fopen( "..\\shared\\rom\\rom.key", "rb" );
+            if( keyf == 0 ) {
 #endif
 #ifndef SINGLEFILE
-		gui_message ("Could not find specified ROM key-file.\n");
+                gui_message ("Could not find specified ROM key-file.\n");
 #endif
-		return 0;
+	        return 0;
 #ifdef WIN32
-	    }
+            }
 #endif
 	}
 
 	p = (uae_u8 *)xmalloc (524288);
 	keysize = zfile_fread (p, 1, 524288, keyf);
     if (keysize == 0) {
-	gui_message ("Error reading keyfile \"%s\"\n", currprefs.keyfile );
-	return 0;
+        gui_message ("Error reading keyfile \"%s\"\n", currprefs.keyfile );
+        return 0;
     }
 	for (t = cnt = 0; cnt < size; cnt++, t = (t + 1) % keysize)  {
 	    mem[cnt] ^= p[t];
@@ -1032,7 +1032,7 @@ static int kickstart_checksum (uae_u8 *mem, int size)
 #ifndef SINGLEFILE
     if (cksum != 0xFFFFFFFFul) {
 	gui_message("Kickstart checksum incorrect. You probably have a corrupted ROM image.\n");
-	return 0;
+        return 0;
     }
 #endif
     return 1;
@@ -1067,9 +1067,9 @@ static int read_kickstart (struct zfile *f, uae_u8 *mem, int size, int dochecksu
     }
 
     if (i == 8192 || i == 65536) {
-	a1000_bootrom = malloc (65536);
-	memcpy (a1000_bootrom, kickmemory, 65536);
-	a1000_handle_kickstart (1);
+        a1000_bootrom = malloc (65536);
+        memcpy (a1000_bootrom, kickmemory, 65536);
+        a1000_handle_kickstart (1);
 	i = 524288;
 	dochecksum = 0;
     }
@@ -1191,7 +1191,7 @@ static int load_kickstart (void)
 	    !memcmp (kickmemory + i, kickshift2, sizeof (kickshift2)) ||
 	    !memcmp (kickmemory + i, kickshift3, sizeof (kickshift3))) {
 		kickmemory[i + 2] = 0x30;
-		write_log ("Kickstart KickShifted @%04.4X\n", i);
+	        write_log ("Kickstart KickShifted @%04.4X\n", i);
 	    }
 	}
 	kickstart_fix_checksum (kickmemory, kickmem_size);
@@ -1281,7 +1281,7 @@ static void delete_shmmaps (uae_u32 start, uae_u32 size)
 		return;
 
 	    if (x->size > size) {
-		// Bail out: the memory mapped here isn't the size we were expecting
+	        // Bail out: the memory mapped here isn't the size we were expecting
 		write_log ("NATMEM: Failure to delete mapping at %08x(size %08x, delsize %08x)\n",start,x->size,size);
 		dumplist ();
 		canbang = 0;
@@ -1372,14 +1372,14 @@ uae_u8 *mapped_malloc (size_t s, const char *file)
     id = shmget (IPC_PRIVATE, s, 0x1ff);
 #endif
     if (id == -1) {
-	// Failed to allocate new shared mem segment, so turn
+        // Failed to allocate new shared mem segment, so turn
 	// off direct memory access and fall back on regular malloc()
 	write_log ("NATMEM: shmget() failed with size 0x%08lx. Disabling direct memory access.\n", s);
 	canbang = 0;
 	return mapped_malloc (s, file);
     }
     answer = shmat (id, 0, 0); // Attach this segment at an arbitrary address - use
-			       // add_shmmap() to map it where it needs to be later.
+                               // add_shmmap() to map it where it needs to be later.
     shmctl (id, IPC_RMID, NULL);
     if (answer != (void *) -1) {
 	x = malloc (sizeof (shmpiece));
@@ -1392,10 +1392,10 @@ uae_u8 *mapped_malloc (size_t s, const char *file)
 	    x->next->prev = x;
 	shm_start = x;
     } else {
-	// Failed to attach segment - turn off direct memory
+        // Failed to attach segment - turn off direct memory
 	// access for the VM and fall back on malloc().
-	canbang = 0;
-	answer = mapped_malloc (s, file);
+        canbang = 0;
+        answer = mapped_malloc (s, file);
     }
     return answer;
 }
@@ -1498,7 +1498,7 @@ static void allocate_memory (void)
     if (savestate_state == STATE_RESTORE) {
 	restore_ram (chip_filepos, chipmemory);
 	if (allocated_bogomem > 0)
-	    restore_ram (bogo_filepos, bogomemory);
+    	    restore_ram (bogo_filepos, bogomemory);
     }
 #endif
     chipmem_bank.baseaddr = chipmemory;
@@ -1523,7 +1523,7 @@ void map_overlay (int chip)
     else
 	map_banks (&kickmem_bank, 0, i, 0x80000);
     if (savestate_state != STATE_RESTORE && savestate_state != STATE_REWIND)
-	m68k_setpc (&regs, m68k_getpc (&regs));
+        m68k_setpc (&regs, m68k_getpc (&regs));
 }
 
 void memory_reset (void)
@@ -1559,10 +1559,10 @@ void memory_reset (void)
 	    ersatzkickfile = 0;
 	    memcpy (currprefs.romfile, changed_prefs.romfile, sizeof currprefs.romfile);
 	    memcpy (currprefs.keyfile, changed_prefs.keyfile, sizeof currprefs.keyfile);
-	    if (savestate_state != STATE_RESTORE)
+            if (savestate_state != STATE_RESTORE)
 		clearexec ();
 #if defined CDTV || defined CD32
-	    load_extendedkickstart ();
+            load_extendedkickstart ();
 #endif
 	    if (!load_kickstart ()) {
 		gui_message ("Failed to load Kickstart image '%s'\n", currprefs.romfile);
@@ -1621,7 +1621,7 @@ void memory_reset (void)
 	map_banks (&kickram_bank, currprefs.maprom >> 16, 8, 0);
 
     if (a1000_bootrom)
-	a1000_handle_kickstart (1);
+        a1000_handle_kickstart (1);
 
 #ifdef AUTOCONFIG
     /* Map Autoconfig space at 0xE80000 - 0xE8FFFF. */
@@ -1851,7 +1851,7 @@ const uae_u8 *restore_rom (const uae_u8 *src)
     if (src[0]) {
 	if (zfile_exists ((const char *) src))
 	    strncpy (changed_prefs.romfile, (const char *) src, 255);
-	src += strlen ((const char *) src) + 1;
+        src += strlen ((const char *) src) + 1;
     }
     return src;
 }
@@ -1894,7 +1894,7 @@ uae_u8 *save_rom (int first, uae_u32 *len, uae_u8 *dstptr)
     if (dstptr)
 	dstbak = dst = dstptr;
     else
-	dstbak = dst = malloc (4 + 4 + 4 + 4 + 4 + mem_size);
+        dstbak = dst = malloc (4 + 4 + 4 + 4 + 4 + mem_size);
     save_u32 (mem_start);
     save_u32 (mem_size);
     save_u32 (mem_type);

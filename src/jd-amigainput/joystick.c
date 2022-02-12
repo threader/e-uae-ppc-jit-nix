@@ -146,7 +146,7 @@ static int init_joysticks (void)
 
     if (!joystickContext) {
 
-	if (openAmigaInput ()) {
+    	if (openAmigaInput ()) {
 
 	    joystickContext = AIN_CreateContext (1, NULL);
 	    if (joystickContext) {
@@ -158,9 +158,9 @@ static int init_joysticks (void)
 		AIN_EnumDevices (joystickContext, enumerateJoysticks, &packet);
 
 		write_log ("Found %d joysticks\n", joystickCount);
-
-		success = 1;
-	    }
+	       
+	        success = 1;
+            }
 	}
     }
 
@@ -181,8 +181,7 @@ static void close_joysticks (void)
     }
     joystickCount = 0;
 
-    if (joystickContext)
-	AIN_DeleteContext (joystickContext);
+    AIN_DeleteContext (joystickContext);
     joystickContext = 0;
 }
 
@@ -298,9 +297,9 @@ static int acquire_joy (unsigned int joynum, int flags)
     joy->handle = AIN_ObtainDevice (joy->context, joy->id);
 
     if (joy->handle)
-	result = 1;
+        result = 1;
     else
-	write_log ("Failed to acquire joy\n");
+        write_log ("Failed to acquire joy\n");
    return result;
 }
 
@@ -309,8 +308,8 @@ static void unacquire_joy (unsigned int joynum)
     struct joystick *joy = &joystickList[joynum];
 
     if (joy->handle) {
-	   AIN_ReleaseDevice (joy->context, joy->handle);
-	   joy->handle = 0;
+           AIN_ReleaseDevice (joy->context, joy->handle);
+           joy->handle = 0;
     }
 }
 

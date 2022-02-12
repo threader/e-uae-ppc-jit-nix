@@ -97,7 +97,7 @@ static int open_scsi_device_ioctl (int unitnum)
 		sdd->isatapi = is_atapi_drive (unitnum);
 		result = 1;
 	    } else {
-		write_log ("SCSIDEV: Failed to open drive %s\n", sdd->name);
+		DEBUG_LOG ("SCSIDEV: Failed to open drive %s\n", sdd->name);
 	    }
 	} else {
 	    /* already open */
@@ -129,9 +129,9 @@ static void close_scsi_device_ioctl (int unitnum)
 static int media_check (struct scsidevdata *sdd)
 {
     if (ioctl (sdd->fd, CDROM_DRIVE_STATUS, CDSL_CURRENT) == CDS_DISC_OK)
-	return 1;
+        return 1;
     else
-	return 0;
+        return 0;
 }
 
 static const uae_u8 *execscsicmd_out_ioctl (int unitnum, const uae_u8 *cmd_data, int cmd_len)
@@ -247,7 +247,7 @@ static int execscsicmd_direct_ioctl (int unitnum, uaecptr acmd)
 
     /* do transfer directly to and from Amiga memory */
     if (!bank_data || !bank_data->check (scsi_data, scsi_len)) {
-	DEBUG_LOG ("SCSIDEV: illegal Amiga memory buffer\n");
+        DEBUG_LOG ("SCSIDEV: illegal Amiga memory buffer\n");
 	return -5; /* IOERR_BADADDRESS */
     }
 
@@ -281,7 +281,7 @@ static int execscsicmd_direct_ioctl (int unitnum, uaecptr acmd)
     DEBUG_LOG ("SCSIDEV: error: %d, stat: %d\n", io_error, cmd.stat);
 
     if (cmd.stat != 0) {
-	unsigned int n;
+        int n;
 
 	io_error = 45;  /* HFERR_BadStatus */
 	put_byte (acmd + 8, 0);
@@ -291,7 +291,7 @@ static int execscsicmd_direct_ioctl (int unitnum, uaecptr acmd)
 	n = cmd.sense ? cmd.sense->add_sense_len + 7 : 0;
 	if (senselen > n) {
 	    if (scsi_sense)
-		memset (bank_sense->xlateaddr (scsi_sense), 0, senselen);
+        	memset (bank_sense->xlateaddr (scsi_sense), 0, senselen);
 	    senselen = n;
 	}
 	DEBUG_LOG ("SCSIDEV: senselen = %d\n", senselen);
@@ -300,7 +300,7 @@ static int execscsicmd_direct_ioctl (int unitnum, uaecptr acmd)
 	}
 	put_byte (acmd + 28, senselen);
     } else {
-	put_byte (acmd + 28, 0);
+    	put_byte (acmd + 28, 0);
 	if (scsi_sense && senselen > 0) {
 	    memset (bank_sense->xlateaddr (scsi_sense), 0, senselen);
 	}

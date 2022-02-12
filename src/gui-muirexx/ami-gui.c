@@ -79,7 +79,7 @@ static const char *get_last_floppy_dir (void)
 	    atexit (free_last_floppy_dir);
 	}
 
-	last_floppy_dir = my_strdup (prefs_get_attr ("floppy_path"));
+        last_floppy_dir = my_strdup (prefs_get_attr ("floppy_path"));
     }
     return last_floppy_dir;
 }
@@ -95,7 +95,7 @@ static const char *get_last_savestate_dir (void)
 	    atexit (free_last_savestate_dir);
 	}
 
-	last_savestate_dir = my_strdup (prefs_get_attr ("savestate_path"));
+        last_savestate_dir = my_strdup (prefs_get_attr ("savestate_path"));
     }
     return last_savestate_dir;
 }
@@ -171,8 +171,8 @@ static void do_file_dialog (unsigned int type)
 	}
 #ifdef __amigaos4__
     } else {
-	IAsl->Obtain ();
-	release_asl = 1;
+        IAsl->Obtain ();
+        release_asl = 1;
 #endif
     }
 
@@ -204,7 +204,7 @@ static void do_file_dialog (unsigned int type)
 	    break;
 
 	case FILEDIALOG_SAVE_STATE:
-	    req_prompt = "Select file to save emulator state to";
+	    req_prompt = "Select file to save emulator state to\n";
 	    req_pattern = "#?.uss";
 	    req_lastdir = get_last_savestate_dir ();
 	    req_do_save = TRUE;
@@ -240,7 +240,7 @@ static void do_file_dialog (unsigned int type)
 	    strcat (path, "/");
 	strcat (path, FileRequest->fr_File);
 
-	/*
+        /*
 	 * Process selected file.
 	 */
 	switch (type) {
@@ -273,7 +273,7 @@ static void do_file_dialog (unsigned int type)
 
 #ifdef __amigaos4__
     if (release_asl)
-	IAsl->Release ();
+        IAsl->Release ();
 #endif
 
     return;

@@ -96,11 +96,11 @@ int init_sound (void)
 	return 0;
     }
 
-    dspbits = 16;
+    dspbits = currprefs.sound_bits;
     ioctl (sound_fd, SNDCTL_DSP_SAMPLESIZE, &dspbits);
     ioctl (sound_fd, SOUND_PCM_READ_BITS, &dspbits);
-    if (dspbits != 16) {
-	fprintf (stderr, "Can't use sound with %d bits\n", dspbits);
+    if (dspbits != currprefs.sound_bits) {
+	fprintf (stderr, "Can't use sound with %d bits\n", currprefs.sound_bits);
 	return 0;
     }
 
@@ -124,11 +124,18 @@ int init_sound (void)
 
     obtainedfreq = currprefs.sound_freq;
 
-    if (!(formats & AFMT_S16_NE))
-	return 0;
-    init_sound_table16 ();
-    sample_handler = currprefs.sound_stereo ? sample16s_handler : sample16_handler;
-
+    if (dspbits == 16) {
+	/* Will this break horribly on bigendian machines? Possible... Not any more - Rich */
+	if (!(formats & AFMT_S16_NE))
+	    return 0;
+	init_sound_table16 ();
+	sample_handler = currprefs.sound_stereo ? sample16s_handler : sample16_handler;
+    } else {
+	if (!(formats & AFMT_U8))
+	    return 0;
+	init_sound_table8 ();
+	sample_handler = currprefs.sound_stereo ? sample8s_handler : sample8_handler;
+    }
     sound_available = 1;
     printf ("Sound driver found and configured for %d bits at %d Hz, buffer is %d bytes (%d ms).\n",
 	    dspbits, rate, sndbufsize, sndbufsize * 1000 / (rate * dspbits / 8 * (currprefs.sound_stereo ? 2 : 1)));
