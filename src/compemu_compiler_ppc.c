@@ -1496,6 +1496,13 @@ void comp_macroblock_impl_nop(union comp_compiler_mb_union* mb)
  */
 void comp_macroblock_push_save_reg_stack(uae_u64 regsin, uae_u8 input_reg, unsigned int slot)
 {
+	if (slot > COMP_STACKFRAME_ALLOCATED_SLOTS - 1)
+	{
+		//Oops, the specified slot is not available
+		write_log("Error: slot #%d is not available in JIT stack frame\n", slot);
+		abort();
+	}
+
 	//Registers are not required for input to avoid any interfere with the optimization
 	comp_mb_init(mb,
 				comp_macroblock_impl_save_reg_stack,
@@ -1507,7 +1514,10 @@ void comp_macroblock_push_save_reg_stack(uae_u64 regsin, uae_u8 input_reg, unsig
 
 void comp_macroblock_impl_save_reg_stack(union comp_compiler_mb_union* mb)
 {
-	comp_ppc_save_to_slot(mb->reg_in_stackframe.reg, mb->reg_in_stackframe.slot);
+	comp_ppc_stw(
+			mb->reg_in_stackframe.reg,
+			-4 - (mb->reg_in_stackframe.slot * 4),
+			PPCR_SP);
 }
 
 /**
@@ -1518,6 +1528,13 @@ void comp_macroblock_impl_save_reg_stack(union comp_compiler_mb_union* mb)
  */
 void comp_macroblock_push_load_reg_stack(uae_u64 regsout, uae_u8 output_reg, unsigned int slot)
 {
+	if (slot > COMP_STACKFRAME_ALLOCATED_SLOTS - 1)
+	{
+		//Oops, the specified slot is not available
+		write_log("Error: slot #%d is not available in JIT stack frame\n", slot);
+		abort();
+	}
+
 	//Registers are not required for input to avoid any interfere with the optimization
 	comp_mb_init(mb,
 				comp_macroblock_impl_load_reg_stack,
@@ -1529,6 +1546,8 @@ void comp_macroblock_push_load_reg_stack(uae_u64 regsout, uae_u8 output_reg, uns
 
 void comp_macroblock_impl_load_reg_stack(union comp_compiler_mb_union* mb)
 {
-	comp_ppc_restore_from_slot(mb->reg_in_stackframe.reg, mb->reg_in_stackframe.slot);
+	comp_ppc_lwz(
+			mb->reg_in_stackframe.reg,
+			-4 - (mb->reg_in_stackframe.slot * 4),
+			PPCR_SP);
 }
-

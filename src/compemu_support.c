@@ -55,12 +55,6 @@ struct m68k_register comp_m68k_registers[16];
  */
 int last_unmapped_register;
 
-/* The start offset for the non-volatile registers in the stack frame.
- * Initialized by the prolog stack frame preparing function.
- * From this offset the non-volatile registers can be stored.
- */
-int nonvolatile_regs_in_stackframe;
-
 /**
  * Compiled code cache memory start address
  */
@@ -2054,7 +2048,7 @@ void comp_ppc_jump(uae_uintptr addr)
 void comp_ppc_prolog(uae_u32 save_regs)
 {
 	int i;
-	int regnum = COMP_STACKFRAME_ALLOCATED_SLOTS;	//Additional free longwords for temporary register storage
+	int regnum = COMP_STACKFRAME_ALLOCATED_SLOTS;	//Additional free longword for temporary register storage
 
 	//How many registers do we want to save?
 	for(i = 0; i < 32; i++) regnum += (save_regs & (1 << i)) ? 1 : 0;
@@ -2077,9 +2071,6 @@ void comp_ppc_prolog(uae_u32 save_regs)
 			regnum += 4;
 		}
 	}
-
-	//Store offset for the non-volatile register slots
-	nonvolatile_regs_in_stackframe = regnum;
 }
 
 /* Compiles epilog to the end of the function call (stackframe freeing)
@@ -2107,35 +2098,6 @@ void comp_ppc_epilog(uae_u32 restore_regs)
 	comp_ppc_lwz(PPCR_SPECTMP, 4, PPCR_TMP0); //Read LR from the stackframe
 	comp_ppc_mtlr(PPCR_SPECTMP); //Restore LR
 	comp_ppc_mr(PPCR_SP, PPCR_TMP0, FALSE); //Free up stack space by using the backchain pointer
-}
-
-/* Saves a specified register to a slot in the stack frame. */
-void comp_ppc_save_to_slot(int reg, int slot)
-{
-	//Subtract the used stack frames from prolog
-	if (slot > COMP_STACKFRAME_ALLOCATED_SLOTS - PPCR_REG_USED_NONVOLATILE_NUM)
-	{
-		//Oops, the specified slot is not available
-		write_log("Error: slot #%d is not available in JIT stack frame for saving register\n", slot);
-		abort();
-	}
-
-	comp_ppc_stw(reg, nonvolatile_regs_in_stackframe + (slot * 4), PPCR_SP);
-}
-
-/* Restores the specified non-volatile register from the stack frame.
- * See PPCR_TMP_NONVOL... defines for more information. */
-void comp_ppc_restore_from_slot(int reg, int slot)
-{
-	//Subtract the used stack frames from prolog
-	if (slot > COMP_STACKFRAME_ALLOCATED_SLOTS - PPCR_REG_USED_NONVOLATILE_NUM)
-	{
-		//Oops, the specified slot is not available
-		write_log("Error: slot #%d is not available in JIT stack frame for restoring register\n", slot);
-		abort();
-	}
-
-	comp_ppc_lwz(reg, nonvolatile_regs_in_stackframe + (slot * 4), PPCR_SP);
 }
 
 /* Compiles a static do_cycles function call with the specified number of CPU cycles

@@ -106,17 +106,6 @@ typedef struct blockinfo_t
  * the flags the other bits must be masked out. */
 #define PPCR_FLAGS	15	// r15
 
-/* Non-volatile registers, values are preserved while the execution leaves
- * the translated code.
- * IMPORTANT: these registers are not saved automatically in the prolog/epilog
- * functions for the translated code chunk. Call comp_ppc_save_nonvolatile()
- * with the number of the register before and comp_ppc_restore_nonvolatile()
- * after using it, but before the translated code chunk finishes (epilog function
- * destroys the stack frame where these are stored).
- */
-#define PPCR_TMP_NONVOL0	16	// r16
-#define PPCR_TMP_NONVOL1	17	// r17
-
 #define PPCR_CR_TMP0	0	//CR0
 #define PPCR_CR_TMP1	1	//CR1
 #define PPCR_CR_TMP2	2	//CR2 - NOTE: this supposed to be preserved, but the interpretive emulator is using it already
@@ -172,16 +161,10 @@ typedef struct blockinfo_t
 /* The used non-volatile registers in a bit masp for saving/restoring */
 #define PPCR_REG_USED_NONVOLATILE	(PPCR_REG_BIT(PPCR_REGS_BASE) | PPCR_REG_BIT(PPCR_FLAGS))
 
-/* The number of used non-volatile registers for saving/restoring */
-#define PPCR_REG_USED_NONVOLATILE_NUM 2
-
 /* The number of additional longwords in the stackframe that are allocated
  * for the temporary register saving.
- * Make sure it is in sync with the number of non-volatile registers, including
- * PPCR_TMP_NONVOL... registers that are not saved automatically at the stack
- * frame creation.
  */
-#define COMP_STACKFRAME_ALLOCATED_SLOTS 4
+#define COMP_STACKFRAME_ALLOCATED_SLOTS 3
 
 /* Some function protos */
 STATIC_INLINE blockinfo* get_blockinfo(uae_u32 cl);
@@ -275,8 +258,6 @@ void comp_ppc_call_reg(int addrreg);
 void comp_ppc_jump(uae_uintptr addr);
 void comp_ppc_prolog(uae_u32 save_regs);
 void comp_ppc_epilog(uae_u32 restore_regs);
-void comp_ppc_save_to_slot(int reg, int slot);
-void comp_ppc_restore_from_slot(int reg, int slot);
 void comp_ppc_return_to_caller(uae_u32 restore_regs);
 void comp_ppc_do_cycles(int totalcycles);
 void comp_ppc_verify_pc(uae_u8* pc_addr_exp);
