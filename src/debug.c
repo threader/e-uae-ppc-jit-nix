@@ -30,9 +30,6 @@
 #include "akiko.h"
 #include "inputdevice.h"
 #include "audio.h"
-#ifdef JIT
-#include "ppc_disasm.h"
-#endif
 
 static int debugger_active;
 static uaecptr skipaddr_start, skipaddr_end;
@@ -1708,23 +1705,3 @@ void debug (void)
     audio_resume ();
     inputdevice_acquire ();
 }
-
-#ifdef JIT
-void disassemble_compiled(void* startaddress, void* endaddress)
-{
-	struct DisasmPara_PPC params;
-	char opcode[10];
-	char operands[24];
-
-	params.opcode = opcode;
-	params.operands = operands;
-
-	for(;startaddress < endaddress;)
-	{
-		params.instr = params.iaddr = (ppc_word *)startaddress;
-		startaddress = PPC_Disassemble(&params);
-
-		write_jit_log("Dism: %08x: %s %s\n", startaddress, params.opcode, params.operands);
-	}
-}
-#endif

@@ -421,7 +421,6 @@ void save_options (FILE *f, const struct uae_prefs *p, int type)
     cfgfile_write (f, "comp_constjump=%s\n", p->comp_constjump ? "true" : "false");
     cfgfile_write (f, "comp_oldsegv=%s\n", p->comp_oldsegv ? "true" : "false");
     cfgfile_write (f, "comp_log=%s\n", p->complog ? "true" : "false");
-    cfgfile_write (f, "comp_log_compiled=%s\n", p->complogcompiled ? "true" : "false");
 
     cfgfile_write (f, "comp_flushmode=%s\n", flushmode[p->comp_hardflush]);
     cfgfile_write (f, "compforcesettings=%s\n", p->compforcesettings ? "true" : "false");
@@ -1092,7 +1091,6 @@ static int cfgfile_parse_hardware (struct uae_prefs *p, char *option, char *valu
 #ifdef JIT
 	|| cfgfile_yesno (option, value, "comp_nf", &p->compnf)
 	|| cfgfile_yesno (option, value, "comp_log", &p->complog)
-	|| cfgfile_yesno (option, value, "comp_log_compiled", &p->complogcompiled)
 	|| cfgfile_yesno (option, value, "comp_constjump", &p->comp_constjump)
 	|| cfgfile_yesno (option, value, "comp_oldsegv", &p->comp_oldsegv)
 	|| cfgfile_yesno (option, value, "compforcesettings", &p->compforcesettings)
@@ -2344,7 +2342,6 @@ void default_prefs (struct uae_prefs *p, int type)
 # endif
     p->compnf = 1;
     p->complog = 0;
-    p->complogcompiled = 0;
     p->comp_hardflush = 0;
     p->comp_constjump = 1;
     p->comp_oldsegv = 0;

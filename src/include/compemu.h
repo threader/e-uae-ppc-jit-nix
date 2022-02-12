@@ -25,7 +25,6 @@ extern void comp_init(void);
 extern void comp_done(void);
 extern void build_comp(void);
 extern void compile_block(const cpu_history *pc_hist, int blocklen, int totcyles);
-extern uae_u16* comp_current_m68k_location(void);
 
 extern cacheline cache_tags[];
 
@@ -224,7 +223,6 @@ void comp_ppc_stb(int regs, uae_u16 delta, int rega);
 void comp_ppc_sthu(int regs, uae_u16 delta, int rega);
 void comp_ppc_stw(int regs, uae_u16 delta, int rega);
 
-void* comp_ppc_buffer_top(void);
 void comp_ppc_emit_halfwords(uae_u16 halfword_high, uae_u16 halfword_low);
 void comp_ppc_emit_word(uae_u32 word);
 void comp_ppc_call(int reg, uae_uintptr addr);

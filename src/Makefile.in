@@ -279,7 +279,6 @@ noinst_HEADERS = \
 	include/native2amiga.h	include/newcpu.h	\
 	include/noflags.h	include/options.h	\
 	include/osemu.h		include/picasso96.h	\
-	include/ppc_disasm.h \
 	include/readcpu.h	include/savestate.h	\
 	include/scsidev.h	include/serial.h	\
 	include/sinctable.h				\
@@ -326,7 +325,7 @@ EXTRA_uae_SOURCES = \
 	debug.c identify.c filesys.c filesys_bootrom.c fsdb.c fsdb_unix.c fsusage.c genblitter.c \
 	gencpu.c gengenblitter.c gencomp.c genlinetoscr.c hardfile.c \
 	hardfile_unix.c scsi-none.c \
-	ppc_disasm.c scsiemul.c svgancui.c tui.c \
+	scsiemul.c svgancui.c tui.c \
 	blkdev-libscg.c filesys_unix.c \
 	akiko.c ar.c blkdev.c blitops.c \
 	writelog.c
@@ -455,14 +454,14 @@ am__depfiles_maybe = depfiles
 @AMDEP_TRUE@	./$(DEPDIR)/memory.Po ./$(DEPDIR)/misc.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/missing.Po ./$(DEPDIR)/native2amiga.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/newcpu.Po ./$(DEPDIR)/picasso96.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/ppc_disasm.Po ./$(DEPDIR)/readcpu.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/readdisk.Po ./$(DEPDIR)/savestate.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/scsi-none.Po ./$(DEPDIR)/scsiemul.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/serial.Po ./$(DEPDIR)/sinctable.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/svgancui.Po ./$(DEPDIR)/traps.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/tui.Po ./$(DEPDIR)/uaeexe.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/uaelib.Po ./$(DEPDIR)/unzip.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/writelog.Po ./$(DEPDIR)/zfile.Po
+@AMDEP_TRUE@	./$(DEPDIR)/readcpu.Po ./$(DEPDIR)/readdisk.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/savestate.Po ./$(DEPDIR)/scsi-none.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/scsiemul.Po ./$(DEPDIR)/serial.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sinctable.Po ./$(DEPDIR)/svgancui.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/traps.Po ./$(DEPDIR)/tui.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/uaeexe.Po ./$(DEPDIR)/uaelib.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/unzip.Po ./$(DEPDIR)/writelog.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/zfile.Po
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
@@ -607,7 +606,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/native2amiga.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/newcpu.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/picasso96.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ppc_disasm.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/readcpu.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/readdisk.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/savestate.Po@am__quote@

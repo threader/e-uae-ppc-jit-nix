@@ -16,7 +16,6 @@
 #include "compemu.h"
 #include "compemu_compiler.h"
 #include "compemu_macroblock_structs.h"
-#include "debug.h"
 
 /* Number of maximum macroblocks we handle
  * Note: we assume that each instruction consists of 4 macroblocks in average,
@@ -36,7 +35,7 @@ union comp_compiler_mb_union macroblocks[MAXMACROBLOCKS];
  *   ir - input registers
  *   or - output registers
  */
-#define comp_mb_init(n, h, ir, or) union comp_compiler_mb_union* n = comp_compiler_get_next_macroblock(); n->base.handler=(h); n->base.input_registers=(ir); n->base.output_registers=(or); n->base.name = __func__; n->base.start = NULL; n->base.m68k_ptr = comp_current_m68k_location();
+#define comp_mb_init(n, h, ir, or) union comp_compiler_mb_union* n = comp_compiler_get_next_macroblock(); n->base.handler=(h); n->base.input_registers=(ir); n->base.output_registers=(or);
 
 //Pointer to the end of the macroblock buffer
 int macroblock_ptr;
@@ -137,59 +136,7 @@ void comp_compiler_generate_code()
 		comp_compiler_macroblock_func* handler = mb->base.handler;
 
 		//If there is a handler then call it
-		if (handler)
-		{
-			//Store the start of the compiled code
-			mb->base.start = comp_ppc_buffer_top();
-
-			//Call handler
-			handler(mb);
-
-			//Store the end of the compiled code
-			mb->base.end = comp_ppc_buffer_top();
-		}
-	}
-}
-
-/**
- * Dump the compiled code to with the macroblocks to the console
- */
-void comp_compiler_debug_dump_compiled()
-{
-	int i;
-	uaecptr nextpc;
-	char str[200];
-	uae_u16* prev_68k_inst = NULL;
-
-	//Dump the compiled only if it was enabled in the config
-	if (!currprefs.complogcompiled) return;
-
-	//Run thru the collected macroblocks and dump the compiled native code for the
-	//console using disassembler routine
-	union comp_compiler_mb_union* mb = macroblocks;
-	for(i = 0; i < macroblock_ptr; i++ , mb++)
-	{
-		//Macroblocks won't be listed if there was no corresponding M68k instruction to it
-		if (mb->base.m68k_ptr)
-		{
-			//Is this the same M68k instruction?
-			if (prev_68k_inst != mb->base.m68k_ptr)
-			{
-				//No: dump it
-				m68k_disasm_str(str, (uaecptr) mb->base.m68k_ptr, &nextpc, 1);
-				write_jit_log("M68k: %s", str);
-				prev_68k_inst = mb->base.m68k_ptr;
-			}
-
-			//Dump the name of the macroblock (bit of a hack: skip the function suffix)
-			write_jit_log("Mblk: %s\n", mb->base.name + 21);
-
-			//Dump disassembled code only if there was a start address for the compiled code
-			if (mb->base.start)
-			{
-				disassemble_compiled(mb->base.start, mb->base.end);
-			}
-		}
+		if (handler) handler(mb);
 	}
 }
 
@@ -384,11 +331,11 @@ void comp_macroblock_impl_copy_register_long(union comp_compiler_mb_union* mb)
 }
 
 /**
- * Macroblock: Copies a word data from a register into another register
+ * Macroblock: Copies a word date from a register into another register and updates NZ flags in PPC flag registers
  */
 void comp_macroblock_push_copy_register_word(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg)
 {
-	comp_macroblock_push_rotate_and_copy_bits(
+	comp_macroblock_push_rotate_and_mask_bits(
 			regsin,
 			regsout,
 			output_reg,
@@ -397,11 +344,11 @@ void comp_macroblock_push_copy_register_word(uae_u64 regsin, uae_u64 regsout, ua
 }
 
 /**
- * Macroblock: Copies a byte data from a register into another register
+ * Macroblock: Copies a byte date from a register into another register and updates NZ flags in PPC flag registers
  */
 void comp_macroblock_push_copy_register_byte(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg)
 {
-	comp_macroblock_push_rotate_and_copy_bits(
+	comp_macroblock_push_rotate_and_mask_bits(
 			regsin,
 			regsout,
 			output_reg,

@@ -98,7 +98,6 @@ noinst_HEADERS = \
 	include/native2amiga.h	include/newcpu.h	\
 	include/noflags.h	include/options.h	\
 	include/osemu.h		include/picasso96.h	\
-	include/ppc_disasm.h \
 	include/readcpu.h	include/savestate.h	\
 	include/scsidev.h	include/serial.h	\
 	include/sinctable.h				\
@@ -141,7 +140,7 @@ EXTRA_uae_SOURCES = \
 	debug.c identify.c filesys.c filesys_bootrom.c fsdb.c fsdb_unix.c fsusage.c genblitter.c \
 	gencpu.c gengenblitter.c gencomp.c genlinetoscr.c hardfile.c \
 	hardfile_unix.c scsi-none.c \
-	ppc_disasm.c scsiemul.c svgancui.c tui.c \
+	scsiemul.c svgancui.c tui.c \
 	blkdev-libscg.c filesys_unix.c \
 	akiko.c ar.c blkdev.c blitops.c \
 	writelog.c
