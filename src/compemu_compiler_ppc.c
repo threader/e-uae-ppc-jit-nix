@@ -112,7 +112,7 @@ void comp_macroblock_impl_load_pc_from_immediate_conditional_decrement_register(
  * Prototypes for local helper functions
  */
 STATIC_INLINE void helper_access_memory_spec(union comp_compiler_mb_union* mb, int iswrite);
-STATIC_INLINE void helper_map_physical_mem(comp_ppc_reg inreg, comp_ppc_reg outreg, comp_ppc_reg tmpreg);
+STATIC_INLINE void helper_map_physical_mem(uae_u8 inreg, uae_u8 outreg, uae_u8 tmpreg);
 
 /**
  * Initialization of the code compiler
@@ -317,9 +317,9 @@ void comp_macroblock_impl_opcode_unsupported(union comp_compiler_mb_union* mb)
 	// ## liw	r0,inst_func
 	// ## mtlr	r0
 	// ## blrl
-	comp_ppc_liw(PPCR_PARAM1_MAPPED, opcode);
-	comp_ppc_liw(PPCR_PARAM2_MAPPED, (uae_u32) &regs);
-	comp_ppc_call(PPCR_SPECTMP_MAPPED, (uae_uintptr) cpufunctbl[opcode]);
+	comp_ppc_liw(PPCR_PARAM1, opcode);
+	comp_ppc_liw(PPCR_PARAM2, (uae_u32) &regs);
+	comp_ppc_call(PPCR_SPECTMP, (uae_uintptr) cpufunctbl[opcode]);
 }
 
 
@@ -339,8 +339,8 @@ void comp_macroblock_push_load_flags()
 	comp_macroblock_push_load_memory_long(
 			COMP_COMPILER_MACROBLOCK_REG_NONE,
 			COMP_COMPILER_MACROBLOCK_REG_FLAGN | COMP_COMPILER_MACROBLOCK_REG_FLAGZ | COMP_COMPILER_MACROBLOCK_REG_FLAGC | COMP_COMPILER_MACROBLOCK_REG_FLAGV,
-			PPCR_FLAGS_MAPPED,
-			PPCR_REGS_BASE_MAPPED,
+			PPCR_FLAGS,
+			PPCR_REGS_BASE,
 			COMP_GET_OFFSET_IN_REGS(ccrflags.cznv));
 
 	//Load flag_struct.x to a temp register
@@ -348,14 +348,14 @@ void comp_macroblock_push_load_flags()
 			COMP_COMPILER_MACROBLOCK_REG_NONE,
 			tempreg->reg_usage_mapping,
 			tempreg->mapped_reg_num,
-			PPCR_REGS_BASE_MAPPED,
+			PPCR_REGS_BASE,
 			COMP_GET_OFFSET_IN_REGS(ccrflags.x));
 
 	//Rotate X flag to the position and insert it into the flag register
 	comp_macroblock_push_rotate_and_copy_bits(
 			tempreg->reg_usage_mapping,
 			COMP_COMPILER_MACROBLOCK_REG_FLAGX,
-			PPCR_FLAGS_MAPPED,
+			PPCR_FLAGS,
 			tempreg->mapped_reg_num,
 			16, 26, 26, FALSE);
 
@@ -375,8 +375,8 @@ void comp_macroblock_push_save_flags()
 	comp_macroblock_push_save_memory_long(
 			COMP_COMPILER_MACROBLOCK_REG_FLAGN | COMP_COMPILER_MACROBLOCK_REG_FLAGZ | COMP_COMPILER_MACROBLOCK_REG_FLAGC | COMP_COMPILER_MACROBLOCK_REG_FLAGV,
 			COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-			PPCR_FLAGS_MAPPED,
-			PPCR_REGS_BASE_MAPPED,
+			PPCR_FLAGS,
+			PPCR_REGS_BASE,
 			COMP_GET_OFFSET_IN_REGS(ccrflags.cznv));
 
 	//Save flags register to flag_struct.x and avoid optimize away this block
@@ -387,8 +387,8 @@ void comp_macroblock_push_save_flags()
 	comp_macroblock_push_save_memory_word(
 			COMP_COMPILER_MACROBLOCK_REG_FLAGX,
 			COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
-			PPCR_FLAGS_MAPPED,
-			PPCR_REGS_BASE_MAPPED,
+			PPCR_FLAGS,
+			PPCR_REGS_BASE,
 			COMP_GET_OFFSET_IN_REGS(ccrflags.x));
 }
 
@@ -411,7 +411,7 @@ void comp_macroblock_push_load_pc(const cpu_history * inst_history)
 			temp_reg->reg_usage_mapping,
 			COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
 			temp_reg->mapped_reg_num,
-			PPCR_REGS_BASE_MAPPED,
+			PPCR_REGS_BASE,
 			COMP_GET_OFFSET_IN_REGS(pc_p));
 
 	//Synchronize the executed instruction pointer from the block start to the actual
@@ -419,7 +419,7 @@ void comp_macroblock_push_load_pc(const cpu_history * inst_history)
 			temp_reg->reg_usage_mapping,
 			COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
 			temp_reg->mapped_reg_num,
-			PPCR_REGS_BASE_MAPPED,
+			PPCR_REGS_BASE,
 			COMP_GET_OFFSET_IN_REGS(pc_oldp));
 
 	//Load emulated instruction pointer (PC register)
@@ -432,7 +432,7 @@ void comp_macroblock_push_load_pc(const cpu_history * inst_history)
 			temp_reg->reg_usage_mapping,
 			COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
 			temp_reg->mapped_reg_num,
-			PPCR_REGS_BASE_MAPPED,
+			PPCR_REGS_BASE,
 			COMP_GET_OFFSET_IN_REGS(pc));
 
 	comp_free_temp_register(temp_reg);
@@ -443,7 +443,7 @@ void comp_macroblock_push_load_pc(const cpu_history * inst_history)
  * Macroblock: Adds two registers then copies the result into a third and updates all
  * the flags in PPC flag registers (NZCVX)
  */
-void comp_macroblock_push_add_with_flags(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg1, comp_ppc_reg input_reg2)
+void comp_macroblock_push_add_with_flags(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg1, uae_u8 input_reg2)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_add_with_flags,
@@ -465,7 +465,7 @@ void comp_macroblock_impl_add_with_flags(union comp_compiler_mb_union* mb)
 /**
  * Macroblock: Adds two registers then copies the result into a third without flag update.
  */
-void comp_macroblock_push_add(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg1, comp_ppc_reg input_reg2)
+void comp_macroblock_push_add(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg1, uae_u8 input_reg2)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_add,
@@ -487,7 +487,7 @@ void comp_macroblock_impl_add(union comp_compiler_mb_union* mb)
 /**
  * Macroblock: Subtracts a register from another register then copies the result into a third without flag update.
  */
-void comp_macroblock_push_sub(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg subtrahend_input_reg1, comp_ppc_reg minuend_input_reg2)
+void comp_macroblock_push_sub(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 subtrahend_input_reg1, uae_u8 minuend_input_reg2)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_sub,
@@ -510,7 +510,7 @@ void comp_macroblock_impl_sub(union comp_compiler_mb_union* mb)
  * Macroblock: Subtracts a register from another register then copies
  * the result into a third and updates all the flags in PPC flag registers (NZCVX)
  */
-void comp_macroblock_push_sub_with_flags(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg subtrahend_input_reg1, comp_ppc_reg minuend_input_reg2)
+void comp_macroblock_push_sub_with_flags(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 subtrahend_input_reg1, uae_u8 minuend_input_reg2)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_sub_with_flags,
@@ -532,7 +532,7 @@ void comp_macroblock_impl_sub_with_flags(union comp_compiler_mb_union* mb)
 /**
  * Macroblock: Subtracts a register from an immediate then copies the result into a second register.
  */
-void comp_macroblock_push_sub_register_from_immediate(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg subtrahend_input_reg, uae_u8 minuend_input_imm)
+void comp_macroblock_push_sub_register_from_immediate(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 subtrahend_input_reg, uae_u8 minuend_input_imm)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_sub_register_from_immediate,
@@ -553,7 +553,7 @@ void comp_macroblock_impl_sub_register_from_immediate(union comp_compiler_mb_uni
 /**
  * Macroblock: Copies a long date from a register into another register and updates NZ flags in PPC flag registers
  */
-void comp_macroblock_push_copy_register_long_with_flags(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg)
+void comp_macroblock_push_copy_register_long_with_flags(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_copy_register_long_with_flags,
@@ -574,7 +574,7 @@ void comp_macroblock_impl_copy_register_long_with_flags(union comp_compiler_mb_u
  * it is safe to use it for copying a previously not mapped register into a
  * mapped temporary register.
  */
-void comp_macroblock_push_copy_register_long(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg)
+void comp_macroblock_push_copy_register_long(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_copy_register_long,
@@ -591,7 +591,7 @@ void comp_macroblock_impl_copy_register_long(union comp_compiler_mb_union* mb)
 /**
  * Macroblock: Copies a word data from a register into another register
  */
-void comp_macroblock_push_copy_register_word(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg)
+void comp_macroblock_push_copy_register_word(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg)
 {
 	comp_macroblock_push_rotate_and_copy_bits(
 			regsin,
@@ -604,7 +604,7 @@ void comp_macroblock_push_copy_register_word(uae_u64 regsin, uae_u64 regsout, co
 /**
  * Macroblock: Copies a byte data from a register into another register
  */
-void comp_macroblock_push_copy_register_byte(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg)
+void comp_macroblock_push_copy_register_byte(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg)
 {
 	comp_macroblock_push_rotate_and_copy_bits(
 			regsin,
@@ -617,7 +617,7 @@ void comp_macroblock_push_copy_register_byte(uae_u64 regsin, uae_u64 regsout, co
 /**
  * Macroblock: Loads an immediate longword value into a temporary register
  */
-void comp_macroblock_push_load_register_long(uae_u64 regsout, comp_ppc_reg output_reg, uae_u32 imm)
+void comp_macroblock_push_load_register_long(uae_u64 regsout, uae_u8 output_reg, uae_u32 imm)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_load_register_long,
@@ -636,7 +636,7 @@ void comp_macroblock_impl_load_register_long(union comp_compiler_mb_union* mb)
  * Macroblock: Loads an immediate word value into a temporary register
  * sign extended to longword
  */
-void comp_macroblock_push_load_register_word_extended(uae_u64 regsout, comp_ppc_reg output_reg, uae_u16 imm)
+void comp_macroblock_push_load_register_word_extended(uae_u64 regsout, uae_u8 output_reg, uae_u16 imm)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_load_register_word_extended,
@@ -654,7 +654,7 @@ void comp_macroblock_impl_load_register_word_extended(union comp_compiler_mb_uni
 /**
  * Macroblock: Loads a longword data from memory into a temporary register
  */
-void comp_macroblock_push_load_memory_long(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg base_reg, uae_u16 offset)
+void comp_macroblock_push_load_memory_long(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u32 base_reg, uae_u32 offset)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_load_memory_long,
@@ -672,7 +672,7 @@ void comp_macroblock_impl_load_memory_long(union comp_compiler_mb_union* mb)
 /**
  * Macroblock: Loads a word data from memory into a temporary register
  */
-void comp_macroblock_push_load_memory_word(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg base_reg, uae_u16 offset)
+void comp_macroblock_push_load_memory_word(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u32 base_reg, uae_u32 offset)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_load_memory_word,
@@ -691,7 +691,7 @@ void comp_macroblock_impl_load_memory_word(union comp_compiler_mb_union* mb)
  * Macroblock: Loads a word data from memory into a temporary register,
  * data is sign-extended to longword
  */
-void comp_macroblock_push_load_memory_word_extended(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg base_reg, uae_u16 offset)
+void comp_macroblock_push_load_memory_word_extended(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u32 base_reg, uae_u32 offset)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_load_memory_word_extended,
@@ -709,7 +709,7 @@ void comp_macroblock_impl_load_memory_word_extended(union comp_compiler_mb_union
 /**
  * Macroblock: Loads a byte data from memory into a temporary register
  */
-void comp_macroblock_push_load_memory_byte(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg base_reg, uae_u16 offset)
+void comp_macroblock_push_load_memory_byte(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u32 base_reg, uae_u32 offset)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_load_memory_byte,
@@ -727,7 +727,7 @@ void comp_macroblock_impl_load_memory_byte(union comp_compiler_mb_union* mb)
 /**
  * Macroblock: Saves a longword data from a temporary register into memory
  */
-void comp_macroblock_push_save_memory_long(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg source_reg, comp_ppc_reg base_reg, uae_u16 offset)
+void comp_macroblock_push_save_memory_long(uae_u64 regsin, uae_u64 regsout, uae_u8 source_reg, uae_u32 base_reg, uae_u32 offset)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_save_memory_long,
@@ -745,7 +745,7 @@ void comp_macroblock_impl_save_memory_long(union comp_compiler_mb_union* mb)
 /**
  * Macroblock: Saves a word data from a temporary register into memory
  */
-void comp_macroblock_push_save_memory_word(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg source_reg, comp_ppc_reg base_reg, uae_u16 offset)
+void comp_macroblock_push_save_memory_word(uae_u64 regsin, uae_u64 regsout, uae_u8 source_reg, uae_u32 base_reg, uae_u32 offset)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_save_memory_word,
@@ -763,7 +763,7 @@ void comp_macroblock_impl_save_memory_word(union comp_compiler_mb_union* mb)
 /**
  * Macroblock: Saves a word data from a temporary register into memory with updating the register before saving
  */
-void comp_macroblock_push_save_memory_word_update(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg source_reg, comp_ppc_reg base_reg, uae_u16 offset)
+void comp_macroblock_push_save_memory_word_update(uae_u64 regsin, uae_u64 regsout, uae_u8 source_reg, uae_u32 base_reg, uae_u32 offset)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_save_memory_word_update,
@@ -781,7 +781,7 @@ void comp_macroblock_impl_save_memory_word_update(union comp_compiler_mb_union* 
 /**
  * Macroblock: Saves a byte data from a temporary register into memory
  */
-void comp_macroblock_push_save_memory_byte(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg source_reg, comp_ppc_reg base_reg, uae_u32 offset)
+void comp_macroblock_push_save_memory_byte(uae_u64 regsin, uae_u64 regsout, uae_u8 source_reg, uae_u32 base_reg, uae_u32 offset)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_save_memory_byte,
@@ -799,7 +799,7 @@ void comp_macroblock_impl_save_memory_byte(union comp_compiler_mb_union* mb)
 /**
  * Macroblock: Loads the physical address of a mapped memory address into a register
  */
-void comp_macroblock_push_map_physical_mem(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg dest_mem_reg, comp_ppc_reg source_reg)
+void comp_macroblock_push_map_physical_mem(uae_u64 regsin, uae_u64 regsout, uae_u8 dest_mem_reg, uae_u8 source_reg)
 {
 	//TODO: this temp registration allocation must be moved out from the macroblock
 	comp_tmp_reg* tmpreg = comp_allocate_temp_register(NULL);
@@ -831,17 +831,17 @@ void comp_macroblock_impl_map_physical_mem(union comp_compiler_mb_union* mb)
  *  register which is trashed.
  *  PPCR_SPECTMP (R0) is used by this function, it cannot be specified as any of the parameter registers.
  */
-STATIC_INLINE void helper_map_physical_mem(comp_ppc_reg inreg, comp_ppc_reg outreg, comp_ppc_reg tmpreg)
+STATIC_INLINE void helper_map_physical_mem(uae_u8 inreg, uae_u8 outreg, uae_u8 tmpreg)
 {
 	//TODO: preload base address array start into a GPR
 	//Load base address array address to tmp reg
 	comp_ppc_liw(tmpreg, (uae_u32)baseaddr);
 
 	//Get 64k page index into R0: R0 = (inreg >> 14) & 0x3fffc;
-	comp_ppc_rlwinm(PPCR_SPECTMP_MAPPED, inreg, 18, 14, 29, FALSE);
+	comp_ppc_rlwinm(PPCR_SPECTMP, inreg, 18, 14, 29, FALSE);
 
 	//Load base address for the memory block to temp reg: rtmp = rtmp[r0]
-	comp_ppc_lwzx(tmpreg, tmpreg, PPCR_SPECTMP_MAPPED);
+	comp_ppc_lwzx(tmpreg, tmpreg, PPCR_SPECTMP);
 
 	//TODO: base and offset could be sent separately and used in instruction code
 	//Sum address and offset to outreg: outreg = inreg + rtmp
@@ -854,7 +854,7 @@ STATIC_INLINE void helper_map_physical_mem(comp_ppc_reg inreg, comp_ppc_reg outr
  * Note: this function purges all temporary registers, because it calls
  * an external function.
  */
-void comp_macroblock_push_save_memory_spec(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg source_reg, comp_ppc_reg dest_mem_reg, uae_u8 size)
+void comp_macroblock_push_save_memory_spec(uae_u64 regsin, uae_u64 regsout, uae_u8 source_reg, uae_u8 dest_mem_reg, uae_u8 size)
 {
 	//Before the call write back the M68k registers and clear the temp register mapping
 	//Warning is suppressed, we are in the middle of some instruction compiling.
@@ -880,7 +880,7 @@ void comp_macroblock_impl_save_memory_spec(union comp_compiler_mb_union* mb)
  * Note: this function purges all temporary registers, because it calls
  * an external function.
  */
-void comp_macroblock_push_load_memory_spec(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg src_mem_reg, comp_ppc_reg dest_reg, uae_u8 size)
+void comp_macroblock_push_load_memory_spec(uae_u64 regsin, uae_u64 regsout, uae_u8 src_mem_reg, uae_u8 dest_reg, uae_u8 size)
 {
 	//Before the call write back the M68k registers and clear the temp register mapping
 	//Warning is suppressed, we are in the middle of some instruction compiling.
@@ -907,10 +907,10 @@ void comp_macroblock_impl_load_memory_spec(union comp_compiler_mb_union* mb)
  * because it calls an external function.
  * If possible then use comp_macroblock_push_load_memory_spec() instead.
  */
-void comp_macroblock_push_load_memory_spec_save_temps(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg src_mem_reg, comp_ppc_reg dest_reg, uae_u8 size)
+void comp_macroblock_push_load_memory_spec_save_temps(uae_u64 regsin, uae_u64 regsout, uae_u8 src_mem_reg, uae_u8 dest_reg, uae_u8 size)
 {
 	//Save the allocated temporary register, except the destination register
-	uae_u32 saved_regs = comp_ppc_save_temp_regs(1 << dest_reg.r);
+	uae_u32 saved_regs = comp_ppc_save_temp_regs(1 << dest_reg);
 
 	comp_mb_init(mb,
 				comp_macroblock_impl_load_memory_spec_save_temps,
@@ -936,8 +936,8 @@ void comp_macroblock_impl_load_memory_spec_save_temps(union comp_compiler_mb_uni
  */
 STATIC_INLINE void helper_access_memory_spec(union comp_compiler_mb_union* mb, int iswrite)
 {
-	comp_ppc_reg srcreg = mb->access_memory_size.output_reg;
-	comp_ppc_reg basereg = mb->access_memory_size.base_reg;
+	uae_u8 srcreg = mb->access_memory_size.output_reg;
+	uae_u8 basereg = mb->access_memory_size.base_reg;
 	addrbank refaddrstruct;		//We don't really use this, only for calculating the offsets in the structure
 	uae_u16 handleroffset;
 
@@ -948,27 +948,27 @@ STATIC_INLINE void helper_access_memory_spec(union comp_compiler_mb_union* mb, i
 
 	//Move the output value to R4, but avoid
 	//any conflicts with the target address register (only if it is write access)
-	if ((srcreg.r != PPCR_PARAM2) && (iswrite))
+	if ((srcreg != PPCR_PARAM2) && (iswrite))
 	{
 		//Source register is not R4, we need to move the value
-		if (basereg.r != PPCR_PARAM2)
+		if (basereg != PPCR_PARAM2)
 		{
 			//We are lucky: the address register is not R4, safe to overwrite
-			comp_ppc_mr(PPCR_PARAM2_MAPPED, srcreg, FALSE);
+			comp_ppc_mr(PPCR_PARAM2, srcreg, FALSE);
 		} else {
 			//Oops, the target register is the same as the address register,
 			//move the amount thru R0 and move the address to R3
-			comp_ppc_mr(PPCR_SPECTMP_MAPPED, srcreg, FALSE);		//R0 = srcreg
-			comp_ppc_mr(PPCR_PARAM1_MAPPED, basereg, FALSE);		//R3 = basereg (R4)
-			comp_ppc_mr(PPCR_PARAM2_MAPPED, PPCR_SPECTMP_MAPPED, FALSE);	//R4 = R0
-			basereg = PPCR_PARAM1_MAPPED;
+			comp_ppc_mr(PPCR_SPECTMP, srcreg, FALSE);		//R0 = srcreg
+			comp_ppc_mr(PPCR_PARAM1, basereg, FALSE);		//R3 = basereg (R4)
+			comp_ppc_mr(PPCR_PARAM2, PPCR_SPECTMP, FALSE);	//R4 = R0
+			basereg = PPCR_PARAM1;
 		}
 	}
 
 	//Move the address to R3, if it is not already in that register
-	if (basereg.r != PPCR_PARAM1)
+	if (basereg != PPCR_PARAM1)
 	{
-		comp_ppc_mr(PPCR_PARAM1_MAPPED, basereg, FALSE);
+		comp_ppc_mr(PPCR_PARAM1, basereg, FALSE);
 	}
 
 	//At this point the registers are:
@@ -976,15 +976,15 @@ STATIC_INLINE void helper_access_memory_spec(union comp_compiler_mb_union* mb, i
 	//R4 = value (if it is write access)
 
 	//Get 64k page index into R0: R0 = (inreg >> 14) & 0x3fffc;
-	comp_ppc_rlwinm(PPCR_SPECTMP_MAPPED, PPCR_PARAM1_MAPPED, 18, 14, 29, FALSE);
+	comp_ppc_rlwinm(PPCR_SPECTMP, PPCR_PARAM1, 18, 14, 29, FALSE);
 
 	//Load the mem_banks array address into PPCR_TMP2
 	//This is a bit of a hack: we assume that PPCR_TMP2 is neither PPCR_PARAM1 nor PPCR_PARAM2
 	//TODO: we could load this from the regs structure
-	comp_ppc_liw(PPCR_TMP2_MAPPED, (uae_u32)mem_banks);
+	comp_ppc_liw(PPCR_TMP2, (uae_u32)mem_banks);
 
 	//Load address structure pointer for the memory block to PPCR_TMP2: r5 = r5[r0]
-	comp_ppc_lwzx(PPCR_TMP2_MAPPED, PPCR_TMP2_MAPPED, PPCR_SPECTMP_MAPPED);
+	comp_ppc_lwzx(PPCR_TMP2, PPCR_TMP2, PPCR_SPECTMP);
 
 	//Select the handler according to the size
 	switch(mb->access_memory_size.size)
@@ -1022,23 +1022,23 @@ STATIC_INLINE void helper_access_memory_spec(union comp_compiler_mb_union* mb, i
 	}
 
 	//Load the address of the handler to PPCR_TMP2
-	comp_ppc_lwz(PPCR_TMP2_MAPPED, handleroffset, PPCR_TMP2_MAPPED);
+	comp_ppc_lwz(PPCR_TMP2, handleroffset, PPCR_TMP2);
 
 	//Call handler
-	comp_ppc_call_reg(PPCR_TMP2_MAPPED);
+	comp_ppc_call_reg(PPCR_TMP2);
 
 	//If it was read access then the result is returned in R3,
 	//copy to the specified register if it was not there already
-	if ((!iswrite) && (srcreg.r != PPCR_PARAM1))
+	if ((!iswrite) && (srcreg != PPCR_PARAM1))
 	{
-		comp_ppc_mr(srcreg, PPCR_PARAM1_MAPPED, FALSE);
+		comp_ppc_mr(srcreg, PPCR_PARAM1, FALSE);
 	}
 }
 
 /**
  * Macroblock: OR a 16 bit immediate to the lower half word of a register and put it into a new register
  */
-void comp_macroblock_push_or_low_register_imm(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, uae_u16 imm)
+void comp_macroblock_push_or_low_register_imm(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, uae_u16 imm)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_or_low_register_imm,
@@ -1059,7 +1059,7 @@ void comp_macroblock_impl_or_low_register_imm(union comp_compiler_mb_union* mb)
 /**
  * Macroblock: OR a 16 bit immediate to the higher half word of a register and put it into a new register
  */
-void comp_macroblock_push_or_high_register_imm(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, uae_u16 imm)
+void comp_macroblock_push_or_high_register_imm(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, uae_u16 imm)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_or_high_register_imm,
@@ -1080,7 +1080,7 @@ void comp_macroblock_impl_or_high_register_imm(union comp_compiler_mb_union* mb)
 /**
  * Macroblock: OR a register to another register
  */
-void comp_macroblock_push_or_register_register(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg1, comp_ppc_reg input_reg2, BOOL updateflags)
+void comp_macroblock_push_or_register_register(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg1, uae_u8 input_reg2, char updateflags)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_or_register_register,
@@ -1103,7 +1103,7 @@ void comp_macroblock_impl_or_register_register(union comp_compiler_mb_union* mb)
 /**
  * Macroblock: OR a register to another register
  */
-void comp_macroblock_push_not_or_register_register(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg1, comp_ppc_reg input_reg2, BOOL updateflags)
+void comp_macroblock_push_not_or_register_register(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg1, uae_u8 input_reg2, char updateflags)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_not_or_register_register,
@@ -1126,7 +1126,7 @@ void comp_macroblock_impl_not_or_register_register(union comp_compiler_mb_union*
 /**
  * Macroblock: AND a 16 bit immediate to the lower half word of a register and put it into a new register
  */
-void comp_macroblock_push_and_low_register_imm(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, uae_u16 immediate)
+void comp_macroblock_push_and_low_register_imm(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, uae_u16 immediate)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_and_low_register_imm,
@@ -1147,7 +1147,7 @@ void comp_macroblock_impl_and_low_register_imm(union comp_compiler_mb_union* mb)
 /**
  * Macroblock: AND a 16 bit immediate to the higher half word of a register and put it into a new register
  */
-void comp_macroblock_push_and_high_register_imm(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, uae_u16 immediate)
+void comp_macroblock_push_and_high_register_imm(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, uae_u16 immediate)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_and_high_register_imm,
@@ -1168,7 +1168,7 @@ void comp_macroblock_impl_and_high_register_imm(union comp_compiler_mb_union* mb
 /**
  * Macroblock: AND a register to another register
  */
-void comp_macroblock_push_and_register_register(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg1, comp_ppc_reg input_reg2, BOOL updateflags)
+void comp_macroblock_push_and_register_register(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg1, uae_u8 input_reg2, char updateflags)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_and_register_register,
@@ -1191,7 +1191,7 @@ void comp_macroblock_impl_and_register_register(union comp_compiler_mb_union* mb
 /**
  * Macroblock: AND a register to another register's complement
  */
-void comp_macroblock_push_and_register_complement_register(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg1, comp_ppc_reg input_compl_reg2, BOOL updateflags)
+void comp_macroblock_push_and_register_complement_register(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg1, uae_u8 input_compl_reg2, char updateflags)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_and_register_complement_register,
@@ -1214,7 +1214,7 @@ void comp_macroblock_impl_and_register_complement_register(union comp_compiler_m
 /**
  * Macroblock: XOR a register to another register
  */
-void comp_macroblock_push_xor_register_register(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg1, comp_ppc_reg input_reg2, BOOL updateflags)
+void comp_macroblock_push_xor_register_register(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg1, uae_u8 input_reg2, char updateflags)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_xor_register_register,
@@ -1237,7 +1237,7 @@ void comp_macroblock_impl_xor_register_register(union comp_compiler_mb_union* mb
 /**
  * Macroblock: XOR an immediate to the low half word of a register
  */
-void comp_macroblock_push_xor_low_register_imm(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, uae_u16 immediate)
+void comp_macroblock_push_xor_low_register_imm(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, uae_u16 immediate)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_xor_low_register_imm,
@@ -1258,7 +1258,7 @@ void comp_macroblock_impl_xor_low_register_imm(union comp_compiler_mb_union* mb)
 /**
  * Macroblock: XOR an immediate to the high half word of a register
  */
-void comp_macroblock_push_xor_high_register_imm(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, uae_u16 immediate)
+void comp_macroblock_push_xor_high_register_imm(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, uae_u16 immediate)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_xor_high_register_imm,
@@ -1280,7 +1280,7 @@ void comp_macroblock_impl_xor_high_register_imm(union comp_compiler_mb_union* mb
  * Macroblock: Add a word immediate to a register and put it into a new register
  * Note: the immediate is sign extended to 32 bit.
  */
-void comp_macroblock_push_add_register_imm(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, uae_u16 imm)
+void comp_macroblock_push_add_register_imm(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, uae_u16 imm)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_add_register_imm,
@@ -1303,7 +1303,7 @@ void comp_macroblock_impl_add_register_imm(union comp_compiler_mb_union* mb)
  * put it into a new register
  * Note: the immediate is sign extended to 32 bit.
  */
-void comp_macroblock_push_add_high_register_imm(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, uae_u16 imm)
+void comp_macroblock_push_add_high_register_imm(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, uae_u16 imm)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_add_high_register_imm,
@@ -1324,7 +1324,7 @@ void comp_macroblock_impl_add_high_register_imm(union comp_compiler_mb_union* mb
 /**
  * Macroblock: Negate register into another register with overflow flag set.
  */
-void comp_macroblock_push_negate_with_overflow(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, BOOL updateflags)
+void comp_macroblock_push_negate_with_overflow(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, char updateflags)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_negate_with_overflow,
@@ -1344,7 +1344,7 @@ void comp_macroblock_impl_negate_with_overflow(union comp_compiler_mb_union* mb)
  * Macroblock: AND an immediate to a register and put it into a new register
  * Note: the higher half word of the register will be cleared (andi instruction)
  */
-void comp_macroblock_push_and_register_imm(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, uae_u16 imm)
+void comp_macroblock_push_and_register_imm(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, uae_u16 imm)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_and_register_imm,
@@ -1366,7 +1366,7 @@ void comp_macroblock_impl_and_register_imm(union comp_compiler_mb_union* mb)
  * Macroblock: AND a register to another register and put it into a new register
  * Note: the higher half word of the register will be cleared (andi instruction)
  */
-void comp_macroblock_push_and_registers(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg1, comp_ppc_reg input_reg2)
+void comp_macroblock_push_and_registers(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg1, uae_u8 input_reg2)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_and_registers,
@@ -1388,7 +1388,7 @@ void comp_macroblock_impl_and_registers(union comp_compiler_mb_union* mb)
  * Macroblock: multiply the low half word of a register by the low half word
  * of another register and set the arithmetic flags
  */
-void comp_macroblock_push_multiply_registers_with_flags(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg1, comp_ppc_reg input_reg2)
+void comp_macroblock_push_multiply_registers_with_flags(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg1, uae_u8 input_reg2)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_multiply_registers_with_flags,
@@ -1411,7 +1411,7 @@ void comp_macroblock_impl_multiply_registers_with_flags(union comp_compiler_mb_u
  * Macroblock: Copy all (N, Z, C, V) PPC flag registers into a GPR register
  * Note: this macroblock depends on the internal PPC flags: N, Z, C, V
  */
-void comp_macroblock_push_copy_nzcv_flags_to_register(uae_u64 regsout, comp_ppc_reg output_reg)
+void comp_macroblock_push_copy_nzcv_flags_to_register(uae_u64 regsout, uae_u8 output_reg)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_copy_nzcv_flags_to_register,
@@ -1426,9 +1426,9 @@ void comp_macroblock_impl_copy_nzcv_flags_to_register(union comp_compiler_mb_uni
 	//Copy CR0 to the output register (N, Z)
 	comp_ppc_mfocrf(PPCR_CR_TMP0, mb->one_reg_opcode.reg);
 	//Copy XER to PPCR_SPECTMP
-	comp_ppc_mfxer(PPCR_SPECTMP_MAPPED);
+	comp_ppc_mfxer(PPCR_SPECTMP);
 	//Insert the XER bits into the output register (C, V)
-	comp_ppc_rlwimi(mb->one_reg_opcode.reg, PPCR_SPECTMP_MAPPED, 24, 8, 11, FALSE);
+	comp_ppc_rlwimi(mb->one_reg_opcode.reg, PPCR_SPECTMP, 24, 8, 11, FALSE);
 #else
 	//Copy XER to CR2
 	comp_ppc_mcrxr(PPCR_CR_TMP2);
@@ -1441,7 +1441,7 @@ void comp_macroblock_impl_copy_nzcv_flags_to_register(union comp_compiler_mb_uni
  * Macroblock: Copy N and Z PPC flag registers into a GPR register
  * Note: this macroblock depends on the internal PPC flags: N and Z
  */
-void comp_macroblock_push_copy_nz_flags_to_register(uae_u64 regsout, comp_ppc_reg output_reg)
+void comp_macroblock_push_copy_nz_flags_to_register(uae_u64 regsout, uae_u8 output_reg)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_copy_nz_flags_to_register,
@@ -1463,7 +1463,7 @@ void comp_macroblock_impl_copy_nz_flags_to_register(union comp_compiler_mb_union
  * Macroblock: Copy C and V PPC flag registers into a GPR register
  * Note: this macroblock depends on the internal PPC flags: C and V
  */
-void comp_macroblock_push_copy_cv_flags_to_register(uae_u64 regsout, comp_ppc_reg output_reg)
+void comp_macroblock_push_copy_cv_flags_to_register(uae_u64 regsout, uae_u8 output_reg)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_copy_cv_flags_to_register,
@@ -1481,14 +1481,14 @@ void comp_macroblock_impl_copy_cv_flags_to_register(union comp_compiler_mb_union
  * Macroblock: Check long-sized register value and set the PPC N and Z flag according
  * to the content of the register half word.
  */
-void comp_macroblock_push_check_long_register(uae_u64 regsin, comp_ppc_reg input_reg)
+void comp_macroblock_push_check_long_register(uae_u64 regsin, uae_u8 input_reg)
 {
 	//It is a simple register move with flag checking
 	//The target register is irrelevant, so we can use r0
 	comp_macroblock_push_copy_register_long_with_flags(
 				regsin,
 				COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN,
-				PPCR_SPECTMP_MAPPED,
+				PPCR_SPECTMP,
 				input_reg);
 }
 
@@ -1496,7 +1496,7 @@ void comp_macroblock_push_check_long_register(uae_u64 regsin, comp_ppc_reg input
  * Macroblock: Check word-sized register value and set the PPC N and Z flag according
  * to the content of the register half word.
  */
-void comp_macroblock_push_check_word_register(uae_u64 regsin, comp_ppc_reg input_reg)
+void comp_macroblock_push_check_word_register(uae_u64 regsin, uae_u8 input_reg)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_check_word_register,
@@ -1507,14 +1507,14 @@ void comp_macroblock_push_check_word_register(uae_u64 regsin, comp_ppc_reg input
 
 void comp_macroblock_impl_check_word_register(union comp_compiler_mb_union* mb)
 {
-	comp_ppc_extsh(PPCR_SPECTMP_MAPPED, mb->one_reg_opcode.reg, TRUE);
+	comp_ppc_extsh(PPCR_SPECTMP, mb->one_reg_opcode.reg, TRUE);
 }
 
 /**
  * Macroblock: Sign-extend lower word content of the specified register
  * into another register.
  */
-void comp_macroblock_push_copy_register_word_extended(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, BOOL updateflags)
+void comp_macroblock_push_copy_register_word_extended(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, char updateflags)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_copy_register_word_extended,
@@ -1534,7 +1534,7 @@ void comp_macroblock_impl_copy_register_word_extended(union comp_compiler_mb_uni
  * Macroblock: Sign-extend lowest byte content of the specified register
  * into another register.
  */
-void comp_macroblock_push_copy_register_byte_extended(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, BOOL updateflags)
+void comp_macroblock_push_copy_register_byte_extended(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, char updateflags)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_copy_register_byte_extended,
@@ -1554,7 +1554,7 @@ void comp_macroblock_impl_copy_register_byte_extended(union comp_compiler_mb_uni
  * Macroblock: Check byte-sized register value and set the PPC N and Z flag according
  * to the content of the register half word.
  */
-void comp_macroblock_push_check_byte_register(uae_u64 regsin, comp_ppc_reg input_reg)
+void comp_macroblock_push_check_byte_register(uae_u64 regsin, uae_u8 input_reg)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_check_byte_register,
@@ -1565,7 +1565,7 @@ void comp_macroblock_push_check_byte_register(uae_u64 regsin, comp_ppc_reg input
 
 void comp_macroblock_impl_check_byte_register(union comp_compiler_mb_union* mb)
 {
-	comp_ppc_extsb(PPCR_SPECTMP_MAPPED, mb->one_reg_opcode.reg, TRUE);
+	comp_ppc_extsb(PPCR_SPECTMP, mb->one_reg_opcode.reg, TRUE);
 }
 
 /**
@@ -1573,7 +1573,7 @@ void comp_macroblock_impl_check_byte_register(union comp_compiler_mb_union* mb)
  * Note: when flag update is specified then the output registers will specify
  * internal flag update
  */
-void comp_macroblock_push_rotate_and_copy_bits(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, uae_u8 shift, uae_u8 maskb, uae_u8 maske, BOOL updateflags)
+void comp_macroblock_push_rotate_and_copy_bits(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, uae_u8 shift, uae_u8 maskb, uae_u8 maske, int updateflags)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_rotate_and_copy_bits,
@@ -1581,23 +1581,23 @@ void comp_macroblock_push_rotate_and_copy_bits(uae_u64 regsin, uae_u64 regsout, 
 				regsout | (updateflags ?
 								COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ :
 								COMP_COMPILER_MACROBLOCK_REG_NONE));
-	mb->shift_opcode_imm_with_mask.output_reg = output_reg;
-	mb->shift_opcode_imm_with_mask.input_reg = input_reg;
-	mb->shift_opcode_imm_with_mask.shift = shift;
-	mb->shift_opcode_imm_with_mask.begin_mask = maskb;
-	mb->shift_opcode_imm_with_mask.end_mask = maske;
-	mb->shift_opcode_imm_with_mask.update_flags = updateflags;
+	mb->shift_opcode_with_mask.output_reg = output_reg;
+	mb->shift_opcode_with_mask.input_reg = input_reg;
+	mb->shift_opcode_with_mask.shift = shift;
+	mb->shift_opcode_with_mask.begin_mask = maskb;
+	mb->shift_opcode_with_mask.end_mask = maske;
+	mb->shift_opcode_with_mask.update_flags = updateflags;
 }
 
 void comp_macroblock_impl_rotate_and_copy_bits(union comp_compiler_mb_union* mb)
 {
 	comp_ppc_rlwimi(
-			mb->shift_opcode_imm_with_mask.output_reg,
-			mb->shift_opcode_imm_with_mask.input_reg,
-			mb->shift_opcode_imm_with_mask.shift,
-			mb->shift_opcode_imm_with_mask.begin_mask,
-			mb->shift_opcode_imm_with_mask.end_mask,
-			mb->shift_opcode_imm_with_mask.update_flags);
+			mb->shift_opcode_with_mask.output_reg,
+			mb->shift_opcode_with_mask.input_reg,
+			mb->shift_opcode_with_mask.shift,
+			mb->shift_opcode_with_mask.begin_mask,
+			mb->shift_opcode_with_mask.end_mask,
+			mb->shift_opcode_with_mask.update_flags);
 }
 
 /**
@@ -1605,7 +1605,7 @@ void comp_macroblock_impl_rotate_and_copy_bits(union comp_compiler_mb_union* mb)
  * Note: when flag update is specified then the output registers will specify
  * internal flag update
  */
-void comp_macroblock_push_rotate_and_mask_bits(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, uae_u8 shift, uae_u8 maskb, uae_u8 maske, BOOL updateflags)
+void comp_macroblock_push_rotate_and_mask_bits(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, uae_u8 shift, uae_u8 maskb, uae_u8 maske, int updateflags)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_rotate_and_mask_bits,
@@ -1613,23 +1613,23 @@ void comp_macroblock_push_rotate_and_mask_bits(uae_u64 regsin, uae_u64 regsout, 
 				regsout | (updateflags ?
 								COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ :
 								COMP_COMPILER_MACROBLOCK_REG_NONE));
-	mb->shift_opcode_imm_with_mask.output_reg = output_reg;
-	mb->shift_opcode_imm_with_mask.input_reg = input_reg;
-	mb->shift_opcode_imm_with_mask.shift = shift;
-	mb->shift_opcode_imm_with_mask.begin_mask = maskb;
-	mb->shift_opcode_imm_with_mask.end_mask = maske;
-	mb->shift_opcode_imm_with_mask.update_flags = updateflags;
+	mb->shift_opcode_with_mask.output_reg = output_reg;
+	mb->shift_opcode_with_mask.input_reg = input_reg;
+	mb->shift_opcode_with_mask.shift = shift;
+	mb->shift_opcode_with_mask.begin_mask = maskb;
+	mb->shift_opcode_with_mask.end_mask = maske;
+	mb->shift_opcode_with_mask.update_flags = updateflags;
 }
 
 void comp_macroblock_impl_rotate_and_mask_bits(union comp_compiler_mb_union* mb)
 {
 	comp_ppc_rlwinm(
-			mb->shift_opcode_imm_with_mask.output_reg,
-			mb->shift_opcode_imm_with_mask.input_reg,
-			mb->shift_opcode_imm_with_mask.shift,
-			mb->shift_opcode_imm_with_mask.begin_mask,
-			mb->shift_opcode_imm_with_mask.end_mask,
-			mb->shift_opcode_imm_with_mask.update_flags);
+			mb->shift_opcode_with_mask.output_reg,
+			mb->shift_opcode_with_mask.input_reg,
+			mb->shift_opcode_with_mask.shift,
+			mb->shift_opcode_with_mask.begin_mask,
+			mb->shift_opcode_with_mask.end_mask,
+			mb->shift_opcode_with_mask.update_flags);
 }
 
 /**
@@ -1637,7 +1637,7 @@ void comp_macroblock_impl_rotate_and_mask_bits(union comp_compiler_mb_union* mb)
  * Note: when flag update is specified then the output registers will specify
  * internal flag update
  */
-void comp_macroblock_push_rotate_and_mask_bits_register(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, comp_ppc_reg shift_reg, uae_u8 maskb, uae_u8 maske, BOOL updateflags)
+void comp_macroblock_push_rotate_and_mask_bits_register(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, uae_u8 shift_reg, uae_u8 maskb, uae_u8 maske, int updateflags)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_rotate_and_mask_bits_register,
@@ -1645,23 +1645,23 @@ void comp_macroblock_push_rotate_and_mask_bits_register(uae_u64 regsin, uae_u64 
 				regsout | (updateflags ?
 								COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ :
 								COMP_COMPILER_MACROBLOCK_REG_NONE));
-	mb->shift_opcode_reg_with_mask.output_reg = output_reg;
-	mb->shift_opcode_reg_with_mask.input_reg = input_reg;
-	mb->shift_opcode_reg_with_mask.shift_reg = shift_reg;
-	mb->shift_opcode_reg_with_mask.begin_mask = maskb;
-	mb->shift_opcode_reg_with_mask.end_mask = maske;
-	mb->shift_opcode_reg_with_mask.update_flags = updateflags;
+	mb->shift_opcode_with_mask.output_reg = output_reg;
+	mb->shift_opcode_with_mask.input_reg = input_reg;
+	mb->shift_opcode_with_mask.shift = shift_reg;
+	mb->shift_opcode_with_mask.begin_mask = maskb;
+	mb->shift_opcode_with_mask.end_mask = maske;
+	mb->shift_opcode_with_mask.update_flags = updateflags;
 }
 
 void comp_macroblock_impl_rotate_and_mask_bits_register(union comp_compiler_mb_union* mb)
 {
 	comp_ppc_rlwnm(
-			mb->shift_opcode_reg_with_mask.output_reg,
-			mb->shift_opcode_reg_with_mask.input_reg,
-			mb->shift_opcode_reg_with_mask.shift_reg,
-			mb->shift_opcode_reg_with_mask.begin_mask,
-			mb->shift_opcode_reg_with_mask.end_mask,
-			mb->shift_opcode_reg_with_mask.update_flags);
+			mb->shift_opcode_with_mask.output_reg,
+			mb->shift_opcode_with_mask.input_reg,
+			mb->shift_opcode_with_mask.shift,
+			mb->shift_opcode_with_mask.begin_mask,
+			mb->shift_opcode_with_mask.end_mask,
+			mb->shift_opcode_with_mask.update_flags);
 }
 
 /**
@@ -1669,7 +1669,7 @@ void comp_macroblock_impl_rotate_and_mask_bits_register(union comp_compiler_mb_u
  * Note: when flag update is specified then the output registers will specify
  * internal flag update
  */
-void comp_macroblock_push_arithmetic_shift_right_register(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, uae_u8 shift, BOOL updateflags)
+void comp_macroblock_push_arithmetic_shift_right_register(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, uae_u8 shift, int updateflags)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_arithmetic_shift_right_register,
@@ -1677,19 +1677,19 @@ void comp_macroblock_push_arithmetic_shift_right_register(uae_u64 regsin, uae_u6
 				regsout | (updateflags ?
 								COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ :
 								COMP_COMPILER_MACROBLOCK_REG_NONE));
-	mb->shift_opcode_imm.output_reg = output_reg;
-	mb->shift_opcode_imm.input_reg = input_reg;
-	mb->shift_opcode_imm.shift = shift;
-	mb->shift_opcode_imm.update_flags = updateflags;
+	mb->shift_opcode.output_reg = output_reg;
+	mb->shift_opcode.input_reg = input_reg;
+	mb->shift_opcode.shift = shift;
+	mb->shift_opcode.update_flags = updateflags;
 }
 
 void comp_macroblock_impl_arithmetic_shift_right_register(union comp_compiler_mb_union* mb)
 {
 	comp_ppc_srawi(
-			mb->shift_opcode_imm.output_reg,
-			mb->shift_opcode_imm.input_reg,
-			mb->shift_opcode_imm.shift,
-			mb->shift_opcode_imm.update_flags);
+			mb->shift_opcode.output_reg,
+			mb->shift_opcode.input_reg,
+			mb->shift_opcode.shift,
+			mb->shift_opcode.update_flags);
 }
 
 /**
@@ -1697,7 +1697,7 @@ void comp_macroblock_impl_arithmetic_shift_right_register(union comp_compiler_mb
  * Note: when flag update is specified then the output registers will specify
  * internal flag update
  */
-void comp_macroblock_push_logic_shift_left_register(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, comp_ppc_reg shift_reg, BOOL updateflags)
+void comp_macroblock_push_logic_shift_left_register(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, uae_u8 shift, int updateflags)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_logic_shift_left_register,
@@ -1705,19 +1705,19 @@ void comp_macroblock_push_logic_shift_left_register(uae_u64 regsin, uae_u64 regs
 				regsout | (updateflags ?
 								COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ :
 								COMP_COMPILER_MACROBLOCK_REG_NONE));
-	mb->shift_opcode_reg.output_reg = output_reg;
-	mb->shift_opcode_reg.input_reg = input_reg;
-	mb->shift_opcode_reg.shift_reg = shift_reg;
-	mb->shift_opcode_reg.update_flags = updateflags;
+	mb->shift_opcode.output_reg = output_reg;
+	mb->shift_opcode.input_reg = input_reg;
+	mb->shift_opcode.shift = shift;
+	mb->shift_opcode.update_flags = updateflags;
 }
 
 void comp_macroblock_impl_logic_shift_left_register(union comp_compiler_mb_union* mb)
 {
 	comp_ppc_slw(
-			mb->shift_opcode_reg.output_reg,
-			mb->shift_opcode_reg.input_reg,
-			mb->shift_opcode_reg.shift_reg,
-			mb->shift_opcode_reg.update_flags);
+			mb->shift_opcode.output_reg,
+			mb->shift_opcode.input_reg,
+			mb->shift_opcode.shift,
+			mb->shift_opcode.update_flags);
 }
 
 /**
@@ -1725,7 +1725,7 @@ void comp_macroblock_impl_logic_shift_left_register(union comp_compiler_mb_union
  * Note: when flag update is specified then the output registers will specify
  * internal flag update
  */
-void comp_macroblock_push_logic_shift_right_register(uae_u64 regsin, uae_u64 regsout, comp_ppc_reg output_reg, comp_ppc_reg input_reg, comp_ppc_reg shift_reg, BOOL updateflags)
+void comp_macroblock_push_logic_shift_right_register(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, uae_u8 shift, int updateflags)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_logic_shift_right_register,
@@ -1733,26 +1733,26 @@ void comp_macroblock_push_logic_shift_right_register(uae_u64 regsin, uae_u64 reg
 				regsout | (updateflags ?
 								COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGN | COMP_COMPILER_MACROBLOCK_INTERNAL_FLAGZ :
 								COMP_COMPILER_MACROBLOCK_REG_NONE));
-	mb->shift_opcode_reg.output_reg = output_reg;
-	mb->shift_opcode_reg.input_reg = input_reg;
-	mb->shift_opcode_reg.shift_reg = shift_reg;
-	mb->shift_opcode_reg.update_flags = updateflags;
+	mb->shift_opcode.output_reg = output_reg;
+	mb->shift_opcode.input_reg = input_reg;
+	mb->shift_opcode.shift = shift;
+	mb->shift_opcode.update_flags = updateflags;
 }
 
 void comp_macroblock_impl_logic_shift_right_register(union comp_compiler_mb_union* mb)
 {
 	comp_ppc_srw(
-			mb->shift_opcode_reg.output_reg,
-			mb->shift_opcode_reg.input_reg,
-			mb->shift_opcode_reg.shift_reg,
-			mb->shift_opcode_reg.update_flags);
+			mb->shift_opcode.output_reg,
+			mb->shift_opcode.input_reg,
+			mb->shift_opcode.shift,
+			mb->shift_opcode.update_flags);
 }
 
 /**
  * Macroblock: Calculate V flag for arithmetic left shift, inserts the V flag directly
  * into the flag emulation register
  */
-void comp_macroblock_push_arithmetic_left_shift_extract_v_flag(uae_u64 regsin, comp_ppc_reg input_reg, comp_ppc_reg shift_reg, comp_ppc_reg tmp_reg)
+void comp_macroblock_push_arithmetic_left_shift_extract_v_flag(uae_u64 regsin, uae_u8 input_reg, uae_u8 shift_reg, uae_u8 tmp_reg)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_arithmetic_left_shift_extract_v_flag,
@@ -1765,12 +1765,12 @@ void comp_macroblock_push_arithmetic_left_shift_extract_v_flag(uae_u64 regsin, c
 
 void comp_macroblock_impl_arithmetic_left_shift_extract_v_flag(union comp_compiler_mb_union* mb)
 {
-	comp_ppc_reg input_reg = mb->extract_v_flag_arithmetic_left_shift.input_reg;
-	comp_ppc_reg temp_reg = mb->extract_v_flag_arithmetic_left_shift.temp_reg;
-	comp_ppc_reg shift_reg = mb->extract_v_flag_arithmetic_left_shift.shift_reg;
+	uae_u8 input_reg = mb->extract_v_flag_arithmetic_left_shift.input_reg;
+	uae_u8 temp_reg = mb->extract_v_flag_arithmetic_left_shift.temp_reg;
+	uae_u8 shift_reg = mb->extract_v_flag_arithmetic_left_shift.shift_reg;
 
 	//Count leading 0 bits to R0
-	comp_ppc_cntlwz(PPCR_SPECTMP_MAPPED, input_reg, FALSE);
+	comp_ppc_cntlwz(PPCR_SPECTMP, input_reg, FALSE);
 
 	//Invert the source register into the temp register
 	comp_ppc_nor(temp_reg, input_reg, input_reg, FALSE);
@@ -1781,7 +1781,7 @@ void comp_macroblock_impl_arithmetic_left_shift_extract_v_flag(union comp_compil
 
 	//Calculate the distance of the first changing bit to temp register,
 	//also clear XER[CA] (Carry flag) for the next instruction
-	comp_ppc_addc(temp_reg, temp_reg, PPCR_SPECTMP_MAPPED, FALSE);
+	comp_ppc_addc(temp_reg, temp_reg, PPCR_SPECTMP, FALSE);
 
 	//Subtract the number of shifting steps from the calculated distance
 	//and decrease it by one (tmpreg = tmpreg - shift - 1).
@@ -1791,7 +1791,7 @@ void comp_macroblock_impl_arithmetic_left_shift_extract_v_flag(union comp_compil
 
 	//If the result is negative then the overflow happens while shifting
 	//V flag should be set according to the MSB
-	comp_ppc_rlwimi(PPCR_FLAGS_MAPPED, temp_reg, 22, 9, 9, FALSE);
+	comp_ppc_rlwimi(PPCR_FLAGS, temp_reg, 22, 9, 9, FALSE);
 }
 
 /**
@@ -1801,7 +1801,7 @@ void comp_macroblock_impl_arithmetic_left_shift_extract_v_flag(union comp_compil
  * then the C flag cleared (no bit shift was done).
  * Note: this macroblock uses CRF0 for comparison.
  */
-void comp_macroblock_push_left_shift_extract_c_flag(uae_u64 regsin, comp_ppc_reg input_reg, comp_ppc_reg shift_reg, BOOL left_shift)
+void comp_macroblock_push_left_shift_extract_c_flag(uae_u64 regsin, uae_u8 input_reg, uae_u8 shift_reg, BOOL left_shift)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_left_shift_extract_c_flag,
@@ -1823,14 +1823,14 @@ void comp_macroblock_impl_left_shift_extract_c_flag(union comp_compiler_mb_union
 	comp_ppc_bc(PPC_B_CR_TMP0_EQ | PPC_B_NONTAKEN, 0);
 
 	//Extract C flag from lowest bit to temp reg
-	comp_ppc_rlwnm(PPCR_SPECTMP_MAPPED,
+	comp_ppc_rlwnm(PPCR_SPECTMP,
 				  mb->extract_c_flag_shift.input_reg,
 				  mb->extract_c_flag_shift.shift_reg,
 				  0, 31, FALSE);
 
 	//Copy to flag register
-	comp_ppc_rlwimi(PPCR_FLAGS_MAPPED,
-				  PPCR_SPECTMP_MAPPED,
+	comp_ppc_rlwimi(PPCR_FLAGS,
+				  PPCR_SPECTMP,
 				  mb->extract_c_flag_shift.left_shift ? 21 : 22,
 				  10, 10, FALSE);
 
@@ -1899,7 +1899,7 @@ void comp_macroblock_impl_null_operation(union comp_compiler_mb_union* mb)
  * Note: there is no checking for the allocation of the slots, make sure you know
  * which one is in use.
  */
-void comp_macroblock_push_save_reg_slot(uae_u64 regsin, comp_ppc_reg input_reg, uae_u8 slot)
+void comp_macroblock_push_save_reg_slot(uae_u64 regsin, uae_u8 input_reg, unsigned int slot)
 {
 	//Registers are not required for input to avoid any interfere with the optimization
 	comp_mb_init(mb,
@@ -1921,7 +1921,7 @@ void comp_macroblock_impl_save_reg_slot(union comp_compiler_mb_union* mb)
  * Note: there is no checking for the allocation of the slots, make sure you know
  * which one is in use.
  */
-void comp_macroblock_push_load_reg_slot(uae_u64 regsout, comp_ppc_reg output_reg, uae_u8 slot)
+void comp_macroblock_push_load_reg_slot(uae_u64 regsout, uae_u8 output_reg, unsigned int slot)
 {
 	//Registers are not required for input to avoid any interfere with the optimization
 	comp_mb_init(mb,
@@ -1942,7 +1942,7 @@ void comp_macroblock_impl_load_reg_slot(union comp_compiler_mb_union* mb)
  * The specified address is in the 68k emulated address space which is translated
  * to the physical memory address and load into the emulated PC register.
  */
-void comp_macroblock_push_load_pc_from_register(uae_u64 regsin, comp_ppc_reg address_reg)
+void comp_macroblock_push_load_pc_from_register(uae_u64 regsin, uae_u8 address_reg)
 {
 	//TODO: this macroblock is more like a helper function, must be moved out
 	comp_tmp_reg* temp_reg = comp_allocate_temp_register(NULL);
@@ -1954,7 +1954,7 @@ void comp_macroblock_push_load_pc_from_register(uae_u64 regsin, comp_ppc_reg add
 			regsin,
 			COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
 			address_reg,
-			PPCR_REGS_BASE_MAPPED,
+			PPCR_REGS_BASE,
 			COMP_GET_OFFSET_IN_REGS(pc));
 
 	//Get memory address into the temp register
@@ -1969,7 +1969,7 @@ void comp_macroblock_push_load_pc_from_register(uae_u64 regsin, comp_ppc_reg add
 			temp_reg->reg_usage_mapping,
 			COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
 			temp_reg->mapped_reg_num,
-			PPCR_REGS_BASE_MAPPED,
+			PPCR_REGS_BASE,
 			COMP_GET_OFFSET_IN_REGS(pc_p));
 
 	//Synchronize the executed instruction pointer from the block start to the actual
@@ -1977,7 +1977,7 @@ void comp_macroblock_push_load_pc_from_register(uae_u64 regsin, comp_ppc_reg add
 			temp_reg->reg_usage_mapping,
 			COMP_COMPILER_MACROBLOCK_REG_NO_OPTIM,
 			temp_reg->mapped_reg_num,
-			PPCR_REGS_BASE_MAPPED,
+			PPCR_REGS_BASE,
 			COMP_GET_OFFSET_IN_REGS(pc_oldp));
 
 	comp_free_temp_register(temp_reg);
@@ -1999,7 +1999,7 @@ void comp_macroblock_push_load_pc_from_register(uae_u64 regsin, comp_ppc_reg add
  *    address_reg - mapped temporary register for the operation
  *    tmp_reg - mapped temporary register for the operation
  */
-void comp_macroblock_push_load_pc_from_immediate_conditional(uae_u32 target_address, uae_u32 skip_address, BOOL negate, comp_ppc_reg address_reg, comp_ppc_reg tmp_reg)
+void comp_macroblock_push_load_pc_from_immediate_conditional(uae_u32 target_address, uae_u32 skip_address, BOOL negate, uae_u8 address_reg, uae_u8 tmp_reg)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_load_pc_from_immediate_conditional,
@@ -2014,8 +2014,8 @@ void comp_macroblock_push_load_pc_from_immediate_conditional(uae_u32 target_addr
 
 void comp_macroblock_impl_load_pc_from_immediate_conditional(union comp_compiler_mb_union* mb)
 {
-	comp_ppc_reg address_reg = mb->set_pc_on_z_flag.address_reg;
-	comp_ppc_reg tmp_reg = mb->set_pc_on_z_flag.tmp_reg;
+	uae_u8 address_reg = mb->set_pc_on_z_flag.address_reg;
+	uae_u8 tmp_reg = mb->set_pc_on_z_flag.tmp_reg;
 
 	//Condition is evaluated into the CRF0 Z flag by the source address mode handler or
 	//any other previous evaluation process.
@@ -2042,16 +2042,16 @@ void comp_macroblock_impl_load_pc_from_immediate_conditional(union comp_compiler
 	comp_ppc_branch_target(1);
 
 	//Save it to emulated instruction pointer (PC register)
-	comp_ppc_stw(address_reg, COMP_GET_OFFSET_IN_REGS(pc), PPCR_REGS_BASE_MAPPED);
+	comp_ppc_stw(address_reg, COMP_GET_OFFSET_IN_REGS(pc), PPCR_REGS_BASE);
 
 	//Get memory address into the address register
 	helper_map_physical_mem(address_reg, address_reg, tmp_reg);
 
 	//Save physical memory pointer for the executed instruction
-	comp_ppc_stw(address_reg, COMP_GET_OFFSET_IN_REGS(pc_p), PPCR_REGS_BASE_MAPPED);
+	comp_ppc_stw(address_reg, COMP_GET_OFFSET_IN_REGS(pc_p), PPCR_REGS_BASE);
 
 	//Synchronize the executed instruction pointer from the block start to the actual
-	comp_ppc_stw(address_reg, COMP_GET_OFFSET_IN_REGS(pc_oldp), PPCR_REGS_BASE_MAPPED);
+	comp_ppc_stw(address_reg, COMP_GET_OFFSET_IN_REGS(pc_oldp), PPCR_REGS_BASE);
 }
 
 /**
@@ -2079,7 +2079,7 @@ void comp_macroblock_impl_load_pc_from_immediate_conditional(union comp_compiler
  *    address_reg - mapped temporary register for the operation
  *    tmp_reg - mapped temporary register for the operation
  */
-void comp_macroblock_push_load_pc_from_immediate_conditional_decrement_register(uae_u64 regsin, comp_ppc_reg decrement_reg, uae_u32 target_address, uae_u32 skip_address, BOOL negate, comp_ppc_reg address_reg, comp_ppc_reg tmp_reg)
+void comp_macroblock_push_load_pc_from_immediate_conditional_decrement_register(uae_u64 regsin, uae_u8 decrement_reg, uae_u32 target_address, uae_u32 skip_address, BOOL negate, uae_u8 address_reg, uae_u8 tmp_reg)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_load_pc_from_immediate_conditional_decrement_register,
@@ -2095,9 +2095,9 @@ void comp_macroblock_push_load_pc_from_immediate_conditional_decrement_register(
 
 void comp_macroblock_impl_load_pc_from_immediate_conditional_decrement_register(union comp_compiler_mb_union* mb)
 {
-	comp_ppc_reg address_reg = mb->set_pc_on_z_flag.address_reg;
-	comp_ppc_reg tmp_reg = mb->set_pc_on_z_flag.tmp_reg;
-	comp_ppc_reg decrement_reg = mb->set_pc_on_z_flag.decrement_reg;
+	uae_u8 address_reg = mb->set_pc_on_z_flag.address_reg;
+	uae_u8 tmp_reg = mb->set_pc_on_z_flag.tmp_reg;
+	uae_u8 decrement_reg = mb->set_pc_on_z_flag.decrement_reg;
 
 	//Condition is evaluated into the CRF0 Z flag by the source address mode handler or
 	//any other previous evaluation process.
@@ -2141,19 +2141,19 @@ void comp_macroblock_impl_load_pc_from_immediate_conditional_decrement_register(
 	comp_ppc_branch_target(2);
 
 	//Save it to emulated instruction pointer (PC register)
-	comp_ppc_stw(address_reg, COMP_GET_OFFSET_IN_REGS(pc), PPCR_REGS_BASE_MAPPED);
+	comp_ppc_stw(address_reg, COMP_GET_OFFSET_IN_REGS(pc), PPCR_REGS_BASE);
 
 	//Get memory address into the address register
 	helper_map_physical_mem(address_reg, address_reg, tmp_reg);
 
 	//Save physical memory pointer for the executed instruction
-	comp_ppc_stw(address_reg, COMP_GET_OFFSET_IN_REGS(pc_p), PPCR_REGS_BASE_MAPPED);
+	comp_ppc_stw(address_reg, COMP_GET_OFFSET_IN_REGS(pc_p), PPCR_REGS_BASE);
 
 	//Synchronize the executed instruction pointer from the block start to the actual
-	comp_ppc_stw(address_reg, COMP_GET_OFFSET_IN_REGS(pc_oldp), PPCR_REGS_BASE_MAPPED);
+	comp_ppc_stw(address_reg, COMP_GET_OFFSET_IN_REGS(pc_oldp), PPCR_REGS_BASE);
 }
 
-void comp_macroblock_push_set_byte_from_z_flag(uae_u64 regsout, comp_ppc_reg output_reg, BOOL negate)
+void comp_macroblock_push_set_byte_from_z_flag(uae_u64 regsout, uae_u8 output_reg, int negate)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_set_byte_from_z_flag,
@@ -2165,7 +2165,7 @@ void comp_macroblock_push_set_byte_from_z_flag(uae_u64 regsout, comp_ppc_reg out
 
 void comp_macroblock_impl_set_byte_from_z_flag(union comp_compiler_mb_union* mb)
 {
-	comp_ppc_reg output_reg = mb->set_byte_from_z_flag.output_reg;
+	int output_reg = mb->set_byte_from_z_flag.output_reg;
 
 	//Condition is evaluated into the CRF0 Z flag by the source address mode handler.
 

@@ -51,21 +51,13 @@ typedef struct blockinfo_t
 	struct blockinfo_t** prev_same_cl_p;	/* Cache line pointer */
 } blockinfo;
 
-/* Mapped PowerPC register type
- * We have to use struct for a custom data type, otherwise it will be automatically
- * converted to the required type. tsk... tsk... */
-typedef struct comp_ppc_reg_t
-{
-	uae_u8 r;	//The number of the mapped PowerPC register as integer
-} comp_ppc_reg;
-
 /* Temporary register mapping descriptor structure */
 typedef struct comp_tmp_reg_t
 {
 	uae_u64 reg_usage_mapping;		/* Temporary register usage mapping, see register mapping for macroblocks in compemu_compiler.h */
 	struct m68k_register* allocated_for;			/* Pointer to the emulated 68K register which is linked to this temporary register, or null if there is no M68k register linked. */
 	BOOL allocated;					/* If TRUE then the temporary register is allocated at the moment */
-	comp_ppc_reg mapped_reg_num;	/* Mapped physical register for the temporary register */
+	uae_u8 mapped_reg_num;			/* Mapped physical register for the temporary register */
 } comp_tmp_reg;
 
 /* PowerPC register layout
@@ -95,16 +87,8 @@ typedef struct comp_tmp_reg_t
 #warning Assuming SysV PowerPC ABI
 #endif
 
-/* Convert a PowerPC register number to mapped register typed data */
-#define PPCR_MAPPED_REG(x) ((comp_ppc_reg){.r = (x)})
-
 #define	PPCR_SPECTMP	0	// r0 - special temporary register, cannot be used for every operation
 #define	PPCR_SP			1	// r1 - stack pointer
-
-//Mapped registers
-#define PPCR_SPECTMP_MAPPED PPCR_MAPPED_REG(PPCR_SPECTMP)
-#define	PPCR_SP_MAPPED PPCR_MAPPED_REG(PPCR_SP)
-
 #ifndef __APPLE__
 #define	PPCR_RTOC		2	// r2 - rtoc register, must be preserved
 #endif
@@ -114,11 +98,6 @@ typedef struct comp_tmp_reg_t
 #define PPCR_PARAM1		3	// r3
 #define PPCR_PARAM2		4	// r4
 #define PPCR_PARAM3		5	// r5
-
-//Mapped registers
-#define PPCR_PARAM1_MAPPED PPCR_MAPPED_REG(PPCR_PARAM1)
-#define PPCR_PARAM2_MAPPED PPCR_MAPPED_REG(PPCR_PARAM2)
-#define PPCR_PARAM3_MAPPED PPCR_MAPPED_REG(PPCR_PARAM3)
 
 /* Temporary registers, free to use, no need to preserve */
 #define PPCR_TMP0	3	// r3 - do not change this mapping
@@ -137,19 +116,6 @@ typedef struct comp_tmp_reg_t
 #define PPCR_TMP10	2	// r2
 #endif
 
-//Mapped registers
-#define PPCR_TMP0_MAPPED PPCR_MAPPED_REG(PPCR_TMP0)
-#define PPCR_TMP1_MAPPED PPCR_MAPPED_REG(PPCR_TMP1)
-#define PPCR_TMP2_MAPPED PPCR_MAPPED_REG(PPCR_TMP2)
-#define PPCR_TMP3_MAPPED PPCR_MAPPED_REG(PPCR_TMP3)
-#define PPCR_TMP4_MAPPED PPCR_MAPPED_REG(PPCR_TMP4)
-#define PPCR_TMP5_MAPPED PPCR_MAPPED_REG(PPCR_TMP5)
-#define PPCR_TMP6_MAPPED PPCR_MAPPED_REG(PPCR_TMP6)
-#define PPCR_TMP7_MAPPED PPCR_MAPPED_REG(PPCR_TMP7)
-#define PPCR_TMP8_MAPPED PPCR_MAPPED_REG(PPCR_TMP8)
-#define PPCR_TMP9_MAPPED PPCR_MAPPED_REG(PPCR_TMP9)
-#define PPCR_TMP10_MAPPED PPCR_MAPPED_REG(PPCR_TMP10)
-
 /* Regs structure base pointer register
  * Note: A non-volatile register was chosen to avoid the reloading of
  * this register when an external function is called. */
@@ -158,9 +124,6 @@ typedef struct comp_tmp_reg_t
 #else
 #define PPCR_REGS_BASE	13	// r13
 #endif
-
-//Mapped registers
-#define PPCR_REGS_BASE_MAPPED PPCR_MAPPED_REG(PPCR_REGS_BASE)
 
 /* M68k flags register: while the flags are emulated those are stored
  * in this register, the layout is detailed in PPCR_FLAG_* constants.
@@ -171,9 +134,6 @@ typedef struct comp_tmp_reg_t
 #else
 #define PPCR_FLAGS	14	// r14
 #endif
-
-//Mapped registers
-#define PPCR_FLAGS_MAPPED PPCR_MAPPED_REG(PPCR_FLAGS)
 
 /* Non-volatile registers, values are preserved while the execution leaves
  * the translated code.
@@ -190,10 +150,6 @@ typedef struct comp_tmp_reg_t
 #define PPCR_TMP_NONVOL0	15	// r15
 #define PPCR_TMP_NONVOL1	16	// r16
 #endif
-
-//Mapped registers
-#define PPCR_TMP_NONVOL0_MAPPED PPCR_MAPPED_REG(PPCR_TMP_NONVOL0)
-#define PPCR_TMP_NONVOL1_MAPPED PPCR_MAPPED_REG(PPCR_TMP_NONVOL1)
 
 /* Temporary CR registers
  */
@@ -297,84 +253,84 @@ void comp_unlock_all_temp_registers(void);
 void comp_dump_reg_usage(uae_u64 regs, char* str, char dump_control);
 
 /* PowerPC instruction compiler functions */
-void comp_ppc_add(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags);
-void comp_ppc_addc(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags);
-void comp_ppc_addco(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags);
-void comp_ppc_addi(comp_ppc_reg regd, comp_ppc_reg rega, uae_u16 imm);
-void comp_ppc_addis(comp_ppc_reg regd, comp_ppc_reg rega, uae_u16 imm);
-void comp_ppc_and(comp_ppc_reg rega, comp_ppc_reg regs, comp_ppc_reg regb, BOOL updateflags);
-void comp_ppc_andc(comp_ppc_reg rega, comp_ppc_reg regs, comp_ppc_reg regb, BOOL updateflags);
-void comp_ppc_andi(comp_ppc_reg rega, comp_ppc_reg regs, uae_u16 imm);
-void comp_ppc_andis(comp_ppc_reg rega, comp_ppc_reg regs, uae_u16 imm);
+void comp_ppc_add(int regd, int rega, int regb, int updateflags);
+void comp_ppc_addc(int regd, int rega, int regb, int updateflags);
+void comp_ppc_addco(int regd, int rega, int regb, int updateflags);
+void comp_ppc_addi(int regd, int rega, uae_u16 imm);
+void comp_ppc_addis(int regd, int rega, uae_u16 imm);
+void comp_ppc_and(int rega, int regs, int regb, int updateflags);
+void comp_ppc_andc(int rega, int regs, int regb, int updateflags);
+void comp_ppc_andi(int rega, int regs, uae_u16 imm);
+void comp_ppc_andis(int rega, int regs, uae_u16 imm);
 void comp_ppc_branch_target(int reference);
 void comp_ppc_b(uae_u32 target, int reference);
 void comp_ppc_bc(int bibo, int reference);
 void comp_ppc_bl(uae_u32 target);
 void comp_ppc_blr(void);
 void comp_ppc_blrl(void);
-void comp_ppc_cmplw(int regcrfd, comp_ppc_reg rega, comp_ppc_reg regb);
-void comp_ppc_cmplwi(int regcrfd, comp_ppc_reg rega, uae_u16 imm);
-void comp_ppc_cntlwz(comp_ppc_reg rega, comp_ppc_reg regs, BOOL updateflags);
-void comp_ppc_extsb(comp_ppc_reg rega, comp_ppc_reg regs, BOOL updateflags);
-void comp_ppc_extsh(comp_ppc_reg rega, comp_ppc_reg regs, BOOL updateflags);
-void comp_ppc_lbz(comp_ppc_reg regd, uae_u16 delta, comp_ppc_reg rega);
-void comp_ppc_lha(comp_ppc_reg regd, uae_u16 delta, comp_ppc_reg rega);
-void comp_ppc_lhz(comp_ppc_reg regd, uae_u16 delta, comp_ppc_reg rega);
-void comp_ppc_li(comp_ppc_reg rega, uae_u16 imm);
-void comp_ppc_lis(comp_ppc_reg rega, uae_u16 imm);
-void comp_ppc_liw(comp_ppc_reg reg, uae_u32 value);
-void comp_ppc_lwz(comp_ppc_reg regd, uae_u16 delta, comp_ppc_reg rega);
-void comp_ppc_lwzx(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb);
+void comp_ppc_cmplw(int regcrfd, int rega, int regb);
+void comp_ppc_cmplwi(int regcrfd, int rega, uae_u16 imm);
+void comp_ppc_cntlwz(int rega, int regs, int updateflags);
+void comp_ppc_extsb(int rega, int regs, int updateflags);
+void comp_ppc_extsh(int rega, int regs, int updateflags);
+void comp_ppc_lbz(int regd, uae_u16 delta, int rega);
+void comp_ppc_lha(int regd, uae_u16 delta, int rega);
+void comp_ppc_lhz(int regd, uae_u16 delta, int rega);
+void comp_ppc_li(int rega, uae_u16 imm);
+void comp_ppc_lis(int rega, uae_u16 imm);
+void comp_ppc_liw(int reg, uae_u32 value);
+void comp_ppc_lwz(int regd, uae_u16 delta, int rega);
+void comp_ppc_lwzx(int regd, int rega, int regb);
 void comp_ppc_mcrxr(int crreg);
-void comp_ppc_mfcr(comp_ppc_reg reg);
+void comp_ppc_mfcr(int reg);
 #ifdef _ARCH_PWR4
-void comp_ppc_mfocrf(int crreg, comp_ppc_reg reg);
+void comp_ppc_mfocrf(int crreg, int reg);
 #endif
-void comp_ppc_mflr(comp_ppc_reg reg);
-void comp_ppc_mfxer(comp_ppc_reg reg);
-void comp_ppc_mr(comp_ppc_reg rega, comp_ppc_reg regs, BOOL updateflags);
-void comp_ppc_mtcrf(int crreg, comp_ppc_reg regf);
-void comp_ppc_mtlr(comp_ppc_reg reg);
-void comp_ppc_mtxer(comp_ppc_reg reg);
-void comp_ppc_mullwo(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags);
-void comp_ppc_neg(comp_ppc_reg regd, comp_ppc_reg rega, BOOL updateflags);
-void comp_ppc_nego(comp_ppc_reg regd, comp_ppc_reg rega, BOOL updateflags);
+void comp_ppc_mflr(int reg);
+void comp_ppc_mfxer(int reg);
+void comp_ppc_mr(int rega, int regs, int updateflags);
+void comp_ppc_mtcrf(int crreg, int regf);
+void comp_ppc_mtlr(int reg);
+void comp_ppc_mtxer(int reg);
+void comp_ppc_mullwo(int regd, int rega, int regb, int updateflags);
+void comp_ppc_neg(int regd, int rega, int updateflags);
+void comp_ppc_nego(int regd, int rega, int updateflags);
 void comp_ppc_nop(void);
-void comp_ppc_nor(comp_ppc_reg rega, comp_ppc_reg regs, comp_ppc_reg regb, BOOL updateflags);
-void comp_ppc_or(comp_ppc_reg rega, comp_ppc_reg regs, comp_ppc_reg regb, BOOL updateflags);
-void comp_ppc_ori(comp_ppc_reg rega, comp_ppc_reg regs, uae_u16 imm);
-void comp_ppc_oris(comp_ppc_reg rega, comp_ppc_reg regs, uae_u16 imm);
-void comp_ppc_rlwimi(comp_ppc_reg rega, comp_ppc_reg regs, int shift, int maskb, int maske, BOOL updateflags);
-void comp_ppc_rlwinm(comp_ppc_reg rega, comp_ppc_reg regs, int shift, int maskb, int maske, BOOL updateflags);
-void comp_ppc_rlwnm(comp_ppc_reg rega, comp_ppc_reg regs, comp_ppc_reg regb, int maskb, int maske, BOOL updateflags);
-void comp_ppc_slw(comp_ppc_reg rega, comp_ppc_reg regs, comp_ppc_reg regb, BOOL updateflags);
-void comp_ppc_srawi(comp_ppc_reg rega, comp_ppc_reg regs, int shift, BOOL updateflags);
-void comp_ppc_srw(comp_ppc_reg rega, comp_ppc_reg regs, comp_ppc_reg regb, BOOL updateflags);
-void comp_ppc_stb(comp_ppc_reg regs, uae_u16 delta, comp_ppc_reg rega);
-void comp_ppc_sth(comp_ppc_reg regs, uae_u16 delta, comp_ppc_reg rega);
-void comp_ppc_sthu(comp_ppc_reg regs, uae_u16 delta, comp_ppc_reg rega);
-void comp_ppc_stw(comp_ppc_reg regs, uae_u16 delta, comp_ppc_reg rega);
-void comp_ppc_stwu(comp_ppc_reg regs, uae_u16 delta, comp_ppc_reg rega);
-void comp_ppc_subf(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags);
-void comp_ppc_subfco(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags);
-void comp_ppc_subfe(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags);
-void comp_ppc_subfic(comp_ppc_reg rega, comp_ppc_reg regs, uae_u16 imm);
+void comp_ppc_nor(int rega, int regs, int regb, int updateflags);
+void comp_ppc_or(int rega, int regs, int regb, int updateflags);
+void comp_ppc_ori(int rega, int regs, uae_u16 imm);
+void comp_ppc_oris(int rega, int regs, uae_u16 imm);
+void comp_ppc_rlwimi(int rega, int regs, int shift, int maskb, int maske, int updateflags);
+void comp_ppc_rlwinm(int rega, int regs, int shift, int maskb, int maske, int updateflags);
+void comp_ppc_rlwnm(int rega, int regs, int regb, int maskb, int maske, int updateflags);
+void comp_ppc_slw(int rega, int regs, int regb, int updateflags);
+void comp_ppc_srawi(int rega, int regs, int shift, int updateflags);
+void comp_ppc_srw(int rega, int regs, int regb, int updateflags);
+void comp_ppc_stb(int regs, uae_u16 delta, int rega);
+void comp_ppc_sth(int regs, uae_u16 delta, int rega);
+void comp_ppc_sthu(int regs, uae_u16 delta, int rega);
+void comp_ppc_stw(int regs, uae_u16 delta, int rega);
+void comp_ppc_stwu(int regs, uae_u16 delta, int rega);
+void comp_ppc_subf(int regd, int rega, int regb, int updateflags);
+void comp_ppc_subfco(int regd, int rega, int regb, int updateflags);
+void comp_ppc_subfe(int regd, int rega, int regb, int updateflags);
+void comp_ppc_subfic(int rega, int regs, uae_u16 imm);
 void comp_ppc_trap(void);
-void comp_ppc_xor(comp_ppc_reg rega, comp_ppc_reg regs, comp_ppc_reg regb, BOOL updateflags);
-void comp_ppc_xori(comp_ppc_reg rega, comp_ppc_reg regs, uae_u16 imm);
-void comp_ppc_xoris(comp_ppc_reg rega, comp_ppc_reg regs, uae_u16 imm);
+void comp_ppc_xor(int rega, int regs, int regb, int updateflags);
+void comp_ppc_xori(int rega, int regs, uae_u16 imm);
+void comp_ppc_xoris(int rega, int regs, uae_u16 imm);
 
 void* comp_ppc_buffer_top(void);
 void comp_ppc_emit_halfwords(uae_u16 halfword_high, uae_u16 halfword_low);
 void comp_ppc_emit_word(uae_u32 word);
 int comp_ppc_check_top(void);
-void comp_ppc_call(comp_ppc_reg reg, uae_uintptr addr);
-void comp_ppc_call_reg(comp_ppc_reg addrreg);
+void comp_ppc_call(int reg, uae_uintptr addr);
+void comp_ppc_call_reg(int addrreg);
 void comp_ppc_jump(uae_uintptr addr);
 void comp_ppc_prolog(uae_u32 save_regs);
 void comp_ppc_epilog(uae_u32 restore_regs);
-void comp_ppc_save_to_slot(comp_ppc_reg reg, uae_u8 slot);
-void comp_ppc_restore_from_slot(comp_ppc_reg reg, uae_u8 slot);
+void comp_ppc_save_to_slot(int reg, int slot);
+void comp_ppc_restore_from_slot(int reg, int slot);
 void comp_ppc_return_to_caller(uae_u32 restore_regs);
 void comp_ppc_do_cycles(int totalcycles);
 void comp_ppc_verify_pc(uae_u8* pc_addr_exp);
