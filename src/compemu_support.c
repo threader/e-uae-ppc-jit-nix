@@ -480,9 +480,6 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 	const cpu_history * inst_history;
 	char str[200];
 
-	//This flag indicates if in the current block consists of unsupported instructions only
-	int unsupported_only = TRUE;
-
 	//This flag signs the unsupported opcodes in a row, some initialization/cleanup is skipped if there was multiple unsupported opcode
 	int unsupported_in_a_row = TRUE;
 
@@ -515,19 +512,13 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 			}
 		}
 
-		//TODO: we need to do something about the tiny blocks, the overhead of calling these is just too high. For now ignoring of tiny blocks is removed.
 		//Is the block long enough (more than 3 instructions)?
-		//if (blocklen <= 3)
-		//{
-		//	//No: not worth compiling, hardwire to interpretive execution
-		//	write_jit_log("Block 0x%08x is too short: %d, not compiled\n", bi->pc_p, blocklen);
-		//	bi->handler = bi->handler_to_use = exec_nostats_callback;
-		//
-		//	//Raise block in cache list
-		//	raise_in_cl_list(bi);
-		//
-		//	return;
-		//}
+		if (blocklen <= 3)
+		{
+			//No: not worth to compile it, hardwire to interpretiv execution
+			bi->handler = exec_nostats_callback;
+			return;
+		}
 
 		//Do we still counting back on block execution?
 		if (bi->count > -1)
@@ -586,7 +577,6 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 				}
 
 				unsupported_in_a_row = FALSE;
-				unsupported_only = FALSE;
 
 				//Init opcode compiling
 				comp_opcode_init(inst_history);
@@ -627,82 +617,69 @@ void compile_block(const cpu_history *pc_hist, int blocklen, int totcycles)
 			}
 		}
 
-		//Were there any supported instructions?
-		if (!unsupported_only)
+		//Reset actually compiled M68k instruction pointer
+		compiled_m68k_location = NULL;
+
+		//Flush all temp registers
+		comp_flush_temp_registers(FALSE);
+
+		//Last block: save flags/changed registers back to memory from register, if it was loaded before
+		if (!unsupported_in_a_row)
 		{
-			//Yes, there was at least one: compile the block
+			//Save back flags to the regs structure
+			comp_macroblock_push_save_flags();
 
-			//Reset actually compiled M68k instruction pointer
-			compiled_m68k_location = NULL;
+			//Reload the PC at the end of the block from the additional virtual history item at the end
+			comp_macroblock_push_load_pc(&pc_hist[blocklen]);
+		}
 
-			//Flush all temp registers
-			comp_flush_temp_registers(FALSE);
+		//Optimize the collected macroblocks
+		comp_compiler_optimize_macroblocks();
 
-			//Last block: save flags/changed registers back to memory from register, if it was loaded before
-			if (!unsupported_in_a_row)
-			{
-				//Save back flags to the regs structure
-				comp_macroblock_push_save_flags();
+		//Generate the PPC code from the macroblocks
+		comp_compiler_generate_code();
 
-				//Reload the PC at the end of the block from the additional virtual history item at the end
-				comp_macroblock_push_load_pc(&pc_hist[blocklen]);
-			}
+		//Dump compiled code to the console
+		comp_compiler_debug_dump_compiled();
 
-			//Optimize the collected macroblocks
-			comp_compiler_optimize_macroblocks();
+		//Compile calling the do_cycles function at the end of the block with the pre-calculated cycles
+		comp_ppc_do_cycles(scaled_cycles(totcycles));
 
-			//Generate the PPC code from the macroblocks
-			comp_compiler_generate_code();
+		//Return to the caller from the compiled block, restore non-volatile registers
+		comp_ppc_return_to_caller(PPCR_REG_USED_NONVOLATILE);
 
-			//Dump compiled code to the console
-			comp_compiler_debug_dump_compiled();
+		//Check whether we ran out of the compiling buffer
+		if (current_compile_p >= max_compile_start)
+		{
+			//Ooops, let's leave the party early and reset the buffer
+			comp_done();
+			flush_icache_hard("compiling - buffer is full");
+			return;
+		}
 
-			//Compile calling the do_cycles function at the end of the block with the pre-calculated cycles
-			comp_ppc_do_cycles(scaled_cycles(totcycles));
+		//PowerPC cache flush at the end of the compiling
+		ppc_cacheflush(compile_p_at_start, current_compile_p - compile_p_at_start);
 
-			//Return to the caller from the compiled block, restore non-volatile registers
-			comp_ppc_return_to_caller(PPCR_REG_USED_NONVOLATILE);
+		//Lower and upper bound of the translated block
+		uae_uintptr min_pcp = (uae_uintptr) pc_hist[0].location;
+		uae_uintptr max_pcp = (uae_uintptr) pc_hist[blocklen - 1].location;
 
-			//Check whether we ran out of the compiling buffer
-			if (current_compile_p >= max_compile_start)
-			{
-				//Ooops, let's leave the party early and reset the buffer
-				comp_done();
-				flush_icache_hard("compiling - buffer is full");
-				return;
-			}
+		//After translation calculate the real block length in 68k memory for the compiled block
+		bi->len = max_pcp - min_pcp;
 
-			//PowerPC cache flush at the end of the compiling
-			ppc_cacheflush(compile_p_at_start, current_compile_p - compile_p_at_start);
-
-			//Lower and upper bound of the translated block
-			uae_uintptr min_pcp = (uae_uintptr) pc_hist[0].location;
-			uae_uintptr max_pcp = (uae_uintptr) pc_hist[blocklen - 1].location;
-
-			//After translation calculate the real block length in 68k memory for the compiled block
-			bi->len = max_pcp - min_pcp;
-
-			//Calculate checksum
-			if (isinrom(min_pcp) && isinrom(max_pcp))
-			{
-				bi->dormant = TRUE; /* No need to checksum it on cache flush. */
-			}
-			else
-			{
-				bi->dormant = FALSE;
-				calc_checksum(bi, &(bi->c1), &(bi->c2));
-			}
-
-			//Block start from compiling
-			bi->handler = bi->handler_to_use = (cpuop_func*) compile_p_at_start;
+		//Calculate checksum
+		if (isinrom(min_pcp) && isinrom(max_pcp))
+		{
+			bi->dormant = TRUE; /* No need to checksum it on cache flush. */
 		}
 		else
 		{
-			//Block of unsupported instructions: this block won't be compiled anymore,
-			//the execution jumps to execute it under interpretive all the time
-			write_jit_log("Block of unsupported instructions 0x%08x: not compiled\n", bi->pc_p);
-			bi->handler = bi->handler_to_use = exec_nostats_callback;
+			bi->dormant = FALSE;
+			calc_checksum(bi, &(bi->c1), &(bi->c2));
 		}
+
+		//Block start from compiling
+		bi->handler = bi->handler_to_use = (cpuop_func*) compile_p_at_start;
 
 		//Raise block in cache list
 		raise_in_cl_list(bi);

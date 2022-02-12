@@ -73,7 +73,6 @@ void comp_macroblock_impl_and_register_register(union comp_compiler_mb_union* mb
 void comp_macroblock_impl_or_low_register_imm(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_or_high_register_imm(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_or_register_register(union comp_compiler_mb_union* mb);
-void comp_macroblock_impl_not_or_register_register(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_or_immed_register(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_xor_register_register(union comp_compiler_mb_union* mb);
 void comp_macroblock_impl_xor_low_register_imm(union comp_compiler_mb_union* mb);
@@ -1054,29 +1053,6 @@ void comp_macroblock_impl_or_register_register(union comp_compiler_mb_union* mb)
 }
 
 /**
- * Macroblock: OR a register to another register
- */
-void comp_macroblock_push_not_or_register_register(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg1, uae_u8 input_reg2, char updateflags)
-{
-	comp_mb_init(mb,
-				comp_macroblock_impl_not_or_register_register,
-				regsin, regsout);
-	mb->three_regs_opcode_flags.output_reg = output_reg;
-	mb->three_regs_opcode_flags.input_reg1 = input_reg1;
-	mb->three_regs_opcode_flags.input_reg2 = input_reg2;
-	mb->three_regs_opcode_flags.updateflags = updateflags;
-}
-
-void comp_macroblock_impl_not_or_register_register(union comp_compiler_mb_union* mb)
-{
-	comp_ppc_nor(
-			mb->three_regs_opcode_flags.output_reg,
-			mb->three_regs_opcode_flags.input_reg1,
-			mb->three_regs_opcode_flags.input_reg2,
-			mb->three_regs_opcode_flags.updateflags);
-}
-
-/**
  * Macroblock: AND a 16 bit immediate to the lower half word of a register and put it into a new register
  */
 void comp_macroblock_push_and_low_register_imm(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, uae_u16 immediate)
@@ -1425,40 +1401,38 @@ void comp_macroblock_impl_check_word_register(union comp_compiler_mb_union* mb)
  * Macroblock: Sign-extend lower word content of the specified register
  * into another register.
  */
-void comp_macroblock_push_copy_register_word_extended(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, char updateflags)
+void comp_macroblock_push_copy_register_word_extended(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_copy_register_word_extended,
 				regsin,
 				regsout);
-	mb->two_regs_opcode_flags.input_reg = input_reg;
-	mb->two_regs_opcode_flags.output_reg = output_reg;
-	mb->two_regs_opcode_flags.updateflags = updateflags;
+	mb->two_regs_opcode.input_reg = input_reg;
+	mb->two_regs_opcode.output_reg = output_reg;
 }
 
 void comp_macroblock_impl_copy_register_word_extended(union comp_compiler_mb_union* mb)
 {
-	comp_ppc_extsh(mb->two_regs_opcode_flags.output_reg, mb->two_regs_opcode_flags.input_reg, mb->two_regs_opcode_flags.updateflags);
+	comp_ppc_extsh(mb->two_regs_opcode.output_reg, mb->two_regs_opcode.input_reg, FALSE);
 }
 
 /**
  * Macroblock: Sign-extend lowest byte content of the specified register
  * into another register.
  */
-void comp_macroblock_push_copy_register_byte_extended(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg, char updateflags)
+void comp_macroblock_push_copy_register_byte_extended(uae_u64 regsin, uae_u64 regsout, uae_u8 output_reg, uae_u8 input_reg)
 {
 	comp_mb_init(mb,
 				comp_macroblock_impl_copy_register_byte_extended,
 				regsin,
 				regsout);
-	mb->two_regs_opcode_flags.input_reg = input_reg;
-	mb->two_regs_opcode_flags.output_reg = output_reg;
-	mb->two_regs_opcode_flags.updateflags = updateflags;
+	mb->two_regs_opcode.input_reg = input_reg;
+	mb->two_regs_opcode.output_reg = output_reg;
 }
 
 void comp_macroblock_impl_copy_register_byte_extended(union comp_compiler_mb_union* mb)
 {
-	comp_ppc_extsb(mb->two_regs_opcode.output_reg, mb->two_regs_opcode.input_reg, mb->two_regs_opcode_flags.updateflags);
+	comp_ppc_extsb(mb->two_regs_opcode.output_reg, mb->two_regs_opcode.input_reg, FALSE);
 }
 
 /**

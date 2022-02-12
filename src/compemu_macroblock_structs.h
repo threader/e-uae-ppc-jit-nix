@@ -54,16 +54,6 @@ struct comp_compiler_mb_two_regs_imm_opcode
 	uae_u8	output_reg;					//Output register
 };
 
-//Structure for normal two register input, plus specify if flag update needed
-//For example: mr(x) output_reg, input_reg
-struct comp_compiler_mb_two_regs_opcode_flags
-{
-	struct comp_compiler_mb mb;			//Default macroblock descriptor
-	uae_u8	input_reg;					//Input register
-	uae_u8	output_reg;					//Output register
-	char	updateflags;				//Flags are updated (1) or not (0)
-};
-
 //Structure for normal two register input
 //For example: mr output_reg, input_reg
 struct comp_compiler_mb_two_regs_opcode
@@ -173,7 +163,6 @@ union comp_compiler_mb_union
 	struct comp_compiler_mb_unsupported unsupported;
 	struct comp_compiler_mb_one_reg_opcode one_reg_opcode;
 	struct comp_compiler_mb_two_regs_opcode two_regs_opcode;
-	struct comp_compiler_mb_two_regs_opcode_flags two_regs_opcode_flags;
 	struct comp_compiler_mb_two_regs_imm_opcode two_regs_imm_opcode;
 	struct comp_compiler_mb_three_regs_opcode three_regs_opcode;
 	struct comp_compiler_mb_three_regs_opcode_flags three_regs_opcode_flags;
