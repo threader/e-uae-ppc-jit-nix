@@ -5,7 +5,7 @@
   * and without stack magic.
   *
   * Copyright 1999 Patrick Ohly
-  *
+  * 
   * Uses the EXTER interrupt that is setup in filesys.c
   * and some of it needs thread support.
   */
@@ -26,13 +26,13 @@ void uae_NewList(uaecptr list);
 
 /*
  * The following functions are shortcuts for calling
- * the exec.library function with CallLib (), so they
+ * the exec.library function with CallLib(), so they
  * are only available in a trap function. This trap
  * function has to be setup with deftrap2() and
  * TRAPFLAG_EXTRA_STACK and stack magic is required.
  */
-uaecptr uae_AllocMem (TrapContext *context, uae_u32 size, uae_u32 flags);
-void uae_FreeMem (TrapContext *context, uaecptr memory, uae_u32 size);
+uaecptr uae_AllocMem (uae_u32 size, uae_u32 flags);
+void uae_FreeMem (uaecptr memory, uae_u32 size);
 
 
 /*
@@ -54,8 +54,3 @@ void native2amiga_startup (void);
  * It's emptied via exter_int_helper by the EXTER interrupt. */
 extern smp_comm_pipe native2amiga_pending;
 #endif
-
-STATIC_INLINE void do_uae_int_requested (void)
-{
-    uae_int_requested = 1;
-}

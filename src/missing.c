@@ -7,12 +7,9 @@
   */
 
 #include "sysconfig.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include "uae_string.h"
-#include "uae_types.h"
-#include "uae_malloc.h"
-#include "writelog.h"
+#include "sysdeps.h"
+
+#include "uae.h"
 
 #ifndef HAVE_STRDUP
 
@@ -44,9 +41,4 @@ void *xcalloc (size_t n, size_t size)
 	abort ();
     }
     return a;
-}
-
-void xfree (void *ptr)
-{
-    free (ptr);
 }

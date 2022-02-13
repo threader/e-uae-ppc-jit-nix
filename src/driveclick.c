@@ -12,14 +12,13 @@
 #ifdef DRIVESOUND
 
 #include "uae.h"
+#include "config.h"
 #include "options.h"
 #include "sounddep/sound.h"
 #include "zfile.h"
 #include "events.h"
 
 #include "driveclick.h"
-
-#include "fsdb.h"
 
 static struct drvsample drvs[4][DS_END];
 static int freq = 44100;
@@ -60,7 +59,7 @@ uae_s16 *decodewav (uae_u8 *s, int *lenp)
     return 0;
 }
 
-static int loadsample (const char *path, struct drvsample *ds)
+static int loadsample (char *path, struct drvsample *ds)
 {
     struct zfile *f;
     uae_u8 *buf;
@@ -89,9 +88,7 @@ static void freesample (struct drvsample *s)
     s->p = 0;
 }
 
-extern char *start_path;
-
-void driveclick_init (void)
+void driveclick_init(void)
 {
     int v, vv, i, j;
     char tmp[1000];
@@ -100,8 +97,6 @@ void driveclick_init (void)
     vv = 0;
     for (i = 0; i < 4; i++) {
 	if (currprefs.dfxclick[i]) {
-	    /* TODO: Implement location of sample data */
-#if 0
 	    if (currprefs.dfxclick[i] > 0) {
 		v = 0;
 		if (driveclick_loadresource (drvs[i], currprefs.dfxclick[i]))
@@ -129,7 +124,6 @@ void driveclick_init (void)
 	    drvs[i][DS_CLICK].pos = drvs[i][DS_CLICK].len;
 	    drvs[i][DS_SNATCH].pos = drvs[i][DS_SNATCH].len;
 	    vv += currprefs.dfxclick[i];
-#endif
 	}
     }
     if (vv > 0) {
@@ -159,7 +153,7 @@ void driveclick_free (void)
     click_initialized = 0;
 }
 
-STATIC_INLINE uae_s16 getsample (void)
+STATIC_INLINE uae_s16 getsample(void)
 {
     uae_s32 smp = 0;
     int div = 0, i;
@@ -211,7 +205,7 @@ static int clickcnt;
 
 static void mix (void)
 {
-    int total = ((uae_u8*)sndbufpt - (uae_u8*)sndbuffer) / (currprefs.sound_stereo ? 4 : 2);
+    int total = ((uae_u8*)sndbufpt - (uae_u8*)sndbuffer) / (currprefs.stereo ? 4 : 2);
 
     if (currprefs.dfxclickvolume > 0) {
 	while (clickcnt < total) {
@@ -241,15 +235,15 @@ void driveclick_mix (uae_s16 *sndbuffer, int size)
 	return;
     mix();
     clickcnt = 0;
-    if (currprefs.sound_stereo) {
-	for (i = 0; i < size / 2; i++) {
+    if (currprefs.stereo) {
+        for (i = 0; i < size / 2; i++) {
 	    uae_s16 s = clickbuffer[i];
 	    sndbuffer[0] = limit(((sndbuffer[0] + s) * 2) / 3);
 	    sndbuffer[1] = limit(((sndbuffer[1] + s) * 2) / 3);
 	    sndbuffer += 2;
-	}
+        }
     } else {
-	for (i = 0; i < size; i++) {
+        for (i = 0; i < size; i++) {
 	    sndbuffer[0] = limit(((sndbuffer[0] + clickbuffer[i]) * 2) / 3);
 	    sndbuffer++;
 	}
@@ -262,7 +256,7 @@ void driveclick_click (int drive, int startOffset)
 	return;
     if (!currprefs.dfxclick[drive])
 	return;
-    mix ();
+    mix();
     drvs[drive][DS_CLICK].pos = (startOffset * 4) << DS_SHIFT;
     if (drvs[drive][DS_CLICK].pos > drvs[drive][DS_CLICK].len / 2)
 	drvs[drive][DS_CLICK].pos = drvs[drive][DS_CLICK].len / 2;
@@ -279,7 +273,7 @@ void driveclick_motor (int drive, int running)
 	drv_starting[drive] = 0;
 	drv_spinning[drive] = 0;
     } else {
-	if (drv_spinning[drive] == 0) {
+        if (drv_spinning[drive] == 0) {
 	    drv_starting[drive] = 1;
 	    drv_spinning[drive] = 1;
 	    if (drv_has_disk[drive] && drv_has_spun[drive] == 0 && drvs[drive][DS_SNATCH].pos >= drvs[drive][DS_SNATCH].len)

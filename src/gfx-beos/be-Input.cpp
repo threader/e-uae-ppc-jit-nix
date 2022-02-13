@@ -3,8 +3,8 @@
 //
 //  BeOS port keyboard routines
 //
-//  (c) 2004-2005 Richard Drummond
-//  (c) 2000-2001 Axel Doerfler
+//  (c) 2004 Richard Drummond
+//  (c) 2000-2001 Axel D�fler
 //  (c) 1999 Be/R4 Sound - Raphael Moll
 //  (c) 1998-1999 David Sowsy
 //  (c) 1996-1998 Christian Bauer
@@ -12,52 +12,110 @@
 //
 /***********************************************************/
 
+#include <Joystick.h>
+
 #include "be-UAE.h"
 #include "be-Window.h"
+#include "be-Input.h"
 
 extern "C" {
 #include "sysconfig.h"
 #include "sysdeps.h"
-
+#include "config.h"
 #include "options.h"
+#include "xwin.h"
 #include "keybuf.h"
 #include "inputdevice.h"
 #include "hotkeys.h"
-#include "keymap/keymap.h"
 #include "keymap/beos_rawkeys.h"
+#include "uae.h"
 };
 
 
-/* Default translation table */
-struct uae_input_device_kbr_default *default_keyboard;
-
-/* Previous key states */
 static key_info lastKeyInfo;
+static bool lastKeyInfoInitialized = false;
+
+// Speed control hacks by David Sowsy
+int mouse_speed_rate = 1;
+
+#define key_pressed(k) (keyInfo.key_states[k >> 3] & (1 << (~k & 7)))
+
+
+
+//  Poll mouse and keyboard
+void handle_events(void)
+{
+	int be_code,be_byte,be_bit,amiga_code;
+	key_info keyInfo;
+
+	if (!lastKeyInfoInitialized)
+	{
+		get_key_info(&lastKeyInfo);
+		lastKeyInfoInitialized = true;
+	}
+
+	// Redraw drive LEDs
+	/*for (int i=0; i<4; i++)
+		DriveLED[i]->SetState(LEDs[i]);*/
+
+	if (gEmulationWindow->UpdateMouseButtons())
+	{
+		get_key_info(&keyInfo);
+
+		// Keyboard
+		if (memcmp(keyInfo.key_states, lastKeyInfo.key_states, sizeof(keyInfo.key_states)))
+		{
+			for(be_code = 0;be_code < 0x80;be_code++)
+			{
+				be_byte = be_code >> 3;
+				be_bit = 1 << (~be_code & 7);
+
+				// Key state changed?
+				if (	(keyInfo.key_states[be_byte] & be_bit)
+					!= 	(lastKeyInfo.key_states[be_byte] & be_bit))
+				{
+					int state = (keyInfo.key_states[be_byte] & be_bit) !=0;
+					int ievent;
+					if ((ievent = match_hotkey_sequence (be_code, state)))
+						handle_hotkey_event (ievent, state);
+					else
+						inputdevice_translatekeycode (0, be_code, state);
+				}
+			}
+			lastKeyInfo = keyInfo;
+		}
+	}
+}
+
 
 /*
  * Keyboard inputdevice functions
  */
-static unsigned int get_kb_num (void)
+
+/* Default translation table */
+struct uae_input_device_kbr_default *default_keyboard;
+
+static int get_kb_num (void)
 {
     return 1;
 }
 
-static const char *get_kb_name (unsigned int kb)
+static char *get_kb_name (int kb)
 {
-    return "Default keyboard";
+    return 0;
 }
 
-static unsigned int get_kb_widget_num (unsigned int kb)
+static int get_kb_widget_num (int kb)
 {
-    return 127;
+    return 255; // fix me
 }
 
-static int get_kb_widget_first (unsigned int kb, int type)
+static int get_kb_widget_first (int kb, int type)
 {
-    return 1;
+    return 0;
 }
 
-static int get_kb_widget_type (unsigned int kb, unsigned int num, char *name, uae_u32 *code)
+static int get_kb_widget_type (int kb, int num, char *name, uae_u32 *code)
 {
     // fix me
     *code = num;
@@ -66,19 +124,16 @@ static int get_kb_widget_type (unsigned int kb, unsigned int num, char *name, ua
 
 static int init_kb (void)
 {
-    get_key_info (&lastKeyInfo);
-
     default_keyboard = uaekey_make_default_kbr (beos_keymap);
     inputdevice_setkeytranslation (default_keyboard);
     set_default_hotkeys (beos_hotkeys);
-
     return 1;
 }
 
 static void close_kb (void)
 {
     if (default_keyboard) {
-	free (default_keyboard);
+        free (default_keyboard);
 	default_keyboard = 0;
     }
 }
@@ -90,62 +145,28 @@ static int keyhack (int scancode, int pressed, int num)
 
 static void read_kb (void)
 {
-    int keycode;
-    int keyinfo_byte;
-    int keyinfo_bit;
-
-    key_info keyInfo;
-
-    get_key_info (&keyInfo);
-
-    if (memcmp (keyInfo.key_states, lastKeyInfo.key_states, sizeof (keyInfo.key_states))) {
-	for (keycode = 0; keycode < 0x80; keycode++) {
-	    keyinfo_byte = keycode >> 3;
-	    keyinfo_bit = 1 << (~keycode & 7);
-
-	    // Key state changed?
-	    if ((keyInfo.key_states[keyinfo_byte] & keyinfo_bit) != (lastKeyInfo.key_states[keyinfo_byte] & keyinfo_bit)) {
-		int new_state = (keyInfo.key_states[keyinfo_byte] & keyinfo_bit) != 0;
-		int ievent;
-
-		if ((ievent = match_hotkey_sequence (keycode, new_state)))
-		    handle_hotkey_event (ievent, new_state);
-		else
-		    inputdevice_translatekeycode (0, keycode, new_state);
-	    }
-	}
-	lastKeyInfo = keyInfo;
-    }
 }
 
-static int acquire_kb (unsigned int num, int flags)
+static int acquire_kb (int num, int flags)
 {
     return 1;
 }
 
-static void unacquire_kb (unsigned int num)
+static void unacquire_kb (int num)
 {
 }
 
 struct inputdevice_functions inputdevicefunc_keyboard =
 {
-    init_kb,
-    close_kb,
-    acquire_kb,
-    unacquire_kb,
-    read_kb,
-    get_kb_num,
-    get_kb_name,
-    get_kb_widget_num,
-    get_kb_widget_type,
-    get_kb_widget_first
+    init_kb, close_kb, acquire_kb, unacquire_kb,
+    read_kb, get_kb_num, get_kb_name, get_kb_widget_num,
+    get_kb_widget_type, get_kb_widget_first
 };
 
 int getcapslockstate (void)
 {
     return 0;
 }
-
 void setcapslockstate (int state)
 {
 }

@@ -42,66 +42,64 @@ struct device_info {
     char label[60];
 };
 
-typedef int                  (*open_bus_func)           (int flags);
-typedef void                 (*close_bus_func)          (void);
-typedef int                  (*open_device_func)        (int);
-typedef void                 (*close_device_func)       (int);
-typedef struct device_info * (*info_device_func)        (int, struct device_info *);
-typedef const uae_u8 *       (*execscsicmd_out_func)    (int, const uae_u8 *, int);
-typedef const uae_u8 *       (*execscsicmd_in_func)     (int, const uae_u8 *, int, int *);
-typedef int                  (*execscsicmd_direct_func) (int, uaecptr);
+typedef int (*open_bus_func)(int flags);
+typedef void (*close_bus_func)(void);
+typedef int (*open_device_func)(int);
+typedef void (*close_device_func)(int);
+typedef struct device_info* (*info_device_func)(int, struct device_info*);
+typedef uae_u8* (*execscsicmd_out_func)(int, uae_u8*, int);
+typedef uae_u8* (*execscsicmd_in_func)(int, uae_u8*, int, int*);
+typedef int (*execscsicmd_direct_func)(int, uaecptr);
 
-typedef int                  (*pause_func)              (int, int);
-typedef int                  (*stop_func)               (int);
-typedef int                  (*play_func)               (int, uae_u32, uae_u32, int);
-typedef const uae_u8 *       (*qcode_func)              (int);
-typedef const uae_u8 *       (*toc_func)                (int);
-typedef const uae_u8 *       (*read_func)               (int, int);
-typedef int                  (*write_func)              (int, int, uae_u8 *);
-typedef int                  (*isatapi_func)            (int);
+typedef int (*pause_func)(int, int);
+typedef int (*stop_func)(int);
+typedef int (*play_func)(int, uae_u32, uae_u32, int);
+typedef uae_u8* (*qcode_func)(int);
+typedef uae_u8* (*toc_func)(int);
+typedef uae_u8* (*read_func)(int, int);
+typedef int (*write_func)(int, int, uae_u8*);
+typedef int (*isatapi_func)(int);
 
 struct device_functions {
-    open_bus_func     openbus;
-    close_bus_func    closebus;
-    open_device_func  opendev;
+    open_bus_func openbus;
+    close_bus_func closebus;
+    open_device_func opendev;
     close_device_func closedev;
-    info_device_func  info;
-
-    execscsicmd_out_func    exec_out;
-    execscsicmd_in_func     exec_in;
+    info_device_func info;
+    execscsicmd_out_func exec_out;
+    execscsicmd_in_func exec_in;
     execscsicmd_direct_func exec_direct;
 
     pause_func pause;
-    stop_func  stop;
-    play_func  play;
+    stop_func stop;
+    play_func play;
     qcode_func qcode;
-    toc_func   toc;
-    read_func  read;
+    toc_func toc;
+    read_func read;
     write_func write;
 
     isatapi_func isatapi;
 
-    open_device_func  opendevthread;
-    close_device_func closedevthread;
+
 };
 
-extern int                  device_func_init         (int flags);
-extern int                  sys_command_open         (int mode, int unitnum);
-extern void                 sys_command_close        (int mode, int unitnum);
-extern struct device_info * sys_command_info         (int mode, int unitnum, struct device_info *di);
-extern void                 sys_command_pause        (int mode, int unitnum, int paused);
-extern void                 sys_command_stop         (int mode, int unitnum);
-extern int                  sys_command_play         (int mode, int unitnum, uae_u32 startmsf, uae_u32 endmsf, int);
-extern const uae_u8 *       sys_command_qcode        (int mode, int unitnum);
-extern const uae_u8 *       sys_command_toc          (int mode, int unitnum);
-extern const uae_u8 *       sys_command_read         (int mode, int unitnum, int offset);
-extern int                  sys_command_write        (int mode, int unitnum, int offset, const uae_u8 *data);
-extern int                  sys_command_scsi_direct  (int unitnum, uaecptr request);
-extern int                  sys_command_open_thread  (int mode, int unitnum);
-extern void                 sys_command_close_thread (int mode, int unitnum);
+extern struct device_functions *device_func[2];
 
-void scsi_atapi_fixup_pre  (uae_u8 *scsi_cmd, int *len, uae_u8 **data, unsigned int *datalen, int *parm);
-void scsi_atapi_fixup_post (uae_u8 *scsi_cmd, int len, uae_u8 *olddata, uae_u8 *data, unsigned int *datalen, int parm);
+extern int device_func_init(int flags);
+extern int sys_command_open (int mode, int unitnum);
+extern void sys_command_close (int mode, int unitnum);
+extern struct device_info *sys_command_info (int mode, int unitnum, struct device_info *di);
+extern void sys_command_pause (int mode, int unitnum, int paused);
+extern void sys_command_stop (int mode, int unitnum);
+extern int sys_command_play (int mode, int unitnum, uae_u32 startmsf, uae_u32 endmsf, int);
+extern uae_u8 *sys_command_qcode (int mode, int unitnum);
+extern uae_u8 *sys_command_toc (int mode, int unitnum);
+extern uae_u8 *sys_command_read (int mode, int unitnum, int offset);
+extern int sys_command_write (int mode, int unitnum, int offset, uae_u8 *data);
+extern int sys_command_scsi_direct (int unitnum, uaecptr request);
 
-void scsi_log_before (const uae_u8 *cdb,  int cdblen,  const uae_u8 *data,  int datalen);
-void scsi_log_after  (const uae_u8 *data, int datalen, const uae_u8 *sense, int senselen);
+void scsi_atapi_fixup_pre (uae_u8 *scsi_cmd, int *len, uae_u8 **data, int *datalen, int *parm);
+void scsi_atapi_fixup_post (uae_u8 *scsi_cmd, int len, uae_u8 *olddata, uae_u8 *data, int *datalen, int parm);
+
+void scsi_log_before (uae_u8 *cdb, int cdblen, uae_u8 *data, int datalen);
+void scsi_log_after (uae_u8 *data, int datalen, uae_u8 *sense, int senselen);

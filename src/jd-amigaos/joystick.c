@@ -1,15 +1,16 @@
  /*
   * UAE - The Un*x Amiga Emulator
   *
-  * Joystick emulation for AmigaOS using lowlevel.library
+  * Joystick emulation for AmigaOS
   *
   * Copyright 1996, 1997 Samuel Devulder
-  * Copyright 2003-2005 Richard Drummond
+  * Copyright 2003-2004 Richard Drummond
   */
 
 #include "sysconfig.h"
 #include "sysdeps.h"
 
+#include "config.h"
 #include "options.h"
 #include "inputdevice.h"
 
@@ -20,7 +21,7 @@
 struct Library *LowLevelBase;
 struct LowLevelIFace *ILowLevel;
 
-static unsigned int nr_joysticks;
+static int nr_joysticks;
 
 #define MAX_BUTTONS  2
 #define MAX_AXLES    2
@@ -58,16 +59,16 @@ static void close_joysticks (void)
     }
 }
 
-static int acquire_joy (unsigned int num, int flags)
+static int acquire_joy (int num, int flags)
 {
     return 1;
 }
 
-static void unacquire_joy (unsigned int num)
+static void unacquire_joy (int num)
 {
 }
 
-static void read_joy (unsigned int nr)
+static void read_joy (int nr)
 {
     if (LowLevelBase != NULL) {
 	ULONG state = ReadJoyPort (nr);
@@ -76,13 +77,13 @@ static void read_joy (unsigned int nr)
 	    int x = 0, y = 0;
 
 	    if (state & JPF_JOY_UP)
-		y = -1;
+	        y = -1;
 	    else if (state & JPF_JOY_DOWN)
-		y = 1;
+	        y = 1;
 	    if (state & JPF_JOY_LEFT)
-		x = -1;
+	        x = -1;
 	    else if (state & JPF_JOY_RIGHT)
-		x = 1;
+	        x = 1;
 
 	    setjoystickstate (nr, 0, x, 1);
 	    setjoystickstate (nr, 1, y, 1);
@@ -99,24 +100,24 @@ static void read_joysticks (void)
     read_joy (1);
 }
 
-static unsigned int get_joystick_num (void)
+static int get_joystick_num (void)
 {
     return nr_joysticks;
 }
 
-static const char *get_joystick_name (unsigned int joy)
+static char *get_joystick_name (int joy)
 {
     static char name[16];
     sprintf (name, "Joy port %d", joy);
     return name;
 }
 
-static unsigned int get_joystick_widget_num (unsigned int joy)
+static int get_joystick_widget_num (int joy)
 {
     return MAX_AXLES + MAX_BUTTONS;
 }
 
-static int get_joystick_widget_type (unsigned int joy, unsigned int num, char *name, uae_u32 *code)
+static int get_joystick_widget_type (int joy, int num, char *name, uae_u32 *code)
 {
     if (num >= MAX_AXLES && num < MAX_AXLES+MAX_BUTTONS) {
 	if (name)
@@ -130,7 +131,7 @@ static int get_joystick_widget_type (unsigned int joy, unsigned int num, char *n
     return IDEV_WIDGET_NONE;
 }
 
-static int get_joystick_widget_first (unsigned int joy, int type)
+static int get_joystick_widget_first (int joy, int type)
 {
     switch (type) {
 	case IDEV_WIDGET_BUTTON:
@@ -143,15 +144,9 @@ static int get_joystick_widget_first (unsigned int joy, int type)
 }
 
 struct inputdevice_functions inputdevicefunc_joystick = {
-    init_joysticks,
-    close_joysticks,
-    acquire_joy,
-    unacquire_joy,
-    read_joysticks,
-    get_joystick_num,
-    get_joystick_name,
-    get_joystick_widget_num,
-    get_joystick_widget_type,
+    init_joysticks, close_joysticks, acquire_joy, unacquire_joy,
+    read_joysticks, get_joystick_num, get_joystick_name,
+    get_joystick_widget_num, get_joystick_widget_type,
     get_joystick_widget_first
 };
 
@@ -160,7 +155,7 @@ struct inputdevice_functions inputdevicefunc_joystick = {
  */
 void input_get_default_joystick (struct uae_input_device *uid)
 {
-    unsigned int i, port;
+    int i, port;
 
     for (i = 0; i < nr_joysticks; i++) {
 	port = i & 1;

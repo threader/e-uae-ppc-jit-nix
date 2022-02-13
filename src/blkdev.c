@@ -10,6 +10,8 @@
 #include "options.h"
 #include "memory.h"
 
+#include "config.h"
+
 #include "blkdev.h"
 
 static struct device_functions *device_func[2];
@@ -38,27 +40,6 @@ static void install_driver (int flags)
 #endif
 }
 #else
-# ifdef TARGET_AMIGAOS
-
-extern struct device_functions devicefunc_scsi_amiga;
-
-static void install_driver (int flags)
-{
-    device_func[DF_SCSI]  = &devicefunc_scsi_amiga;
-    device_func[DF_IOCTL] = 0;
-}
-# else
-#   ifdef SCSIEMU_LINUX_IOCTL
-
-extern struct device_functions devicefunc_scsi_linux_ioctl;
-
-static void install_driver (int flags)
-{
-    device_func[DF_SCSI] = &devicefunc_scsi_linux_ioctl;
-    device_func[DF_IOCTL] = 0;
-}
-
-#   else
 
 extern struct device_functions devicefunc_scsi_libscg;
 
@@ -67,10 +48,8 @@ static void install_driver (int flags)
     device_func[DF_SCSI]  = &devicefunc_scsi_libscg;
     device_func[DF_IOCTL] = 0;
 }
-#  endif
-# endif
-#endif
 
+#endif
 int sys_command_open (int mode, int unitnum)
 {
     if (mode == DF_SCSI || !have_ioctl)
@@ -85,31 +64,6 @@ void sys_command_close (int mode, int unitnum)
 	device_func[DF_SCSI]->closedev (unitnum);
     else
 	device_func[DF_IOCTL]->closedev (unitnum);
-}
-
-int sys_command_open_thread (int mode, int unitnum)
-{
-    int result = 0;
-
-    if (mode == DF_SCSI || !have_ioctl) {
-	if (device_func[DF_SCSI]->opendevthread)
-	    result = device_func[DF_SCSI]->opendevthread (unitnum);
-    } else {
-	if (device_func[DF_IOCTL]->opendevthread)
-	    result= device_func[DF_IOCTL]->opendevthread (unitnum);
-    }
-    return result;
-}
-
-void sys_command_close_thread (int mode, int unitnum)
-{
-    if (mode == DF_SCSI || !have_ioctl) {
-	if (device_func[DF_SCSI]->closedevthread)
-	    device_func[DF_SCSI]->closedevthread (unitnum);
-    } else {
-	if (device_func[DF_IOCTL]->closedevthread)
-	    device_func[DF_IOCTL]->closedevthread (unitnum);
-    }
 }
 
 int device_func_init (int flags)
@@ -135,10 +89,8 @@ int device_func_init (int flags)
 
 static int audiostatus (int unitnum)
 {
-    static const uae_u8 cmd[10] = {
-	0x42, 2, 0x40, 1, 0, 0, 0, DEVICE_SCSI_BUFSIZE >> 8, DEVICE_SCSI_BUFSIZE & 0xff, 0
-    };
-    const uae_u8 *p = device_func[DF_SCSI]->exec_in (unitnum, cmd, sizeof (cmd), 0);
+    uae_u8 cmd[10] = {0x42,2,0x40,1,0,0,0,DEVICE_SCSI_BUFSIZE>>8,DEVICE_SCSI_BUFSIZE&0xff,0};
+    uae_u8 *p = device_func[DF_SCSI]->exec_in (unitnum, cmd, sizeof (cmd), 0);
     if (!p)
 	return 0;
     return p[1];
@@ -150,9 +102,7 @@ void sys_command_pause (int mode, int unitnum, int paused)
     if (mode == DF_SCSI || !have_ioctl) {
 	int as = audiostatus (unitnum);
 	if ((paused && as == 0x11) && (!paused && as == 0x12)) {
-	    uae_u8 cmd[10] = {
-		0x4b, 0, 0, 0, 0, 0, 0, 0, paused ? 0 :1, 0
-	    };
+	    uae_u8 cmd[10] = {0x4b,0,0,0,0,0,0,0,paused?0:1,0};
 	    device_func[DF_SCSI]->exec_out (unitnum, cmd, sizeof (cmd));
 	}
 	return;
@@ -166,9 +116,7 @@ void sys_command_stop (int mode, int unitnum)
     if (mode == DF_SCSI || !have_ioctl) {
 	int as = audiostatus (unitnum);
 	if (as == 0x11) {
-	    static const uae_u8 cmd[6] = {
-		0x4e, 0, 0, 0, 0, 0
-	    };
+	    uae_u8 cmd[6] = {0x4e,0,0,0,0,0};
 	    device_func[DF_SCSI]->exec_out (unitnum, cmd, sizeof (cmd));
 	}
 	return;
@@ -177,12 +125,10 @@ void sys_command_stop (int mode, int unitnum)
 }
 
 /* play CD audio */
-int sys_command_play (int mode, int unitnum, uae_u32 startmsf, uae_u32 endmsf, int scan)
+int sys_command_play (int mode, int unitnum,uae_u32 startmsf, uae_u32 endmsf, int scan)
 {
     if (mode == DF_SCSI || !have_ioctl) {
-	uae_u8 cmd[12] = {
-	    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-	};
+        uae_u8 cmd[12] = {0,0,0,0,0,0,0,0,0,0,0,0};
 #if 0
 	if (scan) {
 	    cmd[0] = 0xba;
@@ -203,46 +149,40 @@ int sys_command_play (int mode, int unitnum, uae_u32 startmsf, uae_u32 endmsf, i
 #if 0
 	}
 #endif
-	return device_func[DF_SCSI]->exec_out (unitnum, cmd, sizeof (cmd)) == 0 ? 0 : 1;
+        return device_func[DF_SCSI]->exec_out (unitnum, cmd, sizeof (cmd)) == 0 ? 0 : 1;
     }
     return device_func[DF_IOCTL]->play (unitnum, startmsf, endmsf, scan);
 }
 
 /* read qcode */
-const uae_u8 *sys_command_qcode (int mode, int unitnum)
+uae_u8 *sys_command_qcode (int mode, int unitnum)
 {
     if (mode == DF_SCSI || !have_ioctl) {
-	static const uae_u8 cmd[10] = {
-	    0x42, 2, 0x40, 1, 0, 0, 0, DEVICE_SCSI_BUFSIZE >> 8, DEVICE_SCSI_BUFSIZE & 0xff, 0
-	};
-	return device_func[DF_SCSI]->exec_in (unitnum, cmd, sizeof (cmd), 0);
+	uae_u8 cmd[10] = {0x42,2,0x40,1,0,0,0,DEVICE_SCSI_BUFSIZE>>8,DEVICE_SCSI_BUFSIZE&0xff,0};
+	return  device_func[DF_SCSI]->exec_in (unitnum, cmd, sizeof (cmd), 0);
     }
     return device_func[DF_IOCTL]->qcode (unitnum);
 };
 
 /* read table of contents */
-const uae_u8 *sys_command_toc (int mode, int unitnum)
+uae_u8 *sys_command_toc (int mode, int unitnum)
 {
     if (mode == DF_SCSI || !have_ioctl) {
-	static const uae_u8 cmd[10] = {
-	    0x43, 0, 2, 0, 0, 0, 1, DEVICE_SCSI_BUFSIZE >> 8, DEVICE_SCSI_BUFSIZE & 0xFF, 0
-	};
-	return device_func[DF_SCSI]->exec_in (unitnum, cmd, sizeof(cmd), 0);
+	uae_u8 cmd [10] = { 0x43,0,2,0,0,0,1,DEVICE_SCSI_BUFSIZE>>8,DEVICE_SCSI_BUFSIZE&0xFF,0};
+        return device_func[DF_SCSI]->exec_in (unitnum, cmd, sizeof(cmd), 0);
     }
     return device_func[DF_IOCTL]->toc (unitnum);
 }
 
 /* read one sector */
-const uae_u8 *sys_command_read (int mode, int unitnum, int offset)
+uae_u8 *sys_command_read (int mode, int unitnum, int offset)
 {
     if (mode == DF_SCSI || !have_ioctl) {
-	uae_u8 cmd[12] = {
-	    0xbe, 0, 0, 0, 0, 0, 0, 0, 1, 0x10, 0, 0
-	};
+	uae_u8 cmd[12] = { 0xbe, 0, 0, 0, 0, 0, 0, 0, 1, 0x10, 0, 0 };
 	cmd[3] = (uae_u8)(offset >> 16);
 	cmd[4] = (uae_u8)(offset >> 8);
 	cmd[5] = (uae_u8)(offset >> 0);
-	return device_func[DF_SCSI]->exec_in (unitnum, cmd, sizeof (cmd), 0);
+        return device_func[DF_SCSI]->exec_in (unitnum, cmd, sizeof (cmd), 0);
     }
     return device_func[DF_IOCTL]->read (unitnum, offset);
 }
@@ -260,10 +200,10 @@ struct device_info *sys_command_info (int mode, int unitnum, struct device_info 
 #define MODE_SELECT_10 0x55
 #define MODE_SENSE_10 0x5a
 
-void scsi_atapi_fixup_pre (uae_u8 *scsi_cmd, int *len, uae_u8 **datap, unsigned int *datalenp, int *parm)
+void scsi_atapi_fixup_pre (uae_u8 *scsi_cmd, int *len, uae_u8 **datap, int *datalenp, int *parm)
 {
     uae_u8 cmd, *p, *data = *datap;
-    unsigned int l, datalen = *datalenp;
+    int l, datalen = *datalenp;
 
     *parm = 0;
     cmd = scsi_cmd[0];
@@ -305,9 +245,9 @@ void scsi_atapi_fixup_pre (uae_u8 *scsi_cmd, int *len, uae_u8 **datap, unsigned 
     *datalenp = datalen;
 }
 
-void scsi_atapi_fixup_post (uae_u8 *scsi_cmd, int len, uae_u8 *olddata, uae_u8 *data, unsigned int *datalenp, int parm)
+void scsi_atapi_fixup_post (uae_u8 *scsi_cmd, int len, uae_u8 *olddata, uae_u8 *data, int *datalenp, int parm)
 {
-    unsigned int datalen = *datalenp;
+    int datalen = *datalenp;
     if (!data || !datalen)
 	return;
     if (parm == MODE_SENSE_10) {
@@ -315,7 +255,7 @@ void scsi_atapi_fixup_post (uae_u8 *scsi_cmd, int len, uae_u8 *olddata, uae_u8 *
 	olddata[1] = data[2];
 	olddata[2] = data[3];
 	olddata[3] = data[7];
-	datalen -= 4;
+        datalen -= 4;
 	if (datalen > 4)
 	    memcpy (olddata + 4, data + 8, datalen - 4);
 	*datalenp = datalen;
@@ -348,41 +288,41 @@ int sys_command_scsi_direct (int unitnum, uaecptr request)
 {
     int ret = device_func[DF_SCSI]->exec_direct (unitnum, request);
     if (!ret && device_func[DF_SCSI]->isatapi(unitnum))
-	scsi_atapi_fixup_inquiry (request);
+        scsi_atapi_fixup_inquiry (request);
     return ret;
 }
 
-void scsi_log_before (const uae_u8 *cdb, int cdblen, const uae_u8 *data, int datalen)
+void scsi_log_before (uae_u8 *cdb, int cdblen, uae_u8 *data, int datalen)
 {
     int i;
     for (i = 0; i < cdblen; i++) {
-	write_log ("%s%02.2X", i > 0 ? "." : "", cdb[i]);
+        write_log("%s%02.2X", i > 0 ? "." : "", cdb[i]);
     }
-    write_log ("\n");
+    write_log("\n");
     if (data) {
 	write_log ("DATAOUT: %d\n", datalen);
-	for (i = 0; i < datalen && i < 100; i++)
-	    write_log ("%s%02.2X", i > 0 ? "." : "", data[i]);
-	if (datalen > 0)
-	    write_log ("\n");
+        for (i = 0; i < datalen && i < 100; i++)
+	    write_log("%s%02.2X", i > 0 ? "." : "", data[i]);
+        if (datalen > 0)
+	    write_log("\n");
     }
 }
 
-void scsi_log_after (const uae_u8 *data, int datalen, const uae_u8 *sense, int senselen)
+void scsi_log_after (uae_u8 *data, int datalen, uae_u8 *sense, int senselen)
 {
     int i;
     if (data) {
 	write_log ("DATAIN: %d\n", datalen);
 	for (i = 0; i < datalen && i < 100; i++)
-	    write_log ("%s%02.2X", i > 0 ? "." : "", data[i]);
+	    write_log("%s%02.2X", i > 0 ? "." : "", data[i]);
 	if (datalen > 0)
-	    write_log ("\n");
+	    write_log("\n");
     }
     if (senselen > 0) {
-	write_log ("SENSE: ");
-	for (i = 0; i < senselen && i < 32; i++) {
-	    write_log ("%s%02.2X", i > 0 ? "." : "", sense[i]);
+        write_log("SENSE: ");
+        for (i = 0; i < senselen && i < 32; i++) {
+	    write_log("%s%02.2X", i > 0 ? "." : "", sense[i]);
 	}
-	write_log ("\n");
+	write_log("\n");
     }
 }

@@ -3,21 +3,23 @@
  * which desparately needs to be tidied up
  */
 
+#include "config.h"
 #include "sysconfig.h"
-#include "sysdeps.h"
 
+#include "sysdeps.h"
+#include "config.h"
 #include "options.h"
 #include "memory.h"
 #include "custom.h"
 #include "newcpu.h"
+#include "gensound.h"
 #include "events.h"
 #include "uae.h"
 #include "autoconf.h"
-#include "traps.h"
 #include "enforcer.h"
 #include "picasso96.h"
 
-static uae_u32 REGPARAM2 misc_demux (TrapContext *context)
+static uae_u32 misc_demux (void)
 {
 //use the extern int (6 #13)
 // d0 0=opensound      d1=unit d2=samplerate d3=blksize ret: sound frequency
@@ -26,19 +28,19 @@ static uae_u32 REGPARAM2 misc_demux (TrapContext *context)
 // d0 3=readsamples    d1=unit a0=addr      read samples from card ret: d0=samples read
       // make sure you have from amigaside blksize*4 mem alloced
       // d0=-1 no data available d0=-2 no recording open
-	  // d0 > 0 there are more blksize Data in the que
-	  // do the loop until d0 get 0
-	  // if d0 is greater than 200 bring a message
-	  // that show the user that data is lost
-	  // maximum blocksbuffered are 250 (8,5 sec)
+          // d0 > 0 there are more blksize Data in the que
+          // do the loop until d0 get 0
+          // if d0 is greater than 200 bring a message
+          // that show the user that data is lost
+          // maximum blocksbuffered are 250 (8,5 sec)
 // d0 4=writeinterrupt d1=unit  d0=0 no interrupt happen for this unit
-	  // d0=-2 no playing open
+          // d0=-2 no playing open
 
-	//note units for now not support use only unit 0
+        //note units for now not support use only unit 0
 
 // d0=10 get clipboard size      d0=size in bytes
 // d0=11 get clipboard data      a0=clipboarddata
-				  //Note: a get clipboard size must do before
+                                  //Note: a get clipboard size must do before
 // d0=12 write clipboard data    a0=clipboarddata
 // d0=13 setp96mouserate         d1=hz value
 // d0=100 open dll               d1=dll name in windows name conventions
@@ -52,17 +54,17 @@ static uae_u32 REGPARAM2 misc_demux (TrapContext *context)
 // d0=108 free swap array
 // d0=200 ahitweak               d1=offset for dsound position pointer
 
-    int opcode = m68k_dreg (&context->regs, 0);
+    int opcode = m68k_dreg (regs, 0);
 
     switch (opcode) {
-	int i, slen, t, todo, byte1, byte2;
-	uae_u32 src, num_vars;
-	static int cap_pos, clipsize;
-#if 0
-	LPTSTR p, p2, pos1, pos2;
-	static  LPTSTR clipdat;
+        int i, slen, t, todo, byte1, byte2;
+        uae_u32 src, num_vars;
+        static int cap_pos, clipsize;
+#ifdef _WIN32
+        LPTSTR p, p2, pos1, pos2;
+        static  LPTSTR clipdat;
 #endif
-	int cur_pos;
+        int cur_pos;
 
 /*
  * AHI emulation support
@@ -70,8 +72,8 @@ static uae_u32 REGPARAM2 misc_demux (TrapContext *context)
 #ifdef AHI
 	case 0:
 	    cap_pos = 0;
-	    sound_freq_ahi = m68k_dreg (&context->regs, 2);
-	    amigablksize = m68k_dreg (&context->regs, 3);
+	    sound_freq_ahi = m68k_dreg (regs, 2);
+	    amigablksize = m68k_dreg (regs, 3);
 	    sound_freq_ahi = ahi_open_sound();
 	    uaevar.changenum--;
 	    return sound_freq_ahi;
@@ -80,9 +82,9 @@ static uae_u32 REGPARAM2 misc_demux (TrapContext *context)
 	    sound_freq_ahi = 0;
 	    return 0;
 	case 2:
-	    addr=(char *)m68k_areg (&context->regs, 0);
+	    addr=(char *)m68k_areg (regs, 0);
 	    for (i = 0; i < (amigablksize*4); i += 4) {
-		ahisndbufpt[0] = get_long ((unsigned int)addr + i);
+		ahisndbufpt[0] = get_long((unsigned int)addr + i);
 		ahisndbufpt+=1;
 		/*ahisndbufpt[0]=chipmem_bget((unsigned int)addr+i+2);
 		  ahisndbufpt+=1;
@@ -106,7 +108,7 @@ static uae_u32 REGPARAM2 misc_demux (TrapContext *context)
 	    else
 		todo = cur_pos + (RECORDBUFFER * t) - cap_pos;
 	    if (todo < t) {
-		//if no complete buffer ready exit
+	        //if no complete buffer ready exit
 		return -1;
 	    }
 	    i = IDirectSoundCaptureBuffer_Lock (lpDSB2r, cap_pos, t, &pos1, &byte1, &pos2, &byte2, 0);
@@ -116,7 +118,7 @@ static uae_u32 REGPARAM2 misc_demux (TrapContext *context)
 	    } else {
 		cap_pos = 0;
 	    }
-	    addr= (char *) m68k_areg (&context->regs, 0);
+	    addr= (char *) m68k_areg (regs, 0);
 	    sndbufrecpt= (unsigned int*) pos1;
 	    t = t / 4;
 	    for (i=0; i < t; i++) {
@@ -140,7 +142,7 @@ static uae_u32 REGPARAM2 misc_demux (TrapContext *context)
 	    return 1;
 #endif
 
-#if 0
+#ifdef _WIN32
 /*
  * Support for clipboard hack
  */
@@ -155,7 +157,7 @@ static uae_u32 REGPARAM2 misc_demux (TrapContext *context)
 		return 0;
 	    }
 	case 11:
-	    addr = (char *) m68k_areg (&context->regs, 0);
+	    addr = (char *) m68k_areg (regs, 0);
 	    for (i=0; i < clipsize; i++) {
 		put_byte ((uae_u32) addr, clipdat[0]);
 		addr++;
@@ -164,7 +166,7 @@ static uae_u32 REGPARAM2 misc_demux (TrapContext *context)
 	    CloseClipboard ();
 	    return 0;
 	case 12:
-	    addr = (char *) m68k_areg (&context->regs, 0);
+	    addr = (char *) m68k_areg (regs, 0);
 	    addr = (char *) get_real_address ((uae_u32)addr);
 	    i = OpenClipboard (0);
 	    EmptyClipboard ();
@@ -190,7 +192,7 @@ static uae_u32 REGPARAM2 misc_demux (TrapContext *context)
 	    extern int p96refresh_active;
 	    extern uae_u16 vtotal;
 	    extern unsigned int new_beamcon0;
-	    p96hack_vpos2 = 15625 / m68k_dreg (&context->regs, 1);
+	    p96hack_vpos2 = 15625 / m68k_dreg (regs, 1);
 	    p96refresh_active = 1;
 	    if (!picasso_on)
 		return 0;
@@ -212,18 +214,18 @@ static uae_u32 REGPARAM2 misc_demux (TrapContext *context)
 	    return enforcer_disable ();
 #endif
 
-#if 0
+#ifdef _WIN32
 	case 25:
 	    flushprinter ();
 	    return 0;
 #endif
 
 
-#if 0
+#ifdef _WIN32
 	case 100: {	// open dll
 	    char *dllname;
 	    uae_u32 result;
-	    dllname = (char *) m68k_areg (&context->regs, 0);
+	    dllname = (char *) m68k_areg (regs, 0);
 	    dllname = (char *) get_real_address ((uae_u32)dllname);
 	    result = (uae_u32) LoadLibrary (dllname);
 	    write_log ("%s windows dll/alib loaded at %d (0 mean failure)\n", dllname, result);
@@ -232,8 +234,8 @@ static uae_u32 REGPARAM2 misc_demux (TrapContext *context)
 	case 101: {	//get dll label
 	    HMODULE m;
 	    char *funcname;
-	    m = (HMODULE) m68k_dreg (&context->regs, 1);
-	    funcname = (char *) m68k_areg (&context->regs, 0);
+	    m = (HMODULE) m68k_dreg (regs, 1);
+	    funcname = (char *) m68k_areg (regs, 0);
 	    funcname = (char *) get_real_address ((uae_u32)funcname);
 	    return (uae_u32) GetProcAddress (m, funcname);
 	}
@@ -242,7 +244,7 @@ static uae_u32 REGPARAM2 misc_demux (TrapContext *context)
 
 	case 103: {	//close dll
 	    HMODULE libaddr;
-	    libaddr = (HMODULE) m68k_dreg (&context->regs, 1);
+	    libaddr = (HMODULE) m68k_dreg (regs, 1);
 	    FreeLibrary (libaddr);
 	    return 0;
 	}
@@ -253,14 +255,14 @@ static uae_u32 REGPARAM2 misc_demux (TrapContext *context)
 	    oldnum = uaevar.changenum;
 	    return 1;
 	}
-	case 105:	//returns memory offset
+        case 105:	//returns memory offset
 	    return (uae_u32) get_real_address (0);
 	case 106:	//byteswap 16bit vars
 			//a0 = start address
 			//d1 = number of 16bit vars
 			//returns address of new array
-	    src = m68k_areg (&context->regs, 0);
-	    num_vars = m68k_dreg (&context->regs, 1);
+	    src = m68k_areg (regs, 0);
+	    num_vars = m68k_dreg (regs, 1);
 
 	    if (bswap_buffer_size < num_vars * 2) {
 		bswap_buffer_size = (num_vars + 1024) * 2;
@@ -319,12 +321,12 @@ static uae_u32 REGPARAM2 misc_demux (TrapContext *context)
 		BSWAP_WORD_END:
 	    }
 	    return (uae_u32) bswap_buffer;
-	case 107:	//byteswap 32bit vars - see case 106
+        case 107:	//byteswap 32bit vars - see case 106
 			//a0 = start address
 			//d1 = number of 32bit vars
 			//returns address of new array
-	    src = m68k_areg (&context->regs, 0);
-	    num_vars = m68k_dreg (&context->regs, 1);
+	    src = m68k_areg (regs, 0);
+	    num_vars = m68k_dreg (regs, 1);
 	    if (bswap_buffer_size < num_vars * 4) {
 		bswap_buffer_size = (num_vars + 16384) * 4;
 		free (bswap_buffer);
@@ -378,7 +380,7 @@ static uae_u32 REGPARAM2 misc_demux (TrapContext *context)
 	    bswap_buffer = NULL;
 	    return 0;
 	case 200:
-	    ahitweak = m68k_dreg (&context->regs, 1);
+	    ahitweak = m68k_dreg (regs, 1);
 	    return 1;
 #endif
 	default:
@@ -389,7 +391,6 @@ static uae_u32 REGPARAM2 misc_demux (TrapContext *context)
 
 void misc_hsync_stuff (void)
 {
-#ifdef FILESYS
     static int misc_demux_installed;
 
 #ifdef AHI
@@ -414,5 +415,4 @@ void misc_hsync_stuff (void)
 	org (a);
 	misc_demux_installed = 1;
     }
-#endif
 }

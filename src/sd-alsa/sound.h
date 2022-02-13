@@ -1,8 +1,8 @@
- /*
+ /* 
   * UAE - The Un*x Amiga Emulator
-  *
+  * 
   * Support for Linux/ALSA sound
-  *
+  * 
   * Copyright 1997 Bernd Schmidt
   * Copyright 2004 Heikki Orsila
   */
@@ -14,7 +14,7 @@ extern uae_u16 sndbuffer[];
 extern uae_u16 *sndbufpt;
 extern int sndbufsize;
 extern snd_pcm_t *alsa_playback_handle;
-extern int bytes_per_frame;
+extern int alsa_to_frames_divisor;
 
 /* alsa_xrun_recovery() function is copied from ALSA manual. why the hell did
    they make ALSA this hard?! i bet 95% of ALSA programmers would like a
@@ -47,7 +47,7 @@ static int alsa_xrun_recovery(snd_pcm_t *handle, int err)
 static void check_sound_buffers (void)
 {
   if ((char *)sndbufpt - (char *)sndbuffer >= sndbufsize) {
-    int frames = sndbufsize / bytes_per_frame;
+    int frames = sndbufsize / alsa_to_frames_divisor;
     char *buf = (char *) sndbuffer;
     int ret;
     while (frames > 0) {
@@ -62,13 +62,11 @@ static void check_sound_buffers (void)
 	continue;
       }
       frames -= ret;
-      buf += ret * bytes_per_frame;
+      buf += ret * alsa_to_frames_divisor;
     }
     sndbufpt = sndbuffer;
   }
 }
-
-#define AUDIO_NAME "alsa"
 
 #define PUT_SOUND_BYTE(b) do { *(uae_u8 *)sndbufpt = b; sndbufpt = (uae_u16 *)(((uae_u8 *)sndbufpt) + 1); } while (0)
 #define PUT_SOUND_WORD(b) do { *(uae_u16 *)sndbufpt = b; sndbufpt = (uae_u16 *)(((uae_u8 *)sndbufpt) + 2); } while (0)
@@ -76,9 +74,12 @@ static void check_sound_buffers (void)
 #define PUT_SOUND_WORD_LEFT(b) PUT_SOUND_WORD(b)
 #define PUT_SOUND_BYTE_RIGHT(b) PUT_SOUND_BYTE(b)
 #define PUT_SOUND_WORD_RIGHT(b) PUT_SOUND_WORD(b)
-#define PUT_SOUND_WORD_MONO(b) PUT_SOUND_WORD_LEFT(b)
-
 #define SOUND16_BASE_VAL 0
+#define SOUND8_BASE_VAL 128
+
+#define DEFAULT_SOUND_MAXB 8192
+#define DEFAULT_SOUND_MINB 8192
+#define DEFAULT_SOUND_BITS 16
 #define DEFAULT_SOUND_FREQ 44100
-#define DEFAULT_SOUND_LATENCY 100
 #define HAVE_STEREO_SUPPORT
+#define HAVE_8BIT_AUDIO_SUPPORT

@@ -3,8 +3,8 @@
 //
 //  BeOS port specific stuff
 //
-//  (c) 2004-2005 Richard Drummond
-//  (c) 2000-2001 Axel Doerfler
+//  (c) 2004 Richard Drummond
+//  (c) 2000-2001 Axel D�fler
 //  (c) 1999 Be/R4 Sound - Raphael Moll
 //  (c) 1998-1999 David Sowsy
 //  (c) 1996-1998 Christian Bauer
@@ -18,7 +18,7 @@
 extern "C" {
 #include "sysconfig.h"
 #include "sysdeps.h"
-
+#include "config.h"
 #include "options.h"
 #include "uae.h"
 #include "debug.h"
@@ -47,11 +47,6 @@ void copyArgs(int argc,char **argv);
 
 UAE::UAE() : BApplication(kApplicationSignature)
 {
-/* Disable this for just now - it screws specifying
- * a config file on the command line. We need to get
- * OS-specific arguments in a different way.
- */
-#if 0   
 	// Find application directory and cwd to it
 	app_info appInfo;
 	GetAppInfo(&appInfo);
@@ -63,7 +58,7 @@ UAE::UAE() : BApplication(kApplicationSignature)
 	BPath appPath;
 	appDirEntry.GetPath(&appPath);
 	chdir(appPath.Path());
-#endif
+
 	RegisterMimeTypes();
 
 	// Initialize other variables
@@ -187,11 +182,6 @@ void UAE::RegisterMimeTypes()
 
 void UAE::GraphicsLeave()
 {
-    if (fEmulationWindow) {
-	fEmulationWindow->Hide();
-	fEmulationWindow->PostMessage(B_QUIT_REQUESTED);
-	fEmulationWindow = gEmulationWindow = 0;
-    }
 }
 
 
@@ -202,6 +192,7 @@ int UAE::GraphicsInit()
 		currprefs.color_mode = 0;
     }
 
+	gfxvidinfo.can_double = 1;
 	gfxvidinfo.width      = currprefs.gfx_width_win;
 	gfxvidinfo.height     = currprefs.gfx_height_win;
 

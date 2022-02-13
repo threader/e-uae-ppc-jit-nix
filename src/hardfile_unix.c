@@ -3,8 +3,11 @@
   *
   * Hardfile emulation for *nix systems
   *
-  * Copyright 2003-2006 Richard Drummond
+  * Copyright 2003 Richard Drummond
   * Based on hardfile_win32.c
+  *
+  * Note: this is a rather naive implementation. Sophistication and 64-bit
+  * support still to come . . .
   */
 
 #include "sysconfig.h"
@@ -14,9 +17,9 @@
 
 //#define HDF_DEBUG
 #ifdef  HDF_DEBUG
-#define DEBUG_LOG write_log ( "%s: ", __func__); write_log
+#define DEBUG_LOG write_log( "%s: ", __func__); write_log
 #else
-#define DEBUG_LOG(...) do {} while(0)
+#define DEBUG_LOG(...) do ; while(0)
 #endif
 
 
@@ -42,12 +45,12 @@ static int hdf_seek (struct hardfiledata *hfd, uae_u64 offset)
 	abort ();
     }
 
-  if (offset >= 0x80000000 && sizeof (off_t) < sizeof (uae_u64)) {
+    if (offset >= 0x80000000) {
 	DEBUG_LOG ("Failed to seek passed 2GB limit (0x%llx)\n", offset);
 	return -1;
     }
 
-    ret = lseek (hfd->handle, offset, SEEK_SET);
+    ret = lseek ((int)hfd->handle, offset, SEEK_SET);
 
     if (ret == -1) {
 	DEBUG_LOG ("seek failed\n");
@@ -67,7 +70,7 @@ static void poscheck (struct hardfiledata *hfd, int len)
 	abort ();
     }
 
-    pos = lseek (hfd->handle, 0, SEEK_CUR);
+    pos = lseek ((int)hfd->handle, 0, SEEK_CUR);
 
     if (pos == -1 ) {
 	gui_message ("hd: poscheck failed. seek failure, error %d", errno);
@@ -92,16 +95,16 @@ static void poscheck (struct hardfiledata *hfd, int len)
     }
 }
 
-int hdf_open (struct hardfiledata *hfd, const char *name)
+int hdf_open (struct hardfiledata *hfd, char *name)
 {
     int handle;
 
     DEBUG_LOG ("called with name=%s\n",name);
 
-   if ((handle = open (name, hfd->readonly ? O_RDONLY : O_RDWR)) != -1) {
+   if ((handle = open(name, hfd->readonly ? O_RDONLY : O_RDWR)) != -1) {   
 	int i;
 
-	hfd->handle = handle;
+	hfd->handle = (void *) handle;
 	hfd->cache = 0;
 
 	i = strlen (name) - 1;
@@ -127,14 +130,9 @@ int hdf_open (struct hardfiledata *hfd, const char *name)
     return 0;
 }
 
-extern int hdf_dup (struct hardfiledata *dhfd, const struct hardfiledata *shfd)
+extern int hdf_dup (struct hardfiledata *hfd, void *src)
 {
     DEBUG_LOG ("called\n");
-
-    if (shfd->handle >= 0) {
-	dhfd->handle = dup (shfd->handle);
-    }
-
     return 0;
 }
 
@@ -142,8 +140,7 @@ void hdf_close (struct hardfiledata *hfd)
 {
     DEBUG_LOG ("called\n");
 
-    close (hfd->handle);
-    hfd->handle = -1;
+    close ((int)hfd->handle);
 }
 
 int hdf_read (struct hardfiledata *hfd, void *buffer, uae_u64 offset, int len)
@@ -155,7 +152,7 @@ int hdf_read (struct hardfiledata *hfd, void *buffer, uae_u64 offset, int len)
     hfd->cache_valid = 0;
     hdf_seek (hfd, offset);
     poscheck (hfd, len);
-    n = read (hfd->handle, buffer, len);
+    n = read ((int)hfd->handle, buffer, len);
 
     DEBUG_LOG ("read %d bytes\n", n);
 
@@ -171,7 +168,7 @@ int hdf_write (struct hardfiledata *hfd, void *buffer, uae_u64 offset, int len)
     hfd->cache_valid = 0;
     hdf_seek (hfd, offset);
     poscheck (hfd, len);
-    n = write (hfd->handle, buffer, len);
+    n = write ((int)hfd->handle, buffer, len);
 
     DEBUG_LOG ("Wrote %d bytes\n", n);
 

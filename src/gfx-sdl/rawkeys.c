@@ -13,7 +13,6 @@
 #include "inputdevice.h"
 #include "keyboard.h"
 
-#include "hotkeys.h"
 #include "keymap/keymap.h"
 #include "keymap/keymap_all.h"
 #include "sdlgfx.h"
@@ -31,7 +30,7 @@ struct sdl_raw_keymap
     int                          sdl_gfx_driver;
     const char                  *name;
     const struct uaekey_hostmap *keymap;
-	  struct uae_hotkeyseq  *hotkeys;
+          struct uae_hotkeyseq  *hotkeys;
     const int                   *modtable;
 };
 
@@ -42,22 +41,15 @@ static const int *modkeytable;
  * Table used to pick keymapping based on SDL gfx driver
  */
 static const struct sdl_raw_keymap keymaps[] = {
-#if (defined __i386__ || defined __x86_64__ || defined __powerpc__ || defined __ppc__) && defined __linux__
+#if (defined __i386__ || defined __powerpc__ || defined __ppc__) && defined __linux__
     { SDLGFX_DRIVER_X11,     "x11pc",  x11pc_keymap,  x11pc_hotkeys,  0},
     { SDLGFX_DRIVER_DGA,     "x11pc",  x11pc_keymap,  x11pc_hotkeys,  0},
 #endif
-#if defined __APPLE__
+#if (defined __powerpc__ || defined __ppc__) && defined __APPLE__
     { SDLGFX_DRIVER_QUARTZ,  "quartz", quartz_keymap, quartz_hotkeys, quartz_modkeytable},
 #endif
 #ifdef __BEOS__
     { SDLGFX_DRIVER_BWINDOW, "beos",   beos_keymap,   beos_hotkeys,   0},
-#endif
-#ifdef TARGET_AMIGAOS
-# ifdef __amigaos4__
-    { SDLGFX_DRIVER_AMIGAOS4, "amiga", amiga_keymap,  amiga_hotkeys,  0},
-# else
-    { SDLGFX_DRIVER_CYBERGFX, "amiga", amiga_keymap,  amiga_hotkeys,  0},
-# endif
 #endif
     { 0, 0, 0, 0, 0 }
 };
@@ -67,8 +59,8 @@ struct uae_input_device_kbr_default *get_default_raw_keymap (int type)
     const struct sdl_raw_keymap *k = &keymaps[0];
 
     if (!keyboard) {
-	free (keyboard);
-	keyboard = 0;
+        free (keyboard);
+        keyboard = 0;
     }
 
     while (k->sdl_gfx_driver != type && k->sdl_gfx_driver != 0)
@@ -77,7 +69,7 @@ struct uae_input_device_kbr_default *get_default_raw_keymap (int type)
     if (k->keymap) {
 	write_log ("Found %s raw keyboard mapping\n", k->name);
 	modkeytable = k->modtable;
-	keyboard = uaekey_make_default_kbr (k->keymap);
+        keyboard = uaekey_make_default_kbr (k->keymap);
     }
 
     return keyboard;
@@ -138,7 +130,7 @@ int modifier_hack (int *scancode, int *pressed)
 	     *pressed  = modifiers & KMOD_CAPS;
 	} else
 	     result = 0;
-	old_modifiers = modifiers;
+        old_modifiers = modifiers;
     } else
 	result = 0;
 

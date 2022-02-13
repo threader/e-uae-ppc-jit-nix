@@ -4,12 +4,13 @@
   * Joystick emulation stubs
   *
   * Copyright 1997 Bernd Schmidt
-  * Copyright 2003-2005 Richard Drummond
+  * Copyright 2003 Richard Drummond
   */
 
 #include "sysconfig.h"
 #include "sysdeps.h"
 
+#include "config.h"
 #include "options.h"
 #include "memory.h"
 #include "custom.h"
@@ -24,12 +25,12 @@ static void close_joysticks (void)
 {
 }
 
-static int acquire_joystick (unsigned int num, int flags)
+static int acquire_joystick (int num, int flags)
 {
     return 0;
 }
 
-static void unacquire_joystick (unsigned int num)
+static void unacquire_joystick (int num)
 {
 }
 
@@ -37,41 +38,35 @@ static void read_joysticks (void)
 {
 }
 
-static unsigned int get_joystick_num (void)
+static int get_joystick_num (void)
 {
     return 0;
 }
 
-static const char *get_joystick_name (unsigned int joy)
+static char *get_joystick_name (int joy)
 {
     return 0;
 }
 
-static unsigned int get_joystick_widget_num (unsigned int joy)
+static int get_joystick_widget_num (int joy)
 {
     return 0;
 }
 
-static int get_joystick_widget_type (unsigned int joy, unsigned int num, char *name, uae_u32 *code)
+static int get_joystick_widget_type (int joy, int num, char *name, uae_u32 *code)
 {
     return IDEV_WIDGET_NONE;
 }
 
-static int get_joystick_widget_first (unsigned int joy, int type)
+static int get_joystick_widget_first (int joy, int type)
 {
     return -1;
 }
 
 struct inputdevice_functions inputdevicefunc_joystick = {
-    init_joysticks,
-    close_joysticks,
-    acquire_joystick,
-    unacquire_joystick,
-    read_joysticks,
-    get_joystick_num,
-    get_joystick_name,
-    get_joystick_widget_num,
-    get_joystick_widget_type,
+    init_joysticks, close_joysticks, acquire_joystick, unacquire_joystick,
+    read_joysticks, get_joystick_num, get_joystick_name,
+    get_joystick_widget_num, get_joystick_widget_type,
     get_joystick_widget_first
 };
 

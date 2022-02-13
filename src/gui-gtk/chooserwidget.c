@@ -25,8 +25,8 @@ guint chooserwidget_get_type ()
     static guint chooserwidget_type = 0;
 
     if (!chooserwidget_type) {
-	static const GtkTypeInfo chooserwidget_info = {
-	    (char *) "ChooserWidget",
+	GtkTypeInfo chooserwidget_info = {
+	    "ChooserWidget",
 	    sizeof (ChooserWidget),
 	    sizeof (ChooserWidgetClass),
 	    (GtkClassInitFunc) chooserwidget_class_init,

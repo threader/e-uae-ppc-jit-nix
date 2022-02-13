@@ -2,15 +2,15 @@
  * UAE - The Un*x Amiga Emulator
  *
  * Copyright 2004 Richard Drummond
- *
+ * 
  * Start-up and support functions used by Linux/Unix targets
  */
 
 #include "sysconfig.h"
 #include "sysdeps.h"
 
+#include "config.h"
 #include "options.h"
-#include "uae.h"
 #include "debug.h"
 
 /*
@@ -24,9 +24,7 @@ static RETSIGTYPE sigbrkhandler(...)
 static RETSIGTYPE sigbrkhandler (int foo)
 #endif
 {
-#ifdef DEBUGGER
-    activate_debugger ();
-#endif
+    activate_debugger();
 
 #if !defined(__unix) || defined(__NeXT__)
     signal (SIGINT, sigbrkhandler);
@@ -52,11 +50,11 @@ void setup_brkhandler (void)
 /*
  * Handle target-specific cfgfile options
  */
-void target_save_options (FILE *f, const struct uae_prefs *p)
+void target_save_options (FILE *f, struct uae_prefs *p)
 {
 }
 
-int target_parse_option (struct uae_prefs *p, const char *option, const char *value)
+int target_parse_option (struct uae_prefs *p, char *option, char *value)
 {
     return 0;
 }

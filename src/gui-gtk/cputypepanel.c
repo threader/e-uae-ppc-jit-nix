@@ -29,8 +29,8 @@ guint cputypepanel_get_type ()
     static guint cputypepanel_type = 0;
 
     if (!cputypepanel_type) {
-	static const GtkTypeInfo cputypepanel_info = {
-	    (char *) "CpuTypePanel",
+	GtkTypeInfo cputypepanel_info = {
+	    "CpuTypePanel",
 	    sizeof (CpuTypePanel),
 	    sizeof (CpuTypePanelClass),
 	    (GtkClassInitFunc) cputypepanel_class_init,
@@ -50,7 +50,7 @@ enum {
     LAST_SIGNAL
 };
 
-static guint cputypepanel_signals[LAST_SIGNAL];
+static gint cputypepanel_signals[LAST_SIGNAL] = { 0 };
 
 static void cputypepanel_class_init (CpuTypePanelClass *class)
 {
@@ -59,7 +59,7 @@ static void cputypepanel_class_init (CpuTypePanelClass *class)
 				   cputypepanel_signals,
 				   "cputype-changed",
 				   "addr24bit-changed",
-				   (void*)0);
+				   0);
     class->cputypepanel = NULL;
 }
 
@@ -73,20 +73,12 @@ static void cputypepanel_init (CpuTypePanel *ctpanel)
 
     gtkutil_add_table (GTK_WIDGET (ctpanel),
 	make_label ("CPU Model"), 1, 1, GTK_FILL,
-	ctpanel->cputype_widget    = make_chooser (
-#ifdef FPUEMU
-						   5, "68000", "68010", "68020", "68040", "68060"
-#else
-						   3, "68000", "68010", "68020"
-#endif
-						   ), 2, 1, GTK_EXPAND | GTK_FILL,
+	ctpanel->cputype_widget    = make_chooser (5, "68000", "68010", "68020", "68040", "68060"), 2, 1, GTK_EXPAND | GTK_FILL,
 	GTKUTIL_ROW_END,
 	ctpanel->addr24bit_widget  = gtk_check_button_new_with_label ("24-bit addressing"), 1, 2, GTK_EXPAND,
 	GTKUTIL_ROW_END,
-#ifdef FPUEMU
 	ctpanel->fpuenabled_widget = gtk_check_button_new_with_label ("Emulate FPU"), 1, 2, GTK_EXPAND,
 	GTKUTIL_ROW_END,
-#endif
 	make_label ("Accuracy"), 1, 1, GTK_FILL,
 	ctpanel->accuracy_widget   = make_chooser (3, "Normal", "Compatible", "Cycle exact"), 2, 1, GTK_EXPAND | GTK_FILL,
 	GTKUTIL_ROW_END,
@@ -99,11 +91,9 @@ static void cputypepanel_init (CpuTypePanel *ctpanel)
     gtk_signal_connect (GTK_OBJECT (ctpanel->addr24bit_widget), "toggled",
 			GTK_SIGNAL_FUNC (on_addr24bit_toggled),
 			ctpanel);
-#ifdef FPUEMU
     gtk_signal_connect (GTK_OBJECT (ctpanel->fpuenabled_widget), "toggled",
 			GTK_SIGNAL_FUNC (on_fpuenabled_toggled),
 			ctpanel);
-#endif
     gtk_signal_connect (GTK_OBJECT (ctpanel->accuracy_widget), "selection-changed",
 			GTK_SIGNAL_FUNC (on_accuracy_changed),
 			ctpanel);
@@ -131,16 +121,14 @@ static void update_state (CpuTypePanel *ctpanel)
     }
 
     gtk_widget_set_sensitive (ctpanel->addr24bit_widget, cpu == 2);
-#ifdef FPUEMU
     gtk_widget_set_sensitive (ctpanel->fpuenabled_widget, cpu == 2);
 
     if (fpu != ctpanel->fpuenabled) {
-	ctpanel->fpuenabled = fpu;
-	gtk_signal_handler_block_by_data (GTK_OBJECT (ctpanel->fpuenabled_widget), ctpanel );
+        ctpanel->fpuenabled = fpu;
+        gtk_signal_handler_block_by_data (GTK_OBJECT (ctpanel->fpuenabled_widget), ctpanel );
 	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (ctpanel->fpuenabled_widget), fpu);
-	gtk_signal_handler_unblock_by_data (GTK_OBJECT (ctpanel->fpuenabled_widget), ctpanel );
+        gtk_signal_handler_unblock_by_data (GTK_OBJECT (ctpanel->fpuenabled_widget), ctpanel );
     }
-#endif
 
     if (addr24 != ctpanel->addr24bit) {
 	ctpanel->addr24bit  = addr24;
@@ -165,13 +153,11 @@ static void on_addr24bit_toggled (GtkWidget *w, CpuTypePanel *ctpanel)
     gtk_signal_emit_by_name (GTK_OBJECT(ctpanel), "addr24bit-changed");
 }
 
-#ifdef FPUEMU
 static void on_fpuenabled_toggled (GtkWidget *w, CpuTypePanel *ctpanel)
 {
     ctpanel->fpuenabled = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (ctpanel->fpuenabled_widget));
     gtk_signal_emit_by_name (GTK_OBJECT(ctpanel), "cputype-changed");
 }
-#endif
 
 static void on_accuracy_changed (GtkWidget *w, CpuTypePanel *ctpanel)
 {
@@ -216,12 +202,10 @@ void cputypepanel_set_cpulevel (CpuTypePanel *ctpanel, guint cpulevel)
 	chooserwidget_set_choice (CHOOSERWIDGET (ctpanel->cputype_widget), cputype);
 
     }
-#ifdef FPUEMU
     if (fpu != ctpanel->fpuenabled) {
 	ctpanel->fpuenabled = fpu;
 	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (ctpanel->fpuenabled_widget), fpu);
     }
-#endif
     update_state (ctpanel);
 }
 

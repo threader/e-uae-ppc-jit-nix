@@ -16,7 +16,6 @@
 
 #include "memory.h"
 #include "custom.h"
-#include "options.h"
 #include "newcpu.h"
 #include "enforcer.h"
 
@@ -42,7 +41,7 @@ static int enforcer_hit = 0; /* set to 1 if displaying the hit */
 #define ENFORCER_BUF_SIZE 4096
 static char enforcer_buf[ENFORCER_BUF_SIZE];
 
-#define GET_PC m68k_getpc (&regs)
+#define GET_PC m68k_getpc()
 
 static addrbank saved_dummy_bank;
 static addrbank saved_chipmem_bank;
@@ -97,7 +96,7 @@ static uae_u8 *amiga2native (uae_u32 aptr, int size)
 *************************************************************/
 static int enforcer_decode_hunk_and_offset (char *buf, uae_u32 pc)
 {
-    uae_u32 sysbase = get_long (4);
+    uae_u32 sysbase = get_long(4);
     uae_u32 semaphore_list = sysbase + 532;
 
     /* First step is searching for the SegTracker semaphore */
@@ -107,7 +106,7 @@ static int enforcer_decode_hunk_and_offset (char *buf, uae_u32 pc)
 	uae_u8 *native_string = amiga2native (string, 100);
 
 	if (native_string) {
-	    if (!strcmp ((char *) native_string, "SegTracker"))
+	    if (!strcmp (native_string, "SegTracker"))
 		break;
 	}
 	node = amiga_node_next (node);
@@ -137,12 +136,12 @@ static int enforcer_decode_hunk_and_offset (char *buf, uae_u32 pc)
 
 		if (pc >= address && pc < address + size) {
 		    uae_u32 name, offset;
-		    const char *native_name;
+		    uae_u8 *native_name;
 
 		    offset = pc - address - 4;
 		    name = get_long (node + 8); /* ln_Name */
 		    if (name) {
-			native_name = (char *) amiga2native (name, 100);
+			native_name = amiga2native (name, 100);
 			if (!native_name)
 			    native_name = "Unknown";
 		    } else
@@ -151,7 +150,7 @@ static int enforcer_decode_hunk_and_offset (char *buf, uae_u32 pc)
 		    sprintf (buf, "----> %08lx - \"%s\" Hunk %04lx Offset %08lx\n", pc,
 			native_name, hunk, offset);
 		    return 1;
-		}
+	        }
 		seg_entry += 8;
 		hunk++;
 	    }
@@ -170,7 +169,7 @@ static void enforcer_display_hit (const char *addressmode, uae_u32 pc, uaecptr a
     uae_u32 sysbase;
     uae_u32 this_task;
     uae_u32 task_name;
-    const char *native_task_name;
+    uae_u8 *native_task_name;
     int i, j;
     static char buf[256], instrcode[256];
     static char lines[INSTRUCTIONLINES/2][256];
@@ -188,7 +187,7 @@ static void enforcer_display_hit (const char *addressmode, uae_u32 pc, uaecptr a
 	return;
 
     task_name = get_long (this_task + 10); /* ln_Name */
-    native_task_name = (char *) amiga2native (task_name, 100);
+    native_task_name = amiga2native (task_name, 100);
 
     strcpy (enforcer_buf_ptr, "Enforcer Hit! Bad program\n");
     enforcer_buf_ptr += strlen (enforcer_buf_ptr);
@@ -199,18 +198,18 @@ static void enforcer_display_hit (const char *addressmode, uae_u32 pc, uaecptr a
 
     /* Data registers */
     sprintf (enforcer_buf_ptr, "Data: %08lx %08lx %08lx %08lx %08lx %08lx %08lx %08lx\n",
-	m68k_dreg (&regs, 0), m68k_dreg (&regs, 1), m68k_dreg (&regs, 2), m68k_dreg (&regs, 3),
-	m68k_dreg (&regs, 4), m68k_dreg (&regs, 5), m68k_dreg (&regs, 6), m68k_dreg (&regs, 7));
+	m68k_dreg (regs, 0), m68k_dreg (regs, 1), m68k_dreg (regs, 2), m68k_dreg (regs, 3),
+	m68k_dreg (regs, 4), m68k_dreg (regs, 5), m68k_dreg (regs, 6), m68k_dreg (regs, 7));
     enforcer_buf_ptr += strlen (enforcer_buf_ptr);
 
     /* Address registers */
     sprintf (enforcer_buf_ptr, "Addr: %08lx %08lx %08lx %08lx %08lx %08lx %08lx %08lx\n",
-	m68k_areg (&regs, 0), m68k_areg (&regs, 1), m68k_areg (&regs, 2), m68k_areg (&regs, 3),
-	m68k_areg (&regs, 4), m68k_areg (&regs, 5), m68k_areg (&regs, 6), m68k_areg (&regs, 7));
+	m68k_areg (regs, 0), m68k_areg (regs, 1), m68k_areg (regs, 2), m68k_areg (regs, 3),
+	m68k_areg (regs, 4), m68k_areg (regs, 5), m68k_areg (regs, 6), m68k_areg (regs, 7));
     enforcer_buf_ptr += strlen(enforcer_buf_ptr);
 
     /* Stack */
-    a7 = m68k_areg (&regs, 7);
+    a7 = m68k_areg (regs, 7);
     for (i = 0; i < 8 * STACKLINES; i++) {
 	a7 -= 4;
 	if (!(i % 8)) {
@@ -225,7 +224,7 @@ static void enforcer_display_hit (const char *addressmode, uae_u32 pc, uaecptr a
     }
 
     /* Segtracker output */
-    a7 = m68k_areg (&regs, 7);
+    a7 = m68k_areg (regs, 7);
     if (get_long (a7-4) != pc) {
 	if (enforcer_decode_hunk_and_offset (buf, pc)) {
 	    strcpy (enforcer_buf_ptr, buf);
@@ -465,7 +464,7 @@ static int      dummy_check2   (uaecptr addr, uae_u32 size) REGPARAM;
 static uae_u32 REGPARAM2 dummy_lget2 (uaecptr addr)
 {
 #ifdef JIT
-    special_mem |= SPECIAL_MEM_READ;
+    special_mem |= S_READ;
 #endif
     enforcer_display_hit ("LONG READ from", GET_PC, addr);
     return 0xbadedeef;
@@ -478,7 +477,7 @@ static int warned_JIT_0xF10000 = 0;
 static uae_u32 REGPARAM2 dummy_wget2 (uaecptr addr)
 {
 #ifdef JIT
-    special_mem |= SPECIAL_MEM_READ;
+    special_mem |= S_READ;
 
     if (addr >= 0x00F10000 && addr <= 0x00F7FFFF) {
 	if (!warned_JIT_0xF10000) {
@@ -495,7 +494,7 @@ static uae_u32 REGPARAM2 dummy_wget2 (uaecptr addr)
 static uae_u32 REGPARAM2 dummy_bget2 (uaecptr addr)
 {
 #ifdef JIT
-    special_mem |= SPECIAL_MEM_READ;
+    special_mem |= S_READ;
 #endif
     enforcer_display_hit ("BYTE READ from", GET_PC, addr);
     return 0xbadedeef;
@@ -504,7 +503,7 @@ static uae_u32 REGPARAM2 dummy_bget2 (uaecptr addr)
 static void REGPARAM2 dummy_lput2 (uaecptr addr, uae_u32 l)
 {
 #ifdef JIT
-    special_mem |= SPECIAL_MEM_WRITE;
+    special_mem |= S_WRITE;
 #endif
     enforcer_display_hit ("LONG WRITE to", GET_PC, addr);
 }
@@ -512,7 +511,7 @@ static void REGPARAM2 dummy_lput2 (uaecptr addr, uae_u32 l)
 static void REGPARAM2 dummy_wput2 (uaecptr addr, uae_u32 w)
 {
 #ifdef JIT
-    special_mem |= SPECIAL_MEM_WRITE;
+    special_mem |= S_WRITE;
 #endif
     enforcer_display_hit ("WORD WRITE to", GET_PC, addr);
 }
@@ -520,7 +519,7 @@ static void REGPARAM2 dummy_wput2 (uaecptr addr, uae_u32 w)
 static void REGPARAM2 dummy_bput2 (uaecptr addr, uae_u32 b)
 {
 #ifdef JIT
-    special_mem |= SPECIAL_MEM_WRITE;
+    special_mem |= S_WRITE;
 #endif
     enforcer_display_hit ("BYTE WRITE to", GET_PC, addr);
 }
@@ -528,7 +527,7 @@ static void REGPARAM2 dummy_bput2 (uaecptr addr, uae_u32 b)
 static int REGPARAM2 dummy_check2 (uaecptr addr, uae_u32 size)
 {
 #ifdef JIT
-    special_mem |= SPECIAL_MEM_READ;
+    special_mem |= S_READ;
 #endif
     enforcer_display_hit ("CHECK from ", GET_PC, addr);
     return 0;

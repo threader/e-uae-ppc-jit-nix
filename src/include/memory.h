@@ -11,24 +11,19 @@ extern void a1000_reset (void);
 
 #ifdef JIT
 extern int special_mem;
-#define SPECIAL_MEM_READ 1
-#define SPECIAL_MEM_WRITE 2
+#define S_READ 1
+#define S_WRITE 2
 extern void *cache_alloc (int);
 extern void cache_free (void*);
 
 extern int canbang;
 void init_shm (void);
-
-//PowerPC cache flush function
-extern void ppc_cacheflush(void* start, int length);
 #endif
 
 #ifdef ADDRESS_SPACE_24BIT
-# define MEMORY_BANKS		256
-# define MEMORY_RANGE_MASK	((1<<24)-1)
+#define MEMORY_BANKS 256
 #else
-# define MEMORY_BANKS		65536
-# define MEMORY_RANGE_MASK	(~0)
+#define MEMORY_BANKS 65536
 #endif
 
 typedef uae_u32 (*mem_get_func)(uaecptr) REGPARAM;
@@ -86,6 +81,7 @@ typedef struct {
 } addrbank;
 
 extern uae_u8 *filesysory;
+extern uae_u8 *rtarea;
 
 extern addrbank chipmem_bank;
 extern addrbank chipmem_bank_ce2;
@@ -127,9 +123,9 @@ extern uae_u8 *baseaddr[MEMORY_BANKS];
 # define put_mem_bank(addr, b, realstart) do { \
     (mem_banks[bankindex(addr)] = (b)); \
     if ((b)->baseaddr) \
-	baseaddr[bankindex(addr)] = (b)->baseaddr - (realstart); \
+        baseaddr[bankindex(addr)] = (b)->baseaddr - (realstart); \
     else \
-	baseaddr[bankindex(addr)] = (uae_u8*)(((long)b)+1); \
+        baseaddr[bankindex(addr)] = (uae_u8*)(((long)b)+1); \
 } while (0)
 #else
 # define put_mem_bank(addr, b, realstart) \
@@ -141,6 +137,8 @@ extern void memory_cleanup (void);
 extern void map_banks (addrbank *bank, int first, int count, int realsize);
 extern void map_overlay (int chip);
 
+#ifndef NO_INLINE_MEMORY_ACCESS
+
 #define longget(addr) (call_mem_get_func(get_mem_bank(addr).lget, addr))
 #define wordget(addr) (call_mem_get_func(get_mem_bank(addr).wget, addr))
 #define byteget(addr) (call_mem_get_func(get_mem_bank(addr).bget, addr))
@@ -148,102 +146,62 @@ extern void map_overlay (int chip);
 #define wordput(addr,w) (call_mem_put_func(get_mem_bank(addr).wput, addr, w))
 #define byteput(addr,b) (call_mem_put_func(get_mem_bank(addr).bput, addr, b))
 
-STATIC_INLINE uae_u32 get_long (uaecptr addr)
-{
-    addr &= MEMORY_RANGE_MASK;
-    return longget(addr);
-}
-STATIC_INLINE uae_u32 get_word (uaecptr addr)
-{
-    addr &= MEMORY_RANGE_MASK;
-    return wordget(addr);
-}
-STATIC_INLINE uae_u32 get_byte (uaecptr addr)
-{
-    addr &= MEMORY_RANGE_MASK;
-    return byteget(addr);
-}
-/*
- * Read a host pointer from addr
- */
-#if SIZEOF_VOID_P == 4
-# define get_pointer(addr) ((void *)get_long (addr))
 #else
-# if SIZEOF_VOID_P == 8
-STATIC_INLINE void *get_pointer (uaecptr addr)
-{
-    const unsigned int n = SIZEOF_VOID_P / 4;
-    union {
-	void    *ptr;
-	uae_u32  longs[SIZEOF_VOID_P / 4];
-    } p;
-    unsigned int i;
 
-    for (i = 0; i < n; i++) {
-#ifdef WORDS_BIGENDIAN
-	p.longs[i]     = get_long (addr + i * 4);
-#else
-	p.longs[n - 1 - i] = get_long (addr + i * 4);
-#endif
-    }
-    return p.ptr;
-}
-# else
-#  error "Unknown or unsupported pointer size."
-# endif
-#endif
-STATIC_INLINE void put_long (uaecptr addr, uae_u32 l)
-{
-    addr &= MEMORY_RANGE_MASK;
-    longput(addr, l);
-}
-STATIC_INLINE void put_word (uaecptr addr, uae_u32 w)
-{
-    addr &= MEMORY_RANGE_MASK;
-    wordput(addr, w);
-}
-STATIC_INLINE void put_byte (uaecptr addr, uae_u32 b)
-{
-    addr &= MEMORY_RANGE_MASK;
-    byteput(addr, b);
-}
-/*
- * Store host pointer v at addr
- */
-#if SIZEOF_VOID_P == 4
-# define put_pointer(addr, p) (put_long ((addr), (uae_u32)(p)))
-#else
-# if SIZEOF_VOID_P == 8
-STATIC_INLINE void put_pointer (uaecptr addr, void *v)
-{
-    const unsigned int n = SIZEOF_VOID_P / 4;
-    union {
-	void    *ptr;
-	uae_u32  longs[SIZEOF_VOID_P / 4];
-    } p;
-    unsigned int i;
+extern uae_u32 alongget(uaecptr addr);
+extern uae_u32 awordget(uaecptr addr);
+extern uae_u32 longget(uaecptr addr);
+extern uae_u32 wordget(uaecptr addr);
+extern uae_u32 byteget(uaecptr addr);
+extern void longput(uaecptr addr, uae_u32 l);
+extern void wordput(uaecptr addr, uae_u32 w);
+extern void byteput(uaecptr addr, uae_u32 b);
 
-    p.ptr = v;
+#endif
 
-    for (i = 0; i < n; i++) {
-#ifdef WORDS_BIGENDIAN
-	put_long (addr + i * 4, p.longs[i]);
-#else
-	put_long (addr + i * 4, p.longs[n - 1 - i]);
+#ifndef MD_HAVE_MEM_1_FUNCS
+
+#define longget_1 longget
+#define wordget_1 wordget
+#define byteget_1 byteget
+#define longput_1 longput
+#define wordput_1 wordput
+#define byteput_1 byteput
+
 #endif
-    }
-}
-# endif
-#endif
-STATIC_INLINE uae_u8 *get_real_address (uaecptr addr)
+
+STATIC_INLINE uae_u32 get_long(uaecptr addr)
 {
-    addr &= MEMORY_RANGE_MASK;
+    return longget_1(addr);
+}
+STATIC_INLINE uae_u32 get_word(uaecptr addr)
+{
+    return wordget_1(addr);
+}
+STATIC_INLINE uae_u32 get_byte(uaecptr addr)
+{
+    return byteget_1(addr);
+}
+STATIC_INLINE void put_long(uaecptr addr, uae_u32 l)
+{
+    longput_1(addr, l);
+}
+STATIC_INLINE void put_word(uaecptr addr, uae_u32 w)
+{
+    wordput_1(addr, w);
+}
+STATIC_INLINE void put_byte(uaecptr addr, uae_u32 b)
+{
+    byteput_1(addr, b);
+}
+
+STATIC_INLINE uae_u8 *get_real_address(uaecptr addr)
+{
     return get_mem_bank(addr).xlateaddr(addr);
 }
 
 STATIC_INLINE int valid_address(uaecptr addr, uae_u32 size)
 {
-    addr &= MEMORY_RANGE_MASK;
     return get_mem_bank(addr).check(addr, size);
 }
 
@@ -282,7 +240,7 @@ extern shmpiece *shm_start;
 
 #endif
 
-extern uae_u8 *mapped_malloc (size_t, const char *);
+extern uae_u8 *mapped_malloc (size_t, char *);
 extern void mapped_free (uae_u8 *);
 extern void clearexec (void);
 extern void mapkick (void);

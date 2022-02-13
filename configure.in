@@ -1,44 +1,25 @@
 dnl Process this file with autoconf to produce a configure script.
 dnl Written 1996, 1997, 1998 Bernd Schmidt
 dnl
-dnl Updated, re-written and generally mauled 2003-2008 by Richard Drummond
-dnl Modified for JIT compiling implementation for PowerPC by Almos Rajnai
+dnl Updated, re-written and generally mauled 2003 Richard Drummond
 
 AC_PREREQ(2.55)
-
-m4_define(uae_version_major, 0)
-m4_define(uae_version_minor, 8)
-m4_define(uae_version_revision, 29)
-
-AC_INIT([E-UAE], uae_version_major.uae_version_minor.uae_version_revision, ,[e-uae])
-AC_CONFIG_SRCDIR([bootstrap.sh])
-AM_CONFIG_HEADER([src/sysconfig.h])
+AC_INIT(E-UAE, 0.8.27, ,e-uae)
+AC_CONFIG_SRCDIR([config.h])
+AC_CONFIG_HEADERS([src/sysconfig.h])
 AC_CANONICAL_TARGET
-AM_INIT_AUTOMAKE(1.7 dist-bzip2 foreign)
-
-AC_ARG_WITH(version-tag,
-  AS_HELP_STRING([--with-version-tag], [Optional tag to append to version number]),
-  [UAE_VERSION_TAG=$withval],[])
-
-UAE_VERSION_MAJOR=uae_version_major()
-UAE_VERSION_MINOR=uae_version_minor()
-UAE_VERSION_REVISION=uae_version_revision()
-
-if test -n "$UAE_VERSION_TAG"; then
-  VERSION=$VERSION-$UAE_VERSION_TAG
-fi
-
-AC_DEFINE_UNQUOTED([UAE_VERSION_MAJOR],    [$UAE_VERSION_MAJOR],    [Define to the UAE major version number])
-AC_DEFINE_UNQUOTED([UAE_VERSION_MINOR],    [$UAE_VERSION_MINOR],    [Define to the UAE minor version number])
-AC_DEFINE_UNQUOTED([UAE_VERSION_REVISION], [$UAE_VERSION_REVISION], [Define to the UAE revision number])
-AC_DEFINE_UNQUOTED([UAE_VERSION_TAG],      ["$UAE_VERSION_TAG"],    [Define to the optional UAE version tag])
-AC_DEFINE_UNQUOTED([UAE_VERSION],          ["$VERSION"],            [Define to the UAE version])
+AM_INIT_AUTOMAKE(1.7 dist-bzip2)
 
 dnl
 dnl  Checks for programs.
 dnl
 
+dnl This is a hack to stop GCC always adding the -g option to CFLAGS
+SAVE_CFLAGS=$CFLAGS
+CFLAGS="$CFLAGS -DDUMMY"
 AC_PROG_CC
+CFLAGS=$SAVE_CFLAGS
+
 AC_PROG_CPP
 AC_PROG_CXX
 AS_PROG_OBJC
@@ -74,8 +55,18 @@ dnl AC_CHECK_LIB(NeXT_s, main, HAVE_NEXT_LIB=yes, HAVE_NEXT_LIB=no)
 dnl AC_CHECK_LIB(moto, cos, HAVE_MOTO_LIB=yes, HAVE_MOTO_LIB=no)
 dnl AC_CHECK_LIB(amiga, OpenLibrary, HAVE_AMIGA_LIB=yes, HAVE_AMIGA_LIB=n)
 dnl AC_CHECK_LIB(vga, vga_setmode, HAVE_SVGA_LIB=yes, HAVE_SVGA_LIB=no)
+dnl AC_CHECK_LIB(ncurses, waddch, HAVE_NCURSES_LIB=yes, HAVE_NCURSES_LIB=no)
+dnl AC_CHECK_LIB(posix4, sem_init, HAVE_POSIX4_LIB=yes, HAVE_POSIX4_LIB=no)
+dnl AC_CHECK_LIB(rt, sem_init, HAVE_RT_LIB=yes, HAVE_RT_LIB=no)
 
 AC_CHECK_LIB(ossaudio,_oss_ioctl, HAVE_LIBOSSAUDIO=yes, HAVE_LIBOSSAUDIO=no)
+AC_CHECK_LIB(AF, AFOpenAudioConn, HAVE_AF_LIB=yes, HAVE_AF_LIB=no)
+AC_CHECK_LIB(mme, waveOutGetNumDevs, HAVE_MME_LIB=yes, HAVE_MME_LIB=no)
+AC_CHECK_LIB(audio, alOpenPort, HAVE_SGIAUDIO_LIB=yes, HAVE_SGIAUDIO_LIB=no)
+
+AC_PATH_XTRA
+
+AM_PATH_SDL(1.2.0,HAVE_SDL=yes,HAVE_SDL=no)
 
 dnl  Prefer Gtk2.x over Gtk1.x if both are available
 AM_PATH_GTK_2_0(2.0.0,HAVE_GTK=yes,HAVE_GTK=no)
@@ -92,17 +83,18 @@ AC_HEADER_STDC
 AC_CHECK_HEADERS([fcntl.h sys/ioctl.h sys/time.h utime.h])
 AC_CHECK_HEADERS([values.h ncurses.h curses.h sys/termios.h])
 AC_CHECK_HEADERS([sys/stat.h sys/ipc.h sys/shm.h sys/mman.h])
-AC_CHECK_HEADERS([sys/filio.h])
+
+dnl AC_CHECK_HEADERS([sys/stat.h sys/vfs.h sys/mount.h sys/param.h])
+dnl AC_CHECK_HEADERS([sys/statfs.h sys/statvfs.h sys/fs/s5param.h])
+dnl AC_CHECK_HEADERS([sys/filesys.h sys/filsys.h sys/param.h])
 
 AC_CHECK_HEADERS([libraries/cybergraphics.h cybergraphx/cybergraphics.h])
 
 AC_CHECK_HEADERS([devices/ahi.h])
 AC_CHECK_HEADERS([sys/soundcard.h machine/soundcard.h sun/audioio.h sys/audioio.h])
+AC_CHECK_HEADERS([dmedia/audio.h])
 
 AC_CHECK_HEADERS([machine/joystick.h])
-AC_CHECK_HEADER([amigainput/amigainput.h], HAVE_AMIGAINPUT=yes, HAVE_AMIGAINPUT=no)
-
-AC_CHECK_HEADERS([byteswap.h])
 
 dnl
 dnl  Checks for typedefs, structures, and compiler characteristics.
@@ -125,9 +117,6 @@ AC_CHECK_SIZEOF(int, 4)
 AC_CHECK_SIZEOF(long, 4)
 AC_CHECK_SIZEOF(long long, 8)
 AC_CHECK_SIZEOF(__int64, 8)
-AC_CHECK_SIZEOF(void *)
-
-TYPE_SOCKLEN_T
 
 dnl
 dnl  Checks for library functions.
@@ -136,44 +125,14 @@ AC_PROG_GCC_TRADITIONAL
 AC_FUNC_MEMCMP
 AC_TYPE_SIGNAL
 AC_FUNC_UTIME_NULL
-AC_CHECK_FUNCS(gettimeofday sigaction)
-AC_CHECK_FUNCS(select strerror isnan isinf setitimer alarm sync)
-AC_CHECK_FUNCS(readdir_r)
-AC_CHECK_FUNCS(strdup strstr strcasecmp stricmp strcmpi)
+AC_CHECK_FUNCS(getcwd getopt strdup gettimeofday sigaction mkdir rmdir)
+AC_CHECK_FUNCS(select strerror strstr isnan isinf setitimer alarm sync)
+AC_CHECK_FUNCS(tcgetattr cfmakeraw readdir_r vprintf vsprintf vfprintf)
+AC_CHECK_FUNCS(strcasecmp stricmp strcmpi)
 AC_CHECK_FUNCS(nanosleep usleep sleep)
-AC_CHECK_FUNCS(vprintf vsprintf vfprintf)
-
 dnl AC_CHECK_FUNCS(statvfs statfs)
 dnl AC_VAR_TIMEZONE_EXTERNALS - broken on *BSD
 AC_CHECK_FUNCS(localtime_r timegm gmtime_r)
-AC_SYS_LARGEFILE
-
-AC_MSG_CHECKING(for bswap_16)
-AC_TRY_LINK([
-  #if HAVE_BYTESWAP_H
-  # include <byteswap.h>
-  #endif
-],[
-  bswap_16 (0x12);
-],[
-  AC_DEFINE(HAVE_BSWAP_16, 1, [Define to 1 if you have the 'bswap_16' function.])
-  AC_MSG_RESULT(yes)
-],[
-  AC_MSG_RESULT(no)
-])
-AC_MSG_CHECKING(for bswap_32)
-AC_TRY_LINK([
-  #if HAVE_BYTESWAP_H
-  # include <byteswap.h>
-  #endif
-],[
-  bswap_32 (0x1234);
-],[
-  AC_DEFINE(HAVE_BSWAP_32, 1, [Define to 1 if you have the 'bswap_32' function.])
-  AC_MSG_RESULT(yes)
-],[
-  AC_MSG_RESULT(no)
-])
 
 dnl
 dnl  Checks for fsuage
@@ -195,39 +154,26 @@ AC_CACHE_SAVE
 dnl
 dnl  Check for libz
 dnl
-AC_CHECK_LIB(z, inflateEnd, [zlib_cv_libz=yes], [zlib_cv_libz=no])
-AC_CHECK_HEADER(zlib.h, [zlib_cv_zlib_h=yes], [zlib_cv_zlib_h=no])
-if test "$zlib_cv_libz" = "yes" -a "$zlib_cv_zlib_h" = "yes"
-then
-    UAE_LIBS="-lz $UAE_LIBS"
-else
-    AC_MSG_ERROR(Check for libz failed)
-fi
+CHECK_ZLIB
+
 
 dnl
 dnl  Check for pthreads
 dnl
 ACX_PTHREAD(HAVE_PTHREAD=yes,HAVE_PTHREAD=no)
 
-dnl Solaris, for example, needs additional libs to use POSIX semaphores.
-if [[ "x$HAVE_PTHREAD" = "xyes" ]]; then
- SAVE_CFLAGS="$CFLAGS"
- SAVE_LIBS="$LIBS"
- CFLAGS="$PTHREAD_CFLAGS $CFLAGS"
- LIBS="$PTHREAD_LIBS"
- AC_SEARCH_LIBS(sem_init, rt posix4,,,"$SAVE_LIBS")
- PTHREAD_LIBS="$LIBS"
- CFLAGS="$SAVE_CFLAGS"
- LIBS="$SAVE_LIBS"
-fi
+
 
 dnl
 dnl  Check for dlopen
 dnl
+SAVE_LIBS="$LIBS"
+LIBS="$LIBS -ldl"
 AC_CHECK_LIB(dl, dlopen, [
-    UAE_LIBS="-ldl $UAE_LIBS"
     AC_DEFINE(HAVE_DLOPEN, 1, "Define to 1 if you have 'dlopen' function)
-  ],
+  ], [
+    LIBS="$SAVE_LIBS"
+  ]
 )
 
 dnl
@@ -261,6 +207,14 @@ fi
 
 
 dnl
+dnl  Check SGI audio
+dnl
+if [[ "x$ac_cv_header_dmedia_audio.h" = "xno" ]]; then
+  HAVE_SGIAUDIO_LIB=no
+fi
+
+
+dnl
 dnl  Find out which platform to build for
 dnl
 AC_MSG_CHECKING([host OS support])
@@ -276,7 +230,6 @@ case $host_os in
       ;;
     darwin*)
       HOST_OS=darwin
-      OSDEP=od-macosx
       ;;
     beos)
       HOST_OS=beos
@@ -313,35 +266,19 @@ MDFPP_H=fpp-unknown.h
 case $host_cpu in
      i[[3-6]]86)
        HOST_CPU=i386
-       MDFPP_H=fpp-ieee.h
-       ;;
-     amd64 | x86_64)
-       HOST_CPU=amd64
-       MDFPP_H=fpp-ieee.h
        ;;
      powerpc)
        HOST_CPU=ppc
-       MDFPP_H=fpp-ieee.h
+       MDFPP_H=fpp-ieee-be.h
        ;;
      m68k)
        HOST_CPU=68k
-       MDFPP_H=fpp-ieee.h
+       MDFPP_H=fpp-ieee-be.h
        ;;
 esac
 
 AC_MSG_RESULT([$HOST_CPU])
 MACHDEP="md-$HOST_CPU"
-
-dnl
-dnl  MULTIPLICATION_PROFITABLE?
-dnl
-dnl  We always set this for now. It's only used in the audio emulation,
-dnl  where the option is to do multiplication or table look-up. On just
-dnl  about any CPU it's worthwhile running E-UAE on, multiplication will be
-dnl  better.
-
-AC_DEFINE(MULTIPLICATION_PROFITABLE, 1, [Define to 1 if your CPU profitably supports multiplication.])
-
 
 dnl
 dnl  Find out what compiler we have
@@ -379,7 +316,7 @@ else
 fi
 
 if test $ac_cv_prog_gcc = yes; then
-  if [[ "$HOST_CPU" = i386 -o "$HOST_CPU" = ppc -o "$HOST_CPU" = amd64 ]]; then
+  if [[ "$HOST_CPU" = i386 -o "$HOST_CPU" = ppc ]]; then
     MACHDEP="$MACHDEP-gcc"
   fi
 fi
@@ -390,13 +327,13 @@ dnl
 if [[ "x$HAVEGCC27" = "xyes" -a "$HOST_CPU" = "i386" ]]; then
   SAVECFLAGS=$CFLAGS
   CFLAGS="$CFLAGS -mno-schedule-prologue"
-  AC_TRY_COMPILE(,int main(){return 0;}, OPTIMIZE_CFLAGS="$OPTIMIZE_CFLAGS -mno-schedule-prologue")
+  AC_TRY_COMPILE(,int main(){return 0;}, NO_SCHED_CFLAGS="-mno-schedule-prologue")
   CFLAGS=$SAVECFLAGS
 fi
 if [[ "x$HAVEGCC27" = "xyes" -a "$HOST_CPU" = "i386" ]]; then
   SAVECFLAGS=$CFLAGS
   CFLAGS="$CFLAGS -mpreferred-stack-boundary=2"
-  AC_TRY_COMPILE(,int main(){return 0;}, OPTIMIZE_CFLAGS="$OPTIMIZE_CFLAGS -mpreferred-stack-boundary=2")
+  AC_TRY_COMPILE(,int main(){return 0;}, SAVECFLAGS=$CFLAGS)
   CFLAGS=$SAVECFLAGS
 fi
 dnl If GCC supports exceptions, we don't want them.
@@ -404,8 +341,11 @@ dnl
 if [[ "x$HAVEGCC27" = "xyes" -a "$HOST_CPU" = "i386" ]]; then
   SAVECFLAGS=$CFLAGS
   CFLAGS="$CFLAGS -fno-exceptions"
-  AC_TRY_COMPILE(,int main(){return 0;}, OPTIMIZE_CFLAGS="$OPTIMIZE_CFLAGS -fno-exceptions")
-  CFLAGS=$SAVECFLAGS
+  NOEXCEPTIONS=no
+  AC_TRY_COMPILE(,int main(){return 0;}, NOEXCEPTIONS=yes)
+  if [[ "x$NOEXCEPTIONS" = "xno" ]]; then
+    CFLAGS=$SAVECFLAGS
+  fi
 fi
 
 dnl on OS X, we don't want position-independent code, so
@@ -454,11 +394,15 @@ JOY_DEP=jd-none
 JOY_NAME=none
 
 DO_PROFILING=no
-if [[ "$HOST_CPU" = "ppc" ]]; then
+if [[ "$HOST_CPU" = "i386" ]]; then
   WANT_JIT=yes
+  WANT_X86ASSEMBLY=yes
 else
   WANT_JIT=no
+  WANT_X86ASSEMBLY=no
 fi
+NATMEM=no
+NOFLAGS=no
 WANT_DGA=no
 WANT_VIDMODE=no
 WANT_THREADS=dunno
@@ -469,9 +413,9 @@ WANT_AGA=yes
 WANT_CD32=dunno
 WANT_CDTV=dunno
 WANT_BSDSOCK=dunno
+WANT_BSDSOCK_NEW=no
 WANT_UI=dunno
 WANT_AUDIO=dunno
-WANT_FPU=yes
 WANT_COMPATIBLE=yes
 WANT_CYCLEEXACT=yes
 WANT_CAPS=no
@@ -479,6 +423,7 @@ WANT_FDI=yes
 WANT_ENFORCER=dunno
 
 MATHLIB=-lm
+DEBUGOBJS="debug.o"
 
 dnl
 dnl  Override defaults for specfic targets
@@ -486,6 +431,9 @@ dnl
 if [[ "$HOST_OS" = "linux" ]]; then
   JOY_DEP=jd-linuxold
   JOY_NAME="linux"
+  if [[ "$HOST_CPU" = "i386" ]]; then
+    NATMEM="0x50000000"
+  fi
 else if [[ "$OSDEP" = "od-beos" ]]; then
   TARGET=beos
   TARGETDEP=t-beos.h
@@ -503,7 +451,9 @@ else if [[ "$OSDEP" = "od-beos" ]]; then
   SND_DEP=sd-beos
   SND_NAME="native BeOS"
   SND_LIBS="-lmedia"
+  WANT_X86ASSEMBLY=no
   WANT_BSDSOCK=no
+  WANT_BSDSOCK_NEW=no
   MATHLIB=""
   UAE_RSRCFILE="$OSDEP/uae.rsrc"
 else if [[ "$OSDEP" = "od-amiga" ]]; then
@@ -517,31 +467,28 @@ else if [[ "$OSDEP" = "od-amiga" ]]; then
   GUI_NAME="MUIRexx"
   SND_DEP=sd-amigaos
   SND_NAME="native AmigaOS/AHI"
-  if [[ "x$HAVE_AMIGAINPUT" = "xyes" ]]; then
-   JOY_DEP=jd-amigainput
-   JOY_NAME="AmigaInput"
-  else
-   JOY_DEP=jd-amigaos
-   JOY_NAME="Amiga lowlevel.library"
-  fi
+  JOY_DEP=jd-amigaos
+  JOY_NAME="Amiga lowlevel.library"
   WANT_BSDSOCK=no
+  WANT_BSDSOCK_NEW=no
 else if [[ "$OSDEP" = "od-win32" ]]; then
   TARGET=win32
   TARGETDEP=t-win32.h
-  WANT_BSDSOCK=no
+  THREADDEP="$OSDEP"/threaddep
+  THREADNAME=Win32
+  GFX_DEP="$OSDEP"
+  GFX_NAME=Win32
+  GUI_DEP="$OSDEP"
+  GUI_NAME=Win32
 fi
 fi
 fi
 fi
 
-dnl
-dnl Win32 build has its own writelog.c
-dnl
-if [[ "$OSDEP" != "od-win32" ]]; then
-   EXTRAOBJS='writelog.$(OBJEXT)'
-fi
-
-
+#  dnl - We need automake conditionals to handle
+#  resource file processing, etc. for these platforms . . .
+AM_CONDITIONAL(TARGET_BEOS,  test x$OSDEP = xod-beos)
+AM_CONDITIONAL(TARGET_WIN32, test x$OSDEP = xod-win32)
 
 dnl
 dnl  Options
@@ -553,17 +500,17 @@ AC_ARG_ENABLE(cdtv,            AS_HELP_STRING([--enable-cdtv],            [Enabl
 AC_ARG_ENABLE(cd32,            AS_HELP_STRING([--enable-cd32],            [Enable CD32 emulation (default no)]),                      [WANT_CD32=$enableval],[])
 AC_ARG_ENABLE(cycle-exact-cpu, AS_HELP_STRING([--enable-cycle-exact-cpu], [Enable cycle-exact CPU emulation (default yes)]),          [WANT_CYCLEEXACT=$enableval],[])
 AC_ARG_ENABLE(compatible-cpu,  AS_HELP_STRING([--enable-compatible-cpu],  [Enable compatible CPU emulation (default yes)]),           [WANT_COMPATIBLE=$enableval],[])
-AC_ARG_ENABLE(fpu,             AS_HELP_STRING([--enable-fpu],             [Enable FPU emulation (default yes)]),                      [WANT_FPU=$enableval],[])
-AC_ARG_ENABLE(jit,             AS_HELP_STRING([--enable-jit],             [Enable JIT compiler (currently PPC only)]),                [WANT_JIT=$enableval],[])
+AC_ARG_ENABLE(jit,             AS_HELP_STRING([--enable-jit],             [Enable JIT compiler (currently x86 only)]),                [WANT_JIT=$enableval],[])
+AC_ARG_ENABLE(natmem,          AS_HELP_STRING([--enable-natmem],          [Enable JIT direct memory support (default auto)]),         [NATMEM=$enableval],[])
+AC_ARG_ENABLE(noflags,	       AS_HELP_STRING([--enable-noflags],         [Enable noflags support in JIT (default no)]),              [NOFLAGS=$enableval],[])
+AC_ARG_ENABLE(x86assembly,     AS_HELP_STRING([--enable-x86assembly],     [Enable x86 assembly optimizations (default auto)]),        [WANT_X86ASSEMBLY=$enableval],[])
 AC_ARG_ENABLE(threads,         AS_HELP_STRING([--enable-threads],         [Enable thread support (default auto)]),                    [WANT_THREADS=$enableval],[])
 AC_ARG_ENABLE(autoconfig,      AS_HELP_STRING([--enable-autoconfig],      [Enable emulaton of autoconfig devices (default auto)]),    [WANT_AUTOCONFIG=$enableval],[])
 AC_ARG_ENABLE(scsi-device,     AS_HELP_STRING([--enable-scsi-device],     [Enable emulaton of SCSI devices (default no)]),            [WANT_SCSIEMU=$enableval],[])
 AC_ARG_ENABLE(bsdsock,         AS_HELP_STRING([--enable-bsdsock],         [Enable bsdsocket.library emulation]),                      [WANT_BSDSOCK=$enableval],[])
-AC_ARG_ENABLE(debugger,        AS_HELP_STRING([--disable-debugger],       [Disable internal debugger/monitor (default no)]),          [WANT_DEBUGGER=$enableval],[])
-AC_ARG_ENABLE(state-saving,    AS_HELP_STRING([--disable-state-saving],   [Disable support for saving state snapshots (default no)]),   [WANT_STATESAVING=$enableval],[])
+AC_ARG_ENABLE(bsdsock-new,     AS_HELP_STRING([--enable-bsdsock-new],     [Enable new bsdsocket.library emulation]),                  [WANT_BSDSOCK_NEW=$enableval],[])
 AC_ARG_ENABLE(enforcer,	       AS_HELP_STRING([--enable-enforcer],        [Enable ersatz Enforcer support (default auto)]),           [WANT_ENFORCER=$enableval],[])
 AC_ARG_ENABLE(action-replay,   AS_HELP_STRING([--enable-action-replay],   [Enable Action Replay cartridge emulation (default yes)]),  [WANT_ACTION_REPLAY=$enableval],[])
-AC_ARG_ENABLE(xarcade,         AS_HELP_STRING([--disable-xarcade],        [Disable keymaps for X-Aracde joysticks (default: enabled)]),  [WANT_XARCADE=$enableval],[WANT_XARCADE=yes])
 AC_ARG_ENABLE(dga,             AS_HELP_STRING([--enable-dga],             [X11 version: Use the DGA extension]),                      [WANT_DGA=$enableval],[])
 AC_ARG_ENABLE(vidmode,         AS_HELP_STRING([--enable-vidmode],         [X11 version: Use the XF86VidMode extension]),              [WANT_VIDMODE=$enableval],[])
 AC_ARG_ENABLE(ui,              AS_HELP_STRING([--enable-ui],              [Use a user interface if possible (default on)]),           [WANT_UI=$enableval],[])
@@ -579,13 +526,6 @@ AC_ARG_WITH(sdl-sound,
 AC_ARG_WITH(sdl-gfx,
   AS_HELP_STRING([--with-sdl-gfx], [Use SDL library for graphics]),
   [WANT_SDLGFX=$withval], [])
-AC_ARG_WITH(sdl-gl,
-  AS_HELP_STRING([--with-sdl-gl], [Allow GL for 2D acceleration with SDL graphics]),
-  [WANT_SDLGL=$withval], [])
-
-AC_ARG_WITH(curses,
-  AS_HELP_STRING([--with-curses], [Use ncurses library for graphics]),
-  [WANT_NCURSES=$withval], [])
 
 AC_ARG_WITH(cocoa-gui,
   AS_HELP_STRING([--with-cocoa-gui], [Use Cocoa for GUI on OS X]),
@@ -610,17 +550,8 @@ dnl Some simple plausibility tests...
 dnl
 AC_MSG_CHECKING([configuration options])
 
-if [[ "x$WANT_SDLGL" = "xyes" ]]; then
-  WANT_SDLGFX=yes
-fi
-
 if [[ "x$WANT_SDLSND" = "xyes" -o "x$WANT_SDLGFX" = "xyes" ]]; then
   WANT_SDL=yes
-fi
-if [[ "x$WANT_SDL" = "xno" ]]; then
-  WANT_SDLGFX=no
-  WANT_SDLSND=no
-  WANT_SDLGL=no
 fi
 
 if [[ "x$WANT_DGA" = "xyes" -a "x$WANT_SDLGFX" = "xyes" ]]; then
@@ -644,66 +575,15 @@ fi
 AC_MSG_RESULT(ok)
 
 
-dnl Check for X
-AC_PATH_XTRA
-
-dnl Check for ncurses
-AC_CHECK_LIB(ncurses, waddch, HAVE_NCURSES_LIB=yes, HAVE_NCURSES_LIB=no)
-
-dnl Check for SDL
-if [[ "x$WANT_SDL" != "xno" ]]; then
-
-  if [[ "$HOST_OS" = "darwin" ]]; then
-
-    dnl Assume this is MacOS X and try to use SDL framework
-
-    SDL_CFLAGS="-I/Library/Frameworks/SDL.framework/Headers -D_REENTRANT"
-    SDL_LIBS="-framework Cocoa -framework SDL -lobjc"
-
-    AC_MSG_CHECKING(for SDL framework)
-
-    SAVE_CPPFLAGS=$CPPFLAGS
-    SAVE_LIBS=$LIBS
-    CPPFLAGS="$CPPFLAGS $SDL_CFLAGS"
-    LIBS="$SDL_LIBS $LIBS"
-
-    AC_TRY_LINK(
-    [
-      #include "confdefs.h"
-      #include <SDL.h>
-      #undef main
-    ],
-    [
-      SDL_Init(SDL_INIT_VIDEO);
-    ],
-    AC_MSG_RESULT(yes)
-    HAVE_SDL=yes
-    WANT_COCOA_UI=yes,
-    AC_MSG_RESULT(no)
-    HAVE_SDL=no)
-
-    CPPFLAGS="$SAVE_CPPFLAGS"
-    LIBS="$SAVE_LIBS"
-  else
-    AM_PATH_SDL(1.2.0,HAVE_SDL=yes,HAVE_SDL=no)
-  fi
-
-  if [[ "x$WANT_SDL" = "xyes" -a "x$HAVE_SDL" = "xno" ]]; then
-    AC_MSG_WARN([SDL support wanted, but libSDL could not be found])
-    WANT_SDL=no
-    NR_ERRORS=`expr $NR_ERRORS + 1`
-  fi
-fi
-
 
 if test $ac_cv_prog_gcc = yes; then
   WARNING_CFLAGS="$WARNING_CFLAGS -Wall -Wno-unused -Wno-format -W -Wmissing-prototypes -Wstrict-prototypes"
-  OPTIMIZE_CFLAGS="$OPTIMIZE_CFLAGS -fomit-frame-pointer"
+  OPTIMIZE_CFLAGS="$OPTIMIZE_CFLAGS -O2 -fomit-frame-pointer"
 fi
 
 if [[ "x$DO_PROFILING" = "xyes" ]]; then
-  if [[ "x$HAVE_GCC27" = "xyes" ]]; then
-    OPTIMIZE_CFLAGS=""
+  if [[ "x$CC" = "xgcc" ]]; then
+    OPTIMIZE_CFLAGS="-O"
     DEBUG_CFLAGS="-g -fno-inline -fno-omit-frame-pointer -pg -DUSE_PROFILING"
     LDFLAGS="-pg"
   else
@@ -720,25 +600,38 @@ dnl
 dnl  Check CPU emulation options
 dnl
 
+dnl  First, work out if we can use the cpuopti phase
+USE_CPUOPTI=no
+
+if [[ "x$HAVE_GCC27" = "xyes" -a "x$HAVE_GCC30" = "xno" ]]; then
+  if [[ "$HOST_CPU" = "i386" -a "x$WANT_X86ASSEMBLY" = "xyes"  ]]; then
+    USE_CPUOPTI=yes
+  fi
+fi
+
+dnl  Choose name for cpu objects sources depending on whether
+dnl  cpuopti is to be used or not
+if [[ "x$USE_CPUOPTI" = "xyes" ]]; then
+  CPUOBJ_STEM=cpufast_
+else
+  CPUOBJ_STEM=cpuemu_
+fi
+
 dnl  Now configure the CPU emulation proper
 ASMOBJS=
-UAE_DEFINES="$UAE_DEFINES -DCPUEMU_0"
-CPUOBJS='cpuemu_0.$(OBJEXT)'
+UAE_DEFINES="$UAE_DEFINES -DFPUEMU -DCPUEMU_0"
+CPUOBJS="$CPUOBJ_STEM""0.o"
 
 if [[ "x$WANT_COMPATIBLE" != "xno" ]]; then
   UAE_DEFINES="$UAE_DEFINES -DCPUEMU_5"
-  CPUOBJS="$CPUOBJS cpuemu_5.\$(OBJEXT)"
+  CPUOBJS="$CPUOBJS $CPUOBJ_STEM""5.o"
 fi
 
 if [[ "x$WANT_CYCLEEXACT" != "xno" ]]; then
   UAE_DEFINES="$UAE_DEFINES -DCPUEMU_6"
-  CPUOBJS="$CPUOBJS cpuemu_6.\$(OBJEXT)"
+  CPUOBJS="$CPUOBJS $CPUOBJ_STEM""6.o"
 fi
 
-if [[ "x$WANT_FPU" != "xno" ]]; then
-  UAE_DEFINES="$UAE_DEFINES -DFPUEMU"
-  CPUOBJS="$CPUOBJS fpp.\$(OBJEXT)"
-fi
 
 if [[ "x$HAVE_GCC27" = "xyes" -a "$HOST_CPU" = "i386" -a "x$DO_PROFILING" = "xno" ]]; then
   dnl strength-reduce is turned off not because of paranoia, but because it
@@ -754,12 +647,6 @@ else
 fi
 fi
 
-dnl
-dnl Define __USE_INLINE__ for AmigaOS4
-dnl
-if [[ "$HOST_OS" = "amiga" ]]; then
-  UAE_DEFINES="$UAE_DEFINES -D__USE_INLINE__"
-fi
 
 dnl
 dnl  Check whether to build with optimized CCR flags handling
@@ -770,15 +657,74 @@ if [[ "x$HAVE_GCC27" = "xyes" ]]; then
   fi
 fi
 
+dnl
+dnl  Check whether to build x86 assembly
+dnl
+AC_MSG_CHECKING([whether to build x86 assmebly])
+
+if [[ "x$WANT_X86ASSEMBLY" != "xno" -a "x$HAVE_GCC27" = "xyes" -a "$HOST_CPU" = "i386" ]]; then
+  UAE_DEFINES="$UAE_DEFINES -DX86_ASSEMBLY"
+  ASMOBJS=md-X86.o
+  AC_CONFIG_LINKS(src/md-X86.S:src/md-i386-gcc/X86.S)
+  AC_MSG_RESULT(yes)
+else
+  AC_MSG_RESULT(no)
+fi
+
+dnl X86.S needs to know whether it needs to add underscores to symbols.
+dnl This might break some obscure systems which don't have ELF but don't
+dnl add underscores either.
+if [[ "x$WANT_X86ASSEMBLY" = "xyes" ]]; then
+  AC_MSG_CHECKING(whether assembler symbols need an underscore)
+  cat >conftest1.S << EOF
+        .text
+        .globl _symbol
+_symbol:
+EOF
+  cat >conftest2.c << EOF
+extern void symbol ();
+int main ()
+{
+symbol ();
+}
+EOF
+  $CC conftest1.S -c -o conftest1.o >/dev/null 2>&1
+  $CC conftest2.c -c -o conftest2.o >/dev/null 2>&1
+  if $CC conftest1.o conftest2.o -o conftest >/dev/null 2>&1; then
+    USE_UNDERSCORE=yes
+    UAE_DEFINES="$UAE_DEFINES -DUSE_UNDERSCORE"
+  else
+    USE_UNDERSCORE=no
+  fi
+  AC_MSG_RESULT($USE_UNDERSCORE)
+  rm -f conftest*
+fi
+
 
 dnl
 dnl  Check whether to build JIT
 dnl
 AC_MSG_CHECKING([whether to build JIT compiler])
 JITOBJS=""
-if [[ "x$WANT_JIT" != "xno" -a "$HOST_CPU" = "ppc" ]]; then
+if [[ "x$WANT_JIT" != "xno" -a "$HOST_CPU" = "i386" ]]; then
   UAE_DEFINES="$UAE_DEFINES -DJIT"
-  JITOBJS='compstbl.$(OBJEXT) compemu_macroblocks_ppc.$(OBJEXT) compemu_compiler_ppc.$(OBJEXT) compemu_support.$(OBJEXT)'
+  if [[ "x$NATMEM" = "xyes" ]]; then
+    NATMEM="0x50000000"
+  fi
+  if [[ "x$NATMEM" != "xno" ]]; then
+    UAE_DEFINES="$UAE_DEFINES -DNATMEM_OFFSET=$NATMEM"
+  fi
+  JITOBJS="compstbl.o compemu.o compemu_support.o compemu_fpp.o"
+  if [[ "x$NOFLAGS" != "xno" ]]; then
+    JITOBJS="$JITOBJS cpustbl_nf.o"
+    JITOBJS="$JITOBJS $CPUOBJ_STEM""nf_0.o"
+    if [[ "x$WANT_COMPATIBLE" != "xno" ]]; then
+      JITOBJS="$JITOBJS $CPUOBJ_STEM""nf_5.o"
+    fi
+    if [[ "x$WANT_CYCLEEXACT" != "xno" ]]; then
+      JITOBJS="$JITOBJS $CPUOBJ_STEM""nf_6.o"
+    fi
+  fi
   AC_MSG_RESULT(yes)
 else
   AC_MSG_RESULT(no)
@@ -791,52 +737,28 @@ dnl  Check which graphics target to build
 dnl
 AC_MSG_CHECKING([for graphics target to build])
 
-dnl Check whether we wanted to use ncurses
-dnl
-dnl First check if we need to uses ncurses because no
-dnl other gfx support is available
-if [[ "x$WANT_NCURSES" != "xno" -a "x$WANT_SDL" = "xno" -a "x$GFX_DEP" = "x" ]]; then
- WANT_NCURSES=yes
-fi
-
-if [[ "x$WANT_NCURSES" = "xyes" ]]; then
- if [[ "x$HAVE_NCURSES_LIB" = "xyes" ]]; then
-  GFX_LIBS="-lncurses"
-  GFX_CFLAGS=
-  GFX_CPPFLAGS=
-  GFX_DEP=gfx-curses
-  GFX_NAME=ncurses
- else
-  AC_MSG_WARN([ncurses support wanted, but libncurses could not be found])
- fi
-fi
-
-
 dnl  Check whether we actually wanted to use SDL or whether
 dnl  we need to use SDL because we couldn't find any other
 dnl  graphics support
 dnl
 if [[ "x$WANT_SDL" = "xyes" -o "x$GFX_DEP" = "x" ]]; then
-  if [[ "x$HAVE_SDL" = "xyes" -a "x$WANT_SDLGFX" != "xno" ]]; then
-    WANT_SDL=yes
+  if [[ "x$HAVE_SDL" = "xyes" ]]; then
+    THREADDEP=td-sdl
+    THREADNAME=SDL
+    JOY_DEP=jd-sdl
+    JOY_NAME=SDL
+    GFX_LIBS="$SDL_LIBS"
+    GFX_CFLAGS="$SDL_CFLAGS -DUSE_SDL"
     if [[ "x$WANT_SDLGFX" = "xyes" -o "x$GFX_DEP" = "x" ]]; then
       GFX_DEP=gfx-sdl
       GFX_NAME=SDL
-      GFX_LIBS=""
-      GFX_CFLAGS=""
-      GFX_CPPFLAGS=""
-      if [[ "x$WANT_SDLGL" = "xyes" ]]; then
-        GFX_CFLAGS="-DUSE_GL"
-        if [[ "x$OSDEP" = "xod-macosx" ]]; then
-          GFX_LIBS="-framework OpenGL"
-        else
-          GFX_LIBS="-lGL -lGLU"
-        fi
-      fi
     fi
+  else
+    AC_MSG_WARN([SDL support wanted, but libSDL could not be found])
+    WANT_SDL=no
+    NR_ERRORS=`expr $NR_ERRORS + 1`
   fi
 fi
-
 
 dnl  If we got here and we still haven't found a graphics target
 dnl  then bail out.
@@ -859,6 +781,7 @@ if [[ "$GFX_DEP" = "gfx-x11" ]]; then
     TMP_SAVE_LIBS=$LIBS
     LIBS="$X_LIBS $LIBS"
     AC_CHECK_LIB(Xxf86dga, XF86DGAQueryExtension, HAVE_DGA=yes, HAVE_DGA=no, [ $X_PRE_LIBS -lXext -lX11 $X_EXTRA_LIBS ])
+    echo $LIBS
     LIBS=$TMP_SAVE_LIBS
     if [[ "x$HAVE_DGA" = "xno" ]]; then
       AC_MSG_WARN([Could not find DGA extension, ignoring --enable-dga])
@@ -885,48 +808,7 @@ if [[ "$GFX_DEP" = "gfx-x11" ]]; then
     fi
   fi
 
-  dnl Check if we can compile with XKB/XKBfile support
-
-  AC_MSG_CHECKING(whether to compile XKB extension support)
-  TMP_SAVE_LIBS=$LIBS
-  TMP_SAVE_CFLAGS=$CFLAGS
-  LIBS="$X_LIBS $LIBS -lxkbfile"
-  CFLAGS="$CFLAGS $X_CFLAGS"
-  AC_TRY_LINK([
-    #include "confdefs.h"
-    #include <stdio.h>
-    #ifdef HAVE_SYS_TYPES_H
-    # include <sys/types.h>
-    #endif
-    #include <X11/Xlib.h>
-    #include <X11/XKBlib.h>
-    #include <X11/extensions/XKBrules.h>],[
-    int major, minor;
-    XkbRF_RulesPtr rules;
-    XkbLibraryVersion (&major, &minor);
-    rules = XkbRF_Load ("dummy", "", True, True);
-  ],
-  AC_MSG_RESULT(yes)
-  X_CFLAGS="$X_CFLAGS -DUSE_XKB"
-  X_EXTRA_LIBS="$X_EXTRA_LIBS -lxkbfile"
-  xkb_rules_dir_found="no"
-  for xkb_rules_dir in /usr/share/X11/xkb/rules /usr/lib/X11/xkb/rules /usr/X11R6/lib/X11/xkb/rules
-  do
-	if test -d $xkb_rules_dir ; then
-		X_CFLAGS="$X_CFLAGS -DXKB_PATH=\\\"$xkb_rules_dir/\\\""
-		xkb_rules_dir_found="yes"
-		break
-	fi
-  done
-  if test "x$xkb_rules_dir_found" = "xno" ; then
-  	AC_MSG_ERROR([[Could not find xkb path.]])
-  fi,
-  AC_MSG_RESULT(no)
-  )
-  LIBS=$TMP_SAVE_LIBS
-  CFLAGS=$TMP_SAVE_CFLAGS
-
-dnl See if we can at least compile SHM support
+  dnl See if we can at least compile SHM support
 
   if [[ "x$no_x" != "xyes" -a "x$ac_cv_header_sys_ipc_h" = "xyes" -a "x$ac_cv_header_sys_shm_h" = "xyes" ]]; then
     AC_MSG_CHECKING(whether the X11 MIT-SHM extension can be compiled in)
@@ -960,8 +842,7 @@ dnl See if we can at least compile SHM support
   CFLAGS=$TMP_SAVE_CFLAGS
   LIBS=$TMP_SAVE_LIBS
 
-  GFX_CFLAGS="$X_CFLAGS"
-  GFX_CPPFLAGS="-DSHM_SUPPORT_LINKS=$SHM_SUPPORT_LINKS"
+  GFX_CFLAGS="$X_CFLAGS -DSHM_SUPPORT_LINKS=$SHM_SUPPORT_LINKS"
   GFX_LIBS="$X_LIBS $X_PRE_LIBS -lXext -lX11 $X_EXTRA_LIBS"
 fi
 
@@ -989,21 +870,42 @@ if [[ "x$WANT_AUDIO" != "xno" ]]; then
       fi
       SND_NAME=OSS
       USE_SOUND=yes
+    else if [[ "x$HAVE_AF_LIB" = "xyes" ]]; then
+      SND_DEP=sd-af
+      SND_LIBS="-lAF"
+      SND_NAME="AF sound"
+      USE_SOUND=yes
+    else if [[ "x$HAVE_SGIAUDIO_LIB" = "xyes" ]]; then
+      SND_DEP=sd-sgi
+      SND_LIBS="-laudio"
+      SND_NAME="SGI sound"
+      USE_SOUND=yes
+    else if [[ "x$HAVE_MME_LIB" = "xyes" ]]; then
+      SND_DEP=sd-mme
+      SND_LIBS="-lmme"
+      SND_NAME="MME sound"
+      USE_SOUND=yes
+    fi
+    fi
+    fi
     fi
     fi
     fi
   fi
 
   dnl
-  dnl  Did we actually want to use SDL for sound, or should we
-  dnl  use it 'cos there's nothing else?
+  dnl  Did we actually want to use SDL for sound?
   dnl
-  if [[ "x$WANT_SDLSND" = "xyes" -o "x$SND_DEP" = "x" ]]; then
-    if [[ "x$HAVE_SDL" = "xyes" -a "x$WANT_SDLSND" != "xno" ]]; then
+  if [[ "x$WANT_SDLSND" = "xyes" ]]; then
+    if [[ "x$HAVE_SDL" = "xyes" ]]; then
       SND_DEP=sd-sdl
       SND_LIBS=
       SND_NAME=SDL
       NEED_THREAD_SUPPORT=yes
+    else
+      AC_MSG_WARN([SDL support wanted, but libSDL could not be found])
+      WANT_SDL=no
+      NR_ERRORS=`expr $NR_ERRORS + 1`
     fi
   fi
 
@@ -1029,8 +931,7 @@ else
   if [[ "$HOST_OS" = "darwin" ]]; then
     if [[ "x$WANT_COCOA_UI" != "xno" -o "x$HAVE_GTK" = "xno" ]]; then
       GUI_DEP=gui-cocoa
-      GUI_CFLAGS="$CFLAGS -DNO_MAIN_IN_MAIN_C"
-      GUI_LIBS="-framework Cocoa"
+      GUI_LIBS=
       GUI_NAME="Cocoa"
     fi
   fi
@@ -1043,7 +944,7 @@ else
       GUI_DEP=gui-gtk
       GUI_LIBS="$GTK_LIBS"
       GUI_NAME="GTK+"
-      GUI_CFLAGS="$CFLAGS"
+      GUI_CFLAGS="$CFLAGS -DNO_MAIN_IN_MAIN_C"
       NEED_THREAD_SUPPORT=yes
       if [[ "x$WANT_THREADS" = "xno" ]]; then
         AC_MSG_ERROR([Thread support disabled, but GTK+ UI requires threads])
@@ -1076,17 +977,18 @@ if [[ "x$WANT_AUTOCONFIG" != "xno" ]]; then
   dnl  Configure hard disk emulation
   UAE_DEFINES="$UAE_DEFINES -DFILESYS"
   NEED_THREAD_SUPPORT=yes
-  FILESYSOBJS='filesys.$(OBJEXT) fsdb.$(OBJEXT) fsusage.$(OBJEXT) hardfile.$(OBJEXT)'
+  FILESYSOBJS="filesys.o fsdb.o fsusage.o hardfile.o"
   if [[ "x$HOST_OS" != "xwin32" ]]; then
-    FILESYSOBJS="$FILESYSOBJS filesys_unix.\$(OBJEXT) fsdb_unix.\$(OBJEXT) hardfile_unix.\$(OBJEXT)"
+    FILESYSOBJS="$FILESYSOBJS filesys_unix.o fsdb_unix.o hardfile_unix.o"
+  else
+    FILESYSOBJS="$FILESYSOBJS od-win32/fsdb_win32.o od-win32/fsdb_hardfile_win32.o"
   fi
   dnl  Filesys support currently requires threads, because hardfile
   dnl  support requires threads and we can't currently separate the
   dnl  two.
-  dnl
-  dnl  However, we don't currently build the threaded filesys implementation
-  dnl  because it performs poorly.
-  dnl
+  dnl 
+  dnl  Don't use use filesys threads, yet, though. It causes a massive
+  dnl  performance hit on some platforms...
   dnl  UAE_DEFINES="$UAE_DEFINES -DUAE_FILESYS_THREADS"
 
   AC_MSG_RESULT(yes)
@@ -1107,12 +1009,6 @@ if [[ "x$WANT_SCSIEMU" = "xyes" ]]; then
     NR_WARNINGS=`expr $NR_WARNINGS + 1`
     WANT_SCSIEMU=no
   else
-    if [[ "$OSDEP" = "od-amiga" ]]; then
-      AC_MSG_RESULT(yes)
-      SCSIOBJS='scsiemul.$(OBJEXT) blkdev.$(OBJEXT)'
-      UAE_DEFINES="$UAE_DEFINES -DSCSIEMU"
-      NEED_THREAD_SUPPORT=yes
-    else
     SCGLIBS="-lscg -lschily"
     if [[ "$HOST_OS" = "darwin" ]]; then
       SCGLIBS="$SCGLIBS -framework IOKit -framework CoreFoundation"
@@ -1143,10 +1039,10 @@ typedef int BOOL;
 [{SCSI *scgp = scg_open (0, 0, 0, 0, 0);}],
     [
       AC_MSG_RESULT(yes)
-      SCSIOBJS='scsiemul.$(OBJEXT) blkdev.$(OBJEXT) blkdev-libscg.$(OBJEXT)'
+      SCSIOBJS="scsiemul.o blkdev.o blkdev-libscg.o"
       UAE_DEFINES="$UAE_DEFINES -DSCSIEMU"
       UAE_CPPFLAGS="$UAE_CPPFLAGS $LIBSCG_CPPFLAGS"
-      UAE_LIBS="$LIBSCG_LIBS $UAE_LIBS"
+      UAE_LIBS="$UAE_LIBS $LIBSCG_LIBS"
       NEED_THREAD_SUPPORT=yes
     ],
     [
@@ -1164,50 +1060,32 @@ typedef int BOOL;
 [{SCSI *scgp = scg_open (0, 0, 0, 0, 0);}],
       [
         AC_MSG_RESULT(yes)
-        SCSIOBJS='scsiemul.$(OBJEXT) blkdev.$(OBJEXT) blkdev-libscg.$(OBJEXT)'
+        SCSIOBJS="scsiemul.o blkdev.o blkdev-libscg.o"
         UAE_DEFINES="$UAE_DEFINES -DSCSIEMU"
         NEED_THREAD_SUPPORT=yes
         if [[ "$srcdir" != "." ]]; then
           AC_CONFIG_LINKS(src/libscg.a:src/libscg.a)
           AC_CONFIG_LINKS(src/libschily.a:src/libschily.a)
-	  UAE_LIBS="$LIBSCG_LIBS $UAE_LIBS"
+	  UAE_LIBS="$UAE_LIBS $LIBSCG_LIBS"
         else
-          UAE_LIBS="-L. $SCGLIBS $UAE_LIBS"
+          UAE_LIBS="$UAE_LIBS -L. $SCGLIBS"
         fi
       ],
       [
         AC_MSG_RESULT(no)
-
-	AC_MSG_CHECKING([for Linux cdrom support via ioctl])
-	LIBS="$OLDLIBS"
-	CPPFLAGS="$OLDCPPFLAGS"
-	AC_TRY_LINK([
-#include <linux/cdrom.h>],
-[{struct cdrom_generic_command cmd; ioctl (0, CDROM_SEND_PACKET, &cmd);}],
-	[
-	   AC_MSG_RESULT(yes)
-	   SCSIOBJS='scsiemul.$(OBJEXT) blkdev.$(OBJEXT)'
-	   UAE_DEFINES="$UAE_DEFINES -DSCSIEMU -DSCSIEMU_LINUX_IOCTL"
-	   NEED_THREAD_SUPPORT=yes
-	],
-	[
-
-	AC_MSG_RESULT(no)
         NR_WARNINGS=`expr $NR_WARNINGS + 1`
         echo "Please refer to the UAE SCSI device section in docs/README for installation instructions."
         WANT_SCSIEMU=no
-	])
       ])
     LIBS="$OLDLIBS"
     CPPFLAGS="$OLDCPPFLAGS"
     ])
-    fi
   fi
 else
   AC_MSG_RESULT(no)
 fi
 if [[ "x$WANT_SCSIEMU" != "xyes" ]]; then
-  SCSIOBJS='scsi-none.$(OBJEXT)'
+  SCSIOBJS="scsi-none.o"
   AC_MSG_RESULT(no)
 fi
 
@@ -1227,7 +1105,7 @@ if [[ "x$WANT_CDTV" != "xno" ]]; then
     WANT_CDTV=no
   else
     UAE_DEFINES="$UAE_DEFINES -DCDTV"
-    CDOBJS='cdrom.$(OBJEXT)'
+    CDOBJS="cdrom.o"
   fi
 else
   AC_MSG_RESULT(no)
@@ -1257,9 +1135,9 @@ if [[ "x$WANT_CD32" != "xno" ]]; then
     else
       UAE_DEFINES="$UAE_DEFINES -DCD32"
       if [[ "x$WANT_CDTV" = "xno" ]]; then
-        CDOBJS='cdrom.$(OBJEXT)'
+        CDOBJS="cdrom.o"
       fi
-      CDOBJS="$CDOBJS akiko.\$(OBJEXT)"
+      CDOBJS="$CDOBJS akiko.o"
     fi
   fi
 else
@@ -1271,7 +1149,7 @@ dnl
 dnl  Do we want bsdsocket.library emulation?
 dnl
 AC_MSG_CHECKING([whether to build bsdsocket.library emulation])
-if [[ "x$WANT_BSDSOCK" != "xno" ]]; then
+if [[ "x$WANT_BSDSOCK" != "xno" -o "x$WANT_BSDSOCK_NEW" != "xno" ]]; then
   if [[ "x$WANT_AUTOCONFIG" = "xno" ]]; then
     AC_MSG_RESULT(no)
     AC_MSG_WARN([Autoconfig support not enabled, so bsdsocket emulation cannot be enabled])
@@ -1279,12 +1157,26 @@ if [[ "x$WANT_BSDSOCK" != "xno" ]]; then
   else
     NEED_THREAD_SUPPORT=yes
     UAE_DEFINES="$UAE_DEFINES -DBSDSOCKET"
-    BSDSOCKOBJS='bsdsocket-posix-new.$(OBJEXT) bsdsocket.$(OBJEXT)'
     AC_MSG_RESULT(yes)
+    if [[ "$HOST_OS" != "win32" ]]; then
+      if [[ "$HOST_CPU" != "i386" -a "$HOST_CPU" != "ppc" ]]; then
+        if [[ "x$WANT_BSDSOCK_NEW" = "xyes" ]]; then
+	  AC_MSG_WARN([New bsdsocket emulation not supported on your CPU. Enabling old emulation.])
+	  WANT_BSDSOCK_NEW=no
+	fi
+      fi
+      if [[ "x$WANT_BSDSOCK_NEW" = "xyes" ]]; then
+        BSDSOCKOBJS="bsdsocket-posix-new.o bsdsocket.o"
+      else
+        BSDSOCKOBJS="bsdsocket-posix.o"
+      fi
+    else
+      BSDSOCKOBJS="bsdsocket.o"
+    fi
   fi
 else
   AC_MSG_RESULT(no)
-  BSDSOCKOBJS='bsdsocket.$(OBJEXT)'
+  BSDSOCKOBJS="bsdsocket-posix.o"
 fi
 
 
@@ -1295,23 +1187,13 @@ AC_MSG_CHECKING([whether to build with threads])
 if [[ "x$WANT_THREADS" = "xyes" -o "x$NEED_THREAD_SUPPORT" = "xyes" ]]; then
   AC_MSG_RESULT(yes)
   AC_MSG_CHECKING([which thread target to build])
-
-  if [[ "x$WANT_SDL" = "xyes" -o "$THREADDEP" = "td-none" ]]; then
-    if [[ "x$HAVE_SDL" = "xyes" -a "x$WANT_SDL" != "xno" ]]; then
-      WANT_SDL=yes
-      THREADDEP=td-sdl
-      THREADNAME=SDL
-    fi
-  fi
-
   if [[ "$THREADDEP" = "td-none" ]]; then
     AC_MSG_ERROR([Thread support wanted or required, but no thread target found])
   fi
-
   if [[ "$THREADDEP" = "td-posix" ]]; then
     CC="$PTHREAD_CC"
     UAE_CFLAGS="$UAE_CFLAGS $PTHREAD_CFLAGS"
-    UAE_LIBS="$PTHREAD_LIBS $UAE_LIBS"
+    UAE_LIBS="$UAE_LIBS $PTHREAD_LIBS"
 
     dnl Hack to use named semaphores on OS X/darwin
     dnl This needs to be properly checked when detecting pthreads!
@@ -1319,23 +1201,11 @@ if [[ "x$WANT_THREADS" = "xyes" -o "x$NEED_THREAD_SUPPORT" = "xyes" ]]; then
       UAE_DEFINES="$UAE_DEFINES -DUSE_NAMED_SEMAPHORES"
     fi
   fi
-
   UAE_DEFINES="$UAE_DEFINES -DSUPPORT_THREADS"
   AC_MSG_RESULT($THREADNAME)
 else
   THREADDEP=td-none
   AC_MSG_RESULT(no)
-fi
-
-
-dnl
-dnl  So, are we using SDL?
-dnl
-if [[ "x$WANT_SDL" = "xyes" ]]; then
-   UAE_DEFINES="$UAE_DEFINES -DUSE_SDL"
-   JOY_DEP=jd-sdl
-   UAE_LIBS="$SDL_LIBS $UAE_LIBS"
-   UAE_CPPFLAGS="$UAE_CPPFLAGS $SDL_CFLAGS"
 fi
 
 
@@ -1362,16 +1232,6 @@ if [[ "x$WANT_CAPS" != "xno" ]]; then
     fi
   fi
   CPPFLAGS="$SAVE_CPPFLAGS"
-
-  if [[ "$HAVE_CAPS" = "yes" ]]; then
-    dnl Check for CAPSImage framework on OS X.
-    SAVE_LIBS="$LIBS"
-    AC_CHECK_FRAMEWORK(CAPSImage, CAPSInit, [
-      UAE_LIBS="$UAE_LIBS -weak_framework CAPSImage"
-      AC_DEFINE(HAVE_FRAMEWORK_CAPSIMAGE, 1, [Define to 1 if you have the CAPS framework.])
-    ])
-    LIBS="$SAVE_LIBS"
-  fi
 fi
 
 
@@ -1380,31 +1240,6 @@ dnl  Check whether FDI support wanted
 dnl
 if [[ "x$WANT_FDI" != "xno" ]]; then
   UAE_DEFINES="$UAE_DEFINES -DFDI2RAW"
-fi
-
-
-dnl
-dnl  Build debugger?
-dnl
-AC_MSG_CHECKING([whether to build internal debugger/monitor])
-if [[ "x$WANT_DEBUGGER" != "xno" ]]; then
-  AC_MSG_RESULT(yes)
-  UAE_DEFINES="$UAE_DEFINES -DDEBUGGER"
-  DEBUGOBJS='debug.$(OBJEXT) ppc_disasm.$(OBJEXT) identify.$(OBJEXT)'
-else
-  AC_MSG_RESULT(no)
-fi
-
-
-dnl
-dnl  Support state saving/loading?
-dnl
-AC_MSG_CHECKING([whether to build support for saving/loading emulator state])
-if [[ "x$WANT_STATESAVING" != "xno" ]]; then
-  AC_MSG_RESULT(yes)
-  UAE_DEFINES="$UAE_DEFINES -DSAVESTATE"
-else
-  AC_MSG_RESULT(no)
 fi
 
 
@@ -1437,19 +1272,8 @@ else
 fi
 
 
-dnl
-dnl  Include keymapping for X-Aracde joysticks
-dnl
-AC_MSG_CHECKING([whether to include keymaps for X-Arcade joysticks])
-if [[ "x$WANT_XARCADE" != "xno" ]]; then
-  AC_MSG_RESULT(yes)
-  UAE_DEFINES="$UAE_DEFINES -DXARCADE"
-else
-  AC_MSG_RESULT(no)
-fi
-
-LIBS="$GUI_LIBS $GFX_LIBS $SND_LIBS $JOY_LIBS $UAE_LIBS"
-CPPFLAGS="$UAE_CPPFLAGS $UAE_DEFINES $GFX_CPPFLAGS"
+LIBS="$LIBS $UAE_LIBS $GUI_LIBS $GFX_LIBS $SND_LIBS $JOY_LIBS $MATHLIB"
+CPPFLAGS="$CPPFLAGS $UAE_DEFINES $UAE_CPPFLAGS"
 CFLAGS="$CFLAGS $UAE_CFLAGS $GUI_CFLAGS $GFX_CFLAGS $SND_CFLAGS $JOY_CFLAGS"
 
 AC_CONFIG_LINKS(src/target.h:src/targets/$TARGETDEP)
@@ -1468,38 +1292,41 @@ AC_CONFIG_FILES([Makefile
 		 src/caps/Makefile
 		 src/md-generic/Makefile
 		 src/md-i386-gcc/Makefile
+		 src/md-i386-watcom/Makefile
 		 src/md-ppc-gcc/Makefile
 		 src/md-ppc/Makefile
 		 src/md-68k/Makefile
-		 src/md-amd64-gcc/Makefile
 		 src/od-generic/Makefile
 		 src/od-linux/Makefile
 		 src/od-amiga/Makefile
 		 src/od-beos/Makefile
+		 src/od-macos/Makefile
 		 src/od-macosx/Makefile
-		 src/od-macosx/Info.plist
-		 src/od-win32/Makefile
+		 src/od-macosx/bin/Makefile
+		 src/od-macosx/lib/Makefile
 		 src/td-none/Makefile
 		 src/td-amigaos/Makefile
 		 src/td-beos/Makefile
 		 src/td-posix/Makefile
 		 src/td-sdl/Makefile
-		 src/td-win32/Makefile
 		 src/gfx-amigaos/Makefile
 		 src/gfx-beos/Makefile
 		 src/gfx-x11/Makefile
 		 src/gfx-sdl/Makefile
 		 src/gfx-curses/Makefile
 		 src/gfx-svga/Makefile
+		 src/sd-af/Makefile
 		 src/sd-alsa/Makefile
 		 src/sd-amigaos/Makefile
 		 src/sd-beos/Makefile
+		 src/sd-file/Makefile
+		 src/sd-mme/Makefile
 		 src/sd-none/Makefile
 		 src/sd-sdl/Makefile
+		 src/sd-sgi/Makefile
 		 src/sd-solaris/Makefile
 		 src/sd-uss/Makefile
 		 src/jd-none/Makefile
-		 src/jd-amigainput/Makefile
 		 src/jd-amigaos/Makefile
 		 src/jd-beos/Makefile
 		 src/jd-linuxold/Makefile
@@ -1510,17 +1337,7 @@ AC_CONFIG_FILES([Makefile
 		 src/gui-gtk/Makefile
 		 src/gui-muirexx/Makefile
 		 src/keymap/Makefile
-		 src/test/Makefile
 ])
-
-AM_CONDITIONAL(TARGET_BIGENDIAN, test x$ac_cv_c_bigendian = xyes)
-AM_CONDITIONAL(TARGET_BEOS,  test x$OSDEP = xod-beos)
-AM_CONDITIONAL(TARGET_WIN32, test x$OSDEP = xod-win32)
-AM_CONDITIONAL(BUILD_MACOSX_BUNDLE, test x$OSDEP = xod-macosx)
-
-AC_SUBST(UAE_CFLAGS)
-AC_SUBST(UAE_CPPFLAGS)
-AC_SUBST(UAE_LIBS)
 
 AC_SUBST(ac_cv_c_inline)
 AC_SUBST(WRCPRG)
@@ -1534,7 +1351,6 @@ AC_SUBST(GFX_DEP)
 AC_SUBST(SND_DEP)
 AC_SUBST(JOY_DEP)
 AC_SUBST(GUI_DEP)
-AC_SUBST(EXTRAOBJS)
 AC_SUBST(CPUOBJS)
 AC_SUBST(JITOBJS)
 AC_SUBST(RESOBJS)
@@ -1567,8 +1383,6 @@ dnl
 if [[ "x$cross_compiling" = "xyes" ]]; then
   export CC=$CC_FOR_BUILD
   export CFLAGS=$CFLAGS_FOR_BUILD
-  export LDFLAGS=$LDFLAGS_FOR_BUILD
-  export LIBS=$LIBS_FOR_BUILD
   mkdir -p src/tools
   cd  src/tools && ../../"$srcdir"/src/tools/configure --cache-file=/dev/null --host=$build --target=$host
 fi

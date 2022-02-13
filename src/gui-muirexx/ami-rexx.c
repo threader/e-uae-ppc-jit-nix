@@ -4,7 +4,7 @@
   * ami-rexx.c
   *
   * Copyright 1996 Samuel Devulder.
-  * Copyright 2004-2006 Richard Drummond
+  * Copyright 2004 Richar Drummond
   *
   * History:
   *     05/09/97: Added UAEEXE support.
@@ -46,17 +46,16 @@
 #include "sysconfig.h"
 #include "sysdeps.h"
 #include "uae.h"
+#include "config.h"
 #include "options.h"
 #include "memory.h"
 #include "custom.h"
 #include "newcpu.h"
 #include "disk.h"
-#include "audio.h"
+#include "gensound.h"
 #include "uaeexe.h"
 #include "xwin.h"
 #include "drawing.h"
-#include "debug.h"
-#include "version.h"
 
 #include <ctype.h>
 
@@ -85,12 +84,12 @@ enum {
 int  rexx_init (void);
 void rexx_exit (void);
 void rexx_led (int led, int on);
-void rexx_filename (unsigned int num, const char *name);
+void rexx_filename (unsigned int num, const unsigned char *name);
 void rexx_handle_events (void);
 
 /****************************************************************************/
 
-#if defined __GNUC__ && !defined __amigaos4__ && !defined __morphos__
+#if defined __GNUC__ && !defined __amigaos4__
 typedef struct RxsLib REXXBASE;
 #else
 typedef struct Library REXXBASE;
@@ -107,19 +106,23 @@ static gui_rexx_s        gui_rexx[GUI_REXX_MAX];
 static char              RESULT[RESULT_LEN];
 static int               led_state[5];
 
-static int   ADDRESS    (const char *hostname, const char *cmd);
-static int   matchstr   (const char **line, const char *pat);
-static void  extractstr (const char **line, char *result, unsigned int len);
-static int   matchnum   (const char **line);
+static int   ADDRESS    (const unsigned char *hostname, const unsigned char *cmd);
+static int   matchstr   (const unsigned char **line, const unsigned char *pat);
+static void  extractstr (const unsigned char **line, unsigned char *result, unsigned int len);
+static int   matchnum   (const unsigned char **line);
 
 /****************************************************************************/
 
+extern int quit_program;                                 /* ami-gui.c */
 extern ULONG frame_num;                                  /* ami-win.c */
+extern void activate_debugger (void);                    /* debug.c */
 
 /****************************************************************************/
 
 int rexx_init (void)
 {
+    quit_program = 0;
+
     RexxSysBase = (REXXBASE *) OpenLibrary ("rexxsyslib.library", 0L);
     if (!RexxSysBase) {
 	write_log ("Can't find rexxsyslib.library!\n");
@@ -188,7 +191,7 @@ void rexx_exit (void)
 
 /****************************************************************************/
 
-static int EJECT (const char *line)
+static int EJECT (const unsigned char *line)
 {
     unsigned int drive = matchnum (&line);
     int result = RC_WARN;
@@ -206,14 +209,14 @@ static int EJECT (const char *line)
 
 /****************************************************************************/
 
-static int INSERT (const char *line)
+static int INSERT (const unsigned char *line)
 {
     unsigned int drive = matchnum (&line);
     int result = RC_WARN;
 
     if (drive < 4) {
 	if (currprefs.dfxtype[drive] >= 0) {
-	    char buff[256];
+	    unsigned char buff[256];
 	    extractstr (&line, buff, 256);
 	    strcpy (changed_prefs.df[drive], buff);
 	    result = RC_OK;
@@ -227,14 +230,15 @@ static int INSERT (const char *line)
 
 static void QUIT (void)
 {
-    uae_quit ();
+    set_special (SPCFLAG_BRK);
+    quit_program = 1;
 }
 
 /****************************************************************************/
 
-static int QUERY (const char *line)
+static int QUERY (const unsigned char *line)
 {
-    const char *res = NULL;
+    const unsigned char *res = NULL;
 
     if      (matchstr (&line, "LED_POW"))      res = led_state[0] ? "1" : "0";
     else if (matchstr (&line, "LED_DF0"))      res = led_state[1] ? "1" : "0";
@@ -249,7 +253,7 @@ static int QUERY (const char *line)
     else if (matchstr (&line, "DISPLAY"))      res = inhibit_frame ? "0" : "1";
     else if (matchstr (&line, "FRAMERATE")) {
 	sprintf (RESULT, "%d", currprefs.gfx_framerate);
-	return RC_OK;
+        return RC_OK;
     } else if (matchstr (&line, "FRAMENUM")) {
 #ifdef USE_AMIGA_GFX
 	sprintf (RESULT, "%u", frame_num);
@@ -270,7 +274,7 @@ static int QUERY (const char *line)
 
 /****************************************************************************/
 
-static int FEEDBACK (const char *line)
+static int FEEDBACK (const unsigned char *line)
 {
     gui_rexx_s *gui = NULL;
 
@@ -303,7 +307,7 @@ static int FEEDBACK (const char *line)
 
 /****************************************************************************/
 
-static int GET_VERSION (const char *line)
+static int GET_VERSION (const unsigned char *line)
 {
     if (matchstr (&line, "STRING")) {
 	sprintf (RESULT,
@@ -321,7 +325,7 @@ static int GET_VERSION (const char *line)
 
 /****************************************************************************/
 
-static int FRAMERATE (const char *line)
+static int FRAMERATE (const unsigned char *line)
 {
     int num;
     num = matchnum (&line);
@@ -336,12 +340,12 @@ static int FRAMERATE (const char *line)
 
 /****************************************************************************/
 
-static int FAKEJOYSTICK (const char *line)
+static int FAKEJOYSTICK (const unsigned char *line)
 {
 /*    if     (matchstr(&line,"ON"))     changed_prefs.fake_joystick = 2;
     else if(matchstr(&line,"OFF"))    changed_prefs.fake_joystick = 0;
     else if(matchstr(&line,"TOGGLE")) changed_prefs.fake_joystick =
-				      currprefs.fake_joystick?0:2;
+                                      currprefs.fake_joystick?0:2;
     else return RC_ERROR;
     return RC_OK; */
 
@@ -350,7 +354,7 @@ static int FAKEJOYSTICK (const char *line)
 
 /****************************************************************************/
 
-static int DISPLAY (const char *line)
+static int DISPLAY (const unsigned char *line)
 {
     if      (matchstr (&line, "ON"))     clear_inhibit_frame (IHF_SCROLLLOCK);
     else if (matchstr (&line, "OFF"))    set_inhibit_frame (IHF_SCROLLLOCK);
@@ -361,7 +365,7 @@ static int DISPLAY (const char *line)
 
 /****************************************************************************/
 
-static int SOUND (const char *line)
+static int SOUND (const unsigned char *line)
 {
     if (!sound_available) {
 	sprintf (RESULT, "Sound not available!");
@@ -384,19 +388,7 @@ static int SOUND (const char *line)
 
 /****************************************************************************/
 
-static int DEBUG (void)
-{
-#ifdef DEBUGGER
-    activate_debugger ();
-    return RC_OK;
-#else
-    return RC_ERROR;
-#endif
-}
-
-/****************************************************************************/
-
-static int UAEEXE (const char *line)
+static int UAEEXE (const unsigned char *line)
 {
     if (uaeexe (line)) {
 	sprintf (RESULT, "Remote CLI failed!");
@@ -407,7 +399,7 @@ static int UAEEXE (const char *line)
 
 /****************************************************************************/
 
-static int process_cmd (const char *line)
+static int process_cmd (const unsigned char *line)
 {
     RESULT[0] = '\0';
     if      (matchstr (&line, "EJECT"))        return EJECT (line);
@@ -417,7 +409,7 @@ static int process_cmd (const char *line)
     else if (matchstr (&line, "VERSION"))      return GET_VERSION (line);
     else if (matchstr (&line, "BYE"))          QUIT ();
     else if (matchstr (&line, "QUIT"))         QUIT ();
-    else if (matchstr (&line, "DEBUG"))        return DEBUG ();
+    else if (matchstr (&line, "DEBUG"))        activate_debugger ();
     else if (matchstr (&line, "RESET"))        m68k_reset ();
     else if (matchstr (&line, "DISPLAY"))      return DISPLAY (line);
     else if (matchstr (&line, "FRAMERATE"))    return FRAMERATE( line);
@@ -477,7 +469,7 @@ void rexx_led (int led, int on)
 
 /****************************************************************************/
 
-void rexx_filename (unsigned int num, const char *filename)
+void rexx_filename (unsigned int num, const unsigned char *filename)
 {
     gui_rexx_s *gui = NULL;
 
@@ -496,7 +488,7 @@ void rexx_filename (unsigned int num, const char *filename)
 /****************************************************************************/
 /* send a message to an AREXX port.
  */
-static int ADDRESS (const char *hostname, const char *cmd)
+static int ADDRESS (const unsigned char *hostname, const unsigned char *cmd)
 {
     struct MsgPort *RexxPort,
 		   *ReplyPort;
@@ -510,8 +502,8 @@ static int ADDRESS (const char *hostname, const char *cmd)
     if ((RexxPort = (void *)FindPort (hostname))) {
 	if ((ReplyPort = (void *)CreateMsgPort ())) {
 	    if ((HostMsg = CreateRexxMsg (ReplyPort, NULL, hostname))) {
-		unsigned int len = strlen (cmd); /* holger: trick for powerup */
-		if ((HostMsg->rm_Args[0] = CreateArgstring ((char *)cmd, len))) {
+		int len = strlen (cmd); /* holger: trick for powerup */
+		if ((HostMsg->rm_Args[0] = CreateArgstring ((UBYTE*)cmd, len))) {
 		    HostMsg->rm_Action = RXCOMM | RXFF_RESULT;
 		    PutMsg (RexxPort, (void*)HostMsg);
 		    WaitPort (ReplyPort);
@@ -536,10 +528,10 @@ static int ADDRESS (const char *hostname, const char *cmd)
 /****************************************************************************/
 /* argument parsing routines
  */
-static int matchstr (const char **line, const char *pat)
+static int matchstr (const unsigned char **line, const unsigned char *pat)
 {
-    const char *s = *line;
-    char match = 0;
+    const unsigned char *s = *line;
+    unsigned char match = 0;
 
     while (isspace (*s))
 	++s;
@@ -560,10 +552,10 @@ static int matchstr (const char **line, const char *pat)
 
 /****************************************************************************/
 
-static void extractstr (const char **line, char *result, unsigned int len)
+static void extractstr (const unsigned char **line, unsigned char *result, unsigned int len)
 {
-    const char *s = *line;
-    char match = 0;
+    const unsigned char *s = *line;
+    unsigned char match = 0;
 
     while (isspace(*s))
 	++s;
@@ -592,10 +584,10 @@ static void extractstr (const char **line, char *result, unsigned int len)
 
 /****************************************************************************/
 
-static int matchnum (const char **line)
+static int matchnum (const unsigned char **line)
 {
-    const char *s = *line;
-    char match = 0;
+    const unsigned char *s = *line;
+    unsigned char match = 0;
     int sign = 1, num = 0;
 
     while (isspace (*s))
@@ -624,7 +616,7 @@ static int matchnum (const char **line)
 
 #ifdef POWERUP
 /* sam: those function should be in the ppc version of the unexisting
-	libamiga.a */
+        libamiga.a */
 #define NEWLIST(l) ((l)->lh_Head = (struct Node *)&(l)->lh_Tail, \
 		    /*(l)->lh_Tail = NULL,*/ \
 		    (l)->lh_TailPred = (struct Node *)&(l)->lh_Head)

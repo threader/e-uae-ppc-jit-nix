@@ -1,0 +1,12 @@
+This folder contains a hacked version of the LibSDL's sdl-config configure
+script, which is useful for building against the LibSDL framework (rather
+than the Fink's version of SDL). It assumes the SDL headers and library are
+installed in your home directory.
+
+To use, pass the --sdl-prefix option when configuring. For exmaple:
+
+./configure --with-sdl --with-sdl-prefix=`pwd`/src/od-macosx
+
+This script will not currently work if you are building in directory other
+than one root of the source tree (i.e. the directory with the confiure
+script in it).

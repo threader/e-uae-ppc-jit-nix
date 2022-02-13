@@ -3,7 +3,7 @@
   *
   * Block device access using libscg
   *
-  * Copyright 2004-2005 Richard Drummond
+  * Copyright 2004 Richard Drummond
   *
   * Heavily based on code:
   * Copyright 1995 Bernd Schmidt
@@ -48,7 +48,7 @@ struct scsidevdata {
 static struct scsidevdata drives[MAX_DRIVES];
 static int total_drives;
 
-static const uae_u8 *execscsicmd_in (int unitnum, const uae_u8 *data, int len, int *outlen);
+static uae_u8 *execscsicmd_in (int unitnum, uae_u8 *data, int len, int *outlen);
 
 /*
  * scg_isatapi() is not implemented on all platforms. Therefore,
@@ -57,10 +57,10 @@ static const uae_u8 *execscsicmd_in (int unitnum, const uae_u8 *data, int len, i
  */
 static int is_atapi_drive (int unitnum)
 {
-     static const uae_u8 cmd[6] = {0x12, 0, 0, 0, 36, 0}; /* INQUIRY */
+     uae_u8 cmd[6] = { 0x12,0,0,0,36,0 }; /* INQUIRY */
      uae_u8 out[36];
      int outlen = sizeof (out);
-     const uae_u8 *p = execscsicmd_in (unitnum, cmd, sizeof (cmd), &outlen);
+     uae_u8 *p = execscsicmd_in (unitnum, cmd, sizeof (cmd), &outlen);
      if (!p)
 	return 0;
      if (outlen >= 2 && (p[0] & 31) == 5 && (p[2] & 7) == 0)
@@ -172,11 +172,11 @@ static int unit_ready (SCSI *scgp)
 	    return 0;
 	return 1;
     }
-						/* FALSE wenn NOT_READY */
+                                                /* FALSE wenn NOT_READY */
     return (scg_sense_key (scgp) != SC_NOT_READY);
 }
 
-static void print_product (const struct scsi_inquiry *ip)
+static void print_product (struct scsi_inquiry *ip)
 {
     write_log ("'%.8s' ",  ip->vendor_info);
     write_log ("'%.16s' ", ip->prod_ident);
@@ -237,7 +237,7 @@ static void closescsi (SCSI *scgp)
 
 static uae_u8 scsibuf [DEVICE_SCSI_BUFSIZE];
 
-static int execscsicmd (int unitnum, const uae_u8 *data, int len, uae_u8 *inbuf,
+static int execscsicmd (int unitnum, uae_u8 *data, int len, uae_u8 *inbuf,
 			int inlen)
 {
     int sactual = 0;
@@ -255,7 +255,7 @@ static int execscsicmd (int unitnum, const uae_u8 *data, int len, uae_u8 *inbuf,
 
     scmd->timeout   = 80 * 60;
     if (inbuf) {
-	scmd->addr      = (caddr_t) inbuf;
+	scmd->addr      = inbuf;
 	scmd->size      = inlen;
 	scmd->flags     = SCG_RECV_DATA;
 	memset (inbuf, 0, inlen);
@@ -322,7 +322,7 @@ static int execscsicmd_direct (int unitnum, uaecptr acmd)
      * _very_ long (specified in seconds) */
     scmd->timeout   = 80 * 60;
     scsi_datap      = scsi_datap_org = scsi_len
-		      ? bank_data->xlateaddr (scsi_data) : 0;
+                      ? bank_data->xlateaddr (scsi_data) : 0;
     scmd->size      = scsi_len;
     scmd->flags     = (scsi_flags & 1) ? SCG_RECV_DATA : SCG_DISRE_ENA;
     memcpy (&scmd->cdb, bank_cmd->xlateaddr (scsi_cmd), scsi_cmd_len);
@@ -335,7 +335,7 @@ static int execscsicmd_direct (int unitnum, uaecptr acmd)
     if (sdd->isatapi)
 	scsi_atapi_fixup_pre (scmd->cdb.cmd_cdb, &scsi_cmd_len, &scsi_datap,
 			      &scsi_len, &parm);
-    scmd->addr      = (caddr_t)scsi_datap;
+    scmd->addr      = scsi_datap;
     scmd->cdb_len   = scsi_cmd_len;
 
     scg_settarget (scgp, sdd->bus, sdd->target, sdd->lun);
@@ -378,14 +378,14 @@ static int execscsicmd_direct (int unitnum, uaecptr acmd)
 		io_error = 20; /* io_Error, but not specified */
 		put_long (acmd + 8, 0); /* scsi_Actual */
 	    }
-	} else {
+        } else {
 	    scsi_len = scmd->size;
 	    if (sdd->isatapi)
 		scsi_atapi_fixup_post (scmd->cdb.cmd_cdb, scsi_cmd_len,
 				       scsi_datap_org, scsi_datap,
 				       &scsi_len, parm);
 	    io_error = 0;
-	    put_long (acmd + 8, scsi_len); /* scsi_Actual */
+            put_long (acmd + 8, scsi_len); /* scsi_Actual */
 	}
     }
     put_word (acmd + 28, sactual);
@@ -398,7 +398,7 @@ static int execscsicmd_direct (int unitnum, uaecptr acmd)
     return io_error;
 }
 
-static const uae_u8 *execscsicmd_out (int unitnum, const uae_u8 *data, int len)
+static uae_u8 *execscsicmd_out (int unitnum, uae_u8 *data, int len)
 {
     DEBUG_LOG ("SCSIDEV: unit=%d: execscsicmd_out\n", unitnum);
 
@@ -408,7 +408,7 @@ static const uae_u8 *execscsicmd_out (int unitnum, const uae_u8 *data, int len)
     return data;
 }
 
-static const uae_u8 *execscsicmd_in (int unitnum, const uae_u8 *data, int len, int *outlen)
+static uae_u8 *execscsicmd_in (int unitnum, uae_u8 *data, int len, int *outlen)
 {
     int v;
 
@@ -471,15 +471,15 @@ static int scanscsi (SCSI *scgp)
 	    }
 	    if (!have_tgt) {
 		/* Hack: fd -> -2 means no access */
-		write_log ( "%c\n", scgp->fd == -2 ? '?':'*');
+		write_log( "%c\n", scgp->fd == -2 ? '?':'*');
 		continue;
 	    }
 
 	    if ((scgp->scmd->error < SCG_FATAL)
 		|| (scgp->scmd->scb.chk && scgp->scmd->sense_count > 0)) {
-		struct scsi_inquiry *inq = scgp->inq;
+        	struct scsi_inquiry *inq = scgp->inq;
 
-		inquiry (scgp, inq, sizeof (*inq));
+        	inquiry (scgp, inq, sizeof (*inq));
 		print_product (inq);
 
 		/* Just CD/DVD drives for now */
@@ -487,7 +487,7 @@ static int scanscsi (SCSI *scgp)
 		    add_drive (scgp);
 	    }
 
-	    write_log ("\n");
+            write_log ("\n");
 	}
     }
     scgp->silent--;
@@ -554,7 +554,7 @@ static int open_scsi_device (int unitnum)
 
 	if (!sdd->scgp) {
 	    if ((sdd->scgp = openscsi (sdd->bus, sdd->target, sdd->lun)) != 0)
-		result = 1;
+	        result = 1;
 	} else
 	    /* already open */
 	    result = 1;
@@ -615,15 +615,9 @@ static int check_isatapi (int unitnum)
 }
 
 struct device_functions devicefunc_scsi_libscg = {
-    open_scsi_bus,
-    close_scsi_bus,
-    open_scsi_device,
-    close_scsi_device,
-    info_device,
-    execscsicmd_out,
-    execscsicmd_in,
-    execscsicmd_direct,
+    open_scsi_bus, close_scsi_bus,
+    open_scsi_device, close_scsi_device, info_device,
+    execscsicmd_out, execscsicmd_in, execscsicmd_direct,
     0, 0, 0, 0, 0, 0, 0,
-    check_isatapi,
-    0, 0
+    check_isatapi
 };

@@ -1,7 +1,7 @@
 /*
  * cpuspeedpanel.h
  *
- * Copyright 2003-2005 Richard Drummond
+ * Copyright 2003-2004 Richard Drummond
  */
 
 #ifndef __CPUSPEEDPANEL_H__
@@ -29,6 +29,7 @@ struct _CpuSpeedPanel
     /* private */
     GtkWidget *speed_widget;
     GtkWidget *adjust_widget;
+    GtkWidget *dontbusywait_widget;
     GtkWidget *idleenabled_widget;
     GtkWidget *idlerate_widget;
     gboolean   idleenabled;
@@ -36,6 +37,7 @@ struct _CpuSpeedPanel
 
     /* properties */
     guint      cpuspeed;
+    gboolean   dontbusywait;
     guint      cpuidle;
 };
 
@@ -49,8 +51,13 @@ guint		cpuspeedpanel_get_type		(void);
 GtkWidget*	cpuspeedpanel_new		(void);
 void		cpuspeedpanel_set_cpuspeed	(CpuSpeedPanel *cspanel, gint cpuspeed);
 void		cpuspeedpanel_set_cpulevel	(CpuSpeedPanel *cspanel, guint cpulevel);
-void		cpuspeedpanel_set_cpuidle	(CpuSpeedPanel *cspanel, guint cpuidle);
-
+void		cpuspeedpanel_set_dontbusywait	(CpuSpeedPanel *cspanel, gboolean dontbusywait);
+//void		cpuspeedpanel_set_ideenabled	(CpuSpeedPanel *cspanel, gboolean idleenabled);
+//void		cpuspeedpanel_set_idlerate	(CpuSpeedPanel *cspanel, guint idlerate);
+#ifdef JIT
+void cpuspeedpanel_set_cpuidle (CpuSpeedPanel *cspanel, guint cpuidle);
+#endif
+     
 # ifdef __cplusplus
 }
 #endif /* __cplusplus */

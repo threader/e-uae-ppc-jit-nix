@@ -1,7 +1,7 @@
 /*
- * E-UAE - The portable Amiga emulator
+ * UAE - The Un*x Amiga Emulator
  *
- * Copyright 2004-2006 Richard Drummond
+ * Copyright 2004 Richard Drummond
  *
  * Start-up and support functions for Amiga target
  */
@@ -9,6 +9,7 @@
 #include "sysconfig.h"
 #include "sysdeps.h"
 
+#include "config.h"
 #include "options.h"
 #include "uae.h"
 #include "xwin.h"
@@ -16,10 +17,7 @@
 
 #include "signal.h"
 
-#define  __USE_BASETYPE__
 #include <proto/exec.h>
-#undef   __USE_BASETYPE__
-#include <exec/execbase.h>
 
 #ifdef USE_SDL
 # include <SDL.h>
@@ -36,51 +34,13 @@
 /* libnix requires that we link against the swapstack.o module */
 unsigned int __stack = MIN_STACK_SIZE;
 #else
-# if !defined __MORPHOS__ && !defined __AROS__
-/* clib2 minimum stack size. Use this on OS3.x and OS4.0. */
-unsigned int __stack_size = MIN_STACK_SIZE;
+# ifdef __amigaos4__
+// This breaks for some reason...
+//unsigned int __stack_size = MIN_STACK_SIZE;
 # endif
 #endif
 
-struct Device *TimerBase;
-#ifdef __amigaos4__
-struct Library *ExpansionBase;
-struct TimerIFace *ITimer;
-struct ExpansionIFace *IExpansion;
-#endif
-
-static void free_libs (void)
-{
-#ifdef __amigaos4__
-    if (ITimer)
-	DropInterface ((struct Interface *)ITimer);
-    if (IExpansion)
-	DropInterface ((struct Interface *)IExpansion);
-    if (ExpansionBase)
-	CloseLibrary (ExpansionBase);
-#endif
-}
-
-static void init_libs (void)
-{
-    atexit (free_libs);
-
-    TimerBase = (struct Device *) FindName(&SysBase->DeviceList, "timer.device");
-
-#ifdef __amigaos4__
-    ITimer = (struct TimerIFace *) GetInterface((struct Library *)TimerBase, "main", 1, 0);
-
-    ExpansionBase = OpenLibrary ("expansion.library", 0);
-    if (ExpansionBase)
-	IExpansion = (struct ExpansionIFace *) GetInterface(ExpansionBase, "main", 1, 0);
-
-    if(!ITimer || !IExpansion)
-	exit (20);
-#endif
-}
-
 static int fromWB;
-static FILE *logfile;
 
 /*
  * Amiga-specific main entry
@@ -89,20 +49,16 @@ int main (int argc, char *argv[])
 {
     fromWB = argc == 0;
 
-    if (fromWB)
-	set_logfile ("T:E-UAE.log");
-
-    init_libs ();
-
+#ifdef HAVE_OSDEP_RPT
+    /* On 68k machines, open timer.device so that
+     * we can use ReadEClock() for timing */
+    osdep_open_timer ();
+#endif
 #ifdef USE_SDL
-    init_sdl ();
+    init_sdl();
 #endif
 
     real_main (argc, argv);
-
-    if (fromWB)
-	set_logfile (0);
-
     return 0;
 }
 
@@ -111,9 +67,7 @@ int main (int argc, char *argv[])
  */
 static RETSIGTYPE sigbrkhandler(int foo)
 {
-#ifdef DEBUGGER
     activate_debugger ();
-#endif
 }
 
 void setup_brkhandler (void)
@@ -130,15 +84,31 @@ void setup_brkhandler (void)
 #endif
 }
 
+void write_log_amigaos (const char *format, ...)
+{
+    if (!fromWB) {
+	va_list parms;
+
+	va_start (parms,format);
+	vfprintf (stderr, format, parms);
+	va_end (parms);
+    }
+}
+
+void flush_log_amigaos (void)
+{
+    if (!fromWB)
+	fflush (stderr);
+}
 
 /*
  * Handle target-specific cfgfile options
  */
-void target_save_options (FILE *f, const struct uae_prefs *p)
+void target_save_options (FILE *f, struct uae_prefs *p)
 {
 }
 
-int target_parse_option (struct uae_prefs *p, const char *option, const char *value)
+int target_parse_option (struct uae_prefs *p, char *option, char *value)
 {
     return 0;
 }

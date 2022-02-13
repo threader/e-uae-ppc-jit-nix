@@ -6,23 +6,25 @@
   * (c) 1996 Ed Hanway
   */
 
+typedef uae_u32 (*TrapFunction) (void);
+
+extern int lasttrap;
+extern uae_u8 *rtarea;
+extern void do_emultrap (int nr);
+
 extern uae_u32 addr (int);
 extern void db (uae_u8);
 extern void dw (uae_u16);
 extern void dl (uae_u32);
-extern uae_u32 ds (const char *);
+extern uae_u32 ds (char *);
 extern void calltrap (uae_u32);
 extern void org (uae_u32);
 extern uae_u32 here (void);
-
-#define deftrap(f) define_trap((f), 0, "")
-#ifdef TRACE_TRAPS
-# define deftrap2(f, mode, str) define_trap((f), (mode), (str))
-#else
-# define deftrap2(f, mode, str) define_trap((f), (mode), "")
-#endif
-
+extern int deftrap2 (TrapFunction func, int mode, const char *str);
+extern int deftrap (TrapFunction);
 extern void align (int);
+extern uae_u32 CallLib (uaecptr base, uae_s16 offset);
+extern void call_calltrap (int nr) REGPARAM;
 
 extern volatile int uae_int_requested;
 extern void set_uae_int_flag (void);
@@ -40,16 +42,53 @@ extern uaecptr ROM_hardfile_resname, ROM_hardfile_resid;
 extern uaecptr ROM_hardfile_init;
 extern uaecptr filesys_initcode;
 
+extern int nr_units (struct uaedev_mount_info *mountinfo);
+extern int is_hardfile (struct uaedev_mount_info *mountinfo, int unit_no);
+extern char *set_filesys_unit (struct uaedev_mount_info *mountinfo, int,
+			       char *devname, char *volname, char *rootdir, int readonly,
+			       int secs, int surfaces, int reserved,
+			       int blocksize, int bootpri, char *filesysdir);
+extern char *add_filesys_unit (struct uaedev_mount_info *mountinfo,
+			       char *devname, char *volname, char *rootdir, int readonly,
+			       int secs, int surfaces, int reserved,
+			       int blocksize, int bootpri, char *filesysdir);
+extern char *get_filesys_unit (struct uaedev_mount_info *mountinfo, int nr,
+			       char **devname, char **volame, char **rootdir, int *readonly,
+			       int *secspertrack, int *surfaces, int *reserved,
+			       int *cylinders, uae_u64 *size, int *blocksize, int *bootpri, char **filesysdir);
+extern int kill_filesys_unit (struct uaedev_mount_info *mountinfo, int);
+extern int move_filesys_unit (struct uaedev_mount_info *mountinfo, int nr, int to);
+extern int sprintf_filesys_unit (struct uaedev_mount_info *mountinfo, char *buffer, int num);
+extern void write_filesys_config (struct uaedev_mount_info *mountinfo, const char *unexpanded,
+				  const char *defaultpath, FILE *f);
+
+extern struct uaedev_mount_info *alloc_mountinfo (void);
+extern struct uaedev_mount_info *dup_mountinfo (struct uaedev_mount_info *);
+extern void free_mountinfo (struct uaedev_mount_info *);
+
+extern void filesys_reset (void);
+extern void filesys_cleanup (void);
+extern void filesys_prepare_reset (void);
+extern void filesys_start_threads (void);
+extern void filesys_flush_cache (void);
+
 extern void filesys_install (void);
 extern void filesys_install_code (void);
 extern void filesys_store_devinfo (uae_u8 *);
 extern void hardfile_install (void);
 extern void hardfile_reset (void);
-extern void hardfile_cleanup (void);
 extern void emulib_install (void);
 extern void expansion_init (void);
 extern void expansion_cleanup (void);
 
-extern uae_u8 *rtarea;
+extern uae_u8* rtarea;
+
+#define TRAPFLAG_NO_REGSAVE 1
+#define TRAPFLAG_NO_RETVAL 2
+#define TRAPFLAG_EXTRA_STACK 4
+#define TRAPFLAG_DORET 8
+
+extern uaecptr libemu_InstallFunction (TrapFunction, uaecptr, int, const char *);
+extern uaecptr libemu_InstallFunctionFlags (TrapFunction, uaecptr, int, int, const char *);
 
 #define RTAREA_BASE 0xF00000

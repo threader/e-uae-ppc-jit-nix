@@ -28,10 +28,12 @@ struct _ChipsetSpeedPanel
     GtkWidget  *framerate_widget;
     GtkWidget  *collisions_widget;
     GtkWidget  *immediate_blits_widget;
+    GtkWidget  *fast_copper_widget;
 
     guint       framerate;
     guint       collision_level;
     guint       immediate_blits;
+    guint       fast_copper;
 };
 
 struct _ChipsetSpeedPanelClass
@@ -47,6 +49,7 @@ GtkWidget*	chipsetspeedpanel_new		  (void);
 void chipsetspeedpanel_set_framerate		  (ChipsetSpeedPanel *panel, guint framerate);
 void chipsetspeedpanel_set_collision_level	  (ChipsetSpeedPanel *panel, guint collision_level);
 void chipsetspeedpanel_set_immediate_blits	  (ChipsetSpeedPanel *panel, guint immediate_blits);
+void chipsetspeedpanel_set_fast_copper		  (ChipsetSpeedPanel *panel, guint fast_copper);
 
 #ifdef __cplusplus
 }

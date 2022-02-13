@@ -13,7 +13,7 @@ gzip or packed inside a Zip archive.
 ADF
 ---
 
-The classic floppy image format for UAE, a plain raw image of the disk's
+The classic floppy image format for UAE, a plain raw image of the disks
 formatted contents.
 
 

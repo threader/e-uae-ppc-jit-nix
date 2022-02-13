@@ -6,8 +6,6 @@
   * (c) 1995 Bernd Schmidt
   */
 
-#include "machdep/rpt.h"
-
 /* These are the masks that are ORed together in the chipset_mask option.
  * If CSMASK_AGA is set, the ECS bits are guaranteed to be set as well.  */
 #define CSMASK_ECS_AGNUS 1
@@ -37,13 +35,14 @@ extern int turbo_emulation;
 /* Set to 1 to leave out the current frame in average frame time calculation.
  * Useful if the debugger was active.  */
 extern int bogusframe;
-extern unsigned long hsync_counter;
 
 extern uae_u16 dmacon;
 extern uae_u16 intena,intreq;
 
 //extern int current_hpos (void);
 extern unsigned int vpos;
+
+extern int find_copper_record (uaecptr, unsigned int *, unsigned int *);
 
 extern int n_frames;
 
@@ -65,7 +64,6 @@ STATIC_INLINE int dmaen (unsigned int dmamask)
 #define SPCFLAG_BLTNASTY 512
 #define SPCFLAG_EXEC 1024
 #define SPCFLAG_ACTION_REPLAY 2048
-#define SPCFLAG_TRAP 4096 /* enforcer-hack */
 #define SPCFLAG_MODE_CHANGE 8192
 #define SPCFLAG_END_COMPILE 16384
 
@@ -100,7 +98,7 @@ extern unsigned int maxhpos;
 extern unsigned int maxvpos;
 extern unsigned int minfirstline;
 extern int vblank_hz, fake_vblank_hz, vblank_skip;
-extern frame_time_t syncbase;
+extern unsigned long syncbase;
 #define NUMSCRLINES (maxvpos+1-minfirstline+1)
 
 #define DMA_AUD0      0x0001
@@ -124,8 +122,7 @@ extern frame_time_t syncbase;
 #define CYCLE_CPU	0x40
 #define CYCLE_NOCPU	0x80
 
-extern unsigned int frametime;
-extern unsigned int timeframes;
+extern unsigned long frametime, timeframes;
 extern unsigned int plfstrt;
 extern unsigned int plfstop;
 extern unsigned int plffirstline, plflastline;
@@ -139,6 +136,12 @@ extern uae_u16 htotal, vtotal;
 #else
 #define MAX_WORDS_PER_LINE 100
 #endif
+
+extern uae_u32 hirestab_h[256][2];
+extern uae_u32 lorestab_h[256][4];
+
+extern uae_u32 hirestab_l[256][1];
+extern uae_u32 lorestab_l[256][2];
 
 #ifdef AGA
 /* AGA mode color lookup tables */
@@ -166,8 +169,7 @@ STATIC_INLINE int GET_RES (uae_u16 con0)
 #define GET_PLANES(x) ((((x) >> 12) & 7) | (((x) & 0x10) >> 1))
 
 extern void fpscounter_reset (void);
-extern frame_time_t idletime;
-extern int lightpen_x, lightpen_y, lightpen_cx, lightpen_cy;
+extern unsigned long idletime;
 
 struct customhack {
     uae_u16 v;
@@ -181,11 +183,3 @@ extern void misc_hsync_stuff (void);
 extern void hsync_handler (void);
 extern void copper_handler (void);
 #define HSYNCTIME (maxhpos * CYCLE_UNIT)
-
-#ifdef JIT
-//JIT compiled code executed indicators, defined in newcpu.c
-extern uae_u32 jit_indicator_compiled_executed;
-extern uae_u32 jit_indicator_interpreted_executed;
-//Cache reference from newcpu.c for detecting the JIT status
-extern int cache_enabled;
-#endif

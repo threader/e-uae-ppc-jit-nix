@@ -4,7 +4,7 @@
   * MC68000 emulation - machine dependent bits
   *
   * Copyright 1996 Bernd Schmidt
-  * Copyright 2004-2007 Richard Drummond
+  * Copyright 2004 Richard Drummond
   */
 
  /*
@@ -15,6 +15,7 @@ struct flag_struct {
     unsigned int x;
 };
 
+extern struct flag_struct regflags __asm__ ("regflags");
 
 /*
  * The bits in the cznv field in the above structure are assigned to
@@ -34,40 +35,38 @@ struct flag_struct {
 #define FLAGBIT_Z	14
 #define FLAGBIT_C	8
 #define FLAGBIT_V	0
-#define FLAGBIT_X	8
 
 #define FLAGVAL_N	(1 << FLAGBIT_N)
 #define FLAGVAL_Z 	(1 << FLAGBIT_Z)
 #define FLAGVAL_C	(1 << FLAGBIT_C)
 #define FLAGVAL_V	(1 << FLAGBIT_V)
-#define FLAGVAL_X	(1 << FLAGBIT_X)
 
-#define SET_ZFLG(flags, y)	((flags)->cznv = ((flags)->cznv & ~FLAGVAL_Z) | ((y) << FLAGBIT_Z))
-#define SET_CFLG(flags, y)	((flags)->cznv = ((flags)->cznv & ~FLAGVAL_C) | ((y) << FLAGBIT_C))
-#define SET_VFLG(flags, y)	((flags)->cznv = ((flags)->cznv & ~FLAGVAL_V) | ((y) << FLAGBIT_V))
-#define SET_NFLG(flags, y)	((flags)->cznv = ((flags)->cznv & ~FLAGVAL_N) | ((y) << FLAGBIT_N))
-#define SET_XFLG(flags, y)	((flags)->x    = ((y) ? 1 : 0) << FLAGBIT_X)
+#define SET_ZFLG(y)	(regflags.cznv = (regflags.cznv & ~FLAGVAL_Z) | (((y) & 1) << FLAGBIT_Z))
+#define SET_CFLG(y)	(regflags.cznv = (regflags.cznv & ~FLAGVAL_C) | (((y) & 1) << FLAGBIT_C))
+#define SET_VFLG(y)	(regflags.cznv = (regflags.cznv & ~FLAGVAL_V) | (((y) & 1) << FLAGBIT_V))
+#define SET_NFLG(y)	(regflags.cznv = (regflags.cznv & ~FLAGVAL_N) | (((y) & 1) << FLAGBIT_N))
+#define SET_XFLG(y)	(regflags.x = (y))
 
-#define GET_ZFLG(flags)		(((flags)->cznv >> FLAGBIT_Z) & 1)
-#define GET_CFLG(flags)		(((flags)->cznv >> FLAGBIT_C) & 1)
-#define GET_VFLG(flags)		(((flags)->cznv >> FLAGBIT_V) & 1)
-#define GET_NFLG(flags)		(((flags)->cznv >> FLAGBIT_N) & 1)
-#define GET_XFLG(flags)		(((flags)->x    >> FLAGBIT_X) & 1)
+#define GET_ZFLG	((regflags.cznv >> FLAGBIT_Z) & 1)
+#define GET_CFLG	((regflags.cznv >> FLAGBIT_C) & 1)
+#define GET_VFLG	((regflags.cznv >> FLAGBIT_V) & 1)
+#define GET_NFLG	((regflags.cznv >> FLAGBIT_N) & 1)
+#define GET_XFLG	(regflags.x & 1)
 
-#define CLEAR_CZNV(flags)	((flags)->cznv  = 0)
-#define GET_CZNV(flags)		((flags)->cznv)
-#define IOR_CZNV(flags, X)	((flags)->cznv |= (X))
-#define SET_CZNV(flags, X)	((flags)->cznv  = (X))
+#define CLEAR_CZNV	(regflags.cznv = 0)
+#define GET_CZNV	(regflags.cznv)
+#define IOR_CZNV(X)	(regflags.cznv |= (X))
+#define SET_CZNV(X)	(regflags.cznv = (X))
 
-#define COPY_CARRY(flags)	((flags)->x = (flags)->cznv)
+#define COPY_CARRY	(regflags.x = (regflags.cznv) >> FLAGBIT_C)
 
 
 /*
  * Test CCR condition
  */
-STATIC_INLINE int cctrue (struct flag_struct *flags, int cc)
+STATIC_INLINE int cctrue (int cc)
 {
-    uae_u32 cznv = flags->cznv;
+    uae_u32 cznv = regflags.cznv;
 
     switch (cc) {
 	case 0:  return 1;								/*				T  */
@@ -93,4 +92,205 @@ STATIC_INLINE int cctrue (struct flag_struct *flags, int cc)
     return 0;
 }
 
-#define USE_X86_FPUCW 1
+/*
+ * Optimized code which uses the host CPU's condition flags to evaluate
+ * 68K CCR flags for certain operations.
+ *
+ * These are used by various opcode handlers when
+ * gencpu has been built with OPTIMIZED_FLAGS defined
+ */
+
+/*
+ * Test operations
+ *
+ * Evaluate operand and set Z and N flags. Always clear C and V.
+ */
+#define optflag_testl(v)				\
+	asm (						\
+		"andl %1,%1		\n\t"		\
+		"lahf			\n\t"		\
+		"seto %%al		\n\t"		\
+		"movb %%ah, regflags+1  \n\t"		\
+		"movb %%al, regflags    \n\t"		\
+							\
+		: "=m" (regflags.cznv)			\
+		: "r" (v)				\
+		: "eax", "cc"				\
+	)
+
+#define optflag_testw(v)				\
+	asm (						\
+		"andw %w1,%w1		\n\t"		\
+		"lahf			\n\t"		\
+		"seto %%al		\n\t"		\
+		"movb %%ah, regflags+1  \n\t"		\
+		"movb %%al, regflags    \n\t"		\
+							\
+		: "=m" (regflags.cznv)			\
+		: "r" (v)				\
+		: "eax", "cc"				\
+	);
+
+#define optflag_testb(v)				\
+	asm ( 						\
+		"andb %b1,%b1		\n\t"		\
+		"lahf			\n\t"		\
+		"seto %%al		\n\t"		\
+		"movb %%ah, regflags+1  \n\t"		\
+		"movb %%al, regflags    \n\t"		\
+							\
+		: "=m" (regflags.cznv)			\
+		: "q" (v)				\
+		: "eax", "cc"				\
+	);
+
+
+/*
+ * Add operations
+ *
+ * Perform v = s + d and set ZNCV accordingly
+ */
+#define optflag_addl(v, s, d)				\
+    do {						\
+	asm (						\
+		"addl %k2,%k1		\n\t"		\
+		"lahf			\n\t"		\
+		"seto %%al		\n\t"		\
+		"movb %%ah, regflags+1  \n\t"		\
+		"movb %%al, regflags    \n\t"		\
+							\
+		: "=m" (regflags.cznv), "=r" (v)	\
+		: "rmi" (s), "1" (d)			\
+		: "cc", "eax"				\
+	);						\
+	COPY_CARRY;					\
+    } while (0)
+
+#define optflag_addw(v, s, d) \
+    do { \
+	asm ( \
+		"addw %w2,%w1		\n\t"		\
+		"lahf			\n\t"		\
+		"seto %%al		\n\t"		\
+		"movb %%ah, regflags+1  \n\t"		\
+		"movb %%al, regflags    \n\t"		\
+							\
+		: "=m" (regflags.cznv), "=r" (v)	\
+		: "rmi" (s), "1" (d)			\
+		: "cc", "eax"				\
+	);						\
+	COPY_CARRY;					\
+    } while (0)
+
+#define optflag_addb(v, s, d) \
+    do { \
+	asm ( \
+		"addb %b2,%b1		\n\t"		\
+		"lahf			\n\t"		\
+		"seto %%al		\n\t"		\
+		"movb %%ah, regflags+1  \n\t"		\
+		"movb %%al, regflags    \n\t"		\
+							\
+		: "=m" (regflags.cznv), "=q" (v)	\
+		: "qmi" (s), "1" (d)			\
+		: "cc", "eax"				\
+	);						\
+	COPY_CARRY;					\
+    } while (0)
+
+/*
+ * Add operations
+ *
+ * Perform v = d - s and set ZNCV accordingly
+ */
+#define optflag_subl(v, s, d)				\
+    do {						\
+	asm (						\
+		"subl %k2,%k1		\n\t"		\
+		"lahf			\n\t"		\
+		"seto %%al		\n\t"		\
+		"movb %%ah, regflags+1  \n\t"		\
+		"movb %%al, regflags    \n\t"		\
+							\
+		: "=m" (regflags.cznv), "=r" (v)	\
+		: "rmi" (s), "1" (d)			\
+		: "%eax","cc"				\
+	);						\
+	COPY_CARRY;					\
+    } while (0)
+
+#define optflag_subw(v, s, d)				\
+    do {						\
+	asm (						\
+		"subw %w2,%w1		\n\t"		\
+		"lahf			\n\t"		\
+		"seto %%al		\n\t"		\
+		"movb %%ah, regflags+1  \n\t"		\
+		"movb %%al, regflags    \n\t"		\
+							\
+		: "=m" (regflags.cznv), "=r" (v)	\
+		: "rmi" (s), "1" (d)			\
+		: "%eax","cc"				\
+	);						\
+	COPY_CARRY;					\
+    } while (0)
+
+#define optflag_subb(v, s, d)				\
+    do {						\
+	asm (						\
+		"subb %b2,%b1		\n\t"		\
+		"lahf			\n\t"		\
+		"seto %%al		\n\t"		\
+		"movb %%ah, regflags+1  \n\t"		\
+		"movb %%al, regflags    \n\t"		\
+							\
+		: "=m" (regflags.cznv), "=q" (v)	\
+		: "qmi" (s), "1" (d)			\
+		: "%eax","cc"				\
+	);						\
+	COPY_CARRY;					\
+    } while (0)
+
+/*
+ * Add operations
+ *
+ * Evaluate d - s and set ZNCV accordingly
+ */
+#define optflag_cmpl(s, d)				\
+	asm (						\
+		"cmpl %k1,%k2		\n\t"		\
+		"lahf			\n\t"		\
+		"seto %%al		\n\t"		\
+		"movb %%ah, regflags+1  \n\t"		\
+		"movb %%al, regflags    \n\t"		\
+							\
+		: "=m" (regflags.cznv)			\
+		: "rmi" (s), "r" (d)			\
+		: "eax", "cc"				\
+	)
+
+#define optflag_cmpw(s, d)				\
+	asm (						\
+		"cmpw %w1,%w2		\n\t"		\
+		"lahf			\n\t"		\
+		"seto %%al		\n\t"		\
+		"movb %%ah, regflags+1  \n\t"		\
+		"movb %%al, regflags    \n\t"		\
+							\
+		: "=m" (regflags.cznv)			\
+		: "rmi" (s), "r" (d)			\
+		: "eax", "cc"				\
+	)
+
+#define optflag_cmpb(s, d)				\
+	asm (						\
+		"cmpb %b1,%b2		\n\t"		\
+		"lahf			\n\t"		\
+		"seto %%al		\n\t"		\
+		"movb %%ah, regflags+1  \n\t"		\
+		"movb %%al, regflags    \n\t"		\
+							\
+		: "=m" (regflags.cznv)			\
+		: "qmi" (s), "q" (d)			\
+		: "eax", "cc"				\
+	)

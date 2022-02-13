@@ -3,16 +3,27 @@
   *
   * Misc support code for AmigaOS target
   *
-  * Copyright 2003-2005 Richard Drummond
+  * Copyright 2003-2004 Richard Drummond
   */
 
 #include "sysconfig.h"
 #include "sysdeps.h"
 
-#include <proto/timer.h>
+#include <exec/exec.h>
+#include <exec/ports.h>
+#include <exec/lists.h>
+#include <dos/dosextens.h>
+#include <dos/dostags.h>
 
+#include <proto/exec.h>
+#include <proto/dos.h>
+#include <proto/timer.h>
+#include <clib/alib_protos.h>
+
+#include "threaddep/thread.h"
+#include "custom.h"
+#include "events.h"
 #include "sleep.h"
-#include "osdep/hrtimer.h"
 
 int truncate (const char *path, off_t length)
 {
@@ -20,28 +31,42 @@ int truncate (const char *path, off_t length)
    return 0;
 }
 
+#ifdef HAVE_OSDEP_RPT
+struct Device *TimerBase;
 
-frame_time_t timebase;
+static struct MsgPort   *timer_msgport;
+static struct IORequest *timer_ioreq;
 
-#ifndef __AROS__
-int osdep_inithrtimer (void)
+void osdep_close_timer (void)
 {
-    static int done = 0;
-
-    if (!done) {
-	struct EClockVal etime;
-
-	timebase  = ReadEClock (&etime);
-	write_log ("EClock frequency:%.6f MHz\n", timebase/1e6);
-
-	done = 1;
+    if (timer_ioreq) {
+	if (TimerBase)
+	    CloseDevice (timer_ioreq);
+	DeleteIORequest (timer_ioreq);
     }
-
-    return 1;
+    if (timer_msgport)
+	DeleteMsgPort (timer_msgport);
 }
 
-frame_time_t osdep_gethrtimebase (void)
+void osdep_open_timer (void)
 {
-    return timebase;
+    timer_msgport = CreateMsgPort();
+    timer_ioreq   = CreateIORequest (timer_msgport, sizeof *timer_ioreq);
+
+    if (timer_ioreq && !OpenDevice ("timer.device", 0, timer_ioreq, NULL)) {
+	struct EClockVal etime;
+
+	TimerBase = timer_ioreq->io_Device;
+	atexit (osdep_close_timer);
+	syncbase  = ReadEClock (&etime);
+	rpt_available = 1;
+
+	write_log ("timer.device opened\n");
+	sleep_test ();
+    } else {
+	/* This should never happen */
+	osdep_close_timer ();
+	write_log ("Warning: failed to open timer.device\n");
+    }
 }
 #endif

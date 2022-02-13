@@ -1,0 +1,15 @@
+Source: e-uae
+Section: contrib/otherosfs
+Priority: optional
+Maintainer: Richard Drummond <uae@rcdrummond.net>
+Build-Depends: debhelper (>= 4.0.0), libgtk1.2-dev|libgtk2.0-dev, libsdl1.2-dev, libz-dev
+Standards-Version: 3.6.0
+
+Package: e-uae
+Architecture: any
+Depends: ${shlibs:Depends} 
+Conflicts: uae (<=0.8.25)
+Provides: uae
+Description: The Unix Amiga Emulator
+ This is a unofficial Debian packaging of an unofficial, updated version
+ of UAE.

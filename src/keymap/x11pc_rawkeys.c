@@ -1,13 +1,13 @@
  /*
   * UAE - The Un*x Amiga Emulator
   *
-  * Support for mapping xfree86 keycodes (e.g. PC and Mac keyboards
-  * under XFree86) to platform-independent UAE key codes.
+  * Support for mapping XFree86 raw keys codes to platform-independent
+  * UAE key codes with PC/Mac keyboards on Linux
   *
-  * Copyright 2004-2005 Richard Drummond
+  * Copyright 2004 Richard Drummond
   */
 
-#if 1
+#if defined __linux__ && (defined __i386__ || defined __powerpc__ || defined __ppc)
 
 #include "sysconfig.h"
 #include "sysdeps.h"

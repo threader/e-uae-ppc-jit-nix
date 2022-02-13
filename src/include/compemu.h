@@ -1,427 +1,535 @@
-#ifdef JIT
+#define USE_OPTIMIZER 0
+#define USE_LOW_OPTIMIZER 0
+#define USE_ALIAS 1
+#define USE_F_ALIAS 1
+#define USE_SOFT_FLUSH 1
+#define USE_OFFSET 1
+#define COMP_DEBUG 1
 
-/* Margin for one instruction compiled code */
-#define BYTES_PER_INST 10240
+#if COMP_DEBUG
+#define Dif(x) if (x)
+#else
+#define Dif(x) if (0)
+#endif
 
-/**
- * The maximum size we calculate checksums for.
- * Anything larger will be flushed unconditionally
- */
-#define MAX_CHECKSUM_LEN 2048
+#define SCALE 2
+#define MAXCYCLES (1000 * CYCLE_UNIT)
+#define MAXREGOPT 65536
 
-/* Number of prepared blockinfo for a compiled block */
+#define BYTES_PER_INST 10240  /* paranoid ;-) */
+#define LONGEST_68K_INST 16 /* The number of bytes the longest possible
+			       68k instruction takes */
+#define MAX_CHECKSUM_LEN 2048 /* The maximum size we calculate checksums
+				 for. Anything larger will be flushed
+				 unconditionally even with SOFT_FLUSH */
 #define MAX_HOLD_BI 3  /* One for the current block, and up to two
 			  for jump targets */
 
-/* REMARK: No idea why we need this magic with the cycles scaling... */
-#define SCALE 2
-#define MAXCYCLES (1000 * CYCLE_UNIT)
-#define scaled_cycles(x) (currprefs.m68k_speed==-1?(((x)/SCALE)?(((x)/SCALE<MAXCYCLES?((x)/SCALE):MAXCYCLES)):1):(x))
+#define INDIVIDUAL_INST 0
+#define FLAG_C    0x0010
+#define FLAG_V    0x0008
+#define FLAG_Z    0x0004
+#define FLAG_N    0x0002
+#define FLAG_X    0x0001
+#define FLAG_CZNV (FLAG_C | FLAG_Z | FLAG_N | FLAG_V)
+#define FLAG_ZNV  (FLAG_Z | FLAG_N | FLAG_V)
 
+#define KILLTHERAT 1  /* Set to 1 to avoid some partial_rat_stalls */
+
+/* Whether to preserve registers across calls to JIT compiled routines */
+#if defined X86_ASSEMBLY
+#define USE_PUSH_POP 0
+#else
+#define USE_PUSH_POP 1
+#endif
+
+#define N_REGS 8  /* really only 7, but they are numbered 0,1,2,3,5,6,7 */
+#define N_FREGS 6 /* That leaves us two positions on the stack to play with */
 
 /* Functions exposed to newcpu, or to what was moved from newcpu.c to
  * compemu_support.c */
-extern void comp_init(void);
-extern void comp_done(void);
+extern void init_comp(void);
+extern void flush(int save_regs);
+extern void small_flush(int save_regs);
+extern void set_target(uae_u8* t);
+extern void freescratch(void);
 extern void build_comp(void);
-extern void compile_block(const cpu_history *pc_hist, int blocklen, int totcyles);
-extern uae_u16* comp_current_m68k_location(void);
+extern void set_cache_state(int enabled);
+extern int get_cache_state(void);
+extern uae_u32 get_jitted_size(void);
+#ifdef JIT
+extern void flush_icache(int n);
+#endif
+extern void alloc_cache(void);
+extern void compile_block(cpu_history* pc_hist, int blocklen, int totcyles);
+extern int check_for_cache_miss(void);
 
+
+#define scaled_cycles(x) (currprefs.m68k_speed==-1?(((x)/SCALE)?(((x)/SCALE<MAXCYCLES?((x)/SCALE):MAXCYCLES)):1):(x))
+
+
+extern uae_u32 needed_flags;
 extern cacheline cache_tags[];
+extern uae_u8* comp_pc_p;
+extern void* pushall_call_handler;
+
+#define VREGS 32
+#define VFREGS 16
+
+#define INMEM 1
+#define CLEAN 2
+#define DIRTY 3
+#define UNDEF 4
+#define ISCONST 5
+
+typedef struct {
+  uae_u32* mem;
+  uae_u32 val;
+  uae_u8 is_swapped;
+  uae_u8 status;
+  uae_u8 realreg;
+  uae_u8 realind; /* The index in the holds[] array */
+  uae_u8 needflush;
+  uae_u8 validsize;
+  uae_u8 dirtysize;
+  uae_u8 dummy;
+} reg_status;
+
+typedef struct {
+  uae_u32* mem;
+  double val;
+  uae_u8 status;
+  uae_u8 realreg;
+  uae_u8 realind;
+  uae_u8 needflush;
+} freg_status;
+
+typedef struct {
+    uae_u8 use_flags;
+    uae_u8 set_flags;
+    uae_u8 is_jump;
+    uae_u8 is_addx;
+    uae_u8 is_const_jump;
+} op_properties;
+extern op_properties prop[65536];
+
+static __inline__ int end_block(uae_u16 opcode)
+{
+    return prop[opcode].is_jump ||
+	(prop[opcode].is_const_jump && !currprefs.comp_constjump);
+}
+
+#define PC_P 16
+#define FLAGX 17
+#define FLAGTMP 18
+#define NEXT_HANDLER 19
+#define S1 20
+#define S2 21
+#define S3 22
+#define S4 23
+#define S5 24
+#define S6 25
+#define S7 26
+#define S8 27
+#define S9 28
+#define S10 29
+#define S11 30
+#define S12 31
+
+#define FP_RESULT 8
+#define FS1 9
+#define FS2 10
+#define FS3 11
+
+typedef struct {
+  uae_u32 touched;
+  uae_s8 holds[VREGS];
+  uae_u8 nholds;
+  uae_u8 canbyte;
+  uae_u8 canword;
+  uae_u8 locked;
+} n_status;
+
+typedef struct {
+    uae_s8 holds;
+    uae_u8 validsize;
+    uae_u8 dirtysize;
+} n_smallstatus;
+
+typedef struct {
+  uae_u32 touched;
+  uae_s8 holds[VFREGS];
+  uae_u8 nholds;
+  uae_u8 locked;
+} fn_status;
+
+/* For flag handling */
+#define NADA 1
+#define TRASH 2
+#define VALID 3
+
+/* needflush values */
+#define NF_SCRATCH   0
+#define NF_TOMEM     1
+#define NF_HANDLER   2
+
+typedef struct {
+    /* Integer part */
+    reg_status state[VREGS];
+    n_status   nat[N_REGS];
+    uae_u32 flags_on_stack;
+    uae_u32 flags_in_flags;
+    uae_u32 flags_are_important;
+    /* FPU part */
+    freg_status fate[VFREGS];
+    fn_status   fat[N_FREGS];
+
+    /* x86 FPU part */
+    uae_s8 spos[N_FREGS];
+    uae_s8 onstack[6];
+    uae_s8 tos;
+} bigstate;
+
+typedef struct {
+    /* Integer part */
+    n_smallstatus  nat[N_REGS];
+} smallstate;
+
+extern bigstate live;
+extern int touchcnt;
+
+
+#define IMM uae_u32
+#define R1  uae_u32
+#define R2  uae_u32
+#define R4  uae_u32
+#define W1  uae_u32
+#define W2  uae_u32
+#define W4  uae_u32
+#define RW1 uae_u32
+#define RW2 uae_u32
+#define RW4 uae_u32
+#define MEMR uae_u32
+#define MEMW uae_u32
+#define MEMRW uae_u32
+
+#define FW   uae_u32
+#define FR   uae_u32
+#define FRW  uae_u32
+
+#define MIDFUNC(nargs,func,args) void func args
+#define MENDFUNC(nargs,func,args)
+#define COMPCALL(func) func
+
+#define LOWFUNC(flags,mem,nargs,func,args) static __inline__ void func args
+#define LENDFUNC(flags,mem,nargs,func,args)
+
+#if USE_OPTIMIZER
+#define REGALLOC_O 2
+#define PEEPHOLE_O 3 /* Has to be >= REGALLOC */
+#define DECLARE(func) extern void func; extern void do_##func
+#else
+#define REGALLOC_O 2000000
+#define PEEPHOLE_O 2000000
+#define DECLARE(func) extern void func
+#endif
+
+
+/* What we expose to the outside */
+DECLARE(bt_l_ri(R4 r, IMM i));
+DECLARE(bt_l_rr(R4 r, R4 b));
+DECLARE(btc_l_ri(RW4 r, IMM i));
+DECLARE(btc_l_rr(RW4 r, R4 b));
+DECLARE(bts_l_ri(RW4 r, IMM i));
+DECLARE(bts_l_rr(RW4 r, R4 b));
+DECLARE(btr_l_ri(RW4 r, IMM i));
+DECLARE(btr_l_rr(RW4 r, R4 b));
+DECLARE(mov_l_rm(W4 d, IMM s));
+DECLARE(call_r(R4 r));
+DECLARE(sub_l_mi(IMM d, IMM s));
+DECLARE(mov_l_mi(IMM d, IMM s));
+DECLARE(mov_w_mi(IMM d, IMM s));
+DECLARE(mov_b_mi(IMM d, IMM s));
+DECLARE(rol_b_ri(RW1 r, IMM i));
+DECLARE(rol_w_ri(RW2 r, IMM i));
+DECLARE(rol_l_ri(RW4 r, IMM i));
+DECLARE(rol_l_rr(RW4 d, R1 r));
+DECLARE(rol_w_rr(RW2 d, R1 r));
+DECLARE(rol_b_rr(RW1 d, R1 r));
+DECLARE(shll_l_rr(RW4 d, R1 r));
+DECLARE(shll_w_rr(RW2 d, R1 r));
+DECLARE(shll_b_rr(RW1 d, R1 r));
+DECLARE(ror_b_ri(R1 r, IMM i));
+DECLARE(ror_w_ri(R2 r, IMM i));
+DECLARE(ror_l_ri(R4 r, IMM i));
+DECLARE(ror_l_rr(R4 d, R1 r));
+DECLARE(ror_w_rr(R2 d, R1 r));
+DECLARE(ror_b_rr(R1 d, R1 r));
+DECLARE(shrl_l_rr(RW4 d, R1 r));
+DECLARE(shrl_w_rr(RW2 d, R1 r));
+DECLARE(shrl_b_rr(RW1 d, R1 r));
+DECLARE(shra_l_rr(RW4 d, R1 r));
+DECLARE(shra_w_rr(RW2 d, R1 r));
+DECLARE(shra_b_rr(RW1 d, R1 r));
+DECLARE(shll_l_ri(RW4 r, IMM i));
+DECLARE(shll_w_ri(RW2 r, IMM i));
+DECLARE(shll_b_ri(RW1 r, IMM i));
+DECLARE(shrl_l_ri(RW4 r, IMM i));
+DECLARE(shrl_w_ri(RW2 r, IMM i));
+DECLARE(shrl_b_ri(RW1 r, IMM i));
+DECLARE(shra_l_ri(RW4 r, IMM i));
+DECLARE(shra_w_ri(RW2 r, IMM i));
+DECLARE(shra_b_ri(RW1 r, IMM i));
+DECLARE(setcc(W1 d, IMM cc));
+DECLARE(setcc_m(IMM d, IMM cc));
+DECLARE(cmov_l_rr(RW4 d, R4 s, IMM cc));
+DECLARE(cmov_l_rm(RW4 d, IMM s, IMM cc));
+DECLARE(bsf_l_rr(W4 d, R4 s));
+DECLARE(pop_m(IMM d));
+DECLARE(push_m(IMM d));
+DECLARE(pop_l(W4 d));
+DECLARE(push_l_i(IMM i));
+DECLARE(push_l(R4 s));
+DECLARE(clear_16(RW4 r));
+DECLARE(clear_8(RW4 r));
+DECLARE(sign_extend_16_rr(W4 d, R2 s));
+DECLARE(sign_extend_8_rr(W4 d, R1 s));
+DECLARE(zero_extend_16_rr(W4 d, R2 s));
+DECLARE(zero_extend_8_rr(W4 d, R1 s));
+DECLARE(imul_64_32(RW4 d, RW4 s));
+DECLARE(mul_64_32(RW4 d, RW4 s));
+DECLARE(imul_32_32(RW4 d, R4 s));
+DECLARE(mul_32_32(RW4 d, R4 s));
+DECLARE(mov_b_rr(W1 d, R1 s));
+DECLARE(mov_w_rr(W2 d, R2 s));
+DECLARE(mov_l_rrm_indexed(W4 d,R4 baser, R4 index, IMM factor));
+DECLARE(mov_w_rrm_indexed(W2 d, R4 baser, R4 index, IMM factor));
+DECLARE(mov_b_rrm_indexed(W1 d, R4 baser, R4 index, IMM factor));
+DECLARE(mov_l_mrr_indexed(R4 baser, R4 index, IMM factor, R4 s));
+DECLARE(mov_w_mrr_indexed(R4 baser, R4 index, IMM factor, R2 s));
+DECLARE(mov_b_mrr_indexed(R4 baser, R4 index, IMM factor, R1 s));
+DECLARE(mov_l_bmrr_indexed(IMM base, R4 baser, R4 index, IMM factor, R4 s));
+DECLARE(mov_w_bmrr_indexed(IMM base, R4 baser, R4 index, IMM factor, R2 s));
+DECLARE(mov_b_bmrr_indexed(IMM base, R4 baser, R4 index, IMM factor, R1 s));
+DECLARE(mov_l_brrm_indexed(W4 d, IMM base, R4 baser, R4 index, IMM factor));
+DECLARE(mov_w_brrm_indexed(W2 d, IMM base, R4 baser, R4 index, IMM factor));
+DECLARE(mov_b_brrm_indexed(W1 d, IMM base, R4 baser, R4 index, IMM factor));
+DECLARE(mov_l_rm_indexed(W4 d, IMM base, R4 index, IMM factor));
+DECLARE(mov_l_rR(W4 d, R4 s, IMM offset));
+DECLARE(mov_w_rR(W2 d, R4 s, IMM offset));
+DECLARE(mov_b_rR(W1 d, R4 s, IMM offset));
+DECLARE(mov_l_brR(W4 d, R4 s, IMM offset));
+DECLARE(mov_w_brR(W2 d, R4 s, IMM offset));
+DECLARE(mov_b_brR(W1 d, R4 s, IMM offset));
+DECLARE(mov_l_Ri(R4 d, IMM i, IMM offset));
+DECLARE(mov_w_Ri(R4 d, IMM i, IMM offset));
+DECLARE(mov_b_Ri(R4 d, IMM i, IMM offset));
+DECLARE(mov_l_Rr(R4 d, R4 s, IMM offset));
+DECLARE(mov_w_Rr(R4 d, R2 s, IMM offset));
+DECLARE(mov_b_Rr(R4 d, R1 s, IMM offset));
+DECLARE(lea_l_brr(W4 d, R4 s, IMM offset));
+DECLARE(lea_l_brr_indexed(W4 d, R4 s, R4 index, IMM factor, IMM offset));
+DECLARE(lea_l_rr_indexed(W4 d, R4 s, R4 index, IMM factor));
+DECLARE(mov_l_bRr(R4 d, R4 s, IMM offset));
+DECLARE(mov_w_bRr(R4 d, R2 s, IMM offset));
+DECLARE(mov_b_bRr(R4 d, R1 s, IMM offset));
+DECLARE(bswap_32(RW4 r));
+DECLARE(bswap_16(RW2 r));
+DECLARE(mov_l_rr(W4 d, R4 s));
+DECLARE(mov_l_mr(IMM d, R4 s));
+DECLARE(mov_w_mr(IMM d, R2 s));
+DECLARE(mov_w_rm(W2 d, IMM s));
+DECLARE(mov_b_mr(IMM d, R1 s));
+DECLARE(mov_b_rm(W1 d, IMM s));
+DECLARE(mov_l_ri(W4 d, IMM s));
+DECLARE(mov_w_ri(W2 d, IMM s));
+DECLARE(mov_b_ri(W1 d, IMM s));
+DECLARE(add_l_mi(IMM d, IMM s) );
+DECLARE(add_w_mi(IMM d, IMM s) );
+DECLARE(add_b_mi(IMM d, IMM s) );
+DECLARE(test_l_ri(R4 d, IMM i));
+DECLARE(test_l_rr(R4 d, R4 s));
+DECLARE(test_w_rr(R2 d, R2 s));
+DECLARE(test_b_rr(R1 d, R1 s));
+DECLARE(and_l_ri(RW4 d, IMM i));
+DECLARE(and_l(RW4 d, R4 s));
+DECLARE(and_w(RW2 d, R2 s));
+DECLARE(and_b(RW1 d, R1 s));
+DECLARE(or_l_ri(RW4 d, IMM i));
+DECLARE(or_l(RW4 d, R4 s));
+DECLARE(or_w(RW2 d, R2 s));
+DECLARE(or_b(RW1 d, R1 s));
+DECLARE(adc_l(RW4 d, R4 s));
+DECLARE(adc_w(RW2 d, R2 s));
+DECLARE(adc_b(RW1 d, R1 s));
+DECLARE(add_l(RW4 d, R4 s));
+DECLARE(add_w(RW2 d, R2 s));
+DECLARE(add_b(RW1 d, R1 s));
+DECLARE(sub_l_ri(RW4 d, IMM i));
+DECLARE(sub_w_ri(RW2 d, IMM i));
+DECLARE(sub_b_ri(RW1 d, IMM i));
+DECLARE(add_l_ri(RW4 d, IMM i));
+DECLARE(add_w_ri(RW2 d, IMM i));
+DECLARE(add_b_ri(RW1 d, IMM i));
+DECLARE(sbb_l(RW4 d, R4 s));
+DECLARE(sbb_w(RW2 d, R2 s));
+DECLARE(sbb_b(RW1 d, R1 s));
+DECLARE(sub_l(RW4 d, R4 s));
+DECLARE(sub_w(RW2 d, R2 s));
+DECLARE(sub_b(RW1 d, R1 s));
+DECLARE(cmp_l(R4 d, R4 s));
+DECLARE(cmp_l_ri(R4 r, IMM i));
+DECLARE(cmp_w(R2 d, R2 s));
+DECLARE(cmp_b(R1 d, R1 s));
+DECLARE(xor_l(RW4 d, R4 s));
+DECLARE(xor_w(RW2 d, R2 s));
+DECLARE(xor_b(RW1 d, R1 s));
+DECLARE(live_flags(void));
+DECLARE(dont_care_flags(void));
+DECLARE(duplicate_carry(void));
+DECLARE(restore_carry(void));
+DECLARE(start_needflags(void));
+DECLARE(end_needflags(void));
+DECLARE(make_flags_live(void));
+DECLARE(call_r_11(R4 r, W4 out1, R4 in1, IMM osize, IMM isize));
+DECLARE(call_r_02(R4 r, R4 in1, R4 in2, IMM isize1, IMM isize2));
+DECLARE(readmem_new(R4 address, W4 dest, IMM offset, IMM size, W4 tmp));
+DECLARE(writemem_new(R4 address, R4 source, IMM offset, IMM size, W4 tmp));
+DECLARE(forget_about(W4 r));
+DECLARE(nop(void));
+
+DECLARE(f_forget_about(FW r));
+DECLARE(fmov_pi(FW r));
+DECLARE(fmov_log10_2(FW r));
+DECLARE(fmov_log2_e(FW r));
+DECLARE(fmov_loge_2(FW r));
+DECLARE(fmov_1(FW r));
+DECLARE(fmov_0(FW r));
+DECLARE(fmov_rm(FW r, MEMR m));
+DECLARE(fmovi_rm(FW r, MEMR m));
+DECLARE(fmovi_mr(MEMW m, FR r));
+DECLARE(fmovs_rm(FW r, MEMR m));
+DECLARE(fmovs_mr(MEMW m, FR r));
+DECLARE(fmov_mr(MEMW m, FR r));
+DECLARE(fmov_ext_mr(MEMW m, FR r));
+DECLARE(fmov_ext_rm(FW r, MEMR m));
+DECLARE(fmov_rr(FW d, FR s));
+DECLARE(fldcw_m_indexed(R4 index, IMM base));
+DECLARE(ftst_r(FR r));
+DECLARE(dont_care_fflags(void));
+DECLARE(fsqrt_rr(FW d, FR s));
+DECLARE(fabs_rr(FW d, FR s));
+DECLARE(frndint_rr(FW d, FR s));
+DECLARE(fsin_rr(FW d, FR s));
+DECLARE(fcos_rr(FW d, FR s));
+DECLARE(ftwotox_rr(FW d, FR s));
+DECLARE(fetox_rr(FW d, FR s));
+DECLARE(flog2_rr(FW d, FR s));
+DECLARE(fneg_rr(FW d, FR s));
+DECLARE(fadd_rr(FRW d, FR s));
+DECLARE(fsub_rr(FRW d, FR s));
+DECLARE(fmul_rr(FRW d, FR s));
+DECLARE(frem_rr(FRW d, FR s));
+DECLARE(frem1_rr(FRW d, FR s));
+DECLARE(fdiv_rr(FRW d, FR s));
+DECLARE(fcmp_rr(FR d, FR s));
+DECLARE(fflags_into_flags(W2 tmp));
+
+extern int failure;
+#define FAIL(x) do { failure|=x; } while (0)
+
+/* Convenience functions exposed to gencomp */
+extern uae_u32 m68k_pc_offset;
+extern void readbyte(int address, int dest, int tmp);
+extern void readword(int address, int dest, int tmp);
+extern void readlong(int address, int dest, int tmp);
+extern void writebyte(int address, int source, int tmp);
+extern void writeword(int address, int source, int tmp);
+extern void writelong(int address, int source, int tmp);
+extern void writeword_clobber(int address, int source, int tmp);
+extern void writelong_clobber(int address, int source, int tmp);
+extern void get_n_addr(int address, int dest, int tmp);
+extern void get_n_addr_jmp(int address, int dest, int tmp);
+extern void calc_disp_ea_020(int base, uae_u32 dp, int target, int tmp);
+extern int kill_rodent(int r);
+extern void sync_m68k_pc(void);
+extern uae_u32 get_const(int r);
+extern int  is_const(int r);
+extern void register_branch(uae_u32 not_taken, uae_u32 taken, uae_u8 cond);
+extern void empty_optimizer(void);
+
+#define comp_get_ibyte(o) do_get_mem_byte((uae_u8 *)(comp_pc_p + (o) + 1))
+#define comp_get_iword(o) do_get_mem_word((uae_u16 *)(comp_pc_p + (o)))
+#define comp_get_ilong(o) do_get_mem_long((uae_u32 *)(comp_pc_p + (o)))
 
 /* Preferences handling */
-void check_prefs_changed_comp(void);
+void check_prefs_changed_comp (void);
 
 struct blockinfo_t;
 
-typedef struct blockinfo_t
-{
-	uae_s32 count;				/* Block usage counter */
-	cpuop_func* handler;		/* Pointer to the compiled code */
-	cpuop_func* handler_to_use;	/* Pointer to the execution/compilation handler */
-	uae_u8* pc_p;				/* Pointer to the first instruction */
+typedef struct dep_t {
+  uae_u32*            jmp_off;
+  struct blockinfo_t* target;
+  struct dep_t**      prev_p;
+  struct dep_t*       next;
+} dependency;
 
-	uae_u32 len;				/* Block length (in 68k memory) */
-	uae_u32 c1;					/* Code checksum 1 */
-	uae_u32 c2;					/* Code checksum 2 */
+typedef struct blockinfo_t {
+    uae_s32 count;
+    cpuop_func* direct_handler_to_use;
+    cpuop_func* handler_to_use;
+    /* The direct handler does not check for the correct address */
 
-	int dormant;				/* Dormant block if true (no need to calculate checksum) */
+    cpuop_func* handler;
+    cpuop_func* direct_handler;
 
-	struct blockinfo_t* next_same_cl;		/* Cache line pointer */
-	struct blockinfo_t** prev_same_cl_p;	/* Cache line pointer */
+    cpuop_func* direct_pen;
+    cpuop_func* direct_pcc;
+
+    uae_u8* nexthandler;
+    uae_u8* pc_p;
+
+    uae_u32 c1;
+    uae_u32 c2;
+    uae_u32 len;
+
+    struct blockinfo_t* next_same_cl;
+    struct blockinfo_t** prev_same_cl_p;
+    struct blockinfo_t* next;
+    struct blockinfo_t** prev_p;
+
+    uae_u32 min_pcp;
+    uae_u8 optlevel;
+    uae_u8 needed_flags;
+    uae_u8 status;
+    uae_u8 havestate;
+
+    dependency  dep[2];  /* Holds things we depend on */
+    dependency* deplist; /* List of things that depend on this */
+    smallstate  env;
 } blockinfo;
 
-/* Mapped PowerPC register type
- * We have to use struct for a custom data type, otherwise it will be automatically
- * converted to the required type. tsk... tsk... */
-typedef struct comp_ppc_reg_t
-{
-	uae_u8 r;	//The number of the mapped PowerPC register as integer
-} comp_ppc_reg;
+#define BI_NEW 0
+#define BI_COUNTING 1
+#define BI_TARGETTED 2
 
-/* Temporary register mapping descriptor structure */
-typedef struct comp_tmp_reg_t
-{
-	uae_u64 reg_usage_mapping;		/* Temporary register usage mapping, see register mapping for macroblocks in compemu_compiler.h */
-	struct m68k_register* allocated_for;			/* Pointer to the emulated 68K register which is linked to this temporary register, or null if there is no M68k register linked. */
-	BOOL allocated;					/* If TRUE then the temporary register is allocated at the moment */
-	comp_ppc_reg mapped_reg_num;	/* Mapped physical register for the temporary register */
-} comp_tmp_reg;
-
-/* Data structure for Exception triggering */
-typedef struct comp_exception_data_t
-{
-	uae_u32 next_address;			//Next instruction address
-	uae_u32 next_location;			//Pointer to next instruction in memory
-	uae_s8 mapped_regs[16];			//List of mapped registers to be flushed
-} comp_exception_data;
-
-/* PowerPC register layout
- * SysV ABI assumed, might change for other ABIs
- * See documentation:
- * SVR4 ABI for the Power PC
- * at
- * http://www.nondot.org/sabre/os/articles/ProcessorArchitecture
- *
- * Volatile registers:
- *    r0, r3-r12, r13 (we don't use small data),
- *    f0-f13
- *    XER, CTR, CR0-1, CR5-7, LR
- * Non-volatile registers:
- *    r1 (stack),
- *    r14-r30,
- *    f14-f31, FPSCR (let's preserve it)
- * Non-usable registers:
- *    r2 (rtoc),
- *    r31 (reserved for possible OS use),
- *    CR2-4 (NOTE: actually, CR2 is used by the interpretive)
- */
-
-#ifdef __APPLE__
-#warning Assuming Darwin PowerPC ABI
-#else
-#warning Assuming SysV PowerPC ABI
-#endif
-
-/* Convert a PowerPC register number to mapped register typed data */
-#define PPCR_MAPPED_REG(x) ((comp_ppc_reg){.r = (x)})
-
-#define	PPCR_SPECTMP	0	// r0 - special temporary register, cannot be used for every operation
-#define	PPCR_SP			1	// r1 - stack pointer
-
-//Mapped registers
-#define PPCR_SPECTMP_MAPPED PPCR_MAPPED_REG(PPCR_SPECTMP)
-#define	PPCR_SP_MAPPED PPCR_MAPPED_REG(PPCR_SP)
-
-#ifndef __APPLE__
-#define	PPCR_RTOC		2	// r2 - rtoc register, must be preserved
-#endif
-
-/* PowerPC function call parameter registers
- * Please note: the parameter registers are reused as temporary registers */
-#define PPCR_PARAM1		3	// r3
-#define PPCR_PARAM2		4	// r4
-#define PPCR_PARAM3		5	// r5
-
-//Mapped registers
-#define PPCR_PARAM1_MAPPED PPCR_MAPPED_REG(PPCR_PARAM1)
-#define PPCR_PARAM2_MAPPED PPCR_MAPPED_REG(PPCR_PARAM2)
-#define PPCR_PARAM3_MAPPED PPCR_MAPPED_REG(PPCR_PARAM3)
-
-/* Temporary registers, free to use, no need to preserve */
-#define PPCR_TMP0	3	// r3 - do not change this mapping
-#define PPCR_TMP1	4	// r4 - do not change this mapping
-#define PPCR_TMP2	5	// r5 - do not change this mapping
-#define PPCR_TMP3	6	// r6
-#define PPCR_TMP4	7	// r7
-#define PPCR_TMP5	8	// r8
-#define PPCR_TMP6	9	// r9
-#define PPCR_TMP7	10	// r10
-#define PPCR_TMP8	11	// r11
-#define PPCR_TMP9	12	// r12
-#ifndef __APPLE__
-#define PPCR_TMP10	13	// r13
-#else
-#define PPCR_TMP10	2	// r2
-#endif
-
-//Mapped registers
-#define PPCR_TMP0_MAPPED PPCR_MAPPED_REG(PPCR_TMP0)
-#define PPCR_TMP1_MAPPED PPCR_MAPPED_REG(PPCR_TMP1)
-#define PPCR_TMP2_MAPPED PPCR_MAPPED_REG(PPCR_TMP2)
-#define PPCR_TMP3_MAPPED PPCR_MAPPED_REG(PPCR_TMP3)
-#define PPCR_TMP4_MAPPED PPCR_MAPPED_REG(PPCR_TMP4)
-#define PPCR_TMP5_MAPPED PPCR_MAPPED_REG(PPCR_TMP5)
-#define PPCR_TMP6_MAPPED PPCR_MAPPED_REG(PPCR_TMP6)
-#define PPCR_TMP7_MAPPED PPCR_MAPPED_REG(PPCR_TMP7)
-#define PPCR_TMP8_MAPPED PPCR_MAPPED_REG(PPCR_TMP8)
-#define PPCR_TMP9_MAPPED PPCR_MAPPED_REG(PPCR_TMP9)
-#define PPCR_TMP10_MAPPED PPCR_MAPPED_REG(PPCR_TMP10)
-
-/* Regs structure base pointer register
- * Note: A non-volatile register was chosen to avoid the reloading of
- * this register when an external function is called. */
-#ifndef __APPLE__
-#define PPCR_REGS_BASE	14	// r14
-#else
-#define PPCR_REGS_BASE	13	// r13
-#endif
-
-//Mapped registers
-#define PPCR_REGS_BASE_MAPPED PPCR_MAPPED_REG(PPCR_REGS_BASE)
-
-/* M68k flags register: while the flags are emulated those are stored
- * in this register, the layout is detailed in PPCR_FLAG_* constants.
- * IMPORTANT: the state of the other bits are not defined, at every usage of
- * the flags the other bits must be masked out. */
-#ifndef __APPLE__
-#define PPCR_FLAGS	15	// r15
-#else
-#define PPCR_FLAGS	14	// r14
-#endif
-
-//Mapped registers
-#define PPCR_FLAGS_MAPPED PPCR_MAPPED_REG(PPCR_FLAGS)
-
-/* Non-volatile registers, values are preserved while the execution leaves
- * the translated code.
- * IMPORTANT: these registers are not saved automatically in the prolog/epilog
- * functions for the translated code chunk. Save these registers using
- * comp_macroblock_push_save_register_to_context() function before use and restore
- * by calling comp_macroblock_push_restore_register_from_context() before the execution leaves
- * the compiled block.
- */
-#ifndef __APPLE__
-#define PPCR_TMP_NONVOL0	16	// r16
-#define PPCR_TMP_NONVOL1	17	// r17
-#else
-#define PPCR_TMP_NONVOL0	15	// r15
-#define PPCR_TMP_NONVOL1	16	// r16
-#endif
-
-//Mapped registers
-#define PPCR_TMP_NONVOL0_MAPPED PPCR_MAPPED_REG(PPCR_TMP_NONVOL0)
-#define PPCR_TMP_NONVOL1_MAPPED PPCR_MAPPED_REG(PPCR_TMP_NONVOL1)
-
-/* Temporary CR registers
- */
-#define PPCR_CR_TMP0	0	//CR0
-#define PPCR_CR_TMP1	1	//CR1
-#define PPCR_CR_TMP2	2	//CR2 - NOTE: this supposed to be preserved, but the interpretive emulator is using it already
-
-/* Conditional branch BO and BI operands (together)
- * Please note: stupid old GCC does not allow binary constants. Pff. */
-#define PPC_B_CR_TMP0_LT	0x0180	//0b0110000000
-#define PPC_B_CR_TMP1_LT	0x0184	//0b0110000100
-#define PPC_B_CR_TMP0_GT	0x0181	//0b0110000001
-#define PPC_B_CR_TMP1_GT	0x0185	//0b0110000101
-#define PPC_B_CR_TMP0_EQ	0x0182	//0b0110000010
-#define PPC_B_CR_TMP1_EQ	0x0186	//0b0110000110
-#define PPC_B_CR_TMP0_NE	0x0082 	//0b0010000010
-#define PPC_B_CR_TMP1_NE	0x0086 	//0b0010000110
-
-
-//These two constants for hinting the branch if it was more likely taken or not
-#define PPC_B_TAKEN			0x0020	//0b0000100000
-#define PPC_B_NONTAKEN		0x0000	//0b0000000000
-
-/**
- * Not used temporary register
- * Note: must be a negative number
- */
-#define PPC_TMP_REG_NOTUSED -1
-
-/**
- * Allocated temporary register that is not mapped to an M68k register
- * Note: must be a negative number
- */
-#define PPC_TMP_REG_ALLOCATED -2
-
-/* Emulated M68k flag bit definitions for PPCR_FLAGS register:
- * We assume the PPC GCC environment, the flags are the same
- * except X flag which is stored in the same register but
- * shifted to the right by 16 bits (lower half word, same position). */
-//N = 31
-#define PPCR_FLAG_N	FLAGBIT_N
-//Z = 29
-#define PPCR_FLAG_Z	FLAGBIT_Z
-//V = 22
-#define PPCR_FLAG_V	FLAGBIT_V
-//C = 21
-#define PPCR_FLAG_C	FLAGBIT_C
-//X = 5
-#define PPCR_FLAG_X	(FLAGBIT_X - 16)
-
-#define FLAGBIT_N	31
-#define FLAGBIT_Z	29
-#define FLAGBIT_V	22
-#define FLAGBIT_C	21
-#define FLAGBIT_X	21
-
-//Bit numbers for the flags in the PPCR_FLAGS register (reversed for PPC)
-#define PPC_FLAGBIT_N	(31 - FLAGBIT_N)
-#define PPC_FLAGBIT_Z	(31 - FLAGBIT_Z)
-#define PPC_FLAGBIT_V	(31 - FLAGBIT_V)
-#define PPC_FLAGBIT_C	(31 - FLAGBIT_C)
-#define PPC_FLAGBIT_X	(31 - (FLAGBIT_X - 16))
-
-/* Convert PPC register number to bit number in a longword
- * This macro can be used to mark registers for Prolog/Epilog compiling */
-#define PPCR_REG_BIT(x) (1 << (x))
-
-/* The used non-volatile registers in a bit masp for saving/restoring */
-#define PPCR_REG_USED_NONVOLATILE	(PPCR_REG_BIT(PPCR_REGS_BASE) | PPCR_REG_BIT(PPCR_FLAGS))
-
-/* The number of used non-volatile registers for saving/restoring */
-#define PPCR_REG_USED_NONVOLATILE_NUM 2
-
-/* Some function protos */
-STATIC_INLINE blockinfo* get_blockinfo(uae_u32 cl);
-STATIC_INLINE blockinfo* get_blockinfo_addr_new(void* addr, int setstate);
-STATIC_INLINE void alloc_blockinfos(void);
-STATIC_INLINE blockinfo* get_blockinfo_addr(void* addr);
-STATIC_INLINE void raise_in_cl_list(blockinfo* bi);
-STATIC_INLINE void compile_return_block(void);
-STATIC_INLINE void reset_lists(void);
-static void calc_checksum(blockinfo* bi, uae_u32* c1, uae_u32* c2);
-static void cache_miss(void);
-int check_for_cache_miss(void);
-
-unsigned long execute_normal_callback(uae_u32 ignored1, struct regstruct *ignored2);
-unsigned long exec_nostats_callback(uae_u32 ignored1, struct regstruct *ignored2);
-unsigned long do_nothing_callback(uae_u32 ignored1, struct regstruct *ignored2);
-
-int comp_is_spec_memory_read_byte(uae_u32 pc, int specmem_flags);
-int comp_is_spec_memory_read_word(uae_u32 pc, int specmem_flags);
-int comp_is_spec_memory_read_long(uae_u32 pc, int specmem_flags);
-int comp_is_spec_memory_write_byte(uae_u32 pc, int specmem_flags);
-int comp_is_spec_memory_write_word(uae_u32 pc, int specmem_flags);
-int comp_is_spec_memory_write_long(uae_u32 pc, int specmem_flags);
-
-void comp_not_implemented(uae_u16 opcode);
-comp_tmp_reg* comp_allocate_temp_register(struct m68k_register* allocate_for);
-void comp_free_temp_register(comp_tmp_reg* temp_reg);
-comp_tmp_reg* comp_map_temp_register(uae_u8 reg_number, int needs_init, int needs_flush);
-void comp_unmap_temp_register(struct m68k_register* reg);
-void comp_swap_temp_register_mapping(comp_tmp_reg* tmpreg1, comp_tmp_reg* tmpreg2);
-comp_tmp_reg* comp_get_mapped_temp_register(uae_u8 reg_number);
-void comp_flush_temp_registers(int supresswarning);
-void comp_get_changed_mapped_regs_list(uae_s8* mapped_regs);
-void comp_unlock_all_temp_registers(void);
-int comp_next_free_register_slot(void);
-int comp_last_register_slot(void);
-void comp_dump_reg_usage(uae_u64 regs, char* str, char dump_control);
-
-/* PowerPC instruction compiler functions */
-void comp_ppc_add(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags);
-void comp_ppc_addc(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags);
-void comp_ppc_addco(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags);
-void comp_ppc_addeo(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags);
-void comp_ppc_addi(comp_ppc_reg regd, comp_ppc_reg rega, uae_u16 imm);
-void comp_ppc_addis(comp_ppc_reg regd, comp_ppc_reg rega, uae_u16 imm);
-void comp_ppc_and(comp_ppc_reg rega, comp_ppc_reg regs, comp_ppc_reg regb, BOOL updateflags);
-void comp_ppc_andc(comp_ppc_reg rega, comp_ppc_reg regs, comp_ppc_reg regb, BOOL updateflags);
-void comp_ppc_andi(comp_ppc_reg rega, comp_ppc_reg regs, uae_u16 imm);
-void comp_ppc_andis(comp_ppc_reg rega, comp_ppc_reg regs, uae_u16 imm);
-void comp_ppc_branch_target(int reference);
-void comp_ppc_b(uae_u32 target, int reference);
-void comp_ppc_bc(int bibo, int reference);
-void comp_ppc_bl(uae_u32 target);
-void comp_ppc_blr(void);
-void comp_ppc_blrl(void);
-void comp_ppc_cmplw(int regcrfd, comp_ppc_reg rega, comp_ppc_reg regb);
-void comp_ppc_cmplwi(int regcrfd, comp_ppc_reg rega, uae_u16 imm);
-void comp_ppc_cntlzw(comp_ppc_reg rega, comp_ppc_reg regs, BOOL updateflags);
-void comp_ppc_divwo(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags);
-void comp_ppc_divwuo(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags);
-void comp_ppc_extsb(comp_ppc_reg rega, comp_ppc_reg regs, BOOL updateflags);
-void comp_ppc_extsh(comp_ppc_reg rega, comp_ppc_reg regs, BOOL updateflags);
-void comp_ppc_lbz(comp_ppc_reg regd, uae_u16 delta, comp_ppc_reg rega);
-void comp_ppc_lha(comp_ppc_reg regd, uae_u16 delta, comp_ppc_reg rega);
-void comp_ppc_lhz(comp_ppc_reg regd, uae_u16 delta, comp_ppc_reg rega);
-void comp_ppc_li(comp_ppc_reg rega, uae_u16 imm);
-void comp_ppc_lis(comp_ppc_reg rega, uae_u16 imm);
-void comp_ppc_liw(comp_ppc_reg reg, uae_u32 value);
-void comp_ppc_lwz(comp_ppc_reg regd, uae_u16 delta, comp_ppc_reg rega);
-void comp_ppc_lwzx(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb);
-void comp_ppc_mcrxr(int crreg);
-void comp_ppc_mfcr(comp_ppc_reg reg);
-#ifdef _ARCH_PWR4
-void comp_ppc_mfocrf(int crreg, comp_ppc_reg reg);
-#endif
-void comp_ppc_mflr(comp_ppc_reg reg);
-void comp_ppc_mfxer(comp_ppc_reg reg);
-void comp_ppc_mr(comp_ppc_reg rega, comp_ppc_reg regs, BOOL updateflags);
-void comp_ppc_mtcrf(int crreg, comp_ppc_reg regf);
-void comp_ppc_mtlr(comp_ppc_reg reg);
-void comp_ppc_mtxer(comp_ppc_reg reg);
-void comp_ppc_mullwo(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags);
-void comp_ppc_neg(comp_ppc_reg regd, comp_ppc_reg rega, BOOL updateflags);
-void comp_ppc_nego(comp_ppc_reg regd, comp_ppc_reg rega, BOOL updateflags);
-void comp_ppc_nop(void);
-void comp_ppc_nor(comp_ppc_reg rega, comp_ppc_reg regs, comp_ppc_reg regb, BOOL updateflags);
-void comp_ppc_or(comp_ppc_reg rega, comp_ppc_reg regs, comp_ppc_reg regb, BOOL updateflags);
-void comp_ppc_orc(comp_ppc_reg rega, comp_ppc_reg regs, comp_ppc_reg regb, BOOL updateflags);
-void comp_ppc_ori(comp_ppc_reg rega, comp_ppc_reg regs, uae_u16 imm);
-void comp_ppc_oris(comp_ppc_reg rega, comp_ppc_reg regs, uae_u16 imm);
-void comp_ppc_rlwimi(comp_ppc_reg rega, comp_ppc_reg regs, int shift, int maskb, int maske, BOOL updateflags);
-void comp_ppc_rlwinm(comp_ppc_reg rega, comp_ppc_reg regs, int shift, int maskb, int maske, BOOL updateflags);
-void comp_ppc_rlwnm(comp_ppc_reg rega, comp_ppc_reg regs, comp_ppc_reg regb, int maskb, int maske, BOOL updateflags);
-void comp_ppc_slw(comp_ppc_reg rega, comp_ppc_reg regs, comp_ppc_reg regb, BOOL updateflags);
-void comp_ppc_sraw(comp_ppc_reg rega, comp_ppc_reg regs, comp_ppc_reg regb, BOOL updateflags);
-void comp_ppc_srawi(comp_ppc_reg rega, comp_ppc_reg regs, int shift, BOOL updateflags);
-void comp_ppc_srw(comp_ppc_reg rega, comp_ppc_reg regs, comp_ppc_reg regb, BOOL updateflags);
-void comp_ppc_stb(comp_ppc_reg regs, uae_u16 delta, comp_ppc_reg rega);
-void comp_ppc_sth(comp_ppc_reg regs, uae_u16 delta, comp_ppc_reg rega);
-void comp_ppc_sthu(comp_ppc_reg regs, uae_u16 delta, comp_ppc_reg rega);
-void comp_ppc_stw(comp_ppc_reg regs, uae_u16 delta, comp_ppc_reg rega);
-void comp_ppc_stwu(comp_ppc_reg regs, uae_u16 delta, comp_ppc_reg rega);
-void comp_ppc_subf(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags);
-void comp_ppc_subfco(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags);
-void comp_ppc_subfeo(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags);
-void comp_ppc_subfe(comp_ppc_reg regd, comp_ppc_reg rega, comp_ppc_reg regb, BOOL updateflags);
-void comp_ppc_subfic(comp_ppc_reg rega, comp_ppc_reg regs, uae_u16 imm);
-void comp_ppc_trap(void);
-void comp_ppc_xor(comp_ppc_reg rega, comp_ppc_reg regs, comp_ppc_reg regb, BOOL updateflags);
-void comp_ppc_xori(comp_ppc_reg rega, comp_ppc_reg regs, uae_u16 imm);
-void comp_ppc_xoris(comp_ppc_reg rega, comp_ppc_reg regs, uae_u16 imm);
-
-void* comp_ppc_buffer_top(void);
-void comp_ppc_emit_halfwords(uae_u16 halfword_high, uae_u16 halfword_low);
-void comp_ppc_emit_word(uae_u32 word);
-int comp_ppc_check_top(void);
-void comp_ppc_call(comp_ppc_reg reg, uae_uintptr addr);
-void comp_ppc_call_reg(comp_ppc_reg addrreg);
-void comp_ppc_jump(uae_uintptr addr);
-void comp_ppc_prolog(uae_u32 save_regs);
-void comp_ppc_epilog(uae_u32 restore_regs);
-void comp_ppc_return_to_caller(uae_u32 restore_regs);
-void comp_ppc_do_cycles(int totalcycles);
-void comp_ppc_verify_pc(uae_u8* pc_addr_exp);
-void comp_ppc_reload_pc_p(uae_u8* new_pc_p);
-uae_u32 comp_ppc_save_temp_regs(uae_u32 exceptions);
-void comp_ppc_restore_temp_regs(uae_u32 saved_regs);
-void comp_ppc_return_from_block(int cycles);
-void comp_ppc_exception(uae_u8 level, comp_exception_data* exception_data);
-void comp_ppc_save_mapped_registers_from_list(uae_s8* mapped_regs);
-void comp_ppc_save_flags(void);
-void comp_ppc_load_pc(uae_u32 pc_address, uae_u32 location);
-#endif
-
-/* I wonder why we don't have these defined globally. */
-#ifndef FALSE
-#define FALSE 0
-#endif
-#ifndef TRUE
-#define TRUE 1
-#endif
-
-/* Some more function protos */
-extern void flush_icache(int n);
-extern void flush_icache_hard(const char* callsrc);
-extern void set_cache_state(int enabled);
+typedef struct {
+    uae_u8 type;
+    uae_u8 reg;
+    uae_u32 next;
+} regacc;
 
 void execute_normal(void);
 void exec_nostats(void);
 void do_nothing(void);
-void do_cycles_callback(unsigned int cycles_to_add);
+MIDFUNC(1,setzflg_l,(RW4 r));
+
+void comp_fdbcc_opp (uae_u32 opcode, uae_u16 extra);
+void comp_fscc_opp (uae_u32 opcode, uae_u16 extra);
+void comp_ftrapcc_opp (uae_u32 opcode, uaecptr oldpc);
+void comp_fbcc_opp (uae_u32 opcode);
+void comp_fsave_opp (uae_u32 opcode);
+void comp_frestore_opp (uae_u32 opcode);
+void comp_fpp_opp (uae_u32 opcode, uae_u16 extra);
+
+

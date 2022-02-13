@@ -1,7 +1,7 @@
 #include "sysconfig.h"
 #include "sysdeps.h"
 
-#include "cdrom.h"
+#include "config.h"
 
 /* CDROM MODE 1 EDC/ECC code (from Reed-Solomon library by Heiko Eissfeldt) */
 
@@ -25,7 +25,7 @@
 /*                                                               */
 /*****************************************************************/
 
-static const uae_u32 EDC_crctable[256] =
+static uae_u32 EDC_crctable[256] =
 {
  0x00000000L, 0x90910101L, 0x91210201L, 0x01B00300L,
  0x92410401L, 0x02D00500L, 0x03600600L, 0x93F10701L,
@@ -118,9 +118,9 @@ static uae_u8 DP[2][24] = {
 #define L2_P   (43*2*2)
 #define RS_L12_BITS 8
 
-static uae_u32 build_edc (const uae_u8 *inout, int from, int upto)
+static uae_u32 build_edc(uae_u8 *inout, int from, int upto)
 {
-    const uae_u8 *p = inout + from;
+    uae_u8 *p = inout + from;
     uae_u32 result = 0;
     for (; from <= upto; from++)
 	result = EDC_crctable[(result ^ *p++) & 0xff] ^ (result >> 8);

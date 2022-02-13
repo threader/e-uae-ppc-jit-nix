@@ -1,0 +1,89 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+# Simple debian/rules for UAE
+# Based on sample rules  GNU copyright 1997 to 1999 by Joey Hess.
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+# These are used for cross-compiling and for saving the configure script
+# from having to guess our platform (since we know it already)
+DEB_HOST_GNU_TYPE   ?= $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
+DEB_BUILD_GNU_TYPE  ?= $(shell dpkg-architecture -qDEB_BUILD_GNU_TYPE)
+
+# Build only the SDL target for just now
+CFG_OPTIONS += --with-sdl-gfx --with-sdl-sound
+
+# Enable JIT engine on x86 only
+ifeq ($(DEB_BUILD_GNU_TYPE),i386-linux)
+    CFG_OPTIONS += --enable-jit
+endif
+
+config.status: configure
+	dh_testdir
+	CC=$(CC) CFLAGS=$(CFLAGS) ./configure \
+	--prefix=/usr \
+	--host=$(DEB_HOST_GNU_TYPE) \
+	--build=$(DEB_BUILD_GNU_TYPE) \
+	$(CFG_OPTIONS)
+
+build: build-stamp
+
+build-stamp:  config.status
+	dh_testdir
+	$(MAKE)
+	touch build-stamp
+
+clean:
+	dh_testdir
+	dh_testroot
+	-$(MAKE) distclean
+	dh_clean
+	-rm build-stamp
+
+install: build
+	dh_testdir
+	dh_testroot
+	dh_clean -k
+	dh_installdirs /usr/bin /usr/share/e-uae
+	install src/uae debian/e-uae/usr/bin/uae-sdl
+	install src/readdisk debian/e-uae/usr/bin/readdisk
+	cp -a amiga debian/e-uae/usr/share/e-uae/amiga
+
+# Build architecture-independent files here.
+binary-indep: build install
+# We have nothing to do by default.
+
+# Build architecture-dependent files here.
+binary-arch: build install
+	dh_testdir
+	dh_testroot
+	dh_installchangelogs CHANGES
+	dh_installdocs
+#	dh_installexamples
+#	dh_install
+	dh_installmenu
+#	dh_installdebconf
+#	dh_installlogrotate
+#	dh_installemacsen
+#	dh_installpam
+#	dh_installmime
+#	dh_installinit
+#	dh_installcron
+#	dh_installinfo
+	dh_installman
+	dh_link
+	dh_strip
+	dh_compress
+	dh_fixperms
+#	dh_perl
+#	dh_python
+#	dh_makeshlibs
+	dh_installdeb
+	dh_shlibdeps
+	dh_gencontrol
+	dh_md5sums
+	dh_builddeb
+
+binary: binary-indep binary-arch
+.PHONY: build clean binary-indep binary-arch binary install

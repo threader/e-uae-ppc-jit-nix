@@ -7,21 +7,6 @@
   * Copyright 1996 Tim Gunn, Bernd Schmidt
   */
 
-/* This structure is used to define menus. The val field can hold key
- * shortcuts, or one of these special codes:
- *   -4: deleted entry, not displayed, not selectable, but does count in
- *       select value
- *   -3: end of table
- *   -2: line that is displayed, but not selectable
- *   -1: line that is selectable, but has no keyboard shortcut
- *    0: Menu title
- */
-struct bstring
-{
-    const char *data;
-    int val;
-};
-
 extern void tui_setup(void);
 extern void tui_shutdown(void);
 extern void tui_refresh(void);

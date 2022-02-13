@@ -5,7 +5,7 @@
 //
 //  BeOS port - graphics stuff
 //
-//  (c) 2000-2001 Axel Doerfler
+//  (c) 2000-2001 Axel D�fler
 //  (c) 1999 Be/R4 Sound - Raphael Moll
 //  (c) 1998-1999 David Sowsy
 //  (c) 1996-1998 Christian Bauer
@@ -15,6 +15,7 @@
 
 #include <AppKit.h>
 #include <InterfaceKit.h>
+#include <KernelKit.h>
 #include <DirectWindow.h>
 
 #include <stdio.h>
@@ -64,25 +65,29 @@ class UAEWindow : public BDirectWindow
 		void UnlockBuffer();
 		uint8 *LockBuffer();
 
-		void InitColors(color_space colorspace);
+		void InitColors();
 		void DrawBlock(int yMin,int yMax);
 		void DrawLine(int y);
 		void SetFullScreenMode(bool full);
-		void UpdateMouse();
+		bool UpdateMouseButtons();
 
 	private:
 		BitmapView *fBitmapView;
 		BBitmap	*fBitmap;
+		bool	fReset;
 		bool	fIsConnected;
 		int32	fAcquireFailed;
 
+		uint8	fScreenLine[8192];	// UAE writes in this buffer in direct window mode
+
 		sem_id	fDrawingLock;
+		uint8	*fBits8;			// the frame buffer (top left corner of the window)
+		uint16	*fBits16;
+		uint32	*fBits32;
 
 		clipping_rect fWindowBounds;
 		clipping_rect fClipList[MAX_CLIP_LIST_COUNT];
 		uint32	fClipListCount;
-
-		BPoint fScreenCentre;
 };
 
 /*
@@ -97,7 +102,6 @@ class BitmapView : public BView {
 		void Draw(BRect update);
 		void Pulse();
 		void MouseMoved(BPoint point, uint32 transit, const BMessage *message);
-		void WindowActivated(bool active);
 
 	private:
 		BBitmap *fBitmap;

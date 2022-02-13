@@ -13,9 +13,11 @@
 #include <stdio.h>
 #include <ctype.h>
 
+#include "config.h"
 #include "options.h"
 #include "threaddep/thread.h"
 #include "uae.h"
+#include "gensound.h"
 #include "joystick.h"
 #include "keybuf.h"
 #include "autoconf.h"
@@ -23,8 +25,6 @@
 #include "tui.h"
 #include "gui.h"
 #include "memory.h"
-#include "audio.h"
-#include "version.h"
 
 #define MAX_MENU_HEIGHT 15
 #define OPTION_COLUMN 3
@@ -35,23 +35,18 @@ int mountok=0;
 void gui_led (int led, int on)
 {
 }
-
-void gui_hd_led (int led)
-{
-}
-
 void gui_filename (int num, const char *name)
 {
 }
-
+static void getline (char *p)
+{
+}
 void gui_handle_events (void)
 {
 }
-
-void gui_fps (int fps, int idle)
+void gui_fps (int x)
 {
 }
-
 static void save_settings (void)
 {
     FILE *f;
@@ -61,7 +56,7 @@ static void save_settings (void)
 	write_log ("Error saving options file!\n");
 	return;
     }
-    save_options (f, &currprefs, 0);
+    save_options (f, &currprefs);
     fclose (f);
 }
 
@@ -140,6 +135,7 @@ static struct bstring cpumenu[] = {
 static struct bstring soundmenu[] = {
     { "Sound settings", 0 },
     { "Change _sound emulation accuracy", 'S' },
+    { "Change m_inimum sound buffer size", 'I' },
     { "Change m_aximum sound buffer size", 'A' },
     { "Change number of _bits", 'B' },
     { "Change output _frequency", 'F' },
@@ -231,7 +227,7 @@ static void print_configuration (void)
     y++;
     tui_gotoxy (OPTION_COLUMN, y++);
     sprintf (tmp, "VIDEO: %d:%d%s %s", currprefs.gfx_width, currprefs.gfx_height,
-	     currprefs.gfx_lores ? " (lores)" : "", "" /*colormodes[currprefs.color_mode]*/);
+	    currprefs.gfx_lores ? " (lores)" : "", colormodes[currprefs.color_mode]);
     tui_puts (tmp);
 
     tui_gotoxy (OPTION_COLUMN+7, y++);
@@ -267,7 +263,7 @@ static void print_configuration (void)
 	sprintf (tmp, "Picasso 96 %d MB", currprefs.gfxmem_size / 0x100000);
 	tui_puts(tmp);
     } else
-	tui_puts ("Picasso 96 Off");
+ 	tui_puts ("Picasso 96 Off");
     y++;
 
     tui_gotoxy (OPTION_COLUMN, y++);
@@ -306,7 +302,7 @@ static void print_configuration (void)
 	sprintf (tmp, "%d bits at %d Hz", currprefs.sound_bits, currprefs.sound_freq);
 	tui_puts (tmp);
 	tui_gotoxy (OPTION_COLUMN + 7, y++);
-	sprintf (tmp, "Maximum buffer size %d bytes", currprefs.sound_maxbsiz);
+	sprintf (tmp, "Minimum buffer size %d bytes, maximum %d bytes", currprefs.sound_minbsiz, currprefs.sound_maxbsiz);
 	tui_puts (tmp);
     }
 
@@ -349,7 +345,7 @@ static void HDOptions (void)
 	    if (mountvol[strlen(mountvol)-1]==':')
 		mountvol[strlen(mountvol)-1] = 0;
 	    tui_wgets (mountdir, "Enter mounted volume path", 78);
-	    add_filesys_unit (currprefs.mountinfo, "", mountvol, mountdir, 0, 0, 0, 0, 0, 0, 0);
+	    add_filesys_unit (currprefs.mountinfo, mountvol, mountdir, 0, 0, 0, 0, 0);
 	    break;
 	 case 1:
 	    tui_wgets (mountvol, "Enter mounted volume name", 10);
@@ -358,7 +354,7 @@ static void HDOptions (void)
 	    if (mountvol[strlen (mountvol)-1]==':')
 		mountvol[strlen (mountvol)-1] = 0;
 	    tui_wgets (mountdir, "Enter mounted volume path", 78);
-	    add_filesys_unit (currprefs.mountinfo, "", mountvol, mountdir, 1, 0, 0, 0, 0, 0, 0);
+	    add_filesys_unit (currprefs.mountinfo, mountvol, mountdir, 1, 0, 0, 0, 0);
 	    break;
 	 case 2:
 	    buff = tui_filereq("*", "", "Select the hardfile to be mounted");
@@ -369,9 +365,9 @@ static void HDOptions (void)
 	    tui_wgets (mountdir + 10, "Enter number of heads", 4);
 	    tui_wgets (mountdir + 20, "Enter number of reserved blocks", 3);
 	    tui_wgets (mountdir + 30, "Enter block size", 4);
-	    buff = add_filesys_unit (currprefs.mountinfo, "", 0, mountvol, 1,
+	    buff = add_filesys_unit (currprefs.mountinfo, 0, mountvol, 1,
 				     atoi (mountdir), atoi (mountdir + 10),
-				     atoi (mountdir + 20), atoi (mountdir + 30), 0, 0);
+				     atoi (mountdir + 20), atoi (mountdir + 30));
 	    if (buff)
 		tui_errorbox (buff);
 	    break;
@@ -579,14 +575,22 @@ static void SoundOptions (void)
 	    break;
 
 	 case 1:
+	    tui_wgets (tmp, "Enter new minimum sound buffer size in bytes", 6);
+	    if (atoi (tmp) < 128 || atoi (tmp) > 65536 || atoi (tmp) > currprefs.sound_maxbsiz)
+		tui_errorbox ("Insane value for minimum sound buffer size");
+	    else
+		currprefs.sound_minbsiz = atoi (tmp);
+	    break;
+
+	 case 2:
 	    tui_wgets (tmp, "Enter new maximum sound buffer size in bytes", 6);
-	    if (atoi (tmp) < 128 || atoi (tmp) > 65536)
+	    if (atoi (tmp) < 128 || atoi (tmp) > 65536 || atoi (tmp) < currprefs.sound_minbsiz)
 		tui_errorbox ("Insane value for maximum sound buffer size");
 	    else
 		currprefs.sound_maxbsiz = atoi (tmp);
 	    break;
 
-	 case 2:
+	 case 3:
 	    tui_wgets (tmp, "Enter new number of bits", 3);
 	    if (atoi (tmp)!= 8 && atoi (tmp) != 16)
 		tui_errorbox ("Unsupported number of bits");
@@ -594,14 +598,14 @@ static void SoundOptions (void)
 		currprefs.sound_bits = atoi (tmp);
 	    break;
 
-	 case 3:
+	 case 4:
 	    tui_wgets (tmp, "Enter new sound output frequency", 6);
 	    if (atoi (tmp) < 11025 || atoi (tmp) > 44100)
 		tui_errorbox ("Unsupported frequency");
 	    else
 		currprefs.sound_freq = atoi (tmp);
 	    break;
-	 case 4:
+	 case 5:
 	    currprefs.stereo = (currprefs.stereo + 1) % 3;
 	    break;
 	}
@@ -623,7 +627,7 @@ static void OtherOptions (void)
 	 case 0:
 	    currprefs.jport0 = (currprefs.jport0 + 1) % 6;
 	    if (currprefs.jport0 == currprefs.jport1)
-	      currprefs.jport1 = (currprefs.jport1 + 5) % 6;
+	      currprefs.jport1 = (currprefs.jport1 + 5) % 6;	      
 	    break;
 	 case 1:
 	    currprefs.jport1 = (currprefs.jport1 + 1) % 6;
@@ -680,7 +684,7 @@ static int do_gui (int mode)
 	     case 0: DiskOptions (); break;
 	     case 1: OtherOptions (); break;
 	     case 2: save_settings (); break;
-	     case 3: uae_reset (0); break;
+	     case 3: uae_reset (); break;
 	     case 4: uae_quit (); break;
 	    }
 	}
@@ -691,12 +695,36 @@ static int do_gui (int mode)
     return 0;
 }
 
-int gui_open (void)
+int gui_init (void)
 {
     return do_gui (1);
+}
+
+void gui_changesettings (void)
+{
+    struct uae_prefs oldprefs;
+    oldprefs = currprefs;
+
+    if (do_gui(0) == -2)
+	uae_quit ();
+    else {
+	changed_prefs = currprefs;
+	currprefs = oldprefs;
+	currprefs.jport0 = changed_prefs.jport0;
+	currprefs.jport1 = changed_prefs.jport1;
+	joystick_setting_changed ();
+    }
 }
 
 int gui_update (void)
 {
     return 0;
+}
+
+void gui_lock (void)
+{
+}
+
+void gui_unlock (void)
+{
 }

@@ -16,14 +16,13 @@ extern void zfile_fclose (struct zfile *);
 extern int zfile_fseek (struct zfile *z, long offset, int mode);
 extern long zfile_ftell (struct zfile *z);
 extern size_t zfile_fread  (void *b, size_t l1, size_t l2, struct zfile *z);
-extern size_t zfile_fwrite  (const void *b, size_t l1, size_t l2, struct zfile *z);
+extern size_t zfile_fwrite  (void *b, size_t l1, size_t l2, struct zfile *z);
 extern void zfile_exit (void);
 extern int execute_command (char *);
 extern int zfile_iscompressed (struct zfile *z);
 extern int zfile_zcompress (struct zfile *dst, void *src, int size);
 extern int zfile_zuncompress (void *dst, int dstsize, struct zfile *src, int srcsize);
 extern int zfile_gettype (struct zfile *z);
-extern uae_u32 zfile_crc32 (struct zfile *f);
 
 #define ZFILE_UNKNOWN 0
 #define ZFILE_CONFIGURATION 1

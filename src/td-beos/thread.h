@@ -54,3 +54,8 @@ STATIC_INLINE int uae_wait_thread (uae_thread_id thread)
 #define UAE_THREAD_EXIT exit_thread (0)
 
 #define uae_set_thread_priority(pri) /* todo */
+
+STATIC_INLINE uae_thread_id uae_thread_self (void)
+{
+    return find_thread (NULL);
+}

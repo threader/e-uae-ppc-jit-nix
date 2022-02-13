@@ -1,11 +1,11 @@
 #ifndef BE_UAE_H
 #define BE_UAE_H
-/***********************************************************/
+/***********************************************************/ 
 //  UAE - The Un*x Amiga Emulator
 //
 //  BeOS port specific stuff
 //
-//  (c) 2000-2001 Axel Doerfler
+//  (c) 2000-2001 Axel Dörfler
 //  (c) 1999 Be/R4 Sound - Raphael Moll
 //  (c) 1998-1999 David Sowsy
 //  (c) 1996-1998 Christian Bauer
@@ -15,12 +15,18 @@
 
 #include <AppKit.h>
 #include <InterfaceKit.h>
+#include <KernelKit.h>
+#include <MediaKit.h>
+#include <MediaRoster.h> 
+#include <SoundPlayer.h> 
+#include <StopWatch.h> 
+#include <FilePanel.h> 
 #include <StorageKit.h>
-#include <support/SupportDefs.h>
-#include <support/String.h>
+#include <GraphicsDefs.h>
+#include <List.h>
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <stdio.h> 
+#include <stdlib.h> 
 
 // 0.8.17 BeOS Release 1
 const int32 kBeUAERelease = 1;
@@ -31,7 +37,7 @@ class UAEWindow;
 extern UAEWindow *gEmulationWindow;
 //extern BString gSettingsName;
 
-extern int inhibit_frame;
+extern int inhibit_frame; 
 
 
 class UAE : public BApplication {
@@ -50,7 +56,7 @@ public:
 private:
 	static long EmulationThreadFunc(void *obj);
 	thread_id fEmulationThread;
-
+	
 	UAEWindow *fEmulationWindow;
 };
 

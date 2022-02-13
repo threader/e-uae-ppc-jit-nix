@@ -24,14 +24,14 @@
 /*
  * Create a list of signals and add them to a GTK+ class
  */
-void gtkutil_add_signals_to_class (GtkObjectClass *class, guint func_offset, guint *signals, ...)
+void gtkutil_add_signals_to_class (GtkObjectClass *class, guint func_offset, gint *signals, ...)
 {
    va_list signames;
-   const char *name;
-   unsigned int count = 0;
+   guchar *name;
+   int count = 0;
 
    va_start (signames, signals);
-   name = va_arg (signames, const char *);
+   name = va_arg (signames, guchar *);
 
    while (name) {
 #if GTK_MAJOR_VERSION >= 2
@@ -42,7 +42,7 @@ void gtkutil_add_signals_to_class (GtkObjectClass *class, guint func_offset, gui
 					gtk_signal_default_marshaller, GTK_TYPE_NONE, 0);
 #endif
 	count++;
-	name = va_arg (signames, const char *);
+	name = va_arg (signames, guchar *);
    };
 
 #if GTK_MAJOR_VERSION < 2
@@ -75,7 +75,7 @@ GtkWidget *make_chooser (int count, ...)
     return chooser;
 }
 
-GtkWidget *make_label (const char *string)
+GtkWidget *make_label (char *string)
 {
     GtkWidget *label;
 
@@ -87,7 +87,7 @@ GtkWidget *make_label (const char *string)
 }
 
 #if GTK_MAJOR_VERSION < 2
-GtkWidget *make_labelled_button (const char *label, GtkAccelGroup *accel_group)
+GtkWidget *make_labelled_button (guchar *label, GtkAccelGroup *accel_group)
 {
     GtkWidget *button = gtk_button_new ();
     int key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (button)->child), "_Okay");
@@ -216,13 +216,13 @@ GtkWidget *gtkutil_make_radio_group (GSList *group, GtkWidget **buttons, ...)
 {
     GtkWidget *hbox;
     va_list labels;
-    const char *label;
+    const guchar *label;
     int i = 0;
 
     hbox = gtk_hbox_new (TRUE, 0);
 
     va_start (labels, buttons);
-    label = va_arg (labels, const char *);
+    label = va_arg (labels, const guchar *);
 
     while (label != NULL) {
 	GtkWidget *radiobutton = gtk_radio_button_new_with_label (group, label);
@@ -231,7 +231,7 @@ GtkWidget *gtkutil_make_radio_group (GSList *group, GtkWidget **buttons, ...)
 
 	*buttons++ = radiobutton;
 
-	label = va_arg (labels, const char *);
+	label = va_arg (labels, const guchar *);
     }
 
     gtk_widget_show (hbox);

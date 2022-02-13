@@ -13,43 +13,6 @@
 
 #include "fsdb.h"
 
-#define TRACING_ENABLED 0
-#if TRACING_ENABLED
-#define TRACE(x)	do { write_log x; } while(0)
-#else
-#define TRACE(x)
-#endif
-
-int dos_errno (void)
-{
-    int e = errno;
-
-    switch (e) {
-	case ENOMEM:	return ERROR_NO_FREE_STORE;
-	case EEXIST:	return ERROR_OBJECT_EXISTS;
-	case EACCES:	return ERROR_WRITE_PROTECTED;
-	case ENOENT:	return ERROR_OBJECT_NOT_AROUND;
-	case ENOTDIR:	return ERROR_OBJECT_WRONG_TYPE;
-	case ENOSPC:	return ERROR_DISK_IS_FULL;
-	case EBUSY:       	return ERROR_OBJECT_IN_USE;
-	case EISDIR:	return ERROR_OBJECT_WRONG_TYPE;
-#if defined(ETXTBSY)
-	case ETXTBSY:	return ERROR_OBJECT_IN_USE;
-#endif
-#if defined(EROFS)
-	case EROFS:       	return ERROR_DISK_WRITE_PROTECTED;
-#endif
-#if defined(ENOTEMPTY)
-#if ENOTEMPTY != EEXIST
-	case ENOTEMPTY:	return ERROR_DIRECTORY_NOT_EMPTY;
-#endif
-#endif
-	default:
-	TRACE (("FSDB: Unimplemented error: %s\n", strerror (e)));
-	return ERROR_NOT_IMPLEMENTED;
-    }
-}
-
 /* Return nonzero for any name we can't create on the native filesystem.  */
 int fsdb_name_invalid (const char *n)
 {
@@ -71,7 +34,7 @@ int fsdb_exists (char *nname)
 
 /* For an a_inode we have newly created based on a filename we found on the
  * native fs, fill in information about this file/directory.  */
-int fsdb_fill_file_attrs (a_inode *base, a_inode *aino)
+int fsdb_fill_file_attrs (a_inode *aino)
 {
     struct stat statbuf;
     /* This really shouldn't happen...  */
@@ -84,10 +47,9 @@ int fsdb_fill_file_attrs (a_inode *base, a_inode *aino)
     return 1;
 }
 
-int fsdb_set_file_attrs (a_inode *aino)
+int fsdb_set_file_attrs (a_inode *aino, int mask)
 {
     struct stat statbuf;
-    int mask = aino->amigaos_mode;
     int mode;
 
     if (stat (aino->nname, &statbuf) == -1)

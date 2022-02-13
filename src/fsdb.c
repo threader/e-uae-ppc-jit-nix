@@ -10,6 +10,8 @@
 #include "sysconfig.h"
 #include "sysdeps.h"
 
+#include "config.h"
+#include "threaddep/thread.h"
 #include "options.h"
 #include "uae.h"
 #include "memory.h"
@@ -18,6 +20,7 @@
 #include "filesys.h"
 #include "autoconf.h"
 #include "fsusage.h"
+#include "native2amiga.h"
 #include "scsidev.h"
 #include "fsdb.h"
 
@@ -26,15 +29,8 @@
  * Offset 1, 4 bytes, mode
  * Offset 5, 257 bytes, aname
  * Offset 263, 257 bytes, nname
- * Offset 519, 81 bytes, comment
+ * Offset 518, 81 bytes, comment
  */
-
-#define TRACING_ENABLED 0
-#if TRACING_ENABLED
-#define TRACE(x)	do { write_log x; } while(0)
-#else
-#define TRACE(x)
-#endif
 
 char *nname_begin (char *nname)
 {
@@ -44,7 +40,6 @@ char *nname_begin (char *nname)
     return nname;
 }
 
-#if 1 //ndef _WIN32
 /* Find the name REL in directory DIRNAME.  If we find a file that
  * has exactly the same name, return REL.  If we find a file that
  * has the same name when compared case-insensitively, return a
@@ -59,7 +54,7 @@ char *fsdb_search_dir (const char *dirname, char *rel)
     /* This really shouldn't happen...  */
     if (! dir)
 	return 0;
-
+    
     while (p == 0 && (de = readdir (dir)) != 0) {
 	if (strcmp (de->d_name, rel) == 0)
 	    p = rel;
@@ -69,13 +64,12 @@ char *fsdb_search_dir (const char *dirname, char *rel)
     closedir (dir);
     return p;
 }
-#endif
 
 static FILE *get_fsdb (a_inode *dir, const char *mode)
 {
     char *n;
     FILE *f;
-
+    
     n = build_nname (dir->nname, FSDB_FILE);
     f = fopen (n, mode);
     free (n);
@@ -99,10 +93,10 @@ static void fsdb_fixup (FILE *f, char *buf, int size, a_inode *base)
     nname = build_nname (base->nname, buf + 5 + 257);
     ret = fsdb_exists (nname);
     if (ret) {
-	free (nname);
+        free (nname);
 	return;
     }
-    TRACE (("uaefsdb '%s' deleted\n", nname));
+    write_log ("uaefsdb '%s' deleted\n", nname);
     /* someone deleted this file/dir outside of emulation.. */
     buf[0] = 0;
     free (nname);
@@ -151,11 +145,12 @@ static a_inode *aino_from_buf (a_inode *base, char *buf, long off)
     aino->nname = build_nname (base->nname, buf);
     buf += 257;
     aino->comment = *buf != '\0' ? my_strdup (buf) : 0;
-    fsdb_fill_file_attrs (base, aino);
+    fsdb_fill_file_attrs (aino);
     aino->amigaos_mode = mode;
     aino->has_dbentry = 1;
     aino->dirty = 0;
     aino->db_offset = off;
+//    write_log("aino=%d a='%s' n='%s' c='%s' mode=%d dir=%d\n",off,aino->aname,aino->nname,aino->comment,aino->amigaos_mode,aino->dir);
     return aino;
 }
 
@@ -205,7 +200,7 @@ int fsdb_used_as_nname (a_inode *base, const char *nname)
 {
     FILE *f = get_fsdb (base, "r+b");
     char buf[1 + 4 + 257 + 257 + 81];
-
+    
     if (f == 0)
 	return 0;
     for (;;) {
@@ -228,7 +223,7 @@ static int needs_dbentry (a_inode *aino)
 
     if (aino->deleted)
 	return 0;
-
+    
     if (! fsdb_mode_representable_p (aino) || aino->comment != 0)
 	return 1;
 
@@ -250,7 +245,7 @@ static void write_aino (FILE *f, a_inode *aino)
     aino->db_offset = ftell (f);
     fwrite (buf, 1, sizeof buf, f);
     aino->has_dbentry = aino->needs_dbentry;
-    TRACE (("%d '%s' '%s' written\n", aino->db_offset, aino->aname, aino->nname));
+//    write_log ("%d '%s' '%s' written\n", aino->db_offset, aino->aname, aino->nname);
 }
 
 /* Write back the db file for a directory.  */
@@ -261,10 +256,9 @@ void fsdb_dir_writeback (a_inode *dir)
     int changes_needed = 0;
     int entries_needed = 0;
     a_inode *aino;
-    char *tmpbuf;
+    uae_u8 *tmpbuf;
     int size, i;
 
-    TRACE (("fsdb writeback %s\n", dir->aname));
     /* First pass: clear dirty bits where unnecessary, and see if any work
      * needs to be done.  */
     for (aino = dir->child; aino; aino = aino->sibling) {
@@ -286,31 +280,20 @@ void fsdb_dir_writeback (a_inode *dir)
     }
     if (! entries_needed) {
 	kill_fsdb (dir);
-	TRACE (("fsdb removed\n"));
 	return;
     }
 
-    if (! changes_needed) {
-	TRACE (("not modified\n"));
+    if (! changes_needed)
 	return;
-    }
 
     f = get_fsdb (dir, "r+b");
     if (f == 0) {
-	if (/*(currprefs.filesys_custom_uaefsdb  && (dir->volflags & MYVOLUMEINFO_STREAMS)) || */ currprefs.filesys_no_uaefsdb) {
-	    for (aino = dir->child; aino; aino = aino->sibling) {
-		aino->dirty = 0;
-		aino->has_dbentry = 0;
-		aino->needs_dbentry = 0;
-	    }
+	if (currprefs.filesys_no_uaefsdb)
 	    return;
-	}
 	f = get_fsdb (dir, "w+b");
-	if (f == 0) {
-	    TRACE (("failed\n"));
+	if (f == 0)
 	    /* This shouldn't happen... */
 	    return;
-	}
     }
     fseek (f, 0, SEEK_END);
     size = ftell (f);
@@ -320,7 +303,7 @@ void fsdb_dir_writeback (a_inode *dir)
 	tmpbuf = malloc (size);
 	fread (tmpbuf, 1, size, f);
     }
-    TRACE (("**** updating '%s' %d\n", dir->aname, size));
+//    write_log ("**** updating '%s'\n", dir->aname);
 
     for (aino = dir->child; aino; aino = aino->sibling) {
 	if (! aino->dirty)
@@ -344,7 +327,7 @@ void fsdb_dir_writeback (a_inode *dir)
 	}
 	write_aino (f, aino);
     }
-    TRACE (("end\n"));
+//    write_log ("end\n");
     fclose (f);
     free (tmpbuf);
 }

@@ -1,5 +1,5 @@
 
-#if 0//def WIN32
+#ifdef WIN32
 
 #include "picasso96_win.h"
 
@@ -18,8 +18,8 @@
 
 
 /* Seems the same routines copy back and forth ;-) */
-#define PIC_READ  (SPECIAL_MEM_READ|SPECIAL_MEM_WRITE)
-#define PIC_WRITE (SPECIAL_MEM_READ|SPECIAL_MEM_WRITE)
+#define PIC_READ (S_READ|S_WRITE)
+#define PIC_WRITE (S_READ|S_WRITE)
 
 #define JAM1 0
 #define JAM2 1
@@ -200,7 +200,7 @@ struct CLUTEntry {
 #define PSSO_BitMap_Planes 8
 #define PSSO_BitMap_sizeof 40
 
-#ifdef TARGET_AMIGAOS
+#if defined __AMIGA__ || defined __amiga__
 #include <graphics/gfx.h>
 #else
 struct BitMap
@@ -309,7 +309,7 @@ struct RenderInfo {
 #define PSSO_Pattern_DrawMode 17
 #define PSSO_Pattern_sizeof 18
 struct Pattern {
-    uae_u8 *Memory;
+    char *Memory;
     uae_u16 XOffset, YOffset;
     uae_u32 FgPen, BgPen;
     uae_u8 Size;					/* Width: 16, Height: (1<<pat_Size) */
@@ -325,7 +325,7 @@ struct Pattern {
 #define PSSO_Template_sizeof 16
 
 struct Template {
-    uae_u8 *Memory;
+    char *Memory;
     uae_s16 BytesPerRow;
     uae_u8 XOffset;
     uae_u8 DrawMode;
@@ -504,26 +504,25 @@ struct picasso96_state_struct
 
 extern void InitPicasso96 (void);
 
-struct regstruct;
-
-extern uae_u32 picasso_SetDisplay             (struct regstruct *regs) REGPARAM;
-extern uae_u32 picasso_WaitVerticalSync       (struct regstruct *regs) REGPARAM;
-extern uae_u32 picasso_CalculateBytesPerRow   (struct regstruct *regs) REGPARAM;
-extern uae_u32 picasso_FillRect               (struct regstruct *regs) REGPARAM;
-extern uae_u32 picasso_BlitRect               (struct regstruct *regs) REGPARAM;
-extern uae_u32 picasso_InvertRect             (struct regstruct *regs) REGPARAM;
-extern uae_u32 picasso_SetPanning             (struct regstruct *regs) REGPARAM;
-extern uae_u32 picasso_SetGC                  (struct regstruct *regs) REGPARAM;
-extern uae_u32 picasso_SetDAC                 (struct regstruct *regs) REGPARAM;
-extern uae_u32 picasso_SetColorArray          (struct regstruct *regs) REGPARAM;
-extern uae_u32 picasso_SetSwitch              (struct regstruct *regs) REGPARAM;
-extern uae_u32 picasso_FindCard               (struct regstruct *regs) REGPARAM;
-extern uae_u32 picasso_InitCard               (struct regstruct *regs) REGPARAM;
-extern uae_u32 picasso_BlitPlanar2Chunky      (struct regstruct *regs) REGPARAM;
-extern uae_u32 picasso_BlitPlanar2Direct      (struct regstruct *regs) REGPARAM;
-extern uae_u32 picasso_BlitTemplate           (struct regstruct *regs) REGPARAM;
-extern uae_u32 picasso_BlitPattern            (struct regstruct *regs) REGPARAM;
-extern uae_u32 picasso_BlitRectNoMaskComplete (struct regstruct *regs) REGPARAM;
+extern uae_u32 picasso_SetDisplay (void);
+extern uae_u32 picasso_WaitVerticalSync (void);
+extern uae_u32 picasso_CalculateBytesPerRow (void);
+extern uae_u32 picasso_FillRect (void);
+extern uae_u32 picasso_BlitRect (void);
+extern uae_u32 picasso_InvertRect (void);
+extern uae_u32 picasso_SetPanning (void);
+extern uae_u32 picasso_SetGC (void);
+extern uae_u32 picasso_SetDAC (void);
+extern uae_u32 picasso_SetColorArray (void);
+extern uae_u32 picasso_SetSwitch (void);
+extern uae_u32 picasso_SetSwitch (void);
+extern uae_u32 picasso_FindCard (void);
+extern uae_u32 picasso_InitCard (void);
+extern uae_u32 picasso_BlitPlanar2Chunky (void);
+extern uae_u32 picasso_BlitPlanar2Direct (void);
+extern uae_u32 picasso_BlitTemplate (void);
+extern uae_u32 picasso_BlitPattern (void);
+extern uae_u32 picasso_BlitRectNoMaskComplete (void);
 
 extern uae_u32 gfxmem_mask;
 extern uae_u8 *gfxmemory;
@@ -583,6 +582,9 @@ extern int NDX_BlitPlanar2Direct(struct RenderInfo* ri, struct BitMap* bm, unsig
 extern int NDX_FillRect(struct RenderInfo* ri, unsigned long X, unsigned long Y, unsigned long Width, unsigned long Height, uae_u32 Pen, uae_u8 Mask, uae_u32 RGBFormat);
 extern int NDX_BlitRect(struct RenderInfo* ri, unsigned long srcx, unsigned long srcy, unsigned long dstx, unsigned long dsty, unsigned long width, unsigned long height, uae_u8 Mask);
 extern int NDX_BlitRectNoMaskComplete(struct RenderInfo* sri,struct RenderInfo* dri, unsigned long srcx, unsigned long srcy, unsigned long dstx, unsigned long dsty, unsigned long width, unsigned long height, uae_u8 OpCode, uae_u32 RGBFmt);
+
+extern int picasso_is_special;
+extern int picasso_is_special_read;
 
 extern int p96hack_vpos2;
 extern int p96refresh_active;

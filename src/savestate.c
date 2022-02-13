@@ -24,7 +24,7 @@
   *
   * - blitter state is not saved, blitter is forced to finish immediately if it
   *   was active
-  * - disk DMA state is completely saved
+  * - disk DMA state is completely saved 
   * - does not ask for statefile name and description. Currently uses DF0's disk
   *   image name (".adf" is replaced with ".asf")
   * - only Amiga state is restored, harddisk support, autoconfig, expansion boards etc..
@@ -35,11 +35,11 @@
  /* Usage :
   *
   * save:
-  *
+  * 
   * set savestate_state = STATE_DOSAVE, savestate_filename = "..."
   *
   * restore:
-  *
+  * 
   * set savestate_state = STATE_DORESTORE, savestate_filename = "..."
   *
   */
@@ -47,26 +47,22 @@
 #include "sysconfig.h"
 #include "sysdeps.h"
 
+#include "config.h"
 #include "options.h"
 #include "memory.h"
 #include "zfile.h"
 #include "ar.h"
-#include "filesys.h"
+#include "autoconf.h"
 #include "custom.h"
 #include "newcpu.h"
 #include "savestate.h"
 #include "uae.h"
-#include "gui.h"
-#include "audio.h"
-#include "version.h"
 
 #ifndef _WIN32
 #define console_out printf
 #endif
 
-#ifdef SAVESTATE
-
-int savestate_state = 0;
+int savestate_state;
 
 #define MAX_STATERECORDS 1024 /* must be power of 2 */
 struct staterecord {
@@ -81,13 +77,33 @@ static int frameextra;
 
 struct zfile *savestate_file;
 static uae_u8 *replaybuffer, *replaybufferend;
-static int savestate_docompress, savestate_specialdump;
+static int savestate_docompress, savestate_ramdump;
 static int replaybuffersize;
 
 char savestate_fname[MAX_DPATH];
 static struct staterecord staterecords[MAX_STATERECORDS];
 
-#endif
+static unsigned long crc_table[256];
+static void make_crc_table (void)
+{
+    unsigned long c;
+    int n, k;
+    for (n = 0; n < 256; n++)	
+    {
+	c = (unsigned long)n;
+	for (k = 0; k < 8; k++) c = (c >> 1) ^ (c & 1 ? 0xedb88320L : 0);
+	    crc_table[n] = c;
+    }
+}
+uae_u32 CRC32(uae_u32 crc, const uae_u8 *buf, int len)
+{
+    if (!crc_table[1]) make_crc_table();
+    crc = crc ^ 0xffffffffL;
+    while (len-- > 0) {
+	crc = crc_table[(crc ^ (*buf++)) & 0xff] ^ (crc >> 8);    
+    }
+    return crc ^ 0xffffffffL;
+}
 
 /* functions for reading/writing bytes, shorts and longs in big-endian
  * format independent of host machine's endianess */
@@ -100,11 +116,6 @@ void save_u32_func (uae_u8 **dstp, uae_u32 v)
     *dst++ = (uae_u8)(v >> 8);
     *dst++ = (uae_u8)(v >> 0);
     *dstp = dst;
-}
-void save_u64_func (uae_u8 **dstp, uae_u64 v)
-{
-    save_u32_func (dstp, (uae_u32)(v >> 32));
-    save_u32_func (dstp, (uae_u32)v);
 }
 void save_u16_func (uae_u8 **dstp, uae_u16 v)
 {
@@ -119,75 +130,64 @@ void save_u8_func (uae_u8 **dstp, uae_u8 v)
     *dst++ = v;
     *dstp = dst;
 }
-void save_string_func (uae_u8 **dstp, const char *from)
+void save_string_func (uae_u8 **dstp, char *from)
 {
     uae_u8 *dst = *dstp;
-    while (from && *from)
+    while(*from)
 	*dst++ = *from++;
     *dst++ = 0;
     *dstp = dst;
 }
 
-uae_u32 restore_u32_func (const uae_u8 **dstp)
+uae_u32 restore_u32_func (uae_u8 **dstp)
 {
     uae_u32 v;
-    const uae_u8 *dst = *dstp;
+    uae_u8 *dst = *dstp;
     v = (dst[0] << 24) | (dst[1] << 16) | (dst[2] << 8) | (dst[3]);
     *dstp = dst + 4;
     return v;
 }
-uae_u64 restore_u64_func (const uae_u8 **dstp)
-{
-    uae_u64 v;
-
-    v = restore_u32_func (dstp);
-    v <<= 32;
-    v |= restore_u32_func (dstp);
-    return v;
-}
-uae_u16 restore_u16_func (const uae_u8 **dstp)
+uae_u16 restore_u16_func (uae_u8 **dstp)
 {
     uae_u16 v;
-    const uae_u8 *dst = *dstp;
+    uae_u8 *dst = *dstp;
     v=(dst[0] << 8) | (dst[1]);
     *dstp = dst + 2;
     return v;
 }
-uae_u8 restore_u8_func (const uae_u8 **dstp)
+uae_u8 restore_u8_func (uae_u8 **dstp)
 {
     uae_u8 v;
-    const uae_u8 *dst = *dstp;
+    uae_u8 *dst = *dstp;
     v = dst[0];
     *dstp = dst + 1;
     return v;
 }
-char *restore_string_func (const uae_u8 **dstp)
+char *restore_string_func (uae_u8 **dstp)
 {
     int len;
     uae_u8 v;
-    const uae_u8 *dst = *dstp;
+    uae_u8 *dst = *dstp;
     char *top, *to;
-    len = strlen ((const char *)dst) + 1;
+    len = strlen(dst) + 1;
     top = to = malloc (len);
     do {
 	v = *dst++;
 	*top++ = v;
     } while(v);
     *dstp = dst;
-    return to;
+    return to; 
 }
-
-#ifdef SAVESTATE
 
 /* read and write IFF-style hunks */
 
-static void save_chunk (struct zfile *f, uae_u8 *chunk, size_t len, const char *name, int compress)
+static void save_chunk (struct zfile *f, uae_u8 *chunk, long len, char *name, int compress)
 {
     uae_u8 tmp[8], *dst;
     uae_u8 zero[4]= { 0, 0, 0, 0 };
     uae_u32 flags;
     size_t pos;
-    size_t chunklen, len2;
+    long chunklen, len2;
 
     if (!chunk)
 	return;
@@ -239,30 +239,27 @@ static void save_chunk (struct zfile *f, uae_u8 *chunk, size_t len, const char *
     if (len2)
 	zfile_fwrite (zero, 1, len2, f);
 
-    write_log ("Chunk '%s' chunk size %ld (%ld)\n", name, chunklen, len);
+    write_log ("Chunk '%s' chunk size %d (%d)\n", name, chunklen, len);
 }
 
-static uae_u8 *restore_chunk (struct zfile *f, char *name, size_t *len, size_t *totallen, size_t *filepos)
+static uae_u8 *restore_chunk (struct zfile *f, char *name, long *len, long *totallen, long *filepos)
 {
-    uae_u8 tmp[4], dummy[4], *mem;
-    const uae_u8 *src;
+    uae_u8 tmp[4], dummy[4], *mem, *src;
     uae_u32 flags;
-    size_t len2;
+    long len2;
 
-    *totallen = 0;
     /* chunk name */
     zfile_fread (name, 1, 4, f);
     name[4] = 0;
     /* chunk size */
     zfile_fread (tmp, 1, 4, f);
     src = tmp;
-    len2 = restore_u32 ();
-    if (len2 < 12) {
-	*len = 0;
-	return 0;
-    }
-    len2 -= 4 + 4 + 4;
+    len2 = restore_u32 () - 4 - 4 - 4;
+    if (len2 < 0)
+	len2 = 0;
     *len = len2;
+    if (len2 == 0)
+	return 0;
 
     /* chunk flags */
     zfile_fread (tmp, 1, 4, f);
@@ -276,7 +273,7 @@ static uae_u8 *restore_chunk (struct zfile *f, char *name, size_t *len, size_t *
 	*filepos = zfile_ftell (f) - 4 - 4 - 4;
 	len2 -= 4;
     } else {
-	*filepos = zfile_ftell (f) - 4 - 4;
+        *filepos = zfile_ftell (f) - 4 - 4;
     }
     /* chunk data.  RAM contents will be loaded during the reset phase,
        no need to malloc multiple megabytes here.  */
@@ -287,7 +284,7 @@ static uae_u8 *restore_chunk (struct zfile *f, char *name, size_t *len, size_t *
 	&& strcmp (name, "PRAM") != 0)
     {
 	/* without zeros at the end old state files may not work */
-	mem = calloc (1, len2 + 32);
+	mem = calloc (1, len2 + 32); 
 	zfile_fread (mem, 1, len2, f);
     } else {
 	mem = 0;
@@ -301,22 +298,22 @@ static uae_u8 *restore_chunk (struct zfile *f, char *name, size_t *len, size_t *
     return mem;
 }
 
-void restore_ram (size_t filepos, uae_u8 *memory)
+void restore_ram (long filepos, uae_u8 *memory)
 {
     uae_u8 tmp[8];
-    const uae_u8 *src = tmp;
-    unsigned int size, fullsize;
+    uae_u8 *src = tmp;
+    int size, fullsize;
     uae_u32 flags;
-
+    
     zfile_fseek (savestate_file, filepos, SEEK_SET);
-    zfile_fread (tmp, 1, sizeof (tmp), savestate_file);
-    size = restore_u32 ();
-    flags = restore_u32 ();
+    zfile_fread (tmp, 1, sizeof(tmp), savestate_file);
+    size = restore_u32();
+    flags = restore_u32();
     size -= 4 + 4 + 4;
     if (flags & 1) {
-	zfile_fread (tmp, 1, 4, savestate_file);
-	src = tmp;
-	fullsize = restore_u32 ();
+        zfile_fread (tmp, 1, 4, savestate_file);
+        src = tmp;
+	fullsize = restore_u32();
 	size -= 4;
 	zfile_zuncompress (memory, fullsize, savestate_file, size);
     } else {
@@ -324,7 +321,7 @@ void restore_ram (size_t filepos, uae_u8 *memory)
     }
 }
 
-static void restore_header (const uae_u8 *src)
+static void restore_header (uae_u8 *src)
 {
     char *emuname, *emuversion, *description;
 
@@ -333,7 +330,7 @@ static void restore_header (const uae_u8 *src)
     emuversion = restore_string ();
     description = restore_string ();
     write_log ("Saved with: '%s %s', description: '%s'\n",
-	emuname, emuversion, description);
+	emuname,emuversion,description);
     free (description);
     free (emuversion);
     free (emuname);
@@ -341,14 +338,13 @@ static void restore_header (const uae_u8 *src)
 
 /* restore all subsystems */
 
-void restore_state (const char *filename)
+void restore_state (char *filename)
 {
     struct zfile *f;
-    uae_u8 *chunk;
-    const uae_u8 *end;
+    uae_u8 *chunk,*end;
     char name[5], prevchunk[5];
-    size_t len, totallen;
-    size_t filepos;
+    long len, totallen;
+    long filepos;
 
     chunk = 0;
     f = zfile_fopen (filename, "rb");
@@ -358,7 +354,7 @@ void restore_state (const char *filename)
 
     chunk = restore_chunk (f, name, &len, &totallen, &filepos);
     if (!chunk || memcmp (name, "ASF ", 4)) {
-	gui_message ("Cannot restore state from '%s'.\n It is not an AmigaStateFile.\n", filename);
+	write_log ("%s is not an AmigaStateFile\n",filename);
 	goto error;
     }
     savestate_file = f;
@@ -370,12 +366,11 @@ void restore_state (const char *filename)
     savestate_state = STATE_RESTORE;
     prevchunk[0] = 0;
     for (;;) {
-	chunk = restore_chunk (f, name, &len, &totallen, &filepos);
-	end = chunk;
+	chunk = end = restore_chunk (f, name, &len, &totallen, &filepos);
 	if (!strcmp (name, prevchunk))
 	    break;
 	strcpy (prevchunk, name);
-	write_log ("Chunk '%s' size %ld (%ld)\n", name, len, totallen);
+	write_log ("Chunk '%s' size %d\n", name, len);
 	if (!strcmp (name, "END "))
 	    break;
 	if (!strcmp (name, "CRAM")) {
@@ -463,20 +458,13 @@ void restore_state (const char *filename)
 	else if (!strcmp (name, "ACTR"))
 	    end = restore_action_replay (chunk);
 #endif
-#if 0
-#ifdef FILESYS
-	else if (!strcmp (name, "FSYS"))
-	    end = restore_filesys (chunk);
-#endif
-#endif
 	else
-	    write_log ("unknown chunk '%s' size %ld bytes\n", name, len);
-	if (len != (size_t)(end - chunk))
-	    write_log ("Chunk '%s' total size %ld bytes but read %d bytes!\n",
+	    write_log ("unknown chunk '%s' size %d bytes\n", name, len);
+	if (len != end - chunk)
+	    write_log ("Chunk '%s' total size %d bytes but read %d bytes!\n",
 		       name, len, end - chunk);
 	free (chunk);
     }
-    restore_blitter_finish ();
     return;
 
     error:
@@ -495,21 +483,20 @@ void savestate_restore_finish (void)
     zfile_fclose (savestate_file);
     savestate_file = 0;
     savestate_state = 0;
-    restore_cpu_finish ();
 }
 
-/* 1=compressed,2=not compressed,3=ram dump,4=audio dump */
-void savestate_initsave (const char *filename, int mode)
+/* 1=compressed,2=not compressed,3=ram dump */
+void savestate_initsave (char *filename, int mode)
 {
     strcpy (savestate_fname, filename);
     savestate_docompress = (mode == 1) ? 1 : 0;
-    savestate_specialdump = (mode == 3) ? 1 : (mode == 4) ? 2 : 0;
+    savestate_ramdump = (mode == 3) ? 1 : 0;
 }
 
 static void save_rams (struct zfile *f, int comp)
 {
     uae_u8 *dst;
-    uae_u32 len;
+    int len;
 
     dst = save_cram (&len);
     save_chunk (f, dst, len, "CRAM", comp);
@@ -529,58 +516,37 @@ static void save_rams (struct zfile *f, int comp)
 #endif
 }
 
-/* Save all subsystems */
+/* Save all subsystems  */
 
-void save_state (const char *filename, const char *description)
+void save_state (char *filename, char *description)
 {
     uae_u8 header[1000];
     char tmp[100];
     uae_u8 *dst;
     struct zfile *f;
-    uae_u32 len;
-    unsigned int i;
+    int len,i;
     char name[5];
     int comp = savestate_docompress;
 
 #ifdef FILESYS
     if (nr_units (currprefs.mountinfo)) {
-	gui_message ("WARNING: State saves do not support hard drive emulation");
+	gui_message("WARNING: State saves do not support harddrive emulation");
     }
 #endif
 
     custom_prepare_savestate ();
-
-    f = zfile_fopen (filename, "w+b");
+    f = zfile_fopen (filename, "wb");
     if (!f)
 	return;
-#if 0
-    if (savestate_specialdump) {
-	size_t pos;
-	if (savestate_specialdump == 2)
-	    write_wavheader (f, 0, 22050);
-	pos = zfile_ftell(f);
+    if (savestate_ramdump) {
 	save_rams (f, -1);
-	if (savestate_specialdump == 2) {
-	    int len, len2, i;
-	    uae_u8 *tmp;
-	    len = zfile_ftell(f) - pos;
-	    tmp = malloc (len);
-	    zfile_fseek(f, pos, SEEK_SET);
-	    len2 = zfile_fread(tmp, 1, len, f);
-	    for (i = 0; i < len2; i++)
-		tmp[i] += 0x80;
-	    write_wavheader (f, len, 22050);
-	    zfile_fwrite (tmp, len2, 1, f);
-	    free (tmp);
-	}
-	zfile_fclose (f);
+        zfile_fclose (f);
 	return;
     }
-#endif
 
     dst = header;
     save_u32 (0);
-    save_string ("UAE");
+    save_string("UAE");
     sprintf (tmp, "%d.%d.%d", UAEMAJOR, UAEMINOR, UAESUBREV);
     save_string (tmp);
     save_string (description);
@@ -596,7 +562,7 @@ void save_state (const char *filename, const char *description)
     free (dst);
 #endif
 
-    strcpy (name, "DSKx");
+    strcpy(name, "DSKx");
     for (i = 0; i < 4; i++) {
 	dst = save_disk (i, &len, 0);
 	if (dst) {
@@ -609,12 +575,12 @@ void save_state (const char *filename, const char *description)
     save_chunk (f, dst, len, "DISK", 0);
     free (dst);
 
-    dst = save_blitter (&len, 0);
-    save_chunk (f, dst, len, "BLIT", 0);
-    free (dst);
-
     dst = save_custom (&len, 0, 0);
     save_chunk (f, dst, len, "CHIP", 0);
+    free (dst);
+
+    dst = save_blitter (&len, 0);
+    save_chunk (f, dst, len, "BLIT", 0);
     free (dst);
 
     dst = save_custom_agacolors (&len, 0);
@@ -667,17 +633,6 @@ void save_state (const char *filename, const char *description)
     dst = save_action_replay (&len, 0);
     save_chunk (f, dst, len, "ACTR", 0);
 #endif
-#if 0
-#ifdef FILESYS
-    for (i = 0; i < nr_units (currprefs.mountinfo); i++) {
-	dst = save_filesys (i, &len);
-	if (dst) {
-	    save_chunk (f, dst, len, "FSYS", 0);
-	    free (dst);
-	}
-    }
-#endif
-#endif
 
     zfile_fwrite ("END ", 1, 4, f);
     zfile_fwrite ("\0\0\0\08", 1, 4, f);
@@ -696,25 +651,19 @@ void savestate_quick (int slot, int save)
 	i = len - 1;
 	while (i >= 0 && savestate_fname[i] != '.')
 	    i--;
-	if (i <= 0) {
-	    write_log ("savestate name skipped '%s'\n", savestate_fname);
+	if (i <= 0)
 	    return;
-	}
     }
     strcpy (savestate_fname + i, ".uss");
     if (slot > 0)
 	sprintf (savestate_fname + i, "_%d.uss", slot);
     if (save) {
-	write_log ("saving '%s'\n", savestate_fname);
 	savestate_docompress = 1;
 	save_state (savestate_fname, "");
     } else {
-	if (!zfile_exists (savestate_fname)) {
-	    write_log ("staterestore, file '%s' not found\n", savestate_fname);
+	if (!zfile_exists (savestate_fname))
 	    return;
-	}
 	savestate_state = STATE_DORESTORE;
-	write_log ("staterestore starting '%s'\n", savestate_fname);
     }
 }
 
@@ -745,7 +694,7 @@ void savestate_listrewind (void)
 {
     int i = replaycounter;
     int cnt;
-    const uae_u8 *p;
+    uae_u8 *p;
     uae_u32 pc;
 
     cnt = 1;
@@ -766,9 +715,8 @@ void savestate_listrewind (void)
 
 void savestate_rewind (void)
 {
-    unsigned int len;
-    unsigned int i, dummy;
-    const uae_u8 *p, *p2;
+    unsigned int len, i, dummy;
+    uae_u8 *p, *p2;
     struct staterecord *st;
 
     st = canrewind (1);
@@ -817,7 +765,7 @@ void savestate_rewind (void)
 #endif
 #ifdef ACTION_REPLAY
     if (restore_u32_func (&p))
-	p = restore_action_replay (p);
+        p = restore_action_replay (p);
 #endif
     p += 4;
     if (p != p2) {
@@ -846,8 +794,7 @@ static int bufcheck (uae_u8 **pp, int len)
 void savestate_capture (int force)
 {
     uae_u8 *p, *p2, *p3, *dst;
-    uae_u32 len;
-    int i, tlen, retrycnt;
+    int i, len, tlen, retrycnt;
     struct staterecord *st, *stn;
 
 #ifdef FILESYS
@@ -892,8 +839,8 @@ retry2:
 	if (bufcheck (&p, 0))
 	    goto retry;
 	save_disk (i, &len, p);
-	tlen += len;
-	p += len;
+        tlen += len;
+        p += len;
     }
     if (bufcheck (&p, 0))
 	goto retry;
@@ -916,18 +863,18 @@ retry2:
     tlen += len;
     p += len;
     for (i = 0; i < 8; i++) {
-	if (bufcheck (&p, 0))
+        if (bufcheck (&p, 0))
 	    goto retry;
 	save_custom_sprite (i, &len, p);
-	tlen += len;
-	p += len;
+        tlen += len;
+        p += len;
     }
     for (i = 0; i < 4; i++) {
 	if (bufcheck (&p, 0))
 	    goto retry;
 	save_audio (i, &len, p);
-	tlen += len;
-	p += len;
+        tlen += len;
+        p += len;
     }
     if (bufcheck (&p, 0))
 	goto retry;
@@ -1054,245 +1001,237 @@ version 0.8
 
 HUNK HEADER (beginning of every hunk)
 
-	hunk name (4 ascii-characters)
-	hunk size (including header)
-	hunk flags
+        hunk name (4 ascii-characters)
+        hunk size (including header)
+        hunk flags             
 
-	bit 0 = chunk contents are compressed with zlib (maybe RAM chunks only?)
+        bit 0 = chunk contents are compressed with zlib (maybe RAM chunks only?)
 
 HEADER
 
-	"ASF " (AmigaStateFile)
-
+        "ASF " (AmigaStateFile)
+        
 	statefile version
-	emulator name ("uae", "fellow" etc..)
-	emulator version string (example: "0.8.15")
-	free user writable comment string
+        emulator name ("uae", "fellow" etc..)
+        emulator version string (example: "0.8.15")
+        free user writable comment string
 
 CPU
 
-	 "CPU "
+         "CPU "
 
-	CPU model               4 (68000,68010 etc..)
-	CPU typeflags           bit 0=EC-model or not
-	D0-D7                   8*4=32
-	A0-A6                   7*4=32
-	PC                      4
+        CPU model               4 (68000,68010 etc..)
+        CPU typeflags           bit 0=EC-model or not
+        D0-D7                   8*4=32
+        A0-A6                   7*4=32
+        PC                      4
 	unused			4
 	68000 prefetch (IRC)    2
 	68000 prefetch (IR)     2
-	USP                     4
-	ISP                     4
-	SR/CCR                  2
-	flags                   4 (bit 0=CPU was HALTed)
+        USP                     4
+        ISP                     4
+        SR/CCR                  2
+        flags                   4 (bit 0=CPU was HALTed)
 
-	CPU specific registers
+        CPU specific registers
 
-	68000: SR/CCR is last saved register
-	68010: save also DFC,SFC and VBR
-	68020: all 68010 registers and CAAR,CACR and MSP
-	etc..
+        68000: SR/CCR is last saved register
+        68010: save also DFC,SFC and VBR
+        68020: all 68010 registers and CAAR,CACR and MSP
+        etc..
 
-	DFC                     4 (010+)
-	SFC                     4 (010+)
-	VBR                     4 (010+)
+        DFC                     4 (010+)
+        SFC                     4 (010+)
+        VBR                     4 (010+)
 
-	CAAR                    4 (020-030)
-	CACR                    4 (020+)
-	MSP                     4 (020+)
+        CAAR                    4 (020-030)
+        CACR                    4 (020+)
+        MSP                     4 (020+)
 
 FPU (only if used)
 
 	"FPU "
 
-	FPU model               4 (68881/68882/68040)
-	FPU typeflags           4 (keep zero)
+        FPU model               4 (68881/68882/68040)
+        FPU typeflags           4 (keep zero)
 
-	FP0-FP7                 4+4+2 (80 bits)
-	FPCR                    4
-	FPSR                    4
-	FPIAR                   4
+        FP0-FP7                 4+4+2 (80 bits)
+        FPCR                    4
+        FPSR                    4
+        FPIAR                   4
 
 MMU (when and if MMU is supported in future..)
 
-	MMU model               4 (68851,68030,68040)
+        MMU model               4 (68851,68030,68040)
 
-	// 68040 fields
+        // 68040 fields
 
-	ITT0                    4
-	ITT1                    4
-	DTT0                    4
-	DTT1                    4
-	URP                     4
-	SRP                     4
-	MMUSR                   4
-	TC                      2
+        ITT0                    4
+        ITT1                    4
+        DTT0                    4
+        DTT1                    4
+        URP                     4
+        SRP                     4
+        MMUSR                   4
+        TC                      2
 
-
+		
 CUSTOM CHIPS
 
-	"CHIP"
+        "CHIP"
 
-	chipset flags   4      OCS=0,ECSAGNUS=1,ECSDENISE=2,AGA=4
-			       ECSAGNUS and ECSDENISE can be combined
+        chipset flags   4      OCS=0,ECSAGNUS=1,ECSDENISE=2,AGA=4
+                               ECSAGNUS and ECSDENISE can be combined
 
-	DFF000-DFF1FF   352    (0x120 - 0x17f and 0x0a0 - 0xdf excluded)
+        DFF000-DFF1FF   352    (0x120 - 0x17f and 0x0a0 - 0xdf excluded)
 
-	sprite registers (0x120 - 0x17f) saved with SPRx chunks
-	audio registers (0x0a0 - 0xdf) saved with AUDx chunks
+        sprite registers (0x120 - 0x17f) saved with SPRx chunks
+        audio registers (0x0a0 - 0xdf) saved with AUDx chunks
 
 AGA COLORS
 
-	"AGAC"
+        "AGAC"
 
-	AGA color               8 banks * 32 registers *
-	registers               LONG (XRGB) = 1024
+        AGA color               8 banks * 32 registers *
+        registers               LONG (XRGB) = 1024
 
 SPRITE
 
-	"SPR0" - "SPR7"
+        "SPR0" - "SPR7"
 
 
-	SPRxPT                  4
-	SPRxPOS                 2
-	SPRxCTL                 2
-	SPRxDATA                2
-	SPRxDATB                2
-	AGA sprite DATA/DATB    3 * 2 * 2
-	sprite "armed" status   1
+        SPRxPT                  4
+        SPRxPOS                 2
+        SPRxCTL                 2
+        SPRxDATA                2
+        SPRxDATB                2
+        AGA sprite DATA/DATB    3 * 2 * 2
+        sprite "armed" status   1
 
-	sprites maybe armed in non-DMA mode
-	use bit 0 only, other bits are reserved
+        sprites maybe armed in non-DMA mode
+        use bit 0 only, other bits are reserved
 
 
 AUDIO
-	"AUD0" "AUD1" "AUD2" "AUD3"
+        "AUD0" "AUD1" "AUD2" "AUD3"
 
-	audio state             1
-	machine mode
-	AUDxVOL                 1
+        audio state             1
+        machine mode
+        AUDxVOL                 1
 	irq?                    1
 	data_written?           1
-	internal AUDxLEN        2
-	AUDxLEN                 2
+        internal AUDxLEN        2
+        AUDxLEN                 2
 	internal AUDxPER        2
 	AUDxPER                 2
-	internal AUDxLC         4
+        internal AUDxLC         4
 	AUDxLC                  4
 	evtime?                 4
 
 BLITTER
 
-	"BLIT"
+        "BLIT"
 
-	internal blitter state
+        internal blitter state
 
-	flags                   4
-	bit 0=blitter active
-	bit 1=fill carry bit
-	internal ahold          4
+        flags                   4
+        bit 0=blitter active
+        bit 1=fill carry bit
+        internal ahold          4
 	internal bhold          4
 	internal hsize          2
 	internal vsize          2
 
 CIA
 
-	"CIAA" and "CIAB"
+        "CIAA" and "CIAB"
 
-	BFE001-BFEF01   16*1 (CIAA)
-	BFD000-BFDF00   16*1 (CIAB)
+        BFE001-BFEF01   16*1 (CIAA)
+        BFD000-BFDF00   16*1 (CIAB)
 
-	internal registers
+        internal registers
 
-	IRQ mask (ICR)  1 BYTE
-	timer latches   2 timers * 2 BYTES (LO/HI)
-	latched tod     3 BYTES (LO/MED/HI)
-	alarm           3 BYTES (LO/MED/HI)
-	flags           1 BYTE
-			bit 0=tod latched (read)
-			bit 1=tod stopped (write)
+        IRQ mask (ICR)  1 BYTE
+        timer latches   2 timers * 2 BYTES (LO/HI)
+        latched tod     3 BYTES (LO/MED/HI)
+        alarm           3 BYTES (LO/MED/HI)
+        flags           1 BYTE
+                        bit 0=tod latched (read)
+                        bit 1=tod stopped (write)
 	div10 counter	1 BYTE
 
 FLOPPY DRIVES
 
-	"DSK0" "DSK1" "DSK2" "DSK3"
+        "DSK0" "DSK1" "DSK2" "DSK3"
 
-	drive state
+        drive state
 
-	drive ID-word           4
-	state                   1 (bit 0: motor on, bit 1: drive disabled, bit 2: current id bit)
-	rw-head track           1
-	dskready                1
-	id-mode                 1 (ID mode bit number 0-31)
-	floppy information
+        drive ID-word           4
+        state                   1 (bit 0: motor on, bit 1: drive disabled, bit 2: current id bit)
+        rw-head track           1
+        dskready                1
+        id-mode                 1 (ID mode bit number 0-31)
+        floppy information
 
-	bits from               4
-	beginning of track
-	CRC of disk-image       4 (used during restore to check if image
-				  is correct)
-	disk-image              null-terminated
-	file name
+        bits from               4
+        beginning of track
+        CRC of disk-image       4 (used during restore to check if image
+                                  is correct)
+        disk-image              null-terminated
+        file name
 
-INTERNAL FLOPPY	CONTROLLER STATUS
+INTERNAL FLOPPY CONTROLLER STATUS
 
-	"DISK"
+        "DISK"
 
-	current DMA word        2
-	DMA word bit offset     1
-	WORDSYNC found          1 (no=0,yes=1)
-	hpos of next bit        1
-	DSKLENGTH status        0=off,1=written once,2=written twice
+        current DMA word        2
+        DMA word bit offset     1
+        WORDSYNC found          1 (no=0,yes=1)
+        hpos of next bit        1
+        DSKLENGTH status        0=off,1=written once,2=written twice
 	unused                  2
 
-RAM SPACE
+RAM SPACE 
 
-	"xRAM" (CRAM = chip, BRAM = bogo, FRAM = fast, ZFRAM = Z3)
+        "xRAM" (CRAM = chip, BRAM = bogo, FRAM = fast, ZFRAM = Z3)
 
-	start address           4 ("bank"=chip/slow/fast etc..)
-	of RAM "bank"
-	RAM "bank" size         4
-	RAM flags               4 (bit 0 = zlib compressed)
-	RAM "bank" contents
+        start address           4 ("bank"=chip/slow/fast etc..)
+        of RAM "bank"
+        RAM "bank" size         4
+        RAM flags               4 (bit 0 = zlib compressed)
+        RAM "bank" contents
 
 ROM SPACE
 
-	"ROM "
+        "ROM "
 
-	ROM start               4
-	address
-	size of ROM             4
-	ROM type                4 KICK=0
-	ROM flags               4
-	ROM version             2
-	ROM revision            2
-	ROM CRC                 4 see below
-	ROM-image ID-string     null terminated, see below
-	path to rom image
-	ROM contents            (Not mandatory, use hunk size to check if
-				this hunk contains ROM data or not)
+        ROM start               4
+        address
+        size of ROM             4
+        ROM type                4 KICK=0
+        ROM flags               4
+        ROM version             2
+        ROM revision            2
+        ROM CRC                 4 see below
+        ROM-image ID-string     null terminated, see below
+        path to rom image
+        ROM contents            (Not mandatory, use hunk size to check if
+                                this hunk contains ROM data or not)
 
-	Kickstart ROM:
-	 ID-string is "Kickstart x.x"
-	 ROM version: version in high word and revision in low word
-	 Kickstart ROM version and revision can be found from ROM start
-	 + 12 (version) and +14 (revision)
+        Kickstart ROM:
+         ID-string is "Kickstart x.x"
+         ROM version: version in high word and revision in low word
+         Kickstart ROM version and revision can be found from ROM start
+         + 12 (version) and +14 (revision)
 
-	ROM version and CRC is only meant for emulator to automatically
-	find correct image from its ROM-directory during state restore.
+        ROM version and CRC is only meant for emulator to automatically
+        find correct image from its ROM-directory during state restore.
 
-	Usually saving ROM contents is not good idea.
+        Usually saving ROM contents is not good idea.
 
-ACTION REPLAY
-
-	"ACTR"
-
-	Model (1,2,3)		4
-	path to rom image
-	RAM space		(depends on model)
-	ROM CRC                 4
 
 END
-	hunk "END " ends, remember hunk size 8!
+        hunk "END " ends, remember hunk size 8!
 
 
 EMULATOR SPECIFIC HUNKS
@@ -1307,5 +1246,3 @@ misc:
 - should we strip all paths from image file names?
 
 */
-
-#endif

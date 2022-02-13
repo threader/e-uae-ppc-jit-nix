@@ -1,0 +1,4 @@
+This folder contains the SDLmain.o start-up code needed when building the OS
+X version of E-UAE against the libSDL framework.
+
+The script build.sh will recompile this module from source.

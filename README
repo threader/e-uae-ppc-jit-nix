@@ -1,38 +1,160 @@
-E-UAE PowerPC JIT project
-=========================
+E-UAE 0.8.27
+============
 
-This project is a fork of the E-UAE Amiga emulation project. You can find the
-original project's pages here:
+This is a version of UAE, the Ubiquitous Amiga Emulator, with an emulation
+core based on WinUAE 0.8.27. It attempts to bring many of the great features
+of WinUAE to non-Windows platforms. This version now finally has a name,
+E-UAE, since that's what everybody was calling it anyway. The 'E' can stand
+for anything you fancy. Experimental, extreme, exciting, egalitarian,
+eggplant, . . .
 
-http://www.rcdrummond.net/uae
+Currently it will build and run (with a varying degree of supported
+features) on Linux and other Unices, Mac OS X, BeOS and AmigaOS itself
+(either for 68k machines or PPC machines with OS4.0). OS X requires either
+LibSDL or an X server for graphics output, but native graphics are
+supported on AmigaOS and BeOS, although, at the moment, SDL is also
+preferred on BeOS since the native driver is incomplete.
 
-Please also read the details of the original project in the included
-README_original file.
+E-UAE is open-source software and is made available under the terms of the
+GPL. See the COPYING file included with the E-UAE archive for details.
 
-The goal of the project is implementing Just-In-Time compiling for PowerPC
-processors, using (some of) the already available intel x86 implementation.
+E-UAE is based on the work of dozens of contributors including Bernd Schmidt
+(the original author and maintainer of UAE), Bernie Meyer (the author of the
+x86 JIT compiler), Toni Wilen (the current maintainer of WinUAE), and many
+more.
 
-For further details please have a look on the project blog:
+To make full use of E-UAE you will need access to an image of some version
+of the Amiga Kickstart ROM (although UAE does include a ROM emulation which
+may work with some old games). The Amiga Kickstart ROMs are copyrighted
+material and may not be freely distributed (so don't ask me for a copy). If
+you don't have an Amiga from which you can legally make a ROM image, a
+selection of ROM images are available for purchase online from Cloanto
+(publishers of the Amiga Forever distribution). See
+http://www.amigaforever.com/
 
-http://euaejit.blogspot.com
 
-You can find the actual project sources in the SourceForge project:
+What's new since 0.8.25
+=======================
 
-https://sourceforge.net/projects/euaeppcjit
+General
+-------
+* Core emulation updated to WinUAE 0.8.27 with bug fixes incorporated from
+  later WinUAE versions.
+* Improved compatibility with Amiga software.
+* Lots of clean up to the code. Builds more cleanly and quickly and requires
+  much less memory to do so.
+* Bug fixes and speed improvements to the P96 emulation, including fully working
+  32-bit modes on big-endian machines.
+* Speed improvements and bug fixes when using LibSDL for graphics,
+* Better networking support, plus a new bsdsocket emulation from Jeff
+  Shepherd based on the WinUAE code. (This doesn't work everywhere yet, so
+  the old bsdsocket emulation is still there.)
+* Fixed date-stamp discrepancies between host and the emulation when using
+  virtual filesystems on (most) Unix-like hosts (it now takes account of local
+  timezone).
+* Support for SFS-formatted hard files with newer versions of SFS.
+* Support for Action Replay cartridge ROMs now enabled.
+
+Unix platforms
+--------------
+* Many improvements to Gtk+ configuration GUI.
+* ALSA sound driver (for Linux). This is based on Heikki Orsila's driver
+  from UADE.
+
+OS X
+----
+* A Cocoa dialog for inserting floppy images has been implemented (thanks to
+  Steven J. Saunders).
+* SCSI emulation now fully works on OS X.
+* Raw key-mapping supported on OS X when using SDL graphics.
+* Building against pthreads supported on OS X (and other platforms with
+  named semaphores).
+
+BeOS
+----
+* Partial merge of Axel Doerfler's BeUAE (the BeOS native graphics driver is
+  is now mostly working and native BeOS threads are supported).
+
+AmigaOS (and clones)
+--------------------
+
+* Sound is now supported in AmigaOS versions (either native Paula or AHI
+  sound).
+* Many bug fixes and improvements to the AmigaOS gfx driver
+  - Requesters now appear on E-UAE screen.
+  - Intelligent hiding of host mouse pointer.
+* ARexx port supported in AmigaOS versions (and hence the MUIRexx GUI).
+* CAPS disk images supported on AmigaOS versions.
+* Support for MorphOS and AROS now officially included.
+
+And lots more. See the Changelog for the gory details.
 
 
-To compile on Mac OSX 10.3.9 or earlier:
+Still to do
+===========
 
-Autoconf2.57 and automake1.6 screw up @OBJCFLAGS@ and is not really compatible. 
+The following features of WinUAE are not supported:
 
-http://ftp.gnu.org/gnu/autoconf/autoconf-2.61.tar.bz2
-./configure --bindir=/usr/bin --datarootdir=/usr/share 
-http://ftp.gnu.org/gnu/automake/automake-1.7.9.tar.bz2
-./configure --bindir=/usr/bin --datadir=/usr/share
+* Serial and parallel port emulation.
+* AHI soundcard emulation.
+* Catweasel support.
+* OpenGL rendering and graphics filters.
+* Snapshots
+* Emulation of a CD32 controller.
+* Floppy drive sounds.
+* Everything else that I've forgotten about.
 
-Mac OSX 10.4.x and 10.3.x: 
-Latest SDL.framework is not properly detected. 
-Using the SDL.framework already in E-UAE.app/Content/Frameworks at http://www.rcdrummond.net/uae
-Copy SDL.framework/Headers from the latest SDL.framework and put the framework in /Library/Frameworks/
-./configure --enable-jit --without-x --withsdl-gl --with-cocoa-gui \ 
---with-sdl-prefix=/Library/Frameworks/SDL.framework
+
+Known problems
+==============
+
+Some significant misfeatures that I know about and am working to fix:
+
+* Only platforms supporting the GTK+ toolkit have a useable configuration
+  GUI (and the GTK+ GUI is still incomplete).
+* JIT direct memory access only works on Linux/x86 and due to a limit in
+  glibc and the way direct memory is implemented, you can only emulate up to
+  32MB of ZIII RAM. Select more than that and the JIT will fall back on
+  indirect memory access and hence will be slower.
+* Autoscroll screens are broken in Picasso96 emulation.
+* Virtual filesystem doesn't support platforms which use UTF-8 for filenames
+  (e.g., OS X, Linux with a UTF-8 locale, etc.). Filenames with characters
+  outside of the core ASCII range will be mangled.
+* Virtual filesystem has a bug which if used to host an IBrowse cache
+  causes IBrowse to crash at start-up (temporary solution: use a hardfile
+  for IBrowse's cache).
+* Hard files are limited to 2GB in size.
+* Timing problems occurs on x86 and PPC hosts which employ CPU frequency
+  scaling.
+* Full documentation is lacking.
+
+
+Using E-UAE
+===========
+
+Documentation is a work-in-progress. See the docs directory.
+
+
+Compiling E-UAE yourself
+========================
+
+See the docs/compiling.txt file for more information about building E-UAE.
+
+
+CVS
+===
+
+Details about how to access the CVS repository containing the current
+development version of E-UAE can be found at:
+
+http://sourceforge.net/cvs/?group_id=109723
+
+
+Contact
+=======
+
+See http://www.freelists.org/list/uae for details of a mailing list
+discussing problems with and development of E-UAE.
+
+Send bug reports, comments, patches, etc. to the above list or to:
+Richard Drummond <uae@rcdrummond.net>

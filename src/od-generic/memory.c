@@ -22,9 +22,7 @@ void *cache_alloc (int size)
 {
    void *cache;
 
-   size = size < getpagesize() ? getpagesize() : size;
-
-   if ((cache = valloc (size)))
+   if ((cache = malloc (size)))
 	mprotect (cache, size, PROT_READ|PROT_WRITE|PROT_EXEC);
 
    return cache;

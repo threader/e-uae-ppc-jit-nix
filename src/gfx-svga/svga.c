@@ -16,6 +16,7 @@
 #include <vgamouse.h>
 #include <vgakeyboard.h>
 
+#include "config.h"
 #include "options.h"
 #include "threaddep/thread.h"
 #include "uae.h"
@@ -261,10 +262,10 @@ static void init_colors (void)
 
 	switch (gfxvidinfo.pixbytes) {
 	 case 4:
-	    alloc_colors64k (8, 8, 8, 16, 8, 0, 0, 0, 0, 0);
+	    alloc_colors64k (8, 8, 8, 16, 8, 0);
 	    break;
 	 case 2:
-	    alloc_colors64k (rw, gw, bw, gw+bw, bw, 0, 0, 0, 0, 0);
+	    alloc_colors64k (rw, gw, bw, gw+bw, bw, 0);
 	    break;
 	 case 1:
 	    alloc_colors256 (get_color);
@@ -272,6 +273,21 @@ static void init_colors (void)
 	 default:
 	    abort();
 	}
+    }
+    switch (gfxvidinfo.pixbytes) {
+     case 2:
+	for (i = 0; i < 4096; i++)
+	    xcolors[i] = xcolors[i] * 0x00010001;
+	gfxvidinfo.can_double = 1;
+	break;
+     case 1:
+	for (i = 0; i < 4096; i++)
+	    xcolors[i] = xcolors[i] * 0x01010101;
+	gfxvidinfo.can_double = 1;
+	break;
+     default:
+	gfxvidinfo.can_double = 0;
+	break;
     }
 }
 
@@ -731,6 +747,7 @@ void handle_events (void)
 
     if (!screen_is_picasso && gui_requested) {
 	leave_graphics_mode ();
+	gui_changesettings ();
 	enter_graphics_mode (vgamode);
 	if (linear_mem != NULL && !need_dither)
 	    gfxvidinfo.bufmem = linear_mem;
@@ -749,7 +766,7 @@ int debuggable (void)
     return 0;
 }
 
-int mousehack_allowed (void)
+int needmousehack (void)
 {
     return 0;
 }
@@ -880,6 +897,10 @@ void gfx_set_picasso_modeinfo (int w, int h, int depth, int rgbfmt)
 	set_window_for_picasso ();
 }
 
+void gfx_set_picasso_baseaddr (uaecptr a)
+{
+}
+
 void gfx_set_picasso_state (int on)
 {
     if (on == screen_is_picasso)
@@ -900,22 +921,21 @@ void gfx_unlock_picasso (void)
 }
 #endif
 
-#error FIXME
-static int svga_lockscr (void)
+int lockscr (void)
 {
     return 1;
 }
 
-static void svga_unlockscr (void)
+void unlockscr (void)
 {
 }
 
-void gfx_save_options (FILE *f, const struct uae_prefs *p)
+void target_save_options (FILE *f, struct uae_prefs *p)
 {
     fprintf (f, "svga.no_linear=%s\n", p->svga_no_linear ? "true" : "false");
 }
 
-int gfx_parse_option (struct uae_prefs *p, const char *option, const char *value)
+int target_parse_option (struct uae_prefs *p, char *option, char *value)
 {
     return (cfgfile_yesno (option, value, "no_linear", &p->svga_no_linear));
 }

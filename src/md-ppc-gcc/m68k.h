@@ -4,7 +4,7 @@
   * MC68000 emulation - machine dependent bits
   *
   * Copyright 1996 Bernd Schmidt
-  * Copyright 2004-2007 Richard Drummond
+  * Copyright 2004 Richard Drummond
   */
 
  /*
@@ -19,28 +19,19 @@ extern struct flag_struct regflags;
 
 /*
  * The bits in the cznv field in the above structure are assigned to
- * allow the easy mirroring of the PPC condition flags (the V and C are
- * assigned so that they can be easily copied from the XER register with
- * a 'mcrxr cr2').
+ * allow the easy mirroring of the PPC condition flags.
  *
- * The 68k CZNV flags are thus assigned in the cznv field as:
+ * The 68k CZNV flags are thus assinged in cznv as:
  *
  *      <cr0> <cr1> <cr2> <cr3> <cr4> <cr5> <cr6> <cr7>
  * bit:  00    04    08    0C    10    14    18    1C
  *       |     |     |     |     |     |     |     |
  * flag: N-Z-  ----  -VC-  ----  ----  ----  ----  ----
  *
- * The X flag in the flag_struct x field is assigned to make it easy to
- * copy from the C flag:
- *
- * bit:  00    04    08    0C    10    14    18    1C
- *       |     |     |     |     |     |     |     |
- * flag: ----  ----  --X-  ----  ----  ----  ----  ----
- *
  * Note: The PPC convention is that the MSB is bit 0. Don't get confused.
  *
- * Note: The PPC Carry flag has the the opposite sense of the 68k
- * Carry flag following a substractions. Thus, after a substraction, the
+ * Note: The PPC Carry flags has the the opposite sense of the 68k
+ * Carry flag for substractions. Thus, following a substraction, the
  * C bit in the above needs to be flipped.
  */
 
@@ -48,39 +39,37 @@ extern struct flag_struct regflags;
 #define FLAGBIT_Z	29
 #define FLAGBIT_V	22
 #define FLAGBIT_C	21
-#define FLAGBIT_X	21
 
 #define FLAGVAL_N	(1 << FLAGBIT_N)
 #define FLAGVAL_Z 	(1 << FLAGBIT_Z)
 #define FLAGVAL_C	(1 << FLAGBIT_C)
 #define FLAGVAL_V	(1 << FLAGBIT_V)
-#define FLAGVAL_X	(1 << FLAGBIT_X)
 
-#define SET_ZFLG(flags, y)	((flags)->cznv = ((flags)->cznv & ~FLAGVAL_Z) | ((y) << FLAGBIT_Z))
-#define SET_CFLG(flags, y)	((flags)->cznv = ((flags)->cznv & ~FLAGVAL_C) | ((y) << FLAGBIT_C))
-#define SET_VFLG(flags, y)	((flags)->cznv = ((flags)->cznv & ~FLAGVAL_V) | ((y) << FLAGBIT_V))
-#define SET_NFLG(flags, y)	((flags)->cznv = ((flags)->cznv & ~FLAGVAL_N) | ((y) << FLAGBIT_N))
-#define SET_XFLG(flags, y)	((flags)->x    = ((y) << FLAGBIT_X))
+#define SET_ZFLG(y)	(regflags.cznv = (regflags.cznv & ~FLAGVAL_Z) | (((y) & 1) << FLAGBIT_Z))
+#define SET_CFLG(y)	(regflags.cznv = (regflags.cznv & ~FLAGVAL_C) | (((y) & 1) << FLAGBIT_C))
+#define SET_VFLG(y)	(regflags.cznv = (regflags.cznv & ~FLAGVAL_V) | (((y) & 1) << FLAGBIT_V))
+#define SET_NFLG(y)	(regflags.cznv = (regflags.cznv & ~FLAGVAL_N) | (((y) & 1) << FLAGBIT_N))
+#define SET_XFLG(y)	(regflags.x = (y))
 
-#define GET_ZFLG(flags)	(((flags)->cznv >> FLAGBIT_Z) & 1)
-#define GET_CFLG(flags)	(((flags)->cznv >> FLAGBIT_C) & 1)
-#define GET_VFLG(flags)	(((flags)->cznv >> FLAGBIT_V) & 1)
-#define GET_NFLG(flags)	(((flags)->cznv >> FLAGBIT_N) & 1)
-#define GET_XFLG(flags)	(((flags)->x >> FLAGBIT_X) & 1)
+#define GET_ZFLG	((regflags.cznv >> FLAGBIT_Z) & 1)
+#define GET_CFLG	((regflags.cznv >> FLAGBIT_C) & 1)
+#define GET_VFLG	((regflags.cznv >> FLAGBIT_V) & 1)
+#define GET_NFLG	((regflags.cznv >> FLAGBIT_N) & 1)
+#define GET_XFLG	(regflags.x & 1)
 
-#define CLEAR_CZNV(flags)	((flags)->cznv  = 0)
-#define GET_CZNV(flags)	        ((flags)->cznv)
-#define IOR_CZNV(flags, X)	((flags)->cznv |= (X))
-#define SET_CZNV(flags, X)	((flags)->cznv  = (X))
+#define CLEAR_CZNV	(regflags.cznv = 0)
+#define GET_CZNV	(regflags.cznv)
+#define IOR_CZNV(X)	(regflags.cznv |= (X))
+#define SET_CZNV(X)	(regflags.cznv = (X))
 
-#define COPY_CARRY(flags)	((flags)->x = (flags)->cznv)
+#define COPY_CARRY	(regflags.x = (regflags.cznv) >> FLAGBIT_C)
 
 /*
  * Test CCR condition
  */
-STATIC_INLINE int cctrue (const struct flag_struct *flags, int cc)
+STATIC_INLINE int cctrue (int cc)
 {
-    uae_u32 cznv = flags->cznv;
+    uae_u32 cznv = regflags.cznv;
 
     switch (cc) {
 	case 0:  return 1;								/*				T  */
@@ -105,3 +94,108 @@ STATIC_INLINE int cctrue (const struct flag_struct *flags, int cc)
     abort ();
     return 0;
 }
+
+/*
+ * Optimized code which uses the host CPU's condition flags to evaluate
+ * 68K CCR flags for certain operations.
+ *
+ * These are used by various opcode handlers when
+ * gencpu has been built with OPTIMIZED_FLAGS defined
+ */
+
+/* GCC 2.95 doesn't understand the XER register */
+#if __GNUC__ - 1 > 1
+# define DEP_XER ,"xer"
+#else
+# define DEP_XER
+#endif
+
+/*
+ * Test operations
+ *
+ * Evaluate operand and set Z and N flags. Always clear C and V.
+ */
+#define optflag_testl(v) 				\
+    do { 						\
+	uae_u32 tmp; 					\
+	asm (						\
+		"cmpi cr0, %2, 0	\n\t" 		\
+		"mfcr %1		\n\t" 		\
+		"rlwinm %0, %1, 0, 0, 3 \n\t" 		\
+							\
+		: "=r" (regflags.cznv),			\
+		  "=r" (tmp)				\
+		:  "r" (v)				\
+		: "cr0"					\
+	);						\
+    } while (0)
+
+#define optflag_testw(v) optflag_testl((uae_s32)(v))
+#define optflag_testb(v) optflag_testl((uae_s32)(v))
+
+/*
+ * Add operations
+ *
+ * Perform v = s + d and set ZNCV accordingly
+ */
+#define optflag_addl(v, s, d)				\
+    do {						\
+	asm (						\
+		"addco. %1, %2, %3	\n\t"		\
+		"mcrxr  cr2		\n\t"		\
+		"mfcr   %0		\n\t"		\
+							\
+		: "=r" (regflags.cznv), "=r" (v)	\
+		: "r" (s), "r" (d)			\
+		: "cr0", "cr2"  DEP_XER			\
+	);						\
+	COPY_CARRY;					\
+    } while (0)
+
+#define optflag_addw(v, s, d) do { optflag_addl((v), (s) << 16, (d) << 16); v = v >> 16; } while (0)
+#define optflag_addb(v, s, d) do { optflag_addl((v), (s) << 24, (d) << 24); v = v >> 24; } while (0)
+
+/*
+ * Subtraction operations
+ *
+ * Perform v = d - s and set ZNCV accordingly
+ */
+#define optflag_subl(v, s, d)				\
+    do {						\
+	asm (						\
+		"subfco. %1, %2, %3	\n\t"		\
+		"mcrxr  cr2		\n\t"		\
+		"mfcr   %0		\n\t"		\
+		"xoris  %0,%0,32	\n\t"		\
+							\
+		: "=r" (regflags.cznv),			\
+		  "=r" (v)				\
+		:  "r" (s),				\
+		   "r" (d)				\
+		: "cr0", "cr2"  DEP_XER			\
+	);						\
+	COPY_CARRY;					\
+    } while (0)
+
+#define optflag_subw(v, s, d) do { optflag_subl(v, (s) << 16, (d) << 16); v = v >> 16; } while (0)
+#define optflag_subb(v, s, d) do { optflag_subl(v, (s) << 24, (d) << 24); v = v >> 24; } while (0)
+
+#define optflag_cmpl(s, d) 				\
+    do { 						\
+	uae_s32 tmp; 					\
+	asm (						\
+		"subfco. %1, %2, %3	\n\t"		\
+		"mcrxr  cr2		\n\t"		\
+		"mfcr   %0		\n\t"		\
+		"xoris  %0,%0,32	\n\t"		\
+							\
+		: "=r" (regflags.cznv),			\
+		  "=r" (tmp)				\
+		:  "r" (s),				\
+		   "r" (d) 				\
+		: "cr0", "cr2"  DEP_XER			\
+	);						\
+    } while (0)
+
+#define optflag_cmpw(s, d) optflag_cmpl((s) << 16, (d) << 16)
+#define optflag_cmpb(s, d) optflag_cmpl((s) << 24, (d) << 24)

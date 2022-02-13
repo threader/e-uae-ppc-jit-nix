@@ -8,7 +8,7 @@
   * Copyright 1998 Marcus Sundberg
   * DGA support by Kai Kollmorgen
   * X11/DGA merge, hotkeys and grabmouse by Marcus Sundberg
-  * Copyright 2003-2007 Richard Drummond
+  * Copyright 2003-2004 Richard Drummond
   */
 
 #include "sysconfig.h"
@@ -21,6 +21,7 @@
 
 #include <ctype.h>
 
+#include "config.h"
 #include "options.h"
 #include "uae.h"
 #include "memory.h"
@@ -35,8 +36,6 @@
 #include "picasso96.h"
 #include "inputdevice.h"
 #include "hotkeys.h"
-#include "keymap/keymap.h"
-#include "keymap/keymap_all.h"
 
 #ifdef __cplusplus
 #define VI_CLASS c_class
@@ -95,12 +94,10 @@ static Colormap cmap, cmap2;
 static int red_bits, green_bits, blue_bits;
 static int red_shift, green_shift, blue_shift;
 
-#ifdef USE_DGA_EXTENSION
 /* Kludge-O-Matic.
  * Unfortunately the X server loses colormap changes in DGA mode. Switching
  * back and forth between two identical colormaps fixes this problem.  */
 static int dga_colormap_installed;
-#endif
 
 static int need_dither;
 
@@ -125,15 +122,14 @@ static int x11_init_ok;
 static int dgaavail = 0, vidmodeavail = 0, shmavail = 0;
 static int dgamode;
 static int grabbed;
-static int mousehack;
-
-static int rawkeys_available;
-static struct uae_input_device_kbr_default *raw_keyboard;
 
 void toggle_mousegrab (void);
+void framerate_up (void);
+void framerate_down (void);
 int xkeysym2amiga (int);
 struct uae_hotkeyseq *get_x11_default_hotkeys (void);
-const char *get_xkb_keycodes (Display *display);
+
+int pause_emulation;
 
 static int oldx, oldy;
 static int inwindow;
@@ -214,50 +210,6 @@ static void get_image (int w, int h, struct disp_info *dispi)
     dispi->ximg = new_img;
 }
 
-static int get_best_visual (Display *display, int screen, XVisualInfo *vi)
-{
-    /* try for a 12 bit visual first, then a 16 bit, then a 24 bit, then 8 bit */
-    if (XMatchVisualInfo (display, screen, 12, TrueColor, vi)) {
-    } else if (XMatchVisualInfo (display, screen, 15, TrueColor,   vi)) {
-    } else if (XMatchVisualInfo (display, screen, 16, TrueColor,   vi)) {
-    } else if (XMatchVisualInfo (display, screen, 24, TrueColor,   vi)) {
-    } else if (XMatchVisualInfo (display, screen, 32, TrueColor,   vi)) {
-    } else if (XMatchVisualInfo (display, screen, 8,  PseudoColor, vi)) {
-	/* for our HP boxes */
-    } else if (XMatchVisualInfo (display, screen, 8,  GrayScale,   vi)) {
-    } else if (XMatchVisualInfo (display, screen, 4,  PseudoColor, vi)) {
-	/* VGA16 server. Argh. */
-    } else if (XMatchVisualInfo (display, screen, 1,  StaticGray,  vi)) {
-	/* Mono server. Yuk */
-    } else {
-	write_log ("Can't obtain appropriate X visual.\n");
-	return 0;
-    }
-    return 1;
-}
-
-static int get_visual_bit_unit (XVisualInfo *vi, int bitdepth)
-{
-    int bit_unit = 0;
-    XPixmapFormatValues *xpfvs;
-    int i,j;
-
-    /* We now have the bitdepth of the display, but that doesn't tell us yet
-     * how many bits to use per pixel. The VGA16 server has a bitdepth of 4,
-     * but uses 1 byte per pixel. */
-    xpfvs = XListPixmapFormats (display, &i);
-    for (j = 0; j < i && xpfvs[j].depth != bitdepth; j++)
-	;
-    if (j < i)
-	bit_unit = xpfvs[j].bits_per_pixel;
-    XFree (xpfvs);
-    if (j == i) {
-	write_log ("Your X server is feeling ill.\n");
-    }
-
-    return bit_unit;
-}
-
 #ifdef USE_VIDMODE_EXTENSION
 static XF86VidModeModeInfo **allmodes;
 static int vidmodecount;
@@ -323,7 +275,7 @@ static void enter_dga_mode (void)
     gfxvidinfo.bufmem = fb_addr;
     gfxvidinfo.linemem = 0;
     gfxvidinfo.emergmem = malloc (gfxvidinfo.rowbytes);
-    gfxvidinfo.maxblocklines = MAXBLOCKLINES_MAX;
+    gfxvidinfo.maxblocklines = 10000;
 }
 
 static void leave_dga_mode (void)
@@ -338,141 +290,115 @@ static void leave_dga_mode (void)
 }
 #endif
 
+static char *oldpixbuf;
 
-/*
- * Dummy buffer methods.
- */
-static int x11_lock (struct vidbuf_description *gfxinfo)
+void flush_line (int y)
 {
-    return 1;
-}
+    char *linebuf = gfxvidinfo.linemem;
+    int xs, xe;
+    int len;
 
-static void x11_unlock (struct vidbuf_description *gfxinfo)
-{
-}
+    if (linebuf == NULL)
+	linebuf = y*gfxvidinfo.rowbytes + gfxvidinfo.bufmem;
 
-/*
- * Flush screen method
- */
-static void x11_flush_screen (struct vidbuf_description *gfxinfo, int first_line, int last_line)
-{
-    XSync (display, 0);
-}
+#ifdef USE_DGA_EXTENSION
+    if (dgamode && need_dither) {
+	DitherLine ((unsigned char *)(fb_addr + fb_width*y),
+		    (uae_u16 *)linebuf, 0, y, gfxvidinfo.width, bit_unit);
+	return;
+    }
+#endif
+    xs = 0;
+    xe = gfxvidinfo.width - 1;
 
-/*
- * Template for flush_line() buffer method in low-bandwith mode
- *
- * In low-bandwidth mode, we don't flush the complete line. For each line we try
- * to find the smallest line segment that contains modified pixels and flush only
- * that segment.
- */
+    if (currprefs.x11_use_low_bandwidth) {
+	char *src, *dst;
+	switch (gfxvidinfo.pixbytes) {
+	 case 4:
+	    {
+		uae_u32 *newp = (uae_u32 *)linebuf;
+		uae_u32 *oldp = (uae_u32 *)((uae_u8 *)ami_dinfo.image_mem + y*ami_dinfo.ximg->bytes_per_line);
+		while (newp[xs] == oldp[xs]) {
+		    if (xs == xe)
+			return;
+		    xs++;
+		}
+		while (newp[xe] == oldp[xe]) xe--;
 
-#define x11_flush_line_lbw(gfxinfo, line_no, pixbytes, pixtype, mitshm)		\
-										\
-    char    *src;								\
-    char    *dst;								\
-    int      xs   = 0;								\
-    int      xe   = gfxinfo->width - 1;						\
-    int      len;								\
-    pixtype *newp = (pixtype *)gfxinfo->linemem;				\
-    pixtype *oldp = (pixtype *)((uae_u8 *)ami_dinfo.image_mem +			\
-				line_no * ami_dinfo.ximg->bytes_per_line);	\
-										\
-    /* Find first modified pixel on this line */				\
-    while (newp[xs] == oldp[xs]) {						\
-	if (xs == xe)								\
-	    return;								\
-	xs++;									\
-    }										\
-										\
-    /* Find last modified pixel */						\
-    while (newp[xe] == oldp[xe])						\
-	xe--;									\
-										\
-    dst = (char *)(oldp + xs);							\
-    src = (char *)(newp + xs);							\
-    len = xe - xs + 1;								\
-										\
-    /* Copy changed pixels to buffer */						\
-    memcpy (dst, src, len * pixbytes);						\
-										\
-    /* Blit changed pixels to the display */					\
-    if (!mitshm) {								\
-	XPutImage (display, mywin, mygc,					\
-		   ami_dinfo.ximg,						\
-		   xs, line_no,							\
-		   xs, line_no,							\
-		   len,								\
-		   1);								\
-    } else {									\
-	XShmPutImage (display, mywin, mygc,					\
-		      ami_dinfo.ximg,						\
-		      xs, line_no,						\
-		      xs, line_no,						\
-		      len,							\
-		      1,							\
-		      0);							\
+		dst = (char *)(oldp + xs); src = (char *)(newp + xs);
+	    }
+	    break;
+	 case 2:
+	    {
+		uae_u16 *newp = (uae_u16 *)linebuf;
+		uae_u16 *oldp = (uae_u16 *)((uae_u8 *)ami_dinfo.image_mem + y*ami_dinfo.ximg->bytes_per_line);
+		while (newp[xs] == oldp[xs]) {
+		    if (xs == xe)
+			return;
+		    xs++;
+		}
+		while (newp[xe] == oldp[xe]) xe--;
+
+		dst = (char *)(oldp + xs); src = (char *)(newp + xs);
+	    }
+	    break;
+	 case 1:
+	    {
+		uae_u8 *newp = (uae_u8 *)linebuf;
+		uae_u8 *oldp = (uae_u8 *)((uae_u8 *)ami_dinfo.image_mem + y*ami_dinfo.ximg->bytes_per_line);
+		while (newp[xs] == oldp[xs]) {
+		    if (xs == xe)
+			return;
+		    xs++;
+		}
+		while (newp[xe] == oldp[xe]) xe--;
+
+		dst = (char *)(oldp + xs); src = (char *)(newp + xs);
+	    }
+	    break;
+
+	 default:
+	    abort ();
+	    break;
+	}
+
+	len = xe - xs + 1;
+	memcpy (dst, src, len * gfxvidinfo.pixbytes);
+    } else if (need_dither) {
+	uae_u8 *target = (uae_u8 *)ami_dinfo.image_mem + ami_dinfo.ximg->bytes_per_line * y;
+	len = currprefs.gfx_width_win;
+	DitherLine (target, (uae_u16 *)linebuf, 0, y, gfxvidinfo.width, bit_unit);
+    } else {
+	write_log ("Bug!\n");
+	abort();
     }
 
-/* Expand the above template for various bit depths and for with and without MITSHM */
-
-static void x11_flush_line_lbw_8bit         (struct vidbuf_description *gfxinfo, int line_no) { x11_flush_line_lbw (gfxinfo, line_no, 1, uae_u8,  0); }
-static void x11_flush_line_lbw_16bit        (struct vidbuf_description *gfxinfo, int line_no) { x11_flush_line_lbw (gfxinfo, line_no, 2, uae_u16, 0); }
-static void x11_flush_line_lbw_32bit        (struct vidbuf_description *gfxinfo, int line_no) { x11_flush_line_lbw (gfxinfo, line_no, 4, uae_u32, 0); }
-static void x11_flush_line_lbw_8bit_mitshm  (struct vidbuf_description *gfxinfo, int line_no) { x11_flush_line_lbw (gfxinfo, line_no, 1, uae_u8,  1); }
-static void x11_flush_line_lbw_16bit_mitshm (struct vidbuf_description *gfxinfo, int line_no) { x11_flush_line_lbw (gfxinfo, line_no, 2, uae_u16, 1); }
-static void x11_flush_line_lbw_32bit_mitshm (struct vidbuf_description *gfxinfo, int line_no) { x11_flush_line_lbw (gfxinfo, line_no, 4, uae_u32, 1); }
-
-/*
- * flush_line() buffer method for dithered mode
- */
-static void x11_flush_line_dither (struct vidbuf_description *gfxinfo, int line_no)
-{
-    DitherLine ((uae_u8 *)ami_dinfo.image_mem + ami_dinfo.ximg->bytes_per_line * line_no,
-		(uae_u16 *)gfxinfo->linemem, 0, line_no, gfxinfo->width, bit_unit);
-
-    DO_PUTIMAGE (ami_dinfo.ximg, 0, line_no, 0, line_no, gfxinfo->width, 1);
+    DO_PUTIMAGE (ami_dinfo.ximg, xs, y, xs, y, len, 1);
 }
 
-/*
- * flush_line() buffer method for dithered mode using DGA
- */
-#ifdef USE_DGA_EXTENSION
-static void x11_flush_line_dither_dga (struct vidbuf_description *gfxinfo, int line_no)
+void flush_block (int ystart, int ystop)
 {
-    DitherLine ((unsigned char *)(fb_addr + fb_width * line_no),
-		(uae_u16 *)gfxinfo->linemem, 0, line_no, gfxinfo->width, bit_unit);
+    if (dgamode)
+	return;
 
+    DO_PUTIMAGE (ami_dinfo.ximg, 0, ystart, 0, ystart, gfxvidinfo.width, ystop - ystart + 1);
 }
+
+void flush_screen (int ystart, int ystop)
+{
+    if (dgamode)
+	return;
+
+#if SHM_SUPPORT_LINKS == 1
+    if (currprefs.x11_use_mitshm && shmavail)
+	XSync (display, 0);
 #endif
-
-/*
- * flush_block() buffer method for a normal image buffer (no dithering and not low-bandwidth)
- */
-static void x11_flush_block (struct vidbuf_description *gfxinfo, int first_line, int last_line)
-{
-    XPutImage (display, mywin, mygc,
-	       ami_dinfo.ximg,
-	       0, first_line,
-	       0, first_line,
-	       gfxinfo->width,
-	       last_line - first_line + 1);
 }
 
-/*
- * flush_block() buffer method for shm image buffer (no dithering and not low-bandwidth)
- */
-static void x11_flush_block_mitshm (struct vidbuf_description *gfxinfo, int first_line, int last_line)
+void flush_clear_screen (void)
 {
-    XShmPutImage (display, mywin, mygc,
-		  ami_dinfo.ximg,
-		  0, first_line,
-		  0, first_line,
-		  gfxinfo->width,
-		  last_line - first_line + 1,
-		  0);
+    flush_screen(0,0);
 }
-
 
 STATIC_INLINE int bitsInMask (unsigned long mask)
 {
@@ -525,6 +451,8 @@ static int get_color (int r, int g, int b, xcolnr *cnp)
 
 static int init_colors (void)
 {
+    int i;
+
     if (visualInfo.VI_CLASS == TrueColor) {
 	red_bits = bitsInMask (visualInfo.red_mask);
 	green_bits = bitsInMask (visualInfo.green_mask);
@@ -549,8 +477,7 @@ static int init_colors (void)
 	switch (visualInfo.VI_CLASS) {
 	 case TrueColor:
 	    alloc_colors64k (red_bits, green_bits, blue_bits, red_shift,
-			     green_shift, blue_shift, 0, 0, 0,
-			     inverse_byte_order);
+			     green_shift, blue_shift, 0, 0, 0);
 
 	    XParseColor (display, cmap, "#000000", &black);
 	    if (! XAllocColor (display, cmap, &black))
@@ -570,6 +497,37 @@ static int init_colors (void)
 	    return 0;
 	}
     }
+    switch (gfxvidinfo.pixbytes) {
+     case 2:
+	for (i = 0; i < 4096; i++)
+	    xcolors[i] = xcolors[i] * 0x00010001;
+	gfxvidinfo.can_double = 1;
+	break;
+     case 1:
+	for (i = 0; i < 4096; i++)
+	    xcolors[i] = xcolors[i] * 0x01010101;
+	gfxvidinfo.can_double = 1;
+	break;
+     default:
+	gfxvidinfo.can_double = 0;
+	break;
+    }
+    if (inverse_byte_order)
+	switch (gfxvidinfo.pixbytes) {
+	 case 4:
+	    for(i = 0; i < 4096; i++)
+		xcolors[i] = ((((xcolors[i]>>0)&255) << 24)
+			      | (((xcolors[i]>>8)&255) << 16)
+			      | (((xcolors[i]>>16)&255) << 8)
+			      | (((xcolors[i]>>24)&255) << 0));
+	    break;
+	 case 2:
+	    for (i = 0; i < 4096; i++)
+		xcolors[i] = (xcolors[i]>>8) | ((xcolors[i]&255)<<8);
+	    break;
+	 default:
+	    break;
+	}
     return 1;
 }
 
@@ -664,7 +622,6 @@ static int shm_available (void)
 int graphics_setup (void)
 {
     char *display_name = 0;
-    const char *keycodes;
 
     display = XOpenDisplay (display_name);
     if (display == 0)  {
@@ -685,33 +642,6 @@ int graphics_setup (void)
 	if (ImageByteOrder(display) != local_byte_order)
 	    inverse_byte_order = 1;
     }
-
-    screen  = XDefaultScreen (display);
-    rootwin = XRootWindow (display, screen);
-
-    if (!get_best_visual (display, screen, &visualInfo))
-	return 0;
-
-    vis = visualInfo.visual;
-    bitdepth = visualInfo.depth;
-    if (!(bit_unit = get_visual_bit_unit (&visualInfo, bitdepth))) return 0;
-
-    write_log ("X11GFX: Initialized.\n");
-
-    rawkeys_available = 0;
-
-#ifdef USE_XKB
-    keycodes = get_xkb_keycodes (display);
-
-    if (keycodes) {
-	/* We only support xfree86 keycodes for now */
-	if (strncmp (keycodes, "xfree86", 7) == 0) {
-	    rawkeys_available = 1;
-	    raw_keyboard = uaekey_make_default_kbr (x11pc_keymap);
-	    write_log ("X11GFX: Keyboard uses xfree86 keycodes\n");
-	}
-    }
-#endif
 
     return 1;
 }
@@ -738,6 +668,7 @@ static void init_dispinfo (struct disp_info *disp)
 
 static void graphics_subinit (void)
 {
+    int i, j;
     XSetWindowAttributes wattr;
     XClassHint classhint;
     XWMHints *hints;
@@ -770,11 +701,11 @@ static void graphics_subinit (void)
     XSetWMProtocols (display, mywin, &delete_win, 1);
     XSync (display, 0);
     XStoreName (display, mywin, PACKAGE_NAME);
-    XSetIconName (display, mywin, PACKAGE_NAME);
+    XSetIconName (display, mywin, "UAE Screen");
 
     /* set class hint */
-    classhint.res_name  = (char *)"UAE";
-    classhint.res_class = (char *)"UAEScreen";
+    classhint.res_name = "UAE";
+    classhint.res_class = "UAEScreen";
     XSetClassHint(display, mywin, &classhint);
 
     hints = XAllocWMHints();
@@ -806,47 +737,21 @@ static void graphics_subinit (void)
 
     picasso_vidinfo.extra_mem = 1;
 
-    gfxvidinfo.flush_screen = x11_flush_screen;
-    gfxvidinfo.lockscr      = x11_lock;
-    gfxvidinfo.unlockscr    = x11_unlock;
-
-
     if (need_dither) {
 	gfxvidinfo.maxblocklines = 0;
 	gfxvidinfo.rowbytes = gfxvidinfo.pixbytes * currprefs.gfx_width_win;
-	gfxvidinfo.linemem = malloc (gfxvidinfo.rowbytes);
-	gfxvidinfo.flush_line  = x11_flush_line_dither;
+	gfxvidinfo.linemem = (char *)malloc (gfxvidinfo.rowbytes);
     } else if (! dgamode) {
 	gfxvidinfo.emergmem = 0;
 	gfxvidinfo.linemem = 0;
-	gfxvidinfo.bufmem = (uae_u8 *)ami_dinfo.image_mem;
+	gfxvidinfo.bufmem = ami_dinfo.image_mem;
 	gfxvidinfo.rowbytes = ami_dinfo.ximg->bytes_per_line;
 	if (currprefs.x11_use_low_bandwidth) {
-	    write_log ("Doing low-bandwidth output.\n");
 	    gfxvidinfo.maxblocklines = 0;
 	    gfxvidinfo.rowbytes = ami_dinfo.ximg->bytes_per_line;
-	    gfxvidinfo.linemem = malloc (gfxvidinfo.rowbytes);
-
-	    if (shmavail && currprefs.x11_use_mitshm) {
-		switch (gfxvidinfo.pixbytes) {
-		    case 4  : gfxvidinfo.flush_line = x11_flush_line_lbw_32bit_mitshm; break;
-		    case 2  : gfxvidinfo.flush_line = x11_flush_line_lbw_16bit_mitshm; break;
-		    default : gfxvidinfo.flush_line = x11_flush_line_lbw_8bit_mitshm;  break;
-		}
-	    } else {
-		switch (gfxvidinfo.pixbytes) {
-		    case 4  : gfxvidinfo.flush_line = x11_flush_line_lbw_32bit; break;
-		    case 2  : gfxvidinfo.flush_line = x11_flush_line_lbw_16bit; break;
-		    default : gfxvidinfo.flush_line = x11_flush_line_lbw_8bit;	break;
-		}
-	    }
+	    gfxvidinfo.linemem = (char *)malloc (gfxvidinfo.rowbytes);
 	} else {
-	    gfxvidinfo.maxblocklines = MAXBLOCKLINES_MAX;
-
-	    if (shmavail && currprefs.x11_use_mitshm)
-		gfxvidinfo.flush_block  = x11_flush_block_mitshm;
-	    else
-		gfxvidinfo.flush_block  = x11_flush_block;
+	    gfxvidinfo.maxblocklines = 100; /* whatever... */
 	}
     }
 
@@ -865,30 +770,76 @@ static void graphics_subinit (void)
 #endif
 
     if (! dgamode) {
-	if (!currprefs.hide_cursor)
+	if (! currprefs.x11_hide_cursor)
 	    XDefineCursor (display, mywin, xhairCursor);
 	else
 	    XDefineCursor (display, mywin, blankCursor);
 	cursorOn = 1;
     }
 
-    mousehack = !dgamode;
-
     if (screen_is_picasso) {
 	picasso_has_invalid_lines = 0;
 	picasso_invalid_start = picasso_vidinfo.height + 1;
 	picasso_invalid_stop = -1;
 	memset (picasso_invalid_lines, 0, sizeof picasso_invalid_lines);
-    } else
-	reset_drawing ();
+    }
 
     inwindow = 0;
     inputdevice_release_all_keys ();
     reset_hotkeys ();
 }
 
+static int get_best_visual (XVisualInfo *vi)
+{
+    screen = XDefaultScreen (display);
+    rootwin = XRootWindow (display, screen);
+
+    /* try for a 12 bit visual first, then a 16 bit, then a 24 bit, then 8 bit */
+    if (XMatchVisualInfo (display, screen, 12, TrueColor, vi)) {
+    } else if (XMatchVisualInfo (display, screen, 15, TrueColor, vi)) {
+    } else if (XMatchVisualInfo (display, screen, 16, TrueColor, vi)) {
+    } else if (XMatchVisualInfo (display, screen, 24, TrueColor, vi)) {
+    } else if (XMatchVisualInfo (display, screen, 8, PseudoColor, vi)) {
+        /* for our HP boxes */
+    } else if (XMatchVisualInfo (display, screen, 8, GrayScale, vi)) {
+    } else if (XMatchVisualInfo (display, screen, 4, PseudoColor, vi)) {
+        /* VGA16 server. Argh. */
+    } else if (XMatchVisualInfo (display, screen, 1, StaticGray, vi)) {
+        /* Mono server. Yuk */
+    } else {
+        write_log ("Can't obtain appropriate X visual.\n");
+        return 0;
+    }
+    return 1;
+}
+
+static int get_visual_bit_unit (XVisualInfo *vi, int bitdepth)
+{
+    int bit_unit = 0;
+    XPixmapFormatValues *xpfvs;
+    int i,j;
+
+    /* We now have the bitdepth of the display, but that doesn't tell us yet
+     * how many bits to use per pixel. The VGA16 server has a bitdepth of 4,
+     * but uses 1 byte per pixel. */
+    xpfvs = XListPixmapFormats (display, &i);
+    for (j = 0; j < i && xpfvs[j].depth != bitdepth; j++)
+	;
+    if (j < i)
+	bit_unit = xpfvs[j].bits_per_pixel;
+    XFree (xpfvs);
+    if (j == i) {
+	write_log ("Your X server is feeling ill.\n");
+    }
+
+    return bit_unit;
+}
+
 int graphics_init (void)
 {
+    int i,j;
+    XPixmapFormatValues *xpfvs;
+
     if (currprefs.x11_use_mitshm && ! shmavail) {
 	write_log ("MIT-SHM extension not supported by X server.\n");
     }
@@ -902,6 +853,16 @@ int graphics_init (void)
 
     init_dispinfo (&ami_dinfo);
     init_dispinfo (&pic_dinfo);
+
+    screen = XDefaultScreen (display);
+    rootwin = XRootWindow (display, screen);
+
+    if (!get_best_visual (&visualInfo)) return 0;
+
+    vis = visualInfo.visual;
+    bitdepth = visualInfo.depth;
+
+    if (!(bit_unit = get_visual_bit_unit (&visualInfo, bitdepth))) return 0;
 
     write_log ("Using %d bit visual, %d bits per pixel\n", bitdepth, bit_unit);
 
@@ -976,8 +937,6 @@ static void graphics_subshutdown (void)
 	free (gfxvidinfo.linemem);
     if (gfxvidinfo.emergmem != NULL)
 	free (gfxvidinfo.emergmem);
-
-    mousehack = 0;
 }
 
 void graphics_leave (void)
@@ -996,8 +955,9 @@ void graphics_leave (void)
     XFreeColormap (display, cmap);
     XFreeColormap (display, cmap2);
 
+#if 0
     XCloseDisplay (display);
-
+#endif
     dumpcustom ();
 }
 
@@ -1005,12 +965,10 @@ static struct timeval lastMotionTime;
 
 static int refresh_necessary = 0;
 
-void graphics_notify_state (int state)
-{
-}
-
 void handle_events (void)
 {
+    gui_handle_events ();
+
     for (;;) {
 	XEvent event;
 #if 0
@@ -1026,32 +984,21 @@ void handle_events (void)
 	 case KeyPress:
 	 case KeyRelease: {
 	    int state = (event.type == KeyPress);
-
-	    if (currprefs.map_raw_keys) {
-		unsigned int keycode = ((XKeyEvent *)&event)->keycode;
-		unsigned int ievent;
-
-		if ((ievent = match_hotkey_sequence (keycode, state)))
+	    KeySym keysym;
+	    int index = 0;
+	    int ievent, amiga_keycode;
+	    do {
+		keysym = XLookupKeysym ((XKeyEvent *)&event, index);
+		if ((ievent = match_hotkey_sequence (keysym, state))) {
 		    handle_hotkey_event (ievent, state);
-		else
-		    inputdevice_translatekeycode (0, keycode, state);
-	    } else {
-		KeySym keysym;
-		int index = 0;
-		int ievent, amiga_keycode;
-		do {
-		    keysym = XLookupKeysym ((XKeyEvent *)&event, index);
-		    if ((ievent = match_hotkey_sequence (keysym, state))) {
-			handle_hotkey_event (ievent, state);
+		    break;
+		} else
+		    if ((amiga_keycode = xkeysym2amiga (keysym)) >= 0) {
+			inputdevice_do_keyboard (amiga_keycode, state);
 			break;
-		    } else
-			if ((amiga_keycode = xkeysym2amiga (keysym)) >= 0) {
-			    inputdevice_do_keyboard (amiga_keycode, state);
-			    break;
-			}
-		    index++;
-		} while (keysym != NoSymbol);
-	    }
+		    }
+		index++;
+	    } while (keysym != NoSymbol);
 	    break;
 	 }
 	 case ButtonPress:
@@ -1066,7 +1013,7 @@ void handle_events (void)
 		case 4:  if (state) record_key (0x7a << 1); break;
 		case 5:  if (state) record_key (0x7b << 1); break;
 	    }
-	    if (buttonno >=0)
+            if (buttonno >=0)
 		setmousebuttonstate(0, buttonno, state);
 	    break;
 	 }
@@ -1116,7 +1063,7 @@ void handle_events (void)
 		int ty = ((XMotionEvent *)&event)->y;
 		setmousestate(0,0,tx,1);
 		setmousestate(0,1,ty,1);
-		if (! cursorOn && !currprefs.hide_cursor) {
+		if (! cursorOn && !currprefs.x11_hide_cursor) {
 		    XDefineCursor(display, mywin, xhairCursor);
 		    cursorOn = 1;
 		}
@@ -1144,16 +1091,15 @@ void handle_events (void)
 	    if (autorepeatoff)
 		XAutoRepeatOn (display);
 	    autorepeatoff = 0;
-	    inputdevice_release_all_keys ();
 	    break;
 	 case Expose:
 	    refresh_necessary = 1;
 	    break;
-	 case ClientMessage:
-	    if (((Atom)event.xclient.data.l[0]) == delete_win) {
-		uae_stop ();
-	    }
-	    break;
+         case ClientMessage:
+            if (((Atom)event.xclient.data.l[0]) == delete_win) {
+		uae_quit ();
+            }
+            break;
 	}
     }
 
@@ -1162,7 +1108,6 @@ void handle_events (void)
 	if (screen_is_picasso && refresh_necessary) {
 	    DO_PUTIMAGE (pic_dinfo.ximg, 0, 0, 0, 0,
 			 picasso_vidinfo.width, picasso_vidinfo.height);
-	    XFlush (display);
 	    refresh_necessary = 0;
 	    memset (picasso_invalid_lines, 0, sizeof picasso_invalid_lines);
 	} else if (screen_is_picasso && picasso_has_invalid_lines) {
@@ -1184,7 +1129,6 @@ void handle_events (void)
 		    strt = -1;
 		}
 	    }
-	    XFlush (display);
 	    if (strt != -1)
 		abort ();
 	}
@@ -1196,10 +1140,10 @@ void handle_events (void)
 
     if (! dgamode) {
 	if (! screen_is_picasso && refresh_necessary) {
-	    DO_PUTIMAGE (ami_dinfo.ximg, 0, 0, 0, 0, current_width, current_height);
+	    DO_PUTIMAGE (ami_dinfo.ximg, 0, 0, 0, 0, currprefs.gfx_width_fs, currprefs.gfx_height_fs);
 	    refresh_necessary = 0;
 	}
-	if (cursorOn && !currprefs.hide_cursor) {
+	if (cursorOn && !currprefs.x11_hide_cursor) {
 	    struct timeval now;
 	    int diff;
 	    gettimeofday(&now, NULL);
@@ -1241,6 +1185,8 @@ int check_prefs_changed_gfx (void)
     currprefs.gfx_afullscreen = changed_prefs.gfx_afullscreen;
     currprefs.gfx_pfullscreen = changed_prefs.gfx_pfullscreen;
 
+    gui_update_gfx ();
+
     graphics_subinit ();
 
     if (! inwindow)
@@ -1259,11 +1205,28 @@ int debuggable (void)
     return 1;
 }
 
-int mousehack_allowed (void)
+int needmousehack (void)
 {
-    return mousehack;
+    if (dgamode || grabbed)
+	return 0;
+    else
+	return 1;
 }
 
+void LED (int on)
+{
+#if 0 /* Maybe that is responsible for the joystick emulation problems on SunOS? */
+    static int last_on = -1;
+    XKeyboardControl control;
+
+    if (last_on == on)
+	return;
+    last_on = on;
+    control.led = 1; /* implementation defined */
+    control.led_mode = on ? LedModeOn : LedModeOff;
+    XChangeKeyboardControl(display, KBLed | KBLedMode, &control);
+#endif
+}
 
 #ifdef PICASSO96
 
@@ -1381,6 +1344,12 @@ int DX_FillResolutions (uae_u16 *ppixel_format)
     int h = HeightOfScreen (scr);
     int emulate_chunky = 0;
 
+    /* we now need to find display depth first */
+    XVisualInfo vi;
+    if (!get_best_visual (&vi)) return 0;
+    bitdepth = vi.depth;
+    bit_unit = get_visual_bit_unit (&vi, bitdepth);
+
     if (ImageByteOrder (display) == LSBFirst) {
     picasso_vidinfo.rgbformat = (bit_unit == 8 ? RGBFB_CHUNKY
 				 : bitdepth == 15 && bit_unit == 16 ? RGBFB_R5G5B5PC
@@ -1398,7 +1367,7 @@ int DX_FillResolutions (uae_u16 *ppixel_format)
     }
 
     *ppixel_format = 1 << picasso_vidinfo.rgbformat;
-    if (visualInfo.VI_CLASS == TrueColor && (bit_unit == 16 || bit_unit == 32))
+    if (vi.VI_CLASS == TrueColor && (bit_unit == 16 || bit_unit == 32))
 	*ppixel_format |= RGBFF_CHUNKY, emulate_chunky = 1;
 
 #if defined USE_DGA_EXTENSION && defined USE_VIDMODE_EXTENSION
@@ -1462,28 +1431,25 @@ void gfx_set_picasso_modeinfo (int w, int h, int depth, int rgbfmt)
 	set_window_for_picasso ();
 }
 
+void gfx_set_picasso_baseaddr (uaecptr a)
+{
+}
+
 void gfx_set_picasso_state (int on)
 {
     if (on == screen_is_picasso)
 	return;
-
-    /* We can get called by drawing_init() when there's
-     * no window opened yet... */
-    if (mywin == 0)
-	return
-
-    write_log ("set_picasso_state:%d\n", on);
     graphics_subshutdown ();
     screen_is_picasso = on;
     if (on) {
 	current_width = picasso_vidinfo.width;
 	current_height = picasso_vidinfo.height;
-	graphics_subinit ();
+        graphics_subinit ();
     } else {
 	current_width = gfxvidinfo.width;
 	current_height = gfxvidinfo.height;
-	graphics_subinit ();
-	reset_drawing ();
+        graphics_subinit ();
+        reset_drawing ();
     }
     if (on)
 	DX_SetPalette_real (0, 256);
@@ -1496,7 +1462,7 @@ uae_u8 *gfx_lock_picasso (void)
 	return fb_addr;
     else
 #endif
-	return (uae_u8 *)pic_dinfo.ximg->data;
+	return pic_dinfo.ximg->data;
 }
 
 void gfx_unlock_picasso (void)
@@ -1504,13 +1470,21 @@ void gfx_unlock_picasso (void)
 }
 #endif
 
+int lockscr (void)
+{
+    return 1;
+}
+
+void unlockscr (void)
+{
+}
+
 void toggle_mousegrab (void)
 {
     if (grabbed) {
 	XUngrabPointer (display, CurrentTime);
 //	XUndefineCursor (display, mywin);
 	grabbed = 0;
-	mousehack = 1;
 	write_log ("Ungrabbed mouse\n");
     } else if (! dgamode) {
 	XGrabPointer (display, mywin, 1, 0, GrabModeAsync, GrabModeAsync,
@@ -1520,8 +1494,19 @@ void toggle_mousegrab (void)
 	XWarpPointer (display, None, mywin, 0, 0, 0, 0, oldx, oldy);
 	write_log ("Grabbed mouse\n");
 	grabbed = 1;
-	mousehack = 0;
     }
+}
+
+void framerate_up (void)
+{
+    if (currprefs.gfx_framerate < 20)
+	changed_prefs.gfx_framerate = currprefs.gfx_framerate + 1;
+}
+
+void framerate_down (void)
+{
+    if (currprefs.gfx_framerate > 1)
+	changed_prefs.gfx_framerate = currprefs.gfx_framerate - 1;
 }
 
 int is_fullscreen (void)
@@ -1531,11 +1516,6 @@ int is_fullscreen (void)
 #else
     return 0;
 #endif
-}
-
-int is_vsync (void)
-{
-    return 0;
 }
 
 void toggle_fullscreen (void)
@@ -1573,52 +1553,52 @@ static void close_mouse (void)
    return;
 }
 
-static int acquire_mouse (unsigned int num, int flags)
+static int acquire_mouse (int num, int flags)
 {
    return 1;
 }
 
-static void unacquire_mouse (unsigned int num)
+static void unacquire_mouse (int num)
 {
    return;
 }
 
-static unsigned int get_mouse_num (void)
+static int get_mouse_num (void)
 {
     return 1;
 }
 
-static const char *get_mouse_name (unsigned int mouse)
+static char *get_mouse_name (int mouse)
 {
-    return "Default mouse";
+    return 0;
 }
 
-static unsigned int get_mouse_widget_num (unsigned int mouse)
+static int get_mouse_widget_num (int mouse)
 {
     return MAX_AXES + MAX_BUTTONS;
 }
 
-static int get_mouse_widget_first (unsigned int mouse, int type)
+static int get_mouse_widget_first (int mouse, int type)
 {
     switch (type) {
-	case IDEV_WIDGET_BUTTON:
-	    return FIRST_BUTTON;
-	case IDEV_WIDGET_AXIS:
-	    return FIRST_AXIS;
+        case IDEV_WIDGET_BUTTON:
+            return FIRST_BUTTON;
+        case IDEV_WIDGET_AXIS:
+            return FIRST_AXIS;
     }
     return -1;
 }
 
-static int get_mouse_widget_type (unsigned int mouse, unsigned int num, char *name, uae_u32 *code)
+static int get_mouse_widget_type (int mouse, int num, char *name, uae_u32 *code)
 {
     if (num >= MAX_AXES && num < MAX_AXES + MAX_BUTTONS) {
-	if (name)
-	    sprintf (name, "Button %d", num + 1 + MAX_AXES);
-	return IDEV_WIDGET_BUTTON;
+        if (name)
+            sprintf (name, "Button %d", num + 1 + MAX_AXES);
+        return IDEV_WIDGET_BUTTON;
     } else if (num < MAX_AXES) {
-	if (name)
-	    sprintf (name, "Axis %d", num + 1);
-	return IDEV_WIDGET_AXIS;
+        if (name)
+            sprintf (name, "Axis %d", num + 1);
+        return IDEV_WIDGET_AXIS;
     }
     return IDEV_WIDGET_NONE;
 }
@@ -1629,42 +1609,36 @@ static void read_mouse (void)
 }
 
 struct inputdevice_functions inputdevicefunc_mouse = {
-    init_mouse,
-    close_mouse,
-    acquire_mouse,
-    unacquire_mouse,
-    read_mouse,
-    get_mouse_num,
-    get_mouse_name,
-    get_mouse_widget_num,
-    get_mouse_widget_type,
+    init_mouse, close_mouse, acquire_mouse, unacquire_mouse, read_mouse,
+    get_mouse_num, get_mouse_name,
+    get_mouse_widget_num, get_mouse_widget_type,
     get_mouse_widget_first
 };
 
 /*
  * Keyboard inputdevice functions
  */
-static unsigned int get_kb_num (void)
+static int get_kb_num (void)
 {
     return 1;
 }
 
-static const char *get_kb_name (unsigned int kb)
-{
-    return "Default keyboard";
-}
-
-static unsigned int get_kb_widget_num (unsigned int kb)
-{
-    return 255; // fix me
-}
-
-static int get_kb_widget_first (unsigned int kb, int type)
+static char *get_kb_name (int kb)
 {
     return 0;
 }
 
-static int get_kb_widget_type (unsigned int kb, unsigned int num, char *name, uae_u32 *code)
+static int get_kb_widget_num (int kb)
+{
+    return 255; // fix me
+}
+
+static int get_kb_widget_first (int kb, int type)
+{
+    return 0;
+}
+
+static int get_kb_widget_type (int kb, int num, char *name, uae_u32 *code)
 {
     // fix me
     *code = num;
@@ -1679,24 +1653,9 @@ static int keyhack (int scancode, int pressed, int num)
 static void read_kb (void)
 {
 }
-
 static int init_kb (void)
 {
-    if (currprefs.map_raw_keys) {
-	if (rawkeys_available) {
-	    inputdevice_setkeytranslation (raw_keyboard);
-	    set_default_hotkeys (x11pc_hotkeys);
-	    write_log ("X11GFX: Enabling raw key-mapping.\n");
-	} else {
-	    currprefs.map_raw_keys = 0;
-	    write_log ("X11GFX: Raw key-mapping disabled. Keycodes not supported.\n");
-	}
-    } else
-	write_log ("X11GFX: Raw key-mapping disabled.\n");
-
-    if (!currprefs.map_raw_keys)
-	set_default_hotkeys (get_x11_default_hotkeys ());
-
+    set_default_hotkeys ( get_x11_default_hotkeys());
     return 1;
 }
 
@@ -1704,12 +1663,12 @@ static void close_kb (void)
 {
 }
 
-static int acquire_kb (unsigned int num, int flags)
+static int acquire_kb (int num, int flags)
 {
     return 1;
 }
 
-static void unacquire_kb (unsigned int num)
+static void unacquire_kb (int num)
 {
 }
 
@@ -1730,16 +1689,9 @@ void input_get_default_mouse (struct uae_input_device *uid)
 
 struct inputdevice_functions inputdevicefunc_keyboard =
 {
-    init_kb,
-    close_kb,
-    acquire_kb,
-    unacquire_kb,
-    read_kb,
-    get_kb_num,
-    get_kb_name,
-    get_kb_widget_num,
-    get_kb_widget_type,
-    get_kb_widget_first
+    init_kb, close_kb, acquire_kb, unacquire_kb,
+    read_kb, get_kb_num, get_kb_name, get_kb_widget_num,
+    get_kb_widget_type, get_kb_widget_first
 };
 
 int getcapslockstate (void)
@@ -1754,24 +1706,23 @@ void setcapslockstate (int state)
 /*
  * Handle gfx cfgfile options
  */
-void gfx_save_options (FILE *f, const struct uae_prefs *p)
+void gfx_save_options (FILE *f, struct uae_prefs *p)
 {
     fprintf (f, "x11.low_bandwidth=%s\n", p->x11_use_low_bandwidth ? "true" : "false");
     fprintf (f, "x11.use_mitshm=%s\n",    p->x11_use_mitshm ? "true" : "false");
-    fprintf (f, "x11.map_raw_keys=%s\n",  p->map_raw_keys ? "true" : "false");
+    fprintf (f, "x11.hide_cursor=%s\n",   p->x11_hide_cursor ? "true" : "false");
 }
 
-int gfx_parse_option (struct uae_prefs *p, const char *option, const char *value)
+int gfx_parse_option (struct uae_prefs *p, char *option, char *value)
 {
     return (cfgfile_yesno (option, value, "low_bandwidth", &p->x11_use_low_bandwidth)
 	 || cfgfile_yesno (option, value, "use_mitshm",    &p->x11_use_mitshm)
-	 || cfgfile_yesno (option, value, "hide_cursor",   &p->hide_cursor) /* Compatibility. This was an X11-specific option. */
-	 || cfgfile_yesno (option, value, "map_raw_keys",  &p->map_raw_keys));
+	 || cfgfile_yesno (option, value, "hide_cursor",   &p->x11_hide_cursor));
 }
 
 void gfx_default_options (struct uae_prefs *p)
 {
     p->x11_use_low_bandwidth = 0;
     p->x11_use_mitshm        = 1;
-    p->map_raw_keys          = rawkeys_available;
+    p->x11_hide_cursor       = 1;
 }

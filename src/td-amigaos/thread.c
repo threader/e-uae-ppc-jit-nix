@@ -1,11 +1,15 @@
- /*
-  * E-UAE - The portable Amiga Emulator
+  /*
+  * UAE - The Un*x Amiga Emulator
   *
-  * Thread and semaphore support using AmigaOS processes
+  * Thread support using AmigaOS processes
   *
-  * Copyright 2003-2005 Richard Drummond
+  * Copyright 2003-2004 Richard Drummond
   */
 
+/*
+ * Simple emulation of POSIX sempahores use exec semaphores.
+ * amd message passing.
+ */
 #include "sysconfig.h"
 #include "sysdeps.h"
 
@@ -23,294 +27,179 @@
 #include "threaddep/thread.h"
 
 /*
- * Handle CreateNewProc() differences between AmigaOS-like systems
+ * CreateNewProc() on MorphOS needs to be told that code is PPC
  */
 #ifdef __MORPHOS__
-/* CreateNewProc() on MorphOS needs to be told that code is PPC */
 # define myCreateNewProcTags(...) CreateNewProcTags(NP_CodeType, CODETYPE_PPC, __VA_ARGS__)
 #else
-# ifdef __amigaos4__
-/* On OS4, we assert that the threads we create are our children */
-#  define myCreateNewProcTags(...) CreateNewProcTags(NP_Child, TRUE, __VA_ARGS__)
-# else
-#  define myCreateNewProcTags CreateNewProcTags
-# endif
+# define myCreateNewProcTags CreateNewProcTags
 #endif
 
 /*
- * Simple emulation of POSIX semaphores using message-passing
- * with a proxy task.
+ * Emulation of POSIX semaphore using AmigaOS semaphores
+ * and message passing
  *
+ * Needs work on cleaning up . . .
  */
 
-static struct Process *proxy_thread;
-static struct MsgPort *proxy_msgport;
+static struct Process *sem_thread;
+static struct MsgPort *sem_thread_port;
 
 static int sem_count;
 
-/*
- * Message packet which is sent to the proxy thread
- * to effect blocking on a semaphore
- */
-
-/*
- * Message types
- */
-typedef enum {
-    PROXY_MSG_BLOCK,
-    PROXY_MSG_UNBLOCK,
-    PROXY_MSG_DESTROY,
-} ProxyMsgType;
-
-struct ProxyMsg {
+struct PSemaphoreMsg {
     struct Message     msg;
     struct PSemaphore *sem;
+    ULONG              reply_sig;
     struct Task       *reply_task;
-    ProxyMsgType       type;
+    int                command;
 };
 
-/* Proxy replies to message sender with this signal */
-#define PROXY_MSG_REPLY_SIG		SIGBREAKF_CTRL_F
+#define PSEMCMD_LOCK	0
+#define PSEMCMD_UNLOCK	1
+#define PSEMCMD_QUIT	2
 
-STATIC_INLINE void init_proxy_msg (struct ProxyMsg *msg, ProxyMsgType type, struct PSemaphore *sem)
-{
-    memset (msg, 0, sizeof (struct ProxyMsg));
-
-    msg->msg.mn_Length = sizeof (struct ProxyMsg);
-    msg->sem           = sem;
-    msg->type          = type;
-    msg->reply_task    = FindTask (NULL);
-}
-
-STATIC_INLINE void put_proxy_msg (struct ProxyMsg *msg)
-{
-    PutMsg (proxy_msgport, (struct Message *)msg);
-}
-
-STATIC_INLINE BOOL wait_proxy_reply (void)
-{
-    BOOL  got_reply = FALSE;
-    ULONG sigs;
-
-    sigs = Wait (PROXY_MSG_REPLY_SIG | SIGBREAKF_CTRL_C);
-
-    if (sigs & PROXY_MSG_REPLY_SIG)
-	got_reply = TRUE;
-
-    return got_reply;
-}
-
-/*
- * Do proxy's reply to a semaphore message
- */
-STATIC_INLINE void do_proxy_reply (struct ProxyMsg *msg)
-{
-   ReplyMsg ((struct Message *)msg);
-
-   Signal (msg->reply_task, PROXY_MSG_REPLY_SIG);
-}
-
-
-
-/*
- * Block current process on semaphore
- */
-static int BlockMe (struct PSemaphore *psem)
+static int putPSemaphoreMsg (int psemcmd, struct PSemaphore *psem)
 {
     int result = -1;
-    struct ProxyMsg msg;
+    struct PSemaphoreMsg msg;
+    ULONG sigs;
 
-    init_proxy_msg (&msg, PROXY_MSG_BLOCK, psem);
+    memset (&msg, 0, sizeof msg);
 
-    Forbid ();
+    msg.msg.mn_Length = sizeof msg;
+    msg.sem           = psem;
+    msg.command       = psemcmd;
+    msg.reply_sig     = AllocSignal (-1);
+    msg.reply_task    = FindTask (NULL);
 
-    put_proxy_msg (&msg);
-    if (wait_proxy_reply ())
-	result = 0;
-    else {
-	/* Hack - remove block request from semaphore's waiting list
-	 * When the block is interrupted, the proxy won't do it */
-	Remove ((struct Node *)&msg);
-	msg.msg.mn_Node.ln_Succ = msg.msg.mn_Node.ln_Pred = NULL;
+    if (msg.reply_sig != (ULONG)-1) {
+	PutMsg (sem_thread_port, (struct Message *)&msg);
+
+	sigs = Wait (1 << msg.reply_sig | SIGBREAKF_CTRL_C);
+	FreeSignal (msg.reply_sig);
+
+	if ((sigs & SIGBREAKF_CTRL_C) == 0)
+	    result = 0;
     }
-
-    Permit ();
-
     return result;
 }
 
-/*
- * Unblock one process blocked on semaphore
- */
-static void UnblockOne (struct PSemaphore *psem)
+static void replyPSemaphoreMsg( struct PSemaphoreMsg *msg)
 {
-    struct ProxyMsg msg;
+   ReplyMsg ((struct Message *)msg);
 
-    init_proxy_msg (&msg, PROXY_MSG_UNBLOCK, psem);
-
-    put_proxy_msg (&msg);
-    wait_proxy_reply ();
+   if (msg->reply_sig != (ULONG)-1)
+       Signal (msg->reply_task, 1 << msg->reply_sig);
 }
 
-/*
- * Destroy the semaphore block
- */
-static void Destroy (struct PSemaphore *psem)
-{
-    struct ProxyMsg msg;
-
-    init_proxy_msg (&msg, PROXY_MSG_DESTROY, psem);
-
-    put_proxy_msg (&msg);
-    wait_proxy_reply ();
-}
-
-
-
-/**
- ** Proxy thread
- **/
-
-static void handle_startup_msg (void)
+static void sem_thread_startup_msg(void)
 {
     struct Process *self = (struct Process*) FindTask (NULL);
     WaitPort (&self->pr_MsgPort);
     ReplyMsg (GetMsg (&self->pr_MsgPort));
 }
 
-static void proxy_thread_main (void)
+static void sem_thread_func (void)
 {
     ULONG sigmask;
     int dont_exit = 1;
-    struct ProxyMsg *msg = NULL;
+    struct PSemaphoreMsg *msg = NULL;
 
-    proxy_msgport = CreateMsgPort ();
-    sigmask = SIGBREAKF_CTRL_C | (1 << proxy_msgport->mp_SigBit);
+    sem_thread_port = CreateMsgPort ();
+    sigmask = SIGBREAKF_CTRL_C | (1 << sem_thread_port->mp_SigBit);
 
     /* Wait for and reply to startup msg */
-    handle_startup_msg ();
+    sem_thread_startup_msg();
 
+    /* handle semaphore commands */
     while (dont_exit) {
 	ULONG sigs = Wait (sigmask);
 
-	/*
-	 * Handle any semaphore message sent us
-	 */
-	while ((msg = (struct ProxyMsg *) GetMsg (proxy_msgport))) {
+	if ((sigs & SIGBREAKF_CTRL_C) != 0) {
+	    dont_exit = 0;
+	    continue;
+	}
+
+	while (dont_exit && (msg = (struct PSemaphoreMsg *) GetMsg (sem_thread_port))) {
 	    struct PSemaphore *psem = msg->sem;
 
-	    switch (msg->type) {
-		case PROXY_MSG_BLOCK:
-		    /* Block requesting task on semaphore.
-		     *
-		     * We effect the block by not replying to this message now. Just
-		     * put the request in the waiting list and reply to it when we
-		     * get an unblock request for this semaphore. The process requesting
-		     * the block will sleep until we do (unless it is interrupted). */
+
+	    switch (msg->command) {
+		case PSEMCMD_LOCK:
+		    /* Don't reply to this yet. Just put the request in the waiting
+		     * list and reply when we get an unlock. The requesting process
+		     * will block until we do. */
 		    AddTail ((struct List*)&psem->wait_queue, (struct Node *)msg);
 		    break;
 
-		case PROXY_MSG_UNBLOCK:
-		    /* A request to unblock a task on semaphore. */
+		case PSEMCMD_UNLOCK:
+		    /* Grab a lock request from the waiting list and reply to
+		     * it. This will wake up the blocked requesting process. */
 		    {
-			struct ProxyMsg *wait_msg;
+			struct PSemaphoreMsg *wait_msg = (struct PSemaphoreMsg*)
+			    RemHead((struct List*)&psem->wait_queue);
 
-			Forbid ();
+			replyPSemaphoreMsg (msg);
 
-			/* If there's a task blocking on the semaphore, remove
-			 * it from the waiting list */
-			wait_msg = (struct ProxyMsg *) RemHead ((struct List *)&psem->wait_queue);
-
-			/* Reply to the unblock request */
-			do_proxy_reply (msg);
-
-			/* Reply to the block request - this will wake up the
-			 * blocked task. */
 			if (wait_msg)
-			    do_proxy_reply (wait_msg);
-
-			Permit ();
+			    replyPSemaphoreMsg (wait_msg);
 		    }
 		    break;
 
-		case PROXY_MSG_DESTROY:
-		    Forbid ();
-		    {
-			struct ProxyMsg *wait_msg;
-
-			while ((wait_msg = (struct ProxyMsg *) RemHead ((struct List *)&psem->wait_queue))) {
-			    /* Break the block for all tasks blocked on the semaphore */
-			    Signal (wait_msg->reply_task, SIGBREAKF_CTRL_C);
-			}
-		    }
-		    do_proxy_reply (msg);
-		    Permit ();
-		    break;
-	    } /* switch (msg->type) */
-	} /* while */
-
-	/*
-	 * Check for break signal and exit if received
-	 */
-	if ((sigs & SIGBREAKF_CTRL_C) != 0)
-	    dont_exit = FALSE;
-    } /* while (dont_exit) */
+		case PSEMCMD_QUIT:
+		    /* And its good night from me. . . */
+		    dont_exit = 0;
+	    }
+	}
+   }
 
    /*
     * Clean up and exit
     */
    Forbid ();
    {
-	struct ProxyMsg *rem_msg;
+	struct PSemaphoreMsg *rem_msg;
 
-	/* Reply to any unanswered requests */
-	while ((rem_msg = (struct ProxyMsg *) GetMsg (proxy_msgport)) != NULL)
-	    do_proxy_reply (rem_msg);
+	/* reply to any outstanding requests */
+	while ((rem_msg = (struct PSemaphoreMsg *)GetMsg (sem_thread_port)) != NULL)
+	    replyPSemaphoreMsg (rem_msg);
 
 	/* reply to the quit msg */
-	if (msg != NULL)
-	    do_proxy_reply (msg);
+        if (msg != NULL)
+	    replyPSemaphoreMsg (msg);
 
-	DeleteMsgPort (proxy_msgport);
-	proxy_msgport = 0;
-	proxy_thread  = 0;
+	DeleteMsgPort (sem_thread_port);
+	sem_thread_port = 0;
    }
-   Permit ();
+   Permit();
 }
 
-static void stop_proxy_thread (void)
+static void stop_sem_thread (void)
 {
-    if (proxy_thread)
-	Signal ((struct Task *)proxy_thread, SIGBREAKF_CTRL_C);
+    if (sem_thread_port)
+	putPSemaphoreMsg (PSEMCMD_QUIT, NULL);
 }
 
-/*
- * Start proxy thread
- */
-static int start_proxy_thread (void)
+static int start_sem_thread (void)
 {
     int result = -1;
     struct MsgPort *replyport = CreateMsgPort();
     struct Process *p;
 
     if (replyport) {
-	p = myCreateNewProcTags (NP_Name,	(ULONG) "E-UAE semaphore proxy",
-				 NP_Priority,		10,
-				 NP_StackSize,		2048,
-				 NP_Entry,	(ULONG) proxy_thread_main,
+	p = myCreateNewProcTags (NP_Name, (ULONG)"UAE psem thread",
+				 NP_StackSize, 2048,
+				 NP_Entry, (ULONG)sem_thread_func,
 				 TAG_DONE);
-	if (p) {
-	    /* Send startup message */
+        if(p) {
 	    struct Message msg;
 	    msg.mn_ReplyPort = replyport;
-	    msg.mn_Length    = sizeof msg;
+	    msg.mn_Length = sizeof msg;
 	    PutMsg (&p->pr_MsgPort, (struct Message*)&msg);
 	    WaitPort (replyport);
 
-	    proxy_thread = p;
-
-	    atexit (stop_proxy_thread);
-
+	    atexit (stop_sem_thread);
 	    result = 0;
 	}
 	DeleteMsgPort (replyport);
@@ -318,10 +207,7 @@ static int start_proxy_thread (void)
     return result;
 }
 
-/**
- ** Emulation of POSIX semaphore API
- ** (or, at least, UAE's version thereof).
- **/
+
 
 int uae_sem_init (uae_sem_t *sem, int pshared, unsigned int value)
 {
@@ -333,7 +219,7 @@ int uae_sem_init (uae_sem_t *sem, int pshared, unsigned int value)
     sem->live  = 1;
 
     if (sem_count == 0)
-	result = start_proxy_thread ();
+	result = start_sem_thread();
 
     if (result != -1)
 	sem_count++;
@@ -346,14 +232,13 @@ int uae_sem_destroy (uae_sem_t *sem)
     ObtainSemaphore (&sem->mutex);
 
     sem->live = 0;
-    Destroy (sem);
-
-    /* If this is the last semaphore to die,
-     * kill the proxy thread */
-    if (--sem_count == 0)
-	stop_proxy_thread ();
+    while (++sem->value < 1)
+       putPSemaphoreMsg (PSEMCMD_UNLOCK, sem);
 
     ReleaseSemaphore (&sem->mutex);
+
+    if (--sem_count == 0)
+	putPSemaphoreMsg (PSEMCMD_QUIT, NULL);
 
     return 0;
 }
@@ -368,18 +253,13 @@ int uae_sem_wait (uae_sem_t *sem)
 	if (sem->value > 0) {
 	    --sem->value;
 	    result = 0;
-	} else {
+        } else {
 	    ReleaseSemaphore (&sem->mutex);
-
-	    /* Block on this semaphore by waiting for
-	     * the proxy thread to reply to our lock request
-	     */
-	    result = BlockMe (sem);
-
+	    result = putPSemaphoreMsg (PSEMCMD_LOCK, sem);
 	    ObtainSemaphore (&sem->mutex);
 
 	    if (result != -1)
-		--sem->value;
+                --sem->value;
 	}
     }
     ReleaseSemaphore (&sem->mutex);
@@ -394,9 +274,9 @@ int uae_sem_trywait (uae_sem_t *sem)
 
     if (sem->live) {
 	if (sem->value > 0) {
-	    --sem->value;
+	--sem->value;
 	    result = 0;
-	}
+        }
     }
     ReleaseSemaphore (&sem->mutex);
     return result;
@@ -420,14 +300,10 @@ int uae_sem_post (uae_sem_t *sem)
     ObtainSemaphore (&sem->mutex);
 
     if (sem->live) {
-	sem->value++;
+        sem->value++;
 
-	if (sem->value == 1) {
-	    /* Ask the proxy to wake up a task blocked
-	     * on this semaphore */
-	    UnblockOne (sem);
-	}
-	result = 0;
+	if (sem->value <= 1)
+	    result = putPSemaphoreMsg (PSEMCMD_UNLOCK, sem);
     }
     ReleaseSemaphore (&sem->mutex);
 
@@ -435,9 +311,11 @@ int uae_sem_post (uae_sem_t *sem)
 }
 
 
-/**
- ** Thread support
- **/
+
+
+/*
+ * Support routines for threading
+ */
 
 struct startupmsg
 {
@@ -467,22 +345,22 @@ int uae_start_thread (void *(*f) (void *), void *arg, uae_thread_id *foo)
     struct MsgPort *replyport = CreateMsgPort();
 
     if (replyport) {
-	*foo = (struct Task *)myCreateNewProcTags (NP_Output,		   Output (),
-						   NP_Input,		   Input (),
-						   NP_Name,	   (ULONG) "UAE thread",
-						   NP_CloseOutput,	   FALSE,
-						   NP_CloseInput,	   FALSE,
-						   NP_StackSize,	   16384,
-						   NP_Entry,	   (ULONG) do_thread,
+	*foo = (struct Task *)myCreateNewProcTags (NP_Output, Output(),
+						   NP_Input, Input(),
+						   NP_Name, (ULONG)"UAE thread",
+						   NP_CloseOutput, FALSE,
+						   NP_CloseInput, FALSE,
+						   NP_StackSize, 16384,
+						   NP_Entry, (ULONG)do_thread,
 						   TAG_DONE);
 
 	if(*foo) {
 	    struct startupmsg msg;
 
 	    msg.msg.mn_ReplyPort = replyport;
-	    msg.msg.mn_Length    = sizeof msg;
-	    msg.func             = f;
-	    msg.arg              = arg;
+	    msg.msg.mn_Length = sizeof msg;
+	    msg.func = f;
+	    msg.arg = arg;
 	    PutMsg (&((struct Process*)*foo)->pr_MsgPort, (struct Message*)&msg);
 	    WaitPort (replyport);
 	}
@@ -490,9 +368,4 @@ int uae_start_thread (void *(*f) (void *), void *arg, uae_thread_id *foo)
     }
 
     return *foo!=0;
-}
-
-extern void uae_set_thread_priority (int pri)
-{
-    SetTaskPri (FindTask (NULL), pri);
 }

@@ -5,7 +5,7 @@
 @SET_MAKE@
 CC        = @CC@
 LDFLAGS   = @LDFLAGS@
-CFLAGS    = @CFLAGS@ -D__inline__=@ac_cv_c_inline@
+CFLAGS    = @CFLAGS@ -D__inline__=@ac_cv_c_inline@ -DUAE_CONSOLE -DBUILD_TOOLS
 LIBRARIES = @LIBS@
 
 INSTALL         = @INSTALL@
@@ -23,7 +23,7 @@ VPATH = @top_srcdir@
 
 INCLUDES=-I. -I@top_srcdir@/../include/ -I@top_srcdir@
 
-all: gencpu gencomp build68k genblitter genlinetoscr
+all: gencpu gencomp build68k genblitter cpuopti
 
 install:
 
@@ -31,7 +31,7 @@ install:
 clean:
 	-rm -f *.o
 	-rm cpudefs.c
-	-rm -f gencpu gencomp genblitter build68k genlinetoscr
+	-rm -f gencpu gencomp genblitter cpuopti build68k
 
 
 distclean: clean
@@ -43,12 +43,12 @@ genblitter: genblitter.o blitops.o writelog.o
 	$(CC) $(LDFLAGS) -o genblitter genblitter.o blitops.o writelog.o
 build68k: build68k.o writelog.o
 	$(CC) $(LDFLAGS) -o build68k build68k.o writelog.o
+cpuopti: cpuopti.o writelog.o
+	$(CC) $(LDFLAGS) -o cpuopti cpuopti.o writelog.o
 gencpu: gencpu.o readcpu.o cpudefs.o missing.o writelog.o
 	$(CC) $(LDFLAGS) -o gencpu gencpu.o readcpu.o cpudefs.o missing.o writelog.o
-gencomp: gencomp.o
-	$(CC) $(LDFLAGS) -o gencomp gencomp.o
-genlinetoscr: genlinetoscr.o
-	$(CC) $(LDFLAGS) -o genlinetoscr genlinetoscr.o
+gencomp: gencomp.o readcpu.o cpudefs.o missing.o
+	$(CC) $(LDFLAGS) -o gencomp gencomp.o readcpu.o missing.o cpudefs.o writelog.o
 
 custom.o: blit.h
 drawing.o: linetoscr.c

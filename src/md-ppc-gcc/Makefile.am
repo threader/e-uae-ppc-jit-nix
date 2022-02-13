@@ -1,9 +1,7 @@
-AM_CPPFLAGS  = @UAE_CPPFLAGS@
-AM_CPPFLAGS += -I$(top_srcdir)/src/include -I$(top_builddir)/src -I$(top_srcdir)/src
-AM_CFLAGS    = @UAE_CFLAGS@
+INCLUDES =  -I$(top_srcdir)/src/include -I$(top_builddir)/src -I$(top_srcdir)/src -I$(top_srcdir)
 
 noinst_LIBRARIES = libmachdep.a
 
 libmachdep_a_SOURCES = support.c
 
-noinst_HEADERS = machdep.h m68k.h m68kops.h maccess.h rpt.h
+noinst_HEADERS = exectasks.h m68k.h maccess.h rpt.h

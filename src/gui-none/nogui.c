@@ -9,21 +9,17 @@
 #include "sysconfig.h"
 #include "sysdeps.h"
 
+#include "config.h"
 #include "options.h"
 #include "gui.h"
 
-
-void gui_init (int argc, char **argv)
+static void sigchldhandler(int foo)
 {
 }
 
-int gui_open (void)
+int gui_init (void)
 {
     return -1;
-}
-
-void gui_notify_state (int state)
-{
 }
 
 int gui_update (void)
@@ -84,7 +80,27 @@ void gui_filename (int num, const char *name)
 {
 }
 
+static void getline (char *p)
+{
+}
+
 void gui_handle_events (void)
+{
+}
+
+void gui_changesettings (void)
+{
+}
+
+void gui_update_gfx (void)
+{
+}
+
+void gui_lock (void)
+{
+}
+
+void gui_unlock (void)
 {
 }
 
@@ -93,7 +109,7 @@ void gui_display(int shortcut)
 }
 
 void gui_message (const char *format,...)
-{
+{   
        char msg[2048];
        va_list parms;
 

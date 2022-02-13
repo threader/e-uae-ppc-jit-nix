@@ -15,13 +15,11 @@
    along with this program; if not, write to the Free Software Foundation,
    Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.  */
 
-#include "sysconfig.h"
-#include "target.h"
-
-#if defined TARGET_AMIGAOS
+#if defined AMIGA
 #include <devices/timer.h>
 #endif
 
+#include "sysconfig.h"
 
 #include <stdlib.h>
 #include <sys/types.h>
@@ -54,28 +52,40 @@ adjust_blocks (long blocks, int fromsize, int tosize)
 
 #ifdef _WIN32
 #include "sysdeps.h"
+#include "od-win32/posixemu.h"
 #include <windows.h>
-int get_fs_usage (const char *path, const char *disk, struct fs_usage *fsp)
+int
+get_fs_usage (path, disk, fsp)
+     const char *path;
+     const char *disk;
+     struct fs_usage *fsp;
 {
+    char buf1[1024];
     char buf2[1024];
     DWORD SectorsPerCluster;
     DWORD BytesPerSector;
     DWORD NumberOfFreeClusters;
     DWORD TotalNumberOfClusters;
 
-    GetFullPathName (path, sizeof buf2, buf2, NULL);
+    fname_atow (path, buf1, sizeof buf1);
+
+    GetFullPathName (buf1, sizeof buf2, buf2, NULL);
 
     buf2[3] = 0;
 
     if (!GetDiskFreeSpace (buf2, &SectorsPerCluster, &BytesPerSector,
-			   &NumberOfFreeClusters, &TotalNumberOfClusters)) {
+			   &NumberOfFreeClusters, &TotalNumberOfClusters))
+    {
 	/* lasterror = GetLastError ();*/
 	return -1;
     }
 
     /* HACK ALERT! WinNT returns 0 in TotalNumberOfClusters for an audio-CD, which calls the GURU! */
-    if ((TotalNumberOfClusters == 0) && (GetDriveType (buf2) == DRIVE_CDROM))
-	TotalNumberOfClusters = 327680;
+    if( ( TotalNumberOfClusters == 0 ) &&
+        ( GetDriveType( buf2 ) == DRIVE_CDROM ) )
+    {
+        TotalNumberOfClusters = 327680;
+    }
 
     BytesPerSector *= SectorsPerCluster;
     fsp->fsu_blocks = adjust_blocks (TotalNumberOfClusters, BytesPerSector, 512);
@@ -86,7 +96,7 @@ int get_fs_usage (const char *path, const char *disk, struct fs_usage *fsp)
 
 #else /* ! _WIN32 */
 
-#if defined TARGET_AMIGAOS
+#if defined AMIGA
 
 #include <dos/dos.h>
 #include <exec/memory.h>
@@ -99,7 +109,7 @@ int get_fs_usage (const char *path, const char *disk, struct fs_usage *fsp)
     int result = -1;
 
     if (info) {
-	BPTR lock = Lock (path, SHARED_LOCK);
+        BPTR lock = Lock (path, SHARED_LOCK);
 	if (lock) {
 	    if (Info (lock, info)) {
 		fsp->fsu_blocks = adjust_blocks (info->id_NumBlocks,
@@ -120,7 +130,7 @@ int get_fs_usage (const char *path, const char *disk, struct fs_usage *fsp)
     return result;
 }
 
-#else /* ! TARGET_AMIGAOS */
+#else /* ! __AMIGA__ */
 
 #ifdef __BEOS__
 
@@ -130,10 +140,10 @@ int get_fs_usage (const char *path, const char *disk, struct fs_usage *fsp)
 {
     int result = -1;
     dev_t device = dev_for_path (path);
-
+    
     if (device >0) {
-	fs_info info;
-	if (fs_stat_dev (device, &info) == 0) {
+    	fs_info info;
+    	if (fs_stat_dev (device, &info) == 0) {
 	    fsp->fsu_blocks = adjust_blocks (info.total_blocks,
 					     info.block_size,
 					     512);
@@ -143,9 +153,9 @@ int get_fs_usage (const char *path, const char *disk, struct fs_usage *fsp)
 					     512);
 	    fsp->fsu_files = info.total_nodes;
 	    fsp->fsu_ffree = info.free_nodes;
-
+	    
 	    result = 0;
-	}
+    	}
     }
     return result;
 };
@@ -408,5 +418,5 @@ statfs (path, fsb)
 #endif /* _AIX && _I386 */
 
 #endif /* ! __BEOS__ */
-#endif /* ! TARGET_AMIGAOS */
+#endif /* ! __AMIGA__ */
 #endif /* ! _WIN32 */

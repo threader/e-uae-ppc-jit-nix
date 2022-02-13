@@ -8,13 +8,14 @@
   *
   * Copyright 1997 Bernd Schmidt
   * Copyright 1998 Krister Walfridsson
-  * Copyright 2003-2006 Richard Drummond
+  * Copyright 2003-2004 Richard Drummond
   * Copyright 2004 Nick Seow (Alternative Linux joystick device path)
   */
 
 #include "sysconfig.h"
 #include "sysdeps.h"
 
+#include "config.h"
 #include "options.h"
 #include "memory.h"
 #include "custom.h"
@@ -56,7 +57,7 @@ typedef struct
 #define FIRST_AXLE   0
 #define FIRST_BUTTON 2
 
-static unsigned int nr_joysticks;
+static int nr_joysticks;
 
 static int js0, js1;
 
@@ -66,18 +67,17 @@ struct joy_range
     int centrex, centrey;
 } range0, range1;
 
+static int get_joystick_num (void);
 
-static void read_joy (unsigned int nr)
+static void read_joy(int nr)
 {
     uae_joystick_t buffer;
     int len;
     int fd = nr == 0 ? js0 : js1;
     struct joy_range *r = nr == 0 ? &range0 : &range1;
 
-    if (currprefs.input_selected_setting == 0) {
-	if (jsem_isjoy (0, &currprefs) != (int)nr && jsem_isjoy (1, &currprefs) != (int)nr)
-	    return;
-    }
+    if (nr >= nr_joysticks)
+	return;
 
     len = read(fd, &buffer, sizeof(buffer));
     if (len != sizeof(buffer))
@@ -113,9 +113,9 @@ static void read_joy (unsigned int nr)
 
 static int init_joysticks(void)
 {
-    char js_path[JS_MAXPATHLEN]; // temporary buffer for device name
     nr_joysticks = 0;
     js0 = -1; js1 = -1;
+    char js_path[JS_MAXPATHLEN]; // temporary buffer for device name
 
     snprintf (js_prefix, JS_MAXPATHLEN, "/dev/%s", JS_DEVNAME_PREFIX);
 
@@ -129,7 +129,7 @@ static int init_joysticks(void)
 
 #ifdef __linux__
    if (nr_joysticks == 0) {
-	/*
+        /*
 	 * If we haven't found any joysticks yet,
 	 * look for /dev/input/js* nodes
 	 */
@@ -168,40 +168,40 @@ static void close_joysticks(void)
 	close (js1);
 }
 
-static unsigned int get_joystick_num (void)
-{
-    return nr_joysticks;
-}
-
-static int acquire_joy (unsigned int num, int flags)
+static int acquire_joy (int num, int flags)
 {
     return 1;
 }
 
-static void unacquire_joy (unsigned int num)
+static void unacquire_joy (int num)
 {
 }
 
 static void read_joysticks (void)
 {
-    unsigned int i;
+    int i;
     for (i = 0; i < get_joystick_num(); i++)
 	read_joy (i);
 }
 
-static const char *get_joystick_name (unsigned int joy)
+static int get_joystick_num (void)
+{
+    return nr_joysticks;
+}
+
+static char *get_joystick_name (int joy)
 {
     static char name[100];
     sprintf (name, "%d: %s%d", joy + 1, js_prefix, joy);
     return name;
 }
 
-static unsigned int get_joystick_widget_num (unsigned int joy)
+static int get_joystick_widget_num (int joy)
 {
     return MAX_AXLES + MAX_BUTTONS;
 }
 
-static int get_joystick_widget_type (unsigned int joy, unsigned int num, char *name, uae_u32 *dummy)
+static int get_joystick_widget_type (int joy, int num, char *name, uae_u32 *dummy)
 {
     if (num >= MAX_AXLES && num < MAX_AXLES+MAX_BUTTONS) {
 	if (name)
@@ -215,7 +215,7 @@ static int get_joystick_widget_type (unsigned int joy, unsigned int num, char *n
     return IDEV_WIDGET_NONE;
 }
 
-static int get_joystick_widget_first (unsigned int joy, int type)
+static int get_joystick_widget_first (int joy, int type)
 {
     switch (type) {
 	case IDEV_WIDGET_BUTTON:
@@ -228,15 +228,9 @@ static int get_joystick_widget_first (unsigned int joy, int type)
 }
 
 struct inputdevice_functions inputdevicefunc_joystick = {
-    init_joysticks,
-    close_joysticks,
-    acquire_joy,
-    unacquire_joy,
-    read_joysticks,
-    get_joystick_num,
-    get_joystick_name,
-    get_joystick_widget_num,
-    get_joystick_widget_type,
+    init_joysticks, close_joysticks, acquire_joy, unacquire_joy,
+    read_joysticks, get_joystick_num, get_joystick_name,
+    get_joystick_widget_num, get_joystick_widget_type,
     get_joystick_widget_first
 };
 
@@ -245,15 +239,15 @@ struct inputdevice_functions inputdevicefunc_joystick = {
  */
 void input_get_default_joystick (struct uae_input_device *uid)
 {
-    unsigned int i, port;
+    int i, port;
 
     for (i = 0; i < nr_joysticks; i++) {
-	port = i & 1;
-	uid[i].eventid[ID_AXIS_OFFSET + 0][0]   = port ? INPUTEVENT_JOY2_HORIZ : INPUTEVENT_JOY1_HORIZ;
-	uid[i].eventid[ID_AXIS_OFFSET + 1][0]   = port ? INPUTEVENT_JOY2_VERT  : INPUTEVENT_JOY1_VERT;
-	uid[i].eventid[ID_BUTTON_OFFSET + 0][0] = port ? INPUTEVENT_JOY2_FIRE_BUTTON : INPUTEVENT_JOY1_FIRE_BUTTON;
-	uid[i].eventid[ID_BUTTON_OFFSET + 1][0] = port ? INPUTEVENT_JOY2_2ND_BUTTON  : INPUTEVENT_JOY1_2ND_BUTTON;
-	uid[i].eventid[ID_BUTTON_OFFSET + 2][0] = port ? INPUTEVENT_JOY2_3RD_BUTTON  : INPUTEVENT_JOY1_3RD_BUTTON;
+        port = i & 1;
+        uid[i].eventid[ID_AXIS_OFFSET + 0][0]   = port ? INPUTEVENT_JOY2_HORIZ : INPUTEVENT_JOY1_HORIZ;
+        uid[i].eventid[ID_AXIS_OFFSET + 1][0]   = port ? INPUTEVENT_JOY2_VERT  : INPUTEVENT_JOY1_VERT;
+        uid[i].eventid[ID_BUTTON_OFFSET + 0][0] = port ? INPUTEVENT_JOY2_FIRE_BUTTON : INPUTEVENT_JOY1_FIRE_BUTTON;
+        uid[i].eventid[ID_BUTTON_OFFSET + 1][0] = port ? INPUTEVENT_JOY2_2ND_BUTTON  : INPUTEVENT_JOY1_2ND_BUTTON;
+        uid[i].eventid[ID_BUTTON_OFFSET + 2][0] = port ? INPUTEVENT_JOY2_3RD_BUTTON  : INPUTEVENT_JOY1_3RD_BUTTON;
     }
     uid[0].enabled = 1;
 }
