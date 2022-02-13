@@ -397,7 +397,7 @@ static int mangleunit (int unit)
 	return 9;
     return -1;
 }
-
+/* note */
 static uae_u32 REGPARAM2 hardfile_open (TrapContext *context)
 {
     uaecptr tmp1 = m68k_areg (&context->regs, 1); /* IOReq */
@@ -787,7 +787,7 @@ void hardfile_reset (void)
 
     for (i = 0; i < MAX_FILESYSTEM_UNITS; i++) {
 	 hfpd = &hardfpd[i];
-	if (hfpd->opencount > 0) {
+	if (hfpd->opencount > 0) { /*note */
 	    for (j = 0; j < MAX_ASYNC_REQUESTS; j++) {
 		uaecptr request;
 		if ((request = hfpd->d_request[i]))

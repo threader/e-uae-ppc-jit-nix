@@ -3104,7 +3104,7 @@ STATIC_INLINE void sprstartstop (struct sprite *s)
 	s->dmastate = 0;
 }
 
-STATIC_INLINE void SPRxCTLPOS (unsigned int num)
+STATIC_INLINE void SPRxCTLPOS (int num)
 {
     unsigned int sprxp;
     struct sprite *s = &spr[num];
@@ -3199,7 +3199,6 @@ static void SPRxDATA (unsigned int hpos, uae_u16 v, unsigned int num) { decide_s
 static void SPRxDATB (unsigned int hpos, uae_u16 v, unsigned int num) { decide_sprites (hpos); SPRxDATB_1 (v, num, hpos); }
 static void SPRxCTL  (unsigned int hpos, uae_u16 v, unsigned int num) { decide_sprites (hpos); SPRxCTL_1 (v, num, hpos); }
 static void SPRxPOS  (unsigned int hpos, uae_u16 v, unsigned int num) { decide_sprites (hpos); SPRxPOS_1 (v, num, hpos); }
-
 static void SPRxPTH  (unsigned int hpos, uae_u16 v, unsigned int num)
 {
     decide_sprites (hpos);

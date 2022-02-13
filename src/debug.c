@@ -624,6 +624,7 @@ struct breakpoint_node {
 static struct breakpoint_node bpnodes[BREAKPOINT_TOTAL];
 
 static addrbank **debug_mem_banks;
+
 #define MEMWATCH_TOTAL 4
 struct memwatch_node {
     uaecptr addr;
