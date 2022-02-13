@@ -22,12 +22,10 @@ extern int rpt_available;
 extern unsigned long syncbase;
 
 extern void compute_vsynctime (void);
-extern void do_cycles_ce (long cycles);
+extern void init_eventtab (void);
 
-
-extern unsigned int currcycle;
-extern unsigned int is_lastline;
-
+extern unsigned long currcycle, nextevent, is_lastline;
+extern unsigned long sample_evtime;
 typedef void (*evfunc)(void);
 
 struct ev
@@ -44,45 +42,11 @@ enum {
 
 extern struct ev eventtab[ev_max];
 
-extern void init_eventtab (void);
-extern void events_schedule (void);
-extern void handle_active_events (void);
-extern void do_cycles_slow (unsigned int cycles_to_add);
-
-#define do_cycles do_cycles_slow
-
-STATIC_INLINE unsigned int get_cycles (void)
-{
-    return currcycle;
-}
-
-STATIC_INLINE void set_cycles (unsigned int x)
-{
-#ifdef JIT
-    currcycle = x;
-#endif
-}
 
 #ifdef JIT
-/* For faster cycles handling */
-extern signed int pissoff;
+#include "events_jit.h"
+#else
+#include "events_normal.h"
 #endif
-
-STATIC_INLINE void cycles_do_special (void)
-{
-#ifdef JIT
-    if (pissoff >= 0)
-        pissoff = -1;
-#endif
-}
-
-STATIC_INLINE void do_extra_cycles (unsigned long cycles_to_add)
-{
-#ifdef JIT
-    pissoff -= cycles_to_add;
-#endif
-}
-
-#define countdown pissoff
 
 #endif

@@ -27,9 +27,9 @@ enum {
 extern int get_sdlgfx_type (void);
 
 /* keyboard support */
-struct uae_input_device_kbr_default *get_default_raw_keymap (int type);
+extern const void *get_default_raw_keymap (int type);
 extern int keysym2amiga (int keycode);
-int modifier_hack (int *scancode, int *pressed);
+
 
 /* hotkey support */
 struct uae_hotkeyseq *get_default_cooked_hotkeys (void);

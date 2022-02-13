@@ -405,7 +405,6 @@ PROC waitforit( sigmask_ptr = NIL )
 
   sigs := Wait( global.signal OR sigmask OR global.intrmask )
   IF ( sigs AND global.signal )      -> The call completed. It's my opinion that all other signals were delivered later. =)  (For efficiency)
-    IF( sigmask_ptr ) THEN ^sigmask_ptr := 0 
     IF ( sigs := sigs AND Not( global.signal )) THEN Signal( global.task , sigs )
   ELSE                               -> We got interrupted. Deliver stuff from intrmask, but not from sigmask.
 trap(sigs,global.intrmask,sigmask,global.signal,1000)

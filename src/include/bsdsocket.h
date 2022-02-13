@@ -62,24 +62,6 @@ struct socketbase {
     void *hAsyncTask;		/* async task handle */
     void *hEvent;		/* thread event handle */
     unsigned int *mtable;	/* window messages allocated for asynchronous event notification */
-#else
-    uae_sem_t sem;		/* semaphore to notify the socket thread of work */
-    uae_thread_id thread;	/* socket thread */
-    int  sockabort[2];		/* pipe used to tell the thread to abort a select */
-    int action;
-    int s;			/* for accept */
-    uae_u32 name;		/* For gethostbyname */
-    uae_u32 a_addr;		/* gethostbyaddr, accept */
-    uae_u32 a_addrlen;		/* for gethostbyaddr, accept */
-    uae_u32 flags;
-    void *buf;
-    uae_u32 len;
-    uae_u32 to, tolen, from, fromlen;
-    int nfds;
-    uae_u32 sets [3];
-    uae_u32 timeout;
-    uae_u32 sigmp;
-    struct hostent *tmphostent;
 #endif
 } *socketbases;
 
@@ -126,11 +108,6 @@ extern uae_u32 strcpyha (uae_u32, char *);
 extern uae_u32 strncpyha (uae_u32, char *, int);
 
 #define SB struct socketbase *sb
-
-#ifndef _WIN32
-typedef int SOCKET;
-#define INVALID_SOCKET -1
-#endif
 
 extern void seterrno (SB, int);
 extern void setherrno (SB, int);
@@ -192,7 +169,7 @@ extern uae_u32 host_getnetbyname (void);
 extern uae_u32 host_getnetbyaddr (void);
 extern void host_getservbynameport (SB, uae_u32, uae_u32, uae_u32);
 extern void host_getprotobyname (SB, uae_u32);
-extern void host_getprotobynumber (SB, uae_u32);
+extern uae_u32 host_getprotobynumber (void);
 extern uae_u32 host_vsyslog (void);
 extern uae_u32 host_Dup2Socket (void);
 extern uae_u32 host_gethostname (uae_u32, uae_u32);

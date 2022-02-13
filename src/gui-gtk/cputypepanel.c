@@ -73,7 +73,7 @@ static void cputypepanel_init (CpuTypePanel *ctpanel)
 
     gtkutil_add_table (GTK_WIDGET (ctpanel),
 	make_label ("CPU Model"), 1, 1, GTK_FILL,
-	ctpanel->cputype_widget    = make_chooser (5, "68000", "68010", "68020", "68040", "68060"), 2, 1, GTK_EXPAND | GTK_FILL,
+	ctpanel->cputype_widget    = make_chooser (4, "68000", "68010", "68020", "68040"), 2, 1, GTK_EXPAND | GTK_FILL,
 	GTKUTIL_ROW_END,
 	ctpanel->addr24bit_widget  = gtk_check_button_new_with_label ("24-bit addressing"), 1, 2, GTK_EXPAND,
 	GTKUTIL_ROW_END,
@@ -114,7 +114,6 @@ static void update_state (CpuTypePanel *ctpanel)
 	    fpu    = 0;
 	    break;
 	case 3:
-	case 4:
 	    addr24 = 0;
 	    fpu    = 1;
 	    break;
@@ -189,13 +188,12 @@ void cputypepanel_set_cpulevel (CpuTypePanel *ctpanel, guint cpulevel)
     guint cputype; guint fpu = ctpanel->fpuenabled;
 
     switch (cpulevel) {
-	case 0:  cputype = 0; break;
-	case 1:  cputype = 1; break;
-	case 2:  cputype = 2; fpu = 0; break;
-	case 3:  cputype = 2; fpu = 1; break;
-	case 4:  cputype = 3; fpu = 1; break;
-	case 6:  cputype = 4; fpu = 1; break;
-	default: cputype = 0;
+	case 0: cputype = 0; break;
+	case 1: cputype = 1; break;
+	case 2: cputype = 2; fpu = 0; break;
+	case 3: cputype = 2; fpu = 1; break;
+	case 4:
+	default: cputype = 3;
     }
     if (cputype != ctpanel->cputype) {
 	ctpanel->cputype = cputype;
@@ -217,9 +215,8 @@ guint cputypepanel_get_cpulevel (CpuTypePanel *ctpanel)
 	case 0:  cpulevel = 0; break;
 	case 1:  cpulevel = 1; break;
 	case 2:  cpulevel = 2 + (ctpanel->fpuenabled!=0); break;
-	case 3:  cpulevel = 4 ; break;
-	case 4:
-	default: cpulevel = 6; break;
+	case 3:
+	default: cpulevel = 4; break;
     }
 
     return cpulevel;

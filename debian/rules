@@ -45,10 +45,10 @@ install: build
 	dh_testdir
 	dh_testroot
 	dh_clean -k
-	dh_installdirs /usr/bin /usr/share/e-uae
-	install src/uae debian/e-uae/usr/bin/uae-sdl
-	install src/readdisk debian/e-uae/usr/bin/readdisk
-	cp -a amiga debian/e-uae/usr/share/e-uae/amiga
+	dh_installdirs /usr/bin /usr/share/uae
+	install src/uae debian/uae/usr/bin/uae-sdl
+	install src/readdisk debian/uae/usr/bin/readdisk
+	cp -a amiga debian/uae/usr/share/uae/amiga
 
 # Build architecture-independent files here.
 binary-indep: build install

@@ -23,6 +23,7 @@
 
 #include "config.h"
 #include "options.h"
+//#include "threadep/thread.h"
 #include "uae.h"
 #include "memory.h"
 #include "xwin.h"
@@ -700,7 +701,7 @@ static void graphics_subinit (void)
 			   0, bitdepth, InputOutput, vis, valuemask, &wattr);
     XSetWMProtocols (display, mywin, &delete_win, 1);
     XSync (display, 0);
-    XStoreName (display, mywin, PACKAGE_NAME);
+    XStoreName (display, mywin, "UAE");
     XSetIconName (display, mywin, "UAE Screen");
 
     /* set class hint */
@@ -804,7 +805,7 @@ static int get_best_visual (XVisualInfo *vi)
     } else if (XMatchVisualInfo (display, screen, 8, GrayScale, vi)) {
     } else if (XMatchVisualInfo (display, screen, 4, PseudoColor, vi)) {
         /* VGA16 server. Argh. */
-    } else if (XMatchVisualInfo (display, screen, 1, StaticGray, vi)) {
+    } else if (XMatchVisualInfo (display, screen, 1, StaticGray, vi)) {	
         /* Mono server. Yuk */
     } else {
         write_log ("Can't obtain appropriate X visual.\n");
@@ -928,10 +929,7 @@ static void graphics_subshutdown (void)
     destroy_dinfo (&ami_dinfo);
     destroy_dinfo (&pic_dinfo);
 
-    if (mywin) {
-	XDestroyWindow (display, mywin);
-	mywin = 0;
-    }
+    XDestroyWindow (display, mywin);
 
     if (gfxvidinfo.linemem != NULL)
 	free (gfxvidinfo.linemem);
@@ -989,10 +987,9 @@ void handle_events (void)
 	    int ievent, amiga_keycode;
 	    do {
 		keysym = XLookupKeysym ((XKeyEvent *)&event, index);
-		if ((ievent = match_hotkey_sequence (keysym, state))) {
+		if ((ievent = match_hotkey_sequence (keysym, state)))
 		    handle_hotkey_event (ievent, state);
-		    break;
-		} else
+		else
 		    if ((amiga_keycode = xkeysym2amiga (keysym)) >= 0) {
 			inputdevice_do_keyboard (amiga_keycode, state);
 			break;
@@ -1096,7 +1093,7 @@ void handle_events (void)
 	    refresh_necessary = 1;
 	    break;
          case ClientMessage:
-            if (((Atom)event.xclient.data.l[0]) == delete_win) {
+            if (event.xclient.data.l[0]==delete_win) {
 		uae_quit ();
             }
             break;
@@ -1322,7 +1319,7 @@ void DX_SetPalette_vsync(void)
 int DX_Fill (int dstx, int dsty, int width, int height, uae_u32 color, RGBFTYPE rgbtype)
 {
     /* not implemented yet */
-    return 0;
+    return 0;	
 }
 
 int DX_Blit (int srcx, int srcy, int dstx, int dsty, int width, int height, BLIT_OPCODE opcode)
@@ -1345,26 +1342,17 @@ int DX_FillResolutions (uae_u16 *ppixel_format)
     int emulate_chunky = 0;
 
     /* we now need to find display depth first */
-    XVisualInfo vi;
+    XVisualInfo vi;   
     if (!get_best_visual (&vi)) return 0;
     bitdepth = vi.depth;
     bit_unit = get_visual_bit_unit (&vi, bitdepth);
-
-    if (ImageByteOrder (display) == LSBFirst) {
+   
     picasso_vidinfo.rgbformat = (bit_unit == 8 ? RGBFB_CHUNKY
 				 : bitdepth == 15 && bit_unit == 16 ? RGBFB_R5G5B5PC
 				 : bitdepth == 16 && bit_unit == 16 ? RGBFB_R5G6B5PC
 				 : bit_unit == 24 ? RGBFB_B8G8R8
 				 : bit_unit == 32 ? RGBFB_B8G8R8A8
 				 : RGBFB_NONE);
-    } else {
-    picasso_vidinfo.rgbformat = (bit_unit == 8 ? RGBFB_CHUNKY
-				 : bitdepth == 15 && bit_unit == 16 ? RGBFB_R5G5B5
-				 : bitdepth == 16 && bit_unit == 16 ? RGBFB_R5G6B5
-				 : bit_unit == 24 ? RGBFB_R8G8B8
-				 : bit_unit == 32 ? RGBFB_A8R8G8B8
-				 : RGBFB_NONE);
-    }
 
     *ppixel_format = 1 << picasso_vidinfo.rgbformat;
     if (vi.VI_CLASS == TrueColor && (bit_unit == 16 || bit_unit == 32))
@@ -1694,15 +1682,6 @@ struct inputdevice_functions inputdevicefunc_keyboard =
     get_kb_widget_type, get_kb_widget_first
 };
 
-int getcapslockstate (void)
-{
-    return 0;
-}
-
-void setcapslockstate (int state)
-{
-}
-
 /*
  * Handle gfx cfgfile options
  */
@@ -1722,7 +1701,4 @@ int gfx_parse_option (struct uae_prefs *p, char *option, char *value)
 
 void gfx_default_options (struct uae_prefs *p)
 {
-    p->x11_use_low_bandwidth = 0;
-    p->x11_use_mitshm        = 1;
-    p->x11_hide_cursor       = 1;
 }

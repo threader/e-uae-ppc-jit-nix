@@ -7,8 +7,5 @@
   * Copyright 2004 Richard Drummond
   */
 
-extern const struct uaekey_hostmap x11pc_keymap[];
-extern       struct uae_hotkeyseq  x11pc_hotkeys[];
-#if 0
-extern const int                   x11pc_modkeytable[];
-#endif
+extern const struct uae_input_device_kbr_default keytrans_x11pc[];
+extern struct uae_hotkeyseq hotkeys_x11pc[];

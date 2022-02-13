@@ -38,4 +38,3 @@ extern void add_to_table(GtkWidget *table, GtkWidget *widget, int x, int y, int 
 #define GTKUTIL_ROW_END		((GtkWidget *)1)
 
 extern GtkWidget *gtkutil_add_table (GtkWidget *container, ...);
-extern GtkWidget *gtkutil_make_radio_group (GSList *group, GtkWidget **buttons, ...);

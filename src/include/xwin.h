@@ -12,6 +12,9 @@ typedef int (*allocfunc_type)(int, int, int, xcolnr *);
 
 extern xcolnr xcolors[4096];
 
+//extern int buttonstate[3];
+//extern int newmousecounters;
+//extern int lastmx, lastmy;
 extern int ievent_alive;
 
 extern int graphics_setup (void);
@@ -26,6 +29,7 @@ extern void toggle_fullscreen (void);
 extern void toggle_mousegrab (void);
 extern void framerate_down (void);
 extern void framerate_up (void);
+extern void screenshot(int mode);
 
 extern void flush_line (int);
 extern void flush_block (int, int);
@@ -39,7 +43,6 @@ extern int debuggable (void);
 extern int needmousehack (void);
 extern void togglemouse (void);
 extern void LED (int);
-extern void screenshot (int);
 
 extern int bits_in_mask (unsigned long mask);
 extern int mask_shift (unsigned long mask);
@@ -61,7 +64,7 @@ struct vidbuf_description
      *   - set bufmem to point at it
      *   - set linemem to 0
      *   - if memcpy within bufmem would be very slow, i.e. because bufmem is
-     *     in graphics card memory, also set emergmem to point to a buffer
+     *     in graphics card memory, also set emergmem to point to a buffer 
      *     that is large enough to hold a single line.
      *   - implement flush_line to be a no-op.
      * If you use a single line buffer:

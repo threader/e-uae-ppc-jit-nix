@@ -34,8 +34,8 @@
 #define COPY_CARRY (SET_XFLG (GET_CFLG))
 #endif
 
-extern const int areg_byteinc[];
-extern const int imm8_table[];
+extern int areg_byteinc[];
+extern int imm8_table[];
 
 extern int movem_index1[256];
 extern int movem_index2[256];
@@ -47,20 +47,15 @@ extern int fpp_movem_index2[256];
 extern int fpp_movem_next[256];
 #endif
 
+extern int broken_in;
+
 typedef unsigned long cpuop_func (uae_u32) REGPARAM;
 
 struct cputbl {
     cpuop_func *handler;
-    uae_u16 opcode;
-};
-
-#ifdef JIT
-struct comptbl {
-    cpuop_func *handler;
-    uae_u32 opcode;
     int specific;
+    uae_u32 opcode;
 };
-#endif
 
 extern unsigned long op_illg (uae_u32) REGPARAM;
 
@@ -113,9 +108,6 @@ extern struct regstruct
     uae_u16 irc;
     uae_u16 ir;
 
-    uae_u8 panic;
-    uae_u32 panic_pc, panic_addr;
-
 } regs, lastint_regs;
 
 typedef struct {
@@ -133,19 +125,17 @@ typedef union {
     struct blockinfo_t* bi;
 } cacheline;
 
+extern signed long pissoff;
 
-STATIC_INLINE uae_u32 munge24 (uae_u32 x)
+STATIC_INLINE uae_u32 munge24(uae_u32 x)
 {
     return x & regs.address_space_mask;
 }
 
-extern unsigned long irqcycles[15];
-extern int irqdelay[15];
-
 STATIC_INLINE void set_special (uae_u32 x)
 {
     regs.spcflags |= x;
-    cycles_do_special ();
+    cycles_do_special();
 }
 
 STATIC_INLINE void unset_special (uae_u32 x)
@@ -156,15 +146,16 @@ STATIC_INLINE void unset_special (uae_u32 x)
 #define m68k_dreg(r,num) ((r).regs[(num)])
 #define m68k_areg(r,num) (((r).regs + 8)[(num)])
 
+#if !defined USE_COMPILER
 STATIC_INLINE void m68k_setpc (uaecptr newpc)
 {
+    newpc &= ~1;
     regs.pc_p = regs.pc_oldp = get_real_address (newpc);
     regs.pc = newpc;
 }
-
-#define m68k_setpc_fast m68k_setpc
-#define m68k_setpc_bcc  m68k_setpc
-#define m68k_setpc_rte  m68k_setpc
+#else
+extern void m68k_setpc (uaecptr newpc);
+#endif
 
 STATIC_INLINE uaecptr m68k_getpc (void)
 {
@@ -176,31 +167,11 @@ STATIC_INLINE uaecptr m68k_getpc_p (uae_u8 *p)
     return regs.pc + ((char *)p - (char *)regs.pc_oldp);
 }
 
-#define m68k_incpc(o) (regs.pc_p += (o))
-
-STATIC_INLINE void m68k_do_rts (void)
-{
-    m68k_setpc (get_long (m68k_areg (regs, 7)));
-    m68k_areg (regs, 7) += 4;
-}
-
-STATIC_INLINE void m68k_do_bsr (uaecptr oldpc, uae_s32 offset)
-{
-    m68k_areg (regs, 7) -= 4;
-    put_long (m68k_areg (regs, 7), oldpc);
-    m68k_incpc (offset);
-}
-
-STATIC_INLINE void m68k_do_jsr (uaecptr oldpc, uaecptr dest)
-{
-    m68k_areg (regs, 7) -= 4;
-    put_long (m68k_areg (regs, 7), oldpc);
-    m68k_setpc (dest);
-}
-
 #define get_ibyte(o) do_get_mem_byte((uae_u8 *)(regs.pc_p + (o) + 1))
 #define get_iword(o) do_get_mem_word((uae_u16 *)(regs.pc_p + (o)))
 #define get_ilong(o) do_get_mem_long((uae_u32 *)(regs.pc_p + (o)))
+
+#define m68k_incpc(o) (regs.pc_p += (o))
 
 /* These are only used by the 68020/68881 code, and therefore don't
  * need to handle prefetch.  */
@@ -225,6 +196,15 @@ STATIC_INLINE uae_u32 next_ilong (void)
     return r;
 }
 
+#ifdef USE_COMPILER
+extern void m68k_setpc_fast (uaecptr newpc);
+extern void m68k_setpc_bcc (uaecptr newpc);
+extern void m68k_setpc_rte (uaecptr newpc);
+#else
+#define m68k_setpc_fast m68k_setpc
+#define m68k_setpc_bcc  m68k_setpc
+#define m68k_setpc_rte  m68k_setpc
+#endif
 
 STATIC_INLINE void m68k_setstopped (int stop)
 {
@@ -239,11 +219,6 @@ extern uae_u32 get_disp_ea_020 (uae_u32 base, uae_u32 dp);
 extern uae_u32 get_disp_ea_000 (uae_u32 base, uae_u32 dp);
 
 extern uae_s32 ShowEA (void *, uae_u16 opcode, int reg, amodes mode, wordsizes size, char *buf);
-
-/* Hack to stop conflict with AROS Exception function */
-#ifdef __AROS__
-# undef Exception
-#endif
 
 extern void MakeSR (void);
 extern void MakeFromSR (void);
@@ -271,11 +246,9 @@ extern void ftrapcc_opp (uae_u32,uaecptr);
 extern void fbcc_opp (uae_u32, uaecptr, uae_u32);
 extern void fsave_opp (uae_u32);
 extern void frestore_opp (uae_u32);
-extern uae_u32 get_fpsr (void);
 
+extern void exception3f (uae_u32 opcode, uaecptr addr, uaecptr fault, int writeaccess, int instructionaccess);
 extern void exception3 (uae_u32 opcode, uaecptr addr, uaecptr fault);
-extern void exception3i (uae_u32 opcode, uaecptr addr, uaecptr fault);
-extern void exception2 (uaecptr addr, uaecptr fault);
 extern void cpureset (void);
 
 extern void fill_prefetch_slow (void);
@@ -283,23 +256,23 @@ extern void fill_prefetch_slow (void);
 #define CPU_OP_NAME(a) op ## a
 
 /* 68040 */
-extern const struct cputbl op_smalltbl_0_ff[];
+extern struct cputbl op_smalltbl_0_ff[];
 /* 68020 + 68881 */
-extern const struct cputbl op_smalltbl_1_ff[];
+extern struct cputbl op_smalltbl_1_ff[];
 /* 68020 */
-extern const struct cputbl op_smalltbl_2_ff[];
+extern struct cputbl op_smalltbl_2_ff[];
 /* 68010 */
-extern const struct cputbl op_smalltbl_3_ff[];
+extern struct cputbl op_smalltbl_3_ff[];
 /* 68000 */
-extern const struct cputbl op_smalltbl_4_ff[];
+extern struct cputbl op_smalltbl_4_ff[];
 /* 68000 slow but compatible.  */
-extern const struct cputbl op_smalltbl_5_ff[];
+extern struct cputbl op_smalltbl_5_ff[];
 /* 68000 slow but compatible and cycle-exact.  */
-extern const struct cputbl op_smalltbl_6_ff[];
+extern struct cputbl op_smalltbl_6_ff[];
 
 extern cpuop_func *cpufunctbl[65536] ASM_SYM_FOR_FUNC ("cpufunctbl");
 
-
+  
 /* Flags for Bernie during development/debugging. Should go away eventually */
 #define DISTRUST_CONSISTENT_MEM 0
 #define TAGMASK 0x000fffff
@@ -311,11 +284,11 @@ extern uae_u32 start_pc;
 
 #define cacheline(x) (((uae_u32)x)&TAGMASK)
 
-void newcpu_showstate (void);
+void newcpu_showstate(void);
 
 #ifdef JIT
-extern void flush_icache (int n);
-extern void compemu_reset (void);
+extern void flush_icache(int n);
+extern void compemu_reset(void);
 #else
 #define flush_icache(X) do {} while (0)
 #endif

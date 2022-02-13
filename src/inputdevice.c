@@ -39,7 +39,7 @@
 #include "ar.h"
 #include "gui.h"
 #include "disk.h"
-#include "gensound.h"
+#include "sounddep/sound.h"
 #include "savestate.h"
 
 #include <ctype.h>
@@ -334,25 +334,25 @@ void read_inputdevice_config (struct uae_prefs *pr, char *option, char *value)
 {
     struct uae_input_device *id = 0;
     struct inputevent *ie;
-    int devnum, num, button = 0, joystick, flags, i, subnum, idnum, keynum = 0;
+    int devnum, num, button, joystick, flags, i, subnum, idnum, keynum;
     int mask;
     char *p, *p2;
 
     option += 6; /* "input." */
     p = getstring (&option);
-    if (!strcasecmp (p, "config"))
+    if (!strcasecmp (p, "config")) 
 	pr->input_selected_setting = atol (value);
-    if (!strcasecmp (p, "joymouse_speed_analog"))
+    if (!strcasecmp (p, "joymouse_speed_analog")) 
 	pr->input_joymouse_multiplier = atol (value);
-    if (!strcasecmp (p, "joymouse_speed_digital"))
+    if (!strcasecmp (p, "joymouse_speed_digital")) 
 	pr->input_joymouse_speed = atol (value);
-    if (!strcasecmp (p, "joystick_deadzone"))
+    if (!strcasecmp (p, "joystick_deadzone")) 
 	pr->input_joystick_deadzone = atol (value);
-    if (!strcasecmp (p, "joymouse_deadzone"))
+    if (!strcasecmp (p, "joymouse_deadzone")) 
 	pr->input_joymouse_deadzone = atol (value);
-    if (!strcasecmp (p, "mouse_speed"))
+    if (!strcasecmp (p, "mouse_speed")) 
 	pr->input_mouse_speed = atol (value);
-    if (!strcasecmp (p, "autofire"))
+    if (!strcasecmp (p, "autofire")) 
 	pr->input_autofire_framecnt = atol (value);
     idnum = atol (p);
     if (idnum <= 0 || idnum > MAX_INPUT_SETTINGS)
@@ -423,7 +423,7 @@ void read_inputdevice_config (struct uae_prefs *pr, char *option, char *value)
 	num = getnum (&p);
     }
     p = value;
-
+    
     subnum = 0;
     while (subnum < MAX_INPUT_SUB_EVENT) {
 	p2 = getstring (&p);
@@ -478,16 +478,14 @@ void read_inputdevice_config (struct uae_prefs *pr, char *option, char *value)
 static const int docal = 60, xcaloff = 40, ycaloff = 20;
 static const int calweight = 3;
 static int lastsampledmx, lastsampledmy;
-static signed int lastdiffx, lastdiffy;
-static unsigned int lastspr0x, lastspr0y, spr0pos, spr0ctl;
-
+static int lastspr0x,lastspr0y,lastdiffx,lastdiffy,spr0pos,spr0ctl;
 static int mstepx,mstepy,xoffs=defxoffs,yoffs=defyoffs;
 static int sprvbfl;
 
 static enum mousestate mousestate;
 
 void mousehack_handle (int sprctl, int sprpos)
-{
+{		    
     if (!sprvbfl && ((sprpos & 0xff) << 2) > 2 * DISPLAY_LEFT_SHIFT) {
 	spr0ctl = sprctl;
 	spr0pos = sprpos;
@@ -588,8 +586,8 @@ STATIC_INLINE int adjust (int val)
 
 static void do_mouse_hack (void)
 {
-    unsigned int spr0x = ((spr0pos & 0xff) << 2) | ((spr0ctl & 1) << 1);
-    unsigned int spr0y = ((spr0pos >> 8) | ((spr0ctl & 4) << 6)) << 1;
+    int spr0x = ((spr0pos & 0xff) << 2) | ((spr0ctl & 1) << 1);
+    int spr0y = ((spr0pos >> 8) | ((spr0ctl & 4) << 6)) << 1;
     int diffx, diffy;
 
 #if 0
@@ -657,7 +655,7 @@ static void do_mouse_hack (void)
 	    mouse_x[0] += diffx; mouse_y[0] += diffy;
 	}
 	break;
-
+	
     default:
 	abort ();
     }
@@ -712,12 +710,12 @@ static void mouseupdate (int pct)
 	    mouse_frame_x[i] = mouse_x[i];
 	    mouse_frame_y[i] = mouse_y[i];
         }
-
+    
     }
 }
 
-static unsigned int input_read, input_vpos;
-
+static int input_read, input_vpos;
+extern int vpos;
 static void readinput (void)
 {
     if (!input_read && (vpos & ~31) != (input_vpos & ~31)) {
@@ -904,25 +902,7 @@ static uae_u16 handle_joystick_potgor (uae_u16 potgor)
     for (i = 0; i < 2; i++) {
 	uae_u16 mask8 = 0x0800 << (i * 4);
 	uae_u16 mask4 = 0x0400 << (i * 4);
-	uae_u16 mask2 = 0x0200 << (i * 4);
 	uae_u16 mask1 = 0x0100 << (i * 4);
-
-	if (mouse_port[i]) {
-	    /* mouse has pull-up resistors in button lines */
-	    if (!(potgor & mask2))
-		potgor |= mask1;
-	    if (!(potgor & mask8))
-		potgor |= mask4;
-	}
-        if (potgo_hsync < 0) {
-	    /* first 10 or so lines after potgo has started
-	     * forces input-lines to zero
-	     */
-	    if (!(potgor & mask2))
-		potgor &= ~mask1;
-	    if (!(potgor & mask8))
-		potgor &= ~mask4;
-	}
 
 	if (cd32_pad_enabled[i]) {
 	    if (!(potgor & mask8))
@@ -1002,18 +982,17 @@ uae_u16 POT1DAT (void)
     return potdats[1];
 }
 
-/* direction=input, data pin floating, last connected logic level or previous status
-                    written when direction was ouput
- *                  otherwise it is currently connected logic level.
+/* direction=input, data pin is last value written when direction was ouput
  * direction=output, data pin is current value, forced to zero if joystick button is pressed
- * it takes some tens of microseconds before data pin changes state
+ * it some tens of microseconds before data pin changes state
  */
 
 void POTGO (uae_u16 v)
 {
     int i;
 
-    //write_log ("W:%d: %04.4X %p\n", vpos, v, m68k_getpc());
+//    if (v != 0x0f00)
+//	write_log ("%04.4X %p\n", v, m68k_getpc());
 #ifdef DONGLE_DEBUG
     if (notinrom ())
 	write_log ("POTGO %04.4X %s\n", v, debuginfo(0));
@@ -1042,7 +1021,7 @@ uae_u16 POTGOR (void)
     if (notinrom ())
 	write_log ("POTGOR %04.4X %s\n", v, debuginfo(0));
 #endif
-    //write_log("R:%d:%04.4X %d %p\n", vpos, v, cd32_shifter[1], m68k_getpc());
+    //write_log("R:%04.4X %d %p\n", v, cd32_shifter[1], m68k_getpc());
     return v;
 }
 
@@ -1087,12 +1066,6 @@ static void queue_input_event (int event, int state, int max, int framecnt, int 
 }
 
 static uae_u8 keybuf[256];
-static int inputcode_pending;
-
-void inputdevice_add_inputcode (int code)
-{
-   inputcode_pending = code;
-}
 
 /* Generate key up events for any keys that are 'stuck' down */
 void inputdevice_release_all_keys (void)
@@ -1123,18 +1096,6 @@ void inputdevice_do_keyboard (int code, int state)
     }
     if (state == 0)
 	return;
-    inputdevice_add_inputcode (code);
-}
-
-void inputdevice_handle_inputcode (void)
-{
-    int code = inputcode_pending;
-    inputcode_pending = 0;
-    if (code == 0)
-	return;
-    if (vpos != 0)
-	write_log ("inputcode=%d but vpos = %d", code, vpos);
-
     switch (code)
     {
 	case AKS_ENTERGUI:
@@ -1149,32 +1110,43 @@ void inputdevice_handle_inputcode (void)
 	break;
 #endif
 	case AKS_FLOPPY0:
+	gui_display (0);
+	break;
 	case AKS_FLOPPY1:
+	gui_display (1);
+	break;
 	case AKS_FLOPPY2:
+	gui_display (2);
+	break;
 	case AKS_FLOPPY3:
-	{
-	    unsigned int drive_num = code - AKS_FLOPPY0;
-	    if (currprefs.dfxtype[drive_num] >= 0)
-		gui_display (drive_num);
-	    break;
-	}
+	gui_display (3);
+	break;
 	case AKS_EFLOPPY0:
+	disk_eject (0);
+	break;
 	case AKS_EFLOPPY1:
+	disk_eject (1);
+	break;
 	case AKS_EFLOPPY2:
+	disk_eject (2);
+	break;
 	case AKS_EFLOPPY3:
-	{
-	    unsigned int drive_num = code - AKS_EFLOPPY0;
-	    disk_eject (drive_num);
-	    break;
-	}
+	disk_eject (3);
+	break;
 	case AKS_IRQ7:
 	Interrupt (7);
 	break;
 	case AKS_PAUSE:
-	pausemode (-1);
+        pause_emulation = pause_emulation ? 0 : 1;
 	break;
 	case AKS_WARP:
-	warpmode (-1);
+	turbo_emulation = turbo_emulation ? 0 : 1;
+	pause_emulation = 0;
+	if (turbo_emulation)
+	    pause_sound ();
+	else
+	    resume_sound ();
+	compute_vsynctime ();
 	break;
 	case AKS_INHIBITSCREEN:
 	toggle_inhibit_frame (IHF_SCROLLLOCK);
@@ -1191,38 +1163,9 @@ void inputdevice_handle_inputcode (void)
 	case AKS_VOLMUTE:
 	sound_volume (0);
 	break;
+#ifndef _WIN32
 	case AKS_QUIT:
 	uae_quit ();
-	break;
-	case AKS_WARM_RESET:
-	uae_reset (0);
-	break;
-	case AKS_COLD_RESET:
-	uae_reset (1);
-	break;
-	case AKS_STATESAVEQUICK:
-	case AKS_STATESAVEQUICK1:
-	case AKS_STATESAVEQUICK2:
-	case AKS_STATESAVEQUICK3:
-	case AKS_STATESAVEQUICK4:
-	case AKS_STATESAVEQUICK5:
-	case AKS_STATESAVEQUICK6:
-	case AKS_STATESAVEQUICK7:
-	case AKS_STATESAVEQUICK8:
-	case AKS_STATESAVEQUICK9:
-	savestate_quick ((code - AKS_STATESAVEQUICK) / 2, 1);
-	break;
-	case AKS_STATERESTOREQUICK:
-	case AKS_STATERESTOREQUICK1:
-	case AKS_STATERESTOREQUICK2:
-	case AKS_STATERESTOREQUICK3:
-	case AKS_STATERESTOREQUICK4:
-	case AKS_STATERESTOREQUICK5:
-	case AKS_STATERESTOREQUICK6:
-	case AKS_STATERESTOREQUICK7:
-	case AKS_STATERESTOREQUICK8:
-	case AKS_STATERESTOREQUICK9:
-	savestate_quick ((code - AKS_STATESAVEQUICK) / 2, 0);
 	break;
 	case AKS_TOGGLEFULLSCREEN:
 	toggle_fullscreen ();
@@ -1233,15 +1176,6 @@ void inputdevice_handle_inputcode (void)
 	case AKS_TOGGLEMOUSEGRAB:
 	toggle_mousegrab ();
 	break;
-	case AKS_ENTERDEBUGGER:
-	activate_debugger ();
-	break;
-	case AKS_STATESAVEDIALOG:
-	gui_display (5);
-	break;
-	case AKS_STATERESTOREDIALOG:
-	gui_display (4);
-	break;
 	case AKS_INCRFRAMERATE:
 	framerate_up ();
 	break;
@@ -1251,6 +1185,7 @@ void inputdevice_handle_inputcode (void)
 	case AKS_SWITCHINTERPOL:
 	switch_audio_interpol ();
 	break;
+#endif
     }
 }
 
@@ -1258,7 +1193,7 @@ void handle_input_event (int nr, int state, int max, int autofire)
 {
     struct inputevent *ie;
     int joy;
-
+    
     if (nr <= 0) return;
     ie = &events[nr];
     //write_log("'%s' %d %d\n", ie->name, state, max);
@@ -1389,7 +1324,6 @@ void inputdevice_vsync (void)
     idev[IDTYPE_MOUSE].read ();
     input_read = 1;
     input_vpos = 0;
-    inputdevice_handle_inputcode ();
 }
 
 static void setbuttonstateall (struct uae_input_device *id, struct uae_input_device2 *id2, int button, int state)
@@ -1398,7 +1332,7 @@ static void setbuttonstateall (struct uae_input_device *id, struct uae_input_dev
     uae_u32 mask = 1 << button;
     uae_u32 omask = id2->buttonmask & mask;
     uae_u32 nmask = (state ? 1 : 0) << button;
-
+    
     if (button >= ID_BUTTON_TOTAL)
 	return;
     for (i = 0; i < MAX_INPUT_SUB_EVENT; i++) {
@@ -1419,7 +1353,7 @@ static void setbuttonstateall (struct uae_input_device *id, struct uae_input_dev
 	    id2->buttonmask |= mask;
 	else
 	    id2->buttonmask &= ~mask;
-    }
+    }    
 }
 
 
@@ -1610,7 +1544,7 @@ static void compatibility_mode (struct uae_prefs *prefs)
 	joysticks[3].eventid[ID_BUTTON_OFFSET + 2][0] = INPUTEVENT_JOY2_3RD_BUTTON;
 	joysticks[3].enabled = 1;
     }
-
+    
 
     /* joystick 1 compatibility code */
     joy = -1;
@@ -1663,7 +1597,7 @@ void inputdevice_updateconfig (struct uae_prefs *prefs)
 	mouse_delta[i][2] = 0;
     }
     memset (keybuf, 0, sizeof (keybuf));
-
+ 
     for (i = 0; i < INPUT_QUEUE_SIZE; i++)
 	input_queue[i].framecnt = input_queue[i].nextframecnt = -1;
 
@@ -1938,8 +1872,6 @@ int inputdevice_get_widget_num (int devnum)
 
 static void get_ename (struct inputevent *ie, char *out)
 {
-    if (!out)
-	return;
     if (ie->allow_mask == AM_K)
         sprintf (out, "%s (0x%02.2X)", ie->name, ie->data);
     else
@@ -2008,8 +1940,7 @@ int inputdevice_get_mapped_name (int devnum, int num, int *pflags, char *name, i
     int flags = 0, flag, data;
     int devindex = inputdevice_get_device_index (devnum);
 
-    if (name)
-	strcpy (name, "<none>");
+    strcpy (name, "<none>");
     if (pflags)
 	*pflags = 0;
     if (uid == 0 || num < 0)
@@ -2105,7 +2036,7 @@ void inputdevice_copyconfig (struct uae_prefs *src, struct uae_prefs *dst)
 	    memcpy (&dst->keyboard_settings[i][j], &src->keyboard_settings[i][j], sizeof (struct uae_input_device));
 	}
     }
-
+    
     inputdevice_updateconfig (dst);
 }
 
@@ -2135,7 +2066,7 @@ void inputdevice_swap_ports (struct uae_prefs *p, int devnum)
 		k++;
 	    }
 	}
-    }
+    }    
 }
 
 void inputdevice_copy_single_config (struct uae_prefs *p, int src, int dst, int devnum)
@@ -2294,42 +2225,12 @@ void setmousestate (int mouse, int axis, int data, int isabs)
     fract2[mouse][axis] += v;
     diff = fract2[mouse][axis] - fract1[mouse][axis];
     if (diff > 1 || diff < -1) {
-	v -= (int)diff;
+	v -= (int)diff; 
 	fract2[mouse][axis] -= diff;
     }
     for (i = 0; i < MAX_INPUT_SUB_EVENT; i++)
 	handle_input_event (id->eventid[ID_AXIS_OFFSET + axis][i], v, 0, 0);
 }
 
-void warpmode (int mode)
-{
-    if (mode < 0) {
-	if (turbo_emulation) {
-	    changed_prefs.gfx_framerate = currprefs.gfx_framerate = turbo_emulation;
-	    turbo_emulation = 0;
-	}  else {
-	    turbo_emulation = currprefs.gfx_framerate;
-	}
-    } else if (mode == 0 && turbo_emulation > 0) {
-        changed_prefs.gfx_framerate = currprefs.gfx_framerate = turbo_emulation;
-	turbo_emulation = 0;
-    } else if (mode > 0 && !turbo_emulation) {
-        turbo_emulation = currprefs.gfx_framerate;
-    }
-    if (turbo_emulation) {
-	if (!currprefs.cpu_cycle_exact && !currprefs.blitter_cycle_exact)
-	    changed_prefs.gfx_framerate = currprefs.gfx_framerate = 10;
-        pause_sound ();
-    } else {
-        resume_sound ();
-    }
-    compute_vsynctime ();
-}
 
-void pausemode (int mode)
-{
-    if (mode < 0)
-	pause_emulation = pause_emulation ? 0 : 1;
-    else
-	pause_emulation = mode;
-}
+

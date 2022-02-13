@@ -833,61 +833,6 @@ AC_CONFIG_COMMANDS_PRE(
 Usually this means the macro was only invoked conditionally.])
 fi])])
 
-
-
-# AC_PROG_OBJC([LIST-OF-COMPILERS])
-#
-AC_DEFUN([AS_PROG_OBJC],
-[
-AC_CHECK_TOOLS(OBJC,
-	[m4_default([$1], [objcc objc gcc cc CC])],
-	none)
-AC_SUBST(OBJC)
-OBJC_LDFLAGS="-lobjc"
-AC_SUBST(OBJC_LDFLAGS)
-if test "x$OBJC" != xnone ; then
-  _AM_DEPENDENCIES(OBJC)
-  AC_MSG_CHECKING([if Objective C compiler works])
-  cat >>conftest.m <<EOF
-#include <objc/Object.h>
-@interface Moo:Object
-{
-}
-- moo;
-int main();
-@end
-
-@implementation Moo
-- moo
-{
-  exit(0);
-}
-
-int main()
-{
-  id moo;
-  moo = [[Moo new]];
-  [[moo moo]];
-  return 1;
-}
-@end
-EOF
-  ${OBJC} conftest.m ${OBJC_LDFLAGS} >&5 2>&5
-  if test -f a.out -o -f a.exe ; then
-    result=yes
-  else
-    result=no
-    echo failed program is: >&5
-    cat conftest.m >&5
-  fi
-  rm -f conftest.m a.out a.exe
-  AC_MSG_RESULT([$result])
-fi
-
-])
-
-
-
 # Figure out how to run the assembler.             -*- Autoconf -*-
 
 # serial 2
@@ -981,7 +926,7 @@ AC_ARG_ENABLE(sdltest, [  --disable-sdltest       Do not try to compile and run 
      fi
   fi
 
-  AC_REQUIRE([AC_CANONICAL_HOST])
+  AC_REQUIRE([AC_CANONICAL_TARGET])
   PATH="$prefix/bin:$prefix/usr/bin:$PATH"
   AC_PATH_PROG(SDL_CONFIG, sdl-config, no, [$PATH])
   min_sdl_version=ifelse([$1], ,0.11.0,$1)
@@ -1130,7 +1075,7 @@ dnl AM_PATH_GTK_2_0([MINIMUM-VERSION, [ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND [,
 dnl Test for GTK+, and define GTK_CFLAGS and GTK_LIBS, if gthread is specified in MODULES, 
 dnl pass to pkg-config
 dnl
-AC_DEFUN([AM_PATH_GTK_2_0],
+AC_DEFUN(AM_PATH_GTK_2_0,
 [dnl 
 dnl Get the cflags and libraries from pkg-config
 dnl
@@ -1155,7 +1100,7 @@ AC_ARG_ENABLE(gtktest, [  --disable-gtktest       do not try to compile and run 
     if pkg-config --atleast-pkgconfig-version 0.7 ; then
       :
     else
-      echo "*** pkg-config too old; version 0.7 or better required."
+      echo *** pkg-config too old; version 0.7 or better required.
       no_gtk=yes
       PKG_CONFIG=no
     fi
@@ -1809,6 +1754,7 @@ AC_DEFUN([jm_AC_TYPE_UINTMAX_T],
       [Define if you have the 'uintmax_t' type in <stdint.h> or <inttypes.h>.])
   fi
 ])
+
 # inttypes_h.m4 serial 5 (gettext-0.12)
 dnl Copyright (C) 1997-2003 Free Software Foundation, Inc.
 dnl This file is free software, distributed under the terms of the GNU

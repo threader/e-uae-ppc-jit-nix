@@ -9,9 +9,8 @@
 #ifdef __BEOS__
 # include <be/kernel/OS.h>
 #else
-# ifdef AMIGA
+# ifdef __AMIGA__
 #  include <proto/dos.h>
-#  include <clib/alib_protos.h>
 # endif
 #endif
 
@@ -43,15 +42,8 @@
 # if defined _WIN32
 #  define uae_msleep(msecs) Sleep (msecs)
 # else
-#  if defined AMIGA
-#   if defined __amigaos4__ || defined __MORPHOS__
-#    define uae_msleep(msecs) TimeDelay (0, msecs / ONE_THOUSAND, (msecs % ONE_THOUSAND) * ONE_THOUSAND)
-#   else
-#    define uae_msleep(msecs) Delay (msecs <= 20 ? 1 : msecs/20);
-#   endif
-#  else
-#   ifdef HAVE_NANOSLEEP
-#    define uae_msleep(msecs) \
+#  ifdef HAVE_NANOSLEEP
+#   define uae_msleep(msecs) \
 	    { \
 		if (msecs < 1000) { \
 		    struct timespec t = { 0, (msecs) * ONE_MILLION }; \
@@ -63,12 +55,16 @@
 		    nanosleep (&t, 0); \
 		} \
 	    }
+#  else
+#   ifdef HAVE_USLEEP
+#    define uae_msleep(msecs) usleep (msecs * ONE_THOUSAND)
 #   else
-#    ifdef HAVE_USLEEP
-#     define uae_msleep(msecs) usleep (msecs * ONE_THOUSAND)
+#    ifdef USE_SDL
+#     define uae_msleep(msecs) SDL_Delay (msecs)
 #    else
-#     ifdef USE_SDL
-#      define uae_msleep(msecs) SDL_Delay (msecs)
+#     if defined __AMIGA__ || defined __MORPHOS__
+       /* last resort. TODO: use timer.device instead */
+#      define uae_msleep(msecs) Delay ((msecs)/20)
 #     else
 #      error "No system sleep function found"
 #     endif

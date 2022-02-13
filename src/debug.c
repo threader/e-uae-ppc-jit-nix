@@ -15,6 +15,7 @@
 
 #include "config.h"
 #include "options.h"
+#include "threaddep/thread.h"
 #include "uae.h"
 #include "memory.h"
 #include "custom.h"
@@ -25,11 +26,10 @@
 #include "xwin.h"
 #include "gui.h"
 #include "identify.h"
-#include "gensound.h"
+#include "sounddep/sound.h"
 #include "disk.h"
 #include "savestate.h"
 #include "autoconf.h"
-#include "akiko.h"
 
 static int debugger_active;
 static uaecptr skipaddr_start, skipaddr_end, skipaddr_doskip;
@@ -38,9 +38,6 @@ static int do_skip;
 static int debug_rewind;
 static int memwatch_enabled, memwatch_triggered;
 int debugging;
-int exception_debugging;
-
-extern int audio_channel_mask;
 
 static FILE *logfile;
 
@@ -52,25 +49,15 @@ static FILE *logfile;
 
 void activate_debugger (void)
 {
-    if (debuggable ()) {
-	if (is_fullscreen ()) {
-	    toggle_fullscreen ();
-	    if (is_fullscreen ()) {
-		write_log ("Cannot activate debugger in full-screen mode\n");
-		return;
-            }
-        }
-
-	if (logfile)
-	    fclose (logfile);
-	logfile = 0;
-	do_skip = 0;
-	if (debugger_active)
-	    return;
-	debugger_active = 1;
-	set_special (SPCFLAG_BRK);
-	debugging = 1;
-   }
+    if (logfile)
+	fclose (logfile);
+    logfile = 0;
+    do_skip = 0;
+    if (debugger_active)
+	return;
+    debugger_active = 1;
+    set_special (SPCFLAG_BRK);
+    debugging = 1;
 }
 
 int firsthist = 0;
@@ -110,14 +97,12 @@ static char help[] = {
     "  W <address> <value>   Write into Amiga memory\n"
     "  w <num> <address> <length> <R/W/RW> [<value>]\n"
     "                        Add/remove memory watchpoints\n"
-    "  wd                    Enable illegal access logger\n"
     "  S <file> <addr> <n>   Save a block of Amiga memory\n"
     "  s <string>/<values> [<addr>] [<length>]\n"
-    "                        Search for string/bytes\n"
+    "                        search for string/bytes\n"
     "  T                     Show exec tasks and their PCs\n"
     "  h,?                   Show this help page\n"
     "  b                     Step to previous state capture position\n"
-    "  am <channel mask>     Enable or disable audio channels\n"
     "  q                     Quit the emulator. You don't want to use this command.\n\n"
 };
 
@@ -169,7 +154,7 @@ static uae_u32 readint (char **c)
 	return readhex (c);
     }
     if (**c == '0' && toupper((*c)[1]) == 'X') {
-	(*c)+= 2;
+	(*c)+= 2;	
 	return readhex (c);
     }
     if (**c == '-')
@@ -224,7 +209,8 @@ static void dumpmem (uaecptr addr, uaecptr *nxmem, int lines)
 {
     char line[80];
     int cols = 8;
-    for (;lines--;) {
+    broken_in = 0;
+    for (;lines-- && !broken_in;) {
 	int i;
 	sprintf (line, "%08lx ", addr);
 	for (i = 0; i < cols; i++) {
@@ -265,7 +251,7 @@ static void foundmod (uae_u32 ptr, char *type)
     ptr2 += 0x2A;
     for (i = 0; i < 31; i++, ptr2 += 30)
 	length += 2*((ptr2[0]<<8)+ptr2[1]);
-
+    
     console_out ("Name \"%s\", Length 0x%lx bytes.\n", name, length);
 }
 
@@ -444,7 +430,7 @@ static void decode_copper_insn (FILE* file, unsigned long insn, unsigned long ad
     case 0x00000000:
     case 0x00000001: /* MOVE insn */
 	{
-	    uae_u32 addr = (insn >> 16) & 0x1fe;
+	    int addr = (insn >> 16) & 0x1fe;
 	    int i = 0;
 	    while (custd[i].name) {
 		if (custd[i].adr == addr + 0xdff000)
@@ -475,7 +461,7 @@ static uaecptr decode_copperlist (FILE* file, uaecptr address, int nolines)
     }
     return address;
     /* You may wonder why I don't stop this at the end of the copperlist?
-     * Well, often nice things are hidden at the end and it is debatable the actual
+     * Well, often nice things are hidden at the end and it is debatable the actual 
      * values that mean the end of the copperlist */
 }
 
@@ -519,7 +505,7 @@ static void cheatsearch (char **c)
     } else {
 	for (count = 0; count<255; count++) {
 	    if (p[vlist[count]+3] == (val & 0xff)
-		&& p[vlist[count]+2] == (val>>8 & 0xff)
+		&& p[vlist[count]+2] == (val>>8 & 0xff) 
 		&& p[vlist[count]+1] == (val>>16 & 0xff)
 		&& p[vlist[count]] == (val>>24 & 0xff))
 	    {
@@ -555,105 +541,15 @@ struct memwatch_node {
 static struct memwatch_node mwnodes[MEMWATCH_TOTAL];
 static struct memwatch_node mwhit;
 
-static uae_u8 *illgdebug;
-extern int cdtv_enabled, cd32_enabled;
-
-static void illg_init (void)
-{
-    int i;
-
-    free (illgdebug);
-    illgdebug = xmalloc (0x1000000);
-    if (!illgdebug)
-	return;
-    memset (illgdebug, 3, 0x1000000);
-    memset (illgdebug, 0, currprefs.chipmem_size);
-    memset (illgdebug + 0xc00000, 0, currprefs.bogomem_size);
-    memset (illgdebug + 0x200000, 0, currprefs.fastmem_size);
-    i = 0;
-    while (custd[i].name) {
-	int rw = custd[i].rw;
-	illgdebug[custd[i].adr] = rw;
-	illgdebug[custd[i].adr + 1] = rw;
-	i++;
-    }
-    for (i = 0; i < 16; i++) { /* CIAs */
-	if (i == 11)
-	    continue;
-	illgdebug[0xbfe001 + i * 0x100] = 0;
-	illgdebug[0xbfd000 + i * 0x100] = 0;
-    }
-    memset (illgdebug + 0xf80000, 1, 512 * 1024); /* KS ROM */
-    memset (illgdebug + 0xdc0000, 0, 0x3f); /* clock */
-#ifdef CDTV
-    if (cdtv_enabled) {
-	memset (illgdebug + 0xf00000, 1, 256 * 1024); /* CDTV ext ROM */
-	memset (illgdebug + 0xdc8000, 0, 4096); /* CDTV batt RAM */
-    }
-#endif
-#ifdef CD32
-    if (cd32_enabled) {
-	memset (illgdebug + AKIKO_BASE, 0, AKIKO_BASE_END - AKIKO_BASE);
-	memset (illgdebug + 0xe00000, 1, 512 * 1024); /* CD32 ext ROM */
-    }
-#endif
-    if (cloanto_rom)
-	memset (illgdebug + 0xe00000, 1, 512 * 1024);
-#ifdef FILESYS
-    if (nr_units (currprefs.mountinfo) > 0) /* filesys "rom" */
-	memset (illgdebug + RTAREA_BASE, 1, 0x10000);
-#endif
-}
-
-/* add special custom register check here */
-static void illg_debug_check (uaecptr addr, int rw, int size, uae_u32 val)
-{
-    return;
-}
-
-static void illg_debug_do (uaecptr addr, int rw, int size, uae_u32 val)
-{
-    uae_u8 mask;
-    uae_u32 pc = m68k_getpc ();
-    char rws = rw ? 'W' : 'R';
-    int i;
-
-    for (i = size - 1; i >= 0; i--) {
-	uae_u8 v = val >> (i * 8);
-	uae_u32 ad = addr + i;
-	if (ad >= 0x1000000)
-	    mask = 3;
-	else
-	    mask = illgdebug[ad];
-	if (!mask)
-	    continue;
-	if (mask & 0x80) {
-	    illg_debug_check (ad, rw, size, val);
-	} else if ((mask & 3) == 3) {
-	    if (rw)
-		write_log ("RW: %08.8X=%02.2X %c PC=%08.8X\n", ad, v, rws, pc);
-	    else
-		write_log ("RW: %08.8X    %c PC=%08.8X\n", ad, rws, pc);
-	} else if ((mask & 1) && rw) {
-	    write_log ("RO: %08.8X=%02.2X %c PC=%08.8X\n", ad, v, rws, pc);
-	} else if ((mask & 2) && !rw) {
-	    write_log ("WO: %08.8X    %c PC=%08.8X\n", ad, rws, pc);
-	}
-    }
-}
-
 static int debug_mem_off (uaecptr addr)
 {
-    return (munge24 (addr) >> 16) & 0xff;
+    return (addr >> 16) & 0xff;
 }
 
 static void memwatch_func (uaecptr addr, int rw, int size, uae_u32 val)
 {
     int i, brk;
 
-    if (illgdebug)
-	illg_debug_do (addr, rw, size, val);
-    addr = munge24 (addr);
     for (i = 0; i < MEMWATCH_TOTAL; i++) {
 	uaecptr addr2 = mwnodes[i].addr;
 	uaecptr addr3 = addr2 + mwnodes[i].size;
@@ -698,7 +594,7 @@ static void memwatch_func (uaecptr addr, int rw, int size, uae_u32 val)
     }
 }
 
-static REGPARAM2 uae_u32 debug_lget (uaecptr addr)
+static uae_u32 debug_lget (uaecptr addr)
 {
     int off = debug_mem_off (addr);
     uae_u32 v;
@@ -706,7 +602,7 @@ static REGPARAM2 uae_u32 debug_lget (uaecptr addr)
     memwatch_func (addr, 0, 4, v);
     return v;
 }
-static REGPARAM2 uae_u32 debug_wget (uaecptr addr)
+static uae_u32 debug_wget (uaecptr addr)
 {
     int off = debug_mem_off (addr);
     uae_u32 v;
@@ -714,7 +610,7 @@ static REGPARAM2 uae_u32 debug_wget (uaecptr addr)
     memwatch_func (addr, 0, 2, v);
     return v;
 }
-static REGPARAM2 uae_u32 debug_bget (uaecptr addr)
+static uae_u32 debug_bget (uaecptr addr)
 {
     int off = debug_mem_off (addr);
     uae_u32 v;
@@ -722,31 +618,31 @@ static REGPARAM2 uae_u32 debug_bget (uaecptr addr)
     memwatch_func (addr, 0, 1, v);
     return v;
 }
-static REGPARAM2 void debug_lput (uaecptr addr, uae_u32 v)
+static void debug_lput (uaecptr addr, uae_u32 v)
 {
     int off = debug_mem_off (addr);
     memwatch_func (addr, 1, 4, v);
     debug_mem_banks[off]->lput(addr, v);
-}
-static REGPARAM2 void debug_wput (uaecptr addr, uae_u32 v)
+}   
+static void debug_wput (uaecptr addr, uae_u32 v)
 {
     int off = debug_mem_off (addr);
     memwatch_func (addr, 1, 2, v);
     debug_mem_banks[off]->wput(addr, v);
-}
-static REGPARAM2 void debug_bput (uaecptr addr, uae_u32 v)
+}   
+static void debug_bput (uaecptr addr, uae_u32 v)
 {
     int off = debug_mem_off (addr);
     memwatch_func (addr, 1, 1, v);
     debug_mem_banks[off]->bput(addr, v);
-}
-static REGPARAM2 int debug_check (uaecptr addr, uae_u32 size)
+}   
+static int debug_check (uaecptr addr, uae_u32 size)
 {
-    return debug_mem_banks[munge24 (addr) >> 16]->check (addr, size);
+    return debug_mem_banks[addr >> 16]->check (addr, size);
 }
-static REGPARAM2 uae_u8 *debug_xlate (uaecptr addr)
+static uae_u8 *debug_xlate (uaecptr addr)
 {
-    return debug_mem_banks[munge24 (addr) >> 16]->xlateaddr (addr);
+    return debug_mem_banks[addr >> 16]->xlateaddr (addr);
 }
 
 static void deinitialize_memwatch (void)
@@ -765,8 +661,6 @@ static void deinitialize_memwatch (void)
     free (debug_mem_banks);
     debug_mem_banks = 0;
     memwatch_enabled = 0;
-    free (illgdebug);
-    illgdebug = 0;
 }
 
 static int initialize_memwatch (void)
@@ -843,28 +737,6 @@ static void memwatch (char **c)
 	console_out ("Memwatch breakpoints disabled\n");
 	return;
     }
-    if (nc == 'd') {
-	if (illgdebug) {
-	    ignore_ws (c);
-	    if (more_params (c)) {
-		uae_u32 addr = readhex (c);
-		uae_u32 len = 1;
-		if (more_params (c))
-		    len = readhex (c);
-		write_log ("cleared logging addresses %08.8X - %08.8X\n", addr, addr + len);
-		while (len > 0) {
-		    addr &= 0xffffff;
-		    illgdebug[addr] = 0;
-		    addr++;
-		    len--;
-		}
-	    }
-	} else {
-	    illg_init ();
-	    console_out ("Illegal memory access logging enabled\n");
-	}
-	return;
-    }
     num = nc - '0';
     if (num < 0 || num >= MEMWATCH_TOTAL)
 	return;
@@ -890,8 +762,6 @@ static void memwatch (char **c)
 		mwn->rw = 1;
 	    else if (nc == 'R' && toupper(**c) != 'W')
 		mwn->rw = 0;
-	    else if (nc == 'R' && toupper(**c) == 'W')
-		next_char (c);
 	    ignore_ws (c);
 	    if (more_params (c)) {
 		if (toupper(**c) == 'M') {
@@ -1166,7 +1036,7 @@ static void searchmem (char **cc)
     if (!got)
 	console_out ("nothing found");
     console_out ("\n");
-}
+}	
 
 static int staterecorder (char **cc)
 {
@@ -1185,29 +1055,6 @@ static int staterecorder (char **cc)
 	return 0;
     }
     return 0;
-}
-
-static void m68k_modify (char **inptr)
-{
-    unsigned char c1, c2;
-    uae_u32 v;
-
-    c1 = toupper (next_char (inptr));
-    if (!more_params (inptr))
-	return;
-    c2 = toupper (next_char (inptr));
-    if (c2 < '0' || c2 > '7')
-	return;
-    c2 -= '0';
-    v = readhex (inptr);
-    if (c1 == 'A')
-	regs.regs[8 + c2] = v;
-    else if (c1 == 'D')
-	regs.regs[c2] = v;
-    else if (c1 == 'P' && c2 == 0)
-	regs.irc = v;
-    else if (c1 == 'P' && c2 == 1)
-	regs.ir = v;
 }
 
 static void debug_1 (void)
@@ -1231,13 +1078,9 @@ static void debug_1 (void)
 	case 'c': dumpcia (); dumpdisk (); dumpcustom (); break;
 	case 'i': dump_vectors (); break;
 	case 'e': dump_custom_regs (); break;
-	case 'r': if (more_params(&inptr))
-		      m68k_modify (&inptr);
-		  else
-		      m68k_dumpstate (stdout, &nextpc);
-	break;
+	case 'r': m68k_dumpstate (stdout, &nextpc); break;
 	case 'M': modulesearch (); break;
-	case 'C': cheatsearch (&inptr); break;
+	case 'C': cheatsearch (&inptr); break; 
 	case 'W': writeintomem (&inptr); break;
 	case 'w': memwatch (&inptr); break;
 	case 'S': savemem (&inptr); break;
@@ -1265,13 +1108,11 @@ static void debug_1 (void)
 	    if (skipaddr_doskip <= 0 || skipaddr_doskip > 10000)
 		skipaddr_doskip = 1;
 	    set_special (SPCFLAG_BRK);
-	    exception_debugging = 1;
 	    return;
 	case 'z':
 	    skipaddr_start = nextpc;
 	    skipaddr_doskip = 1;
 	    do_skip = 1;
-	    exception_debugging = 1;
 	    return;
 
 	case 'f':
@@ -1291,7 +1132,6 @@ static void debug_1 (void)
 	    }
 	    debugger_active = 0;
 	    debugging = 0;
-	    exception_debugging = 0;
 	    return;
 
 	case 'H':
@@ -1347,11 +1187,11 @@ static void debug_1 (void)
 	{
 	    uae_u32 maddr;
 	    int lines;
-
+ 
 	    if (more_params(&inptr)) {
 		maddr = readhex(&inptr);
 		if (maddr == 1 || maddr == 2)
-		    maddr = get_copper_address (maddr);
+		    maddr = get_copper_address (maddr);		
 	    }
 	    else
 		maddr = nxcopper;
@@ -1379,13 +1219,6 @@ static void debug_1 (void)
 	case 'b':
 	    if (staterecorder (&inptr))
 	        return;
-	    break;
-	case 'a':
-	    if (more_params (&inptr)) {
-		char nc = next_char (&inptr);
-		if (nc == 'm')
-		    audio_channel_mask = readint (&inptr);
-	    }
 	    break;
 	case 'h':
 	case '?':
@@ -1425,7 +1258,7 @@ void debug (void)
 
     if (!memwatch_triggered) {
 	if (do_skip) {
-	    uae_u32 pc = munge24 (m68k_getpc());
+	    uae_u32 pc = m68k_getpc();
 	    uae_u16 opcode = (currprefs.cpu_compatible || currprefs.cpu_cycle_exact) ? regs.ir : get_word (pc);
 	    int bp = 0;
 
@@ -1489,14 +1322,11 @@ void debug (void)
     skipaddr_end = 0xffffffff;
     skipins = 0xffffffff;
     skipaddr_doskip = 0;
-    exception_debugging = 0;
     debug_rewind = 0;
-#if 0
     if (!currprefs.statecapture) {
 	changed_prefs.statecapture = currprefs.statecapture = 1;
 	savestate_init ();
     }
-#endif
     debug_1 ();
     if (!debug_rewind && !currprefs.cachesize
 #ifdef FILESYS
@@ -1518,7 +1348,7 @@ void debug (void)
 
 int notinrom (void)
 {
-    if (munge24 (m68k_getpc()) < 0xe0000)
+    if (m68k_getpc() < 0xe0000)
 	return 1;
     return 0;
 }
@@ -1527,7 +1357,7 @@ const char *debuginfo (int mode)
 {
     static char txt[100];
     uae_u32 pc = m68k_getpc();
-    sprintf (txt, "PC=%08.8X INS=%04.4X %04.4X %04.4X",
+    sprintf (txt, "PC=%06.6X INS=%04.4X %04.4X %04.4X",
 	pc, get_word(pc), get_word(pc+2), get_word(pc+4));
     return txt;
 }

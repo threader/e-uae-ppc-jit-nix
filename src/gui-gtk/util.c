@@ -211,30 +211,3 @@ GtkWidget *gtkutil_add_table (GtkWidget *container, ...)
 
     return table;
 }
-
-GtkWidget *gtkutil_make_radio_group (GSList *group, GtkWidget **buttons, ...)
-{
-    GtkWidget *hbox;
-    va_list labels;
-    const guchar *label;
-    int i = 0;
-
-    hbox = gtk_hbox_new (TRUE, 0);
-
-    va_start (labels, buttons);
-    label = va_arg (labels, const guchar *);
-
-    while (label != NULL) {
-	GtkWidget *radiobutton = gtk_radio_button_new_with_label (group, label);
-	group = gtk_radio_button_group (GTK_RADIO_BUTTON (radiobutton));
-	gtk_box_pack_start (GTK_BOX (hbox), radiobutton, FALSE, FALSE, 0);
-
-	*buttons++ = radiobutton;
-
-	label = va_arg (labels, const guchar *);
-    }
-
-    gtk_widget_show (hbox);
-
-    return hbox;
-}

@@ -32,7 +32,7 @@
 #include "autoconf.h"
 #include "osemu.h"
 #include "osdep/exectasks.h"
-#include "filesys.h"
+#include "compiler.h"
 #include "picasso96.h"
 #include "bsdsocket.h"
 #include "uaeexe.h"
@@ -53,8 +53,6 @@ int no_gui = 0;
 int joystickpresent = 0;
 int cloanto_rom = 0;
 
-int log_scsi;
-
 struct gui_info gui_data;
 
 char warning_buffer[256];
@@ -70,8 +68,20 @@ char optionsfile[256];
  * PostScript printer or ghostscript -=SR=-
  */
 
+#if 0
+/* Slightly stupid place for this... */
+/* ncurses.c might use quite a few of those. */
+char *colormodes[] = { "256 colors", "32768 colors", "65536 colors",
+    "256 colors dithered", "16 colors dithered", "16 million colors",
+    "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "",
+    "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "",
+    "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "",
+    "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "",
+    "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""
+};
+#endif
 
-void discard_prefs (struct uae_prefs *p, int type)
+void discard_prefs (struct uae_prefs *p)
 {
     struct strlist **ps = &p->all_lines;
     while (*ps) {
@@ -82,10 +92,188 @@ void discard_prefs (struct uae_prefs *p, int type)
 	free (s);
     }
 #ifdef FILESYS
-    filesys_cleanup ();
     free_mountinfo (p->mountinfo);
     p->mountinfo = alloc_mountinfo ();
 #endif
+}
+
+static void default_prefs_mini (struct uae_prefs *p)
+{
+    strcpy (p->description, "UAE default A500 configuration");
+
+    p->nr_floppies = 1;
+    p->dfxtype[0] = 0;
+    p->dfxtype[1] = -1;
+    p->cpu_level = 0;
+    p->address_space_24 = 1;
+    p->chipmem_size = 0x00080000;
+    p->bogomem_size = 0x00080000;
+}
+
+void default_prefs (struct uae_prefs *p)
+{
+    memset (p, 0, sizeof (*p));
+    strcpy (p->description, "UAE default configuration");
+
+    p->start_gui = 1;
+    p->start_debugger = 0;
+
+    p->all_lines = 0;
+    /* Note to porters: please don't change any of these options! UAE is supposed
+     * to behave identically on all platforms if possible. */
+    p->illegal_mem = 0;
+    p->no_xhair = 0;
+    p->use_serial = 0;
+    p->serial_demand = 0;
+    p->serial_hwctsrts = 1;
+    p->parallel_demand = 0;
+
+    p->jport0 = 2;
+    p->jport1 = 0;
+    p->keyboard_lang = KBD_LANG_US;
+
+    p->produce_sound = 3;
+    p->stereo = 0;
+    p->sound_bits = DEFAULT_SOUND_BITS;
+    p->sound_freq = DEFAULT_SOUND_FREQ;
+    p->sound_maxbsiz = DEFAULT_SOUND_MAXB;
+    p->sound_interpol = 0;
+    p->sound_filter = 0;
+
+    p->comptrustbyte = 0;
+    p->comptrustword = 0;
+    p->comptrustlong = 0;
+    p->comptrustnaddr= 0;
+    p->compnf = 1;
+    p->comp_hardflush = 0;
+    p->comp_constjump = 1;
+    p->comp_oldsegv = 0;
+    p->compfpu = 1;
+    p->compforcesettings = 0;
+    p->cachesize = 0;
+    p->avoid_cmov = 0;
+    p->avoid_dga = 0;
+    p->avoid_vid = 0;
+    p->comp_midopt = 0;
+    p->comp_lowopt = 0;
+    p->override_dga_address = 0;
+    {
+	int i;
+	for (i = 0;i < 10; i++)
+	    p->optcount[i] = -1;
+	p->optcount[0] = 4; /* How often a block has to be executed before it
+			     is translated */
+	p->optcount[1] = 0; /* How often to use the naive translation */
+	p->optcount[2] = 0; 
+	p->optcount[3] = 0;
+	p->optcount[4] = 0;
+	p->optcount[5] = 0;
+    }
+    p->gfx_framerate = 1;
+    p->gfx_width_win = p->gfx_width_fs = 800;
+    p->gfx_height_win = p->gfx_height_fs = 600;
+    p->gfx_lores = 0;
+    p->gfx_linedbl = 2;
+    p->gfx_afullscreen = 0;
+    p->gfx_pfullscreen = 0;
+    p->gfx_correct_aspect = 0;
+    p->gfx_xcenter = 0;
+    p->gfx_ycenter = 0;
+    p->color_mode = 0;
+
+#if 0
+    p->x11_use_low_bandwidth = 0;
+    p->x11_use_mitshm = 0;
+    p->x11_hide_cursor = 1;
+
+    p->svga_no_linear = 0;
+
+    p->curses_reverse_video = 0;
+#endif
+
+    target_default_options (p);
+    gfx_default_options (p);
+
+    p->immediate_blits = 0;
+    p->collision_level = 2;
+    p->leds_on_screen = 0;
+    p->keyboard_leds_in_use = 0;
+    p->keyboard_leds[0] = p->keyboard_leds[1] = p->keyboard_leds[2] = 0;
+    p->fast_copper = 1;
+    p->scsi = 0;
+    p->cpu_idle = 0;
+    p->catweasel_io = 0;
+    p->tod_hack = 0;
+    p->maprom = 0;
+
+    p->gfx_filter = 0;
+    p->gfx_filter_filtermode = 1;
+    p->gfx_filter_scanlineratio = (1 << 4) | 1;
+
+    strcpy (p->df[0], "df0.adf");
+    strcpy (p->df[1], "df1.adf");
+    strcpy (p->df[2], "df2.adf");
+    strcpy (p->df[3], "df3.adf");
+
+    strcpy (p->romfile, "kick.rom");
+    strcpy (p->keyfile, "");
+    strcpy (p->romextfile, "");
+    strcpy (p->flashfile, "");
+    strcpy (p->cartfile, "");
+
+    strcpy (p->path_rom, "./");
+    strcpy (p->path_floppy, "./");
+    strcpy (p->path_hardfile, "./");
+
+    strcpy (p->prtname, DEFPRTNAME);
+    strcpy (p->sername, DEFSERNAME);
+
+#ifdef CPUEMU_68000_ONLY
+    p->cpu_level = 0;
+    p->m68k_speed = 0;
+#else
+    p->m68k_speed = -1;
+    p->cpu_level = 2;
+#endif
+#ifdef CPUEMU_0
+    p->cpu_compatible = 0;
+    p->address_space_24 = 0;
+#else
+    p->cpu_compatible = 1;
+    p->address_space_24 = 1;
+#endif
+    p->cpu_cycle_exact = 0;
+    p->blitter_cycle_exact = 0;
+    p->chipset_mask = CSMASK_ECS_AGNUS;
+
+    p->fastmem_size = 0x00000000;
+    p->a3000mem_size = 0x00000000;
+    p->z3fastmem_size = 0x00000000;
+    p->chipmem_size = 0x00200000;
+    p->bogomem_size = 0x00000000;
+    p->gfxmem_size = 0x00000000;
+
+    p->nr_floppies = 2;
+    p->dfxtype[0] = 0;
+    p->dfxtype[1] = 0;
+    p->dfxtype[2] = -1;
+    p->dfxtype[3] = -1;
+    p->floppy_speed = 100;
+    p->dfxclickvolume = 33;
+
+    p->statecapturebuffersize = 20 * 1024 * 1024;
+    p->statecapturerate = 5 * 50;
+    p->statecapture = 0;
+
+#ifdef FILESYS
+    p->mountinfo = alloc_mountinfo ();
+#endif
+
+#ifdef UAE_MINI
+    default_prefs_mini (p);
+#endif
+
+    inputdevice_default_prefs (p);
 }
 
 void fixup_prefs_dimensions (struct uae_prefs *prefs)
@@ -106,33 +294,6 @@ void fixup_prefs_dimensions (struct uae_prefs *prefs)
 	prefs->gfx_height_win = 1280;
     prefs->gfx_width_win += 7; /* X86.S wants multiples of 4 bytes, might be 8 in the future. */
     prefs->gfx_width_win &= ~7;
-}
-
-static void fixup_prefs_joysticks (struct uae_prefs *prefs)
-{
-    int joy_count = inputdevice_get_device_total (IDTYPE_JOYSTICK);
-
-    if (joy_count <= 1) {
-	/*
-	 * If we have one or fewer joysticks, don't allow either port to
-	 * be configured to use joy1
-	 */
-	if (prefs->jport0 == JPORT_JOY1)
-	    prefs->jport0 = (prefs->jport1 != JPORT_MOUSE) ? JPORT_MOUSE : JPORT_JOY0;
-	if (prefs->jport1 == JPORT_JOY1)
-	    prefs->jport1 = (prefs->jport0 != JPORT_JOY0)  ? JPORT_JOY0  : JPORT_KBD1;
-    }
-
-    if (joy_count == 0) {
-	/*
-	 * If we have no joysticks, don't allow either port to
-	 * be configured to use joy0
-	 */
-	if (prefs->jport0 == JPORT_JOY0)
-	    prefs->jport0 = (prefs->jport1 != JPORT_MOUSE) ? JPORT_MOUSE : JPORT_KBD3;
-	if (prefs->jport1 == JPORT_JOY0)
-	    prefs->jport1 = (prefs->jport0 != JPORT_KBD1)  ? JPORT_KBD1  : JPORT_KBD3;
-    }
 }
 
 static void fix_options (void)
@@ -195,54 +356,54 @@ static void fix_options (void)
 	err = 1;
     }
 #endif
-
+  
     if (currprefs.produce_sound < 0 || currprefs.produce_sound > 3) {
 	write_log ("Bad value for -S parameter: enable value must be within 0..3\n");
 	currprefs.produce_sound = 0;
 	err = 1;
     }
     if (currprefs.comptrustbyte < 0 || currprefs.comptrustbyte > 3) {
-	write_log ("Bad value for comptrustbyte parameter: value must be within 0..2\n");
+	fprintf (stderr, "Bad value for comptrustbyte parameter: value must be within 0..2\n");
 	currprefs.comptrustbyte = 1;
 	err = 1;
     }
     if (currprefs.comptrustword < 0 || currprefs.comptrustword > 3) {
-	write_log ("Bad value for comptrustword parameter: value must be within 0..2\n");
+	fprintf (stderr, "Bad value for comptrustword parameter: value must be within 0..2\n");
 	currprefs.comptrustword = 1;
 	err = 1;
     }
     if (currprefs.comptrustlong < 0 || currprefs.comptrustlong > 3) {
-	write_log ("Bad value for comptrustlong parameter: value must be within 0..2\n");
+	fprintf (stderr, "Bad value for comptrustlong parameter: value must be within 0..2\n");
 	currprefs.comptrustlong = 1;
 	err = 1;
     }
     if (currprefs.comptrustnaddr < 0 || currprefs.comptrustnaddr > 3) {
-	write_log ("Bad value for comptrustnaddr parameter: value must be within 0..2\n");
+	fprintf (stderr, "Bad value for comptrustnaddr parameter: value must be within 0..2\n");
 	currprefs.comptrustnaddr = 1;
 	err = 1;
     }
     if (currprefs.compnf < 0 || currprefs.compnf > 1) {
-	write_log ("Bad value for compnf parameter: value must be within 0..1\n");
+	fprintf (stderr, "Bad value for compnf parameter: value must be within 0..1\n");
 	currprefs.compnf = 1;
 	err = 1;
     }
     if (currprefs.comp_hardflush < 0 || currprefs.comp_hardflush > 1) {
-	write_log ("Bad value for comp_hardflush parameter: value must be within 0..1\n");
+	fprintf (stderr, "Bad value for comp_hardflush parameter: value must be within 0..1\n");
 	currprefs.comp_hardflush = 1;
 	err = 1;
     }
     if (currprefs.comp_constjump < 0 || currprefs.comp_constjump > 1) {
-	write_log ("Bad value for comp_constjump parameter: value must be within 0..1\n");
+	fprintf (stderr, "Bad value for comp_constjump parameter: value must be within 0..1\n");
 	currprefs.comp_constjump = 1;
 	err = 1;
     }
     if (currprefs.comp_oldsegv < 0 || currprefs.comp_oldsegv > 1) {
-	write_log ("Bad value for comp_oldsegv parameter: value must be within 0..1\n");
+	fprintf (stderr, "Bad value for comp_oldsegv parameter: value must be within 0..1\n");
 	currprefs.comp_oldsegv = 1;
 	err = 1;
     }
     if (currprefs.cachesize < 0 || currprefs.cachesize > 16384) {
-	write_log ("Bad value for cachesize parameter: value must be within 0..16384\n");
+	fprintf (stderr, "Bad value for cachesize parameter: value must be within 0..16384\n");
 	currprefs.cachesize = 0;
 	err = 1;
     }
@@ -325,8 +486,6 @@ static void fix_options (void)
 #endif
 #endif
 
-    fixup_prefs_joysticks (&currprefs);
-
     if (err)
 	write_log ("Please use \"uae -h\" to get usage information.\n");
 }
@@ -342,7 +501,7 @@ void uae_reset (int hardreset)
 	if (hardreset)
 	    quit_program = -3;
     }
-
+    
 }
 
 void uae_quit (void)
@@ -351,11 +510,10 @@ void uae_quit (void)
 	quit_program = -1;
 }
 
-/* 0 = normal, 1 = nogui, -1 = disable nogui */
 void uae_restart (int opengui, char *cfgfile)
 {
     uae_quit ();
-    restart_program = opengui > 0 ? 1 : (opengui == 0 ? 2 : 3);
+    restart_program = opengui ? 1 : 2;
     restart_config[0] = 0;
     if (cfgfile)
 	strcpy (restart_config, cfgfile);
@@ -389,23 +547,32 @@ void usage (void)
 static void show_version (void)
 {
 #ifdef PACKAGE_VERSION
-    write_log (PACKAGE_NAME " " PACKAGE_VERSION "\n");
+    write_log ("\nUAE " PACKAGE_VERSION "\n\n");
 #else
-    write_log ("UAE %d.%d.%d\n", UAEMAJOR, UAEMINOR, UAESUBREV);
+    write_log ("\nUAE %d.%d.%d\n\n", UAEMAJOR, UAEMINOR, UAESUBREV);
 #endif
-}
-
-static void show_version_full (void)
-{
-    write_log ("\n");
-    show_version ();
-    write_log ("\nCopyright 1995-2002 Bernd Schmidt\n");
+    write_log ("Copyright 1995-2002 Bernd Schmidt\n");
     write_log ("          1999-2004 Toni Wilen\n");
     write_log ("          2003-2004 Richard Drummond\n\n");
     write_log ("See the source for a full list of contributors.\n");
 
-    write_log ("This is free software; see the file COPYING for copying conditions.  There is NO\n");
+    write_log ("This is free software; see the source for copying conditions.  There is NO\n");
     write_log ("warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n");
+}
+
+static void parse_cmdline_2 (int argc, char **argv)
+{
+    int i;
+   
+    cfgfile_addcfgparam (0);
+    for (i = 1; i < argc; i++) {
+	if (strcmp (argv[i], "-cfgparam") == 0) {
+            if (i + 1 == argc)
+                write_log ("Missing argument for '-cfgparam' option.\n");
+            else
+                cfgfile_addcfgparam (argv[++i]);
+        }
+    }
 }
 
 static void parse_cmdline (int argc, char **argv)
@@ -421,7 +588,7 @@ static void parse_cmdline (int argc, char **argv)
             free_mountinfo (currprefs.mountinfo);
             currprefs.mountinfo = alloc_mountinfo ();
 #endif
-	    cfgfile_load (&currprefs, argv[i] + 8, 0);
+	    cfgfile_load (&currprefs, argv[i] + 8);
 	}
 	/* Check for new-style "-f xxx" argument, where xxx is config-file */
 	else if (strcmp (argv[i], "-f") == 0) {
@@ -432,21 +599,19 @@ static void parse_cmdline (int argc, char **argv)
                 free_mountinfo (currprefs.mountinfo);
 	        currprefs.mountinfo = alloc_mountinfo ();
 #endif
-		cfgfile_load (&currprefs, argv[++i], 0);
+		cfgfile_load (&currprefs, argv[++i]);
 	    }
 	} else if (strcmp (argv[i], "-s") == 0) {
 	    if (i + 1 == argc)
 		write_log ("Missing argument for '-s' option.\n");
 	    else
-		cfgfile_parse_line (&currprefs, argv[++i], 0);
+		cfgfile_parse_line (&currprefs, argv[++i]);
 	} else if (strcmp (argv[i], "-h") == 0 || strcmp (argv[i], "-help") == 0) {
 	    usage ();
 	    exit (0);
 	} else if (strcmp (argv[i], "-version") == 0) {
-	    show_version_full ();
+	    show_version ();
 	    exit (0);
-	} else if (strcmp (argv[i], "-scsilog") == 0) {
-	    log_scsi = 1;
 	} else {
 	    if (argv[i][0] == '-' && argv[i][1] != '\0') {
 		const char *arg = argv[i] + 2;
@@ -485,13 +650,12 @@ static void parse_cmdline_and_init_file (int argc, char **argv)
 
     strcat (optionsfile, OPTIONSFILENAME);
 
-    if (! cfgfile_load (&currprefs, optionsfile, 0)) {
-//	write_log ("failed to load config '%s'\n", optionsfile);
+    if (! cfgfile_load (&currprefs, optionsfile)) {
 #ifdef OPTIONS_IN_HOME
 	/* sam: if not found in $HOME then look in current directory */
         char *saved_path = strdup (optionsfile);
 	strcpy (optionsfile, OPTIONSFILENAME);
-	if (! cfgfile_load (&currprefs, optionsfile, 0) ) {
+	if (! cfgfile_load (&currprefs, optionsfile) ) {
 	    /* If not in current dir either, change path back to home
 	     * directory - so that a GUI can save a new config file there */
 	    strcpy (optionsfile, saved_path);
@@ -536,12 +700,9 @@ void reset_all_systems (void)
 
 void do_start_program (void)
 {
-    if (quit_program == -1)
-        return;
     /* Do a reset on startup. Whether this is elegant is debatable. */
     inputdevice_updateconfig (&currprefs);
-//    if (quit_program >= 0)
-        quit_program = 2;
+    quit_program = 2;
     m68k_go (1);
 }
 
@@ -563,9 +724,6 @@ void do_leave_program (void)
 
 #ifdef AUTOCONFIG
     expansion_cleanup ();
-#endif
-#ifdef FILESYS
-    filesys_cleanup ();
 #endif
     savestate_free ();
     memory_cleanup ();
@@ -595,7 +753,7 @@ static void real_main2 (int argc, char **argv)
 	free_mountinfo (currprefs.mountinfo);
         currprefs.mountinfo = alloc_mountinfo ();
 #endif
-	default_prefs (&currprefs, 0);
+	default_prefs (&currprefs);
 	fix_options ();
     }
 
@@ -603,8 +761,8 @@ static void real_main2 (int argc, char **argv)
 	exit (1);
     }
 
-#ifdef NATMEM_OFFSET
-    init_shm ();
+#ifdef JIT
+    init_shm();
 #endif
 
 #ifdef FILESYS
@@ -619,20 +777,20 @@ static void real_main2 (int argc, char **argv)
 
     machdep_init ();
 
+#ifdef HAVE_OSDEP_INIT
+    osdep_init ();
+#endif
+
     if (! setup_sound ()) {
 	write_log ("Sound driver unavailable: Sound output disabled\n");
 	currprefs.produce_sound = 0;
     }
     inputdevice_init ();
-
     changed_prefs = currprefs;
     no_gui = ! currprefs.start_gui;
-
     if (restart_program == 2)
 	no_gui = 1;
-    else if (restart_program == 3)
-	no_gui = 0;
-
+    restart_program = 0;
     if (! no_gui) {
 	int err = gui_init ();
 	struct uaedev_mount_info *mi = currprefs.mountinfo;
@@ -640,17 +798,10 @@ static void real_main2 (int argc, char **argv)
 	currprefs.mountinfo = mi;
 	if (err == -1) {
 	    write_log ("Failed to initialize the GUI\n");
-	    if (restart_program == 3) {
-	       restart_program = 0;
-	       return;
-	    }
 	} else if (err == -2) {
-	    restart_program = 0;
 	    return;
 	}
     }
-
-    restart_program = 0;
 
 #ifdef JIT
     if (!(( currprefs.cpu_level >= 2 ) && ( currprefs.address_space_24 == 0 ) && ( currprefs.cachesize )))
@@ -692,34 +843,34 @@ static void real_main2 (int argc, char **argv)
     native2amiga_install ();
 #endif
 
-    if (custom_init ()) { /* Must come after memory_init */
+    custom_init (); /* Must come after memory_init */
 #ifdef SERIAL_PORT
-	serial_init ();
+    serial_init ();
 #endif
-	DISK_init ();
+    DISK_init ();
 
-	reset_frame_rate_hack ();
-	init_m68k(); /* must come after reset_frame_rate_hack (); */
+    reset_frame_rate_hack ();
+    init_m68k(); /* must come after reset_frame_rate_hack (); */
 
-	gui_update ();
+    compiler_init ();
+    gui_update ();
 
-	if (graphics_init ()) {
-	    setup_brkhandler ();
-	    if (currprefs.start_debugger && debuggable ())
-		activate_debugger ();
+    if (graphics_init ()) {
+	setup_brkhandler ();
+	if (currprefs.start_debugger && debuggable ())
+	    activate_debugger ();
 
 #ifdef WIN32
 #ifdef FILESYS
-	    filesys_init (); /* New function, to do 'add_filesys_unit()' calls at start-up */
+	filesys_init (); /* New function, to do 'add_filesys_unit()' calls at start-up */
 #endif
 #endif
-	    if (sound_available && currprefs.produce_sound > 1 && ! init_audio ()) {
-		write_log ("Sound driver unavailable: Sound output disabled\n");
-		currprefs.produce_sound = 0;
-	    }
-
-	    start_program ();
+	if (sound_available && currprefs.produce_sound > 1 && ! init_audio ()) {
+	    write_log ("Sound driver unavailable: Sound output disabled\n");
+	    currprefs.produce_sound = 0;
 	}
+
+	start_program ();
     }
 
     }
@@ -733,8 +884,6 @@ static void real_main2 (int argc, char **argv)
 
 void real_main (int argc, char **argv)
 {
-    show_version ();
-
     restart_program = 1;
 #ifdef _WIN32
     sprintf (restart_config, "%sConfigurations\\", start_path);
@@ -750,7 +899,7 @@ void real_main (int argc, char **argv)
 }
 
 #ifdef USE_SDL
-int init_sdl (void)
+int init_sdl (void) 
 {
     int result = (SDL_Init (SDL_INIT_TIMER | SDL_INIT_NOPARACHUTE /*| SDL_INIT_AUDIO*/) == 0);
     if (result)
@@ -759,7 +908,7 @@ int init_sdl (void)
     return result;
 }
 #else
-#define init_sdl()
+#define init_sdl() 
 #endif
 
 #ifndef NO_MAIN_IN_MAIN_C

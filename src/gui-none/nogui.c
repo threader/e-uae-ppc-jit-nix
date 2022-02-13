@@ -19,7 +19,7 @@ static void sigchldhandler(int foo)
 
 int gui_init (void)
 {
-    return -1;
+    return 0;
 }
 
 int gui_update (void)

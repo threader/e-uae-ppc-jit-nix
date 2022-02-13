@@ -1,4 +1,4 @@
- /*
+/*
   * UAE - The Un*x Amiga Emulator
   *
   * MC68881 emulation
@@ -23,8 +23,8 @@
 
 #define MAKE_FPSR(r) do { fmov_rr(FP_RESULT,r); } while (0)
 
-#define delay   //nop() ;nop()
-#define delay2  //nop() ;nop()
+#define delay   //nop() ;nop()  
+#define delay2  //nop() ;nop()   
 
 uae_s32 temp_fp[3];  /* To convert between FP/integer */
 
@@ -95,7 +95,7 @@ STATIC_INLINE int get_fp_value (uae_u32 opcode, uae_u16 extra)
      case 4:
      case 5:
      case 6:
-	break;
+	break; 
      default:
 	return -1;
     }
@@ -112,7 +112,7 @@ STATIC_INLINE int get_fp_value (uae_u32 opcode, uae_u16 extra)
 	break;
      case 4:
 	ad=S1;
-
+	
 	lea_l_brr(reg+8,reg+8,-(reg == 7?sz2[size]:sz1[size]));
 	mov_l_rr(ad,reg+8);
 	break;
@@ -162,13 +162,11 @@ STATIC_INLINE int get_fp_value (uae_u32 opcode, uae_u16 extra)
 	    tmp = next_iword ();
 	    ad = get_disp_ea_020 (tmppc, tmp);
 	    break;
-	 case 4:
+	 case 4: 
 	 {
 	     uae_u32 address=start_pc+((char *)comp_pc_p-(char *)start_pc_p)+
 		 m68k_pc_offset;
 	     ad=S1;
-	     if (size == 6)
-		 address++;
 	     mov_l_ri(ad,address);
 	     m68k_pc_offset+=sz2[size];
 	     break;
@@ -300,7 +298,7 @@ STATIC_INLINE int put_fp_value (int val, uae_u32 opcode, uae_u16 extra)
      default:
 	return -1;
     }
-
+    
     switch (mode) {
      case 2:
 	ad=S1;
@@ -511,8 +509,8 @@ void comp_fscc_opp (uae_u32 opcode, uae_u16 extra)
     }
 
 #if DEBUG_FPP
-    write_log ("fscc_opp at %08lx\n", m68k_getpc ());
-    flush_log ();
+    printf ("fscc_opp at %08lx\n", m68k_getpc ());
+    fflush (stdout);
 #endif
 
 
@@ -521,28 +519,28 @@ void comp_fscc_opp (uae_u32 opcode, uae_u16 extra)
 	return;
     }
     if ((opcode & 0x38) != 0) { /* We can only do to integer register */
-	FAIL(1);
+	FAIL(1); 
 	return;
     }
 
     fflags_into_flags(S2);
     reg=(opcode&7);
-
+    
     mov_l_ri(S1,255);
     mov_l_ri(S4,0);
     switch(extra&0x0f) {  /* according to fpp.c, the 0x10 bit is ignored
 			    */
      case 0: break;  /* set never */
-     case 1: mov_l_rr(S2,S4);
-	cmov_l_rr(S4,S1,4);
+     case 1: mov_l_rr(S2,S4); 
+	cmov_l_rr(S4,S1,4); 
 	cmov_l_rr(S4,S2,10); break;
      case 2: cmov_l_rr(S4,S1,7); break;
      case 3: cmov_l_rr(S4,S1,3); break;
-     case 4: mov_l_rr(S2,S4);
-	cmov_l_rr(S4,S1,2);
+     case 4: mov_l_rr(S2,S4); 
+	cmov_l_rr(S4,S1,2); 
 	cmov_l_rr(S4,S2,10); break;
-     case 5: mov_l_rr(S2,S4);
-	cmov_l_rr(S4,S1,6);
+     case 5: mov_l_rr(S2,S4); 
+	cmov_l_rr(S4,S1,6); 
 	cmov_l_rr(S4,S2,10); break;
      case 6: cmov_l_rr(S4,S1,5); break;
      case 7: cmov_l_rr(S4,S1,11); break;
@@ -620,49 +618,49 @@ void comp_fbcc_opp (uae_u32 opcode)
     fflags_into_flags(S2);
 
     // mov_l_mi((uae_u32)&foink3,cc);
-    switch(cc) {
+    switch(cc) {  
      case 0: break;  /* jump never */
-     case 1:
-	mov_l_rr(S2,PC_P);
-	cmov_l_rr(PC_P,S1,4);
+     case 1: 
+	mov_l_rr(S2,PC_P); 
+	cmov_l_rr(PC_P,S1,4); 
 	cmov_l_rr(PC_P,S2,10); break;
      case 2: register_branch(v1,v2,7); break;
      case 3: register_branch(v1,v2,3); break;
-     case 4:
-	mov_l_rr(S2,PC_P);
-	cmov_l_rr(PC_P,S1,2);
+     case 4: 
+	mov_l_rr(S2,PC_P); 
+	cmov_l_rr(PC_P,S1,2); 
 	cmov_l_rr(PC_P,S2,10); break;
      case 5:
-	mov_l_rr(S2,PC_P);
-	cmov_l_rr(PC_P,S1,6);
+	mov_l_rr(S2,PC_P); 
+	cmov_l_rr(PC_P,S1,6); 
 	cmov_l_rr(PC_P,S2,10); break;
      case 6: register_branch(v1,v2,5); break;
      case 7: register_branch(v1,v2,11); break;
      case 8: register_branch(v1,v2,10); break;
      case 9: register_branch(v1,v2,4); break;
-     case 10:
-	cmov_l_rr(PC_P,S1,10);
+     case 10: 
+	cmov_l_rr(PC_P,S1,10); 
 	cmov_l_rr(PC_P,S1,7); break;
-     case 11:
-	cmov_l_rr(PC_P,S1,4);
+     case 11: 
+	cmov_l_rr(PC_P,S1,4); 
 	cmov_l_rr(PC_P,S1,3); break;
      case 12: register_branch(v1,v2,2); break;
      case 13: register_branch(v1,v2,6); break;
-     case 14:
-	cmov_l_rr(PC_P,S1,5);
+     case 14: 
+	cmov_l_rr(PC_P,S1,5); 
 	cmov_l_rr(PC_P,S1,10); break;
      case 15: mov_l_rr(PC_P,S1); break;
     }
 }
 
-    /* Floating point conditions
+    /* Floating point conditions 
        The "NotANumber" part could be problematic; Howver, when NaN is
        encountered, the ftst instruction sets bot N and Z to 1 on the x87,
        so quite often things just fall into place. This is probably not
        accurate wrt the 68k FPU, but it is *as* accurate as this was before.
        However, some more thought should go into fixing this stuff up so
        it accurately emulates the 68k FPU.
->=<U
+>=<U 
 0000    0x00: 0                        ---   Never jump
 0101    0x01: Z                        ---   jump if zero (x86: 4)
 1000    0x02: !(NotANumber || Z || N)  --- Neither Z nor N set (x86: 7)
@@ -684,7 +682,7 @@ This is not how the 68k handles things, though --- it sets Z to 0 and N
 to the NaN's sign.... ('o' and 'i' denote differences from the above
 table)
 
->=<U
+>=<U 
 0000    0x00: 0                        ---   Never jump
 010o    0x01: Z                        ---   jump if zero (x86: 4, not 10)
 1000    0x02: !(NotANumber || Z || N)  --- Neither Z nor N set (x86: 7)
@@ -706,7 +704,7 @@ Of course, this *still* doesn't mean that the x86 and 68k conditions are
 equivalent --- the handling of infinities is different, for one thing.
 On the 68k, +infinity minus +infinity is NotANumber (as it should be). On
 the x86, it is +infinity, and some exception is raised (which I suspect
-is promptly ignored) STUPID!
+is promptly ignored) STUPID! 
 The more I learn about their CPUs, the more I detest Intel....
 
 You can see this in action if you have "Benoit" (see Aminet) and
@@ -740,8 +738,8 @@ void comp_fsave_opp (uae_u32 opcode)
     }
 
 #if DEBUG_FPP
-    write_log ("fsave_opp at %08lx\n", m68k_getpc ());
-    flush_log ();
+    printf ("fsave_opp at %08lx\n", m68k_getpc ());
+    fflush (stdout);
 #endif
     if (get_fp_ad (opcode, &ad) == 0) {
 	m68k_setpc (m68k_getpc () - 2);
@@ -749,7 +747,7 @@ void comp_fsave_opp (uae_u32 opcode)
 	return;
     }
 
-    if (currprefs.cpu_level >= 4) {
+    if (currprefs.cpu_level == 4) {
 	/* 4 byte 68040 IDLE frame.  */
 	if (incr < 0) {
 	    ad -= 4;
@@ -800,15 +798,15 @@ void comp_frestore_opp (uae_u32 opcode)
     }
 
 #if DEBUG_FPP
-    write_log ("frestore_opp at %08lx\n", m68k_getpc ());
-    flush_log (stdout);
+    printf ("frestore_opp at %08lx\n", m68k_getpc ());
+    fflush (stdout);
 #endif
     if (get_fp_ad (opcode, &ad) == 0) {
 	m68k_setpc (m68k_getpc () - 2);
 	op_illg (opcode);
 	return;
     }
-    if (currprefs.cpu_level >= 4) {
+    if (currprefs.cpu_level == 4) {
 	/* 68040 */
 	if (incr < 0) {
 	    /* @@@ This may be wrong.  */
@@ -901,7 +899,7 @@ void comp_fpp_opp (uae_u32 opcode, uae_u16 extra)
 {
     int reg;
     int src;
-
+    
     if (!currprefs.compfpu) {
 	FAIL(1);
 	return;
@@ -914,7 +912,7 @@ void comp_fpp_opp (uae_u32 opcode, uae_u16 extra)
 	}
 	return;
      case 6:
-     case 7:
+     case 7: 
 	{
 	    uae_u32 ad, list = 0;
 	    int incr = 0;
@@ -927,7 +925,7 @@ void comp_fpp_opp (uae_u32 opcode, uae_u16 extra)
 		 case 2:
 		    break;
 		 case 1:
-		 case 3:
+		 case 3: 
 		 default:
 		    FAIL(1); return;
 		}
@@ -958,13 +956,13 @@ void comp_fpp_opp (uae_u32 opcode, uae_u16 extra)
 		    if (incr < 0) { /* Predecrement */
 			fmov_ext_mr((uae_u32)temp_fp,fpp_movem_index2[list]);
 			delay;
-			sub_l_ri(ad,4);
+			sub_l_ri(ad,4); 
 			mov_l_rm(S2,(uae_u32)temp_fp);
 			writelong_clobber(ad,S2,S3);
-			sub_l_ri(ad,4);
+			sub_l_ri(ad,4); 
 			mov_l_rm(S2,(uae_u32)temp_fp+4);
 			writelong_clobber(ad,S2,S3);
-			sub_l_ri(ad,4);
+			sub_l_ri(ad,4); 
 			mov_w_rm(S2,(uae_u32)temp_fp+8);
 			writeword_clobber(ad,S2,S3);
 		    } else { /* postinc */
@@ -995,7 +993,7 @@ void comp_fpp_opp (uae_u32 opcode, uae_u16 extra)
 		 case 2:
 		    break;
 		 case 1:
-		 case 3:
+		 case 3: 
 		 default:
 		    FAIL(1); return;
 		}
@@ -1075,12 +1073,12 @@ void comp_fpp_opp (uae_u32 opcode, uae_u16 extra)
 		}
 	    } else {
 		if (extra & 0x1000) {
-		    mov_l_mr((uae_u32)&regs.fpcr,opcode & 15);
+		    mov_l_mr((uae_u32)&regs.fpcr,opcode & 15); 
 #if USE_X86_FPUCW
 		    mov_l_rr(S1,opcode & 15);
 		    and_l_ri(S1,0x000000f0);
 		    fldcw_m_indexed(S1,(uae_u32)x86_fpucw);
-#endif
+#endif		    
 		    return;
 		}
 		if (extra & 0x0800) {
@@ -1100,7 +1098,7 @@ void comp_fpp_opp (uae_u32 opcode, uae_u16 extra)
 #if USE_X86_FPUCW
 		    mov_l_ri(S1,val&0x000000f0);
 		    fldcw_m_indexed(S1,(uae_u32)x86_fpucw);
-#endif
+#endif		    
 		    return;
 		}
 		if (extra & 0x0800) {
@@ -1175,12 +1173,12 @@ void comp_fpp_opp (uae_u32 opcode, uae_u16 extra)
 	    }
 	    return;
 	}
-
+	
 	switch (extra & 0x7f) {
 	 case 0x00:		/* FMOVE */
 	 case 0x40:  /* Explicit rounding. This is just a quick fix. Same
 		      * for all other cases that have three choices */
-	 case 0x44:
+	 case 0x44:   
 	    dont_care_fflags();
 	    src=get_fp_value (opcode, extra);
 	    if (src < 0) {
@@ -1191,11 +1189,11 @@ void comp_fpp_opp (uae_u32 opcode, uae_u16 extra)
 	    MAKE_FPSR (src);
 	    break;
 	 case 0x01:		/* FINT */
-	    FAIL(1);
+	    FAIL(1);    
 	    return;
 	    dont_care_fflags();
 	 case 0x02:		/* FSINH */
-	    FAIL(1);
+	    FAIL(1);  
 	    return;
 
 	    dont_care_fflags();
@@ -1203,7 +1201,7 @@ void comp_fpp_opp (uae_u32 opcode, uae_u16 extra)
 	    MAKE_FPSR (regs.fp[reg]);
 	    break;
 	 case 0x03:		/* FINTRZ */
-#if USE_X86_FPUCW
+#if USE_X86_FPUCW 
 	    /* If we have control over the CW, we can do this */
 	    dont_care_fflags();
 	    src=get_fp_value (opcode, extra);
@@ -1213,18 +1211,18 @@ void comp_fpp_opp (uae_u32 opcode, uae_u16 extra)
 	    }
 	    mov_l_ri(S1,16);  /* Switch to "round to zero" mode */
 	    fldcw_m_indexed(S1,(uae_u32)x86_fpucw);
-
+	    
 	    frndint_rr(reg,src);
 
 	    /* restore control word */
-	    mov_l_rm(S1,(uae_u32)&regs.fpcr);
+	    mov_l_rm(S1,(uae_u32)&regs.fpcr); 
 	    and_l_ri(S1,0x000000f0);
 	    fldcw_m_indexed(S1,(uae_u32)x86_fpucw);
 
 	    MAKE_FPSR (reg);
 	    break;
-#endif
-	    FAIL(1);
+#endif		    
+	    FAIL(1);  
 	    return;
 	    regs.fp[reg] = (int) src;
 	    MAKE_FPSR (regs.fp[reg]);
@@ -1242,42 +1240,42 @@ void comp_fpp_opp (uae_u32 opcode, uae_u16 extra)
 	    MAKE_FPSR (reg);
 	    break;
 	 case 0x06:		/* FLOGNP1 */
-	    FAIL(1);
+	    FAIL(1);  
 	    return;
 	    dont_care_fflags();
 	    regs.fp[reg] = log (src + 1.0);
 	    MAKE_FPSR (regs.fp[reg]);
 	    break;
 	 case 0x08:		/* FETOXM1 */
-	    FAIL(1);
+	    FAIL(1);  
 	    return;
 	    dont_care_fflags();
 	    regs.fp[reg] = exp (src) - 1.0;
 	    MAKE_FPSR (regs.fp[reg]);
 	    break;
 	 case 0x09:		/* FTANH */
-	    FAIL(1);
+	    FAIL(1);  
 	    return;
 	    dont_care_fflags();
 	    regs.fp[reg] = tanh (src);
 	    MAKE_FPSR (regs.fp[reg]);
 	    break;
 	 case 0x0a:		/* FATAN */
-	    FAIL(1);
+	    FAIL(1);  
 	    return;
 	    dont_care_fflags();
 	    regs.fp[reg] = atan (src);
 	    MAKE_FPSR (regs.fp[reg]);
 	    break;
 	 case 0x0c:		/* FASIN */
-	    FAIL(1);
+	    FAIL(1);  
 	    return;
 	    dont_care_fflags();
 	    regs.fp[reg] = asin (src);
 	    MAKE_FPSR (regs.fp[reg]);
 	    break;
 	 case 0x0d:		/* FATANH */
-	    FAIL(1);
+	    FAIL(1);  
 	    return;
 	    dont_care_fflags();
 #if 1				/* The BeBox doesn't have atanh, and it isn't in the HPUX libm either */
@@ -1298,7 +1296,7 @@ void comp_fpp_opp (uae_u32 opcode, uae_u16 extra)
 	    MAKE_FPSR (reg);
 	    break;
 	 case 0x0f:		/* FTAN */
-	    FAIL(1);
+	    FAIL(1);  
 	    return;
 	    dont_care_fflags();
 	    regs.fp[reg] = tan (src);
@@ -1325,21 +1323,21 @@ void comp_fpp_opp (uae_u32 opcode, uae_u16 extra)
 	    MAKE_FPSR (reg);
 	    break;
 	 case 0x12:		/* FTENTOX */
-	    FAIL(1);
+	    FAIL(1);  
 	    return;
 	    dont_care_fflags();
 	    regs.fp[reg] = pow (10.0, src);
 	    MAKE_FPSR (regs.fp[reg]);
 	    break;
 	 case 0x14:		/* FLOGN */
-	    FAIL(1);
+	    FAIL(1);  
 	    return;
 	    dont_care_fflags();
 	    regs.fp[reg] = log (src);
 	    MAKE_FPSR (regs.fp[reg]);
 	    break;
 	 case 0x15:		/* FLOG10 */
-	    FAIL(1);
+	    FAIL(1);  
 	    return;
 	    dont_care_fflags();
 	    regs.fp[reg] = log10 (src);
@@ -1368,7 +1366,7 @@ void comp_fpp_opp (uae_u32 opcode, uae_u16 extra)
 	    MAKE_FPSR (reg);
 	    break;
 	 case 0x19:		/* FCOSH */
-	    FAIL(1);
+	    FAIL(1);  
 	    return;
 	    dont_care_fflags();
 	    regs.fp[reg] = cosh (src);
@@ -1387,7 +1385,7 @@ void comp_fpp_opp (uae_u32 opcode, uae_u16 extra)
 	    MAKE_FPSR (reg);
 	    break;
 	 case 0x1c:		/* FACOS */
-	    FAIL(1);
+	    FAIL(1);  
 	    return;
 	    dont_care_fflags();
 	    regs.fp[reg] = acos (src);
@@ -1404,7 +1402,7 @@ void comp_fpp_opp (uae_u32 opcode, uae_u16 extra)
 	    MAKE_FPSR (reg);
 	    break;
 	 case 0x1e:		/* FGETEXP */
-	    FAIL(1);
+	    FAIL(1);  
 	    return;
 	    dont_care_fflags();
 	    {
@@ -1415,7 +1413,7 @@ void comp_fpp_opp (uae_u32 opcode, uae_u16 extra)
 	    }
 	    break;
 	 case 0x1f:		/* FGETMAN */
-	    FAIL(1);
+	    FAIL(1);  
 	    return;
 	    dont_care_fflags();
 	    {
@@ -1492,7 +1490,7 @@ void comp_fpp_opp (uae_u32 opcode, uae_u16 extra)
 	    break;
 	 case 0x26:		/* FSCALE */
 	    dont_care_fflags();
-	    FAIL(1);
+	    FAIL(1);  
 	    return;
 	    regs.fp[reg] *= exp (log (2.0) * src);
 	    MAKE_FPSR (regs.fp[reg]);
@@ -1527,7 +1525,7 @@ void comp_fpp_opp (uae_u32 opcode, uae_u16 extra)
 	 case 0x35:
 	 case 0x36:
 	 case 0x37:
-	    FAIL(1);
+	    FAIL(1);  
 	    return;
 	    dont_care_fflags();
 	    regs.fp[reg] = sin (src);
@@ -1552,7 +1550,7 @@ void comp_fpp_opp (uae_u32 opcode, uae_u16 extra)
 	    fmov_rr(FP_RESULT,src);
 	    break;
 	 default:
-	    FAIL(1);
+	    FAIL(1);  
 	    return;
 	    break;
 	}

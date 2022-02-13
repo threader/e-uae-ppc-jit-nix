@@ -41,8 +41,6 @@ start:
 	dc.l bootcode-start
 	dc.l setup_exter-start
 
-	dc.l p96vsyncfix1-start
-
 bootcode:
 	lea.l doslibname(pc),a1
 	jsr -96(a6) ; FindResident
@@ -54,6 +52,7 @@ bootcode:
 
 filesys_init:
 	movem.l d0-d7/a0-a6,-(sp)
+	bsr.w setup_exter
 	move.l 4.w,a6
 	move.w #$FFFC,d0 ; filesys base
 	bsr getrtbase
@@ -93,7 +92,7 @@ FSIN_nextsub:
 	addq.w #1,d6
 	swap d6
 	bra.s FSIN_nextsub
-FSIN_nomoresub:
+FSIN_nomoresub:	
 	move.l (sp)+,d6
 	addq.w #1,d6
 	bra.b  FSIN_init_units
@@ -182,7 +181,7 @@ EXTS_done:
 	move.w #$FF50,d0 ;exter_int_helper
 	bsr.w getrtbase
 	moveq.l #4,d0
-	jsr (a0)
+	jsr (a0)	
 	moveq.l #1,d0 ; clear Z - it was for us.
 exter_server_exit:
 	movem.l (sp)+,a2
@@ -200,7 +199,7 @@ setup_exter:
 	move.l a0,14(a1)
 	lea.l exter_server(pc),a0
 	move.l a0,18(a1)
-	move.w #$0214,8(a1)
+	move.w #$0201,8(a1)
 	moveq.l #3,d0
 	jsr -168(a6) ; AddIntServer
 	movem.l (sp)+,d0-d1/a0-a1
@@ -285,7 +284,7 @@ r18	addq.l #1,d6
 	bne.s r15
 
 	moveq #0,d6
-r3
+r3	
 	move.l 0(a4,d6.l*4),a0
 	addq.l #4,a0
 	move.l (a3)+,d3 ; hunk type
@@ -328,11 +327,11 @@ r9	move.l (a3)+,d2 ;offset
 r13
 	cmp.l #$3f2,d3 ;end
 	bne.s ree
-
+	
 	addq.l #1,d6
 	cmp.l d6,d7
 	bne.w r3
-
+	
 	moveq #1,d7
 	move.l (a4),a0
 r0	move.l d7,d0
@@ -389,7 +388,7 @@ fsres4
 	move.l a0,d0
 	movem.l (sp)+,d1/a0-a2/a6
 	rts
-
+	
 make_dev: ; IN: A0 param_packet, D6: unit_no, D7: boot, A4: expansionbase
 
 	bsr.w fsres
@@ -411,7 +410,7 @@ make_dev: ; IN: A0 param_packet, D6: unit_no, D7: boot, A4: expansionbase
 	beq.w general_ret
 	cmp.l #2,d3
 	beq.s mountalways
-
+	
 	; KS < V36: init regular hardfiles only if filesystem is loaded
 	and.l d5,d0
 	beq.s mountalways ; >= 36
@@ -736,32 +735,8 @@ getrtbase:
 	add.l d0,a0
 	rts
 
-p96flag	dc.w 0
-p96vsyncfix1
-	cmp.l #34,8(sp) ; picasso_WaitVerticalSync?
-	bne.s p961
-	movem.l d0-d1/a0-a2/a6,-(sp)
-	move.l 4.w,a6
-	sub.l a1,a1
-	jsr -$126(a6) ; FindTask
-	move.l d0,a2
-	move.l a2,a1
-	moveq #-20,d0
-	jsr -$12c(a6) ; SetTaskPri
-	lea p96flag(pc),a0
-	move.w (a0),d1
-p962	cmp.w (a0),d1
-	beq.s p962
-	move.l a2,a1
-	jsr -$12c(a6) ; SetTaskPri
-	moveq #1,d1
-	movem.l (sp)+,d0-d1/a0-a2/a6
-	addq.l #4,sp ; return directly to caller
-p961	rts
-
-
 exter_name: dc.b 'UAE filesystem',0
 doslibname: dc.b 'dos.library',0
 explibname: dc.b 'expansion.library',0
-fsresname: dc.b 'FileSystem.resource',0
+fsresname:	dc.b 'FileSystem.resource',0
 	END

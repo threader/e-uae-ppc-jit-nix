@@ -20,9 +20,8 @@
 #include "custom.h"
 #include "newcpu.h"
 #include "autoconf.h"
-#include "threaddep/thread.h"
-#include "osdep/exectasks.h"
 #include "bsdsocket.h"
+#include "osdep/exectasks.h"
 
 #ifdef BSDSOCKET
 
@@ -126,8 +125,6 @@ void seterrno (SB, int sb_errno)
 {
     sb->sb_errno = sb_errno;
 
-	if (sb->sb_errno >= 1001 && sb->sb_errno <= 1005) setherrno(sb,sb->sb_errno-1000);
-
     if (sb->errnoptr) {
 	switch (sb->errnosize) {
 	 case 1:
@@ -160,34 +157,38 @@ void setherrno (SB, int sb_herrno)
     }
 }
 
-BOOL checksd (SB, int sd)
-{
-     int iCounter;
-     SOCKET s;
+BOOL checksd(SB, int sd)
+	{
+	int iCounter;
+	SOCKET s;
 
-     s = getsock (sb, sd);
-     if (s != INVALID_SOCKET) {
-	for (iCounter  = 1; iCounter <= sb->dtablesize; iCounter++) {
-	    if (iCounter != sd) {
-		if (getsock (sb, iCounter) == s) {
-		    releasesock (sb, sd);
-		    return 1;
+    s = getsock(sb,sd);
+    if (s != INVALID_SOCKET)
+		{
+		for (iCounter  = 1; iCounter <= sb->dtablesize; iCounter++)
+			{
+			if (iCounter != sd)
+				{
+				if (getsock(sb,iCounter) == s)
+					{
+					releasesock(sb,sd);
+					return TRUE;
+					}
+				}
+			}
+		for (iCounter  = 0; iCounter < SOCKPOOLSIZE; iCounter++)
+			{
+			if (s == sockpoolsocks[iCounter])
+				return TRUE;
+			}
 		}
-	     }
+	TRACE(("checksd FALSE s 0x%x sd %d\n",s,sd));
+	return FALSE;
 	}
-	for (iCounter  = 0; iCounter < SOCKPOOLSIZE; iCounter++) {
-	    if (s == sockpoolsocks[iCounter])
-		return 1;
-	}
-    }
-    TRACE (("checksd FALSE s 0x%x sd %d\n", s, sd));
-    return 0;
-}
-
-void setsd (SB, int sd, int s)
-{
+void setsd(SB, int sd, int s)
+	{
     sb->dtable[sd - 1] = s;
-}
+	}
 
 /* Socket descriptor/opaque socket handle management */
 int getsd (SB, int s)
@@ -286,7 +287,7 @@ void waitsig (SB)
     long sigs;
     m68k_dreg (regs, 0) = (((uae_u32) 1) << sb->signal) | sb->eintrsigs;
     if ((sigs = CallLib (get_long (4), -0x13e)) & sb->eintrsigs) {
-	sockabort (sb);
+	sockabort (sb); 
 	seterrno (sb, 4);	/* EINTR */
 
 	// Set signal
@@ -455,9 +456,8 @@ static uae_u32 bsdsocklib_Open (void)
 	put_long (result + offsetof (struct UAEBSDBase, sb), (uae_u32) sb);
 
 	TRACE (("%0lx [%d]\n", result, opencount));
-    } else {
+    } else
 	TRACE (("failed (out of memory)\n"));
-    }
 
     unlocksigqueue ();
 
@@ -496,7 +496,7 @@ static uae_u32 bsdsocklib_bind (void)
 {
     return host_bind (SOCKETBASE, m68k_dreg (regs, 0), m68k_areg (regs, 0),
 		      m68k_dreg (regs, 1));
-}
+	}
 
 /* listen(s, backlog)(d0/d1) */
 static uae_u32 bsdsocklib_listen (void)
@@ -626,37 +626,9 @@ static uae_u32 bsdsocklib_SetSocketSignals (void)
 }
 
 /* SetDTableSize(size)(d0) */
-static uae_u32 bsdsocklib_SetDTableSize (SB, int newSize)
+static uae_u32 bsdsocklib_SetDTableSize (void)
 {
-    int *newdtable;
-    int *newftable;
-    int i;
-
-    if (newSize < sb->dtablesize) {
-	/* I don't support lowering the size */
-	return 0;
-    }
-
-    newdtable = (int *)malloc(newSize * sizeof(*sb->dtable));
-    newftable = (int *)malloc(newSize * sizeof(*sb->ftable));
-
-    if (newdtable == NULL || newftable == NULL) {
-	sb->resultval = -1;
-	seterrno(sb, ENOMEM);
-	return -1;
-    }
-
-    memcpy(newdtable, sb->dtable, sb->dtablesize * sizeof(*sb->dtable));
-    memcpy(newftable, sb->ftable, sb->dtablesize * sizeof(*sb->ftable));
-    for (i = sb->dtablesize + 1; i < newSize; i++)
-	newdtable[i] = -1;
-
-    sb->dtablesize = newSize;
-    free(sb->dtable);
-    free(sb->ftable);
-    sb->dtable = newdtable;
-    sb->ftable = newftable;
-    sb->resultval = 0;
+    write_log ("bsdsocket: UNSUPPORTED: SetDTableSize()\n");
     return 0;
 }
 
@@ -715,7 +687,7 @@ static uae_u32 bsdsocklib_ReleaseSocket (void)
 
     sd = m68k_dreg (regs, 0);
     id = m68k_dreg (regs, 1);
-
+	
 	sd++;
     TRACE (("ReleaseSocket(%d,%d) -> ", sd, id));
 
@@ -898,9 +870,8 @@ static uae_u32 bsdsocklib_getprotobyname (void)
 /* getprotobynumber(proto)(d0)  */
 static uae_u32 bsdsocklib_getprotobynumber (void)
 {
-    SB = get_socketbase ();
-    host_getprotobynumber (sb, m68k_dreg (regs, 0));
-    return sb->sb_errno ? 0 : sb->protoent;
+    write_log ("bsdsocket: UNSUPPORTED: getprotobynumber()\n");
+    return 0;
 }
 
 /* *------ syslog functions */
@@ -953,7 +924,7 @@ char *errortexts[] =
  "Read-only file system", "Too many links", "Broken pipe", "Numerical argument out of domain",
  "Result too large", "Resource temporarily unavailable", "Operation now in progress",
  "Operation already in progress", "Socket operation on non-socket", "Destination address required",
- "Message too long", "Protocol wrong type for socket", "Protocol not available",
+ "Messbge too long", "Protocol wrong type for socket", "Protocol not available",
  "Protocol not supported", "Socket type not supported", "Operation not supported",
  "Protocol family not supported", "Address family not supported by protocol family",
  "Address already in use", "Can't assign requested address", "Network is down",
@@ -965,22 +936,11 @@ char *errortexts[] =
  "Too many processes", "Too many users", "Disc quota exceeded", "Stale NFS file handle",
  "Too many levels of remote in path", "RPC struct is bad", "RPC version wrong",
  "RPC prog. not avail", "Program version wrong", "Bad procedure for program", "No locks available",
- "Function not implemented", "Inappropriate file type or format", "PError 0"};
-
-uae_u32 errnotextptrs[sizeof (errortexts) / sizeof (*errortexts)];
-uae_u32 number_sys_error = sizeof (errortexts) / sizeof (*errortexts);
-
-
-char *herrortexts[] =
- {"No error", "Unknown host", "Host name lookup failure", "Unknown server error",
+ "Function not implemented", "Inappropriate file type or format", "PError 0",
+ "No error", "Unknown host", "Host name lookup failure", "Unknown server error",
  "No address associated with name"};
 
-uae_u32 herrnotextptrs[sizeof (herrortexts) / sizeof (*herrortexts)];
-uae_u32 number_host_error = sizeof (herrortexts) / sizeof (*herrortexts);
-
-static const char * const strErr = "Errlist lookup error";
-uae_u32 strErrptr;
-
+uae_u32 errnotextptrs[sizeof (errortexts) / sizeof (*errortexts)];
 
 #define TAG_DONE   (0L)		/* terminates array of TagItems. ti_Data unused */
 #define	TAG_IGNORE (1L)		/* ignore this item, not end of array               */
@@ -1017,8 +977,8 @@ uae_u32 strErrptr;
 #define SBTC_ERRNOSTRPTR    14	/* <sys/errno.h> */
 #define SBTC_HERRNOSTRPTR   15	/* <netdb.h> */
 #define SBTC_IOERRNOSTRPTR  16	/* <exec/errors.h> */
-#define SBTC_S2ERRNOSTRPTR  17	/* <devices/sana2.h> */
-#define SBTC_S2WERRNOSTRPTR 18	/* <devices/sana2.h> */
+#define SBTC_S2ERRNOSTRPTR  17	/* <devices/sbna2.h> */
+#define SBTC_S2WERRNOSTRPTR 18	/* <devices/sbna2.h> */
 #define SBTC_ERRNOBYTEPTR   21
 #define SBTC_ERRNOWORDPTR   22
 #define SBTC_ERRNOLONGPTR   24
@@ -1105,48 +1065,20 @@ static uae_u32 bsdsocklib_SocketBaseTagList (void)
 		    TRACE (("SBTC_HERRNO),%d", currval));
 		    tagcopy (currtag, currval, tagptr, &sb->sb_herrno);
 		    break;
-		 case SBTC_DTABLESIZE:
-		    TRACE (("SBTC_DTABLESIZE),0x%lx", currval));
-		    if (currtag & 1) {
-			bsdsocklib_SetDTableSize(sb, currval);
-		    } else {
-			put_long(tagptr + 4, sb->dtablesize);
-		    }
-		    break;
 		 case SBTC_ERRNOSTRPTR:
 		    if (currtag & 1) {
 			TRACE (("ERRNOSTRPTR),invalid"));
 		    } else {
-			unsigned long ulTmp;
-			if (currtag & 0x8000)	/* SBTM_GETREF */
-			    ulTmp = get_long(currval);
-			else			/* SBTM_GETVAL */
-			    ulTmp = currval;
-
-			TRACE (("ERRNOSTRPTR),%d", ulTmp));
-
-			if (ulTmp < number_sys_error)
-			    tagcopy (currtag, currval, tagptr, &errnotextptrs[ulTmp]);
-			else
-			    tagcopy (currtag, currval, tagptr, &strErrptr);
+			TRACE (("ERRNOSTRPTR),%d", currval));
+			put_long (tagptr + 4, errnotextptrs[currval]);
 		    }
 		    break;
 		 case SBTC_HERRNOSTRPTR:
 		    if (currtag & 1) {
 			TRACE (("HERRNOSTRPTR),invalid"));
 		    } else {
-			unsigned long ulTmp;
-			if (currtag & 0x8000)	/* SBTM_GETREF */
-			    ulTmp = get_long(currval);
-			else			/* SBTM_GETVAL */
-			    ulTmp = currval;
-
-			TRACE (("HERRNOSTRPTR),%d", ulTmp));
-
-			if (ulTmp < number_host_error)
-			    tagcopy (currtag, currval, tagptr, &herrnotextptrs[ulTmp]);
-			else
-			    tagcopy (currtag, currval, tagptr, &strErrptr);
+			TRACE (("HERRNOSTRPTR),%d", currval));
+			put_long (tagptr + 4, errnotextptrs[currval + sizeof (errortexts) / sizeof (*errortexts) - 6]);
 		    }
 		    break;
 		 case SBTC_ERRNOBYTEPTR:
@@ -1189,7 +1121,6 @@ static uae_u32 bsdsocklib_SocketBaseTagList (void)
 
 static uae_u32 bsdsocklib_GetSocketEvents (void)
 {
-#ifdef _WIN32
     SB = SOCKETBASE;
     int i;
     int flags;
@@ -1211,7 +1142,7 @@ static uae_u32 bsdsocklib_GetSocketEvents (void)
 	    }
 	}
     }
-#endif
+
     TRACE (("-1\n"));
     return -1;
 }
@@ -1258,15 +1189,8 @@ static uae_u32 bsdsocklib_init (void)
 #endif
 
     /* Install error strings in Amiga memory */
-    tmp1 = 0;
-
-    for (i = number_sys_error; i--;)
-	tmp1 += strlen (errortexts[i]) + 1;
-
-    for (i = number_host_error; i--;)
-	tmp1 += strlen (herrortexts[i]) + 1;
-
-    tmp1 += strlen(strErr) + 1;
+    for (tmp1 = i = sizeof (errortexts) / sizeof (*errortexts); i--;)
+	tmp1 += strlen (errortexts[i]);
 
     m68k_dreg (regs, 0) = tmp1;
     m68k_dreg (regs, 1) = 0;
@@ -1276,13 +1200,8 @@ static uae_u32 bsdsocklib_init (void)
 	write_log ("bsdsocket: FATAL: Ran out of memory while creating bsdsocket.library!\n");
 	return 0;
     }
-    for (i = 0; i < (int) (number_sys_error); i++)
+    for (i = 0; i < (int) (sizeof (errortexts) / sizeof (*errortexts)); i++)
 	errnotextptrs[i] = addstr (&tmp1, errortexts[i]);
-
-    for (i = 0; i < (int) (number_host_error); i++)
-	herrnotextptrs[i] = addstr (&tmp1, herrortexts[i]);
-
-    strErrptr = addstr (&tmp1, strErr);
 
     /* @@@ someone please implement a proper interrupt handler setup here :) */
     tmp1 = here ();
@@ -1332,7 +1251,7 @@ uae_u32 (*sockfuncs[])(void) = {
     bsdsocklib_connect, bsdsocklib_sendto, bsdsocklib_send, bsdsocklib_recvfrom, bsdsocklib_recv,
     bsdsocklib_shutdown, bsdsocklib_setsockopt, bsdsocklib_getsockopt, bsdsocklib_getsockname,
     bsdsocklib_getpeername, bsdsocklib_IoctlSocket, bsdsocklib_CloseSocket, bsdsocklib_WaitSelect,
-    bsdsocklib_SetSocketSignals, bsdsocklib_getdtablesize, bsdsocklib_ObtainSocket, bsdsocklib_ReleaseSocket,
+    bsdsocklib_SetSocketSignals, bsdsocklib_SetDTableSize, bsdsocklib_ObtainSocket, bsdsocklib_ReleaseSocket,
     bsdsocklib_ReleaseCopyOfSocket, bsdsocklib_Errno, bsdsocklib_SetErrnoPtr, bsdsocklib_Inet_NtoA,
     bsdsocklib_inet_addr, bsdsocklib_Inet_LnaOf, bsdsocklib_Inet_NetOf, bsdsocklib_Inet_MakeAddr,
     bsdsocklib_inet_network, bsdsocklib_gethostbyname, bsdsocklib_gethostbyaddr, bsdsocklib_getnetbyname,
@@ -1350,9 +1269,6 @@ void bsdlib_install (void)
     uae_u32 begin, end;
     uae_u32 func_place, data_place, init_place;
     int i;
-
-    if (currprefs.socket_emu == 0)
-        return;
 
     if (!init_socket_layer ())
 	return;
@@ -1433,11 +1349,4 @@ void bsdlib_install (void)
     org (end);
 }
 
-#else /* ! BSDSOCKET */
-
-void bsdlib_install (void)
-{
-   return;
-}
-
-#endif
+#endif /* ! BSDSOCKET */

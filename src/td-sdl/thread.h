@@ -19,38 +19,27 @@ STATIC_INLINE int uae_sem_init(uae_sem_t *PSEM, int DUMMY, int INIT)
    
    return (*PSEM == 0);
 }
-#define uae_sem_destroy(PSEM)  SDL_DestroySemaphore (*PSEM)
-#define uae_sem_post(PSEM)     SDL_SemPost (*PSEM)
-#define uae_sem_wait(PSEM)     SDL_SemWait (*PSEM)
-#define uae_sem_trywait(PSEM)  SDL_SemTryWait (*PSEM)
+#define uae_sem_destroy(PSEM) SDL_DestroySemaphore (*PSEM)
+#define uae_sem_post(PSEM) SDL_SemPost (*PSEM)
+#define uae_sem_wait(PSEM) SDL_SemWait (*PSEM)
+#define uae_sem_trywait(PSEM) SDL_SemTryWait (*PSEM)
 #define uae_sem_getvalue(PSEM) SDL_SemValue (*PSEM)
 
 #include "commpipe.h"
 
-typedef SDL_Thread *uae_thread_id;
-
+typedef Uint32 uae_thread_id;
 #define BAD_THREAD NULL
 
 #define uae_set_thread_priority(pri)
 
-STATIC_INLINE int uae_start_thread (void *(*f) (void *), void *arg, uae_thread_id *thread)
+STATIC_INLINE int uae_start_thread (void *(*f) (void *), void *arg, uae_thread_id *foo)
 {
-    *thread = SDL_CreateThread ((int (*)(void *))f, arg);
-    return *thread == 0;
-}
-
-STATIC_INLINE int uae_wait_thread (uae_thread_id thread)
-{
-    SDL_WaitThread (thread, (int*)0);
-    return 0;
+   SDL_Thread *thread = SDL_CreateThread ((int (*)(void *))f, arg);
+   *foo = SDL_GetThreadID (thread);
+    return *foo == 0;
 }
 
 /* Do nothing; thread exits if thread function returns.  */
 #define UAE_THREAD_EXIT do {} while (0)
 
-/* Warning! This is broken. It doesn't actually return a uae_thread_id */
-#warning SDL uae_thread_self() is broken
-STATIC_INLINE uae_thread_id uae_thread_self (void)
-{
-   return (uae_thread_id) SDL_ThreadID ();
-}
+#define uae_thread_self SDL_ThreadID

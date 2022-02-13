@@ -53,17 +53,15 @@ static long chip_filepos;
 static long bogo_filepos;
 static long rom_filepos;
 
-addrbank *mem_banks[MEMORY_BANKS];
+addrbank *mem_banks[65536];
 
-#ifdef JIT
 /* This has two functions. It either holds a host address that, when added
    to the 68k address, gives the host address corresponding to that 68k
    address (in which case the value in this array is even), OR it holds the
    same value as mem_banks, for those banks that have baseaddr==0. In that
    case, bit 0 is set (the memory access routines will take care of it).  */
 
-uae_u8 *baseaddr[MEMORY_BANKS];
-#endif
+uae_u8 *baseaddr[65536];
 
 #ifdef NO_INLINE_MEMORY_ACCESS
 __inline__ uae_u32 longget (uaecptr addr)
@@ -159,7 +157,7 @@ void REGPARAM2 dummy_lput (uaecptr addr, uae_u32 l)
 {
 #ifdef JIT
     special_mem |= S_WRITE;
-#endif
+#endif 
    if (currprefs.illegal_mem) {
 	if (illegal_count < MAX_ILG) {
 	    illegal_count++;
@@ -232,9 +230,9 @@ uae_u32 REGPARAM2 mbres_lget (uaecptr addr)
 
 uae_u32 REGPARAM2 mbres_wget (uaecptr addr)
 {
-#ifdef JIT
+#ifdef JIT   
     special_mem |= S_READ;
-#endif
+#endif   
     if (currprefs.illegal_mem)
 	write_log ("Illegal wget at %08lx\n", addr);
 
@@ -243,7 +241,7 @@ uae_u32 REGPARAM2 mbres_wget (uaecptr addr)
 
 uae_u32 REGPARAM2 mbres_bget (uaecptr addr)
 {
-#ifdef JIT
+#ifdef JIT   
     special_mem |= S_READ;
 #endif
     if (currprefs.illegal_mem)
@@ -254,25 +252,25 @@ uae_u32 REGPARAM2 mbres_bget (uaecptr addr)
 
 void REGPARAM2 mbres_lput (uaecptr addr, uae_u32 l)
 {
-#ifdef JIT
+#ifdef JIT   
     special_mem |= S_WRITE;
-#endif
+#endif   
     if (currprefs.illegal_mem)
 	write_log ("Illegal lput at %08lx\n", addr);
 }
 void REGPARAM2 mbres_wput (uaecptr addr, uae_u32 w)
 {
-#ifdef JIT
+#ifdef JIT   
     special_mem |= S_WRITE;
-#endif
+#endif   
     if (currprefs.illegal_mem)
 	write_log ("Illegal wput at %08lx\n", addr);
 }
 void REGPARAM2 mbres_bput (uaecptr addr, uae_u32 b)
 {
-#ifdef JIT
+#ifdef JIT   
     special_mem |= S_WRITE;
-#endif
+#endif   
     if (currprefs.illegal_mem)
 	write_log ("Illegal bput at %08lx\n", addr);
 
@@ -617,7 +615,6 @@ uae_u8 REGPARAM2 *a3000mem_xlate (uaecptr addr)
 
 uae_u8 *kickmemory;
 uae_u16 kickstart_version;
-unsigned int kickmem_size = 0x80000;
 
 /*
  * A1000 kickstart RAM handling
@@ -633,7 +630,6 @@ static void a1000_handle_kickstart (int mode)
     if (mode == 0) {
 	a1000_kickstart_mode = 0;
 	memcpy (kickmemory, kickmemory + 262144, 262144);
-        kickstart_version = (kickmemory[262144 + 12] << 8) | kickmemory[262144 + 13];
     } else {
 	a1000_kickstart_mode = 1;
 	memset (kickmemory, 0, 262144);
@@ -641,6 +637,7 @@ static void a1000_handle_kickstart (int mode)
 	memcpy (kickmemory + 131072, a1000_bootrom, 65536);
         kickstart_version = 0;
     }
+    kickstart_version = (kickmemory[262144 + 12] << 8) | kickmemory[262144 + 13];
 }
 
 void a1000_reset (void)
@@ -895,41 +892,17 @@ int REGPARAM2 default_check (uaecptr a, uae_u32 b)
     return 0;
 }
 
-static int be_cnt;
-
 uae_u8 REGPARAM2 *default_xlate (uaecptr a)
 {
     if (quit_program == 0) {
-	/* do this only in 68010+ mode, there are some tricky A500 programs.. */
+	/* demo Purple by Warfalcons expects exception
+	   in this situation instead of reset... */
 	if (currprefs.cpu_level > 0 || !currprefs.cpu_compatible) {
-	    if (be_cnt < 3) {
-		int i, j;
-		uaecptr a2 = a - 32;
-		uaecptr a3 = m68k_getpc() - 32;
-		write_log ("Your Amiga program just did something terribly stupid %p PC=%p\n", a, m68k_getpc());
-		m68k_dumpstate (0, 0);
-		for (i = 0; i < 10; i++) {
-		    write_log ("%08.8X ", i >= 5 ? a3 : a2);
-		    for (j = 0; j < 16; j += 2) {
-			write_log (" %04.4X", get_word (i >= 5 ? a3 : a2));
-			if (i >= 5) a3 +=2; else a2 += 2;
-		    }
-		    write_log ("\n");
-		}
-	    }
-	    be_cnt++;
-	    if (be_cnt > 1000) {
-		uae_reset (0);
-		be_cnt = 0;
-	    } else {
-		regs.panic = 1;
-		regs.panic_pc = m68k_getpc ();
-		regs.panic_addr = a;
-		set_special (SPCFLAG_BRK);
-	    }
+	    write_log ("Your Amiga program just did something terribly stupid %p PC=%p\n", a, m68k_getpc());
+	    uae_reset (0);
 	}
     }
-    return kickmem_xlate (0);	/* So we don't crash. */
+    return kickmem_xlate (get_long (0xF80000));	/* So we don't crash. */
 }
 
 /* Address banks */
@@ -1021,11 +994,11 @@ static int decode_cloanto_rom (uae_u8 *mem, int size, int real_size)
                 gui_message ("Could not find specified ROM key-file.\n");
 #endif
 	        return 0;
-#ifdef WIN32
+#ifdef WIN32	   
             }
 #endif
 	}
-
+       
 	p = (uae_u8 *)xmalloc (524288);
 	keysize = zfile_fread (p, 1, 524288, keyf);
     if (keysize == 0) {
@@ -1055,12 +1028,10 @@ static int kickstart_checksum (uae_u8 *mem, int size)
 	prevck = cksum;
     }
 #ifndef SINGLEFILE
-    if (cksum != 0xFFFFFFFFul) {
+    if (cksum != 0xFFFFFFFFul)
 	gui_message("Kickstart checksum incorrect. You probably have a corrupted ROM image.\n");
-        return 0;
-    }
 #endif
-    return 1;
+    return 0;
 }
 
 static int read_kickstart (struct zfile *f, uae_u8 *mem, int size, int dochecksum, int *cloanto_rom)
@@ -1078,34 +1049,27 @@ static int read_kickstart (struct zfile *f, uae_u8 *mem, int size, int dochecksu
     }
 
     i = zfile_fread (mem, 1, size, f);
-    zfile_fclose (f);
-    if ((i != 8192 && i != 65536) && i != 131072 && i != 262144 && i != 524288) {
+    if (i == size/2) {
+	memcpy (mem + size/2, mem, i);
+    } else if ((i != 8192 && i != 65536) && i != size) {
 	gui_message ("Error while reading Kickstart.\n");
+        zfile_fclose (f);
 	return 0;
     }
-    if (i == size / 2)
-	memcpy (mem + size / 2, mem, size / 2);
+    zfile_fclose (f);
 
-    if (cr) {
-	if (!decode_cloanto_rom (mem, size, i))
-	    return 0;
-    }
-
+    if (cr)
+	decode_cloanto_rom (mem, size, i);
     if (i == 8192 || i == 65536) {
         a1000_bootrom = malloc (65536);
         memcpy (a1000_bootrom, kickmemory, 65536);
         a1000_handle_kickstart (1);
-	i = 524288;
-	dochecksum = 0;
     }
-    if (dochecksum && i >= 262144) {
-	if (!kickstart_checksum (mem, size))
-	    return 0;
-    }
+    if (dochecksum && i >= 262144)
+	kickstart_checksum (mem, size);
     if (cloanto_rom)
 	*cloanto_rom = cr;
-
-    return i;
+    return 1;
 }
 
 
@@ -1172,32 +1136,46 @@ static void kickstart_fix_checksum (uae_u8 *mem, int size)
 static int load_kickstart (void)
 {
     struct zfile *f = zfile_fopen (currprefs.romfile, "rb");
+    char tmprom[512], tmpkey[512];
 
+    strcpy (tmprom, currprefs.romfile);
+    strcpy (tmpkey, currprefs.keyfile);
     if (f == NULL) {
-#if defined AMIGA && !defined __amigaos4__ && !defined __MORPHOS__ && !defined __AROS__
-# define USE_UAE_ERSATZ "USE_UAE_ERSATZ"
-	if (!getenv (USE_UAE_ERSATZ)) {
+	strcpy (currprefs.romfile, "roms/kick.rom");
+	f = zfile_fopen (currprefs.romfile, "rb");
+	if (f == NULL) {
+            strcpy( currprefs.romfile, "kick.rom" );
+            f = zfile_fopen( currprefs.romfile, "rb" );
+#ifdef _WIN32
+	    if (f == NULL) {
+		strcpy( currprefs.romfile, "..\\shared\\rom\\kick.rom" );
+		f = zfile_fopen( currprefs.romfile, "rb" );
+	    }
+#endif
+        }
+    }
+    if( f == NULL ) { /* still no luck */
+#if defined(AMIGA)||defined(__POS__)
+#define USE_UAE_ERSATZ "USE_UAE_ERSATZ"
+	if( !getenv(USE_UAE_ERSATZ)) 
+        {
 	    write_log ("Using current ROM. (create ENV:%s to "
-		       "use uae's ROM replacement)\n", USE_UAE_ERSATZ);
-	    memcpy (kickmemory, (char*)0x1000000 - kickmem_size, kickmem_size);
-	    kickmem_mask = kickmem_size - 1;
+		"use uae's ROM replacement)\n",USE_UAE_ERSATZ);
+	    memcpy(kickmemory,(char*)0x1000000-kickmem_size,kickmem_size);
 	    kickstart_checksum (kickmemory, kickmem_size);
 	    goto chk_sum;
-	} else
-	    return 0;
+	}
 #else
-	return 0;
+	goto err;
 #endif
     }
 
     if (f != NULL) {
-	int size = read_kickstart (f, kickmemory, 0x80000, 1, &cloanto_rom);
-	if (size == 0)
-	    return 0;
-	kickmem_mask = size - 1;
+	if (!read_kickstart (f, kickmemory, kickmem_size, 1, &cloanto_rom))
+	    goto err;
     }
 
-#if defined AMIGA && !defined __amigaos4__ && !defined MORPHOS
+#if defined(AMIGA)
     chk_sum:
 #endif
 
@@ -1210,7 +1188,7 @@ static int load_kickstart (void)
 	uae_u8 kickshift1[] = { 0x41, 0xf8, 0x04, 0x00 };
 	uae_u8 kickshift2[] = { 0x41, 0xf8, 0x10, 0x00 };
 	uae_u8 kickshift3[] = { 0x43, 0xf8, 0x04, 0x00 };
-
+	
 	for (i = 0x200; i < 0x300; i++) {
 	    if (!memcmp (kickmemory + i, kickshift1, sizeof (kickshift1)) ||
 	    !memcmp (kickmemory + i, kickshift2, sizeof (kickshift2)) ||
@@ -1223,6 +1201,10 @@ static int load_kickstart (void)
     }
     kickstart_version = (kickmemory[12] << 8) | kickmemory[13];
     return 1;
+err:
+    strcpy (currprefs.romfile, tmprom);
+    strcpy (currprefs.keyfile, tmpkey);
+    return 0;
 }
 
 #ifndef NATMEM_OFFSET
@@ -1329,7 +1311,7 @@ static void delete_shmmaps (uae_u32 start, uae_u32 size)
 	}
     }
 }
-
+ 
 /* add_shmmaps()
  *
  * Map the block of shared memory attached to bank <what> in host
@@ -1451,7 +1433,7 @@ void mapped_free (uae_u8 *base)
 static void init_mem_banks (void)
 {
     int i;
-    for (i = 0; i < MEMORY_BANKS; i++)
+    for (i = 0; i < 65536; i++)
 	put_mem_bank (i << 16, &dummy_bank, 0);
 // This won't work here after deleting all the bank information - Rich.
 //#ifdef NATMEM_OFFSET
@@ -1557,7 +1539,6 @@ void memory_reset (void)
     delete_shmmaps (0, 0xFFFF0000);
 #endif
 
-    be_cnt = 0;
     currprefs.chipmem_size = changed_prefs.chipmem_size;
     currprefs.bogomem_size = changed_prefs.bogomem_size;
     currprefs.a3000mem_size = changed_prefs.a3000mem_size;
@@ -1565,33 +1546,22 @@ void memory_reset (void)
     init_mem_banks ();
     allocate_memory ();
 
-    if (strlen (currprefs.romfile) == 0 || strcmp (currprefs.romfile, changed_prefs.romfile) != 0
+    if (strcmp (currprefs.romfile, changed_prefs.romfile) != 0
 	|| strcmp (currprefs.keyfile, changed_prefs.keyfile) != 0)
     {
-	if (strlen (changed_prefs.romfile) == 0) {
-#ifdef AUTOCONFIG
-	    init_ersatz_rom (kickmemory);
-	    kickmem_mask = kickmem_size - 1;
-	    ersatzkickfile = 1;
-#else
-	    gui_message ("No Kickstart image selected\n");
-	    uae_restart (-1, NULL);
-	    return;
-#endif
-	} else {
-	    ersatzkickfile = 0;
-	    memcpy (currprefs.romfile, changed_prefs.romfile, sizeof currprefs.romfile);
-	    memcpy (currprefs.keyfile, changed_prefs.keyfile, sizeof currprefs.keyfile);
-            if (savestate_state != STATE_RESTORE)
-		clearexec ();
+	ersatzkickfile = 0;
+	memcpy (currprefs.romfile, changed_prefs.romfile, sizeof currprefs.romfile);
+	memcpy (currprefs.keyfile, changed_prefs.keyfile, sizeof currprefs.keyfile);
+        if (savestate_state != STATE_RESTORE)
+	    clearexec ();
 #if defined CDTV || defined CD32
-            load_extendedkickstart ();
+        load_extendedkickstart ();
 #endif
-	    if (!load_kickstart ()) {
-		gui_message ("Failed to load Kickstart image '%s'\n", currprefs.romfile);
-		uae_restart (-1, NULL);
-		return;
-	    }
+	if (!load_kickstart ()) {
+#ifdef AUTOCONFIG
+            init_ersatz_rom (kickmemory);
+	    ersatzkickfile = 1;
+#endif
 	}
     }
 
@@ -1678,7 +1648,7 @@ void memory_reset (void)
 
     #ifndef ACTION_REPLAY_HIDE_CARTRIDGES
     #ifdef ACTION_REPLAY
-    action_replay_map_banks();
+    action_replay_map_banks(); 
     #endif
     #endif
 #endif
@@ -1701,6 +1671,7 @@ void memory_init (void)
     kickmemory = mapped_malloc (kickmem_size, "kick");
     memset (kickmemory, 0, kickmem_size);
     kickmem_bank.baseaddr = kickmemory;
+    kickmem_mask = kickmem_size - 1;
     currprefs.romfile[0] = 0;
     currprefs.keyfile[0] = 0;
 #ifdef AUTOCONFIG
@@ -1708,10 +1679,10 @@ void memory_init (void)
     ersatzkickfile = 1;
 #endif
 
-#ifdef ACTION_REPLAY
+#ifdef ACTION_REPLAY   
     action_replay_load();
     action_replay_init(1);
-
+    
     #ifdef ACTION_REPLAY_HRTM
     hrtmon_load(1);
     #endif
@@ -1735,7 +1706,7 @@ void memory_cleanup (void)
 	free (a1000_bootrom);
     if (chipmemory)
 	mapped_free (chipmemory);
-
+  
     bogomemory = 0;
     kickmemory = 0;
     a1000_bootrom = 0;
@@ -1752,7 +1723,7 @@ void map_banks (addrbank *bank, int start, int size, int realsize)
     unsigned long int hioffs = 0, endhioffs = 0x100;
     addrbank *orgbank = bank;
     uae_u32 realstart = start;
-
+    
     flush_icache (1);		/* Sure don't want to keep any old mappings around! */
 #ifdef NATMEM_OFFSET
     delete_shmmaps (start << 16, size << 16);
@@ -1769,7 +1740,6 @@ void map_banks (addrbank *bank, int start, int size, int realsize)
 	abort ();
     }
 
-#ifndef ADDRESS_SPACE_24BIT
     if (start >= 0x100) {
 	int real_left = 0;
 	for (bnr = start; bnr < start + size; bnr++) {
@@ -1785,12 +1755,8 @@ void map_banks (addrbank *bank, int start, int size, int realsize)
 	}
 	return;
     }
-#endif
     if (currprefs.address_space_24)
 	endhioffs = 0x10000;
-#ifdef ADDRESS_SPACE_24BIT
-    endhioffs = 0x100;
-#endif
     for (hioffs = 0; hioffs < endhioffs; hioffs += 0x100) {
 	int real_left = 0;
 	for (bnr = start; bnr < start + size; bnr++) {
@@ -1905,3 +1871,74 @@ uae_u8 *save_rom (int first, int *len, uae_u8 *dstptr)
     *len = dst - dstbak;
     return dstbak;
 }
+
+// This will eventually go somewhere else - Rich
+
+#if defined __i386__ && defined __linux__ && defined NATMEM_OFFSET
+
+#include <sys/syscall.h>
+
+struct modify_ldt_ldt_s {
+    unsigned int  entry_number;
+    unsigned long base_addr;
+    unsigned int  limit;
+    unsigned int  seg_32bit:1;
+    unsigned int  contents:2;
+    unsigned int  read_exec_only:1;
+    unsigned int  limit_in_pages:1;
+    unsigned int  seg_not_present:1;
+    unsigned int  useable:1;
+    unsigned int  garbage:25;
+};
+
+static inline int modify_ldt( int func, struct modify_ldt_ldt_s *ptr,
+                                  unsigned long count )
+{
+    int res;
+    __asm__ __volatile__("int $0x80"
+                         : "=a" (res)
+                         : "0" (SYS_modify_ldt),
+                           "b" (func),
+                           "c" (ptr),
+                           "d" (count) );
+    return res;
+}
+
+#define MODIFY_LDT_CONTENTS_DATA        0
+#define MODIFY_LDT_CONTENTS_STACK       1
+#define MODIFY_LDT_CONTENTS_CODE        2
+
+static void setup_ldt (void)
+{
+/*
+ * Disabled for just now. Loading the GS register
+ * below causes a segfault on 2.6 kernels (and 
+ * apparently some 2.4 kernels). Don't know why
+ * yet - Rich */
+/*    struct modify_ldt_ldt_s entry;
+    entry.entry_number = 1;
+    entry.base_addr = NATMEM_OFFSET;
+    entry.limit = 0x80000000 >> 12;
+    entry.contents = MODIFY_LDT_CONTENTS_DATA;
+    entry.read_exec_only = 0;
+    entry.limit_in_pages = 1;
+    entry.seg_not_present = 0;
+    entry.useable = 1;
+    entry.garbage = 0;
+    modify_ldt (1, &entry, sizeof entry); 
+    __asm__ __volatile__ ("mov %0,%%gs" : : "r" (15)); */
+}
+
+#endif
+
+#ifndef WIN32
+
+void init_shm( void )
+{
+#if defined linux && defined __i386__ && defined NATMEM_OFFSET
+    canbang = 1;
+/*    setup_ldt();*/
+#endif   
+}
+
+#endif

@@ -1,8 +1,7 @@
  /*
   * UAE - The Un*x Amiga Emulator
   *
-  * Support for mapping Quartz keycodes to platform-independent
-  * UAE key codes.
+  * Support for mapping Quartz keycodes to UAE input events
   *
   * Copyright 2004 Richard Drummond
   */
@@ -14,12 +13,9 @@
 
 #include "options.h"
 #include "inputdevice.h"
-#include "keymap.h"
-#include "keymap_common.h"
+#include "keyboard.h"
+#include "hotkeys.h"
 
-/*
- * MacOS raw key codes
- */
 #define RAWKEY_ESCAPE		53
 
 #define RAWKEY_F1		122
@@ -92,8 +88,8 @@
 #define RAWKEY_COMMA		43
 #define RAWKEY_PERIOD		47
 #define RAWKEY_SLASH		44
-#define RAWKEY_GRAVE		50
-#define RAWKEY_LTGT		10
+#define RAWKEY_GRAVE		10
+#define RAWKEY_LTGT		50
 
 #define RAWKEY_NUMPAD_1		83
 #define RAWKEY_NUMPAD_2		84
@@ -122,85 +118,59 @@
 #define RAWKEY_PAGEDOWN		121
 
 #define RAWKEY_CURSOR_UP	126
-#define RAWKEY_CURSOR_DOWN	125
-#define RAWKEY_CURSOR_LEFT	123
+#define RAWKEY_CURSOR_DOWN	123
+#define RAWKEY_CURSOR_LEFT	125
 #define RAWKEY_CURSOR_RIGHT	124
 
 /*
- * MacOS X support for modifier keys is a bit iffy.
+ * MacOS doesn't report raw keycodes for modifier keys.
+ * Solution: query modifiers separately and map
+ * them to these fake keycodes.
  *
- * Under SDL (up to 1.2.7 anyway) my ADB keyboard, doesn't
- * report key codes for modifier keys. Thus we need the
- * modifier hack (see SDL gfx driver) to generate raw key
- * codes from modifier presses.
- *
- * Also, unless you have SDL 1.2.8 and OS 10.3, left and right
- * keys are differentiated. On some keyboards they'll never
- * be differentiated.
+ * Also note that MacOS doesn't seem to distinguish
+ * between left and right modfiers - i.e. left shift
+ * and right shift produce the modifier event
  */
-#define RAWKEY_LEFT_CTRL	59
-#define RAWKEY_LEFT_SHIFT	56
-#define RAWKEY_LEFT_ALT		58
-#define RAWKEY_LEFT_SUPER	55
-#define RAWKEY_RIGHT_SUPER	54
-#define RAWKEY_RIGHT_ALT	61
-#define RAWKEY_RIGHT_SHIFT	60
-#define RAWKEY_RIGHT_CTRL	62
-#define RAWKEY_CAPSLOCK		57
+#define RAWKEY_LEFT_CTRL	128
+#define RAWKEY_LEFT_SHIFT	129
+#define RAWKEY_LEFT_ALT		130
+#define RAWKEY_LEFT_SUPER	131
+#define RAWKEY_RIGHT_SUPER	131
+#define RAWKEY_RIGHT_ALT	130
+//#define RAWKEY_MENU
+#define RAWKEY_RIGHT_SHIFT	129
+#define RAWKEY_RIGHT_CTRL	128
+#define RAWKEY_CAPSLOCK		132
 
 #define RAWKEY_POWER            127
-
-/*
- * Mapping from raw key codes to UAE key codes
- */
-const struct uaekey_hostmap quartz_keymap[] =
-{
-    {RAWKEYS_COMMON},
-
-    {RAWKEY_F11,		UAEKEY_F11},
-    {RAWKEY_F12,		UAEKEY_F12},
-
-    {RAWKEY_PRINTSCR,		UAEKEY_PRINTSCR},
-    {RAWKEY_SCROLL_LOCK,	UAEKEY_SCROLL_LOCK},
-    {RAWKEY_PAUSE,		UAEKEY_PAUSE},
-
-    {RAWKEY_NUMPAD_EQUALS,	UAEKEY_NUMPAD_EQUALS},
-
-    {RAWKEY_POWER,		UAEKEY_POWER},
-
-    {RAWKEYS_END}
-};
-
-/*
- * Mapping of uae modifier key codes to Quartz modifier keys
- */
-const int quartz_modkeytable[] = {
-    /* UAEMODKEY_LSHIFT */	RAWKEY_LEFT_SHIFT,
-    /* UAEMODKEY_LCTRL */	RAWKEY_LEFT_CTRL,
-    /* UAEMODKEY_LALT */	RAWKEY_LEFT_ALT,
-    /* UAEMODKEY_LSUPER */	RAWKEY_LEFT_SUPER,
-    /* UAEMODKEY_RSUPER */	RAWKEY_RIGHT_SUPER,
-    /* UAEMODKEY_RALT */	RAWKEY_RIGHT_ALT,
-    /* UAEMODKEY_RCTRL */	RAWKEY_RIGHT_CTRL,
-    /* UAEMODKEY_RSHIFT */	RAWKEY_RIGHT_SHIFT,
-    /* UAEMODKEY_CAPSLOCK */	RAWKEY_CAPSLOCK
-};
+//#define RAWKEY_SLEEP
+//#define RAWKEY_WAKE
 
 
-/*
- * Hot-key sequences
- */
+/* MacOS doesn't report modifier keycodes */
+#define MODIFIER_HACK_NEEEDED
 
-/*
- * F12 is used to eject a CD-ROM on OS X. Don't use
- * it as the initiator for control seqeuences.
+/* F12 seems to be broken on Mac keyboards - it doesn't
+ * generate key-down events until the key is released
+ * Use F11 for control sequences instead
  */
 #define HOTKEY_MODIFIER		RAWKEY_F11
 
-#include "hotkeys.h"
+
+#include "quartz_rawkeys.h"
+#include "keymap_common.h"
 #include "hotkeys_common.h"
 
-struct uae_hotkeyseq quartz_hotkeys[] =
+const struct uae_input_device_kbr_default keytrans_quartz[] =
+{
+    { RAWKEYS_COMMON },
+    { RAWKEY_PRINTSCR,          INPUTEVENT_SPC_SCREENSHOT },
+    { RAWKEY_SCROLL_LOCK,       INPUTEVENT_SPC_INHIBITSCREEN },
+    { RAWKEY_PAUSE,             INPUTEVENT_SPC_PAUSE },
+    { RAWKEYS_END }
+};
+
+const struct uae_hotkeyseq hotkeys_quartz[] =
 {
      { DEFAULT_HOTKEYS },
      { HOTKEYS_END }

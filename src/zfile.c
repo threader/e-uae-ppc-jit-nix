@@ -14,7 +14,6 @@
 #include "options.h"
 #include "zfile.h"
 #include "unzip.h"
-#include "disk.h"
 #include "dms/cdata.h"
 #include "dms/pfile.h"
 
@@ -91,6 +90,7 @@ void zfile_fclose (struct zfile *f)
 {
     struct zfile *pl = NULL;
     struct zfile *l  = zlist;
+    struct zfile *nxt;
 
     if (!f)
 	return;
@@ -102,58 +102,48 @@ void zfile_fclose (struct zfile *f)
 	pl = l;
 	l = l->next;
     }
+    if (l) nxt = l->next;
     zfile_free (f);
     if (l == 0)
 	return;
-    if (!pl)
-	zlist = l->next;
+    if(!pl)
+	zlist = nxt;
     else
-	pl->next = l->next;
+	pl->next = nxt;
 }
 
 static uae_u8 exeheader[]={0x00,0x00,0x03,0xf3,0x00,0x00,0x00,0x00};
-int zfile_gettype (struct zfile *z)
+static int isamigaimage (struct zfile *z)
 {
     uae_u8 buf[8];
     char *ext;
-
+    
     if (!z)
-	return ZFILE_UNKNOWN;
+	return 0;
     ext = strrchr (z->name, '.');
     if (ext != NULL) {
 	ext++;
 	if (strcasecmp (ext, "adf") == 0)
-	    return ZFILE_DISKIMAGE;
+	    return 1;
 	if (strcasecmp (ext, "adz") == 0)
-	    return ZFILE_DISKIMAGE;
+	    return 1;
 	if (strcasecmp (ext, "roz") == 0)
-	    return ZFILE_ROM;
+	    return 1;
 	if (strcasecmp (ext, "ipf") == 0)
-	    return ZFILE_DISKIMAGE;
+	    return 1;
 	if (strcasecmp (ext, "fdi") == 0)
-	    return ZFILE_DISKIMAGE;
-	if (strcasecmp (ext, "uss") == 0)
-	    return ZFILE_STATEFILE;
-	if (strcasecmp (ext, "dms") == 0)
-	    return ZFILE_DISKIMAGE;
-	if (strcasecmp (ext, "rom") == 0)
-	    return ZFILE_ROM;
-	if (strcasecmp (ext, "key") == 0)
-	    return ZFILE_KEY;
-	if (strcasecmp (ext, "nvr") == 0)
-	    return ZFILE_NVR;
-	if (strcasecmp (ext, "uae") == 0)
-	    return ZFILE_CONFIGURATION;
+	    return 1;
     }
     memset (buf, 0, sizeof (buf));
     zfile_fread (buf, 8, 1, z);
     zfile_fseek (z, -8, SEEK_CUR);
     if (!memcmp (buf, exeheader, sizeof(buf)))
-	return ZFILE_DISKIMAGE;
-    return ZFILE_UNKNOWN;
+	return 1;
+    return 0;
 }
 
 #if 0
+
 #define TMP_PREFIX "uae_"
 
 static struct zfile *createinputfile (struct zfile *z)
@@ -219,6 +209,7 @@ static struct zfile *updateoutputfile (struct zfile *z)
     zfile_fclose (z2);
     return 0;
 }
+
 #endif
 
 static struct zfile *zuncompress (struct zfile *z);
@@ -230,7 +221,7 @@ static struct zfile *gunzip (struct zfile *z)
     int i, size, ret, first;
     uae_u8 flags;
     long offset;
-    char name[MAX_DPATH];
+    char name[MAX_PATH];
     uae_u8 buffer[8192];
     struct zfile *z2;
     uae_u8 b;
@@ -321,8 +312,8 @@ static struct zfile *dms (struct zfile *z)
 {
     int ret;
     struct zfile *zo;
-
-    zo = zfile_fopen_empty ("zipped.dms", 1760 * 512);
+    
+    zo = zfile_fopen_empty ("dms", 1760 * 512);
     if (!zo) return z;
     ret = DMS_Process_File (z, zo, CMD_UNPACK, OPT_VERBOSE, 0, 0);
     if (ret == NO_PROBLEM || ret == DMS_FILE_END) {
@@ -348,23 +339,8 @@ static struct zfile *dms (struct zfile *z)
 }
 #endif
 
-static char *ignoreextensions[] =
+static char *ignoreextensions[] = 
     { ".gif", ".jpg", ".png", ".xml", ".pdf", ".txt", 0 };
-static char *diskimageextensions[] =
-    { ".adf", ".adz", ".ipf", ".fdi", 0 };
-
-static int isdiskimage (char *name)
-{
-    int i;
-
-    i = 0;
-    while (diskimageextensions[i]) {
-	if (strlen (name) > 3 && !strcasecmp (name + strlen (name) - 4, diskimageextensions[i]))
-	    return 1;
-	i++;
-    }
-    return 0;
-}
 
 static struct zfile *unzip (struct zfile *z)
 {
@@ -372,10 +348,7 @@ static struct zfile *unzip (struct zfile *z)
     unz_file_info file_info;
     char filename_inzip[2048];
     struct zfile *zf;
-    unsigned int err, zipcnt, i, we_have_file = 0;
-    int select;
-    char tmphist[MAX_DPATH];
-    int first = 1;
+    int err, zipcnt, select, i;
 
     if (!zlib_test ())
 	return z;
@@ -387,7 +360,6 @@ static struct zfile *unzip (struct zfile *z)
 	return z;
     write_log("checking zip file '%s':\n", z->name);
     zipcnt = 1;
-    tmphist[0] = 0;
     for (;;) {
 	err = unzGetCurrentFileInfo(uz,&file_info,filename_inzip,sizeof(filename_inzip),NULL,0,NULL,0);
 	if (err != UNZ_OK)
@@ -402,32 +374,18 @@ static struct zfile *unzip (struct zfile *z)
 		i++;
 	    }
 	    if (ignoreextensions[i]) {
-		write_log ("[ignored]");
+		write_log ("ignored\n");
 	    } else {
-		if (tmphist[0]) {
-		    DISK_history_add (tmphist, -1);
-		    tmphist[0] = 0;
-		    first = 0;
-		}
-		if (first) {
-		    if (isdiskimage (filename_inzip))
-			sprintf (tmphist,"%s/%s", z->name, filename_inzip);
-		} else {
-		    sprintf (tmphist,"%s/%s", z->name, filename_inzip);
-		    DISK_history_add (tmphist, -1);
-		    tmphist[0] = 0;
-		}
-		write_log ("[check]");
+		write_log ("check\n");
 		select = 0;
 		if (!z->zipname)
 		    select = 1;
 		if (z->zipname && !strcasecmp (z->zipname, filename_inzip))
 		    select = -1;
-		if (z->zipname && z->zipname[0] == '#' && atol (z->zipname + 1) == (int)zipcnt)
+		if (z->zipname && z->zipname[0] == '#' && atol (z->zipname + 1) == zipcnt)
 		    select = -1;
-		if (select && !we_have_file) {
-		    unsigned int err = unzOpenCurrentFile (uz);
-		    write_log ("[selected]");
+		if (select) {
+		    int err = unzOpenCurrentFile (uz);
 		    if (err == UNZ_OK) {
 			zf = zfile_fopen_empty (filename_inzip, file_info.uncompressed_size);
 			if (zf) {
@@ -435,27 +393,26 @@ static struct zfile *unzip (struct zfile *z)
 			    unzCloseCurrentFile (uz);
 			    if (err == 0 || err == file_info.uncompressed_size) {
 				zf = zuncompress (zf);
-				if (select < 0 || zfile_gettype (zf)) {
-		    		    we_have_file = 1;
-				    write_log("[ok]");
-				}
+				if (select < 0 || isamigaimage (zf)) {
+		    		    zfile_fclose (z);
+		    		    return zf;
+		    		}
 			    }
 			}
-			if (!we_have_file) {
-			    zfile_fclose (zf);
-			    zf = 0;
-			}
 		    } else {
-			write_log ("\nunzipping failed %d", err);
+			write_log ("unzipping failed %d\n", err);
 		    }
 		}
 	    }
-	    write_log("\n");
 	}
 	zipcnt++;
 	err = unzGoToNextFile (uz);
-	if (err != UNZ_OK)
-	    break;
+	if (err == UNZ_OK) {
+	    zfile_fclose (zf);
+	    zf = 0;
+	    continue;
+	}
+	break;
     }
     if (zf) {
 	zfile_fclose (z);
@@ -503,12 +460,12 @@ static FILE *openzip (char *name, char *zippath)
 {
     int i;
     char v;
-
+    
     i = strlen (name) - 2;
     if (zippath)
 	zippath[0] = 0;
     while (i > 0) {
-	if ((name[i] == '/' || name[i] == '\\') && i > 4) {
+	if (name[i] == '/' || name[i] == '\\' && i > 4) {
 	    v = name[i];
 	    name[i] = 0;
 	    if (!strcasecmp (name + i - 4, ".zip")) {
@@ -523,7 +480,7 @@ static FILE *openzip (char *name, char *zippath)
 	}
 	i--;
     }
-    return 0;
+    return 0;	    
 }
 
 #ifdef SINGLEFILE
@@ -709,7 +666,7 @@ int zfile_zuncompress (void *dst, int dstsize, struct zfile *src, int srcsize)
 	    int left = srcsize - incnt;
 	    if (left == 0)
 		break;
-	    if (left > (int)sizeof (inbuf)) left = sizeof (inbuf);
+	    if (left > sizeof (inbuf)) left = sizeof (inbuf);
 	    zs.next_in = inbuf;
 	    zs.avail_in = zfile_fread (inbuf, 1, left, src);
 	    incnt += left;
@@ -744,3 +701,5 @@ int zfile_zcompress (struct zfile *f, void *src, int size)
     deflateEnd(&zs);
     return zs.total_out;
 }
+
+

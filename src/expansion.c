@@ -1,4 +1,4 @@
- /*
+ /* 
   * UAE - The Un*x Amiga Emulator
   *
   * AutoConfig (tm) Expansions (ZorroII/III)
@@ -139,7 +139,7 @@ static int ecard;
 /* Please note: ZorroIII implementation seems to work different
  * than described in the HRM. This claims that ZorroIII config
  * address is 0xff000000 while the ZorroII config space starts
- * at 0x00e80000. In reality, both, Z2 and Z3 cards are
+ * at 0x00e80000. In reality, both, Z2 and Z3 cards are 
  * configured in the ZorroII config space. Kickstart 3.1 doesn't
  * even do a single read or write access to the ZorroIII space.
  * The original Amiga include files tell the same as the HRM.
@@ -148,7 +148,7 @@ static int ecard;
  * to a ZorroIII card on a real Amiga. This is not implemented
  * yet.
  *  -- Stefan
- *
+ * 
  * Surprising that 0xFF000000 isn't used. Maybe it depends on the
  * ROM. Anyway, the HRM says that Z3 cards may appear in Z2 config
  * space, so what we are doing here is correct.
@@ -260,7 +260,7 @@ static void REGPARAM2 expamem_wput (uaecptr addr, uae_u32 value)
 	 case 0x44:
 	    if (expamem_type() == zorroIII) {
 		// +Bernd Roesch
-		value = value - 0x3000;  // maps to 0x10000000
+		value = value - 0x3000;  // maps to 0x10000000     
 		chipmem_wput (regs.regs[11] + 0x20, value);
 		chipmem_wput (regs.regs[11] + 0x28, value);
 		// -Bernd Roesch
@@ -505,7 +505,7 @@ static addrbank catweasel_bank = {
 static void expamem_map_catweasel (void)
 {
     catweasel_start = ((expamem_hi | (expamem_lo >> 4)) << 16);
-    map_banks (&catweasel_bank, catweasel_start >> 16, 1, 0);
+    map_banks (&catweasel_bank, catweasel_start >> 16, 1, 0);  
     write_log ("Catweasel MK%d: mapped @$%lx\n", cwc.type, catweasel_start);
 }
 
@@ -545,8 +545,6 @@ static void expamem_init_catweasel (void)
  * CDTV DMAC
  */
 
-//#define CDTV_DEBUG
-
 static uae_u32 dmac_lget (uaecptr) REGPARAM;
 static uae_u32 dmac_wget (uaecptr) REGPARAM;
 static uae_u32 dmac_bget (uaecptr) REGPARAM;
@@ -557,25 +555,13 @@ static void dmac_bput (uaecptr, uae_u32) REGPARAM;
 static uae_u32 dmac_start = 0xe90000;
 static uae_u8 dmacmemory[0x100];
 
-static int cdtv_command_len;
-static uae_u8 cdtv_command_buf[6];
-
-static void cdtv_interrupt (int v)
-{
-    write_log ("cdtv int %d\n", v);
-    dmacmemory[0x41] = (1 << 4) | (1 << 6);
-    Interrupt (6);
-}
-
 uae_u32 REGPARAM2 dmac_lget (uaecptr addr)
 {
 #ifdef JIT
     special_mem |= S_READ;
 #endif
-#ifdef CDTV_DEBUG
-    write_log ("dmac_lget %08.8X\n", addr);
-#endif
-    return (dmac_wget (addr) << 16) | dmac_wget (addr + 2);
+//    write_log ("dmac_lget %08.8X\n", addr);
+    return 0;
 }
 
 uae_u32 REGPARAM2 dmac_wget (uaecptr addr)
@@ -583,10 +569,8 @@ uae_u32 REGPARAM2 dmac_wget (uaecptr addr)
 #ifdef JIT
     special_mem |= S_READ;
 #endif
-#ifdef CDTV_DEBUG
-    write_log ("dmac_wget %08.8X PC=%X\n", addr, m68k_getpc());
-#endif
-    return (dmac_bget (addr) << 8) | dmac_bget (addr + 1);
+//    write_log ("dmac_wget %08.8X\n", addr);
+    return 0;
 }
 
 uae_u32 REGPARAM2 dmac_bget (uaecptr addr)
@@ -594,17 +578,10 @@ uae_u32 REGPARAM2 dmac_bget (uaecptr addr)
 #ifdef JIT
     special_mem |= S_READ;
 #endif
-#ifdef CDTV_DEBUG
-    write_log ("dmac_bget %08.8X PC=%X\n", addr, m68k_getpc());
-#endif
+//    write_log ("dmac_bget %08.8X\n", addr);
     addr -= dmac_start;
     addr &= 65535;
-    switch (addr)
-    {
-	case 0xa3:
-	return 1;
-    }
-    return dmacmemory[addr];
+    return 0;//dmacmemory[addr];
 }
 
 static void REGPARAM2 dmac_lput (uaecptr addr, uae_u32 l)
@@ -612,11 +589,7 @@ static void REGPARAM2 dmac_lput (uaecptr addr, uae_u32 l)
 #ifdef JIT
     special_mem |= S_WRITE;
 #endif
-#ifdef CDTV_DEBUG
-    write_log ("dmac_lput %08.8X = %08.8X\n", addr, l);
-#endif
-    dmac_wput (addr, l >> 16);
-    dmac_wput (addr + 2, l);
+//    write_log ("dmac_lput %08.8X = %08.8X\n", addr, l);
 }
 
 static void REGPARAM2 dmac_wput (uaecptr addr, uae_u32 w)
@@ -624,11 +597,7 @@ static void REGPARAM2 dmac_wput (uaecptr addr, uae_u32 w)
 #ifdef JIT
     special_mem |= S_WRITE;
 #endif
-#ifdef CDTV_DEBUG
-    write_log ("dmac_wput %04.4X = %04.4X\n", addr, w & 65535);
-#endif
-    dmac_bput (addr, w >> 8);
-    dmac_bput (addr, w);
+//    write_log ("dmac_wput %04.4X = %04.4X\n", addr, w & 65535);
 }
 
 static void REGPARAM2 dmac_bput (uaecptr addr, uae_u32 b)
@@ -636,33 +605,11 @@ static void REGPARAM2 dmac_bput (uaecptr addr, uae_u32 b)
 #ifdef JIT
     special_mem |= S_WRITE;
 #endif
-#ifdef CDTV_DEBUG
-    write_log ("dmac_bput %08.8X = %02.2X PC=%X\n", addr, b & 255, m68k_getpc());
-#endif
+//    write_log ("dmac_bput %08.8X = %02.2X\n", addr, b & 255);
     addr -= dmac_start;
     addr &= 65535;
-#ifdef CDTV_DEBUG
     dmacmemory[addr] = b;
-    switch (addr)
-    {
-	case 0xa1:
-	if (cdtv_command_len >= sizeof (cdtv_command_buf))
-	    cdtv_command_len = sizeof (cdtv_command_buf) - 1;
-	cdtv_command_buf[cdtv_command_len++] = b;
-	if (cdtv_command_len == 6) {
-	    cdtv_interrupt (1);
-	}
-	break;
-	case 0xa5:
-	cdtv_command_len = 0;
-	break;
-	case 0xe4:
-	dmacmemory[0x41] = 0;
-	write_log ("cdtv interrupt cleared\n");
-	activate_debugger();
-	break;
-    }
-#endif
+    //activate_debugger();
 }
 
 addrbank dmac_bank = {
@@ -901,7 +848,7 @@ static void expamem_init_fastcard (void)
 
 #ifdef FILESYS
 
-/*
+/* 
  * Filesystem device
  */
 
@@ -970,7 +917,7 @@ static void expamem_init_filesys (void)
 
 static void expamem_map_z3fastmem (void)
 {
-	unsigned int z3fs = ((expamem_hi | (expamem_lo >> 4)) << 16);
+	int z3fs = ((expamem_hi | (expamem_lo >> 4)) << 16);
 
 	if (z3fastmem_start != z3fs) {
 		write_log("WARNING: Z3FAST mapping changed from $%lx to $%lx\n", z3fastmem_start, z3fs);
@@ -1152,7 +1099,7 @@ static void allocate_expamem (void)
 	    map_banks (&gfxmem_bank, gfxmem_start >> 16, currprefs.gfxmem_size >> 16,
 		       allocated_gfxmem);
 	}
-#endif
+#endif       
     }
 }
 
@@ -1166,7 +1113,7 @@ void expamem_reset (void)
 
     allocate_expamem ();
 
-#ifdef CDTV
+#ifdef CDTV   
     if (cdtv_enabled)
         map_banks (&dmac_bank, dmac_start >> 16, 0x10000 >> 16, 0x10000);
 #endif
@@ -1182,7 +1129,7 @@ void expamem_reset (void)
 	write_log ("Kickstart version is below 1.3!  Disabling autoconfig devices.\n");
 	do_mount = 0;
     }
-#ifdef FILESYS
+#ifdef FILESYS   
     /* No need for filesystem stuff if there aren't any mounted.  */
     if (nr_units (currprefs.mountinfo) == 0)
 	do_mount = 0;
@@ -1202,12 +1149,12 @@ void expamem_reset (void)
 	card_map[cardno++] = expamem_map_gfxcard;
     }
 #endif
-#ifdef FILESYS
+#ifdef FILESYS   
     if (do_mount && ! ersatzkickfile) {
 	card_init[cardno] = expamem_init_filesys;
 	card_map[cardno++] = expamem_map_filesys;
     }
-#endif
+#endif   
 #ifdef CATWEASEL
     if (catweasel_init ()) {
         card_init[cardno] = expamem_init_catweasel;
@@ -1234,13 +1181,13 @@ void expansion_init (void)
     fastmemory = 0;
     gfxmem_mask = gfxmem_start = 0;
     gfxmemory = 0;
-#ifdef CATWEASEL
+#ifdef CATWEASEL   
     catweasel_mask = catweasel_start = 0;
 #endif
 #ifdef FILESYS
     filesys_start = 0;
     filesysory = 0;
-#endif
+#endif   
     z3fastmem_mask = z3fastmem_start = 0;
     z3fastmem = 0;
 
@@ -1268,7 +1215,7 @@ void expansion_cleanup (void)
     if (filesysory)
 	mapped_free (filesysory);
     filesysory = 0;
-#endif
+#endif   
     fastmemory = 0;
     z3fastmem = 0;
     gfxmemory = 0;

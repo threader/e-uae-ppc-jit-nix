@@ -50,7 +50,6 @@ guint cpuspeedpanel_get_type ()
 enum {
     SPEED_CHANGE_SIGNAL,
     IDLE_CHANGE_SIGNAL,
-    DONT_BUSY_WAIT_CHANGE_SIGNAL,
     LAST_SIGNAL
 };
 
@@ -63,7 +62,6 @@ static void cpuspeedpanel_class_init (CpuSpeedPanelClass *class)
 				   cpuspeedpanel_signals,
 				   "cpuspeed-changed",
 				   "cpuidle-changed",
-				   "dontbusywait-changed",
 				   0);
     class->cpuspeedpanel = NULL;
 }
@@ -170,7 +168,7 @@ static void on_adjust_changed (GtkWidget *w, CpuSpeedPanel *cspanel)
 static void on_dontbusywait_toggled (GtkWidget *w, CpuSpeedPanel *cspanel)
 {
     cspanel->dontbusywait = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (cspanel->dontbusywait_widget));
-    gtk_signal_emit_by_name (GTK_OBJECT(cspanel), "dontbusywait-changed");
+    gtk_signal_emit_by_name (GTK_OBJECT(cspanel), "cpuidle-changed");
 }
 
 #ifdef JIT
@@ -228,13 +226,12 @@ void cpuspeedpanel_set_dontbusywait (CpuSpeedPanel *cspanel, gboolean dontbusywa
 #ifdef JIT
 void cpuspeedpanel_set_cpuidle (CpuSpeedPanel *cspanel, guint cpuidle)
 {
-    int enable_idle = cpuidle > 0;
-
-    if (enable_idle) {
-	cspanel->cpuidle = 21 - (cpuidle / 15);
-	gtk_adjustment_set_value (GTK_ADJUSTMENT (GTK_RANGE (cspanel->idlerate_widget)->adjustment), cspanel->cpuidle);
+    if (cpuidle > 0) {
+	cspanel->cpuidle = cpuidle;
+        gtk_adjustment_set_value (GTK_ADJUSTMENT (GTK_RANGE (cspanel->idleenabled_widget)->adjustment), cpuidle);
     }
-    cspanel->idleenabled = enable_idle;
-    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (cspanel->idleenabled_widget), enable_idle);
+    cspanel->idleenabled = cpuidle > 0;
+    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (cspanel->idleenabled_widget), cpuidle > 0);
+    update_state (cspanel);
 }
 #endif

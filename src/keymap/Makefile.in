@@ -70,18 +70,17 @@ EGREP = @EGREP@
 EXEEXT = @EXEEXT@
 FILEPRG = @FILEPRG@
 FILESYSOBJS = @FILESYSOBJS@
-GENCPUOPTS = @GENCPUOPTS@
-GFX_DEP = @GFX_DEP@
+GFXDEP = @GFXDEP@
 GTK_CFLAGS = @GTK_CFLAGS@
 GTK_CONFIG = @GTK_CONFIG@
 GTK_LIBS = @GTK_LIBS@
-GUI_DEP = @GUI_DEP@
+GUIDEP = @GUIDEP@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
 JITOBJS = @JITOBJS@
-JOY_DEP = @JOY_DEP@
+JOYDEP = @JOYDEP@
 LDFLAGS = @LDFLAGS@
 LIBOBJS = @LIBOBJS@
 LIBS = @LIBS@
@@ -91,9 +90,6 @@ MAKEDEPPRG = @MAKEDEPPRG@
 MAKEINFO = @MAKEINFO@
 MATHLIB = @MATHLIB@
 NO_SCHED_CFLAGS = @NO_SCHED_CFLAGS@
-OBJC = @OBJC@
-OBJCDEPMODE = @OBJCDEPMODE@
-OBJC_LDFLAGS = @OBJC_LDFLAGS@
 OBJEXT = @OBJEXT@
 OSDEP = @OSDEP@
 PACKAGE = @PACKAGE@
@@ -116,14 +112,13 @@ SDL_CONFIG = @SDL_CONFIG@
 SDL_LIBS = @SDL_LIBS@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
-SND_DEP = @SND_DEP@
+SNDDEP = @SNDDEP@
 STRIP = @STRIP@
 TARGET = @TARGET@
 TARGET_BEOS_FALSE = @TARGET_BEOS_FALSE@
 TARGET_BEOS_TRUE = @TARGET_BEOS_TRUE@
 TARGET_WIN32_FALSE = @TARGET_WIN32_FALSE@
 TARGET_WIN32_TRUE = @TARGET_WIN32_TRUE@
-THREADDEP = @THREADDEP@
 UAE_RSRCFILE = @UAE_RSRCFILE@
 VERSION = @VERSION@
 WRCPRG = @WRCPRG@
@@ -134,7 +129,6 @@ X_PRE_LIBS = @X_PRE_LIBS@
 ac_ct_AR = @ac_ct_AR@
 ac_ct_CC = @ac_ct_CC@
 ac_ct_CXX = @ac_ct_CXX@
-ac_ct_OBJC = @ac_ct_OBJC@
 ac_ct_RANLIB = @ac_ct_RANLIB@
 ac_ct_STRIP = @ac_ct_STRIP@
 ac_cv_c_inline = @ac_cv_c_inline@
@@ -142,8 +136,6 @@ am__fastdepCC_FALSE = @am__fastdepCC_FALSE@
 am__fastdepCC_TRUE = @am__fastdepCC_TRUE@
 am__fastdepCXX_FALSE = @am__fastdepCXX_FALSE@
 am__fastdepCXX_TRUE = @am__fastdepCXX_TRUE@
-am__fastdepOBJC_FALSE = @am__fastdepOBJC_FALSE@
-am__fastdepOBJC_TRUE = @am__fastdepOBJC_TRUE@
 am__include = @am__include@
 am__leading_dot = @am__leading_dot@
 am__quote = @am__quote@
@@ -183,9 +175,9 @@ INCLUDES = -I$(top_srcdir)/src/include -I$(top_builddir)/src -I$(top_srcdir)/src
 
 noinst_LIBRARIES = libkeymap.a
 
-libkeymap_a_SOURCES = keymap.c x11pc_rawkeys.c quartz_rawkeys.c beos_rawkeys.c
+libkeymap_a_SOURCES = x11pc_rawkeys.c quartz_rawkeys.c beos_rawkeys.c
 
-noinst_HEADERS = keymap.h x11pc_rawkeys.h quartz_rawkeys.h beos_rawkeys.h \
+noinst_HEADERS = x11pc_rawkeys.h quartz_rawkeys.h beos_rawkeys.h \
 	         keymap_common.h keymap_all.h hotkeys_common.h
 
 subdir = src/keymap
@@ -197,7 +189,7 @@ LIBRARIES = $(noinst_LIBRARIES)
 
 libkeymap_a_AR = $(AR) cru
 libkeymap_a_LIBADD =
-am_libkeymap_a_OBJECTS = keymap.$(OBJEXT) x11pc_rawkeys.$(OBJEXT) \
+am_libkeymap_a_OBJECTS = x11pc_rawkeys.$(OBJEXT) \
 	quartz_rawkeys.$(OBJEXT) beos_rawkeys.$(OBJEXT)
 libkeymap_a_OBJECTS = $(am_libkeymap_a_OBJECTS)
 
@@ -205,7 +197,7 @@ DEFAULT_INCLUDES =  -I. -I$(srcdir) -I$(top_builddir)/src
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
 @AMDEP_TRUE@DEP_FILES = ./$(DEPDIR)/beos_rawkeys.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/keymap.Po ./$(DEPDIR)/quartz_rawkeys.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/quartz_rawkeys.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/x11pc_rawkeys.Po
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -241,7 +233,6 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/beos_rawkeys.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/keymap.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/quartz_rawkeys.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/x11pc_rawkeys.Po@am__quote@
 

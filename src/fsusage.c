@@ -1,5 +1,5 @@
 /* fsusage.c -- return space usage of mounted filesystems
-   Copyright (C) 1991, 1992, 1996 Free Software Foundation, Inc.
+q   Copyright (C) 1991, 1992, 1996 Free Software Foundation, Inc.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -15,7 +15,7 @@
    along with this program; if not, write to the Free Software Foundation,
    Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.  */
 
-#if defined AMIGA
+#ifdef __AMIGA__
 #include <devices/timer.h>
 #endif
 
@@ -96,7 +96,7 @@ get_fs_usage (path, disk, fsp)
 
 #else /* ! _WIN32 */
 
-#if defined AMIGA
+#ifdef __AMIGA__
 
 #include <dos/dos.h>
 #include <exec/memory.h>
@@ -162,7 +162,7 @@ int get_fs_usage (const char *path, const char *disk, struct fs_usage *fsp)
 
 #else /* ! __BEOS__ */
 
-//int statfs ();
+int statfs ();
 
 #if HAVE_UNISTD_H
 # include <unistd.h>
@@ -202,15 +202,18 @@ int get_fs_usage (const char *path, const char *disk, struct fs_usage *fsp)
 
 #if HAVE_SYS_STATVFS_H		/* SVR4 */
 # include <sys/statvfs.h>
-//int statvfs ();
+int statvfs ();
 #endif
 
 /* Read LEN bytes at PTR from descriptor DESC, retrying if interrupted.
    Return the actual number of bytes read, zero for EOF, or negative
    for an error.  */
 
-static int
-safe_read (int desc, char *ptr, int len)
+int
+safe_read (desc, ptr, len)
+     int desc;
+     char *ptr;
+     int len;
 {
   int n_chars;
 

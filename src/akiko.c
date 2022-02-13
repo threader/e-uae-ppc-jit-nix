@@ -124,7 +124,7 @@ static void i2c_do (void)
 	    }
 	    return;
 	}
-    }
+    } 
     if (bitcounter >= 0) {
 	if (direction) {
 	    /* Amiga -> NVRAM */
@@ -915,7 +915,7 @@ static void akiko_handler (void)
 	return;
     }
 }
-
+	
 static void akiko_internal (void)
 {
     cdrom_run_command ();
@@ -1103,12 +1103,12 @@ static uae_u32 akiko_bget2 (uaecptr addr, int msg)
     return v;
 }
 
-uae_u32 REGPARAM2 akiko_bget (uaecptr addr)
+uae_u32 akiko_bget REGPARAM2 (uaecptr addr)
 {
     return akiko_bget2 (addr, 1);
 }
 
-uae_u32 REGPARAM2 akiko_wget (uaecptr addr)
+uae_u32 akiko_wget REGPARAM2 (uaecptr addr)
 {
     uae_u16 v;
     addr &= 0xffff;
@@ -1119,7 +1119,7 @@ uae_u32 REGPARAM2 akiko_wget (uaecptr addr)
     return v;
 }
 
-uae_u32 REGPARAM2 akiko_lget (uaecptr addr)
+uae_u32 akiko_lget REGPARAM2 (uaecptr addr)
 {
     uae_u32 v;
 
@@ -1133,7 +1133,7 @@ uae_u32 REGPARAM2 akiko_lget (uaecptr addr)
     return v;
 }
 
-static void REGPARAM2 akiko_bput2 (uaecptr addr, uae_u32 v, int msg)
+static void akiko_bput2 REGPARAM2 (uaecptr addr, uae_u32 v, int msg)
 {
     uae_u32 tmp;
 
@@ -1225,12 +1225,12 @@ static void REGPARAM2 akiko_bput2 (uaecptr addr, uae_u32 v, int msg)
     uae_sem_post (&akiko_sem);
 }
 
-void REGPARAM2 akiko_bput (uaecptr addr, uae_u32 v)
+void akiko_bput REGPARAM2(uaecptr addr, uae_u32 v)
 {
     akiko_bput2 (addr, v, 1);
 }
 
-void REGPARAM2 akiko_wput (uaecptr addr, uae_u32 v)
+void akiko_wput REGPARAM2 (uaecptr addr, uae_u32 v)
 {
     addr &= 0xfff;
     if((addr < 0x30 && AKIKO_DEBUG_IO))
@@ -1239,7 +1239,7 @@ void REGPARAM2 akiko_wput (uaecptr addr, uae_u32 v)
     akiko_bput2 (addr + 0, v >> 8, 0);
 }
 
-void REGPARAM2 akiko_lput (uaecptr addr, uae_u32 v)
+void akiko_lput REGPARAM2 (uaecptr addr, uae_u32 v)
 {
     addr &= 0xffff;
     if(addr < 0x30 && AKIKO_DEBUG_IO)

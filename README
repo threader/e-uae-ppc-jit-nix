@@ -1,160 +1,300 @@
-E-UAE 0.8.27
-============
+uae-0.8.25-20040302
+===================
 
-This is a version of UAE, the Ubiquitous Amiga Emulator, with an emulation
-core based on WinUAE 0.8.27. It attempts to bring many of the great features
-of WinUAE to non-Windows platforms. This version now finally has a name,
-E-UAE, since that's what everybody was calling it anyway. The 'E' can stand
-for anything you fancy. Experimental, extreme, exciting, egalitarian,
-eggplant, . . .
+This is an experimental and unoffical version of UAE, the Unix Amiga
+Emulator, based on WinUAE 0.8.25. It attempts to bring many of the great
+features of WinUAE to non-Windows platforms.
 
 Currently it will build and run (with a varying degree of supported
-features) on Linux and other Unices, Mac OS X, BeOS and AmigaOS itself
-(either for 68k machines or PPC machines with OS4.0). OS X requires either
-LibSDL or an X server for graphics output, but native graphics are
-supported on AmigaOS and BeOS, although, at the moment, SDL is also
-preferred on BeOS since the native driver is incomplete.
-
-E-UAE is open-source software and is made available under the terms of the
-GPL. See the COPYING file included with the E-UAE archive for details.
-
-E-UAE is based on the work of dozens of contributors including Bernd Schmidt
-(the original author and maintainer of UAE), Bernie Meyer (the author of the
-x86 JIT compiler), Toni Wilen (the current maintainer of WinUAE), and many
-more.
-
-To make full use of E-UAE you will need access to an image of some version
-of the Amiga Kickstart ROM (although UAE does include a ROM emulation which
-may work with some old games). The Amiga Kickstart ROMs are copyrighted
-material and may not be freely distributed (so don't ask me for a copy). If
-you don't have an Amiga from which you can legally make a ROM image, a
-selection of ROM images are available for purchase online from Cloanto
-(publishers of the Amiga Forever distribution). See
-http://www.amigaforever.com/
+features) on Linux and other Unices, Mac OS X, BeOS and AmigaOS. (OS X and
+BeOS both currently require either LibSDL or an X server for graphics
+output. Neither platform is supported with a purely native graphcis driver
+- yet.).
 
 
-What's new since 0.8.25
-=======================
+What's New
+==========
 
-General
--------
-* Core emulation updated to WinUAE 0.8.27 with bug fixes incorporated from
-  later WinUAE versions.
-* Improved compatibility with Amiga software.
-* Lots of clean up to the code. Builds more cleanly and quickly and requires
-  much less memory to do so.
-* Bug fixes and speed improvements to the P96 emulation, including fully working
-  32-bit modes on big-endian machines.
-* Speed improvements and bug fixes when using LibSDL for graphics,
-* Better networking support, plus a new bsdsocket emulation from Jeff
-  Shepherd based on the WinUAE code. (This doesn't work everywhere yet, so
-  the old bsdsocket emulation is still there.)
-* Fixed date-stamp discrepancies between host and the emulation when using
-  virtual filesystems on (most) Unix-like hosts (it now takes account of local
-  timezone).
-* Support for SFS-formatted hard files with newer versions of SFS.
-* Support for Action Replay cartridge ROMs now enabled.
-
-Unix platforms
---------------
-* Many improvements to Gtk+ configuration GUI.
-* ALSA sound driver (for Linux). This is based on Heikki Orsila's driver
-  from UADE.
-
-OS X
-----
-* A Cocoa dialog for inserting floppy images has been implemented (thanks to
-  Steven J. Saunders).
-* SCSI emulation now fully works on OS X.
-* Raw key-mapping supported on OS X when using SDL graphics.
-* Building against pthreads supported on OS X (and other platforms with
-  named semaphores).
-
-BeOS
-----
-* Partial merge of Axel Doerfler's BeUAE (the BeOS native graphics driver is
-  is now mostly working and native BeOS threads are supported).
-
-AmigaOS (and clones)
---------------------
-
-* Sound is now supported in AmigaOS versions (either native Paula or AHI
-  sound).
-* Many bug fixes and improvements to the AmigaOS gfx driver
-  - Requesters now appear on E-UAE screen.
-  - Intelligent hiding of host mouse pointer.
-* ARexx port supported in AmigaOS versions (and hence the MUIRexx GUI).
-* CAPS disk images supported on AmigaOS versions.
-* Support for MorphOS and AROS now officially included.
-
-And lots more. See the Changelog for the gory details.
+* Several bug fix in libscg SCSI driver. Problems when scanning the host SCSI
+  bus and with the CD32 emulation not detecting disc inserts both now cured.
+* SCSI emulation now works on BeOS and Mac OS X.
 
 
-Still to do
-===========
 
-The following features of WinUAE are not supported:
-
-* Serial and parallel port emulation.
-* AHI soundcard emulation.
-* Catweasel support.
-* OpenGL rendering and graphics filters.
-* Snapshots
-* Emulation of a CD32 controller.
-* Floppy drive sounds.
-* Everything else that I've forgotten about.
+uae-0.8.25-20040223
+===================
 
 
-Known problems
-==============
+What's New
+==========
 
-Some significant misfeatures that I know about and am working to fix:
+* Core emulation updates from WinUAE 0.8.24 and 0.8.25. This includes the
+  usual round of tweaks to the emulation proper, but also includes a more
+  powerful debugger and support for FDI 2.0 floppy images. (Drives sounds,
+  added in WinUAE 0.8.24, are not supported yet.)
+* Fixed support for 8-bit host screens with SDL gfx driver (both for native
+  and P96 screens).
+* Improved bsdsocket.library emulation. This still has problems and many
+  ommissions, but now works when built against LibSDL (and thus on MacOS X).
+  It does not yet work on BeOS due to inherent limitations in the BeOS socket
+  API.
+* SCSI emulation. Host CD/DVD drives can be used as SCSI devices in UAE with
+  uaescsi.device. This is currently only tested on Linux, but feasibly
+  should work elsewhere too (since it makes uses of the portable SCSI
+  transport library, libsg - which is part of the cdrtools package),
+  although Mac OS X is not yet supported. Problems remain with real SCSI
+  devices,  but SCSI emulation has so far tested well with ATAPI devices. On
+  2.4.x  Linux kernels, the ide-scsi and sg kernel drivers are required (and
+  access  permission to /dev/sg*). On 2.6 kernels, ATAPI devices can be used
+  directly  if you set the environment variable UAE_SCSI_DEVICE=ATAPI.
+* CDTV/CD32 emulation. Not well tested and problems still remain. This
+  obviously requires a working SCSI emulation.
+* Improvements to the GTK+ GUI. Specifying use_gui=no in the config file
+  now means that the GUI will just not open at start-up (rather than being
+  disabled altogether) and can still be opened later with the hotkey
+  combination F12 + enter (the usual platform specific modifier will apply
+  rather than F12); dialogs will be now always be available for warnings and
+  for inserting floppy images. Launching UAE in an environment where GTK+ is
+  not available (for instance, if UAE is built against SDL and run in a Linux
+  framebuffer) will not now cause UAE to fail.
+* Support for IPF (CAPS) floppy images (on Linux and AmigaOS). This requires
+  that you install the CAPS library plug-in, which is downloadble from
+  http://www.caps-project.org/.
+* The MacOS X default config file is now called default.uaerc (since .uaerc
+  is not visible in the Finder). If you are building from source, this needs
+  to be specified with option CFLAGS="-DOPTIONSFILENAME=default.uaerc"). This
+  will eventually be handled automatically when configure support for OS X
+  is added.
+* Some minor performance tweaks.
 
-* Only platforms supporting the GTK+ toolkit have a useable configuration
-  GUI (and the GTK+ GUI is still incomplete).
-* JIT direct memory access only works on Linux/x86 and due to a limit in
-  glibc and the way direct memory is implemented, you can only emulate up to
-  32MB of ZIII RAM. Select more than that and the JIT will fall back on
-  indirect memory access and hence will be slower.
-* Autoscroll screens are broken in Picasso96 emulation.
-* Virtual filesystem doesn't support platforms which use UTF-8 for filenames
-  (e.g., OS X, Linux with a UTF-8 locale, etc.). Filenames with characters
-  outside of the core ASCII range will be mangled.
-* Virtual filesystem has a bug which if used to host an IBrowse cache
-  causes IBrowse to crash at start-up (temporary solution: use a hardfile
-  for IBrowse's cache).
-* Hard files are limited to 2GB in size.
-* Timing problems occurs on x86 and PPC hosts which employ CPU frequency
-  scaling.
-* Full documentation is lacking.
+
+Config file options
+===================
+
+No significant changes have been made to config file options, but note that
+the option
+
+scsi=true
+
+must be speficied to enable the SCSI emulation, and
+
+bsdsocket_emu=true
+
+must be specified to enable the bsdsocket.library emulation.
 
 
-Using E-UAE
-===========
+New configure options
+=====================
 
-Documentation is a work-in-progress. See the docs directory.
+For those building from source, the following new options are supported by
+the build system:
+
+--enable-scsi-device
+  Build with SCSI emulation. This requires the libscg and libschily
+  libraries and headers from cdrtools 2.0.x (see docs/README).
+
+--enable-cdtv
+  Enable CDTV emulation. Requires SCSI emulation be enabled.
+  
+--enable-cd32
+  Enable CD32 emulation. Requires SCSI emulation and AGA support be enabled.
+
+--enable-enforcer
+  Build with support for WinUAE enforcer.
+
+--with-caps
+  Build with support for IPF (CAPS) images. This requires the IPF
+  development files from http://www.caps-project.org/
+  
+--with-caps-prefix=<dir>
+  Absolute path to where the CAPS API is installed on your system.
+  
+
+The release notes from the previous version are still relevant and will
+hopefully avoid me repeating myself too often (or finding the time to write
+some real documentation).
 
 
-Compiling E-UAE yourself
-========================
 
-See the docs/compiling.txt file for more information about building E-UAE.
+uae-0.8.23-20040125
+===================
+
+What's New
+==========
+
+Summary:
+* Core emulation update from WinUAE 0.8.23 (this includes new features such
+  as the new clock synchronization function and map ROM support).
+* Improved Picasso96 emulation.
+* Improved SDL graphics driver with experimental support for doing raw
+  keyboard mapping (see below for more details).
+* Mousewheel support in SDL and X11 targets.
+* Unified hotkey handling on the supported targets (see below).
+* The Gtk+ GUI will now build with GTK+ 2.x.
+* New CPU configuration page in the Gtk+ GUI.
+* Better screenmode configuration in AmigaOS version.
+* Bug fixes, bug fixes, bug fixes.
+
+See the CHANGES file for the full gory details.
 
 
-CVS
-===
+Hot keys
+========
 
-Details about how to access the CVS repository containing the current
-development version of E-UAE can be found at:
+Hotkey mapping and handling is unified on all the supported platforms. This
+may have required some changes from what you have previously been used to.
+The keys are now:
 
-http://sourceforge.net/cvs/?group_id=109723
+F12 + Q                 Quit UAE
+F12 + S	                Toggle between windowed display and full-screen mode
+      			(if suppported by the graphics driver).
+F12 + G	                Toggle mouse-grab mode (in windowed mode)
+F12 + M	                Toggle mousehack mode (if mousehack is running)
+F12 + I (or
+Scroll Lock)            Toggle display inhibit (Amiga screenmodes, not P96)
+F12 + P (or
+Print Screen)           Save screenshot (if supported)
+F12 + A	  	        Cycle through audio interpolation modes
+                        (interpolation works with 16-bit audio only)
+
+F12 + Numpad Plus       Increase frame skip rate
+F12 + Numpad Minus      Decrease frame skip rate
+
+F12 + F1     	        Insert floppy image in drive 0 (if supported).
+F12 + F2	        Insert floppy image in drive 1 (if supported)
+F12 + F3	        Insert floppy image in drive 2 (if supported)
+F12 + F4	        Insert floppy image in drive 3 (if supported)
+F12 + Left Shift + F1	Eject floppy image in drive 0
+F12 + Left Shift + F2	Eject floppy image in drive 1
+F12 + Left Shift + F3	Eject floppy image in drive 2
+F12 + Left Shift + F4	Eject floppy image in drive 3
+
+
+Notes
+-----
+
+1) On Mac OS X, use F11 instead of F12 as hotkey sequence initiator (for
+   example press F11+Q to quit UAE).
+2) On AmigaOS, use CTRL+Left Alt instead of F11 as hotkey sequence initiator
+   (for example, press CTRL+Left Alt+Q to quite UAE).
+3) Hotkeys must be pressed and held in the order shown.
+
+
+
+Raw keyboard mapping
+====================
+
+Support for international keyboards has been rather poor to date in UAE on
+Unix. A partial solution to this problem is to map the raw keycode to an Amiga
+keycode in response to a keypress (rather than let X map the raw keycode to
+a keysm then map that keysym to an Amiga keycode). With raw key-mapping, UAE
+no longer has to know about the differences between all the various international
+keyboards. The problem now is for UAE to know the type of keycodes it will be
+supplied. Different host platforms and different keyboards may generate
+different raw keycodes for what is ostensibly the same key. 
+
+This version of UAE currently supports raw key-mapping when built against SDL
+and when run on the x11 or dga SDL video drivers with x86 or PowerPC Linux or
+when run on the BeOS SDL video driver (support for the OS X Quartz driver will
+be available soon).
+
+You may enable it with the config option (it defaults to false)
+
+sdl.map_raw_keys=true
+
+Detection of keyboard type is not supported in SDL. Only standard PC104/105
+keyboards used with XFree86 will currently work with raw key-mapping (and for
+PPC Macs with ADB keyboards, your kernel must also be configured to generate Linux
+keycodes for your keyboard rather than ADB keycodes), since there is no portable
+way under SDL to determine the keyboard type at run time.
+
+On BeOS, I recommend always using the raw key-mapping, since SDL's mapping
+of raw BeOS keycodes to SDL keysyms isn't complete (if you don't use raw
+key-mapping, the Windows keys don't work, for example).
+
+
+Config file changes
+===================
+
+1) Some config file options have been added and others obsoleted in line with
+changes in WinUAE 0.8.23. New options include:
+
+synchronize_clock=<true|false>
+
+  Enable/disable the new clock synchronization function. This obsoletes the
+  old method of clock synchronization via the tool timehack.
+
+maprom=<?>
+
+  Enable map-rom support within the emulation. This requires a sepecial
+  version  of BlizKick. I haven't tested this, so I don't know how or if it
+  works  - yet. I'll investigate it for the next release.
+
+
+The following options have been obsoleted:
+
+  sound_min_buff
+  sound_pri_time
+  sound_pri_cutoff
+  
+  
+2) On Unix machines (that includes Linux and OS X) the target name in the
+config file is now 'unix', rather than 'x11'. Thus, for example, you need to
+use 
+
+unix.rom_path=/home/evilrich/amiga/roms/
+
+instead of 'x11.rom_path', etc.
+
+The options specific to the x11 graphics driver are not affected. Thus the
+options 'x11.use_mitshm', 'x11.hide_cursor', etc. are all still valid.
+
+
+3) New AmigaOS-specific config options.
+
+amiga.screen_type=<custom|public|ask>
+
+  The screen type to open the UAE window on. If 'custom', then UAE will open
+  its own (public) screen; if 'public', then UAE will open as a window on a
+  (possibly named, see 'amiga.publicscreen' option); or 'ask', then UAE will
+  prompt the user to select a screenmode. Defaults to 'public', and unless
+  'amiga.publicscreen' is set to the name of a public screen to use, UAE will
+  open a window on the default public screen - usually the Workbench.
+
+amiga.use_grey=<true|false>
+
+  Output is render in shades of grey rather than colour. Useful when running
+  on a <=8-bit colour public screen with few pens free and you don't want  
+  dithered colours. The default is 'false'.
+			       
+amiga.use_dither=<true|false>
+
+  Output is dithered. Again, useful when you don't have sufficient colours
+  available. Dithered output will generally be slower. Defaults to 'true'.
+
+amiga.publicscreen=<name>
+
+  If 'amiga.screen_type' is set to 'public' then open the UAE window on the
+  public screen 'name'. If not specified, then use the default public screen. 
+
+
+4) Comments in the config file are now supported again. Lines beginning with
+a '#'  will be ignored.
+
+
+New Configure option
+====================
+
+For those building UAE from source on x86 Unices other than Linux, a new
+configure option has been added, --disable-natmem. This will build the JIT
+compiler without support for doing direct memory access (the direct memory
+system is dependent on Linux segv signal hanlding to trap accesses to
+unmapped memory and won't work on other x86 Unices) hopefully allowing the
+JIT engine to work on many more platforms.
 
 
 Contact
 =======
 
-See http://www.freelists.org/list/uae for details of a mailing list
-discussing problems with and development of E-UAE.
-
-Send bug reports, comments, patches, etc. to the above list or to:
+Send bug reports, comments, patches, etc. to:
 Richard Drummond <uae@rcdrummond.net>

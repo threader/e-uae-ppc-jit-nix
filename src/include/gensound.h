@@ -27,9 +27,6 @@ extern void update_sound (int freq);
 extern void pause_sound (void);
 extern void resume_sound (void);
 extern void reset_sound (void);
-extern void sound_volume (int dir);
-
-extern void switch_audio_interpol (void);
 
 extern void sample16_handler (void);
 extern void sample16i_rh_handler (void);

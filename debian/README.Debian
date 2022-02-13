@@ -1,7 +1,6 @@
-E-UAE for Debian
-----------------
+uae for Debian
+--------------
 
-The is an unofficial packaging of E-UAE, an ehanced version of the
-Ubiquitous Amiga Emulator, for Debian.
+The is an unofficial packaging of an unofficial, updated version of UAE.
 
  -- Richard Drummond <uae@rcdrummond.net>, Tue, 18 Nov 2003 15:48:00 -0500

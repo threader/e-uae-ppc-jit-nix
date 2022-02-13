@@ -1,1 +1,1 @@
-EXTRA_DIST = exectasks.h joystick.c mac.c macgui.c sound.c sound.h
+EXTRA_DIST = joystick.c mac.c macgui.c sound.c sound.h

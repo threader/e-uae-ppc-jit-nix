@@ -17,23 +17,12 @@
 #include "zfile.h"
 #include "caps.h"
 
-/* Stuff not defined in the old CAPS API */
-#ifndef DI_LOCK_UPDATEFD
-#define DI_LOCK_UPDATEFD (1L<<7)
-#endif
-#ifndef CTIT_FLAG_FLAKEY
-#define CTIT_FLAG_FLAKEY (1L<<31)
-#endif
-#ifndef CTIT_MASK_TYPE
-#define CTIT_MASK_TYPE 0xff
-#endif
-
 static CapsLong caps_cont[4]= {-1, -1, -1, -1};
 static int caps_locked[4];
-static int caps_flags = DI_LOCK_DENVAR|DI_LOCK_DENNOISE|DI_LOCK_NOISE|DI_LOCK_UPDATEFD;
+static int caps_flags = DI_LOCK_DENVAR|DI_LOCK_DENNOISE|DI_LOCK_NOISE;
 
 
-#ifndef AMIGA
+#ifndef __AMIGA__
 
 /*
  * Repository for function pointers to the CAPSLib routines
@@ -66,7 +55,7 @@ struct {
 
 #include <dlfcn.h>
 
-#define CAPSLIB_NAME    "libcapsimage.so.2"
+#define CAPSLIB_NAME    "libcapsimage.so.1"
 
 /*
  * The Unix/dlopen method for loading and linking the CAPSLib plug-in
@@ -91,251 +80,21 @@ static int load_capslib (void)
 	if (capslib.CAPSInit() == imgeOk)
 	    return 1;
     }
-    write_log ("Unable to open " CAPSLIB_NAME "\n.");
     return 0;
 }
 
 #else
 
-#ifdef __amigaos4__
-#define __USE_BASETYPE__
-#include <exec/emulation.h>
-#include <proto/exec.h>
+#ifdef __AMIGA__
 
-extern struct Device *CapsImageBase;
-
-/* Emulation stubs for AmigaOS4. Ideally this should be in a separate
- * link library (until a native CAPS plug-in becomes available), but I
- * haven't been able to get that to work.
- *
- * This stuff is adapated from the machine-generated output from fdtrans.
- */
-LONG CAPSInit (void)
-{
-    struct Library *LibBase = (struct Library *)CapsImageBase;
-    LONG retval;
-    ULONG *regs   = (ULONG *)(SysBase->EmuWS);
-    ULONG save_A6 = regs[14];
-
-    retval = (LONG)EmulateTags ((APTR)LibBase,
-				ET_Offset,      -42, /* Hex: -0x2A */
-				ET_RegisterA6,  LibBase,
-				TAG_DONE);
-    regs[14] = save_A6;
-    return retval;
-}
-
-LONG CAPSExit (void)
-{
-    struct Library *LibBase = (struct Library *)CapsImageBase;
-    LONG retval;
-    ULONG *regs   = (ULONG *)(SysBase->EmuWS);
-    ULONG save_A6 = regs[14];
-
-    retval = (LONG)EmulateTags ((APTR)LibBase,
-				ET_Offset,      -48, /* Hex: -0x30 */
-				ET_RegisterA6,  LibBase,
-				TAG_DONE);
-    regs[14] = save_A6;
-    return retval;
-}
-
-LONG CAPSAddImage (void)
-{
-    struct Library *LibBase = (struct Library *)CapsImageBase;
-    LONG retval;
-    ULONG *regs   = (ULONG *)(SysBase->EmuWS);
-    ULONG save_A6 = regs[14];
-
-    retval = (LONG)EmulateTags ((APTR)LibBase,
-				ET_Offset,      -54, /* Hex: -0x36 */
-				ET_RegisterA6,  LibBase,
-				TAG_DONE);
-    regs[14] = save_A6;
-    return retval;
-}
-
-LONG CAPSRemImage (LONG id)
-{
-    struct Library *LibBase = (struct Library*) CapsImageBase;
-    LONG retval;
-    ULONG *regs   = (ULONG *)(SysBase->EmuWS);
-    ULONG save_A6 = regs[14];
-
-    retval = (LONG)EmulateTags ((APTR)LibBase,
-				ET_Offset,      -60, /* Hex: -0x3C */
-				ET_RegisterD0,  id,
-				ET_RegisterA6,  LibBase,
-				TAG_DONE);
-    regs[14] = save_A6;
-    return retval;
-}
-
-CapsLong CAPSLockImage (CapsLong id, char *name)
-{
-    struct Library *LibBase = (struct Library*)CapsImageBase;
-    LONG retval;
-    ULONG *regs   = (ULONG *)(SysBase->EmuWS);
-    ULONG save_a0 = regs[8];
-    ULONG save_A6 = regs[14];
-
-    retval = (LONG)EmulateTags ((APTR)LibBase,
-				ET_Offset,      -66, /* Hex: -0x42 */
-				ET_RegisterD0,  id,
-				ET_RegisterA0,  name,
-				ET_RegisterA6,  LibBase,
-				TAG_DONE);
-    regs[8]  = save_a0;
-    regs[14] = save_A6;
-    return retval;
-}
-
-LONG CAPSLockImageMemory (LONG id,
-			  UBYTE * buffer,
-			  ULONG length,
-			  ULONG flag)
-{
-    struct Library *LibBase = (struct Library*)CapsImageBase;
-    LONG retval;
-    ULONG *regs   = (ULONG *)(SysBase->EmuWS);
-    ULONG save_a0 = regs[8];
-    ULONG save_d2 = regs[2];
-    ULONG save_A6 = regs[14];
-
-    retval = (LONG)EmulateTags ((APTR)LibBase,
-				ET_Offset,      -72, /* Hex: -0x48 */
-				ET_RegisterD0,  id,
-				ET_RegisterA0,  buffer,
-				ET_RegisterD1,  length,
-				ET_RegisterD2,  flag,
-				ET_RegisterA6,  LibBase,
-				TAG_DONE);
-    regs[8]  = save_a0;
-    regs[2]  = save_d2;
-    regs[14] = save_A6;
-    return retval;
-}
-
-LONG CAPSUnlockImage (LONG id)
-{
-    struct Library *LibBase = (struct Library*)CapsImageBase;
-    LONG retval;
-    ULONG *regs   = (ULONG *)(SysBase->EmuWS);
-    ULONG save_A6 = regs[14];
-
-    retval = (LONG)EmulateTags ((APTR)LibBase,
-				ET_Offset,      -78, /* Hex: -0x4E */
-				ET_RegisterD0,  id,
-				ET_RegisterA6,  LibBase,
-				TAG_DONE);
-    regs[14] = save_A6;
-    return retval;
-}
-
-LONG CAPSLoadImage (LONG id, ULONG flag)
-{
-    struct Library *LibBase = (struct Library *)CapsImageBase;
-    LONG retval;
-    ULONG *regs   = (ULONG *)(SysBase->EmuWS);
-    ULONG save_A6 = regs[14];
-
-    retval = (LONG)EmulateTags ((APTR)LibBase,
-				ET_Offset,      -84, /* Hex: -0x54 */
-				ET_RegisterD0,  id,
-				ET_RegisterD1,  flag,
-				ET_RegisterA6,  LibBase,
-				TAG_DONE);
-    regs[14] = save_A6;
-    return retval;
-}
-
-LONG CAPSGetImageInfo (struct CapsImageInfo * pi, LONG id)
-{
-    struct Library *LibBase = (struct Library*)CapsImageBase;
-    LONG retval;
-    ULONG *regs   = (ULONG *)(SysBase->EmuWS);
-    ULONG save_a0 = regs[8];
-    ULONG save_A6 = regs[14];
-
-    retval = (LONG)EmulateTags ((APTR)LibBase,
-				ET_Offset,      -90, /* Hex: -0x5A */
-				ET_RegisterA0,  pi,
-				ET_RegisterD0,  id,
-				ET_RegisterA6,  LibBase,
-				TAG_DONE);
-    regs[8]  = save_a0;
-    regs[14] = save_A6;
-    return retval;
-}
-
-LONG CAPSLockTrack (struct CapsTrackInfo * pi,
-		    LONG id,
-		    ULONG cylinder,
-		    ULONG head,
-		    ULONG flag)
-{
-    struct Library *LibBase = (struct Library*)CapsImageBase;
-    LONG retval;
-    ULONG *regs   = (ULONG *)(SysBase->EmuWS);
-    ULONG save_a0 = regs[8];
-    ULONG save_d2 = regs[2];
-    ULONG save_d3 = regs[3];
-    ULONG save_A6 = regs[14];
-
-    retval = (LONG) EmulateTags((APTR)LibBase,
-				ET_Offset,      -96, /* Hex: -0x60 */
-				ET_RegisterA0,  pi,
-				ET_RegisterD0,  id,
-				ET_RegisterD1,  cylinder,
-				ET_RegisterD2,  head,
-				ET_RegisterD3,  flag,
-				ET_RegisterA6,  LibBase,
-				TAG_DONE);
-    regs[8]  = save_a0;
-    regs[2]  = save_d2;
-    regs[3]  = save_d3;
-    regs[14] = save_A6;
-    return retval;
-}
-
-LONG CAPSUnlockAllTracks (LONG id)
-{
-    struct Library *LibBase = (struct Library*)CapsImageBase;
-    LONG retval;
-    ULONG *regs   = (ULONG *)(SysBase->EmuWS);
-    ULONG save_A6 = regs[14];
-
-    retval = (LONG) EmulateTags ((APTR)LibBase,
-				 ET_Offset,      -108, /* Hex: -0x6C */
-				 ET_RegisterD0,  id,
-				 ET_RegisterA6,  LibBase,
-				 TAG_DONE);
-    regs[14] = save_A6;
-    return retval;
-}
-
-#endif
-
-
-#ifdef AMIGA
-
-#if 0
-/* proto file is broken in current CAPS API */
 #include <proto/capsimage.h>
-#else
-#if defined __GNUC__ && !defined __amigaos4__
-#include <inline/capsimage.h>
-#endif
-#endif
-
 #include <proto/exec.h>
 
-static struct Device *CapsImageBase;
+static struct MsgPort   CAPS_MsgPort;
+static struct IORequest CAPS_IOReq;
 
-static struct MsgPort   *CAPS_MsgPort;
-static struct IORequest *CAPS_IOReq;
 
-static void unload_capslib (void)
+static int unload_capslib (void)
 {
     CloseDevice (CAPS_IOReq);
     DeleteIORequest (CAPS_IOReq);
@@ -347,9 +106,9 @@ static int load_capslib (void)
     if ((CAPS_MsgPort = CreateMsgPort ())) {
 	if ((CAPS_IOReq = CreateIORequest (CAPS_MsgPort, sizeof(struct IORequest)))) {
 	    if (!OpenDevice(CAPS_NAME, 0, CAPS_IOReq, 0)) {
-		CapsImageBase = CAPS_IOReq->io_Device;
+		CapsImageBase = (struct Library *)CAPS_IOReq->io_Device;
 		atexit (unload_capslib);
-		if (CAPSInit () == imgeOk)
+		if (CAPSInit() == imgeOk)
 		    return 1;
 		else
 		    CloseDevice (CAPS_IOReq);
@@ -377,7 +136,7 @@ static int load_capslib (void)
 #endif
 
 
-#ifndef AMIGA
+#ifndef __AMIGA__
 
 /*
  * Some defines so that we don't care that CAPSLib
@@ -410,9 +169,9 @@ int caps_init (void)
     static int init, noticed;
     int i;
 
-    if (init)
+    if (init) {
 	return 1;
-
+    }
     if (!load_capslib ()) {
 	write_log ("Failed to load CAPS plug-in.\n");
 	if (noticed)
@@ -424,8 +183,9 @@ int caps_init (void)
 	return 0;
     }
     init = 1;
-    for (i = 0; i < 4; i++)
+    for (i = 0; i < 4; i++) {
 	caps_cont[i] = CAPSAddImage ();
+    }
 
     return 1;
 }
@@ -442,10 +202,8 @@ void caps_unloadimage (int drv)
 int caps_loadimage (struct zfile *zf, int drv, int *num_tracks)
 {
     struct CapsImageInfo ci;
-    int len, ret ;
+    int len,ret ;
     uae_u8 *buf;
-    char s1[100];
-    struct CapsDateTimeExt *cdt;
 
     if (!caps_init ())
 	return 0;
@@ -468,77 +226,48 @@ int caps_loadimage (struct zfile *zf, int drv, int *num_tracks)
     CAPSGetImageInfo (&ci, caps_cont[drv]);
     *num_tracks = (ci.maxcylinder - ci.mincylinder + 1) * (ci.maxhead - ci.minhead + 1);
     CAPSLoadImage(caps_cont[drv], caps_flags);
-    cdt = &ci.crdt;
-    sprintf (s1, "%d.%d.%d %d:%d:%d", cdt->day, cdt->month, cdt->year, cdt->hour, cdt->min, cdt->sec);
-    write_log ("caps: type:%d date:%s rel:%d rev:%d\n",
-	       ci.type, s1, ci.release, ci.revision);
+
     return 1;
 }
 
-int caps_loadrevolution (uae_u16 *mfmbuf, int drv, int track, int *tracklength)
+int caps_loadtrack (uae_u16 *mfmbuf, uae_u16 **trackpointers, uae_u16 **tracktiming, int drv, int track, int *tracklengths, int *revolutions)
 {
-    static int revcnt;
-    int rev, len, i;
-    uae_u16 *mfm;
     struct CapsTrackInfo ci;
-
-    revcnt++;
-    CAPSLockTrack(&ci, caps_cont[drv], track / 2, track & 1, caps_flags);
-    rev = revcnt % ci.trackcnt;
-    len = ci.tracksize[rev];
-    *tracklength = len * 8;
-    mfm = mfmbuf;
-    for (i = 0; i < (len + 1) / 2; i++) {
-        uae_u8 *data = ci.trackdata[rev]+ i * 2;
-        *mfm++ = 256 * *data + *(data + 1);
-    }
-    return 1;
-}
-
-int caps_loadtrack (uae_u16 *mfmbuf, uae_u16 *tracktiming, int drv, int track, int *tracklength, int *multirev)
-{
-    unsigned int i, len, type;
-    uae_u16 *mfm;
-    struct CapsTrackInfo ci;
+    unsigned int i, j, len;
+    uae_u16 *tt, *mfm;
 
     *tracktiming = 0;
-    CAPSLockTrack(&ci, caps_cont[drv], track / 2, track & 1, caps_flags);
+    CAPSLockTrack (&ci, caps_cont[drv], track / 2, track & 1, caps_flags);
     mfm = mfmbuf;
-    *multirev = (ci.type & CTIT_FLAG_FLAKEY) ? 1 : 0;
-    if (ci.trackcnt > 1)
-	*multirev = 1;
-    type = ci.type & CTIT_MASK_TYPE;
-    len = ci.tracksize[0];
-    *tracklength = len * 8;
-    for (i = 0; i < (len + 1) / 2; i++) {
-        uae_u8 *data = ci.trackdata[0]+ i * 2;
-        *mfm++ = 256 * *data + *(data + 1);
+    *revolutions = ci.trackcnt;
+    for (j = 0; j < ci.trackcnt; j++) {
+	len = ci.tracksize[j];
+	trackpointers[j] = mfm;
+	tracklengths[j] = len * 8;
+	for (i = 0; i < (len + 1) / 2; i++) {
+	    uae_u8 *data = ci.trackdata[j]+ i * 2;
+	    *mfm++ = 256 * *data + *(data + 1);
+	}
     }
 #if 0
     {
-	FILE *f=fopen("c:\\1.txt","wb");
+	FILE *f = fopen ("c:\\1.txt","wb");
 	fwrite (ci.trackdata[0], len, 1, f);
 	fclose (f);
     }
 #endif
     if (ci.timelen > 0) {
+	tt = xmalloc (ci.timelen * sizeof (uae_u16));
 	for (i = 0; i < ci.timelen; i++)
-	    tracktiming[i] = (uae_u16)ci.timebuf[i];
+	    tt[i] = (uae_u16)ci.timebuf[i];
+	*tracktiming = tt;
     }
 #if 0
-    write_log ("caps: drive:%d track:%d flakey:%d multi:%d timing:%d type:%d\n",
-	drv, track, *multirev, ci.trackcnt, ci.timelen, type);
+    write_log ("caps: drive: %d, track: %d, revolutions: %d, uses timing: %s\n", drv, track, *revolutions, ci.timelen > 0 ? "yes" : "no");
+    for (i = 0; i < *revolutions; i++)
+	write_log ("- %d: length: %d bits, %d bytes\n", i, tracklengths[i], tracklengths[i] / 8);
 #endif
     return 1;
-}
-
-#else /* #ifdef CAPS */
-
-/* Stop OS X linker complaining about empty link library */
-
-void caps_dummy (void);
-void caps_dummy (void)
-{
 }
 
 #endif

@@ -1,8 +1,8 @@
  /*
   * UAE - The Un*x Amiga Emulator
   *
-  * Support for mapping XFree86 raw keys codes to platform-independent
-  * UAE key codes with PC/Mac keyboards on Linux
+  * Support for mapping XFree86 scancodes to UAE input events
+  * with PC/Mac keyboards
   *
   * Copyright 2004 Richard Drummond
   */
@@ -14,12 +14,9 @@
 
 #include "options.h"
 #include "inputdevice.h"
-#include "keymap.h"
-#include "keymap_common.h"
+#include "keyboard.h"
+#include "hotkeys.h"
 
-/*
- * Raw scan codes
- */
 #define RAWKEY_ESCAPE		9
 
 #define RAWKEY_F1		67
@@ -141,56 +138,24 @@
 #define RAWKEY_SLEEP		223
 #define RAWKEY_WAKE		227
 
-/*
- * Mapping from raw key codes to UAE key codes
- */
-const struct uaekey_hostmap x11pc_keymap[] =
-{
-    {RAWKEYS_COMMON},
-
-    {RAWKEY_F11,		UAEKEY_F11},
-    {RAWKEY_F12,		UAEKEY_F12},
-
-    {RAWKEY_PRINTSCR,		UAEKEY_PRINTSCR},
-    {RAWKEY_SCROLL_LOCK,	UAEKEY_SCROLL_LOCK},
-    {RAWKEY_PAUSE,		UAEKEY_PAUSE},
-
-    {RAWKEY_MENU,		UAEKEY_MENU},
-
-    {RAWKEY_POWER,		UAEKEY_POWER},
-    {RAWKEY_SLEEP,		UAEKEY_SLEEP},
-    {RAWKEY_WAKE,		UAEKEY_WAKE},
-
-    {RAWKEYS_END}
-};
-
-#if 0
-/*
- * Mapping of uae modifier key codes to x11pc modifier keys
- * Not actually needed - just here for test purposes.
- */
-const int x11pc_modkeytable[] = {
-    /* UAEMODKEY_LSHIFT */	RAWKEY_LEFT_SHIFT,
-    /* UAEMODKEY_LCTRL */	RAWKEY_LEFT_CTRL,
-    /* UAEMODKEY_LALT */	RAWKEY_LEFT_ALT,
-    /* UAEMODKEY_LSUPER */	RAWKEY_LEFT_SUPER,
-    /* UAEMODKEY_RSUPER */	RAWKEY_RIGHT_SUPER,
-    /* UAEMODKEY_RALT */	RAWKEY_RIGHT_ALT,
-    /* UAEMODKEY_RCTRL */	RAWKEY_RIGHT_CTRL,
-    /* UAEMODKEY_RSHIFT */	RAWKEY_RIGHT_SHIFT,
-    /* UAEMODKEY_CAPSLOCK */	RAWKEY_CAPSLOCK
-};
-#endif
-
-/*
- * Hot-key seqeuences
- */
-#include "hotkeys.h"
+#include "x11pc_rawkeys.h"
+#include "keymap_common.h"
 #include "hotkeys_common.h"
 
-struct uae_hotkeyseq x11pc_hotkeys[] =
+const struct uae_input_device_kbr_default keytrans_x11pc[] = 
+{
+    { RAWKEYS_COMMON },
+    { RAWKEY_MENU,              INPUTEVENT_KEY_AMIGA_RIGHT },
+    { RAWKEY_PRINTSCR,          INPUTEVENT_SPC_SCREENSHOT },
+    { RAWKEY_SCROLL_LOCK,       INPUTEVENT_SPC_INHIBITSCREEN },
+    { RAWKEY_PAUSE,             INPUTEVENT_SPC_PAUSE },
+    { RAWKEYS_END }
+};
+
+struct uae_hotkeyseq hotkeys_x11pc[] =
 {
     { DEFAULT_HOTKEYS },
+    { DEFAULT_HOTKEYSEQ3 (RAWKEY_A, RAWKEY_B, INPUTEVENT_KEY_Z) },
     { HOTKEYS_END }
 };
 

@@ -17,7 +17,6 @@
 #include "uae.h"
 #include "autoconf.h"
 #include "enforcer.h"
-#include "picasso96.h"
 
 static uae_u32 misc_demux (void)
 {
@@ -187,8 +186,8 @@ static uae_u32 misc_demux (void)
  */
 #ifdef PICASSO96
 	case 13: {
-	    extern int p96hack_vpos2;
-	    extern int hack_vpos;
+	    extern int p96hack_vpos2,
+	    extern int hack_vpos,
 	    extern int p96refresh_active;
 	    extern uae_u16 vtotal;
 	    extern unsigned int new_beamcon0;

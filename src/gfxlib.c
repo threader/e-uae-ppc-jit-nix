@@ -40,8 +40,7 @@
 #include "osemu.h"
 #include "osdep/exectasks.h"
 
-//#ifdef USE_EXECLIB
-#if 0
+#ifdef USE_EXECLIB
 
 /* Uniq list management. Should be in a separate file. */
 struct uniq_head {

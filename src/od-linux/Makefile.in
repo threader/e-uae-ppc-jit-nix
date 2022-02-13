@@ -70,18 +70,17 @@ EGREP = @EGREP@
 EXEEXT = @EXEEXT@
 FILEPRG = @FILEPRG@
 FILESYSOBJS = @FILESYSOBJS@
-GENCPUOPTS = @GENCPUOPTS@
-GFX_DEP = @GFX_DEP@
+GFXDEP = @GFXDEP@
 GTK_CFLAGS = @GTK_CFLAGS@
 GTK_CONFIG = @GTK_CONFIG@
 GTK_LIBS = @GTK_LIBS@
-GUI_DEP = @GUI_DEP@
+GUIDEP = @GUIDEP@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
 JITOBJS = @JITOBJS@
-JOY_DEP = @JOY_DEP@
+JOYDEP = @JOYDEP@
 LDFLAGS = @LDFLAGS@
 LIBOBJS = @LIBOBJS@
 LIBS = @LIBS@
@@ -91,9 +90,6 @@ MAKEDEPPRG = @MAKEDEPPRG@
 MAKEINFO = @MAKEINFO@
 MATHLIB = @MATHLIB@
 NO_SCHED_CFLAGS = @NO_SCHED_CFLAGS@
-OBJC = @OBJC@
-OBJCDEPMODE = @OBJCDEPMODE@
-OBJC_LDFLAGS = @OBJC_LDFLAGS@
 OBJEXT = @OBJEXT@
 OSDEP = @OSDEP@
 PACKAGE = @PACKAGE@
@@ -116,14 +112,13 @@ SDL_CONFIG = @SDL_CONFIG@
 SDL_LIBS = @SDL_LIBS@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
-SND_DEP = @SND_DEP@
+SNDDEP = @SNDDEP@
 STRIP = @STRIP@
 TARGET = @TARGET@
 TARGET_BEOS_FALSE = @TARGET_BEOS_FALSE@
 TARGET_BEOS_TRUE = @TARGET_BEOS_TRUE@
 TARGET_WIN32_FALSE = @TARGET_WIN32_FALSE@
 TARGET_WIN32_TRUE = @TARGET_WIN32_TRUE@
-THREADDEP = @THREADDEP@
 UAE_RSRCFILE = @UAE_RSRCFILE@
 VERSION = @VERSION@
 WRCPRG = @WRCPRG@
@@ -134,7 +129,6 @@ X_PRE_LIBS = @X_PRE_LIBS@
 ac_ct_AR = @ac_ct_AR@
 ac_ct_CC = @ac_ct_CC@
 ac_ct_CXX = @ac_ct_CXX@
-ac_ct_OBJC = @ac_ct_OBJC@
 ac_ct_RANLIB = @ac_ct_RANLIB@
 ac_ct_STRIP = @ac_ct_STRIP@
 ac_cv_c_inline = @ac_cv_c_inline@
@@ -142,8 +136,6 @@ am__fastdepCC_FALSE = @am__fastdepCC_FALSE@
 am__fastdepCC_TRUE = @am__fastdepCC_TRUE@
 am__fastdepCXX_FALSE = @am__fastdepCXX_FALSE@
 am__fastdepCXX_TRUE = @am__fastdepCXX_TRUE@
-am__fastdepOBJC_FALSE = @am__fastdepOBJC_FALSE@
-am__fastdepOBJC_TRUE = @am__fastdepOBJC_TRUE@
 am__include = @am__include@
 am__leading_dot = @am__leading_dot@
 am__quote = @am__quote@
@@ -181,9 +173,10 @@ target_os = @target_os@
 target_vendor = @target_vendor@
 INCLUDES = -I$(top_srcdir)/src/include -I$(top_builddir)/src -I$(top_srcdir)/src -I$(top_srcdir)
 
-noinst_LIBRARIES = libosdep.a
+noinst_LIBRARIES = libjoydep.a libosdep.a
 
-libosdep_a_SOURCES = main.c memory.c
+libjoydep_a_SOURCES = joystick.c
+libosdep_a_SOURCES = main.c
 
 noinst_HEADERS = exectasks.h memory.h
 subdir = src/od-linux
@@ -193,24 +186,28 @@ CONFIG_HEADER = $(top_builddir)/src/sysconfig.h
 CONFIG_CLEAN_FILES =
 LIBRARIES = $(noinst_LIBRARIES)
 
+libjoydep_a_AR = $(AR) cru
+libjoydep_a_LIBADD =
+am_libjoydep_a_OBJECTS = joystick.$(OBJEXT)
+libjoydep_a_OBJECTS = $(am_libjoydep_a_OBJECTS)
 libosdep_a_AR = $(AR) cru
 libosdep_a_LIBADD =
-am_libosdep_a_OBJECTS = main.$(OBJEXT) memory.$(OBJEXT)
+am_libosdep_a_OBJECTS = main.$(OBJEXT)
 libosdep_a_OBJECTS = $(am_libosdep_a_OBJECTS)
 
 DEFAULT_INCLUDES =  -I. -I$(srcdir) -I$(top_builddir)/src
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
-@AMDEP_TRUE@DEP_FILES = ./$(DEPDIR)/main.Po ./$(DEPDIR)/memory.Po
+@AMDEP_TRUE@DEP_FILES = ./$(DEPDIR)/joystick.Po ./$(DEPDIR)/main.Po
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-DIST_SOURCES = $(libosdep_a_SOURCES)
+DIST_SOURCES = $(libjoydep_a_SOURCES) $(libosdep_a_SOURCES)
 HEADERS = $(noinst_HEADERS)
 
 DIST_COMMON = $(noinst_HEADERS) $(srcdir)/Makefile.in Makefile.am
-SOURCES = $(libosdep_a_SOURCES)
+SOURCES = $(libjoydep_a_SOURCES) $(libosdep_a_SOURCES)
 
 all: all-am
 
@@ -224,6 +221,10 @@ Makefile:  $(srcdir)/Makefile.in  $(top_builddir)/config.status
 
 clean-noinstLIBRARIES:
 	-test -z "$(noinst_LIBRARIES)" || rm -f $(noinst_LIBRARIES)
+libjoydep.a: $(libjoydep_a_OBJECTS) $(libjoydep_a_DEPENDENCIES) 
+	-rm -f libjoydep.a
+	$(libjoydep_a_AR) libjoydep.a $(libjoydep_a_OBJECTS) $(libjoydep_a_LIBADD)
+	$(RANLIB) libjoydep.a
 libosdep.a: $(libosdep_a_OBJECTS) $(libosdep_a_DEPENDENCIES) 
 	-rm -f libosdep.a
 	$(libosdep_a_AR) libosdep.a $(libosdep_a_OBJECTS) $(libosdep_a_LIBADD)
@@ -235,8 +236,8 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/joystick.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/memory.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	if $(COMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" \

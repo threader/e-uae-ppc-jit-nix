@@ -4,7 +4,7 @@
   * Call Amiga Exec functions outside the main UAE thread.
   *
   * Copyright 1999 Patrick Ohly
-  *
+  * 
   * Uses the EXTER interrupt that is setup in filesys.c
   * and needs thread support.
   */
@@ -18,11 +18,13 @@
 #include "memory.h"
 #include "custom.h"
 #include "newcpu.h"
+#include "disk.h"
 #include "autoconf.h"
+#include "filesys.h"
+#include "execlib.h"
 #include "native2amiga.h"
 
 smp_comm_pipe native2amiga_pending;
-static uae_sem_t n2asem;
 
 /*
  * to be called when setting up the hardware
@@ -31,7 +33,6 @@ static uae_sem_t n2asem;
 void native2amiga_install (void)
 {
     init_comm_pipe (&native2amiga_pending, 10, 2);
-    uae_sem_init (&n2asem, 0, 1);
 }
 
 /*
@@ -43,64 +44,54 @@ void native2amiga_startup (void)
 
 #ifdef SUPPORT_THREADS
 
-void uae_Cause (uaecptr interrupt)
+void uae_Cause(uaecptr interrupt)
 {
-    uae_sem_wait (&n2asem);
     write_comm_pipe_int (&native2amiga_pending, 3, 0);
     write_comm_pipe_u32 (&native2amiga_pending, interrupt, 1);
 
     uae_int_requested = 1;
-    uae_sem_post (&n2asem);
 }
 
-void uae_ReplyMsg (uaecptr msg)
+void uae_ReplyMsg(uaecptr msg)
 {
-    uae_sem_wait (&n2asem);
     write_comm_pipe_int (&native2amiga_pending, 2, 0);
     write_comm_pipe_u32 (&native2amiga_pending, msg, 1);
 
     uae_int_requested = 1;
-    uae_sem_post (&n2asem);
 }
 
-void uae_PutMsg (uaecptr port, uaecptr msg)
+void uae_PutMsg(uaecptr port, uaecptr msg)
 {
     uae_pt data;
     data.i = 1;
-    uae_sem_wait (&n2asem);
     write_comm_pipe_int (&native2amiga_pending, 1, 0);
     write_comm_pipe_u32 (&native2amiga_pending, port, 0);
     write_comm_pipe_u32 (&native2amiga_pending, msg, 1);
 
     uae_int_requested = 1;
-    uae_sem_post (&n2asem);
 }
 
-void uae_Signal (uaecptr task, uae_u32 mask)
+void uae_Signal(uaecptr task, uae_u32 mask)
 {
-    uae_sem_wait (&n2asem);
     write_comm_pipe_int (&native2amiga_pending, 0, 0);
     write_comm_pipe_u32 (&native2amiga_pending, task, 0);
     write_comm_pipe_int (&native2amiga_pending, mask, 1);
-
+    
     uae_int_requested = 1;
-    uae_sem_post (&n2asem);
 }
 
-void uae_NotificationHack (uaecptr port, uaecptr nr)
+void uae_NotificationHack(uaecptr port, uaecptr nr)
 {
-    uae_sem_wait (&n2asem);
     write_comm_pipe_int (&native2amiga_pending, 4, 0);
     write_comm_pipe_int (&native2amiga_pending, port, 0);
     write_comm_pipe_int (&native2amiga_pending, nr, 1);
-
+    
     uae_int_requested = 1;
-    uae_sem_post (&n2asem);
 }
 
 #endif
 
-void uae_NewList (uaecptr list)
+void uae_NewList(uaecptr list)
 {
     put_long (list, list + 4);
     put_long (list + 4, 0);
@@ -111,7 +102,7 @@ uaecptr uae_AllocMem (uae_u32 size, uae_u32 flags)
 {
     m68k_dreg (regs, 0) = size;
     m68k_dreg (regs, 1) = flags;
-    /* write_log ("allocmem(%d,%08.8X)\n", size, flags); */
+    write_log ("allocmem(%d,%08.8X)\n", size, flags);
     return CallLib (get_long (4), -198); /* AllocMem */
 }
 

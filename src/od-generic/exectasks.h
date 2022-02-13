@@ -6,7 +6,6 @@
   * Copyright 1996 Bernd Schmidt
   */
 
-#if 0
 struct switch_struct {
     int dummy;
 };
@@ -16,6 +15,3 @@ struct switch_struct {
 
 #define EXEC_SETUP_SWS(t) do { int i = 0; i++; } while(0)
 
-#endif
-
-#include <machdep/exectasks.h>

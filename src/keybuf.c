@@ -22,7 +22,6 @@
 #include "keyboard.h"
 #include "inputdevice.h"
 #include "custom.h"
-#include "savestate.h"
 
 static int fakestate[3][6] = { { 0, 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0, 0 } };
 
@@ -92,7 +91,7 @@ void record_key (int kc)
 	case AK_LF: fs = 1; fs_ck[1] = !(kc & 1); break;
 	case AK_RT: fs = 1; fs_ck[2] = !(kc & 1); break;
 	case AK_DN: fs = 1; fs_ck[3] = !(kc & 1); break;
-	case AK_RCTRL: case AK_RALT: fs = 1; fs_ck[4] = !(kc & 1); break;
+	case AK_RCTRL: fs = 1; fs_ck[4] = !(kc & 1); break;
 	case AK_RSH: fs = 1; fs_ck[5] = !(kc & 1); break;
 	}
     }
@@ -148,22 +147,4 @@ void keybuf_init (void)
 {
     kpb_first = kpb_last = 0;
     inputdevice_updateconfig (&currprefs);
-}
-
-
-uae_u8 *save_keyboard (int *len)
-{
-    uae_u8 *dst, *t;
-    dst = t = malloc (8);
-    save_u32 (getcapslockstate() ? 1 : 0);
-    save_u32 (0);
-    *len = 8;
-    return t;
-}
-
-uae_u8 *restore_keyboard (uae_u8 *src)
-{
-    setcapslockstate (restore_u32 ());
-    restore_u32 ();
-    return src;
 }

@@ -6,5 +6,5 @@
   * Copyright 2004 Richard Drummond
   */
 
-extern const struct uaekey_hostmap beos_keymap[];
-extern       struct uae_hotkeyseq  beos_hotkeys[];
+extern const struct uae_input_device_kbr_default keytrans_beos[];
+extern struct uae_hotkeyseq hotkeys_beos[];

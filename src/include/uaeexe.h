@@ -6,7 +6,7 @@
 
 struct uae_xcmd {
     struct uae_xcmd *prev,*next;
-    unsigned char *cmd;
+    char *cmd;
 };
 
 #define UAEEXE_ORG         0xF0FF90 /* sam: I hope this slot is free */
@@ -15,5 +15,7 @@ struct uae_xcmd {
 #define UAEEXE_NOTRUNNING  1
 #define UAEEXE_NOMEM       2
 
-extern void uaeexe_install (void);
-extern int  uaeexe (const unsigned char *cmd);
+extern void uaeexe_install(void);
+extern int  uaeexe(char *cmd);
+
+

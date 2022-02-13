@@ -31,7 +31,3 @@ void write_log_standard (const char *fmt, ...)
 #endif
 }
 
-void flush_log_standard (void)
-{
-    fflush (stderr);
-}

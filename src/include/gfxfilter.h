@@ -1,6 +1,4 @@
 
-#ifdef GFXFILTER
-
 typedef unsigned char u8;
 typedef unsigned short u16;
 typedef unsigned long u32;
@@ -56,5 +54,3 @@ struct uae_filter
 
 extern struct uae_filter uaefilters[];
 extern struct uae_filter *usedfilter;
-
-#endif

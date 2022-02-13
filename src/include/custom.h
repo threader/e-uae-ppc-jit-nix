@@ -14,7 +14,7 @@
 
 uae_u32 get_copper_address(int copno);
 
-extern int custom_init (void);
+extern void custom_init (void);
 extern void customreset (void);
 extern int intlev (void);
 extern void dumpcustom (void);
@@ -26,7 +26,6 @@ extern void notice_new_xcolors (void);
 extern void notice_screen_contents_lost (void);
 extern void init_row_map (void);
 extern void init_hz (void);
-extern void init_custom (void);
 
 extern int picasso_requested_on;
 extern int picasso_on;
@@ -40,13 +39,11 @@ extern uae_u16 dmacon;
 extern uae_u16 intena,intreq;
 
 //extern int current_hpos (void);
-extern unsigned int vpos;
+extern int vpos;
 
-extern int find_copper_record (uaecptr, unsigned int *, unsigned int *);
+extern int find_copper_record (uaecptr, int *, int *);
 
 extern int n_frames;
-
-int is_bitplane_dma (unsigned int hpos);
 
 STATIC_INLINE int dmaen (unsigned int dmamask)
 {
@@ -60,7 +57,7 @@ STATIC_INLINE int dmaen (unsigned int dmamask)
 #define SPCFLAG_EXTRA_CYCLES 32
 #define SPCFLAG_TRACE 64
 #define SPCFLAG_DOTRACE 128
-#define SPCFLAG_DOINT 256 /* arg, JIT fails without this.. */
+#define SPCFLAG_DOINT 256
 #define SPCFLAG_BLTNASTY 512
 #define SPCFLAG_EXEC 1024
 #define SPCFLAG_ACTION_REPLAY 2048
@@ -94,9 +91,7 @@ extern uae_u16 INTREQR (void);
 #define VBLANK_HZ_PAL 50
 #define VBLANK_HZ_NTSC 60
 
-extern unsigned int maxhpos;
-extern unsigned int maxvpos;
-extern unsigned int minfirstline;
+extern int maxhpos, maxvpos, minfirstline, vblank_endline, numscrlines;
 extern int vblank_hz, fake_vblank_hz, vblank_skip;
 extern unsigned long syncbase;
 #define NUMSCRLINES (maxvpos+1-minfirstline+1)
@@ -113,19 +108,17 @@ extern unsigned long syncbase;
 #define DMA_MASTER    0x0200
 #define DMA_BLITPRI   0x0400
 
-#define CYCLE_REFRESH	0x01
-#define CYCLE_MISC	0x02
-#define CYCLE_SPRITE	0x04
-#define CYCLE_BITPLANE	0x08
-#define CYCLE_COPPER	0x10
-#define CYCLE_BLITTER	0x20
-#define CYCLE_CPU	0x40
-#define CYCLE_NOCPU	0x80
+#define CYCLE_REFRESH 1
+#define CYCLE_DISK 2
+#define CYCLE_AUDIO 4
+#define CYCLE_SPRITE 8
+#define CYCLE_BITPLANE 16
+#define CYCLE_COPPER 32
+#define CYCLE_BLITTER 64
+#define CYCLE_CPU 128
 
 extern unsigned long frametime, timeframes;
-extern unsigned int plfstrt;
-extern unsigned int plfstop;
-extern unsigned int plffirstline, plflastline;
+extern int plfstrt, plfstop, plffirstline, plflastline;
 extern uae_u16 htotal, vtotal;
 
 /* 100 words give you 1600 horizontal pixels. Should be more than enough for
@@ -171,15 +164,4 @@ STATIC_INLINE int GET_RES (uae_u16 con0)
 extern void fpscounter_reset (void);
 extern unsigned long idletime;
 
-struct customhack {
-    uae_u16 v;
-    int vpos, hpos;
-};
-void customhack_put (struct customhack *ch, uae_u16 v, int hpos);
-uae_u16 customhack_get (struct customhack *ch, int hpos);
-
 extern void misc_hsync_stuff (void);
-
-extern void hsync_handler (void);
-extern void copper_handler (void);
-#define HSYNCTIME (maxhpos * CYCLE_UNIT)

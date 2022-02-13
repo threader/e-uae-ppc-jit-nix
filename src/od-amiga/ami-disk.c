@@ -1,17 +1,14 @@
- /*
+ /* 
   * UAE - The Un*x Amiga Emulator
-  *
-  * ami-disk.c: Creates pseudo dev: handler. Copy tracks to rawfile
+  * 
+  * ami-disk.c: Creates pseudo dev: handler. Copy tracks to rawfile 
   * (used in zfile.c).
-  *
+  * 
   * 08/06/97: Modified to avoid a spilled registers error message
   *           when used with the new fd2inline convention.
-  *
+  * 
   * Copyright 1996 Samuel Devulder.
   */
-
-#include "sysconfig.h"
-#include "sysdeps.h"
 
 /****************************************************************************/
 
@@ -48,19 +45,34 @@
 
 /****************************************************************************/
 
+#include "sysconfig.h"
+#include "sysdeps.h"
+
 #include <ctype.h>
 #include <signal.h>
+
+#include "config.h"
+#include "options.h"
+#include "memory.h"
+#include "custom.h"
+#include "keyboard.h"
+#include "keybuf.h"
+#include "disk.h"
+#include "debug.h"
+#include "gui.h"
 
 /****************************************************************************/
 
 char *amiga_dev_path  = "DEV:";
 char *ixemul_dev_path = "/dev/";
 
-int readdevice (char *name, char *dst);
-void initpseudodevices (void);
-void closepseudodevices (void);
-
-static void myDoIO(struct IOStdReq *ioreq, LONG CMD, LONG FLAGS, LONG OFFSET,
+int readdevice(char *name, char *dst);
+void initpseudodevices(void);
+void closepseudodevices(void);
+char *to_unix_path(char *s);
+char *from_unix_path(char *s);
+void split_dir_file(char *src, char **dir, char **file);
+static void myDoIO(struct IOStdReq *ioreq, LONG CMD, LONG FLAGS, LONG OFFSET, 
                    LONG LENGTH, LONG DATA);
 
 /****************************************************************************/
@@ -74,6 +86,86 @@ static char dfx_done[4];
 static int device_exists(char *device_name, int device_unit);
 static int dev_inhibit(char *dev,int on);
 static void set_req(int ok);
+
+/****************************************************************************/
+/* support routines to handle unix filename convention 
+ */
+char *to_unix_path(char *s)
+{
+    char *t,*r,*u;
+    int l;
+
+#ifndef __GNUC
+    return my_strdup(s);
+#endif
+
+    for(u=s,l=0;*u;++u,++l) if(*u=='/' || *u==':') l+=2;
+
+    r = t = malloc(1+l);
+    if(!r) return NULL;
+
+    for(u=s;*u && *u!=':';++u);
+    if(*u) {
+        *t++='/';
+        while(*s!=':') *t++=*s++;
+        *t++='/';++s;
+    }
+    while(*s=='/') {*t++='.';*t++='.';*t++=*s++;}
+    while(*s) {
+        if(s[0]=='/' && s[1]=='/') {*t++=*s++;*t++='.';*t++='.';*t++=*s++;}
+        else *t++=*s++;
+    }
+    *t='\0';
+    return r;
+}
+
+/****************************************************************************/
+
+char *from_unix_path(char *s)
+{
+    char *t,*r;
+
+    r = t = malloc(strlen(s)+1);
+    if(!r) return NULL;
+#ifndef __GNUC__
+    strcpy(r,s);
+    return r;
+#endif
+
+    if(*s=='/') {
+        ++s;
+        while(*s && *s!='/') *t++=*s++;
+        if(*s=='/') {*t++=':';++s;}
+    }
+
+    while(*s) {
+        if(s[0]=='.' && s[1]=='.') s+=2;
+        else *t++=*s++;
+    }
+
+    *t='\0';
+
+    return r;
+}
+
+/****************************************************************************/
+
+void split_dir_file(char *src, char **dir, char **file)
+{   /* note: src is freed() */
+    char *s=src;
+
+    while(*s) ++s;
+    while(s>src && (*s!=':' && *s!='/')) --s;
+    if(*s==':' || *s=='/') {
+        *file = my_strdup(s+1);
+        s[1]  = '\0';
+        *dir  = my_strdup(src);
+        free(src);
+    } else {
+        *file = src;
+        *dir  = my_strdup("");
+    }
+}
 
 /****************************************************************************/
 /*
@@ -140,7 +232,7 @@ void closepseudodevices(void)
         char name[80];
         strcpy(name,amiga_dev_path);
         if(*name && name[strlen(name)-1]==':') name[strlen(name)-1]='\0';
-        AssignLock (name, (BPTR)NULL);
+        AssignLock(name,NULL);
         pseudo_dev_assigned = 0;
     }
 
@@ -158,11 +250,11 @@ static void set_req(int ok)
 {
     static ULONG wd = 0;
     struct Process *pr;
-
+    
     pr = (void*)FindTask(NULL);
-
+    
     if(pr->pr_Task.tc_Node.ln_Type != NT_PROCESS) return;
-
+    
     if(ok)  {
         pr->pr_WindowPtr = (APTR)wd;
     }
@@ -184,13 +276,13 @@ static int device_exists(char *device_name, int device_unit)
 
     port = CreatePort(0, 0);
     if(port) {
-        ioreq = CreateStdIO(port);
+        ioreq = CreateStdIO(port);        
         if(ioreq) {
             if(!OpenDevice(device_name,device_unit,(void*)ioreq,0)) {
                 CloseDevice((void*)ioreq);
                 ret = 1;
             }
-            DeleteStdIO(ioreq);
+            DeleteStdIO(ioreq);    
         }
         DeletePort(port);
     }
@@ -205,11 +297,11 @@ static void extract_dev_unit(char *name, char **dev_name, int *dev_unit)
 {
     char *s;
     if(tolower(name[0])=='d' && tolower(name[1])=='f' &&
-       name[2]>='0' && name[2]<='3' && name[3]=='\0') {
+       name[2]>='0' && name[2]<='3' && name[3]=='\0') { 
         /* DF0 */
         *dev_unit = name[2]-'0';
         *dev_name = strdup("trackdisk.device");
-    } else if((s = strrchr(name,'/'))) {
+    } else if((s = strrchr(name,'/'))) { 
         /* trackdisk[.device]/0 */
         *dev_unit = atoi(s+1);
         *dev_name = malloc(1 + s-name);
@@ -217,14 +309,14 @@ static void extract_dev_unit(char *name, char **dev_name, int *dev_unit)
             strncpy(*dev_name, name, 1 + s-name);
             (*dev_name)[s-name]='\0';
         }
-    } else {
+    } else { 
         /* ?? STRANGEDISK0: ?? */
         *dev_unit = 0;
         *dev_name = strdup(name);
     }
     if(*dev_name) {
         char *s;
-        if(!(s = strrchr(*dev_name,'.'))) {
+        if(!(s = strrchr(*dev_name,'.'))) { 
             /* .device is missing */
             s = malloc(8+strlen(*dev_name));
             if(s) {
@@ -287,7 +379,7 @@ static int raw_copy(char *dev_name, int dev_unit, FILE *dst)
             myDoIO(ioreq, CMD_READ, -1, tracklen*tr, tracklen, (LONG)buffer);
             if(ioreq->io_Error) printf("Err. on\n");
             if(fwrite(buffer, 1, tracklen, dst) != (unsigned int)tracklen) {
-               retstatus = 0;
+               retstatus = 0; 
                break;
             }
         }
@@ -313,7 +405,7 @@ static int raw_copy(char *dev_name, int dev_unit, FILE *dst)
 /*
  * Copy one raw disk to a file.
  */
-int readdevice(char *name, char *dst)
+int readdevice(char *name, char *dst) 
 {   /* erhm, I must admit this code is long and ugly! */
     FILE *f = NULL;
     char *device_name;
@@ -333,7 +425,7 @@ int readdevice(char *name, char *dst)
     extract_dev_unit(name, &device_name, &device_unit);
     if(device_name) {
         /* if no destination then just check if the device exists */
-        if(dst == NULL)
+        if(dst == NULL) 
            retstatus = device_exists(device_name, device_unit);
         else {
             /* open dest file */
@@ -342,7 +434,7 @@ int readdevice(char *name, char *dst)
                 fclose(f);
             }
         }
-        free(device_name);
+        free(device_name);           
     }
 
 #ifdef HAVE_SIGACTION
@@ -355,7 +447,7 @@ int readdevice(char *name, char *dst)
 
 /****************************************************************************/
 
-static void myDoIO(struct IOStdReq *ioreq, LONG CMD, LONG FLAGS, LONG OFFSET,
+static void myDoIO(struct IOStdReq *ioreq, LONG CMD, LONG FLAGS, LONG OFFSET, 
                    LONG LENGTH, LONG DATA)
 {
     if(CMD>=0)    ioreq->io_Command = CMD;
@@ -370,30 +462,21 @@ static void myDoIO(struct IOStdReq *ioreq, LONG CMD, LONG FLAGS, LONG OFFSET,
 /*
  * Prevents DOS to access a DFx device.
  */
-static int dev_inhibit (char *dev, int on)
+static int dev_inhibit(char *dev,int on)
 {
-    unsigned char   buff[10];
-    unsigned char  *s;
+    char buff[10],*s;
     struct MsgPort *DevPort;
 
-    if (!*dev)
-	return 0;
-
-    s = dev;
-	while(*s++);
-
-    if (s[-2] == ':')
-	strcpy (buff, dev);
-    else
-	sprintf (buff, "%s:", dev);
-
-    if ((DevPort = (struct MsgPort*) DeviceProc ((STRPTR)buff))) {
-	if (on) {
-	    DoPkt (DevPort, ACTION_INHIBIT, DOSTRUE, 0, 0, 0, 0);
-	    return 1;
-	}
-	else
-	    DoPkt (DevPort, ACTION_INHIBIT, DOSFALSE, 0, 0, 0, 0);
+    if(!*dev) return 0;
+    s=dev;while(*s++);
+    if(s[-2]==':') strcpy(buff,dev); else sprintf(buff,"%s:",dev);
+    if((DevPort = (struct MsgPort*)DeviceProc((STRPTR)buff))) {
+        if(on) {
+           DoPkt(DevPort,ACTION_INHIBIT,DOSTRUE,NULL,NULL,NULL,NULL);
+           return 1;
+        }
+        else   DoPkt(DevPort,ACTION_INHIBIT,DOSFALSE,NULL,NULL,NULL,NULL);
     }
     return 0;
 }
+

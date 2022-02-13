@@ -17,7 +17,6 @@
 #include <SDL.h>
 
 static int nr_joysticks;
-static int initialized;
 
 struct joyinfo {
     SDL_Joystick *joy;
@@ -110,38 +109,30 @@ static char *get_joystick_name (int joy)
 
 static void read_joysticks (void)
 {
-    if (get_joystick_num ()) {
-        int i;
-        SDL_JoystickUpdate ();
-        for (i = 0; i < get_joystick_num (); i++)
-	    read_joy (i);
-    }
+    int i;
+    SDL_JoystickUpdate ();
+    for (i = 0; i < get_joystick_num(); i++)
+	read_joy (i);
 }
 
 static int init_joysticks (void)
 {
     int success = 0;
 
-    if (!initialized) {
-	if (SDL_InitSubSystem (SDL_INIT_JOYSTICK) == 0) {
-	    int i;
-
-	    nr_joysticks = SDL_NumJoysticks ();
-	    write_log ("Found %d joystick(s)\n", nr_joysticks);
-
-	    if (nr_joysticks > MAX_INPUT_DEVICES)
-		nr_joysticks = MAX_INPUT_DEVICES;
-
-	    for (i = 0; i < get_joystick_num (); i++) {
-		joys[i].joy     = SDL_JoystickOpen (i);
-		joys[i].axles   = SDL_JoystickNumAxes (joys[i].joy);
-		joys[i].buttons = SDL_JoystickNumButtons (joys[i].joy);
-	    }
-	    success = initialized = 1;
-	} else
-	    write_log ("Failed to initialize joysticks\n");
-    }
-
+    if (SDL_InitSubSystem (SDL_INIT_JOYSTICK) == 0) {
+        int i;
+        nr_joysticks = SDL_NumJoysticks ();
+        write_log ("Found %d joysticks\n", nr_joysticks);
+        if (nr_joysticks > MAX_INPUT_DEVICES)
+    	    nr_joysticks = MAX_INPUT_DEVICES;
+        for (i = 0; i < get_joystick_num(); i++) {
+	    joys[i].joy = SDL_JoystickOpen (i);
+	    joys[i].axles = SDL_JoystickNumAxes (joys[i].joy);
+	    joys[i].buttons = SDL_JoystickNumButtons (joys[i].joy);
+	}
+        success = 1;
+    } else
+        write_log ("Failed to initialize joysticks\n");
     return success;
 }
 
@@ -152,14 +143,12 @@ static void close_joysticks (void)
 	SDL_JoystickClose (joys[i].joy);
 	joys[i].joy = 0;
     }
-
-    if (initialized)
-	SDL_QuitSubSystem (SDL_INIT_JOYSTICK);
+    SDL_QuitSubSystem (SDL_INIT_JOYSTICK);
 }
 
 static int acquire_joy (int num, int flags)
 {
-    return num < get_joystick_num ();
+    return 1;
 }
 
 static void unacquire_joy (int num)

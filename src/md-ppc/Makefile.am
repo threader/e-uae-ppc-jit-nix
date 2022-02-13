@@ -4,4 +4,4 @@ noinst_LIBRARIES = libmachdep.a
 
 libmachdep_a_SOURCES = support.c
 
-noinst_HEADERS = exectasks.h m68k.h maccess.h rpt.h
+noinst_HEADERS = m68k.h maccess.h rpt.h

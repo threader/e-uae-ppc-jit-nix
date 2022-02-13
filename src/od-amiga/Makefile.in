@@ -70,18 +70,17 @@ EGREP = @EGREP@
 EXEEXT = @EXEEXT@
 FILEPRG = @FILEPRG@
 FILESYSOBJS = @FILESYSOBJS@
-GENCPUOPTS = @GENCPUOPTS@
-GFX_DEP = @GFX_DEP@
+GFXDEP = @GFXDEP@
 GTK_CFLAGS = @GTK_CFLAGS@
 GTK_CONFIG = @GTK_CONFIG@
 GTK_LIBS = @GTK_LIBS@
-GUI_DEP = @GUI_DEP@
+GUIDEP = @GUIDEP@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
 JITOBJS = @JITOBJS@
-JOY_DEP = @JOY_DEP@
+JOYDEP = @JOYDEP@
 LDFLAGS = @LDFLAGS@
 LIBOBJS = @LIBOBJS@
 LIBS = @LIBS@
@@ -91,9 +90,6 @@ MAKEDEPPRG = @MAKEDEPPRG@
 MAKEINFO = @MAKEINFO@
 MATHLIB = @MATHLIB@
 NO_SCHED_CFLAGS = @NO_SCHED_CFLAGS@
-OBJC = @OBJC@
-OBJCDEPMODE = @OBJCDEPMODE@
-OBJC_LDFLAGS = @OBJC_LDFLAGS@
 OBJEXT = @OBJEXT@
 OSDEP = @OSDEP@
 PACKAGE = @PACKAGE@
@@ -116,14 +112,13 @@ SDL_CONFIG = @SDL_CONFIG@
 SDL_LIBS = @SDL_LIBS@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
-SND_DEP = @SND_DEP@
+SNDDEP = @SNDDEP@
 STRIP = @STRIP@
 TARGET = @TARGET@
 TARGET_BEOS_FALSE = @TARGET_BEOS_FALSE@
 TARGET_BEOS_TRUE = @TARGET_BEOS_TRUE@
 TARGET_WIN32_FALSE = @TARGET_WIN32_FALSE@
 TARGET_WIN32_TRUE = @TARGET_WIN32_TRUE@
-THREADDEP = @THREADDEP@
 UAE_RSRCFILE = @UAE_RSRCFILE@
 VERSION = @VERSION@
 WRCPRG = @WRCPRG@
@@ -134,7 +129,6 @@ X_PRE_LIBS = @X_PRE_LIBS@
 ac_ct_AR = @ac_ct_AR@
 ac_ct_CC = @ac_ct_CC@
 ac_ct_CXX = @ac_ct_CXX@
-ac_ct_OBJC = @ac_ct_OBJC@
 ac_ct_RANLIB = @ac_ct_RANLIB@
 ac_ct_STRIP = @ac_ct_STRIP@
 ac_cv_c_inline = @ac_cv_c_inline@
@@ -142,8 +136,6 @@ am__fastdepCC_FALSE = @am__fastdepCC_FALSE@
 am__fastdepCC_TRUE = @am__fastdepCC_TRUE@
 am__fastdepCXX_FALSE = @am__fastdepCXX_FALSE@
 am__fastdepCXX_TRUE = @am__fastdepCXX_TRUE@
-am__fastdepOBJC_FALSE = @am__fastdepOBJC_FALSE@
-am__fastdepOBJC_TRUE = @am__fastdepOBJC_TRUE@
 am__include = @am__include@
 am__leading_dot = @am__leading_dot@
 am__quote = @am__quote@
@@ -181,12 +173,18 @@ target_os = @target_os@
 target_vendor = @target_vendor@
 INCLUDES = -I$(top_srcdir)/src/include -I$(top_builddir)/src -I$(top_srcdir)/src -I$(top_srcdir)
 
-noinst_LIBRARIES = libosdep.a
+noinst_LIBRARIES = libjoydep.a libsnddep.a libgfxdep.a libguidep.a libosdep.a
 
-libosdep_a_SOURCES = main.c memory.c support.c ami-disk.c
+libgfxdep_a_SOURCES = ami-win.c ami-appw.c
+libguidep_a_SOURCES = ami-rexx.c ami-gui.c ami-disk.c
+libjoydep_a_SOURCES = joystick.c
+libsnddep_a_SOURCES = sound.c
+libosdep_a_SOURCES = main.c support.c
 
-noinst_HEADERS = amiga-kludges.h exectasks.h memory.h rpt.h
+noinst_HEADERS = amiga-kludges.h gfx.h exectasks.h memory.h rpt.h sound.h \
+	         thread.h
 
+dist_bin_SCRIPTS = UAEWB UAEWB.aux UAEWB.rexx UAEGUI.rexx
 dist_noinst_SCRIPTS = scc
 subdir = src/od-amiga
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -195,29 +193,50 @@ CONFIG_HEADER = $(top_builddir)/src/sysconfig.h
 CONFIG_CLEAN_FILES =
 LIBRARIES = $(noinst_LIBRARIES)
 
+libgfxdep_a_AR = $(AR) cru
+libgfxdep_a_LIBADD =
+am_libgfxdep_a_OBJECTS = ami-win.$(OBJEXT) ami-appw.$(OBJEXT)
+libgfxdep_a_OBJECTS = $(am_libgfxdep_a_OBJECTS)
+libguidep_a_AR = $(AR) cru
+libguidep_a_LIBADD =
+am_libguidep_a_OBJECTS = ami-rexx.$(OBJEXT) ami-gui.$(OBJEXT) \
+	ami-disk.$(OBJEXT)
+libguidep_a_OBJECTS = $(am_libguidep_a_OBJECTS)
+libjoydep_a_AR = $(AR) cru
+libjoydep_a_LIBADD =
+am_libjoydep_a_OBJECTS = joystick.$(OBJEXT)
+libjoydep_a_OBJECTS = $(am_libjoydep_a_OBJECTS)
 libosdep_a_AR = $(AR) cru
 libosdep_a_LIBADD =
-am_libosdep_a_OBJECTS = main.$(OBJEXT) memory.$(OBJEXT) \
-	support.$(OBJEXT) ami-disk.$(OBJEXT)
+am_libosdep_a_OBJECTS = main.$(OBJEXT) support.$(OBJEXT)
 libosdep_a_OBJECTS = $(am_libosdep_a_OBJECTS)
-SCRIPTS = $(dist_noinst_SCRIPTS)
+libsnddep_a_AR = $(AR) cru
+libsnddep_a_LIBADD =
+am_libsnddep_a_OBJECTS = sound.$(OBJEXT)
+libsnddep_a_OBJECTS = $(am_libsnddep_a_OBJECTS)
+SCRIPTS = $(dist_bin_SCRIPTS) $(dist_noinst_SCRIPTS)
 
 
 DEFAULT_INCLUDES =  -I. -I$(srcdir) -I$(top_builddir)/src
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
-@AMDEP_TRUE@DEP_FILES = ./$(DEPDIR)/ami-disk.Po ./$(DEPDIR)/main.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/memory.Po ./$(DEPDIR)/support.Po
+@AMDEP_TRUE@DEP_FILES = ./$(DEPDIR)/ami-appw.Po ./$(DEPDIR)/ami-disk.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/ami-gui.Po ./$(DEPDIR)/ami-rexx.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/ami-win.Po ./$(DEPDIR)/joystick.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/main.Po ./$(DEPDIR)/sound.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/support.Po
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-DIST_SOURCES = $(libosdep_a_SOURCES)
+DIST_SOURCES = $(libgfxdep_a_SOURCES) $(libguidep_a_SOURCES) \
+	$(libjoydep_a_SOURCES) $(libosdep_a_SOURCES) \
+	$(libsnddep_a_SOURCES)
 HEADERS = $(noinst_HEADERS)
 
-DIST_COMMON = $(dist_noinst_SCRIPTS) $(noinst_HEADERS) \
-	$(srcdir)/Makefile.in Makefile.am
-SOURCES = $(libosdep_a_SOURCES)
+DIST_COMMON = $(dist_bin_SCRIPTS) $(dist_noinst_SCRIPTS) \
+	$(noinst_HEADERS) $(srcdir)/Makefile.in Makefile.am
+SOURCES = $(libgfxdep_a_SOURCES) $(libguidep_a_SOURCES) $(libjoydep_a_SOURCES) $(libosdep_a_SOURCES) $(libsnddep_a_SOURCES)
 
 all: all-am
 
@@ -231,10 +250,46 @@ Makefile:  $(srcdir)/Makefile.in  $(top_builddir)/config.status
 
 clean-noinstLIBRARIES:
 	-test -z "$(noinst_LIBRARIES)" || rm -f $(noinst_LIBRARIES)
+libgfxdep.a: $(libgfxdep_a_OBJECTS) $(libgfxdep_a_DEPENDENCIES) 
+	-rm -f libgfxdep.a
+	$(libgfxdep_a_AR) libgfxdep.a $(libgfxdep_a_OBJECTS) $(libgfxdep_a_LIBADD)
+	$(RANLIB) libgfxdep.a
+libguidep.a: $(libguidep_a_OBJECTS) $(libguidep_a_DEPENDENCIES) 
+	-rm -f libguidep.a
+	$(libguidep_a_AR) libguidep.a $(libguidep_a_OBJECTS) $(libguidep_a_LIBADD)
+	$(RANLIB) libguidep.a
+libjoydep.a: $(libjoydep_a_OBJECTS) $(libjoydep_a_DEPENDENCIES) 
+	-rm -f libjoydep.a
+	$(libjoydep_a_AR) libjoydep.a $(libjoydep_a_OBJECTS) $(libjoydep_a_LIBADD)
+	$(RANLIB) libjoydep.a
 libosdep.a: $(libosdep_a_OBJECTS) $(libosdep_a_DEPENDENCIES) 
 	-rm -f libosdep.a
 	$(libosdep_a_AR) libosdep.a $(libosdep_a_OBJECTS) $(libosdep_a_LIBADD)
 	$(RANLIB) libosdep.a
+libsnddep.a: $(libsnddep_a_OBJECTS) $(libsnddep_a_DEPENDENCIES) 
+	-rm -f libsnddep.a
+	$(libsnddep_a_AR) libsnddep.a $(libsnddep_a_OBJECTS) $(libsnddep_a_LIBADD)
+	$(RANLIB) libsnddep.a
+dist_binSCRIPT_INSTALL = $(INSTALL_SCRIPT)
+install-dist_binSCRIPTS: $(dist_bin_SCRIPTS)
+	@$(NORMAL_INSTALL)
+	$(mkinstalldirs) $(DESTDIR)$(bindir)
+	@list='$(dist_bin_SCRIPTS)'; for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  if test -f $$d$$p; then \
+	    f=`echo "$$p" | sed 's|^.*/||;$(transform)'`; \
+	    echo " $(dist_binSCRIPT_INSTALL) $$d$$p $(DESTDIR)$(bindir)/$$f"; \
+	    $(dist_binSCRIPT_INSTALL) $$d$$p $(DESTDIR)$(bindir)/$$f; \
+	  else :; fi; \
+	done
+
+uninstall-dist_binSCRIPTS:
+	@$(NORMAL_UNINSTALL)
+	@list='$(dist_bin_SCRIPTS)'; for p in $$list; do \
+	  f=`echo "$$p" | sed 's|^.*/||;$(transform)'`; \
+	  echo " rm -f $(DESTDIR)$(bindir)/$$f"; \
+	  rm -f $(DESTDIR)$(bindir)/$$f; \
+	done
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT) core *.core
@@ -242,9 +297,14 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ami-appw.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ami-disk.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ami-gui.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ami-rexx.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ami-win.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/joystick.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/memory.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sound.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/support.Po@am__quote@
 
 .c.o:
@@ -360,6 +420,7 @@ check: check-am
 all-am: Makefile $(LIBRARIES) $(SCRIPTS) $(HEADERS)
 
 installdirs:
+	$(mkinstalldirs) $(DESTDIR)$(bindir)
 install: install-am
 install-exec: install-exec-am
 install-data: install-data-am
@@ -404,7 +465,7 @@ info-am:
 
 install-data-am:
 
-install-exec-am:
+install-exec-am: install-dist_binSCRIPTS
 
 install-info: install-info-am
 
@@ -429,17 +490,18 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-info-am
+uninstall-am: uninstall-dist_binSCRIPTS uninstall-info-am
 
 .PHONY: CTAGS GTAGS all all-am check check-am clean clean-generic \
 	clean-noinstLIBRARIES ctags distclean distclean-compile \
 	distclean-generic distclean-tags distdir dvi dvi-am info \
 	info-am install install-am install-data install-data-am \
-	install-exec install-exec-am install-info install-info-am \
-	install-man install-strip installcheck installcheck-am \
-	installdirs maintainer-clean maintainer-clean-generic \
-	mostlyclean mostlyclean-compile mostlyclean-generic pdf pdf-am \
-	ps ps-am tags uninstall uninstall-am uninstall-info-am
+	install-dist_binSCRIPTS install-exec install-exec-am \
+	install-info install-info-am install-man install-strip \
+	installcheck installcheck-am installdirs maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-compile \
+	mostlyclean-generic pdf pdf-am ps ps-am tags uninstall \
+	uninstall-am uninstall-dist_binSCRIPTS uninstall-info-am
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

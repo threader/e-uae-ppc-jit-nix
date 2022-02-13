@@ -13,17 +13,8 @@ extern void a1000_reset (void);
 extern int special_mem;
 #define S_READ 1
 #define S_WRITE 2
-extern void *cache_alloc (int);
-extern void cache_free (void*);
-
-extern int canbang;
-void init_shm (void);
-#endif
-
-#ifdef ADDRESS_SPACE_24BIT
-#define MEMORY_BANKS 256
-#else
-#define MEMORY_BANKS 65536
+extern uae_u8 *cache_alloc (int);
+extern void cache_free (int);
 #endif
 
 typedef uae_u32 (*mem_get_func)(uaecptr) REGPARAM;
@@ -49,6 +40,18 @@ extern void wait_cpu_cycle_write (uaecptr addr, int mode, uae_u32 v);
 #include "machdep/maccess.h"
 #include "osdep/memory.h"
 
+#ifndef CAN_MAP_MEMORY
+#undef USE_COMPILER
+#endif
+
+#ifdef JIT
+#if defined(USE_COMPILER) && !defined(USE_MAPPED_MEMORY)
+#define USE_MAPPED_MEMORY
+#endif
+#endif
+
+#define kickmem_size 0x080000
+
 #define chipmem_start 0x00000000
 #define bogomem_start 0x00C00000
 #define a3000mem_start 0x07000000
@@ -58,6 +61,7 @@ extern int ersatzkickfile;
 extern int cloanto_rom;
 extern uae_u16 kickstart_version;
 
+extern uae_u8* baseaddr[];
 
 typedef struct {
     /* These ones should be self-explanatory... */
@@ -111,26 +115,16 @@ extern uae_u8 *default_xlate(uaecptr addr) REGPARAM;
 
 #define bankindex(addr) (((uaecptr)(addr)) >> 16)
 
-extern addrbank *mem_banks[MEMORY_BANKS];
-
-#ifdef JIT
-extern uae_u8 *baseaddr[MEMORY_BANKS];
-#endif
-
+extern addrbank *mem_banks[65536];
+extern uae_u8 *baseaddr[65536];
 #define get_mem_bank(addr) (*mem_banks[bankindex(addr)])
-
-#ifdef JIT
-# define put_mem_bank(addr, b, realstart) do { \
+#define put_mem_bank(addr, b, realstart) do { \
     (mem_banks[bankindex(addr)] = (b)); \
     if ((b)->baseaddr) \
         baseaddr[bankindex(addr)] = (b)->baseaddr - (realstart); \
     else \
         baseaddr[bankindex(addr)] = (uae_u8*)(((long)b)+1); \
 } while (0)
-#else
-# define put_mem_bank(addr, b, realstart) \
-    (mem_banks[bankindex(addr)] = (b));
-#endif
 
 extern void memory_init (void);
 extern void memory_cleanup (void);
@@ -215,7 +209,6 @@ extern void chipmem_bput (uaecptr, uae_u32) REGPARAM;
 
 extern uae_u32 chipmem_mask, kickmem_mask;
 extern uae_u8 *kickmemory;
-extern unsigned int kickmem_size;
 extern addrbank dummy_bank;
 
 /* 68020+ Chip RAM DMA contention emulation */
@@ -239,6 +232,8 @@ typedef struct shmpiece_reg {
 extern shmpiece *shm_start;
 
 #endif
+
+extern int canbang;
 
 extern uae_u8 *mapped_malloc (size_t, char *);
 extern void mapped_free (uae_u8 *);

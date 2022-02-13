@@ -1,10 +1,3 @@
-e-uae (0.8.27-1) unstable; urgency=low
-
-  * Changed package name to e-uae.
-  * Updated to version 0.8.27.
-
- -- Richard Drummond <uae@rcdrummond.net>  Mon,  3 Jan 2005 14:57:37 -0500
-
 uae (0.8.23-1.20040125.1) unstable; urgency=low
 
   * Updated.

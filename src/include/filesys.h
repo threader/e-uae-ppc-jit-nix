@@ -13,7 +13,7 @@ struct hardfiledata {
     int secspertrack;
     int surfaces;
     int reservedblocks;
-    unsigned int blocksize;
+    int blocksize;
     void *handle;
     int readonly;
     int flags;
@@ -24,10 +24,6 @@ struct hardfiledata {
     char product_id[16 + 1];
     char product_rev[4 + 1];
     char device_name[256];
-    /* geometry from possible RDSK block */
-    unsigned int cylinders;
-    unsigned int sectors;
-    unsigned int heads;
     uae_u64 size2;
     uae_u64 offset2;
 };
@@ -51,6 +47,5 @@ extern int hdf_write (struct hardfiledata *hfd, void *buffer, uae_u64 offset, in
 extern int hdf_getnumharddrives (void);
 extern char *hdf_getnameharddrive (int index, int flags);
 extern int hdf_init (void);
-extern int isspecialdrive (const char *name);
-extern void filesys_cleanup (void);
+extern int isspecialdrive(const char *name);
 extern int filesys_is_readonly (const char *path);

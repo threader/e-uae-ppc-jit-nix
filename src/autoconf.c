@@ -17,6 +17,7 @@
 #include "custom.h"
 #include "events.h"
 #include "newcpu.h"
+#include "compiler.h"
 #include "autoconf.h"
 #include "osdep/exectasks.h"
 
@@ -29,9 +30,6 @@ static uaecptr trapoldfunc[MAX_TRAPS];
 
 static int max_trap;
 int lasttrap;
-
-
-#ifdef CAN_DO_STACK_MAGIC
 
 /* Stack management */
 
@@ -69,74 +67,76 @@ int lasttrap;
 #define EXTRA_STACK_SIZE 32768
 #endif
 
-struct extra_stack
+static void *extra_stack_list = NULL;
+
+static void *get_extra_stack (void)
 {
-    jmp_buf stackswap_env;
-    jmp_buf m68kcall_env;
-    uaecptr m68kcall_addr;
-    void *stack[EXTRA_STACK_SIZE - 2*sizeof(jmp_buf) - sizeof(uaecptr)];
-};
-
-
-static struct extra_stack *get_extra_stack (void)
-{
-    struct extra_stack *s;
-
-#ifndef _MSC_VER
-    s = xmalloc (sizeof (struct extra_stack));
+    void *s = extra_stack_list;
+    //if (s)
+    //extra_stack_list = *(void **)s;
+    if (!s) {
+#ifndef _MSC_VER 
+	s = xmalloc (EXTRA_STACK_SIZE);
 #else
-    {
-	static long opencount=0;
-	extern unsigned long *win32_stackbase;
-	int i;
-	extern unsigned long *win32_freestack[42];
-	for (i = 0; i < 41; i++) {//0 to MAX_SELECT_THREADS
-	    if (!win32_freestack[i])
-		break; //get a free block
+	{
+	    static long opencount=0;
+	    extern unsigned long *win32_stackbase;
+	    int i;
+	    extern unsigned long *win32_freestack[42];
+	    for (i=0;i<41;i++) {//0 to MAX_SELECT_THREADS
+		if(!win32_freestack[i])
+		    break; //get a free block
+	    }
+	    s=win32_stackbase+(i*EXTRA_STACK_SIZE);
+	    win32_freestack[i]=s;   
 	}
-	s = win32_stackbase + (i * EXTRA_STACK_SIZE);
-	win32_freestack[i] = s;
-    }
 #endif
+    }
     return s;
 }
 
-static void free_extra_stack (struct extra_stack *s)
+static void free_extra_stack (void *s)
 {
+    //*(void **)s = extra_stack_list;
+    //extra_stack_list = s;
 #ifdef _MSC_VER
     {
 	int i;
 	extern unsigned long *win32_freestack[42];
-	for (i = 0; i < 41; i++) {//0 to MAX_SELECT_THREADS
-	    if (win32_freestack[i] == s)
+	for (i=0;i<41;i++) {//0 to MAX_SELECT_THREADS
+	    if(win32_freestack[i]==s)
 		break; //get a free block
 	}
-	win32_freestack[i] = 0;
+	win32_freestack[i]=0;
     }
-#else
-    free (s);
 #endif
 }
 
-static void stack_stub (struct extra_stack *s, TrapFunction f, uae_u32 *retval)
+static void stack_stub (void *s, TrapFunction f, uae_u32 *retval)
 {
+#ifdef CAN_DO_STACK_MAGIC
     /*printf("in stack_stub: %p %p %p %x\n", s, f, retval, (int)*retval);*/
     *retval = f ();
     /*write_log ("returning from stack_stub\n");*/
-    longjmp (s->stackswap_env, 1);
+    longjmp (((jmp_buf *)s)[0], 1);
+#endif
 }
 
-static struct extra_stack *current_extra_stack = NULL;
+static void *current_extra_stack = NULL;
+static uaecptr m68k_calladdr;
 
-static void do_stack_magic (TrapFunction f, struct extra_stack *s, int has_retval)
+static void do_stack_magic (TrapFunction f, void *s, int has_retval)
 {
-    switch (setjmp (s->stackswap_env)) {
+#ifdef CAN_DO_STACK_MAGIC
+    uaecptr a7;
+    jmp_buf *j = (jmp_buf *)s;
+    switch (setjmp (j[0])) {
      case 0:
 	/* Returning directly */
 	current_extra_stack = s;
 	if (has_retval == -1) {
 	    /*write_log ("finishing m68k mode return\n");*/
-	    longjmp (s->m68kcall_env, 1);
+	    longjmp (j[1], 1);
 	}
 	/*write_log ("calling native function\n");*/
 	transfer_control (s, EXTRA_STACK_SIZE, stack_stub, f, has_retval);
@@ -151,37 +151,41 @@ static void do_stack_magic (TrapFunction f, struct extra_stack *s, int has_retva
 	free_extra_stack (s);
 	break;
 
-     case 2: {
+     case 2:
 	/* Returning to do a m68k call. We're now back on the main stack. */
-	uaecptr a7 = m68k_areg (regs, 7) -= (sizeof (void *) + 7) & ~3;
+	a7 = m68k_areg(regs, 7) -= (sizeof (void *) + 7) & ~3;
 	/* Save stack to restore */
 	*((void **)get_real_address (a7 + 4)) = s;
 	/* Save special return address: this address contains a
 	 * calltrap that will longjmp to the right stack. */
 	put_long (m68k_areg (regs, 7), RTAREA_BASE + 0xFF00);
-        m68k_setpc (s->m68kcall_addr);
-        fill_prefetch_slow ();
+	m68k_setpc (m68k_calladdr);
+	fill_prefetch_slow ();
 	/*write_log ("native function calls m68k\n");*/
 	break;
-     }
     }
     current_extra_stack = 0;
+#endif
 }
 
 static uae_u32 execute_fn_on_extra_stack (TrapFunction f, int has_retval)
 {
-    struct extra_stack *s = get_extra_stack ();
+#ifdef CAN_DO_STACK_MAGIC
+    void *s = get_extra_stack ();
     do_stack_magic (f, s, has_retval);
+#endif
     return 0;
 }
 
 static uae_u32 m68k_mode_return (void)
 {
-    uaecptr a7 = m68k_areg (regs, 7);
-    struct extra_stack *s = *(struct extra_stack **)get_real_address (a7);
-    m68k_areg (regs, 7) += (sizeof (void *) + 3) & ~3;
+#ifdef CAN_DO_STACK_MAGIC
+    uaecptr a7 = m68k_areg(regs, 7);
+    void *s = *(void **)get_real_address(a7);
+    m68k_areg(regs, 7) += (sizeof (void *) + 3) & ~3;
     /*write_log ("doing m68k mode return\n");*/
     do_stack_magic (NULL, s, -1);
+#endif
     return 0;
 }
 
@@ -189,25 +193,21 @@ static uae_u32 call_m68k (uaecptr addr, int saveregs)
 {
     volatile uae_u32 retval = 0;
     volatile int do_save = saveregs;
-
-    /*write_log ("\nDoing call_m68k (addr=%08x, savereg=%d) extra_stack=%p\n",
-                  addr,saveregs,current_extra_stack);*/
-
-    if (current_extra_stack != NULL)
+    if (current_extra_stack == NULL)
+	abort();
+#ifdef CAN_DO_STACK_MAGIC
     {
 	volatile struct regstruct saved_regs;
-	struct extra_stack *s = current_extra_stack;
+	jmp_buf *j = (jmp_buf *)current_extra_stack;
 
 	if (do_save)
 	    saved_regs = regs;
-
-	s->m68kcall_addr = addr;
-
-	switch (setjmp (s->m68kcall_env)) {
+	m68k_calladdr = addr;
+	switch (setjmp(j[1])) {
 	 case 0:
 	    /*write_log ("doing call\n");*/
 	    /* Returning directly: now switch to main stack and do the call */
-	    longjmp (s->stackswap_env, 2);
+	    longjmp (j[0], 2);
 	 case 1:
 	    /*write_log ("returning from call\n");*/
 	    retval = m68k_dreg (regs, 0);
@@ -216,16 +216,15 @@ static uae_u32 call_m68k (uaecptr addr, int saveregs)
 	    /* Returning after the call. */
 	    break;
 	}
-    } else
-	abort ();
-
+    }
+#endif
     return retval;
 }
 
 uae_u32 CallLib (uaecptr base, uae_s16 offset)
 {
     int i;
-    uaecptr olda6 = m68k_areg (regs, 6);
+    uaecptr olda6 = m68k_areg(regs, 6);
     uae_u32 retval;
 #if 0
     for (i = 0; i < n_libpatches; i++) {
@@ -233,30 +232,11 @@ uae_u32 CallLib (uaecptr base, uae_s16 offset)
 	    return (*libpatches[i].functions[-offset/6])();
     }
 #endif
-    m68k_areg (regs, 6) = base;
-    retval = call_m68k (base + offset, 1);
-    m68k_areg (regs, 6) = olda6;
+    m68k_areg(regs, 6) = base;
+    retval = call_m68k(base + offset, 1);
+    m68k_areg(regs, 6) = olda6;
     return retval;
 }
-
-#else
-
-/*
- * Stubs for when building without stack magic
- */
-static uae_u32 m68k_mode_return (void)
-{
-    return 0;
-}
-
-uae_u32 CallLib (uaecptr base, uae_s16 offset)
-{
-    /* Shouldn't be necessary */
-    write_log ("WARNING: Calling 68k code from UAE is not supported in this version.\n");
-    return 0;
-}
-
-#endif
 
 /* Commonly used autoconfig strings */
 
@@ -291,55 +271,55 @@ uae_u8 REGPARAM2 *rtarea_xlate (uaecptr addr)
 
 uae_u32 REGPARAM2 rtarea_lget (uaecptr addr)
 {
-#ifdef JIT
+#ifdef JIT   
     special_mem |= S_READ;
-#endif
+#endif   
     addr &= 0xFFFF;
     return (uae_u32)(rtarea_wget (addr) << 16) + rtarea_wget (addr+2);
 }
 
 uae_u32 REGPARAM2 rtarea_wget (uaecptr addr)
 {
-#ifdef JIT
+#ifdef JIT   
     special_mem |= S_READ;
-#endif
+#endif   
     addr &= 0xFFFF;
     return (rtarea[addr]<<8) + rtarea[addr+1];
 }
 
 uae_u32 REGPARAM2 rtarea_bget (uaecptr addr)
 {
-#ifdef JIT
+#ifdef JIT   
     special_mem |= S_READ;
-#endif
+#endif   
     addr &= 0xFFFF;
     return rtarea[addr];
 }
 
 void REGPARAM2 rtarea_lput (uaecptr addr, uae_u32 value)
 {
-#ifdef JIT
+#ifdef JIT   
     special_mem |= S_WRITE;
-#endif
+#endif   
 }
 
 void REGPARAM2 rtarea_wput (uaecptr addr, uae_u32 value)
 {
-#ifdef JIT
+#ifdef JIT   
     special_mem |= S_WRITE;
-#endif
+#endif   
 }
 
 void REGPARAM2 rtarea_bput (uaecptr addr, uae_u32 value)
 {
 #ifdef JIT
     special_mem |= S_WRITE;
-#endif
+#endif   
 }
 
 static const int trace_traps = 1;
 
-void REGPARAM2 call_calltrap (int func)
+void REGPARAM2 call_calltrap(int func)
 {
     uae_u32 retval = 0;
     int has_retval = (trapmode[func] & TRAPFLAG_NO_RETVAL) == 0;
@@ -350,32 +330,29 @@ void REGPARAM2 call_calltrap (int func)
 
     /* For monitoring only? */
     if (traps[func] == NULL) {
-	m68k_setpc (trapoldfunc[func]);
+	m68k_setpc(trapoldfunc[func]);
 	fill_prefetch_slow ();
 	return;
     }
 
     if (func < max_trap) {
-#ifdef CAN_DO_STACK_MAGIC
 	if (trapmode[func] & TRAPFLAG_EXTRA_STACK) {
 	    execute_fn_on_extra_stack(traps[func], has_retval);
 	    return;
 	}
-#endif
 	retval = (*traps[func])();
     } else
 	write_log ("illegal emulator trap\n");
 
     if (has_retval)
-	m68k_dreg (regs, 0) = retval;
+	m68k_dreg(regs, 0) = retval;
     if (implicit_rts) {
 	m68k_do_rts ();
 	fill_prefetch_slow ();
     }
 }
 
-#ifdef CAN_DO_STACK_MAGIC
-/* @$%& compiler bugs */
+/* @$%&§ compiler bugs */
 static volatile int four = 4;
 
 uaecptr libemu_InstallFunctionFlags (TrapFunction f, uaecptr libbase, int offset,
@@ -385,7 +362,7 @@ uaecptr libemu_InstallFunctionFlags (TrapFunction f, uaecptr libbase, int offset
     uaecptr retval;
     uaecptr execbase = get_long (four);
     int trnum;
-    uaecptr addr = here ();
+    uaecptr addr = here();
     calltrap (trnum = deftrap2 (f, flags, tracename));
     dw (RTS);
 
@@ -411,7 +388,6 @@ uaecptr libemu_InstallFunctionFlags (TrapFunction f, uaecptr libbase, int offset
 #endif
     return retval;
 }
-#endif
 
 /* some quick & dirty code to fill in the rt area and save me a lot of
  * scratch paper
@@ -492,7 +468,7 @@ void align (int b)
     rt_addr = (rt_addr + b - 1) & ~(b - 1);
 }
 
-static uae_u32 nullfunc (void)
+static uae_u32 nullfunc(void)
 {
     write_log ("Null function called\n");
     return 0;
@@ -570,6 +546,6 @@ void set_uae_int_flag (void)
     rtarea[0xFFFB] = uae_int_requested;
 }
 
-void rtarea_setup (void)
+void rtarea_setup(void)
 {
 }

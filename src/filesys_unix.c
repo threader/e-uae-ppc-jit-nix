@@ -27,7 +27,7 @@
 # include <sys/statfs.h>
 #endif
 
-#ifdef HAVE_SYS_STATVFS_H
+#ifdef HAVE_STATVFS_H
 # include <sys/statvfs.h>
 #endif
 

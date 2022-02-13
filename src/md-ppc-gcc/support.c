@@ -16,8 +16,8 @@
 #include "machdep/m68k.h"
 #include "sleep.h"
 
-#ifndef HAVE_SYNC
-# define sync()
+#if defined  __AMIGA__ || defined __MORPHOS__
+#define sync()
 #endif
 
 struct flag_struct regflags;
@@ -27,25 +27,19 @@ static volatile int loops_to_go;
 
 void machdep_init (void)
 {
-    static int done = 0;
+    rpt_available = 1;
+    write_log ("Calibrating timebase: ");
+    fflush (stderr);
+    loops_to_go = 5;
 
-    if (!done) {
-	rpt_available = 1;
+    sync ();
+    last_time = read_processor_time ();
+    uae_msleep (loops_to_go * 1000);
+    best_time = read_processor_time () - last_time;
+    sync ();
 
-	write_log ("Calibrating timebase: ");
-	flush_log ();
+    syncbase = best_time / loops_to_go;
+    write_log ("%.6f MHz\n", (double)syncbase / 1000000);
 
-	loops_to_go = 5;
-	sync ();
-	last_time = read_processor_time ();
-	uae_msleep (loops_to_go * 1000);
-	best_time = read_processor_time () - last_time;
-
-	syncbase = best_time / loops_to_go;
-	write_log ("%.6f MHz\n", (double) syncbase / 1000000);
-
-	sleep_test();
-
-	done = 1;
-    }
+    sleep_test();
 }

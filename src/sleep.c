@@ -40,29 +40,22 @@
  */
 void sleep_millis (int ms)
 {
-    frame_time_t start = read_processor_time ();
-    int sleep_time;
+    uae_u64 start = read_processor_time();
 
 #ifndef SLEEP_DONT_BUSY_WAIT
     if (!currprefs.dont_busy_wait && ms < SLEEP_BUSY_THRESHOLD) {
 	/* Typical sleep routines can't sleep for less than 10ms. If we want
 	 * to sleep for a period shorter than the threshold, we'll have to busy wait . . .
 	 */
-	int end = start + ms * syncbase / 1000;
-	int v;
+	frame_time_t delay = ((frame_time_t)ms) * syncbase / 1000;
 
-        do {
-	    v = (int)read_processor_time ();
-	} while (v < end && v > -end);
+	while ((read_processor_time () - start) < delay)
+	     ;
     } else
 #endif
 	uae_msleep (ms);
 
-    sleep_time = read_processor_time () - start;
-    if (sleep_time < 0)
-	sleep_time = -sleep_time;
-
-    idletime += sleep_time;
+    idletime += read_processor_time () - start;
 }
 
 /*
@@ -81,17 +74,14 @@ void sleep_millis_busy (int ms)
  * Measure how long it takes to do a ms millisecond sleep. Timing is performed
  * with a machine-specific high-resolution timer.
  */
-static int do_sleep_test (int ms)
+static uae_u32 do_sleep_test (int ms)
 {
-    int t;
-    int t2;
+    uae_u64 t;
+    uae_u32 t2;
 
     t = read_processor_time ();
     uae_msleep (ms);
     t2 = read_processor_time () - t;
-
-    if (t2 < 0)
-	t2 = -t2;
 
     return t2;
 }
@@ -114,10 +104,10 @@ void sleep_test (void)
 	int num_tests;
 	int i;
 
-	write_log ("Testing system sleep function"); flush_log ();
+	write_log ("Testing system sleep function"); fflush (stderr);
 
 	/* Do a few tests to get a rough idea how fast we can do it */
-	num_tests = 16;
+	num_tests = 5;
 
 	for (i=0; i < num_tests; i++)
 	    total += do_sleep_test (1);
@@ -127,12 +117,12 @@ void sleep_test (void)
 	total = 0;
 
 	/* Now the test proper */
-	for (i = 0; i < num_tests; i++) {
+	for (i=0; i < num_tests; i++) {
 	    total += do_sleep_test (1);
 
 	    if (i - (i % 100) == i) {
-		write_log (".");
-		flush_log ();
+		write_log(".");
+		fflush (stderr);
 	    }
 	}
 

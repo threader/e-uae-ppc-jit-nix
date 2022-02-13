@@ -28,7 +28,7 @@
 
 #define FFLAG_Z   0x4000
 #define FFLAG_N   0x0100
-#define FFLAG_NAN 0x0400
+#define FFLAG_NAN 0x0400 
 
 #define MAKE_FPSR(r)  regs.fp_result=(r)
 
@@ -55,7 +55,7 @@ static __inline__ void native_set_fpucw (uae_u32 m68k_cw)
   case 2: /* down    */ iround=1; break;
   case 3: /* up      */ iround=2; break;
   }
-
+   
   x=0x107f + (iprec<<8) + (iround<<10);
 #ifdef _MSC_VER
   __asm {
@@ -92,7 +92,7 @@ static __inline__ tointtype toint(fptype src)
     return (tointtype)src; /* Should never be reached */
 }
 
-uae_u32 get_fpsr (void)
+uae_u32 get_fpsr (void) 
 {
     uae_u32 answer = regs.fpsr & 0x00ffffff;
 #ifdef HAVE_ISNAN
@@ -113,7 +113,7 @@ uae_u32 get_fpsr (void)
     return answer;
 }
 
-STATIC_INLINE void set_fpsr (uae_u32 x)
+STATIC_INLINE void set_fpsr (uae_u32 x) 
 {
     regs.fpsr = x;
 
@@ -301,8 +301,6 @@ STATIC_INLINE int get_fp_value (uae_u32 opcode, uae_u16 extra, fptype *src)
 	case 4:
 	    ad = m68k_getpc ();
 	    m68k_setpc (ad + sz2[size]);
-	    if (size == 6)
-		ad++;
 	    break;
 	default:
 	    return 0;
@@ -374,7 +372,7 @@ STATIC_INLINE int put_fp_value (fptype value, uae_u32 opcode, uae_u16 extra)
     reg = opcode & 7;
     size = (extra >> 10) & 7;
     ad = -1;
-
+    
     switch (mode) {
     case 0:
 	switch (size) {
@@ -616,7 +614,7 @@ STATIC_INLINE int fpp_cond (uae_u32 opcode, int contition)
 #if 0
         return NotANumber || (Z && N); /* This is wrong, compare 0x0c */
 #else
-        return NotANumber || (N && !Z);
+        return NotANumber || (N && !Z);  
 #endif
     case 0x1d:
 	return NotANumber || Z || N;
@@ -635,8 +633,8 @@ void fdbcc_opp (uae_u32 opcode, uae_u16 extra)
     int cc;
 
 #if DEBUG_FPP
-    write_log ("FPU: fdbcc_opp at %08lx\n", m68k_getpc ());
-    flush_log ();
+    printf ("fdbcc_opp at %08lx\n", m68k_getpc ());
+    fflush (stdout);
 #endif
     cc = fpp_cond (opcode, extra & 0x3f);
     if (cc == -1) {
@@ -658,8 +656,8 @@ void fscc_opp (uae_u32 opcode, uae_u16 extra)
     int cc;
 
 #if DEBUG_FPP
-    write_log ("FPU: fscc_opp at %08lx\n", m68k_getpc ());
-    flush_log ();
+    printf ("fscc_opp at %08lx\n", m68k_getpc ());
+    fflush (stdout);
 #endif
     cc = fpp_cond (opcode, extra & 0x3f);
     if (cc == -1) {
@@ -681,8 +679,8 @@ void ftrapcc_opp (uae_u32 opcode, uaecptr oldpc)
     int cc;
 
 #if DEBUG_FPP
-    write_log ("FPU: ftrapcc_opp at %08lx\n", m68k_getpc ());
-    flush_log ();
+    printf ("ftrapcc_opp at %08lx\n", m68k_getpc ());
+    fflush (stdout);
 #endif
     cc = fpp_cond (opcode, opcode & 0x3f);
     if (cc == -1) {
@@ -698,8 +696,8 @@ void fbcc_opp (uae_u32 opcode, uaecptr pc, uae_u32 extra)
     int cc;
 
 #if DEBUG_FPP
-    write_log ("FPU: fbcc_opp at %08lx\n", m68k_getpc ());
-    flush_log ();
+    printf ("fbcc_opp at %08lx\n", m68k_getpc ());
+    fflush (stdout);
 #endif
     cc = fpp_cond (opcode, opcode & 0x3f);
     if (cc == -1) {
@@ -722,8 +720,8 @@ void fsave_opp (uae_u32 opcode)
 
 
 #if DEBUG_FPP
-    write_log ("FPU: fsave_opp at %08lx\n", m68k_getpc ());
-    flush_log ();
+    printf ("fsave_opp at %08lx\n", m68k_getpc ());
+    fflush (stdout);
 #endif
     if (get_fp_ad (opcode, &ad) == 0) {
 	m68k_setpc (m68k_getpc () - 2);
@@ -731,7 +729,7 @@ void fsave_opp (uae_u32 opcode)
 	return;
     }
 
-    if (currprefs.cpu_level >= 4) {
+    if (currprefs.cpu_level == 4) {
 	/* 4 byte 68040 IDLE frame.  */
 	if (incr < 0) {
 	    ad -= 4;
@@ -774,15 +772,15 @@ void frestore_opp (uae_u32 opcode)
     int incr = (opcode & 0x38) == 0x20 ? -1 : 1;
 
 #if DEBUG_FPP
-    write_log ("FPU: frestore_opp at %08lx\n", m68k_getpc ());
-    flush_log ();
+    printf ("frestore_opp at %08lx\n", m68k_getpc ());
+    fflush (stdout);
 #endif
     if (get_fp_ad (opcode, &ad) == 0) {
 	m68k_setpc (m68k_getpc () - 2);
 	op_illg (opcode);
 	return;
     }
-    if (currprefs.cpu_level >= 4) {
+    if (currprefs.cpu_level == 4) {
 	/* 68040 */
 	if (incr < 0) {
 	    /* @@@ This may be wrong.  */
@@ -850,8 +848,8 @@ void fpp_opp (uae_u32 opcode, uae_u16 extra)
     fptype src;
 
 #if DEBUG_FPP
-    write_log ("FPU: %04lx %04x at %08lx\n", opcode & 0xffff, extra & 0xffff, m68k_getpc () - 4);
-    flush_log ();
+    printf ("FPP %04lx %04x at %08lx\n", opcode & 0xffff, extra & 0xffff, m68k_getpc () - 4);
+    fflush (stdout);
 #endif
     switch ((extra >> 13) & 0x7) {
     case 3:
@@ -1171,7 +1169,7 @@ void fpp_opp (uae_u32 opcode, uae_u16 extra)
 	case 0x00:		/* FMOVE */
 	case 0x40:  /* Explicit rounding. This is just a quick fix. Same
 		     * for all other cases that have three choices */
-	case 0x44:
+	case 0x44:   
 	    regs.fp[reg] = src;
 	    /* Brian King was here.  <ea> to register needs FPSR updated.
 	     * See page 3-73 in Motorola 68K programmers reference manual.
@@ -1399,7 +1397,7 @@ uae_u8 *restore_fpu (uae_u8 *src)
     restore_u32 ();
     if (currprefs.cpu_level == 2) {
 	currprefs.cpu_level++;
-	init_m68k ();
+        init_m68k_full ();
     }
     changed_prefs.cpu_level = currprefs.cpu_level;
     for (i = 0; i < 8; i++) {
@@ -1427,9 +1425,6 @@ uae_u8 *save_fpu (int *len, uae_u8 *dstptr)
 	break;
 	case 4:
 	model = 68040;
-	break;
-	case 6:
-	model = 68060;
 	break;
 	default:
 	return 0;

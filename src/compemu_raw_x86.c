@@ -66,8 +66,8 @@ uae_u8 need_to_preserve[]={1,1,1,1,0,1,1,1};
 #define CLOBBER_SHRL clobber_flags()
 #define CLOBBER_SHRA clobber_flags()
 #define CLOBBER_TEST clobber_flags()
-#define CLOBBER_CL16
-#define CLOBBER_CL8
+#define CLOBBER_CL16 
+#define CLOBBER_CL8  
 #define CLOBBER_SE16
 #define CLOBBER_SE8
 #define CLOBBER_ZE16
@@ -83,22 +83,22 @@ uae_u8 need_to_preserve[]={1,1,1,1,0,1,1,1};
  * Actual encoding of the instructions on the target CPU                 *
  *************************************************************************/
 
-static int have_cmov=0;  /* We need to generate different code if
+static int have_cmov=0;  /* We need to generate different code if 
 			    we don't have cmov */
 
-//#include "compemu_optimizer_x86.c"
+#include "compemu_optimizer_x86.c"
 
-STATIC_INLINE uae_u16 swap16 (uae_u16 x)
+static uae_u16 swap16(uae_u16 x)
 {
     return ((x&0xff00)>>8)|((x&0x00ff)<<8);
 }
 
-STATIC_INLINE uae_u32 swap32(uae_u32 x)
+static uae_u32 swap32(uae_u32 x)
 {
     return ((x&0xff00)<<8)|((x&0x00ff)<<24)|((x&0xff0000)>>8)|((x&0xff000000)>>24);
 }
 
-STATIC_INLINE int isbyte(uae_s32 x)
+static __inline__ int isbyte(uae_s32 x)
 {
   return (x>=-128 && x<=127);
 }
@@ -518,7 +518,7 @@ LOWFUNC(READ,NONE,3,raw_cmov_l_rr,(RW4 d, R4 s, IMM cc))
     }
     else { /* replacement using branch and mov */
 	int uncc=(cc^1);
-	emit_byte(0x70+uncc);
+	emit_byte(0x70+uncc); 
 	emit_byte(2);  /* skip next 2 bytes if not cc=true */
 	emit_byte(0x89);
 	emit_byte(0xc0+8*s+d);
@@ -586,7 +586,7 @@ LENDFUNC(NONE,NONE,2,raw_imul_64_32,(RW4 d, RW4 s))
 LOWFUNC(NONE,NONE,2,raw_mul_64_32,(RW4 d, RW4 s))
 {
     if (d!=MUL_NREG1 || s!=MUL_NREG2) {
-	write_log ("JIT: Bad register in MUL: d=%d, s=%d\n", d, s);
+	printf("Bad register in MUL: d=%d, s=%d\n",d,s);
 	abort();
     }
     emit_byte(0xf7);
@@ -622,7 +622,7 @@ LOWFUNC(NONE,READ,4,raw_mov_l_rrm_indexed,(W4 d,R4 baser, R4 index, IMM factor))
 {
     int isebp=(baser==5)?0x40:0;
     int fi;
-
+    
     switch(factor) {
      case 1: fi=0; break;
      case 2: fi=1; break;
@@ -644,7 +644,7 @@ LOWFUNC(NONE,READ,4,raw_mov_w_rrm_indexed,(W2 d, R4 baser, R4 index, IMM factor)
 {
     int fi;
     int isebp;
-
+    
     switch(factor) {
      case 1: fi=0; break;
      case 2: fi=1; break;
@@ -653,7 +653,7 @@ LOWFUNC(NONE,READ,4,raw_mov_w_rrm_indexed,(W2 d, R4 baser, R4 index, IMM factor)
      default: abort();
     }
     isebp=(baser==5)?0x40:0;
-
+    
     emit_byte(0x66);
     emit_byte(0x8b);
     emit_byte(0x04+8*d+isebp);
@@ -698,7 +698,7 @@ LOWFUNC(NONE,WRITE,4,raw_mov_l_mrr_indexed,(R4 baser, R4 index, IMM factor, R4 s
   default: abort();
   }
 
-
+  
   isebp=(baser==5)?0x40:0;
 
     emit_byte(0x89);
@@ -878,8 +878,8 @@ LOWFUNC(NONE,READ,4,raw_mov_l_rm_indexed,(W4 d, IMM base, R4 index, IMM factor))
   case 2: fi=1; break;
   case 4: fi=2; break;
   case 8: fi=3; break;
-  default:
-    write_log ("JIT: Bad factor %d in mov_l_rm_indexed!\n", factor);
+  default: 
+    fprintf(stderr,"Bad factor %d in mov_l_rm_indexed!\n",factor);
     abort();
   }
     emit_byte(0x8b);
@@ -897,8 +897,8 @@ LOWFUNC(NONE,READ,5,raw_cmov_l_rm_indexed,(W4 d, IMM base, R4 index, IMM factor,
      case 2: fi=1; break;
      case 4: fi=2; break;
      case 8: fi=3; break;
-     default:
-	write_log ("JIT: Bad factor %d in mov_l_rm_indexed!\n", factor);
+     default: 
+	fprintf(stderr,"Bad factor %d in mov_l_rm_indexed!\n",factor);
 	abort();
     }
     if (have_cmov) {
@@ -910,7 +910,7 @@ LOWFUNC(NONE,READ,5,raw_cmov_l_rm_indexed,(W4 d, IMM base, R4 index, IMM factor,
     }
     else { /* replacement using branch and mov */
 	int uncc=(cond^1);
-	emit_byte(0x70+uncc);
+	emit_byte(0x70+uncc); 
 	emit_byte(7);  /* skip next 7 bytes if not cc=true */
 	emit_byte(0x8b);
 	emit_byte(0x04+8*d);
@@ -930,7 +930,7 @@ LOWFUNC(NONE,READ,3,raw_cmov_l_rm,(W4 d, IMM mem, IMM cond))
     }
     else { /* replacement using branch and mov */
 	int uncc=(cond^1);
-	emit_byte(0x70+uncc);
+	emit_byte(0x70+uncc); 
 	emit_byte(6);  /* skip next 6 bytes if not cc=true */
 	emit_byte(0x8b);
 	emit_byte(0x05+8*d);
@@ -1053,7 +1053,7 @@ LENDFUNC(NONE,NONE,3,raw_lea_l_brr,(W4 d, R4 s, IMM offset))
 LOWFUNC(NONE,NONE,5,raw_lea_l_brr_indexed,(W4 d, R4 s, R4 index, IMM factor, IMM offset))
 {
   int fi;
-
+  
   switch(factor) {
   case 1: fi=0; break;
   case 2: fi=1; break;
@@ -1073,7 +1073,7 @@ LOWFUNC(NONE,NONE,4,raw_lea_l_rr_indexed,(W4 d, R4 s, R4 index, IMM factor))
 {
   int isebp=(s==5)?0x40:0;
   int fi;
-
+  
   switch(factor) {
   case 1: fi=0; break;
   case 2: fi=1; break;
@@ -1219,16 +1219,16 @@ LOWFUNC(RMW,RMW,2,raw_adc_l_mi,(MEMRW d, IMM s))
 }
 LENDFUNC(RMW,RMW,2,raw_adc_l_mi,(MEMRW d, IMM s))
 
-LOWFUNC(WRITE,RMW,2,raw_add_l_mi,(IMM d, IMM s))
+LOWFUNC(WRITE,RMW,2,raw_add_l_mi,(IMM d, IMM s)) 
 {
     emit_byte(0x81);
     emit_byte(0x05);
     emit_long(d);
     emit_long(s);
 }
-LENDFUNC(WRITE,RMW,2,raw_add_l_mi,(IMM d, IMM s))
+LENDFUNC(WRITE,RMW,2,raw_add_l_mi,(IMM d, IMM s)) 
 
-LOWFUNC(WRITE,RMW,2,raw_add_w_mi,(IMM d, IMM s))
+LOWFUNC(WRITE,RMW,2,raw_add_w_mi,(IMM d, IMM s)) 
 {
     emit_byte(0x66);
     emit_byte(0x81);
@@ -1236,16 +1236,16 @@ LOWFUNC(WRITE,RMW,2,raw_add_w_mi,(IMM d, IMM s))
     emit_long(d);
     emit_word(s);
 }
-LENDFUNC(WRITE,RMW,2,raw_add_w_mi,(IMM d, IMM s))
+LENDFUNC(WRITE,RMW,2,raw_add_w_mi,(IMM d, IMM s)) 
 
-LOWFUNC(WRITE,RMW,2,raw_add_b_mi,(IMM d, IMM s))
+LOWFUNC(WRITE,RMW,2,raw_add_b_mi,(IMM d, IMM s)) 
 {
     emit_byte(0x80);
     emit_byte(0x05);
     emit_long(d);
     emit_byte(s);
 }
-LENDFUNC(WRITE,RMW,2,raw_add_b_mi,(IMM d, IMM s))
+LENDFUNC(WRITE,RMW,2,raw_add_b_mi,(IMM d, IMM s)) 
 
 LOWFUNC(WRITE,NONE,2,raw_test_l_ri,(R4 d, IMM i))
 {
@@ -1538,7 +1538,7 @@ LENDFUNC(WRITE,NONE,2,raw_cmp_b,(R1 d, R1 s))
 LOWFUNC(WRITE,READ,4,raw_cmp_l_rm_indexed,(R4 d, IMM offset, R4 index, IMM factor))
 {
     int fi;
-
+    
     switch(factor) {
      case 1: fi=0; break;
      case 2: fi=1; break;
@@ -1696,45 +1696,45 @@ STATIC_INLINE void raw_jnz(uae_u32 t)
 STATIC_INLINE void raw_jnz_l_oponly(void)
 {
     lopt_emit_all();
-    emit_byte(0x0f);
-    emit_byte(0x85);
+    emit_byte(0x0f); 
+    emit_byte(0x85); 
 }
 
 STATIC_INLINE void raw_jcc_l_oponly(int cc)
 {
     lopt_emit_all();
-    emit_byte(0x0f);
-    emit_byte(0x80+cc);
+    emit_byte(0x0f); 
+    emit_byte(0x80+cc); 
 }
 
 STATIC_INLINE void raw_jnz_b_oponly(void)
 {
     lopt_emit_all();
-    emit_byte(0x75);
+    emit_byte(0x75); 
 }
 
 STATIC_INLINE void raw_jz_b_oponly(void)
 {
     lopt_emit_all();
-    emit_byte(0x74);
+    emit_byte(0x74); 
 }
 
 STATIC_INLINE void raw_jmp_l_oponly(void)
 {
     lopt_emit_all();
-    emit_byte(0xe9);
+    emit_byte(0xe9); 
 }
 
 STATIC_INLINE void raw_jmp_b_oponly(void)
 {
     lopt_emit_all();
-    emit_byte(0xeb);
+    emit_byte(0xeb); 
 }
 
 STATIC_INLINE void raw_ret(void)
 {
     lopt_emit_all();
-    emit_byte(0xc3);
+    emit_byte(0xc3);  
 }
 
 STATIC_INLINE void raw_nop(void)
@@ -1751,12 +1751,12 @@ STATIC_INLINE void raw_nop(void)
 
 #define FLAG_NREG1 0  /* Set to -1 if any register will do */
 
-STATIC_INLINE void raw_flags_to_reg(int r)
+static __inline__ void raw_flags_to_reg(int r)
 {
   raw_lahf(0);  /* Most flags in AH */
   //raw_setcc(r,0); /* V flag in AL */
-  raw_setcc_m((uae_u32)live.state[FLAGTMP].mem,0);
-
+  raw_setcc_m((uae_u32)live.state[FLAGTMP].mem,0); 
+  
 #if 1   /* Let's avoid those nasty partial register stalls */
   //raw_mov_b_mr((uae_u32)live.state[FLAGTMP].mem,r);
   raw_mov_b_mr(((uae_u32)live.state[FLAGTMP].mem)+1,r+4);
@@ -1804,7 +1804,7 @@ STATIC_INLINE void raw_load_flagx(uae_u32 target, uae_u32 r)
 
 #define NATIVE_FLAG_Z 0x40
 #define NATIVE_CC_EQ  4
-STATIC_INLINE void raw_flags_set_zero(int f, int r, int t)
+static __inline__ void raw_flags_set_zero(int f, int r, int t)
 {
     // FIXME: this is really suboptimal
     raw_pushfl();
@@ -1819,7 +1819,7 @@ STATIC_INLINE void raw_flags_set_zero(int f, int r, int t)
     raw_popfl();
 }
 
-STATIC_INLINE void raw_inc_sp(int off)
+static __inline__ void raw_inc_sp(int off)
 {
     raw_add_l_ri(4,off);
 }
@@ -1841,7 +1841,7 @@ STATIC_INLINE void raw_inc_sp(int off)
 #define SIG_WRITE 2
 
 static int in_handler=0;
-static uae_u8 *veccode;
+static uae_u8 veccode[256];
 
 #ifdef _WIN32
 int EvalException ( LPEXCEPTION_POINTERS blah, int n_except )
@@ -1872,26 +1872,26 @@ int EvalException ( LPEXCEPTION_POINTERS blah, int n_except )
 	addr = (uae_u32)(pExceptRecord->ExceptionInformation[1]);
     }
 #ifdef JIT_DEBUG
-    write_log ("JIT: fault address is 0x%x at 0x%x\n", addr, i);
+    write_log("JIT: fault address is 0x%x at 0x%x\n",addr,i);
 #endif
-    if (!canbang || !currprefs.cachesize)
+    if (!canbang || !currprefs.cachesize) 
     {
 #ifdef JIT_DEBUG
-	write_log ("JIT: Not happy! Canbang or cachesize is 0 in SIGSEGV handler!\n");
+	write_log("JIT: Not happy! Canbang or cachesize is 0 in SIGSEGV handler!\n");
 #endif
 	return EXCEPTION_CONTINUE_SEARCH;
     }
 
-    if (in_handler)
-	write_log ("JIT: Argh --- Am already in a handler. Shouldn't happen!\n");
-
+    if (in_handler) 
+	write_log("JIT: Argh --- Am already in a handler. Shouldn't happen!\n");
+    
     if (canbang && i>=compiled_code && i<=current_compile_p) {
 	if (*i==0x66) {
 	    i++;
 	    size=2;
 	    len++;
 	}
-
+	
 	switch(i[0]) {
 	case 0x8a:
 	    if ((i[1]&0xc0)==0x80) {
@@ -1928,7 +1928,7 @@ int EvalException ( LPEXCEPTION_POINTERS blah, int n_except )
 		dir=SIG_READ;
 		len+=2;
 		break;
-	    default:
+	    default: 
 		break;
 	    }
 	    break;
@@ -1951,13 +1951,13 @@ int EvalException ( LPEXCEPTION_POINTERS blah, int n_except )
 		    break;
 		}
 		break;
-	}
+	}	
     }
-
-    if (r!=-1) {
+    
+    if (r!=-1) { 
 	void* pr=NULL;
 #ifdef JIT_DEBUG
-	write_log ("JIT: register was %d, direction was %d, size was %d\n", r, dir, size);
+	write_log("register was %d, direction was %d, size was %d\n",r,dir,size);
 #endif
 
 	switch(r) {
@@ -1979,14 +1979,14 @@ int EvalException ( LPEXCEPTION_POINTERS blah, int n_except )
 	}
 	if (pr) {
 	    blockinfo* bi;
-
+	    
 	    if (currprefs.comp_oldsegv) {
 		addr-=NATMEM_OFFSET;
-
+		
 		if ((addr>=0x10000000 && addr<0x40000000) ||
 		    (addr>=0x50000000)) {
 #ifdef JIT_DEBUG
-		    write_log ("JIT: Suspicious address 0x%x in SEGV handler.\n", addr);
+		    write_log("Suspicious address 0x%x in SEGV handler.\n",addr);
 #endif
 	        }
 		if (dir==SIG_READ) {
@@ -2006,9 +2006,9 @@ int EvalException ( LPEXCEPTION_POINTERS blah, int n_except )
 		    }
 		}
 #ifdef JIT_DEBUG
-		write_log ("JIT: Handled one access!\n");
-		flush_log ();
+		write_log("Handled one access!\n");
 #endif
+		fflush(stdout);
 		segvcount++;
 		pContext->Eip+=len;
 	    }
@@ -2016,16 +2016,16 @@ int EvalException ( LPEXCEPTION_POINTERS blah, int n_except )
 		void* tmp=target;
 		int i;
 		uae_u8 vecbuf[5];
-
+		
 		addr-=NATMEM_OFFSET;
-
+		
 		if ((addr>=0x10000000 && addr<0x40000000) ||
 		    (addr>=0x50000000)) {
 #ifdef JIT_DEBUG
-		    write_log ("JIT: Suspicious address 0x%x in SEGV handler.\n", addr);
+		    write_log("Suspicious address 0x%x in SEGV handler.\n",addr);
 #endif
 	        }
-
+	
 		target=(uae_u8*)pContext->Eip;
 		for (i=0;i<5;i++)
 		    vecbuf[i]=target[i];
@@ -2033,13 +2033,13 @@ int EvalException ( LPEXCEPTION_POINTERS blah, int n_except )
 		emit_long((uae_u32)veccode-(uae_u32)target-4);
 #ifdef JIT_DEBUG
 
-		write_log ("JIT: Create jump to %p\n", veccode);
-		write_log ("JIT: Handled one access!\n");
+		write_log("Create jump to %p\n",veccode);
+		write_log("Handled one access!\n");
 #endif
 		segvcount++;
-
+		
 		target=veccode;
-
+		
 		if (dir==SIG_READ) {
 		    switch(size) {
 		    case 1: raw_mov_b_ri(r,get_byte(addr)); break;
@@ -2066,11 +2066,11 @@ int EvalException ( LPEXCEPTION_POINTERS blah, int n_except )
 	    }
 	    bi=active;
 	    while (bi) {
-		if (bi->handler &&
+		if (bi->handler && 
 		    (uae_u8*)bi->direct_handler<=i &&
 		    (uae_u8*)bi->nexthandler>i) {
 #ifdef JIT_DEBUG
-		    write_log ("JIT: deleted trigger (%p<%p<%p) %p\n",
+		    write_log("deleted trigger (%p<%p<%p) %p\n",
 			bi->handler,
 			i,
 			bi->nexthandler,
@@ -2087,11 +2087,11 @@ int EvalException ( LPEXCEPTION_POINTERS blah, int n_except )
 	    is in the dormant list */
 	    bi=dormant;
 	    while (bi) {
-		if (bi->handler &&
+		if (bi->handler && 
 		    (uae_u8*)bi->direct_handler<=i &&
 		    (uae_u8*)bi->nexthandler>i) {
 #ifdef JIT_DEBUG
-		    write_log ("JIT: deleted trigger (%p<%p<%p) %p\n",
+		    write_log("deleted trigger (%p<%p<%p) %p\n",
 			bi->handler,
 			i,
 			bi->nexthandler,
@@ -2105,16 +2105,16 @@ int EvalException ( LPEXCEPTION_POINTERS blah, int n_except )
 		bi=bi->next;
 	    }
 #ifdef JIT_DEBUG
-	    write_log ("JIT: Huh? Could not find trigger!\n");
+	    write_log("Huh? Could not find trigger!\n");
 #endif
 	    return EXCEPTION_CONTINUE_EXECUTION;
 	}
     }
-    write_log ("JIT: Can't handle access!\n");
+    write_log("JIT: Can't handle access!\n");
     if( i )
     {
 	for (j=0;j<10;j++) {
-	    write_log ("JIT: instruction byte %2d is 0x%02x\n", j, i[j]);
+	    write_log("JIT: instruction byte %2d is 0x%02x\n",j,i[j]);
 	}
     }
 #if 0
@@ -2136,20 +2136,20 @@ static void vec(int x, struct sigcontext sc)
     int j;
 
 #ifdef JIT_DEBUG
-    write_log ("JIT: fault address is %08x at %08x\n", sc. cr2, sc.eip);
-    if (!canbang)
-	write_log ("JIT: Not happy! Canbang is 0 in SIGSEGV handler!\n");
-#endif
-    if (in_handler)
-	write_log ("JIT: Argh --- Am already in a handler. Shouldn't happen!\n");
-
+    write_log("fault address is %08x at %08x\n",sc.cr2,sc.eip);
+    if (!canbang) 
+	write_log("Not happy! Canbang is 0 in SIGSEGV handler!\n");
+#endif   
+    if (in_handler) 
+	write_log("Argh --- Am already in a handler. Shouldn't happen!\n");
+   
     if (canbang && i>=compiled_code && i<=current_compile_p) {
 	if (*i==0x66) {
 	    i++;
 	    size=2;
 	    len++;
 	}
-
+	
 	switch(i[0]) {
 	 case 0x8a:
 	    if ((i[1]&0xc0)==0x80) {
@@ -2187,11 +2187,11 @@ static void vec(int x, struct sigcontext sc)
 	     dir=SIG_READ;
 	     len+=2;
 	     break;
-	   default:
+	   default: 
 	     break;
 	   }
 	   break;
-
+	    
 	 case 0x89:
 	   switch(i[1]&0xc0) {
 	   case 0x80:
@@ -2211,14 +2211,14 @@ static void vec(int x, struct sigcontext sc)
 	     break;
 	   }
 	   break;
-	}
+	}	
     }
 
-    if (r!=-1) {
+    if (r!=-1) { 
 	void* pr=NULL;
-#ifdef JIT_DEBUG
-	write_log ("JIT: register was %d, direction was %d, size was %d\n",r, dir, size);
-#endif
+#ifdef JIT_DEBUG       
+	write_log("register was %d, direction was %d, size was %d\n",r,dir,size);
+#endif	
 	switch(r) {
 	 case 0: pr=&(sc.eax); break;
 	 case 1: pr=&(sc.ecx); break;
@@ -2242,12 +2242,12 @@ static void vec(int x, struct sigcontext sc)
 	    if (currprefs.comp_oldsegv) {
 	    addr-=NATMEM_OFFSET;
 
-#ifdef JIT_DEBUG
+#ifdef JIT_DEBUG	       
 	    if ((addr>=0x10000000 && addr<0x40000000) ||
 		(addr>=0x50000000)) {
-		write_log ("JIT: Suspicious address in %x SEGV handler.\n", addr);
+		write_log("Suspicious address in %x SEGV handler.\n",addr);
 	    }
-#endif
+#endif	       
 	    if (dir==SIG_READ) {
 		switch(size) {
 		 case 1: *((uae_u8*)pr)=get_byte(addr); break;
@@ -2264,10 +2264,10 @@ static void vec(int x, struct sigcontext sc)
 		 default: abort();
 		}
 	    }
-#ifdef JIT_DEBUG
-	    write_log ("JIT: Handled one access!\n");
-	    flush_log ();
-#endif
+#ifdef JIT_DEBUG	       
+	    write_log("Handled one access!\n");
+	    fflush(stdout);
+#endif	       
 	    segvcount++;
 	    sc.eip+=len;
 	    }
@@ -2275,27 +2275,27 @@ static void vec(int x, struct sigcontext sc)
 		void* tmp=target;
 		int i;
 		uae_u8 vecbuf[5];
-
+		
 		addr-=NATMEM_OFFSET;
 
-#ifdef JIT_DEBUG
+#ifdef JIT_DEBUG	       
 		if ((addr>=0x10000000 && addr<0x40000000) ||
 		    (addr>=0x50000000)) {
-		    write_log ("JIT: Suspicious address 0x%x in SEGV handler.\n", addr);
+		    write_log("Suspicious address 0x%x in SEGV handler.\n",addr);
 		}
-#endif
+#endif		
 		target=(uae_u8*)sc.eip;
 		for (i=0;i<5;i++)
 		    vecbuf[i]=target[i];
 		emit_byte(0xe9);
 		emit_long((uae_u32)veccode-(uae_u32)target-4);
-#ifdef JIT_DEBUG
-		write_log ("JIT: Create jump to %p\n", veccode);
-		write_log ("JIT: Handled one access!\n");
-		flush_log ();
-#endif
+#ifdef JIT_DEBUG	       
+		write_log("Create jump to %p\n",veccode);
+		write_log("Handled one access!\n");
+		fflush(stdout);
+#endif	       
 		segvcount++;
-
+		
 		target=veccode;
 
 		if (dir==SIG_READ) {
@@ -2324,16 +2324,16 @@ static void vec(int x, struct sigcontext sc)
 	    }
 	    bi=active;
 	    while (bi) {
-		if (bi->handler &&
+		if (bi->handler && 
 		    (uae_u8*)bi->direct_handler<=i &&
 		    (uae_u8*)bi->nexthandler>i) {
-#ifdef JIT_DEBUG
-		    write_log ("JIT: deleted trigger (%p<%p<%p) %p\n",
+#ifdef JIT_DEBUG		   
+		    write_log("deleted trigger (%p<%p<%p) %p\n",
 			      bi->handler,
 			      i,
 			      bi->nexthandler,
 			      bi->pc_p);
-#endif
+#endif		   
 		    invalidate_block(bi);
 		    raise_in_cl_list(bi);
 		    set_special(0);
@@ -2345,16 +2345,16 @@ static void vec(int x, struct sigcontext sc)
 	       is in the dormant list */
 	    bi=dormant;
 	    while (bi) {
-		if (bi->handler &&
+		if (bi->handler && 
 		    (uae_u8*)bi->direct_handler<=i &&
 		    (uae_u8*)bi->nexthandler>i) {
-#ifdef JIT_DEBUG
-		    write_log ("JIT: deleted trigger (%p<%p<%p) %p\n",
+#ifdef JIT_DEBUG		   
+		    write_log("deleted trigger (%p<%p<%p) %p\n",
 			      bi->handler,
 			      i,
 			      bi->nexthandler,
 			      bi->pc_p);
-#endif
+#endif		   
 		    invalidate_block(bi);
 		    raise_in_cl_list(bi);
 		    set_special(0);
@@ -2362,21 +2362,21 @@ static void vec(int x, struct sigcontext sc)
 		}
 		bi=bi->next;
 	    }
-#ifdef JIT_DEBUG
-	    write_log ("JIT: Huh? Could not find trigger!\n");
-#endif
+#ifdef JIT_DEBUG	   
+	    write_log("Huh? Could not find trigger!\n");
+#endif	   
 	    return;
 	}
     }
-    write_log ("JIT: can't handle access!\n");
+    write_log("JIT: can't handle access!\n");
     for (j=0;j<10;j++) {
-	write_log ("JIT: instruction byte %2d is %02x\n", j, i[j]);
+	write_log("JIT: instruction byte %2d is %02x\n",j,i[j]);
     }
 #if 0
     write_log("Please send the above info (starting at \"fault address\") to\n"
 	   "bmeyer@csse.monash.edu.au\n"
 	   "This shouldn't happen ;-)\n");
-    flush_log ();
+    fflush(stdout);
 #endif
     signal(SIGSEGV,SIG_DFL);  /* returning here will cause a "real" SEGV */
 }
@@ -2398,19 +2398,18 @@ typedef struct {
 /* This could be so much easier if it could make assumptions about the
    compiler... */
 
+static uae_u8 cpuid_space[256];   
 static uae_u32 cpuid_ptr;
 static uae_u32 cpuid_level;
 
 static x86_regs cpuid(uae_u32 level)
 {
     x86_regs answer;
-    uae_u8 *cpuid_space;
     void* tmp=get_target();
 
     cpuid_ptr=(uae_u32)&answer;
     cpuid_level=level;
 
-    cpuid_space = cache_alloc (256);
     set_target(cpuid_space);
     raw_push_l_r(0); /* eax */
     raw_push_l_r(1); /* ecx */
@@ -2433,7 +2432,6 @@ static x86_regs cpuid(uae_u32 level)
     set_target(tmp);
 
     ((cpuop_func*)cpuid_space)(0);
-    cache_free (cpuid_space);
     return answer;
 }
 
@@ -2441,10 +2439,10 @@ static void raw_init_cpu(void)
 {
     x86_regs x;
     uae_u32 maxlev;
-
+    
     x=cpuid(0);
     maxlev=x.eax;
-    write_log ("JIT: Max CPUID level=%d Processor is %c%c%c%c%c%c%c%c%c%c%c%c\n",
+    write_log("Max CPUID level=%d Processor is %c%c%c%c%c%c%c%c%c%c%c%c\n",
 	      maxlev,
 	      x.ebx,
 	      x.ebx>>8,
@@ -2463,7 +2461,7 @@ static void raw_init_cpu(void)
 
     if (maxlev>=1) {
 	x=cpuid(1);
-	if (x.edx&(1<<15))
+	if (x.edx&(1<<15)) 
 	    have_cmov=1;
     }
     have_rat_stall=1;
@@ -2481,7 +2479,7 @@ static void raw_init_cpu(void)
 #else
     /* Dear Bernie, I don't want to keep around options which are useless, and not
        represented in the GUI anymore... Is this okay? */
-    write_log ("JIT: have_cmov=%d, have_rat_stall=%d\n", have_cmov, have_rat_stall);
+    write_log ("have_cmov=%d, have_rat_stall=%d\n", have_cmov, have_rat_stall);
 #endif
 #if 0   /* For testing of non-cmov code! */
     have_cmov=0;
@@ -2502,7 +2500,7 @@ static void raw_init_cpu(void)
 STATIC_INLINE void raw_fp_init(void)
 {
     int i;
-
+    
     for (i=0;i<N_FREGS;i++)
 	live.spos[i]=-2;
     live.tos=-1;  /* Stack is empty */
@@ -2589,7 +2587,7 @@ STATIC_INLINE int stackpos(int r)
     if (live.spos[r]<0)
 	abort();
     if (live.tos<live.spos[r]) {
-	write_log ("JIT: Looking for spos for fnreg %d\n", r);
+	printf("Looking for spos for fnreg %d\n",r);
 	abort();
     }
     return live.tos-live.spos[r];
@@ -2612,11 +2610,11 @@ STATIC_INLINE void tos_make(int r)
 	return;
     }
     emit_byte(0xdd);
-    emit_byte(0xd8+(live.tos+1)-live.spos[r]);  /* store top of stack in reg,
+    emit_byte(0xd8+(live.tos+1)-live.spos[r]);  /* store top of stack in reg, 
 					 and pop it*/
 }
-
-
+    
+	
 LOWFUNC(NONE,WRITE,2,raw_fmov_mr,(MEMW m, FR r))
 {
     make_tos(r);
@@ -2687,7 +2685,7 @@ LOWFUNC(NONE,WRITE,2,raw_fmov_ext_mr,(MEMW m, FR r))
 {
     int rs;
 
-    /* Stupid x87 can't write a long double to mem without popping the
+    /* Stupid x87 can't write a long double to mem without popping the 
        stack! */
     usereg(r);
     rs=stackpos(r);
@@ -2817,7 +2815,7 @@ LOWFUNC(NONE,NONE,2,raw_fsqrt_rr,(FW d, FR s))
 	make_tos(d);
 	emit_byte(0xd9);
 	emit_byte(0xfa); /* take square root */
-    }
+    }	
 }
 LENDFUNC(NONE,NONE,2,raw_fsqrt_rr,(FW d, FR s))
 
@@ -2838,7 +2836,7 @@ LOWFUNC(NONE,NONE,2,raw_fabs_rr,(FW d, FR s))
 	make_tos(d);
 	emit_byte(0xd9);
 	emit_byte(0xe1); /* take fabs */
-    }
+    }	
 }
 LENDFUNC(NONE,NONE,2,raw_fabs_rr,(FW d, FR s))
 
@@ -2859,7 +2857,7 @@ LOWFUNC(NONE,NONE,2,raw_frndint_rr,(FW d, FR s))
 	make_tos(d);
 	emit_byte(0xd9);
 	emit_byte(0xfc); /* take frndint */
-    }
+    }	
 }
 LENDFUNC(NONE,NONE,2,raw_frndint_rr,(FW d, FR s))
 
@@ -2880,7 +2878,7 @@ LOWFUNC(NONE,NONE,2,raw_fcos_rr,(FW d, FR s))
 	make_tos(d);
 	emit_byte(0xd9);
 	emit_byte(0xff); /* take cos */
-    }
+    }	
 }
 LENDFUNC(NONE,NONE,2,raw_fcos_rr,(FW d, FR s))
 
@@ -2901,7 +2899,7 @@ LOWFUNC(NONE,NONE,2,raw_fsin_rr,(FW d, FR s))
 	make_tos(d);
 	emit_byte(0xd9);
 	emit_byte(0xfe); /* take sin */
-    }
+    }	
 }
 LENDFUNC(NONE,NONE,2,raw_fsin_rr,(FW d, FR s))
 
@@ -2969,7 +2967,7 @@ LOWFUNC(NONE,NONE,2,raw_fetox_rr,(FW d, FR s))
     tos_make(d); /* store to destination */
 }
 LENDFUNC(NONE,NONE,2,raw_fetox_rr,(FW d, FR s))
-
+ 
 LOWFUNC(NONE,NONE,2,raw_flog2_rr,(FW d, FR s))
 {
     int ds;
@@ -3006,7 +3004,7 @@ LOWFUNC(NONE,NONE,2,raw_fneg_rr,(FW d, FR s))
 	make_tos(d);
 	emit_byte(0xd9);
 	emit_byte(0xe0); /* take fchs */
-    }
+    }	
 }
 LENDFUNC(NONE,NONE,2,raw_fneg_rr,(FW d, FR s))
 
@@ -3016,7 +3014,7 @@ LOWFUNC(NONE,NONE,2,raw_fadd_rr,(FRW d, FR s))
 
     usereg(s);
     usereg(d);
-
+    
     if (live.spos[s]==live.tos) {
 	/* Source is on top of stack */
 	ds=stackpos(d);
@@ -3026,7 +3024,7 @@ LOWFUNC(NONE,NONE,2,raw_fadd_rr,(FRW d, FR s))
     else {
 	make_tos(d);
 	ds=stackpos(s);
-
+	
 	emit_byte(0xd8);
 	emit_byte(0xc0+ds); /* add source to dest*/
     }
@@ -3039,7 +3037,7 @@ LOWFUNC(NONE,NONE,2,raw_fsub_rr,(FRW d, FR s))
 
     usereg(s);
     usereg(d);
-
+    
     if (live.spos[s]==live.tos) {
 	/* Source is on top of stack */
 	ds=stackpos(d);
@@ -3049,7 +3047,7 @@ LOWFUNC(NONE,NONE,2,raw_fsub_rr,(FRW d, FR s))
     else {
 	make_tos(d);
 	ds=stackpos(s);
-
+	
 	emit_byte(0xd8);
 	emit_byte(0xe0+ds); /* sub src from dest */
     }
@@ -3062,7 +3060,7 @@ LOWFUNC(NONE,NONE,2,raw_fcmp_rr,(FR d, FR s))
 
     usereg(s);
     usereg(d);
-
+    
     make_tos(d);
     ds=stackpos(s);
 
@@ -3077,7 +3075,7 @@ LOWFUNC(NONE,NONE,2,raw_fmul_rr,(FRW d, FR s))
 
     usereg(s);
     usereg(d);
-
+    
     if (live.spos[s]==live.tos) {
 	/* Source is on top of stack */
 	ds=stackpos(d);
@@ -3087,7 +3085,7 @@ LOWFUNC(NONE,NONE,2,raw_fmul_rr,(FRW d, FR s))
     else {
 	make_tos(d);
 	ds=stackpos(s);
-
+	
 	emit_byte(0xd8);
 	emit_byte(0xc8+ds); /* mul dest by source*/
     }
@@ -3100,7 +3098,7 @@ LOWFUNC(NONE,NONE,2,raw_fdiv_rr,(FRW d, FR s))
 
     usereg(s);
     usereg(d);
-
+    
     if (live.spos[s]==live.tos) {
 	/* Source is on top of stack */
 	ds=stackpos(d);
@@ -3110,7 +3108,7 @@ LOWFUNC(NONE,NONE,2,raw_fdiv_rr,(FRW d, FR s))
     else {
 	make_tos(d);
 	ds=stackpos(s);
-
+	
 	emit_byte(0xd8);
 	emit_byte(0xf0+ds); /* div dest by source*/
     }
@@ -3123,12 +3121,12 @@ LOWFUNC(NONE,NONE,2,raw_frem_rr,(FRW d, FR s))
 
     usereg(s);
     usereg(d);
-
+    
     make_tos2(d,s);
     ds=stackpos(s);
 
     if (ds!=1) {
-	write_log ("JIT: Failed horribly in raw_frem_rr! ds is %d\n", ds);
+	printf("Failed horribly in raw_frem_rr! ds is %d\n",ds);
 	abort();
     }
     emit_byte(0xd9);
@@ -3142,12 +3140,12 @@ LOWFUNC(NONE,NONE,2,raw_frem1_rr,(FRW d, FR s))
 
     usereg(s);
     usereg(d);
-
+    
     make_tos2(d,s);
     ds=stackpos(s);
 
     if (ds!=1) {
-	write_log ("JIT: Failed horribly in raw_frem1_rr! ds is %d\n", ds);
+	printf("Failed horribly in raw_frem1_rr! ds is %d\n",ds);
 	abort();
     }
     emit_byte(0xd9);
@@ -3164,7 +3162,7 @@ LOWFUNC(NONE,NONE,1,raw_ftst_r,(FR r))
 }
 LENDFUNC(NONE,NONE,1,raw_ftst_r,(FR r))
 
-STATIC_INLINE void raw_fflags_into_flags(int r)
+static __inline__ void raw_fflags_into_flags(int r)
 {
     int p;
 

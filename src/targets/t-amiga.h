@@ -7,16 +7,12 @@
   * Copyright 2003-2004 Richard Drummond
   */
 
-#define TARGET_NAME		"amiga"
-
-#define TARGET_ROM_PATH		"PROGDIR:roms/"
-#define TARGET_FLOPPY_PATH	"PROGDIR:floppies/"
-#define TARGET_HARDFILE_PATH	"PROGDIR:hardfiles/"
+#define TARGET_NAME "amiga"
 
 #define UNSUPPORTED_OPTION_l
 
 #define OPTIONSFILENAME ".uaerc"
-//#define OPTIONS_IN_HOME
+#define OPTIONS_IN_HOME
 
 #define TARGET_SPECIAL_OPTIONS \
     { "x",        "  -x           : Does not use dithering\n"}, \
@@ -31,14 +27,14 @@
 #define DEFSERNAME "ser:"
 #define DEFPRTNAME "par:"
 
-#define write_log write_log_amigaos
-#define flush_log flush_log_amigaos
+#define write_log write_log_standard
 
 /*
  * On a 68k Amiga we don't have access to a CPU time counter, so
  * use the EClock-based substitute in osdep/support.c instead
  */
 #if defined __mc68000__ || defined mc68000
+#define HAVE_OSDEP_INIT
 #define HAVE_OSDEP_RPT
 #endif
 

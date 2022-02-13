@@ -132,9 +132,7 @@ static int open_sound (void)
        scale that to a sane value (assuming that otherwise 16 bits and
        stereo would have been enabled and we'd have done the shift by
        two anyway).  */
-//    size >>= 2;
-    size >>= spec.channels - 1;
-    size >>= currprefs.sound_bits == 8 ? 0 : 1;
+    size >>= 2;
     while (size & (size - 1))
 	size &= size - 1;
     if (size < 512)

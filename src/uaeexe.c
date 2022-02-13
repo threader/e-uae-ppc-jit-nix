@@ -44,7 +44,7 @@ void uaeexe_install(void)
  * to launch the command asynchronously. Please note also that the
  * remote cli works better if you've got the fifo-handler installed.
  */
-int uaeexe (const unsigned char *cmd)
+int uaeexe(char *cmd)
 {
     struct uae_xcmd *nw;
 

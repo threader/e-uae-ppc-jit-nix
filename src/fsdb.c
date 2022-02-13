@@ -19,6 +19,7 @@
 #include "newcpu.h"
 #include "filesys.h"
 #include "autoconf.h"
+#include "compiler.h"
 #include "fsusage.h"
 #include "native2amiga.h"
 #include "scsidev.h"

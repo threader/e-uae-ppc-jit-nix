@@ -17,47 +17,25 @@
 
 #include "signal.h"
 
-#include <proto/exec.h>
-
 #ifdef USE_SDL
 # include <SDL.h>
 #endif
 
-/* Get compiler/libc to enlarge stack to this size - if possible */
-#if defined __PPC__ || defined __ppc__ || defined POWERPC || defined __POWERPC__
-# define MIN_STACK_SIZE  (64 * 1024)
-#else
-# define MIN_STACK_SIZE  (32 * 1024)
-#endif
+/* When built with libnix and linked against the swapstack
+ * module, this will ensure that the stack is at least
+ * MIN_STACKS_SIZE (bytes) on start-up.
+ */
+#define MIN_STACK_SIZE  32768
 
-#if defined __libnix__ || defined __ixemul__
-/* libnix requires that we link against the swapstack.o module */
-unsigned int __stack = MIN_STACK_SIZE;
-#else
-# ifdef __amigaos4__
-// This breaks for some reason...
-//unsigned int __stack_size = MIN_STACK_SIZE;
-# endif
-#endif
+unsigned long __stack = MIN_STACK_SIZE;
 
-static int fromWB;
+
 
 /*
  * Amiga-specific main entry
  */
 int main (int argc, char *argv[])
 {
-    fromWB = argc == 0;
-
-#ifdef HAVE_OSDEP_RPT
-    /* On 68k machines, open timer.device so that
-     * we can use ReadEClock() for timing */
-    osdep_open_timer ();
-#endif
-#ifdef USE_SDL
-    init_sdl();
-#endif
-
     real_main (argc, argv);
     return 0;
 }
@@ -82,23 +60,6 @@ void setup_brkhandler (void)
 #else
     signal (SIGINT,sigbrkhandler);
 #endif
-}
-
-void write_log_amigaos (const char *format, ...)
-{
-    if (!fromWB) {
-	va_list parms;
-
-	va_start (parms,format);
-	vfprintf (stderr, format, parms);
-	va_end (parms);
-    }
-}
-
-void flush_log_amigaos (void)
-{
-    if (!fromWB)
-	fflush (stderr);
 }
 
 /*

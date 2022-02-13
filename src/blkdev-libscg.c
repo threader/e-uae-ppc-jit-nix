@@ -14,7 +14,6 @@
 #include "sysconfig.h"
 #include "sysdeps.h"
 
-#include "options.h"
 #include "memory.h"
 #include "threaddep/thread.h"
 #include "blkdev.h"
@@ -26,7 +25,7 @@
 #ifdef  DEBUG_ME
 #define DEBUG_LOG    write_log
 #else
-#define DEBUG_LOG(...) do { ; } while (0);
+#define DEBUG_LOG(...)
 #endif
 
 typedef int BOOL;
@@ -48,60 +47,23 @@ struct scsidevdata {
 static struct scsidevdata drives[MAX_DRIVES];
 static int total_drives;
 
-static uae_u8 *execscsicmd_in (int unitnum, uae_u8 *data, int len, int *outlen);
-
-/*
- * scg_isatapi() is not implemented on all platforms. Therefore,
- * this little piece of magic from Toni Wilen is needed to detect
- * ATAPI devices.
- */
-static int is_atapi_drive (int unitnum)
-{
-     uae_u8 cmd[6] = { 0x12,0,0,0,36,0 }; /* INQUIRY */
-     uae_u8 out[36];
-     int outlen = sizeof (out);
-     uae_u8 *p = execscsicmd_in (unitnum, cmd, sizeof (cmd), &outlen);
-     if (!p)
-	return 0;
-     if (outlen >= 2 && (p[0] & 31) == 5 && (p[2] & 7) == 0)
-	return 1;
-     return 0;
-}
-
 static int add_drive (SCSI *scgp)
 {
-   int result = 0;
-
    if (total_drives < MAX_DRIVES) {
-	int isatapi;
-
 	drives [total_drives].bus     = scgp->addr.scsibus;
 	drives [total_drives].target  = scgp->addr.target;
 	drives [total_drives].lun     = scgp->addr.lun;
-
-	isatapi = scg_isatapi (scgp);
-
-	/* If scg_isatapi returned false, we need to double-check
-	 * because it may not be implemented on the target platform
-	 */
-	if (!isatapi) {
-	    drives [total_drives].scgp = scgp;
-	    isatapi = is_atapi_drive (total_drives);
-	    drives [total_drives].scgp = 0;
-	}
-	drives [total_drives].isatapi = isatapi;
-
+	drives [total_drives].isatapi = scg_isatapi (scgp);
 	total_drives++;
-	result = 1;
-    }
-
-    return result;
+	return 1;
+    } else
+	return 0;
 }
 
-/* Global lock - this needs to be replaced with a per-device lock */
+/* Global lock - this needs to be replaces with a per-device lock */
 uae_sem_t scgp_sem;
 
-/********** generic SCSI stuff stolen from cdrecord and scsitransp.c *********/
+/****************** generic SCSI stuff stolen from cdrecord and scsitransp.c ***********/
 
 static int inquiry (SCSI *scgp, void *bp, int cnt)
 {
@@ -208,18 +170,12 @@ static SCSI *openscsi (int scsibus, int target, int lun)
 	scgp->verbose = getenvint ("UAE_SCSI_VERBOSE", 0);
 	device        = getenv    ("UAE_SCSI_DEVICE");
 
-	if (!device || (strlen(device) == 0))
-	    device = currprefs.scsi_device;
-
-	write_log ("SCSIDEV: Device '%s'\n", device);
-
 	scg_settarget (scgp, scsibus, target, lun);
 	scg_settimeout (scgp, 80*60);
 
 	if (scg__open (scgp, device) <= 0) {
 	    if (scgp->errstr)
-		write_log ("SCSIDEV: Failed to open '%s': %s\n",
-			   device, scgp->errstr);
+		write_log ("SCSIDEV: Failed to open '%s': %s\n", device, scgp->errstr);
 	    scg_sfree (scgp);
 	    scgp = 0;
        }
@@ -235,10 +191,13 @@ static void closescsi (SCSI *scgp)
 
 /********************* start of our own code ************************/
 
+
+static SCSI *the_scgp; /* SCSI handle which is to be used by the main thread */
+
+//static uae_u8 *scsibuf;
 static uae_u8 scsibuf [DEVICE_SCSI_BUFSIZE];
 
-static int execscsicmd (int unitnum, uae_u8 *data, int len, uae_u8 *inbuf,
-			int inlen)
+static int execscsicmd (int unitnum, uae_u8 *data, int len, uae_u8 *inbuf, int inlen)
 {
     int sactual = 0;
     struct scsidevdata *sdd = &drives[unitnum];
@@ -247,8 +206,7 @@ static int execscsicmd (int unitnum, uae_u8 *data, int len, uae_u8 *inbuf,
 
     scmd = scgp->scmd;
 
-    DEBUG_LOG ("SCSIDEV: execscicmd data=%08lx len=%d, inbuf=%08lx"\
-	       " inlen=%d\n", data, len, inbuf, inlen);
+    DEBUG_LOG ("SCSIDEV: execscicmd data=%08lx len=%d, inbuf=%08lx inlen=%d\n", data, len, inbuf, inlen);
 
     uae_sem_wait (&scgp_sem);
     memset (scmd, 0, sizeof (*scmd));
@@ -318,23 +276,20 @@ static int execscsicmd_direct (int unitnum, uaecptr acmd)
     uae_sem_wait (&scgp_sem);
 
     memset (scmd, 0, sizeof (*scmd));
-    /* the Amiga does not tell us how long the timeout shall be, so make it
-     * _very_ long (specified in seconds) */
+    /* the Amiga does not tell us how long the timeout shall be, so make it _very_ long (specified in seconds) */
     scmd->timeout   = 80 * 60;
-    scsi_datap      = scsi_datap_org = scsi_len
-                      ? bank_data->xlateaddr (scsi_data) : 0;
+    scsi_datap      = scsi_datap_org = scsi_len ? bank_data->xlateaddr (scsi_data) : 0;
     scmd->size      = scsi_len;
     scmd->flags     = (scsi_flags & 1) ? SCG_RECV_DATA : SCG_DISRE_ENA;
     memcpy (&scmd->cdb, bank_cmd->xlateaddr (scsi_cmd), scsi_cmd_len);
     scmd->target    = sdd->target;
     scmd->sense_len = (scsi_flags & 4) ? 4 : /* SCSIF_OLDAUTOSENSE */
-		      (scsi_flags & 2) ? scsi_sense_len : /* SCSIF_AUTOSENSE */
+		      (scsi_flags & 2) ? scsi_sense_len :  /* SCSIF_AUTOSENSE */
 		      -1;
     scmd->sense_count = 0;
     *(uae_u8 *)&scmd->scb = 0;
     if (sdd->isatapi)
-	scsi_atapi_fixup_pre (scmd->cdb.cmd_cdb, &scsi_cmd_len, &scsi_datap,
-			      &scsi_len, &parm);
+	scsi_atapi_fixup_pre (scmd->cdb.cmd_cdb, &scsi_cmd_len, &scsi_datap, &scsi_len, &parm);
     scmd->addr      = scsi_datap;
     scmd->cdb_len   = scsi_cmd_len;
 
@@ -344,17 +299,16 @@ static int execscsicmd_direct (int unitnum, uaecptr acmd)
 
     DEBUG_LOG ("SCSIDEV: sending command: 0x%2x\n", scmd->cdb.g0_cdb.cmd);
 
+//    scmd->ux_errno = 0;
+//    scmd->error    = 0;
     scg_cmd (scgp);
 
-    DEBUG_LOG ("SCSIDEV: result: %d %d %s\n", scmd->error, scmd->ux_errno,\
-	       scgp->errstr);
+    DEBUG_LOG ("SCSIDEV: result: %d %d %s\n", scmd->error, scmd->ux_errno, scgp->errstr);
 
     gui_cd_led (1);
 
-    put_word (acmd + 18, scmd->error == SCG_FATAL
-					? 0 : scsi_cmd_len); /* fake scsi_CmdActual */
-    put_byte (acmd + 21, *(uae_u8 *)&scmd->scb);	     /* scsi_Status */
-
+    put_word (acmd + 18, scmd->error == SCG_FATAL ? 0 : scsi_cmd_len); /* fake scsi_CmdActual */
+    put_byte (acmd + 21, *(uae_u8 *)&scmd->scb); /* scsi_Status */
     if (*(uae_u8 *)&scmd->scb) {
 	io_error = 45; /* HFERR_BadStatus */
 	/* copy sense? */
@@ -379,11 +333,9 @@ static int execscsicmd_direct (int unitnum, uaecptr acmd)
 		put_long (acmd + 8, 0); /* scsi_Actual */
 	    }
         } else {
-	    scsi_len = scmd->size;
+            scsi_len = scmd->size;
 	    if (sdd->isatapi)
-		scsi_atapi_fixup_post (scmd->cdb.cmd_cdb, scsi_cmd_len,
-				       scsi_datap_org, scsi_datap,
-				       &scsi_len, parm);
+		scsi_atapi_fixup_post (scmd->cdb.cmd_cdb, scsi_cmd_len, scsi_datap_org, scsi_datap, &scsi_len, parm);
 	    io_error = 0;
             put_long (acmd + 8, scsi_len); /* scsi_Actual */
 	}
@@ -393,7 +345,7 @@ static int execscsicmd_direct (int unitnum, uaecptr acmd)
     uae_sem_post (&scgp_sem);
 
     if (scsi_datap != scsi_datap_org)
-	free (scsi_datap);
+        free (scsi_datap);
 
     return io_error;
 }
@@ -475,8 +427,7 @@ static int scanscsi (SCSI *scgp)
 		continue;
 	    }
 
-	    if ((scgp->scmd->error < SCG_FATAL)
-		|| (scgp->scmd->scb.chk && scgp->scmd->sense_count > 0)) {
+	    if ((scgp->scmd->error < SCG_FATAL) || (scgp->scmd->scb.chk && scgp->scmd->sense_count > 0)) {
         	struct scsi_inquiry *inq = scgp->inq;
 
         	inquiry (scgp, inq, sizeof (*inq));
@@ -498,10 +449,9 @@ static int open_scsi_bus (int flags)
 {
     int   result = 0;
     int   debug, verbose;
-    SCSI *scgp_scan;
     char *device;
     char  errstr[128];
-    static int init = 0;
+    static int init=0;
 
     DEBUG_LOG ("SCSIDEV: open_scsi_bus\n");
 
@@ -515,16 +465,11 @@ static int open_scsi_bus (int flags)
     verbose = getenvint ("UAE_SCSI_VERBOSE", 0);
     device  = getenv    ("UAE_SCSI_DEVICE");
 
-    if (!device || (strlen (device) == 0))
-	device = currprefs.scsi_device;
-
-    if ((scgp_scan = scg_open (device, errstr, sizeof (errstr),
-					       debug, verbose)) != (SCSI *)0) {
-	scanscsi (scgp_scan);
+    if ((the_scgp = scg_open (device, errstr, sizeof (errstr), debug, verbose)) != (SCSI *)0) {
+	scanscsi (the_scgp);
 	result = 1;
-	scg_close (scgp_scan);
     } else {
-	write_log ("SCSIDEV: can't open bus: %s\n", errstr);
+	DEBUG_LOG ("SCSIDEV: can't open bus: %s\n", errstr);
     }
 
     write_log ("SCSIDEV: %d devices found\n", total_drives);
@@ -538,9 +483,11 @@ static void close_scsi_bus (void)
     DEBUG_LOG ("SCSIDEV: close_scsi_bus\n");
 
     for (i = 0; i < total_drives; i++) {
-	closescsi (drives[i].scgp);
+        closescsi (drives[i].scgp);
 	drives[i].scgp = 0;
     }
+
+    scg_close (the_scgp);
 }
 
 static int open_scsi_device (int unitnum)
@@ -566,7 +513,7 @@ static void close_scsi_device (int unitnum)
 {
     DEBUG_LOG ("SCSIDEV: unit=%d: close_scsi_device\n", unitnum);
 
-    /* do nothing - leave devices open until the bus is closed */
+    /* do nothing */
 }
 
 static int media_check (SCSI *scgp)

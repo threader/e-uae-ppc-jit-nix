@@ -400,7 +400,6 @@ static uae_u32 uaelib_demux (void)
      case 31: return picasso_InvertRect ();
      case 32: return picasso_BlitPlanar2Direct ();
      case 34: return picasso_WaitVerticalSync ();
-     /* case 34: return picasso_WaitVerticalSync (); handled in asm-code */
      case 35: return allocated_gfxmem ? 1 : 0;
 #ifdef HARDWARE_SPRITE_EMULATION
      case 36: return picasso_SetSprite ();
@@ -426,9 +425,6 @@ void emulib_install (void)
 {
     uaecptr a = here ();
     org (RTAREA_BASE + 0xFF60);
-//    dw (0x4eb9);
-//    dw ((RTAREA_BASE >> 16) | get_word(RTAREA_BASE + 36));
-//    dw (get_word(RTAREA_BASE + 38) + 12);
     calltrap (deftrap (uaelib_demux));
     dw (RTS);
     org (a);

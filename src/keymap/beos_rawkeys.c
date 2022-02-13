@@ -1,8 +1,7 @@
  /*
   * UAE - The Un*x Amiga Emulator
   *
-  * Support for mapping BeOS raw key codes to platform-independent
-  * UAE key codes.
+  * Support for mapping BeOS scancodes to UAE input events
   *
   * Copyright 2004 Richard Drummond
   */
@@ -14,12 +13,9 @@
 
 #include "options.h"
 #include "inputdevice.h"
-#include "keymap.h"
-#include "keymap_common.h"
+#include "keyboard.h"
+#include "hotkeys.h"
 
-/*
- * BeOS raw key codes
- */
 #define RAWKEY_ESCAPE		1
 
 #define RAWKEY_F1		2
@@ -105,6 +101,7 @@
 #define RAWKEY_NUMPAD_8		56
 #define RAWKEY_NUMPAD_9		57
 #define RAWKEY_NUMPAD_0		100
+//#define RAWKEY_NUMPAD_EQUALS
 #define RAWKEY_NUMPAD_DIVIDE	35
 #define RAWKEY_NUMPAD_MULTIPLY	36
 #define RAWKEY_NUMPAD_MINUS	37
@@ -131,35 +128,30 @@
 #define RAWKEY_LEFT_SUPER	102
 #define RAWKEY_RIGHT_SUPER	103
 #define RAWKEY_RIGHT_ALT	95
+//#define RAWKEY_MENU
 #define RAWKEY_RIGHT_SHIFT	86
 #define RAWKEY_RIGHT_CTRL	96
 #define RAWKEY_CAPSLOCK		59
 
-/*
- * Mapping from BeOS raw key codes to UAE key codes
- */
-const struct uaekey_hostmap beos_keymap[] =
-{
-    {RAWKEYS_COMMON},
-
-    {RAWKEY_F11,		UAEKEY_F11},
-    {RAWKEY_F12,		UAEKEY_F12},
-
-    {RAWKEY_PRINTSCR,		UAEKEY_PRINTSCR},
-    {RAWKEY_SCROLL_LOCK,	UAEKEY_SCROLL_LOCK},
-    {RAWKEY_PAUSE,		UAEKEY_PAUSE},
-
-    {RAWKEYS_END}
-};
+//#define RAWKEY_POWER
+//#define RAWKEY_SLEEP
+//#define RAWKEY_WAKE
 
 
-/*
- * Hot-key sequences
- */
-#include "hotkeys.h"
+#include "beos_rawkeys.h"
+#include "keymap_common.h"
 #include "hotkeys_common.h"
 
-struct uae_hotkeyseq beos_hotkeys[] =
+const struct uae_input_device_kbr_default keytrans_beos[] =
+{
+    { RAWKEYS_COMMON },
+    { RAWKEY_PRINTSCR,          INPUTEVENT_SPC_SCREENSHOT },
+    { RAWKEY_SCROLL_LOCK,       INPUTEVENT_SPC_INHIBITSCREEN },
+    { RAWKEY_PAUSE,             INPUTEVENT_SPC_PAUSE },
+    { RAWKEYS_END }
+};
+
+struct uae_hotkeyseq hotkeys_beos[] =
 {
     { DEFAULT_HOTKEYS },
     { HOTKEYS_END }

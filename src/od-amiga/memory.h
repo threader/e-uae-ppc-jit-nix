@@ -10,7 +10,6 @@
 #undef CAN_MAP_MEMORY
 
 #define OS_WITHOUT_MEMORY_MANAGEMENT
-
 #ifndef SAVE_MEMORY
 #define SAVE_MEMORY
 #endif

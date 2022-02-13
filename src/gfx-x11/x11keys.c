@@ -393,9 +393,6 @@ int xkeysym2amiga (KeySym ks)
 static struct uae_hotkeyseq x11_hotkeys[] =
 {
     { MAKE_HOTKEYSEQ (XK_F12, XK_q, -1, -1,           INPUTEVENT_SPC_QUIT) },
-    { MAKE_HOTKEYSEQ (XK_F12, XK_r, -1, -1,           INPUTEVENT_SPC_WARM_RESET) },
-    { MAKE_HOTKEYSEQ (XK_F12, XK_Shift_L, XK_r, -1,   INPUTEVENT_SPC_COLD_RESET) },
-    { MAKE_HOTKEYSEQ (XK_F12, XK_d, -1, -1,           INPUTEVENT_SPC_ENTERDEBUGGER) },
     { MAKE_HOTKEYSEQ (XK_F12, XK_s, -1, -1,           INPUTEVENT_SPC_TOGGLEFULLSCREEN) },
     { MAKE_HOTKEYSEQ (XK_F12, XK_m, -1, -1,           INPUTEVENT_SPC_TOGGLEMOUSEMODE) },
     { MAKE_HOTKEYSEQ (XK_F12, XK_g, -1, -1,           INPUTEVENT_SPC_TOGGLEMOUSEGRAB) },
@@ -413,7 +410,6 @@ static struct uae_hotkeyseq x11_hotkeys[] =
     { MAKE_HOTKEYSEQ (XK_F12, XK_Shift_L, XK_F3, -1,  INPUTEVENT_SPC_EFLOPPY2) },
     { MAKE_HOTKEYSEQ (XK_F12, XK_Shift_L, XK_F4, -1,  INPUTEVENT_SPC_EFLOPPY3) },
     { MAKE_HOTKEYSEQ (XK_F12, XK_Return, -1, -1,      INPUTEVENT_SPC_ENTERGUI) },
-    { MAKE_HOTKEYSEQ (XK_F12, XK_f, -1, -1,           INPUTEVENT_SPC_FREEZEBUTTON) },
     { HOTKEYS_END }
 };
 

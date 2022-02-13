@@ -70,18 +70,17 @@ EGREP = @EGREP@
 EXEEXT = @EXEEXT@
 FILEPRG = @FILEPRG@
 FILESYSOBJS = @FILESYSOBJS@
-GENCPUOPTS = @GENCPUOPTS@
-GFX_DEP = @GFX_DEP@
+GFXDEP = @GFXDEP@
 GTK_CFLAGS = @GTK_CFLAGS@
 GTK_CONFIG = @GTK_CONFIG@
 GTK_LIBS = @GTK_LIBS@
-GUI_DEP = @GUI_DEP@
+GUIDEP = @GUIDEP@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
 JITOBJS = @JITOBJS@
-JOY_DEP = @JOY_DEP@
+JOYDEP = @JOYDEP@
 LDFLAGS = @LDFLAGS@
 LIBOBJS = @LIBOBJS@
 LIBS = @LIBS@
@@ -91,9 +90,6 @@ MAKEDEPPRG = @MAKEDEPPRG@
 MAKEINFO = @MAKEINFO@
 MATHLIB = @MATHLIB@
 NO_SCHED_CFLAGS = @NO_SCHED_CFLAGS@
-OBJC = @OBJC@
-OBJCDEPMODE = @OBJCDEPMODE@
-OBJC_LDFLAGS = @OBJC_LDFLAGS@
 OBJEXT = @OBJEXT@
 OSDEP = @OSDEP@
 PACKAGE = @PACKAGE@
@@ -116,14 +112,13 @@ SDL_CONFIG = @SDL_CONFIG@
 SDL_LIBS = @SDL_LIBS@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
-SND_DEP = @SND_DEP@
+SNDDEP = @SNDDEP@
 STRIP = @STRIP@
 TARGET = @TARGET@
 TARGET_BEOS_FALSE = @TARGET_BEOS_FALSE@
 TARGET_BEOS_TRUE = @TARGET_BEOS_TRUE@
 TARGET_WIN32_FALSE = @TARGET_WIN32_FALSE@
 TARGET_WIN32_TRUE = @TARGET_WIN32_TRUE@
-THREADDEP = @THREADDEP@
 UAE_RSRCFILE = @UAE_RSRCFILE@
 VERSION = @VERSION@
 WRCPRG = @WRCPRG@
@@ -134,7 +129,6 @@ X_PRE_LIBS = @X_PRE_LIBS@
 ac_ct_AR = @ac_ct_AR@
 ac_ct_CC = @ac_ct_CC@
 ac_ct_CXX = @ac_ct_CXX@
-ac_ct_OBJC = @ac_ct_OBJC@
 ac_ct_RANLIB = @ac_ct_RANLIB@
 ac_ct_STRIP = @ac_ct_STRIP@
 ac_cv_c_inline = @ac_cv_c_inline@
@@ -142,8 +136,6 @@ am__fastdepCC_FALSE = @am__fastdepCC_FALSE@
 am__fastdepCC_TRUE = @am__fastdepCC_TRUE@
 am__fastdepCXX_FALSE = @am__fastdepCXX_FALSE@
 am__fastdepCXX_TRUE = @am__fastdepCXX_TRUE@
-am__fastdepOBJC_FALSE = @am__fastdepOBJC_FALSE@
-am__fastdepOBJC_TRUE = @am__fastdepOBJC_TRUE@
 am__include = @am__include@
 am__leading_dot = @am__leading_dot@
 am__quote = @am__quote@
@@ -179,8 +171,6 @@ target_alias = @target_alias@
 target_cpu = @target_cpu@
 target_os = @target_os@
 target_vendor = @target_vendor@
-ACLOCAL_AMFLAGS = -I m4
-
 EXTRA_DIST = config.h m4 amiga docs debian CHANGES README
 
 SUBDIRS = src
@@ -204,9 +194,9 @@ RECURSIVE_TARGETS = info-recursive dvi-recursive pdf-recursive \
 	installdirs-recursive install-recursive uninstall-recursive \
 	check-recursive installcheck-recursive
 DIST_COMMON = README $(dist_noinst_SCRIPTS) $(noinst_HEADERS) \
-	$(srcdir)/Makefile.in $(srcdir)/configure COPYING ChangeLog \
-	Makefile.am aclocal.m4 config.guess config.sub configure \
-	configure.in depcomp install-sh missing mkinstalldirs
+	$(srcdir)/Makefile.in $(srcdir)/configure COPYING Makefile.am \
+	aclocal.m4 config.guess config.sub configure configure.in \
+	depcomp install-sh missing mkinstalldirs
 DIST_SUBDIRS = $(SUBDIRS)
 all: all-recursive
 
@@ -225,7 +215,7 @@ $(top_builddir)/config.status: $(srcdir)/configure $(CONFIG_STATUS_DEPENDENCIES)
 $(srcdir)/configure:  $(srcdir)/configure.in $(ACLOCAL_M4) $(CONFIGURE_DEPENDENCIES)
 	cd $(srcdir) && $(AUTOCONF)
 
-$(ACLOCAL_M4):  configure.in m4/ac_var_timezone_externals.m4 m4/acx_pthread.m4 m4/as-objc.m4 m4/check_zlib.m4 m4/fsusage.m4 m4/gtk-2.0.m4 m4/gtk.m4 m4/sdl.m4 m4/uintmax_t.m4
+$(ACLOCAL_M4):  configure.in 
 	cd $(srcdir) && $(ACLOCAL) $(ACLOCAL_AMFLAGS)
 uninstall-info-am:
 

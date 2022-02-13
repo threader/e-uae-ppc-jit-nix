@@ -200,9 +200,6 @@ struct CLUTEntry {
 #define PSSO_BitMap_Planes 8
 #define PSSO_BitMap_sizeof 40
 
-#if defined __AMIGA__ || defined __amiga__
-#include <graphics/gfx.h>
-#else
 struct BitMap
 {
     uae_u16 BytesPerRow;
@@ -212,7 +209,6 @@ struct BitMap
     uae_u16 pad;
     uae_u8 *Planes[8];
 };
-#endif
 
 /************************************************************************/
 
@@ -547,8 +543,6 @@ extern void DX_Invalidate (int first, int last);
 extern void picasso_enablescreen (int on);
 extern void picasso_refresh (int call_setpalette);
 extern void picasso_handle_vsync (void);
-extern void init_hz_p96 (void);
-extern void picasso_handle_hsync (void);
 
 extern uae_u8 *gfxmemory;
 

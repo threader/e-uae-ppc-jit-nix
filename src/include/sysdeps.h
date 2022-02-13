@@ -12,7 +12,7 @@
   * Copyright 1996, 1997 Bernd Schmidt
   */
 
-#if defined __AMIGA__ || defined __amiga__
+#ifdef __AMIGA__
 #include <devices/timer.h>
 #endif
 
@@ -109,21 +109,18 @@ struct utimbuf
 };
 #endif
 
-#if defined(__GNUC__)
-# if defined(AMIGA) || (__GNUC__ - 1 > 1)
-/* GCC on the amiga and GCC 3.4 on x86 (although for
- * simplicity we just check for GCC 3.x) need that
- * __attribute((regparm)) must be defined in function
- */
-#  define REGPARAM2 REGPARAM
-# else /* not(AMIGA && GCC 3.x) */
-#  define REGPARAM2
-# endif
+#if defined(__GNUC__) && defined(AMIGA)
+/* gcc on the amiga need that __attribute((regparm)) must */
+/* be defined in function prototypes as well as in        */
+/* function definitions !                                 */
+#define REGPARAM2 REGPARAM
+#else /* not(GCC & AMIGA) */
+#define REGPARAM2
 #endif
 
 /* sam: some definitions so that SAS/C can compile UAE */
 #if defined(__SASC) && defined(AMIGA)
-#define REGPARAM2
+#define REGPARAM2 
 #define REGPARAM
 #define S_IRUSR S_IREAD
 #define S_IWUSR S_IWRITE
@@ -250,7 +247,7 @@ extern void *xcalloc(size_t, size_t);
     write_log ("Internal error; file %s, line %d\n", __FILE__, __LINE__); \
     exit (0); \
 } while (0)
-#else
+#else 
 #define abort() exit(0)
 #endif
 
@@ -308,7 +305,7 @@ extern void gettimeofday( struct timeval *tv, void *blah );
 #define FILEFLAG_SCRIPT  0x20
 #define FILEFLAG_PURE    0x40
 
-#define REGPARAM
+#define REGPARAM 
 
 #include <io.h>
 #define O_BINARY _O_BINARY
@@ -365,7 +362,7 @@ extern void posixemu_closedir (DIR *);
 
 #endif
 
-#endif /* _WIN32 */
+#endif /* _WIN32 */ 
 
 #ifdef DONT_HAVE_POSIX
 
@@ -446,6 +443,13 @@ extern void mallocemu_free (void *ptr);
 #define ASM_SYM_FOR_FUNC(a)
 #endif
 
+#if defined USE_COMPILER
+#undef NO_PREFETCH_BUFFER
+#undef NO_EXCEPTION_3
+#define NO_EXCEPTION_3
+#define NO_PREFETCH_BUFFER
+#endif
+
 #ifndef BUILD_TOOLS
 #include "target.h"
 #include "gfxdep/gfx.h"
@@ -454,7 +458,6 @@ extern void mallocemu_free (void *ptr);
 #ifdef UAE_CONSOLE
 #undef write_log
 #define write_log write_log_standard
-#define flush_log flush_log_standard
 #endif
 
 #if __GNUC__ - 1 > 1 || __GNUC_MINOR__ - 1 > 6
@@ -462,27 +465,23 @@ extern void write_log (const char *, ...) __attribute__ ((format (printf, 1, 2))
 #else
 extern void write_log (const char *, ...);
 #endif
-extern void flush_log (void);
-extern void write_dlog (const char *, ...);
 
 extern void console_out (const char *, ...);
 extern void console_flush (void);
 extern int  console_get (char *, int);
 extern void f_out (void *, const char *, ...);
 extern void gui_message (const char *,...);
-extern int gui_message_multibutton (int flags, const char *format,...);
 #define write_log_err write_log
 
 #ifndef O_BINARY
 #define O_BINARY 0
 #endif
 
-#ifndef STATIC_INLINE
+
 #if __GNUC__ - 1 > 1
 #define STATIC_INLINE static __inline__ __attribute__((always_inline))
 #else
-#define STATIC_INLINE static __inline__
-#endif
+#define STATIC_INLINE static __inline__ 
 #endif
 
 
@@ -512,9 +511,7 @@ extern int gui_message_multibutton (int flags, const char *format,...);
 #ifndef MAX_PATH
 # define MAX_PATH         512
 #endif
-#ifndef MAX_DPATH
-# define MAX_DPATH        512
-#endif
+
 
 #ifndef HAVE_STRCASECMP
 # ifdef HAVE_STRCMPI

@@ -52,6 +52,7 @@ extern void init_comp(void);
 extern void flush(int save_regs);
 extern void small_flush(int save_regs);
 extern void set_target(uae_u8* t);
+extern uae_u8* get_target(void);
 extern void freescratch(void);
 extern void build_comp(void);
 extern void set_cache_state(int enabled);
@@ -62,6 +63,7 @@ extern void flush_icache(int n);
 #endif
 extern void alloc_cache(void);
 extern void compile_block(cpu_history* pc_hist, int blocklen, int totcyles);
+extern void lopt_emit_all(void);
 extern int check_for_cache_miss(void);
 
 
@@ -100,7 +102,7 @@ typedef struct {
   double val;
   uae_u8 status;
   uae_u8 realreg;
-  uae_u8 realind;
+  uae_u8 realind;  
   uae_u8 needflush;
 } freg_status;
 
@@ -218,11 +220,11 @@ extern int touchcnt;
 #define FRW  uae_u32
 
 #define MIDFUNC(nargs,func,args) void func args
-#define MENDFUNC(nargs,func,args)
+#define MENDFUNC(nargs,func,args) 
 #define COMPCALL(func) func
 
 #define LOWFUNC(flags,mem,nargs,func,args) static __inline__ void func args
-#define LENDFUNC(flags,mem,nargs,func,args)
+#define LENDFUNC(flags,mem,nargs,func,args) 
 
 #if USE_OPTIMIZER
 #define REGALLOC_O 2
@@ -480,7 +482,7 @@ typedef struct blockinfo_t {
     cpuop_func* handler_to_use;
     /* The direct handler does not check for the correct address */
 
-    cpuop_func* handler;
+    cpuop_func* handler; 
     cpuop_func* direct_handler;
 
     cpuop_func* direct_pen;
@@ -488,22 +490,22 @@ typedef struct blockinfo_t {
 
     uae_u8* nexthandler;
     uae_u8* pc_p;
-
-    uae_u32 c1;
+    
+    uae_u32 c1;     
     uae_u32 c2;
     uae_u32 len;
 
     struct blockinfo_t* next_same_cl;
-    struct blockinfo_t** prev_same_cl_p;
+    struct blockinfo_t** prev_same_cl_p;  
     struct blockinfo_t* next;
-    struct blockinfo_t** prev_p;
+    struct blockinfo_t** prev_p; 
 
-    uae_u32 min_pcp;
-    uae_u8 optlevel;
-    uae_u8 needed_flags;
-    uae_u8 status;
+    uae_u32 min_pcp; 
+    uae_u8 optlevel;  
+    uae_u8 needed_flags;  
+    uae_u8 status;  
     uae_u8 havestate;
-
+    
     dependency  dep[2];  /* Holds things we depend on */
     dependency* deplist; /* List of things that depend on this */
     smallstate  env;
