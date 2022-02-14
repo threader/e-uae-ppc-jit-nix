@@ -1,4 +1,4 @@
- /*
+ /* 
   * UAE - The Un*x Amiga Emulator
   * 
   * Support for Solaris sound
@@ -141,8 +141,3 @@ void pause_sound (void)
 void resume_sound (void)
 {
 }
-
-void sound_volume (int dir)
-{
-}
-

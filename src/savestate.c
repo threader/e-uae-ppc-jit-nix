@@ -1,4 +1,4 @@
-/*
+ /*
   * UAE - The Un*x Amiga Emulator
   *
   * Save/restore emulator state
@@ -10,21 +10,19 @@
 
  /* Features:
   *
-  * - full CPU state (68000/68010/68020)
-  * - FPU
+  * - full CPU state (68000/68010/68020, no FPU)
   * - full CIA-A and CIA-B state (with all internal registers)
-  * - saves all custom registers and audio internal state.
-  * - Chip, Bogo, Fast, Z3 and Picasso96 RAM supported
+  * - saves all custom registers and audio internal state but not all registers are restored yet.
+  * - only Chip-ram and Bogo-ram are saved and restored.
   * - disk drive type, imagefile, track and motor state
   * - Kickstart ROM version, address and size is saved. This data is not used during restore yet.
-  * - Action Replay state is saved
   */
 
  /* Notes:
   *
   * - blitter state is not saved, blitter is forced to finish immediately if it
   *   was active
-  * - disk DMA state is completely saved 
+  * - disk DMA state is completely saved (I hope so..)
   * - does not ask for statefile name and description. Currently uses DF0's disk
   *   image name (".adf" is replaced with ".asf")
   * - only Amiga state is restored, harddisk support, autoconfig, expansion boards etc..
@@ -53,38 +51,18 @@
 #include "zfile.h"
 #include "ar.h"
 #include "autoconf.h"
-#include "custom.h"
-#include "newcpu.h"
-#include "savestate.h"
-#include "uae.h"
 
-#ifndef _WIN32
-#define console_out printf
-#endif
+#include "savestate.h"
 
 int savestate_state;
 
-#define MAX_STATERECORDS 1024 /* must be power of 2 */
-struct staterecord {
-    uae_u8 *start;
-    uae_u8 *end;
-    uae_u8 *next;
-    uae_u8 *cpu;
-};
-static int replaycounter;
-static int replaylastreloaded = -1;
-static int frameextra;
-
 struct zfile *savestate_file;
-static uae_u8 *replaybuffer, *replaybufferend;
 static int savestate_docompress, savestate_ramdump;
-static int replaybuffersize;
 
 char savestate_fname[MAX_PATH];
-static struct staterecord staterecords[MAX_STATERECORDS];
 
 static unsigned long crc_table[256];
-static void make_crc_table (void)
+static void make_crc_table()
 {
     unsigned long c;
     int n, k;
@@ -212,7 +190,6 @@ static void save_chunk (struct zfile *f, uae_u8 *chunk, long len, char *name, in
     zfile_fwrite (&tmp[0], 1, 4, f);
     /* chunk data */
     if (compress) {
-	int tmplen = len;
 	dst = &tmp[0];
 	save_u32 (len);
 	zfile_fwrite (&tmp[0], 1, 4, f);
@@ -224,7 +201,6 @@ static void save_chunk (struct zfile *f, uae_u8 *chunk, long len, char *name, in
 	    zfile_fwrite (&tmp[0], 1, 4, f);
 	    zfile_fseek (f, 0, SEEK_END);
 	} else {
-	    len = tmplen;
 	    compress = 0;
 	    zfile_fseek (f, -8, SEEK_CUR);
 	    dst = &tmp[0];
@@ -342,7 +318,7 @@ void restore_state (char *filename)
 {
     struct zfile *f;
     uae_u8 *chunk,*end;
-    char name[5], prevchunk[5];
+    char name[5];
     long len, totallen;
     long filepos;
 
@@ -350,7 +326,6 @@ void restore_state (char *filename)
     f = zfile_fopen (filename, "rb");
     if (!f)
 	goto error;
-    savestate_init ();
 
     chunk = restore_chunk (f, name, &len, &totallen, &filepos);
     if (!chunk || memcmp (name, "ASF ", 4)) {
@@ -364,12 +339,8 @@ void restore_state (char *filename)
     changed_prefs.chipmem_size = 0;
     changed_prefs.fastmem_size = 0;
     savestate_state = STATE_RESTORE;
-    prevchunk[0] = 0;
     for (;;) {
 	chunk = end = restore_chunk (f, name, &len, &totallen, &filepos);
-	if (!strcmp (name, prevchunk))
-	    break;
-	strcpy (prevchunk, name);
 	write_log ("Chunk '%s' size %d\n", name, len);
 	if (!strcmp (name, "END "))
 	    break;
@@ -401,21 +372,21 @@ void restore_state (char *filename)
 	else if (!strcmp (name, "AGAC"))
 	    end = restore_custom_agacolors (chunk);
 	else if (!strcmp (name, "SPR0"))
-	    end = restore_custom_sprite (0, chunk);
+	    end = restore_custom_sprite (chunk, 0);
 	else if (!strcmp (name, "SPR1"))
-	    end = restore_custom_sprite (1, chunk);
+	    end = restore_custom_sprite (chunk, 1);
 	else if (!strcmp (name, "SPR2"))
-	    end = restore_custom_sprite (2, chunk);
+	    end = restore_custom_sprite (chunk, 2);
 	else if (!strcmp (name, "SPR3"))
-	    end = restore_custom_sprite (3, chunk);
+	    end = restore_custom_sprite (chunk, 3);
 	else if (!strcmp (name, "SPR4"))
-	    end = restore_custom_sprite (4, chunk);
+	    end = restore_custom_sprite (chunk, 4);
 	else if (!strcmp (name, "SPR5"))
-	    end = restore_custom_sprite (5, chunk);
+	    end = restore_custom_sprite (chunk, 5);
 	else if (!strcmp (name, "SPR6"))
-	    end = restore_custom_sprite (6, chunk);
+	    end = restore_custom_sprite (chunk, 6);
 	else if (!strcmp (name, "SPR7"))
-	    end = restore_custom_sprite (7, chunk);
+	    end = restore_custom_sprite (chunk, 7);
 	else if (!strcmp (name, "CIAA"))
 	    end = restore_cia (0, chunk);
 	else if (!strcmp (name, "CIAB"))
@@ -423,13 +394,13 @@ void restore_state (char *filename)
 	else if (!strcmp (name, "CHIP"))
 	    end = restore_custom (chunk);
 	else if (!strcmp (name, "AUD0"))
-	    end = restore_audio (0, chunk);
+	    end = restore_audio (chunk, 0);
 	else if (!strcmp (name, "AUD1"))
-	    end = restore_audio (1, chunk);
+	    end = restore_audio (chunk, 1);
 	else if (!strcmp (name, "AUD2"))
-	    end = restore_audio (2, chunk);
+	    end = restore_audio (chunk, 2);
 	else if (!strcmp (name, "AUD3"))
-	    end = restore_audio (3, chunk);
+	    end = restore_audio (chunk, 3);
 	else if (!strcmp (name, "BLIT"))
 	    end = restore_blitter (chunk);
 	else if (!strcmp (name, "DISK"))
@@ -476,7 +447,7 @@ void restore_state (char *filename)
 
 void savestate_restore_finish (void)
 {
-    if (savestate_state != STATE_RESTORE && savestate_state != STATE_REWIND)
+    if (savestate_state != STATE_RESTORE)
 	return;
     zfile_fclose (savestate_file);
     savestate_file = 0;
@@ -509,7 +480,7 @@ static void save_rams (struct zfile *f, int comp)
 #ifdef PICASSO96
     dst = save_pram (&len);
     save_chunk (f, dst, len, "PRAM", comp);
-    dst = save_p96 (&len, 0);
+    dst = save_p96 (&len);
     save_chunk (f, dst, len, "P96 ", comp);
 #endif
 }
@@ -550,44 +521,44 @@ void save_state (char *filename, char *description)
     save_string (description);
     save_chunk (f, header, dst-header, "ASF ", 0);
 
-    dst = save_cpu (&len, 0);
+    dst = save_cpu (&len);
     save_chunk (f, dst, len, "CPU ", 0);
     free (dst);
 
 #ifdef FPUEMU
-    dst = save_fpu (&len,0 );
+    dst = save_fpu (&len);
     save_chunk (f, dst, len, "FPU ", 0);
     free (dst);
 #endif
 
     strcpy(name, "DSKx");
     for (i = 0; i < 4; i++) {
-	dst = save_disk (i, &len, 0);
+	dst = save_disk (i, &len);
 	if (dst) {
 	    name[3] = i + '0';
 	    save_chunk (f, dst, len, name, 0);
 	    free (dst);
 	}
     }
-    dst = save_floppy (&len, 0);
+    dst = save_floppy (&len);
     save_chunk (f, dst, len, "DISK", 0);
     free (dst);
 
-    dst = save_custom (&len, 0, 0);
+    dst = save_custom (&len);
     save_chunk (f, dst, len, "CHIP", 0);
     free (dst);
 
-    dst = save_blitter (&len, 0);
+    dst = save_blitter (&len);
     save_chunk (f, dst, len, "BLIT", 0);
     free (dst);
 
-    dst = save_custom_agacolors (&len, 0);
+    dst = save_custom_agacolors (&len);
     save_chunk (f, dst, len, "AGAC", 0);
     free (dst);
 
     strcpy (name, "SPRx");
     for (i = 0; i < 8; i++) {
-	dst = save_custom_sprite (i, &len, 0);
+	dst = save_custom_sprite (&len, i);
 	name[3] = i + '0';
 	save_chunk (f, dst, len, name, 0);
 	free (dst);
@@ -595,36 +566,36 @@ void save_state (char *filename, char *description)
 
     strcpy (name, "AUDx");
     for (i = 0; i < 4; i++) {
-	dst = save_audio (i, &len, 0);
+	dst = save_audio (&len, i);
 	name[3] = i + '0';
 	save_chunk (f, dst, len, name, 0);
 	free (dst);
     }
 
-    dst = save_cia (0, &len, 0);
+    dst = save_cia (0, &len);
     save_chunk (f, dst, len, "CIAA", 0);
     free (dst);
 
-    dst = save_cia (1, &len, 0);
+    dst = save_cia (1, &len);
     save_chunk (f, dst, len, "CIAB", 0);
     free (dst);
 
 #ifdef AUTOCONFIG
-    dst = save_expansion (&len, 0);
+    dst = save_expansion (&len);
     save_chunk (f, dst, len, "EXPA", 0);
 #endif
     save_rams (f, comp);
 
-    dst = save_rom (1, &len, 0);
+    dst = save_rom (1, &len);
     do {
 	if (!dst)
 	    break;
 	save_chunk (f, dst, len, "ROM ", 0);
 	free (dst);
-    } while ((dst = save_rom (0, &len, 0)));
+    } while ((dst = save_rom (0, &len)));
 
 #ifdef ACTION_REPLAY
-    dst = save_action_replay (&len, 0);
+    dst = save_action_replay (&len);
     save_chunk (f, dst, len, "ACTR", comp);
 #endif
 
@@ -658,325 +629,6 @@ void savestate_quick (int slot, int save)
 	if (!zfile_exists (savestate_fname))
 	    return;
 	savestate_state = STATE_DORESTORE;
-    }
-}
-
-static struct staterecord *canrewind (int pos)
-{
-    int i;
-    struct staterecord *st;
-
-    if (!replaybuffer)
-	return 0;
-    i = replaycounter;
-    st = &staterecords[i];
-    if (st->start)
-	return st;
-    return 0;
-}
-
-int savestate_dorewind (int pos)
-{
-    if (canrewind (pos)) {
-	savestate_state = STATE_DOREWIND;
-	return 1;
-    }
-    return 0;
-}
-
-void savestate_listrewind (void)
-{
-    int i = replaycounter;
-    int cnt;
-    uae_u8 *p;
-    uae_u32 pc;
-
-    cnt = 1;
-    for (;;) {
-	struct staterecord *st;
-	st = &staterecords[i];
-	if (!st->start)
-	    break;
-	p = st->cpu + 17 * 4;
-	pc = restore_u32_func (&p);
-	console_out ("%d: PC=%08X %c\n", cnt, pc, regs.pc == pc ? '*' : ' ');
-	cnt++;
-	i--;
-	if (i < 0)
-	    i += MAX_STATERECORDS;
-    }
-}
-
-void savestate_rewind (void)
-{
-    unsigned int len, i, dummy;
-    uae_u8 *p, *p2;
-    struct staterecord *st;
-
-    st = canrewind (1);
-    if (!st)
-	return;
-    frameextra = timeframes % currprefs.statecapturerate;
-    p =  st->start;
-    p2 = st->end;
-    write_log ("rewinding from %d\n", replaycounter);
-    p = restore_cpu (p);
-#ifdef FPUEMU
-    if (restore_u32_func (&p))
-	p = restore_fpu (p);
-#endif
-    for (i = 0; i < 4; i++) {
-	p = restore_disk (i, p);
-    }
-    p = restore_floppy (p);
-    p = restore_custom (p);
-    p = restore_blitter (p);
-    p = restore_custom_agacolors (p);
-    for (i = 0; i < 8; i++) {
-	p = restore_custom_sprite (i, p);
-    }
-    for (i = 0; i < 4; i++) {
-	p = restore_audio (i, p);
-    }
-    p = restore_cia (0, p);
-    p = restore_cia (1, p);
-#ifdef AUTOCONFIG
-    p = restore_expansion (p);
-#endif
-    len = restore_u32_func (&p);
-    memcpy (chipmemory, p, currprefs.chipmem_size > len ? len : currprefs.chipmem_size);
-    p += len;
-    len = restore_u32_func (&p);
-    memcpy (save_bram (&dummy), p, currprefs.bogomem_size > len ? len : currprefs.bogomem_size);
-    p += len;
-#ifdef AUTOCONFIG
-    len = restore_u32_func (&p);
-    memcpy (save_fram (&dummy), p, currprefs.fastmem_size > len ? len : currprefs.fastmem_size);
-    p += len;
-    len = restore_u32_func (&p);
-    memcpy (save_zram (&dummy), p, currprefs.z3fastmem_size > len ? len : currprefs.z3fastmem_size);
-    p += len;
-#endif
-#ifdef ACTION_REPLAY
-    if (restore_u32_func (&p))
-        p = restore_action_replay (p);
-#endif
-    p += 4;
-    if (p != p2) {
-	gui_message ("reload failure, address mismatch %p != %p", p, p2);
-	uae_reset (0);
-	return;
-    }
-    st->start = st->next = 0;
-    replaycounter--;
-    if (replaycounter < 0)
-	replaycounter += MAX_STATERECORDS;
-}
-
-#define BS 10000
-
-static int bufcheck (uae_u8 **pp, int len)
-{
-    uae_u8 *p = *pp;
-    if (p + len + BS >= replaybuffer + replaybuffersize) {
-	//write_log ("capture buffer wrap-around\n");
-	return 1;
-    }
-    return 0;
-}
-
-void savestate_capture (int force)
-{
-    uae_u8 *p, *p2, *p3, *dst;
-    int i, len, tlen, retrycnt;
-    struct staterecord *st, *stn;
-
-#ifdef FILESYS
-    if (nr_units (currprefs.mountinfo))
-	return;
-#endif
-    if (!replaybuffer)
-	return;
-    if (!force && (!currprefs.statecapture || !currprefs.statecapturerate || ((timeframes + frameextra) % currprefs.statecapturerate)))
-	return;
-
-    retrycnt = 0;
-retry2:
-    st = &staterecords[replaycounter];
-    if (st->next == 0) {
-	replaycounter = 0;
-	st = &staterecords[replaycounter];
-	st->next = replaybuffer;
-    }
-    stn = &staterecords[(replaycounter + 1) & (MAX_STATERECORDS - 1)];
-    p = p2 = st->next;
-    tlen = 0;
-    if (bufcheck (&p, 0))
-	goto retry;
-    stn->cpu = p;
-    save_cpu (&len, p);
-    tlen += len;
-    p += len;
-#ifdef FPUEMU
-    if (bufcheck (&p, 0))
-	goto retry;
-    p3 = p;
-    save_u32_func (&p, 0);
-    tlen += 4;
-    if (save_fpu (&len, p)) {
-	save_u32_func (&p3, 1);
-	tlen += len;
-	p += len;
-    }
-#endif
-    for (i = 0; i < 4; i++) {
-	if (bufcheck (&p, 0))
-	    goto retry;
-	save_disk (i, &len, p);
-        tlen += len;
-        p += len;
-    }
-    if (bufcheck (&p, 0))
-	goto retry;
-    save_floppy (&len, p);
-    tlen += len;
-    p += len;
-    if (bufcheck (&p, 0))
-	goto retry;
-    save_custom (&len, p, 0);
-    tlen += len;
-    p += len;
-    if (bufcheck (&p, 0))
-	goto retry;
-    save_blitter (&len, p);
-    tlen += len;
-    p += len;
-    if (bufcheck (&p, 0))
-	goto retry;
-    save_custom_agacolors (&len, p);
-    tlen += len;
-    p += len;
-    for (i = 0; i < 8; i++) {
-        if (bufcheck (&p, 0))
-	    goto retry;
-	save_custom_sprite (i, &len, p);
-        tlen += len;
-        p += len;
-    }
-    for (i = 0; i < 4; i++) {
-	if (bufcheck (&p, 0))
-	    goto retry;
-	save_audio (i, &len, p);
-        tlen += len;
-        p += len;
-    }
-    if (bufcheck (&p, 0))
-	goto retry;
-    save_cia (0, &len, p);
-    tlen += len;
-    p += len;
-    if (bufcheck (&p, 0))
-	goto retry;
-    save_cia (1, &len, p);
-    tlen += len;
-    p += len;
-#ifdef AUTOCONFIG
-    if (bufcheck (&p, 0))
-	goto retry;
-    save_expansion (&len, p);
-    tlen += len;
-    p += len;
-#endif
-    dst = save_cram (&len);
-    if (bufcheck (&p, len))
-	goto retry;
-    save_u32_func (&p, len);
-    memcpy (p, dst, len);
-    tlen += len + 4;
-    p += len;
-    dst = save_bram (&len);
-    if (bufcheck (&p, len))
-	goto retry;
-    save_u32_func (&p, len);
-    memcpy (p, dst, len);
-    tlen += len + 4;
-    p += len;
-#ifdef AUTOCONFIG
-    dst = save_fram (&len);
-    if (bufcheck (&p, len))
-	goto retry;
-    save_u32_func (&p, len);
-    memcpy (p, dst, len);
-    tlen += len + 4;
-    p += len;
-    dst = save_zram (&len);
-    if (bufcheck (&p, len))
-	goto retry;
-    save_u32_func (&p, len);
-    memcpy (p, dst, len);
-    tlen += len + 4;
-    p += len;
-#endif
-#ifdef ACTION_REPLAY
-    if (bufcheck (&p, 0))
-	goto retry;
-    p3 = p;
-    save_u32_func (&p, 0);
-    tlen += 4;
-    if (save_action_replay (&len, p)) {
-	save_u32_func (&p3, 1);
-	tlen += len;
-	p += len;
-    }
-#endif
-    save_u32_func (&p, tlen);
-    stn->next = p;
-    stn->start = p2;
-    stn->end = p;
-    replaylastreloaded = -1;
-    replaycounter++;
-    replaycounter &= (MAX_STATERECORDS - 1);
-    i = (replaycounter + 1) & (MAX_STATERECORDS - 1);
-    staterecords[i].next = staterecords[i].start = 0;
-    i = replaycounter - 1;
-    while (i != replaycounter) {
-	if (i < 0)
-	    i += MAX_STATERECORDS;
-	st = &staterecords[i];
-	if (p2 <= st->start && p >= st->end) {
-	    st->start = st->next = 0;
-	    break;
-	}
-	i--;
-    }
-    //write_log ("state capture %d (%d bytes)\n", replaycounter, p - p2);
-    return;
-retry:
-    staterecords[replaycounter].next = replaybuffer;
-    retrycnt++;
-    if (retrycnt > 1) {
-	write_log ("can't save, too small capture buffer\n");
-	return;
-    }
-    goto retry2;
-}
-
-void savestate_free (void)
-{
-    free (replaybuffer);
-    replaybuffer = 0;
-}
-
-void savestate_init (void)
-{
-    savestate_free ();
-    memset (staterecords, 0, sizeof (staterecords));
-    replaycounter = 0;
-    replaylastreloaded = -1;
-    frameextra = 0;
-    if (currprefs.statecapture && currprefs.statecapturebuffersize && currprefs.statecapturerate) {
-	replaybuffersize = currprefs.statecapturebuffersize;
-	replaybuffer = malloc (replaybuffersize);
     }
 }
 
@@ -1161,7 +813,7 @@ FLOPPY DRIVES
         drive state
 
         drive ID-word           4
-        state                   1 (bit 0: motor on, bit 1: drive disabled, bit 2: current id bit)
+        state                   1 (bit 0: motor on, bit 1: drive disabled)
         rw-head track           1
         dskready                1
         id-mode                 1 (ID mode bit number 0-31)
@@ -1183,7 +835,7 @@ INTERNAL FLOPPY CONTROLLER STATUS
         WORDSYNC found          1 (no=0,yes=1)
         hpos of next bit        1
         DSKLENGTH status        0=off,1=written once,2=written twice
-	unused                  2
+	current DMA hi word     2
 
 RAM SPACE 
 

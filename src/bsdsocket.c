@@ -157,39 +157,6 @@ void setherrno (SB, int sb_herrno)
     }
 }
 
-BOOL checksd(SB, int sd)
-	{
-	int iCounter;
-	SOCKET s;
-
-    s = getsock(sb,sd);
-    if (s != INVALID_SOCKET)
-		{
-		for (iCounter  = 1; iCounter <= sb->dtablesize; iCounter++)
-			{
-			if (iCounter != sd)
-				{
-				if (getsock(sb,iCounter) == s)
-					{
-					releasesock(sb,sd);
-					return TRUE;
-					}
-				}
-			}
-		for (iCounter  = 0; iCounter < SOCKPOOLSIZE; iCounter++)
-			{
-			if (s == sockpoolsocks[iCounter])
-				return TRUE;
-			}
-		}
-	TRACE(("checksd FALSE s 0x%x sd %d\n",s,sd));
-	return FALSE;
-	}
-void setsd(SB, int sd, int s)
-	{
-    sb->dtable[sd - 1] = s;
-	}
-
 /* Socket descriptor/opaque socket handle management */
 int getsd (SB, int s)
 {
@@ -287,7 +254,7 @@ void waitsig (SB)
     long sigs;
     m68k_dreg (regs, 0) = (((uae_u32) 1) << sb->signal) | sb->eintrsigs;
     if ((sigs = CallLib (get_long (4), -0x13e)) & sb->eintrsigs) {
-	sockabort (sb); 
+	sockabort (sb);
 	seterrno (sb, 4);	/* EINTR */
 
 	// Set signal
@@ -654,7 +621,7 @@ static uae_u32 bsdsocklib_ObtainSocket (void)
 
     id = m68k_dreg (regs, 0);
 
-    TRACE (("ObtainSocket(%d,%d,%d,%d) -> ", id, m68k_dreg (regs, 1), m68k_dreg (regs, 2), m68k_dreg (regs, 3)));
+    TRACE (("ReleaseSocket(%d,%d,%d,%d) -> ", id, m68k_dreg (regs, 1), m68k_dreg (regs, 2), m68k_dreg (regs, 3)));
 
     i = sockpoolindex (id);
 
@@ -665,7 +632,6 @@ static uae_u32 bsdsocklib_ObtainSocket (void)
     s = sockpoolsocks[i];
 
     sd = getsd (sb, s);
-
     sb->ftable[sd - 1] = sockpoolflags[i];
 
     TRACE (("%d\n", sd));
@@ -729,7 +695,7 @@ static uae_u32 bsdsocklib_ReleaseSocket (void)
 	sockpoolsocks[i] = s;
 	sockpoolflags[i] = flags;
 
-	TRACE (("id %d s 0x%x\n", id,s));
+	TRACE (("%d\n", id));
     } else {
 	TRACE (("[invalid socket descriptor]\n"));
 	return -1;
@@ -886,7 +852,8 @@ static uae_u32 bsdsocklib_vsyslog (void)
 /* Dup2Socket(fd1, fd2)(d0/d1) */
 static uae_u32 bsdsocklib_Dup2Socket (void)
 {
-    return host_dup2socket (SOCKETBASE, m68k_dreg (regs, 0), m68k_dreg (regs, 1));
+    write_log ("bsdsocket: UNSUPPORTED: Dup2Socket()\n");
+    return 0;
 }
 
 static uae_u32 bsdsocklib_sendmsg (void)
@@ -1274,6 +1241,9 @@ void bsdlib_install (void)
 	return;
 
     memset (sockpoolids, UNIQUE_ID, sizeof (sockpoolids));
+
+    //resname = ds ("bsdsocke2.library");
+    //resid = ds ("UAE bsdsocke2.library 4.1");
 
     resname = ds ("bsdsocket.library");
     resid = ds ("UAE bsdsocket.library 4.1");

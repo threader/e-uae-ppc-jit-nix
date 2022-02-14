@@ -465,10 +465,11 @@ extern void write_log (const char *, ...) __attribute__ ((format (printf, 1, 2))
 #else
 extern void write_log (const char *, ...);
 #endif
+extern void write_dlog (const char *, ...);
 
 extern void console_out (const char *, ...);
 extern void console_flush (void);
-extern int  console_get (char *, int);
+extern int console_get (char *, int);
 extern void f_out (void *, const char *, ...);
 extern void gui_message (const char *,...);
 #define write_log_err write_log
@@ -477,13 +478,13 @@ extern void gui_message (const char *,...);
 #define O_BINARY 0
 #endif
 
-
+#ifndef STATIC_INLINE
 #if __GNUC__ - 1 > 1
 #define STATIC_INLINE static __inline__ __attribute__((always_inline))
 #else
-#define STATIC_INLINE static __inline__ 
+#define STATIC_INLINE static __inline__
 #endif
-
+#endif
 
 /* Every Amiga hardware clock cycle takes this many "virtual" cycles.  This
    used to be hardcoded as 1, but using higher values allows us to time some

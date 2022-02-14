@@ -1,106 +1,3 @@
-uae-0.8.25-2004023
-==================
-
-This is an experimental and unoffical version of UAE, the Unix Amiga
-Emulator, based on WinUAE 0.8.25. It attempts to bring many of the great
-features of WinUAE to non-Windows platforms.
-
-Currently it will build and run (with a varying degree of supported
-features) on Linux and other Unices, Mac OS X, BeOS and AmigaOS. (OS X and
-BeOS both currently require either LibSDL or an X server for graphics
-output. Neither platforms is supported with a purely native graphcis driver
-- yet.).
-
-What's New
-==========
-
-* Core emulation updates from WinUAE 0.8.24 and 0.8.25. This includes the
-  usual round of tweaks to the emulation proper, but also includes a more
-  powerful debugger and support for FDI 2.0 floppy images. (Drives sounds,
-  added in WinUAE 0.8.24, are not supported yet.)
-* Fixed support for 8-bit host screens with SDL gfx driver (both for native
-  and P96 screens).
-* Improved bsdsocket.library emulation. This still has problems and many
-  ommissions, but now works when built against LibSDL (and thus on MacOS X).
-  It does not yet work on BeOS due to inherent limitations in the BeOS socket
-  API.
-* SCSI emulation. Host CD/DVD drives can be used as SCSI devices in UAE with
-  uaescsi.device. This is currently only tested on Linux, but feasibly
-  should work elsewhere too (since it makes uses of the portable SCSI
-  transport library, libsg - which is part of the cdrtools package),
-  although Mac OS X is not yet supported. Problems remain with real SCSI
-  devices,  but SCSI emulation has so far tested well with ATAPI devices. On
-  2.4.x  Linux kernels, the ide-scsi and sg kernel drivers are required (and
-  access  permission to /dev/sg*). On 2.6 kernels, ATAPI devices can be used
-  directly  if you set the environment variable UAE_SCSI_DEVICE=ATAPI.
-* CDTV/CD32 emulation. Not well tested and problems still remain. This
-  obviously requires a working SCSI emulation.
-* Improvements to the GTK+ GUI. Specifying use_gui=no in the config file
-  now means that the GUI will just not open at start-up (rather than being
-  disabled altogether) and can still be opened later with the hotkey
-  combination F12 + enter (the usual platform specific modifier will apply
-  rather than F12); dialogs will be now always be available for warnings and
-  for inserting floppy images. Launching UAE in an environment where GTK+ is
-  not available (for instance, if UAE is built against SDL and run in a Linux
-  framebuffer) will not now cause UAE to fail.
-* Support for IPF (CAPS) floppy images (on Linux and AmigaOS). This requires
-  that you install the CAPS library plug-in, which is downloadble from
-  http://www.caps-project.org/.
-* The MacOS X default config file is now called default.uaerc (since .uaerc
-  is not visible in the Finder). If you are building from source, this needs
-  to be specified with option CFLAGS="-DOPTIONSFILENAME=default.uaerc"). This
-  will eventually be handled automatically when configure support for OS X
-  is added.
-* Some minor performance tweaks.
-
-
-Config file options
-===================
-
-No significant changes have been made to config file options, but note that
-the option
-
-scsi=true
-
-must be speficied to enable the SCSI emulation, and
-
-bsdsocket_emu=true
-
-must be specified to enable the bsdsocket.library emulation.
-
-
-New configure options
-=====================
-
-For those building from source, the following new options are supported by
-the build system:
-
---enable-scsi-device
-  Build with SCSI emulation. This requires the libscg and libschily
-  libraries and headers from cdrtools 2.0.x (see docs/README).
-
---enable-cdtv
-  Enable CDTV emulation. Requires SCSI emulation be enabled.
-  
---enable-cd32
-  Enable CD32 emulation. Requires SCSI emulation and AGA support be enabled.
-
---enable-enforcer
-  Build with support for WinUAE enforcer.
-
---with-caps
-  Build with support for IPF (CAPS) images. This requires the IPF
-  development files from http://www.caps-project.org/
-  
---with-caps-prefix=<dir>
-  Absolute path to where the CAPS API is installed on your system.
-  
-
-The release notes from the previous version are still relevant and will
-hopefully avoid me repeating myself too often (or finding the time to write
-some real documentation).
-
-
 uae-0.8.23-20040125
 ===================
 
@@ -245,7 +142,7 @@ The options specific to the x11 graphics driver are not affected. Thus the
 options 'x11.use_mitshm', 'x11.hide_cursor', etc. are all still valid.
 
 
-3) New AmigaOS-specific config options.
+3) New Amiga-specific config options.
 
 amiga.screen_type=<custom|public|ask>
 

@@ -1,5 +1,5 @@
 
- /*
+/*
   * UAE - The Un*x Amiga Emulator
   *
   * Stuff
@@ -10,7 +10,7 @@
 
 #define UAEMAJOR 0
 #define UAEMINOR 8
-#define UAESUBREV 25
+#define UAESUBREV 23
 
 typedef enum { KBD_LANG_US, KBD_LANG_DK, KBD_LANG_DE, KBD_LANG_SE, KBD_LANG_FR, KBD_LANG_IT, KBD_LANG_ES } KbdLang;
 
@@ -20,12 +20,11 @@ struct uaedev_mount_info;
 
 struct strlist {
     struct strlist *next;
-    char *option, *value;
-    int unknown;
+    char *str;
 };
 
 /* maximum number native input devices supported (single type) */
-#define MAX_INPUT_DEVICES 6
+#define MAX_INPUT_DEVICES 4
 /* maximum number of native input device's buttons and axles supported */
 #define MAX_INPUT_DEVICE_EVENTS 256
 /* 4 different customization settings */
@@ -42,7 +41,7 @@ struct uae_input_device {
 };
 
 struct uae_prefs {
-    struct strlist *all_lines;
+    struct strlist *unknown_lines;
 
     char description[256];
     char info[256];
@@ -73,7 +72,6 @@ struct uae_prefs {
     int sound_interpol;
     int sound_adjust;
     int sound_filter;
-    int sound_volume;
 
     int comptrustbyte;
     int comptrustword;
@@ -97,7 +95,6 @@ struct uae_prefs {
     int avoid_vid;
     uae_u32 override_dga_address;
 
-    int gfx_display;
     int gfx_framerate;
     int gfx_width_win, gfx_height_win;
     int gfx_width_fs, gfx_height_fs;
@@ -173,9 +170,6 @@ struct uae_prefs {
 
     int nr_floppies;
     int dfxtype[4];
-    int dfxclick[4];
-    char dfxclickexternal[4][256];
-    int dfxclickvolume;
 
     /* Target specific options */
 #ifdef USE_X11_GFX
@@ -225,9 +219,6 @@ struct uae_prefs {
     int  amiga_use_dither;
 #endif
 
-    int statecapture;
-    int statecapturerate, statecapturebuffersize;
-
     /* input */
 
     int jport0;
@@ -252,7 +243,7 @@ extern void cfgfile_write (FILE *f, char *format,...);
 extern void default_prefs (struct uae_prefs *);
 extern void discard_prefs (struct uae_prefs *);
 
-int parse_cmdline_option (struct uae_prefs *, char, char *);
+extern int parse_cmdline_option (char, char *);
 
 extern int cfgfile_yesno (char *option, char *value, char *name, int *location);
 extern int cfgfile_intval (char *option, char *value, char *name, int *location, int scale);
@@ -274,8 +265,6 @@ extern void cfgfile_parse_line (struct uae_prefs *p, char *);
 extern int cfgfile_parse_option (struct uae_prefs *p, char *option, char *value);
 extern int cfgfile_get_description (const char *filename, char *description);
 extern void cfgfile_show_usage (void);
-extern uae_u32 cfgfile_uaelib(int mode, uae_u32 name, uae_u32 dst, uae_u32 maxlen);
-extern void cfgfile_addcfgparam (char *);
 
 extern void fixup_prefs_dimensions (struct uae_prefs *prefs);
 

@@ -39,7 +39,6 @@
 #include "native2amiga.h"
 #include "scsidev.h"
 #include "akiko.h"
-#include "savestate.h"
 
 #ifdef USE_SDL
 #include "SDL.h"
@@ -68,7 +67,6 @@ char optionsfile[256];
  * PostScript printer or ghostscript -=SR=-
  */
 
-#if 0
 /* Slightly stupid place for this... */
 /* ncurses.c might use quite a few of those. */
 char *colormodes[] = { "256 colors", "32768 colors", "65536 colors",
@@ -79,16 +77,14 @@ char *colormodes[] = { "256 colors", "32768 colors", "65536 colors",
     "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "",
     "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""
 };
-#endif
 
 void discard_prefs (struct uae_prefs *p)
 {
-    struct strlist **ps = &p->all_lines;
+    struct strlist **ps = &p->unknown_lines;
     while (*ps) {
 	struct strlist *s = *ps;
 	*ps = s->next;
-	free (s->value);
-	free (s->option);
+	free (s->str);
 	free (s);
     }
 #ifdef FILESYS
@@ -118,7 +114,7 @@ void default_prefs (struct uae_prefs *p)
     p->start_gui = 1;
     p->start_debugger = 0;
 
-    p->all_lines = 0;
+    p->unknown_lines = 0;
     /* Note to porters: please don't change any of these options! UAE is supposed
      * to behave identically on all platforms if possible. */
     p->illegal_mem = 0;
@@ -132,7 +128,7 @@ void default_prefs (struct uae_prefs *p)
     p->jport1 = 0;
     p->keyboard_lang = KBD_LANG_US;
 
-    p->produce_sound = 3;
+    p->produce_sound = 0;
     p->stereo = 0;
     p->sound_bits = DEFAULT_SOUND_BITS;
     p->sound_freq = DEFAULT_SOUND_FREQ;
@@ -140,34 +136,34 @@ void default_prefs (struct uae_prefs *p)
     p->sound_interpol = 0;
     p->sound_filter = 0;
 
-    p->comptrustbyte = 0;
-    p->comptrustword = 0;
-    p->comptrustlong = 0;
-    p->comptrustnaddr= 0;
-    p->compnf = 1;
-    p->comp_hardflush = 0;
-    p->comp_constjump = 1;
-    p->comp_oldsegv = 0;
-    p->compfpu = 1;
-    p->compforcesettings = 0;
-    p->cachesize = 0;
-    p->avoid_cmov = 0;
-    p->avoid_dga = 0;
-    p->avoid_vid = 0;
-    p->comp_midopt = 0;
-    p->comp_lowopt = 0;
-    p->override_dga_address = 0;
+    p->comptrustbyte = 1;
+    p->comptrustword = 1;
+    p->comptrustlong = 1;
+    p->comptrustnaddr= 1;
+    p->compnf=1;
+    p->comp_hardflush=0;
+    p->comp_constjump=1;
+    p->comp_oldsegv=0;
+    p->compfpu=1;
+    p->compforcesettings=0;
+    p->cachesize=0;
+    p->avoid_cmov=0;
+    p->avoid_dga=0;
+    p->avoid_vid=0;
+    p->comp_midopt=0;
+    p->comp_lowopt=0;
+    p->override_dga_address=0;
     {
 	int i;
-	for (i = 0;i < 10; i++)
-	    p->optcount[i] = -1;
-	p->optcount[0] = 4; /* How often a block has to be executed before it
+	for (i=0;i<10;i++)
+	    p->optcount[i]=-1;
+	p->optcount[0]=4; /* How often a block has to be executed before it
 			     is translated */
-	p->optcount[1] = 0; /* How often to use the naive translation */
-	p->optcount[2] = 0; 
-	p->optcount[3] = 0;
-	p->optcount[4] = 0;
-	p->optcount[5] = 0;
+	p->optcount[1]=0; /* How often to use the naive translation */
+	p->optcount[2]=0; 
+	p->optcount[3]=0;
+	p->optcount[4]=0;
+	p->optcount[5]=0;
     }
     p->gfx_framerate = 1;
     p->gfx_width_win = p->gfx_width_fs = 800;
@@ -228,11 +224,10 @@ void default_prefs (struct uae_prefs *p)
     strcpy (p->prtname, DEFPRTNAME);
     strcpy (p->sername, DEFSERNAME);
 
+    p->m68k_speed = 0;
 #ifdef CPUEMU_68000_ONLY
     p->cpu_level = 0;
-    p->m68k_speed = 0;
 #else
-    p->m68k_speed = -1;
     p->cpu_level = 2;
 #endif
 #ifdef CPUEMU_0
@@ -259,11 +254,6 @@ void default_prefs (struct uae_prefs *p)
     p->dfxtype[2] = -1;
     p->dfxtype[3] = -1;
     p->floppy_speed = 100;
-    p->dfxclickvolume = 33;
-
-    p->statecapturebuffersize = 20 * 1024 * 1024;
-    p->statecapturerate = 5 * 50;
-    p->statecapture = 0;
 
 #ifdef FILESYS
     p->mountinfo = alloc_mountinfo ();
@@ -447,6 +437,9 @@ static void fix_options (void)
     if (currprefs.cpu_cycle_exact || currprefs.blitter_cycle_exact)
 	currprefs.fast_copper = 0;
 
+    if (currprefs.cpu_level > 0)
+	currprefs.cpu_cycle_exact = 0;
+
     if (currprefs.collision_level < 0 || currprefs.collision_level > 3) {
 	write_log ("Invalid collision support level.  Using 1.\n");
 	currprefs.collision_level = 1;
@@ -483,7 +476,7 @@ static void fix_options (void)
     currprefs.scsi = 0;
 #ifdef _WIN32
     currprefs.win32_aspi = 0;
-#endif
+#endif   
 #endif
 
     if (err)
@@ -555,35 +548,16 @@ static void show_version (void)
     write_log ("          1999-2004 Toni Wilen\n");
     write_log ("          2003-2004 Richard Drummond\n\n");
     write_log ("See the source for a full list of contributors.\n");
-
+   
     write_log ("This is free software; see the source for copying conditions.  There is NO\n");
     write_log ("warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n");
 }
 
-static void parse_cmdline_2 (int argc, char **argv)
+void parse_cmdline (int argc, char **argv)
 {
     int i;
-   
-    cfgfile_addcfgparam (0);
     for (i = 1; i < argc; i++) {
-	if (strcmp (argv[i], "-cfgparam") == 0) {
-            if (i + 1 == argc)
-                write_log ("Missing argument for '-cfgparam' option.\n");
-            else
-                cfgfile_addcfgparam (argv[++i]);
-        }
-    }
-}
-
-static void parse_cmdline (int argc, char **argv)
-{
-    int i;
-
-    for (i = 1; i < argc; i++) {
-	if (strcmp (argv[i], "-cfgparam") == 0) {
-	    if (i + 1 < argc)
-		i++;
-	} else if (strncmp (argv[i], "-config=", 8) == 0) {
+	if (strncmp (argv[i], "-config=", 8) == 0) {
 #ifdef FILESYS
             free_mountinfo (currprefs.mountinfo);
             currprefs.mountinfo = alloc_mountinfo ();
@@ -618,7 +592,7 @@ static void parse_cmdline (int argc, char **argv)
 		int extra_arg = *arg == '\0';
 		if (extra_arg)
 		    arg = i + 1 < argc ? argv[i + 1] : 0;
-		if (parse_cmdline_option (&currprefs, argv[i][1], (char*)arg) && extra_arg)
+		if (parse_cmdline_option (argv[i][1], (char*)arg) && extra_arg)
 		    i++;
 	    }
 	}
@@ -725,9 +699,7 @@ void do_leave_program (void)
 #ifdef AUTOCONFIG
     expansion_cleanup ();
 #endif
-    savestate_free ();
     memory_cleanup ();
-    cfgfile_addcfgparam (0);
 }
 
 void start_program (void)
@@ -791,6 +763,7 @@ static void real_main2 (int argc, char **argv)
     if (restart_program == 2)
 	no_gui = 1;
     restart_program = 0;
+//    no_gui = 0;
     if (! no_gui) {
 	int err = gui_init ();
 	struct uaedev_mount_info *mi = currprefs.mountinfo;
@@ -815,7 +788,6 @@ static void real_main2 (int argc, char **argv)
     fix_options ();
     changed_prefs = currprefs;
 
-    savestate_init ();
 #ifdef SCSIEMU
     scsidev_install ();
 #endif
@@ -884,11 +856,20 @@ static void real_main2 (int argc, char **argv)
 
 void real_main (int argc, char **argv)
 {
-    restart_program = 1;
 #ifdef _WIN32
-    sprintf (restart_config, "%sConfigurations\\", start_path);
+    extern char *start_path;
+
+    sprintf (restart_config, "%s\\Configurations\\", start_path);
 #endif
     strcat (restart_config, OPTIONSFILENAME);
+
+    restart_program = 1;
+
+#ifdef USE_SDL
+    SDL_Init (SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK | SDL_INIT_NOPARACHUTE);
+    atexit (SDL_Quit);
+#endif
+   
     while (restart_program) {
 	changed_prefs = currprefs;
 	real_main2 (argc, argv);
@@ -898,23 +879,9 @@ void real_main (int argc, char **argv)
     zfile_exit ();
 }
 
-#ifdef USE_SDL
-int init_sdl (void) 
-{
-    int result = (SDL_Init (SDL_INIT_TIMER | SDL_INIT_NOPARACHUTE | SDL_INIT_AUDIO) == 0);
-    if (result)
-        atexit (SDL_Quit);
-
-    return result;
-}
-#else
-#define init_sdl() 
-#endif
-
 #ifndef NO_MAIN_IN_MAIN_C
 int main (int argc, char **argv)
 {
-    init_sdl();
     real_main (argc, argv);
     return 0;
 }

@@ -22,7 +22,6 @@
 #include "events.h"
 #include "audio.h"
 #include "savestate.h"
-#include "driveclick.h"
 
 #define MAX_EV ~0ul
 //#define DEBUG_AUDIO
@@ -646,7 +645,7 @@ void schedule_audio (void)
 		best = cdp->evtime;
 		eventtab[ev_audio].active = 1;
 	    }
-	}	
+	}
     }
     eventtab[ev_audio].evtime = get_cycles () + best;
 }
@@ -881,15 +880,11 @@ STATIC_INLINE int sound_prefs_changed (void)
 #endif
 	    || changed_prefs.sound_adjust != currprefs.sound_adjust
 	    || changed_prefs.sound_interpol != currprefs.sound_interpol
-	    || changed_prefs.sound_volume != currprefs.sound_volume
 	    || changed_prefs.sound_filter != currprefs.sound_filter);
 }
 
 void check_prefs_changed_audio (void)
 {
-#ifdef DRIVESOUND
-    driveclick_check_prefs ();
-#endif   
     if (sound_available && sound_prefs_changed ()) {
 	close_sound ();
 
@@ -907,7 +902,6 @@ void check_prefs_changed_audio (void)
 #endif       
 	currprefs.sound_maxbsiz = changed_prefs.sound_maxbsiz;
 	currprefs.sound_filter = changed_prefs.sound_filter;
-	currprefs.sound_volume = changed_prefs.sound_volume;
 	if (currprefs.produce_sound >= 2) {
 	    if (!init_audio ()) {
 		if (! sound_available) {
@@ -1171,7 +1165,7 @@ int init_audio (void)
     return init_sound ();
 }
 
-uae_u8 *restore_audio (int i, uae_u8 *src)
+uae_u8 *restore_audio (uae_u8 *src, int i)
 {
     struct audio_channel_data *acd;
     uae_u16 p;
@@ -1193,16 +1187,13 @@ uae_u8 *restore_audio (int i, uae_u8 *src)
 }
 
 
-uae_u8 *save_audio (int i, int *len, uae_u8 *dstptr)
+uae_u8 *save_audio (int *len, int i)
 {
     struct audio_channel_data *acd;
-    uae_u8 *dst, *dstbak;
+    uae_u8 *dst = malloc (100);
+    uae_u8 *dstbak = dst;
     uae_u16 p;
 
-    if (dstptr)
-	dstbak = dst = dstptr;
-    else
-	dstbak = dst = malloc (100);
     acd = audio_channel + i;
     save_u8 ((uae_u8)acd->state);
     save_u8 (acd->vol);
@@ -1212,7 +1203,7 @@ uae_u8 *save_audio (int i, int *len, uae_u8 *dstptr)
     save_u16 (acd->wlen);
     p = acd->per == PERIOD_MAX ? 0 : acd->per / CYCLE_UNIT;
     save_u16 (p);
-    save_u16 (acd->dat2);
+    save_u16 (0);
     save_u32 (acd->lc);
     save_u32 (acd->pt);
     save_u32 (acd->evtime);

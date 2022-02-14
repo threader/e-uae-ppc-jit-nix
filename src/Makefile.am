@@ -1,6 +1,6 @@
 INCLUDES =  -I$(top_srcdir)/src/include -I$(top_builddir)/src -I$(top_srcdir)/src -I$(top_srcdir)
 
-SUBDIRS = @MACHDEP@ @GFXDEP@ @SNDDEP@ @JOYDEP@ @GUIDEP@ @OSDEP@ keymap dms caps
+SUBDIRS = @MACHDEP@ @GFXDEP@ @SNDDEP@ @JOYDEP@ @GUIDEP@ @OSDEP@ keymap dms
 
 DIST_SUBDIRS = md-generic md-68k md-i386-gcc md-i386-watcom md-ppc \
 	       md-ppc-gcc \
@@ -10,7 +10,7 @@ DIST_SUBDIRS = md-generic md-68k md-i386-gcc md-i386-watcom md-ppc \
 	       gui-none gui-gtk \
 	       od-generic od-amiga od-beos od-linux od-macos \
 	       keymap \
-	       caps dms
+	       dms
 
 BUILT_SOURCES = blit.h blitfunc.h blitfunc.c blittable.c \
 	        cpuemu_0.c cpuemu_5.c cpuemu_6.c cpudefs.c \
@@ -58,7 +58,6 @@ noinst_HEADERS = include/akiko.h include/ar.h include/audio.h include/autoconf.h
 		 include/sysdeps.h include/tui.h include/uae.h \
 		 include/uaeexe.h include/unzip.h include/xwin.h \
 		 include/zfile.h include/enforcer.h include/hotkeys.h \
-		 include/caps.h include/driveclick.h \
 	         targets/t-amiga.h targets/t-beos.h \
 	         targets/t-macos.h targets/t-unix.h \
 		 td-none/thread.h td-posix/thread.h td-sdl/thread.h
@@ -74,7 +73,6 @@ uae_SOURCES =       main.c newcpu.c fpp.c memory.c custom.c serial.c cia.c \
 	            gfxutil.c gfxlib.c audio.c drawing.c  \
 	            native2amiga.c identify.c disk.c  savestate.c unzip.c \
 	            uaeexe.c uaelib.c fdi2raw.c sleep.c hotkeys.c \
-		    driveclick.c enforcer.c misc.c \
 	            missing.c readcpu.c writelog.c
 
 EXTRA_uae_SOURCES = bsdsocket.c bsdsocket-posix.c build68k.c catweasel.c cdrom.c \
@@ -82,9 +80,8 @@ EXTRA_uae_SOURCES = bsdsocket.c bsdsocket-posix.c build68k.c catweasel.c cdrom.c
 		    compemu_raw_x86.c compemu_support.c compiler.c cpuopti.c \
 		    debug.c filesys.c fsdb.c fsdb_unix.c fsusage.c genblitter.c \
 		    gencpu.c gengenblitter.c genp2c.c gencomp.c hardfile.c \
-		    hardfile_unix.c linetoscr.c scsi-none.c \
+		    hardfile_unix.c linetoscr.c scsi-none.c scsidev.c \
 		    scsiemul.c svgancui.c tui.c \
-		    blkdev-libscg.c filesys_unix.c \
 		    akiko.c akiko2.c ar.c blkdev.c blitops.c
 
 uae_DEPENDENCIES =	@MACHDEP@/libmachdep.a	\
@@ -94,14 +91,12 @@ uae_DEPENDENCIES =	@MACHDEP@/libmachdep.a	\
 			@GUIDEP@/libguidep.a	\
 			keymap/libkeymap.a	\
 			dms/libdms.a		\
-			caps/libcaps.a          \
 			blitfunc.o blittable.o	\
 			cpustbl.o cpudefs.o	\
 			libcpuemu.a  \
 		        @FILESYSOBJS@ \
 		 	@BSDSOCKOBJS@ \
 			@SCSIOBJS@ \
-			@CDOBJS@ \
 			@DEBUGOBJS@ \
 			@ASMOBJS@ \
 			@OSDEP@/libosdep.a 
@@ -113,14 +108,12 @@ uae_LDADD =		@MACHDEP@/libmachdep.a	\
 			@GUIDEP@/libguidep.a	\
 			keymap/libkeymap.a	\
 			dms/libdms.a		\
-			caps/libcaps.a		\
 			blitfunc.o blittable.o	\
 			cpustbl.o cpudefs.o	\
 			libcpuemu.a  \
 			@FILESYSOBJS@ \
 			@BSDSOCKOBJS@ \
 			@SCSIOBJS@ \
-			@CDOBJS@ \
 			@DEBUGOBJS@ \
 			@ASMOBJS@ \
 			@OSDEP@/libosdep.a

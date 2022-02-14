@@ -13,12 +13,9 @@
  * with different ones, make them look like POSIX semaphores. */
 typedef SDL_sem *uae_sem_t;
 
-STATIC_INLINE int uae_sem_init(uae_sem_t *PSEM, int DUMMY, int INIT)
-{
-   *PSEM = SDL_CreateSemaphore (INIT);
-   
-   return (*PSEM == 0);
-}
+#define uae_sem_init(PSEM, DUMMY, INIT) do { \
+    *PSEM = SDL_CreateSemaphore (INIT); \
+} while (0)
 #define uae_sem_destroy(PSEM) SDL_DestroySemaphore (*PSEM)
 #define uae_sem_post(PSEM) SDL_SemPost (*PSEM)
 #define uae_sem_wait(PSEM) SDL_SemWait (*PSEM)
@@ -27,19 +24,16 @@ STATIC_INLINE int uae_sem_init(uae_sem_t *PSEM, int DUMMY, int INIT)
 
 #include "commpipe.h"
 
-typedef Uint32 uae_thread_id;
+typedef SDL_Thread *uae_thread_id;
 #define BAD_THREAD NULL
 
 #define set_thread_priority(pri)
 
 STATIC_INLINE int uae_start_thread (void *(*f) (void *), void *arg, uae_thread_id *foo)
 {
-   SDL_Thread *thread = SDL_CreateThread ((int (*)(void *))f, arg);
-   *foo = SDL_GetThreadID (thread);
+    *foo = SDL_CreateThread ((int (*)(void *))f, arg);
     return *foo == 0;
 }
 
 /* Do nothing; thread exits if thread function returns.  */
 #define UAE_THREAD_EXIT do {} while (0)
-
-#define uae_thread_self SDL_ThreadID

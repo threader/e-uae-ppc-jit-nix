@@ -61,19 +61,6 @@ void gui_hd_led (int led)
 
 void gui_cd_led (int led)
 {
-    static int resetcounter;
-
-    int old = gui_data.cd;
-    if (led == 0) {
-	resetcounter--;
-	if (resetcounter > 0)
-	    return;
-    }
-
-    gui_data.cd = led;
-    resetcounter = 6;
-    if (old != gui_data.cd)
-	gui_led (6, gui_data.cd);
 }
 
 void gui_filename (int num, const char *name)

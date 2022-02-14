@@ -8,7 +8,6 @@
   */
 
 //#define BLITTER_DEBUG
-//#define BLITTER_SLOWDOWNDEBUG 4
 
 #include "sysconfig.h"
 #include "sysdeps.h"
@@ -38,9 +37,6 @@ static int blit_modadda, blit_modaddb, blit_modaddc, blit_modaddd;
 
 #ifdef BLITTER_DEBUG
 static int blitter_dontdo;
-#endif
-#ifdef BLITTER_SLOWDOWNDEBUG
-static int blitter_slowdowndebug;
 #endif
 
 struct bltinfo blt_info;
@@ -80,7 +76,7 @@ static uae_u8 blit_cycle_diagram[][10] =
     { 0, 3, 2,3,0 },		/* 6 */
     { 3, 4, 0,2,3,4, 2,3,0 },	/* 7 */
     { 0, 2, 1,0 },		/* 8 */
-    { 2, 2, 1,4, 1,0 },		/* 9 */
+    { 2, 2, 1,4, 1,0},		/* 9 */
     { 0, 2, 1,3 },		/* A */
     { 3, 3, 1,3,4, 1,3,0 },	/* B */
     { 2, 3, 0,1,2, 1,2 },	/* C */
@@ -230,11 +226,12 @@ static void blitter_dofast(void)
 		preva = bltadat;
 
 		if (bltbdatptr) {
-		    blt_info.bltbdat = bltbdat = chipmem_wget (bltbdatptr);
+		    blt_info.bltbdat = chipmem_wget (bltbdatptr);
 		    bltbdatptr += 2;
-		    blitbhold = (((uae_u32)prevb << 16) | bltbdat) >> blt_info.blitbshift;
-		    prevb = bltbdat;
 		}
+		bltbdat = blt_info.bltbdat;
+		blitbhold = (((uae_u32)prevb << 16) | bltbdat) >> blt_info.blitbshift;
+		prevb = bltbdat;
 
 		if (bltcdatptr) {
 		    blt_info.bltcdat = chipmem_wget (bltcdatptr);
@@ -321,11 +318,12 @@ static void blitter_dofast_desc(void)
 		preva = bltadat;
 
 		if (bltbdatptr) {
-		    blt_info.bltbdat = bltbdat = chipmem_wget (bltbdatptr);
+		    blt_info.bltbdat = chipmem_wget (bltbdatptr);
 		    bltbdatptr -= 2;
-		    blitbhold = (((uae_u32)bltbdat << 16) | prevb) >> blt_info.blitdownbshift;
-		    prevb = bltbdat;
 		}
+		bltbdat = blt_info.bltbdat;
+		blitbhold = (((uae_u32)bltbdat << 16) | prevb) >> blt_info.blitdownbshift;
+		prevb = bltbdat;
 
 		if (bltcdatptr) {
 		    blt_info.bltcdat = blt_info.bltbdat = chipmem_wget (bltcdatptr);
@@ -382,7 +380,7 @@ STATIC_INLINE int blitter_write(void)
     if (bltcon0 & 0x200) {
 	if (!dmaen(DMA_BLITTER)) return 1;
 	chipmem_bank.wput(bltdpt, blt_info.bltddat);
-	bltdpt = bltcpt; /* believe it or not but try Cardamon or Cardamom without this.. */
+	bltdpt = bltcpt;
     }
     bltstate = BLT_next;
     return (bltcon0 & 0x200) != 0;
@@ -535,8 +533,8 @@ static int blitter_vcounter1, blitter_vcounter2;
 static uae_u32 preva, prevb;
 STATIC_INLINE uae_u16 blitter_doblit (void)
 {
-    uae_u32 blitahold;
-    uae_u16 bltadat, ddat;
+    uae_u32 blitahold, blitbhold;
+    uae_u16 bltadat, bltbdat, ddat;
     uae_u8 mt = bltcon0 & 0xFF;
 
     bltadat = blt_info.bltadat;
@@ -550,7 +548,14 @@ STATIC_INLINE uae_u16 blitter_doblit (void)
         blitahold = (((uae_u32)preva << 16) | bltadat) >> blt_info.blitashift;
     preva = bltadat;
 
-    ddat = blit_func (blitahold, blt_info.bltbhold, blt_info.bltcdat, mt) & 0xFFFF;
+    bltbdat = blt_info.bltbdat;
+    if (blitdesc)
+        blitbhold = (((uae_u32)bltbdat << 16) | prevb) >> blt_info.blitdownbshift;
+    else
+        blitbhold = (((uae_u32)prevb << 16) | bltbdat) >> blt_info.blitbshift;
+    prevb = bltbdat;
+
+    ddat = blit_func (blitahold, blitbhold, blt_info.bltcdat, mt) & 0xFFFF;
 
     if (bltcon1 & 0x18) {
         uae_u16 d = ddat;
@@ -615,11 +620,6 @@ STATIC_INLINE void blitter_dodma (int ch)
 	case 2:
 	blt_info.bltbdat = chipmem_wget (bltbpt);
 	bltbpt += blit_add;
-	if (blitdesc)
-	    blt_info.bltbhold = (((uae_u32)blt_info.bltbdat << 16) | prevb) >> blt_info.blitdownbshift;
-	else
-	    blt_info.bltbhold = (((uae_u32)prevb << 16) | blt_info.bltbdat) >> blt_info.blitbshift;
-	prevb = blt_info.bltbdat;
 	break;
 	case 3:
 	blt_info.bltcdat = chipmem_wget (bltcpt);
@@ -702,13 +702,6 @@ void decide_blitter (int hpos)
     if (dmaen (DMA_BLITTER)) {
 	while (blit_last_hpos < hpos) {
 	    int c = channel_state (blit_cyclecounter);
-#ifdef BLITTER_SLOWDOWNDEBUG
-	    blitter_slowdowndebug--;
-	    if (blitter_slowdowndebug < 0) {
-		cycle_line[blit_last_hpos] |= CYCLE_BLITTER;
-		blitter_slowdowndebug = BLITTER_SLOWDOWNDEBUG;
-	    }
-#endif
 	    for (;;) {
 	        if (c && (cycle_line[blit_last_hpos] || is_bitplane_dma (blit_last_hpos))) {
 		    blit_misscyclecounter++;
@@ -762,7 +755,7 @@ static void blitter_force_finish (void)
     uae_u16 odmacon;
     if (bltstate == BLT_done)
 	return;
-    if (bltstate != BLT_done) {
+    if (bltstate == BLT_work) {
 	 /* blitter is currently running
 	  * force finish (no blitter state support yet)
           */
@@ -1034,7 +1027,7 @@ uae_u8 *restore_blitter (uae_u8 *src)
     return src;
 }
 
-uae_u8 *save_blitter (int *len, uae_u8 *dstptr)
+uae_u8 *save_blitter (int *len)
 {
     uae_u8 *dstbak,*dst;
 
@@ -1043,10 +1036,7 @@ uae_u8 *save_blitter (int *len, uae_u8 *dstptr)
 	 /* blitter is active just now but we don't have blitter state support yet */
 	blitter_force_finish ();
     }
-    if (dstptr)
-	dstbak = dst = dstptr;
-    else
-        dstbak = dst = malloc (16);
+    dstbak = dst = malloc (16);
     save_u32((bltstate != BLT_done) ? 0 : 1);
     *len = dst - dstbak;
     return dstbak;

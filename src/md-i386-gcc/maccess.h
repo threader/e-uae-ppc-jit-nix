@@ -6,7 +6,7 @@
   * Copyright 1996 Bernd Schmidt
   */
 
-STATIC_INLINE uae_u32 do_get_mem_long (uae_u32 *a)
+static __inline__ uae_u32 do_get_mem_long (uae_u32 *a)
 {
     uae_u32 retval;
 
@@ -14,7 +14,7 @@ STATIC_INLINE uae_u32 do_get_mem_long (uae_u32 *a)
     return retval;
 }
 
-STATIC_INLINE uae_u32 do_get_mem_word (uae_u16 *a)
+static __inline__ uae_u32 do_get_mem_word (uae_u16 *a)
 {
     uae_u32 retval;
 
@@ -28,13 +28,13 @@ STATIC_INLINE uae_u32 do_get_mem_word (uae_u16 *a)
 
 #define do_get_mem_byte(a) ((uae_u32)*((uae_u8 *)a))
 
-STATIC_INLINE void do_put_mem_long (uae_u32 *a, uae_u32 v)
+static __inline__ void do_put_mem_long (uae_u32 *a, uae_u32 v)
 {
     __asm__ ("bswap %0" : "=r" (v) : "0" (v) : "cc");
     *a = v;
 }
 
-STATIC_INLINE void do_put_mem_word (uae_u16 *a, uae_u32 v)
+static __inline__ void do_put_mem_word (uae_u16 *a, uae_u32 v)
 {
 #ifdef X86_PPRO_OPT
     __asm__ ("bswap %0" : "=&r" (v) : "0" (v << 16) : "cc");
@@ -71,8 +71,7 @@ static __inline__ void call_mem_put_func(mem_put_func func, uae_cptr addr, uae_u
 #undef MD_HAVE_MEM_1_FUNCS
 
 #ifdef MD_HAVE_MEM_1_FUNCS
-
-STATIC_INLINE uae_u32 longget_1 (uae_cptr addr)
+static __inline__ uae_u32 longget_1 (uae_cptr addr)
 {
     uae_u32 result;
 
@@ -87,8 +86,7 @@ STATIC_INLINE uae_u32 longget_1 (uae_cptr addr)
 	     : "=c" (result), "=d" (addr) : "1" (addr), "r" (good_address_map) : "cc");
     return result;
 }
-
-STATIC_INLINE uae_u32 wordget_1 (uae_cptr addr)
+static __inline__ uae_u32 wordget_1 (uae_cptr addr)
 {
     uae_u32 result;
 
@@ -103,8 +101,7 @@ STATIC_INLINE uae_u32 wordget_1 (uae_cptr addr)
 	     : "=c" (result), "=d" (addr) : "1" (addr), "r" (good_address_map) : "cc");
     return result;
 }
-
-STATIC_INLINE uae_u32 byteget_1 (uae_cptr addr) 
+static __inline__ uae_u32 byteget_1 (uae_cptr addr) 
 {
     uae_u32 result;
 
@@ -118,8 +115,7 @@ STATIC_INLINE uae_u32 byteget_1 (uae_cptr addr)
 	     : "=c" (result), "=d" (addr) : "1" (addr), "r" (good_address_map) : "cc");
     return result;
 }
-
-STATIC_INLINE void longput_1 (uae_cptr addr, uae_u32 l)
+static __inline__ void longput_1 (uae_cptr addr, uae_u32 l)
 {
     __asm__ __volatile__("andl $0x00FFFFFF,%0\n"
 	     "\tcmpb $0,(%0,%3)\n"
@@ -131,8 +127,7 @@ STATIC_INLINE void longput_1 (uae_cptr addr, uae_u32 l)
 	     "\t1:"
 	     : "=d" (addr), "=b" (l) : "0" (addr), "r" (good_address_map), "1" (l) : "cc", "memory", "ecx");
 }
-
-STATIC_INLINE void wordput_1 (uae_cptr addr, uae_u32 w)
+static __inline__ void wordput_1 (uae_cptr addr, uae_u32 w)
 {
     __asm__ __volatile__("andl $0x00FFFFFF,%0\n"
 	     "\tcmpb $0,(%0,%3)\n"
@@ -144,8 +139,7 @@ STATIC_INLINE void wordput_1 (uae_cptr addr, uae_u32 w)
 	     "\t1:"
 	     : "=d" (addr), "=b" (w) : "0" (addr), "r" (good_address_map), "1" (w) : "cc", "memory", "ecx");
 }
-
-STATIC_INLINE void byteput_1 (uae_cptr addr, uae_u32 b)
+static __inline__ void byteput_1 (uae_cptr addr, uae_u32 b)
 {
     __asm__ __volatile__("andl $0x00FFFFFF,%0\n"
 	     "\tcmpb $0,(%0,%3)\n"
@@ -168,7 +162,7 @@ typedef struct {
     unsigned char a, b, c;
 } __attribute__ ((packed)) uae_u24;
 
-STATIC_INLINE uae_u24 uae24_convert (uae_u32 v)
+static __inline__ uae_u24 uae24_convert (uae_u32 v)
 {
     return *(uae_u24 *)&v;
 }

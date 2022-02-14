@@ -8,9 +8,7 @@
 
 #define TARGET_NAME "unix"
 
-#ifndef OPTIONSFILENAME
 #define OPTIONSFILENAME ".uaerc"
-#endif
 #define OPTIONS_IN_HOME
 
 #define DEFPRTNAME "lpr"

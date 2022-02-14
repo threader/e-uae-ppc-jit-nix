@@ -31,5 +31,3 @@ STATIC_INLINE int uae_start_thread (void *(*f) (void *), void *arg, uae_thread_i
 #define UAE_THREAD_EXIT pthread_exit(0)
 
 #define set_thread_priority(pri) 
-
-#define uae_thread_self  pthread_self

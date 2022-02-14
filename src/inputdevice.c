@@ -40,7 +40,6 @@
 #include "gui.h"
 #include "disk.h"
 #include "sounddep/sound.h"
-#include "savestate.h"
 
 #include <ctype.h>
 
@@ -97,6 +96,11 @@ struct inputevent events[] = {
 #undef DEFEVENT
 
 static int sublevdir[2][MAX_INPUT_SUB_EVENT];
+
+#define ID_BUTTON_OFFSET 0
+#define ID_BUTTON_TOTAL 32
+#define ID_AXIS_OFFSET 32
+#define ID_AXIS_TOTAL 32
 
 struct uae_input_device2 {
     uae_u32 buttonmask;
@@ -683,8 +687,10 @@ static void mouseupdate (int pct)
 	    mouse_delta[i][1] -= v;
 
 	v = mouse_delta[i][2] * pct / 100;
-	if (v > 0)
+	if (v > 0) {
+	    write_log( "wheel_down\n" );
 	    record_key (0x7a << 1);
+	}
 	else if (v < 0)
 	    record_key (0x7b << 1);
         if (!mouse_deltanoreset[i][2])
@@ -1137,7 +1143,7 @@ void inputdevice_do_keyboard (int code, int state)
 	Interrupt (7);
 	break;
 	case AKS_PAUSE:
-        pause_emulation = pause_emulation ? 0 : 1;
+	pause_emulation = pause_emulation ? 0 : 1;
 	break;
 	case AKS_WARP:
 	turbo_emulation = turbo_emulation ? 0 : 1;
@@ -1150,18 +1156,6 @@ void inputdevice_do_keyboard (int code, int state)
 	break;
 	case AKS_INHIBITSCREEN:
 	toggle_inhibit_frame (IHF_SCROLLLOCK);
-	break;
-	case AKS_STATEREWIND:
-	savestate_dorewind(1);
-	break;
-	case AKS_VOLDOWN:
-	sound_volume (-1);
-	break;
-	case AKS_VOLUP:
-	sound_volume (1);
-	break;
-	case AKS_VOLMUTE:
-	sound_volume (0);
 	break;
 #ifndef _WIN32
 	case AKS_QUIT:
@@ -1193,7 +1187,7 @@ void handle_input_event (int nr, int state, int max, int autofire)
 {
     struct inputevent *ie;
     int joy;
-    
+
     if (nr <= 0) return;
     ie = &events[nr];
     //write_log("'%s' %d %d\n", ie->name, state, max);
@@ -1353,7 +1347,7 @@ static void setbuttonstateall (struct uae_input_device *id, struct uae_input_dev
 	    id2->buttonmask |= mask;
 	else
 	    id2->buttonmask &= ~mask;
-    }    
+    }
 }
 
 
@@ -1667,9 +1661,35 @@ static void set_kbr_default (struct uae_prefs *p, int index, int num)
     }
 }
 
+static void set_joystick_default (struct uae_prefs *p, int index, int anum)
+{
+    struct uae_input_device *uid = p->joystick_settings[index];
+
+    uid[anum].eventid[ID_AXIS_OFFSET + 0][0] = (anum & 1) ? INPUTEVENT_JOY2_HORIZ : INPUTEVENT_JOY1_HORIZ;
+    uid[anum].eventid[ID_AXIS_OFFSET + 1][0] = (anum & 1) ? INPUTEVENT_JOY2_VERT : INPUTEVENT_JOY1_VERT;
+    uid[anum].eventid[ID_BUTTON_OFFSET + 0][0] = (anum & 1) ? INPUTEVENT_JOY2_FIRE_BUTTON : INPUTEVENT_JOY1_FIRE_BUTTON;
+    uid[anum].eventid[ID_BUTTON_OFFSET + 1][0] = (anum & 1) ? INPUTEVENT_JOY2_2ND_BUTTON : INPUTEVENT_JOY1_2ND_BUTTON;
+    uid[anum].eventid[ID_BUTTON_OFFSET + 2][0] = (anum & 1) ? INPUTEVENT_JOY2_3RD_BUTTON : INPUTEVENT_JOY1_3RD_BUTTON;
+    uid[anum].enabled = 1;
+}
+
+static void set_mouse_default (struct uae_prefs *p, int index, int anum)
+{
+    struct uae_input_device *uid = p->mouse_settings[index];
+
+    uid[anum].eventid[ID_AXIS_OFFSET + 0][0] = (anum & 1) ? INPUTEVENT_MOUSE2_HORIZ : INPUTEVENT_MOUSE1_HORIZ;
+    uid[anum].eventid[ID_AXIS_OFFSET + 1][0] = (anum & 1) ? INPUTEVENT_MOUSE2_VERT : INPUTEVENT_MOUSE1_VERT;
+    uid[anum].eventid[ID_AXIS_OFFSET + 2][0] = (anum & 1) ? 0 : INPUTEVENT_MOUSE1_WHEEL;
+    uid[anum].eventid[ID_BUTTON_OFFSET + 0][0] = (anum & 1) ? INPUTEVENT_JOY2_FIRE_BUTTON : INPUTEVENT_JOY1_FIRE_BUTTON;
+    uid[anum].eventid[ID_BUTTON_OFFSET + 1][0] = (anum & 1) ? INPUTEVENT_JOY2_2ND_BUTTON : INPUTEVENT_JOY1_2ND_BUTTON;
+    uid[anum].eventid[ID_BUTTON_OFFSET + 2][0] = (anum & 1) ? INPUTEVENT_JOY2_3RD_BUTTON : INPUTEVENT_JOY1_3RD_BUTTON;
+    if (anum == 0)
+	uid[anum].enabled = 1;
+}
+
 void inputdevice_default_prefs (struct uae_prefs *p)
 {
-    int i;
+    int i, j;
 
     inputdevice_init ();
     p->input_joymouse_multiplier = 20;
@@ -1680,8 +1700,13 @@ void inputdevice_default_prefs (struct uae_prefs *p)
     p->input_autofire_framecnt = 10;
     for (i = 0; i <= MAX_INPUT_SETTINGS; i++) {
         set_kbr_default (p, i, 0);
-	input_get_default_mouse (p->mouse_settings[i]);
-	input_get_default_joystick (p->joystick_settings[i]);
+	set_mouse_default (p, i, 0);
+	for (j = 1; j < idev[IDTYPE_MOUSE].get_num (); j++)
+	    set_mouse_default (p, i, j);
+	set_joystick_default (p, i, (i + 1) & 1);
+	set_joystick_default (p, i, (i + 0) & 1);
+	for (j = 2; j < idev[IDTYPE_JOYSTICK].get_num (); j++)
+	    set_joystick_default (p, i, j);
     }
 }
 

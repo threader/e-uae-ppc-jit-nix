@@ -67,9 +67,6 @@ static int bitdepth, bit_unit;
 static int current_width, current_height;
 
 static SDL_Color arSDLColors[256];
-#ifdef PICASSO96
-static SDL_Color p96Colors[256];
-#endif
 static int ncolors;
 
 static int fullscreen;
@@ -152,7 +149,7 @@ void flush_clear_screen (void)
 
     if (prSDLScreen) {
 	SDL_Rect rect = { 0, 0, prSDLScreen->w, prSDLScreen->h };
-	SDL_FillRect (prSDLScreen, &rect, SDL_MapRGB (prSDLScreen->format, 0,0,0));
+	SDL_FillRect (prSDLScreen, &rect, 0);
 	SDL_UpdateRect (prSDLScreen, 0, 0, rect.w, rect.h);
     }
 }
@@ -183,10 +180,12 @@ static int get_color (int r, int g, int b, xcolnr *cnp)
 {
     DEBUG_LOG ("Function: get_color\n");
 
-    arSDLColors[ncolors].r = r << 4;
-    arSDLColors[ncolors].g = g << 4;
-    arSDLColors[ncolors].b = b << 4;
-    *cnp = ncolors++;
+    *cnp = SDL_MapRGB (prSDLScreen->format, r, g, b);
+    arSDLColors[ncolors].r = r;
+    arSDLColors[ncolors].g = g;
+    arSDLColors[ncolors].b = b;
+
+    ncolors++;
     return 1;
 }
 
@@ -395,7 +394,6 @@ static int graphics_subinit (void)
 	    gfxvidinfo.rowbytes = prSDLScreen->pitch;
 	    gfxvidinfo.maxblocklines = 100;
 	    gfxvidinfo.can_double = 0;
-            SDL_SetColors (prSDLScreen, arSDLColors, 0, 256);
 #ifdef PICASSO96
 	} else {
 	    /* Initialize structure for Picasso96 video modes */
@@ -492,10 +490,8 @@ void handle_events (void)
 		    case SDL_BUTTON_LEFT:      buttonno = 0; break;
 		    case SDL_BUTTON_MIDDLE:    buttonno = 2; break;
 		    case SDL_BUTTON_RIGHT:     buttonno = 1; break;
-#ifdef SDL_BUTTON_WHEELUP		   
 		    case SDL_BUTTON_WHEELUP:   if (state) record_key (0x7a << 1); break;
 		    case SDL_BUTTON_WHEELDOWN: if (state) record_key (0x7b << 1); break;
-#endif		   
 		}
 		if (buttonno >= 0)
 		    setmousebuttonstate (0, buttonno, rEvent.type == SDL_MOUSEBUTTONDOWN ? 1:0);
@@ -704,15 +700,6 @@ void DX_SetPalette (int start, int count)
 				| doMask256 (g, green_bits, green_shift)
 				| doMask256 (b, blue_bits, blue_shift));
 	}
-    } else {
-      int i;
-      for (i = start; i < start+count && i < 256;  i++) {
-        p96Colors[i].r = picasso96_state.CLUT[i].Red;
-        p96Colors[i].g = picasso96_state.CLUT[i].Green;
-        p96Colors[i].b = picasso96_state.CLUT[i].Blue;
-	//        write_log ("%d %d\n", i, count);
-      }
-      SDL_SetColors (prSDLScreen, &p96Colors[start], start, count);
     }
 }
 
@@ -1147,21 +1134,6 @@ struct inputdevice_functions inputdevicefunc_keyboard =
     read_kb, get_kb_num, get_kb_name, get_kb_widget_num,
     get_kb_widget_type, get_kb_widget_first
 };
-
-/*
- * Default inputdevice config for SDL mouse
- */
-void input_get_default_mouse (struct uae_input_device *uid)
-{
-    /* SDL supports only one mouse */
-    uid[0].eventid[ID_AXIS_OFFSET + 0][0]   = INPUTEVENT_MOUSE1_HORIZ;
-    uid[0].eventid[ID_AXIS_OFFSET + 1][0]   = INPUTEVENT_MOUSE1_VERT;
-    uid[0].eventid[ID_AXIS_OFFSET + 2][0]   = INPUTEVENT_MOUSE1_WHEEL;
-    uid[0].eventid[ID_BUTTON_OFFSET + 0][0] = INPUTEVENT_JOY1_FIRE_BUTTON;
-    uid[0].eventid[ID_BUTTON_OFFSET + 1][0] = INPUTEVENT_JOY1_2ND_BUTTON;
-    uid[0].eventid[ID_BUTTON_OFFSET + 2][0] = INPUTEVENT_JOY1_3RD_BUTTON;
-    uid[0].enabled = 1;
-}
 
 /*
  * Handle gfx specific cfgfile options

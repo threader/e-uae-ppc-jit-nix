@@ -409,7 +409,6 @@ static struct uae_hotkeyseq x11_hotkeys[] =
     { MAKE_HOTKEYSEQ (XK_F12, XK_Shift_L, XK_F2, -1,  INPUTEVENT_SPC_EFLOPPY1) },
     { MAKE_HOTKEYSEQ (XK_F12, XK_Shift_L, XK_F3, -1,  INPUTEVENT_SPC_EFLOPPY2) },
     { MAKE_HOTKEYSEQ (XK_F12, XK_Shift_L, XK_F4, -1,  INPUTEVENT_SPC_EFLOPPY3) },
-    { MAKE_HOTKEYSEQ (XK_F12, XK_Return, -1, -1,      INPUTEVENT_SPC_ENTERGUI) },
     { HOTKEYS_END }
 };
 

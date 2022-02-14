@@ -16,7 +16,7 @@
 #include "gensound.h"
 #include "sounddep/sound.h"
 #include "threaddep/thread.h"
-#include <SDL_audio.h>
+#include "SDL_audio.h"
 
 static int have_sound = 0;
 static int obtainedfreq;
@@ -34,12 +34,6 @@ static int in_callback, closing_sound;
 static void clearbuffer (void)
 {
     memset (sndbuffer, (spec.format == AUDIO_U8) ? SOUND8_BASE_VAL : SOUND16_BASE_VAL, sizeof (sndbuffer));
-}
-
-/* This shouldn't be necessary . . . */
-static void dummy_callback (void *userdata, Uint8 *stream, int len)
-{
-  return;
 }
 
 static void sound_callback (void *userdata, Uint8 *stream, int len)
@@ -84,41 +78,32 @@ void update_sound (int freq)
     }
 }
 
-
-/* Try to determine whether sound is available. */
+/* Try to determine whether sound is available.  This is only for GUI purposes.  */
 int setup_sound (void)
 {
-    int success =1;
     int size = currprefs.sound_maxbsiz;
 
-    // success = (SDL_InitSubSystem (SDL_INIT_AUDIO) == 0);
-    // We can't initialize SDL audio here because with some
-    // implementations, it kills threading . . .
-    //if (success) {
-        spec.freq = currprefs.sound_freq;
-        spec.format = currprefs.sound_bits == 8 ? AUDIO_U8 : AUDIO_S16SYS;
-        spec.channels = currprefs.stereo ? 2 : 1;
-        spec.callback = dummy_callback;
-        size >>= spec.channels - 1;
-        size >>= 1;
-        while (size & (size - 1))
-	    size &= size - 1;
-        if (size < 512)
-	    size = 512;
-        spec.samples = size;
-        spec.callback = sound_callback;
-        spec.userdata = 0;
+    spec.freq = currprefs.sound_freq;
+    spec.format = currprefs.sound_bits == 8 ? AUDIO_U8 : AUDIO_S16SYS;
+    spec.channels = currprefs.stereo ? 2 : 1;
+    size >>= spec.channels - 1;
+    size >>= 1;
+    while (size & (size - 1))
+	size &= size - 1;
+    if (size < 512)
+	size = 512;
+    spec.samples = size;
+    spec.callback = sound_callback;
+    spec.userdata = 0;
 
-        if (SDL_OpenAudio (&spec, NULL) < 0) {
-	    write_log ("Couldn't open audio: %s\n", SDL_GetError());
-            //SDL_QuitSubSystem (SDL_INIT_AUDIO);
-  	    success = 0;
-        }
-        SDL_CloseAudio ();
-    //}
-    sound_available = success;
 
-    return sound_available;
+    if (SDL_OpenAudio (&spec, NULL) < 0) {
+	write_log ("Couldn't open audio: %s\n", SDL_GetError());
+	return 0;
+    }
+    sound_available = 1;
+    SDL_CloseAudio ();
+    return 1;
 }
 
 static int open_sound (void)
@@ -250,6 +235,3 @@ void reset_sound (void)
    return;
 }
 
-void sound_volume (int dir)
-{
-}

@@ -5,7 +5,7 @@
 //  Using R4 BSoundPlayer class
 //
 //  (c) 2004 Richard Drummond
-//  (c) 2000-2001 Axel Dï¿½fler
+//  (c) 2000-2001 Axel Dörfler
 //  (c) 1999 Be/R4 Sound - Raphael Moll
 //  (c) 1998-1999 David Sowsy
 //
@@ -44,7 +44,6 @@ int init_sound (void);
 void pause_sound (void);
 void resume_sound (void);
 void reset_sound (void);
-void sound_volume (void);
 }
 
 uae_u16 *sndbuffer;
@@ -299,9 +298,5 @@ void resume_sound (void)
 }
 
 void reset_sound (void)
-{
-}
-
-void sound_volume (int dir)
 {
 }

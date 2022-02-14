@@ -163,5 +163,3 @@ STATIC_INLINE int GET_RES (uae_u16 con0)
 
 extern void fpscounter_reset (void);
 extern unsigned long idletime;
-
-extern void misc_hsync_stuff (void);

@@ -1,8 +1,5 @@
 /* src/sysconfig.h.in.  Generated from configure.in by autoheader.  */
 
-/* Define to 1 if you have the <caps/capsimage.h> header file. */
-#undef HAVE_CAPS_CAPSIMAGE_H
-
 /* Define to 1 if you have the `cfmakeraw' function. */
 #undef HAVE_CFMAKERAW
 
@@ -18,9 +15,6 @@
 /* Define to 1 if you have the <dirent.h> header file, and it defines `DIR'.
    */
 #undef HAVE_DIRENT_H
-
-/* "Define to 1 if you have 'dlopen' function */
-#undef HAVE_DLOPEN
 
 /* Define to 1 if you have the <dmedia/audio.h> header file. */
 #undef HAVE_DMEDIA_AUDIO_H

@@ -4,11 +4,11 @@ dnl
 dnl Updated, re-written and generally mauled 2003 Richard Drummond
 
 AC_PREREQ(2.50)
-AC_INIT(UAE, 0.8.25-20040223, ,uae)
+AC_INIT(UAE, 0.8.23-20040129, ,uae)
 AC_CONFIG_SRCDIR([config.h])
 AC_CONFIG_HEADERS([src/sysconfig.h])
 AC_CANONICAL_TARGET
-AM_INIT_AUTOMAKE(1.7 dist-bzip2)
+AM_INIT_AUTOMAKE(1.6 dist-bzip2)
 
 dnl
 dnl  Checks for programs.
@@ -156,18 +156,6 @@ ACX_PTHREAD(HAVE_PTHREAD=yes,HAVE_PTHREAD=no)
 
 
 dnl
-dnl  Check for dlopen
-dnl
-SAVE_LIBS="$LIBS"
-LIBS="$LIBS -ldl"
-AC_CHECK_LIB(dl, dlopen, [
-    AC_DEFINE(HAVE_DLOPEN, 1, "Define to 1 if you have 'dlopen' function)
-  ], [
-    LIBS="$SAVE_LIBS"
-  ]
-)
-
-dnl
 dnl  Check availability of OSS
 dnl
 HAVE_USS_SOUND=no
@@ -191,7 +179,7 @@ if [[ "x$ac_cv_header_sys_soundcard_h" = "xyes" -o "x$ac_cv_header_machine_sound
 AC_MSG_RESULT(yes)
 HAVE_USS_SOUND=yes,
 AC_MSG_RESULT(no))
-  if [[ "x$HAVE_LIBOSSAUDIO" = "xyes" ]]; then
+  if [[ "x$HAVE_LIBOSSAUDIO" = "xyes" ]]; then 
     LIBS="$SAVE_LIBS"
   fi
 fi
@@ -203,6 +191,7 @@ dnl
 if [[ "x$ac_cv_header_dmedia_audio.h" = "xno" ]]; then
   HAVE_SGIAUDIO_LIB=no
 fi
+
 
 
 dnl
@@ -220,7 +209,7 @@ case $host_os in
       OSDEP=od-linux
       ;;
     darwin*)
-      HOST_OS=darwin
+      HOST_OS=darwin      
       ;;
     beos)
       HOST_OS=beos
@@ -387,16 +376,12 @@ WANT_VIDMODE=no
 WANT_THREADS=dunno
 NEED_THREAD_SUPPORT=no
 WANT_AUTOCONFIG=dunno
-WANT_SCSIEMU=no
+WANT_SCSIEMUL=no
 WANT_AGA=yes
-WANT_CD32=no
-WANT_CDTV=no
 WANT_BSDSOCK=dunno
 WANT_UI=dunno
 WANT_COMPATIBLE=yes
 WANT_CYCLEEXACT=yes
-WANT_CAPS=no
-WANT_ENFORCER=no
 
 MATHLIB=-lm
 DEBUGOBJS="debug.o"
@@ -407,10 +392,7 @@ dnl
 if [[ "$HOST_OS" = "linux" ]]; then
   JOYDEP=od-linux
   JOYNAME="linux"
-  if [[ "$HOST_CPU" = "i386" ]]; then
-    NATMEM="0x50000000"
-    WANT_ENFORCER=yes
-  fi
+  NATMEM="0x50000000"
 else if [[ "$OSDEP" = "od-beos" ]]; then
   TARGET=beos
   TARGETDEP=t-beos.h
@@ -418,7 +400,7 @@ else if [[ "$OSDEP" = "od-beos" ]]; then
   GFXNAME="native BeOS"
   GUIDEP="$OSDEP"
   GUINAME="native BeOS"
-  GUILIBS="-lbe -ltracker"
+  GUILIBS="-lbe -ltracker" 
   JOYDEP="$OSDEP"
   JOYNAME="native BeOS"
   JOYLIBS="-ldevice"
@@ -466,27 +448,24 @@ dnl
 dnl  Options
 dnl
 
-AC_ARG_ENABLE(profiling,       AS_HELP_STRING([--enable-profiling],       [Build a profiling (SLOW!) version]),                       [DO_PROFILING=$enableval],[])
-AC_ARG_ENABLE(aga,             AS_HELP_STRING([--enable-aga],             [Enable AGA chipset emulation (default yes)]),              [WANT_AGA=$enableval],[])
-AC_ARG_ENABLE(cdtv,            AS_HELP_STRING([--enable-cdtv],            [Enable CDTV emulation (default no)]),                      [WANT_CDTV=$enableval],[])
-AC_ARG_ENABLE(cd32,            AS_HELP_STRING([--enable-cd32],            [Enable CD32 emulation (default no)]),                      [WANT_CD32=$enableval],[])
-AC_ARG_ENABLE(cycle-exact-cpu, AS_HELP_STRING([--enable-cycle-exact-cpu], [Enable cycle-exact CPU emulation (default yes)]),          [WANT_CYCLEEXACT=$enableval],[])
-AC_ARG_ENABLE(compatible-cpu,  AS_HELP_STRING([--enable-compatible-cpu],  [Enable compatible CPU emulation (default yes)]),           [WANT_COMPATIBLE=$enableval],[])
-AC_ARG_ENABLE(jit,             AS_HELP_STRING([--enable-jit],             [Enable JIT compiler (currently x86 only)]),                [WANT_JIT=$enableval],[])
-AC_ARG_ENABLE(natmem,          AS_HELP_STRING([--enable-natmem],          [Enable JIT direct memory support (default auto)]),         [NATMEM=$enableval],[])
-AC_ARG_ENABLE(x86assembly,     AS_HELP_STRING([--enable-x86assembly],     [Enable x86 assembly optimizations (default auto)]),        [WANT_X86ASSEMBLY=$enableval],[])
-AC_ARG_ENABLE(threads,         AS_HELP_STRING([--enable-threads],         [Enable thread support (default auto)]),                    [WANT_THREADS=$enableval],[])
-AC_ARG_ENABLE(autoconfig,      AS_HELP_STRING([--enable-autoconfig],      [Enable emulaton of autoconfig devices (default auto)]),    [WANT_AUTOCONFIG=$enableval],[])
-AC_ARG_ENABLE(scsi-device,     AS_HELP_STRING([--enable-scsi-device],     [Enable emulaton of SCSI devices (default no)]),            [WANT_SCSIEMU=$enableval],[])
-AC_ARG_ENABLE(bsdsock,         AS_HELP_STRING([--enable-bsdsock],         [Enable bsdsocket.library emulation]),                      [WANT_BSDSOCK=$enableval],[])
-AC_ARG_ENABLE(enforcer,	       AS_HELP_STRING([--enable-enforcer],        [Enable erstatz Enforcer support (default yes)]),           [WANT_ENFORCER=$enableval],[])
-AC_ARG_ENABLE(dga,             AS_HELP_STRING([--enable-dga],             [X11 version: Use the DGA extension]),                      [WANT_DGA=$enableval],[])
-AC_ARG_ENABLE(vidmode,         AS_HELP_STRING([--enable-vidmode],         [X11 version: Use the XF86VidMode extension]),              [WANT_VIDMODE=$enableval],[])
-AC_ARG_ENABLE(ui,              AS_HELP_STRING([--enable-ui],              [Use a user interface if possible (default on)]),           [WANT_UI=$enableval],[])
+AC_ARG_ENABLE(profiling,       AS_HELP_STRING([--enable-profiling],       [Build a profiling (SLOW!) version]),                    [DO_PROFILING=$enableval],[])
+AC_ARG_ENABLE(aga,             AS_HELP_STRING([--enable-aga],             [Enable AGA chipset emulation (default yes)]),           [WANT_AGA=$enableval],[])
+AC_ARG_ENABLE(cycle-exact-cpu, AS_HELP_STRING([--enable-cycle-exact-cpu], [Enable cycle-exact CPU emulation (default yes)]),       [WANT_CYCLEEXACT=$enableval],[])
+AC_ARG_ENABLE(compatible-cpu,  AS_HELP_STRING([--enable-compatible-cpu],  [Enable compatible CPU emulation (default yes)]),        [WANT_COMPATIBLE=$enableval],[])
+AC_ARG_ENABLE(jit,             AS_HELP_STRING([--enable-jit],             [Enable JIT compiler (currently x86 only)]),             [WANT_JIT=$enableval],[])
+AC_ARG_ENABLE(natmem,          AS_HELP_STRING([--enable-natmem],          [Enable JIT direct memory support (default auto)]),      [NATMEM=$enableval],[])
+AC_ARG_ENABLE(x86assembly,     AS_HELP_STRING([--enable-x86assembly],     [Enable x86 assembly optimizations (default auto)]),     [WANT_X86ASSEMBLY=$enableval],[])
+AC_ARG_ENABLE(threads,         AS_HELP_STRING([--enable-threads],         [Enable thread support (default auto)]),                 [WANT_THREADS=$enableval],[])
+AC_ARG_ENABLE(autoconfig,      AS_HELP_STRING([--enable-autoconfig],      [Enable emulaton of autoconfig devices (default auto)]), [WANT_AUTOCONFIG=$enableval],[])
+AC_ARG_ENABLE(bsdsock,         AS_HELP_STRING([--enable-bsdsock],         [Enable bsdsocket.library emulation]),                   [WANT_BSDSOCK=$enableval],[])
+AC_ARG_ENABLE(dga,             AS_HELP_STRING([--enable-dga],             [X11 version: Use the DGA extension]),                   [WANT_DGA=$enableval],[])
+AC_ARG_ENABLE(vidmode,         AS_HELP_STRING([--enable-vidmode],         [X11 version: Use the XF86VidMode extension]),           [WANT_VIDMODE=$enableval],[])
+AC_ARG_ENABLE(ui,              AS_HELP_STRING([--enable-ui],              [Use a user interface if possible (default on)]),        [WANT_UI=$enableval],[])
 
-AC_ARG_WITH(sdl,       AS_HELP_STRING([--with-sdl],       [Use SDL library for low-level functions]),                     [WANT_SDL=$withval], [])
-AC_ARG_WITH(sdl-sound, AS_HELP_STRING([--with-sdl-sound], [Use SDL library for sound]),                                   [WANT_SDLSND=$withval],[])
-AC_ARG_WITH(sdl-gfx,   AS_HELP_STRING([--with-sdl-gfx],   [Use SDL library for graphics]),                                [WANT_SDLGFX=$withval], [])
+AC_ARG_WITH(sdl,       AS_HELP_STRING([--with-sdl],       [Use SDL library for low-level functions]), [WANT_SDL=$withval], [])
+AC_ARG_WITH(sdl-sound, AS_HELP_STRING([--with-sdl-sound], [Use SDL library for sound]),               [WANT_SDLSND=$withval],[])
+AC_ARG_WITH(sdl-gfx,   AS_HELP_STRING([--with-sdl-gfx],   [Use SDL library for graphics]),            [WANT_SDLGFX=$withval], [])
+
 
 dnl
 dnl Some simple plausibility tests...
@@ -591,7 +570,7 @@ if [[ "x$HAVE_GCC27" = "xyes" -a "$HOST_CPU" = "i386" -a "x$DO_PROFILING" = "xno
 else if [[ "x$HAVE_GCC27" = "xyes" -a "$HOST_CPU" = "68k" ]]; then
   CFLAGS="$CFLAGS -DUNALIGNED_PROFITABLE -DREGPARAM=\"__attribute__((regparm(4)))\" -DM68K_FLAG_OPT=1 -DSTATIC_INLINE=\"static inline\""
 else
-  CFLAGS="$CFLAGS -DREGPARAM="
+  CFLAGS="$CFLAGS -DREGPARAM= -DSTATIC_INLINE=\"static inline\""
 fi
 fi
 
@@ -858,7 +837,6 @@ else
       GUIDEP=gui-gtk
       GUILIBS="$GTK_LIBS"
       GUINAME="GTK+"
-      CFLAGS="$CFLAGS -DNO_MAIN_IN_MAIN_C"
       NEED_THREAD_SUPPORT=yes
       if [[ "x$WANT_THREADS" = "xno" ]]; then
         AC_MSG_ERROR([Thread support disabled, but GTK+ UI requires threads])
@@ -893,7 +871,7 @@ if [[ "x$WANT_AUTOCONFIG" != "xno" ]]; then
   NEED_THREAD_SUPPORT=yes
   FILESYSOBJS="filesys.o fsdb.o fsusage.o hardfile.o"
   if [[ "x$HOST_OS" != "xwin32" ]]; then
-    FILESYSOBJS="$FILESYSOBJS filesys_unix.o fsdb_unix.o hardfile_unix.o"
+    FILESYSOBJS="$FILESYSOBJS fsdb_unix.o hardfile_unix.o"
   else
     FILESYSOBJS="$FILESYSOBJS od-win32/fsdb_win32.o od-win32/fsdb_hardfile_win32.o"
   fi
@@ -907,104 +885,16 @@ else
 fi
 
 
-dnl
+dnl 
 dnl  Do we want SCSI emulation?
 dnl
 AC_MSG_CHECKING([whether to build SCSI emulation])
-if [[ "x$WANT_SCSIEMU" = "xyes" ]]; then
-  if [[ "x$WANT_AUTOCONFIG" = "xno" ]]; then
-    AC_MSG_RESULT(no)
-    AC_MSG_WARN([Autoconfig support not enabled, so SCSI emulation cannot be enabled])
-    NR_WARNINGS=`expr $NR_WARNINGS + 1`
-    WANT_SCSIEMU=no
-  else
-    AC_MSG_RESULT(yes)
-    AC_MSG_CHECKING([availability of libscg headers and lib])
-    OLDLIBS="$LIBS"
-    OLDCFLAGS="$CFLAGS"
-    CFLAGS="$CFLAGS -I$srcdir""/src/include"
-    LIBS="-L$srcdir/src $LIBS -lscg -lschily"
-    AC_TRY_LINK([
-typedef int BOOL;
-#include "scg/scgcmd.h"
-#include "scg/scsitransp.h"
-#include "scg/scsireg.h"],
-[{SCSI *scgp = scg_open (0, 0, 0, 0, 0);}],
-    [
-      AC_MSG_RESULT(available)
-      SCSIOBJS="scsiemul.o blkdev.o blkdev-libscg.o"
-      CFLAGS="$OLDCFLAGS -DSCSIEMU"
-      NEED_THREAD_SUPPORT=yes
-#        echo $srcdir
-#	echo $builddir
-      if [[ "$srcdir" != "." ]]; then
-        AC_CONFIG_LINKS(src/libscg.a:src/libscg.a)
-        AC_CONFIG_LINKS(src/libschily.a:src/libschily.a)
-      else
-        LIBS="$OLDLIBS -L. -lscg -lschily"
-      fi
-    ],
-    [
-      AC_MSG_RESULT(not available)
-      NR_WARNINGS=`expr $NR_WARNINGS + 1`
-      echo "Please refer to the UAE SCSI device section in docs/README for installation instructions."
-      LIBS="$OLDLIBS"
-      CFLAGS="$OLDCFLAGS"
-      WANT_SCSIEMU=no
-    ])
-  fi
+if [[ "x$WANT_SCSIEMUL" != "xno" ]]; then
+  AC_MSG_ERROR([SCSI emulation is not support yet])
+  SCSIOBJS="scsiemul.o scsidev.o"
+  AC_MSG_RESULT(yes)
 else
-  AC_MSG_RESULT(no)
-fi
-if [[ "x$WANT_SCSIEMU" != "xyes" ]]; then
   SCSIOBJS="scsi-none.o"
-  AC_MSG_RESULT(no)
-fi
-
-
-dnl
-dnl  Do we want CDTV emulation ?
-dnl
-AC_MSG_CHECKING([whether to build CDTV emulation])
-if [[ "x$WANT_CDTV" != "xno" ]]; then
-  AC_MSG_RESULT(yes)
-  if [[ "x$WANT_SCSIEMU" != "xyes" ]]; then
-    AC_MSG_WARN([SCSI support is not enabled or cannot be built. Disabling CDTV emulation])
-    NR_WARNINGS=`expr $NR_WARNINGS + 1`
-    WANT_CDTV=no
-  else
-    CFLAGS="$CFLAGS -DCDTV"
-    CDOBJS="cdrom.o"
-  fi
-else
-  AC_MSG_RESULT(no)
-fi
-
-
-dnl
-dnl  Do we want CD32 emulation ?
-dnl
-AC_MSG_CHECKING([whether to build CD32 emulation])
-if [[ "x$WANT_CD32" != "xno" ]]; then
-  AC_MSG_RESULT(yes)
-  if [[ "x$WANT_SCSIEMU" != "xyes" ]]; then
-    AC_MSG_WARN([SCSI support is not enabled or cannot be built. Disabling CD32 emulation])
-    NR_WARNINGS=`expr $NR_WARNINGS + 1`
-    WANT_CD32=no
-  else
-    if [[ "x$WANT_AGA" != "xyes" ]]; then
-      AC_MSG_WARN([AGA emulation is not enabled. Disabling CD32 emulation])
-      NR_WARNINGS=`expr $NR_WARNINGS + 1`
-      WANT_CD32=no
-    else
-      CFLAGS="$CFLAGS -DCD32"
-      if [[ "x$WANT_CDTV" = "xno" ]]; then
-        CDOBJS="cdrom.o"
-      fi
-      CDOBJS="$CDOBJS akiko.o"
-    fi
-  fi
-else
   AC_MSG_RESULT(no)
 fi
 
@@ -1017,7 +907,6 @@ if [[ "x$WANT_BSDSOCK" != "xno" ]]; then
   if [[ "x$WANT_AUTOCONFIG" = "xno" ]]; then
     AC_MSG_RESULT(no)
     AC_MSG_WARN([Autoconfig support not enabled, so bsdsocket emulation cannot be enabled])
-    NR_WARNINGS=`expr $NR_WARNINGS + 1`
   else
     NEED_THREAD_SUPPORT=yes
     CFLAGS="$CFLAGS -DBSDSOCKET"
@@ -1033,7 +922,6 @@ else
   BSDSOCKOBJS="bsdsocket-posix.o"
 fi
 
-
 dnl
 dnl  Check whether we want or need threads
 dnl
@@ -1043,56 +931,16 @@ if [[ "x$WANT_THREADS" = "xyes" -o "x$NEED_THREAD_SUPPORT" = "xyes" ]]; then
   AC_MSG_CHECKING([which thread target to build])
   if [[ "$THREADDEP" = "td-none" ]]; then
     AC_MSG_ERROR([Thread support wanted or required, but no thread target found])
-  fi
+  fi  
   if [[ "$THREADDEP" = "td-posix" ]]; then
     CC="$PTHREAD_CC"
     CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
     LIBS="$LIBS $PTHREAD_LIBS"
   fi
   CFLAGS="$CFLAGS -DSUPPORT_THREADS"
-  AC_MSG_RESULT($THREADNAME)
+  AC_MSG_RESULT($THREADNAME)  
 else
   THREADDEP=td-none
-  AC_MSG_RESULT(no)
-fi
-
-
-dnl
-dnl  Check for CAPS API
-dnl
-WANT_CAPS=dunno
-AC_ARG_WITH(caps,        AS_HELP_STRING([--with-caps],        [Build with support for CAPS/IPF disk images) (default auto)]), [WANT_CAPS=$withval],[])
-AC_ARG_WITH(caps-prefix, AS_HELP_STRING([--with-caps-prefix], [Prefix where CAPS API is installed (optional)]),                 [CAPS_PREFIX=$withval],[])
-if [[ "x$WANT_CAPS" != "xno" ]]; then
-  SAVE_CPPFLAGS="$CPPFLAGS"
-  if [[ "x$CAPS_PREFIX" != "x" ]]; then
-    CPPFLAGS="$CPPFLAGS -I$CAPS_PREFIX/include"
-  fi
-  AC_CHECK_HEADERS(caps/capsimage.h, [HAVE_CAPS=yes], [HAVE_CAPS=no])
-  if [[ "$HAVE_CAPS" = "yes" ]]; then
-    CFLAGS="$CFLAGS -DCAPS"
-  else
-    CPPFLAGS="$SAVE_CPPFLAGS"
-    if [[ "$WANT_CAPS" = "yes" ]]; then
-      AC_MSG_WARN([CAPS support wanted, but CAPS API not found])
-      WANT_CAPS=no
-    fi
-  fi
-fi
-
-
-dnl
-dnl  Build fake enforcer?
-dnl
-AC_MSG_CHECKING([whether to build with enforcer])
-if [[ "x$WANT_ENFORCER" != "xno" ]]; then
-  if [[ "x$NATMEM" != "xno" ]]; then
-    AC_MSG_RESULT(yes)
-    CFLAGS="$CFLAGS -DENFORCER"
-  else
-    AC_MSG_RESULT(no)
-  fi
-else
   AC_MSG_RESULT(no)
 fi
 
@@ -1113,7 +961,6 @@ AC_CONFIG_LINKS(src/guidep:src/$GUIDEP)
 AC_CONFIG_FILES([Makefile
 		 src/Makefile
 		 src/dms/Makefile
-		 src/caps/Makefile
 		 src/md-generic/Makefile
 		 src/md-i386-gcc/Makefile
 		 src/md-i386-watcom/Makefile
@@ -1157,7 +1004,6 @@ AC_SUBST(JITOBJS)
 AC_SUBST(RESOBJS)
 AC_SUBST(ASMOBJS)
 AC_SUBST(SCSIOBJS)
-AC_SUBST(CDOBJS)
 AC_SUBST(DEBUGOBJS)
 AC_SUBST(FILESYSOBJS)
 AC_SUBST(BSDSOCKOBJS)

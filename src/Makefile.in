@@ -51,7 +51,6 @@ CC = @CC@
 CCAS = @CCAS@
 CCASFLAGS = @CCASFLAGS@
 CCDEPMODE = @CCDEPMODE@
-CDOBJS = @CDOBJS@
 CFLAGS = @CFLAGS@
 CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
@@ -173,7 +172,7 @@ target_os = @target_os@
 target_vendor = @target_vendor@
 INCLUDES = -I$(top_srcdir)/src/include -I$(top_builddir)/src -I$(top_srcdir)/src -I$(top_srcdir)
 
-SUBDIRS = @MACHDEP@ @GFXDEP@ @SNDDEP@ @JOYDEP@ @GUIDEP@ @OSDEP@ keymap dms caps
+SUBDIRS = @MACHDEP@ @GFXDEP@ @SNDDEP@ @JOYDEP@ @GUIDEP@ @OSDEP@ keymap dms
 
 DIST_SUBDIRS = md-generic md-68k md-i386-gcc md-i386-watcom md-ppc \
 	       md-ppc-gcc \
@@ -183,7 +182,7 @@ DIST_SUBDIRS = md-generic md-68k md-i386-gcc md-i386-watcom md-ppc \
 	       gui-none gui-gtk \
 	       od-generic od-amiga od-beos od-linux od-macos \
 	       keymap \
-	       caps dms
+	       dms
 
 
 BUILT_SOURCES = blit.h blitfunc.h blitfunc.c blittable.c \
@@ -226,7 +225,6 @@ noinst_HEADERS = include/akiko.h include/ar.h include/audio.h include/autoconf.h
 		 include/sysdeps.h include/tui.h include/uae.h \
 		 include/uaeexe.h include/unzip.h include/xwin.h \
 		 include/zfile.h include/enforcer.h include/hotkeys.h \
-		 include/caps.h include/driveclick.h \
 	         targets/t-amiga.h targets/t-beos.h \
 	         targets/t-macos.h targets/t-unix.h \
 		 td-none/thread.h td-posix/thread.h td-sdl/thread.h
@@ -244,7 +242,6 @@ uae_SOURCES = main.c newcpu.c fpp.c memory.c custom.c serial.c cia.c \
 	            gfxutil.c gfxlib.c audio.c drawing.c  \
 	            native2amiga.c identify.c disk.c  savestate.c unzip.c \
 	            uaeexe.c uaelib.c fdi2raw.c sleep.c hotkeys.c \
-		    driveclick.c enforcer.c misc.c \
 	            missing.c readcpu.c writelog.c
 
 
@@ -253,9 +250,8 @@ EXTRA_uae_SOURCES = bsdsocket.c bsdsocket-posix.c build68k.c catweasel.c cdrom.c
 		    compemu_raw_x86.c compemu_support.c compiler.c cpuopti.c \
 		    debug.c filesys.c fsdb.c fsdb_unix.c fsusage.c genblitter.c \
 		    gencpu.c gengenblitter.c genp2c.c gencomp.c hardfile.c \
-		    hardfile_unix.c linetoscr.c scsi-none.c \
+		    hardfile_unix.c linetoscr.c scsi-none.c scsidev.c \
 		    scsiemul.c svgancui.c tui.c \
-		    blkdev-libscg.c filesys_unix.c \
 		    akiko.c akiko2.c ar.c blkdev.c blitops.c
 
 
@@ -266,14 +262,12 @@ uae_DEPENDENCIES = @MACHDEP@/libmachdep.a	\
 			@GUIDEP@/libguidep.a	\
 			keymap/libkeymap.a	\
 			dms/libdms.a		\
-			caps/libcaps.a          \
 			blitfunc.o blittable.o	\
 			cpustbl.o cpudefs.o	\
 			libcpuemu.a  \
 		        @FILESYSOBJS@ \
 		 	@BSDSOCKOBJS@ \
 			@SCSIOBJS@ \
-			@CDOBJS@ \
 			@DEBUGOBJS@ \
 			@ASMOBJS@ \
 			@OSDEP@/libosdep.a 
@@ -286,14 +280,12 @@ uae_LDADD = @MACHDEP@/libmachdep.a	\
 			@GUIDEP@/libguidep.a	\
 			keymap/libkeymap.a	\
 			dms/libdms.a		\
-			caps/libcaps.a		\
 			blitfunc.o blittable.o	\
 			cpustbl.o cpudefs.o	\
 			libcpuemu.a  \
 			@FILESYSOBJS@ \
 			@BSDSOCKOBJS@ \
 			@SCSIOBJS@ \
-			@CDOBJS@ \
 			@DEBUGOBJS@ \
 			@ASMOBJS@ \
 			@OSDEP@/libosdep.a
@@ -332,7 +324,6 @@ am_uae_OBJECTS = main.$(OBJEXT) newcpu.$(OBJEXT) fpp.$(OBJEXT) \
 	identify.$(OBJEXT) disk.$(OBJEXT) savestate.$(OBJEXT) \
 	unzip.$(OBJEXT) uaeexe.$(OBJEXT) uaelib.$(OBJEXT) \
 	fdi2raw.$(OBJEXT) sleep.$(OBJEXT) hotkeys.$(OBJEXT) \
-	driveclick.$(OBJEXT) enforcer.$(OBJEXT) misc.$(OBJEXT) \
 	missing.$(OBJEXT) readcpu.$(OBJEXT) writelog.$(OBJEXT)
 uae_OBJECTS = $(am_uae_OBJECTS)
 uae_LDFLAGS =
@@ -345,8 +336,7 @@ am__depfiles_maybe = depfiles
 @AMDEP_TRUE@DEP_FILES = ./$(DEPDIR)/akiko.Po ./$(DEPDIR)/akiko2.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/ar.Po ./$(DEPDIR)/audio.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/autoconf.Po ./$(DEPDIR)/blitops.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/blitter.Po ./$(DEPDIR)/blkdev-libscg.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/blkdev.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/blitter.Po ./$(DEPDIR)/blkdev.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/bsdsocket-posix.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/bsdsocket.Po ./$(DEPDIR)/build68k.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/catweasel.Po ./$(DEPDIR)/cdrom.Po \
@@ -359,25 +349,23 @@ am__depfiles_maybe = depfiles
 @AMDEP_TRUE@	./$(DEPDIR)/compiler.Po ./$(DEPDIR)/cpuopti.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/custom.Po ./$(DEPDIR)/debug.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/disk.Po ./$(DEPDIR)/drawing.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/driveclick.Po ./$(DEPDIR)/enforcer.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/ersatz.Po ./$(DEPDIR)/expansion.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/fdi2raw.Po ./$(DEPDIR)/filesys.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/filesys_unix.Po ./$(DEPDIR)/fpp.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/fsdb.Po ./$(DEPDIR)/fsdb_unix.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/fsusage.Po ./$(DEPDIR)/genblitter.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/gencomp.Po ./$(DEPDIR)/gencpu.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/gengenblitter.Po ./$(DEPDIR)/genp2c.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/gfxlib.Po ./$(DEPDIR)/gfxutil.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/hardfile.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/fpp.Po ./$(DEPDIR)/fsdb.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/fsdb_unix.Po ./$(DEPDIR)/fsusage.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/genblitter.Po ./$(DEPDIR)/gencomp.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/gencpu.Po ./$(DEPDIR)/gengenblitter.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/genp2c.Po ./$(DEPDIR)/gfxlib.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/gfxutil.Po ./$(DEPDIR)/hardfile.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/hardfile_unix.Po ./$(DEPDIR)/hotkeys.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/identify.Po ./$(DEPDIR)/inputdevice.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/keybuf.Po ./$(DEPDIR)/linetoscr.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/main.Po ./$(DEPDIR)/memory.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/misc.Po ./$(DEPDIR)/missing.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/native2amiga.Po ./$(DEPDIR)/newcpu.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/picasso96.Po ./$(DEPDIR)/readcpu.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/readdisk.Po ./$(DEPDIR)/savestate.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/scsi-none.Po ./$(DEPDIR)/scsiemul.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/missing.Po ./$(DEPDIR)/native2amiga.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/newcpu.Po ./$(DEPDIR)/picasso96.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/readcpu.Po ./$(DEPDIR)/readdisk.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/savestate.Po ./$(DEPDIR)/scsi-none.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/scsidev.Po ./$(DEPDIR)/scsiemul.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/serial.Po ./$(DEPDIR)/sleep.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/svgancui.Po ./$(DEPDIR)/tui.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/uaeexe.Po ./$(DEPDIR)/uaelib.Po \
@@ -479,7 +467,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/autoconf.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/blitops.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/blitter.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/blkdev-libscg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/blkdev.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bsdsocket-posix.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bsdsocket.Po@am__quote@
@@ -499,13 +486,10 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/debug.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/disk.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/drawing.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/driveclick.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/enforcer.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ersatz.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/expansion.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fdi2raw.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/filesys.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/filesys_unix.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fpp.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fsdb.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fsdb_unix.Po@am__quote@
@@ -526,7 +510,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/linetoscr.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/memory.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/misc.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/missing.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/native2amiga.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/newcpu.Po@am__quote@
@@ -535,6 +518,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/readdisk.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/savestate.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scsi-none.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scsidev.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scsiemul.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/serial.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sleep.Po@am__quote@

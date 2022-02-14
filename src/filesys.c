@@ -286,33 +286,21 @@ static char *set_filesys_unit_1 (struct uaedev_mount_info *mountinfo, int nr,
         struct stat statbuf;
 	memset (&statbuf, 0, sizeof (statbuf));
 	ui->volname = my_strdup (volname);
-#ifdef _WIN32
-	v = isspecialdrive (rootdir);
+/*	v = isspecialdrive (rootdir);
 	if (v < 0) {
 	    sprintf (errmsg, "invalid drive '%s'", rootdir);
 	    return errmsg;
 	}
-	if (v == 0) {
-#endif
+	if (v == 0)*/ {
             if (stat (rootdir, &statbuf) < 0) {
 		sprintf (errmsg, "directory '%s' not found", rootdir);
 	        return errmsg;
 	    }
-#ifdef _WIN32
-	    if (!(statbuf.st_mode & FILEFLAG_WRITE)) {
+/*	    if (!(statbuf.st_mode & FILEFLAG_WRITE)) {
 		write_log ("'%s' set to read-only\n", rootdir);
 		readonly = 1; 
-	    }
-#else
-	    /* Check if the filesystem which contains rootdir is read-only */
-	    if (filesys_is_readonly (rootdir) && !readonly) {
-	      write_log ("Mounting '%s' as read-only\n", rootdir);
-              readonly = 1;
+	    } */
 	}
-#endif
-#ifdef _WIN32
-	}
-#endif
     } else {
 	ui->hf.secspertrack = secspertrack;
 	ui->hf.surfaces = surfaces;
@@ -3256,8 +3244,7 @@ static uae_u32 exter_int_helper (void)
 #ifdef SUPPORT_THREADS
 	/* First, check signals/messages */
 	while (comm_pipe_has_data (&native2amiga_pending)) {
-	    int cmd = read_comm_pipe_int_blocking (&native2amiga_pending);
-	    switch (cmd) {
+	    switch (read_comm_pipe_int_blocking (&native2amiga_pending)) {
 	     case 0: /* Signal() */
 		m68k_areg (regs, 1) = read_comm_pipe_u32_blocking (&native2amiga_pending);
 		m68k_dreg (regs, 1) = read_comm_pipe_u32_blocking (&native2amiga_pending);
@@ -3282,7 +3269,7 @@ static uae_u32 exter_int_helper (void)
 		return 5;
 
 	     default:
-		write_log ("exter_int_helper: unknown native action %d\n", cmd);
+		write_log ("exter_int_helper: unknown native action\n");
 		break;
 	    }
 	}

@@ -39,13 +39,12 @@
 #include <netinet/in.h>
 #include <netdb.h>
 
-//#include <pthread.h>
-//#include <semaphore.h>
+#include <pthread.h>
+#include <semaphore.h>
 #include <signal.h>
 #include <arpa/inet.h>
 #endif
 
-//#define DEBUG_BSDSOCKET
 #ifdef DEBUG_BSDSOCKET
 #define DEBUG_LOG write_log
 #else
@@ -69,8 +68,8 @@ struct bsd_socket {
 
 /* Maybe this should be reworked, somehow.. */
 struct bsd_gl_o {
-    uae_thread_id thread;
-    uae_sem_t   sem;
+    pthread_t   thread;
+    sem_t       sem;
     int         action;
     struct sockaddr_in addr;
     int         addrlen;
@@ -92,73 +91,7 @@ struct bsd_gl_o {
     int         dtablesize;
 };
 
-//pthread_key_t global_key;
-
-/*
- * Cheap and tacky replacement for thread-local storage
- */
-struct global_key {
-  uae_thread_id    id;
-  struct bsd_gl_o *global;
-};
-
-#define MAX_KEYS 64
-
-static int keys_used;
-static struct global_key key_array[MAX_KEYS];
-uae_sem_t key_sem;
-
-static int add_key (struct bsd_gl_o *global)
-{
-  int result = 0;
-  uae_thread_id id = uae_thread_self ();
-
-  uae_sem_wait (&key_sem);
-  if (keys_used < MAX_KEYS) {
-    key_array[keys_used].id     = id;
-    key_array[keys_used].global = global;
-    keys_used++;
-    result = 1;
-  }
-  uae_sem_post (&key_sem);
-  return result;
-}
-
-static void rem_key (void)
-{
-  int i;
-  uae_thread_id id = uae_thread_self ();
-
-  uae_sem_wait (&key_sem);
-  for (i = keys_used - 1; i; i--) {
-    if (key_array[i].id == id) {
-      int j;
-      for (j = i+1; j<keys_used; j++)
-        key_array[j - 1] = key_array[j];
-      
-      keys_used--;
-      break;
-    }
-  }
-  uae_sem_post (&key_sem);
-}
-
-static struct bsd_gl_o *get_key (void)
-{
-  int i;
-  struct bsd_gl_o *global = 0;
-  uae_thread_id id = uae_thread_self ();
-   
-  uae_sem_wait (&key_sem);
-  for (i = keys_used -1; i; i--) {
-    if (key_array[i].id == id) {
-      global = key_array[i].global;
-      break;
-    }
-  }
-  uae_sem_post (&key_sem);
-  return global;
-}
+pthread_key_t global_key;
 
 #define GL_O      (((struct bsd_gl_o **)(get_real_address (global)))[0])
 #define GL_task   get_long (global + 20)
@@ -338,11 +271,11 @@ void killthread_sighandler (int sig)
 
 void sigio_sighandler (int sig)
 {
-    uae_u32 global = (uae_u32) get_key ();
+    uae_u32 global = (uae_u32) pthread_getspecific (global_key);
     if (global) {
 	if (GL_iomask) bsdsock_Signal (GL_task, GL_iomask);
     }
-    write_log ("SIGIO: global 0x%x, 0x%x\n", global, global?GL_iomask:0);
+DEBUG_LOG ("SIGIO: global 0x%x, 0x%x\n", global, global?GL_iomask:0);
 }
 
 uae_u32 bsdthr_Accept_2 (int a_s, struct bsd_gl_o *gl_o)
@@ -453,10 +386,10 @@ static void *bsdlib_threadfunc (void *arg)
     struct hostent *hostent;
     int foo, s, i, l;
 
-    DEBUG_LOG ("THREAD_START\n");
-    add_key (global);
+DEBUG_LOG ("THREAD_START\n");
+    pthread_setspecific (global_key, arg);
     while (1) {
-        uae_sem_wait (&gl_o->sem);
+        sem_wait (&gl_o->sem);
         switch (gl_o->action) {
           case 0:       /* kill thread (CloseLibrary) */
             for(i = 0; i < 64; i++) {           /* Are dtable is always 64, we just claim otherwise if it makes the app happy. */
@@ -464,9 +397,8 @@ static void *bsdlib_threadfunc (void *arg)
             }
 /* @@@ We should probably have a signal for this too, since it can block.. */
 /*     Harmless though. */
-            DEBUG_LOG ("THREAD_DEAD\n");
-	    rem_key ();
-            uae_sem_destroy (&gl_o->sem);
+DEBUG_LOG ("THREAD_DEAD\n");
+            sem_destroy (&gl_o->sem);
             free (gl_o);
             return NULL;
           case 1:       /* Connect */
@@ -524,15 +456,15 @@ uae_u32 bsdsocklib_Init (uae_u32 global, uae_u32 init)
             return 1;
         }
         gl_o = GL_O;
-        if (uae_sem_init (&gl_o->sem, 0, 0)) {
+        if (sem_init (&gl_o->sem, 0, 0)) {
             write_log ("BSDSOCK: Failed to create semaphore.\n");
             free (gl_o);
             return 1;
         }
 /* @@@ The thread should be PTHREAD_CREATE_DETACHED */
-        if (uae_start_thread (bsdlib_threadfunc, (void *) global, &gl_o->thread)) {
+        if (pthread_create (&gl_o->thread, NULL, bsdlib_threadfunc, (void *) global)) {
             write_log ("BSDSOCK: Failed to create thread.\n");
-            uae_sem_destroy (&gl_o->sem);
+            sem_destroy (&gl_o->sem);
             free (gl_o);
             return 1;
         }
@@ -543,7 +475,7 @@ uae_u32 bsdsocklib_Init (uae_u32 global, uae_u32 init)
     } else {
         gl_o = GL_O;
         gl_o->action = 0;
-        uae_sem_post (&gl_o->sem);
+        sem_post (&gl_o->sem);
     }
     return 1; /* 0 if we need a signal-poller, 1 if not. */
 }
@@ -578,7 +510,7 @@ uae_u32 bsdsocklib_Connect (uae_u32 s, uae_u32 a_addr , unsigned int addrlen, ua
         gl_o->s = s;
         gl_o->addrlen = sizeof (struct sockaddr_in);
         gl_o->action = 1;
-        uae_sem_post (&gl_o->sem);
+        sem_post (&gl_o->sem);
         return 1;
     }
 }
@@ -593,7 +525,7 @@ uae_u32 bsdsocklib_Sendto (uae_u32 s, uae_u32 msg, uae_u32 len, uae_u32 flags, u
     gl_o->to     = to;
     gl_o->tolen  = tolen;
     gl_o->action = 2;
-    uae_sem_post (&gl_o->sem);
+    sem_post (&gl_o->sem);
     return 1;
 }
 
@@ -607,7 +539,7 @@ uae_u32 bsdsocklib_Recvfrom (uae_u32 s, uae_u32 buf, uae_u32 len, uae_u32 flags,
     gl_o->from   = from;
     gl_o->fromlen= fromlen;
     gl_o->action = 3;
-    uae_sem_post (&gl_o->sem);
+    sem_post (&gl_o->sem);
     return 1;
 }
 
@@ -632,7 +564,7 @@ uae_u32 bsdsocklib_Gethostbyname (uae_u32 name, uae_u32 hostent, uae_u32 global)
     gl_o->name    = name;
     gl_o->hostent = hostent;
     gl_o->action  = 4;
-    uae_sem_post (&gl_o->sem);
+    sem_post (&gl_o->sem);
     return 1;
 }
 
@@ -644,7 +576,7 @@ uae_u32 bsdsocklib_Gethostbyaddr (uae_u32 addr, uae_u32 len, uae_u32 type, uae_u
     gl_o->type      = type;
     gl_o->hostent   = hostent;
     gl_o->action    = 7;
-    uae_sem_post (&gl_o->sem);
+    sem_post (&gl_o->sem);
     return 1;
 }
 
@@ -657,15 +589,14 @@ uae_u32 bsdsocklib_WaitSelect (int nfds, uae_u32 readfds, uae_u32 writefds, uae_
     gl_o->sets [2] = exceptfds;
     gl_o->timeout = timeout;
     gl_o->action = 5;
-    uae_sem_post (&gl_o->sem);
+    sem_post (&gl_o->sem);
     return 1;
 }
 
 uae_u32 bsdsocklib_abortSomething (uae_u32 global)
 {
     struct bsd_gl_o *gl_o = GL_O;
-//    pthread_kill (gl_o->thread, SIGUSR1);
-    write_log ("bsdsocklib_abortSomething failed. Fix me\n");
+    pthread_kill (gl_o->thread, SIGUSR1);
     return 1;
 }
 
@@ -724,7 +655,7 @@ uae_u32 bsdsocklib_Accept (uae_u32 s, uae_u32 addr, uae_u32 addrlen, uae_s32 new
     gl_o->a_addrlen = addrlen;
     gl_o->news = news;
     gl_o->action = 6;
-    uae_sem_post (&gl_o->sem);
+    sem_post (&gl_o->sem);
     return 1;
 }
 
@@ -1028,8 +959,7 @@ void bsdlib_install (void)
 
 #ifdef BSDSOCKET
 /* @@@ Error-checking */
-//    pthread_key_create (&global_key, NULL);
-    uae_sem_init (&key_sem, 0, 1);
+    pthread_key_create (&global_key, NULL);
     signal (SIGUSR1, killthread_sighandler);
     foo=(int)    signal (SIGIO, sigio_sighandler);
     DEBUG_LOG ("bsdlib_install: SIGIO was %d\n",foo);

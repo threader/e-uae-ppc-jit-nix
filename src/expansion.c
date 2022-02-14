@@ -1093,8 +1093,8 @@ static void allocate_expamem (void)
 	    map_banks (&z3fastmem_bank, z3fastmem_start >> 16, currprefs.z3fastmem_size >> 16,
 		       allocated_z3fastmem);
 	}
-#ifdef PICASSO96
-	if (allocated_gfxmem > 0 && gfxmem_start > 0) {
+#ifdef PICASSO96       
+	if (allocated_gfxmem > 0) {
 	    restore_ram (p96_filepos, gfxmemory);
 	    map_banks (&gfxmem_bank, gfxmem_start >> 16, currprefs.gfxmem_size >> 16,
 		       allocated_gfxmem);
@@ -1262,23 +1262,18 @@ void restore_pram (int len, long filepos)
     changed_prefs.gfxmem_size = len;
 }
 
-uae_u8 *save_expansion (int *len, uae_u8 *dstptr)
+uae_u8 *save_expansion (int *len)
 {
-    static uae_u8 t[20];
-    uae_u8 *dst = t, *dstbak = t;
-    if (dstptr)
-	dst = dstbak = dstptr;
+    static uae_u8 t[20], *dst = t;
     save_u32 (fastmem_start);
     save_u32 (z3fastmem_start);
-    save_u32 (gfxmem_start);
-    *len = 4 + 4 + 4;
-    return dstbak;
+    *len = 8;
+    return t;
 }
 
 uae_u8 *restore_expansion (uae_u8 *src)
 {
     fastmem_start = restore_u32 ();
     z3fastmem_start = restore_u32 ();
-    gfxmem_start = restore_u32 ();
     return src;
 }

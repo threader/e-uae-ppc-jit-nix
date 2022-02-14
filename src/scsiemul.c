@@ -1,5 +1,4 @@
-
-/*
+ /*
   * UAE - The Un*x Amiga Emulator
   *
   * scsi.device emulation

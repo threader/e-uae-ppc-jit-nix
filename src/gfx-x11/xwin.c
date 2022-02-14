@@ -1660,21 +1660,6 @@ static void unacquire_kb (int num)
 {
 }
 
-/*
- * Default inputdevice config for X11 mouse
- */
-void input_get_default_mouse (struct uae_input_device *uid)
-{
-    /* Supports only one mouse */
-    uid[0].eventid[ID_AXIS_OFFSET + 0][0]   = INPUTEVENT_MOUSE1_HORIZ;
-    uid[0].eventid[ID_AXIS_OFFSET + 1][0]   = INPUTEVENT_MOUSE1_VERT;
-    uid[0].eventid[ID_AXIS_OFFSET + 2][0]   = INPUTEVENT_MOUSE1_WHEEL;
-    uid[0].eventid[ID_BUTTON_OFFSET + 0][0] = INPUTEVENT_JOY1_FIRE_BUTTON;
-    uid[0].eventid[ID_BUTTON_OFFSET + 1][0] = INPUTEVENT_JOY1_2ND_BUTTON;
-    uid[0].eventid[ID_BUTTON_OFFSET + 2][0] = INPUTEVENT_JOY1_3RD_BUTTON;
-    uid[0].enabled = 1;
-}
-
 struct inputdevice_functions inputdevicefunc_keyboard =
 {
     init_kb, close_kb, acquire_kb, unacquire_kb,

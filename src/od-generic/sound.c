@@ -49,7 +49,3 @@ void pause_sound (void)
 void resume_sound (void)
 {
 }
-
-void sound_volume (int dir)
-{
-}

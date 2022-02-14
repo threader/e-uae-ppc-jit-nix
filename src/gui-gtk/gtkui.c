@@ -64,8 +64,6 @@
 
 static int gui_active;
 
-static int gui_available;
-
 static GtkWidget *gui_window;
 
 static GtkWidget *pause_uae_widget, *snap_save_widget, *snap_load_widget;
@@ -160,7 +158,6 @@ static smp_comm_pipe from_gui_pipe; // For sending messages from the GUI to UAE
  * Messages sent to GUI from UAE via to_gui_pipe
  */
 enum gui_commands {
-    GUICMD_SHOW,         // Show yourself
     GUICMD_UPDATE,       // Refresh your state from changed preferences
     GUICMD_DISKCHANGE,   // Hey! A disk has been changed. Do something!
     GUICMD_MSGBOX,       // Display a message box for me, please
@@ -345,7 +342,7 @@ static void set_mem_state (void)
 	t++, t2 >>= 1;
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (z3size_widget[t]), 1);
 
-#ifdef PICASSO96
+#ifdef PICASSO96   
     t = 0;
     t2 = currprefs.gfxmem_size;
     while (t < 6 && t2 >= 0x100000)
@@ -368,7 +365,7 @@ static void set_comp_state (void)
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (compword_widget[currprefs.comptrustword]), 1);
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (complong_widget[currprefs.comptrustlong]), 1);
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (compaddr_widget[currprefs.comptrustnaddr]), 1);
-#endif
+#endif   
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (compnf_widget[currprefs.compnf]), 1);
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (comp_hardflush_widget[currprefs.comp_hardflush]), 1);
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (comp_constjump_widget[currprefs.comp_constjump]), 1);
@@ -496,8 +493,36 @@ static void draw_led (int nr)
 }
 
 
-int update_state (void)
+/*
+ * my_idle()
+ *
+ * This function is added as a callback to the GTK+ mainloop
+ * and is run every 1000ms. It handles messages sent from UAE and
+ * updates the floppy drive LEDs.
+ *
+ * TODO: the floppy drives LEDS should be a separate call back. Then
+ * we can call this more frequently without wasting too much CPU time.
+ * 1000ms is too slow for responding to GUI events.
+ */
+static int my_idle (void)
 {
+    unsigned int leds = gui_ledstate;
+    int i;
+
+    if (quit_gui) {
+	gtk_main_quit ();
+	goto out;
+    }
+    while (comm_pipe_has_data (&to_gui_pipe)) {
+	int cmd = read_comm_pipe_int_blocking (&to_gui_pipe);
+	int n;
+	switch (cmd) {
+	 case GUICMD_DISKCHANGE:
+	    n = read_comm_pipe_int_blocking (&to_gui_pipe);
+	    gtk_label_set_text (GTK_LABEL (disk_text_widget[n]),
+			       is_uae_paused() ? changed_prefs.df[n] : currprefs.df[n]);
+	    break;
+	 case GUICMD_UPDATE:
 	    set_cpu_state ();
 	    set_gfx_state ();
 	    set_joy_state ();
@@ -507,55 +532,12 @@ int update_state (void)
 #endif
 	    set_mem_state ();
 	    set_floppy_state ();
-#ifdef FILESYS
+#ifdef FILESYS	   
 	    set_hd_state ();
-#endif
+#endif	   
 	    set_chipset_state ();
-}
-
-
-/*
- * my_idle()
- *
- * This function is added as a callback to the GTK+ mainloop
- * and is run every 200ms. It handles messages sent from UAE and
- * updates the floppy drive LEDs.
- */
-static int my_idle (void)
-{
-    int i;
-
-    if (quit_gui) {
-	gtk_main_quit ();
-	return 1;
-    }
-
-    while (comm_pipe_has_data (&to_gui_pipe)) {
-	int cmd = read_comm_pipe_int_blocking (&to_gui_pipe);
-	int n;
-	DEBUG_LOG ("GUI got command:%d\n", cmd);
-	switch (cmd) {
-	 case GUICMD_SHOW:
-	    if (!gui_window) {
-	        create_guidlg ();
-	        update_state ();
-		no_gui = 0;
-	        gui_active =1;
-	    }
-	    gtk_widget_show (gui_window);
-#if GTK_MAJOR_VERSION >= 2
-	    gtk_window_present (gui_window);
-#endif
-	    break;
-
-	 case GUICMD_DISKCHANGE:
-	    n = read_comm_pipe_int_blocking (&to_gui_pipe);
-	    gtk_label_set_text (GTK_LABEL (disk_text_widget[n]),
-			       is_uae_paused() ? changed_prefs.df[n] : currprefs.df[n]);
-	    break;
-	 case GUICMD_UPDATE:
-	    update_state ();
-	     uae_sem_post (&gui_update_sem);
+	    gtk_widget_show (gui_window);  // Should find a better place to do this, surely? - Rich
+	    uae_sem_post (&gui_update_sem);
 	    gui_active = 1;
 	    DEBUG_LOG ("GUICMD_UPDATE done\n");
 	    break;
@@ -574,27 +556,19 @@ static int my_idle (void)
 	    break;
 	}
     }
-    return 1;
-}
 
-static int leds_callback (void)
-{
-    unsigned int leds = gui_ledstate;
-    unsigned int i;
+    for (i = 0; i < 5; i++) {
+	unsigned int mask = 1 << i;
+	unsigned int on = leds & mask;
 
-    if (!quit_gui) {
-	for (i = 0; i < 5; i++) {
-	    unsigned int mask = 1 << i;
-	    unsigned int on = leds & mask;
+	if (on == (prevledstate & mask))
+	    continue;
 
-	    if (on == (prevledstate & mask))
-		continue;
-
-/*	    printf(": %d %d\n", i, on);*/
-	    draw_led (i);
-	}
-	prevledstate = leds;
+/*	printf(": %d %d\n", i, on);*/
+	draw_led (i);
     }
+    prevledstate = leds;
+out:
     return 1;
 }
 
@@ -705,7 +679,7 @@ static void sound_changed (void)
 static void comp_changed (void)
 {
     changed_prefs.cachesize=cachesize_adj->value;
-#ifdef NATMEM_OFFSET
+#ifdef NATMEM_OFFSET   
     changed_prefs.comptrustbyte = find_current_toggle (compbyte_widget, 4);
     changed_prefs.comptrustword = find_current_toggle (compword_widget, 4);
     changed_prefs.comptrustlong = find_current_toggle (complong_widget, 4);
@@ -783,8 +757,7 @@ static char *gui_snapname, *gui_romname, *gui_keyname;
 static void did_close_insert (gpointer data)
 {
     filesel_active = -1;
-    if (!no_gui)
-        enable_disk_buttons (1);
+    enable_disk_buttons (1);
 }
 
 static void did_insert_select (GtkObject *o)
@@ -811,8 +784,7 @@ static void did_insert_select (GtkObject *o)
     write_comm_pipe_int (&from_gui_pipe, 1, 0);
     write_comm_pipe_int (&from_gui_pipe, filesel_active, 1);
     filesel_active = -1;
-    if (!no_gui)
-        enable_disk_buttons (1);
+    enable_disk_buttons (1);
     gtk_widget_destroy (disk_selector);
 }
 
@@ -858,8 +830,7 @@ static void did_insert (GtkWidget *w, gpointer data)
     if (filesel_active != -1)
 	return;
     filesel_active = n;
-    if (!no_gui)
-        enable_disk_buttons (0);
+    enable_disk_buttons (0);
 
     sprintf (fsbuffer, "Select a disk image file for DF%d", n);
     disk_selector = make_file_selector (fsbuffer, did_insert_select, did_close_insert);
@@ -2037,7 +2008,7 @@ static void make_about_widgets (GtkWidget *dvbox)
 
 static gint did_guidlg_delete (GtkWidget* window, GdkEventAny* e, gpointer data)
 {
-    if (!quit_gui)
+    if (!no_gui && !quit_gui)
         write_comm_pipe_int (&from_gui_pipe, 4, 1);
     return TRUE;
 }
@@ -2061,7 +2032,7 @@ static void create_guidlg (void)
 	{ "Graphics", make_gfx_widgets },
 	{ "Chipset", make_chipset_widgets },
 	{ "Sound", make_sound_widgets },
-#ifdef JIT
+#ifdef JIT       
  	{ "JIT", make_comp_widgets },
 #endif       
 	{ "Game ports", make_joy_widgets },
@@ -2141,15 +2112,15 @@ static void create_guidlg (void)
     filesel_active = -1;
     snapsel_active = -1;
 
-    gtk_timeout_add (1000, (GtkFunction)leds_callback, 0);
+//    gtk_timeout_add (1000, (GtkFunction)my_idle, 0);
 }
 
 /*
  * gtk_gui_thread()
  *
  * This is launched as a separate thread to the main UAE thread
- * to create and handle the GUI. After the GUI has been set up,
- * this calls the standard GTK+ event processing loop.
+ * to create and handle the GUI. After the GUI has been set up, 
+ * this calls the standard GTK+ event processing loop. 
  *
  */
 static void *gtk_gui_thread (void *dummy)
@@ -2158,41 +2129,39 @@ static void *gtk_gui_thread (void *dummy)
     int argc = 1;
     char *a[] = {"UAE"};
     char **argv = a;
-
+   
     DEBUG_LOG ("Started\n");
 
     gui_active = 0;
+   
+    gtk_init (&argc, &argv);
+    DEBUG_LOG ("gtk_init() called\n");
+    gtk_rc_parse ("uaegtkrc");
+   
+    create_guidlg ();
+    DEBUG_LOG ("GUI created\n") ;
 
-    if (gtk_init_check (&argc, &argv)) {
-	DEBUG_LOG ("gtk_init() successful\n");
+    /* Add callback to GTK+ mainloop to handle messages from UAE */
+    gtk_timeout_add (1000, (GtkFunction)my_idle, 0);   
 
-	gtk_rc_parse ("uaegtkrc");
-	gui_available = 1;
+    /* We're ready - tell the world */
+    uae_sem_post (&gui_init_sem);
+//    gui_active = 1; doesn't work here. Need to wait for gui_update()
+   
+    /* Enter GTK+ main loop */
+    DEBUG_LOG ("Entering GTK+ main loop\n");
+    gtk_main ();
 
-	/* Add callback to GTK+ mainloop to handle messages from UAE */
-	gtk_timeout_add (1000, (GtkFunction)my_idle, 0);
-
-	/* We're ready - tell the world */
-	uae_sem_post (&gui_init_sem);
-
-	/* Enter GTK+ main loop */
-	DEBUG_LOG ("Entering GTK+ main loop\n");
-	gtk_main ();
-
-	/* Main loop has exited, so the GUI will quit */
-	quitted_gui = 1;
-	uae_sem_post (&gui_quit_sem);
-	DEBUG_LOG ("Exiting\n");
-    } else {
-        /* If GTK+ can't display, we still need to say we're done */
-        uae_sem_post (&gui_init_sem);
-    }
+    /* Main loop has exited, so the GUI will quit */
+    quitted_gui = 1;
+    uae_sem_post (&gui_quit_sem);
+    DEBUG_LOG ("Exiting\n");
     return 0;
 }
 
 void gui_changesettings(void)
 {
-
+    
 }
 
 void gui_fps (int fps, int idle)
@@ -2203,7 +2172,7 @@ void gui_fps (int fps, int idle)
 
 /*
  * gui_led()
- *
+ * 
  * Called from the main UAE thread to inform the GUI
  * of disk activity so that indicator LEDs may be refreshed.
  *
@@ -2212,7 +2181,7 @@ void gui_fps (int fps, int idle)
  */
 void gui_led (int num, int on)
 {
-  /*    if (no_gui)
+/*    if (no_gui)
 	return;
 
     if (num < 1 || num > 4)
@@ -2226,8 +2195,8 @@ void gui_led (int num, int on)
 
 
 /*
- * gui_filename()
- *
+ * gui_filename() 
+ * 
  * This is called from the main UAE thread to inform
  * the GUI that a floppy disk has been inserted or ejected.
  */
@@ -2235,7 +2204,7 @@ void gui_filename (int num, const char *name)
 {
     DEBUG_LOG ("Entered with drive:%d name:%s\n", num, name);
 
-    if (gui_available && !no_gui) {
+    if (!no_gui) {
         write_comm_pipe_int (&to_gui_pipe, GUICMD_DISKCHANGE, 0);
         write_comm_pipe_int (&to_gui_pipe, num, 1);
     }
@@ -2245,10 +2214,10 @@ void gui_filename (int num, const char *name)
 
 /*
  * gui_handle_events()
- *
+ * 
  * This is called from the main UAE thread to handle the
  * processing of GUI-related events sent from the GUI thread.
- *
+ * 
  * If the UAE emulation proper is not running yet or is paused,
  * this loops continuously waiting for and responding to events
  * until the emulation is started or resumed, respectively. When
@@ -2257,7 +2226,7 @@ void gui_filename (int num, const char *name)
  */
 void gui_handle_events (void)
 {
-    if (!gui_available)
+    if (no_gui)
 	return;
 
     do {
@@ -2285,7 +2254,7 @@ void gui_handle_events (void)
 		strncpy (changed_prefs.df[n], new_disk_string[n], 255);
 		free (new_disk_string[n]);
 		new_disk_string[n] = 0;
-		changed_prefs.df[n][255] = '\0';
+		changed_prefs.df[n][255] = '\0';	        
 		uae_sem_post (&gui_sem);
 	        if (is_uae_paused()) {
 		    /* When UAE is running it will notify the GUI when a disk has been inserted
@@ -2346,10 +2315,54 @@ void gui_update_gfx (void)
 #endif
 }
 
+/*
+ * gui_init()
+ * 
+ * This is call from the main UAE thread to initialize the GUI.
+ * It spawns the gtk_gui_thread to handle GUI creation and the
+ * GTK+ main loop.
+ */
+int gui_init (void)
+{
+    uae_thread_id tid;
+
+    DEBUG_LOG( "Entered\n" );
+   
+    init_comm_pipe (&to_gui_pipe, 20, 1);
+    init_comm_pipe (&from_gui_pipe, 20, 1);
+    uae_sem_init (&gui_sem, 0, 1);          // Unlock mutex on prefs settings
+    uae_sem_init (&gui_update_sem, 0, 0);
+    uae_sem_init (&gui_init_sem, 0, 0);
+    uae_sem_init (&gui_quit_sem, 0, 0);
+
+    /* Start GUI thread to construct GUI */
+    uae_start_thread (gtk_gui_thread, NULL, &tid);
+
+    /* Wait till GUI is ready */
+    DEBUG_LOG ("Waiting for GUI\n");
+    uae_sem_wait (&gui_init_sem);
+
+    /* Tell it to refresh with current prefs settings */
+    gui_update ();
+   
+    if (currprefs.start_gui == 1) {
+        gui_set_paused( TRUE );
+	/* Handle events until Pause is unchecked.  */
+	gui_handle_events ();
+	/* Quit requested?  */
+	if (quit_program == -1) {
+	    gui_exit ();
+	    return -2;
+	}
+    }
+
+    return 1;
+}
+
 
 /*
  * gui_update()
- *
+ * 
  * This is called from the main UAE thread to tell the GUI to update itself
  * using the current state of currprefs. This function will block
  * until it receives a message from the GUI telling it that the update
@@ -2358,8 +2371,8 @@ void gui_update_gfx (void)
 int gui_update (void)
 {
     DEBUG_LOG( "Entered\n" );
-    return 0;
-    if (gui_available && !no_gui) {
+
+    if (!no_gui) {
         write_comm_pipe_int (&to_gui_pipe, GUICMD_UPDATE, 1);
         uae_sem_wait (&gui_update_sem);
     }
@@ -2383,25 +2396,21 @@ void gui_exit (void)
 {
     DEBUG_LOG( "Entered\n" );
 
-    if (gui_available) {
-//	if (!no_gui && !quit_gui) {
-	    quit_gui = 1;
-//	    DEBUG_LOG( "Waiting for GUI thread to quit.\n" );
-//	    uae_sem_wait (&gui_quit_sem);
-//	}
+    if (!no_gui && !quit_gui) {
+	quit_gui = 1;
+	DEBUG_LOG( "Waiting for GUI thread to quit.\n" );
+	uae_sem_wait (&gui_quit_sem);
     }
 }
 
 void gui_lock (void)
 {
-    if (gui_available)
-	uae_sem_wait (&gui_sem);
+    uae_sem_wait (&gui_sem);
 }
 
 void gui_unlock (void)
 {
-    if (gui_available)
-	uae_sem_post (&gui_sem);
+    uae_sem_post (&gui_sem);
 }
 
 void gui_hd_led (int led)
@@ -2423,45 +2432,27 @@ void gui_hd_led (int led)
 
 void gui_cd_led (int led)
 {
-    static int resetcounter;
-
-    int old = gui_data.cd;
-    if (led == 0) {
-	resetcounter--;
-	if (resetcounter > 0)
-	    return;
-    }
-
-    gui_data.cd = led;
-    resetcounter = 6;
-    if (old != gui_data.cd)
-	gui_led (6, gui_data.cd);
 }
 
 void gui_display(int shortcut)
 {
     DEBUG_LOG ("called with shortcut=%d\n", shortcut);
 
-    if (gui_available) {
-	/* If running fullscreen, then we must try to switched to windowed
-         * mode before activating the GUI */
+    /* If running fullscreen, then we must try to switched to windowed
+     * mode before activating the GUI */
+    if (is_fullscreen ()) {
+	toggle_fullscreen ();
 	if (is_fullscreen ()) {
-	    toggle_fullscreen ();
-	    if (is_fullscreen ()) {
-		write_log ("Cannot activate GUI in full-screen mode\n");
-		return;
-	    }
+	    write_log ("Cannot activate GUI in full-screen mode\n");
+	    return;
 	}
+    }
 
-	if (shortcut == -1)
-	    write_comm_pipe_int (&to_gui_pipe, GUICMD_SHOW, 1);
-
-	if (shortcut >=0 && shortcut <4) {
-	    /* In this case, shortcut is the drive number to display
-	     * the insert requester for */
-	    write_comm_pipe_int (&to_gui_pipe, GUICMD_FLOPPYDLG, 0);
-	    write_comm_pipe_int (&to_gui_pipe, shortcut, 1);
-	}
+    if (shortcut >=0 && shortcut <4) {
+	/* In this case, shortcut is the drive number to display
+	 * the insert requester for */
+	write_comm_pipe_int (&to_gui_pipe, GUICMD_FLOPPYDLG, 0);
+	write_comm_pipe_int (&to_gui_pipe, shortcut, 1);
     }
 }
 
@@ -2474,7 +2465,7 @@ void gui_message (const char *format,...)
     vsprintf ( msg, format, parms);
     va_end (parms);
 
-    if (gui_available)
+    if (!no_gui)
 	do_message_box (NULL, msg, TRUE, TRUE);
 
     write_log (msg);
@@ -2482,11 +2473,12 @@ void gui_message (const char *format,...)
 
 void gui_set_paused (int state)
 {
-    if (gui_available) {
-	write_comm_pipe_int (&to_gui_pipe, state==TRUE ? GUICMD_PAUSE : GUICMD_UNPAUSE, 1);
-	set_uae_paused (state);
-    }
-    return;
+   if (no_gui)
+       return;
+
+   write_comm_pipe_int (&to_gui_pipe, state==TRUE ? GUICMD_PAUSE : GUICMD_UNPAUSE, 1);
+   set_uae_paused (state);
+   return;
 }
 
 
@@ -2619,63 +2611,4 @@ static GtkWidget *make_message_box( const guchar *title, const guchar *message, 
     gtk_widget_show( dialog );
 
     return dialog;
-}
-
-/*
- * gui_init()
- *
- * Called by the main UAE thread during start up to display the GUI.
- */
-int gui_init (void)
-{
-    int result = 0;
-
-    DEBUG_LOG( "Entered\n" );
-
-    if (!gui_available)
-        result = -1;
-    else {
-        if (currprefs.start_gui) {
-            /* We have the technology and the will - so tell the GUI $
-             * reveal itself */
-            write_comm_pipe_int (&to_gui_pipe, GUICMD_SHOW, 1);
-
-            gui_set_paused( TRUE );
-            /* Handle events until Pause is unchecked.  */
-            gui_handle_events ();
-            /* Quit requested?  */
-            if (quit_program == -1) {
-                gui_exit ();
-                result = -2;
-            }
-        }
-    }
-    return result;
-}
-
-int main (int argc, char **argv)
-{
-    uae_thread_id tid;
-
-#ifdef USE_SDL
-    init_sdl ();
-#endif
-
-    init_comm_pipe (&to_gui_pipe, 20, 1);
-    init_comm_pipe (&from_gui_pipe, 20, 1);
-    uae_sem_init (&gui_sem, 0, 1);          // Unlock mutex on prefs $
-    uae_sem_init (&gui_update_sem, 0, 0);
-    uae_sem_init (&gui_init_sem, 0, 0);
-    uae_sem_init (&gui_quit_sem, 0, 0);
-
-    /* Start GUI thread to construct GUI */
-    uae_start_thread (gtk_gui_thread, NULL, &tid);
-
-    /* Wait until GUI thread is ready */
-    DEBUG_LOG ("Waiting for GUI thread\n");
-    uae_sem_wait (&gui_init_sem);
-
-    real_main (argc, argv);
-
-    return 0;
 }

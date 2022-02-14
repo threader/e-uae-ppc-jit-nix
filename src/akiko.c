@@ -24,9 +24,6 @@
 #include "threaddep/thread.h"
 #include "akiko.h"
 #include "gui.h"
-#ifndef _WIN32
-#include "sleep.h"
-#endif
 
 #define AKIKO_DEBUG_NVRAM 0
 #define AKIKO_DEBUG_IO 0
@@ -996,11 +993,7 @@ static void *akiko_thread (void *null)
 	    sector_buffer_sector_2 = tmp3;
 	}
         uae_sem_post (&akiko_sem);
-#ifdef _WIN32        
 	Sleep (10);
-#else
-        my_usleep (10);
-#endif       
     }
     akiko_thread_running = -1;
     return 0;
@@ -1016,7 +1009,7 @@ static void akiko_put_long (uae_u32 *p, int offset, int v)
     *p |= v << ((3 - offset) * 8);
 }
 
-static uae_u32 akiko_bget2 (uaecptr addr, int msg)
+uae_u32 akiko_bget2 (uaecptr addr, int msg)
 {
     uae_u8 v;
 
@@ -1109,12 +1102,12 @@ static uae_u32 akiko_bget2 (uaecptr addr, int msg)
     return v;
 }
 
-uae_u32 akiko_bget REGPARAM2 (uaecptr addr)
+uae_u32 akiko_bget (uaecptr addr)
 {
     return akiko_bget2 (addr, 1);
 }
 
-uae_u32 akiko_wget REGPARAM2 (uaecptr addr)
+uae_u32 akiko_wget (uaecptr addr)
 {
     uae_u16 v;
     addr &= 0xffff;
@@ -1125,7 +1118,7 @@ uae_u32 akiko_wget REGPARAM2 (uaecptr addr)
     return v;
 }
 
-uae_u32 akiko_lget REGPARAM2 (uaecptr addr)
+uae_u32 akiko_lget (uaecptr addr)
 {
     uae_u32 v;
 
@@ -1139,7 +1132,7 @@ uae_u32 akiko_lget REGPARAM2 (uaecptr addr)
     return v;
 }
 
-static void akiko_bput2 REGPARAM2 (uaecptr addr, uae_u32 v, int msg)
+void akiko_bput2 (uaecptr addr, uae_u32 v, int msg)
 {
     uae_u32 tmp;
 
@@ -1231,12 +1224,12 @@ static void akiko_bput2 REGPARAM2 (uaecptr addr, uae_u32 v, int msg)
     uae_sem_post (&akiko_sem);
 }
 
-void akiko_bput REGPARAM2(uaecptr addr, uae_u32 v)
+void akiko_bput (uaecptr addr, uae_u32 v)
 {
     akiko_bput2 (addr, v, 1);
 }
 
-void akiko_wput REGPARAM2 (uaecptr addr, uae_u32 v)
+void akiko_wput (uaecptr addr, uae_u32 v)
 {
     addr &= 0xfff;
     if((addr < 0x30 && AKIKO_DEBUG_IO))
@@ -1245,7 +1238,7 @@ void akiko_wput REGPARAM2 (uaecptr addr, uae_u32 v)
     akiko_bput2 (addr + 0, v >> 8, 0);
 }
 
-void akiko_lput REGPARAM2 (uaecptr addr, uae_u32 v)
+void akiko_lput (uaecptr addr, uae_u32 v)
 {
     addr &= 0xffff;
     if(addr < 0x30 && AKIKO_DEBUG_IO)
@@ -1272,11 +1265,7 @@ void akiko_reset (void)
     if (akiko_thread_running > 0) {
 	akiko_thread_running = 0;
 	while(akiko_thread_running == 0)
-#ifdef _WIN32	 
 	    Sleep (10);
-#else
-        my_usleep (10);
-#endif       
 	akiko_thread_running = 0;
     }
 }
@@ -1287,7 +1276,7 @@ static uae_u8 patchdata[]={0x0c,0x82,0x00,0x00,0x03,0xe8,0x64,0x00,0x00,0x46};
 
 static void patchrom (void)
 {
-    unsigned int i;
+    int i;
     uae_u8 *p = (uae_u8*)extendedkickmemory;
     for (i = 0; i < 524288 - sizeof (patchdata); i++) {
 	if (!memcmp (p + i, patchdata, sizeof(patchdata))) {

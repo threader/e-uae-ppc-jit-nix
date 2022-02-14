@@ -69,11 +69,3 @@ struct inputdevice_functions inputdevicefunc_joystick = {
     get_joystick_widget_num, get_joystick_widget_type,
     get_joystick_widget_first
 };
-
-/*
- * Set default inputdevice config for SDL joysticks
- */
-void input_get_default_joystick (struct uae_input_device *uid)
-{
-    uid[0].enabled = 0;
-}

@@ -434,11 +434,10 @@ static void do_fillrect (uae_u8 *src, int x, int y, int width, int height,
      * the pen values if we're doing 8-bit display-emulation on a 16-bit or higher screen. */
     if (picasso_vidinfo.rgbformat == picasso96_state.RGBFormat) {
 #	ifndef WORDS_BIGENDIAN
-            if (Bpp > 1)
-	        pen = (pen & 0x000000FF) << 24
-		    | (pen & 0x0000FF00) << 8
-		    | (pen & 0x00FF0000) >> 8
-		    | (pen & 0xFF000000) >> 24;
+	    pen = (pen & 0x000000FF) << 24
+		| (pen & 0x0000FF00) << 8
+		| (pen & 0x00FF0000) >> 8
+		| (pen & 0xFF000000) >> 24;
 #	endif
         if (DX_Fill (x, y, width, height, pen, rgbtype))
             return;

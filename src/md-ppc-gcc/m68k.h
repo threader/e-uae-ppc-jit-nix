@@ -4,16 +4,15 @@
   * MC68000 emulation - machine dependent bits
   *
   * Copyright 1996 Bernd Schmidt
-  * Copyright 2004 Richard Drummond
   */
 
  
 struct flag_struct {
-    unsigned int c:1;
-    unsigned int z:1;
-    unsigned int n:1;
-    unsigned int v:1; 
-    unsigned int x:1;
+    unsigned int c;
+    unsigned int z;
+    unsigned int n;
+    unsigned int v; 
+    unsigned int x;
 };
 
 extern struct flag_struct regflags;
@@ -24,7 +23,7 @@ extern struct flag_struct regflags;
 #define VFLG (regflags.v)
 #define XFLG (regflags.x)
 
-STATIC_INLINE int cctrue (const int cc)
+static __inline__ int cctrue(const int cc)
 {
     switch(cc){
      case 0: return 1;                       /* T */
@@ -47,3 +46,4 @@ STATIC_INLINE int cctrue (const int cc)
     abort();
     return 0;
 }
+

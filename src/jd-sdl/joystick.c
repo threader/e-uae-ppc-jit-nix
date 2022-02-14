@@ -5,7 +5,7 @@
   *
   * Copyright 1997 Bernd Schmidt
   * Copyright 1998 Krister Walfridsson
-  * Copyright 2003-2004 Richard Drummond
+  * Copyright 2003 Richard Drummond
   */
 
 #include "sysconfig.h"
@@ -117,23 +117,16 @@ static void read_joysticks (void)
 
 static int init_joysticks (void)
 {
-    int success = 0;
-
-    if (SDL_InitSubSystem (SDL_INIT_JOYSTICK) == 0) {
-        int i;
-        nr_joysticks = SDL_NumJoysticks ();
-        write_log ("Found %d joysticks\n", nr_joysticks);
-        if (nr_joysticks > MAX_INPUT_DEVICES)
-    	    nr_joysticks = MAX_INPUT_DEVICES;
-        for (i = 0; i < get_joystick_num(); i++) {
-	    joys[i].joy = SDL_JoystickOpen (i);
-	    joys[i].axles = SDL_JoystickNumAxes (joys[i].joy);
-	    joys[i].buttons = SDL_JoystickNumButtons (joys[i].joy);
-	}
-        success = 1;
-    } else
-        write_log ("Failed to initialize joysticks\n");
-    return success;
+    int i;
+    nr_joysticks = SDL_NumJoysticks ();
+    if (nr_joysticks > MAX_INPUT_DEVICES)
+	nr_joysticks = MAX_INPUT_DEVICES;
+    for (i = 0; i < get_joystick_num(); i++) {
+	joys[i].joy = SDL_JoystickOpen (i);
+	joys[i].axles = SDL_JoystickNumAxes (joys[i].joy);
+	joys[i].buttons = SDL_JoystickNumButtons (joys[i].joy);
+    }
+    return 1;
 }
 
 static void close_joysticks (void)
@@ -143,7 +136,6 @@ static void close_joysticks (void)
 	SDL_JoystickClose (joys[i].joy);
 	joys[i].joy = 0;
     }
-    SDL_QuitSubSystem (SDL_INIT_JOYSTICK);
 }
 
 static int acquire_joy (int num, int flags)
@@ -161,21 +153,3 @@ struct inputdevice_functions inputdevicefunc_joystick = {
     get_joystick_widget_num, get_joystick_widget_type,
     get_joystick_widget_first
 };
-
-/*
- * Set default inputdevice config for SDL joysticks
- */
-void input_get_default_joystick (struct uae_input_device *uid)
-{
-    int i, port;
-
-    for (i = 0; i < nr_joysticks; i++) {
-        port = i & 1;
-        uid[i].eventid[ID_AXIS_OFFSET + 0][0]   = port ? INPUTEVENT_JOY2_HORIZ : INPUTEVENT_JOY1_HORIZ;
-        uid[i].eventid[ID_AXIS_OFFSET + 1][0]   = port ? INPUTEVENT_JOY2_VERT  : INPUTEVENT_JOY1_VERT;
-        uid[i].eventid[ID_BUTTON_OFFSET + 0][0] = port ? INPUTEVENT_JOY2_FIRE_BUTTON : INPUTEVENT_JOY1_FIRE_BUTTON;
-        uid[i].eventid[ID_BUTTON_OFFSET + 1][0] = port ? INPUTEVENT_JOY2_2ND_BUTTON  : INPUTEVENT_JOY1_2ND_BUTTON;
-        uid[i].eventid[ID_BUTTON_OFFSET + 2][0] = port ? INPUTEVENT_JOY2_3RD_BUTTON  : INPUTEVENT_JOY1_3RD_BUTTON;
-    }
-    uid[0].enabled = 1;
-}

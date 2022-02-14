@@ -941,7 +941,6 @@ static void action_replay_patch(void)
     armemory_rom[off2 + 1] = (uae_u8)((off1 + kickmem_start + 2) >> 16);
     armemory_rom[off2 + 2] = (uae_u8)((off1 + kickmem_start + 2) >> 8);
     armemory_rom[off2 + 3] = (uae_u8)((off1 + kickmem_start + 2) >> 0);
-    write_log ("AR ROM patched for KS2.0+\n");
 }
 
 /* Returns 0 if the checksum is OK. 
@@ -1593,18 +1592,14 @@ void action_replay_memory_reset(void)
     action_replay_checksum_info();
 }
 
-uae_u8 *save_action_replay (int *len, uae_u8 *dstptr)
+uae_u8 *save_action_replay (int *len)
 {
     uae_u8 *dstbak,*dst;
 
-    *len = 1;
     if (!armemory_ram || !armemory_rom || !armodel)
 	return 0;
-    *len = 1 + strlen(currprefs.cartfile) + 1 + arram_size + 256;
-    if (dstptr)
-	dstbak = dst = dstptr;
-    else
-        dstbak = dst = malloc (*len);
+    *len = 256 + strlen(currprefs.cartfile) + arram_size;
+    dstbak = dst = malloc (*len);
     save_u8 (armodel);
     strcpy (dst, currprefs.cartfile);
     dst += strlen(dst) + 1;
@@ -1616,8 +1611,6 @@ uae_u8 *restore_action_replay (uae_u8 *src)
 {
     action_replay_unload (1);
     armodel = restore_u8 ();
-    if (!armodel)
-	return src;
     strncpy (changed_prefs.cartfile, src, 255);
     strcpy (currprefs.cartfile, changed_prefs.cartfile);
     src += strlen(src) + 1;

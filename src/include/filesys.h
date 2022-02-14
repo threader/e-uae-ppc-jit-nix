@@ -48,4 +48,3 @@ extern int hdf_getnumharddrives (void);
 extern char *hdf_getnameharddrive (int index, int flags);
 extern int hdf_init (void);
 extern int isspecialdrive(const char *name);
-extern int filesys_is_readonly (const char *path);
