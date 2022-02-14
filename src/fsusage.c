@@ -15,10 +15,6 @@
    along with this program; if not, write to the Free Software Foundation,
    Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.  */
 
-#ifdef __AMIGA__
-#include <devices/timer.h>
-#endif
-
 #include "sysconfig.h"
 
 #include <stdlib.h>
@@ -83,7 +79,7 @@ get_fs_usage (path, disk, fsp)
     }
 
     /* HACK ALERT! WinNT returns 0 in TotalNumberOfClusters for an audio-CD, which calls the GURU! */
-    if( ( TotalNumberOfClusters == 0 ) &&
+    if( ( TotalNumberOfClusters == 0 ) && 
         ( GetDriveType( buf2 ) == DRIVE_CDROM ) )
     {
         TotalNumberOfClusters = 327680;
@@ -97,73 +93,6 @@ get_fs_usage (path, disk, fsp)
 }
 
 #else /* ! _WIN32 */
-
-#ifdef __AMIGA__
-
-#include <dos/dos.h>
-#include <exec/memory.h>
-#include <proto/exec.h>
-#include <proto/dos.h>
-
-int get_fs_usage (const char *path, const char *disk, struct fs_usage *fsp)
-{
-    struct InfoData *info = (struct InfoData *)AllocVec(sizeof *info, MEMF_ANY);
-    int result = -1;
-
-    if (info) {
-        BPTR lock = Lock (path, SHARED_LOCK);
-	if (lock) {
-	    if (Info (lock, info)) {
-		fsp->fsu_blocks = adjust_blocks (info->id_NumBlocks,
-						 info->id_BytesPerBlock,
-						 512);
-		fsp->fsu_bfree = fsp->fsu_bavail =
-				  adjust_blocks (info->id_NumBlocks - info->id_NumBlocksUsed,
-						 info->id_BytesPerBlock,
-						 512);
-		fsp->fsu_files = fsp->fsu_ffree = -1;
-
-		result = 0;
-	    }
-	    UnLock (lock);
-	}
-	FreeVec (info);
-    }
-    return result;
-}
-
-#else /* ! __AMIGA__ */
-
-#ifdef __BEOS__
-
-#include <be/kernel/fs_info.h>
-
-int get_fs_usage (const char *path, const char *disk, struct fs_usage *fsp)
-{
-    int result = -1;
-    dev_t device = dev_for_path (path);
-    
-    if (device >0) {
-    	fs_info info;
-    	
-    	if (fs_stat_dev (device, &info) == 0) {
-	    fsp->fsu_blocks = adjust_blocks (info.total_blocks,
-					     info.block_size,
-					     512);
-	    fsp->fsu_bfree = fsp->fsu_bavail =
-			      adjust_blocks (info.free_blocks,
-					     info.block_size,
-					     512);
-	    fsp->fsu_files = info.total_nodes;
-	    fsp->fsu_ffree = info.free_nodes;
-
-	    result = 0;
-    	}
-    }
-    return result;
-};
-
-#else /* ! __BEOS__ */
 
 int statfs ();
 
@@ -368,7 +297,7 @@ get_fs_usage (path, disk, fsp)
 
 #endif /* STAT_STATFS4 */
 
-#ifdef HAVE_STATVFS		/* SVR4 */
+#ifdef STAT_STATVFS		/* SVR4 */
 # define CONVERT_BLOCKS(B) \
     adjust_blocks ((B), fsd.f_frsize ? fsd.f_frsize : fsd.f_bsize, 512)
 
@@ -423,6 +352,4 @@ statfs (path, fsb)
 
 #endif /* _AIX && _I386 */
 
-#endif /* ! __BEOS__ */
-#endif /* ! __AMIGA__ */
 #endif /* ! _WIN32 */

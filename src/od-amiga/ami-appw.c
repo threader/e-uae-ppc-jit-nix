@@ -50,7 +50,7 @@
 
 #define LEN 256
 
-struct Library          *WorkbenchBase = NULL;
+struct Library          *WorkbenchBase;
 
 static struct AppWindow *AppWin;
 static struct MsgPort   *AppPort;

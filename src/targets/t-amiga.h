@@ -6,8 +6,6 @@
   * Copyright 1997 Bernd Schmidt
   */
 
-#define TARGET_NAME "amiga"
-
 #define UNSUPPORTED_OPTION_l
 
 #define OPTIONSFILENAME ".uaerc"
@@ -27,12 +25,3 @@
 #define DEFPRTNAME "par:"
 
 #define write_log write_log_standard
-
-/*
- * On a 68k Amiga we don't have access to a CPU time counter, so
- * use the EClock-based substitute in osdep/support.c instead
- */
-#if defined __mc68000__ || defined mc68000
-#define HAVE_OSDEP_INIT
-#define HAVE_OSDEP_RPT
-#endif

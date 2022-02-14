@@ -101,7 +101,7 @@ struct RxsLib
 #else
 struct Library
 #endif
-                        *RexxSysBase = NULL;
+                        *RexxSysBase;
 static struct MsgPort   *ARexxPort;
 static gui_rexx_s        gui_rexx[GUI_REXX_MAX];
 static char              RESULT[RESULT_LEN];

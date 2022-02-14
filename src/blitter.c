@@ -225,8 +225,8 @@ static void blitter_dofast(void)
 		    bltbdatptr += 2;
 		}
 		bltbdat = blt_info.bltbdat;
-		blitbhold = (((uae_u32)prevb << 16) | bltbdat) >> blt_info.blitbshift;
-		prevb = bltbdat;
+		    blitbhold = (((uae_u32)prevb << 16) | bltbdat) >> blt_info.blitbshift;
+		    prevb = bltbdat;
 
 		if (bltcdatptr) {
 		    blt_info.bltcdat = chipmem_wget (bltcdatptr);
@@ -317,8 +317,8 @@ static void blitter_dofast_desc(void)
 		    bltbdatptr -= 2;
 		}
 		bltbdat = blt_info.bltbdat;
-		blitbhold = (((uae_u32)bltbdat << 16) | prevb) >> blt_info.blitdownbshift;
-		prevb = bltbdat;
+		    blitbhold = (((uae_u32)bltbdat << 16) | prevb) >> blt_info.blitdownbshift;
+		    prevb = bltbdat;
 
 		if (bltcdatptr) {
 		    blt_info.bltcdat = blt_info.bltbdat = chipmem_wget (bltcdatptr);
@@ -422,7 +422,7 @@ static void blitter_line(void)
     blt_info.bltddat = blit_func(blitahold, blitbhold, blitchold, bltcon0 & 0xFF);
     if (!blitsign){
 	if (bltcon0 & 0x800)
-	    bltapt += (uae_s16)blt_info.bltamod;
+	bltapt += (uae_s16)blt_info.bltamod;
 	if (bltcon1 & 0x10){
 	    if (bltcon1 & 0x8)
 		blitter_line_decy();
@@ -436,7 +436,7 @@ static void blitter_line(void)
 	}
     } else {
 	if (bltcon0 & 0x800)
-	    bltapt += (uae_s16)blt_info.bltbmod;
+	bltapt += (uae_s16)blt_info.bltbmod;
     }
     if (bltcon1 & 0x10){
 	if (bltcon1 & 0x4)
@@ -499,7 +499,7 @@ void blitter_handler(void)
     }
 #ifdef BLITTER_DEBUG
     if (!blitter_dontdo) 
-	actually_do_blit();
+    actually_do_blit();
     else
 	bltstate = BLT_done;
 #else
@@ -515,7 +515,7 @@ STATIC_INLINE int channel_state (int cycles)
     return blit_diag[((cycles - blit_diag[0]) % blit_diag[1]) + 2];
 }
 
-#ifdef CPUEMU_6
+
 
 static int blit_last_hpos;
 
@@ -523,7 +523,7 @@ static int blitter_dma_cycles_line, blitter_dma_cycles_line_count;
 static int blitter_cyclecounter;
 static int blitter_hcounter1, blitter_hcounter2;
 static int blitter_vcounter1, blitter_vcounter2;
-
+#ifdef CPUEMU_6
 
 static uae_u32 preva, prevb;
 STATIC_INLINE uae_u16 blitter_doblit (void)
@@ -702,13 +702,13 @@ void decide_blitter (int hpos)
 		    if (blitter_doddma ()) {
 			cycle_line[blit_last_hpos] |= CYCLE_BLITTER;
 		        blit_cyclecounter++;
-		    }
+		}
 		} else if (c) {
 		    if (blitter_vcounter1 < blt_info.vblitsize) {
-			cycle_line[blit_last_hpos] |= CYCLE_BLITTER;
+		    cycle_line[blit_last_hpos] |= CYCLE_BLITTER;
 		        blitter_dodma (c);
-		    }
-		    blit_cyclecounter++;
+		}
+		blit_cyclecounter++;
 		} else {
 		    blit_cyclecounter++;
 		    /* check if blit with zero channels has ended  */
@@ -727,7 +727,7 @@ void decide_blitter (int hpos)
 			blit_diag = blit_cycle_diagram_finald;
 		    }
 		}
-	        break;
+		break;
 	    }
 	    blit_last_hpos++;
 	}
@@ -809,7 +809,7 @@ void do_blitter (int hpos)
     blit_last_cycle = 0;
     blitline = bltcon1 & 1; 
     blitfill = bltcon1 & 0x18;
-    if (!blitline) {
+	if (!blitline) {
 	blit_diag = blitfill ? blit_cycle_diagram_fill[blit_ch] : blit_cycle_diagram[blit_ch];
         blit_firstline_cycles += blit_diag[1] * blt_info.hblitsize * CYCLE_UNIT;
         blit_cycles = blt_info.vblitsize * blt_info.hblitsize;
@@ -831,9 +831,7 @@ void do_blitter (int hpos)
 
     blit_cyclecounter = 0;
     blit_maxcyclecounter = 0x7fffffff;
-#ifdef CPUEMU_6
     blit_last_hpos = hpos;
-#endif
     blit_init();
 
 #ifdef BLITTER_DEBUG
@@ -851,14 +849,13 @@ void do_blitter (int hpos)
 
     unset_special (SPCFLAG_BLTNASTY);
     if (dmaen(DMA_BLITPRI))
-        set_special (SPCFLAG_BLTNASTY);
+	set_special (SPCFLAG_BLTNASTY);
 
     if (blt_info.vblitsize == 0) {
         blitter_done ();
         return;
     }
 
-#ifdef CPUEMU_6
     if (currprefs.blitter_cycle_exact) {
 	blitter_dma_cycles_line = blt_info.hblitsize * blit_dmacount2;
 	blitter_dma_cycles_line_count = 0;
@@ -871,7 +868,6 @@ void do_blitter (int hpos)
 	blit_linecyclecounter = 0;
 	return;
     }
-#endif
 
     if (currprefs.immediate_blits)
         cycles = 1;
@@ -919,13 +915,13 @@ int blitnasty (void)
     if (!dmaen(DMA_BLITTER))
 	return 0;
     if (blit_last_cycle >= blit_diag[0] && blit_dmacount == blit_diag[1])
-        return 0;
+	return 0;
     cycles = (get_cycles () - blit_first_cycle) / CYCLE_UNIT;
     ccnt = 0;
     while (blit_last_cycle < cycles) {
 	int c = channel_state (blit_last_cycle++);
 	if (!c)
-	    ccnt++;
+	ccnt++;
     }
     return ccnt;
 }

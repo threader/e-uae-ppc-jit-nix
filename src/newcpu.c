@@ -25,6 +25,7 @@
 #include "savestate.h"
 #include "blitter.h"
 #include "ar.h"
+#include "threaddep/thread.h"
 
 #ifdef JIT
 #include "compemu.h"
@@ -1371,18 +1372,18 @@ void m68k_reset (void)
 {
     regs.kick_mask = 0x00F80000;
     regs.spcflags = 0;
-    if (savestate_state == STATE_RESTORE) {
-        m68k_setpc (regs.pc);
-	/* MakeFromSR() must not swap stack pointer */
-	regs.s = (regs.sr >> 13) & 1;
-	MakeFromSR();
-	/* set stack pointer */
-	if (regs.s)
-	    m68k_areg(regs, 7) = regs.isp;
-	else
-	    m68k_areg(regs, 7) = regs.usp;
-	return;
-    }
+//    if (savestate_state == STATE_RESTORE) {
+//        m68k_setpc (regs.pc);
+//	/* MakeFromSR() must not swap stack pointer */
+//	regs.s = (regs.sr >> 13) & 1;
+//	MakeFromSR();
+//	/* set stack pointer */
+//	if (regs.s)
+//	    m68k_areg(regs, 7) = regs.isp;
+//	else
+//	    m68k_areg(regs, 7) = regs.usp;
+//	return;
+//    }
 
     m68k_areg (regs, 7) = get_long (0x00f80000);
     m68k_setpc (get_long (0x00f80004));
@@ -2021,8 +2022,8 @@ void m68k_go (int may_quit)
 	    if (quit_program == 1)
 		break;
 	    quit_program = 0;
-	    if (savestate_state == STATE_RESTORE)
-		restore_state (savestate_fname);
+//	    if (savestate_state == STATE_RESTORE)
+//		restore_state (savestate_fname);
 	    /* following three lines must not be reordered or
 	     * fastram state restore breaks
 	     */
@@ -2034,11 +2035,11 @@ void m68k_go (int may_quit)
 		write_log ("chipmem cleared\n");
 	    }
 	    /* We may have been restoring state, but we're done now.  */
-	    if (savestate_state == STATE_RESTORE) {
-	        map_overlay (1);
-	        fill_prefetch_slow (); /* compatibility with old state saves */
-	    }
-	    savestate_restore_finish ();
+//	    if (savestate_state == STATE_RESTORE) {
+//	        map_overlay (1);
+//	        fill_prefetch_slow (); /* compatibility with old state saves */
+//	    }
+//	    savestate_restore_finish ();
 	    fill_prefetch_slow ();
 	    if (currprefs.produce_sound == 0)
 		eventtab[ev_audio].active = 0;

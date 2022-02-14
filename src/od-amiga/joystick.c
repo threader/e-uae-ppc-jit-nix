@@ -1,143 +1,57 @@
- /*
+ /* 
   * UAE - The Un*x Amiga Emulator
-  *
+  * 
   * Joystick emulation for AmigaOS
-  *
+  * 
   * Copyright 1996, 1997 Samuel Devulder
-  * Copyright 2003 Richard Drummond
   */
-
-#include <devices/timer.h>
 
 #include "sysconfig.h"
 #include "sysdeps.h"
 
 #include "config.h"
 #include "options.h"
-#include "inputdevice.h"
+#include "memory.h"
+#include "custom.h"
+#include "joystick.h"
 
-#include <libraries/lowlevel.h>
-#include <proto/exec.h>
-#include <proto/lowlevel.h>
+int nr_joysticks;
 
-struct Library *LowLevelBase = NULL;
+#include <hardware/custom.h>
+#include <hardware/cia.h>
 
-static int nr_joysticks;
+#define CIAAPRA 0xBFE001 
+#define CUSTOM  0xDFF000
 
-#define MAX_BUTTONS  2
-#define MAX_AXLES    2
-#define FIRST_AXLE   0
-#define FIRST_BUTTON 2
+static struct Custom *custom= (struct Custom*) CUSTOM;
+static struct CIA *cia = (struct CIA *) CIAAPRA;
 
-
-static int init_joysticks (void)
+void read_joystick(int nr, unsigned int *dir, int *button)
 {
-    LowLevelBase = (struct Library *) OpenLibrary ("lowlevel.library", 39);
+    int bot, right, top, left, joy,fire;
+    
+    *dir = 0;
+    *button = 0;
+    if (nr >= nr_joysticks) return;
 
-    if (LowLevelBase) {	
-	nr_joysticks = 2;
-        return 1;
-    } else {
-        nr_joysticks = 0;
-        return 0;
-    }
+    joy   = custom->joy1dat;
+    fire  = !( cia->ciapra & 0x0080 ) ? 1 : 0;
+
+    right = (joy & 0x0002) ? 1 : 0;
+    left  = (joy & 0x0200) ? 1 : 0;
+    bot   = (joy & 0x0001) ? 1 : 0;
+    top   = (joy & 0x0100) ? 1 : 0;
+    
+    *button = fire;
+    *dir = bot | (right << 1) | (top << 8) | (left << 9);
 }
 
-static void close_joysticks (void)
+void init_joystick(void)
 {
-    if (LowLevelBase) {
-	CloseLibrary (LowLevelBase);
-	LowLevelBase = 0;
-    }
+    nr_joysticks = 1;
 }
 
-static int acquire_joy (int num, int flags)
-{
-    return 1;
-}
-
-static void unacquire_joy (int num)
+void close_joystick(void)
 {
 }
 
-static void read_joy (int nr)
-{
-    if (LowLevelBase != NULL) {
-	ULONG state = ReadJoyPort (nr);
-
-	if ((state & JP_TYPE_MASK) != JP_TYPE_NOTAVAIL) {
-	    int x = 0, y = 0;
-
-	    if (state & JPF_JOY_UP)
-	        y = -1;
-	    else if (state & JPF_JOY_DOWN)
-	        y = 1;
-	    if (state & JPF_JOY_LEFT)
-	        x = -1;
-	    else if (state & JPF_JOY_RIGHT)
-	        x = 1;
-
-	    setjoystickstate (nr, 0, x, 1);
-	    setjoystickstate (nr, 1, y, 1);
-
-	    setjoybuttonstate (nr, 0, state & JPF_BUTTON_RED);
-	    setjoybuttonstate (nr, 1, state & JPF_BUTTON_BLUE);
-	}
-    }
-}
-
-static void read_joysticks (void)
-{
-    read_joy (0);
-    read_joy (1);
-}
-
-static int get_joystick_num (void)
-{
-    return nr_joysticks;
-}
-
-static char *get_joystick_name (int joy)
-{
-    static char name[16];
-    sprintf (name, "Joy port %d", joy);
-    return name;
-}
-
-static int get_joystick_widget_num (int joy)
-{
-    return MAX_AXLES + MAX_BUTTONS;
-}
-
-static int get_joystick_widget_type (int joy, int num, char *name)
-{
-    if (num >= MAX_AXLES && num < MAX_AXLES+MAX_BUTTONS) {
-	if (name)
-	    sprintf (name, "Button %d", num + 1 - MAX_AXLES);
-	return IDEV_WIDGET_BUTTON;
-    } else if (num < MAX_AXLES) {
-	if (name)
-	    sprintf (name, "Axis %d", num + 1);
-	return IDEV_WIDGET_AXIS;
-    }
-    return IDEV_WIDGET_NONE;
-}
-
-static int get_joystick_widget_first (int joy, int type)
-{
-    switch (type) {
-	case IDEV_WIDGET_BUTTON:
-	    return FIRST_BUTTON;
-	case IDEV_WIDGET_AXIS:
-	    return FIRST_AXLE;
-    }
-
-    return -1;
-}
-
-struct inputdevice_functions inputdevicefunc_joystick = {
-    init_joysticks, close_joysticks, acquire_joy, unacquire_joy,
-    read_joysticks, get_joystick_num, get_joystick_name,
-    get_joystick_widget_num, get_joystick_widget_type,
-    get_joystick_widget_first
-};

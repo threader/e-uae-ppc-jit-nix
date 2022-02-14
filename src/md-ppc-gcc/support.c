@@ -14,7 +14,6 @@
 #include "options.h"
 #include "events.h"
 #include "machdep/m68k.h"
-#include "sleep.h"
 
 struct flag_struct regflags;
 
@@ -30,12 +29,10 @@ void machdep_init (void)
 
     sync ();
     last_time = read_processor_time ();
-    my_usleep (loops_to_go * 1000000);
+    usleep (loops_to_go * 1000000);
     best_time = read_processor_time () - last_time;
     sync ();
 
     syncbase = best_time / loops_to_go;
     write_log ("%.6f MHz\n", (double)syncbase / 1000000);
-
-    sleep_test();
 }

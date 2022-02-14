@@ -395,7 +395,6 @@ static void set_joy_state (void)
     }
 }
 
-#ifdef FILESYS
 static void set_hd_state (void)
 {
     char  texts[HDLIST_MAX_COLS][256];
@@ -424,11 +423,8 @@ static void set_hd_state (void)
 				    &cylinders, &size, &blocksize, &bootpri, &filesysdir );
 
 	if (is_hardfile (currprefs.mountinfo, i)) {
-	    if (secspertrack == 0)
-	        strcpy (texts[HDLIST_DEVICE], "N/A" );
-	    else
-	        strncpy (texts[HDLIST_DEVICE], devname, 255);
-	    sprintf (texts[HDLIST_VOLUME],  "N/A" );
+	    strncpy (texts[HDLIST_DEVICE],  devname, 255);
+	    sprintf (texts[HDLIST_VOLUME],  "DH%d", i );
 	    sprintf (texts[HDLIST_HEADS],   "%d", surfaces);
 	    sprintf (texts[HDLIST_CYLS],    "%d", cylinders);
 	    sprintf (texts[HDLIST_SECS],    "%d", secspertrack);
@@ -437,7 +433,7 @@ static void set_hd_state (void)
 	    sprintf (texts[HDLIST_BLKSIZE], "%d", blocksize);
 	} else {
 	    strncpy (texts[HDLIST_DEVICE], devname, 255);
-	    strncpy (texts[HDLIST_VOLUME], volname, 255);
+	    strcpy (texts[HDLIST_VOLUME],  volname);
 	    strcpy (texts[HDLIST_HEADS],   "N/A");
 	    strcpy (texts[HDLIST_CYLS],    "N/A");
 	    strcpy (texts[HDLIST_SECS],    "N/A");
@@ -454,7 +450,6 @@ static void set_hd_state (void)
     gtk_widget_set_sensitive (hdchange_button, FALSE);
     gtk_widget_set_sensitive (hddel_button, FALSE);
 }
-#endif
 
 static void set_floppy_state( void )
 {
@@ -526,9 +521,7 @@ static int my_idle (void)
 #endif
 	    set_mem_state ();
 	    set_floppy_state ();
-#ifdef FILESYS	   
 	    set_hd_state ();
-#endif	   
 	    set_chipset_state ();
 
 	    gtk_widget_show (gui_window);  // Should find a better place to do this, surely? - Rich
@@ -1656,7 +1649,6 @@ static void make_joy_widgets (GtkWidget *dvbox)
     add_empty_vbox (dvbox);
 }
 
-#ifdef FILESYS
 static int hd_change_mode;
 
 static void newdir_ok (void)
@@ -1924,7 +1916,7 @@ static void hdunselect (GtkWidget *widget, gint row, gint column, GdkEventButton
     gtk_widget_set_sensitive (hdchange_button, FALSE);
     gtk_widget_set_sensitive (hddel_button, FALSE);
 }
-#endif // FILESYS
+
 
 static GtkWidget *make_buttons (const char *label, GtkWidget *box, void (*sigfunc) (void), GtkWidget *(*create)(const char *label))
 {
@@ -1937,7 +1929,6 @@ static GtkWidget *make_buttons (const char *label, GtkWidget *box, void (*sigfun
 }
 #define make_button(label, box, sigfunc) make_buttons(label, box, sigfunc, gtk_button_new_with_label)
 
-#ifdef FILESYS
 static void make_hd_widgets (GtkWidget *dvbox)
 {
     GtkWidget *frame, *vbox, *scrollbox, *thing, *buttonbox, *hbox;
@@ -1987,8 +1978,7 @@ static void make_hd_widgets (GtkWidget *dvbox)
     gtk_widget_show (thing);
     add_centered_to_vbox (vbox, thing);
 }
-#endif
-
+ 
 static void make_about_widgets (GtkWidget *dvbox)
 {
     GtkWidget *thing;
@@ -2012,21 +2002,16 @@ static void make_about_widgets (GtkWidget *dvbox)
 	/* gtk_widget_push_style (style); Don't need this - Rich */
 	gtk_widget_set_style (thing, style);
     }
-#ifdef PACKAGE_VERSION
-    thing = gtk_label_new ("Version " PACKAGE_VERSION );
-    gtk_widget_show (thing);
-    add_centered_to_vbox (dvbox, thing);
-#endif
     thing = gtk_label_new ("Choose your settings, then deselect the Pause button to start!");
     gtk_widget_show (thing);
     add_centered_to_vbox (dvbox, thing);
 
-    add_empty_vbox (dvbox);
+    add_empty_vbox (dvbox); 
 }
 
 static gint did_guidlg_delete (GtkWidget* window, GdkEventAny* e, gpointer data)
 {
-    if (!no_gui && !quit_gui)
+    if (!no_gui && !quit_gui) 
         write_comm_pipe_int (&from_gui_pipe, 4, 1);
     return TRUE;
 }
@@ -2054,9 +2039,7 @@ static void create_guidlg (void)
  	{ "JIT", make_comp_widgets },
 #endif       
 	{ "Game ports", make_joy_widgets },
-#ifdef FILESYS       
 	{ "Hard disks", make_hd_widgets },
-#endif       
 	{ "About", make_about_widgets }
     };
 
@@ -2182,9 +2165,8 @@ void gui_changesettings(void)
     
 }
 
-void gui_fps (int fps)
+void gui_fps (int x)
 {
-    gui_data.fps = fps;
 }
 
 /*
@@ -2399,13 +2381,13 @@ int gui_update (void)
 
 /*
  * gui_exit()
- *
+ * 
  * This called from the main UAE thread to tell the GUI to gracefully
- * quit. It does this via the global variable quit_gui, which is checked and
+ * quit. It does this via the global variable guit_gui, which is checked and
  * responded to in the GTK main loop courtesy of our callback my_idle().
  * This function waits for a response from the GUI telling it that it
  * is acutally quitting.
- *
+ * 
  * TODO: Should change communication via a global, to sending a GUICMD_QUIT
  * message to the GUI?
  */
@@ -2414,9 +2396,9 @@ void gui_exit (void)
     DEBUG_LOG( "Entered\n" );
 
     if (!no_gui && !quit_gui) {
-	quit_gui = 1;
-	DEBUG_LOG( "Waiting for GUI thread to quit.\n" );
-	uae_sem_wait (&gui_quit_sem);
+        quit_gui = 1;
+        DEBUG_LOG( "Waiting for GUI thread to quit.\n" );
+        uae_sem_wait (&gui_quit_sem); 
     }
 }
 
@@ -2432,41 +2414,46 @@ void gui_unlock (void)
 
 void gui_hd_led (int led)
 {
-    static int resetcounter;
-
-    int old = gui_data.hd;
-    if (led == 0) {
-	resetcounter--;
-	if (resetcounter > 0)
-	    return;
-    }
-
-    gui_data.hd = led;
-    resetcounter = 6;
-    if (old != gui_data.hd)
-	gui_led (5, gui_data.hd);
+   
+       static int resetcounter;
+   
+       int old = gui_data.hd;
+       if (led == 0) 
+     {
+	
+	        resetcounter--;
+	        if (resetcounter > 0)
+	              return;
+     }
+   
+       gui_data.hd = led;
+       resetcounter = 6;
+       if (old != gui_data.hd)
+             gui_led (5, gui_data.hd);
 }
 
 void gui_cd_led (int led)
 {
 }
 
+/* An ugly stop-gap - needs proper message box implementation - Rich */
 void gui_message (const char *format,...)
 {
     char msg[2048];
     va_list parms;
-
+    
     va_start (parms,format);
     vsprintf ( msg, format, parms);
     va_end (parms);
-
+    
     if (!no_gui)
-	do_message_box (NULL, msg, TRUE, TRUE);
+        do_message_box (NULL, msg, TRUE, TRUE);
 
     write_log (msg);
 }
 
-void gui_set_paused (int state)
+
+void gui_set_paused( int state )
 {
    if (no_gui)
        return;
@@ -2480,7 +2467,7 @@ void gui_set_paused (int state)
 
 /*
  * do_message_box()
- *
+ * 
  * This makes up for GTK's lack of a function for creating simple message dialogs.
  * It can be called from any context. gui_init() must have been called at some point
  * previously.

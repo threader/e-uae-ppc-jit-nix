@@ -40,7 +40,7 @@ struct audio_channel_data {
     uaecptr lc, pt;
     int current_sample, last_sample;
     int *voltbl;
-    int state;    
+    int state;
     int per;
     int vol;
     int len, wlen;
@@ -87,7 +87,7 @@ typedef uae_s8 sample8_t;
 #define DO_CHANNEL_1(v, c) do { (v) *= audio_channel[c].vol; } while (0)
 #define SBASEVAL8(logn) ((logn) == 1 ? SOUND8_BASE_VAL << 7 : SOUND8_BASE_VAL << 8)
 #define SBASEVAL16(logn) ((logn) == 1 ? SOUND16_BASE_VAL >> 1 : SOUND16_BASE_VAL)
-#define FINISH_DATA(data,b,logn) do { if (14 - (b) + (logn) > 0) (data) >>= 14 - (b) + (logn); else (data) <<= (b) - 14 - (logn); } while (0);
+#define FINISH_DATA(data,b,logn) do { if (14 - (b) + (logn) > 0) (data) >>= (14 - (b) + (logn)); else (data) <<= ((b) - 14 - (logn)); } while (0);
 #else
 typedef uae_u8 sample8_t;
 #define DO_CHANNEL_1(v, c) do { (v) = audio_channel[c].voltbl[(v)]; } while (0)
@@ -239,7 +239,7 @@ void sample16i_crux_handler (void)
     data3 &= audio_channel[3].adk_mask;
     data3p &= audio_channel[3].adk_mask;
 
-    {    
+    {
         struct audio_channel_data *cdp;
         unsigned long ratio, ratio1;
 #define INTERVAL (scaled_sample_evtime * 3)
@@ -323,12 +323,12 @@ void sample16ss_handler (void)
     data1 &= audio_channel[1].adk_mask;
     data2 &= audio_channel[2].adk_mask;
     data3 &= audio_channel[3].adk_mask;
-    
+
     PUT_SOUND_WORD_LEFT (data0 << 2);
     PUT_SOUND_WORD_RIGHT (data1 << 2);
     PUT_SOUND_WORD_LEFT (data2 << 2);
     PUT_SOUND_WORD_RIGHT (data3 << 2);
-    
+
     check_sound_buffers ();
 }
 
@@ -347,7 +347,7 @@ void sample16s_handler (void)
     data1 &= audio_channel[1].adk_mask;
     data2 &= audio_channel[2].adk_mask;
     data3 &= audio_channel[3].adk_mask;
-    
+
     data0 += data3;
     {
         uae_u32 data = SBASEVAL16(1) + data0;
@@ -357,7 +357,7 @@ void sample16s_handler (void)
 
     data1 += data2;
     {
-        uae_u32 data = SBASEVAL16(1) + data1;	
+        uae_u32 data = SBASEVAL16(1) + data1;
         FINISH_DATA (data, 16, 1);
         put_sound_word_left (data);
     }
@@ -394,7 +394,7 @@ void sample16si_crux_handler (void)
     data3 &= audio_channel[3].adk_mask;
     data3p &= audio_channel[3].adk_mask;
 
-    {    
+    {
         struct audio_channel_data *cdp;
         unsigned long ratio, ratio1;
 #define INTERVAL (scaled_sample_evtime * 3)
@@ -438,7 +438,7 @@ void sample16si_crux_handler (void)
         uae_u32 data = SBASEVAL16 (1) + data1;
         FINISH_DATA (data, 16, 1);
         put_sound_word_left (data);
-    }    
+    }
     check_sound_buffers ();
 }
 
@@ -496,7 +496,7 @@ void sample16si_rh_handler (void)
         uae_u32 data = SBASEVAL16 (1) + data1;
         FINISH_DATA (data, 16, 1);
         put_sound_word_left (data);
-    }    
+    }
     check_sound_buffers ();
 }
 
@@ -614,7 +614,7 @@ void schedule_audio (void)
 		best = cdp->evtime;
 		eventtab[ev_audio].active = 1;
 	    }
-	}	
+	}
     }
     eventtab[ev_audio].evtime = get_cycles () + best;
 }
@@ -833,15 +833,15 @@ void audio_reset (void)
 STATIC_INLINE int sound_prefs_changed (void)
 {
     return (changed_prefs.produce_sound != currprefs.produce_sound
-	    || changed_prefs.win32_soundcard != currprefs.win32_soundcard
+//	    || changed_prefs.win32_soundcard != currprefs.win32_soundcard
 	    || changed_prefs.stereo != currprefs.stereo
 	    || changed_prefs.mixed_stereo != currprefs.mixed_stereo
 	    || changed_prefs.sound_maxbsiz != currprefs.sound_maxbsiz
 	    || changed_prefs.sound_freq != currprefs.sound_freq
 	    || changed_prefs.sound_bits != currprefs.sound_bits
 	    || changed_prefs.sound_adjust != currprefs.sound_adjust
-	    || changed_prefs.sound_interpol != currprefs.sound_interpol
-	    || changed_prefs.sound_filter != currprefs.sound_filter);
+	    || changed_prefs.sound_interpol != currprefs.sound_interpol );
+//	    || changed_prefs.sound_filter != currprefs.sound_filter);
 }
 
 void check_prefs_changed_audio (void)
@@ -850,7 +850,7 @@ void check_prefs_changed_audio (void)
 	close_sound ();
 
 	currprefs.produce_sound = changed_prefs.produce_sound;
-	currprefs.win32_soundcard = changed_prefs.win32_soundcard;
+//	currprefs.win32_soundcard = changed_prefs.win32_soundcard;
 	currprefs.stereo = changed_prefs.stereo;
 	currprefs.mixed_stereo = changed_prefs.mixed_stereo;
 	currprefs.sound_adjust = changed_prefs.sound_adjust;
@@ -858,7 +858,7 @@ void check_prefs_changed_audio (void)
 	currprefs.sound_freq = changed_prefs.sound_freq;
 	currprefs.sound_bits = changed_prefs.sound_bits;
 	currprefs.sound_maxbsiz = changed_prefs.sound_maxbsiz;
-	currprefs.sound_filter = changed_prefs.sound_filter;
+//	currprefs.sound_filter = changed_prefs.sound_filter;
 	if (currprefs.produce_sound >= 2) {
 	    if (!init_audio ()) {
 		if (! sound_available) {
@@ -902,6 +902,7 @@ void update_audio (void)
     if (currprefs.produce_sound == 0 || savestate_state == STATE_RESTORE)
 	return;
 
+//    write_log( "update_audio\n" );
     n_cycles = get_cycles () - last_cycles;
     for (;;) {
 	unsigned long int best_evtime = n_cycles + 1;

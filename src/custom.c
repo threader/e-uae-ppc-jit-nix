@@ -71,7 +71,7 @@ static unsigned int total_skipped = 0;
 STATIC_INLINE void sync_copper (int hpos);
 
 /* Events */
- 
+
 unsigned long int event_cycles, nextevent, is_lastline, currcycle;
 long cycles_to_next_event;
 long max_cycles_to_next_event;
@@ -112,7 +112,7 @@ uae_u16 dmacon;
 uae_u16 adkcon; /* used by audio code */
 
 static uae_u32 cop1lc,cop2lc,copcon;
- 
+
 int maxhpos = MAXHPOS_PAL;
 int maxvpos = MAXVPOS_PAL;
 int minfirstline = VBLANK_ENDLINE_PAL;
@@ -773,10 +773,12 @@ static void compute_toscr_delay (int hpos)
     int v = bplcon0;
     int *planes;
 
-    if (currprefs.chipset_mask & CSMASK_AGA)
-	planes = maxplanes_aga;
-    else if (! (currprefs.chipset_mask & CSMASK_ECS_DENISE))
+    if (! (currprefs.chipset_mask & CSMASK_ECS_DENISE))
 	planes = maxplanes_ocs;
+#ifdef AGA   
+    else if (currprefs.chipset_mask & CSMASK_AGA)
+	planes = maxplanes_aga;
+#endif
     else
 	planes = maxplanes_ecs;
     /* Disable bitplane DMA if planes > maxplanes.  This is needed e.g. by the
@@ -2408,7 +2410,7 @@ static void BEAMCON0 (uae_u16 v)
 	if (!(currprefs.chipset_mask & CSMASK_ECS_DENISE))
 	    v &= 0x20;
 	if (v != new_beamcon0) {
-            new_beamcon0 = v;
+	    new_beamcon0 = v;
 	    if (v & ~0x20)
 	        write_log ("warning: %04.4X written to BEAMCON0\n", v);
 	}
@@ -2481,7 +2483,7 @@ static void BPLCON0 (int hpos, uae_u16 v)
 	expand_sprres ();
     }
 #endif
-
+   
     expand_fmodes ();
     calcdiw ();
     estimate_last_fetch_cycle (hpos);
@@ -3184,7 +3186,7 @@ static void predict_copper (void)
 static int test_copper_dangerous (unsigned int address)
 {
     if ((address & 0x1fe) < (copcon & 2 ? ((currprefs.chipset_mask & CSMASK_AGA) ? 0 : 0x40u) : 0x80u)) {
-	cop_state.state = COP_stop;	
+	cop_state.state = COP_stop;
 	copper_enabled_thisline = 0;
 	unset_special (SPCFLAG_COPPER);
 	return 1;

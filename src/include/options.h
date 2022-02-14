@@ -73,7 +73,7 @@ struct uae_prefs {
     int sound_interpol;
     int sound_adjust;
     int sound_filter;
-
+   
     int comptrustbyte;
     int comptrustword;
     int comptrustlong;
@@ -110,7 +110,7 @@ struct uae_prefs {
     int gfx_xcenter;
     int gfx_ycenter;
     int gfx_hue, gfx_saturation, gfx_luminance, gfx_contrast, gfx_gamma;
-
+   
     int gfx_filter;
     int gfx_filter_scanlines;
     int gfx_filter_scanlineratio;
@@ -131,7 +131,6 @@ struct uae_prefs {
     int scsi;
     int catweasel_io;
     int cpu_idle;
-    int dont_busy_wait;
     int cpu_cycle_exact;
     int blitter_cycle_exact;
     int floppy_speed;
@@ -163,7 +162,7 @@ struct uae_prefs {
     uae_u32 gfxmem_size;
 
     int kickshifter;
-    int filesys_no_uaefsdb;
+    int filesys_no_uaefsdb;   
 
     struct uaedev_mount_info *mountinfo;
 
@@ -178,7 +177,7 @@ struct uae_prefs {
     int svga_no_linear;
     int win32_middle_mouse;
     int win32_logfile;
-    int win32_activepriority;
+    int win32_activepriority;   
     int win32_iconified_nospeed;
     int win32_iconified_pause;
     int win32_iconified_nosound;

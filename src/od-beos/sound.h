@@ -4,19 +4,17 @@
   * Support for BeOS sound
   * 
   * Copyright 1996, 1997 Christian Bauer
-  * Copyright 2003 Richard Drummond
   */
 
 extern uae_u16 *sndbuffer;
 extern uae_u16 *sndbufpt;
 extern int sndbufsize;
-extern void finish_sound_buffer (void); 
 
+extern void flush_sound_buffer(void);
 static __inline__ void check_sound_buffers (void)
 {
     if ((char *)sndbufpt - (char *)sndbuffer >= sndbufsize) {
-    	finish_sound_buffer ();
-	sndbufpt = sndbuffer;
+	flush_sound_buffer();
     }
 }
 

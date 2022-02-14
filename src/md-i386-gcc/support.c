@@ -16,7 +16,6 @@
 #include "machdep/m68k.h"
 #include "events.h"
 #include "custom.h"
-#include "sleep.h"
 
 #ifndef USE_UNDERSCORE
 #define LARGE_ALIGNMENT ".align 16\n"
@@ -40,7 +39,7 @@ static volatile int loops_to_go;
 #define TIME_UNIT 100000
 #endif
 
-static void set_the_alarm (void)
+static void set_alarm (void)
 {
 #ifndef HAVE_SETITIMER
     alarm (1);
@@ -70,7 +69,7 @@ static RETSIGTYPE alarmhandler(int foo)
     if (--loops_to_go > 0) {
 	signal (SIGALRM, alarmhandler);
 	last_time = read_processor_time();
-	set_the_alarm ();
+	set_alarm ();
     } else {
 	alarm (0);
 	signal (SIGALRM, SIG_IGN);
@@ -111,13 +110,11 @@ void machdep_init (void)
     /* We want exact values... */
     sync (); sync (); sync ();
     last_time = read_processor_time();
-    set_the_alarm ();
+    set_alarm ();
     while (loops_to_go != 0)
     my_usleep (10000);
     write_log ("ok - %.2f BogoMIPS\n", ((double)RPT_SCALE_FACTOR * best_time / TIME_UNIT));
     syncbase = best_time * (1000000 / TIME_UNIT);
-   
-    sleep_test();
 }
 
 #endif

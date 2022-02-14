@@ -26,9 +26,9 @@
 #include <sys/mman.h>
 #endif
 
-#ifdef JIT
 int canbang;
 
+#ifdef JIT
 /* Set by each memory handler that does not simply access real memory.  */
 int special_mem;
 #endif
@@ -117,7 +117,7 @@ uae_u32 REGPARAM2 dummy_lget (uaecptr addr)
 	}
     }
     if (currprefs.cpu_level >= 4)
-	return 0;
+       return 0;
     return (regs.irc << 16) | regs.irc;
 }
 
@@ -133,7 +133,7 @@ uae_u32 REGPARAM2 dummy_wget (uaecptr addr)
 	}
     }
     if (currprefs.cpu_level >= 2)
-	return 0;
+       return 0;
     return regs.irc;
 }
 
@@ -149,7 +149,7 @@ uae_u32 REGPARAM2 dummy_bget (uaecptr addr)
 	}
     }
     if (currprefs.cpu_level >= 2)
-	return 0;
+       return 0;
     return (addr & 1) ? regs.irc : regs.irc >> 8;
 }
 
@@ -157,14 +157,15 @@ void REGPARAM2 dummy_lput (uaecptr addr, uae_u32 l)
 {
 #ifdef JIT
     special_mem |= S_WRITE;
-#endif 
-   if (currprefs.illegal_mem) {
+#endif
+    if (currprefs.illegal_mem) {
 	if (illegal_count < MAX_ILG) {
 	    illegal_count++;
 	    write_log ("Illegal lput at %08lx\n", addr);
 	}
     }
 }
+
 void REGPARAM2 dummy_wput (uaecptr addr, uae_u32 w)
 {
 #ifdef JIT
@@ -279,13 +280,12 @@ void REGPARAM2 mbres_bput (uaecptr addr, uae_u32 b)
 }
 
 int REGPARAM2 mbres_check (uaecptr addr, uae_u32 size)
-{
+{   
     if (currprefs.illegal_mem)
 	write_log ("Illegal check at %08lx\n", addr);
 
     return 0;
 }
-
 #endif
 
 /* Chip memory */
@@ -721,9 +721,9 @@ void REGPARAM2 kickmem_wput (uaecptr addr, uae_u32 b)
 
 void REGPARAM2 kickmem_bput (uaecptr addr, uae_u32 b)
 {
-#ifdef JIT
+#ifdef JIT   
     special_mem |= S_WRITE;
-#endif
+#endif   
     if (a1000_kickstart_mode) {
 	if (addr >= 0xfc0000) {
 	    addr -= kickmem_start & kickmem_mask;
@@ -808,25 +808,25 @@ uae_u32 REGPARAM2 extendedkickmem_bget (uaecptr addr)
 
 void REGPARAM2 extendedkickmem_lput (uaecptr addr, uae_u32 b)
 {
-#ifdef JIT
+#ifdef JIT   
     special_mem |= S_WRITE;
-#endif
+#endif   
     if (currprefs.illegal_mem)
 	write_log ("Illegal extendedkickmem lput at %08lx\n", addr);
 }
 
 void REGPARAM2 extendedkickmem_wput (uaecptr addr, uae_u32 b)
 {
-#ifdef JIT
+#ifdef JIT   
     special_mem |= S_WRITE;
-#endif
+#endif   
     if (currprefs.illegal_mem)
 	write_log ("Illegal extendedkickmem wput at %08lx\n", addr);
 }
 
 void REGPARAM2 extendedkickmem_bput (uaecptr addr, uae_u32 b)
 {
-#ifdef JIT
+#ifdef JIT   
     special_mem |= S_WRITE;
 #endif
     if (currprefs.illegal_mem)
@@ -859,9 +859,9 @@ int REGPARAM2 default_check (uaecptr a, uae_u32 b)
 uae_u8 REGPARAM2 *default_xlate (uaecptr a)
 {
     if (quit_program == 0) {
-	/* demo Purple by Warfalcons expects exception
-	   in this situation instead of reset... */
-	if (currprefs.cpu_level > 0 || !currprefs.cpu_compatible) {
+        /* demo Purple by Warfalcons expects exception
+           in this situation instead of reset... */
+        if (currprefs.cpu_level > 0 || !currprefs.cpu_compatible) {
 	    write_log ("Your Amiga program just did something terribly stupid %p PC=%p\n", a, m68k_getpc());
 	    uae_reset (0);
 	}
@@ -940,33 +940,34 @@ static int decode_cloanto_rom (uae_u8 *mem, int size, int real_size)
 	gui_message ("No filename given for ROM key file and ROM image is an encrypted \"Amiga Forever\" ROM file.\n");
 	return 0;
     } else {
-	keyf = zfile_fopen (currprefs.keyfile, "rb");
-        if (keyf == 0)  {
+	keyf = zfile_fopen (currprefs.keyfile, "rb");       
+    if (keyf == 0) {
 #ifdef WIN32       
-            keyf = zfile_fopen( "..\\shared\\rom\\rom.key", "rb" );
-            if( keyf == 0 )
-            {
+        keyf = zfile_fopen( "..\\shared\\rom\\rom.key", "rb" );
+        if( keyf == 0 )
+        {
 #endif
-		write_log ("Could not find specified ROM key-file.\n");
-                gui_message ("Could not find specified ROM key-file.\n");
-	        return 0;
+            write_log ("Could not find specified ROM key-file.\n");
+            gui_message ("Could not find specified ROM key-file.\n");
+            return 0;
 #ifdef WIN32	   
-            }
+        }
 #endif
-	}
-	p = (uae_u8 *)xmalloc (524288);
-	keysize = zfile_fread (p, 1, 524288, keyf);
+    }
+       
+    p = (uae_u8 *)xmalloc (524288);
+    keysize = zfile_fread (p, 1, 524288, keyf);
     if (keysize == 0) {
         gui_message ("Error reading keyfile \"%s\"\n", currprefs.keyfile );
         return 0;
     }
-	for (t = cnt = 0; cnt < size; cnt++, t = (t + 1) % keysize)  {
-	    mem[cnt] ^= p[t];
-	    if (real_size == cnt + 1)
-		t = keysize - 1;
-	}
+    for (t = cnt = 0; cnt < size; cnt++, t = (t + 1) % keysize) {
+	mem[cnt] ^= p[t];
+	if (real_size == cnt + 1)
+	    t = keysize - 1;
+    }
 	zfile_fclose (keyf);
-	free (p);
+    free (p);
     }
     return 1;
 }
@@ -994,7 +995,7 @@ static int read_kickstart (struct zfile *f, uae_u8 *mem, int size, int dochecksu
 
     if (cloanto_rom)
 	*cloanto_rom = 0;
-    i = zfile_fread (buffer, 1, 11, f);
+    i = zfile_fread (buffer, 1, 11, f);   
     if (strncmp ((char *)buffer, "AMIROMTYPE1", 11) != 0) {
 	zfile_fseek (f, 0, SEEK_SET);
     } else {
@@ -1005,7 +1006,7 @@ static int read_kickstart (struct zfile *f, uae_u8 *mem, int size, int dochecksu
     if (i == size/2) {
 	memcpy (mem + size/2, mem, i);
     } else if ((i != 8192 && i != 65536) && i != size) {
-	gui_message ("Error while reading Kickstart.\n");
+        gui_message ("Error while reading Kickstart.\n" );
         zfile_fclose (f);
 	return 0;
     }
@@ -1031,7 +1032,7 @@ static int load_extendedkickstart (void)
 {
     struct zfile *f;
     int size;
-
+   
     if (strlen(currprefs.romextfile) == 0)
 	return 0;
     f = zfile_fopen (currprefs.romextfile, "rb");
@@ -1046,16 +1047,16 @@ static int load_extendedkickstart (void)
     else
 	extendedkickmem_size = 262144;
     zfile_fseek (f, 0, SEEK_SET);
-    switch (extromtype ()) {
 
-    case EXTENDED_ROM_CDTV:
-	extendedkickmemory = (uae_u8 *) mapped_malloc (extendedkickmem_size, "rom_f0");
-	extendedkickmem_bank.baseaddr = (uae_u8 *) extendedkickmemory;
-	break;
-    case EXTENDED_ROM_CD32:
-	extendedkickmemory = (uae_u8 *) mapped_malloc (extendedkickmem_size, "rom_e0");
-	extendedkickmem_bank.baseaddr = (uae_u8 *) extendedkickmemory;
-	break;
+    switch (extromtype ()) {
+        case EXTENDED_ROM_CDTV:
+	    extendedkickmemory = (uae_u8 *) mapped_malloc (extendedkickmem_size, "rom_f0");
+            extendedkickmem_bank.baseaddr = (uae_u8 *) extendedkickmemory;
+            break;
+        case EXTENDED_ROM_CD32:
+            extendedkickmemory = (uae_u8 *) mapped_malloc (extendedkickmem_size, "rom_e0");
+            extendedkickmem_bank.baseaddr = (uae_u8 *) extendedkickmemory;
+	    break;
     }
     read_kickstart (f, extendedkickmemory, extendedkickmem_size,  0, 0);
     extendedkickmem_mask = extendedkickmem_size - 1;
@@ -1067,18 +1068,18 @@ static void kickstart_fix_checksum (uae_u8 *mem, int size)
 {
     uae_u32 cksum = 0, prevck = 0;
     int i, ch = size == 524288 ? 0x7ffe8 : 0x3e;
-    
+
     mem[ch] = 0;
     mem[ch + 1] = 0;
     mem[ch + 2] = 0;
     mem[ch + 3] = 0;
     for (i = 0; i < size; i+=4) {
-	uae_u32 data = (mem[i] << 24) | (mem[i + 1] << 16) | (mem[i + 2] << 8) | mem[i + 3];
-	cksum += data;
-	if (cksum < prevck)
-	    cksum++;
-	prevck = cksum;
-    }
+        uae_u32 data = (mem[i] << 24) | (mem[i + 1] << 16) | (mem[i + 2] << 8) | mem[i + 3];
+        cksum += data;
+        if (cksum < prevck)
+            cksum++;
+            prevck = cksum;
+        }
     cksum ^= 0xffffffff;
     mem[ch++] = cksum >> 24;
     mem[ch++] = cksum >> 16;
@@ -1093,7 +1094,7 @@ static int load_kickstart (void)
 
     strcpy (tmprom, currprefs.romfile);
     strcpy (tmpkey, currprefs.keyfile);
-    if (f == NULL) 
+    if (f == NULL)
     {
 	gui_message("No Kickstart ROM found with name %s, trying default locations...\n", currprefs.romfile );
         if( strcmp( currprefs.romfile, "kick.rom" ) )
@@ -1103,7 +1104,7 @@ static int load_kickstart (void)
 #ifdef WIN32	   
             if( f == NULL )
                 goto ami4ever; /* Yuck */
-        }
+        }       
         else
         {
 ami4ever:
@@ -1111,6 +1112,7 @@ ami4ever:
             f = zfile_fopen( currprefs.romfile, "rb" );
 #endif	   
         }
+     
         if( f == NULL ) /* still no luck */
         {
 #if defined(AMIGA)||defined(__POS__)
@@ -1120,9 +1122,9 @@ ami4ever:
 	            write_log ("Using current ROM. (create ENV:%s to "
 		        "use uae's ROM replacement)\n",USE_UAE_ERSATZ);
 	            memcpy(kickmemory,(char*)0x1000000-kickmem_size,kickmem_size);
-		    kickstart_checksum (kickmemory, kickmem_size);
-	            goto chk_sum;
-	        }
+	    kickstart_checksum (kickmemory, kickmem_size);
+	    goto chk_sum;
+	}
 #endif
 	    goto err;
         }
@@ -1132,28 +1134,28 @@ ami4ever:
 	goto err;
 
 #if defined(AMIGA)
-    chk_sum:
+  chk_sum:
 #endif
 
     if (currprefs.kickshifter && kickmem_size >= 524288) {
 	/* Patch Kickstart ROM for ShapeShifter - from Christian Bauer.
-	 * Changes 'lea $400,a0' and 'lea $1000,a0' to 'lea $3000,a0' for
+         * Changes 'lea $400,a0' and 'lea $1000,a0' to 'lea $3000,a0' for
 	 * ShapeShifter compatability.
 	*/
-	int i;
-	uae_u8 kickshift1[] = { 0x41, 0xf8, 0x04, 0x00 };
-	uae_u8 kickshift2[] = { 0x41, 0xf8, 0x10, 0x00 };
-	uae_u8 kickshift3[] = { 0x43, 0xf8, 0x04, 0x00 };
-	
-	for (i = 0x200; i < 0x300; i++) {
-	    if (!memcmp (kickmemory + i, kickshift1, sizeof (kickshift1)) ||
-	    !memcmp (kickmemory + i, kickshift2, sizeof (kickshift2)) ||
-	    !memcmp (kickmemory + i, kickshift3, sizeof (kickshift3))) {
-		kickmemory[i + 2] = 0x30;
-	        write_log ("Kickstart KickShifted @%04.4X\n", i);
-	    }
-	}
-	kickstart_fix_checksum (kickmemory, kickmem_size);
+        int i;
+        uae_u8 kickshift1[] = { 0x41, 0xf8, 0x04, 0x00 };
+        uae_u8 kickshift2[] = { 0x41, 0xf8, 0x10, 0x00 };
+        uae_u8 kickshift3[] = { 0x43, 0xf8, 0x04, 0x00 };
+
+        for (i = 0x200; i < 0x300; i++) {
+            if (!memcmp (kickmemory + i, kickshift1, sizeof (kickshift1)) ||
+            !memcmp (kickmemory + i, kickshift2, sizeof (kickshift2)) ||
+            !memcmp (kickmemory + i, kickshift3, sizeof (kickshift3))) {
+                kickmemory[i + 2] = 0x30;
+                write_log ("Kickstart KickShifted @%04.4X\n", i);
+            }
+        }
+        kickstart_fix_checksum (kickmemory, kickmem_size);
     }
     kickstart_version = (kickmemory[12] << 8) | kickmemory[13];
     return 1;
@@ -1174,7 +1176,6 @@ void mapped_free (uae_u8 *p)
 {
     free (p);
 }
-
 #else
 
 #include <sys/ipc.h>
@@ -1402,7 +1403,7 @@ static void init_mem_banks (void)
 void clearexec (void)
 {
     if (chipmemory)
-	memset (chipmemory + 4, 0,  4);
+        memset (chipmemory + 4, 0,  4);
 }
 
 static void allocate_memory (void)
@@ -1420,7 +1421,7 @@ static void allocate_memory (void)
 	    write_log ("Fatal error: out of memory for chipmem.\n");
 	    allocated_chipmem = 0;
 	} else
-	clearexec ();
+	    clearexec ();
     }
 
     if (allocated_bogomem != currprefs.bogomem_size) {
@@ -1438,7 +1439,7 @@ static void allocate_memory (void)
 		allocated_bogomem = 0;
 	    }
 	}
-	clearexec ();
+        clearexec ();
     }
 #ifdef AUTOCONFIG
     if (allocated_a3000mem != currprefs.a3000mem_size) {
@@ -1456,14 +1457,15 @@ static void allocate_memory (void)
 		allocated_a3000mem = 0;
 	    }
 	}
-	clearexec ();
+        clearexec ();
     }
 #endif
-    if (savestate_state == STATE_RESTORE) {
-	restore_ram (chip_filepos, chipmemory);
-	if (allocated_bogomem > 0)
-    	    restore_ram (bogo_filepos, bogomemory);
+    if (savestate_state == STATE_RESTORE) {   
+        restore_ram (chip_filepos, chipmemory);
+        if (allocated_bogomem > 0)
+            restore_ram (bogo_filepos, bogomemory);
     }
+   
     chipmem_bank.baseaddr = chipmemory;
 #if defined  AGA && CPUEMU_6
     chipmem_bank_ce2.baseaddr = chipmemory;
@@ -1479,14 +1481,14 @@ void map_overlay (int chip)
     cb = &chipmem_bank;
 #if defined AGA && CPUEMU_6
     if (currprefs.cpu_cycle_exact && currprefs.cpu_level >= 2)
-	cb = &chipmem_bank_ce2;
+       cb = &chipmem_bank_ce2;
 #endif
     if (chip)
-	map_banks (cb, 0, i, allocated_chipmem);
-    else
+	map_banks (cb, 0, i, allocated_chipmem); 
+    else 
 	map_banks (&kickmem_bank, 0, i, 0x80000);
-    if (savestate_state != STATE_RESTORE)
-        m68k_setpc(m68k_getpc());
+   
+    m68k_setpc(m68k_getpc());
 }
 
 void memory_reset (void)
@@ -1517,7 +1519,7 @@ void memory_reset (void)
 #endif
 	if (!load_kickstart ()) {
 #ifdef AUTOCONFIG
-            init_ersatz_rom (kickmemory);
+	    init_ersatz_rom (kickmemory);
 	    ersatzkickfile = 1;
 #endif
 	}
@@ -1574,36 +1576,35 @@ void memory_reset (void)
 
 #if defined CDTV || CD32
     switch (extromtype ()) {
-
 #ifdef CDTV
-    case EXTENDED_ROM_CDTV:
-	map_banks (&extendedkickmem_bank, 0xF0, 4, 0);
-	cdtv_enabled = 1;
-	break;
+        case EXTENDED_ROM_CDTV:
+	    map_banks (&extendedkickmem_bank, 0xF0, 4, 0);
+	    cdtv_enabled = 1;
+	    break;
 #endif
 #ifdef CD32
-    case EXTENDED_ROM_CD32:
-	map_banks (&extendedkickmem_bank, 0xE0, 8, 0);
-	cd32_enabled = 1;
-	break;
+        case EXTENDED_ROM_CD32:
+	    map_banks (&extendedkickmem_bank, 0xE0, 8, 0);
+	    cd32_enabled = 1;
+	    break;
 #endif
-    default:
+        default:
 #else
     {
 #endif
-	if (cloanto_rom)
-	    map_banks (&kickmem_bank, 0xE0, 8, 0);
+	    if (cloanto_rom)
+	        map_banks (&kickmem_bank, 0xE0, 8, 0);
     }
 
 #ifdef ACTION_REPLAY
-    action_replay_memory_reset(); 
+    action_replay_memory_reset();
     #ifdef ACTION_REPLAY_HRTMON
     hrtmon_map_banks();
     #endif
 
     #ifndef ACTION_REPLAY_HIDE_CARTRIDGES
     #ifdef ACTION_REPLAY
-    action_replay_map_banks(); 
+    action_replay_map_banks();
     #endif
     #endif
 #endif
@@ -1634,10 +1635,10 @@ void memory_init (void)
     ersatzkickfile = 1;
 #endif
 
-#ifdef ACTION_REPLAY   
+#ifdef ACTION_REPLAY
     action_replay_load();
     action_replay_init(1);
-    
+
     #ifdef ACTION_REPLAY_HRTM
     hrtmon_load(1);
     #endif
@@ -1661,15 +1662,15 @@ void memory_cleanup (void)
 	free (a1000_bootrom);
     if (chipmemory)
 	mapped_free (chipmemory);
-  
+
     bogomemory = 0;
     kickmemory = 0;
     a1000_bootrom = 0;
     chipmemory = 0;
 
-    #ifdef ACTION_REPLAY
+#ifdef ACTION_REPLAY
     action_replay_cleanup();
-    #endif
+#endif
 }
 
 void map_banks (addrbank *bank, int start, int size, int realsize)
@@ -1678,7 +1679,7 @@ void map_banks (addrbank *bank, int start, int size, int realsize)
     unsigned long int hioffs = 0, endhioffs = 0x100;
     addrbank *orgbank = bank;
     uae_u32 realstart = start;
-    
+
     flush_icache (1);		/* Sure don't want to keep any old mappings around! */
 #ifdef NATMEM_OFFSET
     delete_shmmaps (start << 16, size << 16);
@@ -1889,7 +1890,9 @@ void init_shm( void )
 {
 #if defined linux && defined __i386__ && defined NATMEM_OFFSET
     canbang = 1;
-/*    setup_ldt();*/
+    setup_ldt();
+#else
+    canbang = 0;
 #endif   
 }
 

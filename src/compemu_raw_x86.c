@@ -1595,8 +1595,8 @@ LENDFUNC(WRITE,READ,2,raw_cmp_l_mi,(MEMR d, IMM s))
 
 LOWFUNC(NONE,NONE,2,raw_xchg_l_rr,(RW4 r1, RW4 r2))
 {
-    emit_byte(0x87);
-    emit_byte(0xc0+8*r1+r2);
+  emit_byte(0x87);
+  emit_byte(0xc0+8*r1+r2);
 }
 LENDFUNC(NONE,NONE,2,raw_xchg_l_rr,(RW4 r1, RW4 r2))
 
@@ -1959,7 +1959,7 @@ int EvalException ( LPEXCEPTION_POINTERS blah, int n_except )
 #ifdef JIT_DEBUG
 	write_log("register was %d, direction was %d, size was %d\n",r,dir,size);
 #endif
-
+	
 	switch(r) {
 	case 0: pr=&(pContext->Eax); break;
 	case 1: pr=&(pContext->Ecx); break;
@@ -1988,7 +1988,7 @@ int EvalException ( LPEXCEPTION_POINTERS blah, int n_except )
 #ifdef JIT_DEBUG
 		    write_log("Suspicious address 0x%x in SEGV handler.\n",addr);
 #endif
-	        }
+		}
 		if (dir==SIG_READ) {
 		    switch(size) {
 		    case 1: *((uae_u8*)pr)=get_byte(addr); break;
@@ -2024,15 +2024,15 @@ int EvalException ( LPEXCEPTION_POINTERS blah, int n_except )
 #ifdef JIT_DEBUG
 		    write_log("Suspicious address 0x%x in SEGV handler.\n",addr);
 #endif
-	        }
-	
+		}
+		
 		target=(uae_u8*)pContext->Eip;
 		for (i=0;i<5;i++)
 		    vecbuf[i]=target[i];
 		emit_byte(0xe9);
 		emit_long((uae_u32)veccode-(uae_u32)target-4);
 #ifdef JIT_DEBUG
-
+		
 		write_log("Create jump to %p\n",veccode);
 		write_log("Handled one access!\n");
 #endif
@@ -2149,7 +2149,7 @@ static void vec(int x, struct sigcontext sc)
 	}
 	
 	switch(i[0]) {
-	 case 0x8a:
+	case 0x8a:
 	    if ((i[1]&0xc0)==0x80) {
 		r=(i[1]>>3)&7;
 		dir=SIG_READ;
@@ -2158,7 +2158,7 @@ static void vec(int x, struct sigcontext sc)
 		break;
 	    }
 	    break;
-	 case 0x88:
+	case 0x88:
 	    if ((i[1]&0xc0)==0x80) {
 		r=(i[1]>>3)&7;
 		dir=SIG_WRITE;
@@ -2168,47 +2168,47 @@ static void vec(int x, struct sigcontext sc)
 	    }
 	    break;
 
-	 case 0x8b:
-	   switch(i[1]&0xc0) {
-	   case 0x80:
-	     r=(i[1]>>3)&7;
-	     dir=SIG_READ;
-	     len+=6;
-	     break;
-	   case 0x40:
-	     r=(i[1]>>3)&7;
-	     dir=SIG_READ;
-	     len+=3;
-	     break;
-	   case 0x00:
-	     r=(i[1]>>3)&7;
-	     dir=SIG_READ;
-	     len+=2;
-	     break;
-	   default: 
-	     break;
-	   }
-	   break;
+	case 0x8b:
+	    switch(i[1]&0xc0) {
+	    case 0x80:
+		r=(i[1]>>3)&7;
+		dir=SIG_READ;
+		len+=6;
+		break;
+	    case 0x40:
+		r=(i[1]>>3)&7;
+		dir=SIG_READ;
+		len+=3;
+		break;
+	    case 0x00:
+		r=(i[1]>>3)&7;
+		dir=SIG_READ;
+		len+=2;
+		break;
+	    default: 
+		break;
+	    }
+	    break;
 	    
-	 case 0x89:
-	   switch(i[1]&0xc0) {
-	   case 0x80:
-	     r=(i[1]>>3)&7;
-	     dir=SIG_WRITE;
-	     len+=6;
-	     break;
-	   case 0x40:
-	     r=(i[1]>>3)&7;
-	     dir=SIG_WRITE;
-	     len+=3;
-	     break;
-	   case 0x00:
-	     r=(i[1]>>3)&7;
-	     dir=SIG_WRITE;
-	     len+=2;
-	     break;
-	   }
-	   break;
+	case 0x89:
+	    switch(i[1]&0xc0) {
+	    case 0x80:
+		r=(i[1]>>3)&7;
+		dir=SIG_WRITE;
+		len+=6;
+		break;
+	    case 0x40:
+		r=(i[1]>>3)&7;
+		dir=SIG_WRITE;
+		len+=3;
+		break;
+	    case 0x00:
+		r=(i[1]>>3)&7;
+		dir=SIG_WRITE;
+		len+=2;
+		break;
+	    }
+	    break;
 	}	
     }
 
@@ -2217,21 +2217,21 @@ static void vec(int x, struct sigcontext sc)
 	write_log("register was %d, direction was %d, size was %d\n",r,dir,size);
 	
 	switch(r) {
-	 case 0: pr=&(sc.eax); break;
-	 case 1: pr=&(sc.ecx); break;
-	 case 2: pr=&(sc.edx); break;
-	 case 3: pr=&(sc.ebx); break;
-	 case 4: pr=(size>1)?NULL:(((uae_u8*)&(sc.eax))+1); break;
-	 case 5: pr=(size>1)?
-		     (void*)(&(sc.ebp)):
-			 (void*)(((uae_u8*)&(sc.ecx))+1); break;
-	 case 6: pr=(size>1)?
-		     (void*)(&(sc.esi)):
-			 (void*)(((uae_u8*)&(sc.edx))+1); break;
-	 case 7: pr=(size>1)?
-		     (void*)(&(sc.edi)):
-			 (void*)(((uae_u8*)&(sc.ebx))+1); break;
-	 default: abort();
+	case 0: pr=&(sc.eax); break;
+	case 1: pr=&(sc.ecx); break;
+	case 2: pr=&(sc.edx); break;
+	case 3: pr=&(sc.ebx); break;
+	case 4: pr=(size>1)?NULL:(((uae_u8*)&(sc.eax))+1); break;
+	case 5: pr=(size>1)?
+		    (void*)(&(sc.ebp)):
+			(void*)(((uae_u8*)&(sc.ecx))+1); break;
+	case 6: pr=(size>1)?
+		    (void*)(&(sc.esi)):
+			(void*)(((uae_u8*)&(sc.edx))+1); break;
+	case 7: pr=(size>1)?
+		    (void*)(&(sc.edi)):
+			(void*)(((uae_u8*)&(sc.ebx))+1); break;
+	default: abort();
 	}
 	if (pr) {
 	    blockinfo* bi;
@@ -2239,30 +2239,30 @@ static void vec(int x, struct sigcontext sc)
 	    if (currprefs.comp_oldsegv) {
 	    addr-=NATMEM_OFFSET;
 		
-	    if ((addr>=0x10000000 && addr<0x40000000) ||
-		(addr>=0x50000000)) {
-		write_log("Suspicious address in %x SEGV handler.\n",addr);
-	    }
-	    if (dir==SIG_READ) {
-		switch(size) {
-		 case 1: *((uae_u8*)pr)=get_byte(addr); break;
-		 case 2: *((uae_u16*)pr)=get_word(addr); break;
-		 case 4: *((uae_u32*)pr)=get_long(addr); break;
-		 default: abort();
+		if ((addr>=0x10000000 && addr<0x40000000) ||
+		    (addr>=0x50000000)) {
+		    write_log("Suspicious address in %x SEGV handler.\n",addr);
 		}
-	    }
-	    else { /* write */
-		switch(size) {
-		 case 1: put_byte(addr,*((uae_u8*)pr)); break;
-		 case 2: put_word(addr,*((uae_u16*)pr)); break;
-		 case 4: put_long(addr,*((uae_u32*)pr)); break;
-		 default: abort();
+		if (dir==SIG_READ) {
+		    switch(size) {
+		    case 1: *((uae_u8*)pr)=get_byte(addr); break;
+		    case 2: *((uae_u16*)pr)=get_word(addr); break;
+		    case 4: *((uae_u32*)pr)=get_long(addr); break;
+		    default: abort();
+		    }
 		}
-	    }
-	    write_log("Handled one access!\n");
-	    fflush(stdout);
-	    segvcount++;
-	    sc.eip+=len;
+		else { /* write */
+		    switch(size) {
+		    case 1: put_byte(addr,*((uae_u8*)pr)); break;
+		    case 2: put_word(addr,*((uae_u16*)pr)); break;
+		    case 4: put_long(addr,*((uae_u32*)pr)); break;
+		    default: abort();
+		    }
+		}
+		write_log("Handled one access!\n");
+		fflush(stdout);
+		segvcount++;
+		sc.eip+=len;
 	    }
 	    else {
 		void* tmp=target;
@@ -2291,18 +2291,18 @@ static void vec(int x, struct sigcontext sc)
 
 		if (dir==SIG_READ) {
 		    switch(size) {
-		     case 1: raw_mov_b_ri(r,get_byte(addr)); break;
-		     case 2: raw_mov_w_ri(r,get_word(addr)); break;
-		     case 4: raw_mov_l_ri(r,get_long(addr)); break;
-		     default: abort();
+		    case 1: raw_mov_b_ri(r,get_byte(addr)); break;
+		    case 2: raw_mov_w_ri(r,get_word(addr)); break;
+		    case 4: raw_mov_l_ri(r,get_long(addr)); break;
+		    default: abort();
 		    }
 		}
 		else { /* write */
 		    switch(size) {
-		     case 1: put_byte(addr,*((uae_u8*)pr)); break;
-		     case 2: put_word(addr,*((uae_u16*)pr)); break;
-		     case 4: put_long(addr,*((uae_u32*)pr)); break;
-		     default: abort();
+		    case 1: put_byte(addr,*((uae_u8*)pr)); break;
+		    case 2: put_word(addr,*((uae_u16*)pr)); break;
+		    case 4: put_long(addr,*((uae_u32*)pr)); break;
+		    default: abort();
 		    }
 		}
 		for (i=0;i<5;i++)
@@ -2356,11 +2356,11 @@ static void vec(int x, struct sigcontext sc)
     write_log("Can't handle access!\n");
     for (j=0;j<10;j++) {
 	write_log("instruction byte %2d is %02x\n",j,i[j]);
-    }
+	}
 #if 0
     write_log("Please send the above info (starting at \"fault address\") to\n"
-	   "bmeyer@csse.monash.edu.au\n"
-	   "This shouldn't happen ;-)\n");
+	      "bmeyer@csse.monash.edu.au\n"
+	      "This shouldn't happen ;-)\n");
     fflush(stdout);
 #endif
     signal(SIGSEGV,SIG_DFL);  /* returning here will cause a "real" SEGV */

@@ -101,7 +101,7 @@ int hdf_open (struct hardfiledata *hfd, char *name)
 
     DEBUG_LOG ("called with name=%s\n",name);
 
-   if ((handle = open(name, hfd->readonly ? O_RDONLY : O_RDWR)) != -1) {   
+    if ((handle = open(name, O_RDWR)) != -1) {
 	int i;
 
 	hfd->handle = (void *) handle;

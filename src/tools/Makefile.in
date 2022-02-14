@@ -34,10 +34,9 @@ clean:
 	-rm -f gencpu gencomp genblitter cpuopti build68k
 
 
-distclean: clean
+streifenfrei: clean
 	-rm -f config.cache config.log config.status
 	-rm -f Makefile sysconfig.h
-	-rm -f *.c
 
 genblitter: genblitter.o blitops.o writelog.o
 	$(CC) $(LDFLAGS) -o genblitter genblitter.o blitops.o writelog.o
@@ -55,6 +54,27 @@ drawing.o: linetoscr.c
 
 cpudefs.c: build68k @top_srcdir@/../table68k
 	./build68k <@top_srcdir@/../table68k >cpudefs.c
+
+# Normally I'd move the programs into this directory, but given that CVS
+# sucks I have no choice but to leave them in their previous directory.
+missing.o: @top_srcdir@/../missing.c
+	$(CC) $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(DEBUGFLAGS) @top_srcdir@/../missing.c -o $@
+readcpu.o: @top_srcdir@/../readcpu.c
+	$(CC) $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(DEBUGFLAGS) @top_srcdir@/../readcpu.c -o $@
+writelog.o: @top_srcdir@/../writelog.c
+	$(CC) $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(DEBUGFLAGS) @top_srcdir@/../writelog.c -o $@
+genblitter.o: @top_srcdir@/../genblitter.c
+	$(CC) $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(DEBUGFLAGS) @top_srcdir@/../genblitter.c -o $@
+gencpu.o: @top_srcdir@/../gencpu.c
+	$(CC) $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(DEBUGFLAGS) @top_srcdir@/../gencpu.c -o $@
+gencomp.o: @top_srcdir@/../gencomp.c
+	$(CC) $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(DEBUGFLAGS) @top_srcdir@/../gencomp.c -o $@
+build68k.o: @top_srcdir@/../build68k.c
+	$(CC) $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(DEBUGFLAGS) @top_srcdir@/../build68k.c -o $@
+blitops.o: @top_srcdir@/../blitops.c
+	$(CC) $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(DEBUGFLAGS) @top_srcdir@/../blitops.c -o $@
+cpuopti.o: @top_srcdir@/../cpuopti.c
+	$(CC) $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(DEBUGFLAGS) @top_srcdir@/../cpuopti.c -o $@
 
 .c.o:
 	$(CC) $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(X_CFLAGS) $(DEBUGFLAGS) $(CFLAGS_$@) $< -o $@

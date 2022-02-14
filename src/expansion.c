@@ -1069,7 +1069,7 @@ static void allocate_expamem (void)
     z3fastmem_bank.baseaddr = z3fastmem;
     fastmem_bank.baseaddr = fastmemory;
 
-    if (savestate_state == STATE_RESTORE) {
+/*    if (savestate_state == STATE_RESTORE) {
 	if (allocated_fastmem > 0) {
 	    restore_ram (fast_filepos, fastmemory);
 	    map_banks (&fastmem_bank, fastmem_start >> 16, currprefs.fastmem_size >> 16,
@@ -1080,14 +1080,12 @@ static void allocate_expamem (void)
 	    map_banks (&z3fastmem_bank, z3fastmem_start >> 16, currprefs.z3fastmem_size >> 16,
 		       allocated_z3fastmem);
 	}
-#ifdef PICASSO96       
 	if (allocated_gfxmem > 0) {
 	    restore_ram (p96_filepos, gfxmemory);
 	    map_banks (&gfxmem_bank, gfxmem_start >> 16, currprefs.gfxmem_size >> 16,
 		       allocated_gfxmem);
 	}
-#endif       
-    }
+    } */
 }
 
 extern int cdtv_enabled;
@@ -1104,7 +1102,7 @@ void expamem_reset (void)
     if (cdtv_enabled)
         map_banks (&dmac_bank, dmac_start >> 16, 0x10000 >> 16, 0x10000);
 #endif
-
+   
     /* check if Kickstart version is below 1.3 */
     if (! ersatzkickfile && kickstart_version
 	&& (/* Kickstart 1.0 & 1.1! */
@@ -1121,7 +1119,7 @@ void expamem_reset (void)
     if (nr_units (currprefs.mountinfo) == 0)
 	do_mount = 0;
 #endif
-
+   
     if (fastmemory != NULL) {
 	card_init[cardno] = expamem_init_fastcard;
 	card_map[cardno++] = expamem_map_fastcard;

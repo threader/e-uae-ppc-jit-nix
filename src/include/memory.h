@@ -34,7 +34,6 @@ extern void wait_cpu_cycle (void);
 
 #undef DIRECT_MEMFUNCS_SUCCESSFUL
 #include "machdep/maccess.h"
-#include "osdep/memory.h"
 
 #ifndef CAN_MAP_MEMORY
 #undef USE_COMPILER

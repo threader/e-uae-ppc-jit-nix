@@ -1608,33 +1608,33 @@ static void init_drawing_frame (void)
     int i, maxline;
 
     if (can_use_lores > AUTO_LORES_FRAMES && 0) {
-        lores_factor = 1;
-	lores_shift = 0;
+	lores_factor = 1;
+        lores_shift = 0;
     } else {
 	can_use_lores++;
-	lores_reset ();
+        lores_reset ();
     }
-
+   
     init_hardware_for_drawing_frame ();
 
     if (thisframe_first_drawn_line == -1)
-	thisframe_first_drawn_line = minfirstline;
+        thisframe_first_drawn_line = minfirstline;
     if (thisframe_first_drawn_line > thisframe_last_drawn_line)
-	thisframe_last_drawn_line = thisframe_first_drawn_line;
+        thisframe_last_drawn_line = thisframe_first_drawn_line;
 
     maxline = currprefs.gfx_linedbl ? (maxvpos + 1) * 2 + 1 : (maxvpos + 1) + 1;
 #ifdef SMART_UPDATE
     for (i = 0; i < maxline; i++) {
-	switch (linestate[i]) {
-	 case LINE_DONE_AS_PREVIOUS:
-	    linestate[i] = LINE_REMEMBERED_AS_PREVIOUS;
-	    break;
-	 case LINE_REMEMBERED_AS_BLACK:
-	    break;
-	 default:
-	    linestate[i] = LINE_UNDECIDED;
-	    break;
-	}
+        switch (linestate[i]) {
+         case LINE_DONE_AS_PREVIOUS:
+            linestate[i] = LINE_REMEMBERED_AS_PREVIOUS;
+            break;
+         case LINE_REMEMBERED_AS_BLACK:
+            break;
+         default:
+            linestate[i] = LINE_UNDECIDED;
+            break;
+        }
     }
 #else
     memset (linestate, LINE_UNDECIDED, maxline);
@@ -1644,9 +1644,9 @@ static void init_drawing_frame (void)
 
     first_block_line = last_block_line = -2;
     if (currprefs.test_drawing_speed)
-	frame_redraw_necessary = 1;
+        frame_redraw_necessary = 1;
     else if (frame_redraw_necessary)
-	frame_redraw_necessary--;
+        frame_redraw_necessary--;
 
     center_image ();
 
@@ -1731,7 +1731,7 @@ static void write_tdnumber (int x, int y, int num)
 static void draw_status_line (int line)
 {
     int x_start, y, j, led;
-    
+
     if (td_pos & TD_RIGHT)
         x_start = gfxvidinfo.width - TD_PADX - 8 * TD_WIDTH;
     else
@@ -1932,7 +1932,7 @@ void vsync_handle_redraw (int long_frame, int lof_changed)
 	    savestate_state = STATE_RESTORE;
 	    reset_drawing ();
 	    uae_reset (0);
-	}
+	} 
 
 	if (quit_program < 0) {
 	    quit_program = -quit_program;

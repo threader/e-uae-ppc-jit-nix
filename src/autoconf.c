@@ -72,12 +72,13 @@ static void *extra_stack_list = NULL;
 static void *get_extra_stack (void)
 {
     void *s = extra_stack_list;
-    //if (s)
-    //extra_stack_list = *(void **)s;
-    if (!s) {
-#ifndef _MSC_VER 
+    if (s)
+        extra_stack_list = *(void **)s;
+    if (!s) // {
+//#ifndef _MSC_VER
 	s = xmalloc (EXTRA_STACK_SIZE);
-#else
+//#else
+#if 0
 	{
 	    static long opencount=0;
 	    extern unsigned long *win32_stackbase;
@@ -88,18 +89,18 @@ static void *get_extra_stack (void)
 		    break; //get a free block
 	    }
 	    s=win32_stackbase+(i*EXTRA_STACK_SIZE);
-	    win32_freestack[i]=s;   
+	    win32_freestack[i]=s;
 	}
 #endif
-    }
+//    }
     return s;
 }
 
 static void free_extra_stack (void *s)
 {
-    //*(void **)s = extra_stack_list;
-    //extra_stack_list = s;
-#ifdef _MSC_VER
+    *(void **)s = extra_stack_list;
+    extra_stack_list = s;
+#if 0
     {
 	int i;
 	extern unsigned long *win32_freestack[42];
@@ -536,7 +537,7 @@ void rtarea_init (void)
 
 #ifdef FILESYS
     filesys_install_code ();
-#endif
+#endif   
 }
 
 volatile int uae_int_requested = 0;

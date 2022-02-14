@@ -1,4 +1,4 @@
- /*
+ /* 
   * UAE - The Un*x Amiga Emulator
   * 
   * Amiga interface
@@ -23,7 +23,7 @@
  *    14/12/96 - Added support for graffiti screens.
  *    14/02/97 - Now uses SetRGB32() for cybergfx screens.
  *    15/02/97 - Dump iff file when ENV:UAEIFF is defined.
- *    25/02/97 - Get rid of cybergfx screen direct access.. Now uses
+ *    25/02/97 - Get rid of cybergfx screen direct access.. Now uses 
  *               BltBitMapRastPort(). Thanks to Mats Eirik Hansen for
  *               his patch from which I'm widely inspired.
  *    10/05/97 - Use OpenWindowTag() for public screen. Uses Zoom,
@@ -54,10 +54,8 @@
 
 #ifdef HAVE_LIBRARIES_CYBERGRAPHICS_H
 #define USE_CYBERGFX           /* define this to have cybergraphics support */
-#else
 #ifdef HAVE_CYBERGRAPHX_CYBERGRAPHICS_H
-#define USE_CYBERGFX
-# undef  CGX_CGX_H
+#undef  CGX_CGX_H
 #define CGX_CGX_H <cybergraphx/cybergraphics.h>
 #endif
 #endif
@@ -181,7 +179,6 @@ extern struct ExecBase *SysBase;
 #include "newcpu.h"
 #include "xwin.h"
 #include "drawing.h"
-#include "inputdevice.h"
 #include "keyboard.h"
 #include "keybuf.h"
 #include "gui.h"
@@ -221,10 +218,10 @@ static char *oldpixbuf;
 /*
  * prototypes & global vars
  */
-struct IntuitionBase    *IntuitionBase = NULL;
-struct GfxBase          *GfxBase = NULL;
-struct Library          *AslBase = NULL;
-struct Library          *CyberGfxBase = NULL;
+struct IntuitionBase    *IntuitionBase;
+struct GfxBase          *GfxBase;
+struct Library          *AslBase;
+struct Library          *CyberGfxBase;
 
 unsigned long            frame_num; /* for arexx */
 
@@ -374,11 +371,11 @@ __inline__ void flush_line(int y)
     } else switch(gfxvidinfo.pixbytes) {
       case 4: 
         {   /* sam: we should not arrive here on the amiga */
-            write_log ("Bug in flush_line() !\n");
-            write_log ("use_cyb=%d\n", use_cyb);
-            write_log ("need_dither=%d\n", need_dither);
-            write_log ("depth=%d\n", RPDepth(RP));
-            write_log ("Please return those values to maintainer.\n");
+            fprintf(stderr, "Bug in flush_line() !\n");
+            fprintf(stderr, "use_cyb=%d\n",use_cyb);
+            fprintf(stderr, "need_dither=%d\n",need_dither);
+            fprintf(stderr, "depth=%d\n",RPDepth(RP));
+            fprintf(stderr, "Please return those values to maintainer.\n");
             abort();
             return;
         } break;
@@ -428,44 +425,44 @@ void flush_block (int ystart, int ystop)
 {
     int y;
 #ifdef USE_CYBERGFX
-    if (use_cyb) {
+    if(use_cyb) {
         int len = gfxvidinfo.width;
-        myBltBitMapRastPort (CybBitMap, 
-            0, ystart,
-            RP, XOffset, YOffset + ystart, 
-            len, ystop-ystart + 1, 0xc0);
+        myBltBitMapRastPort(CybBitMap, 
+            0, ystart, 
+            RP, XOffset, YOffset+ystart, 
+            len, ystop-ystart+1, 0xc0);
         return;
     }
 #endif
 #if defined(POWERUP)
     /* sam: on powerup we have to minimize call to the 68k-OS, so better
        call WritePixelArray8(); once instead of several WritePixelLine8(); */
-    if (!need_dither) {
+    if(!need_dither) {
 	myWritePixelArray8(RP, XOffset, 
 			     ystart + YOffset, 
 			     XOffset + gfxvidinfo.width - 1,
 			     ystop + YOffset, 
-			     gfxvidinfo.bufmem + ystart * gfxvidinfo.rowbytes, 
+			     gfxvidinfo.bufmem + ystart*gfxvidinfo.rowbytes, 
 			TempRPort);
     	return;
     }
 #endif
-    for (y = ystart; y <= ystop; ++y) flush_line (y);
+    for(y=ystart; y<=ystop; ++y) flush_line(y);
 }
 
 /****************************************************************************/
 
-static void save_frame (void)
+static void save_frame(void)
 {
     char *file;
     static int cpt = 0;
     char name[80];
 
-    if (!dump_iff) return;
-    if (!(file = getenv (UAEIFF))) return;
-    if (strchr (file, '%')) sprintf(name,file,cpt++);
-    else sprintf (name, "%s.%05d", file, cpt++);
-    if (W->WScreen) SaveIFF (name, W->WScreen);
+    if(!dump_iff) return;
+    if(!(file = getenv(UAEIFF))) return;
+    if(strchr(file,'%')) sprintf(name,file,cpt++);
+    else sprintf(name,"%s.%05d",file,cpt++);
+    if(W->WScreen) SaveIFF(name,W->WScreen);
 }
 
 /****************************************************************************/
@@ -479,10 +476,6 @@ void flush_screen (int ystart, int ystop)
 
 void flush_clear_screen(void)
 {
-    if (RP) {
-	SetAPen( RP, get_nearest_color (0,0,0));
-	 RectFill (RP, XOffset, YOffset, XOffset + gfxvidinfo.width - 1, YOffset + gfxvidinfo.height - 1);
-    }
 }
 
 /****************************************************************************/
@@ -571,9 +564,9 @@ static int get_nearest_color(int r, int g, int b)
     best    = 0;
     besterr = calc_err(0,0,0, 15,15,15);
     colors  = is_halfbrite?32:(1<<RPDepth(RP));
-
+  
 #ifdef POWERUP
-    if(!RGB_cache &&
+    if(!RGB_cache && 
        (RGB_cache = malloc(sizeof(*RGB_cache)*colors))) {
        /* note: The code can work if RGB_cache is not allocated ! */
 	for(i=0;i<colors;++i) RGB_cache[i] = -1;
@@ -711,7 +704,7 @@ static int init_colors(void)
         }
         printf("Using %d colors.\n",maxcol);
         for(maxcol=0; maxcol<4096; ++maxcol)
-            xcolors[maxcol] = get_nearest_color(maxcol>>8, (maxcol>>4)&15,
+            xcolors[maxcol] = get_nearest_color(maxcol>>8, (maxcol>>4)&15, 
                                                 maxcol&15);
         } break;
 
@@ -774,7 +767,7 @@ static int setup_customscreen(void)
     NewScreenStructure.Height    = currprefs.gfx_height_win;
     NewScreenStructure.Depth     = os39?8:(currprefs.gfx_lores?5:4);
     NewScreenStructure.ViewModes = SPRITES | (currprefs.gfx_lores?NULL:HIRES) |
-                                   (currprefs.gfx_height_win>256?LACE:NULL);
+                                   (currprefs.gfx_height_fs>256?LACE:NULL);
 
     do S = (void*)OpenScreen(&NewScreenStructure);
     while(!S && --NewScreenStructure.Depth);
@@ -947,8 +940,8 @@ static int setup_userscreen(void)
                       ASLSM_InitialDisplayDepth, 8,
                       ASLSM_InitialDisplayWidth, currprefs.gfx_width_win,
                       ASLSM_InitialDisplayHeight,currprefs.gfx_height_win,
-                      ASLSM_MinWidth,            320, //currprefs.gfx_width_win,
-                      ASLSM_MinHeight,           200, //currprefs.gfx_height_win,
+                      ASLSM_MinWidth,            currprefs.gfx_width_win,
+                      ASLSM_MinHeight,           currprefs.gfx_height_win,
                       ASLSM_DoWidth,             TRUE,
                       ASLSM_DoHeight,            TRUE,
                       ASLSM_DoDepth,             TRUE,
@@ -1128,48 +1121,46 @@ static int setup_graffiti(void)
 
 /****************************************************************************/
 
-int graphics_setup (void)
+int graphics_setup(void)
 {
-#if defined OS_IS_AMIGAOS && !defined __libnix__
-    if (ix_os != OS_IS_AMIGAOS) {
-        ix_req (NULL, "Abort", NULL, "That version of %s is only for AmigaOS!", __progname);
-        exit (20);
-   }    
-#endif
-    if (((struct ExecBase *)SysBase)->LibNode.lib_Version < 36) {
-        write_log ("UAE needs OS 2.0+ !\n");
+//#ifdef OS_IS_AMIGAOS
+//    if(ix_os != OS_IS_AMIGAOS) {
+//        ix_req(NULL, "Abort", NULL, "That version of %s is only for AmigaOS!", __progname);
+//        exit(20);
+//    }    
+//#endif
+    if(((struct ExecBase *)SysBase)->LibNode.lib_Version < 36) {
+        fprintf(stderr, "UAE needs OS 2.0+ !\n");
         return 0;
     }
-    os39 = (((struct ExecBase *)SysBase)->LibNode.lib_Version >= 39);
+    os39   = (((struct ExecBase *)SysBase)->LibNode.lib_Version>=39);
 
-    atexit (graphics_leave); 
+    atexit(graphics_leave);
 
-    IntuitionBase = (void*) OpenLibrary ("intuition.library", 0L);
-    if (!IntuitionBase) {
-        write_log ("No intuition.library ?\n");
+    IntuitionBase = (void*)OpenLibrary("intuition.library",0L);
+    if(!IntuitionBase) {
+        fprintf(stderr,"No intuition.library ?\n");
         return 0;
     }
-    GfxBase = (void*) OpenLibrary ("graphics.library", 0L);
-    if (!GfxBase) {
-        write_log ("No graphics.library ?\n");
+    GfxBase = (void*)OpenLibrary("graphics.library",0L);
+    if(!GfxBase) {
+        fprintf(stderr,"No graphics.library ?\n");
         return 0;
     }
 #ifdef USE_CYBERGFX
-    if (!CyberGfxBase)
-        CyberGfxBase = OpenLibrary ("cybergraphics.library", 40);
+    if(!CyberGfxBase) CyberGfxBase = OpenLibrary("cybergraphics.library",40);
 #endif
-    initpseudodevices ();
+    initpseudodevices();
 
     return 1;
 }
 
 /****************************************************************************/
 
-int graphics_init (void)
+int graphics_init(void)
 {
-    int i, bitdepth;
+    int i,bitdepth;
 
-    write_log ("graphics_init\n");
     use_delta_buffer = 0;
     need_dither = 0;
     use_cyb = 0;
@@ -1181,17 +1172,12 @@ int graphics_init (void)
     currprefs.gfx_width_win += 7;
     currprefs.gfx_width_win &= ~7;
 
-    if (currprefs.color_mode > 5) {
-        write_log ("Bad color mode selected. Using default.\n");
-        currprefs.color_mode = 0;
-    }
-
-    /* Hack! Until we sort out color_mode nonsense, ask for a display mode */    
-    currprefs.color_mode =  2;
-   
-    if (currprefs.color_mode == 3) { /* graffiti */
+    if (currprefs.color_mode > 5)
+        fprintf(stderr, "Bad color mode selected. Using default.\n"), currprefs.color_mode = 0;
+    
+    if(currprefs.color_mode == 3) { /* graffiti */
         currprefs.gfx_width_win = 320;
-        if (currprefs.gfx_height_win > 256) 
+        if(currprefs.gfx_height_win > 256) 
             currprefs.gfx_height_win = 256;
         currprefs.gfx_lores = 1;
     } /* graffiti */
@@ -1199,63 +1185,54 @@ int graphics_init (void)
     gfxvidinfo.width  = currprefs.gfx_width_win;
     gfxvidinfo.height = currprefs.gfx_height_win;
 
-    switch (currprefs.color_mode) {
+    switch(currprefs.color_mode) {
       case 3:
-        if (setup_graffiti ()) {
-	   use_graffiti = 1;
-	   break;
-	}
-        write_log ("Asking user for screen...\n");
-        /* fall through */
+        if(setup_graffiti()) {use_graffiti = 1;break;}
+        fprintf(stderr,"Asking user for screen...\n");
+        /* fall trough */
       case 2:
-        if (setup_userscreen ())
-	    break;
-        write_log ("Trying on public screen...\n");
+        if(setup_userscreen()) break;
+        fprintf(stderr,"Trying on public screen...\n");
         /* fall trough */
       case 1:
         is_halfbrite = 0;
-        if (setup_publicscreen ()) {
-	   usepub = 1;
-	   break;
-	}
-        write_log ("Trying on custom screen...\n");
+        if(setup_publicscreen()) {usepub = 1;break;}
+        fprintf(stderr,"Trying on custom screen...\n");
         /* fall trough */
       case 0:
       default:
-        if (!setup_customscreen ())
-	    return 0;
+        if(!setup_customscreen()) return 0;
         break;
     }
 
-    Line = AllocVec ((currprefs.gfx_width_win + 15) & ~15, MEMF_ANY | MEMF_PUBLIC);
-    if (!Line) {
-        write_log ("Unable to allocate raster buffer.\n");
+    Line = AllocVec((currprefs.gfx_width_win + 15) & ~15,MEMF_ANY|MEMF_PUBLIC);
+    if(!Line) {
+        fprintf(stderr,"Unable to allocate raster buffer.\n");
         return 0;
     }
-    BitMap = myAllocBitMap (currprefs.gfx_width_win, 1, 8, BMF_CLEAR | BMF_MINPLANES, RP->BitMap);
-    if (!BitMap) {
-        write_log ("Unable to allocate BitMap.\n");
+    BitMap = myAllocBitMap(currprefs.gfx_width_win,1,8,BMF_CLEAR|BMF_MINPLANES,RP->BitMap);
+    if(!BitMap) {
+        fprintf(stderr,"Unable to allocate BitMap.\n");
         return 0;
     }
-    TempRPort = AllocVec (sizeof (struct RastPort), MEMF_ANY | MEMF_PUBLIC);
-    if (!TempRPort) {
-        write_log ("Unable to allocate RastPort.\n");
+    TempRPort = AllocVec(sizeof(struct RastPort),MEMF_ANY|MEMF_PUBLIC);
+    if(!TempRPort) {
+        fprintf(stderr,"Unable to allocate RastPort.\n");
         return 0;
     }
-    CopyMem (RP, TempRPort, sizeof (struct RastPort));
+    CopyMem(RP,TempRPort,sizeof(struct RastPort));
     TempRPort->Layer  = NULL;
     TempRPort->BitMap = BitMap;
 
-    if (usepub)
-        set_title();
+    if(usepub) set_title();
 
-    bitdepth = RPDepth (RP);
-    if (is_ham) {
+    bitdepth = RPDepth(RP);
+    if(is_ham) {
         /* ham 6 */
         use_delta_buffer    = 0; /* needless as the line must be fully */
         need_dither         = 0; /* recomputed */
         gfxvidinfo.pixbytes = 2;
-    } else if (bitdepth <= 8) {
+    } else if(bitdepth <= 8) {
         /* chunk2planar is slow so we define use_delta_buffer for all modes */
         use_delta_buffer    = 1; 
         need_dither         = use_dither || (bitdepth<=1);
@@ -1271,40 +1248,40 @@ int graphics_init (void)
     gfxvidinfo.linemem = 0;
     if (!use_cyb) {
         gfxvidinfo.rowbytes = gfxvidinfo.pixbytes * currprefs.gfx_width_win;
-        gfxvidinfo.bufmem = (char *)calloc (gfxvidinfo.rowbytes, currprefs.gfx_height_win + 1);
+        gfxvidinfo.bufmem = (char *)calloc(gfxvidinfo.rowbytes, currprefs.gfx_height_win+1);
         /*                                                           ^^ */
         /*            This is because DitherLine may read one extra row */
     } else {
 #ifdef USE_CYBERGFX
         ULONG fmt = 0;
-        switch (bitdepth) {
+        switch(bitdepth) {
            case 15: fmt = PIXFMT_RGB15; break;
            case 16: fmt = PIXFMT_RGB16; break;
            case 24: fmt = PIXFMT_RGB24; break;
            case 32: fmt = PIXFMT_ARGB32; break;
-           default: write_log ("Unsupported bitdepth %d.\n", bitdepth); return 0;
+           default: fprintf(stderr,"Unsupported bitdepth %d.\n",bitdepth); return 0;
         }
-        CybBitMap = myAllocBitMap (currprefs.gfx_width_win, currprefs.gfx_height_win + 1,
-                                   bitdepth, 
-                                   (fmt << 24) | BMF_SPECIALFMT | BMF_MINPLANES, 
-                                   NULL);
-        if (CybBitMap) {
-           gfxvidinfo.rowbytes = GetCyberMapAttr (CybBitMap,CYBRMATTR_XMOD);
-           gfxvidinfo.pixbytes = GetCyberMapAttr (CybBitMap,CYBRMATTR_BPPIX);
-           gfxvidinfo.bufmem = (char *)GetCyberMapAttr (CybBitMap,CYBRMATTR_DISPADR);
+        CybBitMap = myAllocBitMap(currprefs.gfx_width_win, currprefs.gfx_height_win+1,
+                                  bitdepth, 
+                                  (fmt<<24)|BMF_SPECIALFMT|BMF_MINPLANES, 
+                                  NULL);
+        if(CybBitMap) {
+           gfxvidinfo.rowbytes = GetCyberMapAttr(CybBitMap,CYBRMATTR_XMOD);
+           gfxvidinfo.pixbytes = GetCyberMapAttr(CybBitMap,CYBRMATTR_BPPIX);
+           gfxvidinfo.bufmem = (char *)GetCyberMapAttr(CybBitMap,CYBRMATTR_DISPADR);
         } else gfxvidinfo.bufmem = NULL;
 #endif
     } 
-    if (!gfxvidinfo.bufmem) {
-        write_log ("Not enough memory for video bufmem.\n");
+    if(!gfxvidinfo.bufmem) {
+        fprintf(stderr,"Not enough memory for video bufmem.\n");
         return 0;
     } 
 
     if (use_delta_buffer) {
-        gfxvidinfo.maxblocklines = currprefs.gfx_height_win - 1; /* it seems to increase the speed */
-        oldpixbuf = (char *)calloc (gfxvidinfo.rowbytes, currprefs.gfx_height_win);
-        if (!oldpixbuf) {
-            write_log ("Not enough memory for oldpixbuf.\n");
+        gfxvidinfo.maxblocklines = currprefs.gfx_height_win-1; /* it seems to increase the speed */
+        oldpixbuf = (char *)calloc(gfxvidinfo.rowbytes, currprefs.gfx_height_win);
+        if(!oldpixbuf) {
+            fprintf(stderr,"Not enough memory for oldpixbuf.\n");
             return 0;
         }
     } else {
@@ -1315,8 +1292,8 @@ int graphics_init (void)
 #endif
     }
 
-    if (!init_colors ()) {
-        write_log ("Failed to init colors.\n");
+    if (!init_colors()) {
+        fprintf(stderr,"Failed to init colors.\n");
         return 0;
     }
     switch (gfxvidinfo.pixbytes) {
@@ -1333,18 +1310,18 @@ int graphics_init (void)
         break;
     }
 
-    if (!usepub) ScreenToFront (S);
+    if(!usepub) ScreenToFront(S);
 
-    for (i = 0; i < 256; i++)
+    for(i=0; i<256; i++)
         keystate[i] = 0;
     
     inwindow = 0;
 
     rexx_init();
 
-    if (getenv (UAEIFF) && !use_cyb) {
+    if(getenv(UAEIFF) && !use_cyb) {
         dump_iff = 1;
-        write_log ("Saving to \"%s\"\n", getenv (UAEIFF));
+        fprintf(stderr,"Saving to \"%s\"\n",getenv(UAEIFF));
     }
 
     return 1;

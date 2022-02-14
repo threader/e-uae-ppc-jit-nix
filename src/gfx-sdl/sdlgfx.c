@@ -84,13 +84,11 @@ static int y_size_table[MAX_SCREEN_MODES] = { 200, 240, 256, 400, 350, 480, 512,
 static int red_bits, green_bits, blue_bits;
 static int red_shift, green_shift, blue_shift;
 
-#ifdef PICASSO96
 static int screen_is_picasso;
 static char picasso_invalid_lines[1201];
 static int picasso_has_invalid_lines;
 static int picasso_invalid_start, picasso_invalid_stop;
 static int picasso_maxw = 0, picasso_maxh = 0;
-#endif
 
 static int bitdepth, bit_unit;
 static int current_width, current_height;
@@ -356,9 +354,7 @@ static int graphics_subinit (void)
     prSDLScreen = SDL_SetVideoMode (current_width, current_height, bitdepth, uiSDLVidModFlags);
 
     /* Are these values what we expected? */
-#ifdef PICASSO96   
     DEBUG_LOG ("P96 screen?   : %d\n", screen_is_picasso);
-#endif
     DEBUG_LOG ("Fullscreen    : %d\n", fullscreen);
     DEBUG_LOG ("Mouse grabbed?: %d\n", mousegrab);
 
@@ -388,9 +384,7 @@ static int graphics_subinit (void)
 	/* Hide mouse cursor */
 	SDL_ShowCursor (SDL_DISABLE);
 
-#ifdef PICASSO96       
 	if (!screen_is_picasso) {
-#endif	   
 	    /* Initialize structure for Amiga video modes */
 	    gfxvidinfo.bufmem = prSDLScreen->pixels;
 	    gfxvidinfo.linemem = 0;
@@ -400,7 +394,6 @@ static int graphics_subinit (void)
 	    gfxvidinfo.rowbytes = prSDLScreen->pitch;
 	    gfxvidinfo.maxblocklines = 100;
 	    gfxvidinfo.can_double = 0;
-#ifdef PICASSO96	   
 	} else {
 	    /* Initialize structure for Picasso96 video modes */
 	    picasso_vidinfo.rowbytes = current_width * gfxvidinfo.pixbytes;
@@ -411,7 +404,6 @@ static int graphics_subinit (void)
 	    picasso_invalid_stop = -1;
 	    memset (picasso_invalid_lines, 0, sizeof picasso_invalid_lines);
 	}
-#endif       
     }
 
     return 1;
@@ -428,9 +420,7 @@ int graphics_init (void)
 	currprefs.color_mode = 0;
     }
 
-#ifdef PICASSO96   
     screen_is_picasso = 0;
-#endif
     fullscreen = currprefs.gfx_afullscreen;
     mousegrab = 0;
 
@@ -894,7 +884,7 @@ void handle_events (void)
 	} /* end switch() */
     } /* end while() */
 
-#ifdef PICASSO96
+#if defined PICASSO96
     if (screen_is_picasso && refresh_necessary) {
 	SDL_UpdateRect (prSDLScreen, 0, 0, picasso_vidinfo.width, picasso_vidinfo.height);
 	refresh_necessary = 0;
@@ -970,10 +960,8 @@ int check_prefs_changed_gfx (void)
     /* Redundant? This is done in the caller
     notice_screen_contents_lost ();
     init_row_map (); */
-#ifdef PICASSO96
     if (screen_is_picasso)
 	picasso_enablescreen (1);
-#endif   
 
     return 0;
 }
@@ -1197,7 +1185,7 @@ void gfx_unlock_picasso (void)
 
     SDL_UnlockSurface (prSDLScreen);
 }
-#endif /* PICASSO96 */
+#endif
 
 int lockscr (void)
 {
@@ -1224,9 +1212,7 @@ static void togglefullscreen (void)
 	 * hard way. Close down the window/screen and open a new one */
 	graphics_subshutdown ();
 	graphics_subinit ();
-#ifdef PICASSO96
         if (!screen_is_picasso)
-#endif
 	  reset_drawing();
 	notice_screen_contents_lost ();
     } else {
@@ -1264,13 +1250,13 @@ static void handle_inhibit (void)
 static void handle_interpol (void)
 {
     if (currprefs.sound_interpol == 0) {
-	changed_prefs.sound_interpol = 1;
+	currprefs.sound_interpol = 1;
 	write_log ("Interpol on: rh\n");
     } else if (currprefs.sound_interpol == 1) {
-	changed_prefs.sound_interpol = 2;
+	currprefs.sound_interpol = 2;
 	write_log ("Interpol on: crux\n");
     } else {
-	changed_prefs.sound_interpol = 0;
+	currprefs.sound_interpol = 0;
 	write_log ("Interpol off\n");
     }
 }

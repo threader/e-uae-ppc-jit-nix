@@ -22,7 +22,6 @@ endif
 config.status: configure
 	dh_testdir
 	CC=$(CC) CFLAGS=$(CFLAGS) ./configure \
-	--prefix=/usr \
 	--host=$(DEB_HOST_GNU_TYPE) \
 	--build=$(DEB_BUILD_GNU_TYPE) \
 	$(CFG_OPTIONS)
@@ -37,7 +36,7 @@ build-stamp:  config.status
 clean:
 	dh_testdir
 	dh_testroot
-	-$(MAKE) distclean
+	-$(MAKE) streifenfrei
 	dh_clean
 	-rm build-stamp
 
@@ -46,8 +45,7 @@ install: build
 	dh_testroot
 	dh_clean -k
 	dh_installdirs /usr/bin /usr/share/uae
-	install src/uae debian/uae/usr/bin/uae-sdl
-	install src/readdisk debian/uae/usr/bin/readdisk
+	install uae debian/uae/usr/bin/uae-sdl
 	cp -a amiga debian/uae/usr/share/uae/amiga
 
 # Build architecture-independent files here.

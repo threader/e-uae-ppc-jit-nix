@@ -12,10 +12,6 @@
   * Copyright 1996, 1997 Bernd Schmidt
   */
 
-#ifdef __AMIGA__
-#include <devices/timer.h>
-#endif
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -337,7 +333,6 @@ extern time_t put_time (long days, long mins, long ticks);
 extern DWORD getattr(const char *name, LPFILETIME lpft, size_t *size);
 
 /* #define DONT_HAVE_POSIX - don't need all of Mathias' posixemu_functions, just a subset (below) */
-#define chmod(a,b) posixemu_chmod ((a), (b))
 extern int posixemu_chmod (const char *, int);
 #define stat(a,b) posixemu_stat ((a), (b))
 extern int posixemu_stat (const char *, struct stat *);
@@ -511,4 +506,19 @@ extern void gui_message (const char *,...);
 #   define strcasecmp stricmp
 #  endif
 # endif
+#endif
+
+   
+#ifndef _WIN32
+#ifdef HAVE_NANOSLEEP
+# define my_usleep(usecs) { struct timespec t = { 0, (usecs)*1000 }; nanosleep (&t, 0); } 
+#else
+# ifdef HAVE_USLEEP
+#  define my_usleep(usecs) sleep (usecs)
+# else
+#  ifdef USE_SDL
+#   define my_usleep(usecs) SDL_Delay ((usecs)/1000);
+#  endif
+# endif
+#endif
 #endif

@@ -23,27 +23,27 @@ extern void main_window_led(int led, int on);   /* ami-win.c */
 
 /****************************************************************************/
 
-int gui_init (void)
+int gui_init(void)
 {
     return 0;
 }
 
 /****************************************************************************/
 
-void gui_exit (void)
+void gui_exit(void)
 {
 }
 
 /****************************************************************************/
 
-int gui_update (void)
+int gui_update(void)
 {
  return 0;
 }
 
 /****************************************************************************/
 
-void gui_led (int led, int on)
+void gui_led(int led, int on)
 {
     main_window_led(led, on);
     rexx_led(led, on);
@@ -51,60 +51,45 @@ void gui_led (int led, int on)
 
 /****************************************************************************/
 
-void gui_filename (int num, const char *name)
+void gui_filename(int num, const char *name)
 {
     rexx_filename(num, name);
 }
 
 /****************************************************************************/
 
-void gui_handle_events (void)
+void gui_handle_events(void)
 {
     rexx_handle_events();
 }
 
 /****************************************************************************/
 
-void gui_hd_led (int led)
-{
-    static int resetcounter;
-
-    int old = gui_data.hd;
-
-    if (led == 0) {
-	resetcounter--;
-	if (resetcounter > 0)
-	    return;
-    }
-
-    gui_data.hd = led;
-    resetcounter = 6;
-    if (old != gui_data.hd)
-	gui_led (5, gui_data.hd);
-}
-
-/****************************************************************************/
-
-void gui_cd_led (int led)
+void gui_hd_led(int led)
 {
 }
 
 /****************************************************************************/
 
-void gui_fps (int fps)
-{
-    gui_data.fps = fps;
-}
-
-/****************************************************************************/
-
-void gui_lock (void)
+void gui_cd_led(int led)
 {
 }
 
 /****************************************************************************/
 
-void gui_unlock (void)
+void gui_fps(int x)
+{
+}
+
+/****************************************************************************/
+
+void gui_lock(void)
+{
+}
+
+/****************************************************************************/
+
+void gui_unlock(void)
 {
 }
 
@@ -118,6 +103,6 @@ void gui_message (const char *format,...)
     va_start (parms,format);
     vsprintf ( msg, format, parms);
     va_end (parms);
-
+   
     write_log (msg);
 }

@@ -87,28 +87,15 @@ void discard_prefs (struct uae_prefs *p)
 	free (s->str);
 	free (s);
     }
-#ifdef FILESYS
+#ifdef FILESYS   
     free_mountinfo (p->mountinfo);
     p->mountinfo = alloc_mountinfo ();
-#endif
-}
-
-static void default_prefs_mini (struct uae_prefs *p)
-{
-    strcpy (p->description, "UAE default A500 configuration");
-
-    p->nr_floppies = 1;
-    p->dfxtype[0] = 0;
-    p->dfxtype[1] = -1;
-    p->cpu_level = 0;
-    p->address_space_24 = 1;
-    p->chipmem_size = 0x00080000;
-    p->bogomem_size = 0x00080000;
+#endif   
 }
 
 void default_prefs (struct uae_prefs *p)
 {
-    memset (p, 0, sizeof (*p));
+    memset (p, 0, sizeof (*p));    
     strcpy (p->description, "UAE default configuration");
 
     p->start_gui = 1;
@@ -208,7 +195,7 @@ void default_prefs (struct uae_prefs *p)
     p->gfx_filter = 0;
     p->gfx_filter_filtermode = 1;
     p->gfx_filter_scanlineratio = (1 << 4) | 1;
-
+   
     strcpy (p->df[0], "df0.adf");
     strcpy (p->df[1], "df1.adf");
     strcpy (p->df[2], "df2.adf");
@@ -230,7 +217,7 @@ void default_prefs (struct uae_prefs *p)
     p->m68k_speed = 0;
 #ifdef CPUEMU_68000_ONLY
     p->cpu_level = 0;
-#else
+#else   
     p->cpu_level = 2;
 #endif
 #ifdef CPUEMU_0
@@ -239,11 +226,11 @@ void default_prefs (struct uae_prefs *p)
 #else
     p->cpu_compatible = 1;
     p->address_space_24 = 1;
-#endif
+#endif   
     p->cpu_cycle_exact = 0;
     p->blitter_cycle_exact = 0;
     p->chipset_mask = CSMASK_ECS_AGNUS;
-
+   
     p->fastmem_size = 0x00000000;
     p->a3000mem_size = 0x00000000;
     p->z3fastmem_size = 0x00000000;
@@ -258,14 +245,10 @@ void default_prefs (struct uae_prefs *p)
     p->dfxtype[3] = -1;
     p->floppy_speed = 100;
 
-#ifdef FILESYS
+#ifdef FILESYS   
     p->mountinfo = alloc_mountinfo ();
 #endif
-
-#ifdef UAE_MINI
-    default_prefs_mini (p);
-#endif
-
+   
     inputdevice_default_prefs (p);
 }
 
@@ -280,11 +263,11 @@ void fixup_prefs_dimensions (struct uae_prefs *prefs)
     prefs->gfx_width_fs += 7; /* X86.S wants multiples of 4 bytes, might be 8 in the future. */
     prefs->gfx_width_fs &= ~7;
     if (prefs->gfx_width_win < 320)
-	prefs->gfx_width_win = 320;
+        prefs->gfx_width_win = 320;
     if (prefs->gfx_height_win < 200)
-	prefs->gfx_height_win = 200;
+        prefs->gfx_height_win = 200;
     if (prefs->gfx_height_win > 1280)
-	prefs->gfx_height_win = 1280;
+        prefs->gfx_height_win = 1280;
     prefs->gfx_width_win += 7; /* X86.S wants multiples of 4 bytes, might be 8 in the future. */
     prefs->gfx_width_win &= ~7;
 }
@@ -302,8 +285,8 @@ static void fix_options (void)
 	err = 1;
     }
     if (currprefs.chipmem_size > 0x80000)
-	currprefs.chipset_mask |= CSMASK_ECS_AGNUS;
-
+        currprefs.chipset_mask |= CSMASK_ECS_AGNUS;
+   
     if ((currprefs.fastmem_size & (currprefs.fastmem_size - 1)) != 0
 	|| (currprefs.fastmem_size != 0 && (currprefs.fastmem_size < 0x100000 || currprefs.fastmem_size > 0x800000)))
     {
@@ -330,7 +313,8 @@ static void fix_options (void)
 	write_log ("Can't use a graphics card or Zorro III fastmem when using a 24 bit\n"
 		 "address space - sorry.\n");
     }
-    if (currprefs.bogomem_size != 0 && currprefs.bogomem_size != 0x80000 && currprefs.bogomem_size != 0x100000 && currprefs.bogomem_size != 0x180000)
+    if ((currprefs.bogomem_size & (currprefs.bogomem_size - 1)) != 0
+	|| (currprefs.bogomem_size != 0 && (currprefs.bogomem_size < 0x80000 || currprefs.bogomem_size > 0x200000)))
     {
 	currprefs.bogomem_size = 0;
 	write_log ("Unsupported bogomem size!\n");
@@ -415,7 +399,7 @@ static void fix_options (void)
     }
 #ifndef BSDSOCKET
     if (currprefs.socket_emu) {
-	write_log ("Compile-time option of BSDSOCKET was not enabled.  You can't use bsd-socket emulation.\n");
+	write_log ("Compile-time option of BSDSOCKET_SUPPORTED was not enabled.  You can't use bsd-socket emulation.\n");
 	currprefs.socket_emu = 0;
 	err = 1;
     }
@@ -424,13 +408,13 @@ static void fix_options (void)
     if (currprefs.nr_floppies < 0 || currprefs.nr_floppies > 4) {
 	write_log ("Invalid number of floppies.  Using 4.\n");
 	currprefs.nr_floppies = 4;
-	currprefs.dfxtype[0] = 0;
-	currprefs.dfxtype[1] = 0;
-	currprefs.dfxtype[2] = 0;
-	currprefs.dfxtype[3] = 0;
+        currprefs.dfxtype[0] = 0;
+        currprefs.dfxtype[1] = 0;
+        currprefs.dfxtype[2] = 0;
+        currprefs.dfxtype[3] = 0;
 	err = 1;
     }
-
+   
     if (currprefs.floppy_speed > 0 && currprefs.floppy_speed < 10) {
 	currprefs.floppy_speed = 100;
     }
@@ -441,8 +425,8 @@ static void fix_options (void)
 	currprefs.fast_copper = 0;
 
     if (currprefs.cpu_level > 0)
-	currprefs.cpu_cycle_exact = 0;
-
+        currprefs.cpu_cycle_exact = 0;
+   
     if (currprefs.collision_level < 0 || currprefs.collision_level > 3) {
 	write_log ("Invalid collision support level.  Using 1.\n");
 	currprefs.collision_level = 1;
@@ -479,14 +463,12 @@ static void fix_options (void)
     currprefs.scsi = 0;
     currprefs.win32_aspi = 0;
 #endif
-
+   
     if (err)
 	write_log ("Please use \"uae -h\" to get usage information.\n");
 }
 
 int quit_program = 0;
-static int restart_program;
-static char restart_config[256];
 
 void uae_reset (int hardreset)
 {
@@ -502,15 +484,6 @@ void uae_quit (void)
 {
     if (quit_program != -1)
 	quit_program = -1;
-}
-
-void uae_restart (int opengui, char *cfgfile)
-{
-    uae_quit ();
-    restart_program = opengui ? 1 : 2;
-    restart_config[0] = 0;
-    if (cfgfile)
-	strcpy (restart_config, cfgfile);
 }
 
 const char *gameport_state (int nr)
@@ -535,23 +508,6 @@ const char *gameport_state (int nr)
 
 void usage (void)
 {
-    cfgfile_show_usage ();
-}
-
-static void show_version (void)
-{
-#ifdef PACKAGE_VERSION
-    write_log ("\nUAE " PACKAGE_VERSION "\n\n");
-#else
-    write_log ("\nUAE %d.%d.%d\n\n", UAEMAJOR, UAEMINOR, UAESUBREV);
-#endif
-    write_log ("Copyright 1995-2002 Bernd Schmidt\n");
-    write_log ("          1999-2004 Toni Wilen\n");
-    write_log ("          2003-2004 Richard Drummond\n\n");
-    write_log ("See the source for a full list of contributors.\n");
-   
-    write_log ("This is free software; see the source for copying conditions.  There is NO\n");
-    write_log ("warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n");
 }
 
 void parse_cmdline (int argc, char **argv)
@@ -560,11 +516,11 @@ void parse_cmdline (int argc, char **argv)
     for (i = 1; i < argc; i++) {
 	if (strncmp (argv[i], "-config=", 8) == 0) {
 #ifdef FILESYS
-            free_mountinfo (currprefs.mountinfo);
+	    free_mountinfo (currprefs.mountinfo);
             currprefs.mountinfo = alloc_mountinfo ();
-#endif
+#endif	   
 	    cfgfile_load (&currprefs, argv[i] + 8);
-	}
+        }       
 	/* Check for new-style "-f xxx" argument, where xxx is config-file */
 	else if (strcmp (argv[i], "-f") == 0) {
 	    if (i + 1 == argc) {
@@ -573,9 +529,9 @@ void parse_cmdline (int argc, char **argv)
 #ifdef FILESYS
                 free_mountinfo (currprefs.mountinfo);
 	        currprefs.mountinfo = alloc_mountinfo ();
-#endif
+#endif	       
 		cfgfile_load (&currprefs, argv[++i]);
-	    }
+	    }	   
 	} else if (strcmp (argv[i], "-s") == 0) {
 	    if (i + 1 == argc)
 		write_log ("Missing argument for '-s' option.\n");
@@ -583,9 +539,6 @@ void parse_cmdline (int argc, char **argv)
 		cfgfile_parse_line (&currprefs, argv[++i]);
 	} else if (strcmp (argv[i], "-h") == 0 || strcmp (argv[i], "-help") == 0) {
 	    usage ();
-	    exit (0);
-	} else if (strcmp (argv[i], "-version") == 0) {
-	    show_version ();
 	    exit (0);
 	} else {
 	    if (argv[i][0] == '-' && argv[i][1] != '\0') {
@@ -640,7 +593,7 @@ static void parse_cmdline_and_init_file (int argc, char **argv)
 #endif
     }
     fix_options ();
-
+    
     parse_cmdline (argc, argv);
 }
 
@@ -649,15 +602,15 @@ void reset_all_systems (void)
     init_eventtab ();
 
     memory_reset ();
-#ifdef BSDSOCKET
+#ifdef BSDSOCKET   
     bsdlib_reset ();
-#endif
+#endif 
 #ifdef FILESYS
     filesys_reset ();
     filesys_start_threads ();
     hardfile_reset ();
 #endif
-#ifdef SCSIEMU
+#ifdef SCSIEMU   
     scsidev_reset ();
     scsidev_start_threads ();
 #endif
@@ -688,7 +641,7 @@ void do_leave_program (void)
     DISK_free ();
     close_sound ();
     dump_counts ();
-#ifdef SERIAL_PORT
+#ifdef SERIAL_PORT   
     serial_exit ();
 #endif
 #ifdef CD32
@@ -696,10 +649,13 @@ void do_leave_program (void)
 #endif
     if (! no_gui)
 	gui_exit ();
-
-#ifdef AUTOCONFIG
+// Use at_exit() call to SDL_Quit) instead   
+//#ifdef USE_SDL
+//    SDL_Quit ();
+//#endif
+#ifdef AUTOCONFIG   
     expansion_cleanup ();
-#endif
+#endif   
     memory_cleanup ();
 }
 
@@ -713,7 +669,7 @@ void leave_program (void)
     do_leave_program ();
 }
 
-static void real_main2 (int argc, char **argv)
+void real_main (int argc, char **argv)
 {
 #if defined (NATMEM_OFFSET) && defined( _WIN32 ) && !defined( NO_WIN32_EXCEPTION_HANDLER )
     extern int EvalException ( LPEXCEPTION_POINTERS blah, int n_except );
@@ -721,107 +677,87 @@ static void real_main2 (int argc, char **argv)
 #endif
     {
 
-    if (restart_config[0]) {
-#ifdef FILESYS
-	free_mountinfo (currprefs.mountinfo);
-        currprefs.mountinfo = alloc_mountinfo ();
+#ifdef USE_SDL
+    SDL_Init (SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK | SDL_INIT_NOPARACHUTE);
+    atexit( SDL_Quit );
 #endif
-	default_prefs (&currprefs);
-	fix_options ();
-    }
 
+    default_prefs (&currprefs);
+    fix_options ();
+    
     if (! graphics_setup ()) {
 	exit (1);
     }
 
-#ifdef JIT
+#ifdef JIT       
     init_shm();
 #endif
-
-#ifdef FILESYS
+       
+#ifdef FILESYS       
     rtarea_init ();
     hardfile_install ();
 #endif
 
-    if (restart_config[0])
-        parse_cmdline_and_init_file (argc, argv);
-    else
-	currprefs = changed_prefs;
+    parse_cmdline_and_init_file (argc, argv);
 
     machdep_init ();
 
-#ifdef HAVE_OSDEP_INIT
-    osdep_init ();
-#endif
-
     if (! setup_sound ()) {
-	write_log ("Sound driver unavailable: Sound output disabled\n");
+	write_log ("Sound driver unavailable: Sound output disabled\n"); 
 	currprefs.produce_sound = 0;
-    }
+    } 
     inputdevice_init ();
 
     changed_prefs = currprefs;
     no_gui = ! currprefs.start_gui;
-    if (restart_program == 2)
-	no_gui = 1;
-    restart_program = 0;
     if (! no_gui) {
 	int err = gui_init ();
-	struct uaedev_mount_info *mi = currprefs.mountinfo;
 	currprefs = changed_prefs;
-	currprefs.mountinfo = mi;
 	if (err == -1) {
 	    write_log ("Failed to initialize the GUI\n");
 	} else if (err == -2) {
+	    leave_program ();
 	    return;
-	}
+    }
     }
 
-#ifdef JIT
-    if (!(( currprefs.cpu_level >= 2 ) && ( currprefs.address_space_24 == 0 ) && ( currprefs.cachesize )))
-	canbang = 0;
-#endif
-
-#ifdef _WIN32
-    logging_init(); /* Yes, we call this twice - the first case handles when the user has loaded
-		       a config using the cmd-line.  This case handles loads through the GUI. */
-#endif
+//    logging_init(); /* Yes, we call this twice - the first case handles when the user has loaded
+//		       a config using the cmd-line.  This case handles loads through the GUI. */
     fix_options ();
     changed_prefs = currprefs;
 
-#ifdef SCSIEMU
+#ifdef SCSIEMU       
     scsidev_install ();
 #endif
 #ifdef AUTOCONFIG
     /* Install resident module to get 8MB chipmem, if requested */
     rtarea_setup ();
 #endif
-
+       
     keybuf_init (); /* Must come after init_joystick */
 
 #ifdef AUTOCONFIG
     expansion_init ();
-#endif
+#endif       
     memory_init ();
     memory_reset ();
-
-#ifdef FILESYS
+#ifdef FILESYS       
     filesys_install ();
 #endif
-#ifdef AUTOCONFIG
+#ifdef AUTOCONFIG       
     gfxlib_install ();
+#ifdef BSDSOCKET       
     bsdlib_install ();
+#endif
     emulib_install ();
     uaeexe_install ();
     native2amiga_install ();
 #endif
-
     custom_init (); /* Must come after memory_init */
-#ifdef SERIAL_PORT
+#ifdef SERIAL_PORT       
     serial_init ();
 #endif
     DISK_init ();
-
     reset_frame_rate_hack ();
     init_m68k(); /* must come after reset_frame_rate_hack (); */
 
@@ -834,9 +770,9 @@ static void real_main2 (int argc, char **argv)
 	    activate_debugger ();
 
 #ifdef WIN32
-#ifdef FILESYS
+#ifdef FILESYS       
 	filesys_init (); /* New function, to do 'add_filesys_unit()' calls at start-up */
-#endif
+#endif       
 #endif
 	if (sound_available && currprefs.produce_sound > 1 && ! init_audio ()) {
 	    write_log ("Sound driver unavailable: Sound output disabled\n");
@@ -845,6 +781,7 @@ static void real_main2 (int argc, char **argv)
 
 	start_program ();
     }
+    leave_program ();
 
     }
 #if defined (NATMEM_OFFSET) && defined( _WIN32 ) && !defined( NO_WIN32_EXCEPTION_HANDLER )
@@ -853,31 +790,6 @@ static void real_main2 (int argc, char **argv)
 	// EvalException does the good stuff...
     }
 #endif
-}
-
-void real_main (int argc, char **argv)
-{
-#ifdef _WIN32
-    extern char *start_path;
-#endif
-    restart_program = 1;
-#ifdef _WIN32
-    sprintf (restart_config, "%s\\Configurations\\", start_path);
-#endif
-    strcat (restart_config, OPTIONSFILENAME);
-   
-#ifdef USE_SDL
-    SDL_Init (SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK | SDL_INIT_NOPARACHUTE);
-    atexit (SDL_Quit);
-#endif
-   
-    while (restart_program) {
-	changed_prefs = currprefs;
-	real_main2 (argc, argv);
-        leave_program ();
-	quit_program = 0;
-    }
-    zfile_exit ();
 }
 
 #ifndef NO_MAIN_IN_MAIN_C

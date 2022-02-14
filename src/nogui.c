@@ -31,9 +31,8 @@ void gui_exit (void)
 {
 }
 
-void gui_fps (int fps)
+void gui_fps (int x)
 {
-    gui_data.fps = fps;
 }
 
 void gui_led (int led, int on)
@@ -42,20 +41,6 @@ void gui_led (int led, int on)
 
 void gui_hd_led (int led)
 {
-    static int resetcounter;
-
-    int old = gui_data.hd;
-
-    if (led == 0) {
-	resetcounter--;
-	if (resetcounter > 0)
-	    return;
-    }
-
-    gui_data.hd = led;
-    resetcounter = 6;
-    if (old != gui_data.hd)
-	gui_led (5, gui_data.hd);
 }
 
 void gui_cd_led (int led)

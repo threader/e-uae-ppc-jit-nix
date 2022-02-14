@@ -847,52 +847,6 @@ static void graphics_subinit (void)
     }
 }
 
-static int get_best_visual (XVisualInfo *vi)
-{
-    screen = XDefaultScreen (display);
-    rootwin = XRootWindow (display, screen);
-
-    /* try for a 12 bit visual first, then a 16 bit, then a 24 bit, then 8 bit */
-    if (XMatchVisualInfo (display, screen, 12, TrueColor, vi)) {
-    } else if (XMatchVisualInfo (display, screen, 15, TrueColor, vi)) {
-    } else if (XMatchVisualInfo (display, screen, 16, TrueColor, vi)) {
-    } else if (XMatchVisualInfo (display, screen, 24, TrueColor, vi)) {
-    } else if (XMatchVisualInfo (display, screen, 8, PseudoColor, vi)) {
-        /* for our HP boxes */
-    } else if (XMatchVisualInfo (display, screen, 8, GrayScale, vi)) {
-    } else if (XMatchVisualInfo (display, screen, 4, PseudoColor, vi)) {
-        /* VGA16 server. Argh. */
-    } else if (XMatchVisualInfo (display, screen, 1, StaticGray, vi)) {	
-        /* Mono server. Yuk */
-    } else {
-        write_log ("Can't obtain appropriate X visual.\n");
-        return 0;
-    }
-    return 1;
-}
-
-static int get_visual_bit_unit (XVisualInfo *vi, int bitdepth)
-{
-    int bit_unit = 0;
-    XPixmapFormatValues *xpfvs;
-    int i,j;
-
-    /* We now have the bitdepth of the display, but that doesn't tell us yet
-     * how many bits to use per pixel. The VGA16 server has a bitdepth of 4,
-     * but uses 1 byte per pixel. */
-    xpfvs = XListPixmapFormats (display, &i);
-    for (j = 0; j < i && xpfvs[j].depth != bitdepth; j++)
-	;
-    if (j < i)
-	bit_unit = xpfvs[j].bits_per_pixel;
-    XFree (xpfvs);
-    if (j == i) {
-	write_log ("Your X server is feeling ill.\n");
-    }
-   
-    return bit_unit;
-}
-
 int graphics_init (void)
 {
     int i,j;
@@ -915,12 +869,38 @@ int graphics_init (void)
     screen = XDefaultScreen (display);
     rootwin = XRootWindow (display, screen);
 
-    if (!get_best_visual (&visualInfo)) return 0;
-
+    /* try for a 12 bit visual first, then a 16 bit, then a 24 bit, then 8 bit */
+    if (XMatchVisualInfo (display, screen, 12, TrueColor, &visualInfo)) {
+    } else if (XMatchVisualInfo (display, screen, 15, TrueColor, &visualInfo)) {
+    } else if (XMatchVisualInfo (display, screen, 16, TrueColor, &visualInfo)) {
+    } else if (XMatchVisualInfo (display, screen, 24, TrueColor, &visualInfo)) {
+    } else if (XMatchVisualInfo (display, screen, 8, PseudoColor, &visualInfo)) {
+	/* for our HP boxes */
+    } else if (XMatchVisualInfo (display, screen, 8, GrayScale, &visualInfo)) {
+    } else if (XMatchVisualInfo (display, screen, 4, PseudoColor, &visualInfo)) {
+	/* VGA16 server. Argh. */
+    } else if (XMatchVisualInfo (display, screen, 1, StaticGray, &visualInfo)) {
+	/* Mono server. Yuk */
+    } else {
+	write_log ("Can't obtain appropriate X visual.\n");
+	return 0;
+    }
     vis = visualInfo.visual;
     bitdepth = visualInfo.depth;
 
-    if (!(bit_unit = get_visual_bit_unit (&visualInfo, bitdepth))) return 0;
+    /* We now have the bitdepth of the display, but that doesn't tell us yet
+     * how many bits to use per pixel. The VGA16 server has a bitdepth of 4,
+     * but uses 1 byte per pixel. */
+    xpfvs = XListPixmapFormats (display, &i);
+    for (j = 0; j < i && xpfvs[j].depth != bitdepth; j++)
+	;
+    if (j < i)
+	bit_unit = xpfvs[j].bits_per_pixel;
+    XFree (xpfvs);
+    if (j == i) {
+	write_log ("Your X server is feeling ill.\n");
+	return 0;
+    }
 
     write_log ("Using %d bit visual, %d bits per pixel\n", bitdepth, bit_unit);
 
@@ -1641,7 +1621,7 @@ void handle_events (void)
     if ((keystate[AK_CTRL] || keystate[AK_RCTRL]) && keystate[AK_LAMI] && keystate[AK_RAMI])
 	uae_reset ( 0 );
 }
-\
+
 int check_prefs_changed_gfx (void)
 {
     if (changed_prefs.gfx_width_win != currprefs.gfx_width_win
@@ -1818,12 +1798,6 @@ int DX_FillResolutions (uae_u16 *ppixel_format)
     int h = HeightOfScreen (scr);
     int emulate_chunky = 0;
 
-    /* we now need to find display depth first */
-    XVisualInfo vi;   
-    if (!get_best_visual (&vi)) return 0;
-    bitdepth = vi.depth;
-    bit_unit = get_visual_bit_unit (&vi, bitdepth);
-   
     picasso_vidinfo.rgbformat = (bit_unit == 8 ? RGBFB_CHUNKY
 				 : bitdepth == 15 && bit_unit == 16 ? RGBFB_R5G5B5PC
 				 : bitdepth == 16 && bit_unit == 16 ? RGBFB_R5G6B5PC
@@ -1832,7 +1806,7 @@ int DX_FillResolutions (uae_u16 *ppixel_format)
 				 : RGBFB_NONE);
 
     *ppixel_format = 1 << picasso_vidinfo.rgbformat;
-    if (vi.VI_CLASS == TrueColor && (bit_unit == 16 || bit_unit == 32))
+    if (visualInfo.VI_CLASS == TrueColor && (bit_unit == 16 || bit_unit == 32))
 	*ppixel_format |= RGBFF_CHUNKY, emulate_chunky = 1;
 
 #if defined USE_DGA_EXTENSION && defined USE_VIDMODE_EXTENSION
@@ -1909,13 +1883,11 @@ void gfx_set_picasso_state (int on)
     if (on) {
 	current_width = picasso_vidinfo.width;
 	current_height = picasso_vidinfo.height;
-        graphics_subinit ();
     } else {
 	current_width = gfxvidinfo.width;
 	current_height = gfxvidinfo.height;
-        graphics_subinit ();
-        reset_drawing ();       
     }
+    graphics_subinit ();
     if (on)
 	DX_SetPalette_real (0, 256);
 }
@@ -1973,17 +1945,17 @@ static void handle_inhibit (void)
 static void handle_interpol (void)
 {
     if (currprefs.sound_interpol == 0) {
-	changed_prefs.sound_interpol = 1;
+	currprefs.sound_interpol = 1;
 	printf ("Interpol on: rh\n");
     }
     else if (currprefs.sound_interpol == 1) {
-	changed_prefs.sound_interpol = 2;
+	currprefs.sound_interpol = 2;
 	printf ("Interpol on: crux\n");
     }
     else {
-	changedprefs.sound_interpol = 0;
+	currprefs.sound_interpol = 0;
 	printf ("Interpol off\n");
-    }
+    }    
 }
 
 static void framerate_up (void)

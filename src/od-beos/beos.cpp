@@ -1,11 +1,10 @@
-/*
+/* 
  *  UAE - The Un*x Amiga Emulator
  *
  *  BeBox port specific stuff
  *
  *  (c) 1996-1998 Christian Bauer
  *  (c) 1996 Patrick Hanevold
- *  (c) 2003 Richard Drummond
  */
 
 #include <AppKit.h>
@@ -25,17 +24,15 @@ extern "C" {
 #include "gensound.h"
 #include "sounddep/sound.h"
 #include "events.h"
-#include "../include/memory.h"
+#include "memory.h"
 #include "custom.h"
 //#include "readcpu.h"
 #include "newcpu.h"
 #include "disk.h"
-//#include "gui.h"
+#include "gui.h"
 #include "debug.h"
 #include "xwin.h"
-#include "drawing.h"
-//#include "joystick.h"
-#include "inputdevice.h"
+#include "joystick.h"
 #include "keyboard.h"
 #include "keybuf.h"
 #include "gui.h"
@@ -84,6 +81,7 @@ static const int keycode2amiga[128] = {
 
 	AK_NPLPAREN, AK_NPRPAREN, -1, AK_NPDIV, AK_NPMUL, AK_NPSUB, AK_TAB, AK_Q,
 	AK_W, AK_E, AK_R, AK_T, AK_Y, AK_U, AK_I, AK_O,
+
 	AK_P, AK_LBRACKET, AK_RBRACKET, AK_BACKSLASH, AK_DEL, AK_LALT, AK_RALT, AK_NP7,
 	AK_NP8, AK_NP9, AK_NPADD, AK_CAPSLOCK, AK_A, AK_S, AK_D, AK_F,
 
@@ -111,7 +109,7 @@ static bool LEDs[4];
 static int the_argc;
 static char **the_argv;
 
-
+static BJoystick *joy;
 
 
 /*
@@ -219,7 +217,7 @@ int main(int argc, char **argv)
  *  UAE Constructor: Initialize member variables
  */
 
-UAE::UAE() : BApplication(APP_SIGNATURE)
+UAE::UAE() : BApplication('UAEm')
 {
 	// Find application directory and cwd to it
 	app_info the_info;
@@ -448,22 +446,22 @@ void UAEWindow::MessageReceived(BMessage *msg)
 		}
 
 		case MSG_FR1:
-			currprefs.gfx_framerate = 1;
+			currprefs.framerate = 1;
 			break;
 		case MSG_FR2:
-			currprefs.gfx_framerate = 2;
+			currprefs.framerate = 2;
 			break;
 		case MSG_FR3:
-			currprefs.gfx_framerate = 3;
+			currprefs.framerate = 3;
 			break;
 		case MSG_FR4:
-			currprefs.gfx_framerate = 4;
+			currprefs.framerate = 4;
 			break;
 		case MSG_FR5:
-			currprefs.gfx_framerate = 5;
+			currprefs.framerate = 5;
 			break;
 		case MSG_FR6:
-			currprefs.gfx_framerate = 6;
+			currprefs.framerate = 6;
 			break;
 
 		case MSG_RESET:
@@ -483,7 +481,7 @@ void UAEWindow::MessageReceived(BMessage *msg)
 			sprintf(str, "     Un*x Amiga Emulator V%d.%d.%d\n"
 				     	"          by Bernd Schmidt\n"
 				     	"    BeBox port by Christian Bauer\n"
-				     	"Additional porting by Patrick Hanevold", UAEMAJOR, UAEMINOR, 0 /*UAEURSAMINOR */);
+				     	"Additional porting by Patrick Hanevold", UAEMAJOR, UAEMINOR, UAEURSAMINOR);
 			BAlert *the_alert = new BAlert("", str, "OK");
 			the_alert->Go();
 			break;
@@ -554,15 +552,15 @@ void BitmapView::MouseMoved(BPoint point, uint32 transit, const BMessage *messag
 	newmousecounters = 0;
 	switch (transit) {
 		case B_ENTERED_VIEW:
-//			newmousecounters = 1;
-	                setmousestate (0, 0, (int) point.x, 1);
-	                setmousestate (0, 1, (int) point.y, 1);
+			newmousecounters = 1;
+			lastmx = point.x;
+			lastmy = point.y;
 			break;
 		case B_EXITED_VIEW:
 			break;
 		case B_INSIDE_VIEW:
-	                setmousestate (0, 0, (int) point.x, 1);
-	                setmousestate (0, 1, (int) point.y, 1);	   
+			lastmx = point.x;
+			lastmy = point.y;
 			break;
 	}
 }
@@ -638,9 +636,6 @@ void flush_screen(int ystart, int ystop)
 		bitmap_window->PostMessage(new BMessage(MSG_REDRAW));
 }
 
-void flush_clear_screen (void)
-{
-}
 
 /*
  *  Init graphics
@@ -680,12 +675,17 @@ int UAE::GraphicsInit(void)
 	// Set up vidinfo
 	gfxvidinfo.pixbytes = 1;
 	gfxvidinfo.rowbytes = the_bitmap->BytesPerRow();
-	gfxvidinfo.bufmem = (uae_u8 *)the_bitmap->Bits();
+	gfxvidinfo.bufmem = (char *)the_bitmap->Bits();
 	gfxvidinfo.linemem = NULL;
 	gfxvidinfo.maxblocklines = 100; /* whatever... */
 
 	// Open window
 	main_window = new UAEWindow(BRect(0, 0, currprefs.gfx_width-1, currprefs.gfx_height-1), the_bitmap);
+
+	// Initialize mouse and keyboard variables
+	buttonstate[0] = buttonstate[1] = buttonstate[2] = 0;
+	lastmx = lastmy = 0;
+	newmousecounters = 0;
 
 	return true;
 }
@@ -719,7 +719,7 @@ void handle_events(void)
 	uint32 mouse_buttons;
 
 	if (reset_thyself) {
-		uae_reset (0);
+		uae_reset();
 		reset_thyself = false;
 	}
 
@@ -758,7 +758,7 @@ void handle_events(void)
 						record_key((amiga_code << 1) | 1);
 					}
 				}
-			}
+			}		
 			old_key_info = the_key_info;
 		}
 
@@ -774,11 +774,184 @@ void handle_events(void)
 
 		// Mouse buttons
 		if (mouse_point.x >= 0 && mouse_point.y >= 0 && mouse_point.x < currprefs.gfx_width && mouse_point.y < currprefs.gfx_height) {
-		        setmousebuttonstate (0, 0, mouse_buttons & B_PRIMARY_MOUSE_BUTTON);
-		        setmousebuttonstate (0, 1, mouse_buttons & B_SECONDARY_MOUSE_BUTTON);
-		        setmousebuttonstate (0, 2, mouse_buttons & B_TERTIARY_MOUSE_BUTTON);
+			buttonstate[0] = mouse_buttons & B_PRIMARY_MOUSE_BUTTON;
+			buttonstate[1] = mouse_buttons & B_TERTIARY_MOUSE_BUTTON;
+			buttonstate[2] = mouse_buttons & B_SECONDARY_MOUSE_BUTTON;
 		}
 	}
+}
+
+
+/*
+ *  Joystick routines
+ */
+
+extern "C" {
+void init_joystick(void);
+void close_joystick(void);
+void read_joystick(int nr, unsigned int *dir, int *button);
+};
+
+int nr_joysticks;
+
+void read_joystick(int nr, unsigned int *dir, int *button)
+{
+	static int joy_minx = 32767, joy_maxx = 0,
+			   joy_miny = 32767, joy_maxy = 0;
+	int left = 0, right = 0, top = 0, bot = 0;
+
+	*dir = 0;
+	*button = 0;
+
+	if (nr >= nr_joysticks)
+		return;
+
+	if (joy->Update() != B_ERROR) {
+		if (joy->horizontal > joy_maxx)
+			joy_maxx = joy->horizontal;
+		if (joy->horizontal < joy_minx)
+			joy_minx = joy->horizontal;
+		if (joy->vertical > joy_maxy)
+			joy_maxy = joy->vertical;
+		if (joy->vertical < joy_miny)
+			joy_miny = joy->vertical;
+
+		if (joy_maxx-joy_minx < 100 || joy_maxy-joy_miny < 100)
+			return;
+
+		if (joy->horizontal < (joy_minx + (joy_maxx-joy_minx)/3))
+			right = 1;
+		else if (joy->horizontal > (joy_minx + 2*(joy_maxx-joy_minx)/3))
+			left = 1;
+
+		if (joy->vertical < (joy_miny + (joy_maxy-joy_miny)/3))
+			bot = 1;
+		else if (joy->vertical > (joy_miny + 2*(joy_maxy-joy_miny)/3))
+			top = 1;
+
+		if (left) top = !top;
+		if (right) bot = !bot;
+	    *dir = bot | (right << 1) | (top << 8) | (left << 9);
+	    *button = !joy->button1;
+	}
+}
+
+void init_joystick(void)
+{
+	joy = new BJoystick();
+	joy->Open("joystick1");
+	nr_joysticks = 1;
+}
+
+void close_joystick(void)
+{
+	joy->Close();
+	delete joy;
+}
+
+
+/*
+ *  Sound routines
+ */
+
+extern "C" {
+extern int sound_available;
+extern int smplcnt;
+extern int init_sound(void);
+extern int setup_sound(void);
+extern void flush_sound_buffer(void);
+extern void init_sound_table16(void);
+extern void sample16_handler(void);
+};
+
+uae_u16 *sndbuffer;
+uae_u16 *sndbufpt;
+int sndbufsize;
+
+static uint8 *buffers[2] = {NULL, NULL};
+static int buf_num;
+static BDACStream *the_stream;
+static BSubscriber *the_sub;
+static bool sound_ready = false;
+static sem_id sound_sync_sem;
+
+bool stream_func(void *arg, char *buf, size_t count, void *header);
+
+int init_sound(void)
+{
+	sound_sync_sem = create_sem(0, "UAE Sound Sync Semaphore");
+	the_stream = new BDACStream();
+	the_sub = new BSubscriber("UAE DAC subscriber");
+
+	if (!currprefs.produce_sound)
+		return 0;
+	sound_ready = the_sub->Subscribe(the_stream) == B_NO_ERROR;
+	if (!sound_ready)
+		return 0;
+
+	sndbufsize = 44100 / 8 * 4;
+	buffers[0] = new uint8[sndbufsize];
+	buffers[1] = new uint8[sndbufsize];
+	memset(buffers[0], 0, sndbufsize);
+	memset(buffers[1], 0, sndbufsize);
+	buf_num = 0;
+	sndbufpt = sndbuffer = (uae_u16 *)buffers[buf_num];
+
+	init_sound_table16();
+	eventtab[ev_sample].handler = sample16_handler;
+	scaled_sample_evtime = (unsigned long)maxhpos * maxvpos * vblank_hz * CYCLE_UNIT / 44100;
+	scaled_sample_evtime_ok = 1;
+
+	sound_available = 1;
+	the_stream->SetSamplingRate(44100);
+	the_stream->SetStreamBuffers(sndbufsize, 4);
+	the_sub->EnterStream(NULL, true, NULL, stream_func, NULL, true);
+	return 1;
+}
+
+int setup_sound(void)
+{
+	sound_available = 1;
+	return 1;
+}
+
+void close_sound(void)
+{
+	if (sound_ready) {
+		the_sub->ExitStream(true);
+		the_stream->SetStreamBuffers(4096, 8);
+		the_sub->Unsubscribe();
+		sound_ready = false;
+	}
+	delete the_sub;
+	delete the_stream;
+
+	delete_sem(sound_sync_sem);
+
+	delete buffers[0];
+	delete buffers[1];
+}
+
+void flush_sound_buffer(void)
+{
+	if (sound_ready) {
+		long l;
+		get_sem_count(sound_sync_sem, &l);
+		if (l > 0)
+			acquire_sem_etc(sound_sync_sem, l+1, 0, 0);
+		else
+			acquire_sem(sound_sync_sem);
+	}
+
+	sndbufpt = sndbuffer = (uae_u16 *)buffers[buf_num];
+	buf_num ^= 1;
+}
+
+bool stream_func(void *arg, char *buf, size_t count, void *header)
+{
+	memcpy(buf, buffers[buf_num], count);
+	release_sem(sound_sync_sem);
+	return true;
 }
 
 
@@ -786,113 +959,59 @@ void handle_events(void)
  *  Misc routines
  */
 
-int debuggable (void)
+int debuggable(void)
 {
     return true;
 }
 
-
-int needmousehack (void)
+int needmousehack(void)
 {
     return true;
 }
 
-
-void LED (int on)
+void LED(int on)
 {
-    PowerLED->SetState(!on);
+	PowerLED->SetState(!on);
 }
-
 
 void setup_brkhandler(void)
 {
 }
 
-
-void gui_changesettings (void)
+void gui_changesettings(void)
 {
 }
 
-
-int gui_init (void)
+void gui_led(int led, int on)
 {
-    LEDs[0] = LEDs[1] = LEDs[2] = LEDs[3] = false;
-    quit_program = 0;
-    return 0;
+	if (led > 0 && led < 5)
+		LEDs[led-1] = on;
 }
 
-
-void gui_exit (void)
+int gui_init(void)
 {
+	LEDs[0] = LEDs[1] = LEDs[2] = LEDs[3] = false;
+	quit_program = 0;
+	return 0;
 }
 
-
-int gui_update (void)
-{
-    return 0;
-}
-
-
-void gui_filename (int num, const char *name)
+void gui_exit(void)
 {
 }
 
+int gui_update(void)
+{
+	return 0;
+}
 
-static void getline (char *p)
+void gui_filename(int num, const char *name)
 {
 }
 
-
-void gui_handle_events (void)
+static void getline(char *p)
 {
 }
 
-
-void gui_fps (int fps)
+void gui_handle_events(void)
 {
-    gui_data.fps = fps;
-}
-
-
-void gui_led (int led, int on)
-{
-    if (led > 0 && led < 5)
-	LEDs[led-1] = on;
-}
-
-
-void gui_hd_led (int led)
-{
-    static int resetcounter;
-
-    int old = gui_data.hd;
-
-    if (led == 0) {
-	resetcounter--;
-	if (resetcounter > 0)
-	    return;
-    }
-
-    gui_data.hd = led;
-    resetcounter = 6;
-    if (old != gui_data.hd)
-	gui_led (5, gui_data.hd);
-}
-
-
-void gui_cd_led (int led)
-{
-}
-
-
-void gui_message (const char *format,...)
-{
-   char msg[2048];
-   va_list parms;
-
-   va_start (parms,format);
-   vsprintf ( msg, format, parms);
-   va_end (parms);
-
-   write_log (msg);
 }

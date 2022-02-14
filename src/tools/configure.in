@@ -1,28 +1,40 @@
-dnl 
+dnl Process this file with autoconf to produce a configure script.
+dnl Written 1996, 1997, 1998 Bernd Schmidt
+
+dnl If you can use anything from this file, feel free to steal it. I put
+dnl this into the public domain.
+
+dnl There are still many uncaught errors (e.g. --enable-dga on an Amiga)
+dnl I didn't have the nerve to track them all down.
 
 AC_INIT(sysconfig.h.in)
-AC_PREREQ(2.50)
-AC_CONFIG_HEADER(sysconfig.h)
+AC_PREREQ(2.12)
 
 dnl Checks for programs.
 AC_PROG_CC
+
 AC_PROG_CPP
 AC_PROG_MAKE_SET
-AC_PROG_INSTALL
 
 AC_AIX
 AC_ISC_POSIX
 
-dnl Checks for header files
-AC_HEADER_DIRENT
-AC_HEADER_STDC
-AC_CHECK_HEADERS([fcntl.h limits.h sys/time.h sys/utime.h utime.h values.h])
 
-dnl Checks for typedefs, structures, and compiler characteristics.
-AC_C_CONST
-AC_C_INLINE
-AC_TYPE_SIZE_T
-AC_HEADER_TIME
+AC_PATH_XTRA
+AC_CONFIG_HEADER(sysconfig.h)
+
+AC_HEADER_STDC
+
+dnl @@@ Is <sys/termios.h> the right way or is it <termios.h>?
+AC_CHECK_HEADERS(unistd.h fcntl.h sys/time.h sys/types.h utime.h string.h strings.h values.h ncurses.h curses.h)
+dnl AC_CHECK_HEADERS(sys/soundcard.h machine/soundcard.h sun/audioio.h sys/audioio.h getopt.h features.h sys/termios.h)
+AC_CHECK_HEADERS(posix_opt.h sys/ioctl.h sys/ipc.h sys/shm.h sys/stat.h sys/utime.h)
+dnl AC_CHECK_HEADERS(windows.h ddraw.h)
+dnl AC_CHECK_HEADER(be_math.h, HAVE_BEOS=yes, HAVE_BEOS=no)
+dnl AC_CHECK_HEADERS(machine/joystick.h)
+dnl AC_CHECK_HEADERS(devices/ahi.h)
+dnl AC_CHECK_HEADERS(dmedia/audio.h SDL/SDL.h)
+dnl AC_CHECK_HEADERS(libraries/cybergraphics.h cybergraphx/cybergraphics.h)
 
 AC_CHECK_SIZEOF(char, 1)
 AC_CHECK_SIZEOF(short, 2)
@@ -31,28 +43,31 @@ AC_CHECK_SIZEOF(long, 4)
 AC_CHECK_SIZEOF(long long, 8)
 AC_CHECK_SIZEOF(__int64, 8)
 
+dnl Checks for typedefs, structures, and compiler characteristics.
+AC_C_CONST
+AC_C_INLINE
+if [[ "x$ac_cv_c_inline" = "xno" ]]; then
+  ac_cv_c_inline=
+fi
+AC_TYPE_MODE_T
+AC_TYPE_OFF_T
+AC_TYPE_PID_T
+AC_STRUCT_ST_BLOCKS
+AC_HEADER_TIME
+AC_STRUCT_TM
+
 dnl Checks for library functions.
 AC_PROG_GCC_TRADITIONAL
-AC_FUNC_VPRINTF
-AC_CHECK_FUNCS([gettimeofday memset mkdir strdup strchr strstr])
-AC_CHECK_FUNCS([strcasecmp strcmpi stricmp])
+AC_FUNC_MEMCMP
+AC_TYPE_SIGNAL
+AC_FUNC_UTIME_NULL
+AC_CHECK_FUNCS(getcwd getopt strdup gettimeofday sigaction mkdir rmdir select strerror strstr)
+AC_CHECK_FUNCS(tcgetattr cfmakeraw readdir_r vprintf vsprintf vfprintf setitimer)
 
 AC_SUBST(ac_cv_c_inline)
+AC_SUBST(WRC)
 AC_SUBST(SET_MAKE)
 
 AC_SUBST(top_srcdir)
 
-AC_CONFIG_FILES([Makefile])
-
-AC_CONFIG_LINKS([missing.c:../missing.c
-                 writelog.c:../writelog.c
-                 readcpu.c:../readcpu.c
-                 build68k.c:../build68k.c
-                 gencpu.c:../gencpu.c
-		 gencomp.c:../gencomp.c
-                 cpuopti.c:../cpuopti.c
-                 genblitter.c:../genblitter.c
-		 blitops.c:../blitops.c
-])
-
-AC_OUTPUT
+AC_OUTPUT(Makefile)

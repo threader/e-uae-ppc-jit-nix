@@ -270,6 +270,7 @@ static char *set_filesys_unit_1 (struct uaedev_mount_info *mountinfo, int nr,
     int v;
     static char errmsg[1024];
 
+    write_log( "set_filesys_unit_1: dev=%s vol=%s root=%s\n", devname, volname, rootdir );
     if (nr >= mountinfo->num_units)
 	return "No slot allocated for this unit";
 
@@ -309,10 +310,9 @@ static char *set_filesys_unit_1 (struct uaedev_mount_info *mountinfo, int nr,
 	ui->volname = 0;
 	ui->hf.readonly = readonly;
 	if (!hdf_open (&ui->hf, rootdir) && !readonly) {
-	    write_log ("Failed to open hardfile with write permission. Trying as read-only\n");
 	    ui->hf.readonly = readonly = 1;
 	    hdf_open (&ui->hf, rootdir);
-	}
+	} 
         ui->hf.readonly = readonly;
 	if (ui->hf.handle == 0)
 	    return "Hardfile not found";
@@ -329,8 +329,11 @@ static char *set_filesys_unit_1 (struct uaedev_mount_info *mountinfo, int nr,
     ui->self = 0;
     ui->reset_state = FS_STARTUP;
     ui->rootdir = my_strdup (rootdir);
-    if (devname !=0 && strlen (devname) != 0)
-                ui->devname = my_strdup (devname);
+    if (devname == 0 || strlen(devname) == 0) {   	
+        devname = xmalloc (10);
+        sprintf (devname, "DH%d", nr);
+    } 
+    ui->devname = my_strdup (devname);
     if (filesysdir)
 	ui->filesysdir = my_strdup (filesysdir);
     ui->readonly = readonly;
@@ -2405,7 +2408,7 @@ action_read (Unit *unit, dpacket packet)
 {
     Key *k = lookup_key (unit, GET_PCK_ARG1 (packet));
     uaecptr addr = GET_PCK_ARG2 (packet);
-    long size = (uae_s32)GET_PCK_ARG3 (packet);
+    unsigned long size = (uae_s32)GET_PCK_ARG3 (packet);
     int actual;
 
     if (k == 0) {
@@ -2549,7 +2552,7 @@ action_seek (Unit *unit, dpacket packet)
 	long filesize = lseek (k->fd, 0, SEEK_END);
 	lseek (k->fd, old, SEEK_SET);
 
-	temppos = pos;
+      	temppos = pos;
 	if (whence == SEEK_CUR) temppos += old; 
 	if (whence == SEEK_END) temppos += filesize; 
 	if (filesize < temppos) {
@@ -3684,7 +3687,7 @@ static uae_u32 filesys_dev_remember (void)
     return devicenode;
 }
 
-static int legalrdbblock (UnitInfo *uip, int block)
+static int legalrdbblock (UnitInfo *uip, uae_u64 block)
 {
     if (block <= 0)
 	return 0;
@@ -3753,6 +3756,7 @@ static char *device_dupfix (uaecptr expbase, char *devname)
     }
     return strdup (newname);
 }
+
 
 static int rdb_mount (UnitInfo *uip, int unit_no, int partnum, uaecptr parmpacket)
 {
@@ -4017,7 +4021,7 @@ static uae_u32 filesys_dev_storeinfo (void)
 	/* RDB hardfile */
         uip[unit_no].devno = unit_no;
 	return rdb_mount (&uip[unit_no], unit_no, sub_no, parmpacket);
-    }
+    } 
     if (sub_no)
         return -2;
     get_new_device (type, parmpacket, &uip[unit_no].devname, &uip[unit_no].devname_amiga, unit_no);

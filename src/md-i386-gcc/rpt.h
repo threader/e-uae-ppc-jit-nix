@@ -22,7 +22,7 @@
 
 typedef unsigned long frame_time_t;
 
-static inline uae_u64 read_processor_time (void)
+static inline frame_time_t read_processor_time (void)
 {
     uae_u64 foo;
     /* Don't assume the assembler knows rdtsc */

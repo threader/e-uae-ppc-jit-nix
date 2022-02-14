@@ -158,12 +158,7 @@ typedef struct {
 } drive;
 
 static uae_u16 bigmfmbufw[0x8000];
-
-#ifndef SAVE_MEMORY
 static drive floppy[4];
-#else
-static drive *floppy;
-#endif
 
 static uae_u8 exeheader[]={0x00,0x00,0x03,0xf3,0x00,0x00,0x00,0x00};
 static uae_u8 bootblock[]={
@@ -2298,10 +2293,6 @@ void DISK_free (void)
 	drive *drv = &floppy[dr];
 	drive_image_free (drv);
     }
-#ifdef SAVE_MEMORY
-   free (floppy);
-   floppy = 0;
-#endif
 }
 
 void DISK_init (void)
@@ -2310,12 +2301,6 @@ void DISK_init (void)
 
 #if 0
     dma_tab[0] = 0xffffffff;
-#endif
-   
-#ifdef SAVE_MEMORY
-    floppy = malloc (sizeof (drive) *4);
-    if (!floppy)
-        abort ();
 #endif
     for (dr = 0; dr < 4; dr++) {
 	drive *drv = &floppy[dr];
