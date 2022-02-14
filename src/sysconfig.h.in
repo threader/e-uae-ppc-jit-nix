@@ -207,7 +207,7 @@
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
 
-/* Define if you have the 'unsigned long long' type. */
+/* Define if you have the unsigned long long type. */
 #undef HAVE_UNSIGNED_LONG_LONG
 
 /* Define to 1 if you have the `usleep' function. */

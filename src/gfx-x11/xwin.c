@@ -1981,7 +1981,7 @@ static void handle_interpol (void)
 	printf ("Interpol on: crux\n");
     }
     else {
-	changed_prefs.sound_interpol = 0;
+	changedprefs.sound_interpol = 0;
 	printf ("Interpol off\n");
     }
 }

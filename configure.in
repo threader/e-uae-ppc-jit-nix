@@ -4,7 +4,7 @@ dnl
 dnl Updated, re-written and generally mauled 2003 Richard Drummond
 
 AC_PREREQ(2.50)
-AC_INIT(UAE, 0.8.22-20040107, ,uae)
+AC_INIT(UAE, 0.8.22-20040106, ,uae)
 AC_CONFIG_SRCDIR([config.h])
 AC_CONFIG_HEADERS([src/sysconfig.h])
 AC_CANONICAL_TARGET

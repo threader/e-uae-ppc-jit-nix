@@ -25,20 +25,6 @@
 #include "events.h"
 #include "sleep.h"
 
-/* When built with libnix and linked against the swapstack
- * module, this will ensure that the stack is at least
- * MIN_STACKS_SIZE (bytes) on start-up.
- *
- * This will eventually go elsewhere (an Amiga-specific
- * main.c probably) but for now shoving it in here saves any
- * further monkeying about with the build scripts.
- */
-#define MIN_STACK_SIZE  16384
-
-unsigned long __stack=MIN_STACK_SIZE;
-
-
-
 #ifdef SUPPORT_THREADS
 
 /*

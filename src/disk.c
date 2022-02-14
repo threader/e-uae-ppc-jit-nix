@@ -2313,10 +2313,9 @@ void DISK_init (void)
 #endif
    
 #ifdef SAVE_MEMORY
-    floppy = malloc (sizeof (drive) * 4);
+    floppy = malloc (sizeof (drive) *4);
     if (!floppy)
         abort ();
-    memset (floppy, 0, sizeof (drive) * 4);
 #endif
     for (dr = 0; dr < 4; dr++) {
 	drive *drv = &floppy[dr];

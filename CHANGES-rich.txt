@@ -1,15 +1,3 @@
-20040107
-- Fix for floppy data not being initialized to 0 when allocated on the heap 
-  (when SAVE_MEMORY is defined).
-- Fix for typo in gfx-x11/xwin.c which was causing compilation to fail
-  (thanks to Giacomo Magnini for spotting this one).
-- Add __stack declaration to AmigaOS target to enable automatic enlargement
-  of stack with libnix's swapstack module if the stack size is too low on
-  start-up. Set min size to 16384 for now, which stack snooping reveals is
-  erring heavily on the side of caution. I don't want to use stack
-  checking/extension code because UAE is already slow enough on a classic
-  Amiga. ;-)
-
 20040106
 - Fix for libnix auto-opening libraries on AmigaOS target and thus asking
   for inflated version numbers (it asks for v37 of everything by default).
