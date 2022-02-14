@@ -491,34 +491,3 @@ extern void gui_message (const char *,...);
  * Best to leave this as it is.
  */
 #define CPU_EMU_SIZE 0
-
-
-#ifndef MAX_PATH
-# define MAX_PATH         512
-#endif
-
-
-#ifndef HAVE_STRCASECMP
-# ifdef HAVE_STRCMPI
-#  define strcasecmp strcmpi
-# else
-#  ifdef HAVE_STRICMP
-#   define strcasecmp stricmp
-#  endif
-# endif
-#endif
-
-   
-#ifndef _WIN32
-#ifdef HAVE_NANOSLEEP
-# define my_usleep(usecs) { struct timespec t = { 0, (usecs)*1000 }; nanosleep (&t, 0); } 
-#else
-# ifdef HAVE_USLEEP
-#  define my_usleep(usecs) sleep (usecs)
-# else
-#  ifdef USE_SDL
-#   define my_usleep(usecs) SDL_Delay ((usecs)/1000);
-#  endif
-# endif
-#endif
-#endif

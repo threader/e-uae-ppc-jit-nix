@@ -5,7 +5,7 @@
  *
  * Copyright 1997, 1998 Bernd Schmidt
  * Copyright 1998 Michael Krause
- *
+ * 
  * The Tk GUI doesn't work.
  * The X Forms Library isn't available as source, and there aren't any
  * binaries compiled against glibc
@@ -33,7 +33,7 @@
 
 //#define GUI_DEBUG
 #ifdef  GUI_DEBUG
-#define DEBUG_LOG write_log( "%s: ", __func__); write_log
+#define DEBUG_LOG(...) write_log(__FUNCTION__": " __VA_ARGS__)
 #else
 #define DEBUG_LOG(...) do ; while(0)
 #endif
@@ -74,13 +74,7 @@ static char *new_disk_string[4];
 
 static GtkAdjustment *cpuspeed_adj;
 static GtkWidget *cpuspeed_widgets[4], *cpuspeed_scale;
-static GtkWidget *cpu_widget[5], *a24m_widget;
-#ifdef CPUEMU_5
-static GtkWidget *ccpu_widget;
-#endif
-#ifdef CPUEMU_6
-static GtkWidget *cecpu_widget;
-#endif
+static GtkWidget *cpu_widget[5], *a24m_widget, *ccpu_widget;
 static GtkWidget *sound_widget[4], *sound_bits_widget[2], *sound_freq_widget[3], *sound_ch_widget[3];
 
 static GtkWidget *coll_widget[4], *cslevel_widget[4];
@@ -110,10 +104,10 @@ static GtkWidget *devname_entry, *volname_entry, *path_entry;
 static GtkWidget *readonly_widget, *bootpri_widget;
 static GtkWidget *dirdlg;
 static GtkWidget *dirdlg_ok;
-static char dirdlg_devname[256], dirdlg_volname[256], dirdlg_path[256], floppydlg_path[256];
+static char dirdlg_devname[256], dirdlg_volname[256], dirdlg_path[256];
 
 enum hdlist_cols {
-    HDLIST_DEVICE,
+    HDLIST_DEVICE, 
     HDLIST_VOLUME,
     HDLIST_PATH,
     HDLIST_READONLY,
@@ -122,9 +116,9 @@ enum hdlist_cols {
     HDLIST_SECS,
     HDLIST_RSRVD,
     HDLIST_SIZE,
-    HDLIST_BLKSIZE,
+    HDLIST_BLKSIZE,             
     HDLIST_BOOTPRI,
-//    HDLIST_FILESYSDIR,
+//    HDLIST_FILESYSDIR, 
     HDLIST_MAX_COLS
 };
 
@@ -140,7 +134,7 @@ static const char *hdlist_col_titles[] = {
      "Size",
      "Blksize",
      "Boot pri",
-//    "Filesysdir?"
+//    "Filesysdir?"     
      NULL
 };
 
@@ -216,11 +210,11 @@ static void save_config (void)
 	gui_message ("Error saving options file!\n");
 	return;
     }
-
+  
     if( is_uae_paused() )
-	save_options (f, &changed_prefs);
+        save_options (f, &changed_prefs);
     else
-	save_options (f, &currprefs);
+        save_options (f, &currprefs);
     fclose (f);
 }
 
@@ -255,14 +249,8 @@ static void set_cpu_state (void)
 
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (a24m_widget), changed_prefs.address_space_24 != 0);
     gtk_widget_set_sensitive (a24m_widget, changed_prefs.cpu_level > 1 && changed_prefs.cpu_level < 4);
-#ifdef CPUEMU_5
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (ccpu_widget), changed_prefs.cpu_compatible != 0);
     gtk_widget_set_sensitive (ccpu_widget, changed_prefs.cpu_level == 0);
-#endif
-#ifdef CPUEMU_6
-    gtk_widget_set_sensitive (cecpu_widget, changed_prefs.cpu_level == 0);
-    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (cecpu_widget), changed_prefs.cpu_cycle_exact != 0);
-#endif
     gtk_widget_set_sensitive (cpuspeed_scale, changed_prefs.m68k_speed > 0);
     for (i = 0; i < 10; i++)
 	gtk_widget_set_sensitive (z3size_widget[i],
@@ -297,10 +285,10 @@ static void set_chipset_state (void)
 	t0 = 2;
     if (currprefs.chipset_mask & CSMASK_ECS_AGNUS)
 	t0 = 1;
-#ifdef AGA
+#ifdef AGA   
     if (currprefs.chipset_mask & CSMASK_AGA)
 	t0 = 3;
-#endif
+#endif   
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (cslevel_widget[t0]), TRUE);
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (fcop_widget), currprefs.fast_copper != 0);
 }
@@ -348,11 +336,8 @@ static void set_mem_state (void)
 	t++, t2 >>= 1;
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (p96size_widget[t]), 1);
 
-    gtk_label_set_text (GTK_LABEL (rom_text_widget), changed_prefs.romfile[0]!='\0' ?
-					changed_prefs.romfile : currprefs.romfile);
-
-    gtk_label_set_text (GTK_LABEL (key_text_widget), changed_prefs.keyfile[0]!='\0' ?
-    					changed_prefs.keyfile : currprefs.keyfile);
+    gtk_label_set_text (GTK_LABEL (rom_text_widget), currprefs.romfile);
+    gtk_label_set_text (GTK_LABEL (key_text_widget), currprefs.keyfile);
 }
 
 #ifdef JIT
@@ -403,13 +388,13 @@ static void set_hd_state (void)
     int i;
 
     for (i=0; i<HDLIST_MAX_COLS; i++)
-	tptrs[i] = texts[i];
-
+        tptrs[i] = texts[i];
+   
     gtk_clist_freeze (GTK_CLIST (hdlist_widget));
     gtk_clist_clear (GTK_CLIST (hdlist_widget));
 
     for (i = 0; i < nr; i++) {
-	int     secspertrack, surfaces, reserved, blocksize, bootpri;
+        int     secspertrack, surfaces, reserved, blocksize, bootpri;
 	uae_u64 size;
 	int     cylinders, readonly;
 	char   *devname, *volname, *rootdir, *filesysdir;
@@ -421,7 +406,7 @@ static void set_hd_state (void)
 				    &devname, &volname, &rootdir, &readonly,
 				    &secspertrack, &surfaces, &reserved,
 				    &cylinders, &size, &blocksize, &bootpri, &filesysdir );
-
+	    
 	if (is_hardfile (currprefs.mountinfo, i)) {
 	    strncpy (texts[HDLIST_DEVICE],  devname, 255);
 	    sprintf (texts[HDLIST_VOLUME],  "DH%d", i );
@@ -443,7 +428,7 @@ static void set_hd_state (void)
 	}
 	strcpy  (texts[HDLIST_PATH],     rootdir);
 	strcpy  (texts[HDLIST_READONLY], readonly ? "Y" : "N");
-	sprintf (texts[HDLIST_BOOTPRI], "%d", bootpri);
+        sprintf (texts[HDLIST_BOOTPRI], "%d", bootpri);
 	gtk_clist_append (GTK_CLIST (hdlist_widget), tptrs);
     }
     gtk_clist_thaw (GTK_CLIST (hdlist_widget));
@@ -456,26 +441,26 @@ static void set_floppy_state( void )
     gtk_label_set_text (GTK_LABEL (disk_text_widget[0]), currprefs.df[0]);
 }
 
-
+	
 
 static void draw_led (int nr)
 {
     if (nr<5 && led_widgets[nr]) {
-	GtkWidget *thing  = led_widgets[nr];
-	GdkWindow *window = thing->window;
-
-	if (window) {
+        GtkWidget *thing  = led_widgets[nr];
+        GdkWindow *window = thing->window;
+         
+        if (window) {
 	    GdkGC    *gc = gdk_gc_new (window);
 	    GdkColor *col;
-
-	    if (gui_ledstate & (1 << nr))
+	   
+            if (gui_ledstate & (1 << nr))
 	        col = led_on + nr;
-	    else
+            else
 	        col = led_off + nr;
-
-	    gdk_gc_set_foreground (gc, col);
-	    gdk_draw_rectangle (window, gc, 1, 0, 0, -1, -1);
-	    gdk_gc_destroy (gc);
+	   
+            gdk_gc_set_foreground (gc, col);
+            gdk_draw_rectangle (window, gc, 1, 0, 0, -1, -1);
+            gdk_gc_destroy (gc);
 	}
     }
 }
@@ -487,7 +472,7 @@ static void draw_led (int nr)
  * This function is added as a callback to the GTK+ mainloop
  * and is run every 1000ms. It handles messages sent from UAE and
  * updates the floppy drive LEDs.
- *
+ * 
  * TODO: the floppy drives LEDS should be a separate call back. Then
  * we can call this more frequently without wasting too much CPU time.
  * 1000ms is too slow for responding to GUI events.
@@ -516,11 +501,11 @@ static int my_idle (void)
 	    set_gfx_state ();
 	    set_joy_state ();
 	    set_sound_state ();
-#ifdef JIT
+#ifdef JIT	   
 	    set_comp_state ();
-#endif
+#endif	   
 	    set_mem_state ();
-	    set_floppy_state ();
+	    set_floppy_state (); 
 	    set_hd_state ();
 	    set_chipset_state ();
 
@@ -530,7 +515,7 @@ static int my_idle (void)
 	    break;
 	 case GUICMD_MSGBOX:
 	    handle_message_box_request(&to_gui_pipe);
-	    break;
+            break;
 	 case GUICMD_PAUSE:
 	 case GUICMD_UNPAUSE:
 	    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (pause_uae_widget),
@@ -571,9 +556,9 @@ static void joy_changed (void)
 	return;
     changed_prefs.jport0 = find_current_toggle (joy_widget[0], 6);
     changed_prefs.jport1 = find_current_toggle (joy_widget[1], 6);
-
+    
     if( changed_prefs.jport0 != currprefs.jport0 || changed_prefs.jport1 != currprefs.jport1 )
-	inputdevice_config_change();
+        inputdevice_config_change();
 
     set_joy_state ();
 }
@@ -591,10 +576,10 @@ static void cslevel_changed (void)
 	t1 |= CSMASK_ECS_AGNUS;
     if (t > 1)
 	t1 |= CSMASK_ECS_DENISE;
-#ifdef AGA
+#ifdef AGA   
     if (t > 2)
 	t1 |= CSMASK_AGA;
-#endif
+#endif   
     changed_prefs.chipset_mask = t1;
 }
 
@@ -621,37 +606,18 @@ static void cpuspeed_changed (void)
 
 static void cputype_changed (void)
 {
-    int i, oldcl, oldcompat, oldce;
+    int i, oldcl;
     if (! gui_active)
 	return;
 
     oldcl = changed_prefs.cpu_level;
 
     changed_prefs.cpu_level = find_current_toggle (cpu_widget, 5);
+    changed_prefs.cpu_compatible = GTK_TOGGLE_BUTTON (ccpu_widget)->active;
     changed_prefs.address_space_24 = GTK_TOGGLE_BUTTON (a24m_widget)->active;
 
-#ifdef CPUEMU_5
-    oldcompat = changed_prefs.cpu_compatible;
-    changed_prefs.cpu_compatible = GTK_TOGGLE_BUTTON (ccpu_widget)->active;
-#endif
-#ifdef CPUEMU_6
-    oldce = changed_prefs.cpu_cycle_exact;
-    changed_prefs.cpu_cycle_exact = GTK_TOGGLE_BUTTON (cecpu_widget)->active;
-#endif
-
-#if defined CPUEMU_5 && defined CPUEMU_6
-    /* These need to be mutually exclusive, but we don't want
-     * to use radio buttons - so we'll enforce it ourselves */
-    if (oldcompat == 0 && changed_prefs.cpu_compatible != 0)
-	changed_prefs.cpu_cycle_exact = 0;
-    else if (oldce == 0 && changed_prefs.cpu_cycle_exact != 0)
+    if (changed_prefs.cpu_level != 0)
 	changed_prefs.cpu_compatible = 0;
-#endif
-
-    if (changed_prefs.cpu_level != 0) {
-	changed_prefs.cpu_compatible = 0;
-	changed_prefs.cpu_cycle_exact = 0;
-    }
     /* 68000/68010 always have a 24 bit address space.  */
     if (changed_prefs.cpu_level < 2)
 	changed_prefs.address_space_24 = 1;
@@ -711,20 +677,20 @@ static void sound_changed (void)
 #ifdef JIT
 static void comp_changed (void)
 {
-    changed_prefs.cachesize=cachesize_adj->value;
-    changed_prefs.comptrustbyte = find_current_toggle (compbyte_widget, 4);
-    changed_prefs.comptrustword = find_current_toggle (compword_widget, 4);
-    changed_prefs.comptrustlong = find_current_toggle (complong_widget, 4);
-    changed_prefs.comptrustnaddr = find_current_toggle (compaddr_widget, 4);
-    changed_prefs.compnf = find_current_toggle (compnf_widget, 2);
-    changed_prefs.comp_hardflush = find_current_toggle (comp_hardflush_widget, 2);
-    changed_prefs.comp_constjump = find_current_toggle (comp_constjump_widget, 2);
-    changed_prefs.compfpu= find_current_toggle (compfpu_widget, 2);
+  changed_prefs.cachesize=cachesize_adj->value;
+  changed_prefs.comptrustbyte = find_current_toggle (compbyte_widget, 4);
+  changed_prefs.comptrustword = find_current_toggle (compword_widget, 4);
+  changed_prefs.comptrustlong = find_current_toggle (complong_widget, 4);
+  changed_prefs.comptrustnaddr = find_current_toggle (compaddr_widget, 4);
+  changed_prefs.compnf = find_current_toggle (compnf_widget, 2);
+  changed_prefs.comp_hardflush = find_current_toggle (comp_hardflush_widget, 2);
+  changed_prefs.comp_constjump = find_current_toggle (comp_constjump_widget, 2);
+  changed_prefs.compfpu= find_current_toggle (compfpu_widget, 2);
 #if USE_OPTIMIZER
-    changed_prefs.comp_midopt = find_current_toggle (comp_midopt_widget, 2);
+  changed_prefs.comp_midopt = find_current_toggle (comp_midopt_widget, 2);
 #endif
 #if USE_LOW_OPTIMIZER
-    changed_prefs.comp_lowopt = find_current_toggle (comp_lowopt_widget, 2);
+  changed_prefs.comp_lowopt = find_current_toggle (comp_lowopt_widget, 2);
 #endif
 }
 #endif
@@ -734,7 +700,7 @@ static void did_reset (void)
     DEBUG_LOG ("Called\n");
 
     if (!quit_gui)
-	write_comm_pipe_int (&from_gui_pipe, 2, 1);
+        write_comm_pipe_int (&from_gui_pipe, 2, 1);
 }
 
 static void did_debug (void)
@@ -742,7 +708,7 @@ static void did_debug (void)
     DEBUG_LOG ("Called\n");
 
     if (!quit_gui)
-	write_comm_pipe_int (&from_gui_pipe, 3, 1);
+        write_comm_pipe_int (&from_gui_pipe, 3, 1);
 }
 
 static void did_quit (void)
@@ -750,32 +716,32 @@ static void did_quit (void)
     DEBUG_LOG ("Called\n");
 
     if (!quit_gui)
-	write_comm_pipe_int (&from_gui_pipe, 4, 1);
+        write_comm_pipe_int (&from_gui_pipe, 4, 1);
 }
 
 static void did_eject (GtkWidget *w, gpointer data)
 {
     DEBUG_LOG ("Called with %d\n", (int)data);
-
+				  
     if (!quit_gui) {
-	write_comm_pipe_int (&from_gui_pipe, 0, 0);
-	write_comm_pipe_int (&from_gui_pipe, (int)data, 1);
+        write_comm_pipe_int (&from_gui_pipe, 0, 0);
+        write_comm_pipe_int (&from_gui_pipe, (int)data, 1);
     }
 }
 
 static void pause_uae (GtkWidget *widget, gpointer data)
 {
     DEBUG_LOG ( "Called with %d\n", GTK_TOGGLE_BUTTON (widget)->active == TRUE );
-
+   
     if (!quit_gui) {
 //        set_uae_paused (GTK_TOGGLE_BUTTON (widget)->active == TRUE ? TRUE : FALSE);
-	write_comm_pipe_int (&from_gui_pipe, GTK_TOGGLE_BUTTON (widget)->active ? 5 : 6, 1);
+        write_comm_pipe_int (&from_gui_pipe, GTK_TOGGLE_BUTTON (widget)->active ? 5 : 6, 1);
     }
 }
 
 //static void end_pause_uae (void)
 //{
-//
+//    
 //    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (pause_uae_widget), FALSE);
 //}
 
@@ -794,18 +760,9 @@ static void did_close_insert (gpointer data)
 static void did_insert_select (GtkObject *o)
 {
     char *s = gtk_file_selection_get_filename (GTK_FILE_SELECTION (disk_selector));
-    int len;
-
+//    printf ("%d %s\n", filesel_active, s);
     if (quit_gui)
 	return;
-
-    /* Get the pathname, not including the filename
-     * Set floppydlg_path to this, so that when the requester
-     * dialog pops up again, we don't have to navigate to the same place. */
-    len = strrchr(s, '/') - s;
-    if (len > 254) len = 254;
-    strncpy(floppydlg_path, s, len);
-    floppydlg_path[len] = '\0';
 
     uae_sem_wait (&gui_sem);
     if (new_disk_string[filesel_active] != 0)
@@ -865,10 +822,7 @@ static void did_insert (GtkWidget *w, gpointer data)
 
     sprintf (fsbuffer, "Select a disk image file for DF%d", n);
     disk_selector = make_file_selector (fsbuffer, did_insert_select, did_close_insert);
-    if (strlen(floppydlg_path) > 0)
-	filesel_set_path (disk_selector, floppydlg_path);
-    else
-	filesel_set_path (disk_selector, currprefs.path_floppy);
+    filesel_set_path (disk_selector, currprefs.path_floppy);
 }
 
 static gint driveled_event (GtkWidget *thing, GdkEvent *event)
@@ -955,8 +909,8 @@ static void did_rom_select (GtkObject *o)
     uae_sem_wait (&gui_sem);
     gui_romname = strdup (s);
     uae_sem_post (&gui_sem);
-    gtk_label_set_text (GTK_LABEL (rom_text_widget), gui_romname);
     write_comm_pipe_int (&from_gui_pipe, 8, 0);
+    gtk_label_set_text (GTK_LABEL (rom_text_widget), gui_romname);
     gtk_widget_destroy (rom_selector);
 }
 
@@ -988,8 +942,8 @@ static void did_key_select (GtkObject *o)
     uae_sem_wait (&gui_sem);
     gui_keyname = strdup (s);
     uae_sem_post (&gui_sem);
-    gtk_label_set_text (GTK_LABEL (key_text_widget), gui_keyname);
     write_comm_pipe_int (&from_gui_pipe, 9, 0);
+    gtk_label_set_text (GTK_LABEL (key_text_widget), gui_keyname);
     gtk_widget_destroy (key_selector);
 }
 
@@ -1146,7 +1100,7 @@ static GtkWidget *make_led (int nr)
     thing = gtk_preview_new (GTK_PREVIEW_COLOR);
     gtk_box_pack_start (GTK_BOX (the_led), thing, TRUE, TRUE, 0);
     gtk_widget_show (thing);
-
+    
     return the_led;
 }
 
@@ -1273,7 +1227,7 @@ static void make_cpu_widgets (GtkWidget *vbox)
     gtk_box_pack_start (GTK_BOX (hbox), newbox, FALSE, FALSE, 0);
 
     add_empty_vbox (hbox);
-    gtk_widget_show (hbox);
+    gtk_widget_show (hbox); 
     gtk_box_pack_start (GTK_BOX (vbox), hbox, FALSE, FALSE, 0);
 
     frame = gtk_frame_new ("CPU flags");
@@ -1287,24 +1241,16 @@ static void make_cpu_widgets (GtkWidget *vbox)
     a24m_widget = gtk_check_button_new_with_label ("24 bit address space");
     add_centered_to_vbox (newbox, a24m_widget);
     gtk_widget_show (a24m_widget);
-    gtk_signal_connect (GTK_OBJECT (a24m_widget), "clicked",
-			(GtkSignalFunc) cputype_changed, NULL);
-#ifdef CPUEMU_5
     ccpu_widget = gtk_check_button_new_with_label ("Slow but compatible");
     add_centered_to_vbox (newbox, ccpu_widget);
     gtk_widget_show (ccpu_widget);
-    gtk_signal_connect (GTK_OBJECT (ccpu_widget), "clicked",
-			(GtkSignalFunc) cputype_changed, NULL);
-#endif
-#ifdef CPUEMU_6
-    cecpu_widget = gtk_check_button_new_with_label ("Cycle exact");
-    add_centered_to_vbox (newbox, cecpu_widget);
-    gtk_widget_show (cecpu_widget);
-    gtk_signal_connect (GTK_OBJECT (cecpu_widget), "clicked",
-			(GtkSignalFunc) cputype_changed, NULL);
-#endif
 
     add_empty_vbox (vbox);
+
+    gtk_signal_connect (GTK_OBJECT (ccpu_widget), "clicked",
+			(GtkSignalFunc) cputype_changed, NULL);
+    gtk_signal_connect (GTK_OBJECT (a24m_widget), "clicked",
+			(GtkSignalFunc) cputype_changed, NULL);    
 }
 
 static void make_gfx_widgets (GtkWidget *vbox)
@@ -1714,7 +1660,7 @@ static void did_dirdlg_select (GtkObject *o, gpointer entry )
                                           (gpointer) path_selector);
 
     /* Gtk1.2 doesn't have a directory chooser widget, so we fake one from the
-     * file dialog by hiding the widgets related to file selection */
+     * file dialog, but hiding the widgets related to file selection */
     gtk_widget_hide ((GTK_FILE_SELECTION(path_selector)->file_list)->parent);
     gtk_widget_hide (GTK_FILE_SELECTION(path_selector)->fileop_del_file);
     gtk_widget_hide (GTK_FILE_SELECTION(path_selector)->fileop_ren_file);

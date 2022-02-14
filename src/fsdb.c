@@ -84,6 +84,7 @@ static void kill_fsdb (a_inode *dir)
     free (n);
 }
 
+#if 0
 static void fsdb_fixup (FILE *f, char *buf, int size, a_inode *base)
 {
     char *nname;
@@ -102,6 +103,7 @@ static void fsdb_fixup (FILE *f, char *buf, int size, a_inode *base)
     buf[0] = 0;
     free (nname);
 }
+#endif
 
 /* Prune the db file the first time this directory is opened in a session.  */
 void fsdb_clean_dir (a_inode *dir)
@@ -119,7 +121,7 @@ void fsdb_clean_dir (a_inode *dir)
 	pos2 = ftell (f);
 	if (fread (buf, 1, sizeof buf, f) < sizeof buf)
 	    break;
-	fsdb_fixup (f, buf, sizeof buf, dir);
+//	fsdb_fixup (f, buf, sizeof buf, dir);
 	if (buf[0] == 0)
 	    continue;
 	if (pos1 != pos2) {

@@ -28,7 +28,7 @@ static int trapmode[MAX_TRAPS];
 static const char *trapstr[MAX_TRAPS];
 static uaecptr trapoldfunc[MAX_TRAPS];
 
-static int max_trap;
+static int max_trap = 0;
 int lasttrap;
 
 /* Stack management */
@@ -75,7 +75,7 @@ static void *get_extra_stack (void)
     if (s)
         extra_stack_list = *(void **)s;
     if (!s) // {
-//#ifndef _MSC_VER
+//#ifndef _MSC_VER 
 	s = xmalloc (EXTRA_STACK_SIZE);
 //#else
 #if 0
@@ -89,7 +89,7 @@ static void *get_extra_stack (void)
 		    break; //get a free block
 	    }
 	    s=win32_stackbase+(i*EXTRA_STACK_SIZE);
-	    win32_freestack[i]=s;
+	    win32_freestack[i]=s;   
 	}
 #endif
 //    }
@@ -318,7 +318,7 @@ void REGPARAM2 rtarea_bput (uaecptr addr, uae_u32 value)
 #endif   
 }
 
-static const int trace_traps = 1;
+static int trace_traps = 1;
 
 void REGPARAM2 call_calltrap(int func)
 {
@@ -394,8 +394,8 @@ uaecptr libemu_InstallFunctionFlags (TrapFunction f, uaecptr libbase, int offset
  * scratch paper
  */
 
-static int rt_addr;
-static int rt_straddr;
+static int rt_addr = 0;
+static int rt_straddr = 0xFF00 - 2;
 
 uae_u32 addr (int ptr)
 {
@@ -409,8 +409,8 @@ void db (uae_u8 data)
 
 void dw (uae_u16 data)
 {
-    rtarea[rt_addr++] = (uae_u8)(data >> 8);
-    rtarea[rt_addr++] = (uae_u8)data;
+    rtarea[rt_addr++] = data >> 8;
+    rtarea[rt_addr++] = data;
 }
 
 void dl (uae_u32 data)
@@ -500,10 +500,6 @@ void rtarea_init (void)
 {
     uae_u32 a;
     char uaever[100];
-
-    rt_straddr = 0xFF00 - 2;
-    rt_addr = 0;
-    max_trap = 0;
 
     rtarea_init_mem ();
 

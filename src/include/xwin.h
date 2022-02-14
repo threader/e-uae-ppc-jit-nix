@@ -65,10 +65,9 @@ struct vidbuf_description
      *   - set linemem to point at your buffer
      *   - implement flush_line to copy a single line to the screen
      */
-    uae_u8 *bufmem;
-    uae_u8 *realbufmem;
-    uae_u8 *linemem;
-    uae_u8 *emergmem;
+    char *bufmem;
+    char *linemem;
+    char *emergmem;
     int rowbytes; /* Bytes per row in the memory pointed at by bufmem. */
     int pixbytes; /* Bytes per pixel. */
     int width;

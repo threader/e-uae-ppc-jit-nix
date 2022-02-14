@@ -23,17 +23,11 @@ extern int setup_sound (void);
 extern int init_sound (void);
 extern void close_sound (void);
 
-extern void update_sound (int freq);
-extern void pause_sound (void);
-extern void resume_sound (void);
-extern void reset_sound (void);
-
 extern void sample16_handler (void);
 extern void sample16i_rh_handler (void);
 extern void sample16i_crux_handler (void);
 extern void sample8_handler (void);
 extern void sample16s_handler (void);
-extern void sample16ss_handler (void);
 extern void sample16si_rh_handler (void);
 extern void sample16si_crux_handler (void);
 extern void sample8s_handler (void);

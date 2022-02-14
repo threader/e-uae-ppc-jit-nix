@@ -41,11 +41,3 @@ void update_sound (int freq)
 void reset_sound (void)
 {
 }
-
-void pause_sound (void)
-{
-}
-
-void resume_sound (void)
-{
-}

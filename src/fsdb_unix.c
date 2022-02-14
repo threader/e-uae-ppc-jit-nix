@@ -25,13 +25,6 @@ int fsdb_name_invalid (const char *n)
     return n[1] == '.' && n[2] == '\0';
 }
 
-int fsdb_exists (char *nname)
-{
-    struct stat statbuf;
-
-    return (stat (nname, &statbuf) != -1);
-}
-
 /* For an a_inode we have newly created based on a filename we found on the
  * native fs, fill in information about this file/directory.  */
 int fsdb_fill_file_attrs (a_inode *aino)

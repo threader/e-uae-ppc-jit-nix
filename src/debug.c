@@ -26,8 +26,6 @@
 #include "xwin.h"
 #include "gui.h"
 #include "identify.h"
-#include "sounddep/sound.h"
-#include "disk.h"
 
 static int debugger_active = 0;
 static uaecptr skipaddr;
@@ -36,11 +34,9 @@ int debugging = 0;
 
 static FILE *logfile;
 
-#ifndef _WIN32
 #define console_out               printf
 #define console_flush()           fflush( stdout )
 #define console_get( input, len ) fgets( input, len, stdin )
-#endif
 
 void activate_debugger (void)
 {
@@ -233,7 +229,7 @@ static void dump_ints (void)
 
 static void disassemble_wait (FILE *file, unsigned long insn)
 {
-    int vp, hp, ve, he, bfd, v_mask, h_mask;
+    uae_u8 vp,hp,ve,he,bfd,v_mask,h_mask;
 
     vp = (insn & 0xff000000) >> 24;
     hp = (insn & 0x00fe0000) >> 16;
@@ -517,7 +513,7 @@ static void debug_1 (void)
 		break;
 	    }
 	    memp = get_real_address (src);
-	    fp = fopen (name, "wb");
+	    fp = fopen (name, "w");
 	    if (fp == NULL) {
 		console_out ("Couldn't open file\n");
 		break;
@@ -575,10 +571,9 @@ static void debug_1 (void)
 	    return;
 
 	case 'g':
-	    if (more_params (&inptr)) {
+	    if (more_params (&inptr))
 		m68k_setpc (readhex (&inptr));
-		fill_prefetch_slow ();
-	    }
+	    fill_prefetch_slow ();
 	    debugger_active = 0;
 	    debugging = 0;
 	    return;
@@ -740,24 +735,8 @@ void debug (void)
     if (lasthist == firsthist) {
 	if (++firsthist == MAX_HIST) firsthist = 0;
     }
-    pause_sound ();
+ //   pause_sound ();
     debug_1 ();
-    resume_sound ();
+ //   resume_sound ();
 }
 
-
-int notinrom (void)
-{
-    if (m68k_getpc() < 0xe0000)
-	return 1;
-    return 0;
-}
-
-const char *debuginfo (int mode)
-{
-    static char txt[100];
-    uae_u32 pc = m68k_getpc();
-    sprintf (txt, "PC=%06.6X INS=%04.4X %04.4X %04.4X",
-	pc, get_word(pc), get_word(pc+2), get_word(pc+4));
-    return txt;
-}

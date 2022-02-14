@@ -40,7 +40,7 @@
 /* Uncomment for debugging output */
 //#define DEBUG
 #ifdef DEBUG
-#define DEBUG_LOG write_log( "%s: ", __func__); write_log
+#define DEBUG_LOG write_log
 #else
 #define DEBUG_LOG(...) do ; while(0)
 #endif
@@ -356,7 +356,7 @@ static int graphics_subinit (void)
     /* Are these values what we expected? */
     DEBUG_LOG ("P96 screen?   : %d\n", screen_is_picasso);
     DEBUG_LOG ("Fullscreen    : %d\n", fullscreen);
-    DEBUG_LOG ("Mouse grabbed?: %d\n", mousegrab);
+    DEBUG_LOG ("Mouse grabbed?: %d\n", SDL_WM_GrabInput (SDL_GRAB_QUERY));
 
     if (prSDLScreen == NULL) {
 	write_log ("Unable to set video mode: %s\n", SDL_GetError ());
@@ -373,13 +373,6 @@ static int graphics_subinit (void)
 
 	/* Set UAE window title and icon name */
 	SDL_WM_SetCaption ("UAE","UAE");
-
-        /* Mouse is now always grabbed when full-screen - to work around
-	 * problems with full-screen mouse input in some SDL implementations */
-	if (fullscreen)
-	    SDL_WM_GrabInput (SDL_GRAB_ON);
-	else
-	    SDL_WM_GrabInput (mousegrab ? SDL_GRAB_ON : SDL_GRAB_OFF);
 
 	/* Hide mouse cursor */
 	SDL_ShowCursor (SDL_DISABLE);
@@ -1215,30 +1208,19 @@ static void togglefullscreen (void)
         if (!screen_is_picasso)
 	  reset_drawing();
 	notice_screen_contents_lost ();
-    } else {
-       /* If opening a new window wasn't necesasry, then we need to take care
-	* of the mousegrab settings (if one was, then it'll be done in
-	* the call to graphics_subinit() above */
-	if (fullscreen)
-	    SDL_WM_GrabInput (SDL_GRAB_ON);
-	else
-	    SDL_WM_GrabInput (mousegrab ? SDL_GRAB_ON : SDL_GRAB_OFF);
     }
-
     DEBUG_LOG ("ToggleFullScreen: %d\n", fullscreen );
 };
 
 static void handle_mousegrab (void)
 {
-    if (!fullscreen) {
-	if (SDL_WM_GrabInput (SDL_GRAB_QUERY) == SDL_GRAB_OFF) {
-	    SDL_WM_GrabInput (SDL_GRAB_ON);
-	    SDL_WarpMouse (0, 0);
-            mousegrab = 1;
-	} else {
-	    SDL_WM_GrabInput (SDL_GRAB_OFF);
-	    mousegrab = 0;
-	}
+    if (SDL_WM_GrabInput (SDL_GRAB_QUERY) == SDL_GRAB_OFF) {
+	SDL_WM_GrabInput (SDL_GRAB_ON);
+	SDL_WarpMouse (0, 0);
+        mousegrab = 1;
+    } else {
+	SDL_WM_GrabInput (SDL_GRAB_OFF);
+        mousegrab = 0;
     }
 }
 

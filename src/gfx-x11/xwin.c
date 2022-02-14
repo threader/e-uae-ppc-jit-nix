@@ -455,6 +455,8 @@ void flush_clear_screen (void)
     flush_screen(0,0);
 }
 
+
+
 STATIC_INLINE int bitsInMask (unsigned long mask)
 {
     /* count bits in mask */

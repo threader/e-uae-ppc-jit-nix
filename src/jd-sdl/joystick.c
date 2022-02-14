@@ -14,7 +14,7 @@
 #include "config.h"
 #include "options.h"
 #include "inputdevice.h"
-#include <SDL.h>
+#include "SDL.h"
 
 static int nr_joysticks;
 

@@ -117,8 +117,6 @@ AC_FUNC_UTIME_NULL
 AC_CHECK_FUNCS(getcwd getopt strdup gettimeofday sigaction mkdir rmdir)
 AC_CHECK_FUNCS(select strerror strstr isnan isinf setitimer)
 AC_CHECK_FUNCS(tcgetattr cfmakeraw readdir_r vprintf vsprintf vfprintf)
-AC_CHECK_FUNCS(strcasecmp stricmp strcmpi)
-AC_CHECK_FUNCS(nanosleep usleep)
 
 dnl GNOME_FILEUTILS_CHECKS will fail for native Win32 compilers like Watcom C
 dnl So don't use that macro if we know it will fail
@@ -559,11 +557,9 @@ if [[ "x$WANT_FILESYS" != "xno" ]]; then
 fi
 
 if [[ "x$WANT_BSDSOCK" != "xno" ]]; then
-  if [[ "$TARGET" = "x11" ]]; then
-    BSDSOCKOBJS="bsdsocket.o"
-    ADDITIONAL_CFLAGS="$ADDITIONAL_CFLAGS -DBSDSOCKET"
-    NEED_THREAD_SUPPORT=yes
-  fi
+  BSDSOCKOBJS="bsdsocket.o"
+  ADDITIONAL_CFLAGS="$ADDITIONAL_CFLAGS -DBSDSOCKET"
+  NEED_THREAD_SUPPORT=yes
 fi
 
 GFXOBJS="$GFXOBJS $GUIOBJS"
@@ -868,10 +864,9 @@ fi
 
 FSDBOBJS=
 if [[ "x$WANT_FILESYS" != "xno" ]]; then
+    FSDBOBJS=fsdb_unix.o
     if [[ "x$TARGET" = "xwin32" ]]; then
-        FSDBOBJS="osdep/fsdb_win32.o osdep/hardfile_win32.o"
-    else
-        FSDBOBJS="fsdb_unix.o hardfile_unix.o"
+        FSDBOBJS=osdep/fsdb_win32.o
     fi
 fi
 

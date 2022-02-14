@@ -54,6 +54,8 @@
 #define DUMPLOCK(u,x)
 #endif
 
+#define strcmpi(x,y) strcasecmp(x,y)
+
 void xfree (void *p)
 {
     free (p);
@@ -208,8 +210,8 @@ int is_hardfile (struct uaedev_mount_info *mountinfo, int unit_no)
 
 static void close_filesys_unit (UnitInfo *uip)
 {
-    if (uip->hf.handle != 0)
-	hdf_close (&uip->hf);
+//    if (uip->hf.handle != 0)
+//	hdf_close (&uip->hf);
     if (uip->volname != 0)
 	xfree (uip->volname);
     if (uip->devname != 0)
@@ -309,10 +311,10 @@ static char *set_filesys_unit_1 (struct uaedev_mount_info *mountinfo, int nr,
 	ui->hf.blocksize = blocksize;
 	ui->volname = 0;
 	ui->hf.readonly = readonly;
-	if (!hdf_open (&ui->hf, rootdir) && !readonly) {
+/*	if (!hdf_open (&ui->hf, rootdir) && !readonly) {
 	    ui->hf.readonly = readonly = 1;
 	    hdf_open (&ui->hf, rootdir);
-	} 
+	} */
         ui->hf.readonly = readonly;
 	if (ui->hf.handle == 0)
 	    return "Hardfile not found";
@@ -352,7 +354,7 @@ char *set_filesys_unit (struct uaedev_mount_info *mountinfo, int nr,
     char *result;
     UnitInfo ui = mountinfo->ui[nr];
 
-    hdf_close (&ui.hf);
+//    hdf_close (&ui.hf);
     result = set_filesys_unit_1 (mountinfo, nr, devname, volname, rootdir, readonly,
 				       secspertrack, surfaces, reserved, blocksize, bootpri, filesysdir);
     if (result)
@@ -488,8 +490,8 @@ struct uaedev_mount_info *dup_mountinfo (struct uaedev_mount_info *mip)
 	    uip->devname = my_strdup (uip->devname);
 	if (uip->rootdir)
 	    uip->rootdir = my_strdup (uip->rootdir);
-	if (uip->hf.handle)
-	    hdf_dup (&uip->hf, uip->hf.handle);
+/*	if (uip->hf.handle)
+	    hdf_dup (&uip->hf, uip->hf.handle); */
     }
     return i2;
 }
@@ -3740,7 +3742,7 @@ static char *device_dupfix (uaecptr expbase, char *devname)
 		dname[i] = get_byte (name + 1 + i);
 	    dname[len] = 0;
 	    for (;;) {
-		if (!strcasecmp (newname, dname)) {
+		if (!strcmpi (newname, dname)) {
 		    if (strlen (newname) > 2 && newname[strlen (newname) - 2] == '_') {
 			newname[strlen (newname) - 1]++;
 		    } else {
@@ -3775,10 +3777,10 @@ static int rdb_mount (UnitInfo *uip, int unit_no, int partnum, uaecptr parmpacke
     if (lastblock * hfd->blocksize > hfd->size)
 	return -2;
     for (rdblock = 0; rdblock < lastblock; rdblock++) {
-	hdf_read (hfd, bufrdb, rdblock * hfd->blocksize, hfd->blocksize);
+//	hdf_read (hfd, bufrdb, rdblock * hfd->blocksize, hfd->blocksize);
 	if (rdb_checksum ("RDSK", bufrdb))
 	    break;
-	hdf_read (hfd, bufrdb, rdblock * hfd->blocksize, hfd->blocksize);
+//	hdf_read (hfd, bufrdb, rdblock * hfd->blocksize, hfd->blocksize);
 	if (!memcmp ("RDSK", bufrdb, 4)) {
 	    bufrdb[0xdc] = 0;
 	    bufrdb[0xdd] = 0;
@@ -3786,7 +3788,7 @@ static int rdb_mount (UnitInfo *uip, int unit_no, int partnum, uaecptr parmpacke
 	    bufrdb[0xdf] = 0;
 	    if (rdb_checksum ("RDSK", bufrdb)) {
 		write_log ("Windows trashed RDB detected, fixing..\n");
-		hdf_write (hfd, bufrdb, rdblock * hfd->blocksize, hfd->blocksize);
+//		hdf_write (hfd, bufrdb, rdblock * hfd->blocksize, hfd->blocksize);
 		break;
 	    }
 	}
@@ -3813,7 +3815,7 @@ static int rdb_mount (UnitInfo *uip, int unit_no, int partnum, uaecptr parmpacke
 	    err = -2;
 	    goto error;
 	}
-	hdf_read (hfd, buf, partblock * hfd->blocksize, readblocksize);
+//	hdf_read (hfd, buf, partblock * hfd->blocksize, readblocksize);
 	if (!rdb_checksum ("PART", buf)) {
 	    err = -2;
 	    goto error;
@@ -3862,7 +3864,7 @@ static int rdb_mount (UnitInfo *uip, int unit_no, int partnum, uaecptr parmpacke
 	    err = -1;
 	    goto error;
 	}
-	hdf_read (hfd, buf, fileblock * hfd->blocksize, readblocksize);
+//	hdf_read (hfd, buf, fileblock * hfd->blocksize, readblocksize);
 	if (!rdb_checksum ("FSHD", buf)) {
 	    err = -1;
 	    goto error;
@@ -3903,7 +3905,7 @@ static int rdb_mount (UnitInfo *uip, int unit_no, int partnum, uaecptr parmpacke
     for (;;) {
 	if (!legalrdbblock (uip, lsegblock))
 	    goto error;
-	hdf_read (hfd, buf, lsegblock * hfd->blocksize, readblocksize);
+//	hdf_read (hfd, buf, lsegblock * hfd->blocksize, readblocksize);
 	if (!rdb_checksum ("LSEG", buf))
 	    goto error;
 	lsegblock = rl (buf + 16);
@@ -3936,6 +3938,7 @@ static void addfakefilesys (uaecptr parmpacket, uae_u32 dostype)
     put_long (parmpacket + PP_FSHDSTART + 44, 0xffffffff);
 }
 
+#if 0
 static void dofakefilesys (UnitInfo *uip, uaecptr parmpacket)
 {
     int i, size;
@@ -3943,7 +3946,7 @@ static void dofakefilesys (UnitInfo *uip, uaecptr parmpacket)
     struct zfile *zf;
     uae_u32 dostype, fsres, fsnode;
 
-    hdf_read (&uip->hf, tmp, 0, 4);
+//    hdf_read (&uip->hf, tmp, 0, 4);
     dostype = (tmp[0] << 24) | (tmp[1] << 16) |(tmp[2] << 8) | tmp[3];
     if (dostype == 0)
 	return;
@@ -3990,6 +3993,7 @@ static void dofakefilesys (UnitInfo *uip, uaecptr parmpacket)
     addfakefilesys (parmpacket, dostype);
     write_log ("HDF: faked RDB filesystem %08.8X loaded\n", dostype);
 }
+#endif
 
 static void get_new_device (int type, uaecptr parmpacket, char **devname, uaecptr *devname_amiga, int unit_no)
 {
@@ -4017,11 +4021,11 @@ static uae_u32 filesys_dev_storeinfo (void)
     int type = is_hardfile (current_mountinfo, unit_no);
     uaecptr parmpacket = m68k_areg (regs, 0);
 
-    if (type == FILESYS_HARDFILE_RDB || type == FILESYS_HARDDRIVE) {
-	/* RDB hardfile */
-        uip[unit_no].devno = unit_no;
-	return rdb_mount (&uip[unit_no], unit_no, sub_no, parmpacket);
-    } 
+//    if (type == FILESYS_HARDFILE_RDB || type == FILESYS_HARDDRIVE) {
+//	/* RDB hardfile */
+//        uip[unit_no].devno = unit_no;
+//	return rdb_mount (&uip[unit_no], unit_no, sub_no, parmpacket);
+//    } 
     if (sub_no)
         return -2;
     get_new_device (type, parmpacket, &uip[unit_no].devname, &uip[unit_no].devname_amiga, unit_no);
@@ -4047,8 +4051,8 @@ static uae_u32 filesys_dev_storeinfo (void)
     put_long (parmpacket + 72, ~1); /* addMask (?) */
     put_long (parmpacket + 76, uip[unit_no].bootpri); /* bootPri */
     put_long (parmpacket + 80, 0x444f5300); /* DOS\0 */
-    if (type == FILESYS_HARDFILE)
-	dofakefilesys (&uip[unit_no], parmpacket);
+//    if (type == FILESYS_HARDFILE)
+//	dofakefilesys (&uip[unit_no], parmpacket);
     return type;
 }
 
@@ -4331,6 +4335,4 @@ void filesys_install_code (void)
 
 }
 
-#ifdef _WIN32
-#include "od-win32/win32_filesys.c"
-#endif
+//#include "od-win32/win32_filesys.c"

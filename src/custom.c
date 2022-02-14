@@ -2211,6 +2211,8 @@ static uae_u32 timehack_helper (void)
     timehack_alive = 10;
 
     gettimeofday (&tv, NULL);
+//    put_long (m68k_areg (regs, 0), tv.tv_sec - (((365 * 8 + 2) * 24 - 2) * 60 * 60));
+//    What's that extra 2 hours doing in the above? We don't want the difference to UTC+2 - Rich
     put_long (m68k_areg (regs, 0), tv.tv_sec - (((365 * 8 + 2) * 24) * 60 * 60));   
     put_long (m68k_areg (regs, 0) + 4, tv.tv_usec);
     return 0;
@@ -4344,7 +4346,6 @@ void customreset (void)
 
     init_hardware_frame ();
     drawing_init ();
-
     reset_decisions ();
 
 #ifdef HAVE_GETTIMEOFDAY
@@ -5262,12 +5263,12 @@ void check_prefs_changed_custom (void)
 	init_hz ();
 	calcdiw ();
     }
-    currprefs.gfx_filter_horiz_zoom = changed_prefs.gfx_filter_horiz_zoom;
-    currprefs.gfx_filter_vert_zoom = changed_prefs.gfx_filter_vert_zoom;
-    currprefs.gfx_filter_horiz_offset = changed_prefs.gfx_filter_horiz_offset;
-    currprefs.gfx_filter_vert_offset = changed_prefs.gfx_filter_vert_offset;
-    currprefs.gfx_filter_scanlines = changed_prefs.gfx_filter_scanlines;
-    currprefs.gfx_filter_filtermode = changed_prefs.gfx_filter_filtermode;
+//    currprefs.gfx_filter_horiz_zoom = changed_prefs.gfx_filter_horiz_zoom;
+//    currprefs.gfx_filter_vert_zoom = changed_prefs.gfx_filter_vert_zoom;
+//    currprefs.gfx_filter_horiz_offset = changed_prefs.gfx_filter_horiz_offset;
+//    currprefs.gfx_filter_vert_offset = changed_prefs.gfx_filter_vert_offset;
+//    currprefs.gfx_filter_scanlines = changed_prefs.gfx_filter_scanlines;
+//    currprefs.gfx_filter_filtermode = changed_prefs.gfx_filter_filtermode;
 }
 
 #ifdef CPUEMU_6

@@ -10,8 +10,6 @@
   *     05/04/98: Added AHI_DMA_MODE from Holger Jakob.
   */
 
-#include <devices/timer.h> // make sure this is included before <sys/time.h>
-
 #include "sysconfig.h"
 #include "sysdeps.h"
 

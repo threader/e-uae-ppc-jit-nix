@@ -4,7 +4,6 @@
   * Miscellaneous machine dependent support functions and definitions
   *
   * Copyright 1996 Bernd Schmidt
-  * Copyright 2003 Richard Drummond
   */
 
 
@@ -112,8 +111,9 @@ void machdep_init (void)
     last_time = read_processor_time();
     set_alarm ();
     while (loops_to_go != 0)
-    my_usleep (10000);
-    write_log ("ok - %.2f BogoMIPS\n", ((double)RPT_SCALE_FACTOR * best_time / TIME_UNIT));
+	usleep (10000);
+    write_log ("ok - %.2f BogoMIPS\n",
+	     ((double)best_time / TIME_UNIT), best_time);
     syncbase = best_time * (1000000 / TIME_UNIT);
 }
 

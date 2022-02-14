@@ -295,7 +295,7 @@ uae_u8 *chipmemory;
 static int chipmem_check (uaecptr addr, uae_u32 size) REGPARAM;
 static uae_u8 *chipmem_xlate (uaecptr addr) REGPARAM;
 
-#if defined AGA && defined CPUEMU_6
+#ifdef AGA
 
 /* AGA ce-chipram access */
 
@@ -893,7 +893,7 @@ addrbank chipmem_bank = {
     chipmem_xlate, chipmem_check, NULL
 };
 
-#if defined AGA && defined CPUEMU_6
+#ifdef AGA
 addrbank chipmem_bank_ce2 = {
     chipmem_lget_ce2, chipmem_wget_ce2, chipmem_bget_ce2,
     chipmem_lput_ce2, chipmem_wput_ce2, chipmem_bput_ce2,
@@ -1467,7 +1467,7 @@ static void allocate_memory (void)
     }
    
     chipmem_bank.baseaddr = chipmemory;
-#if defined  AGA && CPUEMU_6
+#ifdef AGA
     chipmem_bank_ce2.baseaddr = chipmemory;
 #endif
     bogomem_bank.baseaddr = bogomemory;
@@ -1479,7 +1479,7 @@ void map_overlay (int chip)
     addrbank *cb;
 
     cb = &chipmem_bank;
-#if defined AGA && CPUEMU_6
+#ifdef AGA
     if (currprefs.cpu_cycle_exact && currprefs.cpu_level >= 2)
        cb = &chipmem_bank_ce2;
 #endif

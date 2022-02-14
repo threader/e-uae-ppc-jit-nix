@@ -133,11 +133,4 @@ void reset_sound (void)
    clearbuffer();
 }
 
-void pause_sound (void)
-{
-   clearbuffer();
-}
 
-void resume_sound (void)
-{
-}

@@ -19,6 +19,10 @@
 
 #include <zlib.h>
 
+#define MAX_PATH 255
+#define strcmpi(x,y)  strcasecmp(x,y)
+#define stricmp(x,y)  strcasecmp(x,y)
+
 struct zfile {
     char *name;
     char *zipname;
@@ -142,8 +146,6 @@ static int isamigaimage (struct zfile *z)
     return 0;
 }
 
-#if 0
-
 #define TMP_PREFIX "uae_"
 
 static struct zfile *createinputfile (struct zfile *z)
@@ -209,8 +211,6 @@ static struct zfile *updateoutputfile (struct zfile *z)
     zfile_fclose (z2);
     return 0;
 }
-
-#endif
 
 static struct zfile *zuncompress (struct zfile *z);
 
@@ -313,6 +313,7 @@ static struct zfile *dms (struct zfile *z)
     int ret;
     struct zfile *zo;
     
+    write_log ("DMS\n");
     zo = zfile_fopen_empty ("dms", 1760 * 512);
     if (!zo) return z;
     ret = DMS_Process_File (z, zo, CMD_UNPACK, OPT_VERBOSE, 0, 0);
@@ -369,7 +370,7 @@ static struct zfile *unzip (struct zfile *z)
 	    i = 0;
 	    while (ignoreextensions[i]) {
 		if (strlen(filename_inzip) > strlen (ignoreextensions[i]) &&
-		    !strcasecmp (ignoreextensions[i], filename_inzip + strlen (filename_inzip) - strlen (ignoreextensions[i])))
+		    !stricmp (ignoreextensions[i], filename_inzip + strlen (filename_inzip) - strlen (ignoreextensions[i])))
 		    break;
 		i++;
 	    }
@@ -380,7 +381,7 @@ static struct zfile *unzip (struct zfile *z)
 		select = 0;
 		if (!z->zipname)
 		    select = 1;
-		if (z->zipname && !strcasecmp (z->zipname, filename_inzip))
+		if (z->zipname && !stricmp (z->zipname, filename_inzip))
 		    select = -1;
 		if (z->zipname && z->zipname[0] == '#' && atol (z->zipname + 1) == zipcnt)
 		    select = -1;
@@ -468,7 +469,7 @@ static FILE *openzip (char *name, char *zippath)
 	if (name[i] == '/' || name[i] == '\\' && i > 4) {
 	    v = name[i];
 	    name[i] = 0;
-	    if (!strcasecmp (name + i - 4, ".zip")) {
+	    if (!stricmp (name + i - 4, ".zip")) {
 		FILE *f = fopen (name, "rb");
 		if (f) {
 		    if (zippath)
@@ -498,7 +499,7 @@ struct zfile *zfile_fopen (const char *name, const char *mode)
     l->name = strdup (name);
     f = openzip (l->name, zipname);
     if (f) {
-	if (strcasecmp (mode, "rb")) {
+	if (strcmpi (mode, "rb")) {
 	    zfile_fclose (l);
 	    fclose (f);
 	    return 0;

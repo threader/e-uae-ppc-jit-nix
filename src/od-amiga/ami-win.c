@@ -44,8 +44,6 @@
  *    06/03/98 - Added GetRGB4 cache in get_nearest_color() for POWERUP.
  */
 
-#include <devices/timer.h> // make sure this is included before <sys/time.h>
-
 #include "sysconfig.h"
 #include "sysdeps.h"
 

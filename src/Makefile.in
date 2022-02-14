@@ -40,7 +40,7 @@ OBJS = main.o newcpu.o memory.o @CPUOBJS@ custom.o cia.o serial.o blitter.o \
        uaeexe.o @BSDSOCKOBJS@ missing.o sd-sound.o od-joy.o md-support.o \
        fsusage.o cfgfile.o native2amiga.o @FILESYSOBJS@ @FSDBOBJS@ identify.o \
        savestate.o writelog.o @ASMOBJS@ @GFXOBJS@ @DEBUGOBJS@ @SCSIOBJS@ \
-       @JITOBJS@ unzip.o fdi2raw.o inputdevice.o input-dummy.o sleep.o\
+       @JITOBJS@ unzip.o fdi2raw.o inputdevice.o input-dummy.o \
        dms/pfile.o dms/crc_csum.o dms/u_deep.o dms/u_heavy.o dms/u_medium.o \
        dms/u_quick.o dms/u_rle.o dms/getbits.o dms/maketbl.o dms/u_init.o dms/tables.o
 

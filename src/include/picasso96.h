@@ -1,8 +1,3 @@
-#ifdef WIN32
-
-#include "picasso96_win.h"
-
-#else
 /*
  * UAE - The U*nix Amiga Emulator
  *
@@ -583,4 +578,3 @@ extern int p96hack_vpos2;
 extern int p96refresh_active;
 #endif
 
-#endif

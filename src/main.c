@@ -397,7 +397,7 @@ static void fix_options (void)
 	currprefs.gfxmem_size = 0;
 	err = 1;
     }
-#ifndef BSDSOCKET
+#ifndef BSDSOCKET_SUPPORTED
     if (currprefs.socket_emu) {
 	write_log ("Compile-time option of BSDSOCKET_SUPPORTED was not enabled.  You can't use bsd-socket emulation.\n");
 	currprefs.socket_emu = 0;
@@ -582,14 +582,8 @@ static void parse_cmdline_and_init_file (int argc, char **argv)
     if (! cfgfile_load (&currprefs, optionsfile)) {
 #ifdef OPTIONS_IN_HOME
 	/* sam: if not found in $HOME then look in current directory */
-        char *saved_path = strdup (optionsfile);
 	strcpy (optionsfile, OPTIONSFILENAME);
-	if (! cfgfile_load (&currprefs, optionsfile) ) {
-	    /* If not in current dir either, change path back to home
-	     * directory - so that a GUI can save a new config file there */
-	    strcpy (optionsfile, saved_path);
-	}
-        free (saved_path);
+	cfgfile_load (&currprefs, optionsfile);
 #endif
     }
     fix_options ();

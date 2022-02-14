@@ -60,16 +60,16 @@
 #define NSCMD_TD_SEEK64 0xc002
 #define NSCMD_TD_FORMAT64 0xc003
 
-#undef DEBUGME
-//#define DEBUGME
+//#undef DEBUGME
+#define DEBUGME
 #ifdef DEBUGME
 #define hf_log write_log
 #define hf_log2 write_log
 #define scsi_log write_log
 #else
-#define hf_log(...) 
-#define hf_log2(x...) 
-#define scsi_log(x...) 
+#define hf_log(x...) (x)
+#define hf_log2(x...) (x)
+#define scsi_log(x...) (x)
 #endif
 
 #define MAX_ASYNC_REQUESTS 50
@@ -115,7 +115,7 @@ static uae_u64 cmd_read (struct hardfiledata *hfd, uaecptr dataptr, uae_u64 offs
     hf_log2 ("cmd_read: %p %04.4x-%08.8x %08.8x\n", dataptr, (uae_u32)(offset >> 32), (uae_u32)offset, (uae_u32)len);
     while (len > 0) {
         int i, got2;
-	got2 = hdf_read (hfd, buffer, offset, hfd->blocksize);
+//	got2 = hdf_read (hfd, buffer, offset, hfd->blocksize);
         if (got2 != hfd->blocksize)
 	    break;
 	for (i = 0; i < got2; i++)
@@ -139,7 +139,7 @@ static uae_u64 cmd_write (struct hardfiledata *hfd, uaecptr dataptr, uae_u64 off
         int i, got2;
         for (i = 0; i < hfd->blocksize; i++)
 	    buffer[i] = get_byte (dataptr + i);
-	got2 = hdf_write (hfd, buffer, offset, hfd->blocksize);
+//	got2 = hdf_write (hfd, buffer, offset, hfd->blocksize);
 	if (got2 != hfd->blocksize)
 	    break;
 	len -= got2;
@@ -674,7 +674,7 @@ static void *hardfile_thread (void *devs)
 {
     struct hardfileprivdata *hfpd = devs;
 
-    set_thread_priority (2);
+//    set_thread_priority (2);
     hfpd->thread_running = 1;
     uae_sem_post (&hfpd->sync_sem);
     for (;;) {

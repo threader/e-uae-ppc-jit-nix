@@ -37,3 +37,13 @@ STATIC_INLINE int uae_start_thread (void *(*f) (void *), void *arg, uae_thread_i
 
 /* Do nothing; thread exits if thread function returns.  */
 #define UAE_THREAD_EXIT do {} while (0)
+
+STATIC_INLINE void sleep_millis (int ms)
+{
+    SDL_Delay( ms );
+}
+
+STATIC_INLINE void sleep_millis_busy (int ms)
+{
+    SDL_Delay( ms );
+}

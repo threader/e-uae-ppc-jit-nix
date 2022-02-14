@@ -102,6 +102,10 @@ extern void custom_save_state (void);
 #define STATE_DOSAVE 4
 #define STATE_DORESTORE 8
 
+#ifndef MAX_PATH
+#define MAX_PATH 256
+#endif
+
 extern int savestate_state;
 extern char savestate_fname[MAX_PATH];
 extern struct zfile *savestate_file;
