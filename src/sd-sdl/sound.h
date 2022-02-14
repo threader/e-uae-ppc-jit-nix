@@ -1,12 +1,13 @@
- /*
+/* 
   * UAE - The Un*x Amiga Emulator
-  *
+  * 
   * Support for SDL sound
-  *
+  * 
   * Copyright 1997 Bernd Schmidt
   */
 
 extern int sound_fd;
+//extern int bufnum;
 extern uae_u16 sndbuffer[];
 extern uae_u16 *sndbufpt;
 extern int sndbufsize;
@@ -20,11 +21,23 @@ extern void reset_sound (void);
 
 STATIC_INLINE void check_sound_buffers (void)
 {
-    if ((char *)sndbufpt - (char *)sndbuffer >= sndbufsize) {
-	finish_sound_buffer ();
-	sndbufpt = sndbuffer;
-    }
+//    if (bufnum==0){
+        if ((char *)sndbufpt - (char *)sndbuffer >= sndbufsize) {
+	    finish_sound_buffer ();
+	    sndbufpt = sndbuffer; //+22050;
+//	    bufnum=1;
+	}
+       
+/*    } else {
+	if ((char *)sndbufpt - (char *)sndbuffer - 22050 >= sndbufsize) {
+	    finish_sound_buffer ();
+	    sndbufpt = sndbuffer;
+	    bufnum=0;
+        }
+    } */
 }
+
+   
 
 #define PUT_SOUND_BYTE(b) do { *(uae_u8 *)sndbufpt = b; sndbufpt = (uae_u16 *)(((uae_u8 *)sndbufpt) + 1); } while (0)
 #define PUT_SOUND_WORD(b) do { *(uae_u16 *)sndbufpt = b; sndbufpt = (uae_u16 *)(((uae_u8 *)sndbufpt) + 2); } while (0)

@@ -1,10 +1,9 @@
  /*
   * UAE - The Un*x Amiga Emulator
   *
-  * Support for SDL sound
+  * Support for Linux/USS sound
   *
   * Copyright 1997 Bernd Schmidt
-  * Copyright 2003 Richard Drummond
   */
 
 #include "sysconfig.h"
@@ -12,14 +11,20 @@
 
 #include "config.h"
 #include "options.h"
+#include "memory.h"
+#include "events.h"
 #include "custom.h"
 #include "gensound.h"
 #include "sounddep/sound.h"
 #include "threaddep/thread.h"
 #include "SDL_audio.h"
 
+//int sound_fd;
 static int have_sound = 0;
+//static unsigned long formats;
 static int obtainedfreq;
+//int bufnum = 0;
+//int bufnum2 = 0;
 
 uae_u16 sndbuffer[44100];
 uae_u16 *sndbufpt;
@@ -44,7 +49,9 @@ static void sound_callback (void *userdata, Uint8 *stream, int len)
     /* Wait for data to finish.  */
     uae_sem_wait (&data_available_sem);
     if (! closing_sound) {
-	memcpy (stream, sndbuffer, sndbufsize);
+        memcpy (stream, sndbuffer, sndbufsize);
+//       memcpy (stream, (bufnum2==0) ? sndbuffer:sndbuffer+22050, sndbufsize);
+//       bufnum2 = (bufnum2+1)&1;
 	/* Notify writer that we're done.  */
 	uae_sem_post (&callback_done_sem);
     }
@@ -66,15 +73,15 @@ void update_sound (int freq)
         freq = lastfreq;
     lastfreq = freq;
     if (have_sound) {
-	if (currprefs.gfx_vsync && currprefs.gfx_afullscreen) {
-	    if (currprefs.ntscmode)
-		scaled_sample_evtime_orig = (unsigned long)(MAXHPOS_NTSC * MAXVPOS_NTSC * freq * CYCLE_UNIT + obtainedfreq - 1) / obtainedfreq;
-	else
-	    scaled_sample_evtime_orig = (unsigned long)(MAXHPOS_PAL * MAXVPOS_PAL * freq * CYCLE_UNIT + obtainedfreq - 1) / obtainedfreq;
-	} else {
-	    scaled_sample_evtime_orig = (unsigned long)(312.0 * 50 * CYCLE_UNIT / (obtainedfreq  / 227.0));
-	}
-	scaled_sample_evtime = scaled_sample_evtime_orig;
+        if (currprefs.gfx_vsync && currprefs.gfx_afullscreen) {
+            if (currprefs.ntscmode)
+	        scaled_sample_evtime_orig = (unsigned long)(MAXHPOS_NTSC * MAXVPOS_NTSC * freq * CYCLE_UNIT + obtainedfreq - 1) / obtainedfreq;
+            else
+	        scaled_sample_evtime_orig = (unsigned long)(MAXHPOS_PAL * MAXVPOS_PAL * freq * CYCLE_UNIT + obtainedfreq - 1) / obtainedfreq;
+        } else {
+            scaled_sample_evtime_orig = (unsigned long)(312.0 * 50 * CYCLE_UNIT / (obtainedfreq  / 227.0));
+        }
+        scaled_sample_evtime = scaled_sample_evtime_orig;
     }
 }
 
@@ -82,7 +89,7 @@ void update_sound (int freq)
 int setup_sound (void)
 {
     int size = currprefs.sound_maxbsiz;
-
+   
     spec.freq = currprefs.sound_freq;
     spec.format = currprefs.sound_bits == 8 ? AUDIO_U8 : AUDIO_S16SYS;
     spec.channels = currprefs.stereo ? 2 : 1;
@@ -127,12 +134,14 @@ static int open_sound (void)
     spec.callback = sound_callback;
     spec.userdata = 0;
 
-    clearbuffer();
+        clearbuffer();
     if (SDL_OpenAudio (&spec, NULL) < 0) {
 	write_log ("Couldn't open audio: %s\n", SDL_GetError());
 	return 0;
     }
 
+
+   
     if (spec.format == AUDIO_S16SYS) {
 	init_sound_table16 ();
 	sample_handler = currprefs.stereo ? sample16s_handler : sample16_handler;
@@ -140,13 +149,13 @@ static int open_sound (void)
 	init_sound_table8 ();
 	sample_handler = currprefs.stereo ? sample8s_handler : sample_ulaw_handler;
     }
-    have_sound = 1;
+        have_sound = 1;
 
     update_sound(vblank_hz);
     sound_available = 1;
     obtainedfreq = currprefs.sound_freq;
     write_log ("SDL sound driver found and configured for %d bits at %d Hz, buffer is %d samples\n",
-	currprefs.sound_bits, spec.freq, spec.samples);
+	       currprefs.sound_bits, spec.freq, spec.samples);
     sndbufpt = sndbuffer;
     sndbufsize = size * currprefs.sound_bits / 8 * spec.channels;
     return 1;
@@ -171,9 +180,9 @@ static void *sound_thread (void *dummy)
 }
 
 /* We need a thread for this, since communication between finish_sound_buffer
- * and the callback works through semaphores.  In theory, this is unnecessary,
- * since SDL uses a sound thread internally, and the callback runs in its
- * context.  But we don't want to depend on SDL's internals too much.  */
+   and the callback works through semaphores.  In theory, this is unnecessary,
+   since SDL uses a sound thread internally, and the callback runs in its
+   context.  But we don't want to depend on SDL's internals too much.  */
 static void init_sound_thread (void)
 {
     uae_thread_id tid;

@@ -1,4 +1,0 @@
-#!/bin/sh -e
-update-alternatives --install /usr/bin/uae uae /usr/bin/uae-sdl 10
-
-#DEBHELPER#

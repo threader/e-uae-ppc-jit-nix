@@ -397,7 +397,7 @@ if [[ "x$WANT_SDLGFX" = "xyes" ]]; then
   AC_MSG_RESULT(SDL)
   MATHLIB=
   TARGET=x11
-  GFXOBJS="gfx-sdl/sdlgfx.o"
+  GFXOBJS="sdlgfx.o"
   # @@@ Kludge.  This may get changed later.
   TARGETDEP=t-x11.h
 else if [[ "x$HAVE_DIRECTX" = "xyes" ]]; then
@@ -468,7 +468,7 @@ else
     AC_MSG_RESULT(X11)
     TARGET=x11
     TARGETDEP=t-x11.h
-    GFXOBJS=gfx-x11/xwin.o
+    GFXOBJS=xwin.o
 
     LIBRARIES="$X_LIBS $X_PRE_LIBS"
     dnl If we still think we want DGA, set it up.
@@ -1017,7 +1017,7 @@ fi
 dnl Special case hack for BSD: try to use the Linux joystick.c.
 
 if [[ "x$WANT_SDL" = "xyes" ]]; then
-    OD_JOYSTICK=jd-sdl/joystick.c
+    OD_JOYSTICK=sdl-joystick.c
 else if [[ "x$ac_cv_header_machine_joystick_h" = "xyes" ]]; then
     AC_TRY_COMPILE([#include <machine/joystick.h>],[{ struct joystick a; }],
     OD_JOYSTICK=od-linux/joystick.c,)

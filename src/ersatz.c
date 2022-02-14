@@ -100,7 +100,7 @@ static void ersatz_init (void)
     uaecptr a;
 
     if (disk_empty (0)) {
-	gui_message ("You need to have a diskfile in DF0 to use the Kickstart replacement!\n");
+	write_log ("You need to have a diskfile in DF0 to use the Kickstart replacement!\n");
 	uae_quit ();
 	m68k_setpc (0xF80010);
 	return;

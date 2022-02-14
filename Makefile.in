@@ -9,11 +9,9 @@ all:
 
 clean:
 	cd src && $(MAKE) clean
-	cd src/tools && $(MAKE) clean
 	rm -f uae readdisk 
 	
 streifenfrei:
 	cd src && $(MAKE) streifenfrei
-	cd src/tools && $(MAKE) streifenfrei
 	rm -f uae readdisk
 	rm -f config.cache config.log config.status Makefile

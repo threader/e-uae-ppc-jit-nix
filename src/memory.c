@@ -206,7 +206,8 @@ int REGPARAM2 dummy_check (uaecptr addr, uae_u32 size)
     return 0;
 }
 
-#if defined AUTOCONFIG && defined A3000MBRES
+#ifdef AUTOCONFIG
+#ifdef A3000MBRES
 /* A3000 "motherboard resources" bank.  */
 static uae_u32 mbres_lget (uaecptr) REGPARAM;
 static uae_u32 mbres_wget (uaecptr) REGPARAM;
@@ -286,6 +287,7 @@ int REGPARAM2 mbres_check (uaecptr addr, uae_u32 size)
 
     return 0;
 }
+#endif
 #endif
 
 /* Chip memory */

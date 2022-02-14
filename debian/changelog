@@ -1,9 +1,0 @@
-uae (0.8.22-1.20031118.1) unstable; urgency=low
-
-  * Initial debian packaging
-
- -- Richard Drummond <uae@rcdrummond.net>  Tue, 18 Nov 2003 15:48:00 -0500
-
-Local variables:
-mode: debian-changelog
-End:

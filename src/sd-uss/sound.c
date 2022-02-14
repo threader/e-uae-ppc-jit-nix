@@ -1,8 +1,8 @@
  /*
   * UAE - The Un*x Amiga Emulator
-  *
+  * 
   * Support for Linux/USS sound
-  *
+  * 
   * Copyright 1997 Bernd Schmidt
   * Copyright 2003 Richard Drummond
   */
@@ -54,15 +54,15 @@ void update_sound (int freq)
         freq = lastfreq;
     lastfreq = freq;
     if (have_sound) {
-	if (currprefs.gfx_vsync && currprefs.gfx_afullscreen) {
-	    if (currprefs.ntscmode)
-		scaled_sample_evtime_orig = (unsigned long)(MAXHPOS_NTSC * MAXVPOS_NTSC * freq * CYCLE_UNIT + obtainedfreq - 1) / obtainedfreq;
-	    else
-		scaled_sample_evtime_orig = (unsigned long)(MAXHPOS_PAL * MAXVPOS_PAL * freq * CYCLE_UNIT + obtainedfreq - 1) / obtainedfreq;
-	} else {
-	    scaled_sample_evtime_orig = (unsigned long)(312.0 * 50 * CYCLE_UNIT / (obtainedfreq  / 227.0));
-	}
-	scaled_sample_evtime = scaled_sample_evtime_orig;
+        if (currprefs.gfx_vsync && currprefs.gfx_afullscreen) {
+            if (currprefs.ntscmode)
+                scaled_sample_evtime_orig = (unsigned long)(MAXHPOS_NTSC * MAXVPOS_NTSC * freq * CYCLE_UNIT + obtainedfreq - 1) / obtainedfreq;
+            else
+                scaled_sample_evtime_orig = (unsigned long)(MAXHPOS_PAL * MAXVPOS_PAL * freq * CYCLE_UNIT + obtainedfreq - 1) / obtainedfreq;
+        } else {
+            scaled_sample_evtime_orig = (unsigned long)(312.0 * 50 * CYCLE_UNIT / (obtainedfreq  / 227.0));
+        }
+        scaled_sample_evtime = scaled_sample_evtime_orig;
     }
 }
 
@@ -179,4 +179,5 @@ int init_sound (void)
 
 void reset_sound (void)
 {
+
 }

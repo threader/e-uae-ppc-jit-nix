@@ -1,8 +1,8 @@
- /*
+ /* 
   * UAE - The Un*x Amiga Emulator
-  *
+  * 
   * Joystick emulation stubs
-  *
+  * 
   * Copyright 1997 Bernd Schmidt
   * Copyright 2003 Richard Drummond
   */
@@ -16,17 +16,17 @@
 #include "custom.h"
 #include "inputdevice.h"
 
-static int init_joysticks (void)
+static int init_joysticks(void)
 {
    return 1;
 }
 
-static void close_joysticks (void)
+static void close_joysticks(void)
 {
 }
 
 static int acquire_joystick (int num, int flags)
-{
+{   
     return 0;
 }
 
@@ -49,7 +49,7 @@ static char *get_joystick_name (int joy)
 }
 
 static int get_joystick_widget_num (int joy)
-{
+{   
     return 0;
 }
 

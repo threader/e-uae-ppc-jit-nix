@@ -1,11 +1,11 @@
- /*
+ /* 
   * UAE - The Un*x Amiga Emulator
-  *
+  * 
   * Joystick emulation for Linux and BSD. They share too much code to
   * split this file.
-  *
+  * 
   * This uses the deprecated 0.x Linux joystick API.
-  *
+  * 
   * Copyright 1997 Bernd Schmidt
   * Copyright 1998 Krister Walfridsson
   * Copyright 2003 Richard Drummond
@@ -73,16 +73,16 @@ static void read_joy(int nr)
     struct joy_range *r = nr == 0 ? &range0 : &range1;
 
     if (nr >= nr_joysticks)
-	return;
-
+    	return;
+    
     len = read(fd, &buffer, sizeof(buffer));
-    if (len != sizeof(buffer))
-	return;
+    if (len != sizeof(buffer)) 
+    	return;
 
     /* According to old 0.x JS API, we don't know the range
      * or the centre for either axis, so we try to work these
      * out as we go along.
-     *
+     * 
      * Must be a better way to do this . . .
      */
     if (buffer.x < r->minx) r->minx = buffer.x;
@@ -92,7 +92,7 @@ static void read_joy(int nr)
 
     r->centrex = (r->maxx-r->minx)/2 + r->minx;
     r->centrey = (r->maxy-r->miny)/2 + r->miny;
-
+   
     /* Translate these values to be centred on 0 and
      * feed 'em to the inputdevice system */
     setjoystickstate (nr, 0, buffer.x - r->centrex, r->centrex );
@@ -113,10 +113,10 @@ static int init_joysticks(void)
     js0 = -1; js1 = -1;
 
     if ((js0 = open("/dev/" JS_DEVNAME_PREFIX "0", O_RDONLY)) >= 0)
-	nr_joysticks++;
+        nr_joysticks++;
 
     if ((js1 = open("/dev/" JS_DEVNAME_PREFIX "1", O_RDONLY)) >= 0)
-	nr_joysticks++;
+    	nr_joysticks++;
 
     write_log ("Found %d joysticks\n", nr_joysticks);
 
@@ -151,10 +151,10 @@ static void unacquire_joy (int num)
 }
 
 static void read_joysticks (void)
-{
+{   
     int i;
     for (i = 0; i < get_joystick_num(); i++)
-	read_joy (i);
+        read_joy (i);
 }
 
 static int get_joystick_num (void)
@@ -175,26 +175,26 @@ static int get_joystick_widget_num (int joy)
 }
 
 static int get_joystick_widget_type (int joy, int num, char *name)
-{
+{   
     if (num >= MAX_AXLES && num < MAX_AXLES+MAX_BUTTONS) {
-	if (name)
+        if (name)
 	    sprintf (name, "Button %d", num + 1 - MAX_AXLES);
 	return IDEV_WIDGET_BUTTON;
     } else if (num < MAX_AXLES) {
-	if (name)
-	    sprintf (name, "Axis %d", num + 1);
+        if (name)
+            sprintf (name, "Axis %d", num + 1);
 	return IDEV_WIDGET_AXIS;
     }
     return IDEV_WIDGET_NONE;
 }
 
 static int get_joystick_widget_first (int joy, int type)
-{
+{ 
     switch (type) {
-	case IDEV_WIDGET_BUTTON:
-	    return FIRST_BUTTON;
-	case IDEV_WIDGET_AXIS:
-	    return FIRST_AXLE;
+        case IDEV_WIDGET_BUTTON:
+            return FIRST_BUTTON;
+        case IDEV_WIDGET_AXIS:
+            return FIRST_AXLE;
     }
 
     return -1;

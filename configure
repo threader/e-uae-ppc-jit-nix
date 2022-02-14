@@ -5880,7 +5880,7 @@ if [ "x$WANT_SDLGFX" = "xyes" ]; then
   echo "$ac_t""SDL" 1>&6
   MATHLIB=
   TARGET=x11
-  GFXOBJS="gfx-sdl/sdlgfx.o"
+  GFXOBJS="sdlgfx.o"
   # @@@ Kludge.  This may get changed later.
   TARGETDEP=t-x11.h
 else if [ "x$HAVE_DIRECTX" = "xyes" ]; then
@@ -5949,7 +5949,7 @@ else
     echo "$ac_t""X11" 1>&6
     TARGET=x11
     TARGETDEP=t-x11.h
-    GFXOBJS=gfx-x11/xwin.o
+    GFXOBJS=xwin.o
 
     LIBRARIES="$X_LIBS $X_PRE_LIBS"
         if [ "x$WANT_DGA" = "xyes" ]; then
@@ -6638,7 +6638,7 @@ fi
 
 
 if [ "x$WANT_SDL" = "xyes" ]; then
-    OD_JOYSTICK=jd-sdl/joystick.c
+    OD_JOYSTICK=sdl-joystick.c
 else if [ "x$ac_cv_header_machine_joystick_h" = "xyes" ]; then
     cat > conftest.$ac_ext <<EOF
 #line 6645 "configure"
