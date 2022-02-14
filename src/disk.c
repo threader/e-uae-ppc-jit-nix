@@ -34,7 +34,6 @@
 #include "fdi2raw.h"
 #include "catweasel.h"
 #include "driveclick.h"
-#include "fsdb.h"
 #ifdef CAPS
 #ifdef _WIN32
 #include "caps/caps_win32.h"
@@ -825,7 +824,7 @@ static int drive_insert (drive * drv, int dnum, const char *fname)
         drv->num_tracks = num_tracks;
         drv->filetype = ADF_IPF;
 #endif
-    } else if ((drv->fdi = fdi2raw_header (drv->diskfile))) {
+    } else if (drv->fdi = fdi2raw_header (drv->diskfile)) {
 
         drv->wrprot = 1;
 	drv->num_tracks = fdi2raw_get_last_track (drv->fdi);
@@ -1354,7 +1353,7 @@ static int drive_write_adf_amigados (drive * drv)
 	odd = getmfmlong (mbuf);
 	even = getmfmlong (mbuf + 2);
 	mbuf += 4;
-	if (((odd << 1) | even) != chksum || ((id & 0x00ff0000) >> 16) != ((unsigned)drv->cyl) * 2 + side) {
+	if (((odd << 1) | even) != chksum || ((id & 0x00ff0000) >> 16) != drv->cyl * 2 + side) {
 	    write_log ("Disk write: checksum error on sector %d header\n", trackoffs);
 	    if (drv->filetype == ADF_EXT2)
 		return 3;

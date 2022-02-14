@@ -30,7 +30,7 @@ STATIC_INLINE int uae_sem_init(uae_sem_t *PSEM, int DUMMY, int INIT)
 typedef Uint32 uae_thread_id;
 #define BAD_THREAD NULL
 
-#define uae_set_thread_priority(pri)
+#define set_thread_priority(pri)
 
 STATIC_INLINE int uae_start_thread (void *(*f) (void *), void *arg, uae_thread_id *foo)
 {

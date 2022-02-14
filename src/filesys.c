@@ -3384,7 +3384,7 @@ static void *filesys_thread (void *unit_v)
 {
     UnitInfo *ui = (UnitInfo *)unit_v;
 
-    uae_set_thread_priority (2);
+    set_thread_priority (2);
     for (;;) {
 	uae_u8 *pck;
 	uae_u8 *msg;

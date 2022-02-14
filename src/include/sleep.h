@@ -1,7 +1,7 @@
  /*
   * UAE - The Un*x Amiga Emulator
   *
-  * Wrapper for platform-specific sleep routine
+  * Sleeping for *nix-like systems
   *
   * Copyright 2003-2004 Richard Drummond
   */
@@ -14,64 +14,44 @@
 # endif
 #endif
 
-
-#define ONE_THOUSAND	1000
-#define ONE_MILLION	(1000 * 1000)
-
-/* The following would offer no advantage since we always call use_msleep() with
- * a constant and all arithmetic can be done at compile time. */
-#if 0
-/* This may seem a little odd, but using a nice, round binary factor will speed
- * up the arithmetic for only a 2% error (5% for nanosleep). Our target sleep
- * routines are not tha accurate - and even if they were, we don't need more
- * accuracy.
- */
-#define ONE_THOUSAND	1024
-#define ONE_MILLION	(1024 * 1024)
-#endif
-
 /*
- * void msleep (int ms)
- *
- * Sleep for ms milliseconds using an appropriate system-dependent sleep
- * functions.
+ * Locate an appropriate sleep routine for POSIX-like systems.
+ * The Win32 port does things differently and doesn't need this.
  */
 #ifdef __BEOS__
-# define uae_msleep(msecs) snooze (msecs * ONE_THOUSAND)
+# define my_usleep(usecs) snooze(usecs)
 #else
-# if defined _WIN32
-#  define uae_msleep(msecs) Sleep (msecs)
-# else
+# if !defined _WIN32
 #  ifdef HAVE_NANOSLEEP
-#   define uae_msleep(msecs) \
-	    { \
-		if (msecs < 1000) { \
-		    struct timespec t = { 0, (msecs) * ONE_MILLION }; \
-		    nanosleep (&t, 0); \
-		} else { \
-		    int secs      = msecs / ONE_THOUSAND; \
-		    int millisecs = msecs % ONE_THOUSAND; \
-		    struct timespec t = { secs, millisecs * ONE_MILLION }; \
-		    nanosleep (&t, 0); \
-		} \
-	    }
+#   define my_usleep(usecs) \
+           { \
+	       if (usecs<1000000) { \
+	           struct timespec t = { 0, (usecs)*1000 }; \
+                   nanosleep (&t, 0); \
+	       } else { \
+                   int secs   = usecs/1000000; \
+		   int musecs = usecs%1000000; \
+	           struct timespec t = { secs, musecs*1000 }; \
+		   nanosleep (&t, 0); \
+               } \
+	   }
 #  else
 #   ifdef HAVE_USLEEP
-#    define uae_msleep(msecs) usleep (msecs * ONE_THOUSAND)
+#    define my_usleep(usecs) usleep (usecs)
 #   else
 #    ifdef USE_SDL
-#     define uae_msleep(msecs) SDL_Delay (msecs)
+#     define my_usleep(usecs) SDL_Delay ((usecs)/1000);
 #    else
-#     if defined __AMIGA__ || defined __MORPHOS__
-       /* last resort. TODO: use timer.device instead */
-#      define uae_msleep(msecs) Delay ((msecs)/20)
-#     else
-#      error "No system sleep function found"
+#     if defined __AMIGA__ || defined __MORPHOS__      
+#      define my_usleep(usecs) Delay ((usecs)/20000)
 #     endif
-#    endif
+#    endif      
 #   endif
 #  endif
 # endif
-#endif
+#endif 
+
+void sleep_millis (int ms);
+void sleep_millis_busy (int ms);
 
 void sleep_test (void);

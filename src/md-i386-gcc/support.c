@@ -1,6 +1,6 @@
- /*
+ /* 
   * UAE - The Un*x Amiga Emulator
-  *
+  * 
   * Miscellaneous machine dependent support functions and definitions
   *
   * Copyright 1996 Bernd Schmidt
@@ -113,11 +113,11 @@ void machdep_init (void)
     last_time = read_processor_time();
     set_the_alarm ();
     while (loops_to_go != 0)
-    uae_msleep (10);
+    my_usleep (10000);
     write_log ("ok - %.2f BogoMIPS\n", ((double)RPT_SCALE_FACTOR * best_time / TIME_UNIT));
     syncbase = best_time * (1000000 / TIME_UNIT);
-
-    sleep_test ();
+   
+    sleep_test();
 }
 
 #endif

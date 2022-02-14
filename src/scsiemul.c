@@ -134,13 +134,13 @@ static void io_log (char *msg, uaecptr request)
 #endif
 }
 
-STATIC_INLINE void memcpyha (uae_u32 dst, char *src, int size)
+void memcpyha (uae_u32 dst, char *src, int size)
 {
     while (size--)
 	put_byte (dst++, *src++);
 }
 
-STATIC_INLINE struct devstruct *getdevstruct (int unit)
+static struct devstruct *getdevstruct (int unit)
 {
     int i;
     for (i = 0; i < MAX_TOTAL_DEVICES; i++) {
@@ -265,7 +265,7 @@ static uae_u32 dev_open_2 (int type)
     } else {
         for (i = 0; i < MAX_OPEN_DEVICES; i++) {
 	    pdev = &pdevst[i];
-	    if (pdev->inuse && pdev->unit == (int)unit) break;
+	    if (pdev->inuse && pdev->unit == unit) break;
 	}
 	if (i == MAX_OPEN_DEVICES)
 	    return openfail (ioreq, -1);
@@ -553,7 +553,7 @@ static void *dev_thread (void *devs)
 {
     struct devstruct *dev = devs;
 
-    uae_set_thread_priority (2);
+    set_thread_priority (2);
     dev->thread_running = 1;
     uae_sem_post (&dev->sync_sem);
     for (;;) {

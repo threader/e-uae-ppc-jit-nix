@@ -679,7 +679,7 @@ static void *hardfile_thread (void *devs)
 {
     struct hardfileprivdata *hfpd = devs;
 
-    uae_set_thread_priority (2);
+    set_thread_priority (2);
     hfpd->thread_running = 1;
     uae_sem_post (&hfpd->sync_sem);
     for (;;) {

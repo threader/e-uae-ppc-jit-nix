@@ -411,7 +411,6 @@ static void do_fillrect (uae_u8 *src, int x, int y, int width, int height,
 
     P96TRACE (("do_fillrect (src:%08x x:%d y:%d w:%d h%d pen:%08x)\n", src, x, y, width, height, pen));
 
-#if 0
     /* Clipping.  */
     x -= picasso96_state.XOffset;
     y -= picasso96_state.YOffset;
@@ -430,7 +429,6 @@ static void do_fillrect (uae_u8 *src, int x, int y, int width, int height,
 
     if (width <= 0 || height <= 0)
 	return;
-#endif
 
     /* Try OS specific fillrect function here; and return if successful.  Make sure we adjust for
      * the pen values if we're doing 8-bit display-emulation on a 16-bit or higher screen. */
@@ -824,9 +822,9 @@ STATIC_INLINE void do_blitrect_frame_buffer (struct RenderInfo *ri,
 	    unsigned int y;
 
 	    for (y = 0; y < height; y++) {
-		uae_u32 *bound = (uae_u32 *)(src + total_width - 4);
+		int bound = src + total_width - 4;
 		    //copy now the longs
-		    for (src2_32 = (uae_u32*)src, dst2_32 = (uae_u32*)dst; src2_32 < bound; src2_32++, dst2_32++ ) {
+		    for( src2_32 = src, dst2_32 = dst; src2_32 < bound; src2_32++, dst2_32++ ) {
 			switch( opcode ) {
 			    case BLIT_FALSE:
 				*dst2_32 = 0;
@@ -890,7 +888,7 @@ STATIC_INLINE void do_blitrect_frame_buffer (struct RenderInfo *ri,
 			} /* switch opcode */
 		    } // for end
 		    //now copy the rest few bytes
-		    for (src2 = (uae_u8*)src2_32, dst2 = (uae_u8*)dst2_32; src2 < src + total_width; src2++, dst2++ ) {
+		    for (src2 = src2_32, dst2 = dst2_32; src2 < src + total_width; src2++, dst2++ ) {
 			switch( opcode ) {
 			    case BLIT_FALSE:
 				*dst2 = 0;
@@ -1141,7 +1139,7 @@ uae_u32 picasso_InitCard (void)
 	do {
 	    /* Handle this display mode's depth */
 	    /* Only add the modes when there is enough P96 RTG memory to hold the bitmap */
-	    unsigned long required = DisplayModes[i].res.width * DisplayModes[i].res.height * DisplayModes[i].depth;
+	    long required = DisplayModes[i].res.width * DisplayModes[i].res.height * DisplayModes[i].depth;
 	    if (allocated_gfxmem - 32768 > required) {
 		amigamemptr = gfxmem_start + allocated_gfxmem - (PSSO_ModeInfo_sizeof * ModeInfoStructureCount++);
 		FillBoardInfo (amigamemptr, &res, &DisplayModes[i]);
@@ -1600,11 +1598,11 @@ uae_u32 picasso_FillRect (void)
 
 	if (Mask == 0xFF) {
 	    if ((Width == 1) || (Height == 1)) {
-		unsigned int i;
+		int i;
 		uaecptr addr;
 		if (renderinfo_is_current_screen (&ri)) {
                     uae_u32 diff = gfxmem_start - (uae_u32)gfxmemory;
-                    addr = (uaecptr)(ri.Memory + X * Bpp + Y * ri.BytesPerRow + diff);
+                    addr = ri.Memory + X * Bpp + Y * ri.BytesPerRow + diff;
 
 		    if (Width == 1) {
 			for (i = 0; i < Height; i++) {
@@ -2814,7 +2812,7 @@ int picasso_display_mode_index (uae_u32 x, uae_u32 y, uae_u32 d)
     for (i = 0; i < mode_count; i++) {
         if (DisplayModes[i].res.width == x
 	    && DisplayModes[i].res.height == y
-	    && DisplayModes[i].depth == (int)d)
+	    && DisplayModes[i].depth == d)
             break;
     }
     if (i == mode_count)

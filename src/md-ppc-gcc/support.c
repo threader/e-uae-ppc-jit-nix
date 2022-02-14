@@ -34,7 +34,7 @@ void machdep_init (void)
 
     sync ();
     last_time = read_processor_time ();
-    uae_msleep (loops_to_go * 1000);
+    my_usleep (loops_to_go * 1000000);
     best_time = read_processor_time () - last_time;
     sync ();
 

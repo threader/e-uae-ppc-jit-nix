@@ -58,7 +58,7 @@ noinst_HEADERS = include/akiko.h include/ar.h include/audio.h include/autoconf.h
 		 include/sysdeps.h include/tui.h include/uae.h \
 		 include/uaeexe.h include/unzip.h include/xwin.h \
 		 include/zfile.h include/enforcer.h include/hotkeys.h \
-		 include/caps.h include/driveclick.h include/gfxfilter.h \
+		 include/caps.h include/driveclick.h \
 	         targets/t-amiga.h targets/t-beos.h \
 	         targets/t-macos.h targets/t-unix.h \
 		 td-none/thread.h td-posix/thread.h td-sdl/thread.h

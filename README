@@ -1,5 +1,5 @@
-uae-0.8.25-20040302
-===================
+uae-0.8.25-2004023
+==================
 
 This is an experimental and unoffical version of UAE, the Unix Amiga
 Emulator, based on WinUAE 0.8.25. It attempts to bring many of the great
@@ -8,22 +8,8 @@ features of WinUAE to non-Windows platforms.
 Currently it will build and run (with a varying degree of supported
 features) on Linux and other Unices, Mac OS X, BeOS and AmigaOS. (OS X and
 BeOS both currently require either LibSDL or an X server for graphics
-output. Neither platform is supported with a purely native graphcis driver
+output. Neither platforms is supported with a purely native graphcis driver
 - yet.).
-
-
-What's New
-==========
-
-* Several bug fix in libscg SCSI driver. Problems when scanning the host SCSI
-  bus and with the CD32 emulation not detecting disc inserts both now cured.
-* SCSI emulation now works on BeOS and Mac OS X.
-
-
-
-uae-0.8.25-20040223
-===================
-
 
 What's New
 ==========
@@ -115,9 +101,18 @@ hopefully avoid me repeating myself too often (or finding the time to write
 some real documentation).
 
 
-
 uae-0.8.23-20040125
 ===================
+
+This is an experimental and unofficial version of UAE, the Unix Amiga
+Emulator, based on WinUAE 0.8.23. It attempts to bring many of the great
+features of WinUAE to non-Windows platforms.
+
+Currently it will build and run (with a varying degree of supported features)
+on Linux and other Unices, Mac OS X, BeOS and AmigaOS. (OS X and BeOS both
+require either LibSDL or an X server for graphics output. Neither platform
+is supported with a purely native graphics driver - yet.)
+
 
 What's New
 ==========
@@ -291,7 +286,6 @@ compiler without support for doing direct memory access (the direct memory
 system is dependent on Linux segv signal hanlding to trap accesses to
 unmapped memory and won't work on other x86 Unices) hopefully allowing the
 JIT engine to work on many more platforms.
-
 
 Contact
 =======

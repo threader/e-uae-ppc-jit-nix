@@ -44,16 +44,8 @@ fi
 #
 uaedir=`dirname "$0"`
 
-cp -R -f "$cdrecinc/btorder.h" "$cdrecinc/intcvt.h" "$cdrecinc/mconfig.h" \
-         "$cdrecinc/prototyp.h" "$cdrecinc/utypes.h" "$cdrecorddir/libscg/scg" \
-	 "$cdrecorddir/incs/$machine/xconfig.h" "$uaedir/include"
+cp -R -f -L "$cdrecinc/btorder.h" "$cdrecinc/intcvt.h" "$cdrecinc/mconfig.h" \
+            "$cdrecinc/prototyp.h" "$cdrecinc/utypes.h" "$cdrecinc/scg" \
+	    "$cdrecorddir/incs/$machine/xconfig.h" "$uaedir"/include
 cp -f "$cdrecorddir/libs/$machine/libscg.a" \
       "$cdrecorddir/libs/$machine/libschily.a" "$uaedir"
-
-case $machine in
-  *-darwin-*)
-    ranlib -a "$uaedir/libscg.a"
-    ranlib -a "$uaedir/libschily.a"
-    ;;
-esac
-											

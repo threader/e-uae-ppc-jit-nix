@@ -18,26 +18,14 @@
 #include "sleep.h"
 
 
-/* Define me to always sleep no matter what the latency
+/* Define me to always sleep no matter what the latency 
  * of the sleep function */
 //#define SLEEP_DONT_BUSY_WAIT
 
-/* Busy sleep threshhold in ms. If busy-waiting is enabled, sleeps for periods
- * shorter than this will always be done with a busy loop
- *
- * We should probably determine the threshhold at run-time, but a constant value
- * works well enough
- */
+/* Busy sleep threshhold in ms */
 #define SLEEP_BUSY_THRESHOLD	 10
 
-/*
- * Sleep for ms milliseconds either using an appropriate sleep routine on the
- * target system or, if the target's routine has too much latency to
- * accurately sleep for that period, then busy wait.
- *
- * Busy-waiting requires a high-resolution timer for accuracy. We use
- * the machine-dependent read_processor_time ()
- */
+
 void sleep_millis (int ms)
 {
     uae_u64 start = read_processor_time();
@@ -45,58 +33,53 @@ void sleep_millis (int ms)
 #ifndef SLEEP_DONT_BUSY_WAIT
     if (!currprefs.dont_busy_wait && ms < SLEEP_BUSY_THRESHOLD) {
 	/* Typical sleep routines can't sleep for less than 10ms. If we want
-	 * to sleep for a period shorter than the threshold, we'll have to busy wait . . .
+	 * to sleep for a period shorter than this, we'll have to busy wait . . .
 	 */
 	frame_time_t delay = ((frame_time_t)ms) * syncbase / 1000;
 
-	while ((read_processor_time () - start) < delay)
+	while ((read_processor_time() - start) < delay)
 	     ;
     } else
 #endif
-	uae_msleep (ms);
+	my_usleep (ms * 1000);
 
-    idletime += read_processor_time () - start;
+    idletime += read_processor_time() - start;
 }
 
-/*
- * Sleep for ms milliseconds if and only busy-waiting would not be required
- * to do so.
- */
 void sleep_millis_busy (int ms)
 {
+    /* Only sleep if we don't have to busy wait */
 #ifndef SLEEP_DONT_BUSY_WAIT
     if (currprefs.dont_busy_wait || ms >= SLEEP_BUSY_THRESHOLD)
 #endif
-	sleep_millis (ms);
+	sleep_millis( ms );
 }
 
-/*
- * Measure how long it takes to do a ms millisecond sleep. Timing is performed
- * with a machine-specific high-resolution timer.
- */
-static uae_u32 do_sleep_test (int ms)
+
+uae_u32 do_sleep_test (int ms)
 {
     uae_u64 t;
     uae_u32 t2;
-
-    t = read_processor_time ();
-    uae_msleep (ms);
-    t2 = read_processor_time () - t;
+   
+    t = read_processor_time();
+    my_usleep (ms*1000);
+    t2 = read_processor_time() - t;
 
     return t2;
 }
 
+
 /*
- * Test the target system's sleep routine to decide whether we should busy wait
- * by default for sleeps shorter in duration than SLEEP_BUSY_THRESHOLD
+ * Test the system sleep routine to decide whether we should
+ * busy wait by default for 1 ms sleeps 
  */
 void sleep_test (void)
 {
     int result;
 
     currprefs.dont_busy_wait = 1;
-
-#ifndef SLEEP_DONT_BUSY_WAIT
+    
+#ifndef SLEEP_DONT_BUSY_WAIT   
 
     if (rpt_available) {
 	uae_u64 total = 0;
@@ -104,12 +87,12 @@ void sleep_test (void)
 	int num_tests;
 	int i;
 
-	write_log ("Testing system sleep function"); fflush (stderr);
+	write_log ("Testing system sleep function"); fflush(stderr);
 
 	/* Do a few tests to get a rough idea how fast we can do it */
 	num_tests = 5;
 
-	for (i=0; i < num_tests; i++)
+	for (i=0; i<num_tests; i++)
 	    total += do_sleep_test (1);
 
 	/* How many for 2 seconds worth of tests . . . */
@@ -122,16 +105,16 @@ void sleep_test (void)
 
 	    if (i - (i % 100) == i) {
 		write_log(".");
-		fflush (stderr);
+		fflush(stderr);
 	    }
 	}
 
 	result = (1000 * total / syncbase) / num_tests;
 	write_log ("\nAverage duration of a 1ms sleep: %d ms\n", result);
 
-	if (result > SLEEP_BUSY_THRESHOLD) {
+	if (result > 10) {
 	    currprefs.dont_busy_wait = 0;
-	    write_log ("Enabling busy-waiting for sub-%dms sleeps\n", SLEEP_BUSY_THRESHOLD);
+	    write_log ("Enabling busy-waiting for sub-10ms sleeps\n");
 	}
     }
 

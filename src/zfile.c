@@ -425,7 +425,7 @@ static struct zfile *zuncompress (struct zfile *z)
 {
     char *name = z->name;
     char *ext = strrchr (name, '.');
-    uae_u8 header[4];
+    unsigned char header[4];
 
     if (ext != NULL) {
 	ext++;

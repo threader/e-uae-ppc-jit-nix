@@ -15,7 +15,7 @@
 #include "blkdev.h"
 
 static struct device_functions *device_func[2];
-static int have_ioctl;
+static int ioctl;
 
 #ifdef WIN32
 
@@ -52,7 +52,7 @@ static void install_driver (int flags)
 #endif
 int sys_command_open (int mode, int unitnum)
 {
-    if (mode == DF_SCSI || !have_ioctl)
+    if (mode == DF_SCSI || !ioctl)
 	return device_func[DF_SCSI]->opendev (unitnum);
     else
 	return device_func[DF_IOCTL]->opendev (unitnum);
@@ -60,7 +60,7 @@ int sys_command_open (int mode, int unitnum)
 
 void sys_command_close (int mode, int unitnum)
 {
-    if (mode == DF_SCSI || !have_ioctl)
+    if (mode == DF_SCSI || !ioctl)
 	device_func[DF_SCSI]->closedev (unitnum);
     else
 	device_func[DF_IOCTL]->closedev (unitnum);
@@ -76,11 +76,11 @@ int device_func_init (int flags)
 	return initialized;
     install_driver (flags);
     if (device_func[DF_IOCTL])
-	have_ioctl = 1;
+	ioctl = 1;
     else
-	have_ioctl = 0;
+	ioctl = 0;
     support_scsi = device_func[DF_SCSI]->openbus (oflags) ? 1 : 0;
-    if (have_ioctl)
+    if (ioctl)
 	support_ioctl = device_func[DF_IOCTL]->openbus (1 << INQ_ROMD) ? 1 : 0;
     initialized = 1;
     write_log ("support_scsi = %d support_ioctl = %d\n", support_scsi, support_ioctl);
@@ -99,7 +99,7 @@ static int audiostatus (int unitnum)
 /* pause/unpause CD audio */
 void sys_command_pause (int mode, int unitnum, int paused)
 {
-    if (mode == DF_SCSI || !have_ioctl) {
+    if (mode == DF_SCSI || !ioctl) {
 	int as = audiostatus (unitnum);
 	if ((paused && as == 0x11) && (!paused && as == 0x12)) {
 	    uae_u8 cmd[10] = {0x4b,0,0,0,0,0,0,0,paused?0:1,0};
@@ -113,7 +113,7 @@ void sys_command_pause (int mode, int unitnum, int paused)
 /* stop CD audio */
 void sys_command_stop (int mode, int unitnum)
 {
-    if (mode == DF_SCSI || !have_ioctl) {
+    if (mode == DF_SCSI || !ioctl) {
 	int as = audiostatus (unitnum);
 	if (as == 0x11) {
 	    uae_u8 cmd[6] = {0x4e,0,0,0,0,0};
@@ -127,7 +127,7 @@ void sys_command_stop (int mode, int unitnum)
 /* play CD audio */
 int sys_command_play (int mode, int unitnum,uae_u32 startmsf, uae_u32 endmsf, int scan)
 {
-    if (mode == DF_SCSI || !have_ioctl) {
+    if (mode == DF_SCSI || !ioctl) {
         uae_u8 cmd[12] = {0,0,0,0,0,0,0,0,0,0,0,0};
 #if 0
 	if (scan) {
@@ -157,7 +157,7 @@ int sys_command_play (int mode, int unitnum,uae_u32 startmsf, uae_u32 endmsf, in
 /* read qcode */
 uae_u8 *sys_command_qcode (int mode, int unitnum)
 {
-    if (mode == DF_SCSI || !have_ioctl) {
+    if (mode == DF_SCSI || !ioctl) {
 	uae_u8 cmd[10] = {0x42,2,0x40,1,0,0,0,DEVICE_SCSI_BUFSIZE>>8,DEVICE_SCSI_BUFSIZE&0xff,0};
 	return  device_func[DF_SCSI]->exec_in (unitnum, cmd, sizeof (cmd), 0);
     }
@@ -167,7 +167,7 @@ uae_u8 *sys_command_qcode (int mode, int unitnum)
 /* read table of contents */
 uae_u8 *sys_command_toc (int mode, int unitnum)
 {
-    if (mode == DF_SCSI || !have_ioctl) {
+    if (mode == DF_SCSI || !ioctl) {
 	uae_u8 cmd [10] = { 0x43,0,2,0,0,0,1,DEVICE_SCSI_BUFSIZE>>8,DEVICE_SCSI_BUFSIZE&0xFF,0};
         return device_func[DF_SCSI]->exec_in (unitnum, cmd, sizeof(cmd), 0);
     }
@@ -177,7 +177,7 @@ uae_u8 *sys_command_toc (int mode, int unitnum)
 /* read one sector */
 uae_u8 *sys_command_read (int mode, int unitnum, int offset)
 {
-    if (mode == DF_SCSI || !have_ioctl) {
+    if (mode == DF_SCSI || !ioctl) {
 	uae_u8 cmd[12] = { 0xbe, 0, 0, 0, 0, 0, 0, 0, 1, 0x10, 0, 0 };
 	cmd[3] = (uae_u8)(offset >> 16);
 	cmd[4] = (uae_u8)(offset >> 8);
@@ -189,7 +189,7 @@ uae_u8 *sys_command_read (int mode, int unitnum, int offset)
 
 struct device_info *sys_command_info (int mode, int unitnum, struct device_info *di)
 {
-    if (mode == DF_SCSI || !have_ioctl)
+    if (mode == DF_SCSI || !ioctl)
 	return device_func[DF_SCSI]->info (unitnum, di);
     else
 	return device_func[DF_IOCTL]->info (unitnum, di);

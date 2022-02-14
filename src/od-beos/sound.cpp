@@ -44,7 +44,7 @@ int init_sound (void);
 void pause_sound (void);
 void resume_sound (void);
 void reset_sound (void);
-void sound_volume (int dir);
+void sound_volume (void);
 }
 
 uae_u16 *sndbuffer;

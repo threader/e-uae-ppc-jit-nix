@@ -25,7 +25,7 @@
 #ifdef  DEBUG_ME
 #define DEBUG_LOG    write_log
 #else
-#define DEBUG_LOG(...)
+#define DEBUG_LOG(x...)
 #endif
 
 typedef int BOOL;
@@ -68,10 +68,9 @@ uae_sem_t scgp_sem;
 static int inquiry (SCSI *scgp, void *bp, int cnt)
 {
     struct scg_cmd *scmd = scgp->scmd;
-    int result;
 
-    memset (bp, 0, cnt);
-    memset ((void *)scmd, 0, sizeof(*scmd));
+    memset (bp, cnt, '\0');
+    memset ((caddr_t)scmd, sizeof(*scmd), '\0');
     scmd->addr      = bp;
     scmd->size      = cnt;
     scmd->flags     = SCG_RECV_DATA|SCG_DISRE_ENA;
@@ -83,9 +82,10 @@ static int inquiry (SCSI *scgp, void *bp, int cnt)
 
     scgp->cmdname = "inquiry";
 
-    result = scg_cmd(scgp);
+    if (scg_cmd(scgp) < 0)
+	return (-1);
 
-    return result;
+    return (0);
 }
 
 static int test_unit_ready (SCSI *scgp)
@@ -93,7 +93,9 @@ static int test_unit_ready (SCSI *scgp)
     struct scg_cmd *scmd = scgp->scmd;
     int result;
 
-    memset ((void *)scmd, 0, sizeof(*scmd));
+    uae_sem_wait (&scgp_sem);
+
+    memset((caddr_t)scmd, sizeof(*scmd), '\0');
     scmd->addr      = (caddr_t)0;
     scmd->size      = 0;
     scmd->flags     = SCG_DISRE_ENA | (scgp->silent ? SCG_SILENT:0);
@@ -104,7 +106,9 @@ static int test_unit_ready (SCSI *scgp)
 
     scgp->cmdname = "test unit ready";
 
-    result = scg_cmd (scgp);
+    result = scg_cmd(scgp);
+
+    uae_sem_post (&scgp_sem);
 
     return result;
 }
@@ -124,8 +128,7 @@ static int unit_ready (SCSI *scgp)
     }
     if ((scg_cmd_status(scgp) & ST_BUSY) != 0) {
 	/* Busy/reservation_conflict */
-	uae_msleep (500);
-
+	my_usleep (500000);
 	if (test_unit_ready(scgp) >= 0)         /* alles OK */
 	    return 1;
     }
@@ -136,6 +139,17 @@ static int unit_ready (SCSI *scgp)
     }
                                                 /* FALSE wenn NOT_READY */
     return (scg_sense_key (scgp) != SC_NOT_READY);
+}
+
+
+static int media_check (SCSI *scgp)
+{
+    int media = 0;
+
+    if (test_unit_ready (scgp) >= 0)
+	media = 1;
+
+    return media;
 }
 
 static void print_product (struct scsi_inquiry *ip)
@@ -202,9 +216,7 @@ static int execscsicmd (int unitnum, uae_u8 *data, int len, uae_u8 *inbuf, int i
     int sactual = 0;
     struct scsidevdata *sdd = &drives[unitnum];
     SCSI *scgp              = sdd->scgp;
-    struct scg_cmd *scmd;
-
-    scmd = scgp->scmd;
+    struct scg_cmd *scmd    = scgp->scmd;
 
     DEBUG_LOG ("SCSIDEV: execscicmd data=%08lx len=%d, inbuf=%08lx inlen=%d\n", data, len, inbuf, inlen);
 
@@ -223,6 +235,7 @@ static int execscsicmd (int unitnum, uae_u8 *data, int len, uae_u8 *inbuf, int i
 
     scmd->cdb_len   = len;
     memcpy (&scmd->cdb, data, len);
+
     scmd->target    = sdd->target;
     scmd->sense_len = -1;
     scmd->sense_count = 0;
@@ -236,6 +249,8 @@ static int execscsicmd (int unitnum, uae_u8 *data, int len, uae_u8 *inbuf, int i
 
     gui_cd_led (1);
 
+    scmd->ux_errno = 0;
+    scmd->error    = 0;
     scg_cmd (scgp);
 
     uae_sem_post (&scgp_sem);
@@ -245,8 +260,17 @@ static int execscsicmd (int unitnum, uae_u8 *data, int len, uae_u8 *inbuf, int i
     return scmd->size;
 }
 
+#define MODE_SELECT_6  0x15
+#define MODE_SENSE_6   0x1A
+#ifndef MODE_SENSE_10
+#define MODE_SELECT_10 0x55
+#define MODE_SENSE_10  0x5A
+#endif
+
 static int execscsicmd_direct (int unitnum, uaecptr acmd)
 {
+    DEBUG_LOG ("SCSIDEV: unit=%d: execscsicmd_direct\n", unitnum);
+
     int sactual = 0;
     struct scsidevdata *sdd = &drives[unitnum];
     SCSI *scgp              = sdd->scgp;
@@ -267,15 +291,12 @@ static int execscsicmd_direct (int unitnum, uaecptr acmd)
     uae_u8   *scsi_datap;
     uae_u8   *scsi_datap_org;
 
-    DEBUG_LOG ("SCSIDEV: unit=%d: execscsicmd_direct\n", unitnum);
-
     /* do transfer directly to and from Amiga memory */
     if (!bank_data || !bank_data->check (scsi_data, scsi_len))
 	return -5; /* IOERR_BADADDRESS */
 
     uae_sem_wait (&scgp_sem);
 
-    memset (scmd, 0, sizeof (*scmd));
     /* the Amiga does not tell us how long the timeout shall be, so make it _very_ long (specified in seconds) */
     scmd->timeout   = 80 * 60;
     scsi_datap      = scsi_datap_org = scsi_len ? bank_data->xlateaddr (scsi_data) : 0;
@@ -299,8 +320,8 @@ static int execscsicmd_direct (int unitnum, uaecptr acmd)
 
     DEBUG_LOG ("SCSIDEV: sending command: 0x%2x\n", scmd->cdb.g0_cdb.cmd);
 
-//    scmd->ux_errno = 0;
-//    scmd->error    = 0;
+    scmd->ux_errno = 0;
+    scmd->error    = 0;
     scg_cmd (scgp);
 
     DEBUG_LOG ("SCSIDEV: result: %d %d %s\n", scmd->error, scmd->ux_errno, scgp->errstr);
@@ -404,6 +425,8 @@ static int scanscsi (SCSI *scgp)
 	write_log ("scsibus%d:\n", bus);
 
 	for (tgt = 0; tgt < 16; tgt++) {
+	    struct scsi_inquiry *inq = scgp->inq;
+
 	    n = bus * 100 + tgt;
 
 	    scg_settarget (scgp, bus, tgt, lun);
@@ -422,14 +445,12 @@ static int scanscsi (SCSI *scgp)
 		continue;
 	    }
 	    if (!have_tgt) {
-		/* Hack: fd -> -2 means no access */
+             /* Hack: fd -> -2 means no access */
 		write_log( "%c\n", scgp->fd == -2 ? '?':'*');
 		continue;
 	    }
 
 	    if ((scgp->scmd->error < SCG_FATAL) || (scgp->scmd->scb.chk && scgp->scmd->sense_count > 0)) {
-        	struct scsi_inquiry *inq = scgp->inq;
-
         	inquiry (scgp, inq, sizeof (*inq));
 		print_product (inq);
 
@@ -437,7 +458,6 @@ static int scanscsi (SCSI *scgp)
 		if (inq->type == INQ_ROMD)
 		    add_drive (scgp);
 	    }
-
             write_log ("\n");
 	}
     }
@@ -451,15 +471,10 @@ static int open_scsi_bus (int flags)
     int   debug, verbose;
     char *device;
     char  errstr[128];
-    static int init=0;
 
     DEBUG_LOG ("SCSIDEV: open_scsi_bus\n");
 
-    if (!init) {
-	init = 1;
-	uae_sem_init (&scgp_sem, 0, 1);
-	/* TODO: replace global lock with per-device locks */
-    }
+    uae_sem_init (&scgp_sem, 0, 1);
 
     debug   = getenvint ("UAE_SCSI_DEBUG", 0);
     verbose = getenvint ("UAE_SCSI_VERBOSE", 0);
@@ -472,20 +487,12 @@ static int open_scsi_bus (int flags)
 	DEBUG_LOG ("SCSIDEV: can't open bus: %s\n", errstr);
     }
 
-    write_log ("SCSIDEV: %d devices found\n", total_drives);
     return result;
 }
 
 static void close_scsi_bus (void)
 {
-    int i;
-
     DEBUG_LOG ("SCSIDEV: close_scsi_bus\n");
-
-    for (i = 0; i < total_drives; i++) {
-        closescsi (drives[i].scgp);
-	drives[i].scgp = 0;
-    }
 
     scg_close (the_scgp);
 }
@@ -499,13 +506,10 @@ static int open_scsi_device (int unitnum)
     if (unitnum < total_drives) {
 	struct scsidevdata *sdd = &drives[unitnum];
 
-	if (!sdd->scgp) {
-	    if ((sdd->scgp = openscsi (sdd->bus, sdd->target, sdd->lun)) != 0)
-	        result = 1;
-	} else
-	    /* already open */
-	    result = 1;
+	if ((sdd->scgp = openscsi (sdd->bus, sdd->target, sdd->lun)) != 0)
+	   result = 1;
     }
+
     return result;
 }
 
@@ -513,23 +517,13 @@ static void close_scsi_device (int unitnum)
 {
     DEBUG_LOG ("SCSIDEV: unit=%d: close_scsi_device\n", unitnum);
 
-    /* do nothing */
-}
-
-static int media_check (SCSI *scgp)
-{
-    int media = 0;
-
-    uae_sem_wait (&scgp_sem);
-
-    if (test_unit_ready (scgp) >= 0)
-	media = 1;
-
-    uae_sem_post (&scgp_sem);
-
-    DEBUG_LOG ("SCSIDEV: media check :%d\n", media);
-
-    return media;
+    if (unitnum < total_drives) {
+	struct scsidevdata *sdd = &drives[unitnum];
+        
+        if (sdd->scgp)
+	    closescsi (sdd->scgp);
+	sdd->scgp = 0;
+    }
 }
 
 static struct device_info *info_device (int unitnum, struct device_info *di)
@@ -546,9 +540,8 @@ static struct device_info *info_device (int unitnum, struct device_info *di)
 	di->write_protected = 1;
 	di->bytespersector  = 2048;
 	di->cylinders	    = 1;
-	di->type	    = INQ_ROMD; /* We only support CD/DVD drives for now */
+	di->type	    = INQ_ROMD;
 	di->id		    = unitnum + 1;
-	/* TODO: Create a more informative device label */
 	sprintf (di->label, "(%d,%d,%d)", sdd->bus, sdd->target, sdd->lun);
     } else
 	di = 0;

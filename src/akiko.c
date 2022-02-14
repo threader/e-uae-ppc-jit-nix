@@ -24,7 +24,9 @@
 #include "threaddep/thread.h"
 #include "akiko.h"
 #include "gui.h"
+#ifndef _WIN32
 #include "sleep.h"
+#endif
 
 #define AKIKO_DEBUG_NVRAM 0
 #define AKIKO_DEBUG_IO 0
@@ -541,7 +543,7 @@ static int sys_cddev_open (void)
 			    }
 			} else {
 			    write_log ("read error\n");
-			}
+			}   
 		    } else {
 			write_log ("Audio CD\n");
 			if (audiounit < 0)
@@ -993,8 +995,12 @@ static void *akiko_thread (void *null)
 	    sector_buffer_sector_1 = sector_buffer_sector_2;
 	    sector_buffer_sector_2 = tmp3;
 	}
-	uae_sem_post (&akiko_sem);
-	uae_msleep (10);
+        uae_sem_post (&akiko_sem);
+#ifdef _WIN32        
+	Sleep (10);
+#else
+        my_usleep (10);
+#endif       
     }
     akiko_thread_running = -1;
     return 0;
@@ -1266,7 +1272,11 @@ void akiko_reset (void)
     if (akiko_thread_running > 0) {
 	akiko_thread_running = 0;
 	while(akiko_thread_running == 0)
-	    uae_msleep (10);
+#ifdef _WIN32	 
+	    Sleep (10);
+#else
+        my_usleep (10);
+#endif       
 	akiko_thread_running = 0;
     }
 }
@@ -1376,7 +1386,7 @@ uae_u8 *save_akiko(int *len)
 	save_u32 (akiko_buffer[i]);
     save_u8 ((uae_u8)akiko_read_offset);
     save_u8 ((uae_u8)akiko_write_offset);
-
+    
     save_u32 ((cdrom_playing ? 1 : 0) | (cdrom_paused ? 2 : 0));
     if (cdrom_playing)
 	cd_qcode (0);
@@ -1451,3 +1461,4 @@ void akiko_exitgui (void)
     if (cdrom_playing)
 	sys_command_pause (DF_IOCTL, unitnum, 0);
 }
+

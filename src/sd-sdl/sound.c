@@ -88,33 +88,34 @@ void update_sound (int freq)
 /* Try to determine whether sound is available. */
 int setup_sound (void)
 {
-    int success = 0;
+    int success =1;
     int size = currprefs.sound_maxbsiz;
 
-    if (SDL_InitSubSystem (SDL_INIT_AUDIO) == 0) {
-	spec.freq = currprefs.sound_freq;
-	spec.format = currprefs.sound_bits == 8 ? AUDIO_U8 : AUDIO_S16SYS;
-	spec.channels = currprefs.stereo ? 2 : 1;
-	spec.callback = dummy_callback;
-	size >>= spec.channels - 1;
-	size >>= 1;
-	while (size & (size - 1))
+    // success = (SDL_InitSubSystem (SDL_INIT_AUDIO) == 0);
+    // We can't initialize SDL audio here because with some
+    // implementations, it kills threading . . .
+    //if (success) {
+        spec.freq = currprefs.sound_freq;
+        spec.format = currprefs.sound_bits == 8 ? AUDIO_U8 : AUDIO_S16SYS;
+        spec.channels = currprefs.stereo ? 2 : 1;
+        spec.callback = dummy_callback;
+        size >>= spec.channels - 1;
+        size >>= 1;
+        while (size & (size - 1))
 	    size &= size - 1;
-	if (size < 512)
+        if (size < 512)
 	    size = 512;
-	spec.samples = size;
-	spec.callback = sound_callback;
-	spec.userdata = 0;
+        spec.samples = size;
+        spec.callback = sound_callback;
+        spec.userdata = 0;
 
-	if (SDL_OpenAudio (&spec, 0) < 0) {
+        if (SDL_OpenAudio (&spec, NULL) < 0) {
 	    write_log ("Couldn't open audio: %s\n", SDL_GetError());
-	    SDL_QuitSubSystem (SDL_INIT_AUDIO);
-	} else {
-	    success = 1;
-	    SDL_CloseAudio ();
-	}
-    }
-
+            //SDL_QuitSubSystem (SDL_INIT_AUDIO);
+  	    success = 0;
+        }
+        SDL_CloseAudio ();
+    //}
     sound_available = success;
 
     return sound_available;
@@ -163,7 +164,6 @@ static int open_sound (void)
 	currprefs.sound_bits, spec.freq, spec.samples);
     sndbufpt = sndbuffer;
     sndbufsize = size * currprefs.sound_bits / 8 * spec.channels;
-
     return 1;
 }
 
