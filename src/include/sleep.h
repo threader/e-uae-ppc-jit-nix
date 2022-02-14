@@ -1,18 +1,14 @@
  /*
   * UAE - The Un*x Amiga Emulator
   *
-  * Sleeping for *nix-like systems
+  * Sleeping for *nix systems
   *
-  * Copyright 2003-2004 Richard Drummond
+  * Copyright 2003 Richard Drummond
   */
 
 #ifdef __BEOS__
-# include <be/kernel/OS.h>
-#else
-# ifdef __AMIGA__
-#  include <proto/dos.h>
-# endif
-#endif
+#include <be/kernel/OS.h>
+#endif 
 
 /*
  * Locate an appropriate sleep routine for POSIX-like systems.
@@ -41,15 +37,11 @@
 #   else
 #    ifdef USE_SDL
 #     define my_usleep(usecs) SDL_Delay ((usecs)/1000);
-#    else
-#     if defined __AMIGA__ || defined __MORPHOS__      
-#      define my_usleep(usecs) Delay ((usecs)/20000)
-#     endif
-#    endif      
+#    endif
 #   endif
 #  endif
 # endif
-#endif 
+#endif
 
 void sleep_millis (int ms);
 void sleep_millis_busy (int ms);

@@ -4,7 +4,7 @@
   * Support for BeOS sound
   * 
   * Copyright 1996, 1997 Christian Bauer
-  * Copyright 2003-2004 Richard Drummond
+  * Copyright 2003 Richard Drummond
   */
 
 extern uae_u16 *sndbuffer;
@@ -34,4 +34,3 @@ static __inline__ void check_sound_buffers (void)
 #define DEFAULT_SOUND_BITS 16
 #define DEFAULT_SOUND_FREQ 44100
 #define HAVE_STEREO_SUPPORT
-#define HAVE_8BIT_AUDIO_SUPPORT

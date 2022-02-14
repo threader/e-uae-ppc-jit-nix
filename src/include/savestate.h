@@ -56,8 +56,8 @@ extern uae_u8 *save_custom_sprite (int *len, int num);
 extern uae_u8 *restore_custom_agacolors (uae_u8 *src);
 extern uae_u8 *save_custom_agacolors (int *len);
 
-extern uae_u8 *restore_blitter (uae_u8 *src);
-extern uae_u8 *save_blitter (int *len);
+extern uae_u8 *restore_custom_blitter (uae_u8 *src);
+extern uae_u8 *save_custom_blitter (int *len);
 
 extern uae_u8 *restore_audio (uae_u8 *, int);
 extern uae_u8 *save_audio (int *, int);
@@ -96,7 +96,6 @@ extern void restore_state (char *filename);
 extern void savestate_restore_finish (void);
 
 extern void custom_save_state (void);
-extern void custom_prepare_savestate (void);
 
 #define STATE_SAVE 1
 #define STATE_RESTORE 2

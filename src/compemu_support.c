@@ -17,13 +17,8 @@
 
 // %%% BRIAN KING WAS HERE %%%
 extern int canbang;
-
-//#ifdef HAVE_SYS_MMAN_H
-# include <sys/mman.h>
-//#endif
-#ifdef HAVE_LIMITS_H
-# include <limits.h>    /* for PAGESIZE */
-#endif
+#include <sys/mman.h>
+#include <limits.h>    /* for PAGESIZE */
 
 cpuop_func *compfunctbl[65536];
 cpuop_func *nfcompfunctbl[65536];
@@ -5293,10 +5288,8 @@ void alloc_cache(void)
 	    currprefs.cachesize/=2;
     }
     if (compiled_code) {
-#ifndef COMPILER_CACHE_NEEDS_NO_MPROTECT
 	mprotect(compiled_code,currprefs.cachesize*1024,
 		 PROT_READ|PROT_WRITE|PROT_EXEC);
-#endif
 	max_compile_start=compiled_code+currprefs.cachesize*1024-BYTES_PER_INST;
 	current_compile_p=compiled_code;
     }

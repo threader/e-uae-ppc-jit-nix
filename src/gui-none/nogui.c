@@ -31,10 +31,9 @@ void gui_exit (void)
 {
 }
 
-void gui_fps (int fps, int idle)
+void gui_fps (int fps)
 {
-    gui_data.fps  = fps;
-    gui_data.idle = idle;
+    gui_data.fps = fps;
 }
 
 void gui_led (int led, int on)
@@ -88,10 +87,6 @@ void gui_lock (void)
 }
 
 void gui_unlock (void)
-{
-}
-
-void gui_display(int shortcut)
 {
 }
 

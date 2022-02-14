@@ -12,9 +12,9 @@ typedef int (*allocfunc_type)(int, int, int, xcolnr *);
 
 extern xcolnr xcolors[4096];
 
-//extern int buttonstate[3];
-//extern int newmousecounters;
-//extern int lastmx, lastmy;
+extern int buttonstate[3];
+extern int newmousecounters;
+extern int lastmx, lastmy;
 extern int ievent_alive;
 
 extern int graphics_setup (void);
@@ -23,13 +23,6 @@ extern void graphics_leave (void);
 extern void handle_events (void);
 extern void setup_brkhandler (void);
 extern int isfullscreen (void);
-
-extern int  is_fullscreen (void);
-extern void toggle_fullscreen (void);
-extern void toggle_mousegrab (void);
-extern void framerate_down (void);
-extern void framerate_up (void);
-extern void screenshot(int mode);
 
 extern void flush_line (int);
 extern void flush_block (int, int);

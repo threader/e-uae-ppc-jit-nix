@@ -50,7 +50,6 @@
 #include "memory.h"
 #include "zfile.h"
 #include "ar.h"
-#include "autoconf.h"
 
 #include "savestate.h"
 
@@ -401,8 +400,10 @@ void restore_state (char *filename)
 	    end = restore_audio (chunk, 2);
 	else if (!strcmp (name, "AUD3"))
 	    end = restore_audio (chunk, 3);
+#if 0
 	else if (!strcmp (name, "BLIT"))
-	    end = restore_blitter (chunk);
+	    end = restore_custom_blitter (chunk);
+#endif
 	else if (!strcmp (name, "DISK"))
 	    end = restore_floppy (chunk);
 	else if (!strcmp (name, "DSK0"))
@@ -497,13 +498,6 @@ void save_state (char *filename, char *description)
     char name[5];
     int comp = savestate_docompress;
 
-#ifdef FILESYS
-    if (nr_units (currprefs.mountinfo)) {
-	gui_message("WARNING: State saves do not support harddrive emulation");
-    }
-#endif
-
-    custom_prepare_savestate ();
     f = zfile_fopen (filename, "wb");
     if (!f)
 	return;
@@ -548,9 +542,11 @@ void save_state (char *filename, char *description)
     save_chunk (f, dst, len, "CHIP", 0);
     free (dst);
 
-    dst = save_blitter (&len);
+#if 0
+    dst = save_custom_blitter (&len);
     save_chunk (f, dst, len, "BLIT", 0);
     free (dst);
+#endif
 
     dst = save_custom_agacolors (&len);
     save_chunk (f, dst, len, "AGAC", 0);
@@ -603,7 +599,6 @@ void save_state (char *filename, char *description)
     zfile_fwrite ("\0\0\0\08", 1, 4, f);
     write_log ("Save of '%s' complete\n", filename);
     zfile_fclose (f);
-    savestate_state = 0;
 }
 
 void savestate_quick (int slot, int save)
@@ -623,8 +618,8 @@ void savestate_quick (int slot, int save)
     if (slot > 0)
 	sprintf (savestate_fname + i, "_%d.uss", slot);
     if (save) {
+	savestate_state = STATE_DOSAVE;
 	savestate_docompress = 1;
-	save_state (savestate_fname, "");
     } else {
 	if (!zfile_exists (savestate_fname))
 	    return;

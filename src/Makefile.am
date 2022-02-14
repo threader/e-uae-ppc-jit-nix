@@ -1,15 +1,14 @@
 INCLUDES =  -I$(top_srcdir)/src/include -I$(top_builddir)/src -I$(top_srcdir)/src -I$(top_srcdir)
 
-SUBDIRS = @MACHDEP@ @GFXDEP@ @SNDDEP@ @JOYDEP@ @GUIDEP@ @OSDEP@ keymap dms
+SUBDIRS = @MACHDEP@ @GFXDEP@ @SNDDEP@ @JOYDEP@ @GUIDEP@ dms
 
 DIST_SUBDIRS = md-generic md-68k md-i386-gcc md-i386-watcom md-ppc \
 	       md-ppc-gcc \
-	       gfx-x11 gfx-sdl gfx-curses gfx-svga \
+	       gfx-x11 gfx-sdl \
 	       sd-af sd-file sd-mme sd-sdl sd-sgi sd-solaris sd-uss \
 	       jd-sdl \
 	       gui-none gui-gtk \
 	       od-generic od-amiga od-beos od-linux od-macos \
-	       keymap \
 	       dms
 
 BUILT_SOURCES = blit.h blitfunc.h blitfunc.c blittable.c \
@@ -48,9 +47,9 @@ noinst_HEADERS = include/akiko.h include/ar.h include/audio.h include/autoconf.h
 		 include/scsidev.h include/serial.h include/sleep.h \
 		 include/sysdeps.h include/tui.h include/uae.h \
 		 include/uaeexe.h include/unzip.h include/xwin.h \
-		 include/zfile.h include/enforcer.h include/hotkeys.h \
-	         targets/t-amiga.h targets/t-beos.h \
-	         targets/t-macos.h targets/t-unix.h \
+		 include/zfile.h \
+	         targets/t-amiga.h targets/t-ascii.h  targets/t-beos.h \
+	         targets/t-macos.h targets/t-svgalib.h  targets/t-x11.h \
 		 td-none/thread.h td-posix/thread.h td-sdl/thread.h
 
 dist_noinst_SCRIPTS = filesys.sh install_libscg
@@ -60,10 +59,10 @@ EXTRA_DIST =        tools/configure.in tools/configure tools/sysconfig.h.in \
 
 uae_SOURCES =       main.c newcpu.c fpp.c memory.c custom.c serial.c cia.c \
 	            blitter.c autoconf.c ersatz.c keybuf.c expansion.c \
-	            zfile.c cfgfile.c picasso96.c inputdevice.c \
+	            zfile.c cfgfile.c picasso96.c inputdevice.c input-dummy.c \
 	            gfxutil.c gfxlib.c audio.c drawing.c  \
 	            native2amiga.c identify.c disk.c  savestate.c unzip.c \
-	            uaeexe.c uaelib.c fdi2raw.c sleep.c hotkeys.c \
+	            uaeexe.c uaelib.c fdi2raw.c sleep.c \
 	            missing.c readcpu.c writelog.c
 
 EXTRA_uae_SOURCES = bsdsocket.c bsdsocket-posix.c build68k.c catweasel.c cdrom.c \
@@ -71,8 +70,8 @@ EXTRA_uae_SOURCES = bsdsocket.c bsdsocket-posix.c build68k.c catweasel.c cdrom.c
 		    compemu_raw_x86.c compemu_support.c compiler.c cpuopti.c \
 		    debug.c filesys.c fsdb.c fsdb_unix.c fsusage.c genblitter.c \
 		    gencpu.c gengenblitter.c genp2c.c gencomp.c hardfile.c \
-		    hardfile_unix.c linetoscr.c scsi-none.c scsidev.c \
-		    scsiemul.c svgancui.c tui.c \
+		    hardfile_unix.c linetoscr.c ncurses.c scsi-none.c scsidev.c \
+		    scsiemul.c svga.c svgancui.c tui.c \
 		    akiko.c akiko2.c ar.c blkdev.c blitops.c
 
 uae_DEPENDENCIES =	@MACHDEP@/libmachdep.a	\
@@ -80,7 +79,6 @@ uae_DEPENDENCIES =	@MACHDEP@/libmachdep.a	\
 			@SNDDEP@/libsnddep.a	\
 			@GFXDEP@/libgfxdep.a	\
 			@GUIDEP@/libguidep.a	\
-			keymap/libkeymap.a	\
 			dms/libdms.a		\
 			blitfunc.o blittable.o	\
 			cpustbl.o cpudefs.o	\
@@ -90,14 +88,13 @@ uae_DEPENDENCIES =	@MACHDEP@/libmachdep.a	\
 			@SCSIOBJS@ \
 			@DEBUGOBJS@ \
 			@ASMOBJS@ \
-			@OSDEP@/libosdep.a 
+			@OSDEPOBJS@ 
 
 uae_LDADD =		@MACHDEP@/libmachdep.a	\
 			@JOYDEP@/libjoydep.a	\
 			@SNDDEP@/libsnddep.a	\
 			@GFXDEP@/libgfxdep.a	\
 			@GUIDEP@/libguidep.a	\
-			keymap/libkeymap.a	\
 			dms/libdms.a		\
 			blitfunc.o blittable.o	\
 			cpustbl.o cpudefs.o	\
@@ -107,8 +104,8 @@ uae_LDADD =		@MACHDEP@/libmachdep.a	\
 			@SCSIOBJS@ \
 			@DEBUGOBJS@ \
 			@ASMOBJS@ \
-			@OSDEP@/libosdep.a
-
+			@OSDEPOBJS@
+		   
 
 
 readdisk_SOURCES = readdisk.c missing.c
@@ -190,12 +187,6 @@ joydep/libjoydep.a:
 
 guidep/libguidep.a:
 	$(MAKE) -C @GUIDEP@ libguidep.a		
-
-osdep/libosdep.a:
-	$(MAKE) -C @OSDEP@ libosdep.a
-
-keymap/libkeymap.a:
-	$(MAKE) -C keymap libkeymap.a
 
 md-X86.o: md-X86.S
 	$(CC) -I$(INCLUDES) $(CFLAGS) md-X86.S -c

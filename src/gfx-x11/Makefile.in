@@ -91,6 +91,7 @@ MATHLIB = @MATHLIB@
 NO_SCHED_CFLAGS = @NO_SCHED_CFLAGS@
 OBJEXT = @OBJEXT@
 OSDEP = @OSDEP@
+OSDEPOBJS = @OSDEPOBJS@
 PACKAGE = @PACKAGE@
 PACKAGE_BUGREPORT = @PACKAGE_BUGREPORT@
 PACKAGE_NAME = @PACKAGE_NAME@
@@ -98,7 +99,6 @@ PACKAGE_STRING = @PACKAGE_STRING@
 PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
-PKG_CONFIG = @PKG_CONFIG@
 PTHREAD_CC = @PTHREAD_CC@
 PTHREAD_CFLAGS = @PTHREAD_CFLAGS@
 PTHREAD_LIBS = @PTHREAD_LIBS@
@@ -171,9 +171,7 @@ AM_CFLAGS = @X_CFLAGS@
 
 noinst_LIBRARIES = libgfxdep.a
 
-libgfxdep_a_SOURCES = xwin.c x11keys.c
-
-noinst_HEADERS = gfx.h
+libgfxdep_a_SOURCES = xwin.c
 subdir = src/gfx-x11
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
@@ -183,21 +181,19 @@ LIBRARIES = $(noinst_LIBRARIES)
 
 libgfxdep_a_AR = $(AR) cru
 libgfxdep_a_LIBADD =
-am_libgfxdep_a_OBJECTS = xwin.$(OBJEXT) x11keys.$(OBJEXT)
+am_libgfxdep_a_OBJECTS = xwin.$(OBJEXT)
 libgfxdep_a_OBJECTS = $(am_libgfxdep_a_OBJECTS)
 
 DEFAULT_INCLUDES =  -I. -I$(srcdir) -I$(top_builddir)/src
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
-@AMDEP_TRUE@DEP_FILES = ./$(DEPDIR)/x11keys.Po ./$(DEPDIR)/xwin.Po
+@AMDEP_TRUE@DEP_FILES = ./$(DEPDIR)/xwin.Po
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 DIST_SOURCES = $(libgfxdep_a_SOURCES)
-HEADERS = $(noinst_HEADERS)
-
-DIST_COMMON = $(noinst_HEADERS) $(srcdir)/Makefile.in Makefile.am
+DIST_COMMON = $(srcdir)/Makefile.in Makefile.am
 SOURCES = $(libgfxdep_a_SOURCES)
 
 all: all-am
@@ -223,7 +219,6 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/x11keys.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xwin.Po@am__quote@
 
 .c.o:
@@ -336,7 +331,7 @@ distdir: $(DISTFILES)
 	done
 check-am: all-am
 check: check-am
-all-am: Makefile $(LIBRARIES) $(HEADERS)
+all-am: Makefile $(LIBRARIES)
 
 installdirs:
 install: install-am

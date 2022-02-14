@@ -4,7 +4,4 @@ AM_CFLAGS = @GTK_CFLAGS@
  
 noinst_LIBRARIES = libguidep.a
 
-libguidep_a_SOURCES = gtkui.c util.c chooserwidget.c cputypepanel.c \
-		      cpuspeedpanel.c
-
-noinst_HEADERS = util.h chooserwidget.h cputypepanel.h cpuspeedpanel.h
+libguidep_a_SOURCES = gtkui.c

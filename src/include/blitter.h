@@ -35,7 +35,6 @@ extern int blinea_shift;
 extern uae_u32 bltapt,bltbpt,bltcpt,bltdpt;
 
 extern void maybe_blit (int, int);
-extern void reset_blit (int);
 extern int blitnasty (void);
 extern int blitnnasty (int);
 extern void blitter_handler (void);
@@ -44,7 +43,6 @@ extern void do_blitter (int);
 extern void decide_blitter (int hpos);
 extern void blitter_done_notify (void);
 extern void blitter_slowdown (int, int, int, int);
-
 typedef void blitter_func(uaecptr, uaecptr, uaecptr, uaecptr, struct bltinfo *);
 
 #define BLITTER_MAX_WORDS 2048

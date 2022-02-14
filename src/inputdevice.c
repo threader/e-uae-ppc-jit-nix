@@ -36,12 +36,6 @@
 #include "picasso96.h"
 #include "catweasel.h"
 #include "debug.h"
-#include "ar.h"
-#include "gui.h"
-#include "disk.h"
-#include "sounddep/sound.h"
-
-#include <ctype.h>
 
 #define DIR_LEFT 1
 #define DIR_RIGHT 2
@@ -230,11 +224,11 @@ static void write_kbr_config (FILE *f, int idnum, int devnum, struct uae_input_d
     if (!keyboard_default)
 	return;
     i = 0;
-    while (i < MAX_INPUT_DEVICE_EVENTS && kbr->extra[i][0] >= 0) {
+    while (i < MAX_INPUT_DEVICE_EVENTS && kbr->extra[i] != 0xffff) {
 	skip = 0;
 	k = 0;
 	while (keyboard_default[k].scancode >= 0) {
-	    if (keyboard_default[k].scancode == kbr->extra[i][0]) {
+	    if (keyboard_default[k].scancode == kbr->extra[i]) {
 		skip = 1;
 		for (j = 1; j < MAX_INPUT_SUB_EVENT; j++) {
 		    if (kbr->flags[i][j] || kbr->eventid[i][j] > 0)
@@ -273,7 +267,7 @@ static void write_kbr_config (FILE *f, int idnum, int devnum, struct uae_input_d
 		strcat (p, "NULL");
 	    p += strlen(p);
 	}
-	sprintf (tmp3, "%d", kbr->extra[i][0]);
+	sprintf (tmp3, "%d", kbr->extra[i]);
 	kbrlabel (tmp3);
 	sprintf (tmp1, "keyboard.%d.button.%s", devnum, tmp3);
         cfgfile_write (f, "input.%d.%s=%s\n", idnum, tmp1, tmp2);
@@ -409,12 +403,12 @@ void read_inputdevice_config (struct uae_prefs *pr, char *option, char *value)
     if (joystick < 0) {
 	num = getnum (&p);
 	keynum = 0;
-	while (id->extra[keynum][0] >= 0) {
-	    if (id->extra[keynum][0] == num)
+	while (id->extra[keynum] >= 0) {
+	    if (id->extra[keynum] == num)
 		break;
 	    keynum++;
 	}
-	if (id->extra[keynum][0] < 0)
+	if (id->extra[keynum] < 0)
 	    return;
     } else {
 	button = -1;
@@ -687,10 +681,8 @@ static void mouseupdate (int pct)
 	    mouse_delta[i][1] -= v;
 
 	v = mouse_delta[i][2] * pct / 100;
-	if (v > 0) {
-	    write_log( "wheel_down\n" );
+	if (v > 0)
 	    record_key (0x7a << 1);
-	}
 	else if (v < 0)
 	    record_key (0x7b << 1);
         if (!mouse_deltanoreset[i][2])
@@ -1073,121 +1065,23 @@ static void queue_input_event (int event, int state, int max, int framecnt, int 
 
 static uae_u8 keybuf[256];
 
-/* Generate key up events for any keys that are 'stuck' down */
-void inputdevice_release_all_keys (void)
+void inputdevice_do_keyboard (uae_u8 key)
 {
-   int i;
-
-   for (i = 0; i < 0x80; i++) {
-        if (keybuf[i] != 0) {
-	    keybuf[i] = 0;
-	    record_key (i << 1|1);
-	}
-   }
-}
-
-void inputdevice_do_keyboard (int code, int state)
-{
-    if (code < 0x80) {
-	uae_u8 key = code | (state ? 0x00 : 0x80);
-        keybuf[key & 0x7f] = (key & 0x80) ? 0 : 1;
-	if (((keybuf[AK_CTRL] || keybuf[AK_RCTRL]) && keybuf[AK_LAMI] && keybuf[AK_RAMI]) || key == AK_RESETWARNING) {
-	    int r = keybuf[AK_LALT] | keybuf[AK_RALT];
-	    memset (keybuf, 0, sizeof (keybuf));
-	    uae_reset (r);
-	}
-	record_key ((uae_u8)((key << 1) | (key >> 7)));
-	//write_log("Amiga key %02.2X %d\n", key & 0x7f, key >> 7);
-	return;
+    keybuf[key & 0x7f] = (key & 0x80) ? 0 : 1;
+    if (((keybuf[AK_CTRL] || keybuf[AK_RCTRL]) && keybuf[AK_LAMI] && keybuf[AK_RAMI]) || key == AK_RESETWARNING) {
+	int r = keybuf[AK_LALT] | keybuf[AK_RALT];
+	memset (keybuf, 0, sizeof (keybuf));
+        uae_reset (r);
     }
-    if (state == 0)
-	return;
-    switch (code)
-    {
-	case AKS_ENTERGUI:
-	gui_display (-1);
-	break;
-	case AKS_SCREENSHOT:
-	screenshot (1);
-	break;
-#ifdef ACTION_REPLAY
-	case AKS_FREEZEBUTTON:
-	action_replay_freeze ();
-	break;
-#endif
-	case AKS_FLOPPY0:
-	gui_display (0);
-	break;
-	case AKS_FLOPPY1:
-	gui_display (1);
-	break;
-	case AKS_FLOPPY2:
-	gui_display (2);
-	break;
-	case AKS_FLOPPY3:
-	gui_display (3);
-	break;
-	case AKS_EFLOPPY0:
-	disk_eject (0);
-	break;
-	case AKS_EFLOPPY1:
-	disk_eject (1);
-	break;
-	case AKS_EFLOPPY2:
-	disk_eject (2);
-	break;
-	case AKS_EFLOPPY3:
-	disk_eject (3);
-	break;
-	case AKS_IRQ7:
-	Interrupt (7);
-	break;
-	case AKS_PAUSE:
-	pause_emulation = pause_emulation ? 0 : 1;
-	break;
-	case AKS_WARP:
-	turbo_emulation = turbo_emulation ? 0 : 1;
-	pause_emulation = 0;
-	if (turbo_emulation)
-	    pause_sound ();
-	else
-	    resume_sound ();
-	compute_vsynctime ();
-	break;
-	case AKS_INHIBITSCREEN:
-	toggle_inhibit_frame (IHF_SCROLLLOCK);
-	break;
-#ifndef _WIN32
-	case AKS_QUIT:
-	uae_quit ();
-	break;
-	case AKS_TOGGLEFULLSCREEN:
-	toggle_fullscreen ();
-	break;
-	case AKS_TOGGLEMOUSEMODE:
-	togglemouse ();
-	break;
-	case AKS_TOGGLEMOUSEGRAB:
-	toggle_mousegrab ();
-	break;
-	case AKS_INCRFRAMERATE:
-	framerate_up ();
-	break;
-	case AKS_DECRFRAMERATE:
-	framerate_down ();
-	break;
-	case AKS_SWITCHINTERPOL:
-	switch_audio_interpol ();
-	break;
-#endif
-    }
+    record_key ((uae_u8)((key << 1) | (key >> 7)));
+    //write_log("Amiga key %02.2X %d\n", key & 0x7f, key >> 7);
 }
 
 void handle_input_event (int nr, int state, int max, int autofire)
 {
     struct inputevent *ie;
     int joy;
-
+    
     if (nr <= 0) return;
     ie = &events[nr];
     //write_log("'%s' %d %d\n", ie->name, state, max);
@@ -1292,7 +1186,7 @@ void handle_input_event (int nr, int state, int max, int autofire)
 	    }
 	break;
 	case 0: /* ->KEY */
-	    inputdevice_do_keyboard (ie->data, state);
+	    inputdevice_do_keyboard (ie->data | (state ? 0x00 : 0x80));
 	break;
     }
 }
@@ -1347,7 +1241,7 @@ static void setbuttonstateall (struct uae_input_device *id, struct uae_input_dev
 	    id2->buttonmask |= mask;
 	else
 	    id2->buttonmask &= ~mask;
-    }
+    }    
 }
 
 
@@ -1460,7 +1354,7 @@ static void scanevents(struct uae_prefs *p)
 	use_keyboards[i] = 0;
 	if (keyboards[i].enabled && i < idev[IDTYPE_KEYBOARD].get_num()) {
 	    j = 0;
-	    while (keyboards[i].extra[j][0] >= 0) {
+	    while (keyboards[i].extra[j] >= 0) {
 		use_keyboards[i] = 1;
 		for (k = 0; k < MAX_INPUT_SUB_EVENT; k++) {
 		    ei = keyboards[i].eventid[j][k];
@@ -1633,17 +1527,16 @@ static void set_kbr_default (struct uae_prefs *p, int index, int num)
         kbr = &p->keyboard_settings[index][j];
 	for (i = 0; i < MAX_INPUT_DEVICE_EVENTS; i++) {
 	    memset (kbr, 0, sizeof (struct uae_input_device));
-	    kbr->extra[i][0] = -1;
+	    kbr->extra[i] = -1;
 	}
 	if (j < id->get_num ()) {
-	    if (j == 0)
-		kbr->enabled = 1;
+	    kbr->enabled = 1;
 	    for (i = 0; i < id->get_widget_num (num); i++) {
 		id->get_widget_type (num, i, 0, &scancode);
-		kbr->extra[i][0] = scancode;
+		kbr->extra[i] = scancode;
 		l = 0;
 		while (trans[l].scancode >= 0) {
-		    if (kbr->extra[i][0] == trans[l].scancode) {
+		    if (kbr->extra[i] == trans[l].scancode) {
 			for (k = 0; k < MAX_INPUT_SUB_EVENT; k++) {
 			    if (kbr->eventid[i][k] == 0) break;
 			}
@@ -1665,11 +1558,11 @@ static void set_joystick_default (struct uae_prefs *p, int index, int anum)
 {
     struct uae_input_device *uid = p->joystick_settings[index];
 
-    uid[anum].eventid[ID_AXIS_OFFSET + 0][0] = (anum & 1) ? INPUTEVENT_JOY2_HORIZ : INPUTEVENT_JOY1_HORIZ;
-    uid[anum].eventid[ID_AXIS_OFFSET + 1][0] = (anum & 1) ? INPUTEVENT_JOY2_VERT : INPUTEVENT_JOY1_VERT;
-    uid[anum].eventid[ID_BUTTON_OFFSET + 0][0] = (anum & 1) ? INPUTEVENT_JOY2_FIRE_BUTTON : INPUTEVENT_JOY1_FIRE_BUTTON;
-    uid[anum].eventid[ID_BUTTON_OFFSET + 1][0] = (anum & 1) ? INPUTEVENT_JOY2_2ND_BUTTON : INPUTEVENT_JOY1_2ND_BUTTON;
-    uid[anum].eventid[ID_BUTTON_OFFSET + 2][0] = (anum & 1) ? INPUTEVENT_JOY2_3RD_BUTTON : INPUTEVENT_JOY1_3RD_BUTTON;
+    uid[anum].eventid[ID_AXIS_OFFSET + 0][0] = anum ? INPUTEVENT_JOY2_HORIZ : INPUTEVENT_JOY1_HORIZ;
+    uid[anum].eventid[ID_AXIS_OFFSET + 1][0] = anum ? INPUTEVENT_JOY2_VERT : INPUTEVENT_JOY1_VERT;
+    uid[anum].eventid[ID_BUTTON_OFFSET + 0][0] = anum ? INPUTEVENT_JOY2_FIRE_BUTTON : INPUTEVENT_JOY1_FIRE_BUTTON;
+    uid[anum].eventid[ID_BUTTON_OFFSET + 1][0] = anum ? INPUTEVENT_JOY2_2ND_BUTTON : INPUTEVENT_JOY1_2ND_BUTTON;
+    uid[anum].eventid[ID_BUTTON_OFFSET + 2][0] = anum ? INPUTEVENT_JOY2_3RD_BUTTON : INPUTEVENT_JOY1_3RD_BUTTON;
     uid[anum].enabled = 1;
 }
 
@@ -1677,19 +1570,18 @@ static void set_mouse_default (struct uae_prefs *p, int index, int anum)
 {
     struct uae_input_device *uid = p->mouse_settings[index];
 
-    uid[anum].eventid[ID_AXIS_OFFSET + 0][0] = (anum & 1) ? INPUTEVENT_MOUSE2_HORIZ : INPUTEVENT_MOUSE1_HORIZ;
-    uid[anum].eventid[ID_AXIS_OFFSET + 1][0] = (anum & 1) ? INPUTEVENT_MOUSE2_VERT : INPUTEVENT_MOUSE1_VERT;
-    uid[anum].eventid[ID_AXIS_OFFSET + 2][0] = (anum & 1) ? 0 : INPUTEVENT_MOUSE1_WHEEL;
-    uid[anum].eventid[ID_BUTTON_OFFSET + 0][0] = (anum & 1) ? INPUTEVENT_JOY2_FIRE_BUTTON : INPUTEVENT_JOY1_FIRE_BUTTON;
-    uid[anum].eventid[ID_BUTTON_OFFSET + 1][0] = (anum & 1) ? INPUTEVENT_JOY2_2ND_BUTTON : INPUTEVENT_JOY1_2ND_BUTTON;
-    uid[anum].eventid[ID_BUTTON_OFFSET + 2][0] = (anum & 1) ? INPUTEVENT_JOY2_3RD_BUTTON : INPUTEVENT_JOY1_3RD_BUTTON;
-    if (anum == 0)
-	uid[anum].enabled = 1;
+    uid[anum].eventid[ID_AXIS_OFFSET + 0][0] = INPUTEVENT_MOUSE1_HORIZ;
+    uid[anum].eventid[ID_AXIS_OFFSET + 1][0] = INPUTEVENT_MOUSE1_VERT;
+    uid[anum].eventid[ID_AXIS_OFFSET + 2][0] = INPUTEVENT_MOUSE1_WHEEL;
+    uid[anum].eventid[ID_BUTTON_OFFSET + 0][0] = INPUTEVENT_JOY1_FIRE_BUTTON;
+    uid[anum].eventid[ID_BUTTON_OFFSET + 1][0] = INPUTEVENT_JOY1_2ND_BUTTON;
+    uid[anum].eventid[ID_BUTTON_OFFSET + 2][0] = INPUTEVENT_JOY1_3RD_BUTTON;
+    uid[anum].enabled = 1;
 }
 
 void inputdevice_default_prefs (struct uae_prefs *p)
 {
-    int i, j;
+    int i;
 
     inputdevice_init ();
     p->input_joymouse_multiplier = 20;
@@ -1700,13 +1592,10 @@ void inputdevice_default_prefs (struct uae_prefs *p)
     p->input_autofire_framecnt = 10;
     for (i = 0; i <= MAX_INPUT_SETTINGS; i++) {
         set_kbr_default (p, i, 0);
-	set_mouse_default (p, i, 0);
-	for (j = 1; j < idev[IDTYPE_MOUSE].get_num (); j++)
-	    set_mouse_default (p, i, j);
+	set_mouse_default (p, i, (i + 0) & 1);
+	set_mouse_default (p, i, (i + 1) & 1);
 	set_joystick_default (p, i, (i + 1) & 1);
 	set_joystick_default (p, i, (i + 0) & 1);
-	for (j = 2; j < idev[IDTYPE_JOYSTICK].get_num (); j++)
-	    set_joystick_default (p, i, j);
     }
 }
 
@@ -1723,8 +1612,8 @@ int inputdevice_translatekeycode (int keyboard, int scancode, int state)
     if (!keyboards || scancode < 0)
 	return 0;
     j = 0;
-    while (na->extra[j][0] >= 0) {
-        if (na->extra[j][0] == scancode) {
+    while (na->extra[j] >= 0) {
+        if (na->extra[j] == scancode) {
 	    for (k = 0; k < MAX_INPUT_SUB_EVENT; k++) {/* send key release events in reverse order */
 		int autofire = (na->flags[j][sublevdir[state  == 0 ? 1 : 0][k]] & ID_FLAG_AUTOFIRE) ? 1 : 0;
 		int event = na->eventid[j][sublevdir[state == 0 ? 1 : 0][k]];

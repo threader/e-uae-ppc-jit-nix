@@ -547,7 +547,7 @@ static void genamode (amodes mode, char *reg, wordsizes size, char *name, int ge
 	    switch (size) {
 	    case sz_byte: printf ("\tuae_s8 %s = get_byte_ce (%sa);\n", name, name); break;
 	    case sz_word: printf ("\tuae_s16 %s = get_word_ce (%sa);\n", name, name); break;
-	    case sz_long: printf ("\tuae_s32 %s = get_word_ce (%sa) << 16; %s |= get_word_ce (%sa + 2);\n", name, name, name, name); break;
+	    case sz_long: printf ("\tuae_s32 %s = get_word_ce (%sa + 2); %s |= get_word_ce (%sa) << 16;\n", name, name, name, name); break;
 	    default: abort ();
 	    }
 	} else {
@@ -640,8 +640,8 @@ static void genastore (char *from, amodes mode, char *reg, wordsizes size, char 
 	     case sz_long:
 		if (cpu_level < 2 && (mode == PC16 || mode == PC8r))
 		    abort ();
-		printf ("\tput_word_ce (%sa, %s >> 16); put_word_ce (%sa + 2, %s);\n", to, from, to, from);
-		//printf ("\tput_word_ce (%sa + 2, %s); put_word_ce (%sa, %s >> 16);\n", to, from, to, from);
+		//printf ("\tput_word_ce (%sa, %s >> 16); put_word_ce (%sa + 2, %s);\n", to, from, to, from);
+		printf ("\tput_word_ce (%sa + 2, %s); put_word_ce (%sa, %s >> 16);\n", to, from, to, from);
 		break;
 	     default:
 		abort ();
@@ -1756,7 +1756,6 @@ static void gen_opcode (unsigned long int opcode)
 	need_endlabel = 1;
 	sync_m68k_pc ();
 	if (curi->size == sz_byte) {
-	    addcycles (2);
 	    irc2ir ();
 	    fill_prefetch_2 ();
 	} else

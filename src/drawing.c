@@ -1676,16 +1676,16 @@ static int td_pos = (TD_RIGHT|TD_BOTTOM);
 
 #define TD_TOTAL_HEIGHT (TD_PADY * 2 + TD_NUM_HEIGHT)
 
-#define NUMBERS_NUM 14
+#define NUMBERS_NUM 13
 
 static char *numbers = { /* ugly */
-"+++++++--++++-+++++++++++++++++-++++++++++++++++++++++++++++++++++++++++++++-++++++-++++----++---+"
-"+xxxxx+--+xx+-+xxxxx++xxxxx++x+-+x++xxxxx++xxxxx++xxxxx++xxxxx++xxxxx++xxxx+-+x++x+-+xxx++-+xx+-+x"
-"+x+++x+--++x+-+++++x++++++x++x+++x++x++++++x++++++++++x++x+++x++x+++x++x++++-+x++x+-+x++x+--+x++x+"
-"+x+-+x+---+x+-+xxxxx++xxxxx++xxxxx++xxxxx++xxxxx+--++x+-+xxxxx++xxxxx++x+----+xxxx+-+x++x+----+x+-"
-"+x+++x+---+x+-+x++++++++++x++++++x++++++x++x+++x+--+x+--+x+++x++++++x++x++++-+x++x+-+x++x+---+x+x+"
-"+xxxxx+---+x+-+xxxxx++xxxxx+----+x++xxxxx++xxxxx+--+x+--+xxxxx++xxxxx++xxxx+-+x++x+-+xxx+---+x++xx"
-"+++++++---+++-++++++++++++++----+++++++++++++++++--+++--++++++++++++++++++++-++++++-++++----------"
+"+++++++--++++-+++++++++++++++++-++++++++++++++++++++++++++++++++++++++++++++-++++++ ++++---"
+"+xxxxx+--+xx+-+xxxxx++xxxxx++x+-+x++xxxxx++xxxxx++xxxxx++xxxxx++xxxxx++xxxx+-+x++x+ +xxx++-"
+"+x+++x+--++x+-+++++x++++++x++x+++x++x++++++x++++++++++x++x+++x++x+++x++x++++-+x++x+ +x++x+-"
+"+x+-+x+---+x+-+xxxxx++xxxxx++xxxxx++xxxxx++xxxxx+--++x+-+xxxxx++xxxxx++x+----+xxxx+ +x++x+-"
+"+x+++x+---+x+-+x++++++++++x++++++x++++++x++x+++x+--+x+--+x+++x++++++x++x++++-+x++x+ +x++x+-"
+"+xxxxx+---+x+-+xxxxx++xxxxx+----+x++xxxxx++xxxxx+--+x+--+xxxxx++xxxxx++xxxx+-+x++x+ +xxx+--"
+"+++++++---+++-++++++++++++++----+++++++++++++++++--+++--++++++++++++++++++++-++++++ ++++---"
 };
 
 STATIC_INLINE void putpixel (int x, xcolnr c8)
@@ -1733,7 +1733,7 @@ static void draw_status_line (int line)
     int x_start, y, j, led;
     
     if (td_pos & TD_RIGHT)
-        x_start = gfxvidinfo.width - TD_PADX - NUM_LEDS * TD_WIDTH;
+        x_start = gfxvidinfo.width - TD_PADX - 8 * TD_WIDTH;
     else
         x_start = TD_PADX;
 
@@ -1745,10 +1745,10 @@ static void draw_status_line (int line)
     memset (xlinebuffer, 0, gfxvidinfo.width * gfxvidinfo.pixbytes);
 
     for (led = 0; led < NUM_LEDS; led++) {
-	int side, pos, num1 = -1, num2 = -1, num3 = -1, num4 = -1, x, off_rgb, on_rgb, c, on = 0;
+	int side, pos, num1 = -1, num2 = -1, num3 = -1, x, off_rgb, on_rgb, c, on = 0;
 	if (led >= 1 && led <= 4) {
 	    int track = gui_data.drive_track[led-1];
-	    pos = 5 + (led - 1);
+	    pos = 4 + (led - 1);
 	    if (!gui_data.drive_disabled[led - 1]) {
 		num1 = -1;
 		num2 = track / 10;
@@ -1759,12 +1759,12 @@ static void draw_status_line (int line)
 	    on_rgb = 0x0c0;
 	    off_rgb = 0x030;
 	} else if (led == 0) {
-	    pos = 2;
+	    pos = 1;
 	    on = gui_data.powerled;
 	    on_rgb = 0xc00;
 	    off_rgb = 0x300;
 	} else if (led == 5) {
-	    pos = 4;
+	    pos = 3;
 	    on = gui_data.cd;
 	    on_rgb = 0x00c;
 	    off_rgb = 0x003;
@@ -1772,7 +1772,7 @@ static void draw_status_line (int line)
 	    num2 = 10;
 	    num3 = 12;
 	} else if (led == 6) {
-	    pos = 3;
+	    pos = 2;
 	    on = gui_data.hd;
 	    on_rgb = 0x00c;
 	    off_rgb = 0x003;
@@ -1781,21 +1781,12 @@ static void draw_status_line (int line)
 	    num3 = 12;
 	} else if (led == 7) {
 	    int fps = (gui_data.fps + 5) / 10;
-	    pos = 1;
-	    on_rgb = 0x000;
-	    off_rgb = 0x000;
+	    pos = 0;
+	    on_rgb = 0x300;
+	    off_rgb = 0x300;
 	    num1 = fps / 100;
 	    num2 = (fps - num1 * 100) / 10;
 	    num3 = fps % 10;
-	} else if (led == 8) {
-	    int idle = (gui_data.idle + 5) / 10;
-	    pos = 0;
-	    on_rgb = 0x000;
-	    off_rgb = 0x000;
-	    num1 = idle / 100;
-	    num2 = (idle - num1 * 100) / 10;
-	    num3 = idle % 10;
-	    num4 = 13;
 	}
 
 	c = xcolors[on ? on_rgb : off_rgb];
@@ -1814,8 +1805,6 @@ static void draw_status_line (int line)
 		}
 	        write_tdnumber (x + offs, y - TD_PADY, num2);
 		write_tdnumber (x + offs + TD_NUM_WIDTH, y - TD_PADY, num3);
-		if (num4 > 0)
-		    write_tdnumber (x + offs + 2 * TD_NUM_WIDTH, y - TD_PADY, num4);
 	    }
 	}
     }
@@ -1934,7 +1923,12 @@ void vsync_handle_redraw (int long_frame, int lof_changed)
 	frame_drawn ();
 #endif
 
-	if (savestate_state == STATE_DORESTORE) {
+	if (savestate_state == STATE_DOSAVE) {
+	    custom_prepare_savestate ();
+	    savestate_state = STATE_SAVE;
+	    save_state (savestate_fname, "Description!");
+	    savestate_state = 0;
+	} else if (savestate_state == STATE_DORESTORE) {
 	    savestate_state = STATE_RESTORE;
 	    reset_drawing ();
 	    uae_reset (0);

@@ -252,10 +252,6 @@ void check_prefs_changed_cpu (void)
     if (currprefs.cpu_idle != changed_prefs.cpu_idle) {
 	currprefs.cpu_idle = changed_prefs.cpu_idle;
     }
-   
-    if (currprefs.dont_busy_wait != changed_prefs.dont_busy_wait) {
-	currprefs.dont_busy_wait = changed_prefs.dont_busy_wait;
-    }
 }
 
 void init_m68k (void)
@@ -896,7 +892,7 @@ static void Exception_ce (int nr, uaecptr oldpc)
         put_word_ce (m68k_areg(regs, 7) + 8, regs.sr);
         put_word_ce (m68k_areg(regs, 7) + 10, last_addr_for_exception_3 >> 16);
         put_word_ce (m68k_areg(regs, 7) + 12, last_addr_for_exception_3);
-        write_log ("Exception %d at %x -> %x!\n", nr, currpc, get_long (4 * nr));
+        write_log ("Exception %d at %p!\n", nr, currpc);
         goto kludge_me_do;
     }
     m68k_areg (regs, 7) -= 4;
@@ -972,7 +968,7 @@ static void Exception_normal (int nr, uaecptr oldpc)
 	    put_word (m68k_areg(regs, 7) + 6, last_op_for_exception_3);
 	    put_word (m68k_areg(regs, 7) + 8, regs.sr);
 	    put_long (m68k_areg(regs, 7) + 10, last_addr_for_exception_3);
-	    write_log ("Exception %d at %x -> %x!\n", nr, currpc, get_long (regs.vbr + 4*nr));
+	    write_log ("Exception %d at %p!\n", nr, currpc);
 	    goto kludge_me_do;
     }
     m68k_areg(regs, 7) -= 4;
@@ -998,9 +994,6 @@ void Exception (int nr, uaecptr oldpc)
 
 void Interrupt (int nr)
 {
-#if 0
-    write_log("irq %d at %x\n", nr, m68k_getpc());
-#endif
     assert(nr < 8 && nr >= 0);
     lastint_regs = regs;
     lastint_no = nr;
@@ -1425,9 +1418,10 @@ STATIC_INLINE int in_rtarea (uaecptr pc)
 
 unsigned long REGPARAM2 op_illg (uae_u32 opcode)
 {
-    uaecptr pc = m68k_getpc ();
-    static int warned;
+    static uae_u32 lastillg = 0xffffffff;
 
+    uaecptr pc = m68k_getpc ();
+    
     if (cloanto_rom && (opcode & 0xF100) == 0x7100) {
 	m68k_dreg (regs, (opcode >> 9) & 7) = (uae_s8)(opcode & 0xFF);
 	m68k_incpc (2);
@@ -1444,6 +1438,7 @@ unsigned long REGPARAM2 op_illg (uae_u32 opcode)
     }
 
 #ifdef AUTOCONFIG
+
     if (opcode == 0xFF0D) {
 	if (in_rom (pc)) {
 	    /* This is from the dummy Kickstart replacement */
@@ -1469,10 +1464,7 @@ unsigned long REGPARAM2 op_illg (uae_u32 opcode)
 #endif
 
     if ((opcode & 0xF000) == 0xF000) {
-	if (warned < 20) {
- 	    write_log ("B-Trap %x at %x (%p)\n", opcode, m68k_getpc () + m68kpc_offset, regs.pc_p);
-	    warned++;
-	}
+ 	write_log ("B-Trap %x at %x (%p)\n", opcode, m68k_getpc () + m68kpc_offset, regs.pc_p);
 	Exception(0xB,0);
 	return 4;
     }
@@ -1486,9 +1478,9 @@ unsigned long REGPARAM2 op_illg (uae_u32 opcode)
 	Exception(0xA,0);
 	return 4;
     }
-    if (warned < 20) {
+    if (pc != lastillg) {
         write_log ("Illegal instruction: %04x at %p\n", opcode, pc);
-        warned++;
+        lastillg = pc;
     }
 
     Exception (4,0);
@@ -1502,10 +1494,10 @@ void mmu_op(uae_u32 opcode, uae_u16 extra)
     if ((opcode & 0xFE0) == 0x0500) {
 	/* PFLUSH */
 	mmusr = 0;
-	write_log ("PFLUSH @$%lx\n", m68k_getpc());
+	write_log ("PFLUSH\n");
     } else if ((opcode & 0x0FD8) == 0x548) {
 	/* PTEST */
-	write_log ("PTEST @$%lx\n", m68k_getpc());
+	write_log ("PTEST\n");
     } else
 	op_illg (opcode);
 }
@@ -1637,8 +1629,8 @@ static int do_specialties (int cycles)
 	}
 #ifdef JIT
 	if (currprefs.cpu_idle && currprefs.m68k_speed != 0 && ((regs.spcflags & SPCFLAG_STOP)) == SPCFLAG_STOP) {
-	    /* sleep 1ms if STOP-instruction is executed */
-	    if (1) {
+	    /* sleep 1ms if kickstart executes STOP-instruction */
+	    if ((munge24(m68k_getpc()) & 0xFFF00000) == 0xF00000) {
 		extern uae_u8* compiled_code;
 		static int sleepcnt, lvpos, zerocnt;
 		if (vpos != lvpos) {
@@ -1767,7 +1759,7 @@ static void m68k_run_1_ce (void)
 	    if (do_specialties (0))
 		return;
 	}
-	if (!currprefs.cpu_cycle_exact || currprefs.cpu_level > 0)
+	if (!currprefs.cpu_cycle_exact)
 	    return;
     }
 }
@@ -2161,69 +2153,6 @@ void m68k_disasm (void *f, uaecptr addr, uaecptr *nextpc, int cnt)
 	    f_out (f, " == %08lx", newpc);
 	f_out (f, "\n");
     }
-    if (nextpc)
-	*nextpc = m68k_getpc () + m68kpc_offset;
-}
-
-/*************************************************************
- Disasm the m68kcode at the given address into instrname
- and instrcode
-*************************************************************/
-void sm68k_disasm(char *instrname, char *instrcode, uaecptr addr, uaecptr *nextpc)
-{
-    char *ccpt;
-    uae_u32 opcode;
-    struct mnemolookup *lookup;
-    struct instr *dp;
-    int oldpc;
-
-    uaecptr newpc = 0;
-
-    m68kpc_offset = addr - m68k_getpc ();
-
-    oldpc = m68kpc_offset;
-    opcode = get_iword_1 (m68kpc_offset);
-    if (cpufunctbl[opcode] == op_illg_1) {
-        opcode = 0x4AFC;
-    }
-    dp = table68k + opcode;
-    for (lookup = lookuptab;lookup->mnemo != dp->mnemo; lookup++);
-
-    m68kpc_offset += 2;
-
-    strcpy (instrname, lookup->name);
-    ccpt = strstr (instrname, "cc");
-    if (ccpt != 0) {
-        strncpy (ccpt, ccnames[dp->cc], 2);
-    }
-    switch (dp->size){
-	case sz_byte: strcat (instrname, ".B "); break;
-	case sz_word: strcat (instrname, ".W "); break;
-	case sz_long: strcat (instrname, ".L "); break;
-	default: strcat (instrname, "   "); break;
-    }
-
-    if (dp->suse) {
-        newpc = m68k_getpc () + m68kpc_offset;
-        newpc += ShowEA (0, dp->sreg, dp->smode, dp->size, instrname);
-    }
-    if (dp->suse && dp->duse)
-        strcat (instrname, ",");
-    if (dp->duse) {
-        newpc = m68k_getpc () + m68kpc_offset;
-        newpc += ShowEA (0, dp->dreg, dp->dmode, dp->size, instrname);
-    }
-    
-    if (instrcode)
-    {
-	int i;
-	for (i = 0; i < (m68kpc_offset - oldpc) / 2; i++)
-	{
-	    sprintf(instrcode,"%04x ",get_iword_1 (oldpc + i * 2));
-	    instrcode += strlen(instrcode);
-	}
-    }
-
     if (nextpc)
 	*nextpc = m68k_getpc () + m68kpc_offset;
 }

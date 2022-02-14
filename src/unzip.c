@@ -8,8 +8,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include "zlib.h"
-#include "unzip.h"
 #include "zfile.h"
+#include "unzip.h"
 
 #ifdef STDC
 #  include <stddef.h>
@@ -848,16 +848,16 @@ local int unzlocal_CheckCurrentFileCoherencyHeader (s,piSizeVar,
 
 	if (unzlocal_getLong(s->file,&uData) != UNZ_OK) /* size compr */
 		err=UNZ_ERRNO;
-/*	else if ((err==UNZ_OK) && (uData!=s->cur_file_info.compressed_size) &&
+	else if ((err==UNZ_OK) && (uData!=s->cur_file_info.compressed_size) &&
 							  ((uFlags & 8)==0))
 		err=UNZ_BADZIPFILE;
-*/
+
 	if (unzlocal_getLong(s->file,&uData) != UNZ_OK) /* size uncompr */
 		err=UNZ_ERRNO;
-/*	else if ((err==UNZ_OK) && (uData!=s->cur_file_info.uncompressed_size) && 
+	else if ((err==UNZ_OK) && (uData!=s->cur_file_info.uncompressed_size) && 
 							  ((uFlags & 8)==0))
 		err=UNZ_BADZIPFILE;
-*/
+
 
 	if (unzlocal_getShort(s->file,&size_filename) != UNZ_OK)
 		err=UNZ_ERRNO;

@@ -36,8 +36,6 @@
 #include "caps/caps_win32.h"
 #endif
 
-#define write_dlog write_log
-
 /* writable track length with normal 2us bitcell/300RPM motor (PAL) */
 #define FLOPPY_WRITE_LEN (currprefs.ntscmode ? (12798 / 2) : (12668 / 2)) /* 12667 PAL, 12797 NTSC */
 /* This works out to 350 */
@@ -660,9 +658,7 @@ static char *getwritefilename (const char *name)
 	}
 	i--;
     }
-#ifdef _WIN32   
-    sprintf (name1, "%s%cSaveImages%c%s_save.adf", start_path, FSDB_DIR_SEPARATOR, FSDB_DIR_SEPARATOR, name2 + i);
-#endif   
+//    sprintf (name1, "%s%cSaveImages%c%s_save.adf", start_path, FSDB_DIR_SEPARATOR, FSDB_DIR_SEPARATOR, name2 + i);
     return name1;
 }
 
@@ -937,7 +933,7 @@ static void drive_step (drive * drv)
 #endif
     if (drv->steplimit) {
 #ifdef DISK_DEBUG2
-        write_dlog (" step ignored");
+        write_log (" step ignored");
 #endif
 	return;
     }
@@ -966,11 +962,11 @@ static void drive_step (drive * drv)
 #endif
 	}
 	if (drv->cyl >= maxtrack)
-	    write_dlog ("program tried to step over track %d\n", maxtrack);
+	    write_log("program tried to step over track %d\n", maxtrack);
     }
     rand_shifter (drv);
 #ifdef DISK_DEBUG2
-    write_dlog (" ->step %d", drv->cyl);
+    write_log (" ->step %d", drv->cyl);
 #endif
 }
 
@@ -1003,16 +999,16 @@ static void drive_motor (drive * drv, int off)
 	drv->dskready_time = DSKREADY_TIME;
         rand_shifter (drv);
 #ifdef DISK_DEBUG2
-	write_dlog (" ->motor on");
+	write_log (" ->motor on");
 #endif
     }
     if (!drv->motoroff && off) {
 	drv->drive_id_scnt = 0; /* Reset id shift reg counter */
 #ifdef DEBUG_DRIVE_ID
-	write_dlog("drive_motor: Selected DF%d: reset id shift reg.\n",drv-floppy);
+	write_log("drive_motor: Selected DF%d: reset id shift reg.\n",drv-floppy);
 #endif
 #ifdef DISK_DEBUG2
-	write_dlog (" ->motor off");
+	write_log (" ->motor off");
 #endif
     }
     drv->motoroff = off;
@@ -1430,7 +1426,7 @@ static void drive_eject (drive * drv)
     drv->dskready_time = 0;
     drive_settype_id(drv); /* Back to 35 DD */
 #ifdef DISK_DEBUG
-    write_dlog ("eject drive %d\n", drv - &floppy[0]);
+    write_log ("eject drive %d\n", drv - &floppy[0]);
 #endif
 }
 
@@ -1539,20 +1535,6 @@ static void diskfile_readonly (const char *name, int readonly)
 	chmod (name, mode);
 }
 
-static void setdskchangetime(drive *drv, int dsktime)
-{
-    int i;
-    /* prevent multiple disk insertions at the same time */
-    if (drv->dskchange_time > 0)
-	return;
-    for (i = 0; i < 4; i++) {
-	if (&floppy[i] != drv && floppy[i].dskchange_time > 0 && floppy[i].dskchange_time + 5 >= dsktime) {
-	    dsktime = floppy[i].dskchange_time + 5;
-	}
-    }
-    drv->dskchange_time = dsktime;
-}
-
 int disk_setwriteprotect (int num, const char *name, int protect)
 {
     int needwritefile, oldprotect;
@@ -1583,7 +1565,7 @@ int disk_setwriteprotect (int num, const char *name, int protect)
         diskfile_readonly (name, protect);
     diskfile_readonly (name2, protect);
     drive_eject (&floppy[num]);
-    setdskchangetime (&floppy[num], 20);
+    floppy[num].dskchange_time = 20; /* 2 second disk change delay */
     return 1;
 }
 
@@ -1599,7 +1581,6 @@ void disk_insert (int num, const char *name)
 {
     drive *drv = floppy + num;
     strcpy (drv->newname, name);
-    strcpy (currprefs.df[num], name);
     if (name[0] == 0) {
 	disk_eject (num);
     } else if (!drive_empty(drv) || drv->dskchange_time > 0) {
@@ -1608,9 +1589,10 @@ void disk_insert (int num, const char *name)
 	 * called from DISK_check_change() after 2 second delay
 	 * this makes sure that all programs detect disk change correctly
 	 */
-	setdskchangetime (drv, 20);
+	drv->dskchange_time = 20; /* 2 second disk change delay */
     } else {
-	setdskchangetime (drv, 1);
+	/* no delayed insert if drive is already empty */
+	drive_insert (drv, num, name);
     }
 }
 
@@ -1644,7 +1626,7 @@ void DISK_check_change (void)
 	    if (drv->dskchange_time == 0) {
 		drive_insert (drv, i, drv->newname);
 #ifdef DISK_DEBUG
-		write_dlog ("delayed insert, drive %d, image '%s'\n", i, drv->newname);
+		write_log ("delayed insert, drive %d, image '%s'\n", i, drv->newname);
 #endif
 	    }
 	}
@@ -1675,7 +1657,7 @@ void DISK_select (uae_u8 data)
     static int step;
 
 #ifdef DISK_DEBUG2
-    write_dlog ("%08.8X %02.2X %s", m68k_getpc(), data, tobin(data));
+    write_log ("%08.8X %02.2X %s", m68k_getpc(), data, tobin(data));
 #endif
     lastselected = selected;
     selected = (data >> 3) & 15;
@@ -1684,20 +1666,20 @@ void DISK_select (uae_u8 data)
     step_pulse = data & 1;
 
 #ifdef DISK_DEBUG2
-    write_dlog (" %d%d%d%d% ", (selected & 1) ? 0 : 1, (selected & 2) ? 0 : 1, (selected & 4) ? 0 : 1, (selected & 8) ? 0 : 1);
+    write_log (" %d%d%d%d% ", (selected & 1) ? 0 : 1, (selected & 2) ? 0 : 1, (selected & 4) ? 0 : 1, (selected & 8) ? 0 : 1);
     if ((prevdata & 0x80) != (data & 0x80))
-	write_dlog (" dskmotor %d ", (data & 0x80) ? 1 : 0);
+	write_log (" dskmotor %d ", (data & 0x80) ? 1 : 0);
     if ((prevdata & 0x02) != (data & 0x02))
-	write_dlog (" direct %d ", (data & 0x02) ? 1 : 0);
+	write_log (" direct %d ", (data & 0x02) ? 1 : 0);
     if ((prevdata & 0x04) != (data & 0x04))
-	write_dlog (" side %d ", (data & 0x04) ? 1 : 0);
+	write_log (" side %d ", (data & 0x04) ? 1 : 0);
 #endif
 
     selected |= disabled;
 
     if (step != step_pulse) {
 #ifdef DISK_DEBUG2
-	write_dlog (" dskstep %d ", step_pulse);
+	write_log (" dskstep %d ", step_pulse);
 #endif
 	step = step_pulse;
 	if (step && !savestate_state) {
@@ -1732,7 +1714,7 @@ void DISK_select (uae_u8 data)
 			drv->idbit = 1;
 		}
 #ifdef DEBUG_DRIVE_ID
-		write_dlog("DISK_status: sel %d id %s (%08.8X) [0x%08lx, bit #%02d: %d]\n",
+		write_log("DISK_status: sel %d id %s (%08.8X) [0x%08lx, bit #%02d: %d]\n",
 		    dr, drive_id_name(drv), drv->drive_id, drv->drive_id << drv->drive_id_scnt, 31 - drv->drive_id_scnt, drv->idbit);
 #endif
 	    }
@@ -1770,9 +1752,6 @@ uae_u8 DISK_status (void)
 		/* report drive ID */
 		if (drv->idbit)
 		    st &= ~0x20;
-//		if (dr == 0 && currprefs.dfxtype[dr] == DRV_35_DD &&
-//		    drv->motoroff && drv->motorcycle + CYCLE_UNIT * 1 > get_cycles())
-//		    st &= ~0x20, write_log("x %d\n", get_cycles());
 	    }
 	    if (drive_track0 (drv))
 		st &= ~0x10;
@@ -1840,7 +1819,7 @@ static void disk_dmafinished (void)
     INTREQ (0x8002);
     dskdmaen = 0;
 #ifdef DISK_DEBUG
-    write_dlog("disk dma finished %08.8X\n", dskpt);
+    write_log("disk dma finished %08.8X\n", dskpt);
 #endif
 }    
 
@@ -1858,7 +1837,7 @@ void DISK_handler (void)
 	INTREQ (0x8000 | 0x1000);
     }
     if (flag & DISK_INDEXSYNC) {
-	cia_diskindex ();
+       cia_diskindex ();
     }
 }
 
@@ -1936,7 +1915,7 @@ static void disk_doupdate_predict (drive * drv, int startcycle)
 	}
 	mfmpos++;
 	mfmpos %= drv->tracklen;
-	if (!mfmpos)
+	if (!mfmpos && drv->dskready)
 	    diskevent_flag |= DISK_INDEXSYNC;
 	startcycle += drv->trackspeed;
     }
@@ -2015,6 +1994,7 @@ static void disk_doupdate_read (drive * drv, int floppybits)
 	    dsklength--;
 	    if (dsklength < 0)
 	        disk_dmafinished ();
+	    //write_log ("->dma %04.4X\n", word);
 	}
 	if ((bitoffset & 7) == 7) {
 	    dskbytr_val = word & 0xff;
@@ -2023,10 +2003,6 @@ static void disk_doupdate_read (drive * drv, int floppybits)
 	if (word == dsksync) {
 	    if (adkcon & 0x400)
 	        bitoffset = 15;
-#ifdef DISK_DEBUG
-	    if (dma_enable == 0)
-		write_dlog ("Sync match, DMA started at %d\n", drv->mfmpos);
-#endif
 	    dma_enable = 1;
 	}
 	
@@ -2072,9 +2048,7 @@ uae_u16 DSKBYTR (int hpos)
 	v |= 0x4000;
     if (dsklen & 0x4000)
 	v |= 0x2000;
-#ifdef DISK_DEBUG
-    write_dlog ("DSKBYTR=%04.4X hpos=%d\n", v, hpos);
-#endif
+//    write_log ("DSKBYTR=%04.4X hpos=%d\n", v, hpos);
     return v;
 }
 
@@ -2180,10 +2154,10 @@ void DSKLEN (uae_u16 v, int hpos)
 	/* Megalomania and Knightmare does this */
 #ifdef DISK_DEBUG
 	    if (dskdmaen == 2)
-		write_dlog ("warning: Disk read DMA aborted, %d words left\n", dsklength);
+		write_log ("warning: Disk read DMA aborted, %d words left\n", dsklength);
 #endif
 	    if (dskdmaen == 3)
-		write_dlog ("warning: Disk write DMA aborted, %d words left\n", dsklength);
+		write_log ("warning: Disk write DMA aborted, %d words left\n", dsklength);
 	    dskdmaen = 0;
 	}
     }
@@ -2210,10 +2184,9 @@ void DSKLEN (uae_u16 v, int hpos)
         write_log ("disk %s DMA started but no drive selected!\n",
     	       dskdmaen == 3 ? "write" : "read");
     else
-        write_log ("disk %s DMA started, drv=%x track %d mfmpos %d\n",
-	    dskdmaen == 3 ? "write" : "read", selected ^ 15,
-	    floppy[dr].cyl * 2 + side, floppy[dr].mfmpos);
-    write_dlog ("LEN=%04.4X (%d) SYNC=%04.4X PT=%08.8X ADKCON=%04.4X PC=%08.8X\n", 
+        write_log ("disk %s DMA started, track %d mfmpos %d\n",
+	       dskdmaen == 3 ? "write" : "read", floppy[dr].cyl * 2 + side, floppy[dr].mfmpos);
+    write_log ("LEN=%04.4X (%d) SYNC=%04.4X PT=%08.8X ADKCON=%04.4X PC=%08.8X\n", 
 	dsklength, dsklength, (adkcon & 0x400) ? dsksync : 0xffff, dskpt, adkcon, m68k_getpc());
 #endif
 
@@ -2301,7 +2274,7 @@ void DSKDAT (uae_u16 v)
     static int count = 0;
     if (count < 5) {
 	count++;
-	write_dlog ("%04.4X written to DSKDAT. Not good. PC=%08.8X", v, m68k_getpc());
+	write_log ("%04.4X written to DSKDAT. Not good. PC=%08.8X", v, m68k_getpc());
 	if (count == 5)
 	    write_log ("(further messages suppressed)");
 
@@ -2391,7 +2364,7 @@ void DISK_restore_custom (uae_u32 pdskpt, uae_u16 pdsklength, uae_u16 pdskbytr)
 uae_u8 *restore_disk(int num,uae_u8 *src)
 {
     drive *drv;
-    int state, dfxtype;
+    int state;
 
     drv = &floppy[num];
     disabled &= ~(1 << num);
@@ -2400,28 +2373,10 @@ uae_u8 *restore_disk(int num,uae_u8 *src)
     drv->idbit = 0;
     state = restore_u8 ();
     if (state & 2) {
-	disabled |= 1 << num;
-	if (changed_prefs.nr_floppies > num)
-	    changed_prefs.nr_floppies = num;
-	changed_prefs.dfxtype[num] = -1;
+       disabled |= 1 << num;
     } else {
 	drv->motoroff = (state & 1) ? 0 : 1;
 	drv->idbit = (state & 4) ? 1 : 0;
-	if (changed_prefs.nr_floppies < num)
-	    changed_prefs.nr_floppies = num;
-	switch (drv->drive_id)
-	{
-	    case DRIVE_ID_35HD:
-	    dfxtype = DRV_35_HD;
-	    break;
-	    case DRIVE_ID_525SD:
-	    dfxtype = DRV_525_SD;
-	    break;
-	    default:
-	    dfxtype = DRV_35_DD;
-	    break;
-	}
-	changed_prefs.dfxtype[num] = dfxtype;
     }
     drv->cyl = restore_u8 ();
     drv->dskready = restore_u8 ();

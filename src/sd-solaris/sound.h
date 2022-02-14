@@ -37,4 +37,3 @@ static __inline__ void check_sound_buffers (void)
 #define DEFAULT_SOUND_MINB 8192
 #define DEFAULT_SOUND_BITS 16
 #define DEFAULT_SOUND_FREQ 44100
-#define HAVE_ULAW_AUDIO_SUPPORT

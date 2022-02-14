@@ -27,8 +27,8 @@
 #include "blkdev.h"
 #include "scsidev.h"
 
-#define dev_debug
 //#define dev_debug write_log
+#define dev_debug
 #define CDDEV_COMMANDS
 
 #define UAEDEV_SCSI "uaescsi.device"
@@ -619,7 +619,7 @@ static void dev_reset (void)
     int i, j;
     struct devstruct *dev;
     struct device_info *discsi, discsi2;
-    int unitnum = 0;
+    int fixunits = 1;
 
     device_func_init (DEVICE_TYPE_SCSI);
     for (i = 0; i < MAX_TOTAL_DEVICES; i++) {
@@ -647,10 +647,13 @@ static void dev_reset (void)
 	if (sys_command_open (DF_SCSI, j)) {
 	    discsi = sys_command_info (DF_SCSI, j, &discsi2);
 	    sys_command_close (DF_SCSI, j);
-	}
+	} else break;
         if (discsi) {
             dev->unitnum = j;
 	    dev->allow_scsi = 1;
+	    dev->aunit = BTL2UNIT (discsi->bus, discsi->target, discsi->lun);
+	    if (discsi->target != 0 || discsi->lun != 0)
+		fixunits = 0;
 	    dev->drivetype = discsi->type;
 	    memcpy (&dev->di, discsi, sizeof (struct device_info));
 	    if (discsi->type == INQ_ROMD)
@@ -659,26 +662,19 @@ static void dev_reset (void)
 	i++;
 	j++;
     }
-    unitnum = 0;
-    for (i = 0; i < MAX_TOTAL_DEVICES; i++) {
-        dev = &devst[i];
-	if (dev->unitnum >= 0 && dev->iscd) {
-	    dev->aunit = unitnum;
-	    unitnum++;
+    if (fixunits) {
+        for (i = 0; i < MAX_TOTAL_DEVICES; i++) {
+	    dev = &devst[i];
+	    if (dev->unitnum >= 0 && dev->allow_scsi)
+		dev->aunit = BTL2UNIT (0, dev->di.bus, 0);
 	}
     }
-    if (unitnum == 0)
-	unitnum = 1;
     for (i = 0; i < MAX_TOTAL_DEVICES; i++) {
         dev = &devst[i];
-	if (dev->unitnum >= 0) {
-	    if (!dev->iscd) {
-		dev->aunit = unitnum;
-		unitnum++;
-	    }
+	if (dev->unitnum >= 0 && dev->allow_scsi)
 	    write_log ("%s = %s:%d\n", dev->di.label, UAEDEV_SCSI, dev->aunit);
-	}
     }
+    memset (pdevst, 0, sizeof (pdevst));
 }
 
 static uaecptr ROM_scsidev_resname = 0,

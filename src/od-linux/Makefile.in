@@ -91,6 +91,7 @@ MATHLIB = @MATHLIB@
 NO_SCHED_CFLAGS = @NO_SCHED_CFLAGS@
 OBJEXT = @OBJEXT@
 OSDEP = @OSDEP@
+OSDEPOBJS = @OSDEPOBJS@
 PACKAGE = @PACKAGE@
 PACKAGE_BUGREPORT = @PACKAGE_BUGREPORT@
 PACKAGE_NAME = @PACKAGE_NAME@
@@ -98,7 +99,6 @@ PACKAGE_STRING = @PACKAGE_STRING@
 PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
-PKG_CONFIG = @PKG_CONFIG@
 PTHREAD_CC = @PTHREAD_CC@
 PTHREAD_CFLAGS = @PTHREAD_CFLAGS@
 PTHREAD_LIBS = @PTHREAD_LIBS@
@@ -167,10 +167,9 @@ target_os = @target_os@
 target_vendor = @target_vendor@
 INCLUDES = -I$(top_srcdir)/src/include -I$(top_builddir)/src -I$(top_srcdir)/src -I$(top_srcdir)
 
-noinst_LIBRARIES = libjoydep.a libosdep.a
+noinst_LIBRARIES = libjoydep.a
 
 libjoydep_a_SOURCES = joystick.c
-libosdep_a_SOURCES = main.c
 
 noinst_HEADERS = exectasks.h memory.h
 subdir = src/od-linux
@@ -184,24 +183,20 @@ libjoydep_a_AR = $(AR) cru
 libjoydep_a_LIBADD =
 am_libjoydep_a_OBJECTS = joystick.$(OBJEXT)
 libjoydep_a_OBJECTS = $(am_libjoydep_a_OBJECTS)
-libosdep_a_AR = $(AR) cru
-libosdep_a_LIBADD =
-am_libosdep_a_OBJECTS = main.$(OBJEXT)
-libosdep_a_OBJECTS = $(am_libosdep_a_OBJECTS)
 
 DEFAULT_INCLUDES =  -I. -I$(srcdir) -I$(top_builddir)/src
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
-@AMDEP_TRUE@DEP_FILES = ./$(DEPDIR)/joystick.Po ./$(DEPDIR)/main.Po
+@AMDEP_TRUE@DEP_FILES = ./$(DEPDIR)/joystick.Po
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-DIST_SOURCES = $(libjoydep_a_SOURCES) $(libosdep_a_SOURCES)
+DIST_SOURCES = $(libjoydep_a_SOURCES)
 HEADERS = $(noinst_HEADERS)
 
 DIST_COMMON = $(noinst_HEADERS) $(srcdir)/Makefile.in Makefile.am
-SOURCES = $(libjoydep_a_SOURCES) $(libosdep_a_SOURCES)
+SOURCES = $(libjoydep_a_SOURCES)
 
 all: all-am
 
@@ -219,10 +214,6 @@ libjoydep.a: $(libjoydep_a_OBJECTS) $(libjoydep_a_DEPENDENCIES)
 	-rm -f libjoydep.a
 	$(libjoydep_a_AR) libjoydep.a $(libjoydep_a_OBJECTS) $(libjoydep_a_LIBADD)
 	$(RANLIB) libjoydep.a
-libosdep.a: $(libosdep_a_OBJECTS) $(libosdep_a_DEPENDENCIES) 
-	-rm -f libosdep.a
-	$(libosdep_a_AR) libosdep.a $(libosdep_a_OBJECTS) $(libosdep_a_LIBADD)
-	$(RANLIB) libosdep.a
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT) core *.core
@@ -231,7 +222,6 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/joystick.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	if $(COMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" \

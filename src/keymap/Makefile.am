@@ -1,8 +1,0 @@
-INCLUDES =  -I$(top_srcdir)/src/include -I$(top_builddir)/src -I$(top_srcdir)/src -I$(top_srcdir)
-
-noinst_LIBRARIES = libkeymap.a
-
-libkeymap_a_SOURCES = x11pc_rawkeys.c quartz_rawkeys.c beos_rawkeys.c
-
-noinst_HEADERS = x11pc_rawkeys.h quartz_rawkeys.h beos_rawkeys.h \
-	         keymap_common.h keymap_all.h hotkeys_common.h

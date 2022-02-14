@@ -91,6 +91,7 @@ MATHLIB = @MATHLIB@
 NO_SCHED_CFLAGS = @NO_SCHED_CFLAGS@
 OBJEXT = @OBJEXT@
 OSDEP = @OSDEP@
+OSDEPOBJS = @OSDEPOBJS@
 PACKAGE = @PACKAGE@
 PACKAGE_BUGREPORT = @PACKAGE_BUGREPORT@
 PACKAGE_NAME = @PACKAGE_NAME@
@@ -98,7 +99,6 @@ PACKAGE_STRING = @PACKAGE_STRING@
 PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
-PKG_CONFIG = @PKG_CONFIG@
 PTHREAD_CC = @PTHREAD_CC@
 PTHREAD_CFLAGS = @PTHREAD_CFLAGS@
 PTHREAD_LIBS = @PTHREAD_LIBS@
@@ -169,15 +169,14 @@ INCLUDES = -I$(top_srcdir)/src/include -I$(top_builddir)/src -I$(top_srcdir)/src
 
 AM_CXXFLAGS = $(CFLAGS) -Wno-multichar
 
-noinst_LIBRARIES = libjoydep.a libsnddep.a libgfxdep.a libguidep.a libosdep.a
+noinst_LIBRARIES = libjoydep.a libsnddep.a libgfxdep.a libguidep.a
 
 libjoydep_a_SOURCES = joystick.cpp
 libsnddep_a_SOURCES = sound.cpp
-libgfxdep_a_SOURCES = beos.cpp
-libguidep_a_SOURCES = gui.cpp
-libosdep_a_SOURCES = main.cpp
+libgfxdep_a_SOURCES = gfx.c
+libguidep_a_SOURCES = beos.cpp
 
-noinst_HEADERS = exectasks.h gfx.h memory.h sound.h
+noinst_HEADERS = exectasks.h memory.h sound.h
 subdir = src/od-beos
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
@@ -187,20 +186,16 @@ LIBRARIES = $(noinst_LIBRARIES)
 
 libgfxdep_a_AR = $(AR) cru
 libgfxdep_a_LIBADD =
-am_libgfxdep_a_OBJECTS = beos.$(OBJEXT)
+am_libgfxdep_a_OBJECTS = gfx.$(OBJEXT)
 libgfxdep_a_OBJECTS = $(am_libgfxdep_a_OBJECTS)
 libguidep_a_AR = $(AR) cru
 libguidep_a_LIBADD =
-am_libguidep_a_OBJECTS = gui.$(OBJEXT)
+am_libguidep_a_OBJECTS = beos.$(OBJEXT)
 libguidep_a_OBJECTS = $(am_libguidep_a_OBJECTS)
 libjoydep_a_AR = $(AR) cru
 libjoydep_a_LIBADD =
 am_libjoydep_a_OBJECTS = joystick.$(OBJEXT)
 libjoydep_a_OBJECTS = $(am_libjoydep_a_OBJECTS)
-libosdep_a_AR = $(AR) cru
-libosdep_a_LIBADD =
-am_libosdep_a_OBJECTS = main.$(OBJEXT)
-libosdep_a_OBJECTS = $(am_libosdep_a_OBJECTS)
 libsnddep_a_AR = $(AR) cru
 libsnddep_a_LIBADD =
 am_libsnddep_a_OBJECTS = sound.$(OBJEXT)
@@ -209,26 +204,28 @@ libsnddep_a_OBJECTS = $(am_libsnddep_a_OBJECTS)
 DEFAULT_INCLUDES =  -I. -I$(srcdir) -I$(top_builddir)/src
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
-@AMDEP_TRUE@DEP_FILES = ./$(DEPDIR)/beos.Po ./$(DEPDIR)/gui.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/joystick.Po ./$(DEPDIR)/main.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/sound.Po
+@AMDEP_TRUE@DEP_FILES = ./$(DEPDIR)/beos.Po ./$(DEPDIR)/gfx.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/joystick.Po ./$(DEPDIR)/sound.Po
+COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
+	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+CCLD = $(CC)
+LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
 CXXLD = $(CXX)
 CXXLINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
 	-o $@
 DIST_SOURCES = $(libgfxdep_a_SOURCES) $(libguidep_a_SOURCES) \
-	$(libjoydep_a_SOURCES) $(libosdep_a_SOURCES) \
-	$(libsnddep_a_SOURCES)
+	$(libjoydep_a_SOURCES) $(libsnddep_a_SOURCES)
 HEADERS = $(noinst_HEADERS)
 
 DIST_COMMON = $(noinst_HEADERS) $(srcdir)/Makefile.in Makefile.am
-SOURCES = $(libgfxdep_a_SOURCES) $(libguidep_a_SOURCES) $(libjoydep_a_SOURCES) $(libosdep_a_SOURCES) $(libsnddep_a_SOURCES)
+SOURCES = $(libgfxdep_a_SOURCES) $(libguidep_a_SOURCES) $(libjoydep_a_SOURCES) $(libsnddep_a_SOURCES)
 
 all: all-am
 
 .SUFFIXES:
-.SUFFIXES: .cpp .o .obj
+.SUFFIXES: .c .cpp .o .obj
 $(srcdir)/Makefile.in:  Makefile.am  $(top_srcdir)/configure.in $(ACLOCAL_M4)
 	cd $(top_srcdir) && \
 	  $(AUTOMAKE) --foreign  src/od-beos/Makefile
@@ -249,10 +246,6 @@ libjoydep.a: $(libjoydep_a_OBJECTS) $(libjoydep_a_DEPENDENCIES)
 	-rm -f libjoydep.a
 	$(libjoydep_a_AR) libjoydep.a $(libjoydep_a_OBJECTS) $(libjoydep_a_LIBADD)
 	$(RANLIB) libjoydep.a
-libosdep.a: $(libosdep_a_OBJECTS) $(libosdep_a_DEPENDENCIES) 
-	-rm -f libosdep.a
-	$(libosdep_a_AR) libosdep.a $(libosdep_a_OBJECTS) $(libosdep_a_LIBADD)
-	$(RANLIB) libosdep.a
 libsnddep.a: $(libsnddep_a_OBJECTS) $(libsnddep_a_DEPENDENCIES) 
 	-rm -f libsnddep.a
 	$(libsnddep_a_AR) libsnddep.a $(libsnddep_a_OBJECTS) $(libsnddep_a_LIBADD)
@@ -265,10 +258,31 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/beos.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gui.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gfx.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/joystick.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sound.Po@am__quote@
+
+.c.o:
+@am__fastdepCC_TRUE@	if $(COMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o $@ `test -f '$<' || echo '$(srcdir)/'`$<; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/$*.Tpo" "$(DEPDIR)/$*.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/$*.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/$*.Po' tmpdepfile='$(DEPDIR)/$*.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(COMPILE) -c `test -f '$<' || echo '$(srcdir)/'`$<
+
+.c.obj:
+@am__fastdepCC_TRUE@	if $(COMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o $@ `if test -f '$<'; then $(CYGPATH_W) '$<'; else $(CYGPATH_W) '$(srcdir)/$<'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/$*.Tpo" "$(DEPDIR)/$*.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/$*.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/$*.Po' tmpdepfile='$(DEPDIR)/$*.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(COMPILE) -c `if test -f '$<'; then $(CYGPATH_W) '$<'; else $(CYGPATH_W) '$(srcdir)/$<'; fi`
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	if $(CXXCOMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" \

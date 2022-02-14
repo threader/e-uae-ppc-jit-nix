@@ -27,6 +27,8 @@ extern void notice_screen_contents_lost (void);
 extern void init_row_map (void);
 extern void init_hz (void);
 
+extern void custom_prepare_savestate (void);
+
 extern int picasso_requested_on;
 extern int picasso_on;
 extern int turbo_emulation;
@@ -91,8 +93,7 @@ extern uae_u16 INTREQR (void);
 #define VBLANK_HZ_PAL 50
 #define VBLANK_HZ_NTSC 60
 
-extern int maxhpos, maxvpos, minfirstline, vblank_endline, numscrlines;
-extern int vblank_hz, fake_vblank_hz, vblank_skip;
+extern int maxhpos, maxvpos, minfirstline, vblank_endline, numscrlines, vblank_hz;
 extern unsigned long syncbase;
 #define NUMSCRLINES (maxvpos+1-minfirstline+1)
 
@@ -152,7 +153,7 @@ extern int bpl_off[8];
 
 /* get resolution from bplcon0 */
 STATIC_INLINE int GET_RES (uae_u16 con0)
-{
+{   
     int res = ((con0) & 0x8000) ? RES_HIRES : ((con0) & 0x40) ? RES_SUPERHIRES : RES_LORES;
     return res;
 }
@@ -160,6 +161,3 @@ STATIC_INLINE int GET_RES (uae_u16 con0)
 #define GET_SPRITEWIDTH(FMODE) ((((FMODE) >> 2) & 3) == 3 ? 64 : (((FMODE) >> 2) & 3) == 0 ? 16 : 32)
 /* Compute the number of bitplanes from a value written to BPLCON0  */
 #define GET_PLANES(x) ((((x) >> 12) & 7) | (((x) & 0x10) >> 1))
-
-extern void fpscounter_reset (void);
-extern unsigned long idletime;

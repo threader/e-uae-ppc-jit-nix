@@ -1,10 +1,10 @@
  /*
   * UAE - The Un*x Amiga Emulator
   *
-  * SDL graphics support
+  * SDL interface
   *
   * Copyright 2001 Bernd Lachner (EMail: dev@lachner-net.de)
-  * Copyright 2003-2004 Richard Drummond
+  * Copyright 2003 Richard Drummond
   *
   * Partialy based on the UAE X interface (xwin.c)
   *
@@ -17,6 +17,9 @@
 
 #include "sysconfig.h"
 #include "sysdeps.h"
+
+#include <unistd.h>
+#include <signal.h>
 
 #include <SDL.h>
 #include <SDL_endian.h>
@@ -33,16 +36,42 @@
 #include "debug.h"
 #include "picasso96.h"
 #include "inputdevice.h"
-#include "hotkeys.h"
-#include "sdlgfx.h"
 
 /* Uncomment for debugging output */
 //#define DEBUG
 #ifdef DEBUG
-#define DEBUG_LOG write_log
+#define DEBUG_LOG write_log( "%s: ", __func__); write_log
 #else
 #define DEBUG_LOG(...) do ; while(0)
 #endif
+
+#ifdef __cplusplus
+static RETSIGTYPE sigbrkhandler(...)
+#else
+static RETSIGTYPE sigbrkhandler (int foo)
+#endif
+{
+    activate_debugger();
+#if !defined(__unix) || defined(__NeXT__)
+    signal (SIGINT, sigbrkhandler);
+#endif
+}
+
+void setup_brkhandler (void)
+{
+#if defined(__unix) && !defined(__NeXT__)
+    struct sigaction sa;
+    sa.sa_handler = sigbrkhandler;
+    sa.sa_flags = 0;
+#ifdef SA_RESTART
+    sa.sa_flags = SA_RESTART;
+#endif
+    sigemptyset (&sa.sa_mask);
+    sigaction (SIGINT, &sa, NULL);
+#else
+    signal (SIGINT, sigbrkhandler);
+#endif
+}
 
 /* SDL variable for output surface */
 static SDL_Surface *prSDLScreen = NULL;
@@ -67,61 +96,64 @@ static int bitdepth, bit_unit;
 static int current_width, current_height;
 
 static SDL_Color arSDLColors[256];
-static int ncolors;
+static int ncolors = 0;
+
+static int keystate[256];
 
 static int fullscreen;
 static int mousegrab;
 
-static int have_rawkeys;
+static void togglefullscreen(void);
+static void handle_mousegrab(void);
+static void handle_inhibit(void);
+static void framerate_up(void);
+static void framerate_down(void);
+static void handle_interpol (void);
 
-/* This isn't supported yet.
- * gui_handle_events() needs to be reworked fist
- */
-int pause_emulation;
-
-
-
-/*
- * What graphics platform are we running on . . .?
- *
- * Yes, SDL is supposed to abstract away from the underlying
- * platform, but we need to know this to be able to map raw keys
- * and to work around any platform-specific quirks . . .
- */
-int get_sdlgfx_type (void)
+struct SDLHotKey
 {
-    char name[16] = "";
-    static int driver = SDLGFX_DRIVER_UNKNOWN;
-    static int search_done = 0;
+    SDLKey aHotKeys[2];
+    void (*pfHandler)(void);
+    long aPressedKeys[2];
+};
 
-    if (!search_done) {
-	if (SDL_VideoDriverName (name, sizeof name)) {
-	    if (strcmp (name, "x11")==0)
-		driver = SDLGFX_DRIVER_X11;
-	    else if (strcmp (name, "dga") == 0)
-		driver = SDLGFX_DRIVER_DGA;
-	    else if (strcmp (name, "svgalib") == 0)
-		driver = SDLGFX_DRIVER_SVGALIB;
-	    else if (strcmp (name, "fbcon") == 0)
-		driver = SDLGFX_DRIVER_FBCON;
-	    else if (strcmp (name, "directfb") == 0)
-		driver = SDLGFX_DRIVER_DIRECTFB;
-	    else if (strcmp (name, "Quartz") == 0)
-		driver = SDLGFX_DRIVER_QUARTZ;
-	    else if (strcmp (name, "bwindow") == 0)
-		driver = SDLGFX_DRIVER_BWINDOW;
-	}
-	search_done = 1;
-
-	DEBUG_LOG ("SDL video driver: %s\n", name);
-    }
-    return driver;
-}
-
+#ifdef USE_F11_FOR_HOTKEYS
+/* This is a hack which will be cleaned up later - Rich.
+ * The F12 key doesn't seem to work under MacOS X (at least on the two systems
+ * I've tried): key up/down events are only generated when the key is released,
+ * so it's no use as a hot-key modifier. Use F11 instead.
+ */
+static struct SDLHotKey arHotKeys[] =
+{
+    {{ SDLK_F11, SDLK_s},	 togglefullscreen,	{0, 0} },
+    {{ SDLK_F11, SDLK_q},	 uae_quit,		{0, 0} },
+    {{ SDLK_F11, SDLK_m},	 togglemouse,		{0, 0} },
+    {{ SDLK_F11, SDLK_g},	 handle_mousegrab,	{0, 0} },
+    {{ SDLK_F11, SDLK_i},	 handle_inhibit,	{0, 0} },
+    {{ SDLK_F11, SDLK_p},	 handle_interpol,	{0, 0} },
+    {{ SDLK_F11, SDLK_KP_PLUS},	 framerate_up,		{0, 0} },
+    {{ SDLK_F11, SDLK_KP_MINUS}, framerate_down,	{0, 0} },
+    {{ 0, 0 }, 			 NULL, 			{0, 0} }  /* List must be terminated */
+};
+#else
+static struct SDLHotKey arHotKeys[] =
+{
+    {{ SDLK_F12, SDLK_s},	 togglefullscreen,	{0, 0} },
+    {{ SDLK_F12, SDLK_q},	 uae_quit,		{0, 0} },
+    {{ SDLK_F12, SDLK_m},	 togglemouse,		{0, 0} },
+    {{ SDLK_F12, SDLK_g},	 handle_mousegrab,	{0, 0} },
+    {{ SDLK_F12, SDLK_i},	 handle_inhibit,	{0, 0} },
+    {{ SDLK_F12, SDLK_p},	 handle_interpol,	{0, 0} },
+    {{ SDLK_F12, SDLK_KP_PLUS},	 framerate_up,		{0, 0} },
+    {{ SDLK_F12, SDLK_KP_MINUS}, framerate_down,	{0, 0} },
+    {{ 0, 0 }, 			 NULL, 			{0, 0} }  /* List must be terminated */
+};
+#endif
 
 void flush_line (int y)
 {
     DEBUG_LOG ("Function: flush_line\n");
+
     /* Not implemented for SDL output */
 }
 
@@ -145,14 +177,11 @@ void flush_screen (int ystart, int ystop)
 
 void flush_clear_screen (void)
 {
-    DEBUG_LOG ("Function: flush_clear_screen\n");
+   DEBUG_LOG ("Function: flush_clear_screen\n");
 
-    if (prSDLScreen) {
-	SDL_Rect rect = { 0, 0, prSDLScreen->w, prSDLScreen->h };
-	SDL_FillRect (prSDLScreen, &rect, 0);
-	SDL_UpdateRect (prSDLScreen, 0, 0, rect.w, rect.h);
-    }
+   /* Not implemented yet. It probably needs to be - Rich */
 }
+
 
 STATIC_INLINE int bitsInMask (unsigned long mask)
 {
@@ -251,22 +280,16 @@ static int get_display_depth (void)
     DEBUG_LOG ("Function: get_display_depth()\n");
 
     if ((vid_info = SDL_GetVideoInfo())) {
-	depth = vid_info->vfmt->BitsPerPixel;
+        depth = vid_info->vfmt->BitsPerPixel;
 
-	/* Don't trust the answer if it's 16 bits; the colour
-	 * depth may actually be 15 bits. Why we can't just
-	 * get a straight answer here, I don't know . . . */
-	if (depth == 16) {
-	    if (get_sdlgfx_type () == SDLGFX_DRIVER_QUARTZ)
-		/* Be extra paranoid for MacOS X. 16 bits always means
-		 * 15 bits of colour */
-		depth = 15;
-	    else
-		/* Otherwise, we'll count the bits ourselves */
-		depth = bitsInMask (vid_info->vfmt->Rmask) +
-			bitsInMask (vid_info->vfmt->Gmask) +
-			bitsInMask (vid_info->vfmt->Bmask);
-	    }
+	/* Don't trust the answer if it's 16 bits; the display
+	 * could actually be 15 bits deep. We'll count the bits
+	 * ourselves */
+	if (depth == 16)
+	    depth = bitsInMask (vid_info->vfmt->Rmask) +
+	            bitsInMask (vid_info->vfmt->Gmask) +
+	            bitsInMask (vid_info->vfmt->Bmask);
+
 	    DEBUG_LOG ("Display is %d bits deep\n", depth);
     }
     return depth;
@@ -311,17 +334,9 @@ static int find_best_mode (int *width, int *height, int depth)
 
 int graphics_setup (void)
 {
-    int result = 0;
-
     DEBUG_LOG ("Function: graphics_setup\n");
 
-    if (SDL_WasInit (SDL_INIT_VIDEO) == 0)
-        result = (SDL_InitSubSystem (SDL_INIT_VIDEO) == 0);
-    else
-        result = 1;
-
-    /* Don't need to do anything else right now */
-    return result;
+    return (SDL_InitSubSystem(SDL_INIT_VIDEO)==0);
 }
 
 static int graphics_subinit (void)
@@ -330,10 +345,7 @@ static int graphics_subinit (void)
 
     DEBUG_LOG ("Function: graphics_subinit\n");
 
-    /* Always ask for a HW surface - we'll rarely get one, but
-     * we may as well try. ;-) */
-    uiSDLVidModFlags = SDL_HWSURFACE;
-
+    uiSDLVidModFlags = SDL_SWSURFACE;
     if (bitdepth == 8)
 	uiSDLVidModFlags |= SDL_HWPALETTE;
     if (fullscreen)
@@ -343,22 +355,19 @@ static int graphics_subinit (void)
 
     prSDLScreen = SDL_SetVideoMode (current_width, current_height, bitdepth, uiSDLVidModFlags);
 
+    /* Are these values what we expected? */
+#ifdef PICASSO96   
+    DEBUG_LOG ("P96 screen?   : %d\n", screen_is_picasso);
+#endif
+    DEBUG_LOG ("Fullscreen    : %d\n", fullscreen);
+    DEBUG_LOG ("Mouse grabbed?: %d\n", mousegrab);
+
     if (prSDLScreen == NULL) {
-	gui_message ("Unable to set video mode: %s\n", SDL_GetError ());
+	write_log ("Unable to set video mode: %s\n", SDL_GetError ());
 	return 0;
     } else {
-	/* Just in case we didn't get exactly what we asked for . . . */
-	fullscreen = ((prSDLScreen->flags & SDL_FULLSCREEN) == SDL_FULLSCREEN);
-
-	/* Are these values what we expected? */
-#	ifdef PICASSO96
-	    DEBUG_LOG ("P96 screen?    : %d\n", screen_is_picasso);
-#	endif
-	DEBUG_LOG ("Fullscreen?    : %d\n", fullscreen);
-	DEBUG_LOG ("Mouse grabbed? : %d\n", mousegrab);
-	DEBUG_LOG ("HW surface?    : %d\n", prSDLScreen->flags & SDL_HWSURFACE);
 	DEBUG_LOG ("Bytes per Pixel: %d\n", prSDLScreen->format->BytesPerPixel);
-	DEBUG_LOG ("Bytes per Line : %d\n", prSDLScreen->pitch);
+	DEBUG_LOG ("Bytes per Line:  %d\n", prSDLScreen->pitch);
 
 	/* CLear surface */
 	SDL_LockSurface (prSDLScreen);
@@ -379,12 +388,9 @@ static int graphics_subinit (void)
 	/* Hide mouse cursor */
 	SDL_ShowCursor (SDL_DISABLE);
 
-        inputdevice_release_all_keys ();
-        reset_hotkeys ();
-
-#ifdef PICASSO96
+#ifdef PICASSO96       
 	if (!screen_is_picasso) {
-#endif
+#endif	   
 	    /* Initialize structure for Amiga video modes */
 	    gfxvidinfo.bufmem = prSDLScreen->pixels;
 	    gfxvidinfo.linemem = 0;
@@ -394,12 +400,10 @@ static int graphics_subinit (void)
 	    gfxvidinfo.rowbytes = prSDLScreen->pitch;
 	    gfxvidinfo.maxblocklines = 100;
 	    gfxvidinfo.can_double = 0;
-#ifdef PICASSO96
+#ifdef PICASSO96	   
 	} else {
 	    /* Initialize structure for Picasso96 video modes */
-//	    picasso_vidinfo.rowbytes = current_width * gfxvidinfo.pixbytes
-//	    That won't always work - SDL may have given us a different width
-	    picasso_vidinfo.rowbytes = prSDLScreen->pitch;
+	    picasso_vidinfo.rowbytes = current_width * gfxvidinfo.pixbytes;
 	    picasso_vidinfo.extra_mem = 1;
 	    picasso_vidinfo.depth = bitdepth;
 	    picasso_has_invalid_lines = 0;
@@ -407,7 +411,7 @@ static int graphics_subinit (void)
 	    picasso_invalid_stop = -1;
 	    memset (picasso_invalid_lines, 0, sizeof picasso_invalid_lines);
 	}
-#endif
+#endif       
     }
 
     return 1;
@@ -424,7 +428,7 @@ int graphics_init (void)
 	currprefs.color_mode = 0;
     }
 
-#ifdef PICASSO96
+#ifdef PICASSO96   
     screen_is_picasso = 0;
 #endif
     fullscreen = currprefs.gfx_afullscreen;
@@ -437,15 +441,20 @@ int graphics_init (void)
     bitdepth       = get_display_depth();
 
     if (find_best_mode (&current_width, &current_height, bitdepth)) {
-	gfxvidinfo.width  = current_width;
-	gfxvidinfo.height = current_height;
+        gfxvidinfo.width  = current_width;
+        gfxvidinfo.height = current_height;
 
 	if (graphics_subinit ()) {
 	    if (init_colors ()) {
+		int i;
+        	for (i = 0; i < 256; i++)
+		    keystate[i] = 0;
+
 		success = 1;
 	    }
 	}
     }
+
     return success;
 }
 
@@ -464,11 +473,332 @@ void graphics_leave (void)
     dumpcustom ();
 }
 
+/* Decode KeySyms. This function knows about all keys that are common
+ * between different keyboard languages. */
+static int kc_decode (SDL_keysym *prKeySym)
+{
+    switch (prKeySym->sym) {
+	case SDLK_b: return AK_B;
+	case SDLK_c: return AK_C;
+	case SDLK_d: return AK_D;
+	case SDLK_e: return AK_E;
+	case SDLK_f: return AK_F;
+	case SDLK_g: return AK_G;
+	case SDLK_h: return AK_H;
+	case SDLK_i: return AK_I;
+	case SDLK_j: return AK_J;
+	case SDLK_k: return AK_K;
+	case SDLK_l: return AK_L;
+	case SDLK_n: return AK_N;
+	case SDLK_o: return AK_O;
+	case SDLK_p: return AK_P;
+	case SDLK_r: return AK_R;
+	case SDLK_s: return AK_S;
+	case SDLK_t: return AK_T;
+	case SDLK_u: return AK_U;
+	case SDLK_v: return AK_V;
+	case SDLK_x: return AK_X;
+
+	case SDLK_0: return AK_0;
+	case SDLK_1: return AK_1;
+	case SDLK_2: return AK_2;
+	case SDLK_3: return AK_3;
+	case SDLK_4: return AK_4;
+	case SDLK_5: return AK_5;
+	case SDLK_6: return AK_6;
+	case SDLK_7: return AK_7;
+	case SDLK_8: return AK_8;
+	case SDLK_9: return AK_9;
+
+	case SDLK_KP0: return AK_NP0;
+	case SDLK_KP1: return AK_NP1;
+	case SDLK_KP2: return AK_NP2;
+	case SDLK_KP3: return AK_NP3;
+	case SDLK_KP4: return AK_NP4;
+	case SDLK_KP5: return AK_NP5;
+	case SDLK_KP6: return AK_NP6;
+	case SDLK_KP7: return AK_NP7;
+	case SDLK_KP8: return AK_NP8;
+	case SDLK_KP9: return AK_NP9;
+	case SDLK_KP_DIVIDE: return AK_NPDIV;
+	case SDLK_KP_MULTIPLY: return AK_NPMUL;
+	case SDLK_KP_MINUS: return AK_NPSUB;
+	case SDLK_KP_PLUS: return AK_NPADD;
+	case SDLK_KP_PERIOD: return AK_NPDEL;
+	case SDLK_KP_ENTER: return AK_ENT;
+
+	case SDLK_F1: return AK_F1;
+	case SDLK_F2: return AK_F2;
+	case SDLK_F3: return AK_F3;
+	case SDLK_F4: return AK_F4;
+	case SDLK_F5: return AK_F5;
+	case SDLK_F6: return AK_F6;
+	case SDLK_F7: return AK_F7;
+	case SDLK_F8: return AK_F8;
+	case SDLK_F9: return AK_F9;
+	case SDLK_F10: return AK_F10;
+
+	case SDLK_BACKSPACE: return AK_BS;
+	case SDLK_DELETE: return AK_DEL;
+	case SDLK_LCTRL: return AK_CTRL;
+	case SDLK_RCTRL: return AK_RCTRL;
+	case SDLK_TAB: return AK_TAB;
+	case SDLK_LALT: return AK_LALT;
+	case SDLK_RALT: return AK_RALT;
+	case SDLK_RMETA: return AK_RAMI;
+	case SDLK_LMETA: return AK_LAMI;
+	case SDLK_RETURN: return AK_RET;
+	case SDLK_SPACE: return AK_SPC;
+	case SDLK_LSHIFT: return AK_LSH;
+	case SDLK_RSHIFT: return AK_RSH;
+	case SDLK_ESCAPE: return AK_ESC;
+
+	case SDLK_INSERT: return AK_HELP;
+	case SDLK_HOME: return AK_NPLPAREN;
+	case SDLK_END: return AK_NPRPAREN;
+	case SDLK_CAPSLOCK: return AK_CAPSLOCK;
+
+	case SDLK_UP: return AK_UP;
+	case SDLK_DOWN: return AK_DN;
+	case SDLK_LEFT: return AK_LF;
+	case SDLK_RIGHT: return AK_RT;
+
+	case SDLK_PAGEUP: return AK_RAMI;          /* PgUp mapped to right amiga */
+	case SDLK_PAGEDOWN: return AK_LAMI;        /* PgDn mapped to left amiga */
+
+	/* This should enable mapping of Windows keys
+	 * to Amiga keys - Rich */
+	case SDLK_LSUPER: return AK_LAMI;
+	case SDLK_RSUPER: return AK_RAMI;
+
+	default: return -1;
+    }
+}
+
+static int decode_fr (SDL_keysym *prKeySym)
+{
+    switch(prKeySym->sym) {
+	/* FR specific */
+	case SDLK_a: return AK_Q;
+	case SDLK_m: return AK_SEMICOLON;
+    case SDLK_q: return AK_A;
+    case SDLK_y: return AK_Y;
+    case SDLK_w: return AK_Z;
+    case SDLK_z: return AK_W;
+    case SDLK_LEFTBRACKET: return AK_LBRACKET;
+    case SDLK_RIGHTBRACKET: return AK_RBRACKET;
+    case SDLK_COMMA: return AK_M;
+    case SDLK_LESS: case SDLK_GREATER: return AK_LTGT;
+    case SDLK_PERIOD: case SDLK_SEMICOLON: return AK_COMMA;
+    case SDLK_RIGHTPAREN: return AK_MINUS;
+    case SDLK_EQUALS: return AK_SLASH;
+    case SDLK_HASH: return AK_NUMBERSIGN;
+    case SDLK_SLASH: return AK_PERIOD;
+    case SDLK_MINUS: return AK_EQUAL;
+    case SDLK_BACKSLASH: return AK_BACKSLASH;
+    default: return -1;
+    }
+}
+
+static int decode_us (SDL_keysym *prKeySym)
+{
+    switch(prKeySym->sym)
+    {
+	/* US specific */
+	case SDLK_a: return AK_A;
+	case SDLK_m: return AK_M;
+	case SDLK_q: return AK_Q;
+	case SDLK_y: return AK_Y;
+	case SDLK_w: return AK_W;
+	case SDLK_z: return AK_Z;
+	case SDLK_LEFTBRACKET: return AK_LBRACKET;
+	case SDLK_RIGHTBRACKET: return AK_RBRACKET;
+	case SDLK_COMMA: return AK_COMMA;
+	case SDLK_PERIOD: return AK_PERIOD;
+	case SDLK_SLASH: return AK_SLASH;
+	case SDLK_SEMICOLON: return AK_SEMICOLON;
+	case SDLK_MINUS: return AK_MINUS;
+	case SDLK_EQUALS: return AK_EQUAL;
+	case SDLK_QUOTE: return AK_QUOTE;
+	case SDLK_BACKQUOTE: return AK_BACKQUOTE;
+	case SDLK_BACKSLASH: return AK_BACKSLASH;
+	default: return -1;
+    }
+}
+
+static int decode_de (SDL_keysym *prKeySym)
+{
+    switch(prKeySym->sym) {
+	/* DE specific */
+	case SDLK_a: return AK_A;
+	case SDLK_m: return AK_M;
+	case SDLK_q: return AK_Q;
+	case SDLK_w: return AK_W;
+	case SDLK_y: return AK_Z;
+	case SDLK_z: return AK_Y;
+	/* German umlaut oe */
+	case SDLK_WORLD_86: return AK_SEMICOLON;
+	/* German umlaut ae */
+	case SDLK_WORLD_68: return AK_QUOTE;
+	/* German umlaut ue */
+	case SDLK_WORLD_92: return AK_LBRACKET;
+	case SDLK_PLUS: case SDLK_ASTERISK: return AK_RBRACKET;
+	case SDLK_COMMA: return AK_COMMA;
+	case SDLK_PERIOD: return AK_PERIOD;
+	case SDLK_LESS: case SDLK_GREATER: return AK_LTGT;
+	case SDLK_HASH: return AK_NUMBERSIGN;
+	/* German sharp s */
+	case SDLK_WORLD_63: return AK_MINUS;
+	case SDLK_QUOTE: return AK_EQUAL;
+	case SDLK_CARET: return AK_BACKQUOTE;
+	case SDLK_MINUS: return AK_SLASH;
+	default: return -1;
+    }
+}
+
+static int decode_dk (SDL_keysym *prKeySym)
+{
+    switch(prKeySym->sym) {
+	/* Partial mapping of DK-specific keys
+	 * SDL has no keysyms for dead keys: diaeresis, acute, circumflex */
+	case SDLK_a: return AK_A;
+	case SDLK_m: return AK_M;
+	case SDLK_q: return AK_Q;
+	case SDLK_w: return AK_W;
+	case SDLK_y: return AK_Y;
+	case SDLK_z: return AK_Z;
+	/* Danish AE */
+	case SDLK_WORLD_88: return AK_SEMICOLON;
+	/* Danish o oblique */
+	case SDLK_WORLD_68: return AK_QUOTE;
+	/* Danish A ring */
+	case SDLK_WORLD_69: return AK_LBRACKET;
+	/* one half - SDL has no 'section'? */
+	case SDLK_WORLD_70: return AK_BACKQUOTE;
+	case SDLK_COMMA: return AK_COMMA;
+	case SDLK_PERIOD: return AK_PERIOD;
+	case SDLK_LESS: case SDLK_GREATER: return AK_LTGT;
+	case SDLK_HASH: return AK_NUMBERSIGN;
+	case SDLK_PLUS: return AK_MINUS;
+	case SDLK_MINUS: return AK_SLASH;
+	default: return -1;
+    }
+}
+
+static int decode_se (SDL_keysym *prKeySym)
+{
+    switch(prKeySym->sym) {
+	/* SE specific */
+	case SDLK_a: return AK_A;
+	case SDLK_m: return AK_M;
+	case SDLK_q: return AK_Q;
+	case SDLK_w: return AK_W;
+	case SDLK_y: return AK_Y;
+	case SDLK_z: return AK_Z;
+	case SDLK_WORLD_86: return AK_SEMICOLON;
+	case SDLK_WORLD_68: return AK_QUOTE;
+	case SDLK_WORLD_69: return AK_LBRACKET;
+	case SDLK_COMMA: return AK_COMMA;
+	case SDLK_PERIOD: return AK_PERIOD;
+	case SDLK_MINUS: return AK_SLASH;
+	case SDLK_LESS: case SDLK_GREATER: return AK_LTGT;
+	case SDLK_PLUS: case SDLK_QUESTION: return AK_EQUAL;
+	case SDLK_AT: case SDLK_WORLD_29: return AK_BACKQUOTE;
+	case SDLK_CARET: return AK_RBRACKET;
+	case SDLK_BACKSLASH: return AK_MINUS;
+	case SDLK_HASH: return AK_NUMBERSIGN;
+	default: return -1;
+    }
+}
+
+static int decode_it (SDL_keysym *prKeySym)
+{
+    switch(prKeySym->sym) {
+	/* IT specific */
+	case SDLK_a: return AK_A;
+	case SDLK_m: return AK_M;
+	case SDLK_q: return AK_Q;
+	case SDLK_w: return AK_W;
+	case SDLK_y: return AK_Y;
+	case SDLK_z: return AK_Z;
+	case SDLK_WORLD_82: return AK_SEMICOLON;
+	case SDLK_WORLD_64: return AK_QUOTE;
+	case SDLK_WORLD_72: return AK_LBRACKET;
+	case SDLK_PLUS: case SDLK_ASTERISK: return AK_RBRACKET;
+	case SDLK_COMMA: return AK_COMMA;
+	case SDLK_PERIOD: return AK_PERIOD;
+	case SDLK_LESS: case SDLK_GREATER: return AK_LTGT;
+	case SDLK_BACKSLASH: return AK_BACKQUOTE;
+	case SDLK_QUOTE: return AK_MINUS;
+	case SDLK_WORLD_76: return AK_EQUAL;
+	case SDLK_MINUS: return AK_SLASH;
+	case SDLK_HASH: return AK_NUMBERSIGN;
+	default: return -1;
+    }
+}
+
+static int decode_es (SDL_keysym *prKeySym)
+{
+    switch(prKeySym->sym) {
+	/* ES specific */
+	case SDLK_a: return AK_A;
+	case SDLK_m: return AK_M;
+	case SDLK_q: return AK_Q;
+	case SDLK_w: return AK_W;
+	case SDLK_y: return AK_Y;
+	case SDLK_z: return AK_Z;
+	case SDLK_WORLD_81: return AK_SEMICOLON;
+	case SDLK_PLUS: case SDLK_ASTERISK: return AK_RBRACKET;
+	case SDLK_COMMA: return AK_COMMA;
+	case SDLK_PERIOD: return AK_PERIOD;
+	case SDLK_LESS: case SDLK_GREATER: return AK_LTGT;
+	case SDLK_BACKSLASH: return AK_BACKQUOTE;
+	case SDLK_QUOTE: return AK_MINUS;
+	case SDLK_WORLD_76: return AK_EQUAL;
+	case SDLK_MINUS: return AK_SLASH;
+	case SDLK_HASH: return AK_NUMBERSIGN;
+	default: return -1;
+    }
+}
+
+static int keycode2amiga(SDL_keysym *prKeySym)
+{
+    int iAmigaKeycode = kc_decode (prKeySym);
+
+    if (iAmigaKeycode == -1) {
+	switch (currprefs.keyboard_lang) {
+	    case KBD_LANG_FR:
+		return decode_fr (prKeySym);
+	    case KBD_LANG_US:
+		return decode_us (prKeySym);
+	    case KBD_LANG_DE:
+		return decode_de (prKeySym);
+	    case KBD_LANG_DK:
+		return decode_dk (prKeySym);
+	    case KBD_LANG_SE:
+		return decode_se (prKeySym);
+	    case KBD_LANG_IT:
+		return decode_it (prKeySym);
+	    case KBD_LANG_ES:
+		return decode_es (prKeySym);
+	    default:
+		return -1;
+	}
+    }
+    return iAmigaKeycode;
+}
+
 static int refresh_necessary = 0;
 
 void handle_events (void)
 {
     SDL_Event rEvent;
+    int iAmigaKeyCode;
+    int i, j;
+    int iIsHotKey = 0;
+    int buttonno = 0;
+
+//    DEBUG_LOG ("Function: handle_events\n");
 
     gui_handle_events ();
 
@@ -479,44 +809,76 @@ void handle_events (void)
 		uae_quit();
 		break;
 
-	    case SDL_MOUSEBUTTONDOWN:
-	    case SDL_MOUSEBUTTONUP: {
-		int state = (rEvent.type == SDL_MOUSEBUTTONDOWN);
-		int buttonno = -1;
+	    case SDL_KEYDOWN:
+		DEBUG_LOG ("Event: key down\n");
 
-		DEBUG_LOG ("Event: mouse button %d %s\n", rEvent.button.button, state ? "down" : "up");
+		/* Check for hotkey sequence */
+		i = 0;
+		while (arHotKeys[i].pfHandler != NULL) {
+		    if (rEvent.key.keysym.sym == arHotKeys[i].aHotKeys[0]) {
+			arHotKeys[i].aPressedKeys[0] = 1;
+			iIsHotKey = 1;
+		    }
+		    if (arHotKeys[i].aPressedKeys[0] == 1 &&
+			rEvent.key.keysym.sym == arHotKeys[i].aHotKeys[1]) {
+			arHotKeys[i].aPressedKeys[1] = 1;
+			arHotKeys[i].pfHandler();
+			iIsHotKey = 1;
+		    }
+		    i++;
+		}
+		if (iIsHotKey == 0) {
+		    /* No hotkey sequence */
+		    iAmigaKeyCode = keycode2amiga (&(rEvent.key.keysym));
+		    if (iAmigaKeyCode >= 0) {
+			if (!keystate[iAmigaKeyCode]) {
+			    keystate[iAmigaKeyCode] = 1;
+			    record_key (iAmigaKeyCode << 1);
+			}
+		    }
+		}
+		break;
+
+	    case SDL_KEYUP:
+		DEBUG_LOG ("Event: key up\n");
+
+		/* Check for hotkey sequence */
+		i = 0;
+		while (arHotKeys[i].pfHandler != NULL) {
+		    for (j = 0; j < 2; j++) {
+			if (rEvent.key.keysym.sym == arHotKeys[i].aHotKeys[j] &&
+					arHotKeys[i].aPressedKeys[j] == 1) {
+			    arHotKeys[i].aPressedKeys[j] = 0;
+			    iIsHotKey = 1;
+			}
+		    }
+		    i++;
+		}
+		if (iIsHotKey == 0) {
+		    iAmigaKeyCode = keycode2amiga (&(rEvent.key.keysym));
+		    if (iAmigaKeyCode >= 0) {
+			keystate[iAmigaKeyCode] = 0;
+			record_key ((iAmigaKeyCode << 1) | 1);
+		    }
+		}
+	        break;
+
+	    case SDL_MOUSEBUTTONDOWN:
+            case SDL_MOUSEBUTTONUP:
+		if (rEvent.type == SDL_MOUSEBUTTONDOWN)
+		    DEBUG_LOG ("Event: mouse button down\n");
+		else
+		    DEBUG_LOG ("Event: mouse button up\n");
 
 		switch (rEvent.button.button) {
-		    case SDL_BUTTON_LEFT:      buttonno = 0; break;
-		    case SDL_BUTTON_MIDDLE:    buttonno = 2; break;
-		    case SDL_BUTTON_RIGHT:     buttonno = 1; break;
-		    case SDL_BUTTON_WHEELUP:   if (state) record_key (0x7a << 1); break;
-		    case SDL_BUTTON_WHEELDOWN: if (state) record_key (0x7b << 1); break;
+		    case SDL_BUTTON_LEFT:   buttonno = 0; break;
+		    case SDL_BUTTON_MIDDLE: buttonno = 2; break;
+		    case SDL_BUTTON_RIGHT:  buttonno = 1; break;
+		    default: buttonno = -1;
 		}
 		if (buttonno >= 0)
 		    setmousebuttonstate (0, buttonno, rEvent.type == SDL_MOUSEBUTTONDOWN ? 1:0);
 		break;
-	    }
-
-  	    case SDL_KEYUP:
-	    case SDL_KEYDOWN: {
-		int state = (rEvent.type == SDL_KEYDOWN);
-		int keycode = currprefs.map_raw_keys ? rEvent.key.keysym.scancode : rEvent.key.keysym.sym;
-		int ievent;
-
-		DEBUG_LOG ("Event: key %d %s\n", keycode, state ? "down" : "up");
-
-		if ((ievent = match_hotkey_sequence (keycode, state))) {
-		     DEBUG_LOG ("Hotkey event: %d\n", ievent);
-		     handle_hotkey_event (ievent, state);
-		} else {
-		     if (currprefs.map_raw_keys)
-			inputdevice_translatekeycode (0, keycode, state);
-		     else
-			inputdevice_do_keyboard (keysym2amiga (keycode), state);
-		}
-		break;
-	    }
 
 	    case SDL_MOUSEMOTION:
 		DEBUG_LOG ("Event: mouse motion\n");
@@ -527,14 +889,6 @@ void handle_events (void)
 		} else {
 		    setmousestate (0, 0, rEvent.motion.xrel, 0);
 		    setmousestate (0, 1, rEvent.motion.yrel, 0);
-		}
-		break;
-	   
-	  case SDL_ACTIVEEVENT:
-		if (rEvent.active.state & SDL_APPINPUTFOCUS && !rEvent.active.gain) {
-		    DEBUG_LOG ("Lost input focus\n");
-		    inputdevice_release_all_keys ();
-		    reset_hotkeys ();
 		}
 		break;
 	} /* end switch() */
@@ -569,53 +923,34 @@ void handle_events (void)
     picasso_invalid_start = picasso_vidinfo.height + 1;
     picasso_invalid_stop = -1;
 #endif
-}
 
-static void switch_keymaps (void)
-{
-    if (currprefs.map_raw_keys) {
-        if (have_rawkeys) {
-	    set_default_hotkeys (get_default_raw_hotkeys ());
-	    write_log ("Using raw keymap\n");
-	} else {
-	    currprefs.map_raw_keys = changed_prefs.map_raw_keys = 0;
-	    write_log ("Raw keys not supported\n");
-	}
-    }
-    if (!currprefs.map_raw_keys) {
-	set_default_hotkeys (get_default_cooked_hotkeys ());
-	write_log ("Using cooked keymap\n");
-    }
+    /* Handle UAE reset */
+    if ((keystate[AK_CTRL] || keystate[AK_RCTRL]) && keystate[AK_LAMI] && keystate[AK_RAMI])
+	uae_reset (0);
 }
 
 int check_prefs_changed_gfx (void)
 {
-    if (changed_prefs.map_raw_keys != currprefs.map_raw_keys) {
-	switch_keymaps ();
-	currprefs.map_raw_keys = changed_prefs.map_raw_keys;
-    }
-
     if (changed_prefs.gfx_width_win  != currprefs.gfx_width_win
      || changed_prefs.gfx_height_win != currprefs.gfx_height_win
      || changed_prefs.gfx_width_fs   != currprefs.gfx_width_fs
      || changed_prefs.gfx_height_fs  != currprefs.gfx_height_fs) {
 	fixup_prefs_dimensions (&changed_prefs);
-    } else if (changed_prefs.gfx_lores          == currprefs.gfx_lores
-	    && changed_prefs.gfx_linedbl        == currprefs.gfx_linedbl
-	    && changed_prefs.gfx_correct_aspect == currprefs.gfx_correct_aspect
-	    && changed_prefs.gfx_xcenter        == currprefs.gfx_xcenter
-	    && changed_prefs.gfx_ycenter        == currprefs.gfx_ycenter
-	    && changed_prefs.gfx_afullscreen    == currprefs.gfx_afullscreen
-	    && changed_prefs.gfx_pfullscreen    == currprefs.gfx_pfullscreen) {
+    }
+    else if (changed_prefs.gfx_lores          == currprefs.gfx_lores
+	  && changed_prefs.gfx_linedbl        == currprefs.gfx_linedbl
+	  && changed_prefs.gfx_correct_aspect == currprefs.gfx_correct_aspect
+	  && changed_prefs.gfx_xcenter        == currprefs.gfx_xcenter
+	  && changed_prefs.gfx_ycenter        == currprefs.gfx_ycenter
+/*	  && changed_prefs.gfx_afullscreen    == currprefs.gfx_afullscreen
+	  && changed_prefs.gfx_pfullscreen    == currprefs.gfx_pfullscreen */ // Won't work yet.
+    ) {
 	return 0;
     }
 
     DEBUG_LOG ("Function: check_prefs_changed_gfx\n");
 
-#ifdef PICASSO96
-    if (!screen_is_picasso)
-	graphics_subshutdown ();
-#endif
+    graphics_subshutdown ();
 
     currprefs.gfx_width_win	 = changed_prefs.gfx_width_win;
     currprefs.gfx_height_win	 = changed_prefs.gfx_height_win;
@@ -626,15 +961,19 @@ int check_prefs_changed_gfx (void)
     currprefs.gfx_correct_aspect = changed_prefs.gfx_correct_aspect;
     currprefs.gfx_xcenter	 = changed_prefs.gfx_xcenter;
     currprefs.gfx_ycenter	 = changed_prefs.gfx_ycenter;
-    currprefs.gfx_afullscreen	 = changed_prefs.gfx_afullscreen;
-    currprefs.gfx_pfullscreen	 = changed_prefs.gfx_pfullscreen;
+/*    currprefs.gfx_afullscreen	 = changed_prefs.gfx_afullscreen;
+    currprefs.gfx_pfullscreen	 = changed_prefs.gfx_pfullscreen; */
 
     gui_update_gfx ();
+    graphics_subinit ();
 
+    /* Redundant? This is done in the caller
+    notice_screen_contents_lost ();
+    init_row_map (); */
 #ifdef PICASSO96
-    if (!screen_is_picasso)
-#endif
-	graphics_subinit ();
+    if (screen_is_picasso)
+	picasso_enablescreen (1);
+#endif   
 
     return 0;
 }
@@ -713,36 +1052,6 @@ void DX_SetPalette_vsync(void)
   }
 }
 
-int DX_Fill (int dstx, int dsty, int width, int height, uae_u32 color, RGBFTYPE rgbtype)
-{
-    int result = 0;
-    SDL_Rect rect = {dstx, dsty, width, height};
-
-    DEBUG_LOG ("DX_Fill (x:%d y:%d w:%d h:%d color=%08x)\n", dstx, dsty, width, height, color);
-
-    if (SDL_FillRect (prSDLScreen, &rect, color) == 0) {
-	SDL_UpdateRect (prSDLScreen, dstx, dsty, width, height);
-	result = 1;
-    }
-    return result;
-}
-
-int DX_Blit (int srcx, int srcy, int dstx, int dsty, int width, int height, BLIT_OPCODE opcode)
-{
-    int result = 0;
-    SDL_Rect src_rect  = {srcx, srcy, width, height};
-    SDL_Rect dest_rect = {dstx, dsty, 0, 0};
-
-    DEBUG_LOG ("DX_Blit (sx:%d sy:%d dx:%d dy:%d w:%d h:%d op:%d)\n",
-	       srcx, srcy, dstx, dsty, width, height, opcode);
-
-    if (opcode == BLIT_SRC && SDL_BlitSurface (prSDLScreen, &src_rect, prSDLScreen, &dest_rect) == 0) {
-	SDL_UpdateRect (prSDLScreen, dstx, dsty, width, height);
-	result = 1;
-    }
-    return result;
-}
-
 int DX_FillResolutions (uae_u16 *ppixel_format)
 {
     int i, count = 0;
@@ -760,7 +1069,7 @@ int DX_FillResolutions (uae_u16 *ppixel_format)
     /* Find out, which is the highest resolution the SDL can offer */
     for (i = MAX_SCREEN_MODES-1; i>=0; i--) {
 	if ( SDL_VideoModeOK (x_size_table[i], y_size_table[i],
-						bitdepth, SDL_HWSURFACE | SDL_FULLSCREEN)) {
+						bitdepth, SDL_SWSURFACE)) {
 	    w = x_size_table[i];
 	    h = y_size_table[i];
 	    break;
@@ -905,12 +1214,7 @@ void unlockscr (void)
     SDL_UnlockSurface (prSDLScreen);
 }
 
-int is_fullscreen (void)
-{
-    return fullscreen;
-}
-
-void toggle_fullscreen (void)
+static void togglefullscreen (void)
 {
     /* FIXME: Add support for separate full-screen/windowed sizes */
     fullscreen = (fullscreen+1) & 1;
@@ -921,35 +1225,30 @@ void toggle_fullscreen (void)
 	graphics_subshutdown ();
 	graphics_subinit ();
 #ifdef PICASSO96
-	if (!screen_is_picasso)
+        if (!screen_is_picasso)
 #endif
 	  reset_drawing();
 	notice_screen_contents_lost ();
     } else {
-	/* If opening a new window wasn't necesasry, then we need to take care
-	 * of the mousegrab settings (if one was, then it'll be done in
-	 * the call to graphics_subinit() above */
+       /* If opening a new window wasn't necesasry, then we need to take care
+	* of the mousegrab settings (if one was, then it'll be done in
+	* the call to graphics_subinit() above */
 	if (fullscreen)
 	    SDL_WM_GrabInput (SDL_GRAB_ON);
 	else
 	    SDL_WM_GrabInput (mousegrab ? SDL_GRAB_ON : SDL_GRAB_OFF);
-
-	/* SDL has a tendency to lose the plot with keypresses when
-	 * switching screens. Release all keys pressed just to make sure */
-	inputdevice_release_all_keys ();
-	reset_hotkeys ();
     }
 
     DEBUG_LOG ("ToggleFullScreen: %d\n", fullscreen );
 };
 
-void toggle_mousegrab (void)
+static void handle_mousegrab (void)
 {
     if (!fullscreen) {
 	if (SDL_WM_GrabInput (SDL_GRAB_QUERY) == SDL_GRAB_OFF) {
 	    SDL_WM_GrabInput (SDL_GRAB_ON);
 	    SDL_WarpMouse (0, 0);
-	    mousegrab = 1;
+            mousegrab = 1;
 	} else {
 	    SDL_WM_GrabInput (SDL_GRAB_OFF);
 	    mousegrab = 0;
@@ -957,200 +1256,42 @@ void toggle_mousegrab (void)
     }
 }
 
-void screenshot (int mode)
+static void handle_inhibit (void)
 {
-   write_log ("Screenshot not supported yet\n");
+    toggle_inhibit_frame (IHF_SCROLLLOCK);
 }
 
-void framerate_up (void)
+static void handle_interpol (void)
+{
+    if (currprefs.sound_interpol == 0) {
+	changed_prefs.sound_interpol = 1;
+	write_log ("Interpol on: rh\n");
+    } else if (currprefs.sound_interpol == 1) {
+	changed_prefs.sound_interpol = 2;
+	write_log ("Interpol on: crux\n");
+    } else {
+	changed_prefs.sound_interpol = 0;
+	write_log ("Interpol off\n");
+    }
+}
+
+static void framerate_up (void)
 {
     if (currprefs.gfx_framerate < 20)
 	changed_prefs.gfx_framerate = currprefs.gfx_framerate + 1;
 }
 
-void framerate_down (void)
+static void framerate_down (void)
 {
     if (currprefs.gfx_framerate > 1)
 	changed_prefs.gfx_framerate = currprefs.gfx_framerate - 1;
 }
 
-/*
- * Mouse inputdevice functions
- */
-
-/* Hardwire for 3 axes and 3 buttons - although SDL doesn't
- * currently support a Z-axis as such. Mousewheel events are supplied
- * as buttons 4 and 5
- */
-#define MAX_BUTTONS	3
-#define MAX_AXES	3
-#define FIRST_AXIS	0
-#define FIRST_BUTTON	MAX_AXES
-
-static int init_mouse (void)
+void target_save_options (FILE *f, struct uae_prefs *p)
 {
-   return 1;
 }
 
-static void close_mouse (void)
-{
-   return;
-}
-
-static int acquire_mouse (int num, int flags)
-{
-   return 1;
-}
-
-static void unacquire_mouse (int num)
-{
-   return;
-}
-
-static int get_mouse_num (void)
-{
-    return 1;
-}
-
-static char *get_mouse_name (int mouse)
+int target_parse_option (struct uae_prefs *p, char *option, char *value)
 {
     return 0;
-}
-
-static int get_mouse_widget_num (int mouse)
-{
-    return MAX_AXES + MAX_BUTTONS;
-}
-
-static int get_mouse_widget_first (int mouse, int type)
-{
-    switch (type) {
-	case IDEV_WIDGET_BUTTON:
-	    return FIRST_BUTTON;
-	case IDEV_WIDGET_AXIS:
-	    return FIRST_AXIS;
-    }
-    return -1;
-}
-
-static int get_mouse_widget_type (int mouse, int num, char *name, uae_u32 *code)
-{
-    if (num >= MAX_AXES && num < MAX_AXES + MAX_BUTTONS) {
-	if (name)
-	    sprintf (name, "Button %d", num + 1 + MAX_AXES);
-	return IDEV_WIDGET_BUTTON;
-    } else if (num < MAX_AXES) {
-	if (name)
-	    sprintf (name, "Axis %d", num + 1);
-	return IDEV_WIDGET_AXIS;
-    }
-    return IDEV_WIDGET_NONE;
-}
-
-static void read_mouse (void)
-{
-    /* We handle mouse input in handle_events() */
-}
-
-struct inputdevice_functions inputdevicefunc_mouse = {
-    init_mouse, close_mouse, acquire_mouse, unacquire_mouse, read_mouse,
-    get_mouse_num, get_mouse_name,
-    get_mouse_widget_num, get_mouse_widget_type,
-    get_mouse_widget_first
-};
-
-/*
- * Keyboard inputdevice functions
- */
-static int get_kb_num (void)
-{
-    return 1;
-}
-
-static char *get_kb_name (int kb)
-{
-    return 0;
-}
-
-static int get_kb_widget_num (int kb)
-{
-    return 255; // fix me
-}
-
-static int get_kb_widget_first (int kb, int type)
-{
-    return 0;
-}
-
-static int get_kb_widget_type (int kb, int num, char *name, uae_u32 *code)
-{
-    // fix me
-    *code = num;
-    return IDEV_WIDGET_KEY;
-}
-
-static int init_kb (void)
-{
-    const struct uae_input_device_kbr_default *keymap = 0;
-
-    /* We need SDL video to be initialized */
-    graphics_setup ();
-
-    /* See if we support raw keys on this platform */
-    if ((keymap = get_default_raw_keymap (get_sdlgfx_type ())) != 0) {
-	inputdevice_setkeytranslation ((struct uae_input_device_kbr_default *)keymap);
-	have_rawkeys = 1;
-    }
-    switch_keymaps ();
-
-    return 1;
-}
-
-static void close_kb (void)
-{
-}
-
-static int keyhack (int scancode, int pressed, int num)
-{
-    return scancode;
-}
-
-static void read_kb (void)
-{
-}
-
-static int acquire_kb (int num, int flags)
-{
-    return 1;
-}
-
-static void unacquire_kb (int num)
-{
-}
-
-struct inputdevice_functions inputdevicefunc_keyboard =
-{
-    init_kb, close_kb, acquire_kb, unacquire_kb,
-    read_kb, get_kb_num, get_kb_name, get_kb_widget_num,
-    get_kb_widget_type, get_kb_widget_first
-};
-
-/*
- * Handle gfx specific cfgfile options
- */
-void gfx_default_options (struct uae_prefs *p)
-{
-    p->map_raw_keys = 0;
-}
-
-void gfx_save_options (FILE *f, struct uae_prefs *p)
-{
-    cfgfile_write (f, GFX_NAME ".map_raw_keys=%s\n", p->map_raw_keys ? "true" : "false");
-}
-
-int gfx_parse_option (struct uae_prefs *p, char *option, char *value)
-{
-    int result = (cfgfile_yesno (option, value, "map_raw_keys", &p->map_raw_keys));
-
-    return result;
 }

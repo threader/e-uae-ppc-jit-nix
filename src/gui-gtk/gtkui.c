@@ -5,7 +5,6 @@
  *
  * Copyright 1997, 1998 Bernd Schmidt
  * Copyright 1998 Michael Krause
- * Copyright 2003-2004 Richard Drummond
  *
  * The Tk GUI doesn't work.
  * The X Forms Library isn't available as source, and there aren't any
@@ -31,16 +30,6 @@
 #include "compemu.h"
 #include "debug.h"
 #include "inputdevice.h"
-#include "xwin.h"
-#include "picasso96.h"
-
-#include <gtk/gtk.h>
-#include <gdk/gdk.h>
-#include <gdk/gdkkeysyms.h>
-
-#include "gui-gtk/cputypepanel.h"
-#include "gui-gtk/cpuspeedpanel.h"
-#include "gui-gtk/util.h"
 
 //#define GUI_DEBUG
 #ifdef  GUI_DEBUG
@@ -48,6 +37,10 @@
 #else
 #define DEBUG_LOG(...) do ; while(0)
 #endif
+
+#include <gtk/gtk.h>
+#include <gdk/gdk.h>
+#include <gdk/gdkkeysyms.h>
 
 /* One of the 1.1.6 "features" is a gratuitous name change */
 #ifndef HAVE_GTK_FEATURES_1_1_6
@@ -72,18 +65,22 @@ static GtkWidget *chipsize_widget[5];
 static GtkWidget *bogosize_widget[4];
 static GtkWidget *fastsize_widget[5];
 static GtkWidget *z3size_widget[10];
-#ifdef PICASSO96
 static GtkWidget *p96size_widget[7];
-#endif
 static GtkWidget *rom_text_widget, *key_text_widget;
 static GtkWidget *rom_change_widget, *key_change_widget;
 
 static GtkWidget *disk_insert_widget[4], *disk_eject_widget[4], *disk_text_widget[4];
 static char *new_disk_string[4];
 
-GtkWidget *ctpanel;
-GtkWidget *cspanel;
-
+static GtkAdjustment *cpuspeed_adj;
+static GtkWidget *cpuspeed_widgets[4], *cpuspeed_scale;
+static GtkWidget *cpu_widget[5], *a24m_widget;
+#ifdef CPUEMU_5
+static GtkWidget *ccpu_widget;
+#endif
+#ifdef CPUEMU_6
+static GtkWidget *cecpu_widget;
+#endif
 static GtkWidget *sound_widget[4], *sound_bits_widget[2], *sound_freq_widget[3], *sound_ch_widget[3];
 
 static GtkWidget *coll_widget[4], *cslevel_widget[4];
@@ -93,11 +90,8 @@ static GtkAdjustment *framerate_adj;
 static GtkWidget *bimm_widget, *b32_widget, *afscr_widget, *pfscr_widget;
 
 #ifdef JIT
-#ifdef NATMEM_OFFSET
 static GtkWidget *compbyte_widget[4], *compword_widget[4], *complong_widget[4];
-static GtkWidget *compaddr_widget[4];
-#endif
-static GtkWidget *compnf_widget[2], *comp_midopt_widget[2];
+static GtkWidget *compaddr_widget[4], *compnf_widget[2], *comp_midopt_widget[2];
 static GtkWidget *comp_lowopt_widget[2], *compfpu_widget[2], *comp_hardflush_widget[2];
 static GtkWidget *comp_constjump_widget[2];
 static GtkAdjustment *cachesize_adj;
@@ -161,7 +155,6 @@ enum gui_commands {
     GUICMD_UPDATE,       // Refresh your state from changed preferences
     GUICMD_DISKCHANGE,   // Hey! A disk has been changed. Do something!
     GUICMD_MSGBOX,       // Display a message box for me, please
-    GUICMD_FLOPPYDLG,    // Open a floppy insert dialog
     GUICMD_PAUSE,        // We're now paused, in case you didn't notice
     GUICMD_UNPAUSE       // We're now running.
 };
@@ -260,23 +253,30 @@ static void set_cpu_state (void)
 {
     int i;
 
-    DEBUG_LOG ("set_cpu_state: %d %d %d\n", changed_prefs.cpu_level,
-	changed_prefs.address_space_24, changed_prefs.m68k_speed);
-
-    cputypepanel_set_cpulevel   (CPUTYPEPANEL (ctpanel), changed_prefs.cpu_level);
-    cputypepanel_set_addr24bit  (CPUTYPEPANEL (ctpanel), changed_prefs.address_space_24);
-    cputypepanel_set_compatible (CPUTYPEPANEL (ctpanel), changed_prefs.cpu_compatible);
-    cputypepanel_set_cycleexact (CPUTYPEPANEL (ctpanel), changed_prefs.cpu_cycle_exact);
-
-    cpuspeedpanel_set_cpuspeed     (CPUSPEEDPANEL (cspanel), changed_prefs.m68k_speed);
-    cpuspeedpanel_set_dontbusywait (CPUSPEEDPANEL (cspanel), changed_prefs.dont_busy_wait);
-#ifdef JIT
-    cpuspeedpanel_set_cpuidle      (CPUSPEEDPANEL (cspanel), changed_prefs.cpu_idle);
+    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (a24m_widget), changed_prefs.address_space_24 != 0);
+    gtk_widget_set_sensitive (a24m_widget, changed_prefs.cpu_level > 1 && changed_prefs.cpu_level < 4);
+#ifdef CPUEMU_5
+    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (ccpu_widget), changed_prefs.cpu_compatible != 0);
+    gtk_widget_set_sensitive (ccpu_widget, changed_prefs.cpu_level == 0);
 #endif
-
+#ifdef CPUEMU_6
+    gtk_widget_set_sensitive (cecpu_widget, changed_prefs.cpu_level == 0);
+    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (cecpu_widget), changed_prefs.cpu_cycle_exact != 0);
+#endif
+    gtk_widget_set_sensitive (cpuspeed_scale, changed_prefs.m68k_speed > 0);
     for (i = 0; i < 10; i++)
 	gtk_widget_set_sensitive (z3size_widget[i],
 				  changed_prefs.cpu_level >= 2 && ! changed_prefs.address_space_24);
+}
+
+static void set_cpu_widget (void)
+{
+    int nr = changed_prefs.cpu_level;
+
+    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (cpu_widget[nr]), TRUE);
+    nr = currprefs.m68k_speed + 1 < 3 ? currprefs.m68k_speed + 1 : 2;
+    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (cpuspeed_widgets[nr]), TRUE);
+
 }
 
 static void set_gfx_state (void)
@@ -342,14 +342,12 @@ static void set_mem_state (void)
 	t++, t2 >>= 1;
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (z3size_widget[t]), 1);
 
-#ifdef PICASSO96   
     t = 0;
     t2 = currprefs.gfxmem_size;
     while (t < 6 && t2 >= 0x100000)
 	t++, t2 >>= 1;
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (p96size_widget[t]), 1);
-#endif
-   
+
     gtk_label_set_text (GTK_LABEL (rom_text_widget), changed_prefs.romfile[0]!='\0' ?
 					changed_prefs.romfile : currprefs.romfile);
 
@@ -360,12 +358,10 @@ static void set_mem_state (void)
 #ifdef JIT
 static void set_comp_state (void)
 {
-#ifdef NATMEM_OFFSET
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (compbyte_widget[currprefs.comptrustbyte]), 1);
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (compword_widget[currprefs.comptrustword]), 1);
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (complong_widget[currprefs.comptrustlong]), 1);
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (compaddr_widget[currprefs.comptrustnaddr]), 1);
-#endif   
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (compnf_widget[currprefs.compnf]), 1);
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (comp_hardflush_widget[currprefs.comp_hardflush]), 1);
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (comp_constjump_widget[currprefs.comp_constjump]), 1);
@@ -407,7 +403,6 @@ static void set_hd_state (void)
     int nr = nr_units (currprefs.mountinfo);
     int i;
 
-    DEBUG_LOG ("set_hd_state\n");
     for (i=0; i<HDLIST_MAX_COLS; i++)
 	tptrs[i] = texts[i];
 
@@ -458,8 +453,6 @@ static void set_hd_state (void)
     gtk_clist_thaw (GTK_CLIST (hdlist_widget));
     gtk_widget_set_sensitive (hdchange_button, FALSE);
     gtk_widget_set_sensitive (hddel_button, FALSE);
-   
-    DEBUG_LOG ("set_hd_state done\n");   
 }
 #endif
 
@@ -523,6 +516,7 @@ static int my_idle (void)
 			       is_uae_paused() ? changed_prefs.df[n] : currprefs.df[n]);
 	    break;
 	 case GUICMD_UPDATE:
+	    set_cpu_widget ();
 	    set_cpu_state ();
 	    set_gfx_state ();
 	    set_joy_state ();
@@ -536,17 +530,13 @@ static int my_idle (void)
 	    set_hd_state ();
 #endif	   
 	    set_chipset_state ();
+
 	    gtk_widget_show (gui_window);  // Should find a better place to do this, surely? - Rich
 	    uae_sem_post (&gui_update_sem);
 	    gui_active = 1;
-	    DEBUG_LOG ("GUICMD_UPDATE done\n");
 	    break;
 	 case GUICMD_MSGBOX:
 	    handle_message_box_request(&to_gui_pipe);
-	    break;
-	 case GUICMD_FLOPPYDLG:
-	    n = read_comm_pipe_int_blocking (&to_gui_pipe);
-	    did_insert (NULL, n);
 	    break;
 	 case GUICMD_PAUSE:
 	 case GUICMD_UNPAUSE:
@@ -578,7 +568,7 @@ static int find_current_toggle (GtkWidget **widgets, int count)
     for (i = 0; i < count; i++)
 	if (GTK_TOGGLE_BUTTON (*widgets++)->active)
 	    return i;
-    DEBUG_LOG ("GTKUI: Can't happen!\n");
+    write_log ("GTKUI: Can't happen!\n");
     return -1;
 }
 
@@ -627,6 +617,58 @@ static void custom_changed (void)
 #endif
 }
 
+static void cpuspeed_changed (void)
+{
+    int which = find_current_toggle (cpuspeed_widgets, 3);
+    changed_prefs.m68k_speed = (which == 0 ? -1
+				: which == 1 ? 0
+				: cpuspeed_adj->value);
+    set_cpu_state ();
+}
+
+static void cputype_changed (void)
+{
+    int i, oldcl, oldcompat, oldce;
+    if (! gui_active)
+	return;
+
+    oldcl = changed_prefs.cpu_level;
+
+    changed_prefs.cpu_level = find_current_toggle (cpu_widget, 5);
+    changed_prefs.address_space_24 = GTK_TOGGLE_BUTTON (a24m_widget)->active;
+
+#ifdef CPUEMU_5
+    oldcompat = changed_prefs.cpu_compatible;
+    changed_prefs.cpu_compatible = GTK_TOGGLE_BUTTON (ccpu_widget)->active;
+#endif
+#ifdef CPUEMU_6
+    oldce = changed_prefs.cpu_cycle_exact;
+    changed_prefs.cpu_cycle_exact = GTK_TOGGLE_BUTTON (cecpu_widget)->active;
+#endif
+
+#if defined CPUEMU_5 && defined CPUEMU_6
+    /* These need to be mutually exclusive, but we don't want
+     * to use radio buttons - so we'll enforce it ourselves */
+    if (oldcompat == 0 && changed_prefs.cpu_compatible != 0)
+	changed_prefs.cpu_cycle_exact = 0;
+    else if (oldce == 0 && changed_prefs.cpu_cycle_exact != 0)
+	changed_prefs.cpu_compatible = 0;
+#endif
+
+    if (changed_prefs.cpu_level != 0) {
+	changed_prefs.cpu_compatible = 0;
+	changed_prefs.cpu_cycle_exact = 0;
+    }
+    /* 68000/68010 always have a 24 bit address space.  */
+    if (changed_prefs.cpu_level < 2)
+	changed_prefs.address_space_24 = 1;
+    /* Changing from 68000/68010 to 68020 should set a sane default.  */
+    else if (oldcl < 2)
+	changed_prefs.address_space_24 = 0;
+
+    set_cpu_state ();
+}
+
 static void chipsize_changed (void)
 {
     int t = find_current_toggle (chipsize_widget, 5);
@@ -657,13 +699,11 @@ static void z3size_changed (void)
     changed_prefs.z3fastmem_size = (0x80000 << t) & ~0x80000;
 }
 
-#ifdef PICASSO96
 static void p96size_changed (void)
 {
     int t = find_current_toggle (p96size_widget, 7);
     changed_prefs.gfxmem_size = (0x80000 << t) & ~0x80000;
 }
-#endif
 
 static void sound_changed (void)
 {
@@ -679,12 +719,10 @@ static void sound_changed (void)
 static void comp_changed (void)
 {
     changed_prefs.cachesize=cachesize_adj->value;
-#ifdef NATMEM_OFFSET   
     changed_prefs.comptrustbyte = find_current_toggle (compbyte_widget, 4);
     changed_prefs.comptrustword = find_current_toggle (compword_widget, 4);
     changed_prefs.comptrustlong = find_current_toggle (complong_widget, 4);
     changed_prefs.comptrustnaddr = find_current_toggle (compaddr_widget, 4);
-#endif
     changed_prefs.compnf = find_current_toggle (compnf_widget, 2);
     changed_prefs.comp_hardflush = find_current_toggle (comp_hardflush_widget, 2);
     changed_prefs.comp_constjump = find_current_toggle (comp_constjump_widget, 2);
@@ -734,7 +772,7 @@ static void did_eject (GtkWidget *w, gpointer data)
 
 static void pause_uae (GtkWidget *widget, gpointer data)
 {
-    DEBUG_LOG ("Called with %d\n", GTK_TOGGLE_BUTTON (widget)->active == TRUE );
+    DEBUG_LOG ( "Called with %d\n", GTK_TOGGLE_BUTTON (widget)->active == TRUE );
 
     if (!quit_gui) {
 //        set_uae_paused (GTK_TOGGLE_BUTTON (widget)->active == TRUE ? TRUE : FALSE);
@@ -1188,102 +1226,93 @@ static void make_floppy_disks (GtkWidget *vbox)
     add_empty_vbox (vbox);
 }
 
-/*
- * CPU configuration page
- */
-static void on_cputype_changed (void)
+static GtkWidget *make_cpu_speed_sel (void)
 {
-    int i;
+    int t;
+    static const char *labels[] = {
+	"Optimize for host CPU speed","Approximate 68000/7MHz speed", "Adjustable",
+	NULL
+    };
+    GtkWidget *frame, *newbox;
 
-    DEBUG_LOG ("called\n");
+    frame = gtk_frame_new ("CPU speed");
+    newbox = gtk_vbox_new (FALSE, 4);
+    gtk_widget_show (newbox);
+    gtk_container_set_border_width (GTK_CONTAINER (newbox), 4);
+    gtk_container_add (GTK_CONTAINER (frame), newbox);
+    make_radio_group (labels, newbox, cpuspeed_widgets, 0, 1, cpuspeed_changed, -1, NULL);
 
-    changed_prefs.cpu_level       = cputypepanel_get_cpulevel (CPUTYPEPANEL (ctpanel));
-    changed_prefs.cpu_compatible  = CPUTYPEPANEL (ctpanel)->compatible;
-    changed_prefs.cpu_cycle_exact = CPUTYPEPANEL (ctpanel)->cycleexact;
+    t = currprefs.m68k_speed > 0 ? currprefs.m68k_speed : 4 * CYCLE_UNIT;
+    cpuspeed_adj = GTK_ADJUSTMENT (gtk_adjustment_new (t, 1.0, 5120.0, 1.0, 1.0, 1.0));
+    gtk_signal_connect (GTK_OBJECT (cpuspeed_adj), "value_changed",
+			GTK_SIGNAL_FUNC (cpuspeed_changed), NULL);
 
-    for (i = 0; i < 10; i++)
-	gtk_widget_set_sensitive (z3size_widget[i],
-	    changed_prefs.cpu_level >= 2 && ! changed_prefs.address_space_24);   
-   
-    DEBUG_LOG ("cpu_level=%d address_space24=%d cpu_compatible=%d cpu_cycle_exact=%d\n",
-	changed_prefs.cpu_level, changed_prefs.address_space_24,
-	changed_prefs.cpu_compatible, changed_prefs.cpu_cycle_exact);
+    cpuspeed_scale = gtk_hscale_new (cpuspeed_adj);
+    gtk_range_set_update_policy (GTK_RANGE (cpuspeed_scale), GTK_UPDATE_DELAYED);
+    gtk_scale_set_digits (GTK_SCALE (cpuspeed_scale), 0);
+    gtk_scale_set_value_pos (GTK_SCALE (cpuspeed_scale), GTK_POS_RIGHT);
+    cpuspeed_scale = add_labelled_widget_centered ("Cycles per instruction:", cpuspeed_scale, newbox);
+
+    return frame;
 }
-
-static void on_addr24bit_changed (void)
-{
-    int i;
-
-    DEBUG_LOG ("called\n");
-
-    changed_prefs.address_space_24 = (cputypepanel_get_addr24bit (CPUTYPEPANEL (ctpanel)) != 0);
-
-    for (i = 0; i < 10; i++)
-	gtk_widget_set_sensitive (z3size_widget[i],
-	    changed_prefs.cpu_level >= 2 && ! changed_prefs.address_space_24);
-
-    DEBUG_LOG ("address_space_24=%d\n", changed_prefs.address_space_24);
-}
-
-static void on_cpuspeed_changed (void)
-{
-    DEBUG_LOG ("called\n");
-
-    changed_prefs.m68k_speed = CPUSPEEDPANEL (cspanel)->cpuspeed;
-
-    DEBUG_LOG ("m68k_speed=%d\n", changed_prefs.m68k_speed);
-}
-
-static void on_cpuidle_changed (void)
-{
-   DEBUG_LOG ("called\n");
-
-   changed_prefs.dont_busy_wait = CPUSPEEDPANEL (cspanel)->dontbusywait;
-   changed_prefs.cpu_idle       = CPUSPEEDPANEL (cspanel)->cpuidle;
-
-   DEBUG_LOG ("dont_busy_wait=%d cpu_idle=%d\n", changed_prefs.dont_busy_wait,
-	changed_prefs.cpu_idle);
-}
-
 
 static void make_cpu_widgets (GtkWidget *vbox)
 {
-    GtkWidget *table;
+    int i;
+    GtkWidget *newbox, *hbox, *frame;
+    GtkWidget *thing;
+    static const char *radiolabels[] = {
+	"68000", "68010", "68020", "68020+68881", "68040",
+	NULL
+    };
 
-    table = make_xtable (5, 7);
-    add_table_padding (table, 0, 0);
-    add_table_padding (table, 4, 4);
-    add_table_padding (table, 1, 2);
-    gtk_box_pack_start (GTK_BOX (vbox), table, TRUE, TRUE, 0);
+    add_empty_vbox (vbox);
 
-    ctpanel = cputypepanel_new();
-    gtk_table_attach (GTK_TABLE (table), ctpanel, 1, 4, 1, 2,
-                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
-                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL), 0, 0);
-    gtk_widget_show (ctpanel);
+    hbox = gtk_hbox_new (FALSE, 0);
+    add_empty_vbox (hbox);
 
-    cspanel = cpuspeedpanel_new();
-    gtk_table_attach (GTK_TABLE (table), cspanel, 1, 4, 3, 4,
-                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
-                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL), 0, 0);
-    gtk_widget_show (cspanel);
+    newbox = make_radio_group_box ("CPU type", radiolabels, cpu_widget, 0, cputype_changed);
+    gtk_widget_show (newbox);
+    gtk_box_pack_start (GTK_BOX (hbox), newbox, FALSE, FALSE, 0);
 
+    newbox = make_cpu_speed_sel ();
+    gtk_widget_show (newbox);
+    gtk_box_pack_start (GTK_BOX (hbox), newbox, FALSE, FALSE, 0);
 
-    gtk_signal_connect (GTK_OBJECT (ctpanel), "cputype-changed",
-                        GTK_SIGNAL_FUNC (on_cputype_changed),
-                        NULL);
-    gtk_signal_connect (GTK_OBJECT (ctpanel), "addr24bit-changed",
-                        GTK_SIGNAL_FUNC (on_addr24bit_changed),
-                        NULL);
-    gtk_signal_connect (GTK_OBJECT (cspanel), "cpuspeed-changed",
-                        GTK_SIGNAL_FUNC (on_cpuspeed_changed),
-                        NULL);
-    gtk_signal_connect (GTK_OBJECT (cspanel), "cpuidle-changed",
-                        GTK_SIGNAL_FUNC (on_cpuidle_changed),
-                        NULL);
+    add_empty_vbox (hbox);
+    gtk_widget_show (hbox);
+    gtk_box_pack_start (GTK_BOX (vbox), hbox, FALSE, FALSE, 0);
+
+    frame = gtk_frame_new ("CPU flags");
+    add_centered_to_vbox (vbox, frame);
+    gtk_widget_show (frame);
+    newbox = gtk_vbox_new (FALSE, 4);
+    gtk_widget_show (newbox);
+    gtk_container_set_border_width (GTK_CONTAINER (newbox), 4);
+    gtk_container_add (GTK_CONTAINER (frame), newbox);
+
+    a24m_widget = gtk_check_button_new_with_label ("24 bit address space");
+    add_centered_to_vbox (newbox, a24m_widget);
+    gtk_widget_show (a24m_widget);
+    gtk_signal_connect (GTK_OBJECT (a24m_widget), "clicked",
+			(GtkSignalFunc) cputype_changed, NULL);
+#ifdef CPUEMU_5
+    ccpu_widget = gtk_check_button_new_with_label ("Slow but compatible");
+    add_centered_to_vbox (newbox, ccpu_widget);
+    gtk_widget_show (ccpu_widget);
+    gtk_signal_connect (GTK_OBJECT (ccpu_widget), "clicked",
+			(GtkSignalFunc) cputype_changed, NULL);
+#endif
+#ifdef CPUEMU_6
+    cecpu_widget = gtk_check_button_new_with_label ("Cycle exact");
+    add_centered_to_vbox (newbox, cecpu_widget);
+    gtk_widget_show (cecpu_widget);
+    gtk_signal_connect (GTK_OBJECT (cecpu_widget), "clicked",
+			(GtkSignalFunc) cputype_changed, NULL);
+#endif
+
+    add_empty_vbox (vbox);
 }
-
-
 
 static void make_gfx_widgets (GtkWidget *vbox)
 {
@@ -1298,11 +1327,9 @@ static void make_gfx_widgets (GtkWidget *vbox)
     gtk_widget_show (hbox);
     add_centered_to_vbox (vbox, hbox);
 
-#ifdef PICASSO96
     frame = make_radio_group_box_1 ("P96 RAM", p96labels, p96size_widget, 0, p96size_changed, 4);
     gtk_widget_show (frame);
     gtk_box_pack_start (GTK_BOX (hbox), frame, FALSE, TRUE, 0);
-#endif
 
     frame = gtk_frame_new ("Miscellaneous");
     gtk_box_pack_start (GTK_BOX (hbox), frame, FALSE, FALSE, 0);
@@ -1545,7 +1572,6 @@ static void make_comp_widgets (GtkWidget *vbox)
 
     add_empty_vbox (vbox);
 
-#ifdef NATMEM_OFFSET
     newbox = make_radio_group_box ("Byte access", complabels1, compbyte_widget, 1, comp_changed);
     gtk_widget_show (newbox);
     add_centered_to_vbox (vbox, newbox);
@@ -1558,8 +1584,7 @@ static void make_comp_widgets (GtkWidget *vbox)
     newbox = make_radio_group_box ("Address lookup", complabels3a, compaddr_widget, 1, comp_changed);
     gtk_widget_show (newbox);
     add_centered_to_vbox (vbox, newbox);
-#endif
-   
+
     newbox = make_radio_group_box ("Flags", complabels4, compnf_widget, 1, comp_changed);
     gtk_widget_show (newbox);
     add_centered_to_vbox (vbox, newbox);
@@ -1968,7 +1993,7 @@ static void make_about_widgets (GtkWidget *dvbox)
 {
     GtkWidget *thing;
     GtkStyle *style;
-    GdkFont *font, *old_font;
+    GdkFont *font;
     char t[20];
 
     add_empty_vbox (dvbox);
@@ -1977,23 +2002,16 @@ static void make_about_widgets (GtkWidget *dvbox)
     thing = gtk_label_new (t);
     gtk_widget_show (thing);
     add_centered_to_vbox (dvbox, thing);
-#if GTK_MAJOR_VERSION >= 2
-    style = gtk_style_copy (GTK_WIDGET (thing)->style);
-    pango_font_description_free (style->font_desc);
-    style->font_desc = pango_font_description_from_string ("Sans 24");
-    gtk_widget_set_style (thing, style);
-#else
+
     font = gdk_font_load ("-*-helvetica-medium-r-normal--*-240-*-*-*-*-*-*");
     if (font) {
 	style = gtk_style_copy (GTK_WIDGET (thing)->style);
 	gdk_font_unref (style->font);
-	gdk_font_ref (font);
 	style->font = font;
+	gdk_font_ref (style->font);
+	/* gtk_widget_push_style (style); Don't need this - Rich */
 	gtk_widget_set_style (thing, style);
     }
-#endif
-    gtk_widget_show (thing);
-
 #ifdef PACKAGE_VERSION
     thing = gtk_label_new ("Version " PACKAGE_VERSION );
     gtk_widget_show (thing);
@@ -2117,7 +2135,7 @@ static void create_guidlg (void)
 
 /*
  * gtk_gui_thread()
- *
+ * 
  * This is launched as a separate thread to the main UAE thread
  * to create and handle the GUI. After the GUI has been set up, 
  * this calls the standard GTK+ event processing loop. 
@@ -2164,10 +2182,9 @@ void gui_changesettings(void)
     
 }
 
-void gui_fps (int fps, int idle)
+void gui_fps (int fps)
 {
-    gui_data.fps  = fps;
-    gui_data.idle = idle;
+    gui_data.fps = fps;
 }
 
 /*
@@ -2434,28 +2451,6 @@ void gui_cd_led (int led)
 {
 }
 
-void gui_display(int shortcut)
-{
-    DEBUG_LOG ("called with shortcut=%d\n", shortcut);
-
-    /* If running fullscreen, then we must try to switched to windowed
-     * mode before activating the GUI */
-    if (is_fullscreen ()) {
-	toggle_fullscreen ();
-	if (is_fullscreen ()) {
-	    write_log ("Cannot activate GUI in full-screen mode\n");
-	    return;
-	}
-    }
-
-    if (shortcut >=0 && shortcut <4) {
-	/* In this case, shortcut is the drive number to display
-	 * the insert requester for */
-	write_comm_pipe_int (&to_gui_pipe, GUICMD_FLOPPYDLG, 0);
-	write_comm_pipe_int (&to_gui_pipe, shortcut, 1);
-    }
-}
-
 void gui_message (const char *format,...)
 {
     char msg[2048];
@@ -2511,8 +2506,7 @@ static void do_message_box( const guchar *title, const guchar *message, gboolean
    
     if (wait)
         uae_sem_wait (&msg_quit_sem);
-
-    DEBUG_LOG ("do_message_box() done");
+   
     return;
 }
 
@@ -2522,7 +2516,7 @@ static void do_message_box( const guchar *title, const guchar *message, gboolean
  * This is called from the GUI's context in repsonse to do_message_box() 
  * to actually create the dialog box
  */
-static void handle_message_box_request (smp_comm_pipe *msg_pipe)
+static void handle_message_box_request (smp_comm_pipe *msg_pipe) 
 {
     const guchar *title     = (const guchar *) read_comm_pipe_int_blocking (msg_pipe);
     const guchar *msg       = (const guchar *) read_comm_pipe_int_blocking (msg_pipe);
@@ -2534,25 +2528,25 @@ static void handle_message_box_request (smp_comm_pipe *msg_pipe)
 
 /*
  * on_message_box_quit()
- *
+ * 
  * Handler called when message box is exited. Signals anybody that cares
  * via the semaphore it is supplied.
  */
 void on_message_box_quit (GtkWidget *w, gpointer user_data)
 {
-    uae_sem_post ((uae_sem_t *)user_data);
+     uae_sem_post ((uae_sem_t *)user_data);   
 }
 
 /*
  * make_message_box()
- *
+ * 
  * This does the actual work of constructing the message dialog.
- *
+ * 
  * title   - displayed in the dialog's titlebar
  * message - the message itself
  * modal   - whether the dialog should block input to the rest of the GUI
  * sem     - semaphore used for signalling that the dialog's finished
- *
+ * 
  * TODO: Make that semaphore go away. We shouldn't need to know about it here.
  */
 static GtkWidget *make_message_box( const guchar *title, const guchar *message, int modal, uae_sem_t *sem )
@@ -2565,47 +2559,49 @@ static GtkWidget *make_message_box( const guchar *title, const guchar *message, 
     GtkWidget *button;
     guint      key;
     GtkAccelGroup *accel_group;
-
+   
     accel_group = gtk_accel_group_new ();
-
-    dialog = gtk_window_new ( GTK_WINDOW_TOPLEVEL /*GTK_WINDOW_DIALOG*/);
-    gtk_container_set_border_width (GTK_CONTAINER (dialog), 12);
+   
+    dialog = gtk_window_new (GTK_WINDOW_DIALOG);
+    gtk_container_set_border_width (GTK_CONTAINER (dialog), 12);   
     if (title==NULL || (title!=NULL && strlen(title)==0))
-        title = "UAE information";
+        title = "UAE information";   
     gtk_window_set_title (GTK_WINDOW (dialog), title);
     gtk_window_set_modal (GTK_WINDOW (dialog), modal);
     gtk_window_set_position (GTK_WINDOW (dialog), GTK_WIN_POS_MOUSE);
-
+   
     vbox = gtk_vbox_new (FALSE, 0);
     gtk_widget_show (vbox);
     gtk_container_add (GTK_CONTAINER (dialog), vbox);
-
-    label = gtk_label_new (message);
+   
+    label = gtk_label_new (message); 
     gtk_widget_show (label);
     gtk_box_pack_start (GTK_BOX (vbox), label, TRUE, TRUE, 0);
     gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
-
+   
     hseparator = gtk_hseparator_new ();
     gtk_widget_show (hseparator);
     gtk_box_pack_start (GTK_BOX (vbox), hseparator, FALSE, FALSE, 8);
-
+   
     hbuttonbox = gtk_hbutton_box_new ();
     gtk_widget_show (hbuttonbox);
     gtk_box_pack_start (GTK_BOX (vbox), hbuttonbox, FALSE, FALSE, 0);
     gtk_button_box_set_layout (GTK_BUTTON_BOX (hbuttonbox), GTK_BUTTONBOX_END);
     gtk_button_box_set_spacing (GTK_BUTTON_BOX (hbuttonbox), 4);
 
-    button = make_labelled_button ("_Okay", accel_group);
+    button = gtk_button_new_with_label (NULL);
+    key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (button)->child), "_Okay");
+    gtk_widget_add_accelerator (button, "clicked", accel_group,key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
     gtk_widget_show (button);
     gtk_container_add (GTK_CONTAINER (hbuttonbox), button);
     GTK_WIDGET_SET_FLAGS (button, GTK_CAN_DEFAULT);
 
-    if (sem)
-        gtk_signal_connect (GTK_OBJECT (button), "clicked", GTK_SIGNAL_FUNC (on_message_box_quit), sem);
+    if (sem)			                            
+        gtk_signal_connect (GTK_OBJECT (button), "clicked", GTK_SIGNAL_FUNC (on_message_box_quit), sem);   
     gtk_signal_connect_object (GTK_OBJECT (button), "clicked",
 			                           GTK_SIGNAL_FUNC (gtk_widget_destroy),
 			                           GTK_OBJECT (dialog));
-
+   
     gtk_widget_grab_default (button);
     gtk_window_add_accel_group (GTK_WINDOW (dialog), accel_group);
     gtk_widget_show( dialog );

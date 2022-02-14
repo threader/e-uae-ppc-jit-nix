@@ -49,7 +49,7 @@ static void read_joy(int nr)
 	    if (JSEM_ISNUMPAD (1, &currprefs) || JSEM_ISCURSOR (1, &currprefs) || JSEM_ISSOMEWHEREELSE (1, &currprefs))
 	        return;
 	} else
-	    return;
+    	return;
     }
     joy = joys[nr].joy;
     axes = SDL_JoystickNumAxes (joy);

@@ -30,4 +30,3 @@ extern void audio_hsync (int);
 extern void update_adkmasks (void);
 extern void update_sound (int freq);
 
-void switch_audio_interpol (void);

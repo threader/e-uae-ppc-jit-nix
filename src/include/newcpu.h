@@ -234,7 +234,6 @@ extern void init_m68k_full (void);
 extern void m68k_go (int);
 extern void m68k_dumpstate (void *, uaecptr *);
 extern void m68k_disasm (void *, uaecptr, uaecptr *, int);
-extern void sm68k_disasm(char *, char *, uaecptr addr, uaecptr *nextpc);
 extern void m68k_reset (void);
 
 extern void mmu_op (uae_u32, uae_u16);

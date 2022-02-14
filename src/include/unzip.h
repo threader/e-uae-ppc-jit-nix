@@ -124,7 +124,7 @@ extern int ZEXPORT unzStringFileNameCompare OF ((const char* fileName1,
 */
 
 
-//extern unzFile ZEXPORT unzOpen OF((struct zfile *fin));
+extern unzFile ZEXPORT unzOpen OF((struct zfile *path));
 /*
   Open a Zip file. path contain the full pathname (by example,
      on a Windows NT computer "c:\\zlib\\zlib111.zip" or on an Unix computer

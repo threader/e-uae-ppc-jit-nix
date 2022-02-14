@@ -28,7 +28,6 @@ extern struct inputdevice_functions idev[3];
 extern struct inputdevice_functions inputdevicefunc_joystick;
 extern struct inputdevice_functions inputdevicefunc_mouse;
 extern struct inputdevice_functions inputdevicefunc_keyboard;
-extern int pause_emulation;
 
 struct uae_input_device_kbr_default {
     int scancode;
@@ -90,8 +89,7 @@ extern void inputdevice_updateconfig (struct uae_prefs *prefs);
 extern int inputdevice_translatekeycode (int keyboard, int scancode, int state);
 extern void inputdevice_setkeytranslation (struct uae_input_device_kbr_default *trans);
 extern void handle_input_event (int nr, int state, int max, int autofire);
-extern void inputdevice_do_keyboard (int code, int state);
-void inputdevice_release_all_keys (void);
+extern void inputdevice_do_keyboard (uae_u8 key);
 
 extern uae_u16 potgo_value;
 extern uae_u16 POTGOR (void);

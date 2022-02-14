@@ -91,6 +91,7 @@ MATHLIB = @MATHLIB@
 NO_SCHED_CFLAGS = @NO_SCHED_CFLAGS@
 OBJEXT = @OBJEXT@
 OSDEP = @OSDEP@
+OSDEPOBJS = @OSDEPOBJS@
 PACKAGE = @PACKAGE@
 PACKAGE_BUGREPORT = @PACKAGE_BUGREPORT@
 PACKAGE_NAME = @PACKAGE_NAME@
@@ -98,7 +99,6 @@ PACKAGE_STRING = @PACKAGE_STRING@
 PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
-PKG_CONFIG = @PKG_CONFIG@
 PTHREAD_CC = @PTHREAD_CC@
 PTHREAD_CFLAGS = @PTHREAD_CFLAGS@
 PTHREAD_LIBS = @PTHREAD_LIBS@
@@ -165,7 +165,7 @@ target_alias = @target_alias@
 target_cpu = @target_cpu@
 target_os = @target_os@
 target_vendor = @target_vendor@
-EXTRA_DIST = config.h m4 amiga docs debian CHANGES README
+EXTRA_DIST = config.h m4 amiga docs debian CHANGES-rich.txt
 
 SUBDIRS = src
 
@@ -187,7 +187,7 @@ RECURSIVE_TARGETS = info-recursive dvi-recursive pdf-recursive \
 	all-recursive install-data-recursive install-exec-recursive \
 	installdirs-recursive install-recursive uninstall-recursive \
 	check-recursive installcheck-recursive
-DIST_COMMON = README $(dist_noinst_SCRIPTS) $(noinst_HEADERS) \
+DIST_COMMON = $(dist_noinst_SCRIPTS) $(noinst_HEADERS) \
 	$(srcdir)/Makefile.in $(srcdir)/configure COPYING Makefile.am \
 	aclocal.m4 config.guess config.sub configure configure.in \
 	depcomp install-sh missing mkinstalldirs

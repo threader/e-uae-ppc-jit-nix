@@ -166,7 +166,7 @@ static int init_sound (void)
 	sample_handler = currprefs.stereo ? sample16s_handler : sample16_handler;
     } else {
 	init_sound_table8 ();
-	sample_handler = currprefs.stereo ? sample8s_handler : sample8_handler;
+	sample_handler = currprefs.stereo ? sample8s_handler : sample_ulaw_handler;
     }
 
     clearbuffer();

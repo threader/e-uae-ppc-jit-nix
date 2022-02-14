@@ -1,10 +1,9 @@
-/*
+ /*
   * UAE - The Un*x Amiga Emulator
-  *
+  * 
   * Amiga interface
-  *
+  * 
   * Copyright 1996,1997,1998 Samuel Devulder.
-  * Copyright 2003-2004 Richard Drummond
   */
 
 /*
@@ -21,7 +20,7 @@
  *               is not linear).
  *    15/11/96 - Inhibit the drive in readdevice().
  *    23/11/96 - Added call to rexx_init() and gui_handle_event().
- *    14/12/96 - Added support for i screens.
+ *    14/12/96 - Added support for graffiti screens.
  *    14/02/97 - Now uses SetRGB32() for cybergfx screens.
  *    15/02/97 - Dump iff file when ENV:UAEIFF is defined.
  *    25/02/97 - Get rid of cybergfx screen direct access.. Now uses
@@ -33,10 +32,10 @@
  *    21/08/97 - Added HAM support (yeah!).
  *    05/10/97 - Added drag&drop support.
  *    13/10/97 - Fixed CyberGFX crash (a missing "return" in flush_line()).
- *    31/10/97 - Added support for gray output (-T). Added missing "Cyb"
+ *    31/10/97 - Added support for gray output (-T). Added missing "Cyb" 
  *               prefix to BitMap=NULL in graphics_leave().
  *    07/12/97 - New calc_err(). UAE screen (-H2) is now a public screen.
- *    25/12/97 - Now use DELTAMOVE for mouse code. Use ENV:UAESM to use
+ *    25/12/97 - Now use DELTAMOVE for mouse code. Use ENV:UAESM to use 
  *               pre-selected screenmode (-H2). Happy Chrismas!
  *    12/02/98 - Now use cybergfx bitmap only for 15+bit screens.
  *    22/02/98 - Added screen-flahses, exit-key and POWERUP code from 
@@ -51,14 +50,14 @@
 #include "sysdeps.h"
 
 /* sam: Argg!! Why did phase5 change the path to cybergraphics ? */
-//#define CGX_CGX_H <cybergraphics/cybergraphics.h>
+#define CGX_CGX_H <cybergraphics/cybergraphics.h>
 
 #ifdef HAVE_LIBRARIES_CYBERGRAPHICS_H
-#define CGX_CGX_H <libraries/cybergraphics.h>
 #define USE_CYBERGFX           /* define this to have cybergraphics support */
 #else
 #ifdef HAVE_CYBERGRAPHX_CYBERGRAPHICS_H
 #define USE_CYBERGFX
+# undef  CGX_CGX_H
 #define CGX_CGX_H <cybergraphx/cybergraphics.h>
 #endif
 #endif
@@ -69,7 +68,6 @@
 #include <exec/memory.h>
 
 #include <dos/dos.h>
-#include <dos/dosextens.h>
 
 #include <graphics/gfxbase.h>
 #include <graphics/displayinfo.h>
@@ -121,11 +119,11 @@ struct	Library	*CyberGfxBase=NULL;
 
 #include <powerup/ppclib/interface.h>
 /* Sam: this will prevent spilled register problem */
-static void myBltBitMapRastPort(struct BitMap * srcBitMap, long xSrc,
-				long ySrc, struct RastPort * destRP,
-				long xDest, long yDest, long xSize,
+static void myBltBitMapRastPort(struct BitMap * srcBitMap, long xSrc, 
+				long ySrc, struct RastPort * destRP, 
+				long xDest, long yDest, long xSize, 
 				long ySize, unsigned long minterm);
-static void myWritePixelLine8(struct RastPort*, int, int, int, char *,
+static void myWritePixelLine8(struct RastPort*, int, int, int, char *, 
 			      struct RastPort*);
 static void myWritePixelArray8(struct RastPort*, int, int, int, int,
 			       char *, struct RastPort*);
@@ -189,41 +187,35 @@ extern struct ExecBase *SysBase;
 #include "gui.h"
 #include "debug.h"
 #include "disk.h"
-#include "hotkeys.h"
 
 #define BitMap Picasso96BitMap  /* Argh! */
 #include "picasso96.h"
-#undef BitMap
+#undef BitMap 
 
 /****************************************************************************/
 
-/* this doesn't do anything yet*/
-int pause_emulation;
-
-/****************************************************************************/
+#define use_dither      (!currprefs.no_xhair)
+#define use_gray	(currprefs.x11_use_mitshm)
 
 #define UAEIFF "UAEIFF"        /* env: var to trigger iff dump */
-#define UAESM  "UAESM"         /* env: var for screen mode */
+#define UAESM  "UAESM"         /* env: var for screen mode */  
 
 static int need_dither;        /* well.. guess :-) */
 static int use_delta_buffer;   /* this will redraw only needed places */
 static int use_cyb;            /* this is for cybergfx truecolor mode */
+static int use_graffiti;
 static int use_approx_color;
 int dump_iff;
 
 extern xcolnr xcolors[4096];
 
+ /* Keyboard and mouse */
+
+static int keystate[256];
+
 static int inwindow;
 
 static char *oldpixbuf;
-
-/* Values for amiga_screen_type */
-enum {
-    UAESCREENTYPE_CUSTOM,
-    UAESCREENTYPE_PUBLIC,
-    UAESCREENTYPE_ASK,
-    UAESCREENTYPE_LAST
-};
 
 /****************************************************************************/
 /*
@@ -267,11 +259,12 @@ static LONG ObtainColor(ULONG, ULONG, ULONG);
 static void ReleaseColors(void);
 static int  DoSizeWindow(struct Window *,int,int);
 static void disk_hotkeys(void);
+static void graffiti_SetRGB(int,int,int,int);
+static void graffiti_WritePixelLine8(int,int,short,char*);
 static int  SaveIFF(char *filename, struct Screen *scr);
 static int  init_ham(void);
 static void ham_conv(UWORD *src, UBYTE *buf, UWORD len);
 static int  RPDepth(struct RastPort *RP);
-static int get_nearest_color(int r, int g, int b);
 
 /****************************************************************************/
 
@@ -291,6 +284,26 @@ extern void appw_events(void);
 
 extern int ievent_alive;
 
+/****************************************************************************/
+
+static RETSIGTYPE sigbrkhandler(int foo)
+{
+    activate_debugger();
+}
+
+void setup_brkhandler(void)
+{
+#ifdef HAVE_SIGACTION
+    struct sigaction sa;
+    sa.sa_handler = (void*)sigbrkhandler;
+    sa.sa_flags = 0;
+    sa.sa_flags = SA_RESTART;
+    sigemptyset(&sa.sa_mask);
+    sigaction(SIGINT, &sa, NULL);
+#else
+    signal(SIGINT,sigbrkhandler);
+#endif
+}
 
 /****************************************************************************/
 /* This is because on powerup, calling 68k CopyMem is too slow              */
@@ -311,34 +324,6 @@ static __inline__ void myCopyMem(void *src, void *dst, int len)
     if(len) do *d++=*s++; while(--len);
 }
 #endif
-
-/***************************************************************************
- *
- * Default hotkeys
- *
- * We need a better way of doing this. ;-)
- */
-static struct uae_hotkeyseq ami_hotkeys[] =
-{
-    { MAKE_HOTKEYSEQ (AK_CTRL, AK_LALT, AK_Q, -1,      INPUTEVENT_SPC_QUIT) },
-    { MAKE_HOTKEYSEQ (AK_CTRL, AK_LALT, AK_S, -1,      INPUTEVENT_SPC_TOGGLEFULLSCREEN) },
-    { MAKE_HOTKEYSEQ (AK_CTRL, AK_LALT, AK_M, -1,      INPUTEVENT_SPC_TOGGLEMOUSEMODE) },
-    { MAKE_HOTKEYSEQ (AK_CTRL, AK_LALT, AK_G, -1,      INPUTEVENT_SPC_TOGGLEMOUSEGRAB) },
-    { MAKE_HOTKEYSEQ (AK_CTRL, AK_LALT, AK_I, -1,      INPUTEVENT_SPC_INHIBITSCREEN) },
-    { MAKE_HOTKEYSEQ (AK_CTRL, AK_LALT, AK_P, -1,      INPUTEVENT_SPC_SCREENSHOT) },
-    { MAKE_HOTKEYSEQ (AK_CTRL, AK_LALT, AK_A, -1,      INPUTEVENT_SPC_SWITCHINTERPOL) },
-    { MAKE_HOTKEYSEQ (AK_CTRL, AK_LALT, AK_NPADD, -1,  INPUTEVENT_SPC_INCRFRAMERATE) },
-    { MAKE_HOTKEYSEQ (AK_CTRL, AK_LALT, AK_NPSUB, -1,  INPUTEVENT_SPC_DECRFRAMERATE) },
-    { MAKE_HOTKEYSEQ (AK_CTRL, AK_LALT, AK_F1, -1,     INPUTEVENT_SPC_FLOPPY0) },
-    { MAKE_HOTKEYSEQ (AK_CTRL, AK_LALT, AK_F2, -1,     INPUTEVENT_SPC_FLOPPY1) },
-    { MAKE_HOTKEYSEQ (AK_CTRL, AK_LALT, AK_F3, -1,     INPUTEVENT_SPC_FLOPPY2) },
-    { MAKE_HOTKEYSEQ (AK_CTRL, AK_LALT, AK_F4, -1,     INPUTEVENT_SPC_FLOPPY3) },
-    { MAKE_HOTKEYSEQ (AK_CTRL, AK_LALT, AK_LSH, AK_F1, INPUTEVENT_SPC_EFLOPPY0) },
-    { MAKE_HOTKEYSEQ (AK_CTRL, AK_LALT, AK_LSH, AK_F2, INPUTEVENT_SPC_EFLOPPY1) },
-    { MAKE_HOTKEYSEQ (AK_CTRL, AK_LALT, AK_LSH, AK_F3, INPUTEVENT_SPC_EFLOPPY2) },
-    { MAKE_HOTKEYSEQ (AK_CTRL, AK_LALT, AK_LSH, AK_F4, INPUTEVENT_SPC_EFLOPPY3) },
-    { HOTKEYS_END }
-};
 
 /****************************************************************************/
 
@@ -369,12 +354,18 @@ __inline__ void flush_line(int y)
      * cybergfx bitmap
      */
     if(use_cyb) {
-        myBltBitMapRastPort(CybBitMap, 0, y,
-                          RP, XOffset, YOffset+y,
+        myBltBitMapRastPort(CybBitMap, 0, y, 
+                          RP, XOffset, YOffset+y, 
                           len, 1, 0xc0);
         /* sam: I'm worried because BltBitMapRastPort() is known to */
         /* produce spilled registers with gcc */
 	return;
+    }
+#endif
+
+#if 0
+    if(use_graffiti && !need_dither) {
+        graffiti_WritePixelLine8(0, y, gfxvidinfo.rowbytes, linebuf);
     }
 #endif
 
@@ -423,11 +414,12 @@ __inline__ void flush_line(int y)
       }
 
     if (need_dither) {
-	DitherLine (Line, (UWORD *)dst, xs, y, (len + 3) & ~3, 8);
-    } else
-	CopyMem (dst, Line, len);
-
-    myWritePixelLine8 (RP, xs + XOffset, y + YOffset, len, Line, TempRPort);
+        DitherLine(Line, (UWORD *)dst, xs, y, (len+3)&~3, 8);
+    } else CopyMem(dst, Line, len); 
+    
+    if(use_graffiti) {
+        graffiti_WritePixelLine8(xs, y, len, Line);
+    } else myWritePixelLine8(RP, xs + XOffset, y + YOffset, len, Line, TempRPort);
 }
 
 /****************************************************************************/
@@ -438,9 +430,9 @@ void flush_block (int ystart, int ystop)
 #ifdef USE_CYBERGFX
     if (use_cyb) {
         int len = gfxvidinfo.width;
-        myBltBitMapRastPort (CybBitMap,
+        myBltBitMapRastPort (CybBitMap, 
             0, ystart,
-            RP, XOffset, YOffset + ystart,
+            RP, XOffset, YOffset + ystart, 
             len, ystop-ystart + 1, 0xc0);
         return;
     }
@@ -449,11 +441,11 @@ void flush_block (int ystart, int ystop)
     /* sam: on powerup we have to minimize call to the 68k-OS, so better
        call WritePixelArray8(); once instead of several WritePixelLine8(); */
     if (!need_dither) {
-	myWritePixelArray8(RP, XOffset,
-			     ystart + YOffset,
+	myWritePixelArray8(RP, XOffset, 
+			     ystart + YOffset, 
 			     XOffset + gfxvidinfo.width - 1,
-			     ystop + YOffset,
-			     gfxvidinfo.bufmem + ystart * gfxvidinfo.rowbytes,
+			     ystop + YOffset, 
+			     gfxvidinfo.bufmem + ystart * gfxvidinfo.rowbytes, 
 			TempRPort);
     	return;
     }
@@ -508,13 +500,13 @@ void unlockscr(void)
 
 /****************************************************************************/
 
-static int RPDepth (struct RastPort *RP)
+static int RPDepth(struct RastPort *RP)
 {
 #ifdef USE_CYBERGFX
-    if (use_cyb)
-	return GetCyberMapAttr (RP->BitMap, (LONG)CYBRMATTR_DEPTH);
+   if(use_cyb) return GetCyberMapAttr(RP->BitMap,(LONG)CYBRMATTR_DEPTH);
 #endif
-    return RP->BitMap->Depth;
+   if(use_graffiti) return 8;
+   return RP->BitMap->Depth;
 }
 
 /****************************************************************************/
@@ -523,22 +515,17 @@ static int get_color(int r, int g, int b, xcolnr *cnp)
 {
     int col;
 
-    if (currprefs.amiga_use_grey)
-	r = g = b = (77 * r + 151 * g + 29 * b) / 16;
-    else {
-	r *= 0x11;
-	g *= 0x11;
-	b *= 0x11;
-    }
+    if(use_gray) r = g = b = (77*r + 151*g + 29*b) / 16;
+    else {r *= 0x11;g *= 0x11;b *= 0x11;}
 
     r *= 0x01010101;
     g *= 0x01010101;
     b *= 0x01010101;
-    col = ObtainColor (r, g, b);
+    col = ObtainColor(r, g, b);
 
-    if (col == -1) {
-	get_color_failed = 1;
-	return 0;
+    if(col == -1) {
+        get_color_failed = 1;
+        return 0;
     }
 
     *cnp = col;
@@ -550,28 +537,27 @@ static int get_color(int r, int g, int b, xcolnr *cnp)
  * FIXME: find a better way to determine closeness of colors (closer to
  * human perception).
  */
-static __inline__ void rgb2xyz (int r, int g, int b,
-				int *x, int *y, int *z)
+static __inline__ void rgb2xyz(int r, int g, int b,
+                               int *x, int *y, int *z)
 {
-    *x = r * 1024 - (g + b) * 512;
-    *y = 886 * (g - b);
-    *z = (r + g + b) * 341;
+	*x = r*1024 - (g+b)*512;
+	*y = 886*(g-b);
+	*z = (r+g+b)*341;
 }
-
-static __inline__ int calc_err (int r1, int g1, int b1,
-				int r2, int g2, int b2)
+static __inline__ int calc_err(int r1, int g1, int b1,
+                               int r2, int g2, int b2)
 {
-    int x1, y1, z1, x2, y2, z2;
+    int x1,y1,z1,x2,y2,z2;
 
-    rgb2xyz (r1, g1, b1, &x1, &y1, &z1);
-    rgb2xyz (r2, g2, b2, &x2, &y2, &z2);
+    rgb2xyz(r1,g1,b1,&x1,&y1,&z1);
+    rgb2xyz(r2,g2,b2,&x2,&y2,&z2);
     x1 -= x2; y1 -= y2; z1 -= z2;
-    return x1 * x1 + y1 * y1 + z1 * z1;
+    return x1*x1 + y1*y1 + z1*z1;
 }
 
 /****************************************************************************/
 
-static int get_nearest_color (int r, int g, int b)
+static int get_nearest_color(int r, int g, int b)
 {
     int i, best, err, besterr;
     int colors;
@@ -580,24 +566,23 @@ static int get_nearest_color (int r, int g, int b)
     static int *RGB_cache=NULL;
 #endif
 
-   if (currprefs.amiga_use_grey)
-	r = g = b = (77 * r + 151 * g + 29 * b) / 256;
+   if(use_gray) r = g = b = (77*r + 151*g + 29*b) / 256;
 
     best    = 0;
-    besterr = calc_err (0, 0, 0, 15, 15, 15);
-    colors  = is_halfbrite ? 32 :(1 << RPDepth (RP));
+    besterr = calc_err(0,0,0, 15,15,15);
+    colors  = is_halfbrite?32:(1<<RPDepth(RP));
 
 #ifdef POWERUP
-    if (!RGB_cache && (RGB_cache = malloc (sizeof (*RGB_cache) * colors))) {
-	/* note: The code can work if RGB_cache is not allocated ! */
-	for (i = 0; i < colors; ++i)
-	    RGB_cache[i] = -1;
+    if(!RGB_cache &&
+       (RGB_cache = malloc(sizeof(*RGB_cache)*colors))) {
+       /* note: The code can work if RGB_cache is not allocated ! */
+	for(i=0;i<colors;++i) RGB_cache[i] = -1;
     }
 #endif
 
-    for (i = 0; i < colors; i++) {
-	long rgb;
-	int cr, cg, cb;
+    for(i=0; i<colors; i++ ) {
+        long rgb;
+        int cr, cg, cb;
 
 #ifdef POWERUP
 	/* sam: On powerup, calling GetRGB4() takes plenty of time. Holger
@@ -605,217 +590,197 @@ static int get_nearest_color (int r, int g, int b)
 	   screen calls GetRGB4() more than 1000000 times, resulting in a loop
 	   lasting for more than one hour ! To fix this, we'll use a cache
 	   in order to avoid OS calls. CONCLUSION: ON POWERUP AVOID CALLING THE
-	   OS ROUTINES :((( */
-	if (RGB_cache) {
+           OS ROUTINES :((( */
+	if(RGB_cache) {   
   	    rgb = RGB_cache[i];
-	    if (rgb < 0)
-		rgb = RGB_cache[i] = GetRGB4 (CM, i);
-	} else
-	    rgb = GetRGB4 (CM,i);
+	    if(rgb<0) rgb = RGB_cache[i] = GetRGB4(CM,i);
+	} else rgb = GetRGB4(CM,i);
 #else
-	rgb = GetRGB4 (CM, i);
+        rgb = GetRGB4(CM, i);
 #endif
-	cr = (rgb >> 8) & 15;
-	cg = (rgb >> 4) & 15;
-	cb = (rgb >> 0) & 15;
+        cr = (rgb >> 8) & 15;
+        cg = (rgb >> 4) & 15;
+        cb = (rgb >> 0) & 15;
+          
+        err = calc_err(r,g,b, cr,cg,cb);
+        
+        if(err < besterr) {
+            best = i;
+            besterr = err;
+            br=cr; bg=cg; bb=cb;
+        }
 
-	err = calc_err (r, g, b, cr, cg, cb);
-
-	if(err < besterr) {
-	    best = i;
-	    besterr = err;
-	    br = cr; bg = cg; bb = cb;
-	}
-
-	if (is_halfbrite) {
-	    cr /= 2; cg /= 2; cb /= 2;
-	    err = calc_err (r, g, b, cr, cg, cb);
-	    if (err < besterr) {
-		best = i + 32;
-		besterr = err;
-		br = cr; bg = cg; bb = cb;
-	    }
-	}
+        if(is_halfbrite) {
+            cr /= 2; cg /= 2; cb /= 2;
+            err = calc_err(r,g,b, cr,cg,cb);
+            if(err < besterr) {
+                best = i + 32;
+                besterr = err;
+                br=cr; bg=cg; bb=cb;
+            }
+        }
     }
     return best;
 }
 
 /****************************************************************************/
 
-static int init_colors (void)
+static int init_colors(void)
 {
     gfxvidinfo.can_double = 0;
-
     if (need_dither) {
-	/* first try color allocation */
-	int bitdepth = usepub ? 8 : RPDepth (RP);
-	int maxcol;
+        /* first try color allocation */
+        int bitdepth = usepub ? 8 : RPDepth(RP);
+        int maxcol;
 
-	if (!currprefs.amiga_use_grey && bitdepth >= 3)
-	    do {
-		get_color_failed = 0;
-		setup_dither (bitdepth, get_color);
-		if (get_color_failed)
-		    ReleaseColors ();
-	    } while (get_color_failed && --bitdepth >= 3);
+        if(!use_gray && bitdepth>=3)
+        do {
+            get_color_failed = 0;
+            setup_dither(bitdepth, get_color);
+            if(get_color_failed) ReleaseColors();
+        } while(get_color_failed && --bitdepth>=3);
+        
+        if(!use_gray && bitdepth>=3) {
+            printf("Color dithering with %d bits\n",bitdepth);
+            return 1;
+        }
 
-	if( !currprefs.amiga_use_grey && bitdepth >= 3) {
-	    write_log ("Color dithering with %d bits\n", bitdepth);
-	    return 1;
-	}
+        /* if that fail then try grey allocation */
+        maxcol = 1<<(usepub ? 8 : RPDepth(RP));
 
-	/* if that fail then try grey allocation */
-	maxcol = 1 << (usepub ? 8 : RPDepth (RP));
+        do {
+            get_color_failed = 0;
+            setup_greydither_maxcol(maxcol, get_color);
+            if(get_color_failed) ReleaseColors();
+        } while(get_color_failed && --maxcol>=2);
+        
+        /* extra pass with approximated colors */
+        if(get_color_failed) do {
+            maxcol=2;
+            use_approx_color = 1;
+            get_color_failed = 0;
+            setup_greydither_maxcol(maxcol, get_color);
+            if(get_color_failed) ReleaseColors();
+        } while(get_color_failed && --maxcol>=2);
 
-	do {
-	    get_color_failed = 0;
-	    setup_greydither_maxcol (maxcol, get_color);
-	    if (get_color_failed)
-		ReleaseColors ();
-	} while (get_color_failed && --maxcol >= 2);
-
-	/* extra pass with approximated colors */
-	if (get_color_failed)
-	    do {
-		maxcol=2;
-		use_approx_color = 1;
-		get_color_failed = 0;
-		setup_greydither_maxcol (maxcol, get_color);
-		if (get_color_failed)
-		    ReleaseColors ();
-	    } while (get_color_failed && --maxcol >= 2);
-
-	if (maxcol >= 2) {
-	    write_log ("Gray dither with %d shades.\n", maxcol);
-	    return 1;
-	}
-
-	return 0; /* everything failed :-( */
+        if (maxcol >= 2) {
+            printf("Gray dither with %d shades.\n",maxcol);
+            return 1;
+        }
+        
+        return 0; /* everything failed :-( */
     }
 
     /* No dither */
-    switch (RPDepth (RP)) {
-	case 6:
-	    if (is_halfbrite) {
-		static int tab[]= {
-		    0x000, 0x00f, 0x0f0, 0x0ff, 0x08f, 0x0f8, 0xf00, 0xf0f,
-		    0x80f, 0xff0, 0xfff, 0x88f, 0x8f0, 0x8f8, 0x8ff, 0xf08,
-		    0xf80, 0xf88, 0xf8f, 0xff8, /* end of regular pattern */
-		    0xa00, 0x0a0, 0xaa0, 0x00a, 0xa0a, 0x0aa, 0xaaa,
-		    0xfaa, 0xf6a, 0xa80, 0x06a, 0x6af
-		};
-		int i;
-		for (i = 0; i < 32; ++i)
-		    get_color (tab[i] >> 8, (tab[i] >> 4) & 15, tab[i] & 15, xcolors);
-		for (i=0; i<4096; ++i)
-		    xcolors[i] = get_nearest_color (i >> 8, (i >> 4) & 15, i & 15);
-		write_log ("Using %d colors + halfbrite\n", 32);
-		break;
-	    } else if (is_ham) {
-		int i;
-		for (i = 0; i < 16; ++i)
-		    get_color (i, i, i, xcolors);
-		write_log ("Using %d bits pseudo-truecolor (HAM).\n", 12);
-		alloc_colors64k (4, 4, 4, 10, 5, 0, 0, 0, 0);
-		return init_ham ();
-	    }
-	    /* Fall through if !is_halfbrite && !is_ham */
-	case 1: case 2: case 3: case 4: case 5: case 7: case 8: {
-	    int maxcol = 1 << RPDepth (RP);
-	    if (maxcol >= 8 && !currprefs.amiga_use_grey)
-		do {
-		    get_color_failed = 0;
-		    setup_maxcol (maxcol);
-		    alloc_colors256 (get_color);
-		    if (get_color_failed)
-			ReleaseColors ();
-		} while (get_color_failed && --maxcol >= 8);
-	    else {
-		int i;
-		for (i = 0; i < maxcol; ++i) {
-		    get_color ((i * 15)/(maxcol - 1), (i * 15)/(maxcol - 1),
-			       (i * 15)/(maxcol - 1), xcolors);
-		}
-	    }
-	    write_log ("Using %d colors.\n", maxcol);
-	    for (maxcol = 0; maxcol < 4096; ++maxcol)
-		xcolors[maxcol] = get_nearest_color (maxcol >> 8, (maxcol >> 4) & 15,
-						     maxcol&15);
-	    break;
-	}
-	case 15:
-	    write_log ("Using %d bits truecolor.\n", 15);
-	    alloc_colors64k (5, 5, 5, 10, 5, 0, 0, 0, 0);
-	    break;
-	case 16:
-	    write_log ("Using %d bits truecolor.\n", 16);
-	    alloc_colors64k (5, 6, 5, 11, 5, 0, 0, 0, 0);
-	    break;
-	case 24:
-	    write_log ("Using %d bits truecolor.\n", 24);
-	    alloc_colors64k (8, 8, 8, 16, 8, 0, 0, 0, 0);
-	    break;
-	case 32:
-	    write_log ("Using %d bits truecolor.\n", 32);
-	    alloc_colors64k (8, 8, 8, 16, 8, 0, 0, 0, 0);
-	    break;
+    switch(RPDepth(RP)) {
+      case 6: if (is_halfbrite) {
+        static int tab[]={
+        0x000, 0x00f, 0x0f0, 0x0ff, 0x08f, 0x0f8, 0xf00, 0xf0f,
+        0x80f, 0xff0, 0xfff, 0x88f, 0x8f0, 0x8f8, 0x8ff, 0xf08,
+        0xf80, 0xf88, 0xf8f, 0xff8, /* end of regular pattern */
+        0xa00, 0x0a0, 0xaa0, 0x00a, 0xa0a, 0x0aa, 0xaaa,
+        0xfaa, 0xf6a, 0xa80, 0x06a, 0x6af };
+        int i;
+        for(i=0;i<32;++i) get_color(tab[i]>>8, (tab[i]>>4)&15, tab[i]&15, xcolors);
+        for(i=0;i<4096;++i) xcolors[i] = get_nearest_color(i>>8, (i>>4)&15, i&15);
+        printf("Using %d colors + halfbrite\n",32);
+        break;
+      } else if(is_ham) {
+        int i;
+        for(i=0;i<16;++i) get_color(i,i,i, xcolors);
+        printf("Using %d bits pseudo-truecolor (HAM).\n",12);
+        alloc_colors64k(4,4,4,10,5,0,0,0,0);
+        return init_ham();
+      }
+
+      case 1: case 2: case 3: case 4: case 5: case 7: case 8: {
+        int maxcol = 1<<RPDepth(RP);
+
+        if(maxcol>=8 && !use_gray) do {
+            get_color_failed = 0;
+            setup_maxcol(maxcol);
+            alloc_colors256(get_color);
+            if(get_color_failed) ReleaseColors();
+        } while(get_color_failed && --maxcol>=8);
+        else {
+            int i;
+            for(i=0;i<maxcol;++i) {
+                get_color((i*15)/(maxcol-1), (i*15)/(maxcol-1), 
+                          (i*15)/(maxcol-1), xcolors);
+            }
+        }
+        printf("Using %d colors.\n",maxcol);
+        for(maxcol=0; maxcol<4096; ++maxcol)
+            xcolors[maxcol] = get_nearest_color(maxcol>>8, (maxcol>>4)&15,
+                                                maxcol&15);
+        } break;
+
+      case 15:
+        printf("Using %d bits truecolor.\n",15);
+        alloc_colors64k(5,5,5,10,5,0,0,0,0);
+        break;
+
+      case 16:
+        printf("Using %d bits truecolor.\n",16);
+        alloc_colors64k(5,6,5,11,5,0,0,0,0);
+        break;
+
+      case 24: 
+        printf("Using %d bits truecolor.\n",24);
+        alloc_colors64k(8,8,8,16,8,0,0,0,0);
+        break;
+
+      case 32: 
+        printf("Using %d bits truecolor.\n",32);
+        alloc_colors64k(8,8,8,16,8,0,0,0,0);
+        break;
     }
     return 1;
 }
 
 /****************************************************************************/
 
-static void setup_sprite (struct Window *W, int visible)
+static void setup_sprite(struct Window *W, int visible)
 {
-    Sprite = AllocVec ((4 + 2) * sizeof(*Sprite), MEMF_CHIP | MEMF_CLEAR);
-    if (!Sprite) {
-	write_log ("Warning: Can't alloc sprite buffer.\n");
-	return;
+    Sprite = AllocVec((4+2)*sizeof(*Sprite), MEMF_CHIP|MEMF_CLEAR);
+    if(!Sprite) {
+       fprintf(stderr, "Warning: Can't alloc sprite buffer !\n");
+       return;
     }
-    if (visible) {
-	Sprite[2] = 0x8000;
-	Sprite[3] = 0x8000;
-    }
-    SetPointer (W, Sprite, 1, 16, -1, 0);
+    if(visible) {Sprite[2] = 0x8000; Sprite[3] = 0x8000;}
+    SetPointer(W, Sprite, 1, 16, -1, 0);
 }
 
 /****************************************************************************/
 
-static int setup_customscreen (void)
+static int setup_customscreen(void)
 {
     /* hum some of old programming style here :) */
     static struct NewScreen NewScreenStructure = {
-	0, 0, 800, 600, 3, 0, 1,
-	0, CUSTOMSCREEN | SCREENQUIET | SCREENBEHIND,
-	NULL, (void*)"UAE", NULL, NULL
-    };
+        0,0, 800,600, 3, 0,1,
+        LACE+HIRES, CUSTOMSCREEN|SCREENQUIET|SCREENBEHIND,
+        NULL, (void*)"UAE", NULL, NULL};
     static struct NewWindow NewWindowStructure = {
-	0, 0, 800, 600, 0, 1,
-	IDCMP_MOUSEBUTTONS | IDCMP_RAWKEY | IDCMP_DISKINSERTED | IDCMP_DISKREMOVED
-		| IDCMP_ACTIVEWINDOW | IDCMP_INACTIVEWINDOW | IDCMP_MOUSEMOVE
-		| IDCMP_DELTAMOVE,
-	WFLG_SMART_REFRESH | WFLG_BACKDROP | WFLG_RMBTRAP | WFLG_NOCAREREFRESH
-	 | WFLG_BORDERLESS | WFLG_ACTIVATE | WFLG_REPORTMOUSE,
-	NULL, NULL, (void*)"UAE", NULL, NULL, 5, 5, 800, 600,
-	CUSTOMSCREEN
-    };
+        0,0, 800,600, 0,1,
+        IDCMP_MOUSEBUTTONS|IDCMP_RAWKEY|IDCMP_DISKINSERTED|IDCMP_DISKREMOVED|
+        IDCMP_ACTIVEWINDOW|IDCMP_INACTIVEWINDOW|IDCMP_MOUSEMOVE|
+        IDCMP_DELTAMOVE,
+        WFLG_SMART_REFRESH|WFLG_BACKDROP|WFLG_RMBTRAP|WFLG_NOCAREREFRESH|
+        WFLG_BORDERLESS|WFLG_ACTIVATE|WFLG_REPORTMOUSE,
+        NULL, NULL, (void*)"UAE", NULL, NULL, 5,5, 800,600,
+        CUSTOMSCREEN};
 
     NewScreenStructure.Width     = currprefs.gfx_width_win;
     NewScreenStructure.Height    = currprefs.gfx_height_win;
-    NewScreenStructure.Depth     = os39 ? 8 : (currprefs.gfx_lores ? 5 : 4);
-#ifdef __MORPHOS__
-    NewScreenStructure.ViewModes = NULL;
-#else
-    NewScreenStructure.ViewModes = SPRITES | (currprefs.gfx_lores ? NULL : HIRES)
-					| (currprefs.gfx_height_win > 256 ? LACE : NULL);
-#endif
+    NewScreenStructure.Depth     = os39?8:(currprefs.gfx_lores?5:4);
+    NewScreenStructure.ViewModes = SPRITES | (currprefs.gfx_lores?NULL:HIRES) |
+                                   (currprefs.gfx_height_win>256?LACE:NULL);
 
-    do
-	S = (void*)OpenScreen (&NewScreenStructure);
-    while (!S && --NewScreenStructure.Depth);
-    if (!S) {
-	gui_message ("Cannot open custom screen for UAE.\n");
-	return 0;
+    do S = (void*)OpenScreen(&NewScreenStructure);
+    while(!S && --NewScreenStructure.Depth);
+    if(!S) {
+        fprintf(stderr, "Can't open custom screen !\n");
+        return 0;
     }
 
     CM = S->ViewPort.ColorMap;
@@ -824,12 +789,12 @@ static int setup_customscreen (void)
     NewWindowStructure.Width  = S->Width;
     NewWindowStructure.Height = S->Height;
     NewWindowStructure.Screen = S;
-    W = (void*)OpenWindow (&NewWindowStructure);
-    if (!W) {
-	write_log ("Cannot open UAE window on custom screen.\n");
-	return 0;
+    W = (void*)OpenWindow(&NewWindowStructure);
+    if(!W) {
+        fprintf(stderr, "Can't open window on custom screen !\n");
+        return 0;
     }
-    setup_sprite (W, 0);
+    setup_sprite(W,0);
     return 1;
 }
 
@@ -837,53 +802,59 @@ static int setup_customscreen (void)
 
 static int setup_publicscreen(void)
 {
-    UWORD ZoomArray[4] = {0, 0, 0, 0};
-    char *pubscreen = strlen (currprefs.amiga_publicscreen)
-	? currprefs.amiga_publicscreen : NULL;
+    UWORD ZoomArray[4] = {0,0,0,0};
 
-    S = LockPubScreen (pubscreen);
-    if (!S) {
-	gui_message ("Cannot open UAE window on public screen '%s'\n",
-		pubscreen ? pubscreen : "default");
-	return 0;
+    S = LockPubScreen(NULL);
+    if(!S) {
+        fprintf(stderr,"No public screen !\n");
+        return 0;
     }
 
     ZoomArray[2] = 128;
-    ZoomArray[3] = S->BarHeight + 1;
+    ZoomArray[3] = S->BarHeight+1;
 
     CM = S->ViewPort.ColorMap;
 
-    if ((S->ViewPort.Modes & (HIRES | LACE)) == HIRES) {
-	if (currprefs.gfx_height_win + S->BarHeight + 1 >= S->Height) {
-	    currprefs.gfx_height_win >>= 1;
-	    currprefs.gfx_correct_aspect = 1;
-	}
+    if((S->ViewPort.Modes & (HIRES|LACE))==HIRES) {
+        if(currprefs.gfx_height_win + S->BarHeight + 1 >= S->Height) {
+            currprefs.gfx_height_win >>= 1;
+            currprefs.gfx_correct_aspect = 1;
+        }
     }
 
-    W = OpenWindowTags (NULL,
-			WA_Title,        (ULONG)"UAE",
-			WA_AutoAdjust,   TRUE,
-			WA_InnerWidth,   currprefs.gfx_width_win,
-			WA_InnerHeight,  currprefs.gfx_height_win,
-			WA_PubScreen,    (ULONG)S,
-			WA_Zoom,         (ULONG)ZoomArray,
-			WA_IDCMP,        IDCMP_MOUSEBUTTONS | IDCMP_RAWKEY
-				       | IDCMP_ACTIVEWINDOW | IDCMP_INACTIVEWINDOW
-				       | IDCMP_MOUSEMOVE    | IDCMP_DELTAMOVE
-				       | IDCMP_CLOSEWINDOW  | IDCMP_REFRESHWINDOW
-				       | IDCMP_NEWSIZE,
-			WA_Flags,	 WFLG_DRAGBAR     | WFLG_DEPTHGADGET
-				       | WFLG_REPORTMOUSE | WFLG_RMBTRAP
-				       | WFLG_ACTIVATE    | WFLG_CLOSEGADGET
-				       | WFLG_SMART_REFRESH,
-			TAG_DONE);
+    W = OpenWindowTags(NULL,
+                       WA_Title,        (ULONG)"UAE",
+                       WA_AutoAdjust,   TRUE,
+                       WA_InnerWidth,   currprefs.gfx_width_win,
+                       WA_InnerHeight,  currprefs.gfx_height_win,
+                       WA_PubScreen,    (ULONG)S,
+                       WA_Zoom,         (ULONG)ZoomArray,
+                       WA_IDCMP,        IDCMP_MOUSEBUTTONS|
+                                        IDCMP_RAWKEY|
+                                        IDCMP_ACTIVEWINDOW|
+                                        IDCMP_INACTIVEWINDOW|
+                                        IDCMP_MOUSEMOVE|
+                                        IDCMP_DELTAMOVE|
+                                        IDCMP_CLOSEWINDOW|
+                                        IDCMP_REFRESHWINDOW|
+                                        IDCMP_NEWSIZE|
+                                        0,
+                       WA_Flags,        WFLG_DRAGBAR|
+                                        WFLG_DEPTHGADGET|
+                                        WFLG_REPORTMOUSE|
+                                        WFLG_RMBTRAP|
+                                        WFLG_ACTIVATE|
+                                        WFLG_CLOSEGADGET|
+                                        WFLG_SMART_REFRESH|
+                                        0,
+                       TAG_DONE);
+      
+    UnlockPubScreen(NULL, S);
 
-    UnlockPubScreen (NULL, S);
-
-    if (!W) {
-	write_log ("Can't open window on public screen!\n");
-	CM = NULL;
-	return 0;
+    if(!W) {
+        fprintf(stderr,"Can't open window on public screen !\n");
+        CM = NULL;
+        return 0;
     }
 
     gfxvidinfo.width  = (W->Width  - W->BorderRight - W->BorderLeft);
@@ -892,14 +863,13 @@ static int setup_publicscreen(void)
     YOffset = W->BorderTop;
 
     RP = W->RPort;
-    setup_sprite (W, 1);
+    setup_sprite(W,1);
 
-    appw_init (W);
+    appw_init(W);
 
 #ifdef USE_CYBERGFX
-    if (CyberGfxBase && GetCyberMapAttr (RP->BitMap, (LONG)CYBRMATTR_ISCYBERGFX) &&
-			(GetCyberMapAttr (RP->BitMap, (LONG)CYBRMATTR_DEPTH) > 8))
-	use_cyb = 1;
+    if(CyberGfxBase && GetCyberMapAttr(RP->BitMap,(LONG)CYBRMATTR_ISCYBERGFX) &&
+      (GetCyberMapAttr(RP->BitMap,(LONG)CYBRMATTR_DEPTH)>8)) use_cyb = 1;
 #endif
 
     return 1;
@@ -907,14 +877,14 @@ static int setup_publicscreen(void)
 
 /****************************************************************************/
 
-static char *get_num (char *s, int *n)
+static char *get_num(char *s, int *n)
 {
    int i=0;
    while(isspace(*s)) ++s;
    if(*s=='0') {
      ++s;
      if(*s=='x' || *s=='X') {
-       do {char c=*++s;
+       do {char c=*++s; 
            if(c>='0' && c<='9') {i*=16; i+= c-'0';}    else
            if(c>='a' && c<='f') {i*=16; i+= c-'a'+10;} else
            if(c>='A' && c<='F') {i*=16; i+= c-'A'+10;} else break;
@@ -930,7 +900,7 @@ static char *get_num (char *s, int *n)
 
 /****************************************************************************/
 
-static void get_displayid (ULONG *DI, LONG *DE)
+static void get_displayid(ULONG *DI, LONG *DE)
 {
    char *s;
    int di,de;
@@ -946,115 +916,110 @@ static void get_displayid (ULONG *DI, LONG *DE)
 
 /****************************************************************************/
 
-static int setup_userscreen (void)
+static int setup_userscreen(void)
 {
     struct ScreenModeRequester *ScreenRequest;
     ULONG DisplayID;
     static struct BitMap PointerBitMap;
     UWORD *PointerLine;
-    LONG ScreenWidth = 0, ScreenHeight = 0, Depth = 0;
-    UWORD OverscanType = OSCAN_STANDARD;
-    BOOL AutoScroll = TRUE;
+    LONG ScreenWidth=0,ScreenHeight=0,Depth=0;
+    UWORD OverscanType=OSCAN_STANDARD;
+    BOOL AutoScroll=TRUE;
 
-    if (!AslBase)
-	AslBase = OpenLibrary ("asl.library", 38);
-    if (!AslBase) {
-	write_log ("Can't open asl.library v38.");
-	return 0;
+    if(!AslBase) AslBase = OpenLibrary("asl.library",38);
+    if(!AslBase) {
+        fprintf(stderr,"Can't open asl.library v38 !");
+        return 0;
     }
 
-    ScreenRequest = AllocAslRequest (ASL_ScreenModeRequest, NULL);
-    if (!ScreenRequest) {
-	write_log ("Unable to allocate screen mode requester.\n");
-	return 0;
+    ScreenRequest = AllocAslRequest(ASL_ScreenModeRequest,NULL);
+    if(!ScreenRequest) {
+        fprintf(stderr,"Unable to allocate screen mode requester.\n");
+        return 0;
     }
 
-    get_displayid (&DisplayID, &Depth);
+    get_displayid(&DisplayID, &Depth);
 
-    if (DisplayID == (ULONG)INVALID_ID) {
-	if (AslRequestTags (ScreenRequest,
-			ASLSM_TitleText, (ULONG)"Select screen display mode",
-			ASLSM_InitialDisplayID,    NULL,
-			ASLSM_InitialDisplayDepth, 8,
-			ASLSM_InitialDisplayWidth, currprefs.gfx_width_win,
-			ASLSM_InitialDisplayHeight,currprefs.gfx_height_win,
-			ASLSM_MinWidth,            320, //currprefs.gfx_width_win,
-			ASLSM_MinHeight,           200, //currprefs.gfx_height_win,
-			ASLSM_DoWidth,             TRUE,
-			ASLSM_DoHeight,            TRUE,
-			ASLSM_DoDepth,             TRUE,
-			ASLSM_DoOverscanType,      TRUE,
-			ASLSM_PropertyFlags,       0,
-			ASLSM_PropertyMask,        DIPF_IS_DUALPF | DIPF_IS_PF2PRI,
-			TAG_DONE)) {
-	    ScreenWidth  = ScreenRequest->sm_DisplayWidth;
-	    ScreenHeight = ScreenRequest->sm_DisplayHeight;
-	    Depth        = ScreenRequest->sm_DisplayDepth;
-	    DisplayID    = ScreenRequest->sm_DisplayID;
-	    OverscanType = ScreenRequest->sm_OverscanType;
-	    AutoScroll   = ScreenRequest->sm_AutoScroll;
-	} else
-	    DisplayID = INVALID_ID;
+    if(DisplayID==(ULONG)INVALID_ID) {
+    if(AslRequestTags(ScreenRequest,
+                      ASLSM_TitleText, (ULONG)"Select screen display mode",
+                      ASLSM_InitialDisplayID,    NULL,
+                      ASLSM_InitialDisplayDepth, 8,
+                      ASLSM_InitialDisplayWidth, currprefs.gfx_width_win,
+                      ASLSM_InitialDisplayHeight,currprefs.gfx_height_win,
+                      ASLSM_MinWidth,            320, //currprefs.gfx_width_win,
+                      ASLSM_MinHeight,           200, //currprefs.gfx_height_win,
+                      ASLSM_DoWidth,             TRUE,
+                      ASLSM_DoHeight,            TRUE,
+                      ASLSM_DoDepth,             TRUE,
+                      ASLSM_DoOverscanType,      TRUE,
+                      ASLSM_PropertyFlags,       0,
+                      ASLSM_PropertyMask,        DIPF_IS_DUALPF | 
+                                                 DIPF_IS_PF2PRI | 
+                                                 0,
+                      TAG_DONE)) {
+        ScreenWidth  = ScreenRequest->sm_DisplayWidth;
+        ScreenHeight = ScreenRequest->sm_DisplayHeight;
+        Depth        = ScreenRequest->sm_DisplayDepth;
+        DisplayID    = ScreenRequest->sm_DisplayID;
+        OverscanType = ScreenRequest->sm_OverscanType;
+        AutoScroll   = ScreenRequest->sm_AutoScroll;
+        }
+    else DisplayID = INVALID_ID;
     }
-    FreeAslRequest (ScreenRequest);
+    FreeAslRequest(ScreenRequest);
+    
+    if(DisplayID == (ULONG)INVALID_ID) return 0;
 
-    if (DisplayID == (ULONG)INVALID_ID)
-	return 0;
-
-#ifdef USE_CYBERGFX
-    if (CyberGfxBase && IsCyberModeID(DisplayID) && (Depth > 8))
-	use_cyb = 1;
+#ifdef USE_CYBERGFX 
+    if(CyberGfxBase && IsCyberModeID(DisplayID) && (Depth>8)) use_cyb = 1;
 #endif
-    if ((DisplayID & HAM_KEY) && !use_cyb )
-	Depth = 6; /* only ham6 for the moment */
+    if((DisplayID & HAM_KEY) && !use_cyb ) Depth = 6; /* only ham6 for the moment */
 #if 0
     if(DisplayID & DIPF_IS_HAM) Depth = 6; /* only ham6 for the moment */
 #endif
-    if (ScreenWidth  < currprefs.gfx_width_win)
-	ScreenWidth  = currprefs.gfx_width_win;
-    if (ScreenHeight < currprefs.gfx_height_win)
-	ScreenHeight = currprefs.gfx_height_win;
+    if(ScreenWidth  < currprefs.gfx_width_win)  ScreenWidth  = currprefs.gfx_width_win;
+    if(ScreenHeight < currprefs.gfx_height_win) ScreenHeight = currprefs.gfx_height_win;
 
-    S = OpenScreenTags (NULL,
-			SA_DisplayID,			 DisplayID,
-			SA_Width,			 ScreenWidth,
-			SA_Height,			 ScreenHeight,
-			SA_Depth,			 Depth,
-			SA_Overscan,			 OverscanType,
-			SA_AutoScroll,			 AutoScroll,
-			SA_ShowTitle,			 FALSE,
-			SA_Quiet,			 TRUE,
-			SA_Behind,			 TRUE,
-			SA_PubName,			 (ULONG)"UAE",
-			/* v39 stuff here: */
-			(os39 ? SA_BackFill : TAG_DONE), (ULONG)LAYERS_NOBACKFILL,
-			SA_SharePens,			 TRUE,
-			SA_Exclusive,			 (use_cyb ? TRUE : FALSE),
-			SA_Draggable,			 (use_cyb ? FALSE : TRUE),
-			SA_Interleaved,			 TRUE,
-			TAG_DONE);
-    if (!S) {
-	gui_message ("Unable to open the requested screen.\n");
-	return 0;
+    S = OpenScreenTags(NULL,
+                       SA_DisplayID,                  DisplayID,
+                       SA_Width,                      ScreenWidth,
+                       SA_Height,                     ScreenHeight,
+                       SA_Depth,                      Depth,
+                       SA_Overscan,                   OverscanType,
+                       SA_AutoScroll,                 AutoScroll,
+                       SA_ShowTitle,                  FALSE,
+                       SA_Quiet,                      TRUE,
+                       SA_Behind,                     TRUE,
+                       SA_PubName, 		      (ULONG)"UAE",
+                       /* v39 stuff here: */
+                       (os39?SA_BackFill:TAG_DONE),   (ULONG)LAYERS_NOBACKFILL,
+                       SA_SharePens,                  TRUE,
+                       SA_Exclusive,                  (use_cyb?TRUE:FALSE),
+                       SA_Draggable,                  (use_cyb?FALSE:TRUE),
+                       SA_Interleaved,                TRUE,
+                       TAG_DONE);
+    if(!S) {
+        fprintf(stderr,"Unable to open the screen.\n");
+        return 0;
     }
-
+    
     CM           = S->ViewPort.ColorMap;
     is_halfbrite = (S->ViewPort.Modes & EXTRA_HALFBRITE);
     is_ham       = (S->ViewPort.Modes & HAM);
 
-    PointerLine  = malloc(4); /* autodocs says it needs not be in chip memory */
-    if (PointerLine)
-	PointerLine[0] = PointerLine[1]=0;
-    InitBitMap (&PointerBitMap, 2, 16, 1);
+    PointerLine  = malloc(4);/* autodocs says it needs not be in chip memory */
+    if(PointerLine) PointerLine[0]=PointerLine[1]=0;
+    InitBitMap(&PointerBitMap,2,16,1);
     PointerBitMap.Planes[0] = (PLANEPTR)&PointerLine[0];
     PointerBitMap.Planes[1] = (PLANEPTR)&PointerLine[1];
 
-    Pointer = NewObject (NULL, POINTERCLASS,
-			POINTERA_BitMap,	(ULONG)&PointerBitMap,
-			POINTERA_WordWidth,	1,
-			TAG_DONE);
-    if (!Pointer)
-	write_log ("Warning: Unable to allocate blank mouse pointer.\n");
+    Pointer = NewObject(NULL,POINTERCLASS,
+                        POINTERA_BitMap,        (ULONG)&PointerBitMap,
+                        POINTERA_WordWidth,     1,
+                        TAG_DONE);
+    if(!Pointer)
+        fprintf(stderr,"Warning: Unable to allocate blank mouse pointer.\n");
 
     W = OpenWindowTags(NULL,
                        WA_Width,                S->Width,
@@ -1078,17 +1043,85 @@ static int setup_userscreen (void)
                        TAG_DONE);
 
     if(!W) {
-	write_log ("Unable to open the window.\n");
-	CloseScreen(S); S = NULL; RP = NULL; CM = NULL;
-	return 0;
+        fprintf(stderr,"Unable to open the window.\n");
+        CloseScreen(S);S=NULL;RP=NULL;CM=NULL;
+        return 0;
     }
-    if (!Pointer)
-	setup_sprite (W, 0);
+    if(!Pointer) setup_sprite(W,0);
 
     RP = W->RPort; /* &S->Rastport if screen is not public */
-    PubScreenStatus (S, 0);
-    write_log ("Using screenmode: 0x%x:%d (%u:%d)\n",
-	DisplayID, Depth, DisplayID, Depth);
+    PubScreenStatus(S, 0);
+    printf("Using screenmode: 0x%x:%d (%u:%d)\n",
+           DisplayID,Depth, DisplayID,Depth);
+   
+    return 1;
+}
+
+/****************************************************************************/
+
+static int setup_graffiti(void)
+{
+    static struct NewScreen NewScreenStructure = {
+        0,0, 800,600, 4, 0,1,
+        HIRES, CUSTOMSCREEN|SCREENQUIET/*|SCREENBEHIND*/,
+        NULL, (void*)"UAE", NULL, NULL};
+    static struct NewWindow NewWindowStructure = {
+        0,0, 800,600, 0,1,
+        IDCMP_MOUSEBUTTONS|IDCMP_RAWKEY|IDCMP_DISKINSERTED|IDCMP_DISKREMOVED|
+        IDCMP_ACTIVEWINDOW|IDCMP_INACTIVEWINDOW|IDCMP_MOUSEMOVE|
+	IDCMP_DELTAMOVE,
+        WFLG_SMART_REFRESH|WFLG_BACKDROP|WFLG_RMBTRAP|WFLG_NOCAREREFRESH|
+        WFLG_BORDERLESS|WFLG_ACTIVATE|WFLG_REPORTMOUSE,
+        NULL, NULL, (void*)"UAE", NULL, NULL, 5,5, 800,600,
+        CUSTOMSCREEN};
+    static short colarr[] = {
+        0x000,0x001,0x008,0x009,0x080,0x081,0x088,0x089,
+        0x800,0x801,0x808,0x809,0x880,0x881,0x888,0x889};
+    int i;
+
+    NewScreenStructure.Width     = 2*currprefs.gfx_width_win;
+    /* I leave 8 extra lines for palette & mode: */
+    NewScreenStructure.Height    = currprefs.gfx_height_win+8;  
+    NewScreenStructure.Depth     = 4;
+    NewScreenStructure.ViewModes = HIRES|GENLOCK_AUDIO/*|GENLOCK_VIDEO*/;
+                                   /*    ^^            ^^ which one ? */
+  
+    S = (void*)OpenScreen(&NewScreenStructure);
+    if(!S) {
+        fprintf(stderr, "Can't open graffiti screen !\n");
+        return 0;
+    }
+
+    for(i=0;i<15;++i) {
+        unsigned int rgb = colarr[i];
+        SetRGB4(&S->ViewPort,i,(rgb>>8)&15,(rgb>>4)&15,rgb&15);
+    }
+
+    CM = S->ViewPort.ColorMap;
+    RP = &S->RastPort;
+
+    NewWindowStructure.Width  = S->Width;
+    NewWindowStructure.Height = S->Height;
+    NewWindowStructure.Screen = S;
+    W = (void*)OpenWindow(&NewWindowStructure);
+    if(!W) {
+        fprintf(stderr, "Can't open window on graffiti screen !\n");
+        return 0;
+    }
+    setup_sprite(W,0);
+    {
+    /* make sure cmd part is cleared */
+    int d;
+    for(d = 0; d < 4; ++d) {
+        short *p;
+        int i;
+        p = (void*)RP->BitMap->Planes[d];
+        for(i=0;i<40*7;++i) p[i] = 0;
+    }
+    /* set graffiti mode to lores */
+    *((short*)RP->BitMap->Planes[3]+8*40-1) = 0x0800;
+    for(d=0;d<256;++d) graffiti_SetRGB(d,0,0,0);
+    }
 
     return 1;
 }
@@ -1101,7 +1134,7 @@ int graphics_setup (void)
     if (ix_os != OS_IS_AMIGAOS) {
         ix_req (NULL, "Abort", NULL, "That version of %s is only for AmigaOS!", __progname);
         exit (20);
-   }
+   }    
 #endif
     if (((struct ExecBase *)SysBase)->LibNode.lib_Version < 36) {
         write_log ("UAE needs OS 2.0+ !\n");
@@ -1109,7 +1142,7 @@ int graphics_setup (void)
     }
     os39 = (((struct ExecBase *)SysBase)->LibNode.lib_Version >= 39);
 
-    atexit (graphics_leave);
+    atexit (graphics_leave); 
 
     IntuitionBase = (void*) OpenLibrary ("intuition.library", 0L);
     if (!IntuitionBase) {
@@ -1132,59 +1165,54 @@ int graphics_setup (void)
 
 /****************************************************************************/
 
-static struct Window *saved_prWindowPtr;
-
-static void set_prWindowPtr (struct Window *w)
-{
-   struct Process *self = (struct Process *) FindTask (NULL);
-
-   if (!saved_prWindowPtr)
-	saved_prWindowPtr = self->pr_WindowPtr;
-   self->pr_WindowPtr = w;
-}
-
-static void restore_prWindowPtr (void)
-{
-   struct Process *self = (struct Process *) FindTask (NULL);
-
-   if (saved_prWindowPtr)
-	self->pr_WindowPtr = saved_prWindowPtr;
-}
-
-/****************************************************************************/
-
 int graphics_init (void)
 {
     int i, bitdepth;
 
+    write_log ("graphics_init\n");
     use_delta_buffer = 0;
     need_dither = 0;
     use_cyb = 0;
 
     if (currprefs.gfx_width_win < 320)
-	currprefs.gfx_width_win = 320;
+        currprefs.gfx_width_win = 320;
     if (!currprefs.gfx_correct_aspect && (currprefs.gfx_height_win < 64/*200*/))
-	currprefs.gfx_height_win = 200;
+        currprefs.gfx_height_win = 200;
     currprefs.gfx_width_win += 7;
     currprefs.gfx_width_win &= ~7;
 
-/* We'll ignore color_mode for now.
     if (currprefs.color_mode > 5) {
         write_log ("Bad color mode selected. Using default.\n");
         currprefs.color_mode = 0;
     }
-*/
 
+    /* Hack! Until we sort out color_mode nonsense, ask for a display mode */    
+    currprefs.color_mode =  2;
+   
+    if (currprefs.color_mode == 3) { /* graffiti */
+        currprefs.gfx_width_win = 320;
+        if (currprefs.gfx_height_win > 256) 
+            currprefs.gfx_height_win = 256;
+        currprefs.gfx_lores = 1;
+    } /* graffiti */
+    
     gfxvidinfo.width  = currprefs.gfx_width_win;
     gfxvidinfo.height = currprefs.gfx_height_win;
 
-    switch (currprefs.amiga_screen_type) {
-      case UAESCREENTYPE_ASK:
+    switch (currprefs.color_mode) {
+      case 3:
+        if (setup_graffiti ()) {
+	   use_graffiti = 1;
+	   break;
+	}
+        write_log ("Asking user for screen...\n");
+        /* fall through */
+      case 2:
         if (setup_userscreen ())
 	    break;
         write_log ("Trying on public screen...\n");
         /* fall trough */
-      case UAESCREENTYPE_PUBLIC:
+      case 1:
         is_halfbrite = 0;
         if (setup_publicscreen ()) {
 	   usepub = 1;
@@ -1192,14 +1220,12 @@ int graphics_init (void)
 	}
         write_log ("Trying on custom screen...\n");
         /* fall trough */
-      case UAESCREENTYPE_CUSTOM:
+      case 0:
       default:
         if (!setup_customscreen ())
 	    return 0;
         break;
     }
-
-    set_prWindowPtr (W);
 
     Line = AllocVec ((currprefs.gfx_width_win + 15) & ~15, MEMF_ANY | MEMF_PUBLIC);
     if (!Line) {
@@ -1231,8 +1257,8 @@ int graphics_init (void)
         gfxvidinfo.pixbytes = 2;
     } else if (bitdepth <= 8) {
         /* chunk2planar is slow so we define use_delta_buffer for all modes */
-        use_delta_buffer    = 1;
-        need_dither         = currprefs.amiga_use_dither || (bitdepth<=1);
+        use_delta_buffer    = 1; 
+        need_dither         = use_dither || (bitdepth<=1);
         gfxvidinfo.pixbytes = need_dither?2:1;
     } else {
         /* Cybergfx mode */
@@ -1240,7 +1266,7 @@ int graphics_init (void)
         need_dither         = 0;
         gfxvidinfo.pixbytes = (bitdepth >= 24) ? 4 : (bitdepth >= 12) ? 2 : 1;
     }
-
+    
     gfxvidinfo.emergmem = 0;
     gfxvidinfo.linemem = 0;
     if (!use_cyb) {
@@ -1259,8 +1285,8 @@ int graphics_init (void)
            default: write_log ("Unsupported bitdepth %d.\n", bitdepth); return 0;
         }
         CybBitMap = myAllocBitMap (currprefs.gfx_width_win, currprefs.gfx_height_win + 1,
-                                   bitdepth,
-                                   (fmt << 24) | BMF_SPECIALFMT | BMF_MINPLANES,
+                                   bitdepth, 
+                                   (fmt << 24) | BMF_SPECIALFMT | BMF_MINPLANES, 
                                    NULL);
         if (CybBitMap) {
            gfxvidinfo.rowbytes = GetCyberMapAttr (CybBitMap,CYBRMATTR_XMOD);
@@ -1268,11 +1294,11 @@ int graphics_init (void)
            gfxvidinfo.bufmem = (char *)GetCyberMapAttr (CybBitMap,CYBRMATTR_DISPADR);
         } else gfxvidinfo.bufmem = NULL;
 #endif
-    }
+    } 
     if (!gfxvidinfo.bufmem) {
         write_log ("Not enough memory for video bufmem.\n");
         return 0;
-    }
+    } 
 
     if (use_delta_buffer) {
         gfxvidinfo.maxblocklines = currprefs.gfx_height_win - 1; /* it seems to increase the speed */
@@ -1283,7 +1309,7 @@ int graphics_init (void)
         }
     } else {
         gfxvidinfo.maxblocklines = 0; /* whatever... */
-#ifdef POWERUP
+#ifdef POWERUP        
         gfxvidinfo.maxblocklines = 100; /* sam: this will reduce the number of 68k-OS call */
                                         /* to be done */
 #endif
@@ -1307,10 +1333,11 @@ int graphics_init (void)
         break;
     }
 
-    if (!usepub)
-	ScreenToFront (S);
+    if (!usepub) ScreenToFront (S);
 
-    set_default_hotkeys (ami_hotkeys);
+    for (i = 0; i < 256; i++)
+        keystate[i] = 0;
+    
     inwindow = 0;
 
     rexx_init();
@@ -1349,15 +1376,14 @@ void graphics_leave(void)
     if(Line) {
         FreeVec(Line);
         Line = NULL;
-    }
+    } 
     if(CM) {
         ReleaseColors();
         CM = NULL;
     }
-    if (W) {
-	restore_prWindowPtr ();
-	CloseWindow (W);
-	W = NULL;
+    if(W) {
+        CloseWindow(W);
+        W = NULL;
     }
     if(Sprite) {
         FreeVec(Sprite);
@@ -1368,9 +1394,10 @@ void graphics_leave(void)
         Pointer = NULL;
     }
     if(!usepub && S) {
-        if (!CloseScreen (S)) {
-	    gui_message ("Please close all opened windows on UAE's screen.\n");
-#if defined __SASC || defined __MORPHOS__
+        if(!CloseScreen(S)) {
+           fprintf(stderr,"Please close all opened windows on UAE's "
+		          "screen.\n");
+#ifdef __SASC
 	   do Delay(50); while(!CloseScreen(S));
 #else
 	   do sleep(1); while(!CloseScreen(S));
@@ -1398,15 +1425,13 @@ void graphics_leave(void)
 
 /****************************************************************************/
 
-int do_inhibit_frame (int onoff)
+int do_inhibit_frame(int onoff)
 {
-    if (onoff != -1) {
-	inhibit_frame = onoff ? 1 : 0;
-	if (inhibit_frame)
-	    write_log ("display disabled\n");
-	else
-	    write_log ("display enabled\n");
-	set_title ();
+    if(onoff!=-1) {
+	inhibit_frame = onoff?1:0;
+	if(inhibit_frame) printf("display disabled\n");
+        else printf("display enabled\n");
+	set_title();
     }
     return inhibit_frame;
 }
@@ -1416,8 +1441,8 @@ int do_inhibit_frame (int onoff)
 void handle_events(void)
 {
     struct IntuiMessage *msg;
-    int dmx, dmy, class, code, qualifier;
-
+    int dmx,dmy,class,code;
+  
 //    newmousecounters = 0;
 
    /* this function is called at each frame, so: */
@@ -1428,104 +1453,125 @@ void handle_events(void)
      * This is a hack to simulate ^C as is seems that break_handler
      * is lost when system() is called.
      */
-    if (SetSignal (0L, SIGBREAKF_CTRL_C | SIGBREAKF_CTRL_D) &
-		(SIGBREAKF_CTRL_C|SIGBREAKF_CTRL_D)) {
-	activate_debugger ();
+    if(SetSignal(0L, SIGBREAKF_CTRL_C|SIGBREAKF_CTRL_D) & 
+                    (SIGBREAKF_CTRL_C|SIGBREAKF_CTRL_D)) {
+        activate_debugger();
     }
 
 #if defined(POWERUP)
     /* Holger: The while-loop caused problems if a key was pressed to fast */
-    if ((msg = (struct IntuiMessage*) GetMsg (W->UserPort))) {
+    if((msg=(struct IntuiMessage*)GetMsg(W->UserPort))) {
 #else
-    while ((msg = (struct IntuiMessage*) GetMsg (W->UserPort))) {
+    while((msg=(struct IntuiMessage*)GetMsg(W->UserPort))) {
 #endif
-	class     = msg->Class;
-	code      = msg->Code;
-	dmx       = msg->MouseX;
-	dmy       = msg->MouseY;
-	qualifier = msg->Qualifier;
+        class = msg->Class;
+        code  = msg->Code;
+        dmx   = msg->MouseX;
+        dmy   = msg->MouseY;
+        ReplyMsg((struct Message*)msg);
+      
+        switch(class) {
+          case IDCMP_NEWSIZE:
+            do_inhibit_frame((W->Flags & WFLG_ZOOMED)?1:0);
+            break;
 
-	ReplyMsg ((struct Message*)msg);
+          case IDCMP_REFRESHWINDOW:
+            if(use_delta_buffer) {
+                /* hack: this forces refresh */
+                char *ptr = oldpixbuf;
+                int i, len = gfxvidinfo.width;
+                len *= gfxvidinfo.pixbytes;
+                for(i=0;i<currprefs.gfx_height_win;++i) {
+                    ptr[00000] ^= 255;
+                    ptr[len-1] ^= 255;
+                    ptr += gfxvidinfo.rowbytes;
+                }
+            }
+            BeginRefresh(W);
+            flush_block(0,currprefs.gfx_height_win-1);
+            EndRefresh(W, TRUE);
+	    break;
 
-	switch(class) {
-	    case IDCMP_NEWSIZE:
-		do_inhibit_frame ((W->Flags & WFLG_ZOOMED) ? 1 : 0);
-		break;
+          case IDCMP_CLOSEWINDOW:
+            activate_debugger();
+            break;
 
-	    case IDCMP_REFRESHWINDOW:
-		if (use_delta_buffer) {
-		    /* hack: this forces refresh */
-		    char *ptr = oldpixbuf;
-		    int i, len = gfxvidinfo.width;
-		    len *= gfxvidinfo.pixbytes;
-		    for (i=0; i < currprefs.gfx_height_win; ++i) {
-			ptr[00000] ^= 255;
-			ptr[len-1] ^= 255;
-			ptr += gfxvidinfo.rowbytes;
-		    }
-		}
-		BeginRefresh (W);
-		flush_block (0, currprefs.gfx_height_win - 1);
-		EndRefresh (W, TRUE);
-		break;
+          case IDCMP_RAWKEY: {
+              int kc       = code&127;
+              int released = code&128?1:0;
+            
+              if(released) {
+                  keystate[kc] = 0;
+                  record_key ((kc << 1) | 1);
+              } else if (!keystate[kc])  {
+                  keystate[kc] = 1;
+                  record_key (kc << 1);
+              }
+          } break;
+          
+          case IDCMP_MOUSEMOVE:
+	      setmousestate(0,0,dmx,0);
+	      setmousestate(0,1,dmy,0);
+//            lastmx += dmx;
+//            lastmy += dmy;
+	    break;
 
-	    case IDCMP_CLOSEWINDOW:
-		activate_debugger ();
-		break;
+          case IDCMP_MOUSEBUTTONS:
+            if(code==SELECTDOWN) setmousebuttonstate(0,0,1);
+            if(code==SELECTUP)   setmousebuttonstate(0,0,0);
+            if(code==MIDDLEDOWN) setmousebuttonstate(0,2,1);
+            if(code==MIDDLEUP)   setmousebuttonstate(0,2,0);
+            if(code==MENUDOWN)   setmousebuttonstate(0,1,1);
+            if(code==MENUUP)     setmousebuttonstate(0,1,0);
+            break;
+        
+          /* Those 2 could be of some use later. */
+          case IDCMP_DISKINSERTED:
+            /*printf("diskinserted(%d)\n",code);*/
+            break;
+          
+          case IDCMP_DISKREMOVED:
+            /*printf("diskremoved(%d)\n",code);*/
+            break;
+                        
+          case IDCMP_ACTIVEWINDOW:
+            inwindow = 1;
+//            newmousecounters = 1;
+            break;
+                        
+          case IDCMP_INACTIVEWINDOW:
+            inwindow = 0;
+            break;
+          
+          default:
+            fprintf(stderr, "Unknown class: %d\n",class);
+            break;
+        }
+    }
+    /* "Affengriff" */
+    if(keystate[AK_CTRL] && keystate[AK_LAMI] && keystate[AK_RAMI]) 
+        m68k_reset();
 
-	    case IDCMP_RAWKEY: {
-		int keycode = code & 127;
-		int state   = code & 128 ? 0 : 1;
-		int ievent;
+    /* PC-like :-) CTRL-ALT-DEL => reboot */
+    if(keystate[AK_CTRL] && (keystate[AK_LALT] || keystate[AK_RALT]) && 
+       keystate[AK_DEL]) 
+        m68k_reset();
 
-		if ((qualifier & IEQUALIFIER_REPEAT) == 0) {
-		    /* We just want key up/down events - not repeats */
-		    if ((ievent = match_hotkey_sequence (keycode, state)))
-			handle_hotkey_event (ievent, state);
-		    else
-			inputdevice_do_keyboard (keycode, state);
-		}
-		break;
-	     }
-
-	    case IDCMP_MOUSEMOVE:
-		setmousestate (0,0,dmx,0);
-		setmousestate (0,1,dmy,0);
-		break;
-
-	    case IDCMP_MOUSEBUTTONS:
-		if (code == SELECTDOWN) setmousebuttonstate (0,0,1);
-		if (code == SELECTUP)   setmousebuttonstate (0,0,0);
-		if (code == MIDDLEDOWN) setmousebuttonstate (0,2,1);
-		if (code == MIDDLEUP)   setmousebuttonstate (0,2,0);
-		if (code == MENUDOWN)   setmousebuttonstate (0,1,1);
-		if (code == MENUUP)     setmousebuttonstate (0,1,0);
-		break;
-
-	    /* Those 2 could be of some use later. */
-	    case IDCMP_DISKINSERTED:
-		/*printf("diskinserted(%d)\n",code);*/
-		break;
-
-	    case IDCMP_DISKREMOVED:
-		/*printf("diskremoved(%d)\n",code);*/
-		break;
-
-	    case IDCMP_ACTIVEWINDOW:
-		inwindow = 1;
-//		newmousecounters = 1;
-		break;
-
-	    case IDCMP_INACTIVEWINDOW:
-		inwindow = 0;
-		break;
-
-	    default:
-		write_log ("Unknown event class: %x\n", class);
-		break;
+    /* CTRL+LSHIFT+LALT+F10 on amiga => F12 on X11 */
+    /*                  F9           => ScrollLock on X11 (inhibit_frame) */
+    if(keystate[AK_CTRL] && keystate[AK_LSH] && keystate[AK_LALT]) {
+/*        if(keystate[AK_F10]) togglemouse(); */
+        if(keystate[AK_F8]) {
+            uae_quit();
+        }
+        if(keystate[AK_F9]) {
+            do_inhibit_frame(inhibit_frame != 2 ? inhibit_frame ^ 1 : 
+                            inhibit_frame);
+            DisplayBeep(NULL); 
         }
     }
 
+    disk_hotkeys();
     gui_handle_events();
     appw_events();
 }
@@ -1622,7 +1668,7 @@ static void set_title(void)
             led_state[2]?'1':' ',
             led_state[3]?'2':' ',
             led_state[4]?'3':' ');
-
+    
     if(!*ScreenTitle) {
          sprintf(ScreenTitle,
                  "UAE-%d.%d.%d (%s%s%s) © by Bernd Schmidt & contributors, "
@@ -1650,20 +1696,126 @@ void main_window_led(int led, int on)                /* is used in amigui.c */
 }
 
 /****************************************************************************/
+
+static void unrecord(int kc)
+{
+    keystate[kc] = 0;
+    record_key ((kc << 1) | 1);
+}
+
+/****************************************************************************/
+
+static void disk_hotkeys(void)
+{
+    struct FileRequester *FileRequest;
+    char buff[80];
+    int drive;
+    char *last_file,*last_dir,*s;
+
+    if(!(keystate[AK_CTRL] && keystate[AK_LALT])) return;
+
+    /* CTRL-LSHIFT-LALT F1-F4 => eject_disk */
+    if(keystate[AK_LSH]) {
+        int ok = 0;
+
+        if(keystate[AK_F1]) {ok=1;disk_eject(0);
+                             printf("drive DF0: ejected\n");}
+        if(keystate[AK_F2]) {ok=1;disk_eject(1);
+                             printf("drive DF1: ejected\n");}
+        if(keystate[AK_F3]) {ok=1;disk_eject(2);
+                             printf("drive DF2: ejected\n");}
+        if(keystate[AK_F4]) {ok=1;disk_eject(3);
+                             printf("drive DF3: ejected\n");}
+
+        if(ok) {
+            DisplayBeep(NULL);
+            unrecord(AK_CTRL);unrecord(AK_LALT);unrecord(AK_LSH); 
+            unrecord(AK_F1);unrecord(AK_F2);  
+            unrecord(AK_F3);unrecord(AK_F4);
+        }
+        return;
+    }
+
+    /* CTRL-LALT F1-F4 => insert_disk */
+    if(keystate[AK_F1])      {drive = 0;unrecord(AK_F1);}
+    else if(keystate[AK_F2]) {drive = 1;unrecord(AK_F2);}
+    else if(keystate[AK_F3]) {drive = 2;unrecord(AK_F3);}
+    else if(keystate[AK_F4]) {drive = 3;unrecord(AK_F4);}
+    else return;
+    DisplayBeep(NULL);
+    unrecord(AK_CTRL);unrecord(AK_LALT); 
+
+    switch(drive) {
+      case 0: case 1: case 2: case 3: last_file = currprefs.df[drive]; break;
+      default: return;
+    }
+
+    split_dir_file(from_unix_path(last_file), &last_dir, &last_file);
+    if(!last_file) return;
+    if(!last_dir)  return;
+
+    if(!AslBase) AslBase = OpenLibrary("asl.library",36);
+    if(!AslBase) {
+        fprintf(stderr,"Can't open asl.library v36 !");
+        return;
+    }
+
+    FileRequest = AllocAslRequest(ASL_FileRequest,NULL);
+    if(!FileRequest) {
+        fprintf(stderr,"Unable to allocate file requester.\n");
+        return;
+    }
+
+    sprintf(buff,"Select file to use for drive DF%d:",drive);
+    if(AslRequestTags(FileRequest,
+                      use_graffiti?TAG_IGNORE:
+                      ASLFR_Window,         (ULONG)W,
+                      ASLFR_TitleText,      (ULONG)buff,
+                      ASLFR_InitialDrawer,  (ULONG)last_dir,
+                      ASLFR_InitialFile,    (ULONG)last_file,
+                      ASLFR_InitialPattern, (ULONG)"(#?.ad(f|z)#?|df?|?)",
+                      ASLFR_DoPatterns,     TRUE,
+                      ASLFR_RejectIcons,    TRUE,
+                      TAG_DONE)) {
+        free(last_file);
+        last_file = malloc(3 + strlen(FileRequest->fr_Drawer) +
+                           strlen(FileRequest->fr_File));
+        if((last_file)) {
+            s = last_file;
+            strcpy(s,FileRequest->fr_Drawer);
+            if(*s && !(s[strlen(s)-1]==':' || s[strlen(s)-1]=='/')) 
+                strcat(s,"/");
+            strcat(s,FileRequest->fr_File);
+            last_file = to_unix_path(s);free(s);
+        }
+    } else {
+        free(last_file);
+        last_file = NULL;
+    }
+    FreeAslRequest(FileRequest);
+    free(last_dir);
+
+    if(last_file) {
+        disk_insert(drive,last_file);
+        free(last_file);
+    }
+}
+
+/****************************************************************************/
 /*
  * Routines for OS2.0 (code taken out of mpeg_play by Michael Balzer)
  */
-static struct BitMap *myAllocBitMap(ULONG sizex, ULONG sizey, ULONG depth,
+static struct BitMap *myAllocBitMap(ULONG sizex, ULONG sizey, ULONG depth, 
                                     ULONG flags, struct BitMap *friend_bitmap)
 {
     struct BitMap *bm;
     unsigned long extra;
-
+    
     if(os39) return AllocBitMap(sizex, sizey, depth, flags, friend_bitmap);
-
+    
     extra = (depth > 8) ? depth - 8 : 0;
     bm = AllocVec( sizeof *bm + (extra * 4), MEMF_CLEAR );
-
+    
     if( bm )
       {
           ULONG i;
@@ -1696,48 +1848,50 @@ static void myFreeBitMap(struct BitMap *bm)
 /*
  * find the best appropriate color. return -1 if none is available
  */
-static LONG ObtainColor (ULONG r,ULONG g,ULONG b)
+static LONG ObtainColor(ULONG r,ULONG g,ULONG b)
 {
     int i, crgb;
     int colors;
 
-    if (os39 && usepub && CM) {
-	i = ObtainBestPen (CM, r, g, b,
-			   OBP_Precision, (use_approx_color ? PRECISION_GUI
-							    : PRECISION_EXACT),
-			   OBP_FailIfBad, TRUE,
-			   TAG_DONE);
-	if (i != -1) {
-	    if (maxpen<256)
-		pen[maxpen++] = i;
-	    else
-		i = -1;
+    if(use_graffiti) {
+        if(maxpen >= 256) {
+            fprintf(stderr,"Asking more than 256 colors for graffiti ?\n");
+            abort();
+        }
+        graffiti_SetRGB(maxpen, r>>24, g>>24, b>>24);
+        return maxpen++;
+    }
+
+    if(os39 && usepub && CM) {
+        i = ObtainBestPen(CM,r,g,b,
+                          OBP_Precision, (use_approx_color?PRECISION_GUI:
+                                                           PRECISION_EXACT),
+                          OBP_FailIfBad, TRUE,
+                          TAG_DONE);
+        if(i != -1) {
+            if(maxpen<256) pen[maxpen++] = i;
+            else i = -1;
         }
         return i;
     }
 
-    colors = is_halfbrite ? 32 : (1 << RPDepth (RP));
-
+    colors = is_halfbrite?32:(1<<RPDepth(RP));
+  
     /* private screen => standard allocation */
-    if (!usepub) {
-	if (maxpen >= colors)
-	    return -1; /* no more colors available */
-	if (os39)
-	    SetRGB32 (&S->ViewPort, maxpen, r, g, b);
-	else
-	    SetRGB4 (&S->ViewPort, maxpen, r >> 28, g >> 28, b >> 28);
-	return maxpen++;
+    if(!usepub) {
+        if(maxpen >= colors) return -1; /* no more colors available */
+        if(os39) SetRGB32(&S->ViewPort, maxpen, r, g, b);
+	else	 SetRGB4 (&S->ViewPort, maxpen, r>>28, g>>28, b>>28);
+        return maxpen++;
     }
 
     /* public => find exact match */
     r >>= 28; g >>= 28; b >>= 28;
-    if (use_approx_color)
-	return get_nearest_color (r, g, b);
-    crgb = (r << 8) | (g << 4) | b;
-    for (i = 0; i < colors; i++ ) {
-	int rgb = GetRGB4 (CM, i);
-	if (rgb == crgb)
-	    return i;
+    if(use_approx_color) return get_nearest_color(r,g,b);
+    crgb = (r<<8)|(g<<4)|b;
+    for(i=0; i<colors; i++ ) {
+        int rgb = GetRGB4(CM, i);
+        if(rgb == crgb) return i;
     }
     return -1;
 }
@@ -1748,7 +1902,7 @@ static LONG ObtainColor (ULONG r,ULONG g,ULONG b)
  */
 static void ReleaseColors(void)
 {
-    if(os39 && usepub && CM)
+    if(os39 && usepub && CM) 
         while(maxpen>0) ReleasePen(CM, pen[--maxpen]);
     else maxpen = 0;
 }
@@ -1759,38 +1913,91 @@ static int DoSizeWindow(struct Window *W,int wi,int he)
 {
     register int x,y;
     int ret = 1;
-
+    
     wi += W->BorderRight + W->BorderLeft;
     he += W->BorderBottom + W->BorderTop;
     x   = W->LeftEdge;
     y   = W->TopEdge;
-
+    
     if(x + wi >= W->WScreen->Width)  x = W->WScreen->Width - wi;
     if(y + he >= W->WScreen->Height) y = W->WScreen->Height - he;
 
     if(x<0 || y<0) {
-         write_log ("Working screen too small to open window (%dx%d).\n",
+        fprintf(stderr, "Working screen too small to open window (%dx%d)!\n",
                 wi, he);
         if(x<0) {x = 0; wi = W->WScreen->Width;}
         if(y<0) {y = 0; he = W->WScreen->Height;}
         ret = 0;
     }
-
+    
     x  -= W->LeftEdge;
     y  -= W->TopEdge;
     wi -= W->Width;
     he -= W->Height;
-
+    
     if(x|y)   MoveWindow(W,x,y);
     if(wi|he) SizeWindow(W,wi,he);
     return ret;
 }
 
 /****************************************************************************/
+/*
+ * support code for graffiti card
+ */
+static void graffiti_SetRGB(int i, int r, int g, int b)
+{
+    UWORD **ptr = (void*)RP->BitMap->Planes;
+
+    *(*ptr++ + i) = 0x0406;
+    *(*ptr++ + i) = (i<<8)|((g>>2)&0x3f);
+    *(*ptr++ + i) = 0x0606;
+    *(*ptr   + i) = ((r<<6)&0x3f00)|((b>>2)&0x3f);
+}
+
+/****************************************************************************/
+
+static void graffiti_WritePixelLine8(int x, int y, short len, char *line)
+{
+#if 0
+    /* standard code */
+    char **ptr = (void*)RP->BitMap->Planes;
+
+    y += 8;
+    x += (y*80)<<2;
+    while(len--) {
+        *(ptr[x&3] + (x>>2)) = *line++;
+        ++x;
+    }
+#else
+    /* this one must be quite fast for 680x0 processor */
+    char **ptr;
+    char *ptr0,*ptr1,*ptr2,*ptr3;
+    ptr = (void*)RP->BitMap->Planes;
+    switch(x&3) {
+        case 0: ptr0=*ptr++;     ptr1=*ptr++;     ptr2=*ptr++;     ptr3=*ptr; break;
+        case 1: ptr3=*ptr++ + 1; ptr0=*ptr++;     ptr1=*ptr++;     ptr2=*ptr; break;
+        case 2: ptr2=*ptr++ + 1; ptr3=*ptr++ + 1; ptr0=*ptr++;     ptr1=*ptr; break;
+        default:
+        case 3: ptr1=*ptr++ + 1; ptr2=*ptr++ + 1; ptr3=*ptr++ + 1; ptr0=*ptr; break;
+    }
+    x >>= 2; x += (80*(y+8));
+    ptr0 += x; ptr1 += x; ptr2 += x; ptr3 += x;
+    ++len;
+    /* full speed here */
+    while(1) {
+        if(--len) *ptr0++ = *line++; else break;
+        if(--len) *ptr1++ = *line++; else break;
+        if(--len) *ptr2++ = *line++; else break;
+        if(--len) *ptr3++ = *line++; else break;
+    }
+#endif
+}
+
+/****************************************************************************/
 
 #define MAKEID(a,b,c,d) ((a<<24)|(b<<16)|(c<<8)|d)
 
-static int SaveIFF (char *filename, struct Screen *scr)
+static int SaveIFF(char *filename, struct Screen *scr)
 {
     struct DisplayInfo DI;
     FILE *file;
@@ -1798,21 +2005,21 @@ static int SaveIFF (char *filename, struct Screen *scr)
     ULONG modeid;
     ULONG count;
     ULONG i;
-
+    
     struct {ULONG iff_type, iff_length;} chunk;
     struct {ULONG fc_type, fc_length, fc_subtype;} FORM;
     struct {
-	UWORD w,h,x,y;
-	UBYTE depth, masking, compression, pad1;
-	UWORD transparentColor;
-	UBYTE xAspect, yAspect;
-	WORD  pagewidth,pageheight;
+        UWORD w,h,x,y;
+        UBYTE depth,masking,compression,pad1;
+        UWORD transparentColor;
+        UBYTE xAspect,yAspect;
+        WORD  pagewidth,pageheight;
     } BMHD;
-
+    
     BODYsize = scr->BitMap.Depth * scr->BitMap.Rows * 2 * ((scr->Width+15)/16);
     modeid   = GetVPModeID(&S->ViewPort);
     count    = scr->ViewPort.ColorMap->Count;
-
+    
     FORM.fc_type    = MAKEID('F','O','R','M');
     FORM.fc_length  = 4 +                 /* ILBM */
                       8 + sizeof(BMHD) +  /* BMHD */
@@ -1820,13 +2027,13 @@ static int SaveIFF (char *filename, struct Screen *scr)
                       8 + 3*count +       /* CMAP */
                       8 + BODYsize;       /* BODY */
     FORM.fc_subtype = MAKEID('I','L','B','M');
-
+    
     if(!(file = fopen(filename,"w"))) return 0;
     if(fwrite(&FORM,sizeof(FORM),1,file)!=1) goto err;
 
-    BMHD.w           =
+    BMHD.w           = 
     BMHD.pagewidth   = scr->Width;
-    BMHD.h           =
+    BMHD.h           = 
     BMHD.pageheight  = scr->Height;
     BMHD.x           = 0;
     BMHD.y           = 0;
@@ -1838,7 +2045,7 @@ static int SaveIFF (char *filename, struct Screen *scr)
     BMHD.xAspect     = 22;
     BMHD.yAspect     = 11;
 
-    if(GetDisplayInfoData(NULL, (UBYTE *)&DI, sizeof(struct DisplayInfo),
+    if(GetDisplayInfoData(NULL, (UBYTE *)&DI, sizeof(struct DisplayInfo), 
                           DTAG_DISP, modeid)) {
     BMHD.xAspect     = DI.Resolution.x;
     BMHD.yAspect     = DI.Resolution.y;
@@ -1846,7 +2053,7 @@ static int SaveIFF (char *filename, struct Screen *scr)
 
     chunk.iff_type   = MAKEID('B','M','H','D');
     chunk.iff_length = sizeof(BMHD);
-    if(fwrite(&chunk,sizeof(chunk),1,file)!=1
+    if(fwrite(&chunk,sizeof(chunk),1,file)!=1 
     || fwrite(&BMHD, sizeof(BMHD), 1,file)!=1) goto err;
 
     chunk.iff_type   = MAKEID('C','A','M','G');
@@ -1874,11 +2081,11 @@ static int SaveIFF (char *filename, struct Screen *scr)
    for(r=0; r<bm->Rows; ++r) for(p=0; p<bm->Depth; ++p)
    if(fwrite(bm->Planes[p] + r*bm->BytesPerRow, 2*((S->Width+15)/16), 1, file)!=1) goto err;
    }
-
+   
    fclose(file);
    return 1;
-err:
-   gui_message ("Error writing to \"%s\"\n", filename);
+err: 
+   fprintf(stderr,"Error writing to \"%s\"\n",filename);
    fclose(file);
    return 0;
    }
@@ -1900,7 +2107,7 @@ static int dist4(LONG rgb1, LONG rgb2) /* computes distance very quickly */
     t = (rgb1&0x0F0)-(rgb2&0x0F0); t>>=4; if (t<0) d -= t; else d += t;
     t = (rgb1&0x00F)-(rgb2&0x00F); t>>=0; if (t<0) d -= t; else d += t;
 #if 0
-    t = rgb1^rgb2;
+    t = rgb1^rgb2; 
     if(t&15) ++d; t>>=4;
     if(t&15) ++d; t>>=4;
     if(t&15) ++d;
@@ -1952,7 +2159,7 @@ static void ham_conv(UWORD *src, UBYTE *buf, UWORD len)
 {
     /* A good compiler (ie. gcc :) will use bfext/bfins instructions */
 #ifdef __SASC
-    union { struct { unsigned int _:17, r:5, g:5, b:5; } _;
+    union { struct { unsigned int _:17, r:5, g:5, b:5; } _; 
 	    int all;} rgb, RGB;
 #else
     union { struct { ULONG _:17,r:5,g:5,b:5;} _; ULONG all;} rgb, RGB;
@@ -1967,17 +2174,17 @@ static void ham_conv(UWORD *src, UBYTE *buf, UWORD len)
 #ifndef USE_BITFIELDS
         if(t<=d_dst[RGB.all]) {
 	    static int ht[]={32+10,48+5,16+0}; ULONG m;
-	    t &= 3; m = 0x1F<<(ht[t]&15);
-            m = ~m; rgb.all &= m;
+	    t &= 3; m = 0x1F<<(ht[t]&15); 
+            m = ~m; rgb.all &= m; 
             m = ~m; m &= RGB.all;rgb.all |= m;
 	    m >>= ht[t]&15;
 	    c = (ht[t]&~15) | m;
         } else {
 	    rgb.all = c;
-	    rgb.all <<= 5; rgb.all |= c;
-	    rgb.all <<= 5; rgb.all |= c;
+	    rgb.all <<= 5; rgb.all |= c; 
+	    rgb.all <<= 5; rgb.all |= c; 
         }
-#else
+#else   
         if(t<=d_dst[RGB.all]) {
             t&=3;
             if(!t)        {c = 32; c |= (rgb._.r = RGB._.r);}
@@ -1993,15 +2200,15 @@ static void ham_conv(UWORD *src, UBYTE *buf, UWORD len)
 
 #ifdef POWERUP
 /* sam: here is the code to avoid spilled register trouble */
-static void myBltBitMapRastPort(struct BitMap *srcBitMap, long xSrc,
-				long ySrc, struct RastPort * destRP,
-				long xDest, long yDest, long xSize,
+static void myBltBitMapRastPort(struct BitMap *srcBitMap, long xSrc, 
+				long ySrc, struct RastPort * destRP, 
+				long xDest, long yDest, long xSize, 
 				long ySize, unsigned long minterm)
 {
     BltBitMapRastPort(srcBitMap,xSrc,ySrc,destRP,
 		      xDest,yDest,xSize,ySize,minterm);
 }
-static void myWritePixelLine8(struct RastPort* a, int b, int c,
+static void myWritePixelLine8(struct RastPort* a, int b, int c, 
 			      int d, char *e, struct RastPort*f)
 {
     WritePixelLine8(a,b,c,d,e,f);
@@ -2022,214 +2229,14 @@ int check_prefs_changed_gfx (void)
 
 /****************************************************************************/
 
-void toggle_mousegrab (void)
+void target_save_options(FILE *f, struct uae_prefs *p)
 {
-    write_log ("Mouse grab not supported\n");
-}
-
-void framerate_up (void)
-{
-    if (currprefs.gfx_framerate < 20)
-	changed_prefs.gfx_framerate = currprefs.gfx_framerate + 1;
-}
-
-void framerate_down (void)
-{
-    if (currprefs.gfx_framerate > 1)
-	changed_prefs.gfx_framerate = currprefs.gfx_framerate - 1;
-}
-
-int is_fullscreen (void)
-{
-    return 0;
-}
-
-void toggle_fullscreen (void)
-{
-}
-
-void screenshot (int type)
-{
-    write_log ("Screenshot not implemented yet\n");
-}
-
-/****************************************************************************
- *
- * Mouse inputdevice functions
- */
-
-#define MAX_BUTTONS     3
-#define MAX_AXES        3
-#define FIRST_AXIS      0
-#define FIRST_BUTTON    MAX_AXES
-
-static int init_mouse (void)
-{
-   return 1;
-}
-
-static void close_mouse (void)
-{
-   return;
-}
-
-static int acquire_mouse (int num, int flags)
-{
-   return 1;
-}
-
-static void unacquire_mouse (int num)
-{
-   return;
-}
-
-static int get_mouse_num (void)
-{
-    return 1;
-}
-
-static char *get_mouse_name (int mouse)
-{
-    return 0;
-}
-
-static int get_mouse_widget_num (int mouse)
-{
-    return MAX_AXES + MAX_BUTTONS;
-}
-
-static int get_mouse_widget_first (int mouse, int type)
-{
-    switch (type) {
-        case IDEV_WIDGET_BUTTON:
-            return FIRST_BUTTON;
-        case IDEV_WIDGET_AXIS:
-            return FIRST_AXIS;
-    }
-    return -1;
-}
-
-static int get_mouse_widget_type (int mouse, int num, char *name, uae_u32 *code)
-{
-    if (num >= MAX_AXES && num < MAX_AXES + MAX_BUTTONS) {
-        if (name)
-            sprintf (name, "Button %d", num + 1 + MAX_AXES);
-        return IDEV_WIDGET_BUTTON;
-    } else if (num < MAX_AXES) {
-        if (name)
-            sprintf (name, "Axis %d", num + 1);
-        return IDEV_WIDGET_AXIS;
-    }
-    return IDEV_WIDGET_NONE;
-}
-
-static void read_mouse (void)
-{
-    /* We handle mouse input in handle_events() */
-}
-
-struct inputdevice_functions inputdevicefunc_mouse = {
-    init_mouse, close_mouse, acquire_mouse, unacquire_mouse, read_mouse,
-    get_mouse_num, get_mouse_name,
-    get_mouse_widget_num, get_mouse_widget_type,
-    get_mouse_widget_first
-};
-
-/****************************************************************************
- *
- * Keyboard inputdevice functions
- */
-static int get_kb_num (void)
-{
-    return 1;
-}
-
-static char *get_kb_name (int kb)
-{
-    return 0;
-}
-
-static int get_kb_widget_num (int kb)
-{
-    return 128;
-}
-
-static int get_kb_widget_first (int kb, int type)
-{
-    return 0;
-}
-
-static int get_kb_widget_type (int kb, int num, char *name, uae_u32 *code)
-{
-    // fix me
-    *code = num;
-    return IDEV_WIDGET_KEY;
-}
-
-static int keyhack (int scancode, int pressed, int num)
-{
-    return scancode;
-}
-
-static void read_kb (void)
-{
-}
-
-static int init_kb (void)
-{
-    return 1;
-}
-
-static void close_kb (void)
-{
-}
-
-static int acquire_kb (int num, int flags)
-{
-    return 1;
-}
-
-static void unacquire_kb (int num)
-{
-}
-
-struct inputdevice_functions inputdevicefunc_keyboard =
-{
-    init_kb, close_kb, acquire_kb, unacquire_kb,
-    read_kb, get_kb_num, get_kb_name, get_kb_widget_num,
-    get_kb_widget_type, get_kb_widget_first
-};
-
-/****************************************************************************
- *
- * Handle gfx specific cfgfile options
- */
-
-static const char *screen_type[] = { "custom", "public", "ask", 0 };
-
-void gfx_default_options (struct uae_prefs *p)
-{
-    p->amiga_screen_type     = UAESCREENTYPE_PUBLIC;
-    p->amiga_publicscreen[0] = '\0';
-    p->amiga_use_dither      = 1;
-    p->amiga_use_grey        = 0;
-}
-
-void gfx_save_options (FILE *f, struct uae_prefs *p)
-{
-    cfgfile_write (f, GFX_NAME ".screen_type=%s\n",  screen_type[p->amiga_screen_type]);
-    cfgfile_write (f, GFX_NAME ".publicscreen=%s\n", p->amiga_publicscreen);
-    cfgfile_write (f, GFX_NAME ".use_dither=%s\n",   p->amiga_use_dither ? "true" : "false");
-    cfgfile_write (f, GFX_NAME ".use_grey=%s\n",     p->amiga_use_grey ? "true" : "false");
-}
-
-int gfx_parse_option (struct uae_prefs *p, char *option, char *value)
-{
-    return (cfgfile_yesno  (option, value, "use_dither",   &p->amiga_use_dither)
-	 || cfgfile_yesno  (option, value, "use_grey",	 &p->amiga_use_grey)
-         || cfgfile_strval (option, value, "screen_type",  &p->amiga_screen_type, screen_type, 0)
-         || cfgfile_string (option, value, "publicscreen", &p->amiga_publicscreen[0], 256)
-    );   
 }
 
 /****************************************************************************/
+
+int target_parse_option(struct uae_prefs *p, char *option, char *value)
+{
+    return 0;
+}
+   

@@ -13,6 +13,10 @@
 #define DEFPRTNAME "lpr"
 #define DEFSERNAME "/dev/ports/serial1"
 
-#define NO_MAIN_IN_MAIN_C
+#ifndef USE_SDL
+# define NO_MAIN_IN_MAIN_C
+#else
+# define PICASSO96_SUPPORTED
+#endif
 
 #define write_log write_log_standard

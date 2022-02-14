@@ -410,8 +410,6 @@ static uae_u32 uaelib_demux (void)
 #endif
      case 68: return emulib_Minimize ();
      case 69: return emulib_ExecuteNativeCode ();
-
-     case 80: return currprefs.maprom ? currprefs.maprom : 0xffffffff;
     }
     return 0;
 }

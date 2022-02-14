@@ -4,7 +4,6 @@
   * Target specific stuff, AmigaOS version
   *
   * Copyright 1997 Bernd Schmidt
-  * Copyright 2003-2004 Richard Drummond
   */
 
 #define TARGET_NAME "amiga"
@@ -37,5 +36,3 @@
 #define HAVE_OSDEP_INIT
 #define HAVE_OSDEP_RPT
 #endif
-
-#define NO_MAIN_IN_MAIN_C

@@ -1,4 +1,4 @@
- /*
+/*
   * UAE - The Un*x Amiga Emulator
   *
   * Misc support code for AmigaOS target
@@ -24,6 +24,20 @@
 #include "custom.h"
 #include "events.h"
 #include "sleep.h"
+
+/* When built with libnix and linked against the swapstack
+ * module, this will ensure that the stack is at least
+ * MIN_STACKS_SIZE (bytes) on start-up.
+ *
+ * This will eventually go elsewhere (an Amiga-specific
+ * main.c probably) but for now shoving it in here saves any
+ * further monkeying about with the build scripts.
+ */
+#define MIN_STACK_SIZE  16384
+
+unsigned long __stack=MIN_STACK_SIZE;
+
+
 
 #ifdef SUPPORT_THREADS
 
@@ -167,12 +181,6 @@ static void sem_thread_func (void)
    Permit();
 }
 
-static void stop_sem_thread (void)
-{
-    if (sem_thread_port)
-	putPSemaphoreMsg (PSEMCMD_QUIT, NULL);
-}
-
 static int start_sem_thread (void)
 {
     int result = -1;
@@ -191,7 +199,6 @@ static int start_sem_thread (void)
 	    PutMsg (&p->pr_MsgPort, (struct Message*)&msg);
 	    WaitPort (replyport);
 
-	    atexit (stop_sem_thread);
 	    result = 0;
 	}
 	DeleteMsgPort (replyport);

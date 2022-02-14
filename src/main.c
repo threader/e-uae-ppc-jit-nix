@@ -132,6 +132,7 @@ void default_prefs (struct uae_prefs *p)
     p->stereo = 0;
     p->sound_bits = DEFAULT_SOUND_BITS;
     p->sound_freq = DEFAULT_SOUND_FREQ;
+    p->sound_minbsiz = DEFAULT_SOUND_MINB;
     p->sound_maxbsiz = DEFAULT_SOUND_MAXB;
     p->sound_interpol = 0;
     p->sound_filter = 0;
@@ -177,7 +178,6 @@ void default_prefs (struct uae_prefs *p)
     p->gfx_ycenter = 0;
     p->color_mode = 0;
 
-#if 0
     p->x11_use_low_bandwidth = 0;
     p->x11_use_mitshm = 0;
     p->x11_hide_cursor = 1;
@@ -185,10 +185,15 @@ void default_prefs (struct uae_prefs *p)
     p->svga_no_linear = 0;
 
     p->curses_reverse_video = 0;
-#endif
 
-    target_default_options (p);
-    gfx_default_options (p);
+    p->win32_middle_mouse = 0;
+    p->win32_logfile = 0;
+    p->win32_iconified_nospeed = 0;
+    p->win32_iconified_nosound = 0;
+    p->win32_no_overlay = 0;
+    p->win32_ctrl_F11_is_quit = 0;
+    p->win32_soundcard = 0;
+    p->win32_activepriority = 1;
 
     p->immediate_blits = 0;
     p->collision_level = 2;
@@ -199,8 +204,6 @@ void default_prefs (struct uae_prefs *p)
     p->scsi = 0;
     p->cpu_idle = 0;
     p->catweasel_io = 0;
-    p->tod_hack = 0;
-    p->maprom = 0;
 
     p->gfx_filter = 0;
     p->gfx_filter_filtermode = 1;
@@ -474,9 +477,7 @@ static void fix_options (void)
 #endif
 #if !defined (SCSIEMU)
     currprefs.scsi = 0;
-#ifdef _WIN32
     currprefs.win32_aspi = 0;
-#endif   
 #endif
 
     if (err)
@@ -624,6 +625,7 @@ static void parse_cmdline_and_init_file (int argc, char **argv)
 
     strcat (optionsfile, OPTIONSFILENAME);
 
+    write_log( "cfgfile_load:%s\n", optionsfile );
     if (! cfgfile_load (&currprefs, optionsfile)) {
 #ifdef OPTIONS_IN_HOME
 	/* sam: if not found in $HOME then look in current directory */
@@ -634,7 +636,6 @@ static void parse_cmdline_and_init_file (int argc, char **argv)
 	     * directory - so that a GUI can save a new config file there */
 	    strcpy (optionsfile, saved_path);
 	}
-
         free (saved_path);
 #endif
     }
@@ -758,12 +759,12 @@ static void real_main2 (int argc, char **argv)
 	currprefs.produce_sound = 0;
     }
     inputdevice_init ();
+
     changed_prefs = currprefs;
     no_gui = ! currprefs.start_gui;
     if (restart_program == 2)
 	no_gui = 1;
     restart_program = 0;
-//    no_gui = 0;
     if (! no_gui) {
 	int err = gui_init ();
 	struct uaedev_mount_info *mi = currprefs.mountinfo;
@@ -858,13 +859,13 @@ void real_main (int argc, char **argv)
 {
 #ifdef _WIN32
     extern char *start_path;
-
+#endif
+    restart_program = 1;
+#ifdef _WIN32
     sprintf (restart_config, "%s\\Configurations\\", start_path);
 #endif
     strcat (restart_config, OPTIONSFILENAME);
-
-    restart_program = 1;
-
+   
 #ifdef USE_SDL
     SDL_Init (SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK | SDL_INIT_NOPARACHUTE);
     atexit (SDL_Quit);
@@ -885,9 +886,4 @@ int main (int argc, char **argv)
     real_main (argc, argv);
     return 0;
 }
-#endif
-
-#ifdef SINGLEFILE
-uae_u8 singlefile_config[50000] = { "_CONFIG_STARTS_HERE" };
-uae_u8 singlefile_data[1500000] = { "_DATA_STARTS_HERE" };
 #endif

@@ -3515,15 +3515,12 @@ void filesys_reset (void)
 
 static void free_all_ainos (Unit *u, a_inode *parent)
 {
-    a_inode *a;
-    while (a = parent->child) {
-	free_all_ainos (u, a);
-	dispose_aino (u, &parent->child, a);
+  a_inode *a;
+  while (a = parent->child)
+    {
+      free_all_ainos (u, a);
+      dispose_aino (u, &parent->child, a);
     }
-}
-
-void filesys_flush_cache (void)
-{
 }
 
 void filesys_prepare_reset (void)
@@ -3701,7 +3698,7 @@ static int rl (uae_u8 *p)
     return (p[0] << 24) | (p[1] << 16) | (p[2] << 8) | (p[3]);
 }
 
-static int rdb_checksum (char *id, uae_u8 *p, int block)
+static int rdb_checksum (char *id, uae_u8 *p)
 {
     uae_u32 sum = 0;
     int i, blocksize;
@@ -3715,8 +3712,8 @@ static int rdb_checksum (char *id, uae_u8 *p, int block)
 	sum += rl (p + i * 4);
     sum = -sum;
     if (sum) {
-	write_log ("RDB: block %d ('%s') checksum error\n", block, id);
-	return 1;
+	write_log ("RDB: block '%s' checksum error\n", id);
+	return 0;
     }
     return 1;
 }
@@ -3775,7 +3772,7 @@ static int rdb_mount (UnitInfo *uip, int unit_no, int partnum, uaecptr parmpacke
 	return -2;
     for (rdblock = 0; rdblock < lastblock; rdblock++) {
 	hdf_read (hfd, bufrdb, rdblock * hfd->blocksize, hfd->blocksize);
-	if (rdb_checksum ("RDSK", bufrdb, rdblock))
+	if (rdb_checksum ("RDSK", bufrdb))
 	    break;
 	hdf_read (hfd, bufrdb, rdblock * hfd->blocksize, hfd->blocksize);
 	if (!memcmp ("RDSK", bufrdb, 4)) {
@@ -3783,7 +3780,7 @@ static int rdb_mount (UnitInfo *uip, int unit_no, int partnum, uaecptr parmpacke
 	    bufrdb[0xdd] = 0;
 	    bufrdb[0xde] = 0;
 	    bufrdb[0xdf] = 0;
-	    if (rdb_checksum ("RDSK", bufrdb, rdblock)) {
+	    if (rdb_checksum ("RDSK", bufrdb)) {
 		write_log ("Windows trashed RDB detected, fixing..\n");
 		hdf_write (hfd, bufrdb, rdblock * hfd->blocksize, hfd->blocksize);
 		break;
@@ -3813,7 +3810,7 @@ static int rdb_mount (UnitInfo *uip, int unit_no, int partnum, uaecptr parmpacke
 	    goto error;
 	}
 	hdf_read (hfd, buf, partblock * hfd->blocksize, readblocksize);
-	if (!rdb_checksum ("PART", buf, partblock)) {
+	if (!rdb_checksum ("PART", buf)) {
 	    err = -2;
 	    goto error;
 	}
@@ -3862,7 +3859,7 @@ static int rdb_mount (UnitInfo *uip, int unit_no, int partnum, uaecptr parmpacke
 	    goto error;
 	}
 	hdf_read (hfd, buf, fileblock * hfd->blocksize, readblocksize);
-	if (!rdb_checksum ("FSHD", buf, fileblock)) {
+	if (!rdb_checksum ("FSHD", buf)) {
 	    err = -1;
 	    goto error;
 	}
@@ -3903,7 +3900,7 @@ static int rdb_mount (UnitInfo *uip, int unit_no, int partnum, uaecptr parmpacke
 	if (!legalrdbblock (uip, lsegblock))
 	    goto error;
 	hdf_read (hfd, buf, lsegblock * hfd->blocksize, readblocksize);
-	if (!rdb_checksum ("LSEG", buf, lsegblock))
+	if (!rdb_checksum ("LSEG", buf))
 	    goto error;
 	lsegblock = rl (buf + 16);
 	memcpy (fsmem + i * (blocksize - 20), buf + 20, blocksize - 20);

@@ -25,7 +25,7 @@
 #define ACTION_REPLAY_DORESET 4
 #define ACTION_REPLAY_HIDE 5
 
-extern int action_replay_freeze (void);
+extern void action_replay_freeze (void);
 
 extern uaecptr wait_for_pc;
 extern int action_replay_flag;

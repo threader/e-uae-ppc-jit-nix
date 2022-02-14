@@ -17,7 +17,6 @@
 #include "uae.h"
 #include "memory.h"
 #include "autoconf.h"
-#include "xwin.h"
 #include "picasso96.h"
 #include "custom.h"
 #include "newcpu.h"
@@ -917,16 +916,10 @@ static void expamem_init_filesys (void)
 
 static void expamem_map_z3fastmem (void)
 {
-	int z3fs = ((expamem_hi | (expamem_lo >> 4)) << 16);
-
-	if (z3fastmem_start != z3fs) {
-		write_log("WARNING: Z3FAST mapping changed from $%lx to $%lx\n", z3fastmem_start, z3fs);
-		map_banks(&dummy_bank, z3fastmem_start >> 16, currprefs.z3fastmem_size >> 16,
-			allocated_z3fastmem);
-		z3fastmem_start = z3fs;
-	    map_banks (&z3fastmem_bank, z3fastmem_start >> 16, currprefs.z3fastmem_size >> 16,
+    z3fastmem_start = ((expamem_hi | (expamem_lo >> 4)) << 16);
+    map_banks (&z3fastmem_bank, z3fastmem_start >> 16, currprefs.z3fastmem_size >> 16,
 	       allocated_z3fastmem);
-	}
+
     write_log ("Fastmem (32bit): mapped @$%lx: %d MB Zorro III fast memory \n",
 	       z3fastmem_start, allocated_z3fastmem / 0x100000);
 }
@@ -963,12 +956,6 @@ static void expamem_init_z3fastmem (void)
     expamem_write (0x2c, 0x00); /* ROM-Offset lo */
 
     expamem_write (0x40, 0x00); /* Ctrl/Statusreg.*/
-
-    z3fastmem_start = 0x10000000;
-
-    map_banks (&z3fastmem_bank, z3fastmem_start >> 16, currprefs.z3fastmem_size >> 16,
-	       allocated_z3fastmem);
-
 }
 
 #ifdef PICASSO96
@@ -1212,7 +1199,7 @@ void expansion_cleanup (void)
     if (gfxmemory)
 	mapped_free (gfxmemory);
 #ifdef FILESYS
-    if (filesysory)
+   if (filesysory)
 	mapped_free (filesysory);
     filesysory = 0;
 #endif   

@@ -91,6 +91,7 @@ MATHLIB = @MATHLIB@
 NO_SCHED_CFLAGS = @NO_SCHED_CFLAGS@
 OBJEXT = @OBJEXT@
 OSDEP = @OSDEP@
+OSDEPOBJS = @OSDEPOBJS@
 PACKAGE = @PACKAGE@
 PACKAGE_BUGREPORT = @PACKAGE_BUGREPORT@
 PACKAGE_NAME = @PACKAGE_NAME@
@@ -98,7 +99,6 @@ PACKAGE_STRING = @PACKAGE_STRING@
 PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
-PKG_CONFIG = @PKG_CONFIG@
 PTHREAD_CC = @PTHREAD_CC@
 PTHREAD_CFLAGS = @PTHREAD_CFLAGS@
 PTHREAD_LIBS = @PTHREAD_LIBS@
@@ -173,11 +173,9 @@ libgfxdep_a_SOURCES = ami-win.c ami-appw.c
 libguidep_a_SOURCES = ami-rexx.c ami-gui.c ami-disk.c
 libjoydep_a_SOURCES = joystick.c
 libsnddep_a_SOURCES = sound.c
-libosdep_a_SOURCES = main.c support.c
+libosdep_a_SOURCES = support.c
 
-noinst_HEADERS = amiga-kludges.h gfx.h exectasks.h memory.h rpt.h sound.h \
-	         thread.h
-
+noinst_HEADERS = amiga-kludges.h exectasks.h memory.h rpt.h sound.h thread.h 
 dist_bin_SCRIPTS = UAEWB UAEWB.aux UAEWB.rexx UAEGUI.rexx
 dist_noinst_SCRIPTS = scc
 subdir = src/od-amiga
@@ -202,7 +200,7 @@ am_libjoydep_a_OBJECTS = joystick.$(OBJEXT)
 libjoydep_a_OBJECTS = $(am_libjoydep_a_OBJECTS)
 libosdep_a_AR = $(AR) cru
 libosdep_a_LIBADD =
-am_libosdep_a_OBJECTS = main.$(OBJEXT) support.$(OBJEXT)
+am_libosdep_a_OBJECTS = support.$(OBJEXT)
 libosdep_a_OBJECTS = $(am_libosdep_a_OBJECTS)
 libsnddep_a_AR = $(AR) cru
 libsnddep_a_LIBADD =
@@ -217,8 +215,7 @@ am__depfiles_maybe = depfiles
 @AMDEP_TRUE@DEP_FILES = ./$(DEPDIR)/ami-appw.Po ./$(DEPDIR)/ami-disk.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/ami-gui.Po ./$(DEPDIR)/ami-rexx.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/ami-win.Po ./$(DEPDIR)/joystick.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/main.Po ./$(DEPDIR)/sound.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/support.Po
+@AMDEP_TRUE@	./$(DEPDIR)/sound.Po ./$(DEPDIR)/support.Po
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
@@ -297,7 +294,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ami-rexx.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ami-win.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/joystick.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sound.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/support.Po@am__quote@
 

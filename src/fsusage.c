@@ -1,5 +1,5 @@
 /* fsusage.c -- return space usage of mounted filesystems
-q   Copyright (C) 1991, 1992, 1996 Free Software Foundation, Inc.
+   Copyright (C) 1991, 1992, 1996 Free Software Foundation, Inc.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -35,7 +35,9 @@ q   Copyright (C) 1991, 1992, 1996 Free Software Foundation, Inc.
    TOSIZE must be positive.  Return -1 if FROMSIZE is not positive.  */
 
 static long
-adjust_blocks (long blocks, int fromsize, int tosize)
+adjust_blocks (blocks, fromsize, tosize)
+     long blocks;
+     int fromsize, tosize;
 {
   if (tosize <= 0)
     abort ();
@@ -143,6 +145,7 @@ int get_fs_usage (const char *path, const char *disk, struct fs_usage *fsp)
     
     if (device >0) {
     	fs_info info;
+    	
     	if (fs_stat_dev (device, &info) == 0) {
 	    fsp->fsu_blocks = adjust_blocks (info.total_blocks,
 					     info.block_size,
@@ -153,7 +156,7 @@ int get_fs_usage (const char *path, const char *disk, struct fs_usage *fsp)
 					     512);
 	    fsp->fsu_files = info.total_nodes;
 	    fsp->fsu_ffree = info.free_nodes;
-	    
+
 	    result = 0;
     	}
     }
@@ -365,7 +368,7 @@ get_fs_usage (path, disk, fsp)
 
 #endif /* STAT_STATFS4 */
 
-#ifdef STAT_STATVFS		/* SVR4 */
+#ifdef HAVE_STATVFS		/* SVR4 */
 # define CONVERT_BLOCKS(B) \
     adjust_blocks ((B), fsd.f_frsize ? fsd.f_frsize : fsd.f_bsize, 512)
 

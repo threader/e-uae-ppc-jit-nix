@@ -8,7 +8,7 @@
   * Copyright 1998 Marcus Sundberg
   * DGA support by Kai Kollmorgen
   * X11/DGA merge, hotkeys and grabmouse by Marcus Sundberg
-  * Copyright 2003-2004 Richard Drummond
+  * Copyright 2003 Richard Drummond
   */
 
 #include "sysconfig.h"
@@ -20,10 +20,11 @@
 #include <X11/cursorfont.h>
 
 #include <ctype.h>
+#include <signal.h>
 
 #include "config.h"
 #include "options.h"
-//#include "threadep/thread.h"
+#include "threaddep/thread.h"
 #include "uae.h"
 #include "memory.h"
 #include "xwin.h"
@@ -36,7 +37,6 @@
 #include "debug.h"
 #include "picasso96.h"
 #include "inputdevice.h"
-#include "hotkeys.h"
 
 #ifdef __cplusplus
 #define VI_CLASS c_class
@@ -75,6 +75,35 @@
 #define DO_PUTIMAGE(IMG, SRCX, SRCY, DSTX, DSTY, WIDTH, HEIGHT) \
     XPutImage (display, mywin, mygc, (IMG), (SRCX), (SRCY), (DSTX), (DSTY), (WIDTH), (HEIGHT))
 #endif
+
+#ifdef __cplusplus
+static RETSIGTYPE sigbrkhandler(...)
+#else
+static RETSIGTYPE sigbrkhandler (int foo)
+#endif
+{
+    activate_debugger();
+
+#if !defined(__unix) || defined(__NeXT__)
+    signal (SIGINT, sigbrkhandler);
+#endif
+}
+
+void setup_brkhandler (void)
+{
+#if defined(__unix) && !defined(__NeXT__)
+    struct sigaction sa;
+    sa.sa_handler = sigbrkhandler;
+    sa.sa_flags = 0;
+#ifdef SA_RESTART
+    sa.sa_flags = SA_RESTART;
+#endif
+    sigemptyset (&sa.sa_mask);
+    sigaction (SIGINT, &sa, NULL);
+#else
+    signal (SIGINT, sigbrkhandler);
+#endif
+}
 
 struct disp_info {
     XImage *ximg;
@@ -122,19 +151,44 @@ static int current_width, current_height;
 static int x11_init_ok;
 static int dgaavail = 0, vidmodeavail = 0, shmavail = 0;
 static int dgamode;
-static int grabbed;
 
-void toggle_mousegrab (void);
-void framerate_up (void);
-void framerate_down (void);
-int xkeysym2amiga (int);
-struct uae_hotkeyseq *get_x11_default_hotkeys (void);
+/* Keyboard and mouse */
 
-int pause_emulation;
+static int keystate[256];
 
 static int oldx, oldy;
-static int inwindow;
+static int grabbed;
 
+struct uae_hotkeys {
+    KeySym syms[4];
+    void (*handler)(void);
+    int retval;
+    int mask;
+};
+
+static void handle_modeswitch (void);
+static void handle_mousegrab (void);
+static void handle_inhibit (void);
+static void framerate_up (void);
+static void framerate_down (void);
+static void handle_interpol (void);
+
+static struct uae_hotkeys hotkeys[] = {
+#ifdef USE_DGA_EXTENSION
+    {{ XK_F12, XK_s, 0 }, handle_modeswitch, -1, 0 },
+#endif
+    {{ XK_F12, XK_q, 0 }, uae_quit, -1, 0 },
+    {{ XK_F12, XK_m, 0 }, togglemouse, -1, 0 },
+    {{ XK_F12, XK_g, 0 }, handle_mousegrab, -1, 0 },
+    {{ XK_F12, XK_i, 0 }, handle_inhibit, -1, 0 },
+    {{ XK_F12, XK_p, 0 }, handle_interpol, -1, 0 },
+    {{ XK_F12, XK_KP_Add, 0 }, framerate_up, -1, 0 },
+    {{ XK_F12, XK_KP_Subtract, 0 }, framerate_down, -1, 0 },
+    {{ XK_Scroll_Lock, 0 }, handle_inhibit, -1, 0 },
+    {{ 0 }, NULL, -1, 0 } /* List must be terminated */
+};
+
+static int inwindow;
 #define EVENTMASK (KeyPressMask|KeyReleaseMask|ButtonPressMask \
 		   |ButtonReleaseMask|PointerMotionMask \
 		   |FocusChangeMask|EnterWindowMask \
@@ -786,8 +840,11 @@ static void graphics_subinit (void)
     }
 
     inwindow = 0;
-    inputdevice_release_all_keys ();
-    reset_hotkeys ();
+    for (i = 0; hotkeys[i].syms[0] != 0; i++) {
+	hotkeys[i].mask = 0;
+	for (j = 0; hotkeys[i].syms[j] != 0; j++)
+	    hotkeys[i].mask |= (1 << j);
+    }
 }
 
 static int get_best_visual (XVisualInfo *vi)
@@ -832,7 +889,7 @@ static int get_visual_bit_unit (XVisualInfo *vi, int bitdepth)
     if (j == i) {
 	write_log ("Your X server is feeling ill.\n");
     }
-
+   
     return bit_unit;
 }
 
@@ -900,6 +957,8 @@ int graphics_init (void)
 
     graphics_subinit ();
 
+    for (i = 0; i < 256; i++)
+	keystate[i] = 0;
     grabbed = 0;
 
     return x11_init_ok = 1;
@@ -959,6 +1018,424 @@ void graphics_leave (void)
     dumpcustom ();
 }
 
+/* Decode KeySyms. This function knows about all keys that are common
+ * between different keyboard languages. */
+static int kc_decode (KeySym ks)
+{
+    switch (ks) {
+     case XK_B: case XK_b: return AK_B;
+     case XK_C: case XK_c: return AK_C;
+     case XK_D: case XK_d: return AK_D;
+     case XK_E: case XK_e: return AK_E;
+     case XK_F: case XK_f: return AK_F;
+     case XK_G: case XK_g: return AK_G;
+     case XK_H: case XK_h: return AK_H;
+     case XK_I: case XK_i: return AK_I;
+     case XK_J: case XK_j: return AK_J;
+     case XK_K: case XK_k: return AK_K;
+     case XK_L: case XK_l: return AK_L;
+     case XK_N: case XK_n: return AK_N;
+     case XK_O: case XK_o: return AK_O;
+     case XK_P: case XK_p: return AK_P;
+     case XK_R: case XK_r: return AK_R;
+     case XK_S: case XK_s: return AK_S;
+     case XK_T: case XK_t: return AK_T;
+     case XK_U: case XK_u: return AK_U;
+     case XK_V: case XK_v: return AK_V;
+     case XK_X: case XK_x: return AK_X;
+
+     case XK_0: return AK_0;
+     case XK_1: return AK_1;
+     case XK_2: return AK_2;
+     case XK_3: return AK_3;
+     case XK_4: return AK_4;
+     case XK_5: return AK_5;
+     case XK_6: return AK_6;
+     case XK_7: return AK_7;
+     case XK_8: return AK_8;
+     case XK_9: return AK_9;
+
+	/* You never know which Keysyms might be missing on some workstation
+	 * This #ifdef should be enough. */
+#if defined(XK_KP_Prior) && defined(XK_KP_Left) && defined(XK_KP_Insert) && defined (XK_KP_End)
+     case XK_KP_0: case XK_KP_Insert: return AK_NP0;
+     case XK_KP_1: case XK_KP_End: return AK_NP1;
+     case XK_KP_2: case XK_KP_Down: return AK_NP2;
+     case XK_KP_3: case XK_KP_Next: return AK_NP3;
+     case XK_KP_4: case XK_KP_Left: return AK_NP4;
+     case XK_KP_5: case XK_KP_Begin: return AK_NP5;
+     case XK_KP_6: case XK_KP_Right: return AK_NP6;
+     case XK_KP_7: case XK_KP_Home: return AK_NP7;
+     case XK_KP_8: case XK_KP_Up: return AK_NP8;
+     case XK_KP_9: case XK_KP_Prior: return AK_NP9;
+#else
+     case XK_KP_0: return AK_NP0;
+     case XK_KP_1: return AK_NP1;
+     case XK_KP_2: return AK_NP2;
+     case XK_KP_3: return AK_NP3;
+     case XK_KP_4: return AK_NP4;
+     case XK_KP_5: return AK_NP5;
+     case XK_KP_6: return AK_NP6;
+     case XK_KP_7: return AK_NP7;
+     case XK_KP_8: return AK_NP8;
+     case XK_KP_9: return AK_NP9;
+#endif
+     case XK_KP_Divide: return AK_NPDIV;
+     case XK_KP_Multiply: return AK_NPMUL;
+     case XK_KP_Subtract: return AK_NPSUB;
+     case XK_KP_Add: return AK_NPADD;
+     case XK_KP_Decimal: return AK_NPDEL;
+     case XK_KP_Enter: return AK_ENT;
+
+     case XK_F1: return AK_F1;
+     case XK_F2: return AK_F2;
+     case XK_F3: return AK_F3;
+     case XK_F4: return AK_F4;
+     case XK_F5: return AK_F5;
+     case XK_F6: return AK_F6;
+     case XK_F7: return AK_F7;
+     case XK_F8: return AK_F8;
+     case XK_F9: return AK_F9;
+     case XK_F10: return AK_F10;
+
+     case XK_BackSpace: return AK_BS;
+     case XK_Delete: return AK_DEL;
+     case XK_Control_L: return AK_CTRL;
+     case XK_Control_R: return AK_RCTRL;
+     case XK_Tab: return AK_TAB;
+     case XK_Alt_L: return AK_LALT;
+     case XK_Alt_R: return AK_RALT;
+     case XK_Meta_R: case XK_Hyper_R: return AK_RAMI;
+     case XK_Meta_L: case XK_Hyper_L: return AK_LAMI;
+     case XK_Return: return AK_RET;
+     case XK_space: return AK_SPC;
+     case XK_Shift_L: return AK_LSH;
+     case XK_Shift_R: return AK_RSH;
+     case XK_Escape: return AK_ESC;
+
+     case XK_Insert: return AK_HELP;
+     case XK_Home: return AK_NPLPAREN;
+     case XK_End: return AK_NPRPAREN;
+     case XK_Caps_Lock: return AK_CAPSLOCK;
+
+     case XK_Up: return AK_UP;
+     case XK_Down: return AK_DN;
+     case XK_Left: return AK_LF;
+     case XK_Right: return AK_RT;
+
+#if 0
+     case XK_F11: return AK_BACKSLASH;
+#else
+     case XK_F11: frametime = 0; timeframes = 0; bogusframe = 1; break;
+#endif
+#ifdef XK_Page_Up /* These are missing occasionally */
+     case XK_Page_Up: return AK_RAMI;          /* PgUp mapped to right amiga */
+     case XK_Page_Down: return AK_LAMI;        /* PgDn mapped to left amiga */
+#endif
+       
+#ifdef XK_Super_L
+     case XK_Super_L: return AK_LAMI;
+     case XK_Super_R: return AK_RAMI;
+#endif
+    }
+    return -1;
+}
+
+static int decode_fr (KeySym ks)
+{
+    switch(ks) {        /* FR specific */
+     case XK_A: case XK_a: return AK_Q;
+     case XK_M: case XK_m: return AK_SEMICOLON;
+     case XK_Q: case XK_q: return AK_A;
+     case XK_Y: case XK_y: return AK_Y;
+     case XK_W: case XK_w: return AK_Z;
+     case XK_Z: case XK_z: return AK_W;
+#if 0
+     case XK_bracketleft: return AK_LBRACKET;
+     case XK_bracketright: return AK_RBRACKET;
+     case XK_comma: return AK_M;
+     case XK_less: case XK_greater: return AK_LTGT;
+     case XK_period: return AK_COMMA;
+     case XK_parenright: return AK_MINUS;
+     case XK_equal: return AK_SLASH;
+     case XK_numbersign: return AK_NUMBERSIGN;
+     case XK_slash: return AK_PERIOD;
+     case XK_minus: return AK_EQUAL;
+     case XK_backslash: return AK_BACKSLASH;
+#else
+     /* not sure for this one: my X 3.3 server doesn't handle this key always
+      * correctly... But anyway, on new french keyboards, no more bracket key
+      * at this place. 
+      */
+     case XK_dead_circumflex:
+     case XK_dead_diaeresis: return AK_LBRACKET;
+     case XK_dollar:
+     case XK_sterling: return AK_RBRACKET;
+     case XK_comma: case XK_question: return AK_M;
+     case XK_less: case XK_greater: return AK_LTGT;
+     case XK_semicolon: case XK_period: return AK_COMMA;
+     case XK_parenright: case XK_degree: return AK_MINUS;
+     case XK_equal: case XK_plus: return AK_SLASH;
+     case XK_numbersign: return AK_NUMBERSIGN;
+     case XK_colon: case XK_slash: return AK_PERIOD;
+     case XK_minus: case XK_6: return AK_6;
+     case XK_ugrave: case XK_percent: return AK_QUOTE;
+     /* found a spare key - I hope it deserves this place. */
+     case XK_asterisk: case XK_mu: return AK_BACKSLASH;
+     case XK_exclam: case XK_section: return AK_EQUAL;
+     case XK_twosuperior: case XK_asciitilde: return AK_BACKQUOTE;
+     case XK_Multi_key: return AK_RAMI;
+     case XK_Mode_switch: return AK_RALT;
+#endif
+    }
+
+    return -1;
+}
+
+static int decode_us (KeySym ks)
+{
+    switch(ks) {	/* US specific */
+     case XK_A: case XK_a: return AK_A;
+     case XK_M: case XK_m: return AK_M;
+     case XK_Q: case XK_q: return AK_Q;
+     case XK_Y: case XK_y: return AK_Y;
+     case XK_W: case XK_w: return AK_W;
+     case XK_Z: case XK_z: return AK_Z;
+     case XK_bracketleft: return AK_LBRACKET;
+     case XK_bracketright: return AK_RBRACKET;
+     case XK_comma: return AK_COMMA;
+     case XK_period: return AK_PERIOD;
+     case XK_slash: return AK_SLASH;
+     case XK_semicolon: return AK_SEMICOLON;
+     case XK_minus: return AK_MINUS;
+     case XK_equal: return AK_EQUAL;
+	/* this doesn't work: */
+     case XK_quoteright: return AK_QUOTE;
+     case XK_quoteleft: return AK_BACKQUOTE;
+     case XK_backslash: return AK_BACKSLASH;
+    }
+
+    return -1;
+}
+
+static int decode_de (KeySym ks)
+{
+    switch(ks) {
+	/* DE specific */
+     case XK_A: case XK_a: return AK_A;
+     case XK_M: case XK_m: return AK_M;
+     case XK_Q: case XK_q: return AK_Q;
+     case XK_W: case XK_w: return AK_W;
+     case XK_Y: case XK_y: return AK_Z;
+     case XK_Z: case XK_z: return AK_Y;
+     case XK_Odiaeresis: case XK_odiaeresis: return AK_SEMICOLON;
+     case XK_Adiaeresis: case XK_adiaeresis: return AK_QUOTE;
+     case XK_Udiaeresis: case XK_udiaeresis: return AK_LBRACKET;
+     case XK_plus: case XK_asterisk: return AK_RBRACKET;
+     case XK_comma: return AK_COMMA;
+     case XK_period: return AK_PERIOD;
+     case XK_less: case XK_greater: return AK_LTGT;
+     case XK_numbersign: return AK_NUMBERSIGN;
+     case XK_ssharp: return AK_MINUS;
+     case XK_apostrophe: return AK_EQUAL;
+     case XK_asciicircum: return AK_BACKQUOTE;
+     case XK_minus: return AK_SLASH;
+    }
+
+    return -1;
+}
+
+static int decode_dk (KeySym ks)
+{
+    switch(ks) {
+	/* DK specific */
+    case XK_A: case XK_a: return AK_A;
+    case XK_M: case XK_m: return AK_M;
+    case XK_Q: case XK_q: return AK_Q;
+    case XK_W: case XK_w: return AK_W;
+    case XK_Y: case XK_y: return AK_Y;
+    case XK_Z: case XK_z: return AK_Z;
+    case XK_AE: case XK_ae: return AK_SEMICOLON;
+    case XK_Ooblique: case XK_oslash: return AK_QUOTE;
+    case XK_Aring: case XK_aring: return AK_LBRACKET;
+    case XK_apostrophe: case XK_asterisk: return AK_NUMBERSIGN;
+    case XK_dead_diaeresis: case XK_dead_circumflex: return AK_RBRACKET;
+    case XK_dead_acute: case XK_dead_grave: return AK_BACKSLASH;
+    case XK_onehalf: case XK_section: return AK_BACKQUOTE;
+    case XK_comma: return AK_COMMA;
+    case XK_period: return AK_PERIOD;
+    case XK_less: case XK_greater: return AK_LTGT;
+    case XK_numbersign: return AK_NUMBERSIGN;
+    case XK_plus: return AK_MINUS;
+    case XK_asciicircum: return AK_BACKQUOTE;
+    case XK_minus: return AK_SLASH;
+    }
+
+    return -1;
+}
+
+static int decode_se (KeySym ks)
+{
+    switch(ks) {
+	/* SE specific */
+     case XK_A: case XK_a: return AK_A;
+     case XK_M: case XK_m: return AK_M;
+     case XK_Q: case XK_q: return AK_Q;
+     case XK_W: case XK_w: return AK_W;
+     case XK_Y: case XK_y: return AK_Y;
+     case XK_Z: case XK_z: return AK_Z;
+     case XK_Odiaeresis: case XK_odiaeresis: return AK_SEMICOLON;
+     case XK_Adiaeresis: case XK_adiaeresis: return AK_QUOTE;
+     case XK_Aring: case XK_aring: return AK_LBRACKET;
+     case XK_comma: return AK_COMMA;
+     case XK_period: return AK_PERIOD;
+     case XK_minus: return AK_SLASH;
+     case XK_less: case XK_greater: return AK_LTGT;
+     case XK_plus: case XK_question: return AK_EQUAL;
+     case XK_at: case XK_onehalf: return AK_BACKQUOTE;
+     case XK_asciitilde: case XK_asciicircum: return AK_RBRACKET;
+     case XK_backslash: case XK_bar: return AK_MINUS;
+
+     case XK_numbersign: return AK_NUMBERSIGN;
+    }
+
+    return -1;
+ }
+
+static int decode_it (KeySym ks)
+{
+    switch(ks) {
+	/* IT specific */
+     case XK_A: case XK_a: return AK_A;
+     case XK_M: case XK_m: return AK_M;
+     case XK_Q: case XK_q: return AK_Q;
+     case XK_W: case XK_w: return AK_W;
+     case XK_Y: case XK_y: return AK_Y;
+     case XK_Z: case XK_z: return AK_Z;
+     case XK_Ograve: case XK_ograve: return AK_SEMICOLON;
+     case XK_Agrave: case XK_agrave: return AK_QUOTE;
+     case XK_Egrave: case XK_egrave: return AK_LBRACKET;
+     case XK_plus: case XK_asterisk: return AK_RBRACKET;
+     case XK_comma: return AK_COMMA;
+     case XK_period: return AK_PERIOD;
+     case XK_less: case XK_greater: return AK_LTGT;
+     case XK_backslash: case XK_bar: return AK_BACKQUOTE;
+     case XK_apostrophe: return AK_MINUS;
+     case XK_Igrave: case XK_igrave: return AK_EQUAL;
+     case XK_minus: return AK_SLASH;
+     case XK_numbersign: return AK_NUMBERSIGN;
+    }
+
+    return -1;
+}
+
+static int decode_es (KeySym ks)
+{
+    switch(ks) {
+	/* ES specific */
+     case XK_A: case XK_a: return AK_A;
+     case XK_M: case XK_m: return AK_M;
+     case XK_Q: case XK_q: return AK_Q;
+     case XK_W: case XK_w: return AK_W;
+     case XK_Y: case XK_y: return AK_Y;
+     case XK_Z: case XK_z: return AK_Z;
+     case XK_ntilde: case XK_Ntilde: return AK_SEMICOLON;
+#ifdef XK_dead_acute
+     case XK_dead_acute: case XK_dead_diaeresis: return AK_QUOTE;
+     case XK_dead_grave: case XK_dead_circumflex: return AK_LBRACKET;
+#endif
+     case XK_plus: case XK_asterisk: return AK_RBRACKET;
+     case XK_comma: return AK_COMMA;
+     case XK_period: return AK_PERIOD;
+     case XK_less: case XK_greater: return AK_LTGT;
+     case XK_backslash: case XK_bar: return AK_BACKQUOTE;
+     case XK_apostrophe: return AK_MINUS;
+     case XK_Igrave: case XK_igrave: return AK_EQUAL;
+     case XK_minus: return AK_SLASH;
+     case XK_numbersign: return AK_NUMBERSIGN;
+    }
+
+    return -1;
+}
+
+static int keycode2amiga (XKeyEvent *event)
+{
+    KeySym ks;
+    int as;
+    int index = 0;
+
+    do {
+	int hkreturn = -1, returnnow = 0;
+	ks = XLookupKeysym (event, index);
+	if (event->type == KeyPress) {
+	    int i, j;
+	    for (i = 0; hotkeys[i].syms[0] != 0; i++) {
+		for (j = 0; hotkeys[i].syms[j] != 0; j++) {
+		    if (ks == hotkeys[i].syms[j]) {
+			hotkeys[i].mask &= ~(1 << j);
+			if (hotkeys[i].mask == 0) {
+			    returnnow = 1;
+			    hkreturn = hotkeys[i].retval;
+			}
+		    }
+		}
+	    }
+	} else {
+	    int i, j;
+	    for (i = 0; hotkeys[i].syms[0] != 0; i++) {
+		for (j = 0; hotkeys[i].syms[j] != 0; j++) {
+		    if (ks == hotkeys[i].syms[j]) {
+			hotkeys[i].mask |= (1 << j);
+		    }
+		}
+	    }
+	}
+	if (returnnow)
+	    return -2;
+	as = kc_decode (ks);
+
+	if (as == -1) {
+	    switch (currprefs.keyboard_lang) {
+	    case KBD_LANG_FR:
+		as = decode_fr (ks);
+		break;
+
+	    case KBD_LANG_US:
+		as = decode_us (ks);
+		break;
+
+	     case KBD_LANG_DE:
+		as = decode_de (ks);
+		break;
+
+	     case KBD_LANG_DK:
+		as = decode_dk (ks);
+		break;
+
+	     case KBD_LANG_SE:
+		as = decode_se (ks);
+		break;
+
+	     case KBD_LANG_IT:
+		as = decode_it (ks);
+		break;
+
+	     case KBD_LANG_ES:
+		as = decode_es (ks);
+		break;
+
+	     default:
+		as = -1;
+		break;
+	    }
+	}
+	if (-1 != as)
+		return as;
+	index++;
+    } while (ks != NoSymbol);
+    return -1;
+}
+
 static struct timeval lastMotionTime;
 
 static int refresh_necessary = 0;
@@ -969,6 +1446,7 @@ void handle_events (void)
 
     for (;;) {
 	XEvent event;
+        int buttonno;
 #if 0
 	if (! XCheckMaskEvent (display, eventmask, &event))
 	    break;
@@ -979,41 +1457,48 @@ void handle_events (void)
 	XNextEvent (display, &event);
 
 	switch (event.type) {
-	 case KeyPress:
+	 case KeyPress: {
+	     int i;
+	     int kc = keycode2amiga ((XKeyEvent *)&event);
+
+	     if (kc == -2) {
+		 for (i = 0; hotkeys[i].syms[0] != 0; i++) {
+		     if (hotkeys[i].mask == 0) {
+			 if (hotkeys[i].handler != NULL)
+			     hotkeys[i].handler();
+		     }
+		 }
+		 break;
+	     }
+
+	     if (kc == -1)
+		 break;
+	     if (! keystate[kc]) {
+		 keystate[kc] = 1;
+		 record_key (kc << 1);
+	     }
+	     break;
+	 }
 	 case KeyRelease: {
-	    int state = (event.type == KeyPress);
-	    KeySym keysym;
-	    int index = 0;
-	    int ievent, amiga_keycode;
-	    do {
-		keysym = XLookupKeysym ((XKeyEvent *)&event, index);
-		if ((ievent = match_hotkey_sequence (keysym, state)))
-		    handle_hotkey_event (ievent, state);
-		else
-		    if ((amiga_keycode = xkeysym2amiga (keysym)) >= 0) {
-			inputdevice_do_keyboard (amiga_keycode, state);
-			break;
-		    }
-		index++;
-	    } while (keysym != NoSymbol);
-	    break;
+	     int kc = keycode2amiga ((XKeyEvent *)&event);
+	     if (kc < 0)
+		 break;
+	     keystate[kc] = 0;
+	     record_key ((kc << 1) | 1);
+	     break;
 	 }
 	 case ButtonPress:
-	 case ButtonRelease: {
-	    int state = (event.type == ButtonPress);
-	    int buttonno = -1;
+	 case ButtonRelease:
 	    switch ((int)((XButtonEvent *)&event)->button) {
 		case 1:  buttonno = 0; break;
 		case 2:  buttonno = 2; break;
 		case 3:  buttonno = 1; break;
-		/* buttons 4 and 5 report mousewheel events */
-		case 4:  if (state) record_key (0x7a << 1); break;
-		case 5:  if (state) record_key (0x7b << 1); break;
+		default: buttonno = -1;
 	    }
             if (buttonno >=0)
-		setmousebuttonstate(0, buttonno, state);
+		setmousebuttonstate(0, buttonno, event.type == ButtonPress ? 1:0);
+
 	    break;
-	 }
 	 case MotionNotify:
 	    if (dgamode) {
 		int tx = ((XMotionEvent *)&event)->x_root;
@@ -1152,8 +1637,11 @@ void handle_events (void)
 	    }
 	}
     }
+    /* "Affengriff" */
+    if ((keystate[AK_CTRL] || keystate[AK_RCTRL]) && keystate[AK_LAMI] && keystate[AK_RAMI])
+	uae_reset ( 0 );
 }
-
+\
 int check_prefs_changed_gfx (void)
 {
     if (changed_prefs.gfx_width_win != currprefs.gfx_width_win
@@ -1252,7 +1740,7 @@ int DX_BitsPerCannon (void)
 static int palette_update_start=256;
 static int palette_update_end=0;
 
-static void DX_SetPalette_real (int start, int count)
+void DX_SetPalette_real (int start, int count)
 {
     if (! screen_is_picasso || picasso96_state.RGBFormat != RGBFB_CHUNKY)
 	return;
@@ -1269,7 +1757,7 @@ static void DX_SetPalette_real (int start, int count)
 	}
 	return;
     }
-
+    
     while (count-- > 0) {
 	XColor col = parsed_xcolors[start];
 	col.red = picasso96_state.CLUT[start].Red * 0x0101;
@@ -1294,7 +1782,8 @@ void DX_SetPalette (int start, int count)
    DX_SetPalette_real (start, count);
 }
 
-static void DX_SetPalette_delayed (int start, int count)
+
+void DX_SetPalette_delayed (int start, int count)
 {
     if (bit_unit!=8) {
 	DX_SetPalette_real(start,count);
@@ -1314,18 +1803,6 @@ void DX_SetPalette_vsync(void)
     palette_update_end=0;
     palette_update_start=256;
   }
-}
-
-int DX_Fill (int dstx, int dsty, int width, int height, uae_u32 color, RGBFTYPE rgbtype)
-{
-    /* not implemented yet */
-    return 0;	
-}
-
-int DX_Blit (int srcx, int srcy, int dstx, int dsty, int width, int height, BLIT_OPCODE opcode)
-{
-    /* not implemented yet */
-    return 0;
 }
 
 #define MAX_SCREEN_MODES 12
@@ -1437,7 +1914,7 @@ void gfx_set_picasso_state (int on)
 	current_width = gfxvidinfo.width;
 	current_height = gfxvidinfo.height;
         graphics_subinit ();
-        reset_drawing ();
+        reset_drawing ();       
     }
     if (on)
 	DX_SetPalette_real (0, 256);
@@ -1452,7 +1929,6 @@ uae_u8 *gfx_lock_picasso (void)
 #endif
 	return pic_dinfo.ximg->data;
 }
-
 void gfx_unlock_picasso (void)
 {
 }
@@ -1467,223 +1943,76 @@ void unlockscr (void)
 {
 }
 
-void toggle_mousegrab (void)
+static void handle_mousegrab (void)
 {
     if (grabbed) {
 	XUngrabPointer (display, CurrentTime);
 //	XUndefineCursor (display, mywin);
 	grabbed = 0;
-	write_log ("Ungrabbed mouse\n");
+        printf("Ungrabbed mouse\n");
     } else if (! dgamode) {
 	XGrabPointer (display, mywin, 1, 0, GrabModeAsync, GrabModeAsync,
 		      mywin, blankCursor, CurrentTime);
 	oldx = current_width / 2;
 	oldy = current_height / 2;
 	XWarpPointer (display, None, mywin, 0, 0, 0, 0, oldx, oldy);
-	write_log ("Grabbed mouse\n");
-	grabbed = 1;
+	printf("Grabbed mouse\n");
+        grabbed = 1;       
     }
 }
 
-void framerate_up (void)
+static void handle_inhibit (void)
+{
+    toggle_inhibit_frame (IHF_SCROLLLOCK);
+}
+
+#include "gensound.h"
+#include "sounddep/sound.h"
+#include "audio.h"
+
+static void handle_interpol (void)
+{
+    if (currprefs.sound_interpol == 0) {
+	changed_prefs.sound_interpol = 1;
+	printf ("Interpol on: rh\n");
+    }
+    else if (currprefs.sound_interpol == 1) {
+	changed_prefs.sound_interpol = 2;
+	printf ("Interpol on: crux\n");
+    }
+    else {
+	changed_prefs.sound_interpol = 0;
+	printf ("Interpol off\n");
+    }
+}
+
+static void framerate_up (void)
 {
     if (currprefs.gfx_framerate < 20)
 	changed_prefs.gfx_framerate = currprefs.gfx_framerate + 1;
 }
 
-void framerate_down (void)
+static void framerate_down (void)
 {
     if (currprefs.gfx_framerate > 1)
 	changed_prefs.gfx_framerate = currprefs.gfx_framerate - 1;
 }
 
-int is_fullscreen (void)
+static void handle_modeswitch (void)
 {
-#ifdef USE_DGA_EXTENSION
-    return dgamode;
-#else
-    return 0;
-#endif
-}
-
-void toggle_fullscreen (void)
-{
-#ifdef USE_DGA_EXTENSION
     changed_prefs.gfx_afullscreen = changed_prefs.gfx_pfullscreen = !dgamode;
-#endif
 }
 
-void screenshot (int type)
-{
-    write_log ("Screenshot not implemented yet\n");
-}
-
-/*
- * Mouse inputdevice functions
- */
-
-/* Hardwire for 3 axes and 3 buttons
- * There is no 3rd axis as such - mousewheel events are
- * supplied by X on buttons 4 and 5.
- */
-#define MAX_BUTTONS     3
-#define MAX_AXES        3
-#define FIRST_AXIS      0
-#define FIRST_BUTTON    MAX_AXES
-
-static int init_mouse (void)
-{
-   return 1;
-}
-
-static void close_mouse (void)
-{
-   return;
-}
-
-static int acquire_mouse (int num, int flags)
-{
-   return 1;
-}
-
-static void unacquire_mouse (int num)
-{
-   return;
-}
-
-static int get_mouse_num (void)
-{
-    return 1;
-}
-
-static char *get_mouse_name (int mouse)
-{
-    return 0;
-}
-
-static int get_mouse_widget_num (int mouse)
-{
-    return MAX_AXES + MAX_BUTTONS;
-}
-
-static int get_mouse_widget_first (int mouse, int type)
-{
-    switch (type) {
-        case IDEV_WIDGET_BUTTON:
-            return FIRST_BUTTON;
-        case IDEV_WIDGET_AXIS:
-            return FIRST_AXIS;
-    }
-    return -1;
-}
-
-static int get_mouse_widget_type (int mouse, int num, char *name, uae_u32 *code)
-{
-    if (num >= MAX_AXES && num < MAX_AXES + MAX_BUTTONS) {
-        if (name)
-            sprintf (name, "Button %d", num + 1 + MAX_AXES);
-        return IDEV_WIDGET_BUTTON;
-    } else if (num < MAX_AXES) {
-        if (name)
-            sprintf (name, "Axis %d", num + 1);
-        return IDEV_WIDGET_AXIS;
-    }
-    return IDEV_WIDGET_NONE;
-}
-
-static void read_mouse (void)
-{
-    /* We handle mouse input in handle_events() */
-}
-
-struct inputdevice_functions inputdevicefunc_mouse = {
-    init_mouse, close_mouse, acquire_mouse, unacquire_mouse, read_mouse,
-    get_mouse_num, get_mouse_name,
-    get_mouse_widget_num, get_mouse_widget_type,
-    get_mouse_widget_first
-};
-
-/*
- * Keyboard inputdevice functions
- */
-static int get_kb_num (void)
-{
-    return 1;
-}
-
-static char *get_kb_name (int kb)
-{
-    return 0;
-}
-
-static int get_kb_widget_num (int kb)
-{
-    return 255; // fix me
-}
-
-static int get_kb_widget_first (int kb, int type)
-{
-    return 0;
-}
-
-static int get_kb_widget_type (int kb, int num, char *name, uae_u32 *code)
-{
-    // fix me
-    *code = num;
-    return IDEV_WIDGET_KEY;
-}
-
-static int keyhack (int scancode, int pressed, int num)
-{
-    return scancode;
-}
-
-static void read_kb (void)
-{
-}
-static int init_kb (void)
-{
-    set_default_hotkeys ( get_x11_default_hotkeys());
-    return 1;
-}
-
-static void close_kb (void)
-{
-}
-
-static int acquire_kb (int num, int flags)
-{
-    return 1;
-}
-
-static void unacquire_kb (int num)
-{
-}
-
-struct inputdevice_functions inputdevicefunc_keyboard =
-{
-    init_kb, close_kb, acquire_kb, unacquire_kb,
-    read_kb, get_kb_num, get_kb_name, get_kb_widget_num,
-    get_kb_widget_type, get_kb_widget_first
-};
-
-/*
- * Handle gfx cfgfile options
- */
-void gfx_save_options (FILE *f, struct uae_prefs *p)
+void target_save_options (FILE *f, struct uae_prefs *p)
 {
     fprintf (f, "x11.low_bandwidth=%s\n", p->x11_use_low_bandwidth ? "true" : "false");
-    fprintf (f, "x11.use_mitshm=%s\n",    p->x11_use_mitshm ? "true" : "false");
-    fprintf (f, "x11.hide_cursor=%s\n",   p->x11_hide_cursor ? "true" : "false");
+    fprintf (f, "x11.use_mitshm=%s\n", p->x11_use_mitshm ? "true" : "false");
+    fprintf (f, "x11.hide_cursor=%s\n", p->x11_hide_cursor ? "true" : "false");
 }
 
-int gfx_parse_option (struct uae_prefs *p, char *option, char *value)
+int target_parse_option (struct uae_prefs *p, char *option, char *value)
 {
     return (cfgfile_yesno (option, value, "low_bandwidth", &p->x11_use_low_bandwidth)
-	 || cfgfile_yesno (option, value, "use_mitshm",    &p->x11_use_mitshm)
-	 || cfgfile_yesno (option, value, "hide_cursor",   &p->x11_hide_cursor));
-}
-
-void gfx_default_options (struct uae_prefs *p)
-{
+	    || cfgfile_yesno (option, value, "use_mitshm", &p->x11_use_mitshm)
+	    || cfgfile_yesno (option, value, "hide_cursor", &p->x11_hide_cursor));
 }

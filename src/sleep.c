@@ -3,7 +3,7 @@
   *
   * Sleeping for *nix systems
   *
-  * Copyright 2003-2004 Richard Drummond
+  * Copyright 2003 Richard Drummond
   */
 
 #ifndef _WIN32
@@ -23,8 +23,22 @@
 //#define SLEEP_DONT_BUSY_WAIT
 
 /* Busy sleep threshhold in ms */
-#define SLEEP_BUSY_THRESHOLD	 10
+#define SLEEP_BUSY_THRESHOLD	10
 
+/* Fudge factor attempts to correct for the granularity of system
+ * timers/scheduling. It's  a value in milliseconds which is substracted
+ * from the delay amount to try and get close to the delay we really wanted.
+ * Pick a value which works for you. ;-)
+ *
+ * We could be more scientific about this - but I'll wait and see if it's
+ * worth the effort first . . .
+ */
+
+#ifndef __BEOS__
+#define SLEEP_FUDGE_FACTOR	1000
+#else
+#define SLEEP_FUDGE_FACTOR      0
+#endif
 
 void sleep_millis (int ms)
 {
@@ -41,9 +55,14 @@ void sleep_millis (int ms)
 	     ;
     } else
 #endif
-	my_usleep (ms * 1000);
+    {
+	int us = ms * 1000;
 
-    idletime += read_processor_time() - start;
+	us = (us - SLEEP_FUDGE_FACTOR > 0) ? us - SLEEP_FUDGE_FACTOR : 1;
+	my_usleep (us);
+    }
+
+//    idletime += read_processor_time() - start;
 }
 
 void sleep_millis_busy (int ms)
@@ -56,7 +75,7 @@ void sleep_millis_busy (int ms)
 }
 
 
-uae_u32 do_sleep_test (int ms)
+static uae_u32 do_sleep_test (int ms)
 {
     uae_u64 t;
     uae_u32 t2;

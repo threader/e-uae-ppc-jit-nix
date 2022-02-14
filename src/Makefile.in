@@ -91,6 +91,7 @@ MATHLIB = @MATHLIB@
 NO_SCHED_CFLAGS = @NO_SCHED_CFLAGS@
 OBJEXT = @OBJEXT@
 OSDEP = @OSDEP@
+OSDEPOBJS = @OSDEPOBJS@
 PACKAGE = @PACKAGE@
 PACKAGE_BUGREPORT = @PACKAGE_BUGREPORT@
 PACKAGE_NAME = @PACKAGE_NAME@
@@ -98,7 +99,6 @@ PACKAGE_STRING = @PACKAGE_STRING@
 PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
-PKG_CONFIG = @PKG_CONFIG@
 PTHREAD_CC = @PTHREAD_CC@
 PTHREAD_CFLAGS = @PTHREAD_CFLAGS@
 PTHREAD_LIBS = @PTHREAD_LIBS@
@@ -167,16 +167,15 @@ target_os = @target_os@
 target_vendor = @target_vendor@
 INCLUDES = -I$(top_srcdir)/src/include -I$(top_builddir)/src -I$(top_srcdir)/src -I$(top_srcdir)
 
-SUBDIRS = @MACHDEP@ @GFXDEP@ @SNDDEP@ @JOYDEP@ @GUIDEP@ @OSDEP@ keymap dms
+SUBDIRS = @MACHDEP@ @GFXDEP@ @SNDDEP@ @JOYDEP@ @GUIDEP@ dms
 
 DIST_SUBDIRS = md-generic md-68k md-i386-gcc md-i386-watcom md-ppc \
 	       md-ppc-gcc \
-	       gfx-x11 gfx-sdl gfx-curses gfx-svga \
+	       gfx-x11 gfx-sdl \
 	       sd-af sd-file sd-mme sd-sdl sd-sgi sd-solaris sd-uss \
 	       jd-sdl \
 	       gui-none gui-gtk \
 	       od-generic od-amiga od-beos od-linux od-macos \
-	       keymap \
 	       dms
 
 
@@ -219,9 +218,9 @@ noinst_HEADERS = include/akiko.h include/ar.h include/audio.h include/autoconf.h
 		 include/scsidev.h include/serial.h include/sleep.h \
 		 include/sysdeps.h include/tui.h include/uae.h \
 		 include/uaeexe.h include/unzip.h include/xwin.h \
-		 include/zfile.h include/enforcer.h include/hotkeys.h \
-	         targets/t-amiga.h targets/t-beos.h \
-	         targets/t-macos.h targets/t-unix.h \
+		 include/zfile.h \
+	         targets/t-amiga.h targets/t-ascii.h  targets/t-beos.h \
+	         targets/t-macos.h targets/t-svgalib.h  targets/t-x11.h \
 		 td-none/thread.h td-posix/thread.h td-sdl/thread.h
 
 
@@ -233,10 +232,10 @@ EXTRA_DIST = tools/configure.in tools/configure tools/sysconfig.h.in \
 
 uae_SOURCES = main.c newcpu.c fpp.c memory.c custom.c serial.c cia.c \
 	            blitter.c autoconf.c ersatz.c keybuf.c expansion.c \
-	            zfile.c cfgfile.c picasso96.c inputdevice.c \
+	            zfile.c cfgfile.c picasso96.c inputdevice.c input-dummy.c \
 	            gfxutil.c gfxlib.c audio.c drawing.c  \
 	            native2amiga.c identify.c disk.c  savestate.c unzip.c \
-	            uaeexe.c uaelib.c fdi2raw.c sleep.c hotkeys.c \
+	            uaeexe.c uaelib.c fdi2raw.c sleep.c \
 	            missing.c readcpu.c writelog.c
 
 
@@ -245,8 +244,8 @@ EXTRA_uae_SOURCES = bsdsocket.c bsdsocket-posix.c build68k.c catweasel.c cdrom.c
 		    compemu_raw_x86.c compemu_support.c compiler.c cpuopti.c \
 		    debug.c filesys.c fsdb.c fsdb_unix.c fsusage.c genblitter.c \
 		    gencpu.c gengenblitter.c genp2c.c gencomp.c hardfile.c \
-		    hardfile_unix.c linetoscr.c scsi-none.c scsidev.c \
-		    scsiemul.c svgancui.c tui.c \
+		    hardfile_unix.c linetoscr.c ncurses.c scsi-none.c scsidev.c \
+		    scsiemul.c svga.c svgancui.c tui.c \
 		    akiko.c akiko2.c ar.c blkdev.c blitops.c
 
 
@@ -255,7 +254,6 @@ uae_DEPENDENCIES = @MACHDEP@/libmachdep.a	\
 			@SNDDEP@/libsnddep.a	\
 			@GFXDEP@/libgfxdep.a	\
 			@GUIDEP@/libguidep.a	\
-			keymap/libkeymap.a	\
 			dms/libdms.a		\
 			blitfunc.o blittable.o	\
 			cpustbl.o cpudefs.o	\
@@ -265,7 +263,7 @@ uae_DEPENDENCIES = @MACHDEP@/libmachdep.a	\
 			@SCSIOBJS@ \
 			@DEBUGOBJS@ \
 			@ASMOBJS@ \
-			@OSDEP@/libosdep.a 
+			@OSDEPOBJS@ 
 
 
 uae_LDADD = @MACHDEP@/libmachdep.a	\
@@ -273,7 +271,6 @@ uae_LDADD = @MACHDEP@/libmachdep.a	\
 			@SNDDEP@/libsnddep.a	\
 			@GFXDEP@/libgfxdep.a	\
 			@GUIDEP@/libguidep.a	\
-			keymap/libkeymap.a	\
 			dms/libdms.a		\
 			blitfunc.o blittable.o	\
 			cpustbl.o cpudefs.o	\
@@ -283,7 +280,7 @@ uae_LDADD = @MACHDEP@/libmachdep.a	\
 			@SCSIOBJS@ \
 			@DEBUGOBJS@ \
 			@ASMOBJS@ \
-			@OSDEP@/libosdep.a
+			@OSDEPOBJS@
 
 
 readdisk_SOURCES = readdisk.c missing.c
@@ -314,11 +311,11 @@ am_uae_OBJECTS = main.$(OBJEXT) newcpu.$(OBJEXT) fpp.$(OBJEXT) \
 	cia.$(OBJEXT) blitter.$(OBJEXT) autoconf.$(OBJEXT) \
 	ersatz.$(OBJEXT) keybuf.$(OBJEXT) expansion.$(OBJEXT) \
 	zfile.$(OBJEXT) cfgfile.$(OBJEXT) picasso96.$(OBJEXT) \
-	inputdevice.$(OBJEXT) gfxutil.$(OBJEXT) gfxlib.$(OBJEXT) \
-	audio.$(OBJEXT) drawing.$(OBJEXT) native2amiga.$(OBJEXT) \
-	identify.$(OBJEXT) disk.$(OBJEXT) savestate.$(OBJEXT) \
-	unzip.$(OBJEXT) uaeexe.$(OBJEXT) uaelib.$(OBJEXT) \
-	fdi2raw.$(OBJEXT) sleep.$(OBJEXT) hotkeys.$(OBJEXT) \
+	inputdevice.$(OBJEXT) input-dummy.$(OBJEXT) gfxutil.$(OBJEXT) \
+	gfxlib.$(OBJEXT) audio.$(OBJEXT) drawing.$(OBJEXT) \
+	native2amiga.$(OBJEXT) identify.$(OBJEXT) disk.$(OBJEXT) \
+	savestate.$(OBJEXT) unzip.$(OBJEXT) uaeexe.$(OBJEXT) \
+	uaelib.$(OBJEXT) fdi2raw.$(OBJEXT) sleep.$(OBJEXT) \
 	missing.$(OBJEXT) readcpu.$(OBJEXT) writelog.$(OBJEXT)
 uae_OBJECTS = $(am_uae_OBJECTS)
 uae_LDFLAGS =
@@ -352,20 +349,21 @@ am__depfiles_maybe = depfiles
 @AMDEP_TRUE@	./$(DEPDIR)/gencpu.Po ./$(DEPDIR)/gengenblitter.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/genp2c.Po ./$(DEPDIR)/gfxlib.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/gfxutil.Po ./$(DEPDIR)/hardfile.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/hardfile_unix.Po ./$(DEPDIR)/hotkeys.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/identify.Po ./$(DEPDIR)/inputdevice.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/keybuf.Po ./$(DEPDIR)/linetoscr.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/main.Po ./$(DEPDIR)/memory.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/missing.Po ./$(DEPDIR)/native2amiga.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/hardfile_unix.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/identify.Po ./$(DEPDIR)/input-dummy.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/inputdevice.Po ./$(DEPDIR)/keybuf.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/linetoscr.Po ./$(DEPDIR)/main.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/memory.Po ./$(DEPDIR)/missing.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/native2amiga.Po ./$(DEPDIR)/ncurses.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/newcpu.Po ./$(DEPDIR)/picasso96.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/readcpu.Po ./$(DEPDIR)/readdisk.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/savestate.Po ./$(DEPDIR)/scsi-none.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/scsidev.Po ./$(DEPDIR)/scsiemul.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/serial.Po ./$(DEPDIR)/sleep.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/svgancui.Po ./$(DEPDIR)/tui.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/uaeexe.Po ./$(DEPDIR)/uaelib.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/unzip.Po ./$(DEPDIR)/writelog.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/zfile.Po
+@AMDEP_TRUE@	./$(DEPDIR)/svga.Po ./$(DEPDIR)/svgancui.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/tui.Po ./$(DEPDIR)/uaeexe.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/uaelib.Po ./$(DEPDIR)/unzip.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/writelog.Po ./$(DEPDIR)/zfile.Po
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
@@ -501,8 +499,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gfxutil.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hardfile.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hardfile_unix.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hotkeys.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/identify.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/input-dummy.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/inputdevice.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/keybuf.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/linetoscr.Po@am__quote@
@@ -510,6 +508,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/memory.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/missing.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/native2amiga.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ncurses.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/newcpu.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/picasso96.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/readcpu.Po@am__quote@
@@ -520,6 +519,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scsiemul.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/serial.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sleep.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/svga.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/svgancui.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tui.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/uaeexe.Po@am__quote@
@@ -897,12 +897,6 @@ joydep/libjoydep.a:
 
 guidep/libguidep.a:
 	$(MAKE) -C @GUIDEP@ libguidep.a		
-
-osdep/libosdep.a:
-	$(MAKE) -C @OSDEP@ libosdep.a
-
-keymap/libkeymap.a:
-	$(MAKE) -C keymap libkeymap.a
 
 md-X86.o: md-X86.S
 	$(CC) -I$(INCLUDES) $(CFLAGS) md-X86.S -c

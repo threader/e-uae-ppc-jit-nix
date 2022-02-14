@@ -4,7 +4,7 @@
   * Miscellaneous machine dependent support functions and definitions
   *
   * Copyright 1996 Bernd Schmidt
-  * Copyright 2003-2004 Richard Drummond
+  * Copyright 2003 Richard Drummond
   */
 
 #include "sysconfig.h"
@@ -15,10 +15,6 @@
 #include "events.h"
 #include "machdep/m68k.h"
 #include "sleep.h"
-
-#if defined  __AMIGA__ || defined __MORPHOS__
-#define sync()
-#endif
 
 struct flag_struct regflags;
 

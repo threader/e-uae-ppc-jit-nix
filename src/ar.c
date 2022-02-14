@@ -842,7 +842,7 @@ void action_replay_ciaread(void)
     set_special (SPCFLAG_ACTION_REPLAY);
 }
 
-int action_replay_freeze(void)
+void action_replay_freeze(void)
 {
     if(action_replay_flag == ACTION_REPLAY_IDLE) 
     {
@@ -856,13 +856,10 @@ int action_replay_freeze(void)
 	    set_special (SPCFLAG_ACTION_REPLAY);
 	    armode = ARMODE_FREEZE;
     	}
-	return 1;
     } else if(hrtmon_flag == ACTION_REPLAY_IDLE) {
         hrtmon_flag = ACTION_REPLAY_ACTIVATE;
         set_special (SPCFLAG_ACTION_REPLAY);
-	return 1;
     }
-    return 0;
 }
 
 void action_replay_chipwrite(void)

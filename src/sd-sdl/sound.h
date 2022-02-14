@@ -40,4 +40,3 @@ STATIC_INLINE void check_sound_buffers (void)
 #define DEFAULT_SOUND_BITS 16
 #define DEFAULT_SOUND_FREQ 44100
 #define HAVE_STEREO_SUPPORT
-#define HAVE_8BIT_AUDIO_SUPPORT

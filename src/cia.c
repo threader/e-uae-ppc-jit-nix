@@ -36,8 +36,6 @@
 //#define CIA_DEBUG
 //#define DONGLE_DEBUG
 
-#define TOD_HACK
-
 #define DIV10 (10 * CYCLE_UNIT / 2) /* Yes, a bad identifier. */
 
 /* battclock stuff */
@@ -80,9 +78,6 @@ static unsigned int ciaapra, ciaaprb, ciaadra, ciaadrb, ciaasdr, ciaasdr_cnt;
 static unsigned int ciabprb, ciabdra, ciabdrb, ciabsdr, ciabsdr_cnt;
 static int div10;
 static int kbstate, kback, ciaasdr_unread;
-#ifdef TOD_HACK
-static int tod_hack;
-#endif
 
 static uae_u8 serbits;
 
@@ -371,34 +366,8 @@ void CIA_hsync_handler (void)
     }
 }
 
-#ifdef TOD_HACK
-static void tod_hack_reset (void)
-{
-    struct timeval tv;
-    uae_u32 rate = currprefs.ntscmode ? 60 : 50;
-    gettimeofday (&tv, NULL);
-    tod_hack = (uae_u32)(((uae_u64)tv.tv_sec) * rate  + tv.tv_usec / (1000000 / rate));
-    tod_hack += ciaatod;
-}
-#endif
-
 void CIA_vsync_handler ()
 {
-#ifdef TOD_HACK
-    if (currprefs.tod_hack && ciaatodon) {
-        struct timeval tv;
-	uae_u32 t, nt, rate = currprefs.ntscmode ? 60 : 50;
-	gettimeofday (&tv, NULL);
-	t = (uae_u32)(((uae_u64)tv.tv_sec) * rate + tv.tv_usec / (1000000 / rate));
-	nt = t - tod_hack;
-	if ((nt < ciaatod && ciaatod - nt < 10) || nt == ciaatod)
-	    return; /* try not to count backwards */
-	ciaatod = nt;
-	ciaatod &= 0xffffff;
-	ciaa_checkalarm ();
-	return;
-    }
-#endif
     if (ciaatodon) {
 	ciaatod++;
 	ciaatod &= 0xFFFFFF;
@@ -464,23 +433,15 @@ static uae_u8 ReadCIAA (unsigned int addr)
 	return tmp;
     case 1:
 #ifdef PARALLEL_PORT
-	if (isprinter () > 0) {
-	    tmp = ciaaprb;
-	} else if (isprinter () < 0) {
-	    uae_u8 v;
-	    parallel_direct_read_data (&v);
-	    tmp = v;
-	} else {
-	    tmp = handle_parport_joystick (0, ciaaprb, ciaadrb);
-	}
+	tmp = isprinter() ? ciaaprb : handle_parport_joystick (0, ciaaprb, ciaadrb);
 #else
 	tmp = handle_parport_joystick (0, ciaaprb, ciaadrb);
 #ifdef DONGLE_DEBUG
 	if (notinrom())
 	    write_log ("BFE101 R %02.2X %s\n", tmp, debuginfo(0));
 #endif
-#endif
 	return tmp;
+#endif
     case 2:
 #ifdef DONGLE_DEBUG
 	if (notinrom ())
@@ -548,12 +509,8 @@ static uae_u8 ReadCIAB (unsigned int addr)
 	    tmp = serial_readstatus(ciabdra);
 #endif
 #ifdef PARALLEL_PORT
-	if (isprinter () > 0) {
+	if (isprinter ()) {
 	    tmp |= ciabpra & (0x04 | 0x02 | 0x01);
-	} else if (isprinter () < 0) {
-	    uae_u8 v;
-	    parallel_direct_read_status (&v);
-	    tmp |= v & 7;
 	} else {
 	    tmp |= handle_parport_joystick (1, ciabpra, ciabdra);
 	}
@@ -631,11 +588,8 @@ static void WriteCIAA (uae_u16 addr,uae_u8 val)
 #endif
 	ciaaprb = val;
 #ifdef PARALLEL_PORT
-	if (isprinter() > 0) {
+	if (isprinter()) {
 	    doprinter (val);
-	    ciaaicr |= 0x10;
-	} else if (isprinter() < 0) {
-	    parallel_direct_write_data (val, ciaadrb);
 	    ciaaicr |= 0x10;
 	}
 #endif
@@ -691,12 +645,6 @@ static void WriteCIAA (uae_u16 addr,uae_u8 val)
 	    ciaatod = (ciaatod & ~0xff) | val;
 	    ciaatodon = 1;
 	    ciaa_checkalarm ();
-#if 0
-#ifdef TOD_HACK
-	    if (currprefs.tod_hack)
-		tod_hack_reset ();
-#endif
-#endif
 	}
 	break;
     case 9:
@@ -768,10 +716,6 @@ static void WriteCIAB (uae_u16 addr,uae_u8 val)
 #ifdef SERIAL_PORT
 	if (currprefs.use_serial)
 	    serial_writestatus(ciabpra, ciabdra);
-#endif
-#ifdef PARALLEL_PORT
-	if (isprinter () < 0)
-    	    parallel_direct_write_status (val, ciabdra);
 #endif
 	break;
     case 1:
@@ -890,11 +834,6 @@ static void WriteCIAB (uae_u16 addr,uae_u8 val)
 
 void CIA_reset (void)
 {
-#ifdef TOD_HACK
-    tod_hack = 0;
-    if (currprefs.tod_hack)
-	tod_hack_reset ();
-#endif
     kback = 1;
     kbstate = 0;
     ciaasdr_unread = 0;
@@ -1210,6 +1149,7 @@ uae_u32 REGPARAM2 clock_bget (uaecptr addr)
 #ifdef JIT
     special_mem |= S_READ;
 #endif
+
     switch (addr & 0x3f) {
     case 0x03: return ct->tm_sec % 10;
     case 0x07: return ct->tm_sec / 10;
@@ -1223,6 +1163,7 @@ uae_u32 REGPARAM2 clock_bget (uaecptr addr)
     case 0x27: return (ct->tm_mon+1) / 10;
     case 0x2b: return ct->tm_year % 10;
     case 0x2f: return ct->tm_year / 10;
+
     case 0x33: return ct->tm_wday;  /*Hack by -=SR=- */
     case 0x37: return clock_control_d;
     case 0x3b: return clock_control_e;

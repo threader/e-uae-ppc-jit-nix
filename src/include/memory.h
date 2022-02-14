@@ -13,8 +13,6 @@ extern void a1000_reset (void);
 extern int special_mem;
 #define S_READ 1
 #define S_WRITE 2
-extern uae_u8 *cache_alloc (int);
-extern void cache_free (int);
 #endif
 
 typedef uae_u32 (*mem_get_func)(uaecptr) REGPARAM;
@@ -32,8 +30,7 @@ extern uae_u32 allocated_gfxmem;
 extern uae_u32 allocated_z3fastmem;
 extern uae_u32 allocated_a3000mem;
 
-extern uae_u32 wait_cpu_cycle_read (uaecptr addr, int mode);
-extern void wait_cpu_cycle_write (uaecptr addr, int mode, uae_u32 v);
+extern void wait_cpu_cycle (void);
 
 #undef DIRECT_MEMFUNCS_SUCCESSFUL
 #include "machdep/maccess.h"
@@ -237,4 +234,3 @@ extern int canbang;
 extern uae_u8 *mapped_malloc (size_t, char *);
 extern void mapped_free (uae_u8 *);
 extern void clearexec (void);
-extern void mapkick (void);

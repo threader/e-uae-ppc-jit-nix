@@ -2134,15 +2134,13 @@ static void vec(int x, struct sigcontext sc)
     int dir=-1;
     int len=0;
     int j;
-
-#ifdef JIT_DEBUG
+    
     write_log("fault address is %08x at %08x\n",sc.cr2,sc.eip);
     if (!canbang) 
 	write_log("Not happy! Canbang is 0 in SIGSEGV handler!\n");
-#endif   
     if (in_handler) 
 	write_log("Argh --- Am already in a handler. Shouldn't happen!\n");
-   
+
     if (canbang && i>=compiled_code && i<=current_compile_p) {
 	if (*i==0x66) {
 	    i++;
@@ -2216,9 +2214,8 @@ static void vec(int x, struct sigcontext sc)
 
     if (r!=-1) { 
 	void* pr=NULL;
-#ifdef JIT_DEBUG       
 	write_log("register was %d, direction was %d, size was %d\n",r,dir,size);
-#endif	
+	
 	switch(r) {
 	 case 0: pr=&(sc.eax); break;
 	 case 1: pr=&(sc.ecx); break;
@@ -2241,13 +2238,11 @@ static void vec(int x, struct sigcontext sc)
 
 	    if (currprefs.comp_oldsegv) {
 	    addr-=NATMEM_OFFSET;
-
-#ifdef JIT_DEBUG	       
+		
 	    if ((addr>=0x10000000 && addr<0x40000000) ||
 		(addr>=0x50000000)) {
 		write_log("Suspicious address in %x SEGV handler.\n",addr);
 	    }
-#endif	       
 	    if (dir==SIG_READ) {
 		switch(size) {
 		 case 1: *((uae_u8*)pr)=get_byte(addr); break;
@@ -2264,10 +2259,8 @@ static void vec(int x, struct sigcontext sc)
 		 default: abort();
 		}
 	    }
-#ifdef JIT_DEBUG	       
 	    write_log("Handled one access!\n");
 	    fflush(stdout);
-#endif	       
 	    segvcount++;
 	    sc.eip+=len;
 	    }
@@ -2277,23 +2270,21 @@ static void vec(int x, struct sigcontext sc)
 		uae_u8 vecbuf[5];
 		
 		addr-=NATMEM_OFFSET;
-
-#ifdef JIT_DEBUG	       
+		
 		if ((addr>=0x10000000 && addr<0x40000000) ||
 		    (addr>=0x50000000)) {
 		    write_log("Suspicious address 0x%x in SEGV handler.\n",addr);
 		}
-#endif		
+		
 		target=(uae_u8*)sc.eip;
 		for (i=0;i<5;i++)
 		    vecbuf[i]=target[i];
 		emit_byte(0xe9);
 		emit_long((uae_u32)veccode-(uae_u32)target-4);
-#ifdef JIT_DEBUG	       
 		write_log("Create jump to %p\n",veccode);
+
 		write_log("Handled one access!\n");
 		fflush(stdout);
-#endif	       
 		segvcount++;
 		
 		target=veccode;
@@ -2327,13 +2318,11 @@ static void vec(int x, struct sigcontext sc)
 		if (bi->handler && 
 		    (uae_u8*)bi->direct_handler<=i &&
 		    (uae_u8*)bi->nexthandler>i) {
-#ifdef JIT_DEBUG		   
 		    write_log("deleted trigger (%p<%p<%p) %p\n",
 			      bi->handler,
 			      i,
 			      bi->nexthandler,
 			      bi->pc_p);
-#endif		   
 		    invalidate_block(bi);
 		    raise_in_cl_list(bi);
 		    set_special(0);
@@ -2348,13 +2337,11 @@ static void vec(int x, struct sigcontext sc)
 		if (bi->handler && 
 		    (uae_u8*)bi->direct_handler<=i &&
 		    (uae_u8*)bi->nexthandler>i) {
-#ifdef JIT_DEBUG		   
 		    write_log("deleted trigger (%p<%p<%p) %p\n",
 			      bi->handler,
 			      i,
 			      bi->nexthandler,
 			      bi->pc_p);
-#endif		   
 		    invalidate_block(bi);
 		    raise_in_cl_list(bi);
 		    set_special(0);
@@ -2362,15 +2349,13 @@ static void vec(int x, struct sigcontext sc)
 		}
 		bi=bi->next;
 	    }
-#ifdef JIT_DEBUG	   
 	    write_log("Huh? Could not find trigger!\n");
-#endif	   
 	    return;
 	}
     }
-    write_log("JIT: can't handle access!\n");
+    write_log("Can't handle access!\n");
     for (j=0;j<10;j++) {
-	write_log("JIT: instruction byte %2d is %02x\n",j,i[j]);
+	write_log("instruction byte %2d is %02x\n",j,i[j]);
     }
 #if 0
     write_log("Please send the above info (starting at \"fault address\") to\n"

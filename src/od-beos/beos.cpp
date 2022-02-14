@@ -195,7 +195,6 @@ private:
 
 static LEDView *PowerLED, *DriveLED[4];
 
-#if 0
 
 /*
  *  Create application object and start it
@@ -215,7 +214,6 @@ int main(int argc, char **argv)
 	return 0;
 }
 
-#endif
 
 /*
  *  UAE Constructor: Initialize member variables
@@ -553,7 +551,7 @@ void BitmapView::Draw(BRect from, BRect to)
 
 void BitmapView::MouseMoved(BPoint point, uint32 transit, const BMessage *message)
 {
-//	newmousecounters = 0;
+	newmousecounters = 0;
 	switch (transit) {
 		case B_ENTERED_VIEW:
 //			newmousecounters = 1;
@@ -805,7 +803,6 @@ void LED (int on)
     PowerLED->SetState(!on);
 }
 
-#ifdef 0
 
 void setup_brkhandler(void)
 {
@@ -851,10 +848,9 @@ void gui_handle_events (void)
 }
 
 
-void gui_fps (int fps, int idle)
+void gui_fps (int fps)
 {
-    gui_data.fps  = fps;
-    gui_data.idle = idle;
+    gui_data.fps = fps;
 }
 
 
@@ -889,11 +885,6 @@ void gui_cd_led (int led)
 }
 
 
-void gui_display (int shortcut)
-{
-}
-
-
 void gui_message (const char *format,...)
 {
    char msg[2048];
@@ -905,5 +896,3 @@ void gui_message (const char *format,...)
 
    write_log (msg);
 }
-
-#endif

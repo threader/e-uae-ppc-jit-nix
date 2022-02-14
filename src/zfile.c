@@ -42,7 +42,7 @@ static int zlib_test (void)
     if (zlibmsg)
 	return 0;
     zlibmsg = 1;
-    gui_message("zip and gzip support disabled because zlib1.dll is missing");
+    gui_message("zip and gzip support disabled because zlib.dll is missing");
     return 0;
 #else
     /* On non-Windows platforms, we can safely assume (I think) that if we got this
@@ -483,43 +483,6 @@ static FILE *openzip (char *name, char *zippath)
     return 0;	    
 }
 
-#ifdef SINGLEFILE
-extern uae_u8 singlefile_data[];
-
-static struct zfile *zfile_opensinglefile(struct zfile *l)
-{
-    uae_u8 *p = singlefile_data;
-    int size, offset;
-    char tmp[256], *s;
-
-    strcpy (tmp, l->name);
-    s = tmp + strlen (tmp) - 1;
-    while (*s != 0 && *s != '/' && *s != '\\') s--;
-    if (s > tmp)
-	s++;
-    write_log("loading from singlefile: '%s'\n", tmp);
-    while (*p++);
-    offset = (p[0] << 24)|(p[1] << 16)|(p[2] << 8)|(p[3] << 0);
-    p += 4;
-    for (;;) {
-	size = (p[0] << 24)|(p[1] << 16)|(p[2] << 8)|(p[3] << 0);
-	if (!size)
-	    break;
-	if (!strcmpi (tmp, p + 4)) {
-	    l->data = singlefile_data + offset;
-	    l->size = size;
-	    write_log ("found, size %d\n", size);
-	    return l;
-	}
-	offset += size;
-	p += 4;
-	p += strlen (p) + 1;
-    }
-    write_log ("not found\n");
-    return 0;
-}
-#endif
-
 /*
  * fopen() for a compressed file
  */
@@ -533,10 +496,6 @@ struct zfile *zfile_fopen (const char *name, const char *mode)
         return NULL;
     l = zfile_create ();
     l->name = strdup (name);
-#ifdef SINGLEFILE
-    if (zfile_opensinglefile (l))
-	return l;
-#endif
     f = openzip (l->name, zipname);
     if (f) {
 	if (strcasecmp (mode, "rb")) {

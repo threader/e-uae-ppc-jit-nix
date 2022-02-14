@@ -20,11 +20,6 @@
 #include "events.h"
 #include "custom.h"
 #include "inputdevice.h"
-#include "gfxdep/gfx.h"
-#ifdef _WIN32
-#include "filter.h"
-#endif
-#include "savestate.h"
 
 static int config_newfilesystem;
 
@@ -76,6 +71,7 @@ static struct cfg_lines opttable[] =
     {"sound_frequency", "" },
     {"sound_bits", "" },
     {"sound_channels", "" },
+    {"sound_min_buff", "" },
     {"sound_max_buff", "" },
     {"comp_trustbyte", "How to access bytes in compiler (direct/indirect/indirectKS/afterPic" },
     {"comp_trustword", "How to access words in compiler (direct/indirect/indirectKS/afterPic" },
@@ -135,8 +131,8 @@ static const char *compmode[] = { "direct", "indirect", "indirectKS", "afterPic"
 static const char *flushmode[]   = { "soft", "hard", 0 };
 static const char *kbleds[] = { "none", "POWER", "DF0", "DF1", "DF2", "DF3", "HD", "CD", 0 };
 static const char *soundfiltermode[] = { "off", "emulated", "on", 0 };
-static const char *filtermode1[] = { "no_16", "bilinear_16", "no_32", "bilinear_32", 0 };
-static const char *filtermode2[] = { "0x", "1x", "2x", "3x", "4x", 0 };
+static const char *filtermode[] = { "no", "null", "direct3d", "opengl", "scale2x", "supereagle", "super2xsai", "2xsai", 0 };
+static const char *filtermode2[] = { "no_16", "bilinear_16", "no_32", "bilinear_32", 0 };
 
 static const char *obsolete[] = {
     "accuracy","gfx_opengl","gfx_32bit_blits","32bit_blits",
@@ -201,7 +197,6 @@ void save_options (FILE *f, struct uae_prefs *p)
     cfgfile_write (f, "%s.hardfile_path=%s\n", TARGET_NAME, p->path_hardfile);
 
     target_save_options (f, p);
-    gfx_save_options (f, p);
 
     cfgfile_write (f, "use_gui=%s\n", guimode1[p->start_gui]);
     cfgfile_write (f, "use_debugger=%s\n", p->start_debugger ? "true" : "false");
@@ -242,11 +237,15 @@ void save_options (FILE *f, struct uae_prefs *p)
     cfgfile_write (f, "sound_output=%s\n", soundmode1[p->produce_sound]);
     cfgfile_write (f, "sound_bits=%d\n", p->sound_bits);   
     cfgfile_write (f, "sound_channels=%s\n", stereomode1[p->stereo + p->mixed_stereo]);
+    cfgfile_write (f, "sound_min_buff=%d\n", p->sound_minbsiz);
     cfgfile_write (f, "sound_max_buff=%d\n", p->sound_maxbsiz);
     cfgfile_write (f, "sound_frequency=%d\n", p->sound_freq);
     cfgfile_write (f, "sound_interpol=%s\n", interpolmode[p->sound_interpol]);
     cfgfile_write (f, "sound_adjust=%d\n", p->sound_adjust);
     cfgfile_write (f, "sound_filter=%s\n", soundfiltermode[p->sound_filter]);
+
+    cfgfile_write (f, "sound_pri_time=%d\n", p->sound_pri_time);
+    cfgfile_write (f, "sound_pri_cutoff=%d\n", p->sound_pri_cutoff);
 
     cfgfile_write (f, "comp_trustbyte=%s\n", compmode[p->comptrustbyte]);
     cfgfile_write (f, "comp_trustword=%s\n", compmode[p->comptrustword]);
@@ -273,9 +272,6 @@ void save_options (FILE *f, struct uae_prefs *p)
 
     cfgfile_write (f, "bsdsocket_emu=%s\n", p->socket_emu ? "true" : "false");
 
-    cfgfile_write (f, "synchronize_clock=%s\n", p->tod_hack ? "yes" : "no");
-    cfgfile_write (f, "maprom=0x%x\n", p->maprom);
-
     cfgfile_write (f, "gfx_framerate=%d\n", p->gfx_framerate);
     cfgfile_write (f, "gfx_width=%d\n", p->gfx_width_win); /* compatibility with old versions */
     cfgfile_write (f, "gfx_height=%d\n", p->gfx_height_win); /* compatibility with old versions */
@@ -294,35 +290,7 @@ void save_options (FILE *f, struct uae_prefs *p)
     cfgfile_write (f, "gfx_center_vertical=%s\n", centermode1[p->gfx_ycenter]);
     cfgfile_write (f, "gfx_colour_mode=%s\n", colormode1[p->color_mode]);
 
-#ifdef _WIN32
-    if (p->gfx_filter > 0) {
-	int i = 0;
-        struct uae_filter *uf;
-	while (uaefilters[i].name) {
-	    uf = &uaefilters[i];
-	    if (uf->type == p->gfx_filter) {
-		cfgfile_write (f, "gfx_filter=%s\n", uf->cfgname);
-		if (uf->type == p->gfx_filter) {
-		    if (uf->x[0]) {
-			cfgfile_write (f, "gfx_filter_mode=%s\n", filtermode1[p->gfx_filter_filtermode]);
-		    } else {
-			int mt[4], i = 0;
-			if (uf->x[1]) mt[i++] = 1;
-			if (uf->x[2]) mt[i++] = 2;
-			if (uf->x[3]) mt[i++] = 3;
-			if (uf->x[4]) mt[i++] = 4;
-			cfgfile_write (f, "gfx_filter_mode=%dx\n", mt[p->gfx_filter_filtermode]);
-		    }
-		}
-	    }
-	    i++;
-	}
-    } else {
-#endif       
-        cfgfile_write (f, "gfx_filter=no\n");
-#ifdef _WIN32       
-    }
-#endif   
+    cfgfile_write (f, "gfx_filter=%s\n", filtermode[p->gfx_filter]);
     cfgfile_write (f, "gfx_filter_vert_zoom=%d\n", p->gfx_filter_vert_zoom);
     cfgfile_write (f, "gfx_filter_horiz_zoom=%d\n", p->gfx_filter_horiz_zoom);
     cfgfile_write (f, "gfx_filter_vert_offset=%d\n", p->gfx_filter_vert_offset);
@@ -330,6 +298,7 @@ void save_options (FILE *f, struct uae_prefs *p)
     cfgfile_write (f, "gfx_filter_scanlines=%d\n", p->gfx_filter_scanlines);
     cfgfile_write (f, "gfx_filter_scanlinelevel=%d\n", p->gfx_filter_scanlinelevel);
     cfgfile_write (f, "gfx_filter_scanlineratio=%d\n", p->gfx_filter_scanlineratio);
+    cfgfile_write (f, "gfx_filter_mode=%s\n", filtermode2[p->gfx_filter_filtermode]);
 
     cfgfile_write (f, "immediate_blits=%s\n", p->immediate_blits ? "true" : "false");
     cfgfile_write (f, "fast_copper=%s\n", p->fast_copper ? "true" : "false");
@@ -534,16 +503,11 @@ int cfgfile_parse_option (struct uae_prefs *p, char *option, char *value)
 		|| cfgfile_string (option, value, "floppy_path", p->path_floppy, 256)
 		|| cfgfile_string (option, value, "hardfile_path", p->path_hardfile, 256))
 		return 1;
-	    if (target_parse_option (p, option, value))
-		return 1;
+	    return target_parse_option (p, option, value);
 	}
-	if (strcmp (section, GFX_NAME) == 0)
-	    return gfx_parse_option (p, option, value);
-
 	return 0;
     }
     if (cfgfile_yesno (option, value, "use_debugger", &p->start_debugger)
-	|| cfgfile_yesno (option, value, "synchronize_clock", &p->tod_hack)
 	|| cfgfile_yesno (option, value, "bsdsocket_emu", &p->socket_emu)
 	|| cfgfile_yesno (option, value, "immediate_blits", &p->immediate_blits)
 	|| cfgfile_yesno (option, value, "fast_copper", &p->fast_copper)
@@ -579,10 +543,13 @@ int cfgfile_parse_option (struct uae_prefs *p, char *option, char *value)
 	|| cfgfile_yesno (option, value, "scsi", &p->scsi)
 	|| cfgfile_yesno (option, value, "filesys_no_fsdb", &p->filesys_no_uaefsdb))
 	return 1;
-    if (cfgfile_intval (option, value, "sound_max_buff", &p->sound_maxbsiz, 1)
+    if (cfgfile_intval (option, value, "sound_min_buff", &p->sound_minbsiz, 1)
+	|| cfgfile_intval (option, value, "sound_max_buff", &p->sound_maxbsiz, 1)
 	|| cfgfile_intval (option, value, "sound_bits", &p->sound_bits, 1)
 	|| cfgfile_intval (option, value, "sound_frequency", &p->sound_freq, 1)
 	|| cfgfile_intval (option, value, "sound_adjust", &p->sound_adjust, 1)
+	|| cfgfile_intval (option, value, "sound_pri_cutoff", &p->sound_pri_cutoff, 1)
+	|| cfgfile_intval (option, value, "sound_pri_time", &p->sound_pri_time, 1)
 	|| cfgfile_intval (option, value, "cachesize", &p->cachesize, 1)
 	|| cfgfile_intval (option, value, "override_dga_address", &p->override_dga_address, 1)
 	|| cfgfile_intval (option, value, "gfx_framerate", &p->gfx_framerate, 1)
@@ -611,7 +578,6 @@ int cfgfile_parse_option (struct uae_prefs *p, char *option, char *value)
 	|| cfgfile_intval (option, value, "floppy1type", &p->dfxtype[1], 1)
 	|| cfgfile_intval (option, value, "floppy2type", &p->dfxtype[2], 1)
 	|| cfgfile_intval (option, value, "floppy3type", &p->dfxtype[3], 1)
-	|| cfgfile_intval (option, value, "maprom", &p->maprom, 1)
 	|| cfgfile_intval (option, value, "catweasel_io", &p->catweasel_io, 1))
 	return 1;
     if (cfgfile_strval (option, value, "sound_output", &p->produce_sound, soundmode1, 1)
@@ -638,6 +604,8 @@ int cfgfile_parse_option (struct uae_prefs *p, char *option, char *value)
 	|| cfgfile_strval (option, value, "gfx_colour_mode", &p->color_mode, colormode2, 0)
 	|| cfgfile_strval (option, value, "gfx_color_mode", &p->color_mode, colormode1, 1)
 	|| cfgfile_strval (option, value, "gfx_color_mode", &p->color_mode, colormode2, 0)
+	|| cfgfile_strval (option, value, "gfx_filter", &p->gfx_filter, filtermode, 0)
+	|| cfgfile_strval (option, value, "gfx_filter_mode", &p->gfx_filter_filtermode, filtermode2, 0)
 	|| cfgfile_strval (option, value, "comp_flushmode", &p->comp_hardflush, flushmode, 0))
 	return 1;
     if (cfgfile_string (option, value, "floppy0", p->df[0], 256)
@@ -653,53 +621,6 @@ int cfgfile_parse_option (struct uae_prefs *p, char *option, char *value)
 	|| cfgfile_string (option, value, "config_description", p->description, 256))
 	return 1;
 
-    if (strcmp (option,"gfx_filter") == 0) {
-	int i = 0;
-	p->gfx_filter = 0;
-#ifdef _WIN32       
-	while(uaefilters[i].name) {
-	    if (!strcmp (uaefilters[i].cfgname, value)) {
-		p->gfx_filter = uaefilters[i].type;
-		break;
-	    }
-	    i++;
-	}
-#endif       
-	return 1;
-    }
-    if (strcmp (option,"gfx_filter_mode") == 0) {
-	p->gfx_filter_filtermode = 0;
-#ifdef _WIN32       
-	if (p->gfx_filter > 0) {	   
-	    struct uae_filter *uf;
-	    int i = 0;
-	    while(uaefilters[i].name) {
-		uf = &uaefilters[i];
-		if (uf->type == p->gfx_filter) {
-		    if (uf->x[0]) {
-			cfgfile_strval (option, value, "gfx_filter_mode", &p->gfx_filter_filtermode, filtermode1, 0);
-		    } else {
- 			int mt[4], j;
-			i = 0;
-			if (uf->x[1]) mt[i++] = 1;
-			if (uf->x[2]) mt[i++] = 2;
-			if (uf->x[3]) mt[i++] = 3;
-			if (uf->x[4]) mt[i++] = 4;
-			cfgfile_strval (option, value, "gfx_filter_mode", &i, filtermode2, 0);
-			for (j = 0; j < i; j++) {
-			    if (mt[j] == i)
-				p->gfx_filter_filtermode = j;
-			}
-		    }
-		    break;
-		}
-		i++;
-	    }
-	}
-#endif       
-	return 1;
-    }
-
     if (strcmp (option, "gfx_width") == 0 || strcmp (option, "gfx_height") == 0) {
 	cfgfile_intval (option, value, "gfx_width", &p->gfx_width_win, 1);
 	cfgfile_intval (option, value, "gfx_height", &p->gfx_height_win, 1);
@@ -708,17 +629,12 @@ int cfgfile_parse_option (struct uae_prefs *p, char *option, char *value)
 	return 1;
     }
 
+
     if (cfgfile_intval (option, value, "chipmem_size", &dummy, 1)) {
 	if (!dummy)
 	    p->chipmem_size = 0x40000;
 	else
 	    p->chipmem_size = dummy * 0x80000;
-	return 1;
-    }
-
-    if (cfgfile_string (option, value, "statefile", tmpbuf, sizeof (tmpbuf))) {
-	savestate_state = STATE_DORESTORE;
-	strcpy (savestate_fname, tmpbuf);
 	return 1;
     }
 
@@ -1060,47 +976,11 @@ static void subst (char *p, char *f, int n)
     free (str);
 }
 
-static char *cfg_fgets (char *line, int max, FILE *fh)
-{
-#ifdef SINGLEFILE
-    extern char singlefile_config[];
-    static char *sfile_ptr;
-    char *p;
-#endif
-
-    if (fh)
-	return fgets (line, max, fh);
-#ifdef SINGLEFILE
-    if (sfile_ptr == 0) {
-	sfile_ptr = singlefile_config;
-	if (*sfile_ptr) {
-	    write_log ("singlefile config found\n");
-	    while (*sfile_ptr++);
-	}
-    }
-    if (*sfile_ptr == 0) {
-	sfile_ptr = singlefile_config;
-	return 0;
-    }
-    p = sfile_ptr;
-    while (*p != 13 && *p != 10 && *p != 0) p++;
-    memset (line, 0, max);
-    memcpy (line, sfile_ptr, p - sfile_ptr);
-    sfile_ptr = p + 1;
-    if (*sfile_ptr == 13)
-	sfile_ptr++;
-    if (*sfile_ptr == 10)
-	sfile_ptr++;
-    return line;
-#endif
-    return 0;
-}
-
 static int cfgfile_load_2 (struct uae_prefs *p, const char *filename, int real)
 {
     int i;
 
-    FILE *fh = 0;
+    FILE *fh;
     char line[2560], line1b[2560], line2b[2560];
 
     if (real) {
@@ -1109,26 +989,17 @@ static int cfgfile_load_2 (struct uae_prefs *p, const char *filename, int real)
 	reset_inputdevice_config (p);
     }
 
-    write_log ("Opening cfgfile: %s...", filename);
     fh = fopen (filename, "r");
-#ifndef SINGLEFILE
-    if (! fh) {
-        write_log ("failed.\n");
+    if (! fh)
 	return 0;
-    }
-    write_log ("okay.\n");
 
-#endif
-
-    while (cfg_fgets (line, sizeof (line), fh) != 0) {
+    while (fgets (line, sizeof (line), fh) != 0) {
 	int len = strlen (line);
 	/* Delete trailing whitespace.  */
 	while (len > 0 && strcspn (line + len - 1, "\t \r\n") == 0) {
 	    line[--len] = '\0';
 	}
 	if (strlen (line) > 0) {
-	    if (line[0] == '#')
-	       continue;
 	    if (real) {
 		cfgfile_parse_line (p, line);
 	    } else {
@@ -1138,9 +1009,7 @@ static int cfgfile_load_2 (struct uae_prefs *p, const char *filename, int real)
 	    }
 	}
     }
-
-    if (fh)
-	fclose (fh);
+    fclose (fh);
 
     if (!real)
 	return 1;
@@ -1270,7 +1139,9 @@ static void parse_sound_spec (char *spec)
     if (x3)
 	currprefs.sound_freq = atoi (x3);
     if (x4)
-	currprefs.sound_maxbsiz = atoi (x4);
+	currprefs.sound_maxbsiz = currprefs.sound_minbsiz = atoi (x4);
+    if (x5)
+	currprefs.sound_minbsiz = atoi (x5);
     free (x0);
     return;
 }
@@ -1444,10 +1315,8 @@ int parse_cmdline_option (char c, char *arg)
     case 'J': parse_joy_spec (arg); break;
 
     case 't': currprefs.test_drawing_speed = 1; break;
-#ifdef USE_X11_GFX
     case 'L': currprefs.x11_use_low_bandwidth = 1; break;
     case 'T': currprefs.x11_use_mitshm = 1; break;
-#endif
     case 'w': currprefs.m68k_speed = atoi (arg); break;
 
 	/* case 'g': currprefs.use_gfxlib = 1; break; */

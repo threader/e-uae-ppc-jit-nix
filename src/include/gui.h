@@ -12,14 +12,13 @@ extern void gui_exit (void);
 extern void gui_led (int, int);
 extern void gui_handle_events (void);
 extern void gui_filename (int, const char *);
-extern void gui_fps (int fps, int idle);
+extern void gui_fps (int fps);
 extern void gui_changesettings (void);
 extern void gui_lock (void);
 extern void gui_unlock (void);
 extern void gui_hd_led (int);
 extern void gui_cd_led (int);
 extern unsigned int gui_ledstate;
-extern void gui_display(int shortcut);
 
 extern int no_gui;
 
@@ -33,9 +32,9 @@ struct gui_info
     uae_u8 drive_side;		    /* floppy side */
     uae_u8 hd;			    /* harddrive */
     uae_u8 cd;			    /* CD */
-    int fps, idle;
+    int fps;
 };
-#define NUM_LEDS (1 + 1 + 1 + 1 + 1 + 4)
+#define NUM_LEDS (1 + 1 + 1 + 1 + 4)
 
 extern struct gui_info gui_data;
 

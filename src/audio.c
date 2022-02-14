@@ -71,7 +71,6 @@ void init_sound_table16 (void)
 	    sound_table[j][i] = j * (uae_s8)i * (currprefs.stereo ? 2 : 1);
 }
 
-#ifdef HAVE_8BIT_AUDIO_SUPPORT
 void init_sound_table8 (void)
 {
     int i,j;
@@ -80,7 +79,6 @@ void init_sound_table8 (void)
 	for (j = 0; j < 64; j++)
 	    sound_table[j][i] = (j * (uae_s8)i * (currprefs.stereo ? 2 : 1)) / 256;
 }
-#endif
 
 #define MULTIPLICATION_PROFITABLE
 
@@ -284,7 +282,6 @@ void sample16i_crux_handler (void)
     check_sound_buffers ();
 }
 
-#ifdef HAVE_8BIT_AUDIO_SUPPORT
 void sample8_handler (void)
 {
     uae_u32 data0 = audio_channel[0].current_sample;
@@ -309,7 +306,6 @@ void sample8_handler (void)
     }
     check_sound_buffers ();
 }
-#endif
 
 #ifdef HAVE_STEREO_SUPPORT
 void sample16ss_handler (void)
@@ -504,7 +500,6 @@ void sample16si_rh_handler (void)
     check_sound_buffers ();
 }
 
-#ifdef HAVE_8BIT_AUDIO_SUPPORT
 void sample8s_handler (void)
 {
     uae_u32 data0 = audio_channel[0].current_sample;
@@ -535,14 +530,11 @@ void sample8s_handler (void)
     }
     check_sound_buffers ();
 }
-#endif
 #else
-#ifdef HAVE_8BIT_AUDIO_SUPPORT
 void sample8s_handler (void)
 {
     sample8_handler();
 }
-#endif
 
 void sample16s_handler (void)
 {
@@ -558,7 +550,6 @@ void sample16si_rh_handler (void)
 }
 #endif
 
-#ifdef HAVE_ULAW_AUDIO_SUPPORT
 static uae_u8 int2ulaw (int ch)
 {
     int mask;
@@ -608,28 +599,6 @@ void sample_ulaw_handler (void)
     PUT_SOUND_BYTE (int2ulaw (data));
     check_sound_buffers ();
 }
-#endif
-
-void switch_audio_interpol (void)
-{
-#if defined HAVE_8BIT_AUDIO_SUPPORT || defined HAVE_ULAW_AUDIO_SUPPORT
-    if (currprefs.sound_bits == 8)
-	/* only supported for 16-bit audio */
-        return;
-#endif
-
-    if (currprefs.sound_interpol == 0) {
-	changed_prefs.sound_interpol = 1;
-	write_log ("Interpol on: rh\n");
-    } else if (currprefs.sound_interpol == 1) {
-	changed_prefs.sound_interpol = 2;
-	write_log ("Interpol on: crux\n");
-    } else {
-	changed_prefs.sound_interpol = 0;
-	write_log ("Interpol off\n");
-    }
-    return;
-}
 
 void schedule_audio (void)
 {
@@ -645,7 +614,7 @@ void schedule_audio (void)
 		best = cdp->evtime;
 		eventtab[ev_audio].active = 1;
 	    }
-	}
+	}	
     }
     eventtab[ev_audio].evtime = get_cycles () + best;
 }
@@ -685,10 +654,6 @@ static void state23 (struct audio_channel_data *cdp)
 	cdp->wlen = cdp->len;
 	cdp->pt = cdp->lc;
 	cdp->intreq2 = 1;
-#ifdef DEBUG_AUDIO
-	if (debugchannel (cdp - audio_channel))
-	    write_log ("Channel %d looped, LC=%08.8X LEN=%d\n", cdp - audio_channel, cdp->pt, cdp->wlen);
-#endif
     } else {
 	cdp->wlen = (cdp->wlen - 1) & 0xFFFF;
     }
@@ -717,7 +682,7 @@ static void audio_handler (int nr, int timed)
 		    cdp->pt = cdp->lc;
 #ifdef DEBUG_AUDIO
 		if (debugchannel (nr))
-		    write_log ("%d:0>1: LEN=%d\n", nr, cdp->wlen);
+		    write_log ("%d:0>1: LEN=%d, PT=%08.8X\n", nr, cdp->wlen, cdp->pt);
 #endif
 		audio_handler (nr, timed);
 		return;
@@ -868,16 +833,12 @@ void audio_reset (void)
 STATIC_INLINE int sound_prefs_changed (void)
 {
     return (changed_prefs.produce_sound != currprefs.produce_sound
-#ifdef _WIN32	    
 	    || changed_prefs.win32_soundcard != currprefs.win32_soundcard
-#endif	    
 	    || changed_prefs.stereo != currprefs.stereo
 	    || changed_prefs.mixed_stereo != currprefs.mixed_stereo
 	    || changed_prefs.sound_maxbsiz != currprefs.sound_maxbsiz
 	    || changed_prefs.sound_freq != currprefs.sound_freq
-#if defined HAVE_8BIT_AUDIO_SUPPORT || defined HAVE_ULAW_AUDIO_SUPPORT	    
 	    || changed_prefs.sound_bits != currprefs.sound_bits
-#endif
 	    || changed_prefs.sound_adjust != currprefs.sound_adjust
 	    || changed_prefs.sound_interpol != currprefs.sound_interpol
 	    || changed_prefs.sound_filter != currprefs.sound_filter);
@@ -889,17 +850,13 @@ void check_prefs_changed_audio (void)
 	close_sound ();
 
 	currprefs.produce_sound = changed_prefs.produce_sound;
-#ifdef _WIN32       
 	currprefs.win32_soundcard = changed_prefs.win32_soundcard;
-#endif       
 	currprefs.stereo = changed_prefs.stereo;
 	currprefs.mixed_stereo = changed_prefs.mixed_stereo;
 	currprefs.sound_adjust = changed_prefs.sound_adjust;
 	currprefs.sound_interpol = changed_prefs.sound_interpol;
 	currprefs.sound_freq = changed_prefs.sound_freq;
-#if defined HAVE_8BIT_AUDIO_SUPPORT || defined HAVE_ULAW_AUDIO_SUPPORT       
 	currprefs.sound_bits = changed_prefs.sound_bits;
-#endif       
 	currprefs.sound_maxbsiz = changed_prefs.sound_maxbsiz;
 	currprefs.sound_filter = changed_prefs.sound_filter;
 	if (currprefs.produce_sound >= 2) {
@@ -1021,13 +978,8 @@ void audio_hsync (int dmaaction)
 
         if (dmaaction && cdp->request_word > 0) {
 
-	    if (cdp->state == 5) {
+	    if (cdp->state == 5)
 	        cdp->pt = cdp->lc;
-#ifdef DEBUG_AUDIO
-		if (debugchannel (nr))
-		    write_log ("%d:>5: LEN=%d PT=%08.8X\n", nr, cdp->wlen, cdp->pt);
-#endif
-	    }
 	    cdp->dat2 = chipmem_wget (cdp->pt);
 	    if (cdp->request_word >= 2)
 		handle2 = 1;
@@ -1065,18 +1017,18 @@ void AUDxDAT (int nr, uae_u16 v)
 {
     struct audio_channel_data *cdp = audio_channel + nr;
 
+    update_audio ();
+    cdp->dat2 = v;
+    cdp->request_word = -1;
 #ifdef DEBUG_AUDIO
     if (debugchannel (nr))
 	write_log ("AUD%dDAT: %04.4X STATE=%d %p\n", nr, v, cdp->state, m68k_getpc());
 #endif
-    update_audio ();
-    cdp->dat2 = v;
-    cdp->request_word = -1;
-    if (cdp->state == 0 && !isirq (nr)) {
+    if (cdp->state == 0) {
 	cdp->state = 2;
 	audio_handler (nr, 0);
 	setirq (nr);
-        schedule_audio ();
+	schedule_audio ();
 	events_schedule ();
     }
  }

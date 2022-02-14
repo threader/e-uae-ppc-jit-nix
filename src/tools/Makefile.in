@@ -5,7 +5,7 @@
 @SET_MAKE@
 CC        = @CC@
 LDFLAGS   = @LDFLAGS@
-CFLAGS    = @CFLAGS@ -D__inline__=@ac_cv_c_inline@ -DUAE_CONSOLE -DBUILD_TOOLS
+CFLAGS    = @CFLAGS@ -D__inline__=@ac_cv_c_inline@ -DUAE_CONSOLE
 LIBRARIES = @LIBS@
 
 INSTALL         = @INSTALL@

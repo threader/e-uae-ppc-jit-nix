@@ -6,9 +6,8 @@ libgfxdep_a_SOURCES = ami-win.c ami-appw.c
 libguidep_a_SOURCES = ami-rexx.c ami-gui.c ami-disk.c
 libjoydep_a_SOURCES = joystick.c
 libsnddep_a_SOURCES = sound.c
-libosdep_a_SOURCES = main.c support.c
+libosdep_a_SOURCES = support.c
 
-noinst_HEADERS = amiga-kludges.h gfx.h exectasks.h memory.h rpt.h sound.h \
-	         thread.h
+noinst_HEADERS = amiga-kludges.h exectasks.h memory.h rpt.h sound.h thread.h 
 dist_bin_SCRIPTS    = UAEWB UAEWB.aux UAEWB.rexx UAEGUI.rexx
 dist_noinst_SCRIPTS = scc

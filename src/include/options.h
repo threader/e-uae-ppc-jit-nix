@@ -1,5 +1,4 @@
-
-/*
+ /*
   * UAE - The Un*x Amiga Emulator
   *
   * Stuff
@@ -10,7 +9,7 @@
 
 #define UAEMAJOR 0
 #define UAEMINOR 8
-#define UAESUBREV 23
+#define UAESUBREV 22
 
 typedef enum { KBD_LANG_US, KBD_LANG_DK, KBD_LANG_DE, KBD_LANG_SE, KBD_LANG_FR, KBD_LANG_IT, KBD_LANG_ES } KbdLang;
 
@@ -30,13 +29,12 @@ struct strlist {
 /* 4 different customization settings */
 #define MAX_INPUT_SETTINGS 4
 #define MAX_INPUT_SUB_EVENT 4
-#define MAX_INPUT_SIMULTANEOUS_KEYS 4
 
 struct uae_input_device {
     char *name;
     uae_s16 eventid[MAX_INPUT_DEVICE_EVENTS][MAX_INPUT_SUB_EVENT];
     uae_u16 flags[MAX_INPUT_DEVICE_EVENTS][MAX_INPUT_SUB_EVENT];
-    uae_s16 extra[MAX_INPUT_DEVICE_EVENTS][MAX_INPUT_SIMULTANEOUS_KEYS];
+    uae_s16 extra[MAX_INPUT_DEVICE_EVENTS];
     uae_u8 enabled;
 };
 
@@ -68,7 +66,10 @@ struct uae_prefs {
     int mixed_stereo;
     int sound_bits;
     int sound_freq;
+    int sound_minbsiz;
     int sound_maxbsiz;
+    int sound_pri_time;
+    int sound_pri_cutoff;
     int sound_interpol;
     int sound_adjust;
     int sound_filter;
@@ -134,8 +135,6 @@ struct uae_prefs {
     int cpu_cycle_exact;
     int blitter_cycle_exact;
     int floppy_speed;
-    int tod_hack;
-    uae_u32 maprom;
 
     char df[4][256];
     char romfile[256];
@@ -172,29 +171,17 @@ struct uae_prefs {
     int dfxtype[4];
 
     /* Target specific options */
-#ifdef USE_X11_GFX
     int x11_use_low_bandwidth;
     int x11_use_mitshm;
     int x11_use_dgamode;
     int x11_hide_cursor;
-#endif
-
-#ifdef USE_SVGALIB_GFX
     int svga_no_linear;
-#endif
-
-#ifdef _WIN32
     int win32_middle_mouse;
     int win32_logfile;
-
-    int win32_active_priority;
-    int win32_inactive_priority;
-    int win32_inactive_pause;
-    int win32_inactive_nosound;
-    int win32_iconified_priority;
+    int win32_activepriority;
+    int win32_iconified_nospeed;
     int win32_iconified_pause;
     int win32_iconified_nosound;
-
     int win32_no_overlay; /* If this is set, we won't try and use any RGB overlays */
     int win32_ctrl_F11_is_quit;
     int win32_automount_drives;
@@ -202,22 +189,8 @@ struct uae_prefs {
     int win32_midiindev;
     int win32_aspi;
     int win32_soundcard;
-#endif
 
-#ifdef USE_CURSES_GFX
     int curses_reverse_video;
-#endif
-
-#ifdef USE_SDL_GFX
-    int map_raw_keys;
-#endif
-
-#ifdef USE_AMIGA_GFX
-    int  amiga_screen_type;
-    char amiga_publicscreen[256];
-    int  amiga_use_grey;
-    int  amiga_use_dither;
-#endif
 
     /* input */
 
@@ -253,11 +226,6 @@ extern char *cfgfile_subst_path (const char *path, const char *subst, const char
 
 extern int target_parse_option (struct uae_prefs *, char *option, char *value);
 extern void target_save_options (FILE *, struct uae_prefs *);
-extern void target_default_options (struct uae_prefs *);
-
-extern int gfx_parse_option (struct uae_prefs *, char *option, char *value);
-extern void gfx_save_options (FILE *, struct uae_prefs *);
-extern void gfx_default_options (struct uae_prefs *);
 
 extern int cfgfile_load (struct uae_prefs *, const char *filename);
 extern int cfgfile_save (struct uae_prefs *, const char *filename);

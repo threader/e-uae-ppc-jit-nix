@@ -1020,10 +1020,6 @@ static uae_u32 bsdsocklib_SocketBaseTagList (void)
 		    TRACE (("SBTC_SIGEVENTMASK),0x%lx", currval));
 		    tagcopy (currtag, currval, tagptr, &sb->eventsigs);
 		    break;
-		 case SBTC_SIGIOMASK:
-		    TRACE (("SBTC_SIGEVENTMASK),0x%lx", currval));
-		    tagcopy (currtag, currval, tagptr, &sb->eventsigs);
-		    break;
 		 case SBTC_ERRNO:
 		    TRACE (("SBTC_ERRNO),%d", currval));
 		    tagcopy (currtag, currval, tagptr, &sb->sb_errno);

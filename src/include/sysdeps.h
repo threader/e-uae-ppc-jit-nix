@@ -239,18 +239,11 @@ extern void *xcalloc(size_t, size_t);
 #define ENUMNAME(name) name
 
 /* While we're here, make abort more useful.  */
-
-#ifndef __MORPHOS__
-/* This fails to compile on Morphos - not sure why yet */
 #define abort() \
   do { \
     write_log ("Internal error; file %s, line %d\n", __FILE__, __LINE__); \
-    exit (0); \
+    (abort) (); \
 } while (0)
-#else 
-#define abort() exit(0)
-#endif
-
 #else
 #define ENUMDECL enum
 #define ENUMNAME(name) ; typedef int name
@@ -450,10 +443,7 @@ extern void mallocemu_free (void *ptr);
 #define NO_PREFETCH_BUFFER
 #endif
 
-#ifndef BUILD_TOOLS
 #include "target.h"
-#include "gfxdep/gfx.h"
-#endif
 
 #ifdef UAE_CONSOLE
 #undef write_log
@@ -465,7 +455,6 @@ extern void write_log (const char *, ...) __attribute__ ((format (printf, 1, 2))
 #else
 extern void write_log (const char *, ...);
 #endif
-extern void write_dlog (const char *, ...);
 
 extern void console_out (const char *, ...);
 extern void console_flush (void);

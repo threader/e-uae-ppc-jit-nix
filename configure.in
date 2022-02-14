@@ -4,7 +4,7 @@ dnl
 dnl Updated, re-written and generally mauled 2003 Richard Drummond
 
 AC_PREREQ(2.50)
-AC_INIT(UAE, 0.8.23-20040126, ,uae)
+AC_INIT(UAE, 0.8.22-20040107, ,uae)
 AC_CONFIG_SRCDIR([config.h])
 AC_CONFIG_HEADERS([src/sysconfig.h])
 AC_CANONICAL_TARGET
@@ -66,12 +66,7 @@ AC_CHECK_LIB(audio, alOpenPort, HAVE_SGIAUDIO_LIB=yes, HAVE_SGIAUDIO_LIB=no)
 AC_PATH_XTRA
 
 AM_PATH_SDL(1.2.0,HAVE_SDL=yes,HAVE_SDL=no)
-
-dnl  Prefer Gtk2.x over Gtk1.x if both are available
-AM_PATH_GTK_2_0(2.0.0,HAVE_GTK=yes,HAVE_GTK=no)
-if [[ "x$HAVE_GTK" = "xno" ]]; then
-  AM_PATH_GTK(1.0.0,HAVE_GTK=yes,HAVE_GTK=no)
-fi
+AM_PATH_GTK(1.2.0,HAVE_GTK=yes,HAVE_GTK=no)
 
 dnl
 dnl  Checks for header files.
@@ -128,7 +123,7 @@ AC_CHECK_FUNCS(getcwd getopt strdup gettimeofday sigaction mkdir rmdir)
 AC_CHECK_FUNCS(select strerror strstr isnan isinf setitimer)
 AC_CHECK_FUNCS(tcgetattr cfmakeraw readdir_r vprintf vsprintf vfprintf)
 AC_CHECK_FUNCS(strcasecmp stricmp strcmpi)
-AC_CHECK_FUNCS(nanosleep usleep sleep)
+AC_CHECK_FUNCS(nanosleep usleep)
 dnl AC_CHECK_FUNCS(statvfs statfs)
 
 dnl
@@ -339,7 +334,7 @@ dnl
 dnl  Generic default targets
 dnl
 TARGET=x11
-TARGETDEP=t-unix.h
+TARGETDEP=t-x11.h
 if [[ "$HAVE_PTHREAD" = "yes" ]]; then
   THREADDEP=td-posix
   THREADNAME=posix
@@ -370,7 +365,6 @@ else
   WANT_JIT=no
   WANT_X86ASSEMBLY=no
 fi
-NATMEM=no
 WANT_DGA=no
 WANT_VIDMODE=no
 WANT_THREADS=dunno
@@ -392,7 +386,6 @@ dnl
 if [[ "$HOST_OS" = "linux" ]]; then
   JOYDEP=od-linux
   JOYNAME="linux"
-  NATMEM="0x50000000"
 else if [[ "$OSDEP" = "od-beos" ]]; then
   TARGET=beos
   TARGETDEP=t-beos.h
@@ -400,7 +393,6 @@ else if [[ "$OSDEP" = "od-beos" ]]; then
   GFXNAME="native BeOS"
   GUIDEP="$OSDEP"
   GUINAME="native BeOS"
-  GUILIBS="-lbe -ltracker" 
   JOYDEP="$OSDEP"
   JOYNAME="native BeOS"
   JOYLIBS="-ldevice"
@@ -420,10 +412,11 @@ else if [[ "$OSDEP" = "od-amiga" ]]; then
   GFXDEP="$OSDEP"
   GFXNAME="native AmigaOS"
   GUIDEP="$OSDEP"
-  GUINAME="native AmigaOS"
+  GUINAME="ARexx"
   JOYDEP="$OSDEP"
   JOYNAME="Amiga gameport.device"
   WANT_BSDSOCK=no
+  OSDEPOBJS="$OSDEP"/libosdep.a
 else if [[ "$OSDEP" = "od-win32" ]]; then
   TARGET=win32
   TARGETDEP=t-win32.h
@@ -442,25 +435,21 @@ fi
 dnl
 dnl  Options
 dnl
-
-AC_ARG_ENABLE(profiling,       AS_HELP_STRING([--enable-profiling],       [Build a profiling (SLOW!) version]),                    [DO_PROFILING=$enableval],[])
-AC_ARG_ENABLE(aga,             AS_HELP_STRING([--enable-aga],             [Enable AGA chipset emulation (default yes)]),           [WANT_AGA=$enableval],[])
-AC_ARG_ENABLE(cycle-exact-cpu, AS_HELP_STRING([--enable-cycle-exact-cpu], [Enable cycle-exact CPU emulation (default yes)]),       [WANT_CYCLEEXACT=$enableval],[])
-AC_ARG_ENABLE(compatible-cpu,  AS_HELP_STRING([--enable-compatible-cpu],  [Enable compatible CPU emulation (default yes)]),        [WANT_COMPATIBLE=$enableval],[])
-AC_ARG_ENABLE(jit,             AS_HELP_STRING([--enable-jit],             [Enable JIT compiler (currently x86 only)]),             [WANT_JIT=$enableval],[])
-AC_ARG_ENABLE(natmem,          AS_HELP_STRING([--enable-natmem],          [Enable JIT direct memory support (default auto)]),      [NATMEM=$enableval],[])
-AC_ARG_ENABLE(x86assembly,     AS_HELP_STRING([--enable-x86assembly],     [Enable x86 assembly optimizations (default auto)]),     [WANT_X86ASSEMBLY=$enableval],[])
-AC_ARG_ENABLE(threads,         AS_HELP_STRING([--enable-threads],         [Enable thread support (default auto)]),                 [WANT_THREADS=$enableval],[])
-AC_ARG_ENABLE(autoconfig,      AS_HELP_STRING([--enable-autoconfig],      [Enable emulaton of autoconfig devices (default auto)]), [WANT_AUTOCONFIG=$enableval],[])
-AC_ARG_ENABLE(bsdsock,         AS_HELP_STRING([--enable-bsdsock],         [Enable bsdsocket.library emulation]),                   [WANT_BSDSOCK=$enableval],[])
-AC_ARG_ENABLE(dga,             AS_HELP_STRING([--enable-dga],             [X11 version: Use the DGA extension]),                   [WANT_DGA=$enableval],[])
-AC_ARG_ENABLE(vidmode,         AS_HELP_STRING([--enable-vidmode],         [X11 version: Use the XF86VidMode extension]),           [WANT_VIDMODE=$enableval],[])
-AC_ARG_ENABLE(ui,              AS_HELP_STRING([--enable-ui],              [Use a user interface if possible (default on)]),        [WANT_UI=$enableval],[])
-
-AC_ARG_WITH(sdl,       AS_HELP_STRING([--with-sdl],       [Use SDL library for low-level functions]), [WANT_SDL=$withval], [])
-AC_ARG_WITH(sdl-sound, AS_HELP_STRING([--with-sdl-sound], [Use SDL library for sound]),               [WANT_SDLSND=$withval],[])
-AC_ARG_WITH(sdl-gfx,   AS_HELP_STRING([--with-sdl-gfx],   [Use SDL library for graphics]),            [WANT_SDLGFX=$withval], [])
-
+AC_ARG_ENABLE(profiling,[  --enable-profiling      Build a profiling (SLOW!) version],[DO_PROFILING=$enableval],[])
+AC_ARG_WITH(sdl,[  --with-sdl              Use SDL library for low-level functions],[WANT_SDL=$withval],[])
+AC_ARG_WITH(sdl-sound,[  --with-sdl-sound        Use SDL library for sound],[WANT_SDLSND=$withval],[])
+AC_ARG_WITH(sdl-gfx,[  --with-sdl-gfx          Use SDL library for graphics],[WANT_SDLGFX=$withval],[])
+AC_ARG_ENABLE(dga,[  --enable-dga            X11 version: Use the DGA extension],[WANT_DGA=$enableval],[])
+AC_ARG_ENABLE(vidmode,[  --enable-vidmode        X11 version: Use the XF86VidMode extension],[WANT_VIDMODE=$enableval],[])
+AC_ARG_ENABLE(ui,[  --enable-ui             Use a user interface if possible (default on)],[WANT_UI=$enableval],[])
+AC_ARG_ENABLE(jit,[  --enable-jit            linux/x86 version: Use the JIT compiler],[WANT_JIT=$enableval],[])	   
+AC_ARG_ENABLE(threads,[  --enable-threads        Build with thread support (default auto)],[WANT_THREADS=$enableval],[])
+AC_ARG_ENABLE(bsdsock,[  --enable-bsdsock        Build with support for bsdsocket.library emulation],[WANT_BSDSOCK=$enableval],[])
+AC_ARG_ENABLE(x86assembly,[  --enable-x86assembly    Build with optimizations in x86 assembly (default auto)],[WANT_X86ASSEMBLY=$enableval],[])
+AC_ARG_ENABLE(autoconfig,[ --enable-autoconfig     Build with support for autoconfig devices (default auto)],[WANT_AUTOCONFIG=$enableval],[])
+AC_ARG_ENABLE(cycle-exact-cpu,[ --enable-cycle-exact-cpu Build with cycle-exact CPU emulation (default yes)],[WANT_CYCLEEXACT=$enableval],[])
+AC_ARG_ENABLE(compatible-cpu,[ --enable-compatible-cpu  Build with cycle-exact CPU emulation (default yes)],[WANT_COMPATIBLE=$enableval],[])
+AC_ARG_ENABLE(aga,[  --enable-aga            Build with AGA chipset emulation (default yes)],[WANT_AGA=$enableval],[])
 
 dnl
 dnl Some simple plausibility tests...
@@ -619,13 +608,7 @@ dnl
 AC_MSG_CHECKING([whether to build JIT compiler])
 JITOBJS=""
 if [[ "x$WANT_JIT" != "xno" -a "$HOST_CPU" = "i386" ]]; then
-  CFLAGS="$CFLAGS -DJIT"
-  if [[ "x$NATMEM" = "xyes" ]]; then
-    NATMEM="0x50000000"
-  fi
-  if [[ "x$NATMEM" != "xno" ]]; then
-    CFLAGS="$CFLAGS -DNATMEM_OFFSET=$NATMEM"
-  fi
+  CFLAGS="$CFLAGS -DJIT -DNATMEM_OFFSET=0x50000000"
   JITOBJS="compstbl.o compemu.o compemu_support.o compemu_fpp.o cpustbl_nf.o"
   JITOBJS="$JITOBJS $CPUOBJ_STEM""nf_0.o"
   if [[ "x$WANT_COMPATIBLE" != "xno" ]]; then
@@ -969,8 +952,6 @@ AC_CONFIG_FILES([Makefile
 		 src/od-macos/Makefile
 		 src/gfx-x11/Makefile
 		 src/gfx-sdl/Makefile
-		 src/gfx-curses/Makefile
-		 src/gfx-svga/Makefile
 		 src/sd-af/Makefile
 		 src/sd-file/Makefile
 		 src/sd-mme/Makefile
@@ -981,7 +962,6 @@ AC_CONFIG_FILES([Makefile
 		 src/jd-sdl/Makefile
 		 src/gui-none/Makefile
 		 src/gui-gtk/Makefile
-		 src/keymap/Makefile
 ])
 
 AC_SUBST(ac_cv_c_inline)
@@ -1002,6 +982,7 @@ AC_SUBST(SCSIOBJS)
 AC_SUBST(DEBUGOBJS)
 AC_SUBST(FILESYSOBJS)
 AC_SUBST(BSDSOCKOBJS)
+AC_SUBST(OSDEPOBJS)
 AC_SUBST(SET_MAKE)
 AC_SUBST(MATHLIB)
 AC_SUBST(top_srcdir)
