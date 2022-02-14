@@ -35,7 +35,6 @@
 #include "gui.h"
 #include "debug.h"
 #include "picasso96.h"
-#include "inputdevice.h"
 
 #ifdef __cplusplus
 #define VI_CLASS c_class
@@ -745,11 +744,15 @@ static void graphics_subinit (void)
 
     XSync (display, 0);
    
+    write_log ("got here2\n" );
     delete_win = XInternAtom(display, "WM_DELETE_WINDOW", False);
+    write_log ("got here3\n" );
     mywin = XCreateWindow (display, rootwin, 0, 0, current_width, current_height,
 			   0, bitdepth, InputOutput, vis, valuemask, &wattr);
+    write_log ("got here4\n" );
     XSetWMProtocols (display, mywin, &delete_win, 1);
     XSync (display, 0);
+    write_log ("got here4\n" );
     XStoreName (display, mywin, "UAE");
     XSetIconName (display, mywin, "UAE Screen");
 
@@ -758,6 +761,7 @@ static void graphics_subinit (void)
     classhint.res_class = "UAEScreen";
     XSetClassHint(display, mywin, &classhint);
 
+    write_log ("got here\n");
     hints = XAllocWMHints();
     /* Set window group leader to self to become an application
      * that can be hidden by e.g. WindowMaker.
@@ -834,6 +838,8 @@ static void graphics_subinit (void)
 	memset (picasso_invalid_lines, 0, sizeof picasso_invalid_lines);
     }
 
+//    lastmx = lastmy = 0;
+//    newmousecounters = 0;
     inwindow = 0;
     for (i = 0; hotkeys[i].syms[0] != 0; i++) {
 	hotkeys[i].mask = 0;
@@ -1417,11 +1423,11 @@ static int refresh_necessary = 0;
 
 void handle_events (void)
 {
+//    newmousecounters = 0;
     gui_handle_events ();
 
     for (;;) {
 	XEvent event;
-        int buttonno;
 #if 0
 	if (! XCheckMaskEvent (display, eventmask, &event))
 	    break;
@@ -1463,33 +1469,34 @@ void handle_events (void)
 	     break;
 	 }
 	 case ButtonPress:
+//	    buttonstate[((XButtonEvent *)&event)->button-1] = 1;
+	    setmousebuttonstate( 0, ((XButtonEvent *)&event)->button-1, 1);
+	    break;
 	 case ButtonRelease:
-	    switch ((int)((XButtonEvent *)&event)->button) {
-	        case 1:  buttonno = 0; break;
-	        case 2:  buttonno = 2; break;
-	        case 3:  buttonno = 1; break;
-	        default: buttonno = -1;
-	    }
-            if (buttonno >=0)
-	        setmousebuttonstate(0, buttonno, event.type == ButtonPress ? 1:0);
-	   
+//	    buttonstate[((XButtonEvent *)&event)->button-1] = 0;
+	    setmousebuttonstate( 0, ((XButtonEvent *)&event)->button-1, 0);
 	    break;
 	 case MotionNotify:
 	    if (dgamode) {
+//		newmousecounters = 0;
 		int tx = ((XMotionEvent *)&event)->x_root;
 		int ty = ((XMotionEvent *)&event)->y_root;
-	        setmousestate (0, 0, tx, 0);
-	        setmousestate (0, 1, ty, 0);
+	        setmousestate(0,0,tx,1);
+	        setmousestate(0,1,ty,1);
 	    } else if (grabbed) {
 		int realmove = 0;
 		int tx, ty,ttx,tty;
 		
 		tx = ((XMotionEvent *)&event)->x;
 		ty = ((XMotionEvent *)&event)->y;
+	        printf("Mousestate %d %d\n",tx,ty);
+	        setmousestate( 0,0,tx,1);
+	        setmousestate( 0,1,ty,1);
 
- 	        if (! event.xmotion.send_event) {
-	            setmousestate( 0,0,tx-oldx,0);
-	            setmousestate( 0,1,ty-oldy,0);		    
+		if (! event.xmotion.send_event) {
+//		    newmousecounters = 0;
+//		    lastmx += tx - oldx;
+//		    lastmy += ty - oldy;
 		    realmove = 1;
 #undef ABS
 #define ABS(a) (((a)<0) ? -(a) : (a) )
@@ -1528,12 +1535,9 @@ void handle_events (void)
 	    }
 	    break;
 	 case EnterNotify:
-	    {
-                int tx = ((XCrossingEvent *)&event)->x;
-                int ty = ((XCrossingEvent *)&event)->y;
-                setmousestate(0,0,tx,1);
-                setmousestate(0,1,ty,1);
-	    }	   
+//	    newmousecounters = 1;
+//	    lastmx = ((XCrossingEvent *)&event)->x;
+//	    lastmy = ((XCrossingEvent *)&event)->y;
 	    inwindow = 1;
 	    break;
 	 case LeaveNotify:
@@ -1914,9 +1918,8 @@ static void handle_mousegrab (void)
 {
     if (grabbed) {
 	XUngrabPointer (display, CurrentTime);
-//	XUndefineCursor (display, mywin);
+	XUndefineCursor (display, mywin);
 	grabbed = 0;
-        printf("Ungrabbed mouse\n");
     } else if (! dgamode) {
 	XGrabPointer (display, mywin, 1, 0, GrabModeAsync, GrabModeAsync,
 		      mywin, blankCursor, CurrentTime);

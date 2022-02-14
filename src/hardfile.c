@@ -111,7 +111,7 @@ static uae_u64 cmd_read (struct hardfiledata *hfd, uaecptr dataptr, uae_u64 offs
     uae_u64 got = 0;
     uae_u8 buffer[FILESYS_MAX_BLOCKSIZE];
 
-    gui_hd_led (1);
+//    gui_hd_led (1);
     hf_log2 ("cmd_read: %p %04.4x-%08.8x %08.8x\n", dataptr, (uae_u32)(offset >> 32), (uae_u32)offset, (uae_u32)len);
     while (len > 0) {
         int i, got2;
@@ -133,7 +133,7 @@ static uae_u64 cmd_write (struct hardfiledata *hfd, uaecptr dataptr, uae_u64 off
     uae_u64 got = 0;
     uae_u8 buffer[FILESYS_MAX_BLOCKSIZE];
 
-    gui_hd_led (1);
+//    gui_hd_led (1);
     hf_log2 ("cmd_write: %p %04.4x-%08.8x %08.8x\n", dataptr, (uae_u32)(offset >> 32), (uae_u32)offset, (uae_u32)len);
     while (len > 0) {
         int i, got2;

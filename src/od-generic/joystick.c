@@ -16,12 +16,11 @@
 #include "custom.h"
 #include "inputdevice.h"
 
-static int init_joysticks(void)
+void init_joystick(void)
 {
-   return 1;
 }
 
-static void close_joysticks(void)
+void close_joystick(void)
 {
 }
 
@@ -64,8 +63,8 @@ static int get_joystick_widget_first (int joy, int type)
 }
 
 struct inputdevice_functions inputdevicefunc_joystick = {
-    init_joysticks, close_joysticks, acquire_joystick, unacquire_joystick,
-    read_joysticks, get_joystick_num, get_joystick_name,
+    init_joystick, close_joystick, acquire_joystick, unacquire_joystick,
+    read_joystick, get_joystick_num, get_joystick_name,
     get_joystick_widget_num, get_joystick_widget_type,
     get_joystick_widget_first
 };

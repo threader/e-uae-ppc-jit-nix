@@ -30,6 +30,7 @@
 #include "xwin.h"
 #include "custom.h"
 #include "drawing.h"
+#include "newcpu.h"
 #include "keyboard.h"
 #include "keybuf.h"
 #include "gui.h"
@@ -333,6 +334,8 @@ static void graphics_subinit (void)
 		picasso_invalid_stop = -1;
 		memset (picasso_invalid_lines, 0, sizeof picasso_invalid_lines);
 	}
+//	lastmx = lastmy = 0;
+//	newmousecounters = 0;
         mousegrab=0;
 }
 
@@ -412,6 +415,7 @@ int graphics_init (void)
     if (!init_colors ())
 		return 0;
 
+//    buttonstate[0] = buttonstate[1] = buttonstate[2] = 0;
     for (i = 0; i < 256; i++)
 	keystate[i] = 0;
 
@@ -839,6 +843,9 @@ void handle_events (void)
 #ifdef DEBUG
 	    fprintf(stderr, "Event: mouse motion\n");
 #endif
+//	    newmousecounters = 1;
+//	    lastmx += rEvent.motion.xrel;
+//	    lastmy += rEvent.motion.yrel;
             if (!fullscreen && !mousegrab) {
                 setmousestate (0, 0,rEvent.motion.x, 1);
 		setmousestate (0, 1,rEvent.motion.y, 1);

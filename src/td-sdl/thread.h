@@ -27,8 +27,6 @@ typedef SDL_sem *uae_sem_t;
 typedef SDL_Thread *uae_thread_id;
 #define BAD_THREAD NULL
 
-#define set_thread_priority(pri)
-
 STATIC_INLINE int uae_start_thread (void *(*f) (void *), void *arg, uae_thread_id *foo)
 {
     *foo = SDL_CreateThread ((int (*)(void *))f, arg);

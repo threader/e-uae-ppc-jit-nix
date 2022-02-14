@@ -8,8 +8,15 @@
 
 #include "sysconfig.h"
 #include "sysdeps.h"
+
+#include "config.h"
+#include "options.h"
+#include "threaddep/thread.h"
+#include "memory.h"
 #include "custom.h"
+#include "keyboard.h"
 #include "xwin.h"
+#include "keybuf.h"
 
 #define	RED 	0
 #define	GRN	1
@@ -27,7 +34,7 @@ static uae_u8 dither[4][4] =
 };
 
 
-unsigned long doMask (int p, int bits, int shift)
+static unsigned long doMask (int p, int bits, int shift)
 {
     /* scale to 0..255, shift to align msb with mask, and apply mask */
     unsigned long val = p << 24;
@@ -266,7 +273,7 @@ uae_u8 cidx[4][8*4096]; /* fast, but memory hungry =:-( */
 /*
  * Compute dithering structures
  */
-void setup_greydither_maxcol (int maxcol, allocfunc_type allocfunc)
+static void setup_greydither_maxcol (int maxcol, allocfunc_type allocfunc)
 {
     int i,j,k;
     xcolnr *map;
@@ -480,7 +487,7 @@ void setup_dither (int bits, allocfunc_type allocfunc)
  * yourself unhappy.
  */
 
-void DitherLine (uae_u8 *l, uae_u16 *r4g4b4, int x, int y, uae_s16 len, int bits)
+static void DitherLine (uae_u8 *l, uae_u16 *r4g4b4, int x, int y, uae_s16 len, int bits)
 {
     uae_u8 *dith = cidx[y&3]+(x&3)*4096;
     uae_u8 d = 0;

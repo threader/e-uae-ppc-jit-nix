@@ -27,14 +27,14 @@ AC_HEADER_STDC
 
 dnl @@@ Is <sys/termios.h> the right way or is it <termios.h>?
 AC_CHECK_HEADERS(unistd.h fcntl.h sys/time.h sys/types.h utime.h string.h strings.h values.h ncurses.h curses.h)
-dnl AC_CHECK_HEADERS(sys/soundcard.h machine/soundcard.h sun/audioio.h sys/audioio.h getopt.h features.h sys/termios.h)
+AC_CHECK_HEADERS(sys/soundcard.h machine/soundcard.h sun/audioio.h sys/audioio.h getopt.h features.h sys/termios.h)
 AC_CHECK_HEADERS(posix_opt.h sys/ioctl.h sys/ipc.h sys/shm.h sys/stat.h sys/utime.h)
-dnl AC_CHECK_HEADERS(windows.h ddraw.h)
-dnl AC_CHECK_HEADER(be_math.h, HAVE_BEOS=yes, HAVE_BEOS=no)
-dnl AC_CHECK_HEADERS(machine/joystick.h)
-dnl AC_CHECK_HEADERS(devices/ahi.h)
-dnl AC_CHECK_HEADERS(dmedia/audio.h SDL/SDL.h)
-dnl AC_CHECK_HEADERS(libraries/cybergraphics.h cybergraphx/cybergraphics.h)
+AC_CHECK_HEADERS(windows.h ddraw.h)
+AC_CHECK_HEADER(be_math.h, HAVE_BEOS=yes, HAVE_BEOS=no)
+AC_CHECK_HEADERS(machine/joystick.h)
+AC_CHECK_HEADERS(devices/ahi.h)
+AC_CHECK_HEADERS(dmedia/audio.h SDL/SDL.h)
+AC_CHECK_HEADERS(libraries/cybergraphics.h cybergraphx/cybergraphics.h)
 
 AC_CHECK_SIZEOF(char, 1)
 AC_CHECK_SIZEOF(short, 2)

@@ -531,9 +531,7 @@ void rtarea_init (void)
 
     org (a);
 
-#ifdef FILESYS
     filesys_install_code ();
-#endif   
 }
 
 volatile int uae_int_requested = 0;

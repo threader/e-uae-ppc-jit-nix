@@ -6,14 +6,7 @@
  * Copyright 1997, 1999 Bernd Schmidt
  * Copyright 1999 Patrick Ohly
  * Copyright 2003 Richard Drummond
- * 
- * 0.3 - 20031106
- *   Silly me. Timehack was demanding clock be exactly in sync
- *   to 1us accuracy. Make it less strict and only update amiga
- *   time if it's out by more than 1ms.
- * 0.2 - 20031011
- *   Oops. I got the the sign of the offset wrong in TZ. Apparently
- *   negative values are ahead of UTC. Go figure . . .
+ *
  * 0.1 - 20031011
  *   Quick and dirty support for using TZ offset added.
  *   Can now be killed with ^C
@@ -65,11 +58,7 @@ int __nocommandline = 0;
 
 /* We'll give this a verson number now. We have to
  * to start somewhere - Rich */
-char verstag[] = "\0$VER: timehack 0.3";
-
-#ifndef ABS
-#define ABS(x) ((x)>=0?(x):-(x))
-#endif
+char verstag[] = "\0$VER: timehack 0.1";
 
 
 /*
@@ -78,7 +67,7 @@ char verstag[] = "\0$VER: timehack 0.3";
  * Get offset from local time to UTC and return it as
  * a timeval (seconds and usecs). The local timezone
  * is read from the env variable TZ and this is expected
- * to be in standard format, for example, EST+5.
+ * to be in standard format, for example, EST-5.
  * If TZ isn't present or can't be parsed, this will
  * return an offset 0 seconds.
  */
@@ -92,8 +81,7 @@ struct timeval *get_tz_offset()
         int len;
         if ((len = Read (file, &tz_str[0], 6)) >= 4) {
             tz_str[len]='\0';
-	    // N.B.: negative offsets in ENV:TZ are ahead of UTC
-            tz_offset.tv_secs = -1 * atol(&tz_str[3]) * 3600;
+            tz_offset.tv_secs = atol(&tz_str[3])*3600;
         }
         Close(file);
     } else
@@ -145,7 +133,7 @@ int main (int argc, char **argv)
 	calltrap (1, &timereq->tr_time);
 	if (timereq->tr_time.tv_secs != cur_sys_time.tv_secs
 	    || (timereq->tr_time.tv_secs == cur_sys_time.tv_secs
-		&& ABS(timereq->tr_time.tv_micro - cur_sys_time.tv_micro) > 1000))
+		&& timereq->tr_time.tv_micro != cur_sys_time.tv_micro))
 	{
 	    AddTime (&timereq->tr_time, tz_offset);
             timereq->tr_node.io_Command = TR_SETSYSTIME;

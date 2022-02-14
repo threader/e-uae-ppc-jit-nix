@@ -111,11 +111,12 @@ static int init_joysticks(void)
 {
     nr_joysticks = 0;
     js0 = -1; js1 = -1;
-
-    if ((js0 = open("/dev/" JS_DEVNAME_PREFIX "0", O_RDONLY)) >= 0)
+    js0 = open("/dev/" JS_DEVNAME_PREFIX "0", O_RDONLY);
+    if (js0 < 0)
         nr_joysticks++;
-
-    if ((js1 = open("/dev/" JS_DEVNAME_PREFIX "1", O_RDONLY)) >= 0)
+     
+    js1 = open("/dev/" JS_DEVNAME_PREFIX "1", O_RDONLY);
+    if (js1 < 0)
     	nr_joysticks++;
 
     write_log ("Found %d joysticks\n", nr_joysticks);

@@ -39,10 +39,6 @@ void gui_led (int led, int on)
 {
 }
 
-void gui_hd_led (int led)
-{
-}
-
 void gui_filename (int num, const char *name)
 {
 }
@@ -69,16 +65,4 @@ void gui_lock (void)
 
 void gui_unlock (void)
 {
-}
-
-void gui_message (const char *format,...)
-{   
-       char msg[2048];
-       va_list parms;
-
-       va_start (parms,format);
-       vsprintf ( msg, format, parms);
-       va_end (parms);
-
-       write_log (msg);
 }

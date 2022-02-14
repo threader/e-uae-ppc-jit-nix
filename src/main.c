@@ -397,13 +397,13 @@ static void fix_options (void)
 	currprefs.gfxmem_size = 0;
 	err = 1;
     }
-#ifndef BSDSOCKET_SUPPORTED
-    if (currprefs.socket_emu) {
-	write_log ("Compile-time option of BSDSOCKET_SUPPORTED was not enabled.  You can't use bsd-socket emulation.\n");
-	currprefs.socket_emu = 0;
-	err = 1;
-    }
-#endif
+//#ifndef BSDSOCKET_SUPPORTED
+//    if (currprefs.socket_emu) {
+//	write_log ("Compile-time option of BSDSOCKET_SUPPORTED was not enabled.  You can't use bsd-socket emulation.\n");
+//	currprefs.socket_emu = 0;
+//	err = 1;
+//    }
+//#endif
 
     if (currprefs.nr_floppies < 0 || currprefs.nr_floppies > 4) {
 	write_log ("Invalid number of floppies.  Using 4.\n");
@@ -456,9 +456,9 @@ static void fix_options (void)
     currprefs.fastmem_size = 0;
     currprefs.gfxmem_size = 0;
 #endif
-#if !defined (BSDSOCKET)
-    currprefs.socket_emu = 0;
-#endif
+//#if !defined (BSDSOCKET)
+//    currprefs.socket_emu = 0;
+//#endif
 #if !defined (SCSIEMU)
     currprefs.scsi = 0;
     currprefs.win32_aspi = 0;
@@ -596,9 +596,9 @@ void reset_all_systems (void)
     init_eventtab ();
 
     memory_reset ();
-#ifdef BSDSOCKET   
+//#ifdef BSDSOCKET   
     bsdlib_reset ();
-#endif 
+//#endif 
 #ifdef FILESYS
     filesys_reset ();
     filesys_start_threads ();
@@ -735,23 +735,24 @@ void real_main (int argc, char **argv)
 #endif       
     memory_init ();
     memory_reset ();
+
 #ifdef FILESYS       
     filesys_install ();
 #endif
 #ifdef AUTOCONFIG       
     gfxlib_install ();
-#ifdef BSDSOCKET       
     bsdlib_install ();
-#endif
     emulib_install ();
     uaeexe_install ();
     native2amiga_install ();
 #endif
+       
     custom_init (); /* Must come after memory_init */
 #ifdef SERIAL_PORT       
     serial_init ();
-#endif
+#endif       
     DISK_init ();
+
     reset_frame_rate_hack ();
     init_m68k(); /* must come after reset_frame_rate_hack (); */
 

@@ -539,7 +539,6 @@ static void expamem_init_catweasel (void)
 
 #endif
 
-#ifdef CDTV
 /*
  * CDTV DMAC
  */
@@ -617,14 +616,10 @@ addrbank dmac_bank = {
     default_xlate, default_check, NULL
 };
 
-#endif
-
 /*
  * Filesystem device ROM
  * This is very simple, the Amiga shouldn't be doing things with it.
  */
-
-#ifdef FILESYS
 
 static uae_u32 filesys_lget (uaecptr) REGPARAM;
 static uae_u32 filesys_wget (uaecptr) REGPARAM;
@@ -704,8 +699,6 @@ static addrbank filesys_bank = {
     filesys_lput, filesys_wput, filesys_bput,
     default_xlate, default_check, NULL
 };
-
-#endif // FILESYS
 
 /*
  *  Z3fastmem Memory
@@ -845,8 +838,6 @@ static void expamem_init_fastcard (void)
 
 /* ********************************************************** */
 
-#ifdef FILESYS
-
 /* 
  * Filesystem device
  */
@@ -907,8 +898,6 @@ static void expamem_init_filesys (void)
 
     memcpy (filesysory, expamem, 0x3000);
 }
-
-#endif
 
 /*
  * Zorro III expansion memory
@@ -1114,12 +1103,10 @@ void expamem_reset (void)
 	write_log ("Kickstart version is below 1.3!  Disabling autoconfig devices.\n");
 	do_mount = 0;
     }
-#ifdef FILESYS   
     /* No need for filesystem stuff if there aren't any mounted.  */
     if (nr_units (currprefs.mountinfo) == 0)
 	do_mount = 0;
-#endif
-   
+
     if (fastmemory != NULL) {
 	card_init[cardno] = expamem_init_fastcard;
 	card_map[cardno++] = expamem_map_fastcard;
@@ -1134,12 +1121,10 @@ void expamem_reset (void)
 	card_map[cardno++] = expamem_map_gfxcard;
     }
 #endif
-#ifdef FILESYS   
     if (do_mount && ! ersatzkickfile) {
 	card_init[cardno] = expamem_init_filesys;
 	card_map[cardno++] = expamem_map_filesys;
     }
-#endif   
 #ifdef CATWEASEL
     if (catweasel_init ()) {
         card_init[cardno] = expamem_init_catweasel;
@@ -1168,24 +1153,21 @@ void expansion_init (void)
     gfxmemory = 0;
 #ifdef CATWEASEL   
     catweasel_mask = catweasel_start = 0;
-#endif
-#ifdef FILESYS
+#endif   
     filesys_start = 0;
     filesysory = 0;
-#endif   
     z3fastmem_mask = z3fastmem_start = 0;
     z3fastmem = 0;
 
     allocate_expamem ();
 
-#ifdef FILESYS
     filesysory = (uae_u8 *) mapped_malloc (0x10000, "filesys");
     if (!filesysory) {
 	write_log ("virtual memory exhausted (filesysory)!\n");
 	exit (0);
     }
     filesys_bank.baseaddr = (uae_u8*)filesysory;
-#endif
+
 }
 
 void expansion_cleanup (void)
@@ -1196,14 +1178,12 @@ void expansion_cleanup (void)
 	mapped_free (z3fastmem);
     if (gfxmemory)
 	mapped_free (gfxmemory);
-#ifdef FILESYS
-   if (filesysory)
+    if (filesysory)
 	mapped_free (filesysory);
-    filesysory = 0;
-#endif   
     fastmemory = 0;
     z3fastmem = 0;
     gfxmemory = 0;
+    filesysory = 0;
 #ifdef CATWEASEL
     catweasel_free ();
 #endif
