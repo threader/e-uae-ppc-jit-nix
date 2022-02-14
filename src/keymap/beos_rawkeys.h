@@ -7,4 +7,4 @@
   */
 
 extern const struct uae_input_device_kbr_default keytrans_beos[];
-extern struct uae_hotkeyseq hotkeys_beos[];
+extern const struct uae_hotkeyseq hotkeys_beos[];

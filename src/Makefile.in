@@ -114,11 +114,6 @@ SHELL = @SHELL@
 SNDDEP = @SNDDEP@
 STRIP = @STRIP@
 TARGET = @TARGET@
-TARGET_BEOS_FALSE = @TARGET_BEOS_FALSE@
-TARGET_BEOS_TRUE = @TARGET_BEOS_TRUE@
-TARGET_WIN32_FALSE = @TARGET_WIN32_FALSE@
-TARGET_WIN32_TRUE = @TARGET_WIN32_TRUE@
-UAE_RSRCFILE = @UAE_RSRCFILE@
 VERSION = @VERSION@
 WRCPRG = @WRCPRG@
 X_CFLAGS = @X_CFLAGS@
@@ -453,6 +448,9 @@ clean-binPROGRAMS:
 readdisk$(EXEEXT): $(readdisk_OBJECTS) $(readdisk_DEPENDENCIES) 
 	@rm -f readdisk$(EXEEXT)
 	$(LINK) $(readdisk_LDFLAGS) $(readdisk_OBJECTS) $(readdisk_LDADD) $(LIBS)
+uae$(EXEEXT): $(uae_OBJECTS) $(uae_DEPENDENCIES) 
+	@rm -f uae$(EXEEXT)
+	$(LINK) $(uae_LDFLAGS) $(uae_OBJECTS) $(uae_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT) core *.core
@@ -827,12 +825,6 @@ uninstall-info: uninstall-info-recursive
 	tags-recursive uninstall uninstall-am uninstall-binPROGRAMS \
 	uninstall-info-am uninstall-info-recursive uninstall-recursive
 
-
-uae$(EXEEXT): $(uae_OBJECTS) $(uae_DEPENDENCIES)
-	@rm -f uae$(EXEEXT)
-	$(LINK) $(uae_LDFLAGS) $(uae_OBJECTS) $(uae_LDADD) $(LIBS)
-@TARGET_BEOS_TRUE@	xres -o $@ @UAE_RSRCFILE@
-@TARGET_BEOS_TRUE@	mimeset -f $@
 
 cpuemu_0.c: tools/gencpu
 	tools/gencpu

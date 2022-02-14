@@ -18,9 +18,9 @@
 // %%% BRIAN KING WAS HERE %%%
 extern int canbang;
 
-#ifdef HAVE_SYS_MMAN_H
+//#ifdef HAVE_SYS_MMAN_H
 # include <sys/mman.h>
-#endif
+//#endif
 #ifdef HAVE_LIMITS_H
 # include <limits.h>    /* for PAGESIZE */
 #endif

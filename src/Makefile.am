@@ -26,15 +26,6 @@ DISTCLEANFILES = machdep osdep threaddep gfxdep sounddep joydep guidep \
 
 bin_PROGRAMS  = uae readdisk
 
-uae$(EXEEXT): $(uae_OBJECTS) $(uae_DEPENDENCIES)
-	@rm -f uae$(EXEEXT)
-	$(LINK) $(uae_LDFLAGS) $(uae_OBJECTS) $(uae_LDADD) $(LIBS)
-if TARGET_BEOS
-	xres -o $@ @UAE_RSRCFILE@
-	mimeset -f $@
-endif
-
-
 noinst_LIBRARIES = libcpuemu.a
 
 dist_noinst_DATA = table68k inputevents.def filesys.asm

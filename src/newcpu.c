@@ -28,10 +28,8 @@
 
 #ifdef JIT
 #include "compemu.h"
-#ifdef NATMEM_OFFSET
 #include <signal.h>
 extern void vec(int x, struct siginfo* si, struct sigcontext* sc);
-#endif
 int oink=0;
 /* For faster cycles handling */
 signed long pissoff=0;

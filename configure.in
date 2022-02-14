@@ -4,7 +4,7 @@ dnl
 dnl Updated, re-written and generally mauled 2003 Richard Drummond
 
 AC_PREREQ(2.50)
-AC_INIT(UAE, 0.8.23-20040129, ,uae)
+AC_INIT(UAE, 0.8.23-20040126, ,uae)
 AC_CONFIG_SRCDIR([config.h])
 AC_CONFIG_HEADERS([src/sysconfig.h])
 AC_CANONICAL_TARGET
@@ -81,7 +81,7 @@ AC_HEADER_STDC
 
 AC_CHECK_HEADERS([fcntl.h sys/ioctl.h sys/time.h utime.h])
 AC_CHECK_HEADERS([values.h ncurses.h curses.h sys/termios.h])
-AC_CHECK_HEADERS([sys/stat.h sys/ipc.h sys/shm.h sys/mman.h])
+AC_CHECK_HEADERS([sys/stat.h sys/ipc.h sys/shm.h])
 
 dnl AC_CHECK_HEADERS([sys/stat.h sys/vfs.h sys/mount.h sys/param.h])
 dnl AC_CHECK_HEADERS([sys/statfs.h sys/statvfs.h sys/fs/s5param.h])
@@ -412,7 +412,6 @@ else if [[ "$OSDEP" = "od-beos" ]]; then
   WANT_AUTOCONFIG=no
   WANT_BSDSOCK=no
   MATHLIB=""
-  UAE_RSRCFILE="$OSDEP/uae.rsrc"
 else if [[ "$OSDEP" = "od-amiga" ]]; then
   TARGET=amiga
   TARGETDEP=t-amiga.h
@@ -423,7 +422,7 @@ else if [[ "$OSDEP" = "od-amiga" ]]; then
   GUIDEP="$OSDEP"
   GUINAME="native AmigaOS"
   JOYDEP="$OSDEP"
-  JOYNAME="Amiga lowlevel.library"
+  JOYNAME="Amiga gameport.device"
   WANT_BSDSOCK=no
 else if [[ "$OSDEP" = "od-win32" ]]; then
   TARGET=win32
@@ -439,10 +438,6 @@ fi
 fi
 fi
 
-#  dnl - We need automake conditionals to handle
-#  resource file processing, etc. for these platforms . . .
-AM_CONDITIONAL(TARGET_BEOS,  test x$OSDEP = xod-beos)
-AM_CONDITIONAL(TARGET_WIN32, test x$OSDEP = xod-win32)
 
 dnl
 dnl  Options
@@ -532,7 +527,7 @@ dnl  First, work out if we can use the cpuopti phase
 USE_CPUOPTI=no
 
 if [[ "x$HAVE_GCC27" = "xyes" -a "x$HAVE_GCC30" = "xno" ]]; then
-  if [[ "$HOST_CPU" = "i386" -a "x$WANT_X86ASSEMBLY" = "xyes"  ]]; then
+  if [[ "$HOST_CPU" = "i386" ]]; then
     USE_CPUOPTI=yes
   fi
 fi
@@ -1007,7 +1002,6 @@ AC_SUBST(SCSIOBJS)
 AC_SUBST(DEBUGOBJS)
 AC_SUBST(FILESYSOBJS)
 AC_SUBST(BSDSOCKOBJS)
-AC_SUBST(UAE_RSRCFILE)
 AC_SUBST(SET_MAKE)
 AC_SUBST(MATHLIB)
 AC_SUBST(top_srcdir)

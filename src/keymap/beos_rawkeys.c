@@ -151,7 +151,7 @@ const struct uae_input_device_kbr_default keytrans_beos[] =
     { RAWKEYS_END }
 };
 
-struct uae_hotkeyseq hotkeys_beos[] =
+const struct uae_hotkeyseq hotkeys_beos[] =
 {
     { DEFAULT_HOTKEYS },
     { HOTKEYS_END }

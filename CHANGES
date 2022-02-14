@@ -1,20 +1,3 @@
-20040129
-- Ta da! JIT now works on BeOS/x86 (albeit without direct memory support).
-  Still, it gives 10x the speed of pure interpretation. I finally sussed
-  what was causing the stack problems - cpuopti! Solution: don't run cpuopti
-  on platforms that can't handle the x86 assembly magic in newcpu.c for
-  calling opcode handlers - e.g. BeOS. Obvious when ya think about it. ;-)
-- Merged and updated Axel's BeOS sound driver from BeUAE. Sound quality is
-  still poor on my system - but somewhat less so. ;-)
-- Config file support for running xres/mimeset on the compiled binary when
-  targetting BeOS. Added Axel's resource file to the dist.
-- Tidied up BeOS floppy image dialog. If invoked in full-screen mode, UAE
-  will now try and switch to windowed mode before opening the dialog.
- 
-20040126
-- Dist was missing a file from src/gfx-x11. Fixed.
-- Typo in OS x raw key driver. Fixed.
-
 20040125
 - In Amiga target, set the UAE processes's pr_WindowPtr to ensure requesters
   appear on UAE's screen.

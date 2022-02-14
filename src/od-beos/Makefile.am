@@ -11,5 +11,3 @@ libguidep_a_SOURCES = gui.cpp
 libosdep_a_SOURCES  = main.cpp
 
 noinst_HEADERS = exectasks.h gfx.h memory.h sound.h
-
-dist_noinst_DATA = uae.rsrc

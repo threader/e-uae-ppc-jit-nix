@@ -54,7 +54,7 @@ static struct cfg_lines opttable[] =
     {"gfxcard_size", "Size in megabytes of Picasso96 graphics-card memory" },
     {"z3mem_size", "Size in megabytes of Zorro-III expansion memory" },
     {"gfx_test_speed", "Test graphics speed?" },
-    {"gfx_framerate", "Print every nth frame" },
+    {"framerate", "Print every nth frame" },
     {"gfx_width", "Screen width" },
     {"gfx_height", "Screen height" },
     {"gfx_refreshrate", "Fullscreen refresh rate" },

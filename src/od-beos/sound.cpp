@@ -1,24 +1,11 @@
-/***********************************************************/
-//  BeUAE - The Be Un*x Amiga Emulator
-//
-//  BeOS port sound routines
-//  Using R4 BSoundPlayer class
-//
-//  (c) 2004 Richard Drummond
-//  (c) 2000-2001 Axel Dörfler
-//  (c) 1999 Be/R4 Sound - Raphael Moll
-//  (c) 1998-1999 David Sowsy
-//
-// History:
-//
-// -RM/050999 : removed debug code, code cleanup, etc.
-// -DS/051399 : adapted code to build under 0.8.8.
-//				New Media Kit woes ensued.
-// -DS/06xx99 : adapted code to work with the new Game Kit.
-// -AD/121300 : supports now different frequencies, bitsrates, and stereo modes
-// -AD/121500 : blocks now correctly to synchronize UAE
-// -RD/012804 : updated for UAE 0.8.23
-/***********************************************************/
+ /*
+  * UAE - The Un*x Amiga Emulator
+  *
+  * Support for BeOS sound
+  *
+  * Copyright 1997 Bernd Schmidt
+  * Copyright 2003 Richard Drummond
+  */
 
 extern "C" {
 #include "sysconfig.h"
@@ -31,7 +18,6 @@ extern "C" {
 #include "sounddep/sound.h"
 }
 
-#include <be/media/MediaRoster.h>
 #include <be/media/SoundPlayer.h>
 #include <be/media/MediaDefs.h>
 
@@ -46,223 +32,37 @@ void resume_sound (void);
 void reset_sound (void);
 }
 
-uae_u16 *sndbuffer;
+BSoundPlayer *sndplayer;
+
+static int have_sound = 0;
+static int obtainedfreq;
+
+uae_u16 sndbuffer2[44100];
+uae_u16 *sndbuffer = &sndbuffer2[0]; /* work-around for compiler grumbling */
 uae_u16 *sndbufpt;
 int sndbufsize;
-BSoundPlayer	*gSoundPlayer;
-static int32	 gSoundBufferSize;
-static uae_u16	*gDoubleBufferRead;
-static uae_u16	*gDoubleBufferWrite;
-static uae_u16	*gLastBuffer;
-static int32	 gBufferReadPos;
 
-static uae_u16 *buffer = NULL;
-static int obtainedfreq;
-static bool sound_ready = false;
-static sem_id sound_sync_sem;
+int stop_sound;
 
-void stream_func8  (void *user, void *buffer, size_t size, const media_raw_audio_format &format);
-void stream_func16 (void *user, void *buffer, size_t size, const media_raw_audio_format &format);
+/* producer/consumer locks on sndbuffer */
+static sem_id data_available_sem;
+static sem_id data_used_sem;
 
 
-int init_sound (void)
+static void clearbuffer (void)
 {
-    if (gSoundPlayer != NULL)
-	return 0;
-
-    media_raw_audio_format audioFormat;
-
-    audioFormat.frame_rate    = currprefs.sound_freq;
-    audioFormat.channel_count = currprefs.stereo ? 2 : 1;
-    audioFormat.format        = media_raw_audio_format::B_AUDIO_FLOAT;
-    audioFormat.byte_order    = B_MEDIA_HOST_ENDIAN;
-    audioFormat.buffer_size   = currprefs.sound_maxbsiz * sizeof(float);
-
-    gSoundPlayer = new BSoundPlayer (&audioFormat, "UAE SoundPlayer",
-				     currprefs.sound_bits == 8 ? stream_func8 : stream_func16);
-    sound_ready = (gSoundPlayer != NULL);
-
-    if (!currprefs.produce_sound)
-	return 3;
-
-    sound_sync_sem  = create_sem (0, "UAE Sound Sync Semaphore");
-    gSoundBufferSize = currprefs.sound_maxbsiz;
-    gBufferReadPos = 0;
-    gDoubleBufferWrite = new uae_u16[2 * gSoundBufferSize];
-    gDoubleBufferRead = gDoubleBufferWrite + gSoundBufferSize;
-
-    buffer = gDoubleBufferWrite;
-    memset (buffer, 0, 4 * gSoundBufferSize);
-    sndbufpt = sndbuffer = buffer;
-
-    if (currprefs.sound_bits == 8) {
-	sndbufsize = sizeof (uae_u8) * gSoundBufferSize;
-	sample_handler = currprefs.stereo ? sample8s_handler : sample8_handler;
-	init_sound_table8 ();
-    } else {
-	sndbufsize = sizeof (uae_u16) * gSoundBufferSize;
-	if (currprefs.stereo) {
-	    sample_handler = (currprefs.sound_interpol == 0 ? sample16s_handler
-			    : currprefs.sound_interpol == 1 ? sample16si_rh_handler
-							    : sample16si_crux_handler);
-	} else {
-	    sample_handler = (currprefs.sound_interpol == 0 ? sample16_handler
-			    : currprefs.sound_interpol == 1 ? sample16i_rh_handler
-							    : sample16i_crux_handler);
-	}
-	init_sound_table16 ();
-    }
-
-    update_sound (vblank_hz);
-    sound_available = 1;
-    obtainedfreq = currprefs.sound_freq;
-
-    write_log ("BeOS sound driver found and configured for %d bits at %d Hz, buffer is %d samples\n",
-	       currprefs.sound_bits, currprefs.sound_freq, currprefs.sound_maxbsiz);
-
-    if (gSoundPlayer) {
-	gSoundPlayer->Start ();
-	gSoundPlayer->SetHasData (true);
-	    return 1;
-    }
-    return 0;
+    memset (sndbuffer, 0, sizeof sndbuffer);
 }
 
-int setup_sound (void)
-{
-    status_t err;
-    BMediaRoster *gMediaRoster;
-    media_node *outNode;
-    outNode = new media_node;
-    gMediaRoster = BMediaRoster::Roster (&err);
-
-    if (gMediaRoster && err == B_OK)
-	err = gMediaRoster->GetAudioOutput (outNode);
-
-    if ((!gMediaRoster) || (err != B_OK)) {
-	write_log ("NO MEDIA ROSTER! The media server "
-		   "appears to be dead.\n"
-		   "\t-- roster %p -- error %08lx (%ld)\n",
-		   gMediaRoster, err, err);
-
-	sound_available = 0;
-    } else
-	sound_available = 1;
-
-    return sound_available;
-}
-
-void close_sound (void)
-{
-    if (sound_ready) {
-	if (gSoundPlayer) {
-	    gSoundPlayer->Stop();
-	    delete gSoundPlayer;
-	    gSoundPlayer = NULL;
-	}
-	sound_ready = false;
-    }
-
-    delete_sem(sound_sync_sem);
-
-    if (gDoubleBufferRead < gDoubleBufferWrite)
-	delete[] gDoubleBufferRead;
-    else
-	delete[] gDoubleBufferWrite;
-    gDoubleBufferRead = gDoubleBufferWrite = NULL;
-}
 
 void finish_sound_buffer (void)
 {
-    if (sound_ready && acquire_sem (sound_sync_sem) == B_OK) {
-	uae_u16 *p = gDoubleBufferRead;		// swap buffers
-	gDoubleBufferRead = gDoubleBufferWrite;
-	buffer = gDoubleBufferWrite = p;
+    if (!stop_sound) {
+	if (release_sem (data_available_sem) == B_NO_ERROR && !stop_sound)
+	    acquire_sem (data_used_sem);
     }
-    sndbufpt = sndbuffer = buffer;
 }
 
-void stream_func16 (void *user, void *buffer, size_t size,const media_raw_audio_format &format)
-{
-    uae_u16 *buf;
-    int32 max_read_sample, avail_sample;
-
-    // since the BSoundPlayer supports only B_AUDIO_FLOAT, it's
-    // very unlikely that this will ever happen:
-    // if (format.format != media_raw_audio_format::B_AUDIO_FLOAT) return;
-
-    float *dest = (float *)buffer;
-    int32 dest_sample = (int32)(size / sizeof (float));
-    float *enddest = dest + dest_sample;
-
-    max_read_sample = gSoundBufferSize;
-    if (dest_sample < max_read_sample)
-	max_read_sample = dest_sample;
-
-    buf = gDoubleBufferRead + gBufferReadPos;
-    avail_sample = gSoundBufferSize - gBufferReadPos;
-    if (avail_sample < max_read_sample)
-	max_read_sample = avail_sample;
-    if (max_read_sample)
-	gBufferReadPos += max_read_sample;
-
-    const float ratio = 1.f / 32768.f;
-    while(max_read_sample--)	// copy the buffer to the stream
-    {
-	int16 a = (int16)(*(buf++));
-	*(dest++) = ((float)a) * ratio;
-    }
-
-    // the buffer is no longer needed, so lets release it.
-    // if UAE is not fast enough to swap the buffers during play time, the same
-    // buffer will be played again
-    if (gBufferReadPos == gSoundBufferSize) {
-	gBufferReadPos = 0;
-	if (gLastBuffer != gDoubleBufferRead) {
-	    gLastBuffer = gDoubleBufferRead;
-	    release_sem (sound_sync_sem);
-	}
-    }
-
-    while (dest < enddest)
-	*(dest++) = 0.f;
-}
-
-void stream_func8 (void *user, void *buffer, size_t size,const media_raw_audio_format &format)
-{
-    int32 max_read_sample, avail_sample;
-    uae_u8 *buf;
-
-    float *dest = (float *)buffer;
-    int32 dest_sample = (int32)(size / sizeof (float));
-    float *enddest = dest + dest_sample;
-
-    max_read_sample = gSoundBufferSize;
-    if (dest_sample < max_read_sample)
-	max_read_sample = dest_sample;
-
-    buf = (uae_u8 *)gDoubleBufferRead + gBufferReadPos;
-    avail_sample = gSoundBufferSize - gBufferReadPos;
-    if (avail_sample < max_read_sample)
-	max_read_sample = avail_sample;
-    if (max_read_sample)
-	gBufferReadPos += max_read_sample;
-
-    const float ratio = 1.f / 128.f;
-    while (max_read_sample--)
-	*(dest++) = ((float)*(buf++) - 128) * ratio;
-
-    if (gBufferReadPos == gSoundBufferSize) {
-	gBufferReadPos = 0;
-	if (gLastBuffer != gDoubleBufferRead) {
-	    gLastBuffer = gDoubleBufferRead;
-	    release_sem (sound_sync_sem);
-	}
-    }
-
-    while (dest < enddest)
-	*(dest++) = 0.f;
-}
 
 void update_sound (int freq)
 {
@@ -272,12 +72,12 @@ void update_sound (int freq)
     if (freq < 0)
 	freq = lastfreq;
     lastfreq = freq;
-    if (sound_ready) {
+    if (have_sound) {
 	if (currprefs.gfx_vsync && currprefs.gfx_afullscreen) {
 	    if (currprefs.ntscmode)
-	        scaled_sample_evtime_orig = (unsigned long)(MAXHPOS_NTSC * MAXVPOS_NTSC * freq * CYCLE_UNIT + obtainedfreq - 1) / obtainedfreq;
-	    else
-		scaled_sample_evtime_orig = (unsigned long)(MAXHPOS_PAL * MAXVPOS_PAL * freq * CYCLE_UNIT + obtainedfreq - 1) / obtainedfreq;
+		scaled_sample_evtime_orig = (unsigned long)(MAXHPOS_NTSC * MAXVPOS_NTSC * freq * CYCLE_UNIT + obtainedfreq - 1) / obtainedfreq;
+	else
+	    scaled_sample_evtime_orig = (unsigned long)(MAXHPOS_PAL * MAXVPOS_PAL * freq * CYCLE_UNIT + obtainedfreq - 1) / obtainedfreq;
 	} else {
 	    scaled_sample_evtime_orig = (unsigned long)(312.0 * 50 * CYCLE_UNIT / (obtainedfreq  / 227.0));
 	}
@@ -285,18 +85,144 @@ void update_sound (int freq)
     }
 }
 
+
+/* Try to determine whether sound is available.  This is only for GUI purposes.  */
+int setup_sound (void)
+{
+    struct media_raw_audio_format format;
+
+    sound_available = 0;
+
+    format.frame_rate    = currprefs.sound_freq;
+    format.format        = currprefs.sound_bits == 8
+	? media_raw_audio_format::B_AUDIO_UCHAR
+	: media_raw_audio_format::B_AUDIO_SHORT;
+    format.channel_count = currprefs.stereo ?  2 : 1;
+    format.buffer_size = 512;
+#ifdef WORDS_BIGENDIAN
+    format.byte_order    = B_MEDIA_BIG_ENDIAN;
+#else
+    format.byte_order    = B_MEDIA_LITTLE_ENDIAN;
+#endif
+
+    BSoundPlayer player (&format);
+
+    if (player.InitCheck () == B_OK)
+	sound_available = 1;
+    else
+	write_log ("Couldn't create sound player\n");
+
+    return sound_available;
+}
+
+
+static void callback (void *cookie, void *buffer, size_t size, const media_raw_audio_format &format)
+{
+    if (!stop_sound) {
+	if (acquire_sem (data_available_sem) == B_NO_ERROR) {
+	    if (!stop_sound) {
+		memcpy (buffer, sndbuffer, size);
+		release_sem (data_used_sem);
+	    }
+	}
+    }
+}
+
+
+static int init_sound (void)
+{
+    int size = currprefs.sound_maxbsiz;
+    struct media_raw_audio_format format;
+
+    size >>= 2;
+    while (size & (size - 1))
+	size &= size - 1;
+    if (size < 512)
+	size = 512;
+
+    sndbufsize = size * (currprefs.sound_bits / 8) * (currprefs.stereo ?  2 : 1);
+
+    format.frame_rate    = currprefs.sound_freq;
+    format.format        = currprefs.sound_bits == 8
+	? media_raw_audio_format::B_AUDIO_UCHAR
+	: media_raw_audio_format::B_AUDIO_SHORT;
+    format.channel_count = currprefs.stereo ?  2 : 1;
+    format.buffer_size   = sndbufsize;
+#ifdef WORDS_BIGENDIAN
+    format.byte_order    = B_MEDIA_BIG_ENDIAN;
+#else
+    format.byte_order    = B_MEDIA_LITTLE_ENDIAN;
+#endif
+
+    sndplayer = new BSoundPlayer(&format, NULL, callback);
+
+    if (sndplayer->InitCheck () != B_OK) {
+	write_log ("Failed to initialize BeOS sound driver\n");
+	return 0;
+    }
+
+    if (format.format == media_raw_audio_format::B_AUDIO_SHORT) {
+	init_sound_table16 ();
+	sample_handler = currprefs.stereo ? sample16s_handler : sample16_handler;
+    } else {
+	init_sound_table8 ();
+	sample_handler = currprefs.stereo ? sample8s_handler : sample8_handler;
+    }
+
+    clearbuffer();
+    obtainedfreq = currprefs.sound_freq;
+    update_sound (vblank_hz);
+    have_sound = 1;
+    sound_available = 1;
+    sndbufpt = sndbuffer;
+
+    write_log ("BeOS sound driver found and configured for %d bits at %d Hz, buffer is %d samples\n",
+	currprefs.sound_bits, currprefs.sound_freq, sndbufsize);
+
+    resume_sound();
+
+    return 1;
+}
+
+
+void close_sound (void)
+{
+    if (! have_sound)
+	return;
+
+    pause_sound();
+    delete sndplayer;
+    have_sound = 0;
+}
+
+
 void pause_sound (void)
 {
-    close_sound ();
-    return;
+    if (! have_sound)
+        return;
+
+    stop_sound = 1;
+    delete_sem (data_available_sem);
+    delete_sem (data_used_sem);
+    sndplayer->SetHasData (false);
+    sndplayer->Stop ();
 }
+
 
 void resume_sound (void)
 {
-    init_sound ();
-    return;
+    if (! have_sound)
+        return;
+
+    stop_sound = 0;
+    data_available_sem = create_sem(0, NULL);
+    data_used_sem = create_sem(0, NULL);
+    sndplayer->Start ();
+    sndplayer->SetHasData (true);
 }
+
 
 void reset_sound (void)
 {
+    clearbuffer();
 }

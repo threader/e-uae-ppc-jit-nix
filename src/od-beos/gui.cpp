@@ -13,7 +13,6 @@ extern "C" {
 #include "config.h"
 #include "options.h"
 #include "gui.h"
-#include "xwin.h"
 #include "disk.h"
 }
 
@@ -21,47 +20,14 @@ extern "C" {
 #include <InterfaceKit.h>
 #include <storage/FilePanel.h>
 #include <storage/Path.h>
-#include <kernel/OS.h>
 
-/*
- * Dialog for inserting floppy images
- */
-class floppyFilePanel: public BFilePanel, public BHandler {
-	public:
-	    floppyFilePanel (int drive);
-	    void MessageReceived (BMessage *msg);
-	    void run ();
-	private:
-	    sem_id done_sem;
-		static const uint32 MSG_FLOPPY_PANEL_DRIVE0 = 'flp0';
-		static const uint32 MSG_FLOPPY_PANEL_DRIVE1 = 'flp1';
-		static const uint32 MSG_FLOPPY_PANEL_DRIVE2 = 'flp2';
-		static const uint32 MSG_FLOPPY_PANEL_DRIVE3 = 'flp3';
-};
+const uint32 MSG_FLOPPY_PANEL_DRIVE0 = 'flp0';
+const uint32 MSG_FLOPPY_PANEL_DRIVE1 = 'flp1';
+const uint32 MSG_FLOPPY_PANEL_DRIVE2 = 'flp2';
+const uint32 MSG_FLOPPY_PANEL_DRIVE3 = 'flp3';
 
-floppyFilePanel :: floppyFilePanel (int drive):
-	BFilePanel (B_OPEN_PANEL, NULL, NULL, 0, false, NULL, 0, true, true)
-{
-    char title[80];
-    BEntry dir      = BEntry(currprefs.df[drive]);
-    BMessage   msg  = BMessage (MSG_FLOPPY_PANEL_DRIVE0 + drive);
- 
-    dir.GetParent (&dir);
-    sprintf (title, "UAE: Select image to insert in drive DF%d:", drive);
-
-    done_sem = create_sem (0, NULL);
-
-    be_app->Lock ();
-    be_app->AddHandler (this);
-    be_app->Unlock ();
-    
-    this->SetTarget (BMessenger (this));
-    this->SetMessage (&msg);
-    this->SetPanelDirectory (&dir);
-    this->Window ()->SetTitle (title);
-}
-
-void floppyFilePanel::MessageReceived (BMessage *msg) {
+class floppyPanelHandler: public BHandler {
+    void MessageReceived(BMessage *msg) {
 	printf("got message: %08x\n", msg->what);
 	switch (msg->what) {
 	    case MSG_FLOPPY_PANEL_DRIVE0:
@@ -69,38 +35,51 @@ void floppyFilePanel::MessageReceived (BMessage *msg) {
 	    case MSG_FLOPPY_PANEL_DRIVE2:
 	    case MSG_FLOPPY_PANEL_DRIVE3: {
 	    	int drive = msg->what - MSG_FLOPPY_PANEL_DRIVE0;
-		    entry_ref ref;
-		    BEntry entry;
-		    printf ("Insert in drive %d\n", drive);
-		    if (msg->FindRef ("refs", &ref) == B_NO_ERROR)
-		        if (entry.SetTo (&ref) == B_NO_ERROR) {
-			        BPath path;
-		  	        entry.GetPath (&path); printf ("path: %s\n", path.Path());
-//		            disk_insert (drive, path.Path ());
-//					disk_insert() doesn't work for some reason . . .
-		  	        strcpy (changed_prefs.df[drive], path.Path ());
-		  	        release_sem (done_sem);
-		        }
-		    break;
-	    }
-	    case B_CANCEL:
-	        release_sem (done_sem);
-	        /* fall through */
-    	default:
+		entry_ref ref;
+		BEntry entry;
+		printf ("Insert in drive %d\n", drive);
+		if (msg->FindRef ("refs", &ref) == B_NO_ERROR)
+		    if (entry.SetTo (&ref) == B_NO_ERROR) {
+			BPath path;
+		  	entry.GetPath (&path); printf ("path: %s\n", path.Path());
+		  	strcpy (changed_prefs.df[drive], path.Path ());
+//		        disk_insert (drive, path.Path());
+		    }
+		break;
+    	    }
+    	    default:
                 BHandler::MessageReceived (msg);
+    	}
     }
-}
+};
 
-void floppyFilePanel::run ()
+static class floppyPanelHandler *floppy_handler;
+
+static void do_insert_floppy (int drive)
 {
-    this->Window ()->Show ();
-    acquire_sem (done_sem);
+    char title[80];
+    BFilePanel *panel;
+    BMessage msg = BMessage (MSG_FLOPPY_PANEL_DRIVE0 + drive);
+    BEntry dir   = BEntry(currprefs.df[drive]);
+    dir.GetParent (&dir);
+
+    sprintf (title, "UAE: Select image to insert in drive DF%d:", drive);
+
+    if (floppy_handler == NULL) {
+	floppy_handler = new floppyPanelHandler ();
+        be_app->Lock ();
+        be_app->AddHandler (floppy_handler);
+        be_app->Unlock ();
+    }
+    panel = new BFilePanel (B_OPEN_PANEL, new BMessenger (floppy_handler),
+    			    NULL, 0, false, &msg, 0, true, true);
+
+    panel->SetPanelDirectory (&dir);
+    panel->Window ()->SetTitle (title);
+    panel->Window ()->Show ();
 }
 
 
-/*
- * The UAE GUI callbacks
- */
 void gui_changesettings (void)
 {
 }
@@ -173,22 +152,8 @@ void gui_unlock (void)
 
 void gui_display (int shortcut)
 {
-    if (shortcut >=0 && shortcut < 4) {	
-	    /* If we're running full-screen, we must toggle
-	     * to windowed mode before opening the dialog */
-	    int was_fullscreen;
-	    
-	    if (was_fullscreen = is_fullscreen ()) {
-		    toggle_fullscreen ();
-		    if (is_fullscreen ())
-		        return;
-	    }
-        
-        (new floppyFilePanel (shortcut))->run ();
-        
-        if (was_fullscreen)
-            toggle_fullscreen ();
-    }
+   if (shortcut >=0 && shortcut < 4)
+	do_insert_floppy (shortcut);
 }
 
 void gui_message (const char *format,...)
@@ -198,7 +163,7 @@ void gui_message (const char *format,...)
     BAlert *alert;
 
     va_start (parms,format);
-    vsprintf (msg, format, parms);
+    vsprintf ( msg, format, parms);
     va_end (parms);
     
     write_log (msg);

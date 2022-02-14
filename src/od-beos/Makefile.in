@@ -114,11 +114,6 @@ SHELL = @SHELL@
 SNDDEP = @SNDDEP@
 STRIP = @STRIP@
 TARGET = @TARGET@
-TARGET_BEOS_FALSE = @TARGET_BEOS_FALSE@
-TARGET_BEOS_TRUE = @TARGET_BEOS_TRUE@
-TARGET_WIN32_FALSE = @TARGET_WIN32_FALSE@
-TARGET_WIN32_TRUE = @TARGET_WIN32_TRUE@
-UAE_RSRCFILE = @UAE_RSRCFILE@
 VERSION = @VERSION@
 WRCPRG = @WRCPRG@
 X_CFLAGS = @X_CFLAGS@
@@ -183,8 +178,6 @@ libguidep_a_SOURCES = gui.cpp
 libosdep_a_SOURCES = main.cpp
 
 noinst_HEADERS = exectasks.h gfx.h memory.h sound.h
-
-dist_noinst_DATA = uae.rsrc
 subdir = src/od-beos
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
@@ -227,12 +220,9 @@ CXXLINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
 DIST_SOURCES = $(libgfxdep_a_SOURCES) $(libguidep_a_SOURCES) \
 	$(libjoydep_a_SOURCES) $(libosdep_a_SOURCES) \
 	$(libsnddep_a_SOURCES)
-DATA = $(dist_noinst_DATA)
-
 HEADERS = $(noinst_HEADERS)
 
-DIST_COMMON = $(dist_noinst_DATA) $(noinst_HEADERS) \
-	$(srcdir)/Makefile.in Makefile.am
+DIST_COMMON = $(noinst_HEADERS) $(srcdir)/Makefile.in Makefile.am
 SOURCES = $(libgfxdep_a_SOURCES) $(libguidep_a_SOURCES) $(libjoydep_a_SOURCES) $(libosdep_a_SOURCES) $(libsnddep_a_SOURCES)
 
 all: all-am
@@ -390,7 +380,7 @@ distdir: $(DISTFILES)
 	done
 check-am: all-am
 check: check-am
-all-am: Makefile $(LIBRARIES) $(DATA) $(HEADERS)
+all-am: Makefile $(LIBRARIES) $(HEADERS)
 
 installdirs:
 install: install-am

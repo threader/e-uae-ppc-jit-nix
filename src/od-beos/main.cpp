@@ -29,13 +29,6 @@ extern "C" {
  */
 int main (int argc, char *argv[])
 {
-#ifndef USE_SDL
-/*
- * If we're not using SDL for anything, we would initialize our
- * application object here. On the other hand, if you are using SDL,
- * we can't because SDL creates its own application object. 
- */
-#endif
     real_main (argc, argv);
     return 0;
 }
@@ -44,6 +37,7 @@ int main (int argc, char *argv[])
  * Handle CTRL-C signals
  */
 static void sigbrkhandler (int foo)
+//static RETSIGTYPE sigbrkhandler(int foo)
 {
     activate_debugger ();
 }
