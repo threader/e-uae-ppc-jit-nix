@@ -38,7 +38,7 @@
 
 #include <proto/exec.h>
 #ifndef __SASC
-#include <clib/alib_protos.h>
+#include <proto/alib.h>
 #endif
 #include <proto/dos.h>
 #endif

@@ -53,11 +53,7 @@ void uae_abort (const char *format,...)
     char buffer[1000];
 
     va_start (parms, format);
-#ifdef _WIN32
-    _vsnprintf( buffer, sizeof (buffer) -1, format, parms );
-#else
     vsnprintf( buffer, sizeof (buffer) -1, format, parms );
-#endif
     va_end (parms);
     gui_message (buffer);
     activate_debugger ();
@@ -71,7 +67,7 @@ static unsigned int total_skipped = 0;
 STATIC_INLINE void sync_copper (int hpos);
 
 /* Events */
-
+ 
 unsigned long int event_cycles, nextevent, is_lastline, currcycle;
 long cycles_to_next_event;
 long max_cycles_to_next_event;
@@ -112,7 +108,7 @@ uae_u16 dmacon;
 uae_u16 adkcon; /* used by audio code */
 
 static uae_u32 cop1lc,cop2lc,copcon;
-
+ 
 int maxhpos = MAXHPOS_PAL;
 int maxvpos = MAXVPOS_PAL;
 int minfirstline = VBLANK_ENDLINE_PAL;
@@ -2390,10 +2386,8 @@ static void ADKCON (int hpos, uae_u16 v)
     setclr (&adkcon,v);
     update_adkmasks ();
     DISK_update (hpos);
-#ifdef SERIAL_PORT
-    if ((v >> 11) & 1)
-	serial_uartbreak ((adkcon >> 11) & 1);
-#endif
+//    if ((v >> 11) & 1)
+//	serial_uartbreak ((adkcon >> 11) & 1);
 }
 
 static void dumpsync (void)
@@ -2412,7 +2406,7 @@ static void BEAMCON0 (uae_u16 v)
 	if (!(currprefs.chipset_mask & CSMASK_ECS_DENISE))
 	    v &= 0x20;
 	if (v != new_beamcon0) {
-	    new_beamcon0 = v;
+            new_beamcon0 = v;
 	    if (v & ~0x20)
 	        write_log ("warning: %04.4X written to BEAMCON0\n", v);
 	}
@@ -2422,7 +2416,7 @@ static void BEAMCON0 (uae_u16 v)
 static void varsync (void)
 {
 #ifdef PICASSO96
-    if (p96refresh_active)
+/*   if (p96refresh_active)
     {
 	extern int p96hack_vpos2;
 	static int p96hack_vpos_old;
@@ -2431,7 +2425,7 @@ static void varsync (void)
 	p96hack_vpos_old = p96hack_vpos2;
 	hack_vpos = -1;
 	return;
-    }
+    }*/
 #endif
     if (!(currprefs.chipset_mask & CSMASK_ECS_DENISE))
 	return;
@@ -3188,7 +3182,7 @@ static void predict_copper (void)
 static int test_copper_dangerous (unsigned int address)
 {
     if ((address & 0x1fe) < (copcon & 2 ? ((currprefs.chipset_mask & CSMASK_AGA) ? 0 : 0x40u) : 0x80u)) {
-	cop_state.state = COP_stop;
+	cop_state.state = COP_stop;	
 	copper_enabled_thisline = 0;
 	unset_special (SPCFLAG_COPPER);
 	return 1;
@@ -4155,9 +4149,7 @@ static void hsync_handler (void)
     cop_state.hpos = 0;
     compute_spcflag_copper ();
     inputdevice_hsync ();
-#ifdef SERIAL_PORT   
-    serial_hsynchandler ();
-#endif   
+//    serial_hsynchandler ();
 #ifdef CUSTOM_SIMPLE
     do_sprites (0);
 #endif
@@ -4336,16 +4328,15 @@ void customreset (void)
     if (savestate_state != STATE_RESTORE) {
 	/* must be called after audio_reset */
 	adkcon = 0;
-#ifdef SERIAL_PORT       
-	serial_uartbreak (0);
-#endif       
+//	serial_uartbreak (0);
 	update_adkmasks ();
     }
 
     init_sprites ();
 
     init_hardware_frame ();
-    drawing_init ();
+//    drawing_init ();
+    reset_drawing();
     reset_decisions ();
 
 #ifdef HAVE_GETTIMEOFDAY

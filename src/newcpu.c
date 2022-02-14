@@ -42,7 +42,7 @@ static void build_comp(void) {}
 void check_prefs_changed_comp (void) {}
 #endif
 
-#define f_out fprintf
+#define f_out(x...) fprintf(x)
 
 /* Opcode of faulting instruction */
 static uae_u16 last_op_for_exception_3;

@@ -71,12 +71,12 @@ static char *datalog(uae_u8 *src, int len) { return ""; }
 #ifdef DEBUG
 #define debuglog printf
 #else
-#define debuglog(...)
+#define debuglog(x...)
 #endif
 #ifdef VERBOSE
 #define outlog printf
 #else
-#define outlog(...)
+#define outlog(x...)
 #endif
 
 #define MAX_SRC_BUFFER 20000

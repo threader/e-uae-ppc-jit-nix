@@ -31,11 +31,11 @@
 #include "debug.h"
 #include "inputdevice.h"
 
-//#define GUI_DEBUG
+#define GUI_DEBUG
 #ifdef  GUI_DEBUG
-#define DEBUG_LOG(...) write_log(__FUNCTION__": " __VA_ARGS__)
+#define DEBUG_LOG(x...) write_log(__FUNCTION__": " x)
 #else
-#define DEBUG_LOG(...) do ; while(0)
+#define DEBUG_LOG(x...)
 #endif
 
 #include <gtk/gtk.h>
@@ -1616,7 +1616,7 @@ static void newdir_ok (void)
     n = strlen (dirdlg_devname);
     if (n > 0) {
         if (dirdlg_devname[n - 1] == ':')
-	    dirdlg_devname[n - 1] = '\0';
+	    dirdlg_devname[n - 1] == '\0';
     }
     if (strlen (dirdlg_volname) == 0 || strlen (dirdlg_path) == 0) {
 	/* Uh, no messageboxes in gtk?  */
@@ -2376,10 +2376,6 @@ void gui_hd_led (int led)
        resetcounter = 6;
        if (old != gui_data.hd)
              gui_led (5, gui_data.hd);
-}
-
-void gui_cd_led (int led)
-{
 }
 
 /* An ugly stop-gap - needs proper message box implementation - Rich */

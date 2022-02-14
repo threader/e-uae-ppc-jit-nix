@@ -26,10 +26,6 @@ static __inline__ void check_sound_buffers (void)
 
 #define PUT_SOUND_BYTE(b) do { *(uae_u8 *)sndbufpt = b; sndbufpt = (uae_u16 *)(((uae_u8 *)sndbufpt) + 1); } while (0)
 #define PUT_SOUND_WORD(b) do { *(uae_u16 *)sndbufpt = b; sndbufpt = (uae_u16 *)(((uae_u8 *)sndbufpt) + 2); } while (0)
-
-#define PUT_SOUND_WORD_LEFT(b) PUT_SOUND_WORD(b)
-#define PUT_SOUND_WORD_RIGHT(b) PUT_SOUND_WORD(b)
-
 #define SOUND16_BASE_VAL 0
 #define SOUND8_BASE_VAL 128
 

@@ -43,10 +43,6 @@ void gui_hd_led (int led)
 {
 }
 
-void gui_cd_led (int led)
-{
-}
-
 void gui_filename (int num, const char *name)
 {
 }

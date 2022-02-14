@@ -28,7 +28,7 @@
 #include <proto/rexxsyslib.h>
 #include <proto/dos.h>
 #ifndef __SASC
-#include <clib/alib_protos.h>
+#include <proto/alib.h>
 #endif
 #endif
 
@@ -53,7 +53,7 @@
 #endif
 #include "events.h"
 #include "custom.h"
-//#include "readcpu.h"
+#include "readcpu.h"
 #include "newcpu.h"
 #include "disk.h"
 #include "gui.h"
@@ -62,7 +62,6 @@
 #include "uaeexe.h"
 #include "threaddep/thread.h"
 #include "xwin.h"
-#include "drawing.h"
 
 #include <ctype.h>
 
@@ -232,10 +231,10 @@ static int QUERY(char *line)
     else if(matchstr(&line, "NAME_DF1")) res = from_unix_path(currprefs.df[1]), alc = 1;
     else if(matchstr(&line, "NAME_DF2")) res = from_unix_path(currprefs.df[2]), alc = 1;
     else if(matchstr(&line, "NAME_DF3")) res = from_unix_path(currprefs.df[3]), alc = 1;
-//    else if(matchstr(&line, "FAKEJOYSTICK")) res = currprefs.fake_joystick?"1":"0";
+    else if(matchstr(&line, "FAKEJOYSTICK")) res = currprefs.fake_joystick?"1":"0";
     else if(matchstr(&line, "DISPLAY"))  res = inhibit_frame?"0":"1";
     else if(matchstr(&line, "FRAMERATE")) {
-        sprintf(RESULT,"%d",currprefs.gfx_framerate);
+        sprintf(RESULT,"%d",currprefs.framerate);
         return RC_OK;
     } else if(matchstr(&line, "FRAMENUM")) {
         sprintf(RESULT,"%u",frame_num);
@@ -288,7 +287,7 @@ static int FEEDBACK(char *line)
 
 /****************************************************************************/
 
-static int GET_VERSION(char *line)
+static int VERSION(char *line)
 {
     if(matchstr(&line,"STRING")) {
          sprintf(RESULT,
@@ -325,7 +324,7 @@ static int FRAMERATE(char *line)
     int num;
     num = matchnum(&line);
     if(num>=1 && num<=20) {
-        changed_prefs.gfx_framerate = num;
+        changed_prefs.framerate = num;
     } else {
         sprintf(RESULT,"Invalid frame rate: %d\n", num);
         return RC_WARN;
@@ -337,12 +336,12 @@ static int FRAMERATE(char *line)
 
 static int FAKEJOYSTICK(char *line)
 {
-/*    if     (matchstr(&line,"ON"))     changed_prefs.fake_joystick = 2;
+    if     (matchstr(&line,"ON"))     changed_prefs.fake_joystick = 2;
     else if(matchstr(&line,"OFF"))    changed_prefs.fake_joystick = 0;
     else if(matchstr(&line,"TOGGLE")) changed_prefs.fake_joystick =
                                       currprefs.fake_joystick?0:2;
     else return RC_ERROR;
-    return RC_OK; */
+    return RC_OK;
 }
 
 /****************************************************************************/
@@ -399,7 +398,7 @@ static int process_cmd(char *line)
     else if(matchstr(&line, "INSERT"))       return INSERT(line);
     else if(matchstr(&line, "QUERY"))        return QUERY(line);
     else if(matchstr(&line, "FEEDBACK"))     return FEEDBACK(line);
-    else if(matchstr(&line, "VERSION"))      return GET_VERSION(line);
+    else if(matchstr(&line, "VERSION"))      return VERSION(line);
     else if(matchstr(&line, "BYE"))          QUIT();
     else if(matchstr(&line, "QUIT"))         QUIT();
     else if(matchstr(&line, "DEBUG"))        activate_debugger();

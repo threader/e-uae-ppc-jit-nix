@@ -27,7 +27,6 @@ extern int isfullscreen (void);
 extern void flush_line (int);
 extern void flush_block (int, int);
 extern void flush_screen (int, int);
-extern void flush_clear_screen (void);
 
 extern int lockscr (void);
 extern void unlockscr (void);

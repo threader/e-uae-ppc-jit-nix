@@ -1874,7 +1874,7 @@ STATIC_INLINE void check_picasso (void)
 {
 #ifdef PICASSO96
     if (picasso_on && picasso_redraw_necessary)
-	picasso_refresh (1);
+	picasso_refresh ();
     picasso_redraw_necessary = 0;
 
     if (picasso_requested_on == picasso_on)
@@ -1923,7 +1923,7 @@ void vsync_handle_redraw (int long_frame, int lof_changed)
 	frame_drawn ();
 #endif
 
-	if (savestate_state == STATE_DOSAVE) {
+/*	if (savestate_state == STATE_DOSAVE) {
 	    custom_prepare_savestate ();
 	    savestate_state = STATE_SAVE;
 	    save_state (savestate_fname, "Description!");
@@ -1932,7 +1932,7 @@ void vsync_handle_redraw (int long_frame, int lof_changed)
 	    savestate_state = STATE_RESTORE;
 	    reset_drawing ();
 	    uae_reset (0);
-	} 
+	} */
 
 	if (quit_program < 0) {
 	    quit_program = -quit_program;
@@ -1970,7 +1970,7 @@ void vsync_handle_redraw (int long_frame, int lof_changed)
 	    flush_screen (0, 0); /* vsync mode */
     }
     gui_hd_led (0);
-    gui_cd_led (0);
+//    gui_cd_led (0);
 }
 
 void hsync_record_line_state (int lineno, enum nln_how how, int changed)
@@ -2020,6 +2020,45 @@ void reset_drawing (void)
 {
     int i;
 
+    inhibit_frame = 0;
+    uae_sem_init (&gui_sem, 0, 1);
+
+#ifdef PICASSO96
+    InitPicasso96 ();
+    picasso_on = 0;
+    picasso_requested_on = 0;
+    gfx_set_picasso_state (0);
+#endif
+    max_diwstop = 0;
+
+    lores_factor = currprefs.gfx_lores ? 1 : 2;
+    lores_shift = currprefs.gfx_lores ? 0 : 1;
+
+    for (i = 0; i < sizeof linestate / sizeof *linestate; i++)
+        linestate[i] = LINE_UNDECIDED;
+
+    xlinebuffer = gfxvidinfo.bufmem;
+
+    init_aspect_maps ();
+
+    if (line_drawn == 0)
+        line_drawn = (char *)malloc (gfxvidinfo.height);
+
+    init_row_map();
+
+    last_redraw_point = 0;
+
+    memset (spixels, 0, sizeof spixels);
+    memset (&spixstate, 0, sizeof spixstate);
+
+    init_drawing_frame ();
+}
+
+/*void reset_drawing (void)
+{
+    int i;
+
+    write_log( "reset_drawing\n" );
     max_diwstop = 0;
 
     lores_reset ();
@@ -2041,12 +2080,24 @@ void reset_drawing (void)
 
     init_drawing_frame ();
 
-    flush_clear_screen ();
+//    flush_clear_screen ();
     notice_screen_contents_lost ();
+}*/
+
+void drawing_init ()
+{
+//    native2amiga_line_map = 0;
+//    amiga2aspect_line_map = 0;
+//    line_drawn = 0;
+
+    gen_pfield_tables();
+    
 }
 
-void drawing_init (void)
+
+/*void drawing_init (void)
 {
+    write_log( "drawing_init\n" );
     gen_pfield_tables();
 
     uae_sem_init (&gui_sem, 0, 1);
@@ -2060,5 +2111,5 @@ void drawing_init (void)
     inhibit_frame = 0;
 
     reset_drawing ();
-}
+}*/
 

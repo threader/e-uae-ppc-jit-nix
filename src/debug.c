@@ -34,9 +34,9 @@ int debugging = 0;
 
 static FILE *logfile;
 
-#define console_out               printf
-#define console_flush()           fflush( stdout )
-#define console_get( input, len ) fgets( input, len, stdin )
+#define console_out(x...) printf( x )
+#define console_flush()   fflush( stdout )
+#define console_get( input, len )     fgets( input, len, stdin )
 
 void activate_debugger (void)
 {

@@ -3052,8 +3052,10 @@ int main (int argc, char **argv)
      * I don't dare to touch the 68k version.  */
 
     headerfile = fopen ("cputbl.h", "wb");
-
     stblfile = fopen ("cpustbl.c", "wb");
+    freopen ("cpuemu.c", "wb", stdout);
+   
+    generate_includes (stdout);
     generate_includes (stblfile);
 
     using_prefetch = 0;
@@ -3062,13 +3064,13 @@ int main (int argc, char **argv)
 
     for (i = 0; i < 7; i++) {
 	postfix = i;
-        if (i == 4 || i == 6)
-	    fprintf (stblfile,"#endif\n");        
 	if (i == 0 || i == 5 || i == 6) {
+	    if (i > 0)
+		fprintf (stblfile,"#endif\n");
 	    fprintf (stblfile, "#ifdef CPUEMU_%d\n", postfix);
-	    sprintf (fname, "cpuemu_%d.c", postfix);
-            freopen (fname, "wb", stdout);
-	    generate_includes (stdout);
+//	    sprintf (fname, "cpuemu_%d.c", postfix);
+//            freopen (fname, "wb", stdout);
+//	    generate_includes (stdout);
 	}
 	cpu_level = 4 - i;
 	if (i == 5 || i == 6) {

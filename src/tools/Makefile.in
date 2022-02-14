@@ -30,6 +30,7 @@ install:
 
 clean:
 	-rm -f *.o
+	-rm cpudefs.c
 	-rm -f gencpu gencomp genblitter cpuopti build68k
 
 

@@ -2951,7 +2951,7 @@ EOF
  HAVE_BEOS=yes
 else
   echo "$ac_t""no" 1>&6
-HAVE_BEOS=no
+HABE_BEOS=no
 fi
 done
 
@@ -6030,6 +6030,12 @@ else
   GUIOBJS=nogui.o
 fi
 
+JITOBJS=""
+if [ "x$WANT_JIT" = "xyes" ]; then
+  JITOBJS="compstbl.o compemu.o compemu_support.o compemu_fpp.o cpustbl_nf.o cpufast_nf.o"
+  ADDITIONAL_CFLAGS="$ADDITIONAL_CFLAGS -DJIT -DNATMEM_OFFSET=0x50000000"
+fi
+
 if [ "x$WANT_FILESYS" != "xno" ]; then
   FILESYSOBJS="filesys.o hardfile.o fsdb.o"
   ADDITIONAL_CFLAGS="$ADDITIONAL_CFLAGS -DFILESYS"
@@ -6060,21 +6066,20 @@ USE_UNDERSCORE=dunno
 HAVELINUX=no
 HAVEBSD=no
 HAVEGCC27=no
-HAVEGCC3=no
 HAVEI386=no
 HAVE68K=no
 HAVEPPC=no
 HAVEGLIBC2=no
 
 ASMOBJS=
-CPUOBJS="cpuemu_0.o cpuemu_5.o cpuemu_6.o"
+CPUOBJS=cpuemu.o
 
 echo $ac_n "checking for GCC 2.7 or higher""... $ac_c" 1>&6
-echo "configure:6074: checking for GCC 2.7 or higher" >&5
+echo "configure:6079: checking for GCC 2.7 or higher" >&5
 cat > conftest.$ac_ext <<EOF
-#line 6076 "configure"
+#line 6081 "configure"
 #include "confdefs.h"
-#if (__GNUC__ - 1 > 0 && __GNUC_MINOR__ - 1 > 5) || __GNUC__ - 1 > 1
+#if __GNUC__ - 1 > 1 || __GNUC_MINOR__ - 1 > 5
   yes
 #endif
 
@@ -6083,27 +6088,6 @@ if (eval "$ac_cpp conftest.$ac_ext") 2>&5 |
   egrep "yes" >/dev/null 2>&1; then
   rm -rf conftest*
   echo "$ac_t""yes" 1>&6; HAVEGCC27=yes
-else
-  rm -rf conftest*
-  echo "$ac_t""no" 1>&6
-fi
-rm -f conftest*
-
-
-echo $ac_n "checking for GCC 3.0 or higher""... $ac_c" 1>&6
-echo "configure:6095: checking for GCC 3.0 or higher" >&5
-cat > conftest.$ac_ext <<EOF
-#line 6097 "configure"
-#include "confdefs.h"
-#if __GNUC__ - 1 > 1 
-  yes
-#endif
-
-EOF
-if (eval "$ac_cpp conftest.$ac_ext") 2>&5 |
-  egrep "yes" >/dev/null 2>&1; then
-  rm -rf conftest*
-  echo "$ac_t""yes" 1>&6; HAVEGCC3=yes
 else
   rm -rf conftest*
   echo "$ac_t""no" 1>&6
@@ -6124,9 +6108,9 @@ fi
 
 if [ "x$ac_cv_header_features_h" = "xyes" ]; then
   echo $ac_n "checking for glibc-2.0 or higher""... $ac_c" 1>&6
-echo "configure:6128: checking for glibc-2.0 or higher" >&5
+echo "configure:6112: checking for glibc-2.0 or higher" >&5
   cat > conftest.$ac_ext <<EOF
-#line 6130 "configure"
+#line 6114 "configure"
 #include "confdefs.h"
 #include <features.h>
 #if __GLIBC__ - 1 >= 1
@@ -6173,9 +6157,9 @@ else
 fi
 
 echo $ac_n "checking for x86 target CPU""... $ac_c" 1>&6
-echo "configure:6177: checking for x86 target CPU" >&5
+echo "configure:6161: checking for x86 target CPU" >&5
 cat > conftest.$ac_ext <<EOF
-#line 6179 "configure"
+#line 6163 "configure"
 #include "confdefs.h"
 
 #ifdef __i386__
@@ -6195,9 +6179,9 @@ rm -f conftest*
 
 
 echo $ac_n "checking for m68k target CPU""... $ac_c" 1>&6
-echo "configure:6199: checking for m68k target CPU" >&5
+echo "configure:6183: checking for m68k target CPU" >&5
 cat > conftest.$ac_ext <<EOF
-#line 6201 "configure"
+#line 6185 "configure"
 #include "confdefs.h"
 
 #ifdef __m68k__
@@ -6217,12 +6201,12 @@ rm -f conftest*
 
 
 echo $ac_n "checking for ppc target CPU""... $ac_c" 1>&6
-echo "configure:6221: checking for ppc target CPU" >&5
+echo "configure:6205: checking for ppc target CPU" >&5
 cat > conftest.$ac_ext <<EOF
-#line 6223 "configure"
+#line 6207 "configure"
 #include "confdefs.h"
 
-#if defined __powerpc__ || defined __POWERPC__ || defined __ppc__
+#ifdef __powerpc__
   yes
 #endif
 
@@ -6248,7 +6232,7 @@ fi
 
 
 echo $ac_n "checking whether assembler symbols need an underscore""... $ac_c" 1>&6
-echo "configure:6252: checking whether assembler symbols need an underscore" >&5
+echo "configure:6236: checking whether assembler symbols need an underscore" >&5
 cat >conftest1.S << EOF
 	.text
 	.globl _symbol
@@ -6285,14 +6269,14 @@ if [ "x$HAVEGCC27" = "xyes" -a "x$HAVEI386" = "xyes" ]; then
   SAVECFLAGS=$CFLAGS
   CFLAGS="$CFLAGS -mno-schedule-prologue"
   cat > conftest.$ac_ext <<EOF
-#line 6289 "configure"
+#line 6273 "configure"
 #include "confdefs.h"
 
 int main() {
 int main(){return 0;}
 ; return 0; }
 EOF
-if { (eval echo configure:6296: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:6280: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   NO_SCHED_CFLAGS="-mno-schedule-prologue"
 else
@@ -6307,14 +6291,14 @@ if [ "x$HAVEGCC27" = "xyes" -a "x$HAVEI386" = "xyes" ]; then
   SAVECFLAGS=$CFLAGS
   CFLAGS="$CFLAGS -mpreferred-stack-boundary=2"
   cat > conftest.$ac_ext <<EOF
-#line 6311 "configure"
+#line 6295 "configure"
 #include "confdefs.h"
 
 int main() {
 int main(){return 0;}
 ; return 0; }
 EOF
-if { (eval echo configure:6318: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:6302: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   SAVECFLAGS=$CFLAGS
 else
@@ -6331,14 +6315,14 @@ if [ "x$HAVEGCC27" = "xyes" -a "x$HAVEI386" = "xyes" ]; then
   CFLAGS="$CFLAGS -fno-exceptions"
   NOEXCEPTIONS=no
   cat > conftest.$ac_ext <<EOF
-#line 6335 "configure"
+#line 6319 "configure"
 #include "confdefs.h"
 
 int main() {
 int main(){return 0;}
 ; return 0; }
 EOF
-if { (eval echo configure:6342: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:6326: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   NOEXCEPTIONS=yes
 else
@@ -6357,15 +6341,9 @@ if [ "x$HAVEGCC27" = "xyes" -a "x$HAVEI386" = "xyes" -a "x$DO_PROFILING" = "xno"
   MACHDEP=md-i386-gcc
         CFLAGS="$CFLAGS -DUNALIGNED_PROFITABLE -fno-strength-reduce -DREGPARAM=\"__attribute__((regparm(3)))\""
 
-  if [ "x$HAVE_BEOS" = "xno" ]; then
-    CFLAGS="$CFLAGS -DX86_ASSEMBLY -DOPTIMIZED_FLAGS"
-  else
-        CFLAGS="$CFLAGS -DOPTIMIZED_FLAGS"
-  fi
+  CFLAGS="$CFLAGS -DX86_ASSEMBLY -DOPTIMIZED_FLAGS"
   ASMOBJS=md-X86.o
-  if [ "x$HAVEGCC3" = "xno" ]; then
-        CPUOBJS="cpufast_0.o cpufast_5.o cpufast_6.o"
-  fi
+  CPUOBJS=cpufast.o
 else if test $uae_cv_prog_cc_watcom = yes; then
   MACHDEP=md-i386-watcom
   echo CFLAGS before: $CFLAGS
@@ -6432,17 +6410,6 @@ fi
 fi
 fi
 
-JITOBJS=""
-if [ "x$WANT_JIT" = "xyes" ]; then
-  JITOBJS="compstbl.o compemu.o compemu_support.o compemu_fpp.o cpustbl_nf.o"
-  if [ "x$HAVEGCC27" = "xyes" -a "x$HAVEGCC3" = "xno" ]; then
-    JITOBJS="$JITOBJS cpufast_nf_0.o cpufast_nf_5.o cpufast_nf_6.o"
-  else
-    JITOBJS="$JITOBJS cpuemu_nf_0.o cpuemu_nf_5.o cpuemu_nf_6.o"
-  fi
-  CFLAGS="$CFLAGS -DJIT -DNATMEM_OFFSET=0x50000000"
-fi
-
 if [ "x$TARGET" = "xwin32" ]; then
   OSDEP=od-win32
   if test $ac_cv_prog_gcc = yes; then
@@ -6472,9 +6439,9 @@ fi
 HAVE_USS_SOUND=no
 if [ "x$ac_cv_header_sys_soundcard_h" = "xyes" -o "x$ac_cv_header_machine_soundcard_h" = "xyes" ]; then
     echo $ac_n "checking whether sys/soundcard.h or machine/soundcard.h works""... $ac_c" 1>&6
-echo "configure:6476: checking whether sys/soundcard.h or machine/soundcard.h works" >&5
+echo "configure:6443: checking whether sys/soundcard.h or machine/soundcard.h works" >&5
   cat > conftest.$ac_ext <<EOF
-#line 6478 "configure"
+#line 6445 "configure"
 #include "confdefs.h"
 
 #include "confdefs.h"
@@ -6489,7 +6456,7 @@ int main() {
 int soundfd; ioctl (soundfd, SNDCTL_DSP_GETFMTS, 0);
 ; return 0; }
 EOF
-if { (eval echo configure:6493: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:6460: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   echo "$ac_t""yes" 1>&6
 HAVE_USS_SOUND=yes
@@ -6507,7 +6474,7 @@ if [ "x$ac_cv_header_dmedia_audio.h" = "xno" ]; then
 fi
 
 echo $ac_n "checking which sound system to use""... $ac_c" 1>&6
-echo "configure:6511: checking which sound system to use" >&5
+echo "configure:6478: checking which sound system to use" >&5
 # Check whether --enable-file-sound or --disable-file-sound was given.
 if test "${enable_file_sound+set}" = set; then
   enableval="$enable_file_sound"
@@ -6632,13 +6599,13 @@ fi
 
 if [ "x$USE_SCSI_DEVICE" = "xyes" ]; then
   echo $ac_n "checking "availability of libscg headers and lib"""... $ac_c" 1>&6
-echo "configure:6636: checking "availability of libscg headers and lib"" >&5
+echo "configure:6603: checking "availability of libscg headers and lib"" >&5
   OLDLIBS="$LIBS"
   OLDCFLAGS="$CFLAGS"
   CFLAGS="$CFLAGS -Isrc/include"
   LIBS="-Lsrc $LIBS -lscg -lschily"
   cat > conftest.$ac_ext <<EOF
-#line 6642 "configure"
+#line 6609 "configure"
 #include "confdefs.h"
 typedef int BOOL;
 #include "scg/scgcmd.h"
@@ -6648,7 +6615,7 @@ int main() {
 {SCSI *scgp = open_scsi ((void *)0, (void *)0, 0, 1, 1);}
 ; return 0; }
 EOF
-if { (eval echo configure:6652: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:6619: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   
     echo "$ac_t""available" 1>&6
@@ -6674,14 +6641,14 @@ if [ "x$WANT_SDL" = "xyes" ]; then
     OD_JOYSTICK=jd-sdl/joystick.c
 else if [ "x$ac_cv_header_machine_joystick_h" = "xyes" ]; then
     cat > conftest.$ac_ext <<EOF
-#line 6678 "configure"
+#line 6645 "configure"
 #include "confdefs.h"
 #include <machine/joystick.h>
 int main() {
 { struct joystick a; }
 ; return 0; }
 EOF
-if { (eval echo configure:6685: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:6652: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   OD_JOYSTICK=od-linux/joystick.c
 else
@@ -6715,13 +6682,13 @@ rm -f src/scsi-support.c
 
 if [ "x$TARGET" = "xamigaos" -o "x$TARGET" = "xp_os" ]; then
     echo $ac_n "checking which CPU to use""... $ac_c" 1>&6
-echo "configure:6719: checking which CPU to use" >&5
+echo "configure:6686: checking which CPU to use" >&5
   cpu=`cpu | cut -d' ' -f2`
   echo "$ac_t""$cpu" 1>&6
   CFLAGS="$CFLAGS -m$cpu"
 
     echo $ac_n "checking which FPU to use""... $ac_c" 1>&6
-echo "configure:6725: checking which FPU to use" >&5
+echo "configure:6692: checking which FPU to use" >&5
   fpu=`cpu | cut -d' ' -f3 | grep '^688812$'`
   if [ "x$fpu" != "x" ]; then
         echo "$ac_t""68881" 1>&6

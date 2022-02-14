@@ -47,7 +47,7 @@ static void BeginIO(struct IORequest *iorequest)
 #include <proto/exec.h>
 #include <proto/dos.h>
 #ifdef __GNUC__
-#include <clib/alib_protos.h>
+#include <proto/alib.h>
 #elif defined(__SASC)
 #include <clib/alib_protos.h>
 #endif

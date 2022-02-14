@@ -14,14 +14,14 @@
 #include "options.h"
 #include "zfile.h"
 #include "unzip.h"
-#include "dms/cdata.h"
-#include "dms/pfile.h"
+//#include "dms/pfile.h"
 
 #include <zlib.h>
 
 #define MAX_PATH 255
 #define strcmpi(x,y)  strcasecmp(x,y)
 #define stricmp(x,y)  strcasecmp(x,y)
+#define gui_message(x...) write_log(x)
 
 struct zfile {
     char *name;
@@ -39,7 +39,6 @@ int is_zlib;
 
 static int zlib_test (void)
 {
-#ifdef _WIN32
     static int zlibmsg;
     if (is_zlib)
 	return 1;
@@ -48,11 +47,6 @@ static int zlib_test (void)
     zlibmsg = 1;
     gui_message("zip and gzip support disabled because zlib.dll is missing");
     return 0;
-#else
-    /* On non-Windows platforms, we can safely assume (I think) that if we got this
-     * far zlib is present - Rich */
-    return 1;
-#endif
 }
 
 static struct zfile *zfile_create (void)
@@ -308,12 +302,11 @@ static struct zfile *lha (struct zfile *z)
     return z;
 }
 
-static struct zfile *dms (struct zfile *z)
+/*static struct zfile *dms (struct zfile *z)
 {
     int ret;
     struct zfile *zo;
     
-    write_log ("DMS\n");
     zo = zfile_fopen_empty ("dms", 1760 * 512);
     if (!zo) return z;
     ret = DMS_Process_File (z, zo, CMD_UNPACK, OPT_VERBOSE, 0, 0);
@@ -322,7 +315,7 @@ static struct zfile *dms (struct zfile *z)
 	return zo;
     }
     return z;
-}
+}*/
 
 #if 0
 static struct zfile *dms (struct zfile *z)
@@ -426,7 +419,7 @@ static struct zfile *zuncompress (struct zfile *z)
 {
     char *name = z->name;
     char *ext = strrchr (name, '.');
-    unsigned char header[4];
+    char header[4];
 
     if (ext != NULL) {
 	ext++;
@@ -441,8 +434,8 @@ static struct zfile *zuncompress (struct zfile *z)
 	     return gunzip (z);
 	if (strcasecmp (ext, "roz") == 0)
 	     return gunzip (z);
-	if (strcasecmp (ext, "dms") == 0)
-	     return dms (z);
+//	if (strcasecmp (ext, "dms") == 0)
+//	     return dms (z);
 	memset (header, 0, sizeof (header));
 	zfile_fseek (z, 0, SEEK_SET);
 	zfile_fread (header, sizeof (header), 1, z);
@@ -451,8 +444,8 @@ static struct zfile *zuncompress (struct zfile *z)
 	    return gunzip (z);
 	if (header[0] == 'P' && header[1] == 'K')
 	    return unzip (z);
-	if (header[0] == 'D' && header[1] == 'M' && header[2] == 'S' && header[3] == '!')
-	    return dms (z);
+//	if (header[0] == 'D' && header[1] == 'M' && header[2] == 'S' && header[3] == '!')
+//	    return dms (z);
     }
     return z;
 }

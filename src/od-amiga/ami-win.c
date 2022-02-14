@@ -173,10 +173,10 @@ extern struct ExecBase *SysBase;
 #include "uae.h"
 #include "memory.h"
 #include "custom.h"
+#include "readcpu.h"
 #include "include/memory.h" /* (or else it's od-amiga/memory.h that is used) */
 #include "newcpu.h"
 #include "xwin.h"
-#include "drawing.h"
 #include "keyboard.h"
 #include "keybuf.h"
 #include "gui.h"
@@ -190,7 +190,7 @@ extern struct ExecBase *SysBase;
 /****************************************************************************/
 
 #define use_dither      (!currprefs.no_xhair)
-#define use_gray	(currprefs.x11_use_mitshm)
+#define use_gray	(currprefs.use_mitshm)
 
 #define UAEIFF "UAEIFF"        /* env: var to trigger iff dump */
 #define UAESM  "UAESM"         /* env: var for screen mode */  
@@ -207,6 +207,10 @@ extern xcolnr xcolors[4096];
  /* Keyboard and mouse */
 
 static int keystate[256];
+
+extern int buttonstate[3];
+extern int lastmx, lastmy;
+extern int newmousecounters;
 
 static int inwindow;
 
@@ -472,25 +476,6 @@ void flush_screen (int ystart, int ystop)
 
 /****************************************************************************/
 
-void flush_clear_screen(void)
-{
-}
-
-/****************************************************************************/
-
-int lockscr(void)
-{
-    return 1;
-}
-
-/****************************************************************************/
-
-void unlockscr(void)
-{
-}
-
-/****************************************************************************/
-
 static int RPDepth(struct RastPort *RP)
 {
 #ifdef USE_CYBERGFX
@@ -661,7 +646,7 @@ static int init_colors(void)
         
         return 0; /* everything failed :-( */
     }
-
+    
     /* No dither */
     switch(RPDepth(RP)) {
       case 6: if (is_halfbrite) {
@@ -680,7 +665,7 @@ static int init_colors(void)
         int i;
         for(i=0;i<16;++i) get_color(i,i,i, xcolors);
         printf("Using %d bits pseudo-truecolor (HAM).\n",12);
-        alloc_colors64k(4,4,4,10,5,0,0,0,0);
+        alloc_colors64k(4,4,4,10,5,0);
         return init_ham();
       }
 
@@ -708,22 +693,22 @@ static int init_colors(void)
 
       case 15:
         printf("Using %d bits truecolor.\n",15);
-        alloc_colors64k(5,5,5,10,5,0,0,0,0);
+        alloc_colors64k(5,5,5,10,5,0);
         break;
 
       case 16:
         printf("Using %d bits truecolor.\n",16);
-        alloc_colors64k(5,6,5,11,5,0,0,0,0);
+        alloc_colors64k(5,6,5,11,5,0);
         break;
 
       case 24: 
         printf("Using %d bits truecolor.\n",24);
-        alloc_colors64k(8,8,8,16,8,0,0,0,0);
+        alloc_colors64k(8,8,8,16,8,0);
         break;
 
       case 32: 
         printf("Using %d bits truecolor.\n",32);
-        alloc_colors64k(8,8,8,16,8,0,0,0,0);
+        alloc_colors64k(8,8,8,16,8,0);
         break;
     }
     return 1;
@@ -761,12 +746,12 @@ static int setup_customscreen(void)
         NULL, NULL, (void*)"UAE", NULL, NULL, 5,5, 800,600,
         CUSTOMSCREEN};
 
-    NewScreenStructure.Width     = currprefs.gfx_width_win;
-    NewScreenStructure.Height    = currprefs.gfx_height_win;
+    NewScreenStructure.Width     = currprefs.gfx_width;
+    NewScreenStructure.Height    = currprefs.gfx_height;
     NewScreenStructure.Depth     = os39?8:(currprefs.gfx_lores?5:4);
     NewScreenStructure.ViewModes = SPRITES | (currprefs.gfx_lores?NULL:HIRES) |
-                                   (currprefs.gfx_height_fs>256?LACE:NULL);
-
+                                   (currprefs.gfx_height>256?LACE:NULL);
+  
     do S = (void*)OpenScreen(&NewScreenStructure);
     while(!S && --NewScreenStructure.Depth);
     if(!S) {
@@ -794,7 +779,7 @@ static int setup_customscreen(void)
 static int setup_publicscreen(void)
 {
     UWORD ZoomArray[4] = {0,0,0,0};
-
+  
     S = LockPubScreen(NULL);
     if(!S) {
         fprintf(stderr,"No public screen !\n");
@@ -807,8 +792,8 @@ static int setup_publicscreen(void)
     CM = S->ViewPort.ColorMap;
 
     if((S->ViewPort.Modes & (HIRES|LACE))==HIRES) {
-        if(currprefs.gfx_height_win + S->BarHeight + 1 >= S->Height) {
-            currprefs.gfx_height_win >>= 1;
+        if(currprefs.gfx_height + S->BarHeight + 1 >= S->Height) {
+            currprefs.gfx_height >>= 1;
             currprefs.gfx_correct_aspect = 1;
         }
     }
@@ -816,8 +801,8 @@ static int setup_publicscreen(void)
     W = OpenWindowTags(NULL,
                        WA_Title,        (ULONG)"UAE",
                        WA_AutoAdjust,   TRUE,
-                       WA_InnerWidth,   currprefs.gfx_width_win,
-                       WA_InnerHeight,  currprefs.gfx_height_win,
+                       WA_InnerWidth,   currprefs.gfx_width,
+                       WA_InnerHeight,  currprefs.gfx_height,
                        WA_PubScreen,    (ULONG)S,
                        WA_Zoom,         (ULONG)ZoomArray,
                        WA_IDCMP,        IDCMP_MOUSEBUTTONS|
@@ -936,10 +921,10 @@ static int setup_userscreen(void)
                       ASLSM_TitleText, (ULONG)"Select screen display mode",
                       ASLSM_InitialDisplayID,    NULL,
                       ASLSM_InitialDisplayDepth, 8,
-                      ASLSM_InitialDisplayWidth, currprefs.gfx_width_win,
-                      ASLSM_InitialDisplayHeight,currprefs.gfx_height_win,
-                      ASLSM_MinWidth,            currprefs.gfx_width_win,
-                      ASLSM_MinHeight,           currprefs.gfx_height_win,
+                      ASLSM_InitialDisplayWidth, currprefs.gfx_width,
+                      ASLSM_InitialDisplayHeight,currprefs.gfx_height,
+                      ASLSM_MinWidth,            currprefs.gfx_width,
+                      ASLSM_MinHeight,           currprefs.gfx_height,
                       ASLSM_DoWidth,             TRUE,
                       ASLSM_DoHeight,            TRUE,
                       ASLSM_DoDepth,             TRUE,
@@ -969,8 +954,8 @@ static int setup_userscreen(void)
 #if 0
     if(DisplayID & DIPF_IS_HAM) Depth = 6; /* only ham6 for the moment */
 #endif
-    if(ScreenWidth  < currprefs.gfx_width_win)  ScreenWidth  = currprefs.gfx_width_win;
-    if(ScreenHeight < currprefs.gfx_height_win) ScreenHeight = currprefs.gfx_height_win;
+    if(ScreenWidth  < currprefs.gfx_width)  ScreenWidth  = currprefs.gfx_width;
+    if(ScreenHeight < currprefs.gfx_height) ScreenHeight = currprefs.gfx_height;
 
     S = OpenScreenTags(NULL,
                        SA_DisplayID,                  DisplayID,
@@ -1070,9 +1055,9 @@ static int setup_graffiti(void)
         0x800,0x801,0x808,0x809,0x880,0x881,0x888,0x889};
     int i;
 
-    NewScreenStructure.Width     = 2*currprefs.gfx_width_win;
+    NewScreenStructure.Width     = 2*currprefs.gfx_width;
     /* I leave 8 extra lines for palette & mode: */
-    NewScreenStructure.Height    = currprefs.gfx_height_win+8;  
+    NewScreenStructure.Height    = currprefs.gfx_height+8;  
     NewScreenStructure.Depth     = 4;
     NewScreenStructure.ViewModes = HIRES|GENLOCK_AUDIO/*|GENLOCK_VIDEO*/;
                                    /*    ^^            ^^ which one ? */
@@ -1121,12 +1106,12 @@ static int setup_graffiti(void)
 
 int graphics_setup(void)
 {
-//#ifdef OS_IS_AMIGAOS
-//    if(ix_os != OS_IS_AMIGAOS) {
-//        ix_req(NULL, "Abort", NULL, "That version of %s is only for AmigaOS!", __progname);
-//        exit(20);
-//    }    
-//#endif
+#ifdef OS_IS_AMIGAOS
+    if(ix_os != OS_IS_AMIGAOS) {
+        ix_req(NULL, "Abort", NULL, "That version of %s is only for AmigaOS!", __progname);
+        exit(20);
+    }    
+#endif
     if(((struct ExecBase *)SysBase)->LibNode.lib_Version < 36) {
         fprintf(stderr, "UAE needs OS 2.0+ !\n");
         return 0;
@@ -1162,26 +1147,26 @@ int graphics_init(void)
     use_delta_buffer = 0;
     need_dither = 0;
     use_cyb = 0;
-
-    if (currprefs.gfx_width_win < 320)
-        currprefs.gfx_width_win = 320;
-    if (!currprefs.gfx_correct_aspect && (currprefs.gfx_height_win < 64/*200*/))
-        currprefs.gfx_height_win = 200;
-    currprefs.gfx_width_win += 7;
-    currprefs.gfx_width_win &= ~7;
+    
+    if (currprefs.gfx_width < 320)
+        currprefs.gfx_width = 320;
+    if (!currprefs.gfx_correct_aspect && (currprefs.gfx_height < 64/*200*/))
+        currprefs.gfx_height = 200;
+    currprefs.gfx_width += 7;
+    currprefs.gfx_width &= ~7;
 
     if (currprefs.color_mode > 5)
         fprintf(stderr, "Bad color mode selected. Using default.\n"), currprefs.color_mode = 0;
     
     if(currprefs.color_mode == 3) { /* graffiti */
-        currprefs.gfx_width_win = 320;
-        if(currprefs.gfx_height_win > 256) 
-            currprefs.gfx_height_win = 256;
+        currprefs.gfx_width = 320;
+        if(currprefs.gfx_height > 256) 
+            currprefs.gfx_height = 256;
         currprefs.gfx_lores = 1;
     } /* graffiti */
     
-    gfxvidinfo.width  = currprefs.gfx_width_win;
-    gfxvidinfo.height = currprefs.gfx_height_win;
+    gfxvidinfo.width  = currprefs.gfx_width;
+    gfxvidinfo.height = currprefs.gfx_height;
 
     switch(currprefs.color_mode) {
       case 3:
@@ -1203,12 +1188,12 @@ int graphics_init(void)
         break;
     }
 
-    Line = AllocVec((currprefs.gfx_width_win + 15) & ~15,MEMF_ANY|MEMF_PUBLIC);
+    Line = AllocVec((currprefs.gfx_width + 15) & ~15,MEMF_ANY|MEMF_PUBLIC);
     if(!Line) {
         fprintf(stderr,"Unable to allocate raster buffer.\n");
         return 0;
     }
-    BitMap = myAllocBitMap(currprefs.gfx_width_win,1,8,BMF_CLEAR|BMF_MINPLANES,RP->BitMap);
+    BitMap = myAllocBitMap(currprefs.gfx_width,1,8,BMF_CLEAR|BMF_MINPLANES,RP->BitMap);
     if(!BitMap) {
         fprintf(stderr,"Unable to allocate BitMap.\n");
         return 0;
@@ -1245,8 +1230,8 @@ int graphics_init(void)
     gfxvidinfo.emergmem = 0;
     gfxvidinfo.linemem = 0;
     if (!use_cyb) {
-        gfxvidinfo.rowbytes = gfxvidinfo.pixbytes * currprefs.gfx_width_win;
-        gfxvidinfo.bufmem = (char *)calloc(gfxvidinfo.rowbytes, currprefs.gfx_height_win+1);
+        gfxvidinfo.rowbytes = gfxvidinfo.pixbytes * currprefs.gfx_width;
+        gfxvidinfo.bufmem = (char *)calloc(gfxvidinfo.rowbytes, currprefs.gfx_height+1);
         /*                                                           ^^ */
         /*            This is because DitherLine may read one extra row */
     } else {
@@ -1259,7 +1244,7 @@ int graphics_init(void)
            case 32: fmt = PIXFMT_ARGB32; break;
            default: fprintf(stderr,"Unsupported bitdepth %d.\n",bitdepth); return 0;
         }
-        CybBitMap = myAllocBitMap(currprefs.gfx_width_win, currprefs.gfx_height_win+1,
+        CybBitMap = myAllocBitMap(currprefs.gfx_width, currprefs.gfx_height+1,
                                   bitdepth, 
                                   (fmt<<24)|BMF_SPECIALFMT|BMF_MINPLANES, 
                                   NULL);
@@ -1276,8 +1261,8 @@ int graphics_init(void)
     } 
 
     if (use_delta_buffer) {
-        gfxvidinfo.maxblocklines = currprefs.gfx_height_win-1; /* it seems to increase the speed */
-        oldpixbuf = (char *)calloc(gfxvidinfo.rowbytes, currprefs.gfx_height_win);
+        gfxvidinfo.maxblocklines = currprefs.gfx_height-1; /* it seems to increase the speed */
+        oldpixbuf = (char *)calloc(gfxvidinfo.rowbytes, currprefs.gfx_height);
         if(!oldpixbuf) {
             fprintf(stderr,"Not enough memory for oldpixbuf.\n");
             return 0;
@@ -1310,9 +1295,12 @@ int graphics_init(void)
 
     if(!usepub) ScreenToFront(S);
 
+    buttonstate[0] = buttonstate[1] = buttonstate[2] = 0;
     for(i=0; i<256; i++)
         keystate[i] = 0;
     
+    lastmx = lastmy = 0; 
+    newmousecounters = 0;
     inwindow = 0;
 
     rexx_init();
@@ -1418,7 +1406,7 @@ void handle_events(void)
     struct IntuiMessage *msg;
     int dmx,dmy,class,code;
   
-//    newmousecounters = 0;
+    newmousecounters = 0;
 
    /* this function is called at each frame, so: */
     ++frame_num;       /* increase frame counter */
@@ -1456,14 +1444,14 @@ void handle_events(void)
                 char *ptr = oldpixbuf;
                 int i, len = gfxvidinfo.width;
                 len *= gfxvidinfo.pixbytes;
-                for(i=0;i<currprefs.gfx_height_win;++i) {
+                for(i=0;i<currprefs.gfx_height;++i) {
                     ptr[00000] ^= 255;
                     ptr[len-1] ^= 255;
                     ptr += gfxvidinfo.rowbytes;
                 }
             }
             BeginRefresh(W);
-            flush_block(0,currprefs.gfx_height_win-1);
+            flush_block(0,currprefs.gfx_height-1);
             EndRefresh(W, TRUE);
 	    break;
 
@@ -1485,19 +1473,17 @@ void handle_events(void)
           } break;
           
           case IDCMP_MOUSEMOVE:
-	      setmousestate(0,0,dmx,0);
-	      setmousestate(0,1,dmy,0);
-//            lastmx += dmx;
-//            lastmy += dmy;
+            lastmx += dmx;
+            lastmy += dmy;
 	    break;
 
           case IDCMP_MOUSEBUTTONS:
-            if(code==SELECTDOWN) setmousebuttonstate(0,0,1);
-            if(code==SELECTUP)   setmousebuttonstate(0,0,0);
-            if(code==MIDDLEDOWN) setmousebuttonstate(0,2,1);
-            if(code==MIDDLEUP)   setmousebuttonstate(0,2,0);
-            if(code==MENUDOWN)   setmousebuttonstate(0,1,1);
-            if(code==MENUUP)     setmousebuttonstate(0,1,0);
+            if(code==SELECTDOWN) buttonstate[0]=1;
+            if(code==SELECTUP)   buttonstate[0]=0;
+            if(code==MIDDLEDOWN) buttonstate[2]=1;
+            if(code==MIDDLEUP)   buttonstate[2]=0;
+            if(code==MENUDOWN)   buttonstate[2]=1;
+            if(code==MENUUP)     buttonstate[2]=0;
             break;
         
           /* Those 2 could be of some use later. */
@@ -1511,7 +1497,7 @@ void handle_events(void)
                         
           case IDCMP_ACTIVEWINDOW:
             inwindow = 1;
-//            newmousecounters = 1;
+            newmousecounters = 1;
             break;
                         
           case IDCMP_INACTIVEWINDOW:
@@ -2195,23 +2181,3 @@ static void myWritePixelArray8(struct RastPort *a, int b, int c,
 }
 #endif
 
-/****************************************************************************/
-
-int check_prefs_changed_gfx (void)
-{
-   return 0;
-}
-
-/****************************************************************************/
-
-void target_save_options(FILE *f, struct uae_prefs *p)
-{
-}
-
-/****************************************************************************/
-
-int target_parse_option(struct uae_prefs *p, char *option, char *value)
-{
-    return 0;
-}
-   

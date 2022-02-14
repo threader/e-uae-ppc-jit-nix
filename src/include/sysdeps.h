@@ -463,11 +463,8 @@ extern void gui_message (const char *,...);
 #endif
 
 #ifndef STATIC_INLINE
-#if __GNUC__ - 1 > 1
-#define STATIC_INLINE static __inline__ __attribute__((always_inline))
-#else
 #define STATIC_INLINE static __inline__
-#endif
+//#define STATIC_INLINE static __inline__ __attribute__((always_inline))
 #endif
 
 /* Every Amiga hardware clock cycle takes this many "virtual" cycles.  This

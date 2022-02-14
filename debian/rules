@@ -11,6 +11,10 @@
 DEB_HOST_GNU_TYPE   ?= $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
 DEB_BUILD_GNU_TYPE  ?= $(shell dpkg-architecture -qDEB_BUILD_GNU_TYPE)
 
+# Currently, we force building with gcc-2.95
+# This is mandatory just now on x86.
+CC=gcc-2.95
+
 # Build only the SDL target for just now
 CFG_OPTIONS += --with-sdl-gfx --with-sdl-sound
 

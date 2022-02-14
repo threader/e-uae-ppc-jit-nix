@@ -51,8 +51,6 @@ int picasso_is_special_read=PIC_READ; /* ditto */
 
 #ifdef PICASSO96
 
-int p96hack_vpos, p96hack_vpos2, p96refresh_active;
-
 #define P96TRACING_ENABLED 0
 #if P96TRACING_ENABLED
 #define P96TRACE(x)	do { write_log x; } while(0)
@@ -702,28 +700,17 @@ static int renderinfo_is_current_screen (struct RenderInfo *ri)
  * 2. Picasso-->Picasso transition, via SetPanning().
  * 3. whenever the graphics code notifies us that the screen contents have been lost.
  */
-extern unsigned int new_beamcon0;
-
-void picasso_refresh (int call_setpalette)
+void picasso_refresh (void)
 {
     struct RenderInfo ri;
 
     if (!picasso_on)
 	return;
 
-    { // for higher P96 mousedraw rate
-	extern uae_u16 vtotal;
-	if (p96hack_vpos2) {
-	    vtotal = p96hack_vpos2;
-	    new_beamcon0 |= 0x80;
-	    p96refresh_active=1;
-	} else new_beamcon0 |= 0x20;
-    }
-
 #ifdef JIT
     have_done_picasso=1;
 #endif
-
+   
     /* Make sure that the first time we show a Picasso video mode, we don't blit any crap.
      * We can do this by checking if we have an Address yet.  */
     if (picasso96_state.Address) {
@@ -962,7 +949,7 @@ uae_u32 picasso_SetSwitch (void)
 void picasso_enablescreen (int on)
 {
     wgfx_linestart = 0xFFFFFFFF;
-    picasso_refresh (1);
+    picasso_refresh ();
 #if 0
     write_log ("SetSwitch() - showing %s screen\n", on ? "picasso96" : "amiga");
 #endif
@@ -977,7 +964,7 @@ void picasso_handle_vsync (void)
 	DX_SetPalette (first_color_changed, last_color_changed - first_color_changed);
 	/* If we're emulating a CLUT mode, we need to redraw the entire screen.  */
 	if (picasso_vidinfo.rgbformat != picasso96_state.RGBFormat)
-	    picasso_refresh (1);
+	    picasso_refresh ();
     }
 
     first_color_changed = 256;
@@ -1082,7 +1069,7 @@ static void init_picasso_screen (void)
     DX_SetPalette (0, 256);
 
     wgfx_linestart = 0xFFFFFFFF;
-    picasso_refresh (1);
+    picasso_refresh ();
 }
 
 /*
@@ -1976,7 +1963,7 @@ uae_u32 picasso_CalculateBytesPerRow (void)
     uae_u32 type = m68k_dreg (regs, 7);
 
     width = GetBytesPerPixel (type) * width;
-    P96TRACE  (("CalculateBytesPerRow() = %d\n", width));
+    P96TRACE  (("CalculateBytesPerRow() = %d\n", width)); 
 
     return width;
 }
@@ -2409,9 +2396,9 @@ static uae_u32 REGPARAM2 gfxmem_lget (uaecptr addr)
 {
     uae_u32 *m;
 
-#ifdef JIT
-    special_mem|=picasso_is_special_read;
-#endif
+#ifdef JIT   
+    special_mem|=picasso_is_special_read;  
+#endif   
     addr -= gfxmem_start & gfxmem_mask;
     addr &= gfxmem_mask;
     m = (uae_u32 *) (gfxmemory + addr);
@@ -2423,8 +2410,8 @@ static uae_u32 REGPARAM2 gfxmem_wget (uaecptr addr)
     uae_u16 *m;
 
 #ifdef JIT
-    special_mem|=picasso_is_special_read;
-#endif
+    special_mem|=picasso_is_special_read;  
+#endif   
     addr -= gfxmem_start & gfxmem_mask;
     addr &= gfxmem_mask;
     m = (uae_u16 *) (gfxmemory + addr);
@@ -2433,9 +2420,9 @@ static uae_u32 REGPARAM2 gfxmem_wget (uaecptr addr)
 
 static uae_u32 REGPARAM2 gfxmem_bget (uaecptr addr)
 {
-#ifdef JIT
-    special_mem|=picasso_is_special_read;
-#endif
+#ifdef JIT   
+    special_mem|=picasso_is_special_read;  
+#endif   
     addr -= gfxmem_start & gfxmem_mask;
     addr &= gfxmem_mask;
     return gfxmemory[addr];
@@ -2445,9 +2432,9 @@ static void REGPARAM2 gfxmem_lput (uaecptr addr, uae_u32 l)
 {
     uae_u32 *m;
 
-#ifdef JIT
-    special_mem|=picasso_is_special;
-#endif
+#ifdef JIT   
+    special_mem|=picasso_is_special; 
+#endif   
     addr -= gfxmem_start & gfxmem_mask;
     addr &= gfxmem_mask;
     m = (uae_u32 *) (gfxmemory + addr);

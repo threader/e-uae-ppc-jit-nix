@@ -44,9 +44,9 @@
 #include <arpa/inet.h>
 
 #ifdef DEBUG_BSDSOCKET
-#define DEBUG_LOG write_log
+#define DEBUG_LOG(x...) write_log(x)
 #else
-#define DEBUG_LOG(x...) do ; while(0)
+#define DEBUG_LOG(x...)
 #endif
 
 /* BSD-systems don't seem to have MSG_NOSIGNAL..
@@ -873,13 +873,8 @@ uae_u32 bsdsocklib_IoctlSocket (uae_u32 s, uae_u32 action, uae_u32 argp, uae_u32
     }
     switch (action) {
       case 0x8004667D: /* FIOASYNC */
-#ifdef O_ASYNC
 	r = fcntl (sock, F_SETFL, argval ? flags | O_ASYNC : flags & ~O_ASYNC);
 	return r;
-#else
-	/* O_ASYNC is only available on Linux and BSD systems */
-	return fcntl (sock, F_GETFL);
-#endif	
       case 0x8004667E: /* FIONBIO */
 	r = fcntl (sock, F_SETFL, argval ? flags | O_NONBLOCK : flags & ~O_NONBLOCK);
 	return r;

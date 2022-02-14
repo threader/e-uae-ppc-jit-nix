@@ -24,11 +24,6 @@
 
 #include <hardware/custom.h>
 #include <hardware/cia.h>
-#include <devices/audio.h>
-#include <exec/memory.h>
-#include <dos/dos.h>
-#include <dos/dosextens.h>
-#include <graphics/gfxbase.h>
 
 #if defined(POWERUP)
 #include <clib/alib_protos.h>

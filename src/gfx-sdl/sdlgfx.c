@@ -40,9 +40,9 @@
 /* Uncomment for debugging output */
 //#define DEBUG
 #ifdef DEBUG
-#define DEBUG_LOG write_log
+#define DEBUG_LOG(x...) write_log(x)
 #else
-#define DEBUG_LOG(...) do ; while(0)
+#define DEBUG_LOG(x...)
 #endif
 
 #ifdef __cplusplus
@@ -115,25 +115,6 @@ struct SDLHotKey
     long aPressedKeys[2];
 };
 
-#ifdef USE_F11_FOR_HOTKEYS
-/* This is a hack which will be cleaned up later - Rich.
- * The F12 key doesn't seem to work under MacOS X (at least on the two systems
- * I've tried): key up/down events are only generated when the key is released,
- * so it's no use as a hot-key modifier. Use F11 instead.
- */
-static struct SDLHotKey arHotKeys[] =
-{
-    {{ SDLK_F11, SDLK_s},	 togglefullscreen,	{0, 0} },
-    {{ SDLK_F11, SDLK_q},	 uae_quit,		{0, 0} },
-    {{ SDLK_F11, SDLK_m},	 togglemouse,		{0, 0} },
-    {{ SDLK_F11, SDLK_g},	 handle_mousegrab,	{0, 0} },
-    {{ SDLK_F11, SDLK_i},	 handle_inhibit,	{0, 0} },
-    {{ SDLK_F11, SDLK_p},	 handle_interpol,	{0, 0} },
-    {{ SDLK_F11, SDLK_KP_PLUS},	 framerate_up,		{0, 0} },
-    {{ SDLK_F11, SDLK_KP_MINUS}, framerate_down,	{0, 0} },
-    {{ 0, 0 }, 			 NULL, 			{0, 0} }  /* List must be terminated */
-};
-#else
 static struct SDLHotKey arHotKeys[] =
 {
     {{ SDLK_F12, SDLK_s},	 togglefullscreen,	{0, 0} },
@@ -146,7 +127,6 @@ static struct SDLHotKey arHotKeys[] =
     {{ SDLK_F12, SDLK_KP_MINUS}, framerate_down,	{0, 0} },
     {{ 0, 0 }, 			 NULL, 			{0, 0} }  /* List must be terminated */
 };
-#endif
 
 void flush_line (int y)
 {
@@ -172,14 +152,6 @@ void flush_screen (int ystart, int ystop)
     SDL_UpdateRect(prSDLScreen, 0, 0, current_width, current_height);
 #endif
 }
-
-void flush_clear_screen (void)
-{
-   DEBUG_LOG ("Function: flush_clear_screen\n");
-
-   /* Not implemented yet. It probably needs to be - Rich */
-}
-
 
 STATIC_INLINE int bitsInMask (unsigned long mask)
 {
@@ -354,7 +326,6 @@ static int graphics_subinit (void)
     prSDLScreen = SDL_SetVideoMode (current_width, current_height, bitdepth, uiSDLVidModFlags);
 
     /* Are these values what we expected? */
-    DEBUG_LOG ("P96 screen?   : %d\n", screen_is_picasso);
     DEBUG_LOG ("Fullscreen    : %d\n", fullscreen);
     DEBUG_LOG ("Mouse grabbed?: %d\n", SDL_WM_GrabInput (SDL_GRAB_QUERY));
 
@@ -377,26 +348,24 @@ static int graphics_subinit (void)
 	/* Hide mouse cursor */
 	SDL_ShowCursor (SDL_DISABLE);
 
-	if (!screen_is_picasso) {
-	    /* Initialize structure for Amiga video modes */
-	    gfxvidinfo.bufmem = prSDLScreen->pixels;
-	    gfxvidinfo.linemem = 0;
-	    gfxvidinfo.emergmem = 0;
-	    gfxvidinfo.pixbytes = prSDLScreen->format->BytesPerPixel;
-	    bit_unit = prSDLScreen->format->BytesPerPixel * 8;
-	    gfxvidinfo.rowbytes = prSDLScreen->pitch;
-	    gfxvidinfo.maxblocklines = 100;
-	    gfxvidinfo.can_double = 0;
-	} else {
-	    /* Initialize structure for Picasso96 video modes */
-	    picasso_vidinfo.rowbytes = current_width * gfxvidinfo.pixbytes;
-	    picasso_vidinfo.extra_mem = 1;
-	    picasso_vidinfo.depth = bitdepth;
-	    picasso_has_invalid_lines = 0;
-	    picasso_invalid_start = picasso_vidinfo.height + 1;
-	    picasso_invalid_stop = -1;
-	    memset (picasso_invalid_lines, 0, sizeof picasso_invalid_lines);
-	}
+	/* Initialize structure for Amiga video modes */
+	gfxvidinfo.bufmem = prSDLScreen->pixels;
+	gfxvidinfo.linemem = 0;
+	gfxvidinfo.emergmem = 0;
+	gfxvidinfo.pixbytes = prSDLScreen->format->BytesPerPixel;
+	bit_unit = prSDLScreen->format->BytesPerPixel * 8;
+	gfxvidinfo.rowbytes = prSDLScreen->pitch;
+	gfxvidinfo.maxblocklines = 100;
+	gfxvidinfo.can_double = 0;
+
+	/* Initialize structure for Picasso96 video modes */
+	picasso_vidinfo.rowbytes = current_width * gfxvidinfo.pixbytes;
+	picasso_vidinfo.extra_mem = 1;
+	picasso_vidinfo.depth = bitdepth;
+	picasso_has_invalid_lines = 0;
+	picasso_invalid_start = picasso_vidinfo.height + 1;
+	picasso_invalid_stop = -1;
+	memset (picasso_invalid_lines, 0, sizeof picasso_invalid_lines);
     }
 
     return 1;
@@ -639,35 +608,6 @@ static int decode_de (SDL_keysym *prKeySym)
     }
 }
 
-static int decode_dk (SDL_keysym *prKeySym)
-{
-    switch(prKeySym->sym) {
-	/* Partial mapping of DK-specific keys
-	 * SDL has no keysyms for dead keys: diaeresis, acute, circumflex */
-	case SDLK_a: return AK_A;
-	case SDLK_m: return AK_M;
-	case SDLK_q: return AK_Q;
-	case SDLK_w: return AK_W;
-	case SDLK_y: return AK_Y;
-	case SDLK_z: return AK_Z;
-	/* Danish AE */
-	case SDLK_WORLD_88: return AK_SEMICOLON;
-	/* Danish o oblique */
-	case SDLK_WORLD_68: return AK_QUOTE;
-	/* Danish A ring */
-	case SDLK_WORLD_69: return AK_LBRACKET;
-	/* one half - SDL has no 'section'? */
-	case SDLK_WORLD_70: return AK_BACKQUOTE;
-	case SDLK_COMMA: return AK_COMMA;
-	case SDLK_PERIOD: return AK_PERIOD;
-	case SDLK_LESS: case SDLK_GREATER: return AK_LTGT;
-	case SDLK_HASH: return AK_NUMBERSIGN;
-	case SDLK_PLUS: return AK_MINUS;
-	case SDLK_MINUS: return AK_SLASH;
-	default: return -1;
-    }
-}
-
 static int decode_se (SDL_keysym *prKeySym)
 {
     switch(prKeySym->sym) {
@@ -756,8 +696,6 @@ static int keycode2amiga(SDL_keysym *prKeySym)
 		return decode_us (prKeySym);
 	    case KBD_LANG_DE:
 		return decode_de (prKeySym);
-	    case KBD_LANG_DK:
-		return decode_dk (prKeySym);
 	    case KBD_LANG_SE:
 		return decode_se (prKeySym);
 	    case KBD_LANG_IT:
@@ -949,10 +887,8 @@ int check_prefs_changed_gfx (void)
 
     gui_update_gfx ();
     graphics_subinit ();
-
-    /* Redundant? This is done in the caller
     notice_screen_contents_lost ();
-    init_row_map (); */
+    init_row_map ();
     if (screen_is_picasso)
 	picasso_enablescreen (1);
 
@@ -1041,11 +977,6 @@ int DX_FillResolutions (uae_u16 *ppixel_format)
     int emulate_chunky = 0;
 
     DEBUG_LOG ("Function: DX_FillResolutions\n");
-
-    /* In the new scheme of things, this function is called *before* graphics_init.
-     * Hence, we need to find the display depth ourselves - Rich */
-    bitdepth = get_display_depth ();
-    bit_unit = (bitdepth + 1) & 0xF8;
 
     /* Find out, which is the highest resolution the SDL can offer */
     for (i = MAX_SCREEN_MODES-1; i>=0; i--) {
@@ -1143,23 +1074,18 @@ void gfx_set_picasso_state (int on)
 
     if (on == screen_is_picasso)
 	return;
-
     graphics_subshutdown ();
     screen_is_picasso = on;
-
     if (on) {
 	// Set height, width for Picasso gfx
 	current_width  = picasso_vidinfo.width;
 	current_height = picasso_vidinfo.height;
-	graphics_subinit ();
     } else {
 	// Set height, width for Amiga gfx
 	current_width  = gfxvidinfo.width;
 	current_height = gfxvidinfo.height;
-	graphics_subinit ();
-	reset_drawing ();
     }
-
+    graphics_subinit ();
     if (on)
 	DX_SetPalette (0, 256);
 }
@@ -1198,17 +1124,9 @@ void unlockscr (void)
 static void togglefullscreen (void)
 {
     /* FIXME: Add support for separate full-screen/windowed sizes */
-    fullscreen = (fullscreen+1) & 1;
+    if (SDL_WM_ToggleFullScreen (prSDLScreen))
+         fullscreen = ++fullscreen & 1;
 
-    if (!SDL_WM_ToggleFullScreen (prSDLScreen)) {
-	/* If SDL_WM_ToggleFullScreen isn't supported, do things the
-	 * hard way. Close down the window/screen and open a new one */
-	graphics_subshutdown ();
-	graphics_subinit ();
-        if (!screen_is_picasso)
-	  reset_drawing();
-	notice_screen_contents_lost ();
-    }
     DEBUG_LOG ("ToggleFullScreen: %d\n", fullscreen );
 };
 

@@ -244,7 +244,7 @@ uae_u32 REGPARAM2 mbres_bget (uaecptr addr)
 {
 #ifdef JIT   
     special_mem |= S_READ;
-#endif
+#endif   
     if (currprefs.illegal_mem)
 	write_log ("Illegal bget at %08lx\n", addr);
 
@@ -975,7 +975,7 @@ static int decode_cloanto_rom (uae_u8 *mem, int size, int real_size)
 static int kickstart_checksum (uae_u8 *mem, int size)
 {
     uae_u32 cksum = 0, prevck = 0;
-    int i;
+    int i; 
     for (i = 0; i < size; i+=4) {
 	uae_u32 data = mem[i]*65536*256 + mem[i+1]*65536 + mem[i+2]*256 + mem[i+3];
 	cksum += data;
@@ -1199,7 +1199,7 @@ static void dumplist(void)
 
 /*
  * find_shmpiece()
- *
+ * 
  * Locate the shmpiece node describing the block of memory mapped
  * at the *host* address <base>.
  * Returns a pointer to shmpiece describing that block if found.
@@ -1209,12 +1209,12 @@ static void dumplist(void)
 static shmpiece *find_shmpiece (uae_u8 *base)
 {
     shmpiece *x = shm_start;
-
+     
     while (x && x->native_address != base)
 	x = x->next;
     if (!x) {
 	write_log ("NATMEM: Failure to find mapping at %p\n",base);
-//	dumplist ();
+	dumplist ();
 	canbang = 0;
 	return 0;
     }
@@ -1223,7 +1223,7 @@ static shmpiece *find_shmpiece (uae_u8 *base)
 
 /*
  * delete_shmmaps()
- *
+ * 
  * Unmap any memory blocks remapped in the VM address range
  * <start> to <start+size> via add_shmmaps().
  * Any anomalies found when processing this range, will cause direct
@@ -1236,16 +1236,16 @@ static void delete_shmmaps (uae_u32 start, uae_u32 size)
 
     while (size) {
 	uae_u8 *base = mem_banks[bankindex (start)]->baseaddr; // find host address of start of this block of memory
-	if (base) {
+	if (base) { 
 	    shmpiece *x;
-	    base = ((uae_u8*)NATMEM_OFFSET)+start; // get host address it has been remapped at
+	    base = ((uae_u8*)NATMEM_OFFSET)+start; // get host address it has been remapped at 
 
 	    x = find_shmpiece (base); // and locate the corresponding shmpiece node
 	    if (!x)
                 return;
 
 	    if (x->size > size) {
-	        // Bail out: the memory mapped here isn't the size we were expecting
+	        // Bail out: the memory mapped here isn't the size we were expecting 
 		write_log ("NATMEM: Failure to delete mapping at %08x(size %08x, delsize %08x)\n",start,x->size,size);
 		dumplist ();
 		canbang = 0;
@@ -1253,9 +1253,9 @@ static void delete_shmmaps (uae_u32 start, uae_u32 size)
 	    }
 	    shmdt (x->native_address);
 
-	    size -= x->size;
+	    size -= x->size;  
 	    start += x->size;
-
+	   
 	    if (x->next)
 		x->next->prev = x->prev;	/* remove this one from the list */
 	    if (x->prev)
@@ -1282,10 +1282,10 @@ static void add_shmmaps (uae_u32 start, addrbank *what)
     shmpiece *x = shm_start;
     shmpiece *y;
     uae_u8 *base = what->baseaddr; // Host address of memory in this bank
-
+   
     if (!canbang)
 	return;
-    if (!base)
+    if (!base) 
 	return; // Nothing to do. There is no actual host memory attached to this bank.
 
     x = find_shmpiece (base); // Find the block's current shmpiece node.
@@ -1310,7 +1310,7 @@ static void add_shmmaps (uae_u32 start, addrbank *what)
 
 /*
  * mapped_malloc()
- *
+ * 
  * Allocate <size> bytes of memory for the VM.
  * If VM supports direct memory access, allocate the memory
  * in such a way (using shared memory) that it can later be
@@ -1334,13 +1334,12 @@ uae_u8 *mapped_malloc (size_t s, char *file)
 
 #ifdef WIN32
     id = shmget (IPC_PRIVATE, s, 0x1ff, file);
-#else
+#else   
     id = shmget (IPC_PRIVATE, s, 0x1ff);
-#endif
+#endif   
     if (id == -1) {
-        // Failed to allocate new shared mem segment, so turn
-	// off direct memory access and fall back on regular malloc()
-	write_log ("NATMEM: shmget() failed with size 0x%08lx. Disabling direct memory access.\n", s);
+        // Failed to allocate new shared mem segment, so turn 
+	// off direct memory access and fall back on regular malloc() 
 	canbang = 0;
 	return mapped_malloc (s, file);
     }
@@ -1369,22 +1368,17 @@ uae_u8 *mapped_malloc (size_t s, char *file)
 #ifndef WIN32
 void mapped_free (uae_u8 *base)
 {
-    shmpiece *x;
-
-    if (shm_start && (x = find_shmpiece (base))) {
-	shmdt (x->native_address); /* shm segment is already marked as destroyed */
-	if (x->next)
-	    x->next->prev = x->prev;        /* remove this one from the list */
-	if (x->prev)
-	    x->prev->next = x->next;
-	else
-	    shm_start = x->next;
-	free (x);
-     }
-     else
-	/* No shmpiece corresponding to address <base> so assume
-	 * it was allocated via malloc(). */
-	free (base);
+    shmpiece *x = find_shmpiece (base);
+    if (!x)
+	abort ();
+    shmdt (x->native_address);
+    if (x->next)
+        x->next->prev = x->prev;        /* remove this one from the list */
+    if (x->prev)
+        x->prev->next = x->next;
+    else
+        shm_start = x->next;
+    free(x);
 }
 #endif
 #endif
@@ -1514,14 +1508,14 @@ void memory_reset (void)
 	memcpy (currprefs.keyfile, changed_prefs.keyfile, sizeof currprefs.keyfile);
         if (savestate_state != STATE_RESTORE)
 	    clearexec ();
-#if defined CDTV || defined CD32
+#if defined CDTV || defined CD32       
         load_extendedkickstart ();
-#endif
+#endif        
 	if (!load_kickstart ()) {
 #ifdef AUTOCONFIG
 	    init_ersatz_rom (kickmemory);
 	    ersatzkickfile = 1;
-#endif
+#endif	   
 	}
     }
 
@@ -1542,28 +1536,28 @@ void memory_reset (void)
 #ifdef A3000MBRES
     map_banks (&mbres_bank, 0xDE, 1);
 #endif
-
+   
     if (bogomemory != 0) {
 	int t = allocated_bogomem >> 16;
 	if (t > 0x1C)
 	    t = 0x1C;
 	map_banks (&bogomem_bank, 0xC0, t, allocated_bogomem);
     }
-#ifdef AUTOCONFIG
+#ifdef AUTOCONFIG   
     if (a3000memory != 0)
 	map_banks (&a3000mem_bank, a3000mem_start >> 16, allocated_a3000mem >> 16,
 		   allocated_a3000mem);
 
     map_banks (&rtarea_bank, RTAREA_BASE >> 16, 1, 0);
 #endif
-
+   
     map_banks (&kickmem_bank, 0xF8, 8, 0);
     if (a1000_bootrom)
 	a1000_handle_kickstart (1);
-#ifdef AUTOCONFIG
+#ifdef AUTOCONFIG   
     map_banks (&expamem_bank, 0xE8, 1, 0);
 #endif
-
+   
     /* Map the chipmem into all of the lower 8MB (2MB, surely? - Rich) */
     map_overlay (1);
 
@@ -1572,9 +1566,9 @@ void memory_reset (void)
 #endif
 #ifdef CD32
     cd32_enabled = 0;
-#endif
+#endif   
 
-#if defined CDTV || CD32
+#if defined CDTV || CD32 
     switch (extromtype ()) {
 #ifdef CDTV
         case EXTENDED_ROM_CDTV:
@@ -1591,7 +1585,7 @@ void memory_reset (void)
         default:
 #else
     {
-#endif
+#endif	    
 	    if (cloanto_rom)
 	        map_banks (&kickmem_bank, 0xE0, 8, 0);
     }
@@ -1619,9 +1613,9 @@ void memory_init (void)
     extendedkickmem_size = 0;
     chipmemory = 0;
 #ifdef AUTOCONFIG
-    allocated_a3000mem = 0;
+    allocated_a3000mem = 0;   
     a3000memory = 0;
-#endif
+#endif   
     bogomemory = 0;
 
     kickmemory = mapped_malloc (kickmem_size, "kick");
@@ -1634,7 +1628,7 @@ void memory_init (void)
     init_ersatz_rom (kickmemory);
     ersatzkickfile = 1;
 #endif
-
+   
 #ifdef ACTION_REPLAY
     action_replay_load();
     action_replay_init(1);
@@ -1649,11 +1643,11 @@ void memory_init (void)
 
 void memory_cleanup (void)
 {
-#ifdef AUTOCONFIG
+#ifdef AUTOCONFIG   
     if (a3000memory)
 	mapped_free (a3000memory);
     a3000memory = 0;
-#endif
+#endif   
     if (bogomemory)
 	mapped_free (bogomemory);
     if (kickmemory)
@@ -1841,7 +1835,6 @@ struct modify_ldt_ldt_s {
     unsigned int  limit_in_pages:1;
     unsigned int  seg_not_present:1;
     unsigned int  useable:1;
-    unsigned int  garbage:25;
 };
 
 static inline int modify_ldt( int func, struct modify_ldt_ldt_s *ptr,
@@ -1863,12 +1856,7 @@ static inline int modify_ldt( int func, struct modify_ldt_ldt_s *ptr,
 
 static void setup_ldt (void)
 {
-/*
- * Disabled for just now. Loading the GS register
- * below causes a segfault on 2.6 kernels (and 
- * apparently some 2.4 kernels). Don't know why
- * yet - Rich */
-/*    struct modify_ldt_ldt_s entry;
+    struct modify_ldt_ldt_s entry;
     entry.entry_number = 1;
     entry.base_addr = NATMEM_OFFSET;
     entry.limit = 0x80000000 >> 12;
@@ -1877,9 +1865,8 @@ static void setup_ldt (void)
     entry.limit_in_pages = 1;
     entry.seg_not_present = 0;
     entry.useable = 1;
-    entry.garbage = 0;
-    modify_ldt (1, &entry, sizeof entry); 
-    __asm__ __volatile__ ("mov %0,%%gs" : : "r" (15)); */
+    modify_ldt (1, &entry, sizeof entry);
+    __asm__ __volatile__ ("mov %0,%%gs" : : "r" (15));
 }
 
 #endif
