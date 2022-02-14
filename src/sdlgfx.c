@@ -12,7 +12,6 @@
   * Copyright 1998 Marcus Sundberg
   * DGA support by Kai Kollmorgen
   * X11/DGA merge, hotkeys and grabmouse by Marcus Sundberg
-  * Copyright 2003 Richard Drummond
   */
 
 #include "sysconfig.h"
@@ -535,11 +534,6 @@ static int kc_decode (SDL_keysym *prKeySym)
     case SDLK_PAGEUP: return AK_RAMI;          /* PgUp mapped to right amiga */
     case SDLK_PAGEDOWN: return AK_LAMI;        /* PgDn mapped to left amiga */
 
-    /* This should enable mapping of Windows keys
-     * to Amiga keys - Rich */
-    case SDLK_LSUPER: return AK_LAMI;
-    case SDLK_RSUPER: return AK_RAMI;
-       
     default: return -1;
     }
 }
@@ -590,8 +584,8 @@ static int decode_us (SDL_keysym *prKeySym)
     case SDLK_MINUS: return AK_MINUS;
     case SDLK_EQUALS: return AK_EQUAL;
 	/* this doesn't work: */
-    case SDLK_QUOTE: return AK_QUOTE;
-    case SDLK_BACKQUOTE: return AK_BACKQUOTE;
+    case SDLK_BACKQUOTE: return AK_QUOTE;
+    case SDLK_QUOTE: return AK_BACKQUOTE;
     case SDLK_BACKSLASH: return AK_BACKSLASH;
     default: return -1;
     }

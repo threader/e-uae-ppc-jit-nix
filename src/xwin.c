@@ -8,7 +8,6 @@
   * Copyright 1998 Marcus Sundberg
   * DGA support by Kai Kollmorgen
   * X11/DGA merge, hotkeys and grabmouse by Marcus Sundberg
-  * Copyright 2003 Richard Drummond
   */
 
 #include "sysconfig.h"
@@ -936,6 +935,7 @@ int graphics_init (void)
 
     graphics_subinit ();
 
+//    buttonstate[0] = buttonstate[1] = buttonstate[2] = 0;
     for (i = 0; i < 256; i++)
 	keystate[i] = 0;
     grabbed = 0;
@@ -1111,11 +1111,6 @@ static int kc_decode (KeySym ks)
 #ifdef XK_Page_Up /* These are missing occasionally */
      case XK_Page_Up: return AK_RAMI;          /* PgUp mapped to right amiga */
      case XK_Page_Down: return AK_LAMI;        /* PgDn mapped to left amiga */
-#endif
-       
-#ifdef XK_Super_L
-     case XK_Super_L: return AK_LAMI;
-     case XK_Super_R: return AK_RAMI;
 #endif
     }
     return -1;
